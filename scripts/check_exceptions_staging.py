@@ -4,8 +4,9 @@
 Same shape as scripts/check_lot_confirmation_staging.py and
 check_order_tickets_staging.py: reads only the protected staging URI; no
 production configuration or API keys; TestClient without a lifespan context, so
-no startup migrations or sweeps run. `--apply-migration` applies 069 in one
-guarded transaction (the script refuses to run the examples without it).
+no startup migrations or sweeps run. `--apply-migration` applies 069 and 070 in one
+guarded transaction each (the script refuses to run the examples without them);
+`--migrations-only` stops after that and reports the markers.
 
 Three examples Michael asked for, all retained as evidence:
   1. a short make — posted with a shortage flag + SHORTAGE exception;
@@ -37,10 +38,10 @@ sys.path.insert(0, str(ROOT))
 from staging_safety import assert_staging_database, PRODUCTION_DATABASE_HOST
 from scripts.seed_staging import secret_file
 
-MIGRATION = '069_exceptions_enforcement'
+MIGRATIONS = ('069_exceptions_enforcement', '070_pre_make_adjust')
 
 
-def check(apply_migration=False):
+def check(apply_migration=False, migrations_only=False):
     uri = secret_file(Path.home() / 'Documents/fl-secrets/staging-db-url.txt')
     assert_staging_database(uri, 'staging', PRODUCTION_DATABASE_HOST)
     if urlsplit(uri).hostname != 'aws-0-us-east-1.pooler.supabase.com':
@@ -60,15 +61,20 @@ def check(apply_migration=False):
             conn.close()
 
     if apply_migration:
-        with connection() as conn, conn.cursor() as cur:
-            cur.execute("SELECT 1 FROM migration_markers WHERE name IN ('061_exceptions_tables','065_entered_by')")
-            if len(cur.fetchall()) != 2:
-                raise RuntimeError('069 needs 061 and 065 on staging first')
-            cur.execute((ROOT / 'migrations' / f'{MIGRATION}.sql').read_text())
+        for migration in MIGRATIONS:
+            with connection() as conn, conn.cursor() as cur:
+                cur.execute("SELECT 1 FROM migration_markers WHERE name IN ('061_exceptions_tables','065_entered_by')")
+                if len(cur.fetchall()) != 2:
+                    raise RuntimeError('069/070 need 061 and 065 on staging first')
+                cur.execute((ROOT / 'migrations' / f'{migration}.sql').read_text())
     with connection() as conn, conn.cursor() as cur:
-        cur.execute("SELECT 1 FROM migration_markers WHERE name=%s", (MIGRATION,))
-        if cur.fetchone() is None:
-            raise RuntimeError('Apply migration 069 to staging before acceptance (--apply-migration)')
+        cur.execute("SELECT name, applied_at FROM migration_markers WHERE name = ANY(%s) ORDER BY name", (list(MIGRATIONS),))
+        markers = {row[0]: row[1] for row in cur.fetchall()}
+        missing = [m for m in MIGRATIONS if m not in markers]
+        if missing:
+            raise RuntimeError(f'Apply {", ".join(missing)} to staging before acceptance (--apply-migration)')
+        if migrations_only:
+            return {'mode': 'migrations only', 'migration_applied_now': apply_migration, 'markers': markers}
         cur.execute("SELECT count(*) FROM correction_reasons WHERE active")
         if cur.fetchone()[0] != 8:
             raise RuntimeError('Staging correction_reasons seed is not the fixed list of 8')
@@ -184,9 +190,11 @@ def check(apply_migration=False):
         assert balance_after == -606.0
 
         # ── resolve the shortage as the floor (who/when), then list it ───────
+        # 'counted' needs the physical count and posts the counted correction atomically (0 lb → +6).
         resolved = post(f'/exceptions/{shortage["exception_id"]}/resolve',
-                        {'resolution_kind': 'counted', 'note': 'Counted: 4 lb were all that was left (staging acceptance)'}, 'floor')
+                        {'resolution_kind': 'counted', 'counted_lb': 0, 'note': 'Counted: nothing left on the pallet (staging acceptance)'}, 'floor')
         assert resolved['status'] == 'resolved' and resolved['resolved_by']['id'] == actor_ids['floor']
+        assert resolved['detail']['resolution']['transaction_id'] and resolved['detail']['resolution']['new_balance_lb'] == 0.0
         listed = client.get('/exceptions?status=all&lot_id=' + str(lot['id']), headers=headers('owner')).json()
         assert {e['id'] for e in listed['exceptions']} >= {shortage['exception_id'], exception_id}
         return {'reference': reference, 'mode': 'local branch HTTP routes against STAGING; no hosted deployment',
@@ -206,6 +214,7 @@ def check(apply_migration=False):
                                      'master_key_list': master.json()['detail']['error_code'],
                                      'cover_up_adjust': refused['detail']['error_code']},
                 'shortage_resolved_by': resolved['resolved_by'], 'shortage_resolved_at': resolved['resolved_at'],
+                'shortage_resolution': resolved['detail']['resolution'],
                 'actors': actor_ids, 'actors_deactivated_after_check': True, 'products': products}
     finally:
         client.close()
@@ -218,10 +227,11 @@ def check(apply_migration=False):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--apply-migration', action='store_true')
+    parser.add_argument('--migrations-only', action='store_true', help='apply/check the markers and stop; no examples')
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     try:
-        result = check(args.apply_migration)
+        result = check(args.apply_migration, args.migrations_only)
         args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False, default=str) + '\n')
         print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
     except Exception as exc:

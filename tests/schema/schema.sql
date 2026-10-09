@@ -6094,3 +6094,4 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 -- pg_dump leaves search_path empty; restore it for standalone DDL.
 SET search_path TO public;
 \ir ../../migrations/069_exceptions_enforcement.sql
+\ir ../../migrations/070_pre_make_adjust.sql

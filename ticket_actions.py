@@ -182,7 +182,7 @@ def validate(api, cur, action, payload, lock=False):
                  'reason_code': reason['code'], 'reason': reason, 'reason_es': req.reason_es, 'note': reason['note'],
                  'attachment_ref': payload.get('attachment_ref'),
                  'correction_review': a3b.correction_review(api, 'adjust', p, req.adjustment_lb,
-                                                            book_balance_before=current['on_hand_lb'])}
+                                                            book_balance_before=current['on_hand_lb'], reason_code=reason['code'])}
         if draft['new_balance_lb'] < 0:
             draft['balance_warning'] = f'{p["name"]} lot {current["lot_code"]} will have negative inventory ({draft["new_balance_lb"]} lb).'
         options = {'product': p, 'lot_id': payload['lot_id'], 'reason_code': reason['code'], 'note': reason['note']}
@@ -209,7 +209,7 @@ def validate(api, cur, action, payload, lock=False):
                  'notes': req.notes, 'notes_es': req.notes_es, 'found_location': req.found_location,
                  'estimated_age': req.estimated_age, 'suspected_supplier': req.suspected_supplier,
                  'attachment_ref': payload.get('attachment_ref'),
-                 'correction_review': a3b.correction_review(api, 'found', p, req.quantity, uom=req.uom)}
+                 'correction_review': a3b.correction_review(api, 'found', p, req.quantity, uom=req.uom, reason_code=reason['code'])}
         options = {'reason_code': reason['code']}
         specification = {'product_id': p['id'], 'quantity_lb': req.quantity}
     else:
@@ -290,6 +290,11 @@ def post(api, cur, action, validated, payload, request, ticket_id, receipt_numbe
         response['shortages'] = a3b.record_shortages(
             cur, response['transaction_id'], draft.get('shortages'), ticket_id=ticket_id,
             receipt_number=receipt_number, action=action, actor_id=actor['id'] if actor else None)
+        # A3b hook (§5 R3): a positive adjust by the same actor within 30 min before this
+        # make/pack on an ingredient it consumes is tagged pre_make_adjust (070).
+        response['pre_make_adjusts'] = a3b.record_pre_make_adjusts(
+            cur, response['transaction_id'], draft['input_plan'], ticket_id=ticket_id, receipt_number=receipt_number,
+            action=action, actor_id=actor['id'] if actor else None, operator_id=api._operator_id(request))
     if action == 'pack':
         response['lot_id'] = response['output_lot_id']
     elif action == 'found':

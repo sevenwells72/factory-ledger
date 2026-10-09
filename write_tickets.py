@@ -418,6 +418,10 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
             draft['attachment_ref'] = photo
             if draft['correction_review']['photo_required'] and not photo and not approval:
                 cur.execute('ROLLBACK TO SAVEPOINT ticket_post')
+                if row['actor_id'] is None:
+                    # A shared key has no named preparer for the owner to approve for:
+                    # plain 422, nothing held, the ticket stays prepared until it expires.
+                    return api.JSONResponse(status_code=422, content=json_value(api, a3b.photo_required(draft)))
                 return api.JSONResponse(status_code=202, content=json_value(api, a3b.hold_ticket(
                     api, cur, row, actor, draft, acknowledged, row['payload_hash'])))
         state_changed = canonical_hash(json_value(api, state)) != row['state_hash']

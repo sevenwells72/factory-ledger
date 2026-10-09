@@ -733,8 +733,11 @@ def test_migration_065_up_down_up(isolated_database):
     # goes back on last (rollback order documented in the 069 down file).
     up_069 = (ROOT / 'migrations/069_exceptions_enforcement.sql').read_text()
     down_069 = (ROOT / 'migrations/down/069_exceptions_enforcement_down.sql').read_text()
+    up_070 = (ROOT / 'migrations/070_pre_make_adjust.sql').read_text()
+    down_070 = (ROOT / 'migrations/down/070_pre_make_adjust_down.sql').read_text()
     with psycopg2.connect(isolated_database) as conn, conn.cursor() as cur:
         cur.execute('SET LOCAL search_path TO public')
+        cur.execute(down_070)
         cur.execute(down_069)
         assert columns(cur) == ['ledger_corrections', 'transactions']
         cur.execute(up)   # rerun is a no-op
@@ -754,4 +757,5 @@ def test_migration_065_up_down_up(isolated_database):
                                                                              AND attname='entered_by_actor_id')]""")
         assert cur.fetchone()[0] == 'actors'
         cur.execute(up_069)
+        cur.execute(up_070)
         assert 'ledger_current_transactions' in columns(cur)

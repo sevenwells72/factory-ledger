@@ -143,6 +143,11 @@ lands, FL should (a) accept an `attachment_id` alongside/instead of the ref, (b)
 row exists and belongs to the same actor/ticket at commit, (c) have F1 upload the photo
 first and pass the id. Until then a ref is trusted as evidence that a photo was taken; the
 hold + owner approval path does not depend on it.
+**PILOT-BLOCKING (Codex review of PR #94, 2026-10-09):** A6 must validate `attachment_ref`
+existence AND ownership (same actor / same ticket, or the resolving actor for a `counted`
+shortage correction) before the pilot — today a bare string releases a > 500 lb hold on the
+normal commit path and satisfies the photo rule on `POST /exceptions/{id}/resolve` (`counted`
+over 500 lb). Readiness gate item: no pilot until the ref is checked against the `attachments` row.
 
 ---
 

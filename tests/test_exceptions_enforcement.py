@@ -8,6 +8,7 @@ from hashlib import sha256
 from pathlib import Path
 import threading
 from threading import Barrier
+import time
 from uuid import uuid4
 
 from fastapi.testclient import TestClient
@@ -103,7 +104,8 @@ def test_unknown_needs_a_note_and_the_note_is_kept(client, db_cursor, items):
     error(client.post('/inventory/found/prepare', json=found(items, 3, 'unknown'), headers=headers()), 422, 'NOTE_REQUIRED')
     prepared = prepare(client, 'adjust', adjust(items, -3, 'Unknown', note='bag split on the floor'))
     assert prepared['draft']['reason_code'] == 'unknown' and prepared['draft']['note'] == 'bag split on the floor'
-    assert prepared['draft']['correction_review']['highlighted'] is False
+    assert prepared['draft']['correction_review']['highlighted'] is True          # §5.1: unknown is always highlighted
+    assert prepared['draft']['correction_review']['rules'] == ['REASON_UNKNOWN']
     response = commit(client, prepared)
     assert response.status_code == 200, response.text
     db_cursor.execute('SELECT reason_code, adjust_reason, adjust_reason_es, notes FROM transactions WHERE id=%s',
@@ -365,7 +367,8 @@ def test_approve_wrong_kind_and_resolve_wrong_route(client, db_cursor, items, ac
     error(client.post('/exceptions/999999999/approve', json={}, headers=owner), 404, 'EXCEPTION_NOT_FOUND')
 
 
-def test_concurrent_approvals_post_once(isolated_database, monkeypatch):
+def race_actors(isolated_database):
+    """Committed fixtures on the dedicated database: products/lots + a floor and an owner actor."""
     token = uuid4().hex[:8].upper()
     keys = {role: f'actor-key-{role}-{token}' for role in ('floor', 'owner')}
     with psycopg2.connect(isolated_database) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -375,32 +378,41 @@ def test_concurrent_approvals_post_once(isolated_database, monkeypatch):
             cur.execute("INSERT INTO actors(name,role,key_hash,active) VALUES (%s,%s,%s,true) RETURNING id",
                         (f'ACT {role} {token}', role, sha256(key.encode()).hexdigest()))
             ids[role] = cur.fetchone()['id']
-    gate = Barrier(2)
-    racing = False
-    local = threading.local()
+    return keys, items_, ids
+
+
+class Race:
+    """App connections that meet at a barrier once per thread while `on` is set
+    (actor lookups open extra connections, so each thread waits only once)."""
+    def __init__(self, database, parties=2):
+        self.database, self.gate, self.on, self.local = database, Barrier(parties), False, threading.local()
 
     @contextmanager
-    def connection():
-        with psycopg2.connect(isolated_database) as conn:
+    def connection(self):
+        with psycopg2.connect(self.database) as conn:
             with conn.cursor() as cur:
                 cur.execute("SET LOCAL lock_timeout='10s'")
-            # Each racing request meets the other once (actor lookups open extra connections).
-            if racing and not getattr(local, 'waited', False):
-                local.waited = True
-                gate.wait(timeout=10)
+            if self.on and not getattr(self.local, 'waited', False):
+                self.local.waited = True
+                self.gate.wait(timeout=10)
             yield conn
-    monkeypatch.setattr(main, 'get_db_connection', connection)
+
+
+def test_concurrent_approvals_post_once(isolated_database, monkeypatch):
+    keys, items_, ids = race_actors(isolated_database)
+    race = Race(isolated_database)
+    monkeypatch.setattr(main, 'get_db_connection', race.connection)
     main._reset_actor_cache()
     with TestClient(main.app) as http:
         prepared = prepare(http, 'adjust', adjust(items_, 600, 'missing_receipt'), keys['floor'])
         held = commit(http, prepared, keys['floor'])
         assert held.status_code == 202, held.text
         exception_id = held.json()['exception_id']
-        racing = True
+        race.on = True
         approve = lambda: http.post(f'/exceptions/{exception_id}/approve', json={}, headers=headers(keys['owner']))
         with ThreadPoolExecutor(max_workers=2) as executor:
             results = [f.result(timeout=30) for f in [executor.submit(approve) for _ in range(2)]]
-        racing = False
+        race.on = False
         assert [r.status_code for r in results] == [200, 200], [r.text for r in results]
         data = [r.json() for r in results]
         assert data[0]['receipt_number'] == data[1]['receipt_number']
@@ -541,7 +553,7 @@ def test_never_add_stock_to_cover_an_open_shortage(client, db_cursor, items, act
     # Resolve first (who/when/why recorded), then stock may be corrected.
     assert client.post(f'/exceptions/{exception_id}/resolve', json={'resolution_kind': 'counted'}, headers=headers(key)).status_code == 422
     error(client.post(f'/exceptions/{exception_id}/resolve', json={'resolution_kind': 'approved', 'note': 'x'}, headers=headers(key)), 422, 'RESOLUTION_KIND_INVALID')
-    resolved = client.post(f'/exceptions/{exception_id}/resolve', json={'resolution_kind': 'counted', 'note': 'Counted 4 lb left on the pallet'}, headers=headers(key))
+    resolved = client.post(f'/exceptions/{exception_id}/resolve', json={'resolution_kind': 'counted', 'counted_lb': 4, 'note': 'Counted 4 lb left on the pallet'}, headers=headers(key))
     assert resolved.status_code == 200, resolved.text
     view = resolved.json()
     assert view['status'] == 'resolved' and view['resolution_kind'] == 'counted' and view['resolved_by']['id'] == actors['floor']['id']
@@ -591,7 +603,7 @@ def test_exceptions_routes_are_named_actor_only(client, db_cursor, items, actors
     assert response.status_code == 403 and response.json()['detail'] == 'API key not authorized for this endpoint'
     assert client.get('/exceptions', headers={'X-API-Key': 'not-a-key'}).status_code == 403
     assert client.get('/exceptions', headers=headers(actors['retired']['key'])).status_code == 403
-    body_ = {'resolution_kind': 'counted', 'note': 'x'}
+    body_ = {'resolution_kind': 'counted', 'counted_lb': 4, 'note': 'x'}
     error(client.post(f'/exceptions/{exception_id}/resolve', json=body_, headers=headers(actors['office']['key'])), 403, 'ROLE_NOT_ALLOWED')
     error(client.post(f'/exceptions/{exception_id}/resolve', json=body_, headers=headers()), 403, 'ROLE_NOT_ALLOWED')
     assert client.post(f'/exceptions/{exception_id}/resolve', json=body_, headers=headers(main.DASHBOARD_API_KEY)).status_code == 403
@@ -632,7 +644,8 @@ def test_list_filters_view_and_overdue(client, db_cursor, items, actors):
     error(client.get('/exceptions/999999999', headers=headers(key)), 404, 'EXCEPTION_NOT_FOUND')
     assert client.get('/exceptions?status=bogus', headers=headers(key)).status_code == 422
     assert shortage_id not in [e['id'] for e in client.get('/exceptions?status=resolved', headers=headers(key)).json()['exceptions']]
-    client.post(f'/exceptions/{shortage_id}/resolve', json={'resolution_kind': 'voided', 'note': 'make was voided'}, headers=headers(key))
+    assert client.post(f'/exceptions/{shortage_id}/resolve', json={'resolution_kind': 'counted', 'counted_lb': 0, 'note': 'nothing left'},
+                       headers=headers(key)).status_code == 200
     assert shortage_id in [e['id'] for e in client.get('/exceptions?status=resolved', headers=headers(key)).json()['exceptions']]
     assert shortage_id not in [e['id'] for e in client.get('/exceptions', headers=headers(key)).json()['exceptions']]
     assert shortage_id in [e['id'] for e in client.get('/exceptions?status=all', headers=headers(key)).json()['exceptions']]
@@ -657,10 +670,10 @@ def test_nightly_sweep_escalates_overdue_once(client, db_cursor, items, actors):
     assert [e['status'] for e in listed if e['id'] == shortage_id] == ['escalated']
     assert client.get('/exceptions?status=escalated', headers=headers(key)).json()['exceptions'][0]['overdue'] is True
     # It can still be resolved, and the flag follows.
-    assert client.post(f'/exceptions/{shortage_id}/resolve', json={'resolution_kind': 'missing_movement', 'note': 'late receive RCV-…'},
+    assert client.post(f'/exceptions/{shortage_id}/resolve', json={'resolution_kind': 'counted', 'counted_lb': 0, 'note': 'nothing left'},
                        headers=headers(key)).status_code == 200
     db_cursor.execute('SELECT status, resolution_kind FROM shortage_flags WHERE exception_id=%s', (shortage_id,))
-    assert dict(db_cursor.fetchone()) == {'status': 'resolved', 'resolution_kind': 'missing_movement'}
+    assert dict(db_cursor.fetchone()) == {'status': 'resolved', 'resolution_kind': 'counted'}
 
 
 def test_sweep_script_refuses_unguarded_targets(monkeypatch):
@@ -750,3 +763,362 @@ def test_migration_069_sweeps_the_p1_8_null_window(isolated_database):
         assert [r['reason_code'] for r in cur.fetchall()] == ['damage_disposal', 'physical_count', 'unknown']
         cur.execute("SELECT tgenabled FROM pg_trigger WHERE tgname='trg_transactions_original_append_only'")
         assert cur.fetchone()['tgenabled'] != 'D'
+
+
+# ── Codex review of PR #94 (2026-10-09): evidence, approver re-checks, lock order,
+#    shared-key preparers, §5 / §5.1 flags ──────────────────────────────────
+
+def open_shortage(client_, db_cursor, items_, actors_):
+    _, result = post_short_make(client_, db_cursor, items_, actors_['floor']['key'])
+    return result['shortages'][0]['exception_id'], result
+
+
+def resolve(client_, exception_id, key, **body_):
+    return client_.post(f'/exceptions/{exception_id}/resolve', json=body_, headers=headers(key))
+
+
+def approve(client_, exception_id, key, **body_):
+    return client_.post(f'/exceptions/{exception_id}/approve', json=body_, headers=headers(key))
+
+
+@pytest.mark.parametrize('route,body_', [('resolve', {'resolution_kind': 'counted', 'counted_lb': 2, 'note': '   '}),
+                                         ('reject', {'resolution_kind': 'declined', 'note': '\t\n'})])
+def test_blank_notes_are_refused(client, db_cursor, items, actors, route, body_):
+    if route == 'resolve':
+        exception_id, _ = open_shortage(client, db_cursor, items, actors)
+        key = actors['floor']['key']
+    else:
+        _, exception_id = hold(client, db_cursor, items, actors)
+        key = actors['owner']['key']
+    response = client.post(f'/exceptions/{exception_id}/{route}', json=body_, headers=headers(key))
+    assert response.status_code == 422, response.text
+    assert 'blank' in response.text
+    assert exceptions_for(db_cursor, id=exception_id)[0]['status'] == 'open'
+
+
+def test_counted_resolution_posts_the_counted_correction_atomically(client, db_cursor, items, actors):
+    key = actors['floor']['key']
+    exception_id, _ = open_shortage(client, db_cursor, items, actors)
+    lot_id = items['ingredient']['lot_id']
+    assert main.lot_on_hand(db_cursor, lot_id) == -6.0
+    error(resolve(client, exception_id, key, resolution_kind='counted', note='counted it'), 422, 'COUNT_REQUIRED')
+    assert exceptions_for(db_cursor, id=exception_id)[0]['status'] == 'open'
+    resolved = resolve(client, exception_id, key, resolution_kind='counted', counted_lb=2, note='Two pounds left on the pallet')
+    assert resolved.status_code == 200, resolved.text
+    view = resolved.json()
+    assert view['status'] == 'resolved' and view['resolution_kind'] == 'counted'
+    res = view['detail']['resolution']
+    assert (res['book_before_lb'], res['delta_lb'], res['counted_lb'], res['new_balance_lb'], res['short_lb']) == (-6.0, 8.0, 2.0, 2.0, 6.0)
+    assert main.lot_on_hand(db_cursor, lot_id) == 2.0
+    db_cursor.execute('SELECT type, reason_code, entered_by_actor_id, notes FROM transactions WHERE id=%s', (res['transaction_id'],))
+    txn = db_cursor.fetchone()
+    assert (txn['type'], txn['reason_code'], txn['entered_by_actor_id']) == ('adjust', 'physical_count', actors['floor']['id'])
+    assert f'Shortage #{exception_id}' in txn['notes'] and 'Two pounds left' in txn['notes']
+    assert view['shortage_flag']['status'] == 'resolved' and view['shortage_flag']['resolution_kind'] == 'counted'
+    # Now, and only now, a positive adjust reaches the lot through a ticket.
+    assert prepare(client, 'adjust', adjust(items, 1, 'missing_receipt'), key)['can_commit']
+
+
+def test_counted_resolution_over_500_lb_needs_a_photo(client, db_cursor, items, actors):
+    key = actors['floor']['key']
+    exception_id, _ = open_shortage(client, db_cursor, items, actors)
+    lot_id = items['ingredient']['lot_id']
+    refused = resolve(client, exception_id, key, resolution_kind='counted', counted_lb=600, note='a whole pallet was mis-shelved')
+    error(refused, 422, 'PHOTO_REQUIRED')
+    assert main.lot_on_hand(db_cursor, lot_id) == -6.0 and exceptions_for(db_cursor, id=exception_id)[0]['status'] == 'open'
+    ok = resolve(client, exception_id, key, resolution_kind='counted', counted_lb=600, note='a whole pallet was mis-shelved',
+                 attachment_ref='photos/pallet.jpg')
+    assert ok.status_code == 200, ok.text
+    review = ok.json()['detail']['resolution']['correction_review']
+    assert review['rules'] == ['BOOK_BALANCE_NOT_POSITIVE', 'OVER_500_LB'] and review['highlighted'] is True
+    assert ok.json()['detail']['resolution']['attachment_ref'] == 'photos/pallet.jpg'
+    assert main.lot_on_hand(db_cursor, lot_id) == 600.0
+
+
+def receive_onto(client_, db_cursor, items_, key, cases, case_size_lb):
+    """A receive ticket onto the fixture ingredient lot (the movement that was never entered);
+    one supplier and one supplier lot code per lot, as A5 requires."""
+    db_cursor.execute('SELECT id FROM suppliers WHERE name=%s', ('A3b supplier ' + items_['ingredient']['lot_code'],))
+    supplier = db_cursor.fetchone()
+    if not supplier:
+        db_cursor.execute('INSERT INTO suppliers(name) VALUES (%s) RETURNING id', ('A3b supplier ' + items_['ingredient']['lot_code'],))
+        supplier = db_cursor.fetchone()
+    payload = {'product_id': items_['ingredient']['id'], 'supplier_id': supplier['id'], 'cases': cases,
+               'case_size_lb': case_size_lb, 'bol_reference': 'A3B-' + uuid4().hex[:8], 'lot_code': items_['ingredient']['lot_code'],
+               'supplier_lot_code': 'SUP-' + items_['ingredient']['lot_code'], 'occurred_at': main.get_plant_now().isoformat()}
+    prepared = client_.post('/receive/prepare', json=payload, headers=headers(key))
+    assert prepared.status_code == 200, prepared.text
+    posted = commit(client_, prepared.json(), key,
+                    acknowledged_warnings=[w['code'] for w in prepared.json()['warnings'] if w.get('requires_ack')])
+    assert posted.status_code == 200, posted.text
+    return posted.json()
+
+
+def test_missing_movement_needs_the_matching_receipt(client, db_cursor, items, actors):
+    key = actors['floor']['key']
+    exception_id, result = open_shortage(client, db_cursor, items, actors)
+    error(resolve(client, exception_id, key, resolution_kind='missing_movement', note='the receive'), 422, 'RECEIPT_REQUIRED')
+    error(resolve(client, exception_id, key, resolution_kind='missing_movement', receipt_number='RCV-000000-000', note='x'), 404, 'RECEIPT_NOT_FOUND')
+    # The short make's own receipt puts nothing on the short lot — unrelated.
+    refused = resolve(client, exception_id, key, resolution_kind='missing_movement', receipt_number=result['receipt_number'], note='x')
+    error(refused, 409, 'RECEIPT_NOT_MATCHING')
+    assert 'same lot' in refused.json()['detail']['problems'][0]
+    # A receive onto the lot that is too small to cover the shortage — not matching either.
+    small = receive_onto(client, db_cursor, items, key, cases=1, case_size_lb=2)
+    refused = resolve(client, exception_id, key, resolution_kind='missing_movement', receipt_number=small['receipt_number'], note='x')
+    error(refused, 409, 'RECEIPT_NOT_MATCHING')
+    assert refused.json()['detail']['problems'] == ['it adds 2.0 lb but the shortage is 6.0 lb']
+    [exc] = exceptions_for(db_cursor, id=exception_id)
+    assert exc['status'] == 'open'
+    error(client.post('/adjust/prepare', json=adjust(items, 1, 'missing_receipt'), headers=headers(key)), 409, 'SHORTAGE_OPEN_RESOLVE_INSTEAD')
+    # The receive that was never entered: same lot, after the shortage opened, covers it.
+    covering = receive_onto(client, db_cursor, items, key, cases=2, case_size_lb=5)
+    ok = resolve(client, exception_id, key, resolution_kind='missing_movement', receipt_number=covering['receipt_number'],
+                 note='Receive from Tuesday was never entered')
+    assert ok.status_code == 200, ok.text
+    view = ok.json()
+    assert view['resolution_ticket_id'] == covering['ticket_id'] and view['shortage_flag']['status'] == 'resolved'
+    assert view['detail']['resolution'] == {'kind': 'missing_movement', 'receipt_number': covering['receipt_number'],
+                                            'transaction_ids': [covering['transaction_id']], 'added_lb': 10.0, 'short_lb': 6.0,
+                                            'balance_now_lb': 6.0}
+    assert prepare(client, 'adjust', adjust(items, 1, 'missing_receipt'), key)['can_commit']
+
+
+def test_voided_resolution_needs_the_short_posting_voided(client, db_cursor, items, actors):
+    key = actors['floor']['key']
+    exception_id, result = open_shortage(client, db_cursor, items, actors)
+    refused = resolve(client, exception_id, key, resolution_kind='voided', note='entered twice')
+    error(refused, 409, 'POSTING_STILL_EFFECTIVE')
+    assert refused.json()['detail']['effective_status'] == 'posted'
+    db_cursor.execute("""INSERT INTO ledger_corrections(target_table,target_id,event_type,previous_values,replacement_values,reason)
+                         VALUES ('transactions',%s,'void','{"status":"posted"}','{"status":"voided"}','A3b test void')""",
+                      (result['transaction_id'],))
+    ok = resolve(client, exception_id, key, resolution_kind='voided', note='entered twice')
+    assert ok.status_code == 200, ok.text
+    assert ok.json()['detail']['resolution'] == {'kind': 'voided', 'transaction_id': result['transaction_id'], 'effective_status': 'voided'}
+
+
+def test_write_off_is_owner_only_and_identified_needs_the_lot_identified(client, db_cursor, items, actors):
+    def unidentified():
+        db_cursor.execute("""INSERT INTO exceptions(kind,severity,detail,owner_actor_id,lot_id,product_id)
+                             VALUES ('UNIDENTIFIED_LOT','warn','{}',%s,%s,%s) RETURNING id""",
+                          (actors['floor']['id'], items['ingredient']['lot_id'], items['ingredient']['id']))
+        return db_cursor.fetchone()['id']
+    floor, owner = actors['floor']['key'], actors['owner']['key']
+    first = unidentified()
+    error(resolve(client, first, floor, resolution_kind='written_off', note='label gone'), 403, 'ROLE_NOT_ALLOWED')
+    refused = resolve(client, first, floor, resolution_kind='identified', note='found the label')
+    error(refused, 409, 'LOT_NOT_IDENTIFIED')
+    assert exceptions_for(db_cursor, id=first)[0]['status'] == 'open'
+    db_cursor.execute("UPDATE lots SET identity_status='identified' WHERE id=%s", (items['ingredient']['lot_id'],))
+    assert resolve(client, first, floor, resolution_kind='identified', note='found the label').json()['status'] == 'resolved'
+    second = unidentified()
+    written_off = resolve(client, second, owner, resolution_kind='written_off', note='disposed, no label')
+    assert written_off.status_code == 200 and written_off.json()['status'] == 'waived'
+
+
+def test_approval_rechecks_the_approver_under_lock(client, db_cursor, items, actors):
+    prepared, exception_id = hold(client, db_cursor, items, actors)
+    owner = actors['owner']['key']
+    db_cursor.execute("UPDATE actors SET active=false WHERE id=%s", (actors['owner']['id'],))
+    denied = approve(client, exception_id, owner, note='ok')          # the auth cache may still admit the key
+    assert denied.status_code == 403, denied.text
+    db_cursor.execute("UPDATE actors SET active=true, role='office' WHERE id=%s", (actors['owner']['id'],))
+    demoted = approve(client, exception_id, owner, note='ok')
+    assert demoted.status_code == 403, demoted.text
+    rejected = client.post(f'/exceptions/{exception_id}/reject', json={'resolution_kind': 'declined', 'note': 'no'}, headers=headers(owner))
+    assert rejected.status_code == 403, rejected.text
+    assert posted_count(db_cursor, prepared) == 0
+    assert ticket_row(db_cursor, prepared)['status'] == 'awaiting_approval'
+    assert exceptions_for(db_cursor, id=exception_id)[0]['status'] == 'open'
+    db_cursor.execute("UPDATE actors SET role='owner' WHERE id=%s", (actors['owner']['id'],))
+    assert approve(client, exception_id, owner, note='ok').status_code == 200
+
+
+def test_approval_fails_when_the_preparer_may_no_longer_adjust(client, db_cursor, items, actors):
+    prepared, exception_id = hold(client, db_cursor, items, actors)
+    owner = actors['owner']['key']
+    db_cursor.execute("UPDATE actors SET role='office' WHERE id=%s", (actors['floor']['id'],))
+    response = approve(client, exception_id, owner)
+    error(response, 409, 'TICKET_STALE')
+    assert response.json()['detail']['blockers'][0]['code'] == 'ROLE_NOT_ALLOWED'
+    assert posted_count(db_cursor, prepared) == 0
+    assert ticket_row(db_cursor, prepared)['status'] == 'awaiting_approval'
+    assert exceptions_for(db_cursor, id=exception_id)[0]['status'] == 'open'
+    db_cursor.execute("UPDATE actors SET role='floor' WHERE id=%s", (actors['floor']['id'],))
+    posted = approve(client, exception_id, owner)
+    assert posted.status_code == 200 and posted.json()['entry_timing']['entered_by']['id'] == actors['floor']['id']
+
+
+def test_approving_a_hold_without_a_named_preparer_is_a_409_not_a_crash(client, db_cursor, items, actors):
+    prepared, exception_id = hold(client, db_cursor, items, actors)
+    db_cursor.execute("UPDATE write_tickets SET actor_id=NULL, key_kind='legacy_ledger' WHERE id=%s", (prepared['ticket_id'],))
+    response = approve(client, exception_id, actors['owner']['key'])
+    error(response, 409, 'TICKET_STALE')
+    assert response.json()['detail']['blockers'][0]['code'] == 'PREPARER_UNKNOWN'
+    assert posted_count(db_cursor, prepared) == 0 and ticket_row(db_cursor, prepared)['status'] == 'awaiting_approval'
+
+
+def test_shared_key_gets_photo_required_not_a_hold(client, db_cursor, items):
+    prepared = prepare(client, 'adjust', adjust(items, 600, 'missing_receipt'))      # master key
+    response = commit(client, prepared)
+    error(response, 422, 'PHOTO_REQUIRED')
+    assert response.json()['detail']['held'] is False
+    assert ticket_row(db_cursor, prepared)['status'] == 'prepared'
+    assert exceptions_for(db_cursor, ticket_id=prepared['ticket_id']) == []
+    assert posted_count(db_cursor, prepared) == 0
+    posted = commit(client, prepared, attachment_ref='photos/pallet.jpg')
+    assert posted.status_code == 200, posted.text
+    assert posted.json()['correction_review']['highlighted'] is True and posted.json()['correction_review']['attachment_ref'] == 'photos/pallet.jpg'
+    assert main.lot_on_hand(db_cursor, items['ingredient']['lot_id']) == 700.0
+
+
+def test_approve_locks_the_ticket_before_the_exception(isolated_database, monkeypatch):
+    """The photo-release commit locks the ticket first and then touches the exception.
+    A session holding the ticket row must be able to update the exception while an
+    approve waits — i.e. the waiting approve has not taken the exception lock."""
+    keys, items_, ids = race_actors(isolated_database)
+    race = Race(isolated_database)
+    monkeypatch.setattr(main, 'get_db_connection', race.connection)
+    main._reset_actor_cache()
+    with TestClient(main.app) as http:
+        prepared = prepare(http, 'adjust', adjust(items_, 600, 'missing_receipt'), keys['floor'])
+        held = commit(http, prepared, keys['floor'])
+        assert held.status_code == 202, held.text
+        exception_id = held.json()['exception_id']
+        holder = psycopg2.connect(isolated_database)
+        try:
+            with holder.cursor() as hc:
+                hc.execute('SELECT id FROM write_tickets WHERE id=%s FOR UPDATE', (prepared['ticket_id'],))
+                with ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(lambda: http.post(f'/exceptions/{exception_id}/approve', json={}, headers=headers(keys['owner'])))
+                    deadline = time.time() + 15
+                    while time.time() < deadline:
+                        # Backend activity is snapshotted per transaction; refresh it each poll.
+                        hc.execute("""SELECT pg_stat_clear_snapshot(), count(*) FROM pg_stat_activity
+                                      WHERE datname=current_database() AND wait_event_type='Lock' AND pid<>pg_backend_pid()""")
+                        if hc.fetchone()[1] >= 1:
+                            break
+                        time.sleep(0.05)
+                    else:
+                        pytest.fail('the approve never waited on the ticket lock')
+                    hc.execute("SET LOCAL lock_timeout='2s'")
+                    hc.execute('UPDATE exceptions SET detail = detail WHERE id=%s', (exception_id,))   # must not wait on the approve
+                    holder.rollback()
+                    response = future.result(timeout=30)
+        finally:
+            holder.rollback()
+            holder.close()
+        assert response.status_code == 200, response.text
+        with psycopg2.connect(isolated_database) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+            assert posted_count(cur, prepared) == 1
+
+
+def test_concurrent_approve_and_photo_commit_post_once_without_deadlock(isolated_database, monkeypatch):
+    keys, items_, ids = race_actors(isolated_database)
+    race = Race(isolated_database)
+    monkeypatch.setattr(main, 'get_db_connection', race.connection)
+    main._reset_actor_cache()
+    with TestClient(main.app) as http:
+        prepared = prepare(http, 'adjust', adjust(items_, 600, 'missing_receipt'), keys['floor'])
+        held = commit(http, prepared, keys['floor'])
+        assert held.status_code == 202, held.text
+        exception_id = held.json()['exception_id']
+        race.on = True
+        calls = [lambda: http.post(f'/exceptions/{exception_id}/approve', json={}, headers=headers(keys['owner'])),
+                 lambda: commit(http, prepared, keys['floor'], attachment_ref='photos/late.jpg')]
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            results = [f.result(timeout=30) for f in [executor.submit(call) for call in calls]]
+        race.on = False
+        assert [r.status_code for r in results] == [200, 200], [r.text for r in results]
+        data = [r.json() for r in results]
+        assert data[0]['receipt_number'] == data[1]['receipt_number']
+        assert sorted(r['replayed'] for r in data) == [False, True]
+        with psycopg2.connect(isolated_database) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+            assert posted_count(cur, prepared) == 1
+            [exc] = exceptions_for(cur, id=exception_id)
+            assert exc['status'] == 'resolved' and exc['resolution_kind'] in ('approved', 'photo_attached')
+            cur.execute('SELECT status FROM write_tickets WHERE id=%s', (prepared['ticket_id'],))
+            assert cur.fetchone()['status'] == 'committed'
+
+
+@pytest.mark.parametrize('action', ['adjust', 'found'])
+def test_small_unknown_corrections_are_highlighted(client, items, actors, action):
+    key = actors['floor']['key']
+    small = adjust(items, 5, 'unknown', note='no idea where it came from') if action == 'adjust' else \
+        found(items, 5, 'unknown', notes='no idea where it came from')
+    review = prepare(client, action, small, key)['draft']['correction_review']
+    assert (review['highlighted'], review['rules'], review['photo_required'], review['reason_code']) == (True, ['REASON_UNKNOWN'], False, 'unknown')
+    plain = adjust(items, 5, 'missing_receipt') if action == 'adjust' else found(items, 5, 'missing_receipt')
+    assert prepare(client, action, plain, key)['draft']['correction_review']['highlighted'] is False
+
+
+def test_positive_adjust_shortly_before_a_make_is_tagged_pre_make_adjust(client, db_cursor, items, actors):
+    key, owner = actors['floor']['key'], actors['owner']['key']
+    lot = items['ingredient']
+    # Too old (31 min), by the floor: outside the window. (The created_at trigger is
+    # paused for this one fixture row only; the ledger never back-dates entry time.)
+    db_cursor.execute('ALTER TABLE transactions DISABLE TRIGGER trg_transactions_created_at')
+    db_cursor.execute("""INSERT INTO transactions(type,notes,created_at,entered_by_actor_id,operator_id)
+                         VALUES ('adjust','old', clock_timestamp() - interval '31 minutes', %s, %s) RETURNING id""",
+                      (actors['floor']['id'], actors['floor']['name']))
+    old = db_cursor.fetchone()['id']
+    db_cursor.execute('ALTER TABLE transactions ENABLE TRIGGER trg_transactions_created_at')
+    db_cursor.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES (%s,%s,%s,4)', (old, lot['id'], lot['lot_id']))
+    plus = commit(client, prepare(client, 'adjust', adjust(items, 3, 'missing_receipt'), key), key).json()        # tagged
+    commit(client, prepare(client, 'adjust', adjust(items, -1, 'damage_disposal'), key), key)                      # negative: never
+    commit(client, prepare(client, 'adjust', adjust(items, 2, 'missing_receipt'), owner), owner)                   # other actor: not
+    made = commit(client, prepare(client, 'make', body('make', items), key), key).json()
+    tags = made['pre_make_adjusts']
+    assert [t['adjust_transaction_id'] for t in tags] == [plus['transaction_id']]
+    assert tags[0]['same_lot'] is True and tags[0]['adjust_lb'] == 3.0 and tags[0]['minutes_before'] < 5
+    assert tags[0]['adjust_receipt_number'] == plus['receipt_number']
+    [exc] = exceptions_for(db_cursor, id=tags[0]['exception_id'])
+    assert (exc['kind'], exc['severity'], exc['status'], exc['transaction_id'], exc['receipt_number'], exc['owner_actor_id']) == \
+        ('PRE_MAKE_ADJUST', 'info', 'open', plus['transaction_id'], plus['receipt_number'], actors['owner']['id'])
+    assert exc['detail']['pre_make_adjust'] is True and exc['detail']['followed_by']['receipt_number'] == made['receipt_number']
+    # A second (different) make right after does not re-tag the same adjust (070 unique index).
+    second = prepare(client, 'make', body('make', items) | {'batches': 2}, key)
+    again = commit(client, second, key, acknowledged_warnings=[w['code'] for w in second['warnings'] if w.get('requires_ack')]).json()
+    assert again['replayed'] is False
+    assert [t['exception_id'] for t in again['pre_make_adjusts']] == [tags[0]['exception_id']]
+    assert len(exceptions_for(db_cursor, kind='PRE_MAKE_ADJUST', transaction_id=plus['transaction_id'])) == 1
+    # Listed for the owner, acknowledged by the owner only.
+    listed = client.get('/exceptions?kind=PRE_MAKE_ADJUST', headers=headers(owner)).json()
+    assert tags[0]['exception_id'] in [e['id'] for e in listed['exceptions']]
+    error(resolve(client, tags[0]['exception_id'], key, resolution_kind='acknowledged', note='seen'), 403, 'ROLE_NOT_ALLOWED')
+    assert resolve(client, tags[0]['exception_id'], owner, resolution_kind='acknowledged', note='Asked; the bag had been found').status_code == 200
+
+
+def test_migration_070_rerunnable_down_and_up(isolated_database):
+    up = (ROOT / 'migrations/070_pre_make_adjust.sql').read_text()
+    down = (ROOT / 'migrations/down/070_pre_make_adjust_down.sql').read_text()
+
+    def state(cur):
+        cur.execute("SELECT pg_get_constraintdef(oid) LIKE '%%PRE_MAKE_ADJUST%%' FROM pg_constraint WHERE conname='exceptions_kind_check'")
+        kind_ok = cur.fetchone()[0]
+        cur.execute("SELECT count(*) FROM pg_indexes WHERE indexname='exceptions_one_pre_make_tag_idx'")
+        indexes = cur.fetchone()[0]
+        cur.execute("SELECT count(*) FROM migration_markers WHERE name='070_pre_make_adjust'")
+        return kind_ok, indexes, cur.fetchone()[0]
+
+    with psycopg2.connect(isolated_database) as conn, conn.cursor() as cur:
+        cur.execute('SET LOCAL search_path TO public')
+        assert state(cur) == (True, 1, 1)      # fixture applied it
+        cur.execute(up)                        # rerun: no-op
+        assert state(cur) == (True, 1, 1)
+        cur.execute("INSERT INTO exceptions(kind,severity,detail) VALUES ('PRE_MAKE_ADJUST','info','{}')")
+        cur.execute('SAVEPOINT refused')
+        with pytest.raises(psycopg2.errors.RaiseException, match='070 down refused'):
+            cur.execute(down)
+        cur.execute('ROLLBACK TO SAVEPOINT refused')
+        cur.execute("SET LOCAL factory_ledger.confirm_exceptions_export = 'yes'")
+        cur.execute(down)
+        assert state(cur) == (False, 0, 0)
+        cur.execute('SAVEPOINT narrowed')
+        with pytest.raises(psycopg2.errors.CheckViolation):
+            cur.execute("INSERT INTO exceptions(kind,severity,detail) VALUES ('PRE_MAKE_ADJUST','info','{}')")
+        cur.execute('ROLLBACK TO SAVEPOINT narrowed')
+        cur.execute(up)
+        assert state(cur) == (True, 1, 1)
+        conn.rollback()

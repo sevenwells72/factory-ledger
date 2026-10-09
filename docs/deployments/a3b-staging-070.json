@@ -1,0 +1,8 @@
+{
+  "mode": "migrations only",
+  "migration_applied_now": true,
+  "markers": {
+    "069_exceptions_enforcement": "2026-10-09 01:47:54.949800+00:00",
+    "070_pre_make_adjust": "2026-10-09 12:53:34.070620+00:00"
+  }
+}

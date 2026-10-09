@@ -139,6 +139,20 @@ Anywhere else the script refuses non-local hosts.
 8. **The reference seed is committed to the local test DB** by `tests/conftest.py` (once per session,
    idempotent) because `scripts/dump_prod_schema.sh` refuses data and every ticket correction now
    validates against `correction_reasons`.
+9. **(Codex round 1) The `counted` resolution posts a direct adjust transaction**, not an `XR-`/`ADJ-`
+   receipt: the counted correction goes through `_adjust_commit_core` inside the resolve transaction
+   (reason `physical_count`, `entered_by` = the resolver, notes name the shortage). It is the only path
+   that can add stock to a lot with an open shortage, and it is atomic with the close. The
+   exception's `detail.resolution` records book-before / counted / delta / transaction_id.
+10. **(Codex round 1) The `pre_make_adjust` tag is an `exceptions` row** (`kind='PRE_MAKE_ADJUST'`,
+    severity `info`, open until the owner acknowledges) rather than a column on the adjust — the
+    ledger is append-only and the weekly view already reads `exceptions`. Window = 30 min of **entry**
+    time (`created_at`), same `entered_by_actor_id` (or the same `operator_id` for the shared key),
+    positive adjust on any lot of an ingredient the make/pack consumed; `detail.same_lot` says whether
+    it was the very lot. Needs migration **070** (kind CHECK + one-tag-per-adjust index).
+11. **(Codex round 1) A shared-key preparer never enters a hold**: over 500 lb without a photo the
+    master key's commit gets 422 `PHOTO_REQUIRED` (`held: false`) and the ticket stays `prepared`
+    until it expires or is committed again with `attachment_ref`. The owner approves people, not keys.
 
 ## Coordination with the open PRs
 
@@ -177,6 +191,31 @@ A2 rows; migration 069 rerun / down (refuses held tickets and unexported rows) /
 
 Results (2026-10-08 ET): fresh local PostgreSQL 17 database built from `tests/schema/schema.sql` (+ pending 069 tail + reference seed): **2,190 Python tests passed, 0 failed** (52 new in `test_exceptions_enforcement.py`); **Node 69/69**. Production untouched; staging written only by the acceptance script below.
 
+**Codex round 1 (2026-10-09)** added 17 tests to the same file, each run against the pre-fix code
+first (all 17 failed there — the live approve-vs-photo race hit a real `deadlock detected`) and
+after the fixes (all pass): blank/whitespace notes refused on resolve and reject; `counted`
+needs `counted_lb`, posts the counted correction atomically (book −6 → counted 2 → +8 adjust,
+`physical_count`, entered_by the resolver, shortage flag follows, positive adjust unlocked only
+then); `counted` over 500 lb needs a photo; `missing_movement` needs `receipt_number` and the
+receipt must put ≥ the short pounds on the SAME lot after the shortage opened (the make's own
+receipt, an unrelated receive and a 2 lb receive are all `RECEIPT_NOT_MATCHING` and leave the
+cover-up refusal in force; a 10 lb receive onto the lot resolves it); `voided` needs the short
+posting voided (`POSTING_STILL_EFFECTIVE` otherwise); `written_off` owner-only and `identified`
+needs `lots.identity_status='identified'`; a deactivated / demoted approver is 403 under lock even
+though the auth cache still admits the key (approve and reject), nothing posts, hold intact; a
+preparer demoted to office → 409 `TICKET_STALE` / `ROLE_NOT_ALLOWED`, nothing posts, approval
+works again once the role is restored; a held ticket whose preparer row is gone → 409
+`PREPARER_UNKNOWN`, not a 500; the master key's > 500 lb commit → 422 `PHOTO_REQUIRED`, no hold,
+ticket stays `prepared`, posts with a photo; **lock order**: a session holding the ticket row can
+update the exception row while an approve waits (deterministic, `pg_stat_activity` poll) and a
+live approve-vs-photo-commit race returns 200/200, posts once; small `unknown` adjust and found
+are highlighted (`REASON_UNKNOWN`); `pre_make_adjust` (31-min-old adjust not tagged, negative not
+tagged, other actor not tagged, the +3 lb adjust tagged once across two makes, listed to the owner,
+floor cannot acknowledge); migration 070 rerun / down (refuses tagged rows until the export GUC) / up.
+
+Results (2026-10-09 ET): fresh local database `factory_ledger_test_a3b2` from `tests/schema/schema.sql`
+(+ pending 069 and 070 tails + reference seed): **2,207 Python tests passed, 0 failed**; **Node 69/69**.
+
 ## Staging acceptance
 
 `scripts/check_exceptions_staging.py --apply-migration --output docs/deployments/a3b-staging-receipt.json`
@@ -185,3 +224,37 @@ lifespan: no startup sweeps; URI never printed; temporary floor/owner/office act
 in `finally`). Evidence: `docs/deployments/a3b-staging-receipt.json` — the three examples Michael
 asked for (short make with shortage flag; > 500 lb correction held then approved once; denied
 permission attempts). Values are in the PR description.
+
+**Migration 070 on staging (Codex round 1):** `scripts/check_exceptions_staging.py --apply-migration
+--migrations-only --output docs/deployments/a3b-staging-070.json` applied `070_pre_make_adjust`
+on 2026-10-09 12:53:34Z (069 marker from 01:47:54Z confirmed). No examples were re-run and no
+rows were written beyond the CHECK rebuild, the index and the marker. The acceptance script's
+shortage resolution now sends `counted_lb: 0` (the counted correction posts atomically), so a future
+full run records `shortage_resolution` in the receipt. **Rollback order is now 070 → 069 → 065/061.**
+
+## Codex review round 1 (2026-10-09) — what changed
+
+Verdict was "merge after fixes"; all six items are in, each with regression tests that fail on the
+pre-fix code. Every change stays inside `exceptions_enforcement.py` except the two-line shared-key
+branch in `write_tickets.execute_commit`, the `reason_code=` argument on both `correction_review`
+calls and the `record_pre_make_adjusts` call in `ticket_actions.post`.
+
+1. **Resolution evidence** — `shortage_evidence()`: `counted` (→ `counted_lb`, atomic correction,
+   `COUNT_REQUIRED` / `PHOTO_REQUIRED` over 500 lb), `missing_movement` (→ `receipt_number`, same lot,
+   ≥ short lb, entered after `opened_at`, still effective; else 409 `RECEIPT_NOT_MATCHING` listing the
+   problems), `voided` (short posting `effective_status='voided'`, else 409 `POSTING_STILL_EFFECTIVE`).
+   `identified_evidence()` for UNIDENTIFIED_LOT. `written_off` / `waived` require `approve_exception`
+   (owner). `ResolveRequest` / `DecisionRequest` strip and refuse blank notes (pydantic validator);
+   `ResolveRequest` gains `counted_lb` and `attachment_ref`. `detail.resolution` on the row.
+2. **Approval permissions** — `_current_approver()` re-reads the approver `FOR SHARE` (active + role →
+   403 `ACTOR_INACTIVE` / `ROLE_NOT_ALLOWED`) in approve and reject; `_current_preparer()` re-reads the
+   preparer `FOR SHARE` and checks `permissions.allowed(action, role)` → 409 `TICKET_STALE` with
+   `ROLE_NOT_ALLOWED` / `ACTOR_INACTIVE` / `PREPARER_UNKNOWN`, nothing posted, hold kept.
+3. **Lock order** — `_held()` now peeks the exception (unlocked; `ticket_id` is immutable), locks the
+   **ticket** `FOR UPDATE`, then the exception — the same order as the photo-release commit. Approve
+   also replays whenever the ticket is already `committed` (approved or photo-released first).
+4. **Shared-key preparers** — `photo_required()`: 422, `held: false`, ticket stays `prepared`.
+5. **Design flags** — `correction_review(..., reason_code=)` adds `REASON_UNKNOWN` (§5.1);
+   `record_pre_make_adjusts()` + migration 070 (§5 R3); `RESOLUTION_KINDS['PRE_MAKE_ADJUST'] =
+   ('acknowledged',)`, owner kind.
+6. **FOLLOWUPS P1.13** marked pilot-blocking (A6 must validate `attachment_ref` ownership/existence).
