@@ -270,9 +270,11 @@ items, removed from the pilot gate.
 Every review round posts **one PR comment** in the fixed template (`REVIEW <verdict>` / head
 reviewed sha / reviewer / fresh-DB suite counts / migrations / prod preconditions); the PR
 carries **`review:merge`** or **`review:fix-round`** for its latest round; the **merge commit
-cites the comment**. **To do once:** create the two labels on `sevenwells72/factory-ledger`
-(they do not exist as of 2026-10-12 — this docs PR did not create them). First PRs under the
-rule: #93 (A7), then #90 (F1) after its post-rebase re-check.
+cites the comment**. ~~**To do once:** create the two labels on `sevenwells72/factory-ledger`
+(they do not exist as of 2026-10-12 — this docs PR did not create them).~~ **DONE 2026-10-12:**
+`review:merge` (green `#0E8A16`) and `review:fix-round` (orange `#F0883E`) created with
+`gh label create`. First PRs under the rule: #93 (A7), then #90 (F1) after its post-rebase
+re-check.
 
 ---
 

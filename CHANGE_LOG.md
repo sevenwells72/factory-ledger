@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-12 13:22 — FOLLOWUPS P1.17 done: review:merge / review:fix-round labels created (branch docs/p117-labels)
+- **File(s) changed:** `FOLLOWUPS.md`, `docs/design/phase1-safe-operating-system.md`, `CHANGE_LOG.md`
+- **What changed:** P1.17's one-time to-do marked DONE (labels created 2026-10-12 via `gh label create`: `review:merge` #0E8A16, `review:fix-round` #F0883E); the matching sentence in design §10.1 "Review evidence" now says the labels exist.
+- **Why:** Michael asked for the labels after PR #97 recorded the review-evidence rule (§11 item 37). Docs only.
+
+---
+
 ## 2026-10-12 12:58 — Design doc rev 3.8: Michael's Oct 12 decisions (pilot sign-in without PIN, kosher approval via hold, rotation at cutover, review evidence, OpenAI key, count procedure); FOLLOWUPS P1.11 duplicate renumbered (branch docs/oct12-decisions)
 - **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `FOLLOWUPS.md`, `docs/deployments/a5-lot-confirmation.md`, `CHANGE_LOG.md`
 - **What changed:** Design doc: rev 3.8 header; §11 items 32–40 (merge order #93 → #90 after post-rebase re-check → #96 waits; pilot sign-in = personal key once per shift → session via a key-to-session route under its own flag, 180-min idle, visible Sign out, QR badge only if typing fails in week 1, tickets keep 10-min expiry; extra-kosher make HELD via the A3b approval hold and approved from Michael's own session, actor id = attestation; master-key rotation stays on cutover day, PR-0 no longer a deploy precondition; PIN login OFF with PIN-only gate items marked "at PIN activation"; review-evidence template + review:merge / review:fix-round labels cited by the merge commit; OpenAI production key own project / $20 cap / 50–80 % alerts / staging by Oct 28 / test key revoked before Nov 6; no plant-closure days; count procedure option A). Affected sections annotated: §1.4, §1.8, §4.2, §4.3, §4.4 (pilot-mode block), §5.3 rule 2 + effort, §7.1 (`KOSHER_ATTESTATION` kind), §10 PR-0 paragraph and rows A1/A11/A12/D2/F1, §10.1 steps 1/2/6 + "Every PR", §10.2 (override confirmed, merge order), gate 10(b), §11 item 16/18 notes and still-open line. FOLLOWUPS: P1.5/P1.6/P1.12 dated notes, duplicate P1.11 (A5 part 2) renumbered P1.15, new P1.16–P1.19; the A5 deployment doc cross-reference follows the renumber.

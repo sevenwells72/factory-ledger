@@ -821,7 +821,7 @@ migrations: <numbers, where applied: local / staging / prod, order vs code>
 prod preconditions: <env vars, secrets, Railway/Netlify order, data steps, or "none">
 ```
 
-The two labels are created once on the repository (they do not exist as of 2026-10-12).
+The two labels exist on the repository since 2026-10-12 (`review:merge` green, `review:fix-round` orange).
 
 ---
 
