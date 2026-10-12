@@ -1,0 +1,37 @@
+{
+  "environment": "staging",
+  "transport": "local TestClient; no hosted service deployment",
+  "migration": "074_ship_gate_attachments",
+  "synthetic_reference": "STG-A6-EC3429B9180B",
+  "order_id": 1000000007,
+  "ticket_id": 51,
+  "quantity_shipped_lb": 50,
+  "shipment": {
+    "order_number": "SO-261012-001",
+    "status": "shipped",
+    "shipment_id": 1,
+    "bol_reference": "STG-A6-EC3429B9180B-BOL",
+    "proof_status": "complete",
+    "proof_due_at": "2026-10-13 03:59:00+00:00",
+    "entered_by_actor_id": 1000000040,
+    "created_at": "2026-10-12 18:46:14.441526+00:00",
+    "receipt_number": "SHP-261012-001",
+    "action": "ship_order"
+  },
+  "attachment": {
+    "id": 1,
+    "kind": "bol",
+    "sha256": "20612ef4f950fd441101dfdfa852b8c6b6114148cdc76b9af8f4b661ec549197",
+    "bytes": 14865,
+    "uploaded_by_actor_id": 1000000040,
+    "ticket_id": 51,
+    "shipment_id": 1
+  },
+  "checks": {
+    "bol_required": true,
+    "private_real_photo_roundtrip": true,
+    "one_shipment_and_replay": true,
+    "signed_packing_slip_pdf": true
+  },
+  "temporary_actors_deactivated": true
+}

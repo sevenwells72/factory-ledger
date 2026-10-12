@@ -154,6 +154,16 @@ existence AND ownership (same actor / same ticket, or the resolving actor for a 
 shortage correction) before the pilot — today a bare string releases a > 500 lb hold on the
 normal commit path and satisfies the photo rule on `POST /exceptions/{id}/resolve` (`counted`
 over 500 lb). Readiness gate item: no pilot until the ref is checked against the `attachments` row.
+**A6 implementation evidence (2026-10-12, PR #99, not merged/deployed):**
+P1.13 is implemented in `attachments.py`: correction commit, held approval and counted
+shortage resolution verify a real stored file, SHA256, uploader and ticket/exception
+context; a bare string cannot release a hold. `attachment_id` is accepted. The same
+resolver may claim an unbound own photo for counted resolution. Fresh-DB tests cover
+unknown, cross-actor and cross-ticket references on all paths. Migration 074 is applied
+to staging only; private-file/order-ship acceptance is recorded in
+`docs/deployments/a6-staging-receipt.json`. Pilot gate remains until reviewed A6 code
+and private storage configuration are deployed to hosted staging.
+
 
 ---
 

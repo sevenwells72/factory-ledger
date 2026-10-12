@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-10-12 14:47 — A6 part 3 — fresh-DB validation and staging receipt
+- **File(s) changed:** `docs/deployments/a6-ship-gate.md`, `FOLLOWUPS.md`, `FACTORY_LEDGER_CHANGELOG.md`, `scripts/exceptions_sweep.py`
+- **What changed:** Document 2,380 Python/69 Node passing tests and guarded staging evidence; append P1.13 implementation status without claiming hosted rollout; preserve sweep executable mode.
+- **Why:** A6 ship gate and P1.13 pilot evidence requirement.
+
+---
+
+## 2026-10-12 14:47 — A6 — guarded staging shipment and real private BOL evidence
+- **File(s) changed:** `docs/deployments/a6-staging-receipt.json`
+- **What changed:** Apply additive migration 074 only to guarded staging; retain order SO-261012-001, SHP receipt SHP-261012-001, shipment 1, ticket 51 and a 14,865-byte private BOL PNG. Local TestClient acceptance passed; no hosted deployment or production access; temporary actors deactivated.
+- **Why:** A6 ship gate and P1.13 pilot evidence requirement.
+
+---
+
 ## 2026-10-12 14:45 — A6 — follow extracted ship core in lock-order regression
 - **File(s) changed:** `tests/test_sales_order_state_model.py`
 - **What changed:** Keep the existing order→lines→products lock-order assertions on the extracted cursor-owned shipping core, and verify the legacy handler delegates to it.
