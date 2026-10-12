@@ -384,8 +384,9 @@ def test_status_invoiced_without_recorded_shipment_is_owner_only(client, db_curs
     base = f"/sales/orders/{order['order_id']}/status/prepare"
     error(prepare_raw(client, base, {'status': 'invoiced'}, office(actors)), 403, 'ROLE_NOT_ALLOWED')
     prepared = prepare(client, base, {'status': 'invoiced'}, actors['owner']['key'])
-    receipt = commit(client, prepared, actors['owner']['key']).json()
-    assert receipt['status'] == 'invoiced' and receipt['state_reason'] == 'shipped_not_recorded'
+    assert prepared['blockers'][0]['code'] == 'SHIPMENT_REQUIRED'
+    error(commit(client, prepared, actors['owner']['key']), 409, 'TICKET_STALE')
+    assert order_row(db_cursor, order['order_id'])['state'] == 'open'
 
 
 def test_floor_marks_ready_but_cannot_create(client, db_cursor, catalog, actors):
@@ -439,6 +440,17 @@ def test_cancel_close_and_reopen_follow_the_matrix(client, db_cursor, catalog, a
     assert receipt['state'] == 'open' and receipt['status'] == 'confirmed'
     assert order_row(db_cursor, order['order_id'])['state'] == 'open'
 
+    blocked = prepare(client, base + '/close/prepare', {'reason': 'short_closed'}, office(actors))
+    assert blocked['blockers'][0]['code'] == 'SHIPMENT_REQUIRED'
+    # A recorded partial legacy shipment permits a genuine short-close. A6
+    # leaves the legacy master-key shipping behavior intact.
+    db_cursor.execute("INSERT INTO transactions(type) VALUES ('ship') RETURNING id")
+    txn = db_cursor.fetchone()['id']
+    db_cursor.execute('INSERT INTO shipments(sales_order_id,customer_id,shipped_at) VALUES(%s,%s,clock_timestamp()) RETURNING id',
+                      (order['order_id'], catalog['customer']))
+    sid = db_cursor.fetchone()['id']
+    db_cursor.execute('INSERT INTO shipment_lines(shipment_id,transaction_id,product_id,quantity_lb) VALUES(%s,%s,%s,1)',
+                      (sid,txn,catalog['products']['food']))
     prepared = prepare(client, base + '/close/prepare', {'reason': 'short_closed'}, office(actors))
     receipt = commit(client, prepared, office(actors)).json()
     assert receipt['state'] == 'closed' and receipt['state_reason'] == 'short_closed' and receipt['status'] == 'shipped'
@@ -451,15 +463,14 @@ def test_cancel_close_and_reopen_follow_the_matrix(client, db_cursor, catalog, a
     assert prepared['can_commit'] is True
     receipt = commit(client, prepared, owner).json()
     assert receipt['state_reason'] == 'shipped_not_recorded'
-    # shipped_recorded passes today's A6 hook (no gate yet) and reaches the core's checks.
-    assert order_tickets.shipment_gate(main, db_cursor, {}, 'shipped_recorded') == []
+    assert order_tickets.shipment_gate(main, db_cursor, {'id': order['order_id']}, 'shipped_recorded') == []
 
 
 def test_close_shipped_not_recorded_role_is_rechecked_at_commit(client, db_cursor, catalog, actors):
     order = create_order(client, catalog, office(actors))
     owner = actors['owner']
     prepared = prepare(client, f"/sales/orders/{order['order_id']}/close/prepare",
-                       {'reason': 'shipped_not_recorded'}, owner['key'])
+                       {'reason': 'shipped_not_recorded', 'note': 'historical truck log'}, owner['key'])
     db_cursor.execute("UPDATE actors SET role='office' WHERE id=%s", (owner['id'],))
     main._reset_actor_cache()
     error(commit(client, prepared, owner['key']), 403, 'ROLE_NOT_ALLOWED')

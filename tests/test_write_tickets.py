@@ -428,6 +428,7 @@ def isolated_database(_db_connection):
             # Pending A7 migration 067 (same reason).
             cur.execute((ROOT/'migrations/067_order_tickets.sql').read_text())
             cur.execute((ROOT/'migrations/072_order_ticket_review_fixes.sql').read_text())
+            cur.execute((ROOT/'migrations/074_ship_gate_attachments.sql').read_text())
         yield url
     finally:
         with admin.cursor() as cur:
@@ -461,6 +462,7 @@ def test_migration_up_down_up_and_marker_stability(isolated_database):
     down_067 = (ROOT/'migrations/down/067_order_tickets_down.sql').read_text()
     with psycopg2.connect(isolated_database) as conn, conn.cursor() as cur:
         cur.execute('SET LOCAL search_path TO public')
+        cur.execute((ROOT/'migrations/down/074_ship_gate_attachments_down.sql').read_text())
         cur.execute(down_071)
         cur.execute(down_070)
         cur.execute(down_069)
@@ -490,6 +492,7 @@ def test_migration_up_down_up_and_marker_stability(isolated_database):
         cur.execute("SELECT to_regclass('public.lot_moves') IS NOT NULL")
         assert cur.fetchone()[0]
         cur.execute(up_067)
+        cur.execute((ROOT/'migrations/074_ship_gate_attachments.sql').read_text())
         cur.execute(up_067)   # rerunnable
         cur.execute((ROOT/'migrations/072_order_ticket_review_fixes.sql').read_text())
         cur.execute("SELECT count(*) FROM migration_markers WHERE name='067_order_tickets'")

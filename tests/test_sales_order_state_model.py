@@ -4286,8 +4286,8 @@ def test_ship_commit_takes_locks_in_the_normative_order():
     """order row -> line rows -> products, with products pre-acquired before
     either planning loop."""
     import inspect
-    src = inspect.getsource(main.ship_order)
-    commit = src[src.index('# mode == "commit"'):]
+    commit = inspect.getsource(main._ship_order_commit_core)
+    assert '_ship_order_commit_core(' in inspect.getsource(main.ship_order)
 
     i_order = commit.index("FOR NO KEY UPDATE OF so")
     i_lines = commit.index("_lock_sales_order_lines(")

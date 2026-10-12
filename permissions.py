@@ -195,6 +195,8 @@ ROUTE_ACTIONS = {
 # Actor-reachable writes with no §4.3 row. Listed so the completeness test
 # names every exemption; each stays open to every named role as today.
 UNGATED_ROUTES = frozenset({
+    ('POST', '/attachments'),                    # A6 named actor + per-file ownership in attachments.py
+    ('POST', '/shipments/{shipment_id}/attachments'), # A6 uploader + shipment-role/context checks
     ('POST', '/products/resolve'),                 # lookup, no business write
     ('POST', '/resolve'),                          # A4 resolution, read-only
     ('POST', '/sales/orders/{order_id}/allocations'),                           # planning board

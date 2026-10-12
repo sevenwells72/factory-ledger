@@ -35,7 +35,8 @@ EXPECTED_RECEIPT_PREPARE_ROUTES = frozenset({
     ('POST', '/expected-receipts/{expected_receipt_id}/cancel/prepare'),
     ('POST', '/expected-receipts/extract/approve/prepare'),
 })
-PREFIXES = {'receive': 'RCV', 'make': 'MK', 'pack': 'PK', 'adjust': 'ADJ', 'found': 'FND', 'move_lot': 'LOT',
+SHIP_ACTIONS = ('ship_order', 'ship_standalone', 'ship_bulk')
+PREFIXES = {**{action: 'SHP' for action in SHIP_ACTIONS}, 'receive': 'RCV', 'make': 'MK', 'pack': 'PK', 'adjust': 'ADJ', 'found': 'FND', 'move_lot': 'LOT',
             **{action: 'ORD' for action in ORDER_ACTIONS},
             **{action: 'ER' for action in EXPECTED_RECEIPT_ACTIONS}}
 ORDER_PREPARE_ROUTES = frozenset({
@@ -64,7 +65,7 @@ ACTOR_ROUTES = DASHBOARD_ROUTES | frozenset({
     ('POST', '/pack/prepare'),
     ('POST', '/adjust/prepare'),
     ('POST', '/inventory/found/prepare'),
-}) | ORDER_PREPARE_ROUTES | EXPECTED_RECEIPT_PREPARE_ROUTES   # A7: actor + master keys only; the dashboard key gets nothing new
+}) | frozenset({('POST', '/ship/prepare'), ('POST', '/ship/bulk/prepare'), ('POST', '/sales/orders/{order_id}/ship/prepare')}) | ORDER_PREPARE_ROUTES | EXPECTED_RECEIPT_PREPARE_ROUTES   # A7: actor + master keys only; the dashboard key gets nothing new
 
 
 def fail(http_status, code, message, **extra):
@@ -72,6 +73,14 @@ def fail(http_status, code, message, **extra):
 
 
 class IdInput(BaseModel):
+    @root_validator(pre=True)
+    def attachment_alias(cls, values):
+        if isinstance(values, dict) and values.get('attachment_id') is not None:
+            if values.get('attachment_ref'):
+                fail(422, 'AMBIGUOUS_ATTACHMENT', 'Supply attachment_id or attachment_ref.')
+            values['attachment_ref'] = str(values.pop('attachment_id'))
+        return values
+
     @root_validator(pre=True)
     def ids_only(cls, values):
         if isinstance(values, dict) and any(k in values for k in
@@ -210,6 +219,17 @@ class FoundPrepareRequest(ActionPrepareRequest):
 
 
 class CommitRequest(BaseModel):
+    attachment_id: Optional[PositiveId] = None
+    attachment_ids: List[PositiveId] = Field(default_factory=list)
+
+    @root_validator(pre=True)
+    def attachment_alias(cls, values):
+        if values.get('attachment_id') is not None:
+            if values.get('attachment_ref'):
+                fail(422, 'AMBIGUOUS_ATTACHMENT', 'Supply attachment_id or attachment_ref.')
+            values['attachment_ref'] = str(values['attachment_id'])
+        return values
+
     lot_confirmations: List[a5.LotConfirmation] = Field(default_factory=list)
     payload_hash: str
     acknowledged_warnings: List[str] = Field(default_factory=list)
@@ -394,7 +414,11 @@ def receipt_detail(api, cur, number):
     order = order_tickets.receipt_order(cur, ticket)
     import expected_receipt_tickets
     expected = expected_receipt_tickets.receipt_records(api, cur, ticket)
-    return {'receipt_number': number, 'action': ticket['action'], 'status': ticket['status'],
+    shipment = None
+    if ticket['action'] in SHIP_ACTIONS:
+        cur.execute('SELECT id,sales_order_id,bol_reference,proof_status,proof_due_at,entered_by_actor_id FROM shipments WHERE ticket_id=%s', (ticket['id'],))
+        shipment = cur.fetchone()
+    return {'shipment': shipment, 'receipt_number': number, 'action': ticket['action'], 'status': ticket['status'],
             'order': order, 'expected_receipts': expected,
             'actor': ticket['draft']['actor'], 'operator_id': ticket['operator_id'],
             'client_source': ticket['client_source'], 'happened_at': happened,
@@ -449,6 +473,11 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
         # ticket is HELD — nothing posts until the owner approves or a photo arrives.
         photo = attachment_ref or row['payload'].get('attachment_ref')
         if row['action'] in ('adjust', 'found'):
+            if photo:
+                import attachments
+                evidence = attachments.verified(cur, photo, actor, ticket_id=row['id'], kinds=('correction_photo',), claim=True)
+                attachments.load(api, evidence)
+                photo = evidence['attachment_ref']
             draft['attachment_ref'] = photo
             if draft['correction_review']['photo_required'] and not photo and not approval:
                 cur.execute('ROLLBACK TO SAVEPOINT ticket_post')
@@ -469,6 +498,8 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
         else:
             response = actions.post(api, cur, row['action'], validated, effective_payload, request,
                 row['id'], receipt, require_new_lot=not row['draft'].get('lot_exists'))
+        if row['action'] in ('adjust', 'found') and photo:
+            cur.execute('UPDATE attachments SET transaction_id=%s WHERE attachment_ref=%s', (response.get('transaction_id'), photo))
         response.update(receipt_number=receipt, ticket_id=row['id'], replayed=False,
                         state_changed=state_changed)
         # A2: 48 h–14 d late entries open exceptions(LATE_ENTRY) for the
@@ -500,7 +531,9 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
         cur.execute('ROLLBACK TO SAVEPOINT ticket_post')
         errors = exc.detail.get('blockers') if isinstance(exc.detail, dict) else None
         errors = errors or [blocker(exc)]
-        if exc.status_code == 422 and errors[0]['code'] in ('LOT_NOT_CONFIRMED', 'LOT_CONFIRMATION_MISMATCH', 'AMBIGUOUS_SUFFIX', 'PALLET_MOVE_REQUIRED', 'UNUSED_LOT_CONFIRMATION', 'DUPLICATE_LOT_CONFIRMATION'):
+        if errors[0]['code'] == 'ATTACHMENT_WRONG_ACTOR':
+            return api.JSONResponse(status_code=403, content={'detail': exc.detail})
+        if exc.status_code == 422 and errors[0]['code'] in ('LOT_NOT_CONFIRMED', 'LOT_CONFIRMATION_MISMATCH', 'AMBIGUOUS_SUFFIX', 'PALLET_MOVE_REQUIRED', 'UNUSED_LOT_CONFIRMATION', 'DUPLICATE_LOT_CONFIRMATION', 'ATTACHMENT_NOT_FOUND', 'ATTACHMENT_WRONG_CONTEXT', 'ATTACHMENT_KIND_INVALID'):
             return api.JSONResponse(status_code=422, content={'detail': {
                 'error_code': errors[0]['code'], 'message': errors[0]['message'], 'blockers': errors}})
         if not approval:
@@ -692,6 +725,11 @@ def register_routes(app, api):
                              set(body.acknowledged_warnings))
             if missing:
                 fail(409, 'WARNING_NOT_ACKNOWLEDGED', 'Acknowledge the draft warnings.', missing=missing)
+            if row['action'] in SHIP_ACTIONS:
+                import ship_tickets
+                return ship_tickets.commit(api, cur, row, body, actor, request, entry_timing)
+            if body.attachment_ids:
+                fail(422, 'UNUSED_ATTACHMENT', 'Use attachment_id for a correction, attachment_ids for shipments.')
             # A7 hook: order tickets post through their own module (metadata
             # writes, no ledger lines); every lifecycle check above is shared.
             if row['action'] in ORDER_ACTIONS + EXPECTED_RECEIPT_ACTIONS:
@@ -713,6 +751,7 @@ def register_routes(app, api):
     def list_receipts(date: Optional[date] = Query(None), actor: Optional[str] = None,
                       action: Optional[str] = None, status: Optional[str] = None,
                       client_source: Optional[ClientSource] = None,
+                      policy_code: Optional[str] = None,
                       _: bool = Depends(api.verify_api_key)):
         day = date or api.get_plant_now().date()
         with api.get_transaction() as cur:
@@ -723,8 +762,10 @@ def register_routes(app, api):
                   AND (%s IS NULL OR operator_id=%s OR actor_id::text=%s)
                   AND (%s IS NULL OR action=%s) AND (%s IS NULL OR status=%s)
                   AND (%s IS NULL OR client_source=%s)
+                  AND (%s IS NULL OR EXISTS (SELECT 1 FROM jsonb_array_elements(
+                      COALESCE(response->'policy_acknowledgements','[]'::jsonb)) p WHERE p->>'code'=%s))
                 ORDER BY committed_at,id''',
-                (day, day, actor, actor, actor, action, action, status, status, client_source, client_source))
+                (day, day, actor, actor, actor, action, action, status, status, client_source, client_source, policy_code, policy_code))
             numbers = [row['receipt_number'] for row in cur.fetchall()]
             return {'date': day, 'receipts': [receipt_detail(api, cur, number) for number in numbers]}
 

@@ -40,7 +40,7 @@ from typing import Literal, Optional
 from zoneinfo import ZoneInfo
 
 from fastapi import Depends, HTTPException, Query, Request
-from pydantic import BaseModel, Field, field_validator
+from pydantic import model_validator, BaseModel, Field, field_validator
 from psycopg2.extras import Json
 
 import permissions
@@ -67,13 +67,14 @@ ACTOR_ROUTES = frozenset({
 })
 # §4.3: large-correction approval, late-entry acceptance, proof waiver and the
 # pre-make-adjust tag are the owner's to close.
-OWNER_KINDS = frozenset({'LARGE_CORRECTION', 'LATE_ENTRY', 'SHIPMENT_PROOF_MISSING', 'PRE_MAKE_ADJUST'})
+OWNER_KINDS = frozenset({'LARGE_CORRECTION', 'LATE_ENTRY', 'SHIPMENT_PROOF_MISSING', 'BOL_PHOTO_MISSING', 'PRE_MAKE_ADJUST'})
 RESOLUTION_KINDS = {
     'SHORTAGE': ('counted', 'missing_movement', 'voided'),
     'NEGATIVE_BALANCE': ('counted', 'missing_movement', 'voided'),
     'UNIDENTIFIED_LOT': ('identified', 'written_off'),
     'LATE_ENTRY': ('acknowledged',),
     'SHIPMENT_PROOF_MISSING': ('photo_attached', 'waived'),
+    'BOL_PHOTO_MISSING': ('photo_attached', 'waived'),
     'PRE_MAKE_ADJUST': ('acknowledged',),
 }
 DEFAULT_RESOLUTIONS = ('resolved', 'waived')
@@ -556,6 +557,17 @@ def _non_blank(value):
 
 
 class ResolveRequest(BaseModel):
+    attachment_id: Optional[int] = Field(None, gt=0)
+
+    @model_validator(mode='before')
+    @classmethod
+    def attachment_alias(cls, values):
+        if values.get('attachment_id') is not None:
+            if values.get('attachment_ref'):
+                fail(422, 'AMBIGUOUS_ATTACHMENT', 'Supply attachment_id or attachment_ref.')
+            values['attachment_ref'] = str(values['attachment_id'])
+        return values
+
     resolution_kind: str = Field(min_length=1, max_length=40)
     note: str = Field(min_length=1, max_length=2000)
     receipt_number: Optional[str] = Field(None, max_length=40)
@@ -570,6 +582,8 @@ class ResolveRequest(BaseModel):
 
 
 class DecisionRequest(BaseModel):
+    attachment_ref: Optional[str] = Field(None, min_length=1, max_length=500)
+    attachment_id: Optional[int] = Field(None, gt=0)
     note: Optional[str] = Field(None, max_length=2000)
 
     _strip = field_validator('note')(_non_blank)
@@ -631,6 +645,10 @@ def shortage_evidence(api, cur, request, actor, row, body):
         resolution = {'kind': 'counted', 'counted_lb': float(body.counted_lb), 'book_before_lb': book, 'delta_lb': delta,
                       'short_lb': short_lb, 'correction_review': review, 'attachment_ref': body.attachment_ref,
                       'transaction_id': None, 'new_balance_lb': book}
+        if body.attachment_ref:
+            import attachments
+            evidence = attachments.verified(cur, body.attachment_ref, actor, exception_id=row['id'], kinds=('correction_photo',), claim=True)
+            attachments.load(api, evidence)
         if abs(delta) > EPSILON:
             if review['photo_required'] and not body.attachment_ref:
                 fail(422, 'PHOTO_REQUIRED',
@@ -647,6 +665,8 @@ def shortage_evidence(api, cur, request, actor, row, body):
             if hasattr(posted, 'status_code'):
                 fail(409, 'CORRECTION_BLOCKED', 'The counted correction is blocked by the product rules.',
                      blocked=json.loads(bytes(posted.body).decode()))
+            if body.attachment_ref:
+                cur.execute('UPDATE attachments SET transaction_id=%s WHERE id=%s', (posted['transaction_id'], evidence['id']))
             resolution.update(transaction_id=posted['transaction_id'], new_balance_lb=float(posted['new_balance_lb']))
         return None, {'resolution': resolution}, True
     if kind == 'missing_movement':
@@ -821,6 +841,10 @@ def register_routes(app, api):
         actor = who(request)
         permissions.require('resolve_exception', actor)
         with api.get_transaction() as cur:
+            cur.execute('SELECT shipment_id,kind FROM exceptions WHERE id=%s', (exception_id,))
+            head = cur.fetchone()
+            if head and head['kind'] == 'BOL_PHOTO_MISSING':
+                cur.execute('SELECT id FROM shipments WHERE id=%s FOR UPDATE', (head['shipment_id'],))
             row = _one(cur, exception_id, lock=True)
             if row['kind'] in OWNER_KINDS:
                 permissions.require('approve_exception', actor)
@@ -841,6 +865,13 @@ def register_routes(app, api):
             resolution_ticket_id, patch, closes = None, {}, True
             if row['kind'] in EVIDENCE_KINDS:
                 resolution_ticket_id, patch, closes = shortage_evidence(api, cur, request, actor, row, body)
+            elif row['kind'] in ('BOL_PHOTO_MISSING', 'SHIPMENT_PROOF_MISSING') and body.resolution_kind == 'photo_attached':
+                if not body.attachment_ref:
+                    fail(422, 'PHOTO_REQUIRED', 'Upload and attach the BOL photo.')
+                import attachments
+                patch = {'photo': attachments.attach_shipment(api, cur, row['shipment_id'], body.attachment_ref, actor)}
+                if patch['photo']['kind'] != 'bol' or not patch['photo']['content_type'].startswith('image/'):
+                    fail(422, 'ATTACHMENT_KIND_INVALID', 'BOL photo evidence is required.')
             elif row['kind'] == 'UNIDENTIFIED_LOT' and body.resolution_kind == 'identified':
                 patch = identified_evidence(cur, row)
             if body.receipt_number and resolution_ticket_id is None:
@@ -947,7 +978,7 @@ def register_routes(app, api):
             result = write_tickets.execute_commit(
                 api, cur, ticket, preparer, preparer_request(preparer_row),
                 effective_payload=ticket['payload'], acknowledged=list(ticket['acknowledged'] or []),
-                attachment_ref=None, approval=approval)
+                attachment_ref=body.attachment_ref or (str(body.attachment_id) if body.attachment_id else None), approval=approval)
             if hasattr(result, 'status_code'):
                 return result   # 409 TICKET_STALE: nothing posted, hold and exception untouched
             release_hold(cur, ticket['id'], resolution_kind='approved', actor_id=owner['id'], note=approval['note'],

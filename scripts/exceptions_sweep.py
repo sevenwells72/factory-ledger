@@ -11,8 +11,9 @@ in docs/deployments/a3b-exceptions-enforcement.md and is NOT created here.
 
 Scope today: overdue SHORTAGE / UNIDENTIFIED_LOT (and any other kind carrying a
 due_at) exceptions plus their shortage_flags rows. The design's other nightly
-openers (SHIPMENT_PROOF_MISSING, NEGATIVE_BALANCE, UNSHIPPED_PAST_DUE) belong to
-A6/A9 and are listed in FOLLOWUPS.
+openers (NEGATIVE_BALANCE, UNSHIPPED_PAST_DUE) are listed in FOLLOWUPS. The unused
+SHIPMENT_PROOF_MISSING kind is superseded by BOL_PHOTO_MISSING (P1.14); no schema change. A6 opens BOL_PHOTO_MISSING once per
+shipment at its 23:59 plant-time deadline, serialized with late uploads.
 """
 import os
 from pathlib import Path
@@ -27,6 +28,8 @@ from staging_safety import assert_staging_database, database_host
 
 def sweep(cur):
     """Escalate overdue open exceptions and shortage flags; returns (exceptions, flags)."""
+    from ship_tickets import open_missing_photos
+    open_missing_photos(cur)
     cur.execute("""UPDATE exceptions SET status='escalated', escalated_at=clock_timestamp()
                    WHERE status='open' AND due_at IS NOT NULL AND due_at < clock_timestamp()""")
     exceptions = cur.rowcount

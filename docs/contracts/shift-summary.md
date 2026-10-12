@@ -139,7 +139,7 @@ Pre-ticket (legacy) transactions never appear: no receipt number = not recorded 
 | `LARGE_CORRECTION` | adjusted | > 500 lb or > 10 % of the lot (R2); photo required | `exception_id`, `delta_lb`, `pct` |
 | `UNKNOWN_REASON` | adjusted | `reason_code='unknown'` (always highlighted, R2) | `transaction_id` |
 | `PHOTO_PENDING` | shipped | `shipments.proof_status='photo_pending'` (R6) | `shipment_id`, `exception_id` |
-| `NOT_SAME_DAY` | shipped | ship `happened_at` not on the plant day of entry (R6 blocker acknowledged by owner) | `shipment_id` |
+| `NOT_SAME_DAY` | shipped | ship `happened_at` not on the plant day of entry (R6 warning explicitly acknowledged by owner or floor, including own entries; office blocked; actor/dates in ticket `response.policy_acknowledgements`) | `shipment_id` |
 | `INVOICE_PENDING` | packed, shipped | Sunshine-owned pack / bulk dispatch awaiting invoice (R7, A8) | `invoice_trigger_id` |
 | `POSSIBLE_DUPLICATE_ACKED` | any | the committer acknowledged a possible-duplicate warning; names the earlier receipt | `receipt_number` |
 | `VOIDED` | any | the receipt's transaction(s) are voided; names the `VD-` receipt | `voided_by_receipt_number` |

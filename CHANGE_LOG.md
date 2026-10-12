@@ -1,5 +1,187 @@
 # Change Log
 
+## 2026-10-12 15:23 — A6 review fixes full fresh-DB validation
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/a6-ship-gate.md`
+- **What changed:** Record fixes 1–5, 35 new cases, before-fix 21 failures and full fresh-local-DB 2,415 Python / 69 Node passes with zero failures/skips; distinguish completed builder work from pending operator rollout.
+- **Why:** Required regression guard and truthful review evidence before pushing PR #99.
+
+---
+
+## 2026-10-12 15:22 — A6 rollout checklist labels and storage configuration coverage
+- **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `tests/test_ship_tickets.py`, `tests/test_a6_review_fixes.py`
+- **What changed:** Keep existing extra-kosher cutover step 1a cross-references stable, add cutoff as step 1b, remove the obsolete test role branch and cover missing production Supabase configuration before connection.
+- **Why:** Finish review-fix regression coverage and preserve documentation references.
+
+---
+
+## 2026-10-12 15:21 — A6 complete late-entry and post-cutover shipment regressions
+- **File(s) changed:** `tests/test_a6_review_fixes.py`
+- **What changed:** Cover blank production signer refusals, floor 49-hour ship opening exactly one A2 late exception, and normal recorded closes after cutoff.
+- **Why:** Validate boundary rules and preserved A2 behavior introduced by the allowed acknowledgement path.
+
+---
+
+## 2026-10-12 15:21 — A6 production prerequisites and hosted staging acceptance checklist
+- **File(s) changed:** `docs/deployments/a6-ship-gate.md`
+- **What changed:** Document 074 production-before-merge as actual app/table owner, RLS/zero-policy verification, private Supabase-only storage, required signer, guarded nightly Railway cron, cutoff activation and four-step hosted staging flow plus post-23:59 sweep.
+- **Why:** Michael review fixes 3–4; builder does not access production, schedule cron or merge.
+
+---
+
+## 2026-10-12 15:21 — A6 decisions recorded and weekly reporting contract updated
+- **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `docs/contracts/shift-summary.md`, `FOLLOWUPS.md`, `scripts/exceptions_sweep.py`
+- **What changed:** Record decisions 41–42 in §§4.3/8.2/11, add cutoff cutover checklist, align shift flag and R6 deadlines, mark unused proof kind superseded and scheduler an operator prerequisite.
+- **Why:** Michael fixes 1, 2, 3 and 5; historical decision tables and compatibility enum retained.
+
+---
+
+## 2026-10-12 15:18 — A6 existing regression expectations follow Michael decisions
+- **File(s) changed:** `tests/test_ship_tickets.py`, `tests/test_order_tickets.py`
+- **What changed:** Replace universal same-day and owner legacy-close blockers with explicit owner/floor acknowledgment and required-note expectations; retain recorded-shipment and office blocks.
+- **Why:** Fix tests asserting the opposite of decisions 1 and 2.
+
+---
+
+## 2026-10-12 15:18 — A6 owner legacy close, floor acknowledgment and production guards
+- **File(s) changed:** `order_tickets.py`, `ship_tickets.py`, `attachments.py`, `main.py`, `write_tickets.py`
+- **What changed:** Enforce immutable NY creation cutoff, nonblank note and named owner at prepare/commit; allow explicit owner/floor same-day overrides, preserve A2 late exceptions, persist actor policy records and receipt filtering; refuse production local storage, missing dedicated signer and invalid cutoff before connection.
+- **Why:** Michael review decisions 1–3; A7 named gate and A1/A2 lifecycle remain authoritative.
+
+---
+
+## 2026-10-12 15:17 — A6 historical-row regression fixtures
+- **File(s) changed:** `tests/test_a6_review_fixes.py`
+- **What changed:** Seed historical creation dates with a transaction-local trigger toggle on the disposable DB; correct A2 regression to the existing 14-day backfill boundary.
+- **Why:** Historical created_at is immutable; preserve the actual A2 contract.
+
+---
+
+## 2026-10-12 15:16 — A6 review regression cases before fixes
+- **File(s) changed:** `tests/test_a6_review_fixes.py`
+- **What changed:** Add cutoff, required note, named owner, owner/floor late shipment acknowledgment, weekly receipt metadata and production startup/storage/signing refusal tests.
+- **Why:** Michael decisions 1–3 after Claude review comment 6130807656; verify failures before implementation.
+
+---
+
+## 2026-10-12 14:47 — A6 part 3 — fresh-DB validation and staging receipt
+- **File(s) changed:** `docs/deployments/a6-ship-gate.md`, `FOLLOWUPS.md`, `FACTORY_LEDGER_CHANGELOG.md`, `scripts/exceptions_sweep.py`
+- **What changed:** Document 2,380 Python/69 Node passing tests and guarded staging evidence; append P1.13 implementation status without claiming hosted rollout; preserve sweep executable mode.
+- **Why:** A6 ship gate and P1.13 pilot evidence requirement.
+
+---
+
+## 2026-10-12 14:47 — A6 — guarded staging shipment and real private BOL evidence
+- **File(s) changed:** `docs/deployments/a6-staging-receipt.json`
+- **What changed:** Apply additive migration 074 only to guarded staging; retain order SO-261012-001, SHP receipt SHP-261012-001, shipment 1, ticket 51 and a 14,865-byte private BOL PNG. Local TestClient acceptance passed; no hosted deployment or production access; temporary actors deactivated.
+- **Why:** A6 ship gate and P1.13 pilot evidence requirement.
+
+---
+
+## 2026-10-12 14:45 — A6 — follow extracted ship core in lock-order regression
+- **File(s) changed:** `tests/test_sales_order_state_model.py`
+- **What changed:** Keep the existing order→lines→products lock-order assertions on the extracted cursor-owned shipping core, and verify the legacy handler delegates to it.
+- **Why:** A6 ship gate and P1.13 pilot evidence requirement.
+
+---
+
+## 2026-10-12 14:45 — A6 — use readable synthetic staging BOL evidence
+- **File(s) changed:** `scripts/check_ship_gate_staging.py`
+- **What changed:** Render a readable test BOL with matching customer, product, quantity and BOL number for the real private staging photo roundtrip.
+- **Why:** A6 ship gate and P1.13 pilot evidence requirement.
+
+---
+
+## 2026-10-12 14:44 — A6 — guarded staging ship acceptance script
+- **File(s) changed:** `scripts/check_ship_gate_staging.py`
+- **What changed:** Add local HTTP acceptance against only the protected staging URI: synthetic receive/order/ship tickets, mandatory BOL refusal, real private photo, replay and signed packing slip; ephemeral keys never printed and actors deactivated.
+- **Why:** A6 ship gate and P1.13 pilot evidence requirement.
+
+---
+
+## 2026-10-12 14:43 — A6 — serialize duplicate-warning elapsed time
+- **File(s) changed:** `ship_tickets.py`
+- **What changed:** Normalize database Decimal values in duplicate warning refs before issuing the ticket JSON.
+- **Why:** A6 ship gate and P1.13 pilot evidence requirement.
+
+---
+
+## 2026-10-12 14:43 — A6 — duplicate shipment regressions
+- **File(s) changed:** `tests/test_ship_tickets.py`
+- **What changed:** Verify effective customer/quantity duplicate warnings, receipt/actor text, void exclusion, and a new shipment after prepare requiring acknowledgement under commit locks.
+- **Why:** A6 ship gate and P1.13 pilot evidence requirement.
+
+---
+
+## 2026-10-12 14:43 — A6 — preserve A1 duplicate-warning guarantees
+- **File(s) changed:** `ship_tickets.py`
+- **What changed:** Match effective shipments within 24 hours by order line or standalone customer/total; show receipt, actor and elapsed time and require acknowledgement again under commit locks.
+- **Why:** A6 ship gate and P1.13 pilot evidence requirement.
+
+---
+
+## 2026-10-12 14:42 — A6 — update schema and actor allowlist regression contracts
+- **File(s) changed:** `tests/test_roles_a2.py`, `tests/test_named_actor_writes.py`
+- **What changed:** Account for shipments.entered_by in dependency-ordered migration tests and enumerate new authenticated A6 routes in the exact actor allowlist assertion.
+- **Why:** A6 ship gate and P1.13 pilot evidence requirement.
+
+---
+
+## 2026-10-12 14:41 — A6 — expand negative-path acceptance tests
+- **File(s) changed:** `tests/test_ship_tickets.py`
+- **What changed:** Cover counted correction actor/ticket ownership and valid resolver ids, correction attribution, all-action supersession and atomic late failure, cancelled/over-quantity lines, future times, void-aware close and truck-photo distinction.
+- **Why:** A6 ship gate and P1.13 pilot evidence requirement.
+
+---
+
+## 2026-10-12 14:41 — A6 — finish evidence attribution and explicit route accounting
+- **File(s) changed:** `exceptions_enforcement.py`, `order_tickets.py`, `permissions.py`, `scripts/exceptions_sweep.py`, `ship_tickets.py`, `write_tickets.py`
+- **What changed:** Normalize naive ship times to plant time, link verified correction files to their transactions, validate counted evidence even with zero delta and account for A6 private upload routes in A2 completeness checks.
+- **Why:** A6 ship gate and P1.13 pilot evidence requirement.
+
+---
+
+## 2026-10-12 14:39 — A6 — correct permission and race fixtures
+- **File(s) changed:** `tests/test_ship_tickets.py`
+- **What changed:** Match the existing dashboard allowlist 403 envelope and use unique actors across the session-scoped isolated DB.
+- **Why:** A6 ship gate and P1.13 pilot evidence requirement.
+
+---
+
+## 2026-10-12 14:39 — A6 — migrate historical photo fixtures to real evidence
+- **File(s) changed:** `migrations/down/074_ship_gate_attachments_down.sql`, `tests/test_exceptions_enforcement.py`, `tests/test_order_tickets.py`, `tests/test_ship_tickets.py`, `tests/test_write_tickets.py`
+- **What changed:** Replace successful bare-string photo fixtures with stored, hashed actor-owned files; update A7 close assertions for the new recorded-shipment rule; add guarded empty-database rollback and include 074 in migration dependency tests.
+- **Why:** A6 ship gate and P1.13 pilot evidence requirement.
+
+---
+
+## 2026-10-12 14:38 — A6 — ship policy and lifecycle regressions
+- **File(s) changed:** `tests/test_ship_tickets.py`, `tests/test_write_tickets.py`
+- **What changed:** Add real HTTP/DB coverage for all ship actions, actor/hash/expiry, BOL/lot/time gates, private attachments, P1.13 holds, late proof, packing signatures and concurrent replay; apply 074 in isolated race DB fixtures.
+- **Why:** A6 ship gate and P1.13 pilot evidence requirement.
+
+---
+
+## 2026-10-12 14:36 — A6 part 2 — ticketed shipping and BOL/photo ship gate
+- **File(s) changed:** `docs/deployments/a6-ship-gate.md`, `exceptions_enforcement.py`, `main.py`, `order_tickets.py`, `scripts/exceptions_sweep.py`, `ship_tickets.py`, `write_tickets.py`
+- **What changed:** Extract existing shipping commit cores onto the caller cursor; add three SHP ticket actions, confirmed-lot/BOL/same-day gates, shipment receipts and private evidence links, A7 close hook and idempotent 23:59 BOL-photo sweep. Legacy shipping cores retain their master-key behavior.
+- **Why:** A6 ship gate and P1.13 pilot evidence requirement.
+
+---
+
+## 2026-10-12 14:32 — A6 part 1 — evidence storage tests
+- **File(s) changed:** `tests/test_attachments.py`
+- **What changed:** Add real file roundtrip, private permissions, hash integrity, content/size, public bucket and reference ownership regressions.
+- **Why:** A6 ship gate and P1.13 pilot evidence requirement.
+
+---
+
+## 2026-10-12 14:31 — A6 part 1 — private evidence storage and P1.13 validation
+- **File(s) changed:** `attachments.py`, `docs/deployments/a6-ship-gate.md`, `exceptions_enforcement.py`, `main.py`, `migrations/074_ship_gate_attachments.sql`, `tests/schema/schema.sql`, `write_tickets.py`
+- **What changed:** Add migration 074, authenticated private uploads/downloads, immutable evidence provenance, and correction/shortage photo ownership checks. Validation and ship tickets follow in part 2.
+- **Why:** A6 ship gate and P1.13 pilot evidence requirement.
+
+---
+
 ## 2026-10-12 13:22 — FOLLOWUPS P1.17 done: review:merge / review:fix-round labels created (branch docs/p117-labels)
 - **File(s) changed:** `FOLLOWUPS.md`, `docs/design/phase1-safe-operating-system.md`, `CHANGE_LOG.md`
 - **What changed:** P1.17's one-time to-do marked DONE (labels created 2026-10-12 via `gh label create`: `review:merge` #0E8A16, `review:fix-round` #F0883E); the matching sentence in design §10.1 "Review evidence" now says the labels exist.

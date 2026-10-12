@@ -40,13 +40,13 @@ REFERENCE_CONSTRAINTS = ('sales_orders_customer_external_reference_uniq', 'sales
 
 # ---------------------------------------------------------------------------
 # A6 hook — ship gate. Closing an order as shipped will require a recorded
-# shipment (BOL / proof, design §8.2). Today there is NO gate: this returns no
-# blockers, which is exactly the existing close behaviour. A6 replaces the
-# body; both callers (close_order, status=invoiced) already treat the result
+# shipment (BOL / proof, design §8.2). A6 owns the policy body.
+# Both callers (close_order, status=invoiced) treat the result
 # as draft blockers at prepare and as a stale-ticket refusal at commit.
 # ---------------------------------------------------------------------------
 def shipment_gate(api, cur, order, close_reason):
-    return []
+    import ship_tickets
+    return ship_tickets.shipment_gate(api, cur, order, close_reason)
 
 
 # ---------------------------------------------------------------------------
@@ -158,7 +158,7 @@ class ReopenRequest(OrderRequest):
 def load_order(cur, order_id, *, lock=False):
     cur.execute('''SELECT so.id, so.order_number, so.status, so.state, so.state_reason, so.customer_id,
                           c.name AS customer, so.customer_po, so.requested_ship_date, so.order_date,
-                          so.external_order_reference, so.status_before_exit, so.ticket_id,
+                          so.external_order_reference, so.status_before_exit, so.ticket_id, so.created_at,
                           COALESCE(f.ready, false) AS ready
                    FROM sales_orders so JOIN customers c ON c.id=so.customer_id
                    LEFT JOIN sales_order_flags f ON f.so_number=so.order_number
@@ -234,9 +234,20 @@ def core_lines(payload_lines, products):
 # Permissions that depend on the payload (the matrix row itself is checked by
 # the ticket layer on the stored action, at prepare and again at commit).
 # ---------------------------------------------------------------------------
-def require_reason_permissions(api, cur, action, payload, actor):
+def require_reason_permissions(api, cur, action, payload, actor, *, lock=False):
     if action == 'close_order' and payload['reason'] == 'shipped_not_recorded':
         permissions.require('close_order_shipped_not_recorded', actor)
+        # A6 ticket exemption is for a named owner; direct master-key routes keep their legacy reach.
+        if permissions.role_of(actor)!='owner':
+            fail(403,'ROLE_NOT_ALLOWED','Only the named owner may close as shipped_not_recorded.')
+        if not (payload.get('note') or '').strip():
+            fail(422,'NOTE_REQUIRED','A note is required for shipped_not_recorded.')
+        try:
+            order=load_order(cur,payload['order_id'],lock=lock)
+        except HTTPException as exc:
+            if exc.status_code==404: return  # validate reports the missing order
+            raise
+        shipment_gate(api,cur,order,payload['reason'])  # cutoff refusal is a plain 403 at prepare and commit
     if action == 'update_order_status':
         if payload['status'] == 'cancelled':
             permissions.require('cancel_order', actor)
@@ -327,13 +338,13 @@ def validate(api, cur, action, payload, *, lock=False):
         api._validate_requested_order_status(payload['status'])
         if payload['status'] == 'invoiced':
             state_row = api._load_so_for_state_change(cur, order['id'])
-            if state_row['state'] == 'open':
-                ctx['blockers'] = shipment_gate(api, cur, order, api._shipped_close_reason(state_row))
+            if state_row['state'] in ('open', 'closed'):
+                ctx['blockers'] = shipment_gate(api, cur, order, 'shipped_recorded')
     elif action == 'mark_order_ready':
         if order['state'] != 'open':
             fail(409, 'ORDER_NOT_OPEN', f"Order {order['order_number']} is '{order['state']}'; "
                  'ready can only be set on an open order.')
-    elif action == 'close_order' and payload['reason'] == 'shipped_recorded':
+    elif action == 'close_order':
         ctx['blockers'] = shipment_gate(api, cur, order, payload['reason'])
     return ctx
 
@@ -575,7 +586,7 @@ def commit(api, cur, row, body, actor, request, entry_timing):
     action, payload = row['action'], row['payload']
     acknowledged = set(body.acknowledged_warnings)
     # Reason-dependent roles, re-checked now: a plain 403, the ticket stays prepared.
-    require_reason_permissions(api, cur, action, payload, actor)
+    require_reason_permissions(api, cur, action, payload, actor, lock=True)
     cur.execute('SAVEPOINT ticket_post')
     try:
         if actor['id'] is not None:
@@ -613,6 +624,12 @@ def commit(api, cur, row, body, actor, request, entry_timing):
         cur.execute('SELECT clock_timestamp() AS at')
         response['entry_timing'] = {**entry_timing, 'entered_at': cur.fetchone()['at'],
                                     'entered_by': actor, 'late_entry_exception_id': None}
+        if action=='close_order' and payload['reason']=='shipped_not_recorded':
+            import ship_tickets
+            response['policy_acknowledgements']=[{'code':'SHIPPED_NOT_RECORDED','actor':dict(actor),
+                'note':payload['note'],'acknowledged_at':response['entry_timing']['entered_at'],
+                'order_created_on':ctx['order']['created_at'].astimezone(api.PLANT_TIMEZONE).date(),
+                'cutoff':ship_tickets.legacy_close_cutoff()}]
         response = wt.json_value(api, response)
     except (HTTPException, psycopg2.errors.UniqueViolation) as exc:
         if isinstance(exc, HTTPException):

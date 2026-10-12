@@ -34,6 +34,8 @@ from collections import defaultdict, deque
 # the module attributes and both sides see it.
 import extraction
 import write_tickets
+import attachments
+import ship_tickets
 import lot_confirmation
 import exceptions_enforcement
 import resolution
@@ -2414,6 +2416,8 @@ def _run_startup_migrations() -> None:
 @app.on_event("startup")
 async def startup():
     global db_pool
+    attachments.validate_configuration()
+    ship_tickets.validate_configuration()
     assert_staging_database(DATABASE_URL)
     if not DATABASE_URL:
         raise RuntimeError("DATABASE_URL env var required — app cannot start without a database")
@@ -2868,7 +2872,7 @@ ACTOR_WRITE_ALLOWLIST = frozenset({
     ("PATCH", "/lots/{lot_code}/supplier-lot"),
     ("PATCH", "/lots/{lot_id}/rename"),
     ("PATCH", "/sales/orders/{order_id}/lines/{line_id}/cancel"),
-}) | write_tickets.ACTOR_ROUTES | exceptions_enforcement.ACTOR_ROUTES
+}) | write_tickets.ACTOR_ROUTES | exceptions_enforcement.ACTOR_ROUTES | attachments.ROUTES
 
 
 ACTOR_CACHE_TTL_S = 60
@@ -3211,9 +3215,12 @@ def verify_api_key(request: Request, x_api_key: str = Header(None, alias="X-API-
 def verify_api_key_flexible(
     request: Request,
     x_api_key: str = Header(None, alias="X-API-Key"),
-    key: str = Query(None)
+    key: str = Query(None),
+    receipt: str = Query(None), expires: int = Query(None), sig: str = Query(None)
 ):
     """Accept API key from either header or query parameter (packing slip browser access)."""
+    if sig is not None or receipt is not None:
+        return ship_tickets.verify_packing_link(sys.modules[__name__], request, receipt, expires, sig)
     return _authorize_api_key(x_api_key or key, request, invalid_status=401)
 
 
@@ -7944,6 +7951,492 @@ def check_open_orders_for_ship(cur, customer_id: int, customer_name: str) -> dic
     }
 
 
+def _ship_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, customer=None, ticket_id=None, receipt_number=None, bol_reference=None):
+    """Existing ship commit body; caller owns the transaction (A6)."""
+    product = product or resolve_product_full(cur, req.product_name)
+
+    if customer is not None:
+        customer_id, canonical_customer = customer['id'], customer['name']
+    else:
+        customer_id, canonical_customer = resolve_customer_id(
+            cur, req.customer_name,
+            auto_create=True,
+            force_create=req.force_create_customer,
+            address=req.customer_address,
+            request=request,
+        )
+
+    standalone_warning = None
+    oo_payload = check_open_orders_for_ship(cur, customer_id, canonical_customer)
+    if oo_payload:
+        if not req.force_standalone:
+            raise HTTPException(status_code=409, detail=oo_payload)
+        # force_standalone=True: allow but log and tag
+        n_open = len(oo_payload.get("open_orders", []))
+        standalone_warning = f"This shipment was not linked to any sales order. Customer has {n_open} open orders."
+
+    all_lots = available_lots_for_product(
+        cur,
+        int(product['id']),
+        lock=True,
+        persist_expired=True,
+        released_by=_operator_id(request),
+    )
+    reservation_summary = _allocation_reservation_summary(
+        cur, int(product['id'])
+    )
+
+    if not all_lots:
+        raise HTTPException(status_code=400, detail=f"No inventory available for {product['name']}")
+
+    # Pin fidelity (owner ruling 2026-08-20): a pinned lot_code
+    # restricts the plan to that lot only — never spill to
+    # other lots to avoid its reserved pounds. Observe mode
+    # takes the pinned lot's reserved stock instead (warning +
+    # inventory_shipped shrink below).
+    plan_lots = all_lots
+    if req.lot_code:
+        plan_lots = [
+            lot for lot in all_lots
+            if lot['lot_code'].lower() == req.lot_code.lower()
+        ]
+        if not plan_lots:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Lot '{req.lot_code}' has no available inventory",
+            )
+
+    plan = _takeable_deduction_plan(plan_lots, req.quantity_lb)
+    if plan["short_lb"] > BALANCE_EPSILON:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Insufficient total inventory for {product['name']}. "
+                   f"Have {plan['total_on_hand_lb']:.4f} lb across "
+                   f"{len(plan_lots)} lot(s), need {req.quantity_lb} lb",
+        )
+    allocation_warning = _allocation_observe_warning(
+        "Standalone ship",
+        req.quantity_lb,
+        plan["can_take_lb"],
+        plan["reserved_taken_lb"],
+        reservation_summary,
+    )
+    _enforce_allocation_takeable(
+        "Standalone ship",
+        req.quantity_lb,
+        plan["can_take_lb"],
+        plan["reserved_taken_lb"],
+        reservation_summary,
+        product_id=int(product["id"]),
+    )
+
+    txn_notes = None
+    if standalone_warning:
+        txn_notes = f"standalone_override=true | {standalone_warning}"
+    now = get_plant_now()
+    cur.execute("""
+        INSERT INTO transactions (
+            type, timestamp, customer_name, order_reference,
+            notes, occurred_at, created_at_source, operator_id,
+            entered_by_actor_id, ticket_id, receipt_number, bol_reference
+        )
+        VALUES ('ship', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id, occurred_at, business_date
+    """, (
+        now, canonical_customer, req.order_reference, txn_notes,
+        occurred_at, created_at_source, _operator_id(request),
+        _entered_by_actor_id(request), ticket_id, receipt_number, bol_reference,
+    ))
+    txn_row = cur.fetchone()
+    txn_id = txn_row['id']
+
+    shipped_lots = []
+    for item in plan["lots"]:
+        lot = item["lot"]
+        take = float(item["quantity_lb"])
+        cur.execute("""
+            INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
+            VALUES (%s, %s, %s, %s)
+        """, (txn_id, product['id'], lot['lot_id'], -take))
+        shipped_lots.append({"lot_code": lot['lot_code'], "shipped_lb": take})
+
+    ship_mode = "single_lot" if len(shipped_lots) == 1 else "multi_lot_fifo"
+    if ship_mode == "single_lot":
+        only_lot = plan["lots"][0]["lot"]
+        remaining = float(only_lot["on_hand"]) - req.quantity_lb
+        log_msg = (
+            f"Shipped {req.quantity_lb} lb from lot {only_lot['lot_code']}. "
+            f"{remaining} lb remaining in lot."
+        )
+    else:
+        remaining = None
+        log_msg = (
+            f"Shipped {req.quantity_lb} lb from {len(shipped_lots)} lot(s) "
+            "(reservation-aware FIFO)."
+        )
+
+    # ── Create shipment + shipment_lines (unified shipping model) ──
+    cur.execute("""
+        INSERT INTO shipments (transaction_id, shipped_at, customer_id)
+        VALUES (%s, %s, %s) RETURNING id
+    """, (txn_id, occurred_at or now, customer_id))
+    shipment_id = cur.fetchone()['id']
+
+    for sl in shipped_lots:
+        cur.execute("""
+            INSERT INTO shipment_lines (shipment_id, transaction_id, product_id, quantity_lb)
+            VALUES (%s, %s, %s, %s)
+        """, (shipment_id, txn_id, product['id'], sl['shipped_lb']))
+
+    allocations_released = []
+    if plan["reserved_taken_lb"] > BALANCE_EPSILON:
+        allocations_released = _shrink_overallocated_products(
+            cur,
+            [int(product['id'])],
+            _operator_id(request),
+            release_reason="inventory_shipped",
+        )
+
+    # Trace emission (§4, §10): after the inventory_shipped
+    # shrink so roles reflect the final deduction plan;
+    # fail-hard, last write before commit.
+    if trace_emit_enabled():
+        emit_trace_event(
+            cur, txn_id, 'ship', 'object',
+            [(item["lot"]["lot_id"], 'shipped', -float(item["quantity_lb"]))
+             for item in plan["lots"]],
+            txn_row['occurred_at'], txn_row['business_date'],
+            operator_id=actor_name(request),
+            destination_party=canonical_customer,
+            customer_id=customer_id,
+        )
+
+    if standalone_warning:
+        logger.warning(f"force_standalone ship for {canonical_customer} who has {len(oo_payload.get('open_orders', []))} open orders: txn {txn_id}")
+
+    logger.info(f"Ship committed: {req.quantity_lb} lb of {product['name']} to {canonical_customer} ({ship_mode})")
+
+    response = {
+        "mode": "commit",
+        "success": True,
+        "transaction_id": txn_id,
+        "shipment_id": shipment_id,
+        "confirmation_code": generate_confirmation_code(txn_id),
+        "quantity_shipped": req.quantity_lb,
+        "ship_mode": ship_mode,
+        "lots_used": shipped_lots,
+        "remaining_in_lot": remaining,
+        "can_ship_lb": plan["can_take_lb"],
+        "reserved_others_lb": reservation_summary["reserved_others_lb"],
+        "reserved_by_orders": reservation_summary["reserved_by_orders"],
+        "allocations_released": allocations_released,
+        "customer_name": canonical_customer,
+        "message": log_msg
+    }
+    if standalone_warning:
+        response["standalone_override"] = True
+        response["warning"] = standalone_warning
+    if allocation_warning:
+        response["allocation_warning"] = allocation_warning
+        if "warning" not in response:
+            response["warning"] = allocation_warning["message"]
+    return response
+
+
+def _ship_order_commit_core(cur, request, order_id, req, occurred_at, created_at_source, *, ticket_id=None, receipt_number=None, bol_reference=None):
+    """Existing ship commit body; caller owns the transaction (A6)."""
+    cur.execute(
+        "SELECT so.id, so.order_number, so.status, so.state, so.customer_id, c.name "
+        "  FROM sales_orders so JOIN customers c ON c.id = so.customer_id "
+        " WHERE so.id = %s "
+        "   FOR NO KEY UPDATE OF so",
+        (order_id,),
+    )
+    order_row = cur.fetchone()
+    if not order_row:
+        raise HTTPException(404, f"Order #{order_id} not found")
+    _require_open_state(order_row['state'], order_row['order_number'],
+                        order_id, "shipping")
+    # Step 2 of the normative lock order: the order's line rows,
+    # ascending id — before any product/lot lock below.
+    _lock_sales_order_lines(cur, order_id)
+    if order_row['status'] == 'new':
+        raise HTTPException(400, f"Cannot ship order {order_row['order_number']} — status is 'new'. Confirm the order first.")
+    if order_row['status'] in ('invoiced', 'cancelled'):
+        raise HTTPException(400, f"Cannot ship {order_row['status']} order")
+    ship_all = (req is None) or (req.ship_all)
+
+    if ship_all:
+        cur.execute(f"""SELECT sol.id, sol.product_id, sol.quantity_lb, sol.quantity_shipped_lb, p.name,
+                              sol.ordered_quantity,
+                              COALESCE(p.is_service, false) AS is_service
+                       FROM sales_order_lines sol JOIN products p ON p.id = sol.product_id
+                       WHERE sol.sales_order_id = %s AND ({ORDER_LINE_PENDING_SQL}) ORDER BY sol.id""", (order_id,))
+        lines_to_ship = [{"line_id": r['id'], "product_id": r['product_id'],
+                          "quantity_lb": float(r['quantity_lb']) - float(r['quantity_shipped_lb']),
+                          "product_name": r['name'],
+                          "is_service": r['is_service']}
+                         for r in cur.fetchall()]
+    else:
+        lines_to_ship = []
+        for rl in (req.lines or []):
+            cur.execute("""SELECT sol.id, sol.product_id, sol.quantity_lb, sol.quantity_shipped_lb, p.name,
+                                  sol.ordered_quantity, sol.line_status,
+                                  COALESCE(p.is_service, false) AS is_service
+                           FROM sales_order_lines sol JOIN products p ON p.id = sol.product_id
+                           WHERE sol.id = %s AND sol.sales_order_id = %s""", (rl.line_id, order_id))
+            r = cur.fetchone()
+            if not r:
+                raise HTTPException(404, f"Line #{rl.line_id} not found on order #{order_id}")
+            remaining = float(r['quantity_lb']) - float(r['quantity_shipped_lb'])
+            service_count = r['is_service'] and r['ordered_quantity'] is not None
+            if r['line_status'] == 'cancelled':
+                raise HTTPException(status_code=409, detail={
+                    "error_code": "LINE_CANCELLED",
+                    "message": f"Line #{rl.line_id} ({r['name']}) is cancelled and cannot be shipped.",
+                    "line_id": rl.line_id, "product": r['name'],
+                })
+            if (r['is_service'] and r['line_status'] == 'fulfilled') or (remaining <= 0 and not service_count):
+                raise HTTPException(status_code=409, detail={"error_code": "LINE_ALREADY_FULFILLED", "message": f"Line #{rl.line_id} ({r['name']}) is already fully shipped.", "line_id": rl.line_id, "product": r['name'], "ordered_lb": float(r['quantity_lb']), "shipped_lb": float(r['quantity_shipped_lb']), "remaining_lb": 0})
+            if not service_count and rl.quantity_lb > remaining:
+                raise HTTPException(status_code=422, detail={"error_code": "QTY_EXCEEDS_REMAINING", "message": f"Line #{rl.line_id} ({r['name']}): requested {rl.quantity_lb} lb but only {remaining} lb remaining.", "line_id": rl.line_id, "product": r['name'], "requested_lb": rl.quantity_lb, "remaining_lb": remaining, "suggestion": f"Retry with quantity_lb={remaining}"})
+            lines_to_ship.append({"line_id": r['id'], "product_id": r['product_id'], "quantity_lb": 0 if service_count else rl.quantity_lb, "product_name": r['name'], "is_service": r['is_service']})
+
+    if not lines_to_ship:
+        if ship_all and order_row['status'] == 'partial_ship':
+            # Repair a legacy partial order whose quantities were
+            # reduced to what was already shipped. No stock moves.
+            cur.execute("UPDATE sales_orders SET status='shipped' WHERE id=%s", (order_id,))
+            _record_actor_write(cur, request, 'sales_orders', order_id)
+            return {"mode": "commit", "order_number": order_row['order_number'],
+                    "customer": order_row['name'], "order_status": "shipped",
+                    "shipment_id": None, "lines_shipped": [],
+                    "message": f"Order {order_row['order_number']} completed — no quantities remain to ship"}
+        raise HTTPException(status_code=409, detail={"error_code": "ORDER_ALREADY_FULFILLED", "message": f"Order {order_row['order_number']} has no remaining lines to ship.", "order_id": order_id, "order_number": order_row['order_number'], "status": order_row['status']})
+
+    if all(item['is_service'] for item in lines_to_ship) and _pending_order_ship_counts(cur, order_id)['pending_physical']:
+        raise HTTPException(status_code=409, detail={
+            "error_code": "PHYSICAL_LINES_PENDING",
+            "message": "Ship the remaining physical product lines before completing service charges.",
+            "order_id": order_id, "order_number": order_row['order_number'],
+        })
+
+    # Step 3 of the normative lock order: EVERY product this
+    # shipment touches, ascending product id, taken here before
+    # either planning loop runs.
+    #
+    # Taking them one at a time inside the loops would order the
+    # locks by line id — i.e. by whatever order the operator
+    # happened to add the lines — so shipping an order with
+    # products (P2, P1) could grab P2 while an exit on another
+    # order holding P1 waited for P2. Both would wait forever.
+    # Sorting makes every writer agree on the sequence.
+    _lock_allocation_products(
+        cur,
+        [item["product_id"] for item in lines_to_ship
+         if not item["is_service"]],
+    )
+
+    # PR 5 hard-gate preflight.  Run before the shipment header or
+    # any line/service updates.  This is deliberately absent from
+    # the flag-off path, whose PR 4 response/write behavior is a
+    # regression contract.
+    if _allocations_enforced():
+        for item in lines_to_ship:
+            if item["is_service"]:
+                continue
+            # As on every other allocation write: a surface
+            # tag, never the 'legacy-shared-key' placeholder.
+            # See caller_source_tag()'s docstring.
+            plan = _sales_order_ship_plan(
+                cur,
+                int(item["product_id"]),
+                int(item["line_id"]),
+                float(item["quantity_lb"]),
+                released_by=caller_source_tag(request),
+                lock=True,
+                persist_expired=False,
+            )
+            can_ship = float(plan["actual_ship_lb"])
+            # Match the ship plan's physical basis exactly:
+            # only positive-balance FIFO lots are consumable.
+            # A negative audit lot must not offset those lots
+            # and hide a foreign-reservation steal.
+            on_hand = sum(
+                float(lot["available"] or 0)
+                for lot in fifo_lot_balances(
+                    cur, int(item["product_id"]), include_empty=False
+                )
+            )
+            reserved_taken = max(
+                0.0,
+                min(float(item["quantity_lb"]), on_hand) - can_ship,
+            )
+            reservation_summary = _allocation_reservation_summary(
+                cur, int(item["product_id"]), int(item["line_id"])
+            )
+            _enforce_allocation_takeable(
+                "Sales-order ship",
+                float(item["quantity_lb"]),
+                can_ship,
+                reserved_taken,
+                reservation_summary,
+                order_id=int(order_id),
+                order_number=order_row["order_number"],
+                sales_order_line_id=int(item["line_id"]),
+                product_id=int(item["product_id"]),
+            )
+
+    now = get_plant_now()
+
+    # Create shipment record (v3.0.0)
+    cur.execute("""
+        INSERT INTO shipments (sales_order_id, shipped_at, customer_id)
+        VALUES (%s, %s, %s) RETURNING id
+    """, (order_id, occurred_at or now, order_row['customer_id']))
+    shipment_id = cur.fetchone()['id']
+
+    results = []
+    # Flag read once per request (§9); each per-line ship
+    # transaction below emits its own trace event.
+    trace_on = trace_emit_enabled()
+
+    for item in lines_to_ship:
+        qty_to_ship = item["quantity_lb"]
+
+        # F05-04: service lines (pallet charges, freight, etc.) auto-fulfill
+        # with no inventory lookup — they represent billing, not stock movement.
+        if item["is_service"]:
+            cur.execute(
+                "UPDATE sales_order_lines SET quantity_shipped_lb = quantity_shipped_lb + %s, line_status = 'fulfilled' WHERE id = %s",
+                (qty_to_ship, item["line_id"]),
+            )
+            results.append({
+                "line_id": item["line_id"],
+                "product": item["product_name"],
+                "requested_lb": qty_to_ship,
+                "shipped_lb": qty_to_ship,
+                "status": "fulfilled",
+                "line_status": "fulfilled",
+                "is_service": True,
+            })
+            continue
+
+        plan = _sales_order_ship_plan(
+            cur,
+            int(item["product_id"]),
+            int(item["line_id"]),
+            qty_to_ship,
+            released_by=caller_source_tag(request),
+        )
+        actual_ship = float(plan["actual_ship_lb"])
+        if actual_ship <= BALANCE_EPSILON:
+            results.append({"line_id": item["line_id"], "product": item["product_name"], "requested_lb": qty_to_ship, "shipped_lb": 0, "status": "no_stock"})
+            continue
+
+        cur.execute("""
+            INSERT INTO transactions (
+                type, timestamp, customer_name, notes,
+                occurred_at, created_at_source, operator_id,
+                entered_by_actor_id, ticket_id, receipt_number, bol_reference
+            )
+            VALUES ('ship', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id, occurred_at, business_date
+        """, (
+            now, order_row['name'],
+            f"Sales order {order_row['order_number']} — {item['product_name']}",
+            occurred_at, created_at_source, _operator_id(request),
+            _entered_by_actor_id(request), ticket_id, receipt_number, bol_reference,
+        ))
+        txn_row = cur.fetchone()
+        txn_id = txn_row['id']
+        lots_used = []
+        for lot in plan["lots"]:
+            take = float(lot["quantity_lb"])
+            cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, item["product_id"], lot['lot_id'], -take))
+            lots_used.append({"lot_code": lot['lot_code'], "quantity_lb": take})
+
+        allocation_changes = _consume_sales_order_allocations(
+            cur, plan, txn_id
+        )
+
+        cur.execute("UPDATE sales_order_lines SET quantity_shipped_lb = quantity_shipped_lb + %s WHERE id = %s RETURNING quantity_lb, quantity_shipped_lb", (actual_ship, item["line_id"]))
+        updated = cur.fetchone()
+        ordered = float(updated['quantity_lb'])
+        new_shipped = float(updated['quantity_shipped_lb'])
+        if new_shipped >= ordered:
+            new_line_status = 'fulfilled'
+        elif new_shipped > 0:
+            new_line_status = 'partial'
+        else:
+            new_line_status = 'pending'
+        cur.execute("UPDATE sales_order_lines SET line_status = %s WHERE id = %s", (new_line_status, item["line_id"]))
+
+        # Record in sales_order_shipments
+        cur.execute("INSERT INTO sales_order_shipments (sales_order_line_id, transaction_id, quantity_lb) VALUES (%s, %s, %s)", (item["line_id"], txn_id, actual_ship))
+
+        # Record in shipment_lines (v3.0.0)
+        cur.execute("""
+            INSERT INTO shipment_lines (shipment_id, transaction_id, sales_order_line_id, product_id, quantity_lb)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (shipment_id, txn_id, item["line_id"], item["product_id"], actual_ship))
+
+        # Trace emission (§4, §10): after this line's
+        # transaction_lines, allocation consumption (and the
+        # expire that ran inside _sales_order_ship_plan), and
+        # shipment side-writes — roles mirror the final plan.
+        # Fail-hard.
+        if trace_on:
+            emit_trace_event(
+                cur, txn_id, 'ship', 'object',
+                [(lot['lot_id'], 'shipped', -float(lot['quantity_lb']))
+                 for lot in plan["lots"]],
+                txn_row['occurred_at'], txn_row['business_date'],
+                operator_id=actor_name(request),
+                destination_party=order_row['name'],
+                customer_id=order_row['customer_id'],
+                sales_order_id=order_id,
+            )
+
+        # Fetch case_size_lb for unit count
+        cur.execute("SELECT case_size_lb FROM products WHERE id = %s", (item["product_id"],))
+        cs_row = cur.fetchone()
+        cs_lb = float(cs_row['case_size_lb']) if cs_row and cs_row['case_size_lb'] else None
+        results.append({"line_id": item["line_id"], "product": item["product_name"],
+                        "requested_lb": qty_to_ship, "shipped_lb": actual_ship,
+                        "shipped_units": round(actual_ship / cs_lb) if cs_lb else None,
+                        "short_lb": max(0, qty_to_ship - actual_ship), "lots_used": lots_used,
+                        "allocation_changes": allocation_changes,
+                        "transaction_id": txn_id, "confirmation_code": generate_confirmation_code(txn_id),
+                        "line_status": new_line_status})
+
+    # Inspect the whole order, not just this request's lines.
+    # Services may finish after all physical shipments are done;
+    # they must not hide unfulfilled physical lines with no stock.
+    pending = _pending_order_ship_counts(cur, order_id)
+    all_fully_shipped = pending['pending_lines'] == 0
+    any_actually_shipped = any(
+        r.get("shipped_lb", 0) > 0 and not r.get("is_service") for r in results
+    )
+    if not any_actually_shipped and pending['pending_physical']:
+        cur.execute("DELETE FROM shipment_lines WHERE shipment_id = %s", (shipment_id,))
+        cur.execute("DELETE FROM shipments WHERE id = %s", (shipment_id,))
+        raise HTTPException(status_code=409, detail={
+            "error_code": "ZERO_SHIPMENT",
+            "message": "No items could be shipped — all products have zero available stock",
+            "order_id": order_id,
+            "order_number": order_row['order_number'],
+            "lines_attempted": len(results)
+        })
+
+    new_order_status = 'shipped' if all_fully_shipped else 'partial_ship'
+    cur.execute("UPDATE sales_orders SET status = %s WHERE id = %s", (new_order_status, order_id))
+    logger.info(f"Ship order {order_row['order_number']}: {'fully' if all_fully_shipped else 'partially'} shipped")
+    return {"mode": "commit", "order_number": order_row['order_number'], "customer": order_row['name'],
+            "order_status": new_order_status, "shipment_id": shipment_id, "lines_shipped": results,
+            "message": f"Order {order_row['order_number']} {'fully' if all_fully_shipped else 'partially'} shipped"}
+
+
 @app.post("/ship")
 def ship(req: ShipRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Ship inventory. mode=preview returns allocation plan; mode=commit executes."""
@@ -8068,191 +8561,7 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key), request: Request =
         try:
             with get_db_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                    product = resolve_product_full(cur, req.product_name)
-
-                    customer_id, canonical_customer = resolve_customer_id(
-                        cur, req.customer_name,
-                        auto_create=True,
-                        force_create=req.force_create_customer,
-                        address=req.customer_address,
-                        request=request,
-                    )
-
-                    standalone_warning = None
-                    oo_payload = check_open_orders_for_ship(cur, customer_id, canonical_customer)
-                    if oo_payload:
-                        if not req.force_standalone:
-                            raise HTTPException(status_code=409, detail=oo_payload)
-                        # force_standalone=True: allow but log and tag
-                        n_open = len(oo_payload.get("open_orders", []))
-                        standalone_warning = f"This shipment was not linked to any sales order. Customer has {n_open} open orders."
-
-                    all_lots = available_lots_for_product(
-                        cur,
-                        int(product['id']),
-                        lock=True,
-                        persist_expired=True,
-                        released_by=_operator_id(request),
-                    )
-                    reservation_summary = _allocation_reservation_summary(
-                        cur, int(product['id'])
-                    )
-
-                    if not all_lots:
-                        raise HTTPException(status_code=400, detail=f"No inventory available for {product['name']}")
-
-                    # Pin fidelity (owner ruling 2026-08-20): a pinned lot_code
-                    # restricts the plan to that lot only — never spill to
-                    # other lots to avoid its reserved pounds. Observe mode
-                    # takes the pinned lot's reserved stock instead (warning +
-                    # inventory_shipped shrink below).
-                    plan_lots = all_lots
-                    if req.lot_code:
-                        plan_lots = [
-                            lot for lot in all_lots
-                            if lot['lot_code'].lower() == req.lot_code.lower()
-                        ]
-                        if not plan_lots:
-                            raise HTTPException(
-                                status_code=400,
-                                detail=f"Lot '{req.lot_code}' has no available inventory",
-                            )
-
-                    plan = _takeable_deduction_plan(plan_lots, req.quantity_lb)
-                    if plan["short_lb"] > BALANCE_EPSILON:
-                        raise HTTPException(
-                            status_code=400,
-                            detail=f"Insufficient total inventory for {product['name']}. "
-                                   f"Have {plan['total_on_hand_lb']:.4f} lb across "
-                                   f"{len(plan_lots)} lot(s), need {req.quantity_lb} lb",
-                        )
-                    allocation_warning = _allocation_observe_warning(
-                        "Standalone ship",
-                        req.quantity_lb,
-                        plan["can_take_lb"],
-                        plan["reserved_taken_lb"],
-                        reservation_summary,
-                    )
-                    _enforce_allocation_takeable(
-                        "Standalone ship",
-                        req.quantity_lb,
-                        plan["can_take_lb"],
-                        plan["reserved_taken_lb"],
-                        reservation_summary,
-                        product_id=int(product["id"]),
-                    )
-
-                    txn_notes = None
-                    if standalone_warning:
-                        txn_notes = f"standalone_override=true | {standalone_warning}"
-                    now = get_plant_now()
-                    cur.execute("""
-                        INSERT INTO transactions (
-                            type, timestamp, customer_name, order_reference,
-                            notes, occurred_at, created_at_source, operator_id,
-                            entered_by_actor_id
-                        )
-                        VALUES ('ship', %s, %s, %s, %s, %s, %s, %s, %s)
-                        RETURNING id, occurred_at, business_date
-                    """, (
-                        now, canonical_customer, req.order_reference, txn_notes,
-                        occurred_at, created_at_source, _operator_id(request),
-                        _entered_by_actor_id(request),
-                    ))
-                    txn_row = cur.fetchone()
-                    txn_id = txn_row['id']
-
-                    shipped_lots = []
-                    for item in plan["lots"]:
-                        lot = item["lot"]
-                        take = float(item["quantity_lb"])
-                        cur.execute("""
-                            INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
-                            VALUES (%s, %s, %s, %s)
-                        """, (txn_id, product['id'], lot['lot_id'], -take))
-                        shipped_lots.append({"lot_code": lot['lot_code'], "shipped_lb": take})
-
-                    ship_mode = "single_lot" if len(shipped_lots) == 1 else "multi_lot_fifo"
-                    if ship_mode == "single_lot":
-                        only_lot = plan["lots"][0]["lot"]
-                        remaining = float(only_lot["on_hand"]) - req.quantity_lb
-                        log_msg = (
-                            f"Shipped {req.quantity_lb} lb from lot {only_lot['lot_code']}. "
-                            f"{remaining} lb remaining in lot."
-                        )
-                    else:
-                        remaining = None
-                        log_msg = (
-                            f"Shipped {req.quantity_lb} lb from {len(shipped_lots)} lot(s) "
-                            "(reservation-aware FIFO)."
-                        )
-
-                    # ── Create shipment + shipment_lines (unified shipping model) ──
-                    cur.execute("""
-                        INSERT INTO shipments (transaction_id, shipped_at, customer_id)
-                        VALUES (%s, %s, %s) RETURNING id
-                    """, (txn_id, occurred_at or now, customer_id))
-                    shipment_id = cur.fetchone()['id']
-
-                    for sl in shipped_lots:
-                        cur.execute("""
-                            INSERT INTO shipment_lines (shipment_id, transaction_id, product_id, quantity_lb)
-                            VALUES (%s, %s, %s, %s)
-                        """, (shipment_id, txn_id, product['id'], sl['shipped_lb']))
-
-                    allocations_released = []
-                    if plan["reserved_taken_lb"] > BALANCE_EPSILON:
-                        allocations_released = _shrink_overallocated_products(
-                            cur,
-                            [int(product['id'])],
-                            _operator_id(request),
-                            release_reason="inventory_shipped",
-                        )
-
-                    # Trace emission (§4, §10): after the inventory_shipped
-                    # shrink so roles reflect the final deduction plan;
-                    # fail-hard, last write before commit.
-                    if trace_emit_enabled():
-                        emit_trace_event(
-                            cur, txn_id, 'ship', 'object',
-                            [(item["lot"]["lot_id"], 'shipped', -float(item["quantity_lb"]))
-                             for item in plan["lots"]],
-                            txn_row['occurred_at'], txn_row['business_date'],
-                            operator_id=actor_name(request),
-                            destination_party=canonical_customer,
-                            customer_id=customer_id,
-                        )
-
-                    if standalone_warning:
-                        logger.warning(f"force_standalone ship for {canonical_customer} who has {len(oo_payload.get('open_orders', []))} open orders: txn {txn_id}")
-
-                    logger.info(f"Ship committed: {req.quantity_lb} lb of {product['name']} to {canonical_customer} ({ship_mode})")
-
-                    response = {
-                        "mode": "commit",
-                        "success": True,
-                        "transaction_id": txn_id,
-                        "shipment_id": shipment_id,
-                        "confirmation_code": generate_confirmation_code(txn_id),
-                        "quantity_shipped": req.quantity_lb,
-                        "ship_mode": ship_mode,
-                        "lots_used": shipped_lots,
-                        "remaining_in_lot": remaining,
-                        "can_ship_lb": plan["can_take_lb"],
-                        "reserved_others_lb": reservation_summary["reserved_others_lb"],
-                        "reserved_by_orders": reservation_summary["reserved_by_orders"],
-                        "allocations_released": allocations_released,
-                        "customer_name": canonical_customer,
-                        "message": log_msg
-                    }
-                    if standalone_warning:
-                        response["standalone_override"] = True
-                        response["warning"] = standalone_warning
-                    if allocation_warning:
-                        response["allocation_warning"] = allocation_warning
-                        if "warning" not in response:
-                            response["warning"] = allocation_warning["message"]
-                    return response
+                    return _ship_commit_core(cur, req, request, occurred_at, created_at_source)
         except HTTPException:
             raise
         except Exception as e:
@@ -15701,296 +16010,7 @@ def ship_order(
                     # lock a concurrent close/cancel could commit between this
                     # eligibility read and the shipment write, shipping stock
                     # against an order that is no longer on the board.
-                    cur.execute(
-                        "SELECT so.id, so.order_number, so.status, so.state, so.customer_id, c.name "
-                        "  FROM sales_orders so JOIN customers c ON c.id = so.customer_id "
-                        " WHERE so.id = %s "
-                        "   FOR NO KEY UPDATE OF so",
-                        (order_id,),
-                    )
-                    order_row = cur.fetchone()
-                    if not order_row:
-                        raise HTTPException(404, f"Order #{order_id} not found")
-                    _require_open_state(order_row['state'], order_row['order_number'],
-                                        order_id, "shipping")
-                    # Step 2 of the normative lock order: the order's line rows,
-                    # ascending id — before any product/lot lock below.
-                    _lock_sales_order_lines(cur, order_id)
-                    if order_row['status'] == 'new':
-                        raise HTTPException(400, f"Cannot ship order {order_row['order_number']} — status is 'new'. Confirm the order first.")
-                    if order_row['status'] in ('invoiced', 'cancelled'):
-                        raise HTTPException(400, f"Cannot ship {order_row['status']} order")
-                    ship_all = (req is None) or (req.ship_all)
-
-                    if ship_all:
-                        cur.execute(f"""SELECT sol.id, sol.product_id, sol.quantity_lb, sol.quantity_shipped_lb, p.name,
-                                              sol.ordered_quantity,
-                                              COALESCE(p.is_service, false) AS is_service
-                                       FROM sales_order_lines sol JOIN products p ON p.id = sol.product_id
-                                       WHERE sol.sales_order_id = %s AND ({ORDER_LINE_PENDING_SQL}) ORDER BY sol.id""", (order_id,))
-                        lines_to_ship = [{"line_id": r['id'], "product_id": r['product_id'],
-                                          "quantity_lb": float(r['quantity_lb']) - float(r['quantity_shipped_lb']),
-                                          "product_name": r['name'],
-                                          "is_service": r['is_service']}
-                                         for r in cur.fetchall()]
-                    else:
-                        lines_to_ship = []
-                        for rl in (req.lines or []):
-                            cur.execute("""SELECT sol.id, sol.product_id, sol.quantity_lb, sol.quantity_shipped_lb, p.name,
-                                                  sol.ordered_quantity, sol.line_status,
-                                                  COALESCE(p.is_service, false) AS is_service
-                                           FROM sales_order_lines sol JOIN products p ON p.id = sol.product_id
-                                           WHERE sol.id = %s AND sol.sales_order_id = %s""", (rl.line_id, order_id))
-                            r = cur.fetchone()
-                            if not r:
-                                raise HTTPException(404, f"Line #{rl.line_id} not found on order #{order_id}")
-                            remaining = float(r['quantity_lb']) - float(r['quantity_shipped_lb'])
-                            service_count = r['is_service'] and r['ordered_quantity'] is not None
-                            if r['line_status'] == 'cancelled':
-                                raise HTTPException(status_code=409, detail={
-                                    "error_code": "LINE_CANCELLED",
-                                    "message": f"Line #{rl.line_id} ({r['name']}) is cancelled and cannot be shipped.",
-                                    "line_id": rl.line_id, "product": r['name'],
-                                })
-                            if (r['is_service'] and r['line_status'] == 'fulfilled') or (remaining <= 0 and not service_count):
-                                raise HTTPException(status_code=409, detail={"error_code": "LINE_ALREADY_FULFILLED", "message": f"Line #{rl.line_id} ({r['name']}) is already fully shipped.", "line_id": rl.line_id, "product": r['name'], "ordered_lb": float(r['quantity_lb']), "shipped_lb": float(r['quantity_shipped_lb']), "remaining_lb": 0})
-                            if not service_count and rl.quantity_lb > remaining:
-                                raise HTTPException(status_code=422, detail={"error_code": "QTY_EXCEEDS_REMAINING", "message": f"Line #{rl.line_id} ({r['name']}): requested {rl.quantity_lb} lb but only {remaining} lb remaining.", "line_id": rl.line_id, "product": r['name'], "requested_lb": rl.quantity_lb, "remaining_lb": remaining, "suggestion": f"Retry with quantity_lb={remaining}"})
-                            lines_to_ship.append({"line_id": r['id'], "product_id": r['product_id'], "quantity_lb": 0 if service_count else rl.quantity_lb, "product_name": r['name'], "is_service": r['is_service']})
-
-                    if not lines_to_ship:
-                        if ship_all and order_row['status'] == 'partial_ship':
-                            # Repair a legacy partial order whose quantities were
-                            # reduced to what was already shipped. No stock moves.
-                            cur.execute("UPDATE sales_orders SET status='shipped' WHERE id=%s", (order_id,))
-                            _record_actor_write(cur, request, 'sales_orders', order_id)
-                            return {"mode": "commit", "order_number": order_row['order_number'],
-                                    "customer": order_row['name'], "order_status": "shipped",
-                                    "shipment_id": None, "lines_shipped": [],
-                                    "message": f"Order {order_row['order_number']} completed — no quantities remain to ship"}
-                        raise HTTPException(status_code=409, detail={"error_code": "ORDER_ALREADY_FULFILLED", "message": f"Order {order_row['order_number']} has no remaining lines to ship.", "order_id": order_id, "order_number": order_row['order_number'], "status": order_row['status']})
-
-                    if all(item['is_service'] for item in lines_to_ship) and _pending_order_ship_counts(cur, order_id)['pending_physical']:
-                        raise HTTPException(status_code=409, detail={
-                            "error_code": "PHYSICAL_LINES_PENDING",
-                            "message": "Ship the remaining physical product lines before completing service charges.",
-                            "order_id": order_id, "order_number": order_row['order_number'],
-                        })
-
-                    # Step 3 of the normative lock order: EVERY product this
-                    # shipment touches, ascending product id, taken here before
-                    # either planning loop runs.
-                    #
-                    # Taking them one at a time inside the loops would order the
-                    # locks by line id — i.e. by whatever order the operator
-                    # happened to add the lines — so shipping an order with
-                    # products (P2, P1) could grab P2 while an exit on another
-                    # order holding P1 waited for P2. Both would wait forever.
-                    # Sorting makes every writer agree on the sequence.
-                    _lock_allocation_products(
-                        cur,
-                        [item["product_id"] for item in lines_to_ship
-                         if not item["is_service"]],
-                    )
-
-                    # PR 5 hard-gate preflight.  Run before the shipment header or
-                    # any line/service updates.  This is deliberately absent from
-                    # the flag-off path, whose PR 4 response/write behavior is a
-                    # regression contract.
-                    if _allocations_enforced():
-                        for item in lines_to_ship:
-                            if item["is_service"]:
-                                continue
-                            # As on every other allocation write: a surface
-                            # tag, never the 'legacy-shared-key' placeholder.
-                            # See caller_source_tag()'s docstring.
-                            plan = _sales_order_ship_plan(
-                                cur,
-                                int(item["product_id"]),
-                                int(item["line_id"]),
-                                float(item["quantity_lb"]),
-                                released_by=caller_source_tag(request),
-                                lock=True,
-                                persist_expired=False,
-                            )
-                            can_ship = float(plan["actual_ship_lb"])
-                            # Match the ship plan's physical basis exactly:
-                            # only positive-balance FIFO lots are consumable.
-                            # A negative audit lot must not offset those lots
-                            # and hide a foreign-reservation steal.
-                            on_hand = sum(
-                                float(lot["available"] or 0)
-                                for lot in fifo_lot_balances(
-                                    cur, int(item["product_id"]), include_empty=False
-                                )
-                            )
-                            reserved_taken = max(
-                                0.0,
-                                min(float(item["quantity_lb"]), on_hand) - can_ship,
-                            )
-                            reservation_summary = _allocation_reservation_summary(
-                                cur, int(item["product_id"]), int(item["line_id"])
-                            )
-                            _enforce_allocation_takeable(
-                                "Sales-order ship",
-                                float(item["quantity_lb"]),
-                                can_ship,
-                                reserved_taken,
-                                reservation_summary,
-                                order_id=int(order_id),
-                                order_number=order_row["order_number"],
-                                sales_order_line_id=int(item["line_id"]),
-                                product_id=int(item["product_id"]),
-                            )
-
-                    now = get_plant_now()
-
-                    # Create shipment record (v3.0.0)
-                    cur.execute("""
-                        INSERT INTO shipments (sales_order_id, shipped_at, customer_id)
-                        VALUES (%s, %s, %s) RETURNING id
-                    """, (order_id, occurred_at or now, order_row['customer_id']))
-                    shipment_id = cur.fetchone()['id']
-
-                    results = []
-                    # Flag read once per request (§9); each per-line ship
-                    # transaction below emits its own trace event.
-                    trace_on = trace_emit_enabled()
-
-                    for item in lines_to_ship:
-                        qty_to_ship = item["quantity_lb"]
-
-                        # F05-04: service lines (pallet charges, freight, etc.) auto-fulfill
-                        # with no inventory lookup — they represent billing, not stock movement.
-                        if item["is_service"]:
-                            cur.execute(
-                                "UPDATE sales_order_lines SET quantity_shipped_lb = quantity_shipped_lb + %s, line_status = 'fulfilled' WHERE id = %s",
-                                (qty_to_ship, item["line_id"]),
-                            )
-                            results.append({
-                                "line_id": item["line_id"],
-                                "product": item["product_name"],
-                                "requested_lb": qty_to_ship,
-                                "shipped_lb": qty_to_ship,
-                                "status": "fulfilled",
-                                "line_status": "fulfilled",
-                                "is_service": True,
-                            })
-                            continue
-
-                        plan = _sales_order_ship_plan(
-                            cur,
-                            int(item["product_id"]),
-                            int(item["line_id"]),
-                            qty_to_ship,
-                            released_by=caller_source_tag(request),
-                        )
-                        actual_ship = float(plan["actual_ship_lb"])
-                        if actual_ship <= BALANCE_EPSILON:
-                            results.append({"line_id": item["line_id"], "product": item["product_name"], "requested_lb": qty_to_ship, "shipped_lb": 0, "status": "no_stock"})
-                            continue
-
-                        cur.execute("""
-                            INSERT INTO transactions (
-                                type, timestamp, customer_name, notes,
-                                occurred_at, created_at_source, operator_id,
-                                entered_by_actor_id
-                            )
-                            VALUES ('ship', %s, %s, %s, %s, %s, %s, %s)
-                            RETURNING id, occurred_at, business_date
-                        """, (
-                            now, order_row['name'],
-                            f"Sales order {order_row['order_number']} — {item['product_name']}",
-                            occurred_at, created_at_source, _operator_id(request),
-                            _entered_by_actor_id(request),
-                        ))
-                        txn_row = cur.fetchone()
-                        txn_id = txn_row['id']
-                        lots_used = []
-                        for lot in plan["lots"]:
-                            take = float(lot["quantity_lb"])
-                            cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, item["product_id"], lot['lot_id'], -take))
-                            lots_used.append({"lot_code": lot['lot_code'], "quantity_lb": take})
-
-                        allocation_changes = _consume_sales_order_allocations(
-                            cur, plan, txn_id
-                        )
-
-                        cur.execute("UPDATE sales_order_lines SET quantity_shipped_lb = quantity_shipped_lb + %s WHERE id = %s RETURNING quantity_lb, quantity_shipped_lb", (actual_ship, item["line_id"]))
-                        updated = cur.fetchone()
-                        ordered = float(updated['quantity_lb'])
-                        new_shipped = float(updated['quantity_shipped_lb'])
-                        if new_shipped >= ordered:
-                            new_line_status = 'fulfilled'
-                        elif new_shipped > 0:
-                            new_line_status = 'partial'
-                        else:
-                            new_line_status = 'pending'
-                        cur.execute("UPDATE sales_order_lines SET line_status = %s WHERE id = %s", (new_line_status, item["line_id"]))
-
-                        # Record in sales_order_shipments
-                        cur.execute("INSERT INTO sales_order_shipments (sales_order_line_id, transaction_id, quantity_lb) VALUES (%s, %s, %s)", (item["line_id"], txn_id, actual_ship))
-
-                        # Record in shipment_lines (v3.0.0)
-                        cur.execute("""
-                            INSERT INTO shipment_lines (shipment_id, transaction_id, sales_order_line_id, product_id, quantity_lb)
-                            VALUES (%s, %s, %s, %s, %s)
-                        """, (shipment_id, txn_id, item["line_id"], item["product_id"], actual_ship))
-
-                        # Trace emission (§4, §10): after this line's
-                        # transaction_lines, allocation consumption (and the
-                        # expire that ran inside _sales_order_ship_plan), and
-                        # shipment side-writes — roles mirror the final plan.
-                        # Fail-hard.
-                        if trace_on:
-                            emit_trace_event(
-                                cur, txn_id, 'ship', 'object',
-                                [(lot['lot_id'], 'shipped', -float(lot['quantity_lb']))
-                                 for lot in plan["lots"]],
-                                txn_row['occurred_at'], txn_row['business_date'],
-                                operator_id=actor_name(request),
-                                destination_party=order_row['name'],
-                                customer_id=order_row['customer_id'],
-                                sales_order_id=order_id,
-                            )
-
-                        # Fetch case_size_lb for unit count
-                        cur.execute("SELECT case_size_lb FROM products WHERE id = %s", (item["product_id"],))
-                        cs_row = cur.fetchone()
-                        cs_lb = float(cs_row['case_size_lb']) if cs_row and cs_row['case_size_lb'] else None
-                        results.append({"line_id": item["line_id"], "product": item["product_name"],
-                                        "requested_lb": qty_to_ship, "shipped_lb": actual_ship,
-                                        "shipped_units": round(actual_ship / cs_lb) if cs_lb else None,
-                                        "short_lb": max(0, qty_to_ship - actual_ship), "lots_used": lots_used,
-                                        "allocation_changes": allocation_changes,
-                                        "transaction_id": txn_id, "confirmation_code": generate_confirmation_code(txn_id),
-                                        "line_status": new_line_status})
-
-                    # Inspect the whole order, not just this request's lines.
-                    # Services may finish after all physical shipments are done;
-                    # they must not hide unfulfilled physical lines with no stock.
-                    pending = _pending_order_ship_counts(cur, order_id)
-                    all_fully_shipped = pending['pending_lines'] == 0
-                    any_actually_shipped = any(
-                        r.get("shipped_lb", 0) > 0 and not r.get("is_service") for r in results
-                    )
-                    if not any_actually_shipped and pending['pending_physical']:
-                        cur.execute("DELETE FROM shipment_lines WHERE shipment_id = %s", (shipment_id,))
-                        cur.execute("DELETE FROM shipments WHERE id = %s", (shipment_id,))
-                        raise HTTPException(status_code=409, detail={
-                            "error_code": "ZERO_SHIPMENT",
-                            "message": "No items could be shipped — all products have zero available stock",
-                            "order_id": order_id,
-                            "order_number": order_row['order_number'],
-                            "lines_attempted": len(results)
-                        })
-
-                    new_order_status = 'shipped' if all_fully_shipped else 'partial_ship'
-                    cur.execute("UPDATE sales_orders SET status = %s WHERE id = %s", (new_order_status, order_id))
-                    logger.info(f"Ship order {order_row['order_number']}: {'fully' if all_fully_shipped else 'partially'} shipped")
-                    return {"mode": "commit", "order_number": order_row['order_number'], "customer": order_row['name'],
-                            "order_status": new_order_status, "shipment_id": shipment_id, "lines_shipped": results,
-                            "message": f"Order {order_row['order_number']} {'fully' if all_fully_shipped else 'partially'} shipped"}
+                    return _ship_order_commit_core(cur, request, order_id, req, occurred_at, created_at_source)
         except HTTPException:
             raise
         except Exception as e:
@@ -20752,3 +20772,5 @@ if _dashboard_dir.is_dir():
 write_tickets.register_routes(app, sys.modules[__name__])
 # A3b: /exceptions list/view/resolve/approve/reject (named actors only).
 exceptions_enforcement.register_routes(app, sys.modules[__name__])
+attachments.register_routes(app, sys.modules[__name__])
+ship_tickets.register_routes(app, sys.modules[__name__])
