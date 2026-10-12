@@ -57,7 +57,10 @@ Two products per flavour already exist (107/108 regular, 283/284 "Kosher Ignitio
 with identical formulas except 284's chip size (1,000 CT vs 108's 4,000 CT — resolved: chips
 are interchangeable, standard is 4,000 CT, 284's formula → 72 via `catalog-cleanup.csv`,
 1,000 CT stays a recorded substitution).
-Rules: owner PIN attestation on every extra-kosher make ticket; extra-kosher finished
+Rules: ~~owner PIN attestation on every extra-kosher make ticket~~ **(2026-10-12, Michael, design
+rev 3.8 §11 item 34: the extra-kosher make is HELD through the A3b approval hold and Michael
+approves it from his own signed-in device; his actor id is the attestation — A11 is no longer
+an A12 dependency)**; extra-kosher finished
 goods (285–290) pack only from extra-kosher lots (`KOSHER_SOURCE_REQUIRED` — the
 2026-08-12 pack of 63 cases of 286 from a regular 107 lot is the case this prevents — left
 uncorrected as a probable recording error, per Michael);
@@ -74,8 +77,10 @@ Confirm) before the pilot, the rest of D3 Nov 23–27; G1 engineering merged Oct
 unset `READONLY_API_KEY`; A10 at cutover+1 in two stages (ledger routes Nov 23, order routes
 after A7). Pilot soft-start Nov 2, gate (d) Nov 9–13, decision Nov 17, cutover Nov 20. The
 "simplify for cutover" set (§10.2 item 9) is the Nov 6 lever with A8. Lane plan with dates and
-the daily owner-acceptance slot: `~/Documents/fl-audits/lane-schedule.md`. Open: PR #78 records
-a PR-0 "rotate at cutover" override that the design doc still needs Michael to confirm.
+the daily owner-acceptance slot: `~/Documents/fl-audits/lane-schedule.md`. ~~Open: PR #78 records
+a PR-0 "rotate at cutover" override that the design doc still needs Michael to confirm.~~
+**CLOSED 2026-10-12 (Michael, design rev 3.8 §11 item 35):** the master-key rotation stays on
+cutover day (§10.1 step 2); PR-0 is no longer a precondition for any deploy.
 
 **P1.7 `/products/resolve` is master-key only — decide in A2 whether office/dashboard should reach it (found 2026-10-08, PR #81 rollout). — DECIDED in A2 (PR feat/roles, 2026-10-08): no allowlist widened; recommendation below for Michael to confirm.**
 Live check after the A4 part 1 deploy: `POST /resolve` accepts the dashboard-scoped key
@@ -130,7 +135,8 @@ counts Mon–Fri after the entry day, due 23:59 America/New_York, and skips no h
 `plant_closure_days (day date PRIMARY KEY, reason text)` table (migration) + one lookup in
 the helper so Thanksgiving / Christmas week / planned shutdowns do not eat a shortage's two
 days; seed from CNS's calendar before the Nov 2 pilot. Both A3b and A5 (which delegates to
-the same helper) pick it up at once.
+the same helper) pick it up at once. **2026-10-12 (Michael, design rev 3.8 §11 item 39): no
+closure days for now — stays open; nothing to seed yet.**
 
 ---
 
@@ -223,7 +229,8 @@ and the ownership flag.
 
 ---
 
-**P1.11 A5 part 2 — supplier-lot correction ticket (resolves UNIDENTIFIED_LOT inside FL).**
+**P1.15 A5 part 2 — supplier-lot correction ticket (resolves UNIDENTIFIED_LOT inside FL).**
+*(Renumbered 2026-10-12 from a duplicate P1.11; P1.11 is the A2 follow-up block above.)*
 **Owner: Codex. Due: before Nov 2 pilot.** Add the reason-coded supplier-lot
 correction prepare/commit flow with attribution and atomic resolution of the
 lot's open UNIDENTIFIED_LOT exception. Another receive must never clear it.
@@ -239,6 +246,52 @@ duplicates and `DUTC Valley` typo before the separate supplier-label backfill PR
 is applied. A5's nullable label and supplier-ID schema is in 064 and works before
 066. Re-run the read-only label dry-run after cleanup; today's labels are a
 preview of the current catalog, not an approved assignment.
+
+---
+
+**P1.16 Pilot sign-in with PIN login OFF — key-to-session exchange (Michael, 2026-10-12; design rev 3.8 §4.4 pilot mode, §11 items 33 and 36).**
+PIN login stays OFF until Michael decides. For the pilot each person enters their **personal
+actor key once per shift** and receives an FL session token through a **key-to-session exchange
+route under its own flag, independent of `PIN_LOGIN_ENABLED`** (the browser keeps only the
+session token, `key_kind='session'`). **Idle timeout = 180 minutes** for this mode (supersedes
+the 10-min rule); a visible **Sign out** on every page for hand-over on shared devices; every
+entry recorded to the person. **QR badge only if typing the key fails in week 1.** The 180-min
+session outlives 10-min tickets on purpose — tickets keep their own expiry. To build: the
+exchange route + flag, the 180-min sliding expiry for this mode, Sign out, the F1/D2 sign-in
+screen; staging acceptance = key exchange for all four actors, idle end + re-sign-in, Sign out →
+`SESSION_EXPIRED`, right person on every receipt. **PR #96 (A11) is not merged before the pilot**
+unless its branch carries this route (design §10.2 merge order). The 10,000-PIN sweep,
+obvious-PIN/uniqueness rules and per-source lockout acceptance are **"at PIN activation"**
+items, removed from the pilot gate.
+
+---
+
+**P1.17 Review evidence on every PR (Michael, 2026-10-12; design rev 3.8 §10.1, §11 item 37).**
+Every review round posts **one PR comment** in the fixed template (`REVIEW <verdict>` / head
+reviewed sha / reviewer / fresh-DB suite counts / migrations / prod preconditions); the PR
+carries **`review:merge`** or **`review:fix-round`** for its latest round; the **merge commit
+cites the comment**. **To do once:** create the two labels on `sevenwells72/factory-ledger`
+(they do not exist as of 2026-10-12 — this docs PR did not create them). First PRs under the
+rule: #93 (A7), then #90 (F1) after its post-rebase re-check.
+
+---
+
+**P1.18 OpenAI production key for F1 (Michael, 2026-10-12; design rev 3.8 §1.8, §11 item 38).**
+Own OpenAI project; **hard cap $20/month**; e-mail alerts to michael@sevenwellsgranola.com at
+**50 % and 80 %**. Set as `OPENAI_API_KEY` on **FastAPI-staging by Oct 28** (Railway secret,
+never in the repo, a URL or a log); **revoke the PoC/test key before Nov 6**. Supersedes
+"raise the cap above $20" in the design. Owner steps in the OpenAI console; the Railway
+variable change is a deploy step with per-action approval.
+
+---
+
+**P1.19 Cutover count procedure — DECIDED option A (Michael, 2026-10-12; design rev 3.8 §10.1 step 1, §11 item 40).**
+Live count while production runs: each area records its count **start and end times** and
+**logs every movement inside its window** on the count sheet so the reset nets them; on
+**cutover morning each area pauses posting for 15–30 minutes** while its reset rows are
+applied and read back (receipt numbers checked against the sheet). No production stop for
+the count. Count packet v3 (`audits/fresh-start/v3/`) gains the per-area time window and
+movement-log columns; `apply_reset.py` applies per area and prints the read-back.
 
 ---
 

@@ -27,7 +27,7 @@ check never deletes or resolves anything.
 
 F1/D2: `last4` is literally the last four characters **including the hyphen**
 (e.g. `"-004"`). `pallet` requires the **full lot code echoed as value** and the
-latest matching production move within 24 hours. See FOLLOWUPS P1.11:
+latest matching production move within 24 hours. See FOLLOWUPS P1.15 (renumbered 2026-10-12 from a duplicate P1.11):
 **A5 part 2 — supplier-lot correction ticket (resolves UNIDENTIFIED_LOT inside FL),
 owner Codex, due before Nov 2 pilot.**
 
