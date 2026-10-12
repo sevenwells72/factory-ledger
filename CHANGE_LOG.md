@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-12 15:58 — A6 (PR #99) production rollout record, FOLLOWUPS P1.14 closed / P1.20 added, changelog rows 171–172
+- **File(s) changed:** `FOLLOWUPS.md`, `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/a6-ship-gate.md`
+- **What changed:** FOLLOWUPS P1.14 marks the sweep cron services as created (exceptions-sweep / exceptions-sweep-staging, 30 7 * * * UTC, verified run) and adds P1.20: A10 must retire or gate the direct `POST /sales/orders/{id}/close` route on cutover day (master key and owner key bypass the `shipped_not_recorded` cutoff there). FACTORY_LEDGER_CHANGELOG rows 172 (A6 rollout: bucket, variables, volume, 074 on prod, merge 81cb369, deploys, cron, hosted-staging checklist) and 171 (A7 rollout, recorded retroactively). Deployment doc gains the executed rollout record and the remaining open items.
+- **Why:** Michael's GO on the A6 rollout plan (2026-10-12) and his instruction to record the non-blocking direct-route follow-up under A10; regression-guard rule requires a changelog row after every deploy.
+
+---
+
 ## 2026-10-12 15:23 — A6 review fixes full fresh-DB validation
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/a6-ship-gate.md`
 - **What changed:** Record fixes 1–5, 35 new cases, before-fix 21 failures and full fresh-local-DB 2,415 Python / 69 Node passes with zero failures/skips; distinguish completed builder work from pending operator rollout.
