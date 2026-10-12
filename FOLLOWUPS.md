@@ -176,8 +176,16 @@ any lot `lot_on_hand() < 0` without an open shortage (A9/weekly view) and `UNSHI
 (A6/A7) remain future openers. **Schedule the sweep before production A6 acceptance**:
 same Railway recipe as P1.9 (`python scripts/exceptions_sweep.py`, `30 7 * * *` UTC,
 02:30 EST / 03:30 EDT), documented in `docs/deployments/a6-ship-gate.md` and
-`docs/deployments/a3b-exceptions-enforcement.md`. Scheduler **not created by this PR**; operator
-must create and verify it. The job is never an app-startup sweep.
+`docs/deployments/a3b-exceptions-enforcement.md`. ~~Scheduler **not created by this PR**; operator
+must create and verify it.~~ **CREATED 2026-10-12 (A6 rollout):** Railway cron services
+`exceptions-sweep` (ENVIRONMENT=production, `${{FastAPI.DATABASE_URL}}`) and
+`exceptions-sweep-staging` (ENVIRONMENT=staging, FastAPI-staging reference variables), both from
+`sevenwells72/factory-ledger@main`, start command `python scripts/exceptions_sweep.py`, schedule
+`30 7 * * *` UTC, `MISE_PYTHON_GITHUB_ATTESTATIONS=false` (same build workaround as FastAPI). One
+manual run each at 19:56Z printed `Escalated 0 overdue exception(s) and 0 shortage flag(s)`.
+Still owed: confirm the first scheduled staging run opens exactly one `BOL_PHOTO_MISSING` for
+staging shipment 4 (SHP-261012-004, photo_pending, due 2026-10-12 23:59 NY). The job is never an
+app-startup sweep.
 
 ---
 
@@ -308,6 +316,18 @@ Live count while production runs: each area records its count **start and end ti
 applied and read back (receipt numbers checked against the sheet). No production stop for
 the count. Count packet v3 (`audits/fresh-start/v3/`) gains the per-area time window and
 movement-log columns; `apply_reset.py` applies per area and prints the read-back.
+
+**P1.20 A10 must retire or gate the direct `POST /sales/orders/{id}/close` route on cutover day (found 2026-10-12, PR #99 round-2 review).**
+The A6 `shipped_not_recorded` gate (named owner only, nonblank note, `ORDER_LEGACY_CLOSE_CUTOFF`
+creation-date cutoff, 403 for everyone after it — design §4.3/§8.2, decisions 41–42) is enforced on
+the ticket path only. The pre-existing direct route `POST /sales/orders/{id}/close` has no cutoff,
+note or shipment check: probed on a fresh DB with the cutoff set to today, the **master key and a
+named owner key both close an order as `shipped_not_recorded` (200, no note)**; office is 403 via
+the A2 matrix. Design §8.2 records that legacy direct master-key routes remain until A10, but the
+same route also accepts the owner actor key. **A10 must** retire this route (or apply
+`ship_tickets.shipment_gate` + the note rule to it) **on cutover day, not cutover+1**, so the
+cutoff is enforceable the moment `ORDER_LEGACY_CLOSE_CUTOFF` is set (§10.1 step 1b). Review:
+https://github.com/sevenwells72/factory-ledger/pull/99#issuecomment-6131307183.
 
 ---
 
