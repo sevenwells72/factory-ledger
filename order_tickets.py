@@ -40,13 +40,13 @@ REFERENCE_CONSTRAINTS = ('sales_orders_customer_external_reference_uniq', 'sales
 
 # ---------------------------------------------------------------------------
 # A6 hook — ship gate. Closing an order as shipped will require a recorded
-# shipment (BOL / proof, design §8.2). Today there is NO gate: this returns no
-# blockers, which is exactly the existing close behaviour. A6 replaces the
-# body; both callers (close_order, status=invoiced) already treat the result
+# shipment (BOL / proof, design §8.2). A6 owns the policy body.
+# Both callers (close_order, status=invoiced) treat the result
 # as draft blockers at prepare and as a stale-ticket refusal at commit.
 # ---------------------------------------------------------------------------
 def shipment_gate(api, cur, order, close_reason):
-    return []
+    import ship_tickets
+    return ship_tickets.shipment_gate(api, cur, order, close_reason)
 
 
 # ---------------------------------------------------------------------------
@@ -327,13 +327,13 @@ def validate(api, cur, action, payload, *, lock=False):
         api._validate_requested_order_status(payload['status'])
         if payload['status'] == 'invoiced':
             state_row = api._load_so_for_state_change(cur, order['id'])
-            if state_row['state'] == 'open':
+            if state_row['state'] in ('open', 'closed'):
                 ctx['blockers'] = shipment_gate(api, cur, order, api._shipped_close_reason(state_row))
     elif action == 'mark_order_ready':
         if order['state'] != 'open':
             fail(409, 'ORDER_NOT_OPEN', f"Order {order['order_number']} is '{order['state']}'; "
                  'ready can only be set on an open order.')
-    elif action == 'close_order' and payload['reason'] == 'shipped_recorded':
+    elif action == 'close_order':
         ctx['blockers'] = shipment_gate(api, cur, order, payload['reason'])
     return ctx
 

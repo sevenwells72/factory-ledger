@@ -35,7 +35,8 @@ EXPECTED_RECEIPT_PREPARE_ROUTES = frozenset({
     ('POST', '/expected-receipts/{expected_receipt_id}/cancel/prepare'),
     ('POST', '/expected-receipts/extract/approve/prepare'),
 })
-PREFIXES = {'receive': 'RCV', 'make': 'MK', 'pack': 'PK', 'adjust': 'ADJ', 'found': 'FND', 'move_lot': 'LOT',
+SHIP_ACTIONS = ('ship_order', 'ship_standalone', 'ship_bulk')
+PREFIXES = {**{action: 'SHP' for action in SHIP_ACTIONS}, 'receive': 'RCV', 'make': 'MK', 'pack': 'PK', 'adjust': 'ADJ', 'found': 'FND', 'move_lot': 'LOT',
             **{action: 'ORD' for action in ORDER_ACTIONS},
             **{action: 'ER' for action in EXPECTED_RECEIPT_ACTIONS}}
 ORDER_PREPARE_ROUTES = frozenset({
@@ -64,7 +65,7 @@ ACTOR_ROUTES = DASHBOARD_ROUTES | frozenset({
     ('POST', '/pack/prepare'),
     ('POST', '/adjust/prepare'),
     ('POST', '/inventory/found/prepare'),
-}) | ORDER_PREPARE_ROUTES | EXPECTED_RECEIPT_PREPARE_ROUTES   # A7: actor + master keys only; the dashboard key gets nothing new
+}) | frozenset({('POST', '/ship/prepare'), ('POST', '/ship/bulk/prepare'), ('POST', '/sales/orders/{order_id}/ship/prepare')}) | ORDER_PREPARE_ROUTES | EXPECTED_RECEIPT_PREPARE_ROUTES   # A7: actor + master keys only; the dashboard key gets nothing new
 
 
 def fail(http_status, code, message, **extra):
@@ -413,7 +414,11 @@ def receipt_detail(api, cur, number):
     order = order_tickets.receipt_order(cur, ticket)
     import expected_receipt_tickets
     expected = expected_receipt_tickets.receipt_records(api, cur, ticket)
-    return {'receipt_number': number, 'action': ticket['action'], 'status': ticket['status'],
+    shipment = None
+    if ticket['action'] in SHIP_ACTIONS:
+        cur.execute('SELECT id,sales_order_id,bol_reference,proof_status,proof_due_at,entered_by_actor_id FROM shipments WHERE ticket_id=%s', (ticket['id'],))
+        shipment = cur.fetchone()
+    return {'shipment': shipment, 'receipt_number': number, 'action': ticket['action'], 'status': ticket['status'],
             'order': order, 'expected_receipts': expected,
             'actor': ticket['draft']['actor'], 'operator_id': ticket['operator_id'],
             'client_source': ticket['client_source'], 'happened_at': happened,
@@ -493,6 +498,8 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
         else:
             response = actions.post(api, cur, row['action'], validated, effective_payload, request,
                 row['id'], receipt, require_new_lot=not row['draft'].get('lot_exists'))
+        if row['action'] in ('adjust', 'found') and photo:
+            cur.execute('UPDATE attachments SET transaction_id=%s WHERE attachment_ref=%s', (response.get('transaction_id'), photo))
         response.update(receipt_number=receipt, ticket_id=row['id'], replayed=False,
                         state_changed=state_changed)
         # A2: 48 h–14 d late entries open exceptions(LATE_ENTRY) for the
@@ -718,6 +725,11 @@ def register_routes(app, api):
                              set(body.acknowledged_warnings))
             if missing:
                 fail(409, 'WARNING_NOT_ACKNOWLEDGED', 'Acknowledge the draft warnings.', missing=missing)
+            if row['action'] in SHIP_ACTIONS:
+                import ship_tickets
+                return ship_tickets.commit(api, cur, row, body, actor, request, entry_timing)
+            if body.attachment_ids:
+                fail(422, 'UNUSED_ATTACHMENT', 'Use attachment_id for a correction, attachment_ids for shipments.')
             # A7 hook: order tickets post through their own module (metadata
             # writes, no ledger lines); every lifecycle check above is shared.
             if row['action'] in ORDER_ACTIONS + EXPECTED_RECEIPT_ACTIONS:

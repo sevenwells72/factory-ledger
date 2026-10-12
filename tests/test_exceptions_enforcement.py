@@ -17,6 +17,7 @@ from psycopg2.extras import RealDictCursor
 import pytest
 
 import main
+import attachments
 import exceptions_enforcement as a3b
 import lot_confirmation
 from scripts.exceptions_sweep import sweep
@@ -32,6 +33,17 @@ NY = a3b.PLANT_TIMEZONE
 
 
 # ── helpers ───────────────────────────────────────────────────────────────
+
+@pytest.fixture(autouse=True)
+def private_evidence_volume(tmp_path, monkeypatch):
+    monkeypatch.setenv('EVIDENCE_STORAGE_DIR', str(tmp_path/'evidence'))
+
+def seed_photo(cur, actor_id, ref):
+    content=b'\x89PNG\r\n\x1a\nA3b verified photo fixture'
+    path=uuid4().hex
+    attachments.store(main,path,content,'image/png')
+    cur.execute("""INSERT INTO attachments(attachment_ref,kind,storage_path,sha256,content_type,bytes,uploaded_by_actor_id)
+                   VALUES(%s,'correction_photo',%s,%s,'image/png',%s,%s)""",(ref,path,sha256(content).hexdigest(),len(content),actor_id))
 
 def set_balance(cur, items_, which, balance):
     """Append a ledger line so the fixture lot (100 lb) reads `balance`."""
@@ -221,6 +233,7 @@ def test_count_based_product_applies_the_percent_rule_only(client, db_cursor, it
 
 def test_large_correction_with_photo_posts_highlighted(client, db_cursor, items, actors):
     key = actors['floor']['key']
+    seed_photo(db_cursor, actors['floor']['id'], 'photos/2026-10-08/bag-count.jpg')
     prepared = prepare(client, 'adjust', adjust(items, 600, 'missing_receipt', attachment_ref='photos/2026-10-08/bag-count.jpg'), key)
     assert prepared['can_commit'] and prepared['draft']['correction_review']['photo_required']
     response = commit(client, prepared, key)
@@ -256,6 +269,7 @@ def test_large_correction_without_photo_is_held_then_released_by_a_late_photo(cl
     assert len(exceptions_for(db_cursor, ticket_id=prepared['ticket_id'])) == 1
     assert posted_count(db_cursor, prepared) == 0
     # A later photo releases the hold through the normal commit — once.
+    seed_photo(db_cursor, actors['floor']['id'], 'photos/late.jpg')
     released = commit(client, prepared, key, attachment_ref='photos/late.jpg')
     assert released.status_code == 200, released.text
     assert released.json()['correction_review']['attachment_ref'] == 'photos/late.jpg'
@@ -277,6 +291,7 @@ def test_found_over_500_is_held_too(client, db_cursor, items, actors):
     assert posted_count(db_cursor, prepared) == 0
     db_cursor.execute('SELECT count(*) AS n FROM lots WHERE product_id=%s', (items['ingredient']['id'],))
     assert db_cursor.fetchone()['n'] == 1          # no found lot was created
+    seed_photo(db_cursor, actors['floor']['id'], 'p.jpg')
     assert commit(client, prepared, key, attachment_ref='p.jpg').status_code == 200
 
 
@@ -826,6 +841,7 @@ def test_counted_resolution_over_500_lb_needs_a_photo(client, db_cursor, items, 
     refused = resolve(client, exception_id, key, resolution_kind='counted', counted_lb=600, note='a whole pallet was mis-shelved')
     error(refused, 422, 'PHOTO_REQUIRED')
     assert main.lot_on_hand(db_cursor, lot_id) == -6.0 and exceptions_for(db_cursor, id=exception_id)[0]['status'] == 'open'
+    seed_photo(db_cursor, actors['floor']['id'], 'photos/pallet.jpg')
     ok = resolve(client, exception_id, key, resolution_kind='counted', counted_lb=600, note='a whole pallet was mis-shelved',
                  attachment_ref='photos/pallet.jpg')
     assert ok.status_code == 200, ok.text
@@ -979,10 +995,9 @@ def test_shared_key_gets_photo_required_not_a_hold(client, db_cursor, items):
     assert ticket_row(db_cursor, prepared)['status'] == 'prepared'
     assert exceptions_for(db_cursor, ticket_id=prepared['ticket_id']) == []
     assert posted_count(db_cursor, prepared) == 0
-    posted = commit(client, prepared, attachment_ref='photos/pallet.jpg')
-    assert posted.status_code == 200, posted.text
-    assert posted.json()['correction_review']['highlighted'] is True and posted.json()['correction_review']['attachment_ref'] == 'photos/pallet.jpg'
-    assert main.lot_on_hand(db_cursor, items['ingredient']['lot_id']) == 700.0
+    error(commit(client, prepared, attachment_ref='photos/pallet.jpg'), 422, 'ATTACHMENT_NOT_FOUND')
+    assert main.lot_on_hand(db_cursor, items['ingredient']['lot_id']) == 100.0
+    assert posted_count(db_cursor, prepared) == 0
 
 
 def test_approve_locks_the_ticket_before_the_exception(isolated_database, monkeypatch):
@@ -1036,6 +1051,8 @@ def test_concurrent_approve_and_photo_commit_post_once_without_deadlock(isolated
         held = commit(http, prepared, keys['floor'])
         assert held.status_code == 202, held.text
         exception_id = held.json()['exception_id']
+        with psycopg2.connect(isolated_database) as conn, conn.cursor() as cur:
+            seed_photo(cur, ids['floor'], 'photos/late.jpg')
         race.on = True
         calls = [lambda: http.post(f'/exceptions/{exception_id}/approve', json={}, headers=headers(keys['owner'])),
                  lambda: commit(http, prepared, keys['floor'], attachment_ref='photos/late.jpg')]

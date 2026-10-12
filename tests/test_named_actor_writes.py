@@ -173,6 +173,10 @@ def test_actor_only_scope_is_approved_writes_plus_product_resolution():
         ('POST', '/exceptions/{exception_id}/resolve'),
         ('POST', '/exceptions/{exception_id}/approve'),
         ('POST', '/exceptions/{exception_id}/reject'),
+        ('POST', '/ship/prepare'), ('POST', '/ship/bulk/prepare'),
+        ('POST', '/sales/orders/{order_id}/ship/prepare'),
+        ('POST', '/attachments'), ('GET', '/attachments/{attachment_id}'),
+        ('GET', '/attachments/{attachment_id}/file'), ('POST', '/shipments/{shipment_id}/attachments'),
         # A7 order tickets (actor + master keys; the dashboard key gets none)
         ('POST', '/sales/orders/prepare'),
         ('POST', '/sales/orders/{order_id}/lines/prepare'),

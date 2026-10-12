@@ -742,6 +742,7 @@ def test_migration_065_up_down_up(isolated_database):
     down_071 = (ROOT / 'migrations/down/071_shortage_evidence_claims_down.sql').read_text()
     with psycopg2.connect(isolated_database) as conn, conn.cursor() as cur:
         cur.execute('SET LOCAL search_path TO public')
+        cur.execute((ROOT/'migrations/down/074_ship_gate_attachments_down.sql').read_text())
         cur.execute(down_071)
         cur.execute(down_070)
         cur.execute(down_069)
@@ -766,3 +767,4 @@ def test_migration_065_up_down_up(isolated_database):
         cur.execute(up_070)
         cur.execute(up_071)
         assert 'ledger_current_transactions' in columns(cur)
+        cur.execute((ROOT/'migrations/074_ship_gate_attachments.sql').read_text())
