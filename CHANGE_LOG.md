@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-10-12 14:32 — A6 part 1 — evidence storage tests
+- **File(s) changed:** `tests/test_attachments.py`
+- **What changed:** Add real file roundtrip, private permissions, hash integrity, content/size, public bucket and reference ownership regressions.
+- **Why:** A6 ship gate and P1.13 pilot evidence requirement.
+
+---
+
+## 2026-10-12 14:31 — A6 part 1 — private evidence storage and P1.13 validation
+- **File(s) changed:** `attachments.py`, `docs/deployments/a6-ship-gate.md`, `exceptions_enforcement.py`, `main.py`, `migrations/074_ship_gate_attachments.sql`, `tests/schema/schema.sql`, `write_tickets.py`
+- **What changed:** Add migration 074, authenticated private uploads/downloads, immutable evidence provenance, and correction/shortage photo ownership checks. Validation and ship tickets follow in part 2.
+- **Why:** A6 ship gate and P1.13 pilot evidence requirement.
+
+---
+
 ## 2026-10-12 13:22 — FOLLOWUPS P1.17 done: review:merge / review:fix-round labels created (branch docs/p117-labels)
 - **File(s) changed:** `FOLLOWUPS.md`, `docs/design/phase1-safe-operating-system.md`, `CHANGE_LOG.md`
 - **What changed:** P1.17's one-time to-do marked DONE (labels created 2026-10-12 via `gh label create`: `review:merge` #0E8A16, `review:fix-round` #F0883E); the matching sentence in design §10.1 "Review evidence" now says the labels exist.

@@ -73,6 +73,14 @@ def fail(http_status, code, message, **extra):
 
 class IdInput(BaseModel):
     @root_validator(pre=True)
+    def attachment_alias(cls, values):
+        if isinstance(values, dict) and values.get('attachment_id') is not None:
+            if values.get('attachment_ref'):
+                fail(422, 'AMBIGUOUS_ATTACHMENT', 'Supply attachment_id or attachment_ref.')
+            values['attachment_ref'] = str(values.pop('attachment_id'))
+        return values
+
+    @root_validator(pre=True)
     def ids_only(cls, values):
         if isinstance(values, dict) and any(k in values for k in
                 ('product_name', 'shipper_name', 'supplier_name', 'source_product', 'target_product')):
@@ -210,6 +218,17 @@ class FoundPrepareRequest(ActionPrepareRequest):
 
 
 class CommitRequest(BaseModel):
+    attachment_id: Optional[PositiveId] = None
+    attachment_ids: List[PositiveId] = Field(default_factory=list)
+
+    @root_validator(pre=True)
+    def attachment_alias(cls, values):
+        if values.get('attachment_id') is not None:
+            if values.get('attachment_ref'):
+                fail(422, 'AMBIGUOUS_ATTACHMENT', 'Supply attachment_id or attachment_ref.')
+            values['attachment_ref'] = str(values['attachment_id'])
+        return values
+
     lot_confirmations: List[a5.LotConfirmation] = Field(default_factory=list)
     payload_hash: str
     acknowledged_warnings: List[str] = Field(default_factory=list)
@@ -449,6 +468,11 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
         # ticket is HELD — nothing posts until the owner approves or a photo arrives.
         photo = attachment_ref or row['payload'].get('attachment_ref')
         if row['action'] in ('adjust', 'found'):
+            if photo:
+                import attachments
+                evidence = attachments.verified(cur, photo, actor, ticket_id=row['id'], kinds=('correction_photo',), claim=True)
+                attachments.load(api, evidence)
+                photo = evidence['attachment_ref']
             draft['attachment_ref'] = photo
             if draft['correction_review']['photo_required'] and not photo and not approval:
                 cur.execute('ROLLBACK TO SAVEPOINT ticket_post')
@@ -500,7 +524,9 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
         cur.execute('ROLLBACK TO SAVEPOINT ticket_post')
         errors = exc.detail.get('blockers') if isinstance(exc.detail, dict) else None
         errors = errors or [blocker(exc)]
-        if exc.status_code == 422 and errors[0]['code'] in ('LOT_NOT_CONFIRMED', 'LOT_CONFIRMATION_MISMATCH', 'AMBIGUOUS_SUFFIX', 'PALLET_MOVE_REQUIRED', 'UNUSED_LOT_CONFIRMATION', 'DUPLICATE_LOT_CONFIRMATION'):
+        if errors[0]['code'] == 'ATTACHMENT_WRONG_ACTOR':
+            return api.JSONResponse(status_code=403, content={'detail': exc.detail})
+        if exc.status_code == 422 and errors[0]['code'] in ('LOT_NOT_CONFIRMED', 'LOT_CONFIRMATION_MISMATCH', 'AMBIGUOUS_SUFFIX', 'PALLET_MOVE_REQUIRED', 'UNUSED_LOT_CONFIRMATION', 'DUPLICATE_LOT_CONFIRMATION', 'ATTACHMENT_NOT_FOUND', 'ATTACHMENT_WRONG_CONTEXT', 'ATTACHMENT_KIND_INVALID'):
             return api.JSONResponse(status_code=422, content={'detail': {
                 'error_code': errors[0]['code'], 'message': errors[0]['message'], 'blockers': errors}})
         if not approval:

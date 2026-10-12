@@ -34,6 +34,7 @@ from collections import defaultdict, deque
 # the module attributes and both sides see it.
 import extraction
 import write_tickets
+import attachments
 import lot_confirmation
 import exceptions_enforcement
 import resolution
@@ -2868,7 +2869,7 @@ ACTOR_WRITE_ALLOWLIST = frozenset({
     ("PATCH", "/lots/{lot_code}/supplier-lot"),
     ("PATCH", "/lots/{lot_id}/rename"),
     ("PATCH", "/sales/orders/{order_id}/lines/{line_id}/cancel"),
-}) | write_tickets.ACTOR_ROUTES | exceptions_enforcement.ACTOR_ROUTES
+}) | write_tickets.ACTOR_ROUTES | exceptions_enforcement.ACTOR_ROUTES | attachments.ROUTES
 
 
 ACTOR_CACHE_TTL_S = 60
@@ -20752,3 +20753,4 @@ if _dashboard_dir.is_dir():
 write_tickets.register_routes(app, sys.modules[__name__])
 # A3b: /exceptions list/view/resolve/approve/reject (named actors only).
 exceptions_enforcement.register_routes(app, sys.modules[__name__])
+attachments.register_routes(app, sys.modules[__name__])

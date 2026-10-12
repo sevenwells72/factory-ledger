@@ -40,7 +40,7 @@ from typing import Literal, Optional
 from zoneinfo import ZoneInfo
 
 from fastapi import Depends, HTTPException, Query, Request
-from pydantic import BaseModel, Field, field_validator
+from pydantic import model_validator, BaseModel, Field, field_validator
 from psycopg2.extras import Json
 
 import permissions
@@ -556,6 +556,17 @@ def _non_blank(value):
 
 
 class ResolveRequest(BaseModel):
+    attachment_id: Optional[int] = Field(None, gt=0)
+
+    @model_validator(mode='before')
+    @classmethod
+    def attachment_alias(cls, values):
+        if values.get('attachment_id') is not None:
+            if values.get('attachment_ref'):
+                fail(422, 'AMBIGUOUS_ATTACHMENT', 'Supply attachment_id or attachment_ref.')
+            values['attachment_ref'] = str(values['attachment_id'])
+        return values
+
     resolution_kind: str = Field(min_length=1, max_length=40)
     note: str = Field(min_length=1, max_length=2000)
     receipt_number: Optional[str] = Field(None, max_length=40)
@@ -632,6 +643,10 @@ def shortage_evidence(api, cur, request, actor, row, body):
                       'short_lb': short_lb, 'correction_review': review, 'attachment_ref': body.attachment_ref,
                       'transaction_id': None, 'new_balance_lb': book}
         if abs(delta) > EPSILON:
+            if body.attachment_ref:
+                import attachments
+                evidence = attachments.verified(cur, body.attachment_ref, actor, exception_id=row['id'], kinds=('correction_photo',), claim=True)
+                attachments.load(api, evidence)
             if review['photo_required'] and not body.attachment_ref:
                 fail(422, 'PHOTO_REQUIRED',
                      f'The counted correction is {abs(delta)} lb, over {int(LARGE_CORRECTION_LB)} lb: attach a photo (attachment_ref).',

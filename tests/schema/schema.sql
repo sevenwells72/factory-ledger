@@ -6240,3 +6240,4 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 SET search_path TO public;
 \ir ../../migrations/067_order_tickets.sql
 \ir ../../migrations/072_order_ticket_review_fixes.sql
+\ir ../../migrations/074_ship_gate_attachments.sql
