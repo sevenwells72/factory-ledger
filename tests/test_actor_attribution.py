@@ -621,7 +621,8 @@ def test_update_line_no_longer_references_the_operator_placeholder():
     """
     import inspect
 
-    src = inspect.getsource(main.update_order_line)
+    # A7: the handler body lives in _update_order_line_core; guard both.
+    src = inspect.getsource(main.update_order_line) + inspect.getsource(main._update_order_line_core)
     assert "_operator_id(" not in src, (
         "update_order_line must attribute releases with caller_source_tag(request), "
         "not the _operator_id placeholder"
