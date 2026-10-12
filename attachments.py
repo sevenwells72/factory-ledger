@@ -28,10 +28,19 @@ def named(actor):
     if actor['id'] is None or permissions.role_of(actor) not in permissions.NAMED:
         wt.fail(403, 'ROLE_NOT_ALLOWED', 'Evidence requires a named actor.')
 
+def validate_configuration():
+    if os.environ.get('ENVIRONMENT','').strip().lower()=='production':
+        if os.environ.get('EVIDENCE_STORAGE_DIR'):
+            raise RuntimeError('EVIDENCE_STORAGE_DIR is forbidden in production; use private Supabase evidence storage')
+        if not os.environ.get('SUPABASE_URL') or not os.environ.get('SUPABASE_SERVICE_ROLE_KEY'):
+            raise RuntimeError('Production evidence storage requires SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY')
+
 def _volume():
     value = os.environ.get('EVIDENCE_STORAGE_DIR')
     if not value:
         return None
+    if os.environ.get('ENVIRONMENT','').strip().lower()=='production':
+        wt.fail(503,'STORAGE_NOT_CONFIGURED','Local evidence storage is forbidden in production.')
     root = Path(value)
     if not root.is_absolute() or root.is_symlink():
         wt.fail(503, 'STORAGE_NOT_CONFIGURED', 'Evidence volume must be an absolute private directory.')

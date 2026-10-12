@@ -470,7 +470,7 @@ def test_close_shipped_not_recorded_role_is_rechecked_at_commit(client, db_curso
     order = create_order(client, catalog, office(actors))
     owner = actors['owner']
     prepared = prepare(client, f"/sales/orders/{order['order_id']}/close/prepare",
-                       {'reason': 'shipped_not_recorded'}, owner['key'])
+                       {'reason': 'shipped_not_recorded', 'note': 'historical truck log'}, owner['key'])
     db_cursor.execute("UPDATE actors SET role='office' WHERE id=%s", (owner['id'],))
     main._reset_actor_cache()
     error(commit(client, prepared, owner['key']), 403, 'ROLE_NOT_ALLOWED')

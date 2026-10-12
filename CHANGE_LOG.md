@@ -1,5 +1,68 @@
 # Change Log
 
+## 2026-10-12 15:23 — A6 review fixes full fresh-DB validation
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/a6-ship-gate.md`
+- **What changed:** Record fixes 1–5, 35 new cases, before-fix 21 failures and full fresh-local-DB 2,415 Python / 69 Node passes with zero failures/skips; distinguish completed builder work from pending operator rollout.
+- **Why:** Required regression guard and truthful review evidence before pushing PR #99.
+
+---
+
+## 2026-10-12 15:22 — A6 rollout checklist labels and storage configuration coverage
+- **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `tests/test_ship_tickets.py`, `tests/test_a6_review_fixes.py`
+- **What changed:** Keep existing extra-kosher cutover step 1a cross-references stable, add cutoff as step 1b, remove the obsolete test role branch and cover missing production Supabase configuration before connection.
+- **Why:** Finish review-fix regression coverage and preserve documentation references.
+
+---
+
+## 2026-10-12 15:21 — A6 complete late-entry and post-cutover shipment regressions
+- **File(s) changed:** `tests/test_a6_review_fixes.py`
+- **What changed:** Cover blank production signer refusals, floor 49-hour ship opening exactly one A2 late exception, and normal recorded closes after cutoff.
+- **Why:** Validate boundary rules and preserved A2 behavior introduced by the allowed acknowledgement path.
+
+---
+
+## 2026-10-12 15:21 — A6 production prerequisites and hosted staging acceptance checklist
+- **File(s) changed:** `docs/deployments/a6-ship-gate.md`
+- **What changed:** Document 074 production-before-merge as actual app/table owner, RLS/zero-policy verification, private Supabase-only storage, required signer, guarded nightly Railway cron, cutoff activation and four-step hosted staging flow plus post-23:59 sweep.
+- **Why:** Michael review fixes 3–4; builder does not access production, schedule cron or merge.
+
+---
+
+## 2026-10-12 15:21 — A6 decisions recorded and weekly reporting contract updated
+- **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `docs/contracts/shift-summary.md`, `FOLLOWUPS.md`, `scripts/exceptions_sweep.py`
+- **What changed:** Record decisions 41–42 in §§4.3/8.2/11, add cutoff cutover checklist, align shift flag and R6 deadlines, mark unused proof kind superseded and scheduler an operator prerequisite.
+- **Why:** Michael fixes 1, 2, 3 and 5; historical decision tables and compatibility enum retained.
+
+---
+
+## 2026-10-12 15:18 — A6 existing regression expectations follow Michael decisions
+- **File(s) changed:** `tests/test_ship_tickets.py`, `tests/test_order_tickets.py`
+- **What changed:** Replace universal same-day and owner legacy-close blockers with explicit owner/floor acknowledgment and required-note expectations; retain recorded-shipment and office blocks.
+- **Why:** Fix tests asserting the opposite of decisions 1 and 2.
+
+---
+
+## 2026-10-12 15:18 — A6 owner legacy close, floor acknowledgment and production guards
+- **File(s) changed:** `order_tickets.py`, `ship_tickets.py`, `attachments.py`, `main.py`, `write_tickets.py`
+- **What changed:** Enforce immutable NY creation cutoff, nonblank note and named owner at prepare/commit; allow explicit owner/floor same-day overrides, preserve A2 late exceptions, persist actor policy records and receipt filtering; refuse production local storage, missing dedicated signer and invalid cutoff before connection.
+- **Why:** Michael review decisions 1–3; A7 named gate and A1/A2 lifecycle remain authoritative.
+
+---
+
+## 2026-10-12 15:17 — A6 historical-row regression fixtures
+- **File(s) changed:** `tests/test_a6_review_fixes.py`
+- **What changed:** Seed historical creation dates with a transaction-local trigger toggle on the disposable DB; correct A2 regression to the existing 14-day backfill boundary.
+- **Why:** Historical created_at is immutable; preserve the actual A2 contract.
+
+---
+
+## 2026-10-12 15:16 — A6 review regression cases before fixes
+- **File(s) changed:** `tests/test_a6_review_fixes.py`
+- **What changed:** Add cutoff, required note, named owner, owner/floor late shipment acknowledgment, weekly receipt metadata and production startup/storage/signing refusal tests.
+- **Why:** Michael decisions 1–3 after Claude review comment 6130807656; verify failures before implementation.
+
+---
+
 ## 2026-10-12 14:47 — A6 part 3 — fresh-DB validation and staging receipt
 - **File(s) changed:** `docs/deployments/a6-ship-gate.md`, `FOLLOWUPS.md`, `FACTORY_LEDGER_CHANGELOG.md`, `scripts/exceptions_sweep.py`
 - **What changed:** Document 2,380 Python/69 Node passing tests and guarded staging evidence; append P1.13 implementation status without claiming hosted rollout; preserve sweep executable mode.

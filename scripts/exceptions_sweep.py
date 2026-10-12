@@ -11,8 +11,8 @@ in docs/deployments/a3b-exceptions-enforcement.md and is NOT created here.
 
 Scope today: overdue SHORTAGE / UNIDENTIFIED_LOT (and any other kind carrying a
 due_at) exceptions plus their shortage_flags rows. The design's other nightly
-openers (SHIPMENT_PROOF_MISSING, NEGATIVE_BALANCE, UNSHIPPED_PAST_DUE) belong to
-A9 and are listed in FOLLOWUPS. A6 opens BOL_PHOTO_MISSING once per
+openers (NEGATIVE_BALANCE, UNSHIPPED_PAST_DUE) are listed in FOLLOWUPS. The unused
+SHIPMENT_PROOF_MISSING kind is superseded by BOL_PHOTO_MISSING (P1.14); no schema change. A6 opens BOL_PHOTO_MISSING once per
 shipment at its 23:59 plant-time deadline, serialized with late uploads.
 """
 import os

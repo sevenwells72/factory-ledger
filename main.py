@@ -2416,6 +2416,8 @@ def _run_startup_migrations() -> None:
 @app.on_event("startup")
 async def startup():
     global db_pool
+    attachments.validate_configuration()
+    ship_tickets.validate_configuration()
     assert_staging_database(DATABASE_URL)
     if not DATABASE_URL:
         raise RuntimeError("DATABASE_URL env var required — app cannot start without a database")

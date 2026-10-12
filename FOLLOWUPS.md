@@ -168,12 +168,16 @@ and private storage configuration are deployed to hosted staging.
 ---
 
 **P1.14 Nightly sweep scope (A3b, 2026-10-08).** `scripts/exceptions_sweep.py` escalates
-overdue open exceptions and shortage flags (idempotent). The design's other nightly openers —
-`SHIPMENT_PROOF_MISSING` for the day's shipments without a photo (A6), `NEGATIVE_BALANCE` for
-any lot `lot_on_hand() < 0` without an open shortage (A9/weekly view), `UNSHIPPED_PAST_DUE`
-(A6/A7) — belong in the same script once those features exist. Railway cron for the sweep:
-same recipe as P1.9 (`python scripts/exceptions_sweep.py`, e.g. `30 7 * * *`), documented in
-`docs/deployments/a3b-exceptions-enforcement.md`; **not created yet**.
+overdue open exceptions and shortage flags (idempotent). **Unused `SHIPMENT_PROOF_MISSING`
+is superseded by `BOL_PHOTO_MISSING` (Michael, PR #99 review fixes, 2026-10-12).** Keep the old
+kind in the schema for compatibility; no schema change. A6 already opens one `BOL_PHOTO_MISSING`
+per overdue ticket shipment after its 23:59 America/New_York deadline. `NEGATIVE_BALANCE` for
+any lot `lot_on_hand() < 0` without an open shortage (A9/weekly view) and `UNSHIPPED_PAST_DUE`
+(A6/A7) remain future openers. **Schedule the sweep before production A6 acceptance**:
+same Railway recipe as P1.9 (`python scripts/exceptions_sweep.py`, `30 7 * * *` UTC,
+02:30 EST / 03:30 EDT), documented in `docs/deployments/a6-ship-gate.md` and
+`docs/deployments/a3b-exceptions-enforcement.md`. Scheduler **not created by this PR**; operator
+must create and verify it. The job is never an app-startup sweep.
 
 ---
 

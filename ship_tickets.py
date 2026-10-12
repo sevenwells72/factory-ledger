@@ -7,7 +7,7 @@ import hashlib
 import hmac
 import os
 import time
-from datetime import datetime, time as day_time
+from datetime import date, datetime, time as day_time
 from typing import List, Optional
 from urllib.parse import urlencode
 
@@ -70,13 +70,34 @@ class BulkShip(ShipBase):
     lines: List[BulkLine]=Field(min_length=1,max_length=100)
     order_reference: str=Field(min_length=1,max_length=200)
 
-def same_day(api,payload):
-    happened=datetime.fromisoformat(payload['occurred_at'])
-    if happened.astimezone(api.PLANT_TIMEZONE).date()!=api.get_plant_now().astimezone(api.PLANT_TIMEZONE).date():
-        wt.fail(422,'SHIP_NOT_SAME_DAY','Shipments must be recorded on the same America/New_York plant day.')
+def legacy_close_cutoff():
+    value=os.environ.get('ORDER_LEGACY_CLOSE_CUTOFF','').strip()
+    if not value: return None
+    try:
+        cutoff=date.fromisoformat(value)
+        if cutoff.isoformat()!=value: raise ValueError
+        return cutoff
+    except ValueError:
+        raise RuntimeError('ORDER_LEGACY_CLOSE_CUTOFF must be a YYYY-MM-DD America/New_York date') from None
+
+def validate_configuration():
+    legacy_close_cutoff()
+    if os.environ.get('ENVIRONMENT','').strip().lower()=='production' and not os.environ.get('PACKING_SLIP_SIGNING_KEY','').strip():
+        raise RuntimeError('PACKING_SLIP_SIGNING_KEY is required in production')
+
+def same_day(api,payload,actor):
+    happened=datetime.fromisoformat(payload['occurred_at']).astimezone(api.PLANT_TIMEZONE).date()
+    entered=api.get_plant_now().astimezone(api.PLANT_TIMEZONE).date()
+    if happened==entered: return []
+    if permissions.role_of(actor) not in ('owner','floor'):
+        wt.fail(422,'SHIP_NOT_SAME_DAY','Only owner or floor may acknowledge a shipment outside the same America/New_York plant day.')
+    return [{'code':'SHIP_NOT_SAME_DAY','requires_ack':True,
+             'message':'This shipment is outside the same plant day; acknowledge before recording.',
+             'message_es':'Este envío es de otro día de planta; confirme antes de registrarlo.',
+             'refs':{'happened_on':happened.isoformat(),'entered_on':entered.isoformat()}}]
 
 def validate(api,cur,action,payload,actor,*,lock=False,ticket_id=None):
-    same_day(api,payload)
+    day_warnings=same_day(api,payload,actor)
     occurred,source=api.validate_inventory_occurred_at(datetime.fromisoformat(payload['occurred_at']),payload['backfill'])
     order=None
     if action=='ship_order':
@@ -139,7 +160,7 @@ def validate(api,cur,action,payload,actor,*,lock=False,ticket_id=None):
         att=attachments.verified(cur,ref,actor,ticket_id=ticket_id,kinds=('bol','truck_photo','signed_packing_slip'),claim=lock)
         attachments.load(api,att)
         photo |= att['kind']=='bol' and att['content_type'].startswith('image/')
-    warnings=[]
+    warnings=list(day_warnings)
     if action!='ship_order':
         opened=api.check_open_orders_for_ship(cur,customer['id'],customer['name'])
         if opened:
@@ -179,7 +200,10 @@ def possible_duplicate(cur,action,payload,customer_id,total_lb):
              'refs':dict(row)}]
 
 def _sign(order_id,receipt,expires):
-    key=os.environ.get('PACKING_SLIP_SIGNING_KEY') or os.environ.get('API_KEY')
+    key=os.environ.get('PACKING_SLIP_SIGNING_KEY')
+    if not key and os.environ.get('ENVIRONMENT','').strip().lower()!='production':
+        key=os.environ.get('API_KEY')
+    if key and not key.strip(): key=None
     if not key: wt.fail(503,'SIGNING_NOT_CONFIGURED','Packing slip signing is unavailable.')
     return hmac.new(key.encode(),f'{order_id}:{receipt}:{expires}'.encode(),hashlib.sha256).hexdigest()
 
@@ -245,6 +269,16 @@ def commit(api,cur,row,body,actor,request,entry_timing):
         result.update(receipt_number=receipt,ticket_id=row['id'],bol_reference=payload['bol_reference'],proof_status=shipment['proof_status'],proof_due_at=due,
                       replayed=False,state_changed=wt.canonical_hash(wt.json_value(api,ctx['state']))!=row['state_hash'],success=True,
                       entry_timing={**entry_timing,'entered_at':shipment['created_at'],'entered_by':actor,'late_entry_exception_id':None})
+        late_id=None
+        if permissions.opens_late_entry(actor,entry_timing):
+            late_id=permissions.open_late_entry(cur,identity=actor,info=entry_timing,action=row['action'],
+                transaction_id=txns[0] if txns else None,receipt_number=receipt,ticket_id=row['id'],
+                entered_at=shipment['created_at'],client_source=row['client_source'])
+        result['entry_timing']['late_entry_exception_id']=late_id
+        day_warning=next((w for w in ctx['warnings'] if w['code']=='SHIP_NOT_SAME_DAY'),None)
+        if day_warning:
+            result['policy_acknowledgements']=[{'code':'SHIP_NOT_SAME_DAY','actor':dict(actor),
+                'acknowledged_at':shipment['created_at'],**day_warning['refs']}]
         if row['action']=='ship_order': result['packing_slip_url']=packing_link(payload['order_id'],receipt)
         result=wt.json_value(api,result)
     except HTTPException as exc:
@@ -271,6 +305,11 @@ def shipment_gate(api,cur,order,close_reason):
       OR NOT EXISTS(SELECT 1 FROM sales_order_lines sol JOIN products p ON p.id=sol.product_id
                     WHERE sol.sales_order_id=s.sales_order_id AND NOT COALESCE(p.is_service,false))) LIMIT 1''',(order['id'],))
     if cur.fetchone(): return []
+    if close_reason=='shipped_not_recorded':
+        cutoff=legacy_close_cutoff()
+        if cutoff is not None and order['created_at'].astimezone(api.PLANT_TIMEZONE).date()>=cutoff:
+            wt.fail(403,'LEGACY_CLOSE_CUTOFF','Orders created on or after the cutover date require a recorded shipment, including for the owner.')
+        return []
     return [{'code':'SHIPMENT_REQUIRED','message':'Record a shipment before closing this order as shipped.'}]
 
 def open_missing_photos(cur):
@@ -303,6 +342,8 @@ def register_routes(app,api):
                 if len({r['line_id'] for r in payload['lines']})!=len(payload['lines']): wt.fail(422,'DUPLICATE_LINE','Supply each order line once.')
             elif action=='ship_standalone': payload['lines']=[{k:payload.pop(k) for k in ('product_id','lot_id','quantity_lb')}]
             ctx=validate(api,cur,action,payload,actor)
+            late=permissions.late_entry_warning(actor,timing)
+            if late: ctx['warnings'].append(late)
             draft=ctx['draft'];draft['entry_timing']=timing
             return wt.issue_ticket(api,cur,actor=actor,action=action,payload=payload,draft=draft,state=ctx['state'],warnings=wt.json_value(api,ctx['warnings']),
                                    blockers=draft['blockers'],client_source=payload['client_source'],event_time=occurred)

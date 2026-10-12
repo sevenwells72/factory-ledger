@@ -751,6 +751,7 @@ def register_routes(app, api):
     def list_receipts(date: Optional[date] = Query(None), actor: Optional[str] = None,
                       action: Optional[str] = None, status: Optional[str] = None,
                       client_source: Optional[ClientSource] = None,
+                      policy_code: Optional[str] = None,
                       _: bool = Depends(api.verify_api_key)):
         day = date or api.get_plant_now().date()
         with api.get_transaction() as cur:
@@ -761,8 +762,10 @@ def register_routes(app, api):
                   AND (%s IS NULL OR operator_id=%s OR actor_id::text=%s)
                   AND (%s IS NULL OR action=%s) AND (%s IS NULL OR status=%s)
                   AND (%s IS NULL OR client_source=%s)
+                  AND (%s IS NULL OR EXISTS (SELECT 1 FROM jsonb_array_elements(
+                      COALESCE(response->'policy_acknowledgements','[]'::jsonb)) p WHERE p->>'code'=%s))
                 ORDER BY committed_at,id''',
-                (day, day, actor, actor, actor, action, action, status, status, client_source, client_source))
+                (day, day, actor, actor, actor, action, action, status, status, client_source, client_source, policy_code, policy_code))
             numbers = [row['receipt_number'] for row in cur.fetchall()]
             return {'date': day, 'receipts': [receipt_detail(api, cur, number) for number in numbers]}
 

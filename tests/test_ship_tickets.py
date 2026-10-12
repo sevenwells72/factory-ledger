@@ -130,15 +130,25 @@ def test_bol_and_lot_confirmation_are_hard_gates(client,db_cursor,shipping,actor
     assert good.json()['proof_status']=='photo_pending'
 
 @pytest.mark.parametrize('role',['owner','floor','office'])
-def test_same_day_strict_for_all_roles_and_commit_midnight(client,db_cursor,shipping,actors,monkeypatch,role):
+def test_same_day_ack_roles_and_commit_midnight(client,db_cursor,shipping,actors,monkeypatch,role):
     key=actors[role]['key'];oid=new_order(client,shipping,actors['office']['key']);path=f'/sales/orders/{oid}/ship/prepare'
     now=datetime(2026,11,1,23,58,tzinfo=main.PLANT_TIMEZONE);monkeypatch.setattr(main,'get_plant_now',lambda:now)
     b=ship_body(shipping,ship_all=True,happened_at=now.isoformat())
-    error(client.post(path,json=b|{'happened_at':(now-timedelta(days=1)).isoformat()},headers=headers(key)),422,'SHIP_NOT_SAME_DAY')
+    late=client.post(path,json=b|{'happened_at':(now-timedelta(days=1)).isoformat()},headers=headers(key))
+    if role=='office': error(late,422,'SHIP_NOT_SAME_DAY')
+    else:
+        assert late.status_code==200,late.text
+        assert 'SHIP_NOT_SAME_DAY' in [w['code'] for w in late.json()['warnings']]
     r=client.post(path,json=b,headers=headers(key));assert r.status_code==200,r.text
     now=datetime(2026,11,2,0,0,tzinfo=main.PLANT_TIMEZONE)
-    error(commit(client,r.json(),key,acknowledged_warnings=['SHIP_NOT_SAME_DAY']),422,'SHIP_NOT_SAME_DAY')
-    db_cursor.execute('SELECT count(*) AS n FROM shipments WHERE ticket_id=%s',(r.json()['ticket_id'],));assert db_cursor.fetchone()['n']==0
+    if role=='office':
+        error(commit(client,r.json(),key,acknowledged_warnings=['SHIP_NOT_SAME_DAY']),422,'SHIP_NOT_SAME_DAY')
+    else:
+        error(commit(client,r.json(),key),409,'WARNING_NOT_ACKNOWLEDGED')
+        posted=commit(client,r.json(),key,acknowledged_warnings=['SHIP_NOT_SAME_DAY'])
+        assert posted.status_code==200,posted.text
+        assert posted.json()['policy_acknowledgements'][0]['actor']['id']==actors[role]['id']
+    db_cursor.execute('SELECT count(*) AS n FROM shipments WHERE ticket_id=%s',(r.json()['ticket_id'],));assert db_cursor.fetchone()['n']==(0 if role=='office' else 1)
 
 def test_photo_deadline_one_exception_late_photo_and_signed_slip(client,db_cursor,shipping,actors):
     key=actors['office']['key'];p=prepared(client,shipping,key);r=commit(client,p,key);assert r.status_code==200,r.text
@@ -205,9 +215,8 @@ def test_attachment_upload_download_authorization_and_immutable_provenance(clien
 
 def test_a7_close_gate_needs_effective_shipment(client,db_cursor,shipping,actors):
     key=actors['office']['key'];oid=new_order(client,shipping,key)
-    for reason in ('short_closed','shipped_recorded','shipped_not_recorded'):
-        who=actors['owner']['key'] if reason=='shipped_not_recorded' else key
-        p=client.post(f'/sales/orders/{oid}/close/prepare',json={'reason':reason},headers=headers(who)).json()
+    for reason in ('short_closed','shipped_recorded'):
+        p=client.post(f'/sales/orders/{oid}/close/prepare',json={'reason':reason},headers=headers(key)).json()
         assert not p['can_commit'] and p['blockers'][0]['code']=='SHIPMENT_REQUIRED'
     p=client.post(f'/sales/orders/{oid}/ship/prepare',json=ship_body(shipping,ship_all=True),headers=headers(key)).json();r=commit(client,p,key);assert r.status_code==200,r.text
     p=client.post(f'/sales/orders/{oid}/close/prepare',json={'reason':'shipped_recorded'},headers=headers(key)).json();assert p['can_commit']
