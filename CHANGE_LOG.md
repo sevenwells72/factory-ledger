@@ -133,6 +133,13 @@
 
 ---
 
+## 2026-10-13 10:47 — A12 part 1: additive tier schema and migration 075 reservation
+- **File(s) changed:** `migrations/075_kosher_tiers.sql`, `tests/schema/schema.sql`, `docs/deployments/a12-kosher-tiers.md`
+- **What changed:** Add immutable lot tiers, owner attestation evidence, downgrade event storage, one-time catalog labels and staging-only rollout notes. Preserve historical lots and formula 284.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
+
+---
+
 ## 2026-10-12 15:58 — A6 (PR #99) production rollout record, FOLLOWUPS P1.14 closed / P1.20 added, changelog rows 171–172
 - **File(s) changed:** `FOLLOWUPS.md`, `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/a6-ship-gate.md`
 - **What changed:** FOLLOWUPS P1.14 marks the sweep cron services as created (exceptions-sweep / exceptions-sweep-staging, 30 7 * * * UTC, verified run) and adds P1.20: A10 must retire or gate the direct `POST /sales/orders/{id}/close` route on cutover day (master key and owner key bypass the `shipped_not_recorded` cutoff there). FACTORY_LEDGER_CHANGELOG rows 172 (A6 rollout: bucket, variables, volume, 074 on prod, merge 81cb369, deploys, cron, hosted-staging checklist) and 171 (A7 rollout, recorded retroactively). Deployment doc gains the executed rollout record and the remaining open items.
