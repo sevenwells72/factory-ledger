@@ -1,8 +1,18 @@
 # Change Log
 
+## 2026-10-13 22:34 — Preserve D2 and upstream change-log entries during rebase
+- **File(s) changed:** `CHANGE_LOG.md`
+- **What changed:** Preserve D2 and upstream change-log entries during rebase
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
 ## 2026-10-13 22:33 — Rebase D1 onto merged resolution receipts; preserve both change-log histories
 - **File(s) changed:** `CHANGE_LOG.md`
 - **What changed:** Rebase D1 onto merged resolution receipts; preserve both change-log histories
+## 2026-10-13 19:34 — Suppress credential-bearing browser exceptions from staging acceptance output
+- **File(s) changed:** `tests/visual/run-d12-staging.mjs`
+- **What changed:** Suppress credential-bearing browser exceptions from staging acceptance output
 - **Why:** D1/D2 dashboard implementation and verification; no production changes.
 
 ---
@@ -130,6 +140,125 @@
 - **File(s) changed:** CHANGE_LOG.md
 - **What changed:** Create isolated resolution receipts worktree at 1a423f7 and fresh local test database
 - **Why:** Authorized backend fixes for PRs #107/#108; recover checkout from matching GitHub archive after local object read timeout. No other worktree or production writes.
+## 2026-10-13 19:33 — Preserve nested FL blockers verbatim and honor explicit staging API hosting configuration
+- **File(s) changed:** `dashboard/ledger-ui.js`, `tests/test_d12_ui.js`, `docs/validation/dashboard-d1-d2.md`
+- **What changed:** Preserve nested FL blockers verbatim and honor explicit staging API hosting configuration
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:33 — Record full D2 tests, verified A5 contract and hosted staging walkthrough
+- **File(s) changed:** `dashboard/ledger-ui.js`, `docs/validation/dashboard-d1-d2.md`, `docs/validation/d12-staging/evidence.json`, `docs/validation/d12-staging/make-substitution-draft-390.png`, `docs/validation/d12-staging/make-substitution-recorded-390.png`, `docs/validation/d12-staging/receive-draft-390.png`, `docs/validation/d12-staging/receive-recorded-390.png`
+- **What changed:** Record full D2 tests, verified A5 contract and hosted staging walkthrough
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:32 — Format draft and expiry timestamps in New York plant time and refresh asset versions
+- **File(s) changed:** `dashboard/ledger-ui.js`, `dashboard/ledger-ticket.js`, `dashboard/entry.html`, `dashboard/exceptions.html`, `dashboard/fl-assistant.html`, `dashboard/history.html`, `dashboard/index.html`, `dashboard/process-flow.html`, `dashboard/receipt.html`, `dashboard/runs.html`, `dashboard/sankey.html`, `dashboard/shift-summary.html`, `dashboard/traceability.html`, `tests/test_d12_ui.js`
+- **What changed:** Format draft and expiry timestamps in New York plant time and refresh asset versions
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:31 — Exercise real flag-off compatibility and refuse credential fallback on config outage
+- **File(s) changed:** `tests/visual/run-d12-auth-off.mjs`
+- **What changed:** Exercise real flag-off compatibility and refuse credential fallback on config outage
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:30 — Verify real session expiry and same-person ticket retry on a dedicated browser database
+- **File(s) changed:** `tests/visual/run-d12-auth.mjs`
+- **What changed:** Verify real session expiry and same-person ticket retry on a dedicated browser database
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:30 — Match the published supplier-lot contract and label every blocked draft NOT recorded
+- **File(s) changed:** `dashboard/ledger-ui.js`, `dashboard/ledger-ticket.js`, `dashboard/exceptions.js`, `tests/visual/run-d2.mjs`
+- **What changed:** Match the published supplier-lot contract and label every blocked draft NOT recorded
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:29 — Omit unsupported found resolver context while preserving exact product selection
+- **File(s) changed:** `dashboard/entry.js`
+- **What changed:** Omit unsupported found resolver context while preserving exact product selection
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:29 — Keep commit identity controls stable and restrict found reasons to the documented list
+- **File(s) changed:** `dashboard/entry.js`, `dashboard/ledger-ticket.js`, `tests/test_d12_ui.js`
+- **What changed:** Keep commit identity controls stable and restrict found reasons to the documented list
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:28 — Wait for the confirmed draft before capturing browser evidence
+- **File(s) changed:** `tests/visual/run-d2.mjs`, `tests/visual/run-d12-staging.mjs`
+- **What changed:** Wait for the confirmed draft before capturing browser evidence
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:28 — Capture hosted staging receive and make-with-substitution walkthrough evidence
+- **File(s) changed:** `docs/validation/d12-staging/evidence.json`, `docs/validation/d12-staging/receive-draft-390.png`, `docs/validation/d12-staging/receive-recorded-390.png`, `docs/validation/d12-staging/make-substitution-draft-390.png`, `docs/validation/d12-staging/make-substitution-recorded-390.png`
+- **What changed:** Capture hosted staging receive and make-with-substitution walkthrough evidence
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:28 — Cover order/standalone BOL photo shipping and failed commit truthfulness in browser tests
+- **File(s) changed:** `tests/visual/d12_fixture.py`, `tests/visual/run-d2.mjs`
+- **What changed:** Cover order/standalone BOL photo shipping and failed commit truthfulness in browser tests
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:27 — Preserve lot-entry recovery after FL blockers and focus mobile review on the draft
+- **File(s) changed:** `dashboard/ledger-ticket.js`, `dashboard/entry.js`, `dashboard/ledger-forms.css`, `tests/visual/run-d2.mjs`
+- **What changed:** Preserve lot-entry recovery after FL blockers and focus mobile review on the draft
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:27 — Add guarded staging receive and make-substitution browser acceptance without deploying
+- **File(s) changed:** `scripts/check_d12_staging.py`, `tests/visual/run-d12-staging.mjs`
+- **What changed:** Add guarded staging receive and make-substitution browser acceptance without deploying
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:26 — Assert explicit duplicate-warning acknowledgment in D2 browser flow and use API order line ids
+- **File(s) changed:** `tests/visual/run-d2.mjs`, `dashboard/entry.js`
+- **What changed:** Assert explicit duplicate-warning acknowledgment in D2 browser flow and use API order line ids
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:25 — Add real-route D2 Chrome walkthroughs and negative lot confirmation coverage
+- **File(s) changed:** `tests/visual/run-d2.mjs`
+- **What changed:** Add real-route D2 Chrome walkthroughs and negative lot confirmation coverage
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:25 — Keep edited lot evidence unrecordable until FL rechecks it and preserve shipment context
+- **File(s) changed:** `dashboard/ledger-ui.js`, `dashboard/ledger-ticket.js`, `dashboard/entry.js`, `dashboard/entry.html`, `dashboard/exceptions.html`, `dashboard/fl-assistant.html`, `dashboard/history.html`, `dashboard/index.html`, `dashboard/process-flow.html`, `dashboard/receipt.html`, `dashboard/runs.html`, `dashboard/sankey.html`, `dashboard/shift-summary.html`, `dashboard/traceability.html`
+- **What changed:** Keep edited lot evidence unrecordable until FL rechecks it and preserve shipment context
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:25 — Build D2 resolved receive, adjust, found, make/substitution, pack and BOL shipment forms
+- **File(s) changed:** `dashboard/entry.html`, `dashboard/entry.js`, `dashboard/receipt-shell.js`, `dashboard/ledger-ticket.js`, `dashboard/dashboard.js`, `dashboard/entry.html`, `dashboard/exceptions.html`, `dashboard/fl-assistant.html`, `dashboard/history.html`, `dashboard/index.html`, `dashboard/process-flow.html`, `dashboard/receipt.html`, `dashboard/runs.html`, `dashboard/sankey.html`, `dashboard/shift-summary.html`, `dashboard/traceability.html`
+- **What changed:** Build D2 resolved receive, adjust, found, make/substitution, pack and BOL shipment forms
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
 ## 2026-10-13 19:23 — Record green Part 1 fresh-database suite and browser totals
 - **File(s) changed:** `docs/validation/dashboard-d1-d2.md`
 - **What changed:** Record green Part 1 fresh-database suite and browser totals

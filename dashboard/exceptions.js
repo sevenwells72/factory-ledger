@@ -24,7 +24,7 @@
     const fields=ui.el('div',undefined,form);fields.className='wide fields';
     function field(name,en,es,type='text'){const l=ui.el('label',ui.t(en,es),fields),i=ui.el(type==='textarea'?'textarea':'input',undefined,l);i.name=name;if(type!=='textarea')i.type=type;return i;}
     let note,count,receipt,photo,code,reason;
-    function update(){fields.replaceChildren();note=field('note','Note','Nota','textarea');note.required=true;count=receipt=photo=code=reason=null;
+    function update(){fields.replaceChildren();note=field('note','Note','Nota','textarea');note.required=!['identified','approved'].includes(kind.value);count=receipt=photo=code=reason=null;
       if(kind.value==='counted'){count=field('counted_lb','Physically counted lb','Libras contadas físicamente','number');count.step='any';count.min='0';count.required=true;}
       if(kind.value==='missing_movement'){receipt=field('receipt_number','Evidence Receipt #','Recibo de evidencia #');receipt.required=true;}
       if(kind.value==='identified'){code=field('supplier_lot_code','Supplier lot code','Código de lote del proveedor');code.required=true;const l=ui.el('label',ui.t('Reason','Motivo'),fields);reason=ui.el('select',undefined,l);[['data_entry_error','Data-entry error / Error de captura'],['wrong_lot','Wrong lot used / Lote equivocado']].forEach(([v,t])=>{const o=ui.el('option',t,reason);o.value=v;});}
