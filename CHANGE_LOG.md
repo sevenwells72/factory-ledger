@@ -42,6 +42,76 @@
 
 ---
 
+## 2026-10-13 11:47 — A12 review fixes fresh database verification
+- **File(s) changed:** `docs/deployments/a12-kosher-tiers.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record final 2,550 Python/69 Node passes, zero failures/skips, corrected 93-case before/after regression proof, 263 focused passes, path-review results and explicit count/A10/production rollout boundaries while preserving prior evidence.
+- **Why:** Michael’s PR #101 review decisions 1–3 (comment 6149065092); no production, other worktree, deploy or merge.
+
+---
+
+## 2026-10-13 11:45 — A12 held found summary contract
+- **File(s) changed:** `docs/contracts/shift-summary.md`
+- **What changed:** Include awaiting-approval found receipts alongside held makes in the NOT ENTERED YET summary contract.
+- **Why:** Michael’s PR #101 review decisions 1–3 (comment 6149065092); no production, other worktree, deploy or merge.
+
+---
+
+## 2026-10-13 11:44 — A12 existing correction hold compatibility
+- **File(s) changed:** `write_tickets.py`
+- **What changed:** Treat absent saved responses on existing LARGE_CORRECTION holds as empty when detecting kosher replay, preserving late-photo releases and concurrent approvals.
+- **Why:** Michael’s PR #101 review decisions 1–3 (comment 6149065092); no production, other worktree, deploy or merge.
+
+---
+
+## 2026-10-13 11:43 — A12 dashboard receive refusal regression
+- **File(s) changed:** `tests/test_a12_review_fixes.py`
+- **What changed:** Cover the remaining legacy-dashboard role on batch and finished receive routes, preserving route-level 403s and validating the kosher guard wherever receive is authorized.
+- **Why:** Michael’s PR #101 review decisions 1–3 (comment 6149065092); no production, other worktree, deploy or merge.
+
+---
+
+## 2026-10-13 11:41 — A12 pack regression fixture correction
+- **File(s) changed:** `tests/test_a12_review_fixes.py`
+- **What changed:** Correct the single-parameter SQL tuple in the extra-batch pack regression so both tests exercise the route guard.
+- **Why:** Michael’s PR #101 review decisions 1–3 (comment 6149065092); no production, other worktree, deploy or merge.
+
+---
+
+## 2026-10-13 11:41 — A12 legacy product type validation
+- **File(s) changed:** `main.py`
+- **What changed:** Include product type in the legacy product resolver so batch receive refusals and pack-output guards apply consistently to direct routes as well as tickets.
+- **Why:** Michael’s PR #101 review decisions 1–3 (comment 6149065092); no production, other worktree, deploy or merge.
+
+---
+
+## 2026-10-13 11:40 — A12 owner approval and lot creation guards
+- **File(s) changed:** `kosher_tiers.py`, `write_tickets.py`, `ticket_actions.py`, `main.py`, `exceptions_enforcement.py`, `migrations/075_kosher_tiers.sql`
+- **What changed:** Refuse extra-kosher receives and batch pack outputs; hold every extra found ticket until separate owner approval with atomic lot/transaction attestation; refuse direct extra make/found writes and extra reassign/merge paths; preserve seven-day holds and photo-proof boundaries; clarify migration count cutover comment.
+- **Why:** Michael’s PR #101 review decisions 1–3 (comment 6149065092); no production, other worktree, deploy or merge.
+
+---
+
+## 2026-10-13 11:39 — A12 regression coverage and role expectations
+- **File(s) changed:** `tests/test_a12_review_fixes.py`
+- **What changed:** Extend receive regressions to extra finished goods and historical-lot reassignment; use existing role permissions accurately while exercising legacy bypass guards with the shared master key.
+- **Why:** Michael’s PR #101 review decisions 1–3 (comment 6149065092); no production, other worktree, deploy or merge.
+
+---
+
+## 2026-10-13 11:38 — A12 count cutover and deployment prerequisites
+- **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `docs/deployments/a12-kosher-tiers.md`, `FOLLOWUPS.md`
+- **What changed:** Replace lot-retag steps with owner-approved counted stock under 283–290; record count-tool new-lot/approval and bulk-unit gaps, postgres/RLS/rename deployment requirements, and A9/A10 followups.
+- **Why:** Michael’s PR #101 review decisions 1–3 (comment 6149065092); no production, other worktree, deploy or merge.
+
+---
+
+## 2026-10-13 11:36 — A12 review regression cases
+- **File(s) changed:** `tests/test_a12_review_fixes.py`
+- **What changed:** Add HTTP and database regressions for refused batch receives, all extra found approval holds, approval evidence/replay/expiry, and legacy pack/reassign/merge bypasses before applying the fix.
+- **Why:** Michael’s PR #101 review decisions 1–3 (comment 6149065092); no production, other worktree, deploy or merge.
+
+---
+
 ## 2026-10-13 11:15 — Save successful eight-action A7/A6 staging evidence
 - **File(s) changed:** `docs/validation/fl-assistant-part1-staging.json`, `docs/contracts/fl-assistant-part1.md`, `docs/deployments/f1-assistant.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Save eight real-model receipts, one-post/replay/actor/lot checks, three BOL/photo-complete shipments, private owner/floor/anonymous download checks, trusted correction-photo link and inactive temporary actors. Health/assets match e85b550; final 2494 Python/75 Node/browser pass. Bearer packing URLs omitted; historical evidence preserved.

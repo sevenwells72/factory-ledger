@@ -254,8 +254,8 @@ def validate(api, cur, action, payload, lock=False):
         draft['output_lot_id'] = existing['id'] if existing else None
         if existing:
             a12.output_matches(cur, existing['id'], output_product)
-            if action=='make' and a12.tier(output_product)==a12.EXTRA:
-                fail('KOSHER_NEW_BATCH_LOT_REQUIRED', 'Every extra-kosher make needs a new lot and its own attestation.')
+            if action in ('make', 'found') and a12.tier(output_product)==a12.EXTRA:
+                fail('KOSHER_NEW_BATCH_LOT_REQUIRED', 'Every extra-kosher make or found entry needs a new lot and its own attestation.')
             states.append(lot(api, cur, existing['id'], output_product['id'], lock))
         if action == 'pack':
             req.target_lot_code = output_code
@@ -273,7 +273,7 @@ def validate(api, cur, action, payload, lock=False):
         a5.identity_draft(api, cur, payload, draft)
     if output_product:
         draft.update(a12.fields(output_product))
-        if action=='make' and a12.tier(output_product)==a12.EXTRA:
+        if action in ('make', 'found') and a12.tier(output_product)==a12.EXTRA:
             draft['kosher_approval'] = {'required': True, 'message': "HELD until Michael approves from his own signed-in device; nothing posts before approval."}
     state = {'products': products, 'lots': states, 'specification': specification}
     return draft, state, req, options, occurred_at, time_source, specification, input_plan

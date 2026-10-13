@@ -977,7 +977,7 @@ def register_routes(app, api):
             if row['kind']=='KOSHER_ATTESTATION':
                 import kosher_tiers
                 if not kosher_tiers.owner(cur, owner):
-                    fail(403, 'KOSHER_ATTESTATION_REQUIRED', 'Only the signed-in owner may attest this make.')
+                    fail(403, 'KOSHER_ATTESTATION_REQUIRED', 'Only the signed-in owner may attest this entry.')
                 cur.execute('SELECT clock_timestamp()>%s AS expired',(ticket['expires_at'],))
                 if cur.fetchone()['expired']:
                     fail(409, 'TICKET_EXPIRED', 'The seven-day kosher hold expired; reject it and prepare again.')

@@ -27,9 +27,27 @@ def attest(cur, identity):
     current = owner(cur, identity)
     if not current:
         raise HTTPException(403, {'error_code':'KOSHER_ATTESTATION_REQUIRED',
-            'message':'Use a make ticket; Michael must approve this extra-kosher make from his own signed-in device.'})
+            'message':'Use a ticket; Michael must approve this extra-kosher entry from his own signed-in device.'})
     cur.execute('SELECT clock_timestamp() AS at')
     return {'actor_id':current['id'], 'actor_name':current['name'], 'attested_at':cur.fetchone()['at']}
+
+def refuse_receive(product):
+    if tier(product) != EXTRA:
+        return
+    batch = product.get('type') == 'batch'
+    raise HTTPException(409, {'error_code': 'KOSHER_BATCH_RECEIVE_REFUSED' if batch else 'KOSHER_ATTESTATION_REQUIRED',
+        'message': 'Extra-kosher batches are made, never received.' if batch else
+        'Extra-kosher stock must come from tier-safe packing or an owner-approved found ticket.'})
+
+def require_ticket(ticket_id):
+    if ticket_id is None:
+        raise HTTPException(403, {'error_code': 'KOSHER_ATTESTATION_REQUIRED',
+            'message': 'Use a ticket for extra-kosher stock; approval must be recorded under the signed-in owner.'})
+
+def refuse_batch_pack(product):
+    if tier(product) == EXTRA and product.get('type') == 'batch':
+        raise HTTPException(409, {'error_code': 'KOSHER_BATCH_PACK_REFUSED',
+            'message': 'Extra-kosher batches must be made with their own owner approval; packing cannot create a batch.'})
 
 def output_matches(cur, lot_id, product):
     cur.execute('SELECT kosher_tier FROM lots WHERE id=%s', (lot_id,))
@@ -89,11 +107,11 @@ def hold(api, cur, row, actor, draft, acknowledged, effective_payload):
     import write_tickets
     if actor['id'] is None:
         raise HTTPException(403, {'error_code':'KOSHER_ATTESTATION_REQUIRED',
-            'message':'A named actor must prepare the extra-kosher make for Michael to approve.'})
+            'message':'A named actor must prepare the extra-kosher entry for Michael to approve.'})
     if row['status']=='awaiting_approval':
         return row['response']
-    receipt = write_tickets.allocate_receipt(cur,'make',datetime.fromisoformat(row['payload']['occurred_at']).astimezone(api.PLANT_TIMEZONE).date())
-    detail = {'payload_hash':row['payload_hash'],'action':'make','kosher_tier':EXTRA,
+    receipt = write_tickets.allocate_receipt(cur,row['action'],datetime.fromisoformat(row['payload']['occurred_at']).astimezone(api.PLANT_TIMEZONE).date())
+    detail = {'payload_hash':row['payload_hash'],'action':row['action'],'kosher_tier':EXTRA,
         'prepared_by_actor_id':actor['id'],'product_id':row['payload']['product_id'],
         'happened_at':row['payload']['occurred_at'],'lot_code':draft.get('lot_code')}
     cur.execute("""INSERT INTO exceptions(kind,severity,product_id,ticket_id,receipt_number,detail,owner_actor_id)

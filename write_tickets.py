@@ -291,6 +291,8 @@ def validate_receive(api, cur, payload, *, lock=False):
     product = cur.fetchone()
     if not product or product['active'] is False:
         fail(422, 'PRODUCT_NOT_FOUND', 'Product is missing or inactive; resolve an active product.')
+    import kosher_tiers
+    kosher_tiers.refuse_receive(product)
     shipper = supplier(cur, payload.get('supplier_id'), lock=lock)
     entries = []
     for entry in payload.get('supplier_lot_entries') or []:
@@ -494,6 +496,15 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
             code = draft.get('lot_code') or draft.get('output_lot_code')
             fail(409, 'LOT_CODE_TAKEN',
                  f'{name} lot {code} is now in use; prepare again for a fresh draft.')
+        import kosher_tiers as a12
+        if row['action'] in ('make', 'found') and draft.get('kosher_tier') == a12.EXTRA:
+            approver = approval['approved_by'] if approval else actor
+            # Found always needs a separate approval, even when the owner prepared it.
+            if (row['action'] == 'found' and not approval) or not a12.owner(cur, approver):
+                cur.execute('ROLLBACK TO SAVEPOINT ticket_post')
+                return api.JSONResponse(status_code=202, content=json_value(api, a12.hold(
+                    api, cur, row, actor, draft, acknowledged, effective_payload)))
+            validated[3]['kosher_attestation'] = a12.attest(cur, approver)
         # A3b hook (R2, owner decision 7): > 500 lb corrections need a photo. With
         # one (prepared or attached now) they post, highlighted; without one the
         # ticket is HELD — nothing posts until the owner approves or a photo arrives.
@@ -513,14 +524,6 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
                     return api.JSONResponse(status_code=422, content=json_value(api, a3b.photo_required(draft)))
                 return api.JSONResponse(status_code=202, content=json_value(api, a3b.hold_ticket(
                     api, cur, row, actor, draft, acknowledged, row['payload_hash'])))
-        import kosher_tiers as a12
-        if row['action']=='make' and draft.get('kosher_tier')==a12.EXTRA:
-            approver = approval['approved_by'] if approval else actor
-            if not a12.owner(cur, approver):
-                cur.execute('ROLLBACK TO SAVEPOINT ticket_post')
-                return api.JSONResponse(status_code=202, content=json_value(api, a12.hold(
-                    api, cur, row, actor, draft, acknowledged, effective_payload)))
-            validated[3]['kosher_attestation'] = a12.attest(cur, approver)
         state_changed = canonical_hash(json_value(api, state)) != row['state_hash']
         receipt = row['receipt_number'] or allocate_receipt(cur, row['action'], occurred_at.astimezone(api.PLANT_TIMEZONE).date())
         if row['action'] == 'receive':
@@ -748,7 +751,7 @@ def register_routes(app, api):
             # photo it posts, without one it stays held; it never expires.
             if row['status'] not in ('prepared', a3b.HELD):
                 fail(409, 'TICKET_NOT_COMMITTABLE', 'Prepare a new ticket.', status=row['status'])
-            if row['status']==a3b.HELD and row['action']=='make':
+            if row['status'] == a3b.HELD and (row['response'] or {}).get('error_code') == 'KOSHER_ATTESTATION_REQUIRED':
                 cur.execute('SELECT clock_timestamp()>%s AS expired',(row['expires_at'],))
                 if cur.fetchone()['expired']:
                     fail(409, 'TICKET_EXPIRED', 'The seven-day kosher hold expired; the owner must reject it and prepare again.')

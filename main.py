@@ -4197,7 +4197,7 @@ def resolve_product_full(cur, product_name: str) -> dict:
 
     # Fetch full product row
     cur.execute(
-        """SELECT id, name, odoo_code, default_batch_lb, case_size_lb,
+        """SELECT id, name, type, odoo_code, default_batch_lb, case_size_lb,
                   COALESCE(yield_multiplier, 1.0) as yield_multiplier,
                   verification_notes, verification_notes_es, kosher_tier
            FROM products WHERE id = %s""",
@@ -5514,6 +5514,7 @@ def generate_lot_code(cur, shipper_name: str, shipper_code_override: str = None)
 def _receive_preview_core(cur, req: ReceiveRequest, *, product=None):
     """Read-only receive draft, shared by legacy preview and A1 prepare."""
     product = product if product is not None else resolve_product_full(cur, req.product_name)
+    kosher_tiers.refuse_receive(product)
 
     # Lot Identity Policy: honor physical lot code if provided
     if req.lot_code:
@@ -5568,6 +5569,7 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
     """Receive post on the caller's transaction, preserving the legacy locks."""
     cur.execute("SELECT pg_advisory_xact_lock(1)")
     product = product if product is not None else resolve_product_full(cur, req.product_name)
+    kosher_tiers.refuse_receive(product)
 
     if req.lot_code:
         lot_code = normalize_lot_code_input(req.lot_code)
@@ -8777,6 +8779,7 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
     product = product if product is not None else resolve_product_full(cur, req.product_name)
 
     if kosher_tiers.tier(product)==kosher_tiers.EXTRA:
+        kosher_tiers.require_ticket(ticket_id)
         kosher_attestation = kosher_attestation or kosher_tiers.attest(cur, request_actor(request))
     siblings = get_sibling_skus(cur, product['id'])
     if siblings and not req.confirmed_sku:
@@ -9038,6 +9041,7 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
 def _pack_preview_core(cur, req, *, source=None, target=None):
     source = source if source is not None else resolve_product_full(cur, req.source_product)
     target = target if target is not None else resolve_product_full(cur, req.target_product)
+    kosher_tiers.refuse_batch_pack(target)
     case_weight = req.case_weight_lb
     if case_weight is None:
         case_weight = float(target.get('case_size_lb') or 0)
@@ -9135,6 +9139,7 @@ def _pack_preview_core(cur, req, *, source=None, target=None):
 def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, source=None, target=None, ticket_id=None, receipt_number=None, require_new_lot=False, input_plan=None):
     source = source if source is not None else resolve_product_full(cur, req.source_product)
     target = target if target is not None else resolve_product_full(cur, req.target_product)
+    kosher_tiers.refuse_batch_pack(target)
     case_weight = req.case_weight_lb
     if case_weight is None:
         case_weight = float(target.get('case_size_lb') or 0)
@@ -9435,12 +9440,18 @@ def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, pr
     return response
 
 
-def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, ticket_id=None, receipt_number=None, require_new_lot=False, reason_code=None):
-    cur.execute("SELECT id, name, kosher_tier FROM products WHERE id = %s", (req.product_id,))
+def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, ticket_id=None, receipt_number=None, require_new_lot=False, reason_code=None, kosher_attestation=None):
+    cur.execute("SELECT id, name, kosher_tier FROM products WHERE id = %s FOR SHARE", (req.product_id,))
     product = cur.fetchone()
 
     if not product:
         raise HTTPException(status_code=404, detail=f"Product ID {req.product_id} not found")
+
+    if kosher_tiers.tier(product) == kosher_tiers.EXTRA:
+        kosher_tiers.require_ticket(ticket_id)
+        if not kosher_attestation:
+            raise HTTPException(403, {'error_code': 'KOSHER_ATTESTATION_REQUIRED',
+                'message': 'An owner must approve the extra-kosher found ticket before it posts.'})
 
     cur.execute("SELECT pg_advisory_xact_lock(2)")
 
@@ -9463,6 +9474,10 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
         raise HTTPException(409, {'error_code': 'LOT_CODE_TAKEN',
                                   'message': f'{product["name"]} lot {lot_code} is now in use; prepare again.'})
 
+    kosher_tiers.output_matches(cur, lot_id, product)
+    if kosher_attestation and not is_new_lot:
+        raise HTTPException(409, {'error_code': 'KOSHER_NEW_BATCH_LOT_REQUIRED',
+            'message': 'Every extra-kosher found entry needs a new lot and its own attestation.'})
     code_similarity = (
         check_suspicious_code_similarity(cur, req.product_id, lot_id, lot_code)
         if is_new_lot else None
@@ -9474,17 +9489,21 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
     cur.execute("""
         INSERT INTO transactions (
             type, timestamp, notes, occurred_at, created_at_source, operator_id, ticket_id, receipt_number,
-            entered_by_actor_id, reason_code, kosher_tier
+            entered_by_actor_id, reason_code, kosher_tier, kosher_attested_by_actor_id, kosher_attested_at
         )
-        VALUES ('adjust', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES ('adjust', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id, occurred_at, business_date
     """, (
         now, f"Found inventory: {req.reason_code}",
         occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number,
         _entered_by_actor_id(request), reason_code, kosher_tiers.tier(product),
+        kosher_attestation['actor_id'] if kosher_attestation else None,
+        kosher_attestation['attested_at'] if kosher_attestation else None,
     ))
     txn_row = cur.fetchone()
     txn_id = txn_row['id']
+    if kosher_attestation:
+        kosher_tiers.record_attestation(cur, lot_id, txn_id, ticket_id, kosher_attestation)
 
     cur.execute("""
         INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
@@ -9535,6 +9554,9 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
     if audit_error:
         response["audit_warning"] = audit_error
     response.update(kosher_tiers.fields(product))
+    if kosher_attestation:
+        response.update(kosher_attested_by_actor_id=kosher_attestation['actor_id'],
+            kosher_attested_at=kosher_attestation['attested_at'],kosher_attested_by_name=kosher_attestation['actor_name'])
     return response
 
 
@@ -11346,8 +11368,8 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
                 # the ship paths in 89e15ae): lock the lot row first, then
                 # aggregate on-hand in a separate query.
                 cur.execute("""
-                    SELECT l.id, l.lot_code, l.product_id, p.name as product_name,
-                           COALESCE(p.label_type, 'house') as label_type
+                    SELECT l.id, l.lot_code, l.product_id, p.name as product_name, l.kosher_tier,
+                           p.kosher_tier AS product_kosher_tier, COALESCE(p.label_type, 'house') as label_type
                     FROM lots l
                     JOIN products p ON p.id = l.product_id
                     WHERE l.id = %s
@@ -11371,14 +11393,17 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
                     })
 
                 cur.execute("""
-                    SELECT id, name, COALESCE(label_type, 'house') as label_type
-                    FROM products WHERE id = %s
+                    SELECT id, name, kosher_tier, COALESCE(label_type, 'house') as label_type
+                    FROM products WHERE id = %s FOR SHARE
                 """, (req.to_product_id,))
                 to_product = cur.fetchone()
 
                 if not to_product:
                     raise HTTPException(status_code=404, detail=f"Target product ID {req.to_product_id} not found")
 
+                if kosher_tiers.EXTRA in (kosher_tiers.tier(lot), lot['product_kosher_tier'], kosher_tiers.tier(to_product)):
+                    raise HTTPException(409, {'error_code': 'KOSHER_LOT_REASSIGN_REFUSED',
+                        'message': 'Extra-kosher product and lot identities cannot be reassigned; use the approved count or ticket path.'})
                 # SKU protection: block product_merge if either side is private-label
                 if req.reason_code == 'product_merge':
                     if lot['label_type'] == 'private_label':
@@ -18350,12 +18375,14 @@ def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key)):
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
                 # 1. Validate both lots exist
-                cur.execute("SELECT id, product_id, lot_code, status FROM lots WHERE id = %s", (req.source_lot_id,))
+                cur.execute("""SELECT l.id,l.product_id,l.lot_code,l.status,l.kosher_tier,p.kosher_tier AS product_kosher_tier
+                    FROM lots l JOIN products p ON p.id=l.product_id WHERE l.id=%s FOR SHARE OF p""", (req.source_lot_id,))
                 source = cur.fetchone()
                 if not source:
                     raise HTTPException(404, f"Source lot ID {req.source_lot_id} not found")
 
-                cur.execute("SELECT id, product_id, lot_code, status FROM lots WHERE id = %s", (req.target_lot_id,))
+                cur.execute("""SELECT l.id,l.product_id,l.lot_code,l.status,l.kosher_tier,p.kosher_tier AS product_kosher_tier
+                    FROM lots l JOIN products p ON p.id=l.product_id WHERE l.id=%s FOR SHARE OF p""", (req.target_lot_id,))
                 target = cur.fetchone()
                 if not target:
                     raise HTTPException(404, f"Target lot ID {req.target_lot_id} not found")
@@ -18380,6 +18407,9 @@ def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key)):
                         f"target lot {target['lot_code']} is product_id={target['product_id']}."
                     )
 
+                if any(kosher_tiers.EXTRA in (kosher_tiers.tier(item), item['product_kosher_tier']) for item in (source, target)):
+                    raise HTTPException(409, {'error_code': 'KOSHER_LOT_MERGE_REFUSED',
+                        'message': 'Extra-kosher lots cannot be merged; each lot keeps its own tier and owner approval.'})
                 # 4. Lock every lot and active allocation for the product in
                 # the allocation protocol's deterministic order, then coalesce
                 # source pins onto the survivor before ledger references move.

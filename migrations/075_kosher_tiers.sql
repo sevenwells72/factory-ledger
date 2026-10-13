@@ -14,8 +14,9 @@ ALTER TABLE transactions ADD COLUMN IF NOT EXISTS kosher_attested_by_actor_id in
 ALTER TABLE transactions ADD COLUMN IF NOT EXISTS kosher_attested_at timestamptz;
 ALTER TABLE transactions ADD COLUMN IF NOT EXISTS transaction_kosher_downgrade boolean NOT NULL DEFAULT false;
 
--- Catalog-only one-time update. Existing lots remain regular until the paper-log
--- cutover reconciliation; never infer historical procedure from today's SKU.
+-- Catalog-only one-time update. Historical lots stay regular and are never retagged.
+-- Cutover counts load extra stock under 283–290 via an owner-approved reset;
+-- never infer historical procedure from today's SKU.
 DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM migration_markers WHERE name='075_kosher_tiers') THEN
         UPDATE products SET kosher_tier='regular'

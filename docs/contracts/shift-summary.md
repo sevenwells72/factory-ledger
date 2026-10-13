@@ -151,7 +151,7 @@ Pre-ticket (legacy) transactions never appear: no receipt number = not recorded 
 
 A12 source fields are on prepare `draft`, committed `response`, receipt transactions and lots.
 `kosher_attested_by_actor_id` and `kosher_attested_at` name the signed-in owner;
-`actor` remains the preparer. A make with `status=awaiting_approval`, `held=true`,
+`actor` remains the preparer. A make or found entry with `status=awaiting_approval`, `held=true`,
 `posted=false` has a hold receipt reference and no ledger transactions; list it under
 NOT ENTERED YET? until approved. The hold receipt number is reused on approval.
 For hashing, these receipt fields are immutable per receipt; live catalog tier/name

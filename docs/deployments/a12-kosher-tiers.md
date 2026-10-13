@@ -8,11 +8,12 @@ Apply `075_kosher_tiers.sql` explicitly to guarded **staging only**, as app/tabl
 owner via port 5432 in a transaction, with search_path=public, lock_timeout=5s,
 statement_timeout=60s. No startup migration. The migration updates product tiers
 and labels, leaves formula 284 unchanged, and never reclassifies historical lots.
-Paper-log extra-kosher lots are reconciled on cutover day under design §10.1 step 1a.
+Counted extra-kosher stock is loaded through the owner-approved cutover reset under
+products 283/284 and 285–290 (design §10.1 step 1a); regular-product lots are never retagged.
 
 A9 integration: the receipt draft/response and transaction/lot objects carry
 `kosher_tier`; the shift-summary contract already defines `EXTRA_KOSHER` with
-`refs.kosher_tier`. Held makes have `status=awaiting_approval` and belong under
+`refs.kosher_tier`. Held makes and found tickets have `status=awaiting_approval` and belong under
 NOT ENTERED YET?; downgrades carry `transaction_kosher_downgrade=true`.
 
 ## Verification — 2026-10-13
@@ -52,16 +53,75 @@ or changed. No service was deployed; PR #101 remains draft and unmerged.
 - A9: consume `kosher_tier`, `kosher_label`, attesting actor/time and
   `transaction_kosher_downgrade` from stored receipts; use `EXTRA_KOSHER` and
   `KOSHER_DOWNGRADE` flag refs from the updated contract. List held makes under
-  NOT ENTERED YET? and downgrades on the weekly view. A9 implementation is in
-  its own lane; this PR supplies the JSON fields and contract.
+  NOT ENTERED YET? (including held found tickets) and downgrades on the weekly view.
+  The current A9 renderer still needs these fields/flags and awaiting-approval
+  receipts wired in; use lot-level tier evidence for ship/adjust receipts whose
+  transaction top-level tier remains regular. See FOLLOWUPS P1.22. A9
+  implementation is in its own lane; this PR supplies the JSON fields and contract.
+- Extra-kosher lot creation: receive of batches 283/284 is refused for every
+  role; extra-kosher finished receive also refuses and directs callers to
+  pack/found. Found of any extra-kosher product always holds for a separate
+  owner approval, even when prepared by the owner; no lot/tier exists until
+  approval. Direct extra-kosher make/found requires tickets; batch pack outputs
+  and any reassign/merge touching extra-kosher stock are refused. Extra-kosher
+  finished packs require extra-kosher sources. No retag route exists.
+- A10: retire legacy `POST /ship` (misleading preview; commit is tier-safe) and
+  retire/tier-gate the archived one-shot direct-SQL poster
+  `scripts/inv_recon_post_2026_08_17.py`; **do not rerun it after 075**. Its
+  generic lot creator and phase 3.A regular 90002 → extra 70013 conversion
+  bypass the HTTP gates. See FOLLOWUPS P1.22.
 - F1/D2: HTTP 202 is HELD with `posted=false`, never Recorded. Owner decisions
   use existing `/exceptions/{id}/approve` or `/reject`, from the owner's identity;
   no PIN or impersonation on the floor device. A11 is not a dependency.
-- Before any later merge/deploy, the operator must authorize and apply 075 to
-  the target database as app/table owner. Builder performed staging only.
-  New columns are required by the app; no startup migration runs for 075.
-- Cutover §10.1 step 1a already specifies paper-log reconciliation. Historical
-  lots default regular; tag only evidenced paper-log lots in the one-time
-  owner-controlled cutover data step, with count-sheet photo/receipt evidence.
-  Ordinary lot-tier edits remain forbidden. Formula 284 and Aug 12 records
-  are preserved. This request adds/checks the checklist; no cutover action ran.
+- **Production deploy precondition (Michael, 2026-10-13): apply
+  `075_kosher_tiers.sql` to production as the table-owner role (`postgres`)
+  before deploying code.** Use port 5432 and the explicit guarded transaction
+  above; no startup migration runs for 075. This is an operator deployment
+  instruction; A12 review fixes do not apply it or change production.
+- The migration creates `ticket_attestations` and `lot_events` with **RLS enabled
+  and no policies**, and revokes PUBLIC access. App database access must run
+  as the table owner (`postgres`); ordinary API roles have no policy granting
+  access to these tables.
+- Applying 075 in production also renames **products 283–290**: 283 becomes
+  `Batch Classic Granola #9 — EXTRA-KOSHER (SS)`, 284 becomes
+  `Batch Classic Chocolate Chip Granola #9 — EXTRA-KOSHER (SS)`, and finished
+  products 285–290 retain their SS Classic #9 labels with
+  ` — EXTRA-KOSHER (SS)` appended (removing any old `(Kosher Ignition)` text).
+  Formula 284 and the Aug 12 historical records are preserved.
+- Cutover §10.1 step 1a loads counted extra-kosher stock under 283/284 and
+  285–290 through the reset with owner approval and count-sheet/paper-log
+  evidence. Historical regular lots remain regular; there is no retag route.
+  The current count tools list these products separately but cannot create
+  new lots or store kosher approval; count-workstream changes are recorded
+  in FOLLOWUPS P1.21. No count-tool change or cutover action ran here.
+
+## Review fixes verified — 2026-10-13
+
+Michael's decisions from PR #101 review comment 6149065092 are implemented:
+extra batch receive refuses every role; all extra found tickets (including owner
+preparers) wait for a separate owner approval, and the new lot gets its tier and
+owner/time attestation only in the approved posting transaction. Photos cannot
+release a kosher hold. Legacy extra receive/make/found, extra batch pack output,
+and reassign/merge paths are closed; extra finished packs remain source-tier safe.
+Count cutover uses products 283/284 and 285–290 with owner approval, never retagging.
+The count-workstream and A10 gaps are recorded in FOLLOWUPS P1.21/P1.22.
+
+Validation on a fresh UTF-8 PostgreSQL 17 database in a dedicated temporary local
+cluster (`127.0.0.1:57612`), rebuilt from `tests/schema/schema.sql` with migration
+075 before the final run:
+
+- Final full Python suite: **2,550 passed**, zero failures or skips (37.70 s).
+- Node suite: **69 passed**, zero failures or skips.
+- **93 new regression cases**: corrected tests against a temporary source archive
+  of reviewed head `928b601` produced **81 failed / 12 passed**; all pass after
+  fixes. The passing baseline cases cover existing authorization/staleness gates.
+- Focused kosher, review, correction-hold and shipment-evidence suites:
+  **263 passed**. The full run covers migration idempotence and approval races.
+- `git diff --check` passes. Independent read-only path review found no remaining
+  HTTP extra-kosher creation bypass. No staging acceptance was repeated in this
+  fix round; the earlier staging receipt and test logs above remain historical.
+
+Production rollout is still an operator step: apply 075 as `postgres` before code,
+verify `ticket_attestations` and `lot_events` are owned by `postgres` with RLS on
+and zero policies, and account for the product 283–290 renames. No production
+access, other worktree changes, deployment or merge occurred.
