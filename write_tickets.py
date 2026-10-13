@@ -256,7 +256,8 @@ def identity(api, request):
         'id': actor['id'] if actor else None,
         'name': api._operator_id(request),
         'role': actor['role'] if actor else None,
-        'key_kind': request.state.key_kind,
+        # Tickets bind to the person across actor-key/session sign-ins.
+        'key_kind': 'actor' if request.state.key_kind == 'session' else request.state.key_kind,
     }
 
 

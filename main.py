@@ -43,6 +43,7 @@ import exceptions_enforcement
 import resolution
 import permissions
 import fl_assistant
+import key_sessions
 import sys
 from staging_safety import assert_staging_database
 from decimal import Decimal, ROUND_HALF_UP
@@ -315,6 +316,10 @@ def _json_finite(value):
 
 @app.exception_handler(RequestValidationError)
 async def request_validation_handler(request: Request, exc: RequestValidationError):
+    if request.url.path == "/auth/session":
+        # Pydantic v2 includes offending input in errors; keys must never echo.
+        return JSONResponse(status_code=422, content={"detail": {
+            "error_code": "INVALID_SESSION_REQUEST", "message": "Supply a personal actor key."}})
     # Same body as FastAPI's default ({"detail": errors}), but a body that carried
     # NaN / Infinity (json.loads accepts them) must still get its 422: the default
     # handler echoes the offending `input` and the strict encoder then raises → 500
@@ -2883,7 +2888,7 @@ ACTOR_WRITE_ALLOWLIST = frozenset({
     ("PATCH", "/lots/{lot_code}/supplier-lot"),
     ("PATCH", "/lots/{lot_id}/rename"),
     ("PATCH", "/sales/orders/{order_id}/lines/{line_id}/cancel"),
-}) | write_tickets.ACTOR_ROUTES | exceptions_enforcement.ACTOR_ROUTES | attachments.ROUTES | fl_assistant.ACTOR_ROUTES
+}) | write_tickets.ACTOR_ROUTES | exceptions_enforcement.ACTOR_ROUTES | attachments.ROUTES | fl_assistant.ACTOR_ROUTES | key_sessions.ROUTES
 
 
 ACTOR_CACHE_TTL_S = 60
@@ -3151,7 +3156,7 @@ def _actor_identity(request: Optional[Request]) -> dict:
     actor = request_actor(request)
     key_kind = getattr(getattr(request, "state", None), "key_kind", None)
     return {"id": actor["id"] if actor else None, "name": actor["name"] if actor else None,
-            "role": actor["role"] if actor else None, "key_kind": key_kind}
+            "role": actor["role"] if actor else None, "key_kind": "actor" if key_kind == "session" else key_kind}
 
 
 def actor_name(request: Optional[Request]) -> Optional[str]:
@@ -3204,10 +3209,15 @@ def _authorize_api_key(provided_key: str, request: Request, invalid_status: int 
             return True
         raise HTTPException(status_code=403, detail="API key not authorized for this endpoint")
     actor = _resolve_actor(provided_key)
+    kind = "actor"
+    if actor is None:
+        actor = key_sessions.resolve(sys.modules[__name__], provided_key, request)
+        kind = "session"
     if actor is not None:
         request.state.actor = actor
-        request.state.key_kind = "actor"
-        _touch_actor_last_used(actor)
+        request.state.key_kind = kind
+        if kind == "actor":
+            _touch_actor_last_used(actor)
         route_key = _route_key(request)
         if route_key in (DASHBOARD_KEY_ALLOWLIST | ACTOR_WRITE_ALLOWLIST):
             # A2: the §4.3 matrix on the direct routes too, so an office key
@@ -3233,6 +3243,9 @@ def verify_api_key_flexible(
     if sig is not None or receipt is not None:
         return ship_tickets.verify_packing_link(sys.modules[__name__], request, receipt, expires, sig)
     return _authorize_api_key(x_api_key or key, request, invalid_status=401)
+
+
+key_sessions.register_routes(app, sys.modules[__name__])
 
 
 # A4 is isolated from ticket/write handlers; defer transaction lookup for tests.

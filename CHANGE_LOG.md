@@ -196,6 +196,27 @@
 
 ---
 
+## 2026-10-13 11:54 — Redact exchange validation and finish backend verification
+- **File(s) changed:** `main.py`, `tests/test_key_sessions.py`
+- **What changed:** Suppress credential-bearing validation input; exercise invalid shapes and adjust logout assertion for the existing write-response envelope.
+- **Why:** Never echo raw personal keys; preserve standard response-envelope behavior. Global iCloud log pending explicit approval after automatic approval rejection.
+
+---
+
+## 2026-10-13 11:53 — Cover pilot exchange lifecycle, parity and real Assistant recording
+- **File(s) changed:** `permissions.py`, `key_sessions.py`, `tests/test_key_sessions.py`
+- **What changed:** Add live DB/HTTP lifecycle, limits, role, hash privacy, handover, actor prefix, flag-off without tables and real Assistant replay/attribution checks. Serialize revocation by actor; classify logout as lifecycle route.
+- **Why:** Verify all requested pilot requirements before the early backend draft PR. Global iCloud log pending explicit approval after automatic approval rejection.
+
+---
+
+## 2026-10-13 11:51 — Add independent personal-key sessions and immediate revocation
+- **File(s) changed:** `key_sessions.py`, `main.py`, `write_tickets.py`, `migrations/077_key_sessions.sql`, `tests/schema/schema.sql`
+- **What changed:** Add default-off exchange/logout/config routes, hashed opaque tokens, 180-minute sliding idle expiry, live key revocation, durable source/global exchange limits and person-bound tickets. Shared credentials refused. 077 is free after open-PR inventory.
+- **Why:** Rev 3.8 pilot identity; PIN remains absent/off and PR #96 untouched. No production access or deployment. Global iCloud log pending explicit approval after automatic approval rejection.
+
+---
+
 ## 2026-10-13 11:15 — Save successful eight-action A7/A6 staging evidence
 - **File(s) changed:** `docs/validation/fl-assistant-part1-staging.json`, `docs/contracts/fl-assistant-part1.md`, `docs/deployments/f1-assistant.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Save eight real-model receipts, one-post/replay/actor/lot checks, three BOL/photo-complete shipments, private owner/floor/anonymous download checks, trusted correction-photo link and inactive temporary actors. Health/assets match e85b550; final 2494 Python/75 Node/browser pass. Bearer packing URLs omitted; historical evidence preserved.

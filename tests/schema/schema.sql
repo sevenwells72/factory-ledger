@@ -7068,3 +7068,7 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 
 \unrestrict 9BA4RS58E5zdxgjZbdz2DITIIaB3GgzjKSU2Yj88aiuKY9j3d4Jf5yYhRAFs28D
 
+
+-- Pilot sessions: 077 is independent of parked 073; earlier applied migrations are in the dump.
+SET search_path TO public;
+\ir ../../migrations/077_key_sessions.sql
