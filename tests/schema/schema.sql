@@ -6241,3 +6241,6 @@ SET search_path TO public;
 \ir ../../migrations/067_order_tickets.sql
 \ir ../../migrations/072_order_ticket_review_fixes.sql
 \ir ../../migrations/074_ship_gate_attachments.sql
+-- F1 additive state; apply 068 manually before production enablement.
+SET search_path = public;
+\ir ../../migrations/068_fl_assistant.sql
