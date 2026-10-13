@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-13 11:30 — A9 verification record: fresh-DB suite 2,435 py / 76 node, headless phone check
+- **File(s) changed:** `docs/deployments/a9-shift-summary.md`
+- **What changed:** Appended the verification section: fresh-DB full suite 2,435 Python / 76 Node passed with zero failures or skips, the 390×844 headless Chromium walk-through (sign-in, ten sections, Confirm with notes → 201 banner, ES toggle, no overflow, no console errors), GPT yaml still 30 ops.
+- **Why:** Review-evidence rule (design §10.1, FOLLOWUPS P1.17) — counts recorded before the review-request comment on PR #102.
+
+---
+
 ## 2026-10-13 11:20 — A9 staging acceptance: 076 applied to staging, check script + sanitized receipt; GET /receipts hardened for rejected tickets
 - **File(s) changed:** `scripts/check_shift_summary_staging.py` (new), `docs/deployments/a9-staging-receipt.json` (new), `write_tickets.py`, `shift_summary.py`, `tests/test_shift_summary.py`, `docs/deployments/a9-shift-summary.md`
 - **What changed:** New staging acceptance script (A6/A7 pattern: guarded staging URI, local TestClient, ephemeral actor deactivated in `finally`, `--apply-migration` applies 076 to STAGING ONLY). Run 11:10 ET, ref STG-A9-9901D12E1A33: receive with unidentified supplier lot, adjust with reason unknown, EN/ES hash parity, all-actors view, stale 409, confirm match, confirm-with-notes append — all passed; sanitized JSON receipt committed. The run found a staging ticket rejected after drawing a receipt number (`result_ref`/`committed_at` NULL) that crashed `receipt_detail` (and so `GET /receipts`): both reads now tolerate it, and the shift summary reads committed tickets only (`receipt_numbers(status='committed')`), with a regression test.
