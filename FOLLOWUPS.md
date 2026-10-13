@@ -367,6 +367,17 @@ wants one audit feed. (e) The D3-lite page keeps the personal key in memory only
 part 1) until the key-to-session exchange (P1.16) lands; the dashboard key alone gets the
 read-only all-actors view.
 
+**P1.24 Recipe corrections 078 — what it deliberately leaves for later (built 2026-10-13, branch `fix/recipe-corrections`, staging only).**
+078 rewrites the 179 Fruit Nut recipe (276.3 + 13 × 4 = 328.3 lb, batch 328.3, planner rows) and moves
+284's chips line 73 → 72. Not included and still owed, each with Michael's separate approval:
+(a) the stock true-ups from `~/Documents/fl-audits/recipe-check-2026-10-13/recipe-check.md` — lot 1560
+"OCT 06 2026" 219.04 lb ghost Fruit Nut, Classic #9 ≈ 1,538 lb and each inclusion ≈ 70 lb overstated,
+4,000 CT chips ≈ 950 lb overstated; (b) `products.yield_25lb_cases` / `yield_10lb_cases` on 179 (15 / 38,
+read by nothing on the make/pack/run path; 13 / 32–33 would match 328.3); (c) product 115 (#5, pending
+deactivation) still on 73; (d) re-run the audit's `data/q1.sql`–`q5.sql` after the production apply and
+refresh the recipe check; oat bran / flax / coconut questions wait on Arturo's sheets. Record:
+`docs/deployments/recipe-corrections-078.md`.
+
 ---
 
 **P1.23 Sunshine SO-260817-001 (10,000 lb of 285/288, extra-kosher #9 bulk) — recorded 2026-10-13 after the A12 rollout (PR #101, migration 075 on prod).**

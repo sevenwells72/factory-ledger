@@ -1,0 +1,294 @@
+{
+ "environment": "staging",
+ "host": "aws-0-us-east-1.pooler.supabase.com",
+ "migration": "078_recipe_corrections",
+ "recipe_state_before_apply": {
+  "products": [
+   {
+    "id": 142,
+    "odoo_code": "70061",
+    "default_batch_lb": null,
+    "case_size_lb": "25.0000",
+    "parent_batch_product_id": 179
+   },
+   {
+    "id": 179,
+    "odoo_code": "90008",
+    "default_batch_lb": "328.3000",
+    "case_size_lb": null,
+    "parent_batch_product_id": null
+   },
+   {
+    "id": 284,
+    "odoo_code": "90026",
+    "default_batch_lb": "348.0000",
+    "case_size_lb": null,
+    "parent_batch_product_id": null
+   }
+  ],
+  "batch_formulas": [
+   {
+    "product_id": 179,
+    "ingredient_product_id": 3,
+    "quantity_lb": "13.0000"
+   },
+   {
+    "product_id": 179,
+    "ingredient_product_id": 17,
+    "quantity_lb": "13.0000"
+   },
+   {
+    "product_id": 179,
+    "ingredient_product_id": 36,
+    "quantity_lb": "13.0000"
+   },
+   {
+    "product_id": 179,
+    "ingredient_product_id": 49,
+    "quantity_lb": "13.0000"
+   },
+   {
+    "product_id": 179,
+    "ingredient_product_id": 107,
+    "quantity_lb": "276.3000"
+   },
+   {
+    "product_id": 284,
+    "ingredient_product_id": 13,
+    "quantity_lb": "12.5000"
+   },
+   {
+    "product_id": 284,
+    "ingredient_product_id": 18,
+    "quantity_lb": "1.8000"
+   },
+   {
+    "product_id": 284,
+    "ingredient_product_id": 30,
+    "quantity_lb": "1.6000"
+   },
+   {
+    "product_id": 284,
+    "ingredient_product_id": 32,
+    "quantity_lb": "225.0000"
+   },
+   {
+    "product_id": 284,
+    "ingredient_product_id": 34,
+    "quantity_lb": "30.0000"
+   },
+   {
+    "product_id": 284,
+    "ingredient_product_id": 39,
+    "quantity_lb": "1.7000"
+   },
+   {
+    "product_id": 284,
+    "ingredient_product_id": 44,
+    "quantity_lb": "50.0000"
+   },
+   {
+    "product_id": 284,
+    "ingredient_product_id": 72,
+    "quantity_lb": "25.0000"
+   }
+  ],
+  "product_bom": [
+   {
+    "finished_product_id": 142,
+    "component_product_id": 179,
+    "quantity": "25.0000",
+    "uom": "lb"
+   },
+   {
+    "finished_product_id": 179,
+    "component_product_id": 3,
+    "quantity": "13.0000",
+    "uom": "lb"
+   },
+   {
+    "finished_product_id": 179,
+    "component_product_id": 17,
+    "quantity": "13.0000",
+    "uom": "lb"
+   },
+   {
+    "finished_product_id": 179,
+    "component_product_id": 36,
+    "quantity": "13.0000",
+    "uom": "lb"
+   },
+   {
+    "finished_product_id": 179,
+    "component_product_id": 49,
+    "quantity": "13.0000",
+    "uom": "lb"
+   },
+   {
+    "finished_product_id": 179,
+    "component_product_id": 107,
+    "quantity": "276.3000",
+    "uom": "lb"
+   }
+  ],
+  "marker_078": true
+ },
+ "test_makes": {
+  "fruit_nut_make": {
+   "transaction_id": 1000000074,
+   "lot_code": "STG-078-FRUIT-NUT-001",
+   "output_lb": 328.3,
+   "formula_weight_lb": 328.3,
+   "message": "Produced 328.3 lb as lot STG-078-FRUIT-NUT-001",
+   "lines": [
+    {
+     "product_id": 179,
+     "name": "Granola Fruit Nut Batch",
+     "lot_code": "STG-078-FRUIT-NUT-001",
+     "quantity_lb": "328.3000"
+    },
+    {
+     "product_id": 3,
+     "name": "Almonds – Sliced",
+     "lot_code": "STG-078-ALMONDS",
+     "quantity_lb": "-13.0000"
+    },
+    {
+     "product_id": 17,
+     "name": "Cranberries Dried",
+     "lot_code": "STG-078-CRANBERRIES",
+     "quantity_lb": "-13.0000"
+    },
+    {
+     "product_id": 36,
+     "name": "Raisins",
+     "lot_code": "STG-078-RAISINS",
+     "quantity_lb": "-13.0000"
+    },
+    {
+     "product_id": 49,
+     "name": "Walnuts",
+     "lot_code": "STG-078-WALNUTS",
+     "quantity_lb": "-13.0000"
+    },
+    {
+     "product_id": 107,
+     "name": "Batch Classic Granola #9",
+     "lot_code": "STG-078-CLASSIC9",
+     "quantity_lb": "-276.3000"
+    }
+   ],
+   "on_hand_before": {
+    "179": "0",
+    "107": "400.0000",
+    "3": "30.0000",
+    "49": "30.0000",
+    "36": "30.0000",
+    "17": "30.0000"
+   },
+   "on_hand_after": {
+    "179": "328.3000",
+    "107": "123.7000",
+    "3": "17.0000",
+    "49": "17.0000",
+    "36": "17.0000",
+    "17": "17.0000"
+   },
+   "pack_needed": [
+    {
+     "product_id": 142,
+     "name": "Granola Fruit Nut 25 LB",
+     "case_size_lb": 25.0
+    }
+   ]
+  },
+  "fruit_nut_pack_preview": {
+   "13_cases": {
+    "case_weight_lb": 25.0,
+    "total_lb": 325.0,
+    "all_lots_sufficient": true,
+    "total_batch_available_lb": 328.3,
+    "can_pack_lb": 325.0
+   },
+   "14_cases": {
+    "case_weight_lb": 25.0,
+    "total_lb": 350.0,
+    "all_lots_sufficient": false,
+    "total_batch_available_lb": 328.3,
+    "can_pack_lb": 328.3
+   },
+   "note": "preview only; no pack posted"
+  },
+  "kosher_cc_make": {
+   "transaction_id": 1000000075,
+   "lot_code": "STG-078-KOSHER-CC-001",
+   "output_lb": 348.0,
+   "message": "Produced 348.0 lb as lot STG-078-KOSHER-CC-001",
+   "production_warning": "PRODUCTION WARNING — relay to operator verbatim before proceeding: Kosher Ignition: oven must be turned on by owner (Blubber) or his designated messenger. Do not start production without this.",
+   "lines": [
+    {
+     "product_id": 284,
+     "name": "Batch Classic Chocolate Chip Granola #9 — EXTRA-KOSHER (SS)",
+     "lot_code": "STG-078-KOSHER-CC-001",
+     "quantity_lb": "348.0000"
+    },
+    {
+     "product_id": 30,
+     "name": "Honey",
+     "lot_code": "STG-078-HONEY",
+     "quantity_lb": "-1.6000"
+    },
+    {
+     "product_id": 39,
+     "name": "Salt",
+     "lot_code": "STG-078-SALT",
+     "quantity_lb": "-1.7000"
+    },
+    {
+     "product_id": 18,
+     "name": "Flavor – Almond",
+     "lot_code": "STG-078-ALMOND-FLAVOR",
+     "quantity_lb": "-1.8000"
+    },
+    {
+     "product_id": 13,
+     "name": "Coconut Macaroon Desiccated",
+     "lot_code": "STG-078-COCONUT",
+     "quantity_lb": "-12.5000"
+    },
+    {
+     "product_id": 72,
+     "name": "Chocolate Chips – Real – 4,000 CT",
+     "lot_code": "STG-078-CHIPS-4000CT",
+     "quantity_lb": "-25.0000"
+    },
+    {
+     "product_id": 34,
+     "name": "Oil – Canola",
+     "lot_code": "STG-078-CANOLA",
+     "quantity_lb": "-30.0000"
+    },
+    {
+     "product_id": 44,
+     "name": "Sugar – Light Brown",
+     "lot_code": "STG-078-BROWN-SUGAR",
+     "quantity_lb": "-50.0000"
+    },
+    {
+     "product_id": 32,
+     "name": "Oats",
+     "lot_code": "STG-078-OATS",
+     "quantity_lb": "-225.0000"
+    }
+   ],
+   "chips_4000ct_on_hand_before_after": [
+    "60.0000",
+    "35.0000"
+   ],
+   "chips_1000ct_on_hand_before_after": [
+    "0",
+    "0"
+   ]
+  }
+ }
+}
