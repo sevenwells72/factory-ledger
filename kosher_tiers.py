@@ -126,3 +126,12 @@ def receipt_evidence(cur, transactions, lots):
             a.name AS kosher_attested_by_name FROM lots l LEFT JOIN actors a ON a.id=l.kosher_attested_by_actor_id WHERE l.id=%s""",(lot['id'],))
         lot.update(dict(cur.fetchone()))
         lot.update(fields(lot))
+
+
+def sale_lots(cur, product_id, lots):
+    """Allocation/shipping retain only extra lots for an extra finished SKU."""
+    cur.execute('SELECT kosher_tier FROM products WHERE id=%s',(product_id,))
+    product=cur.fetchone()
+    if not product or tier(product)!=EXTRA:
+        return lots
+    return [lot for lot in lots if tier(lot)==EXTRA]

@@ -1004,6 +1004,7 @@ def _sales_order_ship_plan(
         persist_expired=persist_expired,
         released_by=released_by,
     )
+    lots = kosher_tiers.sale_lots(cur, product_id, lots)
     by_lot = {int(lot["lot_id"]): lot for lot in lots}
     allocations = _active_allocation_rows(cur, product_id)
     own_lot_rows = [
@@ -1766,6 +1767,8 @@ def _validate_allocation_addition(
                 lot_id=lot_id,
                 product_id=product_id,
             )
+        cur.execute('SELECT kosher_tier FROM products WHERE id=%s',(product_id,))
+        kosher_tiers.require_sources(cur,cur.fetchone(),[lot_id])
         lot_code = lot["lot_code"]
         cur.execute(
             """SELECT COALESCE(SUM(quantity_lb), 0) AS allocated
@@ -8005,6 +8008,7 @@ def _ship_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
     # other lots to avoid its reserved pounds. Observe mode
     # takes the pinned lot's reserved stock instead (warning +
     # inventory_shipped shrink below).
+    all_lots = kosher_tiers.sale_lots(cur, product['id'], all_lots)
     plan_lots = all_lots
     if req.lot_code:
         plan_lots = [
@@ -15068,7 +15072,7 @@ def create_sales_order_allocation(
                 quantity = unallocated_need if req.quantity_lb is None else float(req.quantity_lb)
                 _validate_allocation_addition(cur, line, quantity)
                 to_allocate = quantity
-                for lot in available_lots_for_product(cur, product_id, req.line_id):
+                for lot in kosher_tiers.sale_lots(cur, product_id, available_lots_for_product(cur, product_id, req.line_id)):
                     if to_allocate <= BALANCE_EPSILON:
                         break
                     take = min(to_allocate, float(lot["takeable"] or 0))

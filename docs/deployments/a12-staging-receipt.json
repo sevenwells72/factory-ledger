@@ -1,0 +1,71 @@
+{
+  "reference": "STG-A12-46454C41E879",
+  "mode": "branch HTTP via local TestClient against guarded STAGING; no hosted deployment",
+  "migration": "075_kosher_tiers",
+  "migration_applied_now": true,
+  "migration_applied_at": "2026-10-13 15:03:31.267246+00:00",
+  "extra_kosher_make": {
+    "ticket_id": 64,
+    "held": {
+      "success": false,
+      "held": true,
+      "posted": false,
+      "status": "awaiting_approval",
+      "ticket_id": 64,
+      "receipt_number": "MK-261013-001",
+      "exception_id": 12,
+      "kosher_tier": "extra_kosher",
+      "kosher_label": "EXTRA-KOSHER (SS)",
+      "error_code": "KOSHER_ATTESTATION_REQUIRED",
+      "message": "HELD — waiting for Michael's kosher approval. Nothing was posted.",
+      "message_es": "EN ESPERA — falta la aprobación kosher de Michael. No se registró nada.",
+      "expires_at": "2026-10-20T15:03:35.538067+00:00"
+    },
+    "approved_receipt": "MK-261013-001",
+    "transaction_id": 1000000055,
+    "lot_id": 1000000046,
+    "lot_code": "B26-1013-001",
+    "attestation": {
+      "entered_by_actor_id": 1000000050,
+      "kosher_attested_by_actor_id": 1000000051,
+      "kosher_attested_at": "2026-10-13 15:03:37.780156+00:00"
+    }
+  },
+  "extra_kosher_pack": {
+    "receipt": "PK-261013-001",
+    "transaction_id": 1000000056,
+    "lot_id": 1000000047,
+    "lot_code": "B26-1013-001",
+    "kosher_tier": "extra_kosher",
+    "cases": 1,
+    "lb": 5
+  },
+  "downgrade": {
+    "receipt": "PK-261013-002",
+    "transaction_id": 1000000057,
+    "flag": true,
+    "lot_event": {
+      "id": 1,
+      "lot_id": 1000000048,
+      "event": "kosher_downgrade"
+    }
+  },
+  "rejection": {
+    "ticket_id": 67,
+    "exception_id": 13,
+    "posted": false
+  },
+  "denied_floor_approval": "ROLE_NOT_ALLOWED",
+  "actors": {
+    "floor": 1000000050,
+    "owner": 1000000051
+  },
+  "products": {
+    "ingredient": 1000000039,
+    "batch": 1000000040,
+    "extra_finished": 1000000041,
+    "regular_finished": 1000000042
+  },
+  "synthetic_owner_not_real_batch_attestation": true,
+  "actors_deactivated_after_check": true
+}

@@ -6,7 +6,7 @@ import psycopg2
 import pytest
 import main
 from tests.test_actor_attribution import client, actors
-from tests.test_write_tickets import headers,commit,ticket_row,posted_count,error
+from tests.test_write_tickets import headers,commit,ticket_row,posted_count,error,isolated_database
 from tests.test_write_tickets_part2 import seed,body,prepare
 
 pytestmark = pytest.mark.db
@@ -294,3 +294,88 @@ def test_catalog_tier_change_rejects_prepared_ticket(client,db_cursor,items,acto
     response=commit(client,prepared,actors['floor']['key'])
     error(response,409,'TICKET_STALE')
     assert posted_count(db_cursor,prepared)==0
+
+
+def test_new_extra_batch_cannot_reuse_existing_lot(client,items,actors):
+    prepared=prepare(client,'make',body('make',items)|{'lot_code':items['extra_lot']['lot_code'],'confirmed_sku':True},actors['owner']['key'])
+    assert not prepared['can_commit'] and prepared['blockers'][0]['code']=='KOSHER_NEW_BATCH_LOT_REQUIRED'
+
+def test_attestation_is_append_only_and_lot_owner_attestation_immutable(client,db_cursor,items,actors):
+    prepared,held=made(client,items,actors)
+    approved=approve(client,held,actors).json()
+    for statement,params in [
+            ('UPDATE ticket_attestations SET actor_id=%s WHERE ticket_id=%s',(actors['floor']['id'],prepared['ticket_id'])),
+            ('DELETE FROM ticket_attestations WHERE ticket_id=%s',(prepared['ticket_id'],)),
+            ('UPDATE lots SET kosher_attested_by_actor_id=%s WHERE id=%s',(actors['floor']['id'],approved['lot_id']))]:
+        db_cursor.execute('SAVEPOINT immutable_attestation')
+        with pytest.raises(psycopg2.Error):
+            db_cursor.execute(statement,params)
+        db_cursor.execute('ROLLBACK TO SAVEPOINT immutable_attestation')
+
+def test_extra_lot_shortage_does_not_fall_back_to_regular_source(client,db_cursor,items,actors):
+    extra=items['extra_lot']['lot_id']
+    db_cursor.execute("INSERT INTO transactions(type,notes) VALUES ('adjust','A12 zero source') RETURNING id")
+    db_cursor.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES (%s,%s,%s,-100)',(db_cursor.fetchone()['id'],items['batch']['id'],extra))
+    prepared=prepare(client,'pack',body('pack',items),actors['floor']['key'])
+    assert prepared['can_commit'],prepared
+    assert [i['lot_id'] for i in prepared['draft']['input_plan']]==[extra]
+    result=commit(client,prepared,actors['floor']['key'])
+    assert result.status_code==200,result.text
+    assert result.json()['shortages'][0]['lot_id']==extra
+
+def test_catalog_migration_exact_mapping_and_labels_preserves_284_formula(db_cursor):
+    regular=[107,108,136,144,137,138,129,179,143]
+    extra=list(range(283,291))
+    for pid in regular+extra:
+        db_cursor.execute("INSERT INTO products(id,name,type,active) VALUES (%s,%s,'batch',true)",(pid,'Original SS Classic #9 '+str(pid)))
+    db_cursor.execute('INSERT INTO batch_formulas(product_id,ingredient_product_id,quantity_lb) VALUES (284,107,72)')
+    db_cursor.execute("INSERT INTO lots(product_id,lot_code) VALUES (283,'WT2-HISTORICAL-001') RETURNING id")
+    historical=db_cursor.fetchone()['id']
+    db_cursor.execute("DELETE FROM migration_markers WHERE name='075_kosher_tiers'")
+    db_cursor.execute(MIGRATION.read_text())
+    db_cursor.execute('SELECT id,name,kosher_tier FROM products WHERE id=ANY(%s) ORDER BY id',(regular+extra,))
+    rows=db_cursor.fetchall()
+    assert all(row['kosher_tier']==('extra_kosher' if row['id'] in extra else 'regular') for row in rows)
+    assert all('EXTRA-KOSHER (SS)' in row['name'] for row in rows if row['id'] in extra)
+    db_cursor.execute(MIGRATION.read_text())
+    db_cursor.execute('SELECT id,name,kosher_tier FROM products WHERE id=ANY(%s) ORDER BY id',(regular+extra,))
+    assert db_cursor.fetchall()==rows
+    db_cursor.execute('SELECT quantity_lb FROM batch_formulas WHERE product_id=284')
+    assert float(db_cursor.fetchone()['quantity_lb'])==72
+    db_cursor.execute('SELECT kosher_tier FROM lots WHERE id=%s',(historical,))
+    assert db_cursor.fetchone()['kosher_tier']=='regular'
+
+def test_allocation_and_shipping_lists_exclude_regular_lots_for_extra_sku(db_cursor,items):
+    import kosher_tiers
+    lots=main.available_lots_for_product(db_cursor,items['batch']['id'])
+    filtered=kosher_tiers.sale_lots(db_cursor,items['batch']['id'],lots)
+    assert [r['lot_id'] for r in filtered]==[items['extra_lot']['lot_id']]
+
+def test_concurrent_kosher_approvals_post_one_attestation(isolated_database,monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from fastapi.testclient import TestClient
+    from psycopg2.extras import RealDictCursor
+    from tests.test_exceptions_enforcement import race_actors,Race
+    keys,items,ids=race_actors(isolated_database)
+    with psycopg2.connect(isolated_database) as conn,conn.cursor() as cur:
+        cur.execute("UPDATE products SET kosher_tier='extra_kosher' WHERE id=%s",(items['batch']['id'],))
+    race=Race(isolated_database)
+    monkeypatch.setattr(main,'get_db_connection',race.connection)
+    main._reset_actor_cache()
+    with TestClient(main.app) as http:
+        prepared=prepare(http,'make',body('make',items)|{'confirmed_sku':True},keys['floor'])
+        held=commit(http,prepared,keys['floor'])
+        assert held.status_code==202,held.text
+        race.on=True
+        def decision():
+            return http.post(f"/exceptions/{held.json()['exception_id']}/approve",json={},headers=headers(keys['owner']))
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            results=[f.result(timeout=30) for f in [executor.submit(decision) for _ in range(2)]]
+        race.on=False
+    assert [r.status_code for r in results]==[200,200],[r.text for r in results]
+    assert sorted(r.json()['replayed'] for r in results)==[False,True]
+    assert len({r.json()['receipt_number'] for r in results})==1
+    with psycopg2.connect(isolated_database) as conn,conn.cursor(cursor_factory=RealDictCursor) as cur:
+        assert posted_count(cur,prepared)==1
+        cur.execute('SELECT count(*) AS n FROM ticket_attestations WHERE ticket_id=%s',(prepared['ticket_id'],))
+        assert cur.fetchone()['n']==1

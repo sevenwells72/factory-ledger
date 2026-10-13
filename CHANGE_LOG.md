@@ -56,6 +56,34 @@
 
 ---
 
+## 2026-10-13 11:08 — A12 delivery note whitespace check
+- **File(s) changed:** `docs/deployments/a12-kosher-tiers.md`
+- **What changed:** Remove a trailing empty line so the final evidence passes git diff --check.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
+
+---
+
+## 2026-10-13 11:08 — A12 full validation and staging-only delivery evidence
+- **File(s) changed:** `docs/deployments/a12-staging-receipt.json`, `docs/deployments/a12-tests-python.log`, `docs/deployments/a12-tests-node.log`, `docs/deployments/a12-kosher-tiers.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record migration 075 staging apply, synthetic held→approved→extra-pack receipt chain, rejection/downgrade evidence, actor retirement, full fresh-DB 2,457 Python/69 Node passes and A9/F1 handoff fields; no production, hosted deploy or merge.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
+
+---
+
+## 2026-10-13 11:03 — A12 guarded staging acceptance harness
+- **File(s) changed:** `scripts/check_kosher_tiers_staging.py`
+- **What changed:** Add staging-only 075 apply and retained synthetic HTTP make-held/owner-approved/extra-pack/reject/downgrade examples, strict host/project guard, memory-only keys and guaranteed temporary actor retirement; never deploy or run startup.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
+
+---
+
+## 2026-10-13 11:02 — A12 catalog, concurrency and downstream source enforcement
+- **File(s) changed:** `kosher_tiers.py`, `ship_tickets.py`, `main.py`, `tests/test_kosher_tiers.py`, `tests/test_seed_staging.py`
+- **What changed:** Ensure extra finished goods allocate/ship only extra lots; add exact mapping/formula preservation, atomic approval race, append-only attestation and zero-stock tier-safe shortage tests; update the master-copy fixture with the new required tier default.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
+
+---
+
 ## 2026-10-13 11:01 — Complete final fresh-DB A7/A6 validation before staging deploy
 - **File(s) changed:** `docs/contracts/fl-assistant-part1.md`, `docs/deployments/f1-assistant.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Final fresh PostgreSQL 17 current-schema suite passes 2494 Python/75 Node, zero failures/skips. Browser layouts and final read-only wiring review pass. Record unique 068, preserved core/upstream histories and guarded additive staging update.

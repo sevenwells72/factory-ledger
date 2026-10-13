@@ -90,7 +90,7 @@ class ReadOnlySource:
             "suppliers": {"id":720001,"name":"Copy Test Supplier","active":True},
             "products": {"id":720001,"name":"Copy Test Product","type":"ingredient",
                          "active":True,"uom":"lb","is_service":False,"is_copack":False,
-                         "no_production":False},
+                         "no_production":False,"kosher_tier":"regular"},
             "customer_product_aliases": {
                 "id":720001,"customer_id":720001,"product_id":720001,
                 "customer_item_code":"COPY-TEST","case_size_lb":25},
