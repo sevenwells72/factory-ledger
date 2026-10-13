@@ -116,10 +116,11 @@ function mount() {
   const style = {};
   const calls = [];
   global.document = { documentElement: { lang: 'en', style: { setProperty: (k, v) => { style[k] = v; } } }, getElementById: id => els[id] || null, querySelectorAll: () => [] };
-  global.fetch = (url, init) => new Promise(resolve => {
+  global.fetch = (url, init) => new Promise((resolve, reject) => {
     const call = { url: String(url), init, body: init && init.body ? JSON.parse(init.body) : null, done: false,
       resolve: data => { call.done = true; resolve({ ok: true, status: 200, json: async () => data }); },
-      reject: (status, data) => { call.done = true; resolve({ ok: false, status, json: async () => data }); } };
+      reject: (status, data) => { call.done = true; resolve({ ok: false, status, json: async () => data }); },
+      fail: () => { call.done = true; reject(new TypeError('Failed to fetch')); } };           // network error / timeout
     if (init && init.signal) init.signal.addEventListener('abort', () => call.resolve({}));
     calls.push(call);
   });
@@ -215,6 +216,53 @@ test('notes are bound to the person and the day they were opened for; text is se
   els['confirm-notes'].fire('click'); await settle(); els['notes'].value = 'mine';
   els['sign-out'].fire('click'); await settle();
   assert.equal(els['notes-form'].hidden, true); assert.equal(els['notes'].value, '');
+  await finish();
+});
+
+test('a failed date change leaves nothing to confirm until the selected day loads', async () => {
+  // Fix round 2 (Codex comment 6150241244): load today → pick yesterday → GET fails. The old
+  // document must not stay confirmable under a picker that says another day.
+  const { els, calls, settle, finish } = mount();
+  const today = plantToday(), yesterday = dayBefore(today);
+  const docToday = forActor('Arturo', 7, today, 'f'.repeat(64)), docYesterday = forActor('Arturo', 7, yesterday, '0'.repeat(64));
+  els['actor-key'].value = 'key-A'; els['sign-in-form'].fire('submit'); await settle();
+  calls[0].resolve({ actor: docToday.actor }); await settle(); calls[1].resolve(docToday); await settle();
+  assert.equal(els['title'].textContent, docToday.title); assert.equal(els['confirm-match'].disabled, false);
+  // While the other day is loading the buttons are disabled and a click posts nothing.
+  els['date'].value = yesterday; els['date'].fire('change'); await settle();
+  assert.equal(calls.length, 3); assert.match(calls[2].url, new RegExp(`date=${yesterday}`));
+  assert.equal(els['confirm-match'].disabled, true, 'confirm is locked while a day loads');
+  els['confirm-match'].fire('click'); await settle();
+  assert.equal(calls.length, 3, 'no POST while the selected day is loading');
+  // The load fails: the old day's document is gone, nothing can be confirmed, the error is shown.
+  calls[2].reject(500, { success: false, error_detail: { code: 'HTTP_500', message: 'Internal error' } }); await settle();
+  assert.equal(els['notice'].textContent, 'Internal error'); assert.equal(els['notice'].hidden, false);
+  assert.equal(els['confirm-bar'].hidden, true, 'no confirm bar without a document for the selected day');
+  assert.equal(els['title'].textContent, ''); assert.equal(els['sections'].innerHTML, ''); assert.equal(els['receipts-count'].textContent, '');
+  assert.equal(els['status-banner'].hidden, true); assert.equal(els['notes-form'].hidden, true);
+  els['confirm-match'].fire('click'); await settle(); els['confirm-missing'].fire('click'); await settle(); els['notes-form'].fire('submit'); await settle();
+  assert.equal(calls.length, 3, 'no POST after a failed load — the wrong day can never be confirmed');
+  assert.equal(els['notes-form'].hidden, true, 'notes cannot open without a document');
+  // Refresh retries the selected day; a successful load re-enables confirm for that day only.
+  els['refresh'].fire('click'); await settle();
+  assert.equal(calls.length, 4); assert.match(calls[3].url, new RegExp(`date=${yesterday}`));
+  calls[3].resolve(docYesterday); await settle();
+  assert.equal(els['title'].textContent, docYesterday.title); assert.equal(els['confirm-bar'].hidden, false); assert.equal(els['confirm-match'].disabled, false);
+  els['confirm-match'].fire('click'); await settle();
+  assert.equal(calls.length, 5); assert.match(calls[4].url, /\/confirm$/);
+  assert.deepEqual(calls[4].body, { date: yesterday, outcome: 'match', notes: '', summary_hash: docYesterday.summary_hash, receipts_seen: 2, lang: 'en' });
+  calls[4].resolve({ message: 'Shift confirmed.' }); await settle(); calls[5].resolve(docYesterday); await settle();
+  // The network path (timeout / connection) behaves the same as an HTTP error.
+  els['today'].fire('click'); await settle();
+  assert.equal(calls.length, 7);
+  calls[6].fail(); await settle();
+  assert.equal(els['confirm-bar'].hidden, true); assert.equal(els['title'].textContent, '');
+  assert.equal(els['notice'].textContent, 'Connection failed or timed out.');
+  els['confirm-match'].fire('click'); await settle();
+  assert.equal(calls.length, 7, 'no POST after a timed-out load');
+  // The language toggle still retries the selected day while signed in (no document is needed).
+  els['language'].fire('click'); await settle();
+  assert.equal(calls.length, 8); assert.match(calls[7].url, new RegExp(`date=${today}.*lang=es|lang=es.*date=${today}`));
   await finish();
 });
 

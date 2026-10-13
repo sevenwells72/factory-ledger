@@ -185,10 +185,18 @@
     fitFooter();
   }
 
+  /** Nothing is shown and nothing can be confirmed until a summary for this person + the selected day loads. */
+  function clearSummary() {
+    doc = null; closeNotes();
+    $('sections').innerHTML = ''; $('title').textContent = ''; $('receipts-count').textContent = ''; $('status-banner').hidden = true;
+    $('confirm-bar').hidden = true; fitFooter();
+  }
+  function lockConfirm() { ['confirm-match', 'confirm-notes', 'confirm-missing'].forEach(id => { $(id).disabled = true; }); }
+
   async function load() {
     const s = stamp(), date = $('date').value;
     if (pendingNotes && pendingNotes.date !== date) closeNotes();
-    busy = true; $('load-status').textContent = t('Loading…', 'Cargando…'); notice('');
+    busy = true; lockConfirm(); $('load-status').textContent = t('Loading…', 'Cargando…'); notice('');
     try {
       const result = await api('/reports/shift-summary', { params: { date, lang: language }, withKey: s.key });
       if (!current(s)) return false;                 // superseded by a sign-out / new sign-in / newer load
@@ -197,13 +205,15 @@
       return true;
     } catch (error) {
       if (!current(s)) return false;
-      busy = false; $('load-status').textContent = ''; notice(errorText(error, language));
+      // A failed load leaves nothing to confirm: the previous day's document is cleared so the
+      // picker, the page and any confirm always agree (a confirm for the wrong day is impossible).
+      busy = false; $('load-status').textContent = ''; clearSummary(); notice(errorText(error, language));
       return false;
     }
   }
 
   async function sendConfirm(outcome, notes) {
-    if (!doc || busy) return;
+    if (!doc || busy || doc.date !== $('date').value) return;   // only the document shown for the selected day
     const s = stamp(), shown = doc;
     busy = true; render();
     try {
@@ -232,9 +242,8 @@
 
   function signOut() {
     generation += 1;                                 // every in-flight request for the old person is dropped
-    key = ''; actor = null; doc = null; busy = false; closeNotes();
-    $('summary-panel').hidden = true; $('confirm-bar').hidden = true; $('sign-in-panel').hidden = false; $('sign-out').hidden = true;
-    $('sections').innerHTML = ''; $('title').textContent = ''; $('status-banner').hidden = true;
+    key = ''; actor = null; busy = false; clearSummary();
+    $('summary-panel').hidden = true; $('sign-in-panel').hidden = false; $('sign-out').hidden = true;
     applyLanguage(); notice(''); fitFooter();
   }
 
@@ -254,7 +263,7 @@
   $('sign-in-form').addEventListener('submit', event => { event.preventDefault(); const v = $('actor-key').value.trim(); if (v) signIn(v); else notice(t('Enter your key or choose read-only.', 'Escribe tu clave o elige solo lectura.')); });
   $('read-only').addEventListener('click', () => signIn(''));
   $('sign-out').addEventListener('click', signOut);
-  $('language').addEventListener('click', () => { language = language === 'en' ? 'es' : 'en'; localStorage.setItem('fl-shift-language', language); applyLanguage(); if (doc) load(); });
+  $('language').addEventListener('click', () => { language = language === 'en' ? 'es' : 'en'; localStorage.setItem('fl-shift-language', language); applyLanguage(); if (key) load(); });
   $('date').max = plantToday(); $('date').value = plantToday();
   $('date').addEventListener('change', () => { if ($('date').value > plantToday()) $('date').value = plantToday(); closeNotes(); load(); });
   $('today').addEventListener('click', () => { $('date').value = plantToday(); closeNotes(); load(); });
