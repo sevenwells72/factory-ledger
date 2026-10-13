@@ -1,5 +1,9 @@
 # Change Log
 
+## 2026-10-13 22:33 — Rebase D1 onto merged resolution receipts; preserve both change-log histories
+- **File(s) changed:** `CHANGE_LOG.md`
+- **What changed:** Rebase D1 onto merged resolution receipts; preserve both change-log histories
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
 ## 2026-10-13 23:08 — G1 Codex fix round 1: read-only key never a write credential; per-action GPT smoke
 - **File(s) changed:** `key_sessions.py`, `main.py`, `tests/test_readonly_api_key.py`, `gpt-configs/readonly/CUTOVER_CHECKLIST.md`, `scripts/check_readonly_key_staging.py`, `docs/deployments/g1-readonly-staging.json`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** `POST /auth/session` refuses the read-only key outright (alongside master/dashboard), even when an active actor's hash matches it; startup refuses `READONLY_API_KEY` equal to any active actor key (lookup failure logged, not fatal). 7 new tests (collision: direct write 403, exchange 401, no session, nothing written; startup refusal; inactive/unset ignored; checklist pins every action). Checklist §C now smokes all 14 office + 11 floor actions plus both write refusals; A4 adds a session-exchange curl → six codes, §D records six; per-step rollback. Fresh-DB suite 3,043 Python passed with the key unset and again with it set, 107 Node. Staging deployment 4cf9db98 (63bd2dd): 16/16 reads, 118/118 writes + 51/51 other GETs 403, exchange 401.
@@ -151,6 +155,66 @@
 - **File(s) changed:** CHANGE_LOG.md
 - **What changed:** Create isolated resolution receipts worktree at 1a423f7 and fresh local test database
 - **Why:** Authorized backend fixes for PRs #107/#108; recover checkout from matching GitHub archive after local object read timeout. No other worktree or production writes.
+## 2026-10-13 19:23 — Record green Part 1 fresh-database suite and browser totals
+- **File(s) changed:** `docs/validation/dashboard-d1-d2.md`
+- **What changed:** Record green Part 1 fresh-database suite and browser totals
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:23 — Document D1 review evidence and explicit upstream contract gaps
+- **File(s) changed:** `docs/validation/dashboard-d1-d2.md`
+- **What changed:** Document D1 review evidence and explicit upstream contract gaps
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:22 — Replace raw draft metadata with readable bilingual receipt and resolution fields
+- **File(s) changed:** `dashboard/ledger-ui.js`, `dashboard/ledger-ticket.js`, `dashboard/exceptions.js`, `dashboard/receipt.js`
+- **What changed:** Replace raw draft metadata with readable bilingual receipt and resolution fields
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:21 — Correct receipt projection to the actual correction result-ref contract and test held HTTP 202
+- **File(s) changed:** `main.py`, `tests/visual/run-d12.mjs`
+- **What changed:** Correct receipt projection to the actual correction result-ref contract and test held HTTP 202
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:21 — Exercise D1 in Playwright against the live local API and assert auth headers
+- **File(s) changed:** `tests/visual/run-d12.mjs`
+- **What changed:** Exercise D1 in Playwright against the live local API and assert auth headers
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:20 — Add Node and real-route D1 regression tests plus isolated browser fixture
+- **File(s) changed:** `tests/test_d12_ui.js`, `tests/test_d12_dashboard.py`, `tests/visual/d12_fixture.py`
+- **What changed:** Add Node and real-route D1 regression tests plus isolated browser fixture
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:20 — Expose stored receipt identifiers in History, Recent Entries and Activity
+- **File(s) changed:** `main.py`, `dashboard/history.js`, `dashboard/dashboard.js`, `dashboard/exceptions.html`, `dashboard/fl-assistant.html`, `dashboard/history.html`, `dashboard/index.html`, `dashboard/process-flow.html`, `dashboard/receipt.html`, `dashboard/runs.html`, `dashboard/sankey.html`, `dashboard/shift-summary.html`, `dashboard/traceability.html`
+- **What changed:** Expose stored receipt identifiers in History, Recent Entries and Activity
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:19 — Build receipt detail, grouped exceptions and evidence/owner resolution forms
+- **File(s) changed:** `dashboard/receipt.js`, `dashboard/exceptions.js`, `dashboard/ledger-ticket.js`, `dashboard/exceptions.html`, `dashboard/index.html`
+- **What changed:** Build receipt detail, grouped exceptions and evidence/owner resolution forms
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 19:18 — Add shared bilingual receipt navigation and ledger session transport
+- **File(s) changed:** `dashboard/receipt-shell.js`, `dashboard/ledger-forms.css`, `dashboard/ledger-ui.js`, `dashboard/receipt.html`, `dashboard/exceptions.html`, `dashboard/exceptions.html`, `dashboard/fl-assistant.html`, `dashboard/history.html`, `dashboard/index.html`, `dashboard/process-flow.html`, `dashboard/receipt.html`, `dashboard/runs.html`, `dashboard/sankey.html`, `dashboard/shift-summary.html`, `dashboard/traceability.html`
+- **What changed:** Add shared bilingual receipt navigation and ledger session transport
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
 
 ---
 

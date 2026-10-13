@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="so-list-actions.css?v=1">
   <link rel="stylesheet" href="so-detail.css?v=2">
   <script src="design-controls.js?v=3"></script>
-</head>
+<link rel="stylesheet" href="ledger-forms.css?v=1"><script defer src="receipt-shell.js?v=1"></script></head>
 <body>
 
   <!-- Attention-strip icons (IMP-030). Inline so the strip needs no network
@@ -85,6 +85,7 @@
 
   <!-- Tabs -->
   <nav class="tab-bar">
+    <a class="tab-link" href="exceptions.html">Exceptions</a>
     <button class="tab active" data-tab="operations">Operations</button>
     <button class="tab" data-tab="recent">Recent Entries</button>
     <button class="tab" data-tab="activity">Activity</button>
@@ -699,7 +700,7 @@
   <script src="intake-logic.js?v=12"></script>
   <script src="so-list.js?v=3"></script>
   <script src="so-list-actions.js?v=2"></script>
-  <script src="dashboard.js?v=68"></script>
+  <script src="dashboard.js?v=69"></script>
   <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
   <script src="shell.js?v=2"></script>
 </body>
