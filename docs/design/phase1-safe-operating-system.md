@@ -618,7 +618,11 @@ LATE ENTRIES TODAY        none
 Does this match what happened on the floor?   [Confirm]   [Confirm with notes]   [Something is missing]
 ```
 
-Sections are driven by `write_tickets` (today's committed receipts for the plant day, `happened_at` *or* `entered_at` today — both are listed, late ones marked) + `expected_receipts` due today without a linked receive + `production_runs` planned today without a linked pack/make + `lot_on_hand()` for every lot touched + open `exceptions` owned by the actor.
+Sections are driven by `write_tickets` (today's committed **ledger** receipts for the plant day — `receive`, `make`, `pack`, `ship_*`, `adjust`, `found`, `rename_lot`, `update_supplier_lot`, `void`; `happened_at` *or* `entered_at` today — both are listed, late ones marked) + `expected_receipts` due today without a linked receive + `production_runs` planned today without a matching make/pack receipt + `lot_on_hand()` for every lot touched + open `exceptions` owned by the actor.
+
+**Clarifications approved by Michael 2026-10-13 (§11 items 43–44; contract §8 items 2–3, PR #102 fix round):**
+- *Every ledger receipt; metadata receipts listed separately.* Order (`ORD-`), expected-receipt (`ER-`) and lot-move (`LOT-`) receipts are never shown as adjustments; they appear in an additive `other_receipts` block outside the ten sections, outside `FL receipts today` and outside `summary_hash`, so the day's `GET /receipts` set is still fully accounted for.
+- *One receipt, one run.* `production_runs` has no ticket link, so "without a linked MK/PK" means: a run still `planned`/`in_progress` is covered when **one committed** make (`bake`/`coconut`; `other` accepts make or pack) or pack (`pack`, on the target product) receipt for its product **happened on its planned day**, by any actor. One receipt covers exactly one run (lowest run id first); the remaining planned runs for that product/day still show under NOT ENTERED YET? until each has a receipt of its own.
 
 `POST /reports/shift-summary/confirm` → `shift_confirmations (business_date, actor_id, confirmed_at, outcome: 'match'|'discrepancy', notes, receipts_seen int, summary_snapshot jsonb)`. **The frozen JSON contract is `docs/contracts/shift-summary.md` (PR #84, approved 2026-10-08 — §11 items 21–23); it changes only by revision of this document.** "Something is missing" opens `exceptions(SHIFT_DISCREPANCY)` with the note; the weekly view (§7.2 item 8) shows which days were never confirmed. Not confirming is not blocked — it is visible. The summary is bilingual (`label_es` on every section; reason codes carry `label_es`).
 
@@ -942,6 +946,15 @@ Recorded as decided. Docs only: no app code, no production, no DB changes were m
 |---|---|---|---|
 | 41 | **`shipped_not_recorded` close = named owner only, pre-cutover orders only, note required.** `ORDER_LEGACY_CLOSE_CUTOFF` is a configured NY date; unset means every order is pre-cutover. Once set, immutable creation dates on/after cutoff require a recorded shipment for everyone, including Michael (403). Record note and actor and list for weekly view. Other roles/reasons still require a recorded shipment. | **Decided by Michael** | §4.3, §8.2, §10.1 cutoff checklist; A7 named ship gate |
 | 42 | **Owner or floor (Arturo) may acknowledge `SHIP_NOT_SAME_DAY`, including their own entries; office cannot.** Record code, actor and dates on the ticket and list for weekly view. Preserve A2 backdating limits. | **Decided by Michael** | §4.3, §8.2; ticket receipt policy records; §7.2 weekly source |
+
+### Decisions recorded 2026-10-13 — A9 shift-summary clarifications (Michael, PR #102 fix round; Codex comments 6149165326 / 6150241244)
+
+Recorded as decided. Docs only: no app code, no production, no DB changes were made to record these.
+
+| # | Decision | Status | Effect in this document |
+|---|---|---|---|
+| 43 | **Shift summary lists every *ledger* receipt; metadata receipts separately.** Order / expected-receipt / lot-move receipts (`ORD-`, `ER-`, `LOT-`) are never rendered as adjustments; they go in the additive `other_receipts` block, outside the ten sections, the receipt count and `summary_hash`. | **Decided by Michael** | §7.3; contract §8 item 2 |
+| 44 | **One receipt covers one planned run.** A run still `planned`/`in_progress` counts as entered when one committed make/pack receipt for its product happened on its planned day (any actor); each receipt covers exactly one run (lowest id first) and every remaining planned run for that product/day still shows under NOT ENTERED YET?. | **Decided by Michael** | §7.3; contract §8 item 3; FOLLOWUPS P1.21(a) keeps the exact run↔ticket link as a follow-up |
 
 ### 11.2 Part A verification (2026-10-07 15:00, against `origin/main` @ `cb2705c` and `origin/feature/mcp-server` @ `d74f747`)
 

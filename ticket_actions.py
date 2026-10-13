@@ -299,6 +299,9 @@ def post(api, cur, action, validated, payload, request, ticket_id, receipt_numbe
         response['lot_id'] = response['output_lot_id']
     elif action == 'found':
         a5.record_identity(cur, payload, response, ticket_id, receipt_number)
+        # A9: the balance the found stock was added to, read at commit like adjust's
+        # `new_balance_lb` (the shift summary shows lot_on_hand before/after per receipt).
+        response['new_balance_lb'] = api.lot_on_hand(cur, response['lot_id'])
     elif action == 'adjust':
         response['lot_id'] = payload['lot_id']
     if action in ('adjust', 'found'):

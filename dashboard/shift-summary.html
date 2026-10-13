@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="referrer" content="no-referrer">
+  <title>Shift Summary · Factory Ledger</title>
+  <link rel="stylesheet" href="shift-summary.css?v=2">
+  <script defer src="shift-summary.js?v=3"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-row">
+      <a class="brand" href="/" aria-label="Factory Ledger"><span class="brand-mark">FL</span><span data-en="Shift summary" data-es="Resumen del turno">Shift summary</span></a>
+      <div class="header-actions">
+        <button id="language" type="button" aria-label="Cambiar a español">ES</button>
+        <button id="sign-out" type="button" hidden data-en="Sign out" data-es="Cerrar sesión">Sign out</button>
+      </div>
+    </div>
+    <p id="identity" class="identity" data-en="Sign in with your personal key, or continue read-only." data-es="Inicia sesión con tu clave personal o continúa en modo lectura.">Sign in with your personal key, or continue read-only.</p>
+  </header>
+
+  <main>
+    <section id="sign-in-panel" class="panel sign-in-panel">
+      <h2 data-en="Does today match the floor?" data-es="¿Hoy coincide con el piso?">Does today match the floor?</h2>
+      <p data-en="Your personal key shows your own receipts and lets you confirm the shift. It stays in memory for this tab only." data-es="Tu clave personal muestra tus propios recibos y te deja confirmar el turno. Queda en memoria solo en esta pestaña.">Your personal key shows your own receipts and lets you confirm the shift. It stays in memory for this tab only.</p>
+      <form id="sign-in-form">
+        <label for="actor-key" data-en="Personal actor key" data-es="Clave personal">Personal actor key</label>
+        <input id="actor-key" type="password" autocomplete="off" placeholder="Enter your personal key">
+        <button class="primary" type="submit" data-en="Continue →" data-es="Continuar →">Continue →</button>
+        <button id="read-only" type="button" data-en="View all actors (read-only)" data-es="Ver todos (solo lectura)">View all actors (read-only)</button>
+      </form>
+    </section>
+
+    <section id="summary-panel" hidden>
+      <div class="toolbar">
+        <label class="date-field"><span data-en="Day" data-es="Día">Day</span><input id="date" type="date"></label>
+        <button id="yesterday" type="button" data-en="Yesterday" data-es="Ayer">Yesterday</button>
+        <button id="today" type="button" data-en="Today" data-es="Hoy">Today</button>
+        <button id="refresh" type="button" data-en="Refresh" data-es="Actualizar">Refresh</button>
+      </div>
+      <p id="load-status" class="muted" role="status"></p>
+      <div id="status-banner" class="banner" hidden></div>
+      <h1 id="title"></h1>
+      <p id="receipts-count" class="muted"></p>
+      <div id="sections"></div>
+    </section>
+  </main>
+
+  <footer id="confirm-bar" class="confirm-bar" hidden>
+    <p id="confirm-question" class="confirm-question" data-en="Does this match what happened on the floor?" data-es="¿Esto coincide con lo que pasó en el piso?">Does this match what happened on the floor?</p>
+    <p id="confirm-reason" class="muted" hidden></p>
+    <div class="confirm-actions">
+      <button id="confirm-match" class="primary" type="button" data-en="Confirm" data-es="Confirmar">Confirm</button>
+      <button id="confirm-notes" type="button" data-en="Confirm with notes" data-es="Confirmar con notas">Confirm with notes</button>
+      <button id="confirm-missing" class="danger" type="button" data-en="Something is missing" data-es="Falta algo">Something is missing</button>
+    </div>
+    <form id="notes-form" class="notes-form" hidden>
+      <label for="notes" id="notes-label"></label>
+      <textarea id="notes" rows="3" maxlength="2000"></textarea>
+      <div class="confirm-actions">
+        <button id="notes-cancel" type="button" data-en="Back" data-es="Volver">Back</button>
+        <button id="notes-send" class="primary" type="submit" data-en="Record" data-es="Registrar">Record</button>
+      </div>
+    </form>
+  </footer>
+  <div id="notice" class="notice" role="alert" hidden></div>
+</body>
+</html>

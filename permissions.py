@@ -208,6 +208,7 @@ UNGATED_ROUTES = frozenset({
     ('POST', '/assistant/attachment/read'),
     ('POST', '/assistant/transcribe'),
     ('POST', '/products/resolve'),                 # lookup, no business write
+    ('POST', '/reports/shift-summary/confirm'),    # A9: any named actor confirms their OWN shift; shared keys → 403 ACTOR_REQUIRED in the handler
     ('POST', '/resolve'),                          # A4 resolution, read-only
     ('POST', '/sales/orders/{order_id}/allocations'),                           # planning board
     ('POST', '/sales/orders/{order_id}/allocations/{allocation_id}/release'),

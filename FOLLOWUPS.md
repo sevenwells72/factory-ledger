@@ -331,6 +331,23 @@ https://github.com/sevenwells72/factory-ledger/pull/99#issuecomment-6131307183.
 
 ---
 
+**P1.21 A9 follow-ups (found 2026-10-13, building `feat/shift-summary`).**
+(a) `production_runs` has no ticket/transaction link; since the 2026-10-13 fix round the shift
+summary treats a run still `planned`/`in_progress` as entered when a committed MK/PK receipt for
+its product happened on its planned date (contract §8 item 3 — product + plant day + action, one
+receipt covers one run, the rest stay listed; approved by Michael 2026-10-13, design §11 item 44). A `production_runs.ticket_id`/`completed_receipt_number` set at make/pack commit
+(or at the run's `done` transition) would make the link exact instead of inferred. (b) `VOIDED` rows need `void`
+tickets (`VD-` receipts); until then the section is present and empty and a legacy-route void shows
+as flag `VOIDED` with `voided_by_receipt_number: null`. (c) `INVOICE_PENDING` (A8) and
+`EXTRA_KOSHER` (A12 follow-up, contract §2.2) are not emitted yet. (d) Confirmations are not
+written to `actor_write_audit` (its `target_table` CHECK does not list `shift_confirmations`; the
+row itself carries `actor_id`) — add the value in a later additive migration if the weekly view
+wants one audit feed. (e) The D3-lite page keeps the personal key in memory only (same rule as F1
+part 1) until the key-to-session exchange (P1.16) lands; the dashboard key alone gets the
+read-only all-actors view.
+
+---
+
 ## 1. Backfill NULL addresses on recurring customers
 
 **Context.** During Pass 1 we added an address-similarity tiebreaker to
