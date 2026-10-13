@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 9BA4RS58E5zdxgjZbdz2DITIIaB3GgzjKSU2Yj88aiuKY9j3d4Jf5yYhRAFs28D
+\restrict 6N21bbBomq3cHokGbwrjULvrzDpROpnzRRqw8grch4fqdgVHKghoxwpWvWIFlV1
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.10 (Homebrew)
@@ -553,9 +553,9 @@ CREATE TABLE public.actor_write_audit (
     target_table text NOT NULL,
     target_id bigint NOT NULL,
     created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
-    CONSTRAINT actor_write_audit_method_check CHECK ((method = ANY (ARRAY['POST'::text, 'PATCH'::text]))),
+    CONSTRAINT actor_write_audit_method_check CHECK (((method = ANY (ARRAY['POST'::text, 'PATCH'::text])) OR (method = ANY (ARRAY['PUT'::text, 'DELETE'::text])))),
     CONSTRAINT actor_write_audit_operator_id_check CHECK ((btrim(operator_id) <> ''::text)),
-    CONSTRAINT actor_write_audit_target_table_check CHECK (((target_table = ANY (ARRAY['customers'::text, 'lots'::text, 'sales_orders'::text, 'sales_order_lines'::text])) OR (target_table = 'exceptions'::text)))
+    CONSTRAINT actor_write_audit_target_table_check CHECK (((target_table = ANY (ARRAY['customers'::text, 'lots'::text, 'sales_orders'::text, 'sales_order_lines'::text])) OR (target_table = 'exceptions'::text) OR (target_table = 'notes'::text)))
 );
 
 
@@ -1251,6 +1251,65 @@ SELECT
     NULL::text AS name,
     NULL::text AS type,
     NULL::numeric AS on_hand;
+
+
+--
+-- Name: key_actor_sessions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.key_actor_sessions (
+    id bigint NOT NULL,
+    token_hash text NOT NULL,
+    actor_id integer NOT NULL,
+    actor_key_hash text NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    last_seen_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    expires_at timestamp with time zone NOT NULL,
+    ended_at timestamp with time zone,
+    ended_reason text,
+    CONSTRAINT key_actor_sessions_check CHECK (((ended_at IS NULL) = (ended_reason IS NULL))),
+    CONSTRAINT key_actor_sessions_ended_reason_check CHECK ((ended_reason = ANY (ARRAY['idle'::text, 'logout'::text, 'revoked'::text])))
+);
+
+
+--
+-- Name: key_actor_sessions_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.key_actor_sessions ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.key_actor_sessions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: key_session_attempts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.key_session_attempts (
+    id bigint NOT NULL,
+    source_hash text NOT NULL,
+    ok boolean NOT NULL,
+    attempted_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL
+);
+
+
+--
+-- Name: key_session_attempts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.key_session_attempts ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.key_session_attempts_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
 
 
 --
@@ -3829,6 +3888,30 @@ ALTER TABLE ONLY public.inventory_adjustments
 
 
 --
+-- Name: key_actor_sessions key_actor_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.key_actor_sessions
+    ADD CONSTRAINT key_actor_sessions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: key_actor_sessions key_actor_sessions_token_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.key_actor_sessions
+    ADD CONSTRAINT key_actor_sessions_token_hash_key UNIQUE (token_hash);
+
+
+--
+-- Name: key_session_attempts key_session_attempts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.key_session_attempts
+    ADD CONSTRAINT key_session_attempts_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: ledger_corrections ledger_corrections_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5013,6 +5096,20 @@ CREATE INDEX idx_transactions_timestamp ON public.transactions USING btree ("tim
 
 
 --
+-- Name: key_actor_sessions_open_actor; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX key_actor_sessions_open_actor ON public.key_actor_sessions USING btree (actor_id) WHERE (ended_at IS NULL);
+
+
+--
+-- Name: key_session_attempts_time; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX key_session_attempts_time ON public.key_session_attempts USING btree (attempted_at);
+
+
+--
 -- Name: lot_events_one_kosher_downgrade_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -6069,6 +6166,14 @@ ALTER TABLE ONLY public.ingredient_lot_consumption
 
 
 --
+-- Name: key_actor_sessions key_actor_sessions_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.key_actor_sessions
+    ADD CONSTRAINT key_actor_sessions_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.actors(id);
+
+
+--
 -- Name: ledger_corrections ledger_corrections_entered_by_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6985,6 +7090,18 @@ ALTER TABLE public.correction_reasons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exceptions ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: key_actor_sessions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.key_actor_sessions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: key_session_attempts; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.key_session_attempts ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: lot_events; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -7066,9 +7183,5 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 9BA4RS58E5zdxgjZbdz2DITIIaB3GgzjKSU2Yj88aiuKY9j3d4Jf5yYhRAFs28D
+\unrestrict 6N21bbBomq3cHokGbwrjULvrzDpROpnzRRqw8grch4fqdgVHKghoxwpWvWIFlV1
 
-
--- Pilot sessions: 077 is independent of parked 073; earlier applied migrations are in the dump.
-SET search_path TO public;
-\ir ../../migrations/077_key_sessions.sql
