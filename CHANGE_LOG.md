@@ -196,6 +196,13 @@
 
 ---
 
+## 2026-10-13 12:22 — Complete approved global changelog reconciliation for pilot sign-in
+- **File(s) changed:** `CHANGE_LOG.md`, canonical iCloud `change-log.md`
+- **What changed:** After explicit owner approval, append all 17 task changelog rows to the canonical global table below its separator. Preserve every old row and ~/change-log.md as a symlink. Global-log approval blocker is resolved.
+- **Why:** Finish both logs required by AGENTS.md/CLAUDE.md after automatic approval initially rejected the out-of-worktree write.
+
+---
+
 ## 2026-10-13 12:20 — Save successful Arturo personal-session staging receipt
 - **File(s) changed:** `docs/validation/key-sessions-staging.json`, `docs/deployments/key-sessions.md`, `docs/contracts/key-sessions.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Save RCV-261013-005, transaction 1000000072, 10 lb, one-post replay/person attribution, four-person exchange, logout/idle/revocation and temporary actor cleanup. Staging health/assets/flags correct; final 2526 Python/82 Node/browser pass. No secrets retained.
