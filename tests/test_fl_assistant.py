@@ -799,6 +799,10 @@ def test_a6_customer_and_order_ids_require_resolution(field, kind):
 def test_068_rerun_adds_private_a6_links_and_preserves_legacy_bytes(client, chat, actors, db_cursor):
     db_cursor.execute("SELECT to_regclass('public.assistant_attachments') AS legacy")
     assert db_cursor.fetchone()['legacy'] is None
+    sql = (Path(__file__).resolve().parents[1] / 'migrations/068_fl_assistant.sql').read_text()
+    # The dump carries 068's objects since the 2026-10-13 prod apply but, being
+    # schema-only, no marker row: one idempotent apply seeds it before the reruns.
+    db_cursor.execute(sql)
     db_cursor.execute("SELECT * FROM migration_markers WHERE name='068_fl_assistant'")
     marker = dict(db_cursor.fetchone())
     db_cursor.execute('''CREATE TABLE IF NOT EXISTS assistant_attachments (
@@ -810,7 +814,6 @@ def test_068_rerun_adds_private_a6_links_and_preserves_legacy_bytes(client, chat
     db_cursor.execute('''INSERT INTO assistant_attachments(id,session_id,actor_id,filename,media_type,sha256,content)
         VALUES (%s,%s,%s,'legacy.png','image/png','retained',%s)''', (old_id, chat[0], actors['floor']['id'], PNG))
     photo = upload_photo(client, chat, 'other')
-    sql = (Path(__file__).resolve().parents[1] / 'migrations/068_fl_assistant.sql').read_text()
     db_cursor.execute(sql)
     db_cursor.execute(sql)
     db_cursor.execute('SELECT content FROM assistant_attachments WHERE id=%s', (old_id,))

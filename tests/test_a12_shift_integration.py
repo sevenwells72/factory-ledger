@@ -299,8 +299,10 @@ def test_item5_labels_names_new_holds_and_nested_catalog_names_do_not_move_hash(
 def test_item7_migration_numbering_route_hooks_and_null_guards_preserved():
     schema = (ROOT / 'tests/schema/schema.sql').read_text()
     fixture = (ROOT / 'tests/test_write_tickets.py').read_text()
-    for number, filename in [('068', 'fl_assistant'), ('075', 'kosher_tiers'), ('076', 'shift_confirmations')]:
-        assert schema.count('\\ir ../../migrations/' + number + '_' + filename + '.sql') == 1
+    # 068/075/076 are on production (2026-10-13) and in the re-dumped schema: no pending \ir tails.
+    assert '\\ir ../../migrations/' not in schema
+    for table in ('assistant_attachment_links', 'ticket_attestations', 'lot_events', 'shift_confirmations'):
+        assert schema.count('CREATE TABLE public.' + table + ' (') == 1
     for number in ('075', '076'):
         assert 'migrations/' + number + '_' in fixture
     assert len(list((ROOT / 'migrations').glob('075_*.sql'))) == 1

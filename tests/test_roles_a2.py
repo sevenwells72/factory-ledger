@@ -742,6 +742,9 @@ def test_migration_065_up_down_up(isolated_database):
     down_071 = (ROOT / 'migrations/down/071_shortage_evidence_claims_down.sql').read_text()
     with psycopg2.connect(isolated_database) as conn, conn.cursor() as cur:
         cur.execute('SET LOCAL search_path TO public')
+        # F1 068 (in the dump since 2026-10-13, no down file): its empty link table
+        # references attachments, so it goes before 074 and 068 is re-run after.
+        cur.execute('DROP TABLE assistant_attachment_links')
         cur.execute((ROOT/'migrations/down/074_ship_gate_attachments_down.sql').read_text())
         cur.execute(down_071)
         cur.execute(down_070)
@@ -768,3 +771,4 @@ def test_migration_065_up_down_up(isolated_database):
         cur.execute(up_071)
         assert 'ledger_current_transactions' in columns(cur)
         cur.execute((ROOT/'migrations/074_ship_gate_attachments.sql').read_text())
+        cur.execute((ROOT/'migrations/068_fl_assistant.sql').read_text())

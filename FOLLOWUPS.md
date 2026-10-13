@@ -369,6 +369,17 @@ read-only all-actors view.
 
 ---
 
+**P1.23 Sunshine SO-260817-001 (10,000 lb of 285/288, extra-kosher #9 bulk) — recorded 2026-10-13 after the A12 rollout (PR #101, migration 075 on prod).**
+Status with Sunshine is **unknown**. This order is **OFF the cutover critical path**. Do **NOT**
+cancel or change the order in FL. Since A12, 285/288 can only ship from **owner-approved
+extra-kosher (283/284) lots**: receive of 283/284 is refused for every role, a make of 283/284 is
+held for owner approval through A3b, and the Floor GPT cannot record one. At rollout the order had
+no stock, allocations or shipments and there were 0 lots of 283/284, so it could not ship either
+way. If it becomes urgent before cutover, decide then — **no workaround is built now**. Owner:
+**Michael (verify status with Sunshine)**. See P1.5 (tiers), P1.21 (count loading of 283–290).
+
+---
+
 ## 1. Backfill NULL addresses on recurring customers
 
 **Context.** During Pass 1 we added an address-similarity tiebreaker to
