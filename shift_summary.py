@@ -16,14 +16,23 @@ un-suffixed `lang` copy so a client can print the document in one language
 without composing text.
 
 Boundaries kept deliberately (named here so the review can check them):
-  * "linked MK/PK" for planned production runs cannot be read from a column —
-    `production_runs` has no ticket/transaction link — so NOT ENTERED YET lists
-    every run of the day still `planned` / `in_progress` (its status is the
-    only link FL has today; marking the run done is the operator's step).
+  * "linked MK/PK" for planned production runs: `production_runs` has no
+    ticket/transaction column, so the link FL can state is product + plant day
+    + action — a run still `planned` / `in_progress` is "entered" when a
+    committed MK (bake/coconut/other) or PK (pack) receipt for its product
+    happened on its planned date (any actor; one receipt covers one run, lowest
+    run id first). Runs without such a receipt are listed (contract §2.3).
   * `VOIDED` rows need `void` tickets (`VD-` receipts); until that action has
     tickets the section is present and empty, and a receipt whose transaction
-    was voided through the legacy route carries flag `VOIDED` with
-    `voided_by_receipt_number: null` (no receipt names the void).
+    was voided through the legacy route stays in its own section with its
+    ORIGINAL quantities/detail, `effective_status: voided` and flag `VOIDED`
+    (`voided_by_receipt_number: null` — no receipt names the void). Voided
+    lines never enter LOT BALANCES TOUCHED TODAY.
+  * Receipts of the metadata ticket actions (orders `ORD-`, expected receipts
+    `ER-`, lot moves `LOT-`) are not ledger postings and no §2 section lists
+    them; they are reported under the additive top-level `other_receipts`
+    block so the day's `GET /receipts` set is fully accounted for. They are
+    never called adjustments and never enter `summary_hash` (§1.3).
   * `INVOICE_PENDING` / `EXTRA_KOSHER` wait for A8 / A12 (contract §2.2).
 """
 import json
@@ -58,6 +67,22 @@ ACTION_SECTION = {'receive': 'received', 'make': 'made', 'pack': 'packed', 'adju
                   **{a: 'shipped' for a in wt.SHIP_ACTIONS}}
 HASH_FIELDS = ('receipt_number', 'action', 'status', 'effective_status', 'happened_at', 'entered_at', 'late_entry',
                'detail', 'transaction_ids')
+# Metadata tickets (A7 orders, A7 expected receipts, A5 lot moves): receipts, not ledger postings.
+OTHER_KIND = {**{a: 'order' for a in wt.ORDER_ACTIONS}, **{a: 'expected_receipt' for a in wt.EXPECTED_RECEIPT_ACTIONS},
+              'move_lot': 'lot_move'}
+_OTHER_LABELS = {
+    'create_order': ('order created', 'pedido creado'), 'add_order_lines': ('order lines added', 'líneas añadidas al pedido'),
+    'update_order_line': ('order line updated', 'línea del pedido actualizada'),
+    'cancel_order_line': ('order line cancelled', 'línea del pedido cancelada'),
+    'update_order_header': ('order header updated', 'encabezado del pedido actualizado'),
+    'update_order_status': ('order status updated', 'estado del pedido actualizado'),
+    'mark_order_ready': ('order marked ready', 'pedido marcado listo'), 'cancel_order': ('order cancelled', 'pedido cancelado'),
+    'close_order': ('order closed', 'pedido cerrado'), 'reopen_order': ('order reopened', 'pedido reabierto'),
+    'create_expected_receipt': ('expected receipt created', 'recepción esperada creada'),
+    'update_expected_receipt': ('expected receipt updated', 'recepción esperada actualizada'),
+    'cancel_expected_receipt': ('expected receipt cancelled', 'recepción esperada cancelada'),
+    'move_lot': ('lot moved', 'lote movido'),
+}
 
 _DAYS_ES = ('lun', 'mar', 'mié', 'jue', 'vie', 'sáb', 'dom')
 _MONTHS_ES = ('ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic')
@@ -212,11 +237,13 @@ class Catalog:
 # ---------------------------------------------------------------------------
 # Receipt rows (contract §2.2)
 # ---------------------------------------------------------------------------
-def _lines(receipt, sign=None):
-    """Effective lines of the receipt's POSTED transactions (voided ones contribute nothing)."""
+def _lines(receipt, sign=None, posted_only=False):
+    """Effective lines of the receipt's transactions — the amounts the receipt recorded.
+    A voided receipt keeps its original quantities (contract §2.2: it stays in its
+    section with flag VOIDED); only LOT BALANCES reads posted lines (`posted_only`)."""
     out = []
     for txn in receipt['transactions']:
-        if txn['effective_status'] != 'posted':
+        if posted_only and txn['effective_status'] != 'posted':
             continue
         for line in txn['lines']:
             q = float(line['quantity_lb'])
@@ -252,7 +279,8 @@ def receipt_row(api, cur, catalog, number, day):
     timing = response.get('entry_timing') or {}
     hours_late = timing.get('hours_late')
     if hours_late is None:
-        hours_late = max(round((entered - happened).total_seconds() / 3600, 2), 0.0)
+        # UTC instants (permissions.elapsed): same-zone local subtraction is off by an hour across a DST edge.
+        hours_late = max(round(permissions.elapsed(receipt['happened_at'], receipt['entered_at']).total_seconds() / 3600, 2), 0.0)
     days_late = timing.get('days_late', int(hours_late // 24))
     actor = receipt['actor'] or {}
     row = {
@@ -424,13 +452,18 @@ def receipt_row(api, cur, catalog, number, day):
         row['quantity'] = quantity(delta, None, 'lb', f'{fmt_lb(delta, signed=True)} lb')
         reason = catalog.reason(response.get('reason_code') or draft.get('reason_code'))
         review = response.get('correction_review') or draft.get('correction_review') or {}
-        if action == 'adjust':
-            before, after = draft.get('current_quantity_lb'), response.get('new_balance_lb')
-            note = draft.get('note')
+        note = draft.get('note') if action == 'adjust' else draft.get('notes')
+        # Commit-time balances: `new_balance_lb` is lot_on_hand() read right after the post
+        # (adjust: main._adjust_commit_core; found: ticket_actions.post), so before = after − delta
+        # is the balance the correction actually moved from — never the prepare-time draft figure.
+        after = response.get('new_balance_lb')
+        if after is not None:
+            after = float(after)
+            before = round(after - delta, 4)
+        elif action == 'found' and not draft.get('lot_exists'):
+            before, after = 0.0, delta          # a found lot that did not exist starts at zero
         else:
-            before = 0.0 if not draft.get('lot_exists') else None
-            after = before + delta if before is not None else None
-            note = draft.get('notes')
+            before = after = None               # legacy receipt without a stored commit balance
         row['detail'] = {'lot': catalog.lot_ref(lot_id), 'delta_lb': delta, 'lot_on_hand_before': before, 'lot_on_hand_after': after,
                          'reason_code': {k: reason[k] for k in ('code', 'label_en', 'label_es', 'note_required')} if reason else None,
                          'note': note, 'photo_attached': bool(review.get('attachment_ref'))}
@@ -439,13 +472,28 @@ def receipt_row(api, cur, catalog, number, day):
         row.update(pair(f'{number}  {row["product"]["name"]} lot {row["lot"]["lot_code"] if row["lot"] else "?"}  {fmt_lb(delta, signed=True)} lb  reason: {label_en}',
                         f'{number}  {row["product"]["name"]} lote {row["lot"]["lot_code"] if row["lot"] else "?"}  {fmt_lb(delta, signed=True)} lb  razón: {label_es}', 'line'))
         if review.get('photo_required') or 'OVER_10_PERCENT_OF_BOOK' in (review.get('rules') or []):
-            exc = _open_exception(cur, kind='LARGE_CORRECTION', ticket_id=ticket['id'])
+            # The hold's exception (A3b) is resolved by the approval or the photo that let this
+            # receipt post, so it is read in ANY status: the reference must survive resolution.
+            cur.execute("SELECT id,status,resolution_kind FROM exceptions WHERE kind='LARGE_CORRECTION' AND ticket_id=%s ORDER BY id LIMIT 1",
+                        (ticket['id'],))
+            exc = cur.fetchone()
+            approved_by = (response.get('approval') or {}).get('approved_by') or None
             pct = review.get('pct_of_book')
             pct_text = f' ({pct * 100:.0f}% of lot)' if pct is not None else ''
+            if approved_by:
+                tail_en, tail_es = f' — approved by {approved_by.get("name")}', f' — aprobada por {approved_by.get("name")}'
+            elif review.get('attachment_ref'):
+                tail_en, tail_es = ' — photo attached', ' — con foto'
+            elif review.get('photo_required'):
+                tail_en, tail_es = ' — photo required', ' — requiere foto'
+            else:
+                tail_en = tail_es = ''
             row['flags'].append(_flag('LARGE_CORRECTION', 'warn',
-                                      f'LARGE CORRECTION {fmt_lb(delta, signed=True)} lb{pct_text}' + (' — photo required' if review.get('photo_required') else ''),
-                                      f'CORRECCIÓN GRANDE {fmt_lb(delta, signed=True)} lb{pct_text.replace(" of lot", " del lote")}' + (' — requiere foto' if review.get('photo_required') else ''),
-                                      {'exception_id': exc['id'] if exc else None, 'delta_lb': delta, 'pct': pct}))
+                                      f'LARGE CORRECTION {fmt_lb(delta, signed=True)} lb{pct_text}{tail_en}',
+                                      f'CORRECCIÓN GRANDE {fmt_lb(delta, signed=True)} lb{pct_text.replace(" of lot", " del lote")}{tail_es}',
+                                      {'exception_id': exc['id'] if exc else None, 'delta_lb': delta, 'pct': pct,
+                                       'resolution': exc['resolution_kind'] if exc else None,
+                                       'approved_by_actor_id': approved_by.get('id') if approved_by else None}))
             if exc:
                 row['exceptions_opened'].append(exc['id'])
         if reason and reason['code'] == 'unknown':
@@ -473,6 +521,45 @@ def receipt_row(api, cur, catalog, number, day):
     if row['quantity'] is None:
         row['quantity'] = quantity(0)
     row['_receipt'] = receipt   # posted lines for LOT BALANCES; popped before the document is returned
+    return row
+
+
+def other_receipt_row(api, cur, catalog, number):
+    """A metadata receipt (order / expected receipt / lot move): listed under `other_receipts`,
+    outside the ten sections and outside the hash — never rendered as an adjustment."""
+    receipt = wt.receipt_detail(api, cur, number)
+    action = receipt['action']
+    kind = OTHER_KIND.get(action, 'other')
+    happened, entered = plant(receipt['happened_at'], api), plant(receipt['entered_at'], api)
+    actor = receipt['actor'] or {}
+    label_en, label_es = _OTHER_LABELS.get(action, (action.replace('_', ' '), action.replace('_', ' ')))
+    refs = {'order_id': None, 'order_number': None, 'expected_receipt_ids': [], 'lot_id': None}
+    subject_en = subject_es = ''
+    if kind == 'order' and receipt.get('order'):
+        order = receipt['order']
+        refs.update(order_id=order.get('id'), order_number=order.get('order_number'))
+        subject_en = subject_es = ' '.join(str(x) for x in (order.get('order_number'), order.get('customer')) if x)
+    elif kind == 'expected_receipt':
+        refs['expected_receipt_ids'] = [e['id'] for e in receipt.get('expected_receipts') or [] if e.get('id') is not None]
+        subject_en = ', '.join(f'ER #{i}' for i in refs['expected_receipt_ids'])
+        subject_es = ', '.join(f'RE #{i}' for i in refs['expected_receipt_ids'])
+    elif kind == 'lot_move':
+        payload = receipt.get('draft') or {}
+        lot_id = (receipt.get('response') or {}).get('lot_id') or payload.get('lot_id')
+        if lot_id is None and receipt.get('lots'):
+            lot_id = receipt['lots'][0]['id']
+        refs['lot_id'] = lot_id
+        lot = catalog.lot(lot_id) if lot_id is not None else None
+        to = (receipt.get('response') or {}).get('to_location') or payload.get('to_location') or ''
+        subject_en = f'lot {lot["lot_code"]}' + (f' → {to}' if to else '') if lot else ''
+        subject_es = f'lote {lot["lot_code"]}' + (f' → {to}' if to else '') if lot else ''
+    clock = happened.strftime('%H:%M')
+    row = {'receipt_number': number, 'action': action, 'kind': kind, 'status': receipt['status'],
+           'actor': {'id': actor.get('id'), 'name': actor.get('name') or receipt['operator_id'], 'role': actor.get('role')},
+           'client_source': receipt['client_source'], 'happened_at': happened.isoformat(), 'entered_at': entered.isoformat(),
+           'late_entry': bool(receipt['late_entry']), 'refs': refs,
+           **pair(f'{number}  {label_en}' + (f'  {subject_en}' if subject_en else '') + f'  {clock}',
+                  f'{number}  {label_es}' + (f'  {subject_es}' if subject_es else '') + f'  {clock}', 'line')}
     return row
 
 
@@ -526,9 +613,25 @@ def not_entered_yet(cur, catalog, day):
                      'status': er['status'], '_sort': (0 if overdue else 1, er['expected_date'], p['name']),
                      **pair(f'expected receipt {ref} ({p["name"]}, {when_en}) — no RCV receipt',
                             f'recepción esperada {ref} ({p["name"]}, {when_es}) — sin recibo RCV', 'line')})
+    # Runs are "entered" when a committed MK/PK receipt for the run's product happened on the
+    # planned date (any actor — expectations are plant-wide, §2.3). One receipt covers one run,
+    # lowest run id first; what is left is listed.
+    cur.execute('''SELECT action, (payload->>'product_id')::int AS product_id, (payload->>'target_product_id')::int AS target_product_id
+                   FROM write_tickets WHERE status='committed' AND action IN ('make','pack')
+                     AND (((payload->>'occurred_at')::timestamptz AT TIME ZONE 'America/New_York')::date)=%s
+                   ORDER BY committed_at,id''', (day,))
+    covered = {}
+    for t in cur.fetchall():
+        product = t['target_product_id'] if t['action'] == 'pack' else t['product_id']
+        covered[(t['action'], product)] = covered.get((t['action'], product), 0) + 1
     cur.execute('''SELECT id,product_id,run_type,status,planned_qty,planned_unit,planned_qty_lb,planned_date
                    FROM production_runs WHERE planned_date=%s AND status IN ('planned','in_progress') ORDER BY id''', (day,))
     for run in cur.fetchall():
+        wants = ('pack',) if run['run_type'] == 'pack' else (('make',) if run['run_type'] in ('bake', 'coconut') else ('make', 'pack'))
+        matched = next((w for w in wants if covered.get((w, run['product_id']), 0) > 0), None)
+        if matched:
+            covered[(matched, run['product_id'])] -= 1
+            continue
         p = catalog.product(run['product_id'])
         prefix = 'PK' if run['run_type'] == 'pack' else ('MK' if run['run_type'] in ('bake', 'coconut') else 'MK/PK')
         status_es = {'planned': 'planeada', 'in_progress': 'en curso'}[run['status']]
@@ -683,16 +786,28 @@ def build(api, cur, *, day, actor, caller, lang='en'):
     terms = [actor['name'], str(actor['id'])] if actor else None
     # Committed tickets only (contract §2.1/§2.2): a rejected or held ticket may already hold a receipt number.
     numbers = wt.receipt_numbers(cur, day, actor_terms=terms, status='committed')
-    receipt_rows = [receipt_row(api, cur, catalog, number, day) for number in numbers]
+    cur.execute('SELECT receipt_number,action FROM write_tickets WHERE receipt_number=ANY(%s)', (numbers,))
+    action_of = {r['receipt_number']: r['action'] for r in cur.fetchall()}
+    ledger_numbers = [n for n in numbers if action_of.get(n) in ACTION_SECTION]
+    other_numbers = [n for n in numbers if action_of.get(n) not in ACTION_SECTION]
+    receipt_rows = [receipt_row(api, cur, catalog, number, day) for number in ledger_numbers]
+    other_rows = [other_receipt_row(api, cur, catalog, number) for number in other_numbers]
     sections = []
     by_key = {}
     for key, label_en, label_es, empty_en, empty_es in SECTIONS:
         section = {'key': key, **pair(label_en, label_es, 'label'), **pair(empty_en, empty_es, 'empty'), 'count': 0, 'rows': []}
         sections.append(section)
         by_key[key] = section
-    for row in sorted(receipt_rows, key=lambda r: (r['happened_at'], r['receipt_number'])):
-        by_key[ACTION_SECTION.get(row['action'], 'adjusted')]['rows'].append(row)
-    late = sorted((r for r in receipt_rows if r['late_entry']), key=lambda r: (-r['hours_late'], r['receipt_number']))
+    def instant(row):
+        # Aware datetimes compare as instants; the local ISO text would mis-order the fall-back hour.
+        return (datetime.fromisoformat(row['happened_at']), row['receipt_number'])
+    for row in sorted(receipt_rows, key=instant):
+        by_key[ACTION_SECTION[row['action']]]['rows'].append(row)
+    other_rows.sort(key=instant)
+    # §2.6: receipts ENTERED on `day` that happened on an earlier plant day. A receipt back-filled
+    # on a later day shows on this day's summary (entered_on_later_day) but is not a late entry OF this day.
+    late = sorted((r for r in receipt_rows if r['late_entry'] and r['entered_at'][:10] == day.isoformat()),
+                  key=lambda r: (-r['hours_late'], r['receipt_number']))
     by_key['late_entries']['rows'] = late
     by_key['not_entered_yet']['rows'] = not_entered_yet(cur, catalog, day)
     by_key['lot_balances_touched']['rows'] = lot_balances(api, cur, catalog, receipt_rows)
@@ -722,7 +837,13 @@ def build(api, cur, *, day, actor, caller, lang='en'):
         'date': day.isoformat(), 'plant_timezone': 'America/New_York', 'generated_at': api.get_plant_now().isoformat(),
         'actor': {'id': actor['id'], 'name': actor['name'], 'role': actor['role']} if actor else None, 'lang': lang,
         **pair(f'SHIFT SUMMARY — {title_date(day, "en")} — {who_en}', f'RESUMEN DEL TURNO — {title_date(day, "es")} — {who_es}', 'title'),
-        'receipts_today': len(receipt_rows), 'summary_hash': None, 'confirmation': confirmation, 'sections': sections,
+        'receipts_today': len(receipt_rows), 'summary_hash': None, 'confirmation': confirmation,
+        # Additive (fix round 2026-10-13): the day's metadata receipts, so the GET /receipts set is fully
+        # accounted for. Outside `receipts_today` and outside the hash (§1.3 covers the seven receipt sections).
+        'other_receipts': {**pair('OTHER ENTRIES (orders, expected receipts, lot moves)',
+                                  'OTRAS ENTRADAS (pedidos, recepciones esperadas, movimientos de lote)', 'label'),
+                           **pair('none', 'ninguno', 'empty'), 'count': len(other_rows), 'rows': other_rows},
+        'sections': sections,
     }
     document = localise(wt.json_value(api, document), lang)
     document['summary_hash'] = summary_hash(api, document['sections'])
@@ -747,6 +868,8 @@ class ConfirmRequest(BaseModel):
 
 def register_routes(app, api):
     def target_actor(cur, caller, raw):
+        if raw is not None and str(raw).strip().lower() == 'me':
+            raw = None      # the F1 Assistant asks for `actor=me`: the caller's own summary
         requested = resolve_actor(cur, raw)
         if requested is None:
             return catalog_actor(cur, caller['id']) if caller.get('id') is not None else None
@@ -784,8 +907,8 @@ def register_routes(app, api):
                  'El turno lo confirma una persona; inicia sesión con tu clave personal.')
         if body.outcome not in ('match', 'discrepancy'):
             fail(422, 'OUTCOME_INVALID', "outcome must be 'match' or 'discrepancy'.", "outcome debe ser 'match' o 'discrepancy'.")
-        notes = body.notes.strip()
-        if body.outcome == 'discrepancy' and not notes:
+        notes = body.notes      # stored verbatim (§3.1); stripping is only for the blank check
+        if body.outcome == 'discrepancy' and not notes.strip():
             fail(422, 'NOTES_REQUIRED', 'Say what is missing so the owner can act on it.',
                  'Indica qué falta para que el dueño pueda actuar.')
         day = check_day(body.date)
@@ -801,11 +924,27 @@ def register_routes(app, api):
             owner_id = permissions.owner_actor_id(cur)
             owner = Catalog(cur).actor(owner_id) if owner_id else None
             if body.outcome == 'discrepancy':
-                cur.execute('''INSERT INTO exceptions(kind,status,severity,detail,owner_actor_id,opened_at,due_at)
-                               VALUES ('SHIFT_DISCREPANCY','open','warn',%s,%s,clock_timestamp(),NULL) RETURNING id''',
-                            (Json({'business_date': day.isoformat(), 'actor_id': actor['id'], 'actor_name': actor['name'],
-                                   'notes': notes, 'receipts_seen': body.receipts_seen, 'summary_hash': body.summary_hash}), owner_id))
-                exception_id = cur.fetchone()['id']
+                # One open SHIFT_DISCREPANCY per (actor, day): a repeated or retried "something is
+                # missing" appends its confirmation row but re-uses the open exception (its detail
+                # keeps the latest notes/hash and counts the confirmations). Once the owner has
+                # resolved it, a new discrepancy opens a new one. The advisory lock above makes
+                # the select-then-insert atomic per (actor, day).
+                cur.execute('''SELECT id, detail FROM exceptions WHERE kind='SHIFT_DISCREPANCY' AND status IN ('open','escalated')
+                               AND detail->>'actor_id'=%s AND detail->>'business_date'=%s ORDER BY id LIMIT 1 FOR UPDATE''',
+                            (str(actor['id']), day.isoformat()))
+                existing = cur.fetchone()
+                if existing:
+                    exception_id = existing['id']
+                    cur.execute('UPDATE exceptions SET detail = detail || %s::jsonb WHERE id=%s',
+                                (Json({'notes': notes, 'receipts_seen': body.receipts_seen, 'summary_hash': body.summary_hash,
+                                       'reconfirmed_at': api.get_plant_now().isoformat(),
+                                       'confirmations': int((existing['detail'] or {}).get('confirmations', 1)) + 1}), exception_id))
+                else:
+                    cur.execute('''INSERT INTO exceptions(kind,status,severity,detail,owner_actor_id,opened_at,due_at)
+                                   VALUES ('SHIFT_DISCREPANCY','open','warn',%s,%s,clock_timestamp(),NULL) RETURNING id''',
+                                (Json({'business_date': day.isoformat(), 'actor_id': actor['id'], 'actor_name': actor['name'],
+                                       'notes': notes, 'receipts_seen': body.receipts_seen, 'summary_hash': body.summary_hash}), owner_id))
+                    exception_id = cur.fetchone()['id']
             cur.execute('''INSERT INTO shift_confirmations(business_date,actor_id,outcome,notes,receipts_seen,summary_hash,summary_snapshot,exception_id)
                            VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING *''',
                         (day, actor['id'], body.outcome, notes, body.receipts_seen, body.summary_hash, Json(fresh['sections']), exception_id))
@@ -816,7 +955,7 @@ def register_routes(app, api):
             if body.outcome == 'discrepancy':
                 msg = (f'Shift recorded as: something is missing. {owner_en} will see this on the weekly view.',
                        f'Turno registrado como: falta algo. {owner_es} lo verá en la vista semanal.')
-            elif notes:
+            elif notes.strip():
                 msg = ('Shift recorded as: matches the floor, with notes.', 'Turno registrado como: coincide con el piso, con notas.')
             else:
                 msg = ('Shift recorded as: matches the floor.', 'Turno registrado como: coincide con el piso.')

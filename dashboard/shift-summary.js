@@ -83,7 +83,14 @@
     return `<section class="section" data-key="${esc(section.key)}"><div class="section-head"><span>${esc(section.label || section.label_en)}</span><span class="count">${esc(section.count)}</span></div>${rollup}${body}</section>`;
   }
 
-  function summaryHtml(doc, lang) { return (doc.sections || []).map(s => sectionHtml(s, lang)).join(''); }
+  /** The additive `other_receipts` block (orders, expected receipts, lot moves): shown only when FL lists any. */
+  function otherReceiptsHtml(other, lang) {
+    if (!other || !(other.rows || []).length) return '';
+    return `<section class="section other" data-key="other_receipts"><div class="section-head"><span>${esc(other.label || other.label_en)}</span><span class="count">${esc(other.count)}</span></div>` +
+      other.rows.map(r => receiptRowHtml(r, lang)).join('') + '</section>';
+  }
+
+  function summaryHtml(doc, lang) { return (doc.sections || []).map(s => sectionHtml(s, lang)).join('') + otherReceiptsHtml(doc.other_receipts, lang); }
 
   /** The confirmation banner text for the latest row, or null when unconfirmed. */
   function bannerText(doc, lang) {
@@ -97,7 +104,7 @@
     return lang === 'es' ? `Confirmado por ${who} el ${when}${c.latest.notes ? ' — ' + c.latest.notes : ''}` : `Confirmed by ${who} at ${when}${c.latest.notes ? ' — ' + c.latest.notes : ''}`;
   }
 
-  const exports = { apiBase, errorText, staleSummary, confirmBody, receiptRowHtml, sectionHtml, summaryHtml, bannerText, DASHBOARD_KEY, PRODUCTION_API };
+  const exports = { apiBase, errorText, staleSummary, confirmBody, receiptRowHtml, sectionHtml, summaryHtml, otherReceiptsHtml, bannerText, DASHBOARD_KEY, PRODUCTION_API };
   if (typeof module !== 'undefined') module.exports = exports;
   if (!root.document) return;
 
@@ -105,7 +112,9 @@
   const $ = id => document.getElementById(id);
   const API = apiBase(location, location.search);
   let language = localStorage.getItem('fl-shift-language') || 'en';
-  let key = '', actor = null, doc = null, busy = false, pendingOutcome = null;
+  // `generation` stamps every request with the session/view it was made for: a response that
+  // comes back after a sign-out, a new sign-in or a day change is dropped, never rendered.
+  let key = '', actor = null, doc = null, busy = false, generation = 0, pendingNotes = null;
 
   function t(en, es) { return language === 'es' ? es : en; }
   function applyLanguage() {
@@ -119,12 +128,20 @@
   }
   function notice(message, ok) { $('notice').textContent = message || ''; $('notice').hidden = !message; $('notice').classList.toggle('ok', !!ok); }
 
-  async function api(path, { body, method = 'GET', params } = {}) {
+  /** The fixed footer's real height drives the page's bottom padding (nothing hides under it). */
+  function fitFooter() {
+    const bar = $('confirm-bar');
+    const height = bar.hidden ? 0 : (bar.offsetHeight || 0);
+    document.documentElement.style.setProperty('--footer-h', `${height}px`);
+  }
+  if (typeof ResizeObserver === 'function') new ResizeObserver(fitFooter).observe($('confirm-bar'));
+
+  async function api(path, { body, method = 'GET', params, withKey } = {}) {
     const url = new URL(path, API);
     Object.entries(params || {}).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v); });
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 20000);
     try {
-      const response = await fetch(url, { method, headers: { 'X-API-Key': key, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      const response = await fetch(url, { method, headers: { 'X-API-Key': withKey === undefined ? key : withKey, ...(body ? { 'Content-Type': 'application/json' } : {}) },
         body: body ? JSON.stringify(body) : undefined, signal: controller.signal, cache: 'no-store' });
       const data = await response.json();
       if (!response.ok) throw { ...data, httpStatus: response.status };
@@ -144,6 +161,13 @@
     const d = new Date(plantToday() + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0, 10);
   }
 
+  /** A request made for (generation, key) is current only while both are unchanged. */
+  function stamp() { return { ticket: ++generation, key }; }
+  function current(s) { return s.ticket === generation && s.key === key; }
+
+  /** Notes belong to the person and the day they were opened for; any change closes them. */
+  function closeNotes() { pendingNotes = null; $('notes-form').hidden = true; $('notes').value = ''; fitFooter(); }
+
   function render() {
     if (!doc) return;
     $('title').textContent = doc.title || doc.title_en;
@@ -157,29 +181,39 @@
     $('confirm-question').hidden = !can;
     $('confirm-reason').hidden = can; $('confirm-reason').textContent = can ? '' : ((doc.confirmation && (doc.confirmation.reason || doc.confirmation.reason_en)) || '');
     ['confirm-match', 'confirm-notes', 'confirm-missing'].forEach(id => { $(id).hidden = !can; $(id).disabled = busy; });
-    if (!can) $('notes-form').hidden = true;
+    if (!can || (pendingNotes && (pendingNotes.date !== doc.date || pendingNotes.key !== key))) closeNotes();
+    fitFooter();
   }
 
   async function load() {
+    const s = stamp(), date = $('date').value;
+    if (pendingNotes && pendingNotes.date !== date) closeNotes();
     busy = true; $('load-status').textContent = t('Loading…', 'Cargando…'); notice('');
     try {
-      doc = await api('/reports/shift-summary', { params: { date: $('date').value, lang: language } });
-      $('load-status').textContent = '';
+      const result = await api('/reports/shift-summary', { params: { date, lang: language }, withKey: s.key });
+      if (!current(s)) return false;                 // superseded by a sign-out / new sign-in / newer load
+      doc = result; $('load-status').textContent = '';
       busy = false; render();
+      return true;
     } catch (error) {
+      if (!current(s)) return false;
       busy = false; $('load-status').textContent = ''; notice(errorText(error, language));
+      return false;
     }
   }
 
   async function sendConfirm(outcome, notes) {
     if (!doc || busy) return;
+    const s = stamp(), shown = doc;
     busy = true; render();
     try {
-      const result = await api('/reports/shift-summary/confirm', { method: 'POST', body: confirmBody(doc, outcome, notes, language) });
-      busy = false; $('notes-form').hidden = true; $('notes').value = '';
-      notice(result.message || result.message_en, true);
-      await load();
+      const result = await api('/reports/shift-summary/confirm', { method: 'POST', body: confirmBody(shown, outcome, notes, language), withKey: s.key });
+      if (!current(s)) return;
+      busy = false; closeNotes();
+      const message = result.message || result.message_en;
+      if (await load() && key === s.key) notice(message, true);   // FL's message stays up on the reloaded page
     } catch (error) {
+      if (!current(s)) return;
       busy = false;
       const fresh = staleSummary(error);
       if (fresh) {
@@ -190,39 +224,54 @@
   }
 
   function openNotes(outcome) {
-    pendingOutcome = outcome;
+    if (!doc) return;
+    pendingNotes = { outcome, date: doc.date, key };
     $('notes-label').textContent = outcome === 'discrepancy' ? t('What is missing? (required)', '¿Qué falta? (obligatorio)') : t('Notes (optional)', 'Notas (opcional)');
-    $('notes-form').hidden = false; $('notes').focus();
+    $('notes-form').hidden = false; $('notes').focus(); fitFooter();
+  }
+
+  function signOut() {
+    generation += 1;                                 // every in-flight request for the old person is dropped
+    key = ''; actor = null; doc = null; busy = false; closeNotes();
+    $('summary-panel').hidden = true; $('confirm-bar').hidden = true; $('sign-in-panel').hidden = false; $('sign-out').hidden = true;
+    $('sections').innerHTML = ''; $('title').textContent = ''; $('status-banner').hidden = true;
+    applyLanguage(); notice(''); fitFooter();
   }
 
   async function signIn(personalKey) {
+    signOut();
     key = personalKey || DASHBOARD_KEY;
+    const s = stamp();
     try {
-      const who = await api('/auth/whoami');
+      const who = await api('/auth/whoami', { withKey: s.key });
+      if (!current(s)) return;
       actor = who.actor || null;
       $('sign-in-panel').hidden = true; $('summary-panel').hidden = false; $('sign-out').hidden = false; $('actor-key').value = '';
       applyLanguage(); await load();
-    } catch (error) { key = ''; actor = null; notice(errorText(error, language)); }
+    } catch (error) { if (!current(s)) return; key = ''; actor = null; notice(errorText(error, language)); }
   }
 
   $('sign-in-form').addEventListener('submit', event => { event.preventDefault(); const v = $('actor-key').value.trim(); if (v) signIn(v); else notice(t('Enter your key or choose read-only.', 'Escribe tu clave o elige solo lectura.')); });
   $('read-only').addEventListener('click', () => signIn(''));
-  $('sign-out').addEventListener('click', () => { key = ''; actor = null; doc = null; $('summary-panel').hidden = true; $('confirm-bar').hidden = true; $('sign-in-panel').hidden = false; $('sign-out').hidden = true; applyLanguage(); notice(''); });
+  $('sign-out').addEventListener('click', signOut);
   $('language').addEventListener('click', () => { language = language === 'en' ? 'es' : 'en'; localStorage.setItem('fl-shift-language', language); applyLanguage(); if (doc) load(); });
   $('date').max = plantToday(); $('date').value = plantToday();
-  $('date').addEventListener('change', () => { if ($('date').value > plantToday()) $('date').value = plantToday(); load(); });
-  $('today').addEventListener('click', () => { $('date').value = plantToday(); load(); });
-  $('yesterday').addEventListener('click', () => { $('date').value = shiftDate(-1); load(); });
+  $('date').addEventListener('change', () => { if ($('date').value > plantToday()) $('date').value = plantToday(); closeNotes(); load(); });
+  $('today').addEventListener('click', () => { $('date').value = plantToday(); closeNotes(); load(); });
+  $('yesterday').addEventListener('click', () => { $('date').value = shiftDate(-1); closeNotes(); load(); });
   $('refresh').addEventListener('click', load);
   $('confirm-match').addEventListener('click', () => sendConfirm('match', ''));
   $('confirm-notes').addEventListener('click', () => openNotes('match'));
   $('confirm-missing').addEventListener('click', () => openNotes('discrepancy'));
-  $('notes-cancel').addEventListener('click', () => { $('notes-form').hidden = true; });
+  $('notes-cancel').addEventListener('click', closeNotes);
   $('notes-form').addEventListener('submit', event => {
     event.preventDefault();
-    const notes = $('notes').value.trim();
-    if (pendingOutcome === 'discrepancy' && !notes) { notice(t('Say what is missing so the owner can act on it.', 'Indica qué falta para que el dueño pueda actuar.')); return; }
-    sendConfirm(pendingOutcome, notes);
+    const notes = $('notes').value;                  // sent verbatim (contract §3.1); only the blank check trims
+    if (!pendingNotes || !doc || pendingNotes.date !== doc.date || pendingNotes.date !== $('date').value || pendingNotes.key !== key) {
+      closeNotes(); notice(t('The day or the person changed — open the notes again.', 'Cambió el día o la persona — abre las notas otra vez.')); return;
+    }
+    if (pendingNotes.outcome === 'discrepancy' && !notes.trim()) { notice(t('Say what is missing so the owner can act on it.', 'Indica qué falta para que el dueño pueda actuar.')); return; }
+    sendConfirm(pendingNotes.outcome, notes);
   });
-  applyLanguage();
+  applyLanguage(); fitFooter();
 })(typeof window !== 'undefined' ? window : globalThis);

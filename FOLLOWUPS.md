@@ -332,10 +332,11 @@ https://github.com/sevenwells72/factory-ledger/pull/99#issuecomment-6131307183.
 ---
 
 **P1.21 A9 follow-ups (found 2026-10-13, building `feat/shift-summary`).**
-(a) `production_runs` has no ticket/transaction link, so the shift summary's NOT ENTERED YET
-section lists every run of the day still `planned`/`in_progress` (contract §2.3 says "without a
-linked MK/PK"); a `production_runs.ticket_id`/`completed_receipt_number` set at make/pack commit
-(or at the run's `done` transition) would make that rule exact. (b) `VOIDED` rows need `void`
+(a) `production_runs` has no ticket/transaction link; since the 2026-10-13 fix round the shift
+summary treats a run still `planned`/`in_progress` as entered when a committed MK/PK receipt for
+its product happened on its planned date (contract §8 item 3 — product + plant day + action, one
+receipt per run). A `production_runs.ticket_id`/`completed_receipt_number` set at make/pack commit
+(or at the run's `done` transition) would make the link exact instead of inferred. (b) `VOIDED` rows need `void`
 tickets (`VD-` receipts); until then the section is present and empty and a legacy-route void shows
 as flag `VOIDED` with `voided_by_receipt_number: null`. (c) `INVOICE_PENDING` (A8) and
 `EXTRA_KOSHER` (A12 follow-up, contract §2.2) are not emitted yet. (d) Confirmations are not

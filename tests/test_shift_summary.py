@@ -3,11 +3,14 @@ frozen contract (docs/contracts/shift-summary.md). Real HTTP through the TestCli
 on the rolled-back test transaction; every section is exercised with a ticketed
 receipt, the hash rules of §1.3 are asserted directly, and the permission matrix
 of §1.1 / §3 is walked key by key."""
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from pathlib import Path
 from uuid import uuid4
 
+from fastapi.testclient import TestClient
 import psycopg2
+from psycopg2.extras import RealDictCursor
 import pytest
 
 import main
@@ -17,8 +20,11 @@ from scripts.exceptions_sweep import sweep
 from tests.test_actor_attribution import client, actors  # noqa: F401
 from tests.test_write_tickets import headers, commit, error, seed as seed_receive, isolated_database  # noqa: F401
 from tests.test_write_tickets_part2 import items, body, prepare  # noqa: F401
-from tests.test_exceptions_enforcement import set_balance, adjust, found, exceptions_for
+from tests.test_exceptions_enforcement import set_balance, adjust, found, exceptions_for, seed_photo, race_actors, Race
 from tests.test_ship_tickets import seed_shipping, prepared as ship_prepared, upload, storage  # noqa: F401
+from tests.test_order_tickets import catalog, create_order  # noqa: F401
+from tests.test_a7_review_fixes import incoming  # noqa: F401
+from tests.test_lot_confirmation import move as move_lot
 
 pytestmark = pytest.mark.db
 ROOT = Path(__file__).resolve().parent.parent
@@ -266,7 +272,8 @@ def test_large_correction_flag_from_the_review(client, db_cursor, items, actors)
     result, p = posted(client, 'adjust', adjust(items, -150), key)
     [row] = section(summary(client, key), 'adjusted')['rows']
     [flag] = row['flags']
-    assert flag['code'] == 'LARGE_CORRECTION' and flag['refs'] == {'exception_id': None, 'delta_lb': -150, 'pct': 0.15}
+    assert flag['code'] == 'LARGE_CORRECTION'
+    assert flag['refs'] == {'exception_id': None, 'delta_lb': -150, 'pct': 0.15, 'resolution': None, 'approved_by_actor_id': None}
     assert flag['message_en'] == 'LARGE CORRECTION −150 lb (15% of lot)' and flag['message_es'] == 'CORRECCIÓN GRANDE −150 lb (15% del lote)'
 
 
@@ -289,8 +296,10 @@ def test_late_entries_section_flag_and_hours(client, db_cursor, items, actors):
     # It happened two days ago, so it also shows on that day's summary — flagged as entered on a later day.
     then = summary(client, key, date=row['happened_at'][:10])
     [back] = section(then, 'made')['rows']
-    assert back['receipt_number'] == late['receipt_number'] and back['entered_on_later_day'] is True
-    assert section(then, 'late_entries')['count'] == 1
+    assert back['receipt_number'] == late['receipt_number'] and back['entered_on_later_day'] is True and back['late_entry'] is True
+    # ...but it is not a late entry OF that day: §2.6 lists receipts ENTERED on the queried day (review item 3).
+    assert section(then, 'late_entries')['count'] == 0 and section(then, 'late_entries')['rows'] == []
+    assert then['receipts_today'] == 1
     # The owner's late entry opens no exception → late_entry true, no LATE_ENTRY flag.
     owner_late, _ = posted(client, 'adjust', adjust(items, 2) | {'occurred_at': (main.get_plant_now() - timedelta(hours=60)).isoformat()}, actors['owner']['key'])
     [o] = section(summary(client, actors['owner']['key']), 'late_entries')['rows']
@@ -567,3 +576,271 @@ def test_migration_076_up_down_up(isolated_database):
         cur.execute("SELECT relrowsecurity FROM pg_class WHERE relname='shift_confirmations'")
         assert cur.fetchone()[0] is True
         conn.rollback()
+
+
+# ---------------------------------------------------------------------------
+# Fix round 2026-10-13 (Codex review of PR #102, comment 6149165326)
+# ---------------------------------------------------------------------------
+def test_repeated_discrepancy_reuses_the_open_exception_until_the_owner_resolves_it(client, db_cursor, items, actors):
+    """Item 1: one SHIFT_DISCREPANCY per (actor, day) while it is open; every confirmation still appends."""
+    key = actors['floor']['key']
+    doc = summary(client, key)
+    first = confirm(client, key, doc, outcome='discrepancy', notes='oats delivery missing')
+    assert first.status_code == 201, first.text
+    exc_id = first.json()['exception']['id']
+    # The same POST again (a retry) and a different note later: no second exception.
+    again = confirm(client, key, doc, outcome='discrepancy', notes='oats delivery missing')
+    third = confirm(client, key, doc, outcome='discrepancy', notes='also the pallet move')
+    assert again.status_code == 201 and third.status_code == 201, (again.text, third.text)
+    assert again.json()['exception'] == third.json()['exception'] == {'id': exc_id, 'kind': 'SHIFT_DISCREPANCY'}
+    assert len({first.json()['confirmation_id'], again.json()['confirmation_id'], third.json()['confirmation_id']}) == 3
+    [exc] = exceptions_for(db_cursor, kind='SHIFT_DISCREPANCY', owner_actor_id=actors['owner']['id'])
+    assert exc['id'] == exc_id and exc['status'] == 'open'
+    assert exc['detail']['notes'] == 'also the pallet move' and exc['detail']['confirmations'] == 3 and exc['detail']['reconfirmed_at']
+    assert exc['detail']['business_date'] == doc['date'] and exc['detail']['actor_id'] == actors['floor']['id']
+    db_cursor.execute('SELECT exception_id FROM shift_confirmations WHERE business_date=%s AND actor_id=%s ORDER BY id', (doc['date'], actors['floor']['id']))
+    assert [r['exception_id'] for r in db_cursor.fetchall()] == [exc_id] * 3
+    assert section(summary(client, actors['owner']['key']), 'open_exceptions')['rollup_en'] == '1 shift discrepancy'
+    # A match in between does not close it; another person's discrepancy for the same day is their own.
+    assert confirm(client, key, doc).status_code == 201
+    other = confirm(client, actors['office']['key'], summary(client, actors['office']['key']), outcome='discrepancy', notes='mine')
+    assert other.status_code == 201 and other.json()['exception']['id'] != exc_id
+    # Once the owner resolves it, a new discrepancy opens a new exception.
+    db_cursor.execute("UPDATE exceptions SET status='resolved', resolved_at=clock_timestamp(), resolution_kind='acknowledged' WHERE id=%s", (exc_id,))
+    fresh = confirm(client, key, summary(client, key), outcome='discrepancy', notes='still missing')
+    assert fresh.status_code == 201 and fresh.json()['exception']['id'] > exc_id
+    assert len(exceptions_for(db_cursor, kind='SHIFT_DISCREPANCY', owner_actor_id=actors['owner']['id'])) == 3
+
+
+def test_concurrent_discrepancies_append_two_confirmations_and_open_one_exception(isolated_database, monkeypatch):
+    """Item 1, concurrency: two simultaneous "something is missing" taps serialise on the (actor, day) lock."""
+    keys, items_, ids = race_actors(isolated_database)
+    race = Race(isolated_database)
+    monkeypatch.setattr(main, 'get_db_connection', race.connection)
+    main._reset_actor_cache()
+    with TestClient(main.app) as http:
+        doc = summary(http, keys['floor'])
+        race.on = True
+        post = lambda: confirm(http, keys['floor'], doc, outcome='discrepancy', notes='race')
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            results = [f.result(timeout=30) for f in [executor.submit(post) for _ in range(2)]]
+        race.on = False
+        assert [r.status_code for r in results] == [201, 201], [r.text for r in results]
+        a, b = (r.json() for r in results)
+        assert a['confirmation_id'] != b['confirmation_id'] and a['exception'] == b['exception']
+        with psycopg2.connect(isolated_database) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("SELECT count(*) AS n FROM exceptions WHERE kind='SHIFT_DISCREPANCY' AND detail->>'actor_id'=%s", (str(ids['floor']),))
+            assert cur.fetchone()['n'] == 1
+            cur.execute('SELECT count(*) AS n FROM shift_confirmations WHERE actor_id=%s', (ids['floor'],))
+            assert cur.fetchone()['n'] == 2
+
+
+def test_metadata_receipts_are_listed_outside_the_sections_never_as_adjustments(client, db_cursor, items, catalog, incoming, actors):
+    """Item 2: ORD / ER / LOT receipts are receipts (GET /receipts parity) but not ledger postings."""
+    office, floor = actors['office']['key'], actors['floor']['key']
+    order = create_order(client, catalog, office)
+    er = commit(client, client.post('/expected-receipts/prepare', json=incoming, headers=headers(office)).json(), office).json()
+    adj, _ = posted(client, 'adjust', adjust(items, -1), floor)
+    h = summary(client, floor)['summary_hash']
+    md, moved = move_lot(client, items['ingredient'], floor)
+    for key, mine, theirs in ((office, [order, er], [moved, adj]), (floor, [moved, adj], [order, er])):
+        doc = summary(client, key)
+        listed = {r['receipt_number'] for s in doc['sections'] if s['key'] in shift_summary.RECEIPT_SECTIONS for r in s['rows']}
+        other = {r['receipt_number']: r for r in doc['other_receipts']['rows']}
+        assert not any(r['receipt_number'] in (order['receipt_number'], er['receipt_number'], moved['receipt_number']) for r in section(doc, 'adjusted')['rows'])
+        assert order['receipt_number'] not in listed and er['receipt_number'] not in listed and moved['receipt_number'] not in listed
+        # Parity with GET /receipts: every committed receipt of the day is either a section row or an other_receipts row.
+        receipts = client.get('/receipts', params={'date': doc['date'], 'actor': doc['actor']['name']}, headers=headers(key)).json()
+        assert {r['receipt_number'] for r in receipts['receipts'] if r['status'] == 'committed'} == listed | set(other)
+        assert doc['receipts_today'] == len(listed) and doc['other_receipts']['count'] == len(other)
+    office_doc = summary(client, office)
+    other = {r['receipt_number']: r for r in office_doc['other_receipts']['rows']}
+    o = other[order['receipt_number']]
+    assert o['action'] == 'create_order' and o['kind'] == 'order' and o['status'] == 'committed' and o['actor']['id'] == actors['office']['id']
+    assert o['refs']['order_id'] == order['order_id'] and o['refs']['order_number'] and o['refs']['order_number'] in o['line_en']
+    assert o['line_en'].startswith(f'{order["receipt_number"]}  order created  ') and 'pedido creado' in o['line_es'] and o['line'] == o['line_en']
+    e = other[er['receipt_number']]
+    assert e['kind'] == 'expected_receipt' and e['refs']['expected_receipt_ids'] == [er['expected_receipt_id']] and 'expected receipt created' in e['line_en']
+    assert office_doc['other_receipts']['label_en'].startswith('OTHER ENTRIES') and office_doc['other_receipts']['label'] == office_doc['other_receipts']['label_en']
+    floor_doc = summary(client, floor)
+    m = {r['receipt_number']: r for r in floor_doc['other_receipts']['rows']}[moved['receipt_number']]
+    assert m['kind'] == 'lot_move' and m['refs']['lot_id'] == items['ingredient']['lot_id'] and f'lot {items["ingredient"]["lot_code"]}' in m['line_en']
+    assert section(floor_doc, 'adjusted')['count'] == 1 and floor_doc['receipts_today'] == 1
+    # They never enter the hash: the floor's hash is the same as before the lot move was recorded.
+    assert floor_doc['summary_hash'] == h
+    all_view = summary(client, main.DASHBOARD_API_KEY)
+    assert all_view['other_receipts']['count'] >= 2 and all_view['other_receipts']['empty_es'] == 'ninguno'
+
+
+def test_planned_run_is_entered_once_a_matching_make_or_pack_receipt_exists(client, db_cursor, items, actors):
+    """Item 2: "without a linked MK/PK" = no committed make/pack receipt for the run's product on its planned day."""
+    key = actors['floor']['key']
+    today = main.get_plant_now().date()
+    runs = {}
+    for label, product, run_type in (('bake', items['batch']['id'], 'bake'), ('pack1', items['finished']['id'], 'pack'), ('pack2', items['finished']['id'], 'pack')):
+        db_cursor.execute("INSERT INTO production_runs(product_id,planned_qty_lb,planned_date,status,run_type) VALUES (%s,100,%s,'planned',%s) RETURNING id",
+                          (product, today, run_type))
+        runs[label] = db_cursor.fetchone()['id']
+    pending = lambda doc: [r['ref']['production_run_id'] for r in section(doc, 'not_entered_yet')['rows'] if r['kind'] == 'production_run']
+    assert pending(summary(client, key)) == [runs['bake'], runs['pack1'], runs['pack2']]
+    posted(client, 'make', body('make', items), key)
+    assert pending(summary(client, key)) == [runs['pack1'], runs['pack2']]
+    # Expectations are plant-wide: another actor's pack covers the first pack run in every view.
+    posted(client, 'pack', body('pack', items), actors['owner']['key'])
+    assert pending(summary(client, key)) == [runs['pack2']] == pending(summary(client, main.DASHBOARD_API_KEY))
+    # A make does not cover a pack run; a second pack does.
+    posted(client, 'make', body('make', items), key)
+    assert pending(summary(client, key)) == [runs['pack2']]
+    posted(client, 'pack', body('pack', items) | {'cases': 3}, key)
+    assert pending(summary(client, key)) == []
+    # Yesterday's planned run is not covered by today's receipts.
+    db_cursor.execute("UPDATE production_runs SET planned_date=%s WHERE id=%s", (today - timedelta(days=1), runs['pack2']))
+    assert pending(summary(client, key, date=(today - timedelta(days=1)).isoformat())) == [runs['pack2']]
+
+
+def test_adjust_and_found_balances_are_the_commit_time_balances(client, db_cursor, items, actors):
+    """Item 4: before/after come from the commit, not from the prepare-time draft."""
+    key = actors['floor']['key']
+    p = prepare(client, 'adjust', adjust(items, 1), key)
+    assert p['draft']['current_quantity_lb'] == 100
+    posted(client, 'adjust', adjust(items, 10), actors['owner']['key'])       # someone else moves the lot in between
+    r = commit(client, p, key, acknowledged_warnings=[w['code'] for w in p['warnings'] if w.get('requires_ack')])
+    assert r.status_code == 200, r.text
+    [row] = [x for x in section(summary(client, key), 'adjusted')['rows'] if x['receipt_number'] == r.json()['receipt_number']]
+    assert (row['detail']['lot_on_hand_before'], row['detail']['lot_on_hand_after'], row['detail']['delta_lb']) == (110, 111, 1)
+    # Found stock on an EXISTING lot states the balance it was added to.
+    f, _ = posted(client, 'found', found(items, 5, lot_code=items['ingredient']['lot_code']), key)
+    assert f['lot_id'] == items['ingredient']['lot_id'] and f['new_balance_lb'] == 116
+    [row] = [x for x in section(summary(client, key), 'adjusted')['rows'] if x['receipt_number'] == f['receipt_number']]
+    assert (row['detail']['lot_on_hand_before'], row['detail']['lot_on_hand_after'], row['detail']['delta_lb']) == (111, 116, 5)
+    # A found lot that did not exist starts at zero.
+    g, _ = posted(client, 'found', found(items, 7), key)
+    [row] = [x for x in section(summary(client, key), 'adjusted')['rows'] if x['receipt_number'] == g['receipt_number']]
+    assert (row['detail']['lot_on_hand_before'], row['detail']['lot_on_hand_after']) == (0, 7)
+
+
+def test_large_correction_keeps_its_approval_or_photo_reference_after_resolution(client, db_cursor, items, actors):
+    """Item 4: the hold's exception is resolved by the approval/photo that posts the receipt — the reference must survive."""
+    key, owner = actors['floor']['key'], actors['owner']['key']
+    set_balance(db_cursor, items, 'ingredient', 1000)
+    # (a) owner approval
+    p = prepare(client, 'adjust', adjust(items, 600, 'missing_receipt'), key)
+    held = commit(client, p, key)
+    assert held.status_code == 202, held.text
+    exc_id = held.json()['exception_id']
+    approved = client.post(f'/exceptions/{exc_id}/approve', json={'note': 'seen'}, headers=headers(owner))
+    assert approved.status_code == 200, approved.text
+    doc = summary(client, key)
+    [row] = [x for x in section(doc, 'adjusted')['rows'] if x['receipt_number'] == approved.json()['receipt_number']]
+    [flag] = [f for f in row['flags'] if f['code'] == 'LARGE_CORRECTION']
+    assert flag['refs'] == {'exception_id': exc_id, 'delta_lb': 600, 'pct': 0.6, 'resolution': 'approved', 'approved_by_actor_id': actors['owner']['id']}
+    assert flag['message_en'] == f'LARGE CORRECTION +600 lb (60% of lot) — approved by {actors["owner"]["name"]}'
+    assert flag['message_es'].endswith(f'— aprobada por {actors["owner"]["name"]}')
+    assert row['exceptions_opened'] == [exc_id] and row['detail']['photo_attached'] is False
+    assert (row['detail']['lot_on_hand_before'], row['detail']['lot_on_hand_after']) == (1000, 1600)
+    [exc] = exceptions_for(db_cursor, id=exc_id)
+    assert exc['status'] == 'resolved'                       # not open, still referenced
+    # (b) a photo releases a held found
+    q = prepare(client, 'found', found(items, 700, 'missing_receipt'), key)   # 700 ≠ 600: no POSSIBLE_DUPLICATE ack needed
+    held2 = commit(client, q, key)
+    assert held2.status_code == 202, held2.text
+    seed_photo(db_cursor, actors['floor']['id'], 'photos/a9.jpg')
+    released = commit(client, q, key, attachment_ref='photos/a9.jpg')
+    assert released.status_code == 200, released.text
+    [row2] = [x for x in section(summary(client, key), 'adjusted')['rows'] if x['receipt_number'] == released.json()['receipt_number']]
+    [flag2] = [f for f in row2['flags'] if f['code'] == 'LARGE_CORRECTION']
+    assert flag2['refs']['exception_id'] == held2.json()['exception_id'] and flag2['refs']['resolution'] == 'photo_attached'
+    assert flag2['refs']['approved_by_actor_id'] is None and flag2['message_en'].endswith('— photo attached') and flag2['message_es'].endswith('— con foto')
+    assert row2['detail']['photo_attached'] is True and row2['exceptions_opened'] == [held2.json()['exception_id']]
+    # The hash is stable across re-reads (the resolved reference does not drift).
+    assert summary(client, key)['summary_hash'] == summary(client, key)['summary_hash']
+
+
+def test_voided_make_and_pack_keep_their_original_quantities(client, db_cursor, items, actors):
+    """Item 5: a voided receipt stays listed with what it recorded; only live balances drop it."""
+    key = actors['floor']['key']
+    mk, _ = posted(client, 'make', body('make', items), key)
+    pk, _ = posted(client, 'pack', body('pack', items), key)
+    before = summary(client, key)
+    for result in (mk, pk):
+        r = client.post(f'/void/{result["transaction_id"]}', json={'reason': 'entered twice'}, headers=headers())
+        assert r.status_code == 200, r.text
+    doc = summary(client, key)
+    [made] = section(doc, 'made')['rows']
+    [packed] = section(doc, 'packed')['rows']
+    assert made['effective_status'] == 'voided' and made['quantity']['lb'] == 10 and made['detail']['output_lb'] == 10
+    assert made['transactions'] == [{'id': mk['transaction_id'], 'type': 'make', 'effective_status': 'voided'}]
+    assert [f['code'] for f in made['flags']] == ['VOIDED'] and made['flags'][0]['refs'] == {'voided_by_receipt_number': None}
+    assert '  10 lb  lot ' in made['line_en'] and made['detail']['ingredients'][0]['quantity_lb'] == 10
+    assert packed['effective_status'] == 'voided' and packed['quantity'] == packed['quantity'] | {'lb': 10, 'cases': 2, 'display_en': '2 cases (10 lb)'}
+    assert packed['detail']['cases'] == 2 and packed['detail']['lb'] == 10 and [f['code'] for f in packed['flags']] == ['VOIDED']
+    assert doc['receipts_today'] == 2 and doc['summary_hash'] != before['summary_hash']
+    # Voided lines never enter LOT BALANCES: nothing of today's is posted any more.
+    assert section(doc, 'lot_balances_touched')['rows'] == []
+    assert main.lot_on_hand(db_cursor, items['ingredient']['lot_id']) == 100 and main.lot_on_hand(db_cursor, items['batch']['lot_id']) == 100
+    # Void one of two: the posted one still moves the balance, the voided one keeps its amount.
+    mk2, _ = posted(client, 'make', body('make', items) | {'batches': 2}, key)
+    doc = summary(client, key)
+    rows = {r['receipt_number']: r for r in section(doc, 'made')['rows']}
+    assert rows[mk['receipt_number']]['quantity']['lb'] == 10 and rows[mk2['receipt_number']]['quantity']['lb'] == 20
+    balances = {b['lot']['id']: b for b in section(doc, 'lot_balances_touched')['rows']}
+    assert balances[items['ingredient']['lot_id']]['delta_lb'] == -20 and balances[items['ingredient']['lot_id']]['receipts'] == [mk2['receipt_number']]
+    assert mk['lot_id'] not in balances and balances[mk2['lot_id']]['after_lb'] == 20
+
+
+def test_dst_edges_elapsed_hours_and_ordering_use_instants(client, db_cursor, items, actors):
+    """Item 6: hours_late across spring-forward is real elapsed time; fall-back receipts order by instant."""
+    owner = actors['owner']['key']
+    # Spring forward (2026-03-08, 02:00 EST → 03:00 EDT): entered 03:00 EDT is ONE real hour after 01:00 EST.
+    spring, p = posted(client, 'adjust', adjust(items, 1) | {'occurred_at': '2026-03-08T01:00:00-05:00', 'backfill': True}, owner)
+    # Committed tickets are immutable; the fixture lifts the trigger inside the rolled-back test transaction only.
+    db_cursor.execute('ALTER TABLE write_tickets DISABLE TRIGGER write_tickets_preserve_committed')
+    db_cursor.execute("""UPDATE write_tickets SET committed_at=%s, response=response-'entry_timing' WHERE id=%s""",
+                      ('2026-03-08T03:00:00-04:00', p['ticket_id']))
+    doc = summary(client, owner, date='2026-03-08')
+    [row] = section(doc, 'adjusted')['rows']
+    assert row['receipt_number'] == spring['receipt_number'] and row['entered_at'] == '2026-03-08T03:00:00-04:00'
+    assert row['hours_late'] == 1.0 and row['days_late'] == 0 and row['late_entry'] is False and row['entered_on_later_day'] is False
+    assert section(doc, 'late_entries')['rows'] == []
+    # Fall back (2025-11-02, 02:00 EDT → 01:00 EST): 01:15 EST happened AFTER 01:45 EDT.
+    a, _ = posted(client, 'adjust', adjust(items, 2) | {'occurred_at': '2025-11-02T01:45:00-04:00', 'backfill': True}, owner)
+    b, _ = posted(client, 'adjust', adjust(items, 3) | {'occurred_at': '2025-11-02T01:15:00-05:00', 'backfill': True}, owner)
+    doc = summary(client, owner, date='2025-11-02')
+    assert [r['receipt_number'] for r in section(doc, 'adjusted')['rows']] == [a['receipt_number'], b['receipt_number']]
+    assert [r['happened_at'] for r in section(doc, 'adjusted')['rows']] == ['2025-11-02T01:45:00-04:00', '2025-11-02T01:15:00-05:00']
+    # Both were entered today, long after: today's LATE ENTRIES lists them (b first: fewer hours late? no — a happened earlier → more hours).
+    late = [r['receipt_number'] for r in section(summary(client, owner), 'late_entries')['rows'] if r['receipt_number'] in (a['receipt_number'], b['receipt_number'])]
+    assert late == [a['receipt_number'], b['receipt_number']]
+    rows = {r['receipt_number']: r for r in section(summary(client, owner), 'late_entries')['rows']}
+    assert rows[a['receipt_number']]['hours_late'] - rows[b['receipt_number']]['hours_late'] == 0.5
+    # The stored entry_timing (write_tickets) and the recomputed fallback agree.
+    db_cursor.execute("UPDATE write_tickets SET response=response-'entry_timing' WHERE receipt_number=%s", (a['receipt_number'],))
+    db_cursor.execute('ALTER TABLE write_tickets ENABLE TRIGGER write_tickets_preserve_committed')
+    again = {r['receipt_number']: r for r in section(summary(client, owner), 'late_entries')['rows']}
+    assert abs(again[a['receipt_number']]['hours_late'] - rows[a['receipt_number']]['hours_late']) < 0.02
+
+
+def test_notes_are_stored_verbatim(client, db_cursor, items, actors):
+    """Item 7: §3.1 — notes are stored as sent; only the blank check trims."""
+    key = actors['floor']['key']
+    doc = summary(client, key)
+    notes = '  two leading spaces, a tab\t and a trailing newline\n'
+    r = confirm(client, key, doc, notes=notes)
+    assert r.status_code == 201, r.text
+    assert r.json()['notes'] == notes and r.json()['message_en'] == 'Shift recorded as: matches the floor, with notes.'
+    db_cursor.execute('SELECT notes FROM shift_confirmations WHERE id=%s', (r.json()['confirmation_id'],))
+    assert db_cursor.fetchone()['notes'] == notes
+    assert summary(client, key)['confirmation']['latest']['notes'] == notes
+    d = confirm(client, key, doc, outcome='discrepancy', notes=' missing \n')
+    assert d.status_code == 201, d.text
+    assert d.json()['notes'] == ' missing \n'
+    [exc] = exceptions_for(db_cursor, id=d.json()['exception']['id'])
+    assert exc['detail']['notes'] == ' missing \n'
+    error(confirm(client, key, doc, outcome='discrepancy', notes=' \n\t'), 422, 'NOTES_REQUIRED')
+
+
+def test_actor_me_is_the_caller(client, db_cursor, actors):
+    """The merged F1 Assistant (PR #90) asks for `actor=me`."""
+    me = summary(client, actors['floor']['key'], actor='me')
+    assert me['actor']['id'] == actors['floor']['id'] and me['summary_hash'] == summary(client, actors['floor']['key'])['summary_hash']
+    assert summary(client, main.DASHBOARD_API_KEY, actor='me')['actor'] is None

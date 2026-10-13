@@ -90,3 +90,159 @@ test('banner reflects the latest confirmation, with notes, in both languages', (
   const missing = { ...doc, confirmation: { status: 'discrepancy', can_confirm: true, latest: { actor: { name: 'Arturo' }, confirmed_at: '2026-10-07T17:05:02-04:00', notes: 'oats' } } };
   assert.equal(ui.bannerText(missing, 'es'), 'Marcado como "falta algo" por Arturo el 2026-10-07 17:05 — oats');
 });
+
+// ---------------------------------------------------------------------------
+// Fix round 2026-10-13 (review items 8–9): the browser event handlers themselves,
+// driven through a minimal fake DOM (ids, hidden/value/textContent, listeners) and a
+// fetch stub whose responses the test releases in any order.
+// ---------------------------------------------------------------------------
+const path = require('node:path');
+const MODULE = process.env.SHIFT_SUMMARY_JS || path.resolve(__dirname, '../dashboard/shift-summary.js');
+const IDS = ['language', 'sign-out', 'identity', 'sign-in-panel', 'sign-in-form', 'actor-key', 'read-only', 'summary-panel', 'date', 'yesterday',
+  'today', 'refresh', 'load-status', 'status-banner', 'title', 'receipts-count', 'sections', 'confirm-bar', 'confirm-question', 'confirm-reason',
+  'confirm-match', 'confirm-notes', 'confirm-missing', 'notes-form', 'notes-label', 'notes', 'notes-cancel', 'notes-send', 'notice'];
+
+function element(id) {
+  return { id, hidden: false, disabled: false, value: '', textContent: '', innerHTML: '', className: '', placeholder: '', max: '', dataset: {}, offsetHeight: 0, listeners: {},
+    addEventListener(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); },
+    fire(type, event) { (this.listeners[type] || []).forEach(fn => fn({ preventDefault() {}, ...(event || {}) })); },
+    setAttribute(name, value) { this[name] = value; }, focus() {}, classList: { toggle() {} } };
+}
+
+function mount() {
+  const els = Object.fromEntries(IDS.map(id => [id, element(id)]));
+  els['confirm-bar'].offsetHeight = 225;
+  for (const id of ['sign-out', 'summary-panel', 'status-banner', 'confirm-bar', 'confirm-reason', 'notes-form', 'notice']) els[id].hidden = true;   // as in the HTML
+  const style = {};
+  const calls = [];
+  global.document = { documentElement: { lang: 'en', style: { setProperty: (k, v) => { style[k] = v; } } }, getElementById: id => els[id] || null, querySelectorAll: () => [] };
+  global.fetch = (url, init) => new Promise(resolve => {
+    const call = { url: String(url), init, body: init && init.body ? JSON.parse(init.body) : null, done: false,
+      resolve: data => { call.done = true; resolve({ ok: true, status: 200, json: async () => data }); },
+      reject: (status, data) => { call.done = true; resolve({ ok: false, status, json: async () => data }); } };
+    if (init && init.signal) init.signal.addEventListener('abort', () => call.resolve({}));
+    calls.push(call);
+  });
+  const store = {};
+  global.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = v; } };
+  global.location = { protocol: 'https:', hostname: 'fl.local', origin: 'https://fl.local', search: '' };
+  delete require.cache[MODULE];
+  require(MODULE);
+  const settle = async () => { for (let i = 0; i < 8; i++) await new Promise(r => setImmediate(r)); };
+  const finish = async () => { calls.filter(c => !c.done).forEach(c => c.resolve({})); await settle(); };
+  return { els, calls, style, settle, finish };
+}
+
+const plantToday = () => {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+  const get = type => parts.find(p => p.type === type).value;
+  return `${get('year')}-${get('month')}-${get('day')}`;
+};
+const dayBefore = iso => { const d = new Date(iso + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() - 1); return d.toISOString().slice(0, 10); };
+const forActor = (name, id, date, hash) => ({ ...doc, date, summary_hash: hash, title: `SHIFT SUMMARY — ${date} — ${name}`, title_en: `SHIFT SUMMARY — ${date} — ${name}`, actor: { id, name, role: 'floor' } });
+
+test('a response for a previous sign-in never renders under the next person', async () => {
+  const { els, calls, settle, finish } = mount();
+  const today = plantToday();
+  const docA = forActor('Arturo', 7, today, 'a'.repeat(64)), docB = forActor('Beatriz', 8, today, 'b'.repeat(64));
+  // A signs in; before FL answers, A signs out and B signs in.
+  els['actor-key'].value = 'key-A'; els['sign-in-form'].fire('submit'); await settle();
+  assert.equal(calls.length, 1); assert.match(calls[0].url, /\/auth\/whoami$/); assert.equal(calls[0].init.headers['X-API-Key'], 'key-A');
+  els['sign-out'].fire('click'); await settle();
+  els['actor-key'].value = 'key-B'; els['sign-in-form'].fire('submit'); await settle();
+  assert.equal(calls.length, 2);
+  calls[0].resolve({ actor: docA.actor }); await settle();            // A's delayed whoami
+  assert.equal(calls.length, 2, 'no summary is loaded for the signed-out person');
+  assert.equal(els['summary-panel'].hidden, true); assert.ok(!/Arturo/.test(els['identity'].textContent));
+  calls[1].resolve({ actor: docB.actor }); await settle();
+  assert.equal(els['identity'].textContent, 'Signed in as Beatriz · floor');
+  assert.equal(calls.length, 3); assert.equal(calls[2].init.headers['X-API-Key'], 'key-B');
+  calls[2].resolve(docB); await settle();
+  assert.equal(els['title'].textContent, docB.title); assert.equal(els['confirm-bar'].hidden, false);
+  // B refreshes; before FL answers, B signs out and A signs in; B's old summary then arrives.
+  els['refresh'].fire('click'); await settle();
+  assert.equal(calls.length, 4);
+  els['sign-out'].fire('click'); await settle();
+  assert.equal(els['title'].textContent, '' ); assert.equal(els['sections'].innerHTML, ''); assert.equal(els['confirm-bar'].hidden, true);
+  els['actor-key'].value = 'key-A'; els['sign-in-form'].fire('submit'); await settle();
+  calls[4].resolve({ actor: docA.actor }); await settle();
+  assert.equal(calls.length, 6);
+  calls[3].resolve(docB); await settle();                             // B's stale summary
+  assert.equal(els['title'].textContent, '', 'a stale summary never renders'); assert.equal(els['sections'].innerHTML, '');
+  assert.equal(els['confirm-bar'].hidden, true, 'no confirm buttons for a document that is not this person\'s');
+  calls[5].resolve(docA); await settle();
+  assert.equal(els['title'].textContent, docA.title); assert.equal(els['confirm-bar'].hidden, false);
+  // A confirm goes out with A's key and A's hash, never B's.
+  els['confirm-match'].fire('click'); await settle();
+  assert.equal(calls[6].init.headers['X-API-Key'], 'key-A'); assert.deepEqual(calls[6].body, { date: today, outcome: 'match', notes: '', summary_hash: docA.summary_hash, receipts_seen: 2, lang: 'en' });
+  await finish();
+});
+
+test('notes are bound to the person and the day they were opened for; text is sent verbatim', async () => {
+  const { els, calls, settle, finish } = mount();
+  const today = plantToday(), yesterday = dayBefore(today);
+  const docToday = forActor('Arturo', 7, today, 'c'.repeat(64)), docYesterday = forActor('Arturo', 7, yesterday, 'd'.repeat(64));
+  els['actor-key'].value = 'key-A'; els['sign-in-form'].fire('submit'); await settle();
+  calls[0].resolve({ actor: docToday.actor }); await settle(); calls[1].resolve(docToday); await settle();
+  assert.equal(els['title'].textContent, docToday.title);
+  els['confirm-missing'].fire('click'); await settle();
+  assert.equal(els['notes-form'].hidden, false); assert.equal(els['notes-label'].textContent, 'What is missing? (required)');
+  // Changing the day closes the notes that were opened for today.
+  els['date'].value = yesterday; els['date'].fire('change'); await settle();
+  assert.equal(els['notes-form'].hidden, true); assert.equal(calls.length, 3); assert.match(calls[2].url, new RegExp(`date=${yesterday}`));
+  calls[2].resolve(docYesterday); await settle();
+  // Notes opened for yesterday are posted for yesterday, verbatim.
+  els['confirm-missing'].fire('click'); await settle();
+  els['notes'].value = '  oats never arrived\n'; els['notes-form'].fire('submit'); await settle();
+  assert.equal(calls.length, 4); assert.match(calls[3].url, /\/confirm$/);
+  assert.deepEqual(calls[3].body, { date: yesterday, outcome: 'discrepancy', notes: '  oats never arrived\n', summary_hash: docYesterday.summary_hash, receipts_seen: 2, lang: 'en' });
+  calls[3].resolve({ message: 'Shift recorded as: something is missing.' }); await settle();
+  assert.equal(els['notes-form'].hidden, true); assert.equal(calls.length, 5);
+  calls[4].resolve(docYesterday); await settle();
+  assert.equal(els['notice'].textContent, 'Shift recorded as: something is missing.', 'FL\'s message survives the reload');
+  // Blank notes for "something is missing" never post.
+  els['confirm-missing'].fire('click'); await settle();
+  els['notes'].value = ' \n\t'; els['notes-form'].fire('submit'); await settle();
+  assert.equal(calls.length, 5); assert.equal(els['notice'].textContent, 'Say what is missing so the owner can act on it.');
+  // A form left open across a day change (Today shortcut) is closed; a stale submit posts nothing.
+  els['notes'].value = 'late text';
+  els['today'].fire('click'); await settle();
+  assert.equal(els['notes-form'].hidden, true); assert.equal(calls.length, 6);
+  els['notes-form'].fire('submit'); await settle();
+  assert.equal(calls.length, 6, 'no POST without an open, matching notes context');
+  calls[5].resolve(docToday); await settle();
+  // Sign-out while notes are open: the next person starts with no pending notes.
+  els['confirm-notes'].fire('click'); await settle(); els['notes'].value = 'mine';
+  els['sign-out'].fire('click'); await settle();
+  assert.equal(els['notes-form'].hidden, true); assert.equal(els['notes'].value, '');
+  await finish();
+});
+
+test('the measured footer height drives the page padding so nothing hides under the bar', async () => {
+  const { els, calls, style, settle, finish } = mount();
+  const today = plantToday();
+  assert.equal(style['--footer-h'], '0px', 'hidden bar reserves nothing');
+  els['actor-key'].value = 'key-A'; els['sign-in-form'].fire('submit'); await settle();
+  calls[0].resolve({ actor: { id: 7, name: 'Arturo', role: 'floor' } }); await settle(); calls[1].resolve(forActor('Arturo', 7, today, 'e'.repeat(64))); await settle();
+  assert.equal(style['--footer-h'], '225px');
+  els['confirm-bar'].offsetHeight = 331; els['confirm-notes'].fire('click'); await settle();
+  assert.equal(style['--footer-h'], '331px', 'open notes grow the reserved space');
+  els['confirm-bar'].offsetHeight = 225; els['notes-cancel'].fire('click'); await settle();
+  assert.equal(style['--footer-h'], '225px');
+  els['sign-out'].fire('click'); await settle();
+  assert.equal(style['--footer-h'], '0px');
+  await finish();
+});
+
+test('other_receipts block renders only when FL lists any, with its own label', () => {
+  assert.equal(ui.otherReceiptsHtml({ count: 0, rows: [] }, 'en'), '');
+  assert.equal(ui.otherReceiptsHtml(undefined, 'en'), '');
+  const other = { label: 'OTHER ENTRIES (orders, expected receipts, lot moves)', label_en: 'OTHER ENTRIES (orders, expected receipts, lot moves)', count: 1,
+    rows: [{ receipt_number: 'ORD-261007-001', action: 'create_order', kind: 'order', actor: { name: 'Lucía' }, entered_at: '2026-10-07T09:00:00-04:00', late_entry: false,
+      line: 'ORD-261007-001  order created  SO-261007-001 Setton <Farms>  08:59', line_en: 'ORD-261007-001  order created  SO-261007-001 Setton <Farms>  08:59' }] };
+  const html = ui.otherReceiptsHtml(other, 'en');
+  assert.ok(html.includes('data-key="other_receipts"') && html.includes('<span>OTHER ENTRIES (orders, expected receipts, lot moves)</span><span class="count">1</span>'));
+  assert.ok(html.includes('Setton &lt;Farms&gt;') && html.includes('Lucía · entered 09:00'));
+  const whole = ui.summaryHtml({ ...doc, other_receipts: other }, 'en');
+  assert.ok(whole.endsWith('</section>') && whole.indexOf('data-key="other_receipts"') > whole.indexOf('data-key="late_entries"'));
+});
