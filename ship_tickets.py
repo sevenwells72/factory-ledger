@@ -283,6 +283,7 @@ def commit(api,cur,row,body,actor,request,entry_timing):
             result['policy_acknowledgements']=[{'code':'SHIP_NOT_SAME_DAY','actor':dict(actor),
                 'acknowledged_at':shipment['created_at'],**day_warning['refs']}]
         if row['action']=='ship_order': result['packing_slip_url']=packing_link(payload['order_id'],receipt)
+        kosher_tiers.snapshot_response(cur,result,row['action'],ctx['draft'],lot_ids=actual_lots)
         result=wt.json_value(api,result)
     except HTTPException as exc:
         if exc.status_code>=500: raise

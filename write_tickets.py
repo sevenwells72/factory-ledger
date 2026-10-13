@@ -425,7 +425,7 @@ def receipt_detail(api, cur, number):
     if ticket['action'] in SHIP_ACTIONS:
         cur.execute('SELECT id,sales_order_id,bol_reference,proof_status,proof_due_at,entered_by_actor_id FROM shipments WHERE ticket_id=%s', (ticket['id'],))
         shipment = cur.fetchone()
-    return {'kosher_tier':ticket['draft'].get('kosher_tier','regular'), 'shipment': shipment, 'receipt_number': number, 'action': ticket['action'], 'status': ticket['status'],
+    receipt = {'shipment': shipment, 'receipt_number': number, 'action': ticket['action'], 'status': ticket['status'],
             'order': order, 'expected_receipts': expected,
             'actor': ticket['draft']['actor'], 'operator_id': ticket['operator_id'],
             'client_source': ticket['client_source'], 'happened_at': happened,
@@ -433,6 +433,8 @@ def receipt_detail(api, cur, number):
             'draft': ticket['draft'], 'response': ticket['response'],
             'warnings': ticket['warnings'], 'acknowledged': ticket['acknowledged'],
             'transactions': transactions, 'lots': lots}
+    receipt.update(kosher_tiers.summary_fields(receipt))
+    return receipt
 
 
 def receipt_numbers(cur, day, *, actor_terms=None, action=None, status=None, client_source=None, policy_code=None):
@@ -561,6 +563,7 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
             # A photo released the hold on the normal commit path.
             a3b.release_hold(cur, row['id'], resolution_kind='photo_attached', actor_id=actor['id'], note=None,
                              response={**response, 'receipt_number': receipt}, attachment_ref=photo)
+        a12.snapshot_response(cur, response, row['action'], draft)
         response = json_value(api, response)
     except HTTPException as exc:
         if exc.status_code >= 500:

@@ -8,6 +8,75 @@ from psycopg2.extras import Json
 import permissions
 
 EXTRA = 'extra_kosher'
+SUMMARY_FIELDS = ('kosher_tier', 'kosher_label', 'transaction_kosher_downgrade',
+                  'kosher_attested_by_actor_id', 'kosher_attested_at')
+LOT_RECEIPT_ACTIONS = frozenset({'adjust', 'ship_order', 'ship_standalone', 'ship_bulk'})
+
+
+def summary_lots(receipt):
+    """New receipts freeze lot evidence; historical receipts use immutable lots.
+
+    Never consult products. Keep every lot's proof for multiple-lot shipments.
+    """
+    response = receipt.get('response') or {}
+    if 'kosher_lots' in response:
+        return [dict(row) for row in response['kosher_lots']]
+    return [{'lot_id': lot['id'], 'kosher_tier': tier(lot),
+             'kosher_attested_by_actor_id': lot.get('kosher_attested_by_actor_id'),
+             'kosher_attested_at': lot.get('kosher_attested_at')}
+            for lot in sorted(receipt.get('lots') or [], key=lambda lot: lot['id'])]
+
+
+def summary_fields(receipt):
+    """Five receipt fields from stored evidence, separate from preparing actor metadata."""
+    response, draft = receipt.get('response') or {}, receipt.get('draft') or {}
+    transactions = receipt.get('transactions') or []
+    transaction = transactions[0] if transactions else {}
+    sources = (response, transaction, draft)
+
+    def stored(key, default=None):
+        return next((source[key] for source in sources if key in source), default)
+
+    value = stored('kosher_tier', 'regular') or 'regular'
+    attester = stored('kosher_attested_by_actor_id')
+    attested_at = stored('kosher_attested_at')
+    if receipt.get('action') in LOT_RECEIPT_ACTIONS:
+        evidence = summary_lots(receipt)
+        if evidence:
+            # Mixed receipts have no single extra-tier claim or common attester;
+            # detail.kosher_lots keeps the individual immutable evidence visible.
+            value = EXTRA if all(row['kosher_tier'] == EXTRA for row in evidence) else 'regular'
+            first = evidence[0]
+            same_attestation = all((row.get('kosher_attested_by_actor_id'), row.get('kosher_attested_at')) ==
+                                   (first.get('kosher_attested_by_actor_id'), first.get('kosher_attested_at'))
+                                   for row in evidence)
+            attester = first.get('kosher_attested_by_actor_id') if same_attestation else None
+            attested_at = first.get('kosher_attested_at') if same_attestation else None
+    label_source = next((source for source in (response, draft)
+                         if source.get('kosher_tier') == value and source.get('kosher_label') is not None), {})
+    return {'kosher_tier': value,
+            'kosher_label': label_source.get('kosher_label', fields({'kosher_tier': value})['kosher_label']),
+            'transaction_kosher_downgrade': bool(stored('transaction_kosher_downgrade', False)),
+            'kosher_attested_by_actor_id': attester, 'kosher_attested_at': attested_at}
+
+
+def snapshot_response(cur, response, action, draft=None, *, lot_ids=None):
+    """Freeze kosher evidence before storing the committed receipt response."""
+    transactions = []
+    if action in LOT_RECEIPT_ACTIONS:
+        ids = sorted(set(lot_ids if lot_ids is not None else [response.get('lot_id')]) - {None})
+        cur.execute('''SELECT id AS lot_id,kosher_tier,kosher_attested_by_actor_id,kosher_attested_at
+                       FROM lots WHERE id=ANY(%s) ORDER BY id''', (ids,))
+        response['kosher_lots'] = [dict(row) for row in cur.fetchall()]
+    elif response.get('transaction_id') is not None:
+        cur.execute('''SELECT kosher_tier,kosher_attested_by_actor_id,kosher_attested_at,
+                              transaction_kosher_downgrade FROM transactions WHERE id=%s''',
+                    (response['transaction_id'],))
+        row = cur.fetchone()
+        transactions = [dict(row)] if row else []
+    response.update(summary_fields({'action': action, 'response': response, 'draft': draft or {},
+                                    'transactions': transactions, 'lots': []}))
+    return response
 
 def tier(row):
     return row.get('kosher_tier') or 'regular'

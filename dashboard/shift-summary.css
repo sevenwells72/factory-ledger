@@ -41,6 +41,11 @@ h1{font-size:18px;font-weight:650;margin:12px 0 4px;letter-spacing:.2px}
 .row .receipt-number{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600;font-size:13px;color:var(--accent);margin-right:6px}
 .row .meta{color:var(--muted);font-size:12px;margin-top:3px}
 .row.late .receipt-number{color:var(--amber)}
+.kosher-evidence,.kosher-lot-evidence{display:grid;gap:2px;font-size:12px;margin-top:6px;color:var(--muted)}
+.kosher-lot-evidence{padding-left:9px;border-left:2px solid var(--line)}
+.row.held{background:var(--amber-bg)}
+.approval-state{color:var(--amber);font-size:12px;font-weight:600;margin-top:6px}
+.row.held.expired .approval-state{color:var(--red)}
 .row.voided .line{text-decoration:line-through;color:var(--muted)}
 .flag{display:inline-block;margin:6px 6px 0 0;padding:4px 8px;border-radius:6px;font-size:12px;background:var(--amber-bg);color:var(--amber);border:1px solid #e3c27a}
 .flag.info{background:var(--tint);color:var(--accent);border-color:#98c6aa}

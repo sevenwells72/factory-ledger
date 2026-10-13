@@ -1,0 +1,80 @@
+{
+  "verified_at": "2026-10-13T13:27:27.981592-04:00",
+  "base_commit": "52d1701fdfb2b3a4cf5ec92a0d027067cddaf8f7",
+  "source_parent": "e4a1b30e7c74cb2fe32c2a9a45fab1ae17b46110",
+  "tested_files_sha256": {
+    "shift_summary.py": "71e8b8bddd0fa139cd68e03ac81e6fd0969a223102352ecc0669b2eeabfe77a0",
+    "kosher_tiers.py": "5c520e95c55df8e415aa43c92fa01504d666f68a2eab9c1995150cc563ae09e1",
+    "write_tickets.py": "916f2a76dec0c58ddb3fb0f283f95162714d1c1f4798a381d5f1110bae9aa917",
+    "ship_tickets.py": "91734ac8de8f48f2d98516bd363ed16c7bbebef7fcb09ab7f5ee0dc7af336aee",
+    "dashboard/shift-summary.js": "7cf7f775090ba026dab169cdb4b646a4de845e5434917d26832adbe37aa8e84a",
+    "dashboard/shift-summary.html": "0e6167c53f57ba9ab0f5ef053c5303847a458f38e635ea0a9c544b6e6fed769d",
+    "dashboard/shift-summary.css": "2a2daeed047c9fd52df7332941e9cbf261b0a072de0784b65fba7e6d96d333a9",
+    "tests/test_a12_shift_integration.py": "76346ce589749370a2859e4e376d4ddfe3de4696426a4eb340b7d6a5bc929a8d",
+    "tests/test_kosher_summary_evidence.py": "431c259d8d5d737275647f49543fa81a71a75e92584e84cd65e013f7c5a7936b",
+    "tests/test_shift_summary.py": "ee3c45a0c9b863e5ad68d0b9da294eb7f15483ff38f3e88ad71d6a492da465a5",
+    "tests/test_shift_summary_ui.js": "f369dc847a809bb8aa1fb191a6ab79fc406010bc22a9755ad2a6ab1e2e061213"
+  },
+  "database": "fresh isolated local PostgreSQL 17 UTF-8, schema.sql with 068/075/076 plus pg_trgm; no hosted DB",
+  "python": {
+    "passed": 2691,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 44.94
+  },
+  "node": {
+    "passed": 100,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "new_regressions": {
+    "python_report": 22,
+    "python_evidence": 10,
+    "node_page": 13,
+    "before_python": {
+      "source": "e4a1b30 (rebased on A9 before integration)",
+      "failed": 31,
+      "passed": 1,
+      "errors": 0,
+      "skipped": 0
+    },
+    "before_node_render": {
+      "selected": 11,
+      "failed": 11,
+      "passed": 0,
+      "excluded": 14
+    }
+  },
+  "checklist": {
+    "1": "confirmed",
+    "2": "confirmed",
+    "3": "confirmed",
+    "4": "confirmed",
+    "5": "confirmed",
+    "6": "confirmed",
+    "7": "confirmed"
+  },
+  "migration_numbers": {
+    "075": "A12 kosher_tiers, retained unchanged",
+    "076": "A9 shift_confirmations, retained unchanged; production application reported by owner",
+    "077": "sign-in PR #103 at 3b44f93e5f25a695ccbeef0ed3044f6e9ed88e74, migration blob d8d01a1b790d6cb53742529d09bd6a0974da0ea5, no A12 allocation/collision"
+  },
+  "verification": {
+    "independent_review": "no actionable issues",
+    "diff_check": "passed",
+    "syntax": "passed",
+    "gpt_openapi_operations": 30,
+    "historical_project_regression_logs": "preserved",
+    "global_icloud_log": "outside authorized work-only-in-A12 scope; unchanged"
+  },
+  "boundaries": {
+    "production_access": false,
+    "staging_access": false,
+    "other_worktree_edits": false,
+    "count_tool_edits": false,
+    "deploy": false,
+    "merge": false
+  }
+}

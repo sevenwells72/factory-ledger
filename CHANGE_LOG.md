@@ -1,5 +1,61 @@
 # Change Log
 
+## 2026-10-13 13:27 — Record final A9/A12 integration verification and review evidence
+- **File(s) changed:** `docs/deployments/a12-a9-integration-tests.json`, `docs/deployments/a12-kosher-tiers.md`, `docs/deployments/a9-shift-summary.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record fresh-DB 2,691 Python/100 Node passes, zero failures/errors/skips, checklist 1–7 completion, 45 new cases, before/after regression proof, tested-file digests, independent review and distinct 075/076/077 ownership. Preserve every historical log/acceptance note and operator production requirement.
+- **Why:** Concrete PR #101 reviewer handoff after A9 integration; global iCloud log remains outside authorized scope. No production, other worktree, deployment or merge.
+
+---
+
+## 2026-10-13 13:23 — Reconcile implemented A9/A12 contract and hash exclusions
+- **File(s) changed:** `shift_summary.py`, `tests/test_a12_shift_integration.py`, `docs/contracts/shift-summary.md`, `docs/deployments/a9-shift-summary.md`, `FOLLOWUPS.md`
+- **What changed:** Reconcile §1.3 with stored kosher hash fields and display-name/label exclusions; test live reason-label stability. Mark checklist 1–7 implemented and document held-row shape, frozen ship/adjust lot proofs, mixed-tier semantics and distinct 075/076/077 allocation. Preserve historical A9 evidence and remaining weekly/count/A10/client work.
+- **Why:** Keep the contract/deployment/followup mirrors consistent with the implementation after merged/live #102.
+
+---
+
+## 2026-10-13 13:21 — Verify stored evidence projection and correct integration fixtures
+- **File(s) changed:** `tests/test_kosher_summary_evidence.py`, `tests/test_a12_shift_integration.py`, `tests/test_shift_summary.py`
+- **What changed:** Add immutable snapshot projection unit cases; use valid synthetic lot codes and creation-time catalog tiers, A6 bulk-shipping fields, canonical reason_code and Assistant route. Extend A9 adjustment detail assertion for additive stored lot proof.
+- **Why:** Meaningful regression coverage must exercise the real creation/schema and shipping rules.
+
+---
+
+## 2026-10-13 13:20 — Integrate immutable A12 receipt snapshots into A9 reports
+- **File(s) changed:** `shift_summary.py`, `kosher_tiers.py`, `write_tickets.py`, `ship_tickets.py`
+- **What changed:** Add five kosher fields, stored ship/adjust lot proofs, extra/downgrade flags, unresolved make/found holds with owner and expiry, and stable entry hashes excluding display names/labels. Preserve A9 summary semantics.
+- **Why:** Contract §8 A12 checklist 1–7 after the 52d1701 rebase. No production/staging access; global log remains outside worktree scope.
+
+---
+
+## 2026-10-13 13:20 — Add bilingual dashboard A12 regressions
+- **File(s) changed:** `tests/test_shift_summary_ui.js`, `dashboard/shift-summary.js`
+- **What changed:** Add 13 page regressions for receive/make/pack/found five fields and EXTRA_KOSHER in EN/ES, downgrade, stored lot evidence, held-to-approved same reference, expired awaiting rejection, escaped text, and stale confirmation/reconfirmation. Complete mock reload lifecycle; simplify redundant tier-label logic.
+- **Why:** Verify contract §8 rendering without weakening A9 date/identity/notes guards.
+
+---
+
+## 2026-10-13 13:20 — Add A12 report integration regressions for checklist 1–7
+- **File(s) changed:** `tests/test_a12_shift_integration.py`, `tests/test_shift_summary.py`
+- **What changed:** Add regular/extra fields, flags/downgrade, historical receive/refusal, held make/found approval/rejection/expiry and same number, preparer/owner separation, ship/adjust lot evidence, hash stability/invalidation/stale confirmation, migration/wiring and null-guard coverage. Extend the existing reduced-hash assertion.
+- **Why:** Regression evidence for every contract §8 A12 checklist item; local test database only.
+
+---
+
+## 2026-10-13 13:20 — Show A12 kosher evidence on the shift-summary page
+- **File(s) changed:** `dashboard/shift-summary.js`, `dashboard/shift-summary.css`, `dashboard/shift-summary.html`
+- **What changed:** Render stored tier/label/downgrade, preparer and approving-owner evidence, per-lot ship/adjust tiers, held owner approval and expiry/expired-awaiting-rejection in English/Spanish; refresh asset versions. Preserve A9 request-generation/day/notes/footer guards.
+- **Why:** Contract §8 A12 checklist; scoped worktree only. Global iCloud log outside user scope remains unchanged.
+
+---
+
+## 2026-10-13 13:16 — Rebase A12 onto merged A9 52d1701
+- **File(s) changed:** `main.py`, `write_tickets.py`, `tests/schema/schema.sql`, `tests/test_write_tickets.py`, `CHANGE_LOG.md`
+- **What changed:** Rebase feat/kosher-tier onto origin/main 52d1701. Preserve both route tails/allowlists, result_ref and committed_at null guards, A9 shift-summary behavior, all prior log entries, and fresh-test includes/isolated fixture for 068/075/076.
+- **Why:** Integrate PR #101 after merged/live PR #102. Work only in this worktree; canonical global iCloud log is outside the user-authorized scope and stays unchanged. No production/staging access, deployment, other-worktree edits or merge.
+
+---
+
 ## 2026-10-13 12:45 — A9 fix round 2: failed date-load confirm guard, Michael's §8 approvals recorded, A12 handoff + stale wording corrected
 - **File(s) changed:** `dashboard/shift-summary.js`, `dashboard/shift-summary.html`, `tests/test_shift_summary_ui.js`, `docs/contracts/shift-summary.md`, `docs/design/phase1-safe-operating-system.md`, `docs/deployments/a9-shift-summary.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
 - **What changed:** Page: `load()` locks the confirm buttons while a day loads and clears the document on any failure (HTTP or network) so nothing is confirmable until a summary for the signed-in person and the selected day loads; `sendConfirm` also refuses unless the document's date equals the picker; language toggle retries by key; js cache-buster v=3; new fake-DOM regression (HTTP 500, network failure, refresh retry, language retry) that fails on 3c093fa. Docs: contract §8 header/items 2–3 now cite Michael's 2026-10-13 approvals (design §11 items 43–44: every ledger receipt with ORD/ER/LOT in `other_receipts`; one committed make/pack receipt covers ONE planned run, the rest stay under NOT ENTERED YET?) — no "needs design-doc revision" remains; design §7.3 clarification block + §11 decisions table; contract §8 closing list and deployment-doc handoff rewritten as the normative #101 checklist (held make AND found, approval/expiry display, same receipt on approval, lot-level ship/adjust evidence, preparer/attester separation, EXTRA_KOSHER incl. approved found + KOSHER_DOWNGRADE, hash additions/exclusions, eight regressions, 068/075/076 + both null guards); deployment doc base/quantity/run-matching/rebase wording corrected to a5b0ff6, original void quantities and receipt matching; fix-round-2 table with fresh-DB counts 2,524 py / 87 node; P1.21(a) cites the approval.
