@@ -305,6 +305,8 @@ def validate_receive(api, cur, payload, *, lock=False):
     fields['shipper_code_override'] = shipper['short_code']
     req = api.ReceiveRequest(**fields)
     draft = api._receive_preview_core(cur, req, product=product)
+    import kosher_tiers
+    draft.update(kosher_tiers.fields(product))
     draft.update(supplier_id=shipper['id'], supplier_name=shipper['name'])
     lots = []
     cur.execute('SELECT id, status, supplier_id FROM lots WHERE product_id=%s AND lot_code=%s' +
@@ -408,6 +410,8 @@ def receipt_detail(api, cur, number):
         lot['on_hand_lb'] = api.lot_on_hand(cur, lot['id'])
     # A5 hook: explicit supplier and lot evidence in interface-neutral receipts.
     a5.receipt_evidence(cur, transactions, lots)
+    import kosher_tiers
+    kosher_tiers.receipt_evidence(cur, transactions, lots)
     happened = datetime.fromisoformat(ticket['payload']['occurred_at'])
     entered = ticket['committed_at']   # NULL on a rejected/held ticket that already drew a number
     late = entered is not None and happened.astimezone(api.PLANT_TIMEZONE).date() != entered.astimezone(api.PLANT_TIMEZONE).date()
@@ -419,7 +423,7 @@ def receipt_detail(api, cur, number):
     if ticket['action'] in SHIP_ACTIONS:
         cur.execute('SELECT id,sales_order_id,bol_reference,proof_status,proof_due_at,entered_by_actor_id FROM shipments WHERE ticket_id=%s', (ticket['id'],))
         shipment = cur.fetchone()
-    return {'shipment': shipment, 'receipt_number': number, 'action': ticket['action'], 'status': ticket['status'],
+    return {'kosher_tier':ticket['draft'].get('kosher_tier','regular'), 'shipment': shipment, 'receipt_number': number, 'action': ticket['action'], 'status': ticket['status'],
             'order': order, 'expected_receipts': expected,
             'actor': ticket['draft']['actor'], 'operator_id': ticket['operator_id'],
             'client_source': ticket['client_source'], 'happened_at': happened,
@@ -509,8 +513,16 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
                     return api.JSONResponse(status_code=422, content=json_value(api, a3b.photo_required(draft)))
                 return api.JSONResponse(status_code=202, content=json_value(api, a3b.hold_ticket(
                     api, cur, row, actor, draft, acknowledged, row['payload_hash'])))
+        import kosher_tiers as a12
+        if row['action']=='make' and draft.get('kosher_tier')==a12.EXTRA:
+            approver = approval['approved_by'] if approval else actor
+            if not a12.owner(cur, approver):
+                cur.execute('ROLLBACK TO SAVEPOINT ticket_post')
+                return api.JSONResponse(status_code=202, content=json_value(api, a12.hold(
+                    api, cur, row, actor, draft, acknowledged, effective_payload)))
+            validated[3]['kosher_attestation'] = a12.attest(cur, approver)
         state_changed = canonical_hash(json_value(api, state)) != row['state_hash']
-        receipt = allocate_receipt(cur, row['action'], occurred_at.astimezone(api.PLANT_TIMEZONE).date())
+        receipt = row['receipt_number'] or allocate_receipt(cur, row['action'], occurred_at.astimezone(api.PLANT_TIMEZONE).date())
         if row['action'] == 'receive':
             req.mode = 'commit'
             response = api._receive_commit_core(cur, req, request, occurred_at, source,
@@ -736,6 +748,11 @@ def register_routes(app, api):
             # photo it posts, without one it stays held; it never expires.
             if row['status'] not in ('prepared', a3b.HELD):
                 fail(409, 'TICKET_NOT_COMMITTABLE', 'Prepare a new ticket.', status=row['status'])
+            if row['status']==a3b.HELD and row['action']=='make':
+                cur.execute('SELECT clock_timestamp()>%s AS expired',(row['expires_at'],))
+                if cur.fetchone()['expired']:
+                    fail(409, 'TICKET_EXPIRED', 'The seven-day kosher hold expired; the owner must reject it and prepare again.')
+                return api.JSONResponse(status_code=202,content=row['response'])
             if row['status'] == 'prepared':
                 cur.execute('SELECT clock_timestamp() > %s AS expired', (row['expires_at'],))
                 if cur.fetchone()['expired']:

@@ -84,6 +84,13 @@
 
 ---
 
+## 2026-10-13 10:54 — A12 held receipt readback handles unposted references
+- **File(s) changed:** `write_tickets.py`
+- **What changed:** A held make has no result_ref or committed_at; receipt readback now returns its held state and empty posted evidence.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
+
+---
+
 ## 2026-10-13 10:53 — Cover A6 authority and historical Assistant recovery
 - **File(s) changed:** `assistant_tools.py`, `fl_assistant.py`, `tests/test_fl_assistant.py`, `tests/visual/run-fl-assistant.mjs`
 - **What changed:** Add all-three-ship actual photo/BOL/replay, role/ID provenance, correction evidence, chat ownership, fresh/rerun migration security and historical UUID recovery regressions. Reject nested model evidence and ambiguous multiple correction photos; old attachment-only IDs stay saved but never become evidence. Browser harness can select installed Chrome via PLAYWRIGHT_CHANNEL without downloading or editing another checkout.
@@ -91,10 +98,24 @@
 
 ---
 
+## 2026-10-13 10:53 — A12 isolated database fixtures include tier schema
+- **File(s) changed:** `tests/test_kosher_tiers.py`, `tests/test_write_tickets.py`
+- **What changed:** Use valid synthetic lot labels, include 075 in the isolated HTTP concurrency schema loader, and detach empty A12 evidence before the legacy A1 down/up lifecycle test.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
+
+---
+
 ## 2026-10-13 10:52 — Verify A6 Assistant controls in browser and keep acceptance evidence private
 - **File(s) changed:** `dashboard/fl-assistant.js`, `dashboard/fl-assistant.css`, `tests/visual/run-fl-assistant.mjs`, `scripts/check_assistant_staging.py`
 - **What changed:** Wrap photo controls for narrow screens, refresh evidence labels by locale, exercise integer private uploads, BOL blockers, ship summaries, SHP retry and lot evidence. Correct persisted-lot count key; omit signed bearer URLs from saved receipts after validating PDF live. Six focused UI tests pass; browser/full validation pending.
 - **Why:** Review actual mobile controls and preserve safe staged evidence without exposing credentials or signed links.
+
+---
+
+## 2026-10-13 10:52 — A12 approval and packing regression tests
+- **File(s) changed:** `tests/test_kosher_tiers.py`, `main.py`, `kosher_tiers.py`
+- **What changed:** Cover hold/replay/seven-day expiry, own-identity approval/rejection, stale and forged decisions, late lot evidence, wrong-tier packing, filtered suggestions, downgrade evidence, immutable tiers and legacy-route bypass protection.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
 
 ---
 
@@ -109,6 +130,13 @@
 - **File(s) changed:** `assistant_tools.py`, `fl_assistant.py`, `migrations/068_fl_assistant.sql`, `tests/test_fl_assistant.py`
 - **What changed:** Add three A6 ship prepares and SHP receipts; extend resolved-ID provenance; exclude model evidence assertions. Upload/download photos through A6 and store only private actor/session integer-ID links. Inject trusted correction attachment_id and ship attachment_ids. Pending 068 adds additive secured links while retaining legacy staging photo evidence intact.
 - **Why:** Reuse A6 BOL, owner/context and private storage checks; remove separate F1 photo storage.
+
+---
+
+## 2026-10-13 10:50 — A12 part 2: held extra-kosher makes and tier-safe packing
+- **File(s) changed:** `kosher_tiers.py`, `ticket_actions.py`, `write_tickets.py`, `exceptions_enforcement.py`, `main.py`
+- **What changed:** Reuse A3b approve/reject with seven-day kosher holds and durable hold receipts; write authenticated owner/time attestations atomically; filter pack suggestions and enforce immutable source tiers, recording regular downgrades as transaction and lot event evidence.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
 
 ---
 

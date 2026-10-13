@@ -36,6 +36,7 @@ import extraction
 import write_tickets
 import attachments
 import ship_tickets
+import kosher_tiers
 import shift_summary
 import lot_confirmation
 import exceptions_enforcement
@@ -457,7 +458,7 @@ def fifo_lot_balances(cur, product_id: int, include_empty: bool = False) -> list
         f"""
         SELECT l.id, l.lot_code, l.received_at, l.created_at,
                COALESCE(l.received_at, l.created_at) AS lot_date,
-               l.entry_source, l.supplier_lot_code, l.status,
+               l.entry_source, l.supplier_lot_code, l.status, l.kosher_tier,
                COALESCE(SUM(tl.quantity_lb), 0) AS available
         FROM lots l
         LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
@@ -4195,7 +4196,7 @@ def resolve_product_full(cur, product_name: str) -> dict:
     cur.execute(
         """SELECT id, name, odoo_code, default_batch_lb, case_size_lb,
                   COALESCE(yield_multiplier, 1.0) as yield_multiplier,
-                  verification_notes, verification_notes_es
+                  verification_notes, verification_notes_es, kosher_tier
            FROM products WHERE id = %s""",
         (product_id,)
     )
@@ -8764,9 +8765,11 @@ def _make_preview_core(cur, req, *, product=None):
     return response
 
 
-def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, ticket_id=None, receipt_number=None, require_new_lot=False, input_plan=None, substitutions=None):
+def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, ticket_id=None, receipt_number=None, require_new_lot=False, input_plan=None, substitutions=None, kosher_attestation=None):
     product = product if product is not None else resolve_product_full(cur, req.product_name)
 
+    if kosher_tiers.tier(product)==kosher_tiers.EXTRA:
+        kosher_attestation = kosher_attestation or kosher_tiers.attest(cur, request_actor(request))
     siblings = get_sibling_skus(cur, product['id'])
     if siblings and not req.confirmed_sku:
         sibling_names = [s['name'] for s in siblings]
@@ -8802,6 +8805,9 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
         lot_code = f"B{date_part}-{seq:03d}"
 
     output_lot_id, is_new_lot, output_lot_uuid = find_or_create_lot(cur, product['id'], lot_code, 'production_output')
+    kosher_tiers.output_matches(cur, output_lot_id, product)
+    if kosher_attestation and not is_new_lot:
+        raise HTTPException(409, {'error_code':'KOSHER_NEW_BATCH_LOT_REQUIRED','message':'Every extra-kosher batch requires a new lot.'})
     if require_new_lot and not is_new_lot:
         raise HTTPException(409, {'error_code': 'LOT_CODE_TAKEN',
                                   'message': f'{product["name"]} lot {lot_code} is now in use; prepare again.'})
@@ -8836,17 +8842,21 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
     cur.execute("""
         INSERT INTO transactions (
             type, timestamp, notes, occurred_at, created_at_source, operator_id, ticket_id, receipt_number,
-            entered_by_actor_id
+            entered_by_actor_id, kosher_tier, kosher_attested_by_actor_id, kosher_attested_at
         )
-        VALUES ('make', %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES ('make', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id, occurred_at, business_date
     """, (
         now, f"{req.batches} batch(es) of {product['name']}{exclusion_note}",
         occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number,
-        _entered_by_actor_id(request),
+        _entered_by_actor_id(request), kosher_tiers.tier(product),
+        kosher_attestation['actor_id'] if kosher_attestation else None,
+        kosher_attestation['attested_at'] if kosher_attestation else None,
     ))
     txn_row = cur.fetchone()
     txn_id = txn_row['id']
+    if kosher_attestation:
+        kosher_tiers.record_attestation(cur, output_lot_id, txn_id, ticket_id, kosher_attestation)
 
     cur.execute("""
         INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
@@ -9009,6 +9019,10 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
             )
         }
 
+    response.update(kosher_tiers.fields(product))
+    if kosher_attestation:
+        response.update(kosher_attested_by_actor_id=kosher_attestation['actor_id'],
+            kosher_attested_at=kosher_attestation['attested_at'],kosher_attested_by_name=kosher_attestation['actor_name'])
     response["daily_production_summary"] = get_daily_production_summary(cur)
     return response
 
@@ -9023,7 +9037,8 @@ def _pack_preview_core(cur, req, *, source=None, target=None):
         raise HTTPException(400, f"Case weight required. Product '{target['name']}' has no case_size_lb set. Provide case_weight_lb parameter to override.")
     total_lb = req.cases * case_weight
 
-    available_lots = available_lots_for_product(cur, int(source['id']))
+    available_lots = kosher_tiers.pack_lots(cur, source, target,
+        available_lots_for_product(cur, int(source['id'])), req.lot_allocations)
     reservation_summary = _allocation_reservation_summary(
         cur, int(source['id'])
     )
@@ -9135,6 +9150,7 @@ def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, sour
         # A3b (R3): a pinned lot at or below zero is absent from the FIFO list but is
         # still the lot the shortage posts against (ticket_actions.validate locked it).
         lots += exceptions_enforcement.pinned_lot_rows(cur, source['id'], pinned_ids - {lot['lot_id'] for lot in lots})
+    lots = kosher_tiers.pack_lots(cur, source, target, lots, req.lot_allocations)
     if not lots:
         raise HTTPException(400, f"No batch inventory available for {source['name']}")
     lots_by_code = {lot['lot_code'].lower(): lot for lot in lots}
@@ -9198,7 +9214,11 @@ def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, sour
     else:
         output_lot_code = alloc_plan[0][0]['lot_code']
 
+    source_ids = [lot['lot_id'] for lot,qty in alloc_plan]
+    kosher_tiers.require_sources(cur, target, source_ids)
+    is_downgrade = kosher_tiers.downgrade(cur, target, source_ids)
     output_lot_id, is_new_lot, output_lot_uuid = find_or_create_lot(cur, target['id'], output_lot_code, 'pack_output')
+    kosher_tiers.output_matches(cur, output_lot_id, target)
     if require_new_lot and not is_new_lot:
         raise HTTPException(409, {'error_code': 'LOT_CODE_TAKEN',
                                   'message': f'{target["name"]} lot {output_lot_code} is now in use; prepare again.'})
@@ -9211,18 +9231,20 @@ def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, sour
     cur.execute("""
         INSERT INTO transactions (
             type, timestamp, notes, occurred_at, created_at_source, operator_id, ticket_id, receipt_number,
-            entered_by_actor_id
+            entered_by_actor_id, kosher_tier, transaction_kosher_downgrade
         )
-        VALUES ('pack', %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES ('pack', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id, occurred_at, business_date
     """, (
         now,
         f"Pack {req.cases} cases of {target['name']} from {source['name']} lots: {source_lot_summary}",
         occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number,
-        _entered_by_actor_id(request),
+        _entered_by_actor_id(request), kosher_tiers.tier(target), is_downgrade,
     ))
     txn_row = cur.fetchone()
     txn_id = txn_row['id']
+    if is_downgrade:
+        kosher_tiers.record_downgrade(cur, output_lot_id, txn_id, source_ids, _entered_by_actor_id(request), occurred_at, ticket_id)
 
     cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, target['id'], output_lot_id, total_lb))
 
@@ -9333,6 +9355,7 @@ def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, sour
         response["warning"] = add_in_info["warning"]
         if add_in_info.get('warning_es'):
             response["warning_es"] = add_in_info["warning_es"]
+    response.update(kosher_tiers.fields(target),transaction_kosher_downgrade=is_downgrade)
     response["daily_production_summary"] = get_daily_production_summary(cur)
     return response
 
