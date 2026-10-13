@@ -196,6 +196,27 @@
 
 ---
 
+## 2026-10-13 12:20 — Save successful Arturo personal-session staging receipt
+- **File(s) changed:** `docs/validation/key-sessions-staging.json`, `docs/deployments/key-sessions.md`, `docs/contracts/key-sessions.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Save RCV-261013-005, transaction 1000000072, 10 lb, one-post replay/person attribution, four-person exchange, logout/idle/revocation and temporary actor cleanup. Staging health/assets/flags correct; final 2526 Python/82 Node/browser pass. No secrets retained.
+- **Why:** Complete requested staged sign-in example and concrete Claude Code review handoff; no production access or merge. Global iCloud log pending explicit approval after automatic approval rejection.
+
+---
+
+## 2026-10-13 12:17 — Deploy tested pilot key sessions to staging with PIN off
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/key-sessions.md`
+- **What changed:** FastAPI-staging deployment 01c88707 SUCCESS from bd9fd77. 077 staging-only, KEY_SESSIONS_ENABLED=1/PIN_LOGIN_ENABLED=0; private pilot tables verified and parked PIN table unchanged. Add next regression row 177.
+- **Why:** Complete authorized staging pilot proof; no production changes, other-worktree changes or merge. Global iCloud log pending explicit approval after automatic approval rejection.
+
+---
+
+## 2026-10-13 12:12 — Apply pilot migration and flags only to isolated staging
+- **File(s) changed:** `CHANGE_LOG.md`
+- **What changed:** Guarded port-5432 transaction applied additive 077 to staging only. FastAPI-staging now KEY_SESSIONS_ENABLED=1 and PIN_LOGIN_ENABLED=0, with deploy trigger deferred to the tested worktree upload. Parked PIN tables/PR #96 untouched.
+- **Why:** Authorized pilot acceptance prerequisite; production settings, database and other worktrees untouched. Global iCloud log pending explicit approval after automatic approval rejection.
+
+---
+
 ## 2026-10-13 12:12 — Complete fresh-DB pilot validation before staging deployment
 - **File(s) changed:** `docs/deployments/key-sessions.md`
 - **What changed:** Final fresh PostgreSQL 17 suite: 2526 Python/82 Node passed, zero failures/skips. Assistant flag-on/off plus expiry/handover and dashboard browser layouts pass. GPT schema stays at 30; diff/syntax clean.

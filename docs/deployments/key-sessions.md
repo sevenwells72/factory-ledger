@@ -16,3 +16,11 @@ Validation and live receipt evidence will be appended after staging acceptance; 
 ## Local acceptance — 2026-10-13
 
 Final fresh UTF-8 PostgreSQL 17 database fl_signin_test at localhost:57777: **2,526 Python tests passed**, no failures/skips. **82 Node tests passed**, no failures/skips. Assistant Chrome harness passes KEY sessions on/off; pilot additionally verifies expiry re-ask/token/card clearing, new sign-in, reload recovery and server logout. Dashboard Chrome proves session-only writes, background-read parity, identity, reload, expiry and logout at 1440/390 widths. Screenshots visually inspected. GPT schema remains 30 operations; git diff --check and JS/Python syntax pass.
+
+## Staging deployment — 2026-10-13
+
+Deployment `01c88707-d856-4955-bf7b-181750412821` SUCCESS from tested app commit `bd9fd77`. Migration 077 applied only to guarded staging; service flags KEY_SESSIONS_ENABLED=1, PIN_LOGIN_ENABLED=0 and ASSISTANT_ENABLED=1. Both pilot tables have RLS on and zero policies. Parked PIN actor_sessions has no pilot columns. Production untouched. Hosted Arturo acceptance follows.
+
+## Hosted acceptance — 2026-10-13
+
+Four temporary synthetic identities (Michael/owner, Arturo/floor, Luz/office, Miriam/office) exchanged personal keys successfully with PIN off. Arturo's session drove real hosted OpenAI/FL Assistant prepare and Record for one 10 lb ingredient receive: **RCV-261013-005**, transaction **1000000072**, ticket **83**. Replay returned the same receipt; direct staging readback confirmed exactly one transaction and Arturo's actor id/name. Token hashes only; 180-minute session slide and unchanged 10-minute ticket verified. Sign out blocked another Record with SESSION_EXPIRED; the idle and revoked-key sessions were refused immediately; shared master refused. All temporary actors inactive and open sessions ended. Health 200 and five deployed browser assets match local bytes. Evidence: docs/validation/key-sessions-staging.json.
