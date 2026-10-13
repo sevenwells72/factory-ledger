@@ -260,6 +260,12 @@ and the ownership flag.
 **Owner: Codex. Due: before Nov 2 pilot.** Add the reason-coded supplier-lot
 correction prepare/commit flow with attribution and atomic resolution of the
 lot's open UNIDENTIFIED_LOT exception. Another receive must never clear it.
+**Built 2026-10-13, awaiting Claude Code review:** `feat/supplier-lot-ticket` adds
+`POST /lots/{lot_id}/supplier-lot/prepare` + the shared A1 commit, migration 079,
+named-actor/key-session attribution and atomic resolution. D1 form contract:
+[`docs/deployments/a5-supplier-lot-ticket.md`](docs/deployments/a5-supplier-lot-ticket.md).
+Single-code correction refuses commingled/component-code lots rather than marking
+all components identified; component-by-component correction remains follow-up.
 
 **F1/D2 A5 contract:** `lot_confirmations[].method='last4'` means the literal
 last **four characters**, including the hyphen: lot `26-10-08-DUTC-004` needs

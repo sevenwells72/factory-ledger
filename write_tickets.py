@@ -16,7 +16,7 @@ from datetime import date, datetime
 from typing import List, Literal, Optional
 
 from fastapi import Depends, HTTPException, Query, Request
-from pydantic import BaseModel, Field, conint, confloat, root_validator
+from pydantic import BaseModel, Field, conint, confloat, constr, field_validator, root_validator
 from psycopg2.extras import Json
 
 ClientSource = Literal['mcp', 'dashboard', 'fl_assistant', 'api']
@@ -36,7 +36,7 @@ EXPECTED_RECEIPT_PREPARE_ROUTES = frozenset({
     ('POST', '/expected-receipts/extract/approve/prepare'),
 })
 SHIP_ACTIONS = ('ship_order', 'ship_standalone', 'ship_bulk')
-PREFIXES = {**{action: 'SHP' for action in SHIP_ACTIONS}, 'receive': 'RCV', 'make': 'MK', 'pack': 'PK', 'adjust': 'ADJ', 'found': 'FND', 'move_lot': 'LOT',
+PREFIXES = {**{action: 'SHP' for action in SHIP_ACTIONS}, 'receive': 'RCV', 'make': 'MK', 'pack': 'PK', 'adjust': 'ADJ', 'found': 'FND', 'move_lot': 'LOT', 'update_supplier_lot': 'LOT',
             **{action: 'ORD' for action in ORDER_ACTIONS},
             **{action: 'ER' for action in EXPECTED_RECEIPT_ACTIONS}}
 ORDER_PREPARE_ROUTES = frozenset({
@@ -61,6 +61,7 @@ DASHBOARD_ROUTES = frozenset({
 })
 ACTOR_ROUTES = DASHBOARD_ROUTES | frozenset({
     ('POST', '/lots/{lot_id}/move/prepare'),
+    ('POST', '/lots/{lot_id}/supplier-lot/prepare'),
     ('POST', '/make/prepare'),
     ('POST', '/pack/prepare'),
     ('POST', '/adjust/prepare'),
@@ -151,6 +152,18 @@ class MovePrepareRequest(ActionPrepareRequest):
     to_location: Literal['storage', 'staging', 'production']
     method: Literal['last4', 'full_code', 'scan']
     value: str = Field(min_length=1, max_length=200)
+
+
+class SupplierLotPrepareRequest(ActionPrepareRequest):
+    supplier_lot_code: str
+    reason_code: constr(strict=True, min_length=1, max_length=80)
+    note: Optional[constr(strict=True, max_length=2000)] = None
+
+    @field_validator('supplier_lot_code', mode='before')
+    @classmethod
+    def real_code(cls, value):
+        import supplier_lot_tickets
+        return supplier_lot_tickets.supplier_code(value)
 
 
 class MakePrepareRequest(ActionPrepareRequest):
@@ -590,7 +603,7 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
                 (response.get('transaction_id'),))
     result_ref = {'transaction_ids': [response['transaction_id']] if response.get('transaction_id') else [],
                   'lot_ids': [line['lot_id'] for line in cur.fetchall()]}
-    if row['action'] == 'move_lot':
+    if row['action'] in ('move_lot', 'update_supplier_lot'):
         result_ref['lot_ids'] = [response['lot_id']]
     cur.execute('''UPDATE write_tickets SET status='committed',committed_at=clock_timestamp(),
         receipt_number=%s,result_ref=%s,response=%s,acknowledged=%s WHERE id=%s''',
@@ -636,6 +649,8 @@ def register_routes(app, api):
         # A2 hook: role matrix on the ticket action (not the route), then the
         # back-dating rule — both 403 before any ticket row exists.
         permissions.require(action, actor)
+        if action == 'update_supplier_lot' and actor['id'] is None:
+            fail(403, 'ACTOR_REQUIRED', 'Sign in as a person to correct a supplier lot.')
         payload = json.loads(req.json(exclude={'client_source'}))
         if lot_id is not None:
             payload['lot_id'] = lot_id
@@ -670,10 +685,12 @@ def register_routes(app, api):
                         payload['case_weight_lb'] = draft['case_weight_lb']
                     elif action in ('make', 'found'):
                         payload['lot_code'] = draft['lot_code']
-                    elif action == 'adjust':
+                    elif action in ('adjust', 'update_supplier_lot'):
                         payload['product_id'] = draft['product_id']
             except HTTPException as exc:
                 if exc.status_code >= 500:
+                    raise
+                if action == 'update_supplier_lot' and isinstance(exc.detail, dict) and exc.detail.get('error_code') == 'SUPPLIER_LOT_CODE_INVALID':
                     raise
                 # A5 §5.2: choose a real resolved supplier before issuing a receipt draft.
                 if action == 'receive' and isinstance(exc.detail, dict) and exc.detail.get('error_code') == 'SUPPLIER_REQUIRED':
@@ -701,6 +718,10 @@ def register_routes(app, api):
     @app.post('/lots/{lot_id}/move/prepare')
     def prepare_move(lot_id: int, req: MovePrepareRequest, request: Request, _: bool = Depends(api.verify_api_key)):
         return prepare('move_lot', req, request, lot_id=lot_id)
+
+    @app.post('/lots/{lot_id}/supplier-lot/prepare')
+    def prepare_supplier_lot(lot_id: int, req: SupplierLotPrepareRequest, request: Request, _: bool = Depends(api.verify_api_key)):
+        return prepare('update_supplier_lot', req, request, lot_id=lot_id)
 
     @app.post('/make/prepare')
     def prepare_make(req: MakePrepareRequest, request: Request, _: bool = Depends(api.verify_api_key)):

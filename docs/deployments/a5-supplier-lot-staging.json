@@ -1,0 +1,39 @@
+{
+  "reference": "STG-A5P2-F9454E5513",
+  "mode": "local branch HTTP routes against STAGING; no hosted deployment",
+  "migration": "079_supplier_lot_tickets",
+  "product_id": 1000000051,
+  "supplier_id": 1000000017,
+  "lot_id": 1000000102,
+  "lot_code": "STG-A5P2-F9454E5513",
+  "exception_id": 22,
+  "actor_id": 1000000069,
+  "key_session": true,
+  "actor_deactivated_after_check": true,
+  "unidentified_receive": "RCV-261013-007",
+  "top_up_receive": "RCV-261013-008",
+  "top_up_preserved_exception": true,
+  "correction_receipt": "LOT-261013-001",
+  "correction_ticket_id": 88,
+  "lot_event_id": 2,
+  "before": {
+    "supplier_lot_code": "UNKNOWN",
+    "identity_status": "unidentified",
+    "exception_status": "open"
+  },
+  "after": {
+    "supplier_lot_code": "STG-A5P2-F9454E5513-SUP-8812",
+    "identity_status": "identified",
+    "identify_by": null
+  },
+  "exception": {
+    "status": "resolved",
+    "resolution_kind": "identified",
+    "resolution_ticket_id": 88,
+    "resolved_by_actor_id": 1000000069,
+    "resolved_at": "2026-10-13 23:19:02.893766+00:00"
+  },
+  "replayed_once": true,
+  "lot_event_count": 1,
+  "stock_after_top_up_and_correction_lb": 4.0
+}

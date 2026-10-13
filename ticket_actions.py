@@ -75,6 +75,9 @@ def choose_inputs(api, cur, requirements, overrides):
 
 def validate(api, cur, action, payload, lock=False):
     # A5 hook: non-ledger pallet evidence uses the same ticket lifecycle.
+    if action == 'update_supplier_lot':
+        import supplier_lot_tickets
+        return supplier_lot_tickets.validate(api, cur, payload, lock)
     if action == 'move_lot':
         return a5.validate_move(api, cur, payload, lock)
     occurred_at, time_source = api.validate_inventory_occurred_at(
@@ -280,6 +283,9 @@ def validate(api, cur, action, payload, lock=False):
 
 
 def post(api, cur, action, validated, payload, request, ticket_id, receipt_number, require_new_lot):
+    if action == 'update_supplier_lot':
+        import supplier_lot_tickets
+        return supplier_lot_tickets.post(api, cur, validated, payload, request, ticket_id, receipt_number)
     if action == 'move_lot':
         return a5.post_move(api, cur, payload, request, ticket_id, receipt_number)
     draft, _, req, options, occurred_at, source, _, _ = validated
