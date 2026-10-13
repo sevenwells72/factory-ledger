@@ -91,3 +91,17 @@ pass. GPT schema remains 30 operations. Guarded staging 068 rerun adds private
 A6 links without changing existing migration markers or five legacy photo rows.
 Staging has ASSISTANT_ENABLED=1, the A6 persistent volume and a dedicated signer.
 Hosted deployment and eight-action acceptance are recorded after completion.
+
+Hosted A7/A6 acceptance passed on staging deployment
+`00b4d773-7a59-4768-93b9-4e35c2606af6`, tested code `e85b550`:
+**RCV-261013-003, MK-261013-003, PK-261013-003, ADJ-261013-004, FND-261013-001, SHP-261013-001, SHP-261013-002, SHP-261013-003**.
+All eight real Responses action drafts recorded successfully; concurrent retries
+and direct staging queries verified one ledger post per ticket, A2 attribution
+and A5 lot evidence. Three ships have BOL references, real private A6 photos and
+complete proof, with correct ticket/shipment/uploader links. Found's correction
+photo links by trusted ID to its transaction. Uploader/owner downloads, other-floor
+403 and anonymous 401 passed; signed packing-slip PDF passed and its bearer URL
+is omitted from saved evidence. All three temporary actors are inactive. Health
+is 200; page/JS/CSS bytes match the tested worktree. Full evidence is under
+`a7_a6_integration_acceptance`. Production and other worktrees were untouched;
+PR #90 remains unmerged. The global iCloud log remains outside the authorized scope.

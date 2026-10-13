@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-10-13 11:15 — Save successful eight-action A7/A6 staging evidence
+- **File(s) changed:** `docs/validation/fl-assistant-part1-staging.json`, `docs/contracts/fl-assistant-part1.md`, `docs/deployments/f1-assistant.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Save eight real-model receipts, one-post/replay/actor/lot checks, three BOL/photo-complete shipments, private owner/floor/anonymous download checks, trusted correction-photo link and inactive temporary actors. Health/assets match e85b550; final 2494 Python/75 Node/browser pass. Bearer packing URLs omitted; historical evidence preserved.
+- **Why:** Complete requested staging proof before pushing PR #90 and posting reviewer handoff. No production access or merge; global log remains outside allowed worktree.
+
+---
+
+## 2026-10-13 11:09 — Deploy tested A7/A6 Assistant successfully to isolated staging
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/fl-assistant-part1-staging.json`
+- **What changed:** FastAPI-staging deployment 00b4d773-7a59-4768-93b9-4e35c2606af6 SUCCESS from e85b550; add next regression row 176 and staged receipt checkpoint immediately. ASSISTANT_ENABLED=1, A6 private volume and signer unchanged. Live eight-action acceptance next.
+- **Why:** Owner-authorized staging redeploy; no production access or merge.
+
+---
+
 ## 2026-10-13 11:01 — Complete final fresh-DB A7/A6 validation before staging deploy
 - **File(s) changed:** `docs/contracts/fl-assistant-part1.md`, `docs/deployments/f1-assistant.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Final fresh PostgreSQL 17 current-schema suite passes 2494 Python/75 Node, zero failures/skips. Browser layouts and final read-only wiring review pass. Record unique 068, preserved core/upstream histories and guarded additive staging update.

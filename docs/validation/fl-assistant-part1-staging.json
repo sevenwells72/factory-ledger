@@ -1847,5 +1847,874 @@
     },
     "production_accessed": false,
     "merged": false
+  },
+  "a7_a6_integration_acceptance": {
+    "base_commit": "bc57da43b29a1e689a76015b764eaace76a1a481",
+    "code_commit": "e85b550709ef65a407999b4e2d2aab71575d5cea",
+    "deployment_id": "00b4d773-7a59-4768-93b9-4e35c2606af6",
+    "deployment_status": "SUCCESS",
+    "assistant_enabled": true,
+    "python_passed": 2494,
+    "javascript_passed": 75,
+    "failures": 0,
+    "skips": 0,
+    "browser_harness": "passed; desktop/390px light/dark inspected",
+    "staging_migration": "068 additive private A6 links; legacy rows retained",
+    "hosted_acceptance": "passed",
+    "reference": "STG-F1-AABCF507E9",
+    "base_url": "https://fastapi-staging-production-dd7b.up.railway.app",
+    "builder": "Codex",
+    "receipts": {
+      "receive": {
+        "mode": "commit",
+        "success": true,
+        "transaction_id": 1000000062,
+        "confirmation_code": "TXN-70894E",
+        "lot_id": 1000000051,
+        "lot_uuid": "4a901817-56e5-4c8d-af2c-f3fc7dab8a64",
+        "lot_code": "STG-F1-AABCF507E9-LOT",
+        "lot_is_new": true,
+        "lot_type": "single_supplier",
+        "total_lb": 100.0,
+        "receipt_text": "RECEIVED: 10 cases (100.0 lb) STG-F1-AABCF507E9 ingredient\nLot: STG-F1-AABCF507E9-LOT\nBOL: STG-F1-AABCF507E9\n2026-10-13 11:10 AM ET",
+        "message": "Received 100.0 lb as lot STG-F1-AABCF507E9-LOT",
+        "expected_receipt": null,
+        "identity_status": "identified",
+        "identify_by": null,
+        "identification_due_at": null,
+        "exception_id": null,
+        "supplier_id": 1000000013,
+        "supplier_name": "STG-F1-AABCF507E9 supplier",
+        "receipt_number": "RCV-261013-003",
+        "ticket_id": 72,
+        "replayed": false,
+        "state_changed": false,
+        "entry_timing": {
+          "status": "normal",
+          "hours_late": 0.0,
+          "days_late": 0,
+          "happened_at": "2026-10-13T11:10:07.084614-04:00",
+          "entered_at": "2026-10-13T15:10:11.025990+00:00",
+          "entered_by": {
+            "id": 1000000054,
+            "name": "STG-F1-AABCF507E9 floor",
+            "role": "floor",
+            "key_kind": "actor"
+          },
+          "late_entry_exception_id": null
+        }
+      },
+      "make": {
+        "mode": "commit",
+        "success": true,
+        "transaction_id": 1000000065,
+        "confirmation_code": "TXN-780C7A",
+        "lot_id": 1000000053,
+        "lot_uuid": "ac8283b3-87cc-4973-acc4-750a513aac02",
+        "lot_code": "B26-1013-002",
+        "yield_multiplier": 1.0,
+        "formula_weight_lb": 110.0,
+        "estimated_yield_lb": 110.0,
+        "output_lb": 110.0,
+        "ingredients_consumed": [
+          {
+            "ingredient_id": 1000000045,
+            "ingredient_name": "STG-F1-AABCF507E9 ingredient",
+            "lot_id": 1000000051,
+            "lot_code": "STG-F1-AABCF507E9-LOT",
+            "consumed_lb": 110.0
+          }
+        ],
+        "ingredients_consumed_grouped": [
+          {
+            "ingredient_id": 1000000045,
+            "ingredient_name": "STG-F1-AABCF507E9 ingredient",
+            "total_consumed_lb": 110.0,
+            "lots": [
+              {
+                "lot_id": 1000000051,
+                "lot_code": "STG-F1-AABCF507E9-LOT",
+                "consumed_lb": 110.0
+              }
+            ]
+          }
+        ],
+        "message": "Produced 110.0 lb as lot B26-1013-002",
+        "pack_needed": {
+          "batch_lot_code": "B26-1013-002",
+          "batch_product_name": "STG-F1-AABCF507E9 batch",
+          "batch_on_hand_lb": 110.0,
+          "finished_goods": [
+            {
+              "product_id": 1000000047,
+              "name": "STG-F1-AABCF507E9 finished",
+              "case_size_lb": 5.0
+            }
+          ],
+          "message": "Run /pack to convert STG-F1-AABCF507E9 batch lot B26-1013-002 into finished goods: STG-F1-AABCF507E9 finished"
+        },
+        "daily_production_summary": {
+          "production": [
+            {
+              "product_name": "STG-A12-46454C41E879 batch",
+              "product_type": "batch",
+              "transaction_type": "make",
+              "total_lb": 20.0,
+              "transaction_count": 1
+            },
+            {
+              "product_name": "STG-A12-46454C41E879 ingredient",
+              "product_type": "ingredient",
+              "transaction_type": "make",
+              "total_lb": 0.0,
+              "transaction_count": 1
+            },
+            {
+              "product_name": "STG-F1-AABCF507E9 batch",
+              "product_type": "batch",
+              "transaction_type": "make",
+              "total_lb": 110.0,
+              "transaction_count": 1
+            },
+            {
+              "product_name": "STG-F1-AABCF507E9 ingredient",
+              "product_type": "ingredient",
+              "transaction_type": "make",
+              "total_lb": 0.0,
+              "transaction_count": 1
+            },
+            {
+              "product_name": "STG-A12-46454C41E879 batch",
+              "product_type": "batch",
+              "transaction_type": "pack",
+              "total_lb": 0.0,
+              "transaction_count": 2
+            },
+            {
+              "product_name": "STG-A12-46454C41E879 extra_finished",
+              "product_type": "finished",
+              "transaction_type": "pack",
+              "total_lb": 5.0,
+              "transaction_count": 1
+            },
+            {
+              "product_name": "STG-A12-46454C41E879 regular_finished",
+              "product_type": "finished",
+              "transaction_type": "pack",
+              "total_lb": 5.0,
+              "transaction_count": 1
+            }
+          ],
+          "adjustments": [
+            {
+              "product_name": "STG-A9-573C5E4443C3 oats",
+              "lot_code": "STG-A9-573C5E4443C3-LOT",
+              "adjustment_lb": -3.0,
+              "reason": "Unknown"
+            },
+            {
+              "product_name": "STG-A9-AFDC1124A00C oats",
+              "lot_code": "STG-A9-AFDC1124A00C-LOT",
+              "adjustment_lb": -3.0,
+              "reason": "Unknown"
+            },
+            {
+              "product_name": "STG-A9-9901D12E1A33 oats",
+              "lot_code": "STG-A9-9901D12E1A33-LOT",
+              "adjustment_lb": -3.0,
+              "reason": "Unknown"
+            }
+          ]
+        },
+        "input_plan": [
+          {
+            "lot_id": 1000000051,
+            "lot_code": "STG-F1-AABCF507E9-LOT",
+            "short_lb": 10.0,
+            "confirmed": true,
+            "product_id": 1000000045,
+            "quantity_lb": 110.0,
+            "suggested_lot": {
+              "lot_id": 1000000051,
+              "lot_code": "STG-F1-AABCF507E9-LOT",
+              "confirmed": false
+            },
+            "confirmation": {
+              "lot_id": 1000000051,
+              "method": "full_code",
+              "value": "STG-F1-AABCF507E9-LOT"
+            }
+          }
+        ],
+        "substitutions": [],
+        "exclusion_reason_code": null,
+        "shortages": [
+          {
+            "product_id": 1000000045,
+            "product_name": "STG-F1-AABCF507E9 ingredient",
+            "lot_id": 1000000051,
+            "lot_code": "STG-F1-AABCF507E9-LOT",
+            "needed_lb": 110.0,
+            "on_hand_lb": 100.0,
+            "short_lb": 10.0,
+            "balance_after_lb": -10.0,
+            "exception_id": 17,
+            "shortage_flag_id": 4,
+            "due_at": "2026-10-15T23:59:00-04:00",
+            "owner_actor_id": 1000000029
+          }
+        ],
+        "pre_make_adjusts": [],
+        "receipt_number": "MK-261013-003",
+        "ticket_id": 75,
+        "replayed": false,
+        "state_changed": false,
+        "entry_timing": {
+          "status": "normal",
+          "hours_late": 0.0,
+          "days_late": 0,
+          "happened_at": "2026-10-13T11:10:25.490383-04:00",
+          "entered_at": "2026-10-13T15:10:30.012398+00:00",
+          "entered_by": {
+            "id": 1000000054,
+            "name": "STG-F1-AABCF507E9 floor",
+            "role": "floor",
+            "key_kind": "actor"
+          },
+          "late_entry_exception_id": null
+        }
+      },
+      "pack": {
+        "mode": "commit",
+        "success": true,
+        "transaction_id": 1000000066,
+        "confirmation_code": "TXN-F4726B",
+        "output_lot_id": 1000000054,
+        "output_lot_uuid": "5f42dfed-a0e8-47e7-a031-b5b6905964e9",
+        "output_lot_code": "B26-1013-002",
+        "target_product_name": "STG-F1-AABCF507E9 finished",
+        "source_product_name": "STG-F1-AABCF507E9 batch",
+        "cases": 24,
+        "case_weight_lb": 5.0,
+        "total_lb": 120.0,
+        "can_pack_lb": 110.0,
+        "reserved_others_lb": 0,
+        "reserved_by_orders": [],
+        "batch_lots_consumed": [
+          {
+            "lot_code": "B26-1013-002",
+            "consumed_lb": 120.0
+          }
+        ],
+        "message": "Packed 24 cases (120.0 lb) of STG-F1-AABCF507E9 finished as lot B26-1013-002",
+        "daily_production_summary": {
+          "production": [
+            {
+              "product_name": "STG-A12-46454C41E879 batch",
+              "product_type": "batch",
+              "transaction_type": "make",
+              "total_lb": 20.0,
+              "transaction_count": 1
+            },
+            {
+              "product_name": "STG-A12-46454C41E879 ingredient",
+              "product_type": "ingredient",
+              "transaction_type": "make",
+              "total_lb": 0.0,
+              "transaction_count": 1
+            },
+            {
+              "product_name": "STG-F1-AABCF507E9 batch",
+              "product_type": "batch",
+              "transaction_type": "make",
+              "total_lb": 110.0,
+              "transaction_count": 1
+            },
+            {
+              "product_name": "STG-F1-AABCF507E9 ingredient",
+              "product_type": "ingredient",
+              "transaction_type": "make",
+              "total_lb": 0.0,
+              "transaction_count": 1
+            },
+            {
+              "product_name": "STG-A12-46454C41E879 batch",
+              "product_type": "batch",
+              "transaction_type": "pack",
+              "total_lb": 0.0,
+              "transaction_count": 2
+            },
+            {
+              "product_name": "STG-A12-46454C41E879 extra_finished",
+              "product_type": "finished",
+              "transaction_type": "pack",
+              "total_lb": 5.0,
+              "transaction_count": 1
+            },
+            {
+              "product_name": "STG-A12-46454C41E879 regular_finished",
+              "product_type": "finished",
+              "transaction_type": "pack",
+              "total_lb": 5.0,
+              "transaction_count": 1
+            },
+            {
+              "product_name": "STG-F1-AABCF507E9 batch",
+              "product_type": "batch",
+              "transaction_type": "pack",
+              "total_lb": 0.0,
+              "transaction_count": 1
+            },
+            {
+              "product_name": "STG-F1-AABCF507E9 finished",
+              "product_type": "finished",
+              "transaction_type": "pack",
+              "total_lb": 120.0,
+              "transaction_count": 1
+            }
+          ],
+          "adjustments": [
+            {
+              "product_name": "STG-A9-573C5E4443C3 oats",
+              "lot_code": "STG-A9-573C5E4443C3-LOT",
+              "adjustment_lb": -3.0,
+              "reason": "Unknown"
+            },
+            {
+              "product_name": "STG-A9-AFDC1124A00C oats",
+              "lot_code": "STG-A9-AFDC1124A00C-LOT",
+              "adjustment_lb": -3.0,
+              "reason": "Unknown"
+            },
+            {
+              "product_name": "STG-A9-9901D12E1A33 oats",
+              "lot_code": "STG-A9-9901D12E1A33-LOT",
+              "adjustment_lb": -3.0,
+              "reason": "Unknown"
+            }
+          ]
+        },
+        "input_plan": [
+          {
+            "lot_id": 1000000053,
+            "lot_code": "B26-1013-002",
+            "short_lb": 10.0,
+            "confirmed": true,
+            "product_id": 1000000046,
+            "quantity_lb": 120.0,
+            "suggested_lot": {
+              "lot_id": 1000000053,
+              "lot_code": "B26-1013-002",
+              "confirmed": false
+            },
+            "confirmation": {
+              "lot_id": 1000000053,
+              "method": "full_code",
+              "value": "B26-1013-002"
+            }
+          }
+        ],
+        "shortages": [
+          {
+            "product_id": 1000000046,
+            "product_name": "STG-F1-AABCF507E9 batch",
+            "lot_id": 1000000053,
+            "lot_code": "B26-1013-002",
+            "needed_lb": 120.0,
+            "on_hand_lb": 110.0,
+            "short_lb": 10.0,
+            "balance_after_lb": -10.0,
+            "exception_id": 18,
+            "shortage_flag_id": 5,
+            "due_at": "2026-10-15T23:59:00-04:00",
+            "owner_actor_id": 1000000029
+          }
+        ],
+        "pre_make_adjusts": [],
+        "lot_id": 1000000054,
+        "receipt_number": "PK-261013-003",
+        "ticket_id": 76,
+        "replayed": false,
+        "state_changed": false,
+        "entry_timing": {
+          "status": "normal",
+          "hours_late": 0.0,
+          "days_late": 0,
+          "happened_at": "2026-10-13T11:10:55.959479-04:00",
+          "entered_at": "2026-10-13T15:11:00.680528+00:00",
+          "entered_by": {
+            "id": 1000000054,
+            "name": "STG-F1-AABCF507E9 floor",
+            "role": "floor",
+            "key_kind": "actor"
+          },
+          "late_entry_exception_id": null
+        }
+      },
+      "adjust": {
+        "mode": "commit",
+        "lot_id": 1000000051,
+        "reason": "Physical count",
+        "message": "Adjusted lot STG-F1-AABCF507E9-LOT by -600.0 lb (new balance: -610.0 lb)",
+        "success": true,
+        "approval": {
+          "note": "Synthetic F1 acceptance: verified staged correction",
+          "approved_at": "2026-10-13T15:11:28.780595+00:00",
+          "approved_by": {
+            "id": 1000000055,
+            "name": "STG-F1-AABCF507E9 owner",
+            "role": "owner"
+          },
+          "exception_id": 19
+        },
+        "lot_code": "STG-F1-AABCF507E9-LOT",
+        "replayed": true,
+        "reason_es": "Conteo físico",
+        "ticket_id": 77,
+        "product_id": 1000000045,
+        "reason_code": "physical_count",
+        "entry_timing": {
+          "status": "normal",
+          "days_late": 0,
+          "entered_at": "2026-10-13T15:11:28.780595+00:00",
+          "entered_by": {
+            "id": 1000000054,
+            "name": "STG-F1-AABCF507E9 floor",
+            "role": "floor",
+            "key_kind": "actor"
+          },
+          "hours_late": 0.0,
+          "happened_at": "2026-10-13T11:11:21.735117-04:00",
+          "late_entry_exception_id": null
+        },
+        "product_name": "STG-F1-AABCF507E9 ingredient",
+        "adjustment_lb": -600.0,
+        "state_changed": false,
+        "new_balance_lb": -610.0,
+        "receipt_number": "ADJ-261013-004",
+        "transaction_id": 1000000067,
+        "confirmation_code": "TXN-D277E1",
+        "correction_review": {
+          "unit": "lb",
+          "rules": [
+            "BOOK_BALANCE_NOT_POSITIVE",
+            "OVER_500_LB"
+          ],
+          "action": "adjust",
+          "lb_rule": "applied",
+          "message": "STG-F1-AABCF507E9 ingredient: corrections over 500 lb need a photo; without one the entry is held for the owner to approve.",
+          "quantity": -600.0,
+          "highlighted": true,
+          "pct_of_book": null,
+          "reason_code": "physical_count",
+          "weekly_view": true,
+          "lb_equivalent": -600.0,
+          "attachment_ref": null,
+          "photo_required": true,
+          "book_balance_before": -10.0
+        }
+      },
+      "found": {
+        "uom": "lb",
+        "lot_id": 1000000055,
+        "message": "Added 20.0 lb of STG-F1-AABCF507E9 finished as lot STG-F1-AABCF507E9-FOUND",
+        "success": true,
+        "lot_code": "STG-F1-AABCF507E9-FOUND",
+        "lot_uuid": "bb580e5c-b964-4645-9f54-31f2eda4ea98",
+        "quantity": 20.0,
+        "replayed": true,
+        "ticket_id": 78,
+        "reason_code": "physical_count",
+        "entry_source": "found_inventory",
+        "entry_timing": {
+          "status": "normal",
+          "days_late": 0,
+          "entered_at": "2026-10-13T15:11:50.716001+00:00",
+          "entered_by": {
+            "id": 1000000054,
+            "name": "STG-F1-AABCF507E9 floor",
+            "role": "floor",
+            "key_kind": "actor"
+          },
+          "hours_late": 0.0,
+          "happened_at": "2026-10-13T11:11:46.244652-04:00",
+          "late_entry_exception_id": null
+        },
+        "product_name": "STG-F1-AABCF507E9 finished",
+        "state_changed": false,
+        "receipt_number": "FND-261013-001",
+        "transaction_id": 1000000068,
+        "correction_review": {
+          "unit": "lb",
+          "rules": [],
+          "action": "found",
+          "lb_rule": "applied",
+          "message": null,
+          "quantity": 20.0,
+          "highlighted": false,
+          "pct_of_book": null,
+          "reason_code": "physical_count",
+          "weekly_view": true,
+          "lb_equivalent": 20.0,
+          "attachment_ref": "att_ec711554a8c34dfaa0fc7105ab04d9a8",
+          "photo_required": false,
+          "book_balance_before": null
+        }
+      },
+      "ship_order": {
+        "mode": "commit",
+        "order_number": "SO-261013-001",
+        "customer": "STG-F1-AABCF507E9 customer",
+        "order_status": "shipped",
+        "shipment_id": 5,
+        "lines_shipped": [
+          {
+            "line_id": 1000000026,
+            "product": "STG-F1-AABCF507E9 finished",
+            "requested_lb": 5.0,
+            "shipped_lb": 5.0,
+            "shipped_units": 1,
+            "short_lb": 0,
+            "lots_used": [
+              {
+                "lot_code": "B26-1013-002",
+                "quantity_lb": 5.0
+              }
+            ],
+            "allocation_changes": [],
+            "transaction_id": 1000000069,
+            "confirmation_code": "TXN-91DB91",
+            "line_status": "fulfilled"
+          }
+        ],
+        "message": "Order SO-261013-001 fully shipped",
+        "receipt_number": "SHP-261013-001",
+        "ticket_id": 80,
+        "bol_reference": "STG-F1-AABCF507E9-SHIP_ORDER-BOL",
+        "proof_status": "complete",
+        "proof_due_at": "2026-10-13T23:59:00-04:00",
+        "replayed": false,
+        "state_changed": false,
+        "success": true,
+        "entry_timing": {
+          "status": "normal",
+          "hours_late": 0.0,
+          "days_late": 0,
+          "happened_at": "2026-10-13T11:12:08.221738-04:00",
+          "entered_at": "2026-10-13T15:12:12.709692+00:00",
+          "entered_by": {
+            "id": 1000000055,
+            "name": "STG-F1-AABCF507E9 owner",
+            "role": "owner",
+            "key_kind": "actor"
+          },
+          "late_entry_exception_id": null
+        }
+      },
+      "ship_standalone": {
+        "mode": "commit",
+        "success": true,
+        "transaction_id": 1000000070,
+        "shipment_id": 6,
+        "confirmation_code": "TXN-A3159F",
+        "quantity_shipped": 5.0,
+        "ship_mode": "single_lot",
+        "lots_used": [
+          {
+            "lot_code": "STG-F1-AABCF507E9-FOUND",
+            "shipped_lb": 5.0
+          }
+        ],
+        "remaining_in_lot": 15.0,
+        "can_ship_lb": 5.0,
+        "reserved_others_lb": 0,
+        "reserved_by_orders": [],
+        "allocations_released": [],
+        "customer_name": "STG-F1-AABCF507E9 customer",
+        "message": "Shipped 5.0 lb from lot STG-F1-AABCF507E9-FOUND. 15.0 lb remaining in lot.",
+        "receipt_number": "SHP-261013-002",
+        "ticket_id": 81,
+        "bol_reference": "STG-F1-AABCF507E9-SHIP_STANDALONE-BOL",
+        "proof_status": "complete",
+        "proof_due_at": "2026-10-13T23:59:00-04:00",
+        "replayed": false,
+        "state_changed": false,
+        "entry_timing": {
+          "status": "normal",
+          "hours_late": 0.0,
+          "days_late": 0,
+          "happened_at": "2026-10-13T11:12:38.888794-04:00",
+          "entered_at": "2026-10-13T15:12:43.405758+00:00",
+          "entered_by": {
+            "id": 1000000055,
+            "name": "STG-F1-AABCF507E9 owner",
+            "role": "owner",
+            "key_kind": "actor"
+          },
+          "late_entry_exception_id": null
+        }
+      },
+      "ship_bulk": {
+        "mode": "commit",
+        "success": true,
+        "transaction_id": 1000000071,
+        "shipment_id": 7,
+        "confirmation_code": "TXN-F35147",
+        "quantity_shipped": 5.0,
+        "ship_mode": "single_lot",
+        "lots_used": [
+          {
+            "lot_code": "STG-F1-AABCF507E9-FOUND",
+            "shipped_lb": 5.0
+          }
+        ],
+        "remaining_in_lot": 10.0,
+        "can_ship_lb": 5.0,
+        "reserved_others_lb": 0,
+        "reserved_by_orders": [],
+        "allocations_released": [],
+        "customer_name": "STG-F1-AABCF507E9 customer",
+        "message": "Shipped 5.0 lb from lot STG-F1-AABCF507E9-FOUND. 10.0 lb remaining in lot.",
+        "receipt_number": "SHP-261013-003",
+        "ticket_id": 82,
+        "bol_reference": "STG-F1-AABCF507E9-SHIP_BULK-BOL",
+        "proof_status": "complete",
+        "proof_due_at": "2026-10-13T23:59:00-04:00",
+        "replayed": false,
+        "state_changed": false,
+        "entry_timing": {
+          "status": "normal",
+          "hours_late": 0.0,
+          "days_late": 0,
+          "happened_at": "2026-10-13T11:13:18.414053-04:00",
+          "entered_at": "2026-10-13T15:13:23.302954+00:00",
+          "entered_by": {
+            "id": 1000000055,
+            "name": "STG-F1-AABCF507E9 owner",
+            "role": "owner",
+            "key_kind": "actor"
+          },
+          "late_entry_exception_id": null
+        }
+      }
+    },
+    "attachments": {
+      "receive": {
+        "id": 6,
+        "kind": "lot_tag",
+        "sha256": "c89c8210b3f68015fc2bc0422b07fa14af626f57e740f283a347f3449fe6e2c8",
+        "bytes": 12114,
+        "content_type": "image/png",
+        "uploaded_by_actor_id": 1000000054
+      },
+      "found": {
+        "id": 7,
+        "kind": "correction_photo",
+        "sha256": "250bfb7783e8fcdfc545ca33f42408b417abf647aa9f914bac7d85947866bf70",
+        "bytes": 12178,
+        "content_type": "image/png",
+        "uploaded_by_actor_id": 1000000054,
+        "ticket_id": 78,
+        "transaction_id": 1000000068
+      },
+      "ship_order": {
+        "id": 8,
+        "kind": "bol",
+        "sha256": "cfed1f51e921afe054ef9787cca13c1b6f0d4cc56aa01760338a522b4204fc11",
+        "bytes": 16989,
+        "content_type": "image/png",
+        "uploaded_by_actor_id": 1000000055,
+        "ticket_id": 80,
+        "shipment_id": 5
+      },
+      "ship_standalone": {
+        "id": 9,
+        "kind": "bol",
+        "sha256": "e0a029526b9fe41811dba3ddb2f7c1eca155fa64aa04252193caeb460a468fad",
+        "bytes": 17040,
+        "content_type": "image/png",
+        "uploaded_by_actor_id": 1000000055,
+        "ticket_id": 81,
+        "shipment_id": 6
+      },
+      "ship_bulk": {
+        "id": 10,
+        "kind": "bol",
+        "sha256": "de62a7feb4911e992ed884239b0df5015ffa15f88a6bcad92a444f071c86b82d",
+        "bytes": 16956,
+        "content_type": "image/png",
+        "uploaded_by_actor_id": 1000000055,
+        "ticket_id": 82,
+        "shipment_id": 7
+      }
+    },
+    "checks": [
+      "eight real Responses function-tool drafts and commits",
+      "concurrent same-ticket replay for all eight actions",
+      "turn idempotency",
+      "A6 private authenticated photo upload/download with floor isolation and anonymous refusal",
+      "A6 integer attachment IDs in Assistant custody; no independent F1 byte storage",
+      "English/Spanish",
+      "today receipts",
+      "inventory read",
+      "saved draft/receipt recovery",
+      "A5 explicit operator lot confirmations for make, pack and all ship actions",
+      "three BOL-bearing photo-complete shipments",
+      "signed order packing-slip PDF",
+      "A2 entered-by actor on all eight posts",
+      "A5 persisted lot evidence",
+      "A6 single shipment per ship ticket; BOL/photo ownership and ticket/shipment links",
+      "A6 correction photo claimed by trusted ID and linked to found transaction",
+      "A3b make/pack shortage warnings and flagged receipts",
+      "A3b held correction: replay, resume, no Cancel, owner approval then one post"
+    ],
+    "held_correction": {
+      "exception_id": 19,
+      "kind": "awaiting_approval",
+      "no_post_before_approval": true,
+      "resume_verified": true,
+      "receipt_number": "ADJ-261013-004"
+    },
+    "fixture_order": {
+      "order_id": 1000000019,
+      "order_number": "SO-261013-001",
+      "receipt_number": "ORD-261013-001"
+    },
+    "verified_tickets": [
+      {
+        "id": 72,
+        "action": "receive",
+        "actor_id": 1000000054,
+        "receipt_number": "RCV-261013-003",
+        "client_source": "fl_assistant",
+        "ledger_posts": 1
+      },
+      {
+        "id": 75,
+        "action": "make",
+        "actor_id": 1000000054,
+        "receipt_number": "MK-261013-003",
+        "client_source": "fl_assistant",
+        "ledger_posts": 1
+      },
+      {
+        "id": 76,
+        "action": "pack",
+        "actor_id": 1000000054,
+        "receipt_number": "PK-261013-003",
+        "client_source": "fl_assistant",
+        "ledger_posts": 1
+      },
+      {
+        "id": 77,
+        "action": "adjust",
+        "actor_id": 1000000054,
+        "receipt_number": "ADJ-261013-004",
+        "client_source": "fl_assistant",
+        "ledger_posts": 1
+      },
+      {
+        "id": 78,
+        "action": "found",
+        "actor_id": 1000000054,
+        "receipt_number": "FND-261013-001",
+        "client_source": "fl_assistant",
+        "ledger_posts": 1
+      },
+      {
+        "id": 80,
+        "action": "ship_order",
+        "actor_id": 1000000055,
+        "receipt_number": "SHP-261013-001",
+        "client_source": "fl_assistant",
+        "ledger_posts": 1
+      },
+      {
+        "id": 81,
+        "action": "ship_standalone",
+        "actor_id": 1000000055,
+        "receipt_number": "SHP-261013-002",
+        "client_source": "fl_assistant",
+        "ledger_posts": 1
+      },
+      {
+        "id": 82,
+        "action": "ship_bulk",
+        "actor_id": 1000000055,
+        "receipt_number": "SHP-261013-003",
+        "client_source": "fl_assistant",
+        "ledger_posts": 1
+      }
+    ],
+    "persisted_lot_confirmations": {
+      "ship_standalone": 1,
+      "ship_order": 1,
+      "ship_bulk": 1,
+      "pack": 1,
+      "make": 1
+    },
+    "verified_shipments": [
+      {
+        "id": 5,
+        "ticket_id": 80,
+        "bol_reference": "STG-F1-AABCF507E9-SHIP_ORDER-BOL",
+        "proof_status": "complete",
+        "entered_by_actor_id": 1000000055,
+        "action": "ship_order"
+      },
+      {
+        "id": 6,
+        "ticket_id": 81,
+        "bol_reference": "STG-F1-AABCF507E9-SHIP_STANDALONE-BOL",
+        "proof_status": "complete",
+        "entered_by_actor_id": 1000000055,
+        "action": "ship_standalone"
+      },
+      {
+        "id": 7,
+        "ticket_id": 82,
+        "bol_reference": "STG-F1-AABCF507E9-SHIP_BULK-BOL",
+        "proof_status": "complete",
+        "entered_by_actor_id": 1000000055,
+        "action": "ship_bulk"
+      }
+    ],
+    "actor_id": 1000000054,
+    "owner_id": 1000000055,
+    "privacy_actor_id": 1000000056,
+    "synthetic_products": {
+      "ingredient": {
+        "id": 1000000045,
+        "name": "STG-F1-AABCF507E9 ingredient"
+      },
+      "batch": {
+        "id": 1000000046,
+        "name": "STG-F1-AABCF507E9 batch"
+      },
+      "finished": {
+        "id": 1000000047,
+        "name": "STG-F1-AABCF507E9 finished"
+      }
+    },
+    "synthetic_customer_id": 1000000007,
+    "temporary_actors_inactive": true,
+    "assets": {
+      "health": 200,
+      "dashboard/fl-assistant.html": {
+        "status": 200,
+        "sha256": "fb2462472ba586244177ae69f041c51d85f760d2bd5659213134ca938a9ca382"
+      },
+      "dashboard/fl-assistant.js": {
+        "status": 200,
+        "sha256": "771c9b5777b593fb41ab23780276f334bd49a7d3f75beae523680b2c120509f2"
+      },
+      "dashboard/fl-assistant.css": {
+        "status": 200,
+        "sha256": "25d8f699352658e9e983df1b6070aad9e320613a2d9f4b5a863421acb69c4b6b"
+      }
+    },
+    "production_access": false,
+    "merged": false,
+    "global_log": "not written: outside owner-authorized worktree"
   }
 }
