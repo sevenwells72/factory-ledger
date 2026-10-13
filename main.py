@@ -36,6 +36,7 @@ import extraction
 import write_tickets
 import attachments
 import ship_tickets
+import shift_summary
 import lot_confirmation
 import exceptions_enforcement
 import resolution
@@ -181,10 +182,15 @@ def _structured_error(payload: dict, status_code: int) -> dict:
     or the legacy {"error": str} body."""
     detail = payload.get("detail")
     if isinstance(detail, dict):
-        return {
+        structured = {
             "code": detail.get("error_code") or f"HTTP_{status_code}",
             "message": detail.get("message") or str(detail),
         }
+        # A9 (contract §4): the Spanish copy rides along for every route that
+        # raises one, so clients never translate error codes themselves.
+        if detail.get("message_es"):
+            structured["message_es"] = detail["message_es"]
+        return structured
     if isinstance(detail, list):  # FastAPI request-validation errors (422)
         msgs = "; ".join(
             str(item.get("msg", item)) if isinstance(item, dict) else str(item)
@@ -2816,7 +2822,7 @@ DASHBOARD_KEY_ALLOWLIST = frozenset({
     ("GET", "/supply-requests"),
     ("POST", "/supply-requests"),
     ("PATCH", "/supply-requests/{supply_request_id}"),
-}) | write_tickets.DASHBOARD_ROUTES
+}) | write_tickets.DASHBOARD_ROUTES | shift_summary.ROUTES   # A9: the shift summary GET + confirm POST (contract §1, §3)
 
 
 def _route_key(request: Request):
@@ -20776,3 +20782,5 @@ exceptions_enforcement.register_routes(app, sys.modules[__name__])
 attachments.register_routes(app, sys.modules[__name__])
 ship_tickets.register_routes(app, sys.modules[__name__])
 fl_assistant.register_routes(app, sys.modules[__name__])
+# A9: GET /reports/shift-summary + POST /reports/shift-summary/confirm (docs/contracts/shift-summary.md).
+shift_summary.register_routes(app, sys.modules[__name__])

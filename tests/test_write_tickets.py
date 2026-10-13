@@ -429,6 +429,8 @@ def isolated_database(_db_connection):
             cur.execute((ROOT/'migrations/067_order_tickets.sql').read_text())
             cur.execute((ROOT/'migrations/072_order_ticket_review_fixes.sql').read_text())
             cur.execute((ROOT/'migrations/074_ship_gate_attachments.sql').read_text())
+            # Pending A9 migration 076 (same reason).
+            cur.execute((ROOT/'migrations/076_shift_confirmations.sql').read_text())
         yield url
     finally:
         with admin.cursor() as cur:
@@ -462,6 +464,8 @@ def test_migration_up_down_up_and_marker_stability(isolated_database):
     down_067 = (ROOT/'migrations/down/067_order_tickets_down.sql').read_text()
     with psycopg2.connect(isolated_database) as conn, conn.cursor() as cur:
         cur.execute('SET LOCAL search_path TO public')
+        # A9: 076 references exceptions (061), so it comes off first and goes back on last.
+        cur.execute((ROOT/'migrations/down/076_shift_confirmations_down.sql').read_text())
         cur.execute((ROOT/'migrations/down/074_ship_gate_attachments_down.sql').read_text())
         cur.execute(down_071)
         cur.execute(down_070)
@@ -495,6 +499,9 @@ def test_migration_up_down_up_and_marker_stability(isolated_database):
         cur.execute((ROOT/'migrations/074_ship_gate_attachments.sql').read_text())
         cur.execute(up_067)   # rerunnable
         cur.execute((ROOT/'migrations/072_order_ticket_review_fixes.sql').read_text())
+        cur.execute((ROOT/'migrations/076_shift_confirmations.sql').read_text())
+        cur.execute("SELECT count(*) FROM migration_markers WHERE name='076_shift_confirmations'")
+        assert cur.fetchone()[0] == 1
         cur.execute("SELECT count(*) FROM migration_markers WHERE name='067_order_tickets'")
         assert cur.fetchone()[0] == 1
         cur.execute("SELECT pg_get_constraintdef(oid) FROM pg_constraint WHERE conname='write_tickets_action_check'")

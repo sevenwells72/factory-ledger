@@ -428,6 +428,27 @@ def receipt_detail(api, cur, number):
             'transactions': transactions, 'lots': lots}
 
 
+def receipt_numbers(cur, day, *, actor_terms=None, action=None, status=None, client_source=None, policy_code=None):
+    """The receipts of one plant day: every ticket whose `happened_at` OR `entered_at`
+    (= committed_at) plant day is `day`. `actor_terms` are matched against
+    `operator_id` (name) or `actor_id` (as text) — the merged `?actor=` rule
+    (`GET /receipts`, design §7.3); the A9 shift summary passes [name, id] so the
+    two readers share one filter (contract §6.2)."""
+    cur.execute('''SELECT receipt_number FROM write_tickets
+        WHERE receipt_number IS NOT NULL
+          AND (((payload->>'occurred_at')::timestamptz AT TIME ZONE 'America/New_York')::date=%s
+               OR (committed_at AT TIME ZONE 'America/New_York')::date=%s)
+          AND (%s::text[] IS NULL OR operator_id=ANY(%s) OR actor_id::text=ANY(%s))
+          AND (%s IS NULL OR action=%s) AND (%s IS NULL OR status=%s)
+          AND (%s IS NULL OR client_source=%s)
+          AND (%s IS NULL OR EXISTS (SELECT 1 FROM jsonb_array_elements(
+              COALESCE(response->'policy_acknowledgements','[]'::jsonb)) p WHERE p->>'code'=%s))
+        ORDER BY committed_at,id''',
+        (day, day, actor_terms, actor_terms, actor_terms, action, action, status, status, client_source, client_source,
+         policy_code, policy_code))
+    return [row['receipt_number'] for row in cur.fetchall()]
+
+
 def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowledged, attachment_ref=None,
                    approval=None, preparer_inactive=False):
     """Re-validate under lock and post the stored payload; the one commit path.
@@ -755,18 +776,8 @@ def register_routes(app, api):
                       _: bool = Depends(api.verify_api_key)):
         day = date or api.get_plant_now().date()
         with api.get_transaction() as cur:
-            cur.execute('''SELECT receipt_number FROM write_tickets
-                WHERE receipt_number IS NOT NULL
-                  AND (((payload->>'occurred_at')::timestamptz AT TIME ZONE 'America/New_York')::date=%s
-                       OR (committed_at AT TIME ZONE 'America/New_York')::date=%s)
-                  AND (%s IS NULL OR operator_id=%s OR actor_id::text=%s)
-                  AND (%s IS NULL OR action=%s) AND (%s IS NULL OR status=%s)
-                  AND (%s IS NULL OR client_source=%s)
-                  AND (%s IS NULL OR EXISTS (SELECT 1 FROM jsonb_array_elements(
-                      COALESCE(response->'policy_acknowledgements','[]'::jsonb)) p WHERE p->>'code'=%s))
-                ORDER BY committed_at,id''',
-                (day, day, actor, actor, actor, action, action, status, status, client_source, client_source, policy_code, policy_code))
-            numbers = [row['receipt_number'] for row in cur.fetchall()]
+            numbers = receipt_numbers(cur, day, actor_terms=[actor] if actor else None, action=action, status=status,
+                                      client_source=client_source, policy_code=policy_code)
             return {'date': day, 'receipts': [receipt_detail(api, cur, number) for number in numbers]}
 
     @app.get('/receipts/by-transaction/{transaction_id}')
