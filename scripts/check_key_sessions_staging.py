@@ -26,7 +26,7 @@ def migrate():
     print('077 applied to verified staging only; parked PIN tables untouched.',flush=True)
 
 
-def check():
+def check(output=None):
     marker='STG-SIGNIN-'+uuid4().hex[:8].upper()
     actors={}; keys={name:secrets.token_urlsafe(40) for name in ('Arturo','Michael','Luz','Miriam')}
     sessions={}; h={}; evidence={'reference':marker,'base_url':BASE,'checked_at':datetime.now(timezone.utc).isoformat(),'checks':[]}
@@ -112,10 +112,10 @@ def check():
                 cur.execute('UPDATE actors SET active=false WHERE id=ANY(%s)',(ids,))
                 cur.execute("UPDATE key_actor_sessions SET ended_at=clock_timestamp(),ended_reason='revoked' WHERE actor_id=ANY(%s) AND ended_at IS NULL",(ids,))
             evidence['temporary_actors_inactive']=True
-    dest=ROOT/'docs/validation/key-sessions-staging.json';dest.write_text(json.dumps(evidence,indent=2,default=str)+'\n')
+    dest=Path(output) if output else ROOT/'docs/validation/key-sessions-staging.json';dest.write_text(json.dumps(evidence,indent=2,default=str)+'\n')
     print('Staging Arturo receive:',evidence['receipt_number'],'transaction',entry['id'],'10 lb; tokens/keys omitted.',flush=True)
 
 if __name__=='__main__':
-    parser=argparse.ArgumentParser();parser.add_argument('--migrate',action='store_true');parser.add_argument('--check',action='store_true');args=parser.parse_args()
+    parser=argparse.ArgumentParser();parser.add_argument('--migrate',action='store_true');parser.add_argument('--check',action='store_true');parser.add_argument('--output',type=Path);args=parser.parse_args()
     if args.migrate:migrate()
-    if args.check:check()
+    if args.check:check(args.output)

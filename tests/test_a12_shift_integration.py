@@ -307,7 +307,9 @@ def test_item7_migration_numbering_route_hooks_and_null_guards_preserved():
         assert 'migrations/' + number + '_' in fixture
     assert len(list((ROOT / 'migrations').glob('075_*.sql'))) == 1
     assert len(list((ROOT / 'migrations').glob('076_*.sql'))) == 1
-    assert not list((ROOT / 'migrations').glob('077_*.sql'))  # PR #103 owns 077; A12 allocates none.
+    session_migrations = list((ROOT / 'migrations').glob('077_*.sql'))
+    assert len(session_migrations) <= 1  # PR #103 may now coexist; A12 allocates no duplicate.
+    assert not session_migrations or session_migrations[0].name == '077_key_sessions.sql'
     methods = {(method, route.path) for route in main.app.routes for method in getattr(route, 'methods', [])}
     assert ss.ROUTES <= methods and ss.ROUTES <= main.DASHBOARD_KEY_ALLOWLIST
     assert ('POST', '/reports/shift-summary/confirm') in main.permissions.UNGATED_ROUTES

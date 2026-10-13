@@ -7,6 +7,34 @@
 
 ---
 
+## 2026-10-13 14:03 — Verify post-A12 pilot rebase on fresh DB and Chrome
+- **File(s) changed:** `docs/validation/key-sessions-rebase-tests.json`, `docs/deployments/key-sessions.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record 2,731 Python/107 Node passes on fresh local DB, eight session integration regressions, actual Chrome on/off/dashboard checks, independent review, preserved migration/history and staging-only preflight. Keep prior receipts and explicit standalone summary UI followup.
+- **Why:** Prepare a concrete tested staging upload and PR #103 review handoff; production untouched.
+
+---
+
+## 2026-10-13 14:01 — Allow the legitimate sign-in 077 migration in upstream A12 numbering regression
+- **File(s) changed:** `tests/test_a12_shift_integration.py`
+- **What changed:** Replace the A12-branch-only absence check with uniqueness and exact ownership of optional 077_key_sessions.sql; 075 and 076 remain uniquely required.
+- **Why:** The full rebase suite found the historical A12 scope assertion rejects the intended PR #103 migration; preserve collision protection while permitting integration. Fresh full rerun follows.
+
+---
+
+## 2026-10-13 13:59 — Add session integration regressions for merged A9/A12 and preserve staging receipts
+- **File(s) changed:** `tests/test_key_session_rebase.py`, `scripts/check_key_sessions_staging.py`
+- **What changed:** Add eight passing local HTTP regressions for session-authenticated A9 summary/confirmation, A12 held make/found same-number approval, separate owner attestation, shared-key and idle/logout refusal. Add an optional staging evidence output so repeat acceptance preserves the original receipt artifact.
+- **Why:** Validate the c195a39 rebase without losing original staging evidence; no production access.
+
+---
+
+## 2026-10-13 13:58 — Rebase pilot sign-in onto merged A9/A12 main c195a39
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `tests/schema/schema.sql`, `main.py`, `permissions.py`, `write_tickets.py`
+- **What changed:** Rebase feat/key-session onto c195a39, preserving all upstream and pilot log history, 068/075/076 beside 077, A9/A12 route/auth hooks and key_actor_sessions separate from parked PIN tables.
+- **Why:** Restore pilot sign-in to staging after the A12 main deployment replaced the previous CLI upload. No production access or merge.
+
+---
+
 ## 2026-10-13 13:27 — Record final A9/A12 integration verification and review evidence
 - **File(s) changed:** `docs/deployments/a12-a9-integration-tests.json`, `docs/deployments/a12-kosher-tiers.md`, `docs/deployments/a9-shift-summary.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Record fresh-DB 2,691 Python/100 Node passes, zero failures/errors/skips, checklist 1–7 completion, 45 new cases, before/after regression proof, tested-file digests, independent review and distinct 075/076/077 ownership. Preserve every historical log/acceptance note and operator production requirement.
