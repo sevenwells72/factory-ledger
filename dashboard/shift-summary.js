@@ -1,0 +1,228 @@
+/* D3-lite: renders the frozen A9 JSON (docs/contracts/shift-summary.md). The page never
+   computes anything from ledger rows — every line, label and flag text comes from FL. */
+(function (root) {
+  'use strict';
+  const DASHBOARD_KEY = 'dashboard-key-2026';
+  const PRODUCTION_API = 'https://fastapi-production-b73a.up.railway.app';
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  /** Where the API lives: `?api=` override, same origin when FL serves the page, else production. */
+  function apiBase(loc, search) {
+    const override = new URLSearchParams(search || '').get('api');
+    if (override && /^https?:\/\//.test(override)) return override.replace(/\/$/, '');
+    if (!loc || loc.protocol === 'file:' || /netlify\.app$/.test(loc.hostname || '')) return PRODUCTION_API;
+    return loc.origin;
+  }
+
+  /** The error text a person reads: `error_detail.message_es` when Spanish and present, else the message. */
+  function errorText(error, lang) {
+    const data = error && (error.result || error);
+    const detail = data && (data.error_detail || data.detail || data);
+    if (Array.isArray(detail)) return detail.map(e => `${(e.loc || []).slice(1).join('.')}: ${e.msg}`).join('\n');
+    if (typeof detail === 'string') return detail;
+    if (detail && typeof detail === 'object') {
+      const message = (lang === 'es' && detail.message_es) || detail.message || detail.error_code || detail.code;
+      return message || JSON.stringify(detail);
+    }
+    return lang === 'es' ? 'La solicitud falló' : 'Request failed';
+  }
+
+  /** A `409 SHIFT_SUMMARY_STALE` carries the fresh document at detail.summary (contract §3.1). */
+  function staleSummary(error) {
+    const data = error && (error.result || error);
+    const code = data && ((data.error_detail && data.error_detail.code) || (data.detail && data.detail.error_code));
+    return code === 'SHIFT_SUMMARY_STALE' && data.detail && data.detail.summary ? data.detail.summary : null;
+  }
+
+  /** The confirm body echoes exactly what was shown (§3.1): hash + receipt count from the document. */
+  function confirmBody(doc, outcome, notes, lang) {
+    return { date: doc.date, outcome, notes: notes || '', summary_hash: doc.summary_hash, receipts_seen: doc.receipts_today, lang: lang || 'en' };
+  }
+
+  function clock(iso) { const m = /T(\d{2}:\d{2})/.exec(iso || ''); return m ? m[1] : ''; }
+
+  function flagHtml(flag) {
+    const cls = flag.severity === 'info' ? ' info' : flag.severity === 'block' ? ' block' : '';
+    return `<span class="flag${cls}">⚠ ${esc(flag.message || flag.message_en || flag.code)}</span>`;
+  }
+
+  function receiptRowHtml(row, lang) {
+    const cls = ['row', row.late_entry ? 'late' : '', row.effective_status === 'voided' ? 'voided' : ''].filter(Boolean).join(' ');
+    const line = (row.line || row.line_en || '').replace(row.receipt_number, '').trim();
+    const meta = [];
+    if (row.actor && row.actor.name) meta.push(row.actor.name);
+    if (row.entered_at) meta.push((lang === 'es' ? 'registrado ' : 'entered ') + clock(row.entered_at));
+    if (row.late_entry) meta.push(lang === 'es' ? `tardía ${row.hours_late} h` : `late ${row.hours_late} h`);
+    if (row.entered_on_later_day) meta.push(lang === 'es' ? 'registrado otro día' : 'entered on a later day');
+    return `<div class="${cls}" data-receipt="${esc(row.receipt_number)}"><span class="receipt-number">${esc(row.receipt_number)}</span><span class="line">${esc(line)}</span>` +
+      `<div class="meta">${esc(meta.join(' · '))}</div>${(row.flags || []).map(flagHtml).join('')}</div>`;
+  }
+
+  function expectationRowHtml(row) {
+    return `<div class="row${row.overdue ? ' late' : ''}"><span class="line">${esc(row.line || row.line_en)}</span></div>`;
+  }
+
+  function lotRowHtml(row) {
+    return `<div class="row lot-line${row.negative || row.short ? ' short' : ''}"><span class="line">${esc(row.line || row.line_en)}</span><div class="meta">${esc((row.receipts || []).join(', '))}</div></div>`;
+  }
+
+  function exceptionRowHtml(row, lang) {
+    const due = row.due_at ? `${lang === 'es' ? 'vence' : 'due'} ${row.due_at.slice(0, 10)} ${clock(row.due_at)}` : (lang === 'es' ? 'sin fecha' : 'no due date');
+    return `<div class="row exc${row.overdue ? ' overdue' : ''}"><span class="line">${esc(row.summary || row.summary_en)}</span><span class="due">#${esc(row.exception_id)} · ${esc(due)}</span></div>`;
+  }
+
+  function sectionHtml(section, lang) {
+    const rows = section.rows || [];
+    let body;
+    if (!rows.length) body = `<div class="section-empty">${esc(section.empty || section.empty_en)}</div>`;
+    else if (section.key === 'not_entered_yet') body = rows.map(expectationRowHtml).join('');
+    else if (section.key === 'lot_balances_touched') body = rows.map(lotRowHtml).join('');
+    else if (section.key === 'open_exceptions') body = rows.map(r => exceptionRowHtml(r, lang)).join('');
+    else body = rows.map(r => receiptRowHtml(r, lang)).join('');
+    const rollup = section.key === 'open_exceptions' && (section.rollup || section.rollup_en) ? `<div class="section-rollup">${esc(section.rollup || section.rollup_en)}</div>` : '';
+    return `<section class="section" data-key="${esc(section.key)}"><div class="section-head"><span>${esc(section.label || section.label_en)}</span><span class="count">${esc(section.count)}</span></div>${rollup}${body}</section>`;
+  }
+
+  function summaryHtml(doc, lang) { return (doc.sections || []).map(s => sectionHtml(s, lang)).join(''); }
+
+  /** The confirmation banner text for the latest row, or null when unconfirmed. */
+  function bannerText(doc, lang) {
+    const c = doc.confirmation || {};
+    if (!c.latest) return null;
+    const when = `${c.latest.confirmed_at.slice(0, 10)} ${clock(c.latest.confirmed_at)}`;
+    const who = c.latest.actor && c.latest.actor.name ? c.latest.actor.name : '';
+    if (c.status === 'discrepancy') {
+      return lang === 'es' ? `Marcado como "falta algo" por ${who} el ${when}${c.latest.notes ? ' — ' + c.latest.notes : ''}` : `Marked "something is missing" by ${who} at ${when}${c.latest.notes ? ' — ' + c.latest.notes : ''}`;
+    }
+    return lang === 'es' ? `Confirmado por ${who} el ${when}${c.latest.notes ? ' — ' + c.latest.notes : ''}` : `Confirmed by ${who} at ${when}${c.latest.notes ? ' — ' + c.latest.notes : ''}`;
+  }
+
+  const exports = { apiBase, errorText, staleSummary, confirmBody, receiptRowHtml, sectionHtml, summaryHtml, bannerText, DASHBOARD_KEY, PRODUCTION_API };
+  if (typeof module !== 'undefined') module.exports = exports;
+  if (!root.document) return;
+
+  // ------------------------------------------------------------------ DOM
+  const $ = id => document.getElementById(id);
+  const API = apiBase(location, location.search);
+  let language = localStorage.getItem('fl-shift-language') || 'en';
+  let key = '', actor = null, doc = null, busy = false, pendingOutcome = null;
+
+  function t(en, es) { return language === 'es' ? es : en; }
+  function applyLanguage() {
+    document.documentElement.lang = language;
+    document.querySelectorAll('[data-en]').forEach(node => node.textContent = node.dataset[language]);
+    $('language').textContent = language === 'en' ? 'ES' : 'EN';
+    $('language').setAttribute('aria-label', language === 'en' ? 'Cambiar a español' : 'Switch to English');
+    $('actor-key').placeholder = t('Enter your personal key', 'Escribe tu clave personal');
+    if (actor) $('identity').textContent = `${t('Signed in as', 'Sesión de')} ${actor.name} · ${actor.role}`;
+    else if (key) $('identity').textContent = t('Read-only view of all actors (shared key).', 'Vista de solo lectura de todos (clave compartida).');
+  }
+  function notice(message, ok) { $('notice').textContent = message || ''; $('notice').hidden = !message; $('notice').classList.toggle('ok', !!ok); }
+
+  async function api(path, { body, method = 'GET', params } = {}) {
+    const url = new URL(path, API);
+    Object.entries(params || {}).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v); });
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 20000);
+    try {
+      const response = await fetch(url, { method, headers: { 'X-API-Key': key, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+        body: body ? JSON.stringify(body) : undefined, signal: controller.signal, cache: 'no-store' });
+      const data = await response.json();
+      if (!response.ok) throw { ...data, httpStatus: response.status };
+      return data;
+    } catch (error) {
+      if (error instanceof Error) throw { detail: { error_code: 'NETWORK', message: 'Connection failed or timed out.', message_es: 'La conexión falló o tardó demasiado.' } };
+      throw error;
+    } finally { clearTimeout(timer); }
+  }
+
+  function plantToday() {
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+    const get = type => parts.find(p => p.type === type).value;
+    return `${get('year')}-${get('month')}-${get('day')}`;
+  }
+  function shiftDate(days) {
+    const d = new Date(plantToday() + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + days); return d.toISOString().slice(0, 10);
+  }
+
+  function render() {
+    if (!doc) return;
+    $('title').textContent = doc.title || doc.title_en;
+    $('receipts-count').textContent = `${t('FL receipts today', 'Recibos FL del día')}: ${doc.receipts_today}`;
+    $('sections').innerHTML = summaryHtml(doc, language);
+    const banner = bannerText(doc, language);
+    $('status-banner').hidden = !banner; $('status-banner').textContent = banner || '';
+    $('status-banner').className = 'banner ' + (doc.confirmation && doc.confirmation.status !== 'unconfirmed' ? doc.confirmation.status : '');
+    const can = !!(doc.confirmation && doc.confirmation.can_confirm);
+    $('confirm-bar').hidden = false;
+    $('confirm-question').hidden = !can;
+    $('confirm-reason').hidden = can; $('confirm-reason').textContent = can ? '' : ((doc.confirmation && (doc.confirmation.reason || doc.confirmation.reason_en)) || '');
+    ['confirm-match', 'confirm-notes', 'confirm-missing'].forEach(id => { $(id).hidden = !can; $(id).disabled = busy; });
+    if (!can) $('notes-form').hidden = true;
+  }
+
+  async function load() {
+    busy = true; $('load-status').textContent = t('Loading…', 'Cargando…'); notice('');
+    try {
+      doc = await api('/reports/shift-summary', { params: { date: $('date').value, lang: language } });
+      $('load-status').textContent = '';
+      busy = false; render();
+    } catch (error) {
+      busy = false; $('load-status').textContent = ''; notice(errorText(error, language));
+    }
+  }
+
+  async function sendConfirm(outcome, notes) {
+    if (!doc || busy) return;
+    busy = true; render();
+    try {
+      const result = await api('/reports/shift-summary/confirm', { method: 'POST', body: confirmBody(doc, outcome, notes, language) });
+      busy = false; $('notes-form').hidden = true; $('notes').value = '';
+      notice(result.message || result.message_en, true);
+      await load();
+    } catch (error) {
+      busy = false;
+      const fresh = staleSummary(error);
+      if (fresh) {
+        doc = fresh; render();
+        notice(t('The summary changed since it was shown — review it and confirm again.', 'El resumen cambió desde que se mostró — revísalo y confirma otra vez.'));
+      } else { render(); notice(errorText(error, language)); }
+    }
+  }
+
+  function openNotes(outcome) {
+    pendingOutcome = outcome;
+    $('notes-label').textContent = outcome === 'discrepancy' ? t('What is missing? (required)', '¿Qué falta? (obligatorio)') : t('Notes (optional)', 'Notas (opcional)');
+    $('notes-form').hidden = false; $('notes').focus();
+  }
+
+  async function signIn(personalKey) {
+    key = personalKey || DASHBOARD_KEY;
+    try {
+      const who = await api('/auth/whoami');
+      actor = who.actor || null;
+      $('sign-in-panel').hidden = true; $('summary-panel').hidden = false; $('sign-out').hidden = false; $('actor-key').value = '';
+      applyLanguage(); await load();
+    } catch (error) { key = ''; actor = null; notice(errorText(error, language)); }
+  }
+
+  $('sign-in-form').addEventListener('submit', event => { event.preventDefault(); const v = $('actor-key').value.trim(); if (v) signIn(v); else notice(t('Enter your key or choose read-only.', 'Escribe tu clave o elige solo lectura.')); });
+  $('read-only').addEventListener('click', () => signIn(''));
+  $('sign-out').addEventListener('click', () => { key = ''; actor = null; doc = null; $('summary-panel').hidden = true; $('confirm-bar').hidden = true; $('sign-in-panel').hidden = false; $('sign-out').hidden = true; applyLanguage(); notice(''); });
+  $('language').addEventListener('click', () => { language = language === 'en' ? 'es' : 'en'; localStorage.setItem('fl-shift-language', language); applyLanguage(); if (doc) load(); });
+  $('date').max = plantToday(); $('date').value = plantToday();
+  $('date').addEventListener('change', () => { if ($('date').value > plantToday()) $('date').value = plantToday(); load(); });
+  $('today').addEventListener('click', () => { $('date').value = plantToday(); load(); });
+  $('yesterday').addEventListener('click', () => { $('date').value = shiftDate(-1); load(); });
+  $('refresh').addEventListener('click', load);
+  $('confirm-match').addEventListener('click', () => sendConfirm('match', ''));
+  $('confirm-notes').addEventListener('click', () => openNotes('match'));
+  $('confirm-missing').addEventListener('click', () => openNotes('discrepancy'));
+  $('notes-cancel').addEventListener('click', () => { $('notes-form').hidden = true; });
+  $('notes-form').addEventListener('submit', event => {
+    event.preventDefault();
+    const notes = $('notes').value.trim();
+    if (pendingOutcome === 'discrepancy' && !notes) { notice(t('Say what is missing so the owner can act on it.', 'Indica qué falta para que el dueño pueda actuar.')); return; }
+    sendConfirm(pendingOutcome, notes);
+  });
+  applyLanguage();
+})(typeof window !== 'undefined' ? window : globalThis);
