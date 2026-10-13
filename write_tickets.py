@@ -393,7 +393,7 @@ def receipt_detail(api, cur, number):
                    JOIN transactions raw ON raw.id=t.id WHERE raw.ticket_id=%s ORDER BY t.id''',
                 (ticket['id'],))
     transactions = [dict(row) for row in cur.fetchall()]
-    lot_ids = set(ticket.get('result_ref', {}).get('lot_ids', []))
+    lot_ids = set((ticket.get('result_ref') or {}).get('lot_ids', []))   # NULL on a rejected/held ticket that already drew a number
     for txn in transactions:
         cur.execute('''SELECT l.product_id,p.name AS product_name,l.lot_id,lot.lot_code,l.quantity_lb
                        FROM ledger_current_transaction_lines l JOIN products p ON p.id=l.product_id
@@ -409,7 +409,8 @@ def receipt_detail(api, cur, number):
     # A5 hook: explicit supplier and lot evidence in interface-neutral receipts.
     a5.receipt_evidence(cur, transactions, lots)
     happened = datetime.fromisoformat(ticket['payload']['occurred_at'])
-    late = happened.astimezone(api.PLANT_TIMEZONE).date() != ticket['committed_at'].astimezone(api.PLANT_TIMEZONE).date()
+    entered = ticket['committed_at']   # NULL on a rejected/held ticket that already drew a number
+    late = entered is not None and happened.astimezone(api.PLANT_TIMEZONE).date() != entered.astimezone(api.PLANT_TIMEZONE).date()
     import order_tickets   # A7 hook: the order an order receipt created or edited (None otherwise)
     order = order_tickets.receipt_order(cur, ticket)
     import expected_receipt_tickets

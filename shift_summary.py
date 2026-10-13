@@ -681,7 +681,8 @@ def build(api, cur, *, day, actor, caller, lang='en'):
     """The §1.2 document for (day, actor); `actor` None = all actors; `caller` = write_tickets.identity()."""
     catalog = Catalog(cur)
     terms = [actor['name'], str(actor['id'])] if actor else None
-    numbers = wt.receipt_numbers(cur, day, actor_terms=terms)
+    # Committed tickets only (contract §2.1/§2.2): a rejected or held ticket may already hold a receipt number.
+    numbers = wt.receipt_numbers(cur, day, actor_terms=terms, status='committed')
     receipt_rows = [receipt_row(api, cur, catalog, number, day) for number in numbers]
     sections = []
     by_key = {}

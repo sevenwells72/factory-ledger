@@ -340,6 +340,19 @@ def test_not_entered_yet_expected_receipts_and_planned_runs(client, db_cursor, i
     assert doc2['summary_hash'] != h   # the receive is this person's entry, so that one does move
 
 
+def test_rejected_ticket_with_a_receipt_number_is_not_a_receipt(client, db_cursor, items, actors):
+    key = actors['floor']['key']
+    p = prepare(client, 'adjust', adjust(items, -1), key)
+    # A held/rejected ticket can already carry a number (seen on staging: MK-…-002 rejected, result_ref NULL).
+    db_cursor.execute("UPDATE write_tickets SET receipt_number=%s, status='rejected' WHERE id=%s",
+                      ('ADJ-' + main.get_plant_now().strftime('%y%m%d') + '-999', p['ticket_id']))
+    doc = summary(client, key)
+    assert doc['receipts_today'] == 0 and section(doc, 'adjusted')['rows'] == []
+    # GET /receipts still lists it (its own filter) and no longer crashes on the NULL result_ref.
+    listed = client.get('/receipts', params={'date': doc['date'], 'actor': actors['floor']['name']}, headers=headers(key)).json()
+    assert [r['status'] for r in listed['receipts']] == ['rejected']
+
+
 def test_legacy_key_receipts_and_all_actors_view(client, db_cursor, actors):
     result, payload, p = receive(client, db_cursor, main.API_KEY)
     floor, _, _ = receive(client, db_cursor, actors['floor']['key'])

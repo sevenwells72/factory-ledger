@@ -1,0 +1,386 @@
+{
+ "ref": "STG-A9-9901D12E1A33",
+ "steps": [
+  {
+   "step": "empty day",
+   "receipts_today": 0,
+   "can_confirm": true
+  },
+  {
+   "step": "receive",
+   "receipt_number": "RCV-261013-004",
+   "lot_id": 1000000052
+  },
+  {
+   "step": "adjust",
+   "receipt_number": "ADJ-261013-003"
+  },
+  {
+   "step": "all-actors view (dashboard key)",
+   "actor": null,
+   "can_confirm": false,
+   "open_exception_owner": "Arturo",
+   "exception_kind": "UNIDENTIFIED_LOT"
+  },
+  {
+   "step": "stale confirm",
+   "status": 409,
+   "code": "SHIFT_SUMMARY_STALE"
+  },
+  {
+   "step": "confirm match",
+   "status": 201,
+   "confirmation_id": 1,
+   "message": "Shift recorded as: matches the floor."
+  },
+  {
+   "step": "confirm with notes (append)",
+   "status": 201,
+   "confirmation_id": 2,
+   "message": "Turno registrado como: coincide con el piso, con notas."
+  }
+ ],
+ "summary_after_confirm": {
+  "date": "2026-10-13",
+  "plant_timezone": "America/New_York",
+  "generated_at": "2026-10-13T11:10:38.896321-04:00",
+  "actor": {
+   "id": 1000000057,
+   "name": "STG-A9-9901D12E1A33 floor",
+   "role": "floor"
+  },
+  "lang": "en",
+  "title_en": "SHIFT SUMMARY — Tue Oct 13 — STG-A9-9901D12E1A33 floor",
+  "title_es": "RESUMEN DEL TURNO — mar 13 oct — STG-A9-9901D12E1A33 floor",
+  "receipts_today": 2,
+  "summary_hash": "c01327c12a50369d73e249520708555a602c810bacc07c932c54ce6243525ed0",
+  "confirmation": {
+   "status": "match",
+   "latest": {
+    "confirmation_id": 2,
+    "business_date": "2026-10-13",
+    "actor": {
+     "id": 1000000057,
+     "name": "STG-A9-9901D12E1A33 floor",
+     "role": "floor"
+    },
+    "outcome": "match",
+    "notes": "staging re-confirm with notes",
+    "confirmed_at": "2026-10-13T11:10:37.300878-04:00",
+    "confirmed_late": false,
+    "receipts_seen": 2,
+    "summary_hash": "c01327c12a50369d73e249520708555a602c810bacc07c932c54ce6243525ed0",
+    "exception": null
+   },
+   "can_confirm": true,
+   "reason_en": null,
+   "reason_es": null,
+   "reason": null
+  },
+  "sections": [
+   {
+    "key": "received",
+    "label_en": "RECEIVED",
+    "label_es": "RECIBIDO",
+    "empty_en": "none",
+    "empty_es": "ninguno",
+    "count": 1,
+    "rows": [
+     {
+      "receipt_number": "RCV-261013-004",
+      "action": "receive",
+      "status": "committed",
+      "effective_status": "posted",
+      "actor": {
+       "id": 1000000057,
+       "name": "STG-A9-9901D12E1A33 floor",
+       "role": "floor"
+      },
+      "client_source": "api",
+      "happened_at": "2026-10-13T11:10:16.925481-04:00",
+      "entered_at": "2026-10-13T11:10:19.408647-04:00",
+      "late_entry": false,
+      "days_late": 0,
+      "hours_late": 0.0,
+      "entered_on_later_day": false,
+      "product": {
+       "id": 1000000048,
+       "name": "STG-A9-9901D12E1A33 oats",
+       "odoo_code": "STG-A9-9901D12E1A33",
+       "type": "ingredient"
+      },
+      "lot": {
+       "id": 1000000052,
+       "lot_code": "STG-A9-9901D12E1A33-LOT",
+       "supplier_lot_code": "N/A",
+       "identity_status": "unidentified"
+      },
+      "quantity": {
+       "lb": 100.0,
+       "cases": 4,
+       "unit": "cases",
+       "display_en": "100 lb",
+       "display_es": "100 lb",
+       "display": "100 lb"
+      },
+      "detail": {
+       "supplier": {
+        "id": 1000000014,
+        "name": "STG-A9-9901D12E1A33 supplier"
+       },
+       "supplier_lot_code": "N/A",
+       "cases": 4,
+       "case_size_lb": 25.0,
+       "bol_reference": "STG-A9-9901D12E1A33-IN",
+       "expected_receipt": null
+      },
+      "flags": [
+       {
+        "code": "UNIDENTIFIED_LOT",
+        "severity": "warn",
+        "message_en": "UNIDENTIFIED — resolve by Oct 22",
+        "message_es": "SIN IDENTIFICAR — resolver antes del 22 oct",
+        "refs": {
+         "lot_id": 1000000052,
+         "exception_id": 16,
+         "due_at": "2026-10-22T23:59:00-04:00"
+        },
+        "due_at": "2026-10-22T23:59:00-04:00",
+        "message": "UNIDENTIFIED — resolve by Oct 22"
+       }
+      ],
+      "transaction_ids": [
+       1000000063
+      ],
+      "transactions": [
+       {
+        "id": 1000000063,
+        "type": "receive",
+        "effective_status": "posted"
+       }
+      ],
+      "exceptions_opened": [
+       16
+      ],
+      "line_en": "RCV-261013-004  STG-A9-9901D12E1A33 oats  100 lb  lot STG-A9-9901D12E1A33-LOT (supplier lot N/A)  11:10",
+      "line_es": "RCV-261013-004  STG-A9-9901D12E1A33 oats  100 lb  lote STG-A9-9901D12E1A33-LOT (lote del proveedor N/A)  11:10",
+      "line": "RCV-261013-004  STG-A9-9901D12E1A33 oats  100 lb  lot STG-A9-9901D12E1A33-LOT (supplier lot N/A)  11:10"
+     }
+    ],
+    "label": "RECEIVED",
+    "empty": "none"
+   },
+   {
+    "key": "made",
+    "label_en": "MADE",
+    "label_es": "PRODUCIDO",
+    "empty_en": "none",
+    "empty_es": "ninguno",
+    "count": 0,
+    "rows": [],
+    "label": "MADE",
+    "empty": "none"
+   },
+   {
+    "key": "packed",
+    "label_en": "PACKED",
+    "label_es": "EMPACADO",
+    "empty_en": "none",
+    "empty_es": "ninguno",
+    "count": 0,
+    "rows": [],
+    "label": "PACKED",
+    "empty": "none"
+   },
+   {
+    "key": "shipped",
+    "label_en": "SHIPPED",
+    "label_es": "ENVIADO",
+    "empty_en": "none",
+    "empty_es": "ninguno",
+    "count": 0,
+    "rows": [],
+    "label": "SHIPPED",
+    "empty": "none"
+   },
+   {
+    "key": "adjusted",
+    "label_en": "ADJUSTED",
+    "label_es": "AJUSTADO",
+    "empty_en": "none",
+    "empty_es": "ninguno",
+    "count": 1,
+    "rows": [
+     {
+      "receipt_number": "ADJ-261013-003",
+      "action": "adjust",
+      "status": "committed",
+      "effective_status": "posted",
+      "actor": {
+       "id": 1000000057,
+       "name": "STG-A9-9901D12E1A33 floor",
+       "role": "floor"
+      },
+      "client_source": "api",
+      "happened_at": "2026-10-13T11:10:19.463290-04:00",
+      "entered_at": "2026-10-13T11:10:21.161401-04:00",
+      "late_entry": false,
+      "days_late": 0,
+      "hours_late": 0.0,
+      "entered_on_later_day": false,
+      "product": {
+       "id": 1000000048,
+       "name": "STG-A9-9901D12E1A33 oats",
+       "odoo_code": "STG-A9-9901D12E1A33",
+       "type": "ingredient"
+      },
+      "lot": {
+       "id": 1000000052,
+       "lot_code": "STG-A9-9901D12E1A33-LOT",
+       "supplier_lot_code": "N/A",
+       "identity_status": "unidentified"
+      },
+      "quantity": {
+       "lb": -3.0,
+       "cases": null,
+       "unit": "lb",
+       "display_en": "−3 lb",
+       "display_es": "−3 lb",
+       "display": "−3 lb"
+      },
+      "detail": {
+       "lot": {
+        "id": 1000000052,
+        "lot_code": "STG-A9-9901D12E1A33-LOT"
+       },
+       "delta_lb": -3.0,
+       "lot_on_hand_before": 100.0,
+       "lot_on_hand_after": 97.0,
+       "reason_code": {
+        "code": "unknown",
+        "label_en": "Unknown",
+        "label_es": "Desconocido",
+        "note_required": true,
+        "label": "Unknown"
+       },
+       "note": "staging check",
+       "photo_attached": false
+      },
+      "flags": [
+       {
+        "code": "UNKNOWN_REASON",
+        "severity": "warn",
+        "message_en": "reason: unknown — highlighted on the weekly view",
+        "message_es": "razón: desconocida — resaltado en la vista semanal",
+        "refs": {
+         "transaction_id": 1000000064
+        },
+        "message": "reason: unknown — highlighted on the weekly view"
+       }
+      ],
+      "transaction_ids": [
+       1000000064
+      ],
+      "transactions": [
+       {
+        "id": 1000000064,
+        "type": "adjust",
+        "effective_status": "posted"
+       }
+      ],
+      "exceptions_opened": [],
+      "line_en": "ADJ-261013-003  STG-A9-9901D12E1A33 oats lot STG-A9-9901D12E1A33-LOT  −3 lb  reason: Unknown",
+      "line_es": "ADJ-261013-003  STG-A9-9901D12E1A33 oats lote STG-A9-9901D12E1A33-LOT  −3 lb  razón: Desconocido",
+      "line": "ADJ-261013-003  STG-A9-9901D12E1A33 oats lot STG-A9-9901D12E1A33-LOT  −3 lb  reason: Unknown"
+     }
+    ],
+    "label": "ADJUSTED",
+    "empty": "none"
+   },
+   {
+    "key": "voided",
+    "label_en": "VOIDED",
+    "label_es": "ANULADO",
+    "empty_en": "none",
+    "empty_es": "ninguno",
+    "count": 0,
+    "rows": [],
+    "label": "VOIDED",
+    "empty": "none"
+   },
+   {
+    "key": "not_entered_yet",
+    "label_en": "NOT ENTERED YET?",
+    "label_es": "¿FALTA REGISTRAR?",
+    "empty_en": "nothing expected",
+    "empty_es": "nada pendiente",
+    "count": 0,
+    "rows": [],
+    "label": "NOT ENTERED YET?",
+    "empty": "nothing expected"
+   },
+   {
+    "key": "lot_balances_touched",
+    "label_en": "LOT BALANCES TOUCHED TODAY",
+    "label_es": "LOTES MOVIDOS HOY",
+    "empty_en": "none",
+    "empty_es": "ninguno",
+    "count": 1,
+    "rows": [
+     {
+      "lot": {
+       "id": 1000000052,
+       "lot_code": "STG-A9-9901D12E1A33-LOT",
+       "product": {
+        "id": 1000000048,
+        "name": "STG-A9-9901D12E1A33 oats"
+       }
+      },
+      "before_lb": 0.0,
+      "after_lb": 97.0,
+      "delta_lb": 97.0,
+      "short": false,
+      "negative": false,
+      "receipts": [
+       "RCV-261013-004",
+       "ADJ-261013-003"
+      ],
+      "line_en": "STG-A9-9901D12E1A33 oats lot STG-A9-9901D12E1A33-LOT 0 → 97 lb",
+      "line_es": "STG-A9-9901D12E1A33 oats lote STG-A9-9901D12E1A33-LOT 0 → 97 lb",
+      "line": "STG-A9-9901D12E1A33 oats lot STG-A9-9901D12E1A33-LOT 0 → 97 lb"
+     }
+    ],
+    "label": "LOT BALANCES TOUCHED TODAY",
+    "empty": "none"
+   },
+   {
+    "key": "open_exceptions",
+    "label_en": "OPEN EXCEPTIONS (yours)",
+    "label_es": "EXCEPCIONES ABIERTAS (tuyas)",
+    "empty_en": "none",
+    "empty_es": "ninguna",
+    "count": 0,
+    "rows": [],
+    "rollup_en": "",
+    "rollup_es": "",
+    "label": "OPEN EXCEPTIONS (yours)",
+    "empty": "none",
+    "rollup": ""
+   },
+   {
+    "key": "late_entries",
+    "label_en": "LATE ENTRIES TODAY",
+    "label_es": "ENTRADAS TARDÍAS HOY",
+    "empty_en": "none",
+    "empty_es": "ninguna",
+    "count": 0,
+    "rows": [],
+    "label": "LATE ENTRIES TODAY",
+    "empty": "none"
+   }
+  ],
+  "title": "SHIFT SUMMARY — Tue Oct 13 — STG-A9-9901D12E1A33 floor"
+ },
+ "title_es": "RESUMEN DEL TURNO — mar 13 oct — STG-A9-9901D12E1A33 floor",
+ "actor_deactivated": true
+}
