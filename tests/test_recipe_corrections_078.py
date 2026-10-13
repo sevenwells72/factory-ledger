@@ -2,8 +2,9 @@
 
 179 Granola Fruit Nut Batch: make-recipe 20 + 1.25×4 = 25 lb → 276.3 + 13×4 = 328.3 lb,
 default_batch_lb 384.52 → 328.3, the five planner rows (product_bom) rewritten in place to
-the same formula. 284 (SS Classic Chocolate Chip #9, kosher): chips line 73 (1,000 CT) → 72
-(4,000 CT), still 25 lb. Nothing historical changes.
+the same formula, legacy yields 15/38 → 13/32. 284 (SS Classic Chocolate Chip #9, kosher):
+chips line 73 (1,000 CT) → 72 (4,000 CT), still 25 lb, and never excluded from inventory.
+Nothing historical changes, and neither SQL file reads a history table.
 
 Every test seeds the production BEFORE state recorded read-only on 2026-10-13 (ids, codes
 and quantities verbatim) inside the suite's rolled-back transaction, then runs the SQL
@@ -14,6 +15,8 @@ the TestClient so the deductions and the output are the code's, not the test's.
 from contextlib import contextmanager
 from decimal import Decimal
 from pathlib import Path
+
+import re
 
 import psycopg2
 import pytest
@@ -111,6 +114,12 @@ def batch_lb(cur, product_id):
     return cur.fetchone()["default_batch_lb"]
 
 
+def yields(cur):
+    cur.execute("SELECT yield_25lb_cases, yield_10lb_cases FROM products WHERE id=%s", (FRUIT_NUT,))
+    row = cur.fetchone()
+    return row["yield_25lb_cases"], row["yield_10lb_cases"]
+
+
 def marker(cur):
     cur.execute("SELECT count(*) AS n FROM migration_markers WHERE name='078_recipe_corrections'")
     return cur.fetchone()["n"]
@@ -123,6 +132,7 @@ def assert_after_state(cur):
     assert not any(r["excl"] for r in rows)
     assert sum(r["quantity_lb"] for r in rows) == Decimal("328.3")
     assert batch_lb(cur, FRUIT_NUT) == Decimal("328.3")
+    assert yields(cur) == (13, 32)
     plan = planner(cur, FRUIT_NUT)
     assert [r["id"] for r in plan] == [117, 118, 119, 120, 121], "planner rows rewritten in place, never deleted"
     assert {r["component_product_id"]: r["quantity"] for r in plan} == FRUIT_NUT_AFTER
@@ -130,7 +140,7 @@ def assert_after_state(cur):
     kosher = formula(cur, KOSHER_CC)
     assert len(kosher) == 8 and [r["id"] for r in kosher] == [191, 192, 193, 194, 195, 196, 197, 198]
     chips = [r for r in kosher if r["id"] == 198][0]
-    assert (chips["ingredient_product_id"], chips["quantity_lb"]) == (CHIPS_4000, Decimal("25"))
+    assert (chips["ingredient_product_id"], chips["quantity_lb"], chips["excl"]) == (CHIPS_4000, Decimal("25"), False)
     assert not any(r["ingredient_product_id"] == CHIPS_1000 for r in kosher)
     assert sum(r["quantity_lb"] for r in kosher) == Decimal("347.6")
     # Untouched on purpose: the finished-good pack path and 284's other lines.
@@ -144,9 +154,10 @@ def assert_after_state(cur):
 def assert_before_state(cur):
     assert {r["ingredient_product_id"]: r["quantity_lb"] for r in formula(cur, FRUIT_NUT)} == FRUIT_NUT_BEFORE_FORMULA
     assert batch_lb(cur, FRUIT_NUT) == Decimal("384.52")
+    assert yields(cur) == (15, 38)
     assert {r["component_product_id"]: r["quantity"] for r in planner(cur, FRUIT_NUT)} == FRUIT_NUT_BEFORE_PLANNER
     chips = [r for r in formula(cur, KOSHER_CC) if r["id"] == 198][0]
-    assert (chips["ingredient_product_id"], chips["quantity_lb"]) == (CHIPS_1000, Decimal("25"))
+    assert (chips["ingredient_product_id"], chips["quantity_lb"], chips["excl"]) == (CHIPS_1000, Decimal("25"), False)
     assert marker(cur) == 0
 
 
@@ -173,7 +184,8 @@ def test_078_down_restores_recorded_before_values_and_up_reapplies(db_cursor):
     run_sql(db_cursor, DOWN)
     assert_before_state(db_cursor)
     assert [r["id"] for r in planner(db_cursor, FRUIT_NUT)] == [117, 118, 119, 120, 121]
-    run_sql(db_cursor, DOWN)  # rerunnable too
+    # A second down finds before-values, not 078's, and refuses rather than rewriting them.
+    _refused(db_cursor, DOWN, "078 down refused")
     assert_before_state(db_cursor)
     run_sql(db_cursor, UP)
     assert_after_state(db_cursor)
@@ -217,6 +229,91 @@ def test_078_refuses_a_catalog_it_was_not_written_for(db_cursor):
     assert_after_state(db_cursor)
 
 
+def test_078_refuses_an_excluded_284_chips_line(db_cursor):
+    """Review fix 1: an excluded chips line would let 284 post 348 lb with zero chips deducted."""
+    seed_before_state(db_cursor)
+    # Before-state shape (73) flagged excluded: refused, nothing changes.
+    db_cursor.execute("UPDATE batch_formulas SET exclude_from_inventory=true WHERE id=198")
+    _refused(db_cursor, UP, "284 chips line is excluded from inventory")
+    db_cursor.execute("UPDATE batch_formulas SET exclude_from_inventory=false WHERE id=198")
+    assert_before_state(db_cursor)
+    run_sql(db_cursor, UP)
+    # After-state shape (72) flagged excluded on a rerun: refused as well.
+    db_cursor.execute("UPDATE batch_formulas SET exclude_from_inventory=true WHERE id=198")
+    _refused(db_cursor, UP, "284 chips line is excluded from inventory")
+    db_cursor.execute("UPDATE batch_formulas SET exclude_from_inventory=NULL WHERE id=198")
+    run_sql(db_cursor, UP)  # NULL counts as deducted, like the make path's COALESCE
+    # Other products' exclusions (e.g. water lines) are not 078's business.
+    db_cursor.execute("UPDATE batch_formulas SET exclude_from_inventory=true WHERE id=191")
+    run_sql(db_cursor, UP)
+
+
+def test_078_sets_fruit_nut_yields_13_32_and_refuses_unrecorded_yields(db_cursor):
+    """Review fix 3: 179 yield_25lb_cases / yield_10lb_cases 15/38 → 13/32, guarded."""
+    seed_before_state(db_cursor)
+    for col, bad in (("yield_25lb_cases", 14), ("yield_10lb_cases", 33)):
+        db_cursor.execute(f"SELECT {col} AS v FROM products WHERE id=%s", (FRUIT_NUT,))
+        good = db_cursor.fetchone()["v"]
+        db_cursor.execute(f"UPDATE products SET {col}=%s WHERE id=%s", (bad, FRUIT_NUT))
+        _refused(db_cursor, UP, f"{col} for 179 is neither")
+        db_cursor.execute(f"UPDATE products SET {col}=%s WHERE id=%s", (good, FRUIT_NUT))
+    assert_before_state(db_cursor)
+    run_sql(db_cursor, UP)
+    assert yields(db_cursor) == (13, 32)
+    run_sql(db_cursor, DOWN)
+    assert yields(db_cursor) == (15, 38)
+
+
+# Each tamper moves one row 078 wrote off its 078 value (column change, undo).
+DOWN_TAMPERS = [
+    ("UPDATE batch_formulas SET quantity_lb=280 WHERE id=179", "UPDATE batch_formulas SET quantity_lb=276.3 WHERE id=179", "batch_formulas for 179"),
+    ("UPDATE batch_formulas SET quantity_lb=12 WHERE id=182", "UPDATE batch_formulas SET quantity_lb=13 WHERE id=182", "batch_formulas for 179"),
+    ("UPDATE batch_formulas SET exclude_from_inventory=true WHERE id=180", "UPDATE batch_formulas SET exclude_from_inventory=false WHERE id=180", "batch_formulas for 179"),
+    ("UPDATE products SET default_batch_lb=330 WHERE id=179", "UPDATE products SET default_batch_lb=328.3 WHERE id=179", "batch size / yields"),
+    ("UPDATE products SET yield_25lb_cases=14 WHERE id=179", "UPDATE products SET yield_25lb_cases=13 WHERE id=179", "batch size / yields"),
+    ("UPDATE products SET yield_10lb_cases=NULL WHERE id=179", "UPDATE products SET yield_10lb_cases=32 WHERE id=179", "batch size / yields"),
+    ("UPDATE product_bom SET quantity=277 WHERE id=117", "UPDATE product_bom SET quantity=276.3 WHERE id=117", "product_bom for 179"),
+    ("UPDATE product_bom SET quantity=15.38 WHERE id=121", "UPDATE product_bom SET quantity=13 WHERE id=121", "product_bom for 179"),
+    ("UPDATE batch_formulas SET exclude_from_inventory=true WHERE id=198", "UPDATE batch_formulas SET exclude_from_inventory=false WHERE id=198", "284 chips line"),
+    ("UPDATE batch_formulas SET quantity_lb=30 WHERE id=198", "UPDATE batch_formulas SET quantity_lb=25 WHERE id=198", "284 chips line"),
+    ("UPDATE batch_formulas SET ingredient_product_id=73 WHERE id=198", "UPDATE batch_formulas SET ingredient_product_id=72 WHERE id=198", "284 chips line"),
+    ("DELETE FROM migration_markers WHERE name='078_recipe_corrections'", "INSERT INTO migration_markers (name) VALUES ('078_recipe_corrections')", "marker"),
+]
+
+
+def test_078_down_refuses_unless_every_row_holds_exactly_the_078_value(db_cursor):
+    """Review fix 2: the down file never blind-overwrites a value 078 did not write."""
+    seed_before_state(db_cursor)
+    run_sql(db_cursor, UP)
+    for tamper, undo, fragment in DOWN_TAMPERS:
+        db_cursor.execute(tamper)
+        _refused(db_cursor, DOWN, "078 down refused")
+        _refused(db_cursor, DOWN, fragment)
+        db_cursor.execute(undo)
+    assert_after_state(db_cursor)  # the refused runs changed nothing
+    run_sql(db_cursor, DOWN)
+    assert_before_state(db_cursor)
+
+
+HISTORY_TABLES = ("transactions", "transaction_lines", "lots", "ingredient_lot_consumption",
+                  "transaction_substitutions", "lot_events")
+
+
+def _sql_without_comments(path):
+    text = re.sub(r"--[^\n]*", "", path.read_text())
+    return re.sub(r"'(?:[^']|'')*'", "''", text)  # string literals (messages) do not count
+
+
+def test_078_up_and_down_never_reference_a_history_table():
+    """Review fix 2: no history read (the old down counted posted makes); only catalog tables."""
+    for path in (UP, DOWN):
+        sql = _sql_without_comments(path)
+        for table in HISTORY_TABLES:
+            assert not re.search(rf"\b{table}\b", sql), f"{path.name} references {table}"
+        referenced = set(re.findall(r"\b(?:FROM|UPDATE|INSERT\s+INTO|JOIN)\s+([a-z_]+)", sql, re.I))
+        assert referenced == {"products", "batch_formulas", "product_bom", "migration_markers"}, (path.name, referenced)
+
+
 def _post_make_history(cur, product_id, lot_code, output_lb, inputs):
     """A historical posted make with its ingredient lines, as the ledger holds them."""
     cur.execute("INSERT INTO transactions (type, timestamp, notes, occurred_at, operator_id) "
@@ -235,15 +332,12 @@ def _post_make_history(cur, product_id, lot_code, output_lb, inputs):
 
 
 def _ledger_snapshot(cur):
-    cur.execute("SELECT id, type, notes, status, occurred_at, business_date FROM transactions ORDER BY id")
-    txns = [tuple(r.values()) for r in cur.fetchall()]
-    cur.execute("SELECT id, transaction_id, product_id, lot_id, quantity_lb FROM transaction_lines ORDER BY id")
-    lines = [tuple(r.values()) for r in cur.fetchall()]
-    cur.execute("SELECT id, transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb FROM ingredient_lot_consumption ORDER BY id")
-    ilc = [tuple(r.values()) for r in cur.fetchall()]
-    cur.execute("SELECT id, product_id, lot_code, status, entry_source FROM lots ORDER BY id")
-    lots = [tuple(r.values()) for r in cur.fetchall()]
-    return txns, lines, ilc, lots
+    """Every column of every history row (not a column subset)."""
+    snap = {}
+    for table in HISTORY_TABLES:
+        cur.execute(f"SELECT to_jsonb(t) AS row FROM {table} t ORDER BY 1")
+        snap[table] = sorted(str(r["row"]) for r in cur.fetchall())
+    return snap
 
 
 def test_078_leaves_posted_history_untouched(db_cursor):
