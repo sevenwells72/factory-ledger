@@ -1,0 +1,43 @@
+{
+  "base": "https://fastapi-staging-production-dd7b.up.railway.app",
+  "marker": "STG-D12-EB83887D",
+  "checked_at": "2026-10-13T23:30:07.892Z",
+  "mode": "Branch dashboard assets over hosted staging API; no deployment",
+  "results": [
+    {
+      "action": "receive",
+      "receipt_number": "RCV-261013-010",
+      "transaction_id": 1000000086,
+      "lot_id": 1000000106,
+      "lot_code": "26-10-13-STGQ-001"
+    },
+    {
+      "action": "make",
+      "receipt_number": "MK-261013-006",
+      "transaction_id": 1000000087,
+      "lot_id": 1000000107,
+      "lot_code": "B26-1013-004"
+    }
+  ],
+  "requests": [
+    "/resolve",
+    "/resolve",
+    "/receive/prepare",
+    "/tickets/{ticket}/commit",
+    "/resolve",
+    "/resolve",
+    "/resolve",
+    "/resolve",
+    "/make/prepare",
+    "/make/prepare",
+    "/tickets/{ticket}/commit"
+  ],
+  "checks": [
+    "Session auth headers",
+    "No personal key retained",
+    "Receive prepare/review/commit",
+    "Rolled oats for oat bran substitution with typed last-four lot confirmation",
+    "390px no horizontal overflow",
+    "Sign out revoked session"
+  ]
+}

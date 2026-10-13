@@ -24,7 +24,9 @@ with psycopg2.connect(url) as conn,conn.cursor(cursor_factory=RealDictCursor) as
  for index,(name,pid) in enumerate(products.items()):
   code=f'D12-{index}-001';cur.execute('INSERT INTO lots(product_id,lot_code) VALUES(%s,%s) RETURNING id',(pid,code));lid=cur.fetchone()['id'];lots[name]={'id':lid,'code':code}
   cur.execute("INSERT INTO transactions(type,notes) VALUES('receive','D12 local browser fixture') RETURNING id");tx=cur.fetchone()['id'];cur.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES(%s,%s,%s,100)',(tx,pid,lid))
- data={'products':products,'lots':lots,'supplier':supplier,'customer':customer,'actors':actors}
+ cur.execute("INSERT INTO sales_orders(customer_id,order_number,order_date,status) VALUES(%s,'SO-D12-BROWSER',CURRENT_DATE,'confirmed') RETURNING id",(customer,));order=cur.fetchone()['id']
+ cur.execute('INSERT INTO sales_order_lines(sales_order_id,product_id,quantity_lb,unit_price) VALUES(%s,%s,5,1)',(order,products['Test Cases']))
+ data={'products':products,'lots':lots,'supplier':supplier,'customer':customer,'actors':actors,'order':order}
  (ROOT/'.venv-test/d12-fixture.json').write_text(json.dumps(data))
 import uvicorn
 uvicorn.run('main:app',host='127.0.0.1',port=int(os.environ.get('D12_PORT','8122')),log_level='error',access_log=False)

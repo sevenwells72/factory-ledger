@@ -41,3 +41,7 @@
 .ledger-page fieldset {border:1px solid #c6d1d7;min-width:0;margin:12px 0;padding:16px;border-radius:8px}
 .ledger-page .record-bar {display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}
 @media(max-width:520px){.receipt-tools{gap:8px}.receipt-lookup{width:100%}.receipt-lookup label{flex:1}.receipt-lookup input{width:100%}.receipt-lookup button{max-width:140px}.ledger-page .panel{padding:14px}.ledger-page .fields{grid-template-columns:minmax(0,1fr)}.ledger-page .exception-row{grid-template-columns:minmax(0,1fr)}.ledger-page dl{grid-template-columns:minmax(0,1fr)}.ledger-page dd{padding-left:12px}.ledger-page h1{font-size:24px}}
+
+.ledger-page label,.ledger-page fieldset {min-width:0}
+.ledger-page input:not([type=checkbox]),.ledger-page select,.ledger-page textarea {width:100%;min-width:0}
+.ledger-page input[type=file] {padding:8px 2px;font-size:14px}
