@@ -16,6 +16,7 @@ from psycopg2.extras import Json
 from pydantic import Field, root_validator, validator, confloat
 
 import attachments
+import kosher_tiers
 import lot_confirmation as a5
 import order_tickets
 import permissions
@@ -137,10 +138,12 @@ def validate(api,cur,action,payload,actor,*,lock=False,ticket_id=None):
                     wt.fail(409,'INSUFFICIENT_STOCK','The selected order quantity is not available.')
             else:
                 lots=api.available_lots_for_product(cur,p['id'],lock=lock,persist_expired=False)
+                lots=kosher_tiers.sale_lots(cur,p['id'],lots)
                 if row.get('lot_id') is not None: lots=[l for l in lots if l['lot_id']==row['lot_id']]
                 allocation=api._takeable_deduction_plan(lots,qty)
                 if allocation['short_lb']>api.BALANCE_EPSILON: wt.fail(409,'INSUFFICIENT_STOCK','The selected quantity is not available from the selected lots.')
                 allocated=[{'lot_id':r['lot']['lot_id'],'lot_code':r['lot']['lot_code'],'quantity_lb':r['quantity_lb']} for r in allocation['lots']]
+            kosher_tiers.require_sources(cur,p,[take['lot_id'] for take in allocated])
             for take in allocated:
                 lot=ticket_actions.lot(api,cur,take['lot_id'],p['id'],False)
                 states[lot['id']]=lot
@@ -280,6 +283,7 @@ def commit(api,cur,row,body,actor,request,entry_timing):
             result['policy_acknowledgements']=[{'code':'SHIP_NOT_SAME_DAY','actor':dict(actor),
                 'acknowledged_at':shipment['created_at'],**day_warning['refs']}]
         if row['action']=='ship_order': result['packing_slip_url']=packing_link(payload['order_id'],receipt)
+        kosher_tiers.snapshot_response(cur,result,row['action'],ctx['draft'],lot_ids=actual_lots)
         result=wt.json_value(api,result)
     except HTTPException as exc:
         if exc.status_code>=500: raise

@@ -67,7 +67,7 @@ ACTOR_ROUTES = frozenset({
 })
 # §4.3: large-correction approval, late-entry acceptance, proof waiver and the
 # pre-make-adjust tag are the owner's to close.
-OWNER_KINDS = frozenset({'LARGE_CORRECTION', 'LATE_ENTRY', 'SHIPMENT_PROOF_MISSING', 'BOL_PHOTO_MISSING', 'PRE_MAKE_ADJUST'})
+OWNER_KINDS = frozenset({'KOSHER_ATTESTATION', 'LARGE_CORRECTION', 'LATE_ENTRY', 'SHIPMENT_PROOF_MISSING', 'BOL_PHOTO_MISSING', 'PRE_MAKE_ADJUST'})
 RESOLUTION_KINDS = {
     'SHORTAGE': ('counted', 'missing_movement', 'voided'),
     'NEGATIVE_BALANCE': ('counted', 'missing_movement', 'voided'),
@@ -314,12 +314,13 @@ def assign_shortfall(plan, product_id, shortfall, candidates, pinned_lot_id=None
     return plan
 
 
-def pack_shortfall(cur, source, draft, pinned, primary):
+def pack_shortfall(cur, source, draft, pinned, primary, kosher_tier=None):
     """Pack prepare with insufficient batch stock: return the source plan with the
     shortfall pinned. Explicit allocations each carry their own uncovered pounds
     (requested − positive balance); FIFO puts the remainder on the lot that ran out."""
     cur.execute('''SELECT id, lot_code FROM lots WHERE product_id=%s AND status IS DISTINCT FROM 'merged'
-                   ORDER BY COALESCE(received_at, created_at), id''', (source['id'],))
+                   AND (%s::text IS NULL OR kosher_tier=%s)
+                   ORDER BY COALESCE(received_at, created_at), id''', (source['id'],kosher_tier,kosher_tier))
     candidates = [dict(r) for r in cur.fetchall()]
     total = float(draft['total_lb'])
     if pinned:
@@ -476,7 +477,7 @@ def release_hold(cur, ticket_id, *, resolution_kind, actor_id, note, response, a
                        resolution_kind=%s, resolution_note=%s, resolution_ticket_id=%s,
                        transaction_id=%s, receipt_number=%s,
                        detail = detail || %s::jsonb
-                   WHERE kind='LARGE_CORRECTION' AND ticket_id=%s AND status IN ('open','escalated') RETURNING id""",
+                   WHERE kind IN ('LARGE_CORRECTION','KOSHER_ATTESTATION') AND ticket_id=%s AND status IN ('open','escalated') RETURNING id""",
                 (actor_id, resolution_kind, note, ticket_id, response.get('transaction_id'), response.get('receipt_number'),
                  json.dumps({'attachment_ref': attachment_ref, 'released_by': resolution_kind}), ticket_id))
     row = cur.fetchone()
@@ -848,7 +849,7 @@ def register_routes(app, api):
             row = _one(cur, exception_id, lock=True)
             if row['kind'] in OWNER_KINDS:
                 permissions.require('approve_exception', actor)
-            if row['kind'] == 'LARGE_CORRECTION':
+            if row['kind'] in ('LARGE_CORRECTION','KOSHER_ATTESTATION'):
                 fail(409, 'USE_APPROVE_OR_REJECT', 'A held correction is approved or rejected, not resolved.',
                      approve=f'/exceptions/{exception_id}/approve', reject=f'/exceptions/{exception_id}/reject')
             if row['status'] not in ('open', 'escalated'):
@@ -905,7 +906,7 @@ def register_routes(app, api):
         head = cur.fetchone()
         if not head:
             fail(404, 'EXCEPTION_NOT_FOUND', 'No exception has this id.')
-        if head['kind'] != 'LARGE_CORRECTION':
+        if head['kind'] not in ('LARGE_CORRECTION','KOSHER_ATTESTATION'):
             fail(409, 'APPROVAL_NOT_APPLICABLE', f'{head["kind"]} is resolved, not approved.',
                  resolve=f'/exceptions/{exception_id}/resolve')
         ticket = None
@@ -973,11 +974,18 @@ def register_routes(app, api):
             if stale:
                 return stale
             preparer, preparer_row = current
-            approval = {'exception_id': exception_id, 'approved_by': {'id': owner['id'], 'name': owner['name'], 'role': owner['role']},
+            if row['kind']=='KOSHER_ATTESTATION':
+                import kosher_tiers
+                if not kosher_tiers.owner(cur, owner):
+                    fail(403, 'KOSHER_ATTESTATION_REQUIRED', 'Only the signed-in owner may attest this entry.')
+                cur.execute('SELECT clock_timestamp()>%s AS expired',(ticket['expires_at'],))
+                if cur.fetchone()['expired']:
+                    fail(409, 'TICKET_EXPIRED', 'The seven-day kosher hold expired; reject it and prepare again.')
+            approval = {'kind':row['kind'], 'exception_id': exception_id, 'approved_by': {'id': owner['id'], 'name': owner['name'], 'role': owner['role']},
                         'note': body.note or None}
             result = write_tickets.execute_commit(
                 api, cur, ticket, preparer, preparer_request(preparer_row),
-                effective_payload=ticket['payload'], acknowledged=list(ticket['acknowledged'] or []),
+                effective_payload=ticket['payload'] | ({'lot_confirmations':ticket['draft']['held_lot_confirmations']} if row['kind']=='KOSHER_ATTESTATION' else {}), acknowledged=list(ticket['acknowledged'] or []),
                 attachment_ref=body.attachment_ref or (str(body.attachment_id) if body.attachment_id else None), approval=approval)
             if hasattr(result, 'status_code'):
                 return result   # 409 TICKET_STALE: nothing posted, hold and exception untouched

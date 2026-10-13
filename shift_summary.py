@@ -33,7 +33,7 @@ Boundaries kept deliberately (named here so the review can check them):
     them; they are reported under the additive top-level `other_receipts`
     block so the day's `GET /receipts` set is fully accounted for. They are
     never called adjustments and never enter `summary_hash` (§1.3).
-  * `INVOICE_PENDING` / `EXTRA_KOSHER` wait for A8 / A12 (contract §2.2).
+  * `INVOICE_PENDING` waits for A8; A12 kosher evidence and holds follow §8.
 """
 import json
 from datetime import date, datetime, time, timedelta
@@ -45,6 +45,7 @@ from pydantic import BaseModel, Field
 
 import permissions
 import write_tickets as wt
+import kosher_tiers
 
 ROUTES = frozenset({('GET', '/reports/shift-summary'), ('POST', '/reports/shift-summary/confirm')})
 
@@ -66,7 +67,8 @@ ACTION_SECTION = {'receive': 'received', 'make': 'made', 'pack': 'packed', 'adju
                   'rename_lot': 'adjusted', 'update_supplier_lot': 'adjusted', 'void': 'voided',
                   **{a: 'shipped' for a in wt.SHIP_ACTIONS}}
 HASH_FIELDS = ('receipt_number', 'action', 'status', 'effective_status', 'happened_at', 'entered_at', 'late_entry',
-               'detail', 'transaction_ids')
+               'detail', 'transaction_ids', 'kosher_tier', 'kosher_attested_by_actor_id',
+               'kosher_attested_at', 'transaction_kosher_downgrade')
 # Metadata tickets (A7 orders, A7 expected receipts, A5 lot moves): receipts, not ledger postings.
 OTHER_KIND = {**{a: 'order' for a in wt.ORDER_ACTIONS}, **{a: 'expected_receipt' for a in wt.EXPECTED_RECEIPT_ACTIONS},
               'move_lot': 'lot_move'}
@@ -505,6 +507,29 @@ def receipt_row(api, cur, catalog, number, day):
         row['detail'] = {}
         row.update(pair(f'{number}  {action}', f'{number}  {action}', 'line'))
 
+    row.update(kosher_tiers.summary_fields(receipt))
+    if row['kosher_attested_at'] is not None:
+        value = row['kosher_attested_at']
+        row['kosher_attested_at'] = iso(datetime.fromisoformat(value) if isinstance(value, str) else value, api)
+    if action in kosher_tiers.LOT_RECEIPT_ACTIONS:
+        row['detail']['kosher_lots'] = kosher_tiers.summary_lots(receipt)
+        for evidence in row['detail']['kosher_lots']:
+            value = evidence.get('kosher_attested_at')
+            if value is not None:
+                evidence['kosher_attested_at'] = iso(datetime.fromisoformat(value) if isinstance(value, str) else value, api)
+    if row['kosher_tier'] == kosher_tiers.EXTRA and action in ('receive', 'make', 'pack', 'found'):
+        row['flags'].append(_flag('EXTRA_KOSHER', 'info', 'EXTRA-KOSHER (SS)',
+                                  'EXTRA-KOSHER (SS)', {'kosher_tier': row['kosher_tier']}))
+        row['line_en'] += '  EXTRA-KOSHER (SS)'
+        row['line_es'] += '  EXTRA-KOSHER (SS)'
+    if action == 'pack' and row['transaction_kosher_downgrade']:
+        row['flags'].append(_flag('KOSHER_DOWNGRADE', 'warn',
+                                  'KOSHER DOWNGRADE — extra-kosher source packed as Regular',
+                                  'DESCENSO KOSHER — origen extra-kosher empacado como Regular',
+                                  {'transaction_id': response.get('transaction_id') or txn0.get('id'),
+                                   'lot_id': row['lot']['id'] if row['lot'] else None,
+                                   'transaction_kosher_downgrade': True}))
+
     if timing.get('late_entry_exception_id'):
         row['flags'].append(_flag('LATE_ENTRY', 'warn',
                                   f'LATE ENTRY — {fmt_lb(hours_late)} h after it happened; owner to acknowledge',
@@ -572,10 +597,21 @@ def _without_lang_copies(node):
     return node
 
 
+def _stable_detail(node):
+    """Display names/labels cannot invalidate confirmed immutable receipt evidence."""
+    if isinstance(node, dict):
+        return {key: _stable_detail(value) for key, value in node.items()
+                if key not in ('name', 'customer_name', 'label', 'label_en', 'label_es', 'kosher_label', 'kosher_attested_by_name')}
+    if isinstance(node, list):
+        return [_stable_detail(value) for value in node]
+    return node
+
+
 def reduced(row):
     """The hash view of a receipt row — stable fields and flag codes/refs only (§1.3).
     Computed on the serialised document, so numbers hash as the response prints them."""
     out = {k: _without_lang_copies(row[k]) for k in HASH_FIELDS}
+    out['detail'] = _stable_detail(out['detail'])
     out['product'] = {'id': row['product']['id']} if row['product'] else None
     out['lot'] = {'id': row['lot']['id']} if row['lot'] else None
     out['quantity'] = {'lb': row['quantity']['lb'], 'cases': row['quantity']['cases']}
@@ -646,6 +682,51 @@ def not_entered_yet(cur, catalog, day):
                      **pair(f'production run #{run["id"]} {p["name"]} {run["run_type"]}, planned today — status {run["status"].replace("_", " ")}, no {prefix} receipt',
                             f'corrida #{run["id"]} {p["name"]} {type_es}, planeada hoy — estado {status_es}, sin recibo {prefix}', 'line')})
     rows.sort(key=lambda r: r.pop('_sort'))
+    return rows
+
+
+def kosher_holds(api, cur, catalog, day, actor_id=None):
+    """Unposted expectations remain visible through expiry until owner rejection.
+
+    Holds are excluded from receipt count, confirmed hash and touched lot balances.
+    """
+    cur.execute('''SELECT t.id,t.action,t.receipt_number,t.actor_id,t.operator_id,t.payload,t.draft,t.response,
+                          t.expires_at,e.id AS exception_id,e.owner_actor_id
+                   FROM write_tickets t JOIN exceptions e ON e.ticket_id=t.id
+                   WHERE t.status='awaiting_approval' AND t.action IN ('make','found')
+                     AND e.kind='KOSHER_ATTESTATION' AND e.status IN ('open','escalated')
+                     AND t.response->>'held'='true' AND t.response->>'posted'='false'
+                     AND t.response->>'kosher_tier'='extra_kosher'
+                     AND (((t.payload->>'occurred_at')::timestamptz AT TIME ZONE 'America/New_York')::date)<=%s
+                     AND (%s::integer IS NULL OR t.actor_id=%s)
+                     AND NOT EXISTS (SELECT 1 FROM transactions posted WHERE posted.ticket_id=t.id)
+                   ORDER BY t.expires_at,t.id''', (day, actor_id, actor_id))
+    rows = []
+    now = api.get_plant_now()
+    for ticket in cur.fetchall():
+        draft, response = ticket['draft'] or {}, ticket['response'] or {}
+        preparer = draft.get('actor') or {}
+        product_id = ticket['payload'].get('product_id')
+        product = catalog.product(product_id)
+        expires_at = iso(ticket['expires_at'], api)
+        expired = ticket['expires_at'] <= now
+        approval_state = 'expired' if expired else 'awaiting_approval'
+        receipt = ticket['receipt_number']
+        state_en = 'approval expired — owner must reject and prepare again' if expired else 'awaiting owner approval'
+        state_es = 'aprobación vencida — el dueño debe rechazar y preparar de nuevo' if expired else 'pendiente de aprobación del dueño'
+        product_name = draft.get('product_name') or product['name']
+        row = {'kind': 'kosher_hold', 'receipt_number': receipt, 'action': ticket['action'],
+               'ticket_id': ticket['id'], 'status': 'awaiting_approval', 'held': True, 'posted': False,
+               'actor': {'id': preparer.get('id', ticket['actor_id']),
+                         'name': preparer.get('name') or ticket['operator_id'], 'role': preparer.get('role')},
+               'product': {'id': product_id, 'name': product_name, 'odoo_code': product.get('odoo_code')},
+               'ref': {'ticket_id': ticket['id'], 'exception_id': ticket['exception_id'], 'receipt_number': receipt},
+               'approval': {'status': approval_state, 'owner_actor_id': ticket['owner_actor_id'], 'expires_at': expires_at},
+               'expires_at': expires_at, 'overdue': expired,
+               **pair(f'{receipt}  {product_name}  EXTRA-KOSHER (SS) — {state_en}; expires {expires_at}',
+                      f'{receipt}  {product_name}  EXTRA-KOSHER (SS) — {state_es}; vence {expires_at}', 'line')}
+        row.update(kosher_tiers.summary_fields({'action': ticket['action'], 'draft': draft, 'response': response}))
+        rows.append(row)
     return rows
 
 
@@ -810,6 +891,7 @@ def build(api, cur, *, day, actor, caller, lang='en'):
                   key=lambda r: (-r['hours_late'], r['receipt_number']))
     by_key['late_entries']['rows'] = late
     by_key['not_entered_yet']['rows'] = not_entered_yet(cur, catalog, day)
+    by_key['not_entered_yet']['rows'].extend(kosher_holds(api, cur, catalog, day, actor['id'] if actor else None))
     by_key['lot_balances_touched']['rows'] = lot_balances(api, cur, catalog, receipt_rows)
     exc_rows, rollup_en, rollup_es = open_exceptions(api, cur, catalog, actor['id'] if actor else None)
     by_key['open_exceptions']['rows'] = exc_rows

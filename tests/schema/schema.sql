@@ -6244,5 +6244,7 @@ SET search_path TO public;
 -- F1 additive state; apply 068 manually before production enablement.
 SET search_path = public;
 \ir ../../migrations/068_fl_assistant.sql
--- Pending A9 migration (076; 075 is A12 on feat/kosher-tier) (remove after prod migration + scripts/dump_prod_schema.sh).
+-- Pending A12 migration; explicit application only.
+\ir ../../migrations/075_kosher_tiers.sql
+-- A9 migration 076 is applied in production; retained here for fresh test databases.
 \ir ../../migrations/076_shift_confirmations.sql

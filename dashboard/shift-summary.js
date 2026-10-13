@@ -41,52 +41,94 @@
 
   function clock(iso) { const m = /T(\d{2}:\d{2})/.exec(iso || ''); return m ? m[1] : ''; }
 
-  function flagHtml(flag) {
+  // The immutable values come from FL; these helpers only localise their presentation.
+  const localized = (value, field, lang) => value[`${field}_${lang === 'es' ? 'es' : 'en'}`] ?? value[field] ?? value[`${field}_en`] ?? '';
+  const tierText = (tier, lang) => tier === 'extra_kosher' ? 'Extra-kosher' :
+    tier === 'regular' ? 'Regular' : (tier || (lang === 'es' ? 'sin registrar' : 'not recorded'));
+  const stampText = iso => iso ? `${String(iso).slice(0, 10)} ${clock(iso)}`.trim() : '';
+  const hasKosherEvidence = row => ['kosher_tier', 'kosher_label', 'transaction_kosher_downgrade', 'kosher_attested_by_actor_id', 'kosher_attested_at']
+    .some(field => Object.prototype.hasOwnProperty.call(row, field));
+
+  function attestationText(evidence, lang, pending) {
+    const prefix = lang === 'es' ? 'Atestación del propietario: ' : 'Owner attestation: ';
+    const actorId = evidence.kosher_attested_by_actor_id;
+    const at = stampText(evidence.kosher_attested_at);
+    if (actorId === null || actorId === undefined) return prefix + (pending ? (lang === 'es' ? 'pendiente' : 'pending') : (lang === 'es' ? 'sin registrar' : 'none recorded'));
+    return prefix + `actor #${actorId}` + (at ? ` · ${at}` : (lang === 'es' ? ' · hora sin registrar' : ' · time not recorded'));
+  }
+
+  function kosherEvidenceHtml(row, lang) {
+    let html = '';
+    if (hasKosherEvidence(row)) {
+      const tier = (lang === 'es' ? 'Nivel kosher: ' : 'Kosher tier: ') + tierText(row.kosher_tier, lang);
+      const label = (lang === 'es' ? 'Etiqueta: ' : 'Label: ') + (row.kosher_label || (lang === 'es' ? 'sin registrar' : 'not recorded'));
+      const downgrade = (lang === 'es' ? 'Cambio a regular: ' : 'Downgrade: ') +
+        (row.transaction_kosher_downgrade === true ? (lang === 'es' ? 'Sí' : 'Yes') : row.transaction_kosher_downgrade === false ? 'No' : (lang === 'es' ? 'sin registrar' : 'not recorded'));
+      html += `<div class="kosher-evidence"><span>${esc(tier)} · ${esc(label)}</span><span>${esc(downgrade)}</span><span>${esc(attestationText(row, lang, row.held === true && row.posted === false))}</span></div>`;
+    }
+    const lots = row.detail && row.detail.kosher_lots || [];
+    if (lots.length) html += `<div class="kosher-lot-evidence">${lots.map(lot => `<span>${esc((lang === 'es' ? 'Lote #' : 'Lot #') + lot.lot_id)}: ${esc(tierText(lot.kosher_tier, lang))} · ${esc(attestationText(lot, lang, false))}</span>`).join('')}</div>`;
+    return html;
+  }
+
+  function flagHtml(flag, lang) {
     const cls = flag.severity === 'info' ? ' info' : flag.severity === 'block' ? ' block' : '';
-    return `<span class="flag${cls}">⚠ ${esc(flag.message || flag.message_en || flag.code)}</span>`;
+    return `<span class="flag${cls}">⚠ ${esc(localized(flag, 'message', lang) || flag.code)}</span>`;
   }
 
   function receiptRowHtml(row, lang) {
     const cls = ['row', row.late_entry ? 'late' : '', row.effective_status === 'voided' ? 'voided' : ''].filter(Boolean).join(' ');
-    const line = (row.line || row.line_en || '').replace(row.receipt_number, '').trim();
+    const line = localized(row, 'line', lang).replace(row.receipt_number, '').trim();
     const meta = [];
-    if (row.actor && row.actor.name) meta.push(row.actor.name);
+    if (row.actor && row.actor.name) meta.push((hasKosherEvidence(row) ? (lang === 'es' ? 'Preparado por ' : 'Prepared by ') : '') + row.actor.name);
     if (row.entered_at) meta.push((lang === 'es' ? 'registrado ' : 'entered ') + clock(row.entered_at));
     if (row.late_entry) meta.push(lang === 'es' ? `tardía ${row.hours_late} h` : `late ${row.hours_late} h`);
     if (row.entered_on_later_day) meta.push(lang === 'es' ? 'registrado otro día' : 'entered on a later day');
     return `<div class="${cls}" data-receipt="${esc(row.receipt_number)}"><span class="receipt-number">${esc(row.receipt_number)}</span><span class="line">${esc(line)}</span>` +
-      `<div class="meta">${esc(meta.join(' · '))}</div>${(row.flags || []).map(flagHtml).join('')}</div>`;
+      `<div class="meta">${esc(meta.join(' · '))}</div>${kosherEvidenceHtml(row, lang)}${(row.flags || []).map(f => flagHtml(f, lang)).join('')}</div>`;
   }
 
-  function expectationRowHtml(row) {
-    return `<div class="row${row.overdue ? ' late' : ''}"><span class="line">${esc(row.line || row.line_en)}</span></div>`;
+  function expectationRowHtml(row, lang) {
+    if (row.kind !== 'kosher_hold') return `<div class="row${row.overdue ? ' late' : ''}"><span class="line">${esc(localized(row, 'line', lang))}</span></div>`;
+    const approval = row.approval || {};
+    const expired = approval.status === 'expired';
+    const line = localized(row, 'line', lang).replace(row.receipt_number, '').trim();
+    const status = expired ? (lang === 'es' ? 'Vencido — pendiente de rechazo del propietario' : 'Expired — awaiting owner rejection') :
+      (lang === 'es' ? 'Pendiente de aprobación del propietario' : 'Awaiting owner approval');
+    const expiry = stampText(approval.expires_at || row.expires_at);
+    const state = [status, lang === 'es' ? 'No registrado' : 'Not posted'];
+    if (approval.owner_actor_id !== null && approval.owner_actor_id !== undefined) state.push((lang === 'es' ? 'Propietario para aprobación: actor #' : 'Owner for approval: actor #') + approval.owner_actor_id);
+    if (expiry) state.push((expired ? (lang === 'es' ? 'Venció ' : 'Expired ') : (lang === 'es' ? 'Vence ' : 'Expires ')) + expiry);
+    const preparer = row.actor && row.actor.name ? (lang === 'es' ? 'Preparado por ' : 'Prepared by ') + row.actor.name : '';
+    return `<div class="row held${expired ? ' expired' : ''}" data-receipt="${esc(row.receipt_number)}"><span class="receipt-number">${esc(row.receipt_number)}</span><span class="line">${esc(line)}</span>` +
+      `<div class="meta">${esc(preparer)}</div><div class="approval-state">${esc(state.join(' · '))}</div>${kosherEvidenceHtml(row, lang)}${(row.flags || []).map(f => flagHtml(f, lang)).join('')}</div>`;
   }
 
-  function lotRowHtml(row) {
-    return `<div class="row lot-line${row.negative || row.short ? ' short' : ''}"><span class="line">${esc(row.line || row.line_en)}</span><div class="meta">${esc((row.receipts || []).join(', '))}</div></div>`;
+  function lotRowHtml(row, lang) {
+    return `<div class="row lot-line${row.negative || row.short ? ' short' : ''}"><span class="line">${esc(localized(row, 'line', lang))}</span><div class="meta">${esc((row.receipts || []).join(', '))}</div></div>`;
   }
 
   function exceptionRowHtml(row, lang) {
     const due = row.due_at ? `${lang === 'es' ? 'vence' : 'due'} ${row.due_at.slice(0, 10)} ${clock(row.due_at)}` : (lang === 'es' ? 'sin fecha' : 'no due date');
-    return `<div class="row exc${row.overdue ? ' overdue' : ''}"><span class="line">${esc(row.summary || row.summary_en)}</span><span class="due">#${esc(row.exception_id)} · ${esc(due)}</span></div>`;
+    return `<div class="row exc${row.overdue ? ' overdue' : ''}"><span class="line">${esc(localized(row, 'summary', lang))}</span><span class="due">#${esc(row.exception_id)} · ${esc(due)}</span></div>`;
   }
 
   function sectionHtml(section, lang) {
     const rows = section.rows || [];
     let body;
-    if (!rows.length) body = `<div class="section-empty">${esc(section.empty || section.empty_en)}</div>`;
-    else if (section.key === 'not_entered_yet') body = rows.map(expectationRowHtml).join('');
-    else if (section.key === 'lot_balances_touched') body = rows.map(lotRowHtml).join('');
+    if (!rows.length) body = `<div class="section-empty">${esc(localized(section, 'empty', lang))}</div>`;
+    else if (section.key === 'not_entered_yet') body = rows.map(r => expectationRowHtml(r, lang)).join('');
+    else if (section.key === 'lot_balances_touched') body = rows.map(r => lotRowHtml(r, lang)).join('');
     else if (section.key === 'open_exceptions') body = rows.map(r => exceptionRowHtml(r, lang)).join('');
     else body = rows.map(r => receiptRowHtml(r, lang)).join('');
-    const rollup = section.key === 'open_exceptions' && (section.rollup || section.rollup_en) ? `<div class="section-rollup">${esc(section.rollup || section.rollup_en)}</div>` : '';
-    return `<section class="section" data-key="${esc(section.key)}"><div class="section-head"><span>${esc(section.label || section.label_en)}</span><span class="count">${esc(section.count)}</span></div>${rollup}${body}</section>`;
+    const rollup = section.key === 'open_exceptions' && localized(section, 'rollup', lang) ? `<div class="section-rollup">${esc(localized(section, 'rollup', lang))}</div>` : '';
+    return `<section class="section" data-key="${esc(section.key)}"><div class="section-head"><span>${esc(localized(section, 'label', lang))}</span><span class="count">${esc(section.count)}</span></div>${rollup}${body}</section>`;
   }
 
   /** The additive `other_receipts` block (orders, expected receipts, lot moves): shown only when FL lists any. */
   function otherReceiptsHtml(other, lang) {
     if (!other || !(other.rows || []).length) return '';
-    return `<section class="section other" data-key="other_receipts"><div class="section-head"><span>${esc(other.label || other.label_en)}</span><span class="count">${esc(other.count)}</span></div>` +
+    return `<section class="section other" data-key="other_receipts"><div class="section-head"><span>${esc(localized(other, 'label', lang))}</span><span class="count">${esc(other.count)}</span></div>` +
       other.rows.map(r => receiptRowHtml(r, lang)).join('') + '</section>';
   }
 

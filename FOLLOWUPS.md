@@ -65,11 +65,15 @@ goods (285–290) pack only from extra-kosher lots (`KOSHER_SOURCE_REQUIRED` —
 2026-08-12 pack of 63 cases of 286 from a regular 107 lot is the case this prevents — left
 uncorrected as a probable recording error, per Michael);
 extra-kosher lots may be packed as regular, recorded as a downgrade; `SS`+`#9` resolves
-to extra-kosher only, `#9` alone shows both. A12 3–3½ d after A5 and A11; cannot slip —
+to extra-kosher only, `#9` alone shows both. A12 3–3½ d after A5 and A3b (A11 is no longer a dependency); cannot slip —
 Sunshine order SO-260817-001 (10,000 lb of #9 bulk) is open. Mapping proposal in §5.3
 awaits Michael's confirmation; no catalog change is made by the docs. **Interim until
-cutover:** extra-kosher batches logged on paper (date + lot number); cutover checklist step
-1a (design §10.1) tags those lots `extra_kosher` in FL from the paper log.
+cutover:** extra-kosher batches logged on paper (date + lot number). **Clarified by Michael,
+2026-10-13:** counted extra-kosher stock is entered under separate products 283/284 and
+285–290 and loaded by the reset with owner approval (design §10.1 step 1a), never by
+retagging regular-product lots. No lot-retag route. Receive of 283/284 is refused for
+every role; found of 283–290 is held for owner approval before a lot/tier is created.
+See P1.21 for the count-workstream gap and P1.22 for A9/A10 integration.
 
 **P1.6 Schedule rev 3.4 — 3 Codex lanes (Michael, 2026-10-07; design §10.2, §11 item 20).**
 A3 split into A3a (tables, 1 d) + A3b; A9 runs beside A12; D3-lite (shift-summary page +
@@ -329,6 +333,23 @@ same route also accepts the owner actor key. **A10 must** retire this route (or 
 cutoff is enforceable the moment `ORDER_LEGACY_CLOSE_CUTOFF` is set (§10.1 step 1b). Review:
 https://github.com/sevenwells72/factory-ledger/pull/99#issuecomment-6131307183.
 
+
+**P1.21 Extra-kosher cutover count/reset support — count workstream (Michael, 2026-10-13; A12 review #101).**
+The fresh-start count sheet must list **283, 284, 285, 286, 287, 288, 289 and 290 as their own product lines**, with regular 107/108 and regular finished stock separate. On cutover day physically counted extra-kosher stock is loaded under these extra-kosher products through the reset **with explicit owner approval and approving-owner attestation**. Regular-product lots are never retagged; A12 supplies no retag route.
+
+Read-only check of the existing tools on 2026-10-13: `v3/count-sheet-v3.csv` already has four separate rows for each of 283–290 and `count-coverage-v3.csv` has one for each; retain that separation and regenerate the approved labels after 075. `build_v3_materials.py` defaults all finished products to cases, including bulk-per-lb 285/288. `fresh_start_common.py` still treats 285/288 as expected-zero products, so positive counts are held even if entered in lb; the count workstream must resolve their bulk unit/owner decision for a real cutover count. The saved scope snapshot has no lots for 283/284/287/288/289/290, so ordinary existing-lot adjustments cannot load this stock.
+
+**Needed change before cutover:** `apply_reset.py` supports only `/auth/whoami` and direct `/adjust`; the v3 reconciler rejects unmatched lots (`fresh_start_v3.py:178`) and apply preflight requires existing, unchanged lot identities. Signed product-group approval exists, but the tools do not carry `kosher_tier` or record the authenticated approving owner's kosher attestation and cannot create new lots. Add a supported owner-approved new-lot count-loading path for 283/284/285–290, bind approval to the exact count/product/lot/quantity/evidence, and verify the resulting tier/attestation and receipt readback. It must never use receive of batch 283/284, bypass the extra-kosher found approval hold, or retag a regular lot. Resolve unknown stock and bulk-unit holds in the count workstream; preserve the original counted quantities. **No `audits/fresh-start/` files are changed by A12.**
+
+**P1.22 A12 A9 integration completed; remaining A10/client work — review #101, 2026-10-13.**
+Review: https://github.com/sevenwells72/factory-ledger/pull/101#issuecomment-6149065092. Merge/integration decision: Michael, 2026-10-13, and [Codex review of #102](https://github.com/sevenwells72/factory-ledger/pull/102#issuecomment-6149165326).
+
+- **A9 integration complete in #101 (2026-10-13):** #102 merged/live as `52d1701`; #101 rebased onto that main. Contract §8 A12 items 1–7 are implemented: five immutable receipt fields, EXTRA_KOSHER on receive/make/pack/approved found, packed KOSHER_DOWNGRADE, held make/found expectations with owner approval and expiry (expired until rejection), same number on approval, and separate preparer/attester identity. Ship/adjust responses freeze all lot proofs as `kosher_lots`; the report uses `detail.kosher_lots` for mixed shipments and historical stored lot evidence.
+- **A9 hash/contract complete:** §1.3 includes stored tier, attester ID/time and downgrade plus stable flag refs; excludes kosher/display labels, actor/product/customer names, live catalog tier/name and held expectations. New approval changes the posted-entry hash and makes prior confirmation stale; label/catalog/held changes alone leave it stable. Report/evidence/page regressions cover every item, including both held flows and stale 409. Preserve 068/075/076, both receipt null guards, both route tails/allowlists, one-receipt-one-run and discrepancy dedupe. 077 belongs to sign-in PR #103 and is not allocated by A12. Weekly downgrade presentation remains separate weekly-view work.
+- **A10:** retire direct `POST /ship`; its preview can offer regular stock for an extra-kosher SKU even though the write gate refuses it. **Retire or tier-gate the archived one-shot direct-SQL poster `scripts/inv_recon_post_2026_08_17.py`; do not rerun it after migration 075.** `Poster.lot` generically creates lots, and phase 3.A converts regular SKU 90002 to extra-kosher 70013 without the HTTP approval/source gates. This historical script is left for A10; no script execution or production change is authorized here. Current HTTP creators are closed, held or tier-safe: all extra receive refuses, direct extra make/found requires tickets, extra batch pack output refuses, and reassign/merge touching an extra-kosher product/lot refuses. External `/records` amendments cannot change product/lot/quantity; its internal product edits are confined to the guarded reassign/merge routes. Staging scripts use guarded synthetic fixtures. Review all legacy writes during route retirement.
+- **F1/D2 Exceptions:** an expired kosher hold remains an open exception until the owner rejects it. Render ticket expiry and the appropriate reject action instead of presenting it as a live approvable ticket.
+- **Next GPT instruction paste:** full existing Regular Classic #9 names now ask for both tiers under the ambiguity rule; document the extra tier question and `SS`/Sunshine + #9 resolution so operators do not interpret the added question as a failed match.
+
 ---
 
 **P1.21 A9 follow-ups (found 2026-10-13, building `feat/shift-summary`).**
@@ -339,7 +360,7 @@ receipt covers one run, the rest stay listed; approved by Michael 2026-10-13, de
 (or at the run's `done` transition) would make the link exact instead of inferred. (b) `VOIDED` rows need `void`
 tickets (`VD-` receipts); until then the section is present and empty and a legacy-route void shows
 as flag `VOIDED` with `voided_by_receipt_number: null`. (c) `INVOICE_PENDING` (A8) and
-`EXTRA_KOSHER` (A12 follow-up, contract §2.2) are not emitted yet. (d) Confirmations are not
+`EXTRA_KOSHER` (A12, contract §2.2) is implemented in #101; `INVOICE_PENDING` remains A8 work. (d) Confirmations are not
 written to `actor_write_audit` (its `target_table` CHECK does not list `shift_confirmations`; the
 row itself carries `actor_id`) — add the value in a later additive migration if the weekly view
 wants one audit feed. (e) The D3-lite page keeps the personal key in memory only (same rule as F1

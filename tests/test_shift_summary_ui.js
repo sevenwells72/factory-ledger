@@ -91,6 +91,110 @@ test('banner reflects the latest confirmation, with notes, in both languages', (
   assert.equal(ui.bannerText(missing, 'es'), 'Marcado como "falta algo" por Arturo el 2026-10-07 17:05 — oats');
 });
 
+// A12 integration: these fixtures intentionally contradict live catalog fields.
+// The page must present the stored receipt evidence and leave hashing to FL.
+const kosherReceipt = (action, receipt = 'MK-261007-020') => ({
+  receipt_number: receipt, action, status: 'committed', effective_status: 'posted', held: false, posted: true,
+  actor: { id: 7, name: 'Arturo', role: 'floor' }, entered_at: '2026-10-07T13:02:00-04:00',
+  product: { id: 283, name: 'Catalog renamed', kosher_tier: 'regular' },
+  kosher_tier: 'extra_kosher', kosher_label: 'EXTRA-KOSHER (SS)', transaction_kosher_downgrade: false,
+  kosher_attested_by_actor_id: 1, kosher_attested_at: '2026-10-07T13:01:00-04:00',
+  line: `${receipt}  stored extra-kosher stock`, line_en: `${receipt}  stored extra-kosher stock`, line_es: `${receipt}  existencias extra-kosher registradas`,
+  detail: {}, flags: [{ code: 'EXTRA_KOSHER', severity: 'info', message: 'EXTRA-KOSHER (SS)', message_en: 'EXTRA-KOSHER (SS)', message_es: 'EXTRA-KOSHER (SS)' }],
+});
+const kosherHold = (action, receipt) => ({ ...kosherReceipt(action, receipt), kind: 'kosher_hold', status: 'awaiting_approval',
+  held: true, posted: false, kosher_attested_by_actor_id: null, kosher_attested_at: null,
+  expires_at: '2026-10-14T13:00:00-04:00', approval: { status: 'awaiting_approval', owner_actor_id: 1, expires_at: '2026-10-14T13:00:00-04:00' },
+  line_en: `${receipt}  held extra-kosher ${action}`, line_es: `${receipt}  ${action === 'make' ? 'producción' : 'hallazgo'} extra-kosher en espera`,
+});
+const kosherSummary = (action, row, held, date = doc.date, hash = '0'.repeat(64)) => ({ ...doc, date, receipts_today: held ? 0 : 1, summary_hash: hash,
+  sections: [
+    { key: action === 'make' ? 'made' : 'adjusted', label_en: action === 'make' ? 'MADE' : 'ADJUSTED', label_es: action === 'make' ? 'PRODUCIDO' : 'AJUSTADO', empty_en: 'none', empty_es: 'ninguno', count: held ? 0 : 1, rows: held ? [] : [row] },
+    { key: 'not_entered_yet', label_en: 'NOT ENTERED YET?', label_es: '¿FALTA REGISTRAR?', empty_en: 'nothing expected', empty_es: 'nada pendiente', count: held ? 1 : 0, rows: held ? [row] : [] },
+  ],
+});
+
+for (const action of ['receive', 'make', 'pack', 'found']) test(`${action} renders all five immutable kosher fields and the extra-kosher flag in EN/ES`, () => {
+  const row = kosherReceipt(action);
+  for (const lang of ['en', 'es']) {
+    const html = ui.receiptRowHtml(row, lang);
+    assert.ok(html.includes('EXTRA-KOSHER (SS)'));
+    assert.ok(html.includes(lang === 'es' ? 'Nivel kosher: Extra-kosher · Etiqueta: EXTRA-KOSHER (SS)' : 'Kosher tier: Extra-kosher · Label: EXTRA-KOSHER (SS)'));
+    assert.ok(html.includes(lang === 'es' ? 'Cambio a regular: No' : 'Downgrade: No'));
+    assert.ok(html.includes(lang === 'es' ? 'Preparado por Arturo' : 'Prepared by Arturo'));
+    assert.ok(html.includes((lang === 'es' ? 'Atestación del propietario: ' : 'Owner attestation: ') + 'actor #1 · 2026-10-07 13:01'));
+    assert.ok(!html.includes('Prepared by actor #1') && !html.includes('Preparado por actor #1'));
+    assert.ok(html.includes(lang === 'es' ? 'existencias extra-kosher registradas' : 'stored extra-kosher stock'));
+    assert.ok(html.includes('<span class="flag info">⚠ EXTRA-KOSHER (SS)</span>'));
+    assert.ok(!html.includes('Catalog renamed'), 'the page never substitutes live product evidence');
+  }
+});
+
+test('regular pack output retains stored downgrade truth and translates the warning', () => {
+  const row = { ...kosherReceipt('pack', 'PK-261007-021'), kosher_tier: 'regular', kosher_label: 'Regular', transaction_kosher_downgrade: true,
+    flags: [{ code: 'KOSHER_DOWNGRADE', severity: 'warn', message: 'Extra-kosher consumed as regular', message_en: 'Extra-kosher consumed as regular', message_es: 'Extra-kosher consumido como regular', refs: { transaction_id: 2452, lot_id: 9322, transaction_kosher_downgrade: true } }] };
+  assert.ok(ui.receiptRowHtml(row, 'en').includes('Downgrade: Yes'));
+  const es = ui.receiptRowHtml(row, 'es');
+  assert.ok(es.includes('Nivel kosher: Regular · Etiqueta: Regular') && es.includes('Cambio a regular: Sí'));
+  assert.ok(es.includes('⚠ Extra-kosher consumido como regular'));
+  assert.ok(!es.includes('⚠ Extra-kosher consumed as regular'));
+});
+
+for (const action of ['ship_standalone', 'adjust']) test(`${action} displays stored lot evidence when common tier is regular`, () => {
+  const row = { ...kosherReceipt(action), kosher_tier: 'regular', kosher_label: 'Regular', kosher_attested_by_actor_id: null, kosher_attested_at: null,
+    detail: { kosher_lots: [
+      { lot_id: 9321, kosher_tier: 'extra_kosher', kosher_attested_by_actor_id: 1, kosher_attested_at: '2026-10-07T13:01:00-04:00' },
+      { lot_id: 9322, kosher_tier: 'regular', kosher_attested_by_actor_id: null, kosher_attested_at: null },
+    ] }, flags: [] };
+  const en = ui.receiptRowHtml(row, 'en'), es = ui.receiptRowHtml(row, 'es');
+  assert.ok(en.includes('Kosher tier: Regular'));
+  assert.ok(en.includes('Lot #9321: Extra-kosher · Owner attestation: actor #1 · 2026-10-07 13:01'));
+  assert.ok(en.includes('Lot #9322: Regular · Owner attestation: none recorded'));
+  assert.ok(es.includes('Lote #9321: Extra-kosher · Atestación del propietario: actor #1 · 2026-10-07 13:01'));
+  assert.ok(es.includes('Lote #9322: Regular · Atestación del propietario: sin registrar'));
+});
+
+for (const action of ['make', 'found']) test(`held ${action} shows owner/expiry and moves to its posted section under the same number`, () => {
+  const receipt = action === 'make' ? 'MK-261007-022' : 'FND-261007-022';
+  const held = kosherSummary(action, kosherHold(action, receipt), true), approved = kosherSummary(action, kosherReceipt(action, receipt), false);
+  for (const lang of ['en', 'es']) {
+    const before = ui.summaryHtml(held, lang), after = ui.summaryHtml(approved, lang);
+    const receiptTag = `data-receipt="${receipt}"`;
+    assert.equal(before.split(receiptTag).length - 1, 1, 'the hold is shown exactly once');
+    assert.ok(before.indexOf(receiptTag) > before.indexOf('data-key="not_entered_yet"'));
+    assert.ok(before.includes(lang === 'es' ? 'Pendiente de aprobación del propietario · No registrado' : 'Awaiting owner approval · Not posted'));
+    assert.ok(before.includes(lang === 'es' ? 'Propietario para aprobación: actor #1 · Vence 2026-10-14 13:00' : 'Owner for approval: actor #1 · Expires 2026-10-14 13:00'));
+    assert.ok(before.includes(lang === 'es' ? 'Atestación del propietario: pendiente' : 'Owner attestation: pending'));
+    assert.equal(after.split(receiptTag).length - 1, 1, 'approval reuses the held receipt reference');
+    assert.ok(after.indexOf(receiptTag) < after.indexOf('data-key="not_entered_yet"'));
+    assert.ok(!after.includes('class="row held') && !after.includes('Not posted') && !after.includes('No registrado'));
+    assert.ok(after.includes('actor #1 · 2026-10-07 13:01'));
+    assert.equal(ui.confirmBody(held, 'match').receipts_seen, 0);
+    assert.equal(ui.confirmBody(approved, 'match').receipts_seen, 1);
+  }
+});
+
+test('an expired kosher hold stays visible awaiting owner rejection, with its expiry', () => {
+  const row = kosherHold('found', 'FND-261007-023'); row.approval.status = 'expired';
+  const summary = kosherSummary('found', row, true);
+  const en = ui.summaryHtml(summary, 'en'), es = ui.summaryHtml(summary, 'es');
+  assert.ok(en.includes('class="row held expired"'));
+  assert.ok(en.includes('Expired — awaiting owner rejection · Not posted'));
+  assert.ok(en.includes('Expired 2026-10-14 13:00'));
+  assert.ok(!en.includes('Awaiting owner approval'));
+  assert.ok(es.includes('Vencido — pendiente de rechazo del propietario · No registrado'));
+  assert.ok(es.includes('Venció 2026-10-14 13:00'));
+});
+
+test('stored kosher labels, preparer, owner evidence and flags are escaped as text', () => {
+  const row = { ...kosherReceipt('make'), kosher_label: '<img src=x>', actor: { id: 7, name: '<Arturo>' }, kosher_attested_by_actor_id: '<owner>',
+    detail: { kosher_lots: [{ lot_id: '<lot>', kosher_tier: '<tier>', kosher_attested_by_actor_id: '<attester>', kosher_attested_at: null }] },
+    flags: [{ code: 'EXTRA_KOSHER', message_en: '<extra>', message_es: '<extra-es>' }] };
+  const html = ui.receiptRowHtml(row, 'es');
+  for (const value of ['img src=x', 'Arturo', 'owner', 'lot', 'tier', 'attester', 'extra-es']) assert.ok(html.includes(`&lt;${value}&gt;`));
+  assert.ok(!/<img|<Arturo>|<owner>|<lot>|<tier>|<attester>|<extra-es>/.test(html));
+});
+
 // ---------------------------------------------------------------------------
 // Fix round 2026-10-13 (review items 8–9): the browser event handlers themselves,
 // driven through a minimal fake DOM (ids, hidden/value/textContent, listeners) and a
@@ -293,4 +397,29 @@ test('other_receipts block renders only when FL lists any, with its own label', 
   assert.ok(html.includes('Setton &lt;Farms&gt;') && html.includes('Lucía · entered 09:00'));
   const whole = ui.summaryHtml({ ...doc, other_receipts: other }, 'en');
   assert.ok(whole.endsWith('</section>') && whole.indexOf('data-key="other_receipts"') > whole.indexOf('data-key="late_entries"'));
+});
+
+
+for (const action of ['make', 'found']) test(`page refresh replaces the held ${action} after a stale confirmation with the same approved receipt`, async () => {
+  const { els, calls, settle, finish } = mount();
+  const today = plantToday(), receipt = action === 'make' ? 'MK-261007-024' : 'FND-261007-024';
+  const held = kosherSummary(action, kosherHold(action, receipt), true, today, '1'.repeat(64));
+  const approved = kosherSummary(action, kosherReceipt(action, receipt), false, today, '2'.repeat(64));
+  els['actor-key'].value = 'test-personal-key'; els['sign-in-form'].fire('submit'); await settle();
+  calls[0].resolve({ actor: held.actor }); await settle(); calls[1].resolve(held); await settle();
+  assert.ok(els['sections'].innerHTML.includes('Awaiting owner approval'));
+  assert.equal(els['receipts-count'].textContent, 'FL receipts today: 0');
+  els['confirm-match'].fire('click'); await settle();
+  assert.deepEqual(calls[2].body, { date: today, outcome: 'match', notes: '', summary_hash: held.summary_hash, receipts_seen: 0, lang: 'en' });
+  calls[2].reject(409, { detail: { error_code: 'SHIFT_SUMMARY_STALE', summary: approved } }); await settle();
+  const shown = els['sections'].innerHTML;
+  assert.ok(shown.includes(`data-receipt="${receipt}"`));
+  assert.ok(!shown.includes('Awaiting owner approval') && !shown.includes('class="row held'));
+  assert.ok(shown.includes('Prepared by Arturo') && shown.includes('Owner attestation: actor #1'));
+  assert.equal(els['receipts-count'].textContent, 'FL receipts today: 1');
+  assert.equal(els['notice'].textContent, 'The summary changed since it was shown — review it and confirm again.');
+  els['confirm-match'].fire('click'); await settle();
+  assert.deepEqual(calls[3].body, { date: today, outcome: 'match', notes: '', summary_hash: approved.summary_hash, receipts_seen: 1, lang: 'en' });
+  calls[3].resolve({ message: 'Shift confirmed.' }); await settle(); calls[4].resolve(approved); await settle();
+  await finish();
 });

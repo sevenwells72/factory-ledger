@@ -1,5 +1,61 @@
 # Change Log
 
+## 2026-10-13 13:27 — Record final A9/A12 integration verification and review evidence
+- **File(s) changed:** `docs/deployments/a12-a9-integration-tests.json`, `docs/deployments/a12-kosher-tiers.md`, `docs/deployments/a9-shift-summary.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record fresh-DB 2,691 Python/100 Node passes, zero failures/errors/skips, checklist 1–7 completion, 45 new cases, before/after regression proof, tested-file digests, independent review and distinct 075/076/077 ownership. Preserve every historical log/acceptance note and operator production requirement.
+- **Why:** Concrete PR #101 reviewer handoff after A9 integration; global iCloud log remains outside authorized scope. No production, other worktree, deployment or merge.
+
+---
+
+## 2026-10-13 13:23 — Reconcile implemented A9/A12 contract and hash exclusions
+- **File(s) changed:** `shift_summary.py`, `tests/test_a12_shift_integration.py`, `docs/contracts/shift-summary.md`, `docs/deployments/a9-shift-summary.md`, `FOLLOWUPS.md`
+- **What changed:** Reconcile §1.3 with stored kosher hash fields and display-name/label exclusions; test live reason-label stability. Mark checklist 1–7 implemented and document held-row shape, frozen ship/adjust lot proofs, mixed-tier semantics and distinct 075/076/077 allocation. Preserve historical A9 evidence and remaining weekly/count/A10/client work.
+- **Why:** Keep the contract/deployment/followup mirrors consistent with the implementation after merged/live #102.
+
+---
+
+## 2026-10-13 13:21 — Verify stored evidence projection and correct integration fixtures
+- **File(s) changed:** `tests/test_kosher_summary_evidence.py`, `tests/test_a12_shift_integration.py`, `tests/test_shift_summary.py`
+- **What changed:** Add immutable snapshot projection unit cases; use valid synthetic lot codes and creation-time catalog tiers, A6 bulk-shipping fields, canonical reason_code and Assistant route. Extend A9 adjustment detail assertion for additive stored lot proof.
+- **Why:** Meaningful regression coverage must exercise the real creation/schema and shipping rules.
+
+---
+
+## 2026-10-13 13:20 — Integrate immutable A12 receipt snapshots into A9 reports
+- **File(s) changed:** `shift_summary.py`, `kosher_tiers.py`, `write_tickets.py`, `ship_tickets.py`
+- **What changed:** Add five kosher fields, stored ship/adjust lot proofs, extra/downgrade flags, unresolved make/found holds with owner and expiry, and stable entry hashes excluding display names/labels. Preserve A9 summary semantics.
+- **Why:** Contract §8 A12 checklist 1–7 after the 52d1701 rebase. No production/staging access; global log remains outside worktree scope.
+
+---
+
+## 2026-10-13 13:20 — Add bilingual dashboard A12 regressions
+- **File(s) changed:** `tests/test_shift_summary_ui.js`, `dashboard/shift-summary.js`
+- **What changed:** Add 13 page regressions for receive/make/pack/found five fields and EXTRA_KOSHER in EN/ES, downgrade, stored lot evidence, held-to-approved same reference, expired awaiting rejection, escaped text, and stale confirmation/reconfirmation. Complete mock reload lifecycle; simplify redundant tier-label logic.
+- **Why:** Verify contract §8 rendering without weakening A9 date/identity/notes guards.
+
+---
+
+## 2026-10-13 13:20 — Add A12 report integration regressions for checklist 1–7
+- **File(s) changed:** `tests/test_a12_shift_integration.py`, `tests/test_shift_summary.py`
+- **What changed:** Add regular/extra fields, flags/downgrade, historical receive/refusal, held make/found approval/rejection/expiry and same number, preparer/owner separation, ship/adjust lot evidence, hash stability/invalidation/stale confirmation, migration/wiring and null-guard coverage. Extend the existing reduced-hash assertion.
+- **Why:** Regression evidence for every contract §8 A12 checklist item; local test database only.
+
+---
+
+## 2026-10-13 13:20 — Show A12 kosher evidence on the shift-summary page
+- **File(s) changed:** `dashboard/shift-summary.js`, `dashboard/shift-summary.css`, `dashboard/shift-summary.html`
+- **What changed:** Render stored tier/label/downgrade, preparer and approving-owner evidence, per-lot ship/adjust tiers, held owner approval and expiry/expired-awaiting-rejection in English/Spanish; refresh asset versions. Preserve A9 request-generation/day/notes/footer guards.
+- **Why:** Contract §8 A12 checklist; scoped worktree only. Global iCloud log outside user scope remains unchanged.
+
+---
+
+## 2026-10-13 13:16 — Rebase A12 onto merged A9 52d1701
+- **File(s) changed:** `main.py`, `write_tickets.py`, `tests/schema/schema.sql`, `tests/test_write_tickets.py`, `CHANGE_LOG.md`
+- **What changed:** Rebase feat/kosher-tier onto origin/main 52d1701. Preserve both route tails/allowlists, result_ref and committed_at null guards, A9 shift-summary behavior, all prior log entries, and fresh-test includes/isolated fixture for 068/075/076.
+- **Why:** Integrate PR #101 after merged/live PR #102. Work only in this worktree; canonical global iCloud log is outside the user-authorized scope and stays unchanged. No production/staging access, deployment, other-worktree edits or merge.
+
+---
+
 ## 2026-10-13 12:45 — A9 fix round 2: failed date-load confirm guard, Michael's §8 approvals recorded, A12 handoff + stale wording corrected
 - **File(s) changed:** `dashboard/shift-summary.js`, `dashboard/shift-summary.html`, `tests/test_shift_summary_ui.js`, `docs/contracts/shift-summary.md`, `docs/design/phase1-safe-operating-system.md`, `docs/deployments/a9-shift-summary.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
 - **What changed:** Page: `load()` locks the confirm buttons while a day loads and clears the document on any failure (HTTP or network) so nothing is confirmable until a summary for the signed-in person and the selected day loads; `sendConfirm` also refuses unless the document's date equals the picker; language toggle retries by key; js cache-buster v=3; new fake-DOM regression (HTTP 500, network failure, refresh retry, language retry) that fails on 3c093fa. Docs: contract §8 header/items 2–3 now cite Michael's 2026-10-13 approvals (design §11 items 43–44: every ledger receipt with ORD/ER/LOT in `other_receipts`; one committed make/pack receipt covers ONE planned run, the rest stay under NOT ENTERED YET?) — no "needs design-doc revision" remains; design §7.3 clarification block + §11 decisions table; contract §8 closing list and deployment-doc handoff rewritten as the normative #101 checklist (held make AND found, approval/expiry display, same receipt on approval, lot-level ship/adjust evidence, preparer/attester separation, EXTRA_KOSHER incl. approved found + KOSHER_DOWNGRADE, hash additions/exclusions, eight regressions, 068/075/076 + both null guards); deployment doc base/quantity/run-matching/rebase wording corrected to a5b0ff6, original void quantities and receipt matching; fix-round-2 table with fresh-DB counts 2,524 py / 87 node; P1.21(a) cites the approval.
@@ -42,6 +98,97 @@
 
 ---
 
+## 2026-10-13 11:55 — Clarify scoped A12 changelog preservation
+- **File(s) changed:** `docs/deployments/a12-kosher-tiers.md`
+- **What changed:** Distinguish preserved project/regression history from the global iCloud log outside the authorized worktree.
+- **Why:** Keep the final verification note precise about Michael’s work-only-in-A12 boundary.
+
+---
+
+## 2026-10-13 11:54 — A12 post-F1 fresh database regression proof
+- **File(s) changed:** `docs/deployments/a12-review-rebase-tests.json`, `docs/deployments/a12-kosher-tiers.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record independent 928b601 baseline (81 failed/12 passed) and all 93 regressions passing after rebase, full fresh-local-DB 2,629 Python/75 Node with zero failures/errors/skips, preserved F1 hooks and explicit #102-first integration blocker. Preserve prior logs and staging evidence.
+- **Why:** Michael’s decisions 1–4 for PR #101; no production/staging access, other-worktree/count-tool edit, deployment or merge. Global iCloud log is outside work-only-in-A12 scope and remains unchanged.
+
+---
+
+## 2026-10-13 11:52 — A12 rebase onto F1 and A9-first integration handoff
+- **File(s) changed:** `main.py`, `tests/schema/schema.sql`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `FOLLOWUPS.md`, `docs/deployments/a12-kosher-tiers.md`, `docs/design/phase1-safe-operating-system.md`, `docs/contracts/shift-summary.md`
+- **What changed:** Rebase #101 onto current main a5b0ff6, retaining F1 hooks, 068/075 schema includes and complete A12/F1 changelog histories. Record fixed #102 first, then #101 rebase/report/client/held/hash integration and regressions, with minimal interim contract edits and both receipt null guards preserved.
+- **Why:** Michael’s decision 4 and Codex review comment 6149165326; #102 remains open. Fresh post-rebase validation follows. Work remains only in the A12 worktree; global iCloud log is outside the user’s authorized scope and is unchanged. No production, merge or count-tool edits.
+
+---
+
+## 2026-10-13 11:47 — A12 review fixes fresh database verification
+- **File(s) changed:** `docs/deployments/a12-kosher-tiers.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record final 2,550 Python/69 Node passes, zero failures/skips, corrected 93-case before/after regression proof, 263 focused passes, path-review results and explicit count/A10/production rollout boundaries while preserving prior evidence.
+- **Why:** Michael’s PR #101 review decisions 1–3 (comment 6149065092); no production, other worktree, deploy or merge.
+
+---
+
+## 2026-10-13 11:45 — A12 held found summary contract
+- **File(s) changed:** `docs/contracts/shift-summary.md`
+- **What changed:** Include awaiting-approval found receipts alongside held makes in the NOT ENTERED YET summary contract.
+- **Why:** Michael’s PR #101 review decisions 1–3 (comment 6149065092); no production, other worktree, deploy or merge.
+
+---
+
+## 2026-10-13 11:44 — A12 existing correction hold compatibility
+- **File(s) changed:** `write_tickets.py`
+- **What changed:** Treat absent saved responses on existing LARGE_CORRECTION holds as empty when detecting kosher replay, preserving late-photo releases and concurrent approvals.
+- **Why:** Michael’s PR #101 review decisions 1–3 (comment 6149065092); no production, other worktree, deploy or merge.
+
+---
+
+## 2026-10-13 11:43 — A12 dashboard receive refusal regression
+- **File(s) changed:** `tests/test_a12_review_fixes.py`
+- **What changed:** Cover the remaining legacy-dashboard role on batch and finished receive routes, preserving route-level 403s and validating the kosher guard wherever receive is authorized.
+- **Why:** Michael’s PR #101 review decisions 1–3 (comment 6149065092); no production, other worktree, deploy or merge.
+
+---
+
+## 2026-10-13 11:41 — A12 pack regression fixture correction
+- **File(s) changed:** `tests/test_a12_review_fixes.py`
+- **What changed:** Correct the single-parameter SQL tuple in the extra-batch pack regression so both tests exercise the route guard.
+- **Why:** Michael’s PR #101 review decisions 1–3 (comment 6149065092); no production, other worktree, deploy or merge.
+
+---
+
+## 2026-10-13 11:41 — A12 legacy product type validation
+- **File(s) changed:** `main.py`
+- **What changed:** Include product type in the legacy product resolver so batch receive refusals and pack-output guards apply consistently to direct routes as well as tickets.
+- **Why:** Michael’s PR #101 review decisions 1–3 (comment 6149065092); no production, other worktree, deploy or merge.
+
+---
+
+## 2026-10-13 11:40 — A12 owner approval and lot creation guards
+- **File(s) changed:** `kosher_tiers.py`, `write_tickets.py`, `ticket_actions.py`, `main.py`, `exceptions_enforcement.py`, `migrations/075_kosher_tiers.sql`
+- **What changed:** Refuse extra-kosher receives and batch pack outputs; hold every extra found ticket until separate owner approval with atomic lot/transaction attestation; refuse direct extra make/found writes and extra reassign/merge paths; preserve seven-day holds and photo-proof boundaries; clarify migration count cutover comment.
+- **Why:** Michael’s PR #101 review decisions 1–3 (comment 6149065092); no production, other worktree, deploy or merge.
+
+---
+
+## 2026-10-13 11:39 — A12 regression coverage and role expectations
+- **File(s) changed:** `tests/test_a12_review_fixes.py`
+- **What changed:** Extend receive regressions to extra finished goods and historical-lot reassignment; use existing role permissions accurately while exercising legacy bypass guards with the shared master key.
+- **Why:** Michael’s PR #101 review decisions 1–3 (comment 6149065092); no production, other worktree, deploy or merge.
+
+---
+
+## 2026-10-13 11:38 — A12 count cutover and deployment prerequisites
+- **File(s) changed:** `docs/design/phase1-safe-operating-system.md`, `docs/deployments/a12-kosher-tiers.md`, `FOLLOWUPS.md`
+- **What changed:** Replace lot-retag steps with owner-approved counted stock under 283–290; record count-tool new-lot/approval and bulk-unit gaps, postgres/RLS/rename deployment requirements, and A9/A10 followups.
+- **Why:** Michael’s PR #101 review decisions 1–3 (comment 6149065092); no production, other worktree, deploy or merge.
+
+---
+
+## 2026-10-13 11:36 — A12 review regression cases
+- **File(s) changed:** `tests/test_a12_review_fixes.py`
+- **What changed:** Add HTTP and database regressions for refused batch receives, all extra found approval holds, approval evidence/replay/expiry, and legacy pack/reassign/merge bypasses before applying the fix.
+- **Why:** Michael’s PR #101 review decisions 1–3 (comment 6149065092); no production, other worktree, deploy or merge.
+
+---
+
 ## 2026-10-13 11:15 — Save successful eight-action A7/A6 staging evidence
 - **File(s) changed:** `docs/validation/fl-assistant-part1-staging.json`, `docs/contracts/fl-assistant-part1.md`, `docs/deployments/f1-assistant.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Save eight real-model receipts, one-post/replay/actor/lot checks, three BOL/photo-complete shipments, private owner/floor/anonymous download checks, trusted correction-photo link and inactive temporary actors. Health/assets match e85b550; final 2494 Python/75 Node/browser pass. Bearer packing URLs omitted; historical evidence preserved.
@@ -53,6 +200,34 @@
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/fl-assistant-part1-staging.json`
 - **What changed:** FastAPI-staging deployment 00b4d773-7a59-4768-93b9-4e35c2606af6 SUCCESS from e85b550; add next regression row 176 and staged receipt checkpoint immediately. ASSISTANT_ENABLED=1, A6 private volume and signer unchanged. Live eight-action acceptance next.
 - **Why:** Owner-authorized staging redeploy; no production access or merge.
+
+---
+
+## 2026-10-13 11:08 — A12 delivery note whitespace check
+- **File(s) changed:** `docs/deployments/a12-kosher-tiers.md`
+- **What changed:** Remove a trailing empty line so the final evidence passes git diff --check.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
+
+---
+
+## 2026-10-13 11:08 — A12 full validation and staging-only delivery evidence
+- **File(s) changed:** `docs/deployments/a12-staging-receipt.json`, `docs/deployments/a12-tests-python.log`, `docs/deployments/a12-tests-node.log`, `docs/deployments/a12-kosher-tiers.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record migration 075 staging apply, synthetic held→approved→extra-pack receipt chain, rejection/downgrade evidence, actor retirement, full fresh-DB 2,457 Python/69 Node passes and A9/F1 handoff fields; no production, hosted deploy or merge.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
+
+---
+
+## 2026-10-13 11:03 — A12 guarded staging acceptance harness
+- **File(s) changed:** `scripts/check_kosher_tiers_staging.py`
+- **What changed:** Add staging-only 075 apply and retained synthetic HTTP make-held/owner-approved/extra-pack/reject/downgrade examples, strict host/project guard, memory-only keys and guaranteed temporary actor retirement; never deploy or run startup.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
+
+---
+
+## 2026-10-13 11:02 — A12 catalog, concurrency and downstream source enforcement
+- **File(s) changed:** `kosher_tiers.py`, `ship_tickets.py`, `main.py`, `tests/test_kosher_tiers.py`, `tests/test_seed_staging.py`
+- **What changed:** Ensure extra finished goods allocate/ship only extra lots; add exact mapping/formula preservation, atomic approval race, append-only attestation and zero-stock tier-safe shortage tests; update the master-copy fixture with the new required tier default.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
 
 ---
 
@@ -70,10 +245,24 @@
 
 ---
 
+## 2026-10-13 10:58 — A12 resolution and immutable snapshot rule tests
+- **File(s) changed:** `tests/test_kosher_tiers.py`, `tests/test_resolution.py`, `tests/test_resolution_review.py`, `tests/test_roles_a2.py`, `resolution.py`, `ticket_actions.py`, `main.py`, `docs/design/phase1-safe-operating-system.md`
+- **What changed:** Test metadata-based SS/#9 filtering, both-tier choice even at page cap, exact product/lot tier fields, trace labeling and catalog-edit stale rejection; update prior resolution fixtures to actual extra tier and clarify paper-log cutover tagging.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
+
+---
+
 ## 2026-10-13 10:57 — Apply additive A6 link migration only to verified staging
 - **File(s) changed:** `CHANGE_LOG.md`
 - **What changed:** Explicit 068 rerun on guarded staging adds private session-to-A6 links, retaining all legacy evidence; no production access. Full fresh suite passes 2487 Python/75 Node, no failures/skips. origin/main and remote PR head reverified unchanged (bc57da4/490ef2b). Final partial-order line provenance review refinement precedes deploy.
 - **Why:** Staging schema must support the authorized Assistant A6 integration before code deployment.
+
+---
+
+## 2026-10-13 10:56 — A12 part 3: tier-aware resolution, receipts, trace and A9 contract
+- **File(s) changed:** `kosher_tiers.py`, `resolution.py`, `main.py`, `dashboard/traceability.html`, `docs/contracts/shift-summary.md`
+- **What changed:** Expose kosher_tier and EXTRA-KOSHER (SS), resolve SS/Sunshine #9 against extra tier only and unqualified #9 with explicit tier choice; label trace and document A9 immutable receipt fields, held makes and weekly downgrades. Held response success=false prevents a recorded state.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
 
 ---
 
@@ -84,6 +273,13 @@
 
 ---
 
+## 2026-10-13 10:54 — A12 held receipt readback handles unposted references
+- **File(s) changed:** `write_tickets.py`
+- **What changed:** A held make has no result_ref or committed_at; receipt readback now returns its held state and empty posted evidence.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
+
+---
+
 ## 2026-10-13 10:53 — Cover A6 authority and historical Assistant recovery
 - **File(s) changed:** `assistant_tools.py`, `fl_assistant.py`, `tests/test_fl_assistant.py`, `tests/visual/run-fl-assistant.mjs`
 - **What changed:** Add all-three-ship actual photo/BOL/replay, role/ID provenance, correction evidence, chat ownership, fresh/rerun migration security and historical UUID recovery regressions. Reject nested model evidence and ambiguous multiple correction photos; old attachment-only IDs stay saved but never become evidence. Browser harness can select installed Chrome via PLAYWRIGHT_CHANNEL without downloading or editing another checkout.
@@ -91,10 +287,24 @@
 
 ---
 
+## 2026-10-13 10:53 — A12 isolated database fixtures include tier schema
+- **File(s) changed:** `tests/test_kosher_tiers.py`, `tests/test_write_tickets.py`
+- **What changed:** Use valid synthetic lot labels, include 075 in the isolated HTTP concurrency schema loader, and detach empty A12 evidence before the legacy A1 down/up lifecycle test.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
+
+---
+
 ## 2026-10-13 10:52 — Verify A6 Assistant controls in browser and keep acceptance evidence private
 - **File(s) changed:** `dashboard/fl-assistant.js`, `dashboard/fl-assistant.css`, `tests/visual/run-fl-assistant.mjs`, `scripts/check_assistant_staging.py`
 - **What changed:** Wrap photo controls for narrow screens, refresh evidence labels by locale, exercise integer private uploads, BOL blockers, ship summaries, SHP retry and lot evidence. Correct persisted-lot count key; omit signed bearer URLs from saved receipts after validating PDF live. Six focused UI tests pass; browser/full validation pending.
 - **Why:** Review actual mobile controls and preserve safe staged evidence without exposing credentials or signed links.
+
+---
+
+## 2026-10-13 10:52 — A12 approval and packing regression tests
+- **File(s) changed:** `tests/test_kosher_tiers.py`, `main.py`, `kosher_tiers.py`
+- **What changed:** Cover hold/replay/seven-day expiry, own-identity approval/rejection, stale and forged decisions, late lot evidence, wrong-tier packing, filtered suggestions, downgrade evidence, immutable tiers and legacy-route bypass protection.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
 
 ---
 
@@ -109,6 +319,13 @@
 - **File(s) changed:** `assistant_tools.py`, `fl_assistant.py`, `migrations/068_fl_assistant.sql`, `tests/test_fl_assistant.py`
 - **What changed:** Add three A6 ship prepares and SHP receipts; extend resolved-ID provenance; exclude model evidence assertions. Upload/download photos through A6 and store only private actor/session integer-ID links. Inject trusted correction attachment_id and ship attachment_ids. Pending 068 adds additive secured links while retaining legacy staging photo evidence intact.
 - **Why:** Reuse A6 BOL, owner/context and private storage checks; remove separate F1 photo storage.
+
+---
+
+## 2026-10-13 10:50 — A12 part 2: held extra-kosher makes and tier-safe packing
+- **File(s) changed:** `kosher_tiers.py`, `ticket_actions.py`, `write_tickets.py`, `exceptions_enforcement.py`, `main.py`
+- **What changed:** Reuse A3b approve/reject with seven-day kosher holds and durable hold receipts; write authenticated owner/time attestations atomically; filter pack suggestions and enforce immutable source tiers, recording regular downgrades as transaction and lot event evidence.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
 
 ---
 
@@ -130,6 +347,13 @@
 - **File(s) changed:** `main.py`, `permissions.py`, `tests/schema/schema.sql`, `tests/test_named_actor_writes.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Rebase PR #90 onto verified origin/main bc57da43b29a1e689a76015b764eaace76a1a481. #93 and #99 are merged. Resolve wiring-only imports/allowlists/registrations, preserve A3b/A7/A6 dispatch and permission labels, all upstream fixture changes and schema includes 067/072/074 plus 068. Preserve both changelog histories. No application-logic conflict, production access or merge.
 - **Why:** Owner requested A6 integration in only ~/dev/fl-f1-wt. The global iCloud log is outside that explicitly authorized worktree and remains untouched under the owner's scope restriction.
+
+---
+
+## 2026-10-13 10:47 — A12 part 1: additive tier schema and migration 075 reservation
+- **File(s) changed:** `migrations/075_kosher_tiers.sql`, `tests/schema/schema.sql`, `docs/deployments/a12-kosher-tiers.md`
+- **What changed:** Add immutable lot tiers, owner attestation evidence, downgrade event storage, one-time catalog labels and staging-only rollout notes. Preserve historical lots and formula 284.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
 
 ---
 

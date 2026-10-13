@@ -255,7 +255,9 @@ def test_adjusted_rows_reason_labels_unknown_and_found(client, db_cursor, items,
     assert a['detail'] == {'lot': {'id': items['ingredient']['lot_id'], 'lot_code': items['ingredient']['lot_code']}, 'delta_lb': -2,
                            'lot_on_hand_before': 100, 'lot_on_hand_after': 98,
                            'reason_code': {'code': 'unknown', 'label': 'Unknown', 'label_en': 'Unknown', 'label_es': 'Desconocido', 'note_required': True},
-                           'note': 'spilled', 'photo_attached': False}
+                           'note': 'spilled', 'photo_attached': False,
+                           'kosher_lots': [{'lot_id': items['ingredient']['lot_id'], 'kosher_tier': 'regular',
+                                            'kosher_attested_by_actor_id': None, 'kosher_attested_at': None}]}
     assert a['line_en'].endswith('−2 lb  reason: Unknown') and a['line_es'].endswith('−2 lb  razón: Desconocido')
     assert [f['code'] for f in a['flags']] == ['UNKNOWN_REASON'] and a['flags'][0]['refs'] == {'transaction_id': adj['transaction_id']}
     f = rows['found']
@@ -397,7 +399,8 @@ def test_hash_is_deterministic_and_covers_only_receipt_rows(client, db_cursor, i
     assert shift_summary.summary_hash(main, b['sections']) == a['summary_hash']
     reduced = shift_summary.reduced(section(a, 'adjusted')['rows'][0])
     assert set(reduced) == {'receipt_number', 'action', 'status', 'effective_status', 'happened_at', 'entered_at', 'late_entry',
-                            'detail', 'transaction_ids', 'product', 'lot', 'quantity', 'flags'}
+                            'detail', 'transaction_ids', 'product', 'lot', 'quantity', 'flags', 'kosher_tier',
+                            'kosher_attested_by_actor_id', 'kosher_attested_at', 'transaction_kosher_downgrade'}
     assert reduced['product'] == {'id': items['ingredient']['id']} and reduced['quantity'] == {'lb': -1, 'cases': None}
     # Open exceptions, clock and expectations are outside the hash; the person's own new receipt is inside it.
     db_cursor.execute('''INSERT INTO exceptions(kind,status,severity,detail,owner_actor_id) VALUES ('NEGATIVE_BALANCE','open','warn','{}',%s)''', (actors['floor']['id'],))

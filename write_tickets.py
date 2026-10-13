@@ -291,6 +291,8 @@ def validate_receive(api, cur, payload, *, lock=False):
     product = cur.fetchone()
     if not product or product['active'] is False:
         fail(422, 'PRODUCT_NOT_FOUND', 'Product is missing or inactive; resolve an active product.')
+    import kosher_tiers
+    kosher_tiers.refuse_receive(product)
     shipper = supplier(cur, payload.get('supplier_id'), lock=lock)
     entries = []
     for entry in payload.get('supplier_lot_entries') or []:
@@ -305,6 +307,8 @@ def validate_receive(api, cur, payload, *, lock=False):
     fields['shipper_code_override'] = shipper['short_code']
     req = api.ReceiveRequest(**fields)
     draft = api._receive_preview_core(cur, req, product=product)
+    import kosher_tiers
+    draft.update(kosher_tiers.fields(product))
     draft.update(supplier_id=shipper['id'], supplier_name=shipper['name'])
     lots = []
     cur.execute('SELECT id, status, supplier_id FROM lots WHERE product_id=%s AND lot_code=%s' +
@@ -408,6 +412,8 @@ def receipt_detail(api, cur, number):
         lot['on_hand_lb'] = api.lot_on_hand(cur, lot['id'])
     # A5 hook: explicit supplier and lot evidence in interface-neutral receipts.
     a5.receipt_evidence(cur, transactions, lots)
+    import kosher_tiers
+    kosher_tiers.receipt_evidence(cur, transactions, lots)
     happened = datetime.fromisoformat(ticket['payload']['occurred_at'])
     entered = ticket['committed_at']   # NULL on a rejected/held ticket that already drew a number
     late = entered is not None and happened.astimezone(api.PLANT_TIMEZONE).date() != entered.astimezone(api.PLANT_TIMEZONE).date()
@@ -419,7 +425,7 @@ def receipt_detail(api, cur, number):
     if ticket['action'] in SHIP_ACTIONS:
         cur.execute('SELECT id,sales_order_id,bol_reference,proof_status,proof_due_at,entered_by_actor_id FROM shipments WHERE ticket_id=%s', (ticket['id'],))
         shipment = cur.fetchone()
-    return {'shipment': shipment, 'receipt_number': number, 'action': ticket['action'], 'status': ticket['status'],
+    receipt = {'shipment': shipment, 'receipt_number': number, 'action': ticket['action'], 'status': ticket['status'],
             'order': order, 'expected_receipts': expected,
             'actor': ticket['draft']['actor'], 'operator_id': ticket['operator_id'],
             'client_source': ticket['client_source'], 'happened_at': happened,
@@ -427,6 +433,8 @@ def receipt_detail(api, cur, number):
             'draft': ticket['draft'], 'response': ticket['response'],
             'warnings': ticket['warnings'], 'acknowledged': ticket['acknowledged'],
             'transactions': transactions, 'lots': lots}
+    receipt.update(kosher_tiers.summary_fields(receipt))
+    return receipt
 
 
 def receipt_numbers(cur, day, *, actor_terms=None, action=None, status=None, client_source=None, policy_code=None):
@@ -490,6 +498,15 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
             code = draft.get('lot_code') or draft.get('output_lot_code')
             fail(409, 'LOT_CODE_TAKEN',
                  f'{name} lot {code} is now in use; prepare again for a fresh draft.')
+        import kosher_tiers as a12
+        if row['action'] in ('make', 'found') and draft.get('kosher_tier') == a12.EXTRA:
+            approver = approval['approved_by'] if approval else actor
+            # Found always needs a separate approval, even when the owner prepared it.
+            if (row['action'] == 'found' and not approval) or not a12.owner(cur, approver):
+                cur.execute('ROLLBACK TO SAVEPOINT ticket_post')
+                return api.JSONResponse(status_code=202, content=json_value(api, a12.hold(
+                    api, cur, row, actor, draft, acknowledged, effective_payload)))
+            validated[3]['kosher_attestation'] = a12.attest(cur, approver)
         # A3b hook (R2, owner decision 7): > 500 lb corrections need a photo. With
         # one (prepared or attached now) they post, highlighted; without one the
         # ticket is HELD — nothing posts until the owner approves or a photo arrives.
@@ -510,7 +527,7 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
                 return api.JSONResponse(status_code=202, content=json_value(api, a3b.hold_ticket(
                     api, cur, row, actor, draft, acknowledged, row['payload_hash'])))
         state_changed = canonical_hash(json_value(api, state)) != row['state_hash']
-        receipt = allocate_receipt(cur, row['action'], occurred_at.astimezone(api.PLANT_TIMEZONE).date())
+        receipt = row['receipt_number'] or allocate_receipt(cur, row['action'], occurred_at.astimezone(api.PLANT_TIMEZONE).date())
         if row['action'] == 'receive':
             req.mode = 'commit'
             response = api._receive_commit_core(cur, req, request, occurred_at, source,
@@ -546,6 +563,7 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
             # A photo released the hold on the normal commit path.
             a3b.release_hold(cur, row['id'], resolution_kind='photo_attached', actor_id=actor['id'], note=None,
                              response={**response, 'receipt_number': receipt}, attachment_ref=photo)
+        a12.snapshot_response(cur, response, row['action'], draft)
         response = json_value(api, response)
     except HTTPException as exc:
         if exc.status_code >= 500:
@@ -736,6 +754,11 @@ def register_routes(app, api):
             # photo it posts, without one it stays held; it never expires.
             if row['status'] not in ('prepared', a3b.HELD):
                 fail(409, 'TICKET_NOT_COMMITTABLE', 'Prepare a new ticket.', status=row['status'])
+            if row['status'] == a3b.HELD and (row['response'] or {}).get('error_code') == 'KOSHER_ATTESTATION_REQUIRED':
+                cur.execute('SELECT clock_timestamp()>%s AS expired',(row['expires_at'],))
+                if cur.fetchone()['expired']:
+                    fail(409, 'TICKET_EXPIRED', 'The seven-day kosher hold expired; the owner must reject it and prepare again.')
+                return api.JSONResponse(status_code=202,content=row['response'])
             if row['status'] == 'prepared':
                 cur.execute('SELECT clock_timestamp() > %s AS expired', (row['expires_at'],))
                 if cur.fetchone()['expired']:

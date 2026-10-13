@@ -3,6 +3,7 @@ from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
 import json
 
+import kosher_tiers as a12
 import lot_confirmation as a5
 import exceptions_enforcement as a3b
 
@@ -24,7 +25,7 @@ def product(api, cur, product_id, lock=False):
 
 
 def lot(api, cur, lot_id, product_id=None, lock=False):
-    cur.execute('''SELECT l.id,l.product_id,l.lot_code,l.status,p.name AS product_name
+    cur.execute('''SELECT l.id,l.product_id,l.lot_code,l.status,l.kosher_tier,p.name AS product_name
                    FROM lots l JOIN products p ON p.id=l.product_id WHERE l.id=%s''' +
                 (' FOR UPDATE OF l' if lock else ''), (lot_id,))
     row = cur.fetchone()
@@ -147,7 +148,7 @@ def validate(api, cur, action, payload, lock=False):
             # A3b hook (R3): insufficient batch stock is not a blocker — the uncovered
             # pounds are pinned on a lot (explicit allocation, the FIFO lot that ran
             # out, or the newest lot) and flagged at commit.
-            primary = a3b.pack_shortfall(cur, source, draft, bool(allocations), primary)
+            primary = a3b.pack_shortfall(cur, source, draft, bool(allocations), primary, kosher_tier=a12.tier(target) if a12.tier(target)==a12.EXTRA else None)
         if abs(sum(a['quantity_lb'] for a in primary) - draft['total_lb']) > api.BALANCE_EPSILON:
             fail('INPUT_PLAN_CHANGED', f'{source["name"]} allocations do not add up to {draft["total_lb"]} lb; prepare again.')
         for ingredient in draft.get('add_in_ingredients', []):
@@ -155,6 +156,8 @@ def validate(api, cur, action, payload, lock=False):
         if input_plan is None:
             input_plan = primary + choose_inputs(api, cur, requirements, {})
         requirements[source['id']] = draft['total_lb']
+        a12.require_sources(cur, target, [i['lot_id'] for i in primary])
+        draft['transaction_kosher_downgrade'] = a12.downgrade(cur, target, [i['lot_id'] for i in primary])
         req.case_weight_lb = draft['case_weight_lb']
         # Freeze FIFO source choices for the shared posting core too.
         req.lot_allocations = [api.PackLotAllocation(lot_code=lot(api, cur, a['lot_id'], source['id'])['lot_code'],
@@ -217,6 +220,8 @@ def validate(api, cur, action, payload, lock=False):
 
     # Product/formula changes that alter the promised quantities need a fresh draft.
     # Balance-only changes are allowed if all exact pinned inputs remain sufficient.
+    if output_product:
+        specification['kosher_tier'] = a12.tier(output_product)
     specification = json.loads(json.dumps(specification, cls=api.DecimalSafeEncoder))
     if 'specification' in payload and specification != payload['specification']:
         fail('INPUT_PLAN_CHANGED', 'The product or recipe changed the draft quantities; prepare again.')
@@ -248,6 +253,9 @@ def validate(api, cur, action, payload, lock=False):
         draft['lot_exists'] = bool(existing)
         draft['output_lot_id'] = existing['id'] if existing else None
         if existing:
+            a12.output_matches(cur, existing['id'], output_product)
+            if action in ('make', 'found') and a12.tier(output_product)==a12.EXTRA:
+                fail('KOSHER_NEW_BATCH_LOT_REQUIRED', 'Every extra-kosher make or found entry needs a new lot and its own attestation.')
             states.append(lot(api, cur, existing['id'], output_product['id'], lock))
         if action == 'pack':
             req.target_lot_code = output_code
@@ -263,6 +271,10 @@ def validate(api, cur, action, payload, lock=False):
         options['input_plan'] = input_plan
     if action == 'found':
         a5.identity_draft(api, cur, payload, draft)
+    if output_product:
+        draft.update(a12.fields(output_product))
+        if action in ('make', 'found') and a12.tier(output_product)==a12.EXTRA:
+            draft['kosher_approval'] = {'required': True, 'message': "HELD until Michael approves from his own signed-in device; nothing posts before approval."}
     state = {'products': products, 'lots': states, 'specification': specification}
     return draft, state, req, options, occurred_at, time_source, specification, input_plan
 

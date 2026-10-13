@@ -729,7 +729,7 @@ def test_migration_065_up_down_up(isolated_database):
 
     def columns(cur):
         cur.execute("""SELECT table_name FROM information_schema.columns
-                       WHERE column_name='entered_by_actor_id' ORDER BY 1""")
+                       WHERE column_name='entered_by_actor_id' AND table_name <> 'lot_events' ORDER BY 1""")
         return [r[0] for r in cur.fetchall()]
 
     # A3b's 069 view passes entered_by_actor_id through; it rolls back first and

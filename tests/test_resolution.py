@@ -30,10 +30,10 @@ def catalog(db_cursor):
     chips = [product('White Chocolate Chips'), product('Chocolate Chips Sugar Free'),
              product('Chocolate Chips Real 1000 CT'), product('Chocolate Chips Real 4000 CT'),
              product('Granola Chocolate Chip 25 LB', 'finished')]
-    batches = [product('Batch SS Classic #9', 'batch', odoo_code='A4-90025'),
-               product('Batch SS Classic Chocolate Chip #9', 'batch', odoo_code='A4-90026')]
+    batches = [product('Batch SS Classic #9', 'batch', odoo_code='A4-90025', kosher_tier='extra_kosher'),
+               product('Batch SS Classic Chocolate Chip #9', 'batch', odoo_code='A4-90026', kosher_tier='extra_kosher')]
     finished = [product(f'Granola SS Classic {flavor}#9 {size} LB', 'finished',
-                        parent_batch_product_id=batches[i])
+                        parent_batch_product_id=batches[i],kosher_tier='extra_kosher')
                 for i, flavor in enumerate(('', 'Chocolate Chip ')) for size in (5, 10, 25)]
     pouch = product('A4 Pouches', 'finished', pack_format='bagged', case_size_lb=Decimal('7.5'),
                     bags_per_case=12, units_per_case=12, retail_bag_oz=10)
