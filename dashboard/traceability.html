@@ -732,7 +732,7 @@ async function traceBackwardBatch(batchData) {
 
   currentTrace = {
     direction: 'backward', startLot: batchData.batch_lot_code,
-    product: batchData.product_name, outputLb: batchData.output_lb,
+    product: batchData.product_name, kosherTier: batchData.kosher_tier, outputLb: batchData.output_lb,
     date: batchData.produced_date, time: batchData.produced_time,
     confirmedCount, legacyCount, hasLegacy,
     batchData
@@ -796,7 +796,7 @@ async function traceBackwardIngredient(data) {
 
   currentTrace = {
     direction: 'backward', startLot: data.lot_code,
-    product: data.product_name,
+    product: data.product_name, kosherTier: data.kosher_tier,
     confirmedCount, legacyCount: 0, hasLegacy: !data.supplier,
     note
   };
@@ -838,7 +838,7 @@ async function traceForward(lotCode) {
   if (ingData.used_in_batches.length === 0) {
     currentTrace = {
       direction: 'forward', startLot: lotCode,
-      product: ingData.ingredient_name,
+      product: ingData.ingredient_name, kosherTier: ingData.kosher_tier,
       note: 'This lot has not been consumed in any production batches. It may still be in raw inventory.',
       confirmedCount: 0, legacyCount: 0, hasLegacy: false,
       ingData
@@ -879,7 +879,7 @@ async function traceForward(lotCode) {
 
   currentTrace = {
     direction: 'forward', startLot: lotCode,
-    product: ingData.ingredient_name,
+    product: ingData.ingredient_name, kosherTier: ingData.kosher_tier,
     confirmedCount: batches.length, legacyCount: 0, hasLegacy: false,
     ingData
   };
@@ -916,7 +916,7 @@ async function traceForwardAsBatch(lotCode) {
 
   currentTrace = {
     direction: 'forward', startLot: lotCode,
-    product: lotInfo.product_name,
+    product: lotInfo.product_name, kosherTier: lotInfo.kosher_tier,
     confirmedCount: graphLinks.filter(l => l.confidence === 'confirmed').length,
     legacyCount: 0, hasLegacy: false
   };
@@ -1387,6 +1387,7 @@ function renderDetailPanel() {
   html += `<div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:14px;font-size:var(--fl-caption, 14px);color:var(--text-muted)">`;
   html += `<span>Traced: ${traceDate}</span>`;
   html += `<span>Start: <strong style="color:var(--text);font-family:var(--mono)">${t.startLot}</strong></span>`;
+  if (t.kosherTier === 'extra_kosher') html += `<span><strong>EXTRA-KOSHER (SS)</strong></span>`;
   if (t.product) html += `<span>Product: ${t.product}</span>`;
   if (t.outputLb) html += `<span>Quantity: ${t.outputLb} lb</span>`;
   html += `</div>`;

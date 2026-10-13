@@ -229,3 +229,68 @@ def test_legacy_route_cannot_bypass_rules(client,db_cursor,items,direct):
     response=client.post('/'+direct,json=payload,headers=headers())
     assert response.status_code in (403,409),response.text
     assert response.json()['detail']['error_code']==('KOSHER_ATTESTATION_REQUIRED' if direct=='make' else 'KOSHER_SOURCE_REQUIRED')
+
+
+@pytest.fixture
+def classic_catalog(db_cursor):
+    # Deliberately misleading names prove tier metadata wins over SS aliases.
+    db_cursor.execute('UPDATE products SET active=false')
+    cur=db_cursor
+    ids={}
+    for key,name,tier in [('regular','Classic #9 Regular','regular'),
+            ('extra','Classic #9 EXTRA-KOSHER (SS)','extra_kosher'),
+            ('misleading','SS Classic #9 Regular','regular')]:
+        cur.execute("INSERT INTO products(name,type,active,kosher_tier,odoo_code) VALUES (%s,'batch',true,%s,%s) RETURNING id",(name,tier,'K9-'+key))
+        ids[key]=cur.fetchone()['id']
+    return ids
+
+@pytest.mark.parametrize('query',['SS #9','Sunshine #9','ss 9','Sunshine Classic #9'])
+def test_resolve_ss_nine_only_extra_even_if_alias_points_to_regular(client,db_cursor,classic_catalog,query):
+    db_cursor.execute("INSERT INTO search_aliases(kind,alias,product_id) VALUES ('product',%s,%s)",(query,classic_catalog['regular']))
+    response=client.post('/resolve',json={'kind':'product','query':query},headers=headers())
+    assert response.status_code==200,response.text
+    data=response.json()
+    assert {c['id'] for c in data['candidates']}=={classic_catalog['extra']}
+    assert all(c['kosher_tier']=='extra_kosher' for c in data['candidates'])
+    assert data['match']['kosher_label']=='EXTRA-KOSHER (SS)'
+
+@pytest.mark.parametrize('query',['#9','Classic 9','classic #9','9'])
+def test_resolve_unqualified_nine_shows_both_tiers_never_picks_even_page_one(client,classic_catalog,query):
+    for limit in (1,25):
+        data=client.post('/resolve',json={'kind':'product','query':query,'limit':limit},headers=headers()).json()
+        assert data['match'] is None and data['needs_clarification']
+        assert data['candidate_count']==3
+        if limit==25:
+            assert {c['kosher_tier'] for c in data['candidates']}=={'regular','extra_kosher'}
+            assert 'EXTRA-KOSHER' in data['ask'] and 'Regular' in data['ask']
+
+def test_resolve_unqualified_nine_requires_choice_even_with_one_active_tier(client,db_cursor,classic_catalog):
+    db_cursor.execute("UPDATE products SET active=false WHERE id<>%s",(classic_catalog['extra'],))
+    data=client.post('/resolve',json={'kind':'product','query':'#9'},headers=headers()).json()
+    assert data['match'] is None and data['needs_clarification']
+
+def test_resolve_exact_code_and_lot_return_tier(client,items):
+    code=client.post('/resolve',json={'kind':'product','query':items['finished']['name']},headers=headers()).json()
+    assert code['match']['kosher_tier']=='extra_kosher'
+    lot=client.post('/resolve',json={'kind':'lot','query':items['extra_lot']['lot_code'],'context':{'product_id':items['batch']['id']}},headers=headers()).json()
+    assert lot['match']['kosher_tier']=='extra_kosher'
+
+def test_trace_and_lot_label_fields_follow_immutable_lot_tier(client,db_cursor,items,actors):
+    prepared,held=made(client,items,actors)
+    result=approve(client,held,actors).json()
+    db_cursor.execute("UPDATE products SET kosher_tier='regular' WHERE id=%s",(items['batch']['id'],))
+    for path in ['/trace/batch/'+result['lot_code']+'?product_id='+str(items['batch']['id']),
+                 '/lots/'+str(result['lot_id']),'/lots/by-code/'+result['lot_code']]:
+        response=client.get(path,headers=headers())
+        assert response.status_code==200,response.text
+        assert response.json()['kosher_tier']=='extra_kosher'
+    response=client.get('/trace/batch/'+result['lot_code'],headers=headers()).json()
+    assert response['kosher_label']=='EXTRA-KOSHER (SS)' and response['kosher_attested_by_actor_id']==actors['owner']['id']
+
+@pytest.mark.parametrize('action',['make','pack'])
+def test_catalog_tier_change_rejects_prepared_ticket(client,db_cursor,items,actors,action):
+    prepared=prepare(client,action,body(action,items)|({'confirmed_sku':True} if action=='make' else {}),actors['floor']['key'])
+    db_cursor.execute("UPDATE products SET kosher_tier='regular' WHERE id=%s",(items['batch' if action=='make' else 'finished']['id'],))
+    response=commit(client,prepared,actors['floor']['key'])
+    error(response,409,'TICKET_STALE')
+    assert posted_count(db_cursor,prepared)==0

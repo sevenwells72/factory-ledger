@@ -274,7 +274,7 @@ def _search(cur, source, params, variants, aliases, *, keywords=True, exact_only
 
 def _candidate(row):
     result = {k: row[k] for k in (
-        'id', 'name', 'odoo_code', 'type', 'label_type', 'case_size_lb', 'pack_format',
+        'id', 'name', 'odoo_code', 'type', 'label_type', 'case_size_lb', 'pack_format', 'kosher_tier',
         'default_batch_lb', 'parent_batch_product_id', 'on_hand_lb', 'product_id',
         'lot_code', 'order_number', 'customer_po', 'customer_id', 'state', 'status',
         'unit', 'quantity', 'bags_per_case', 'units_per_case', 'retail_bag_oz'
@@ -286,6 +286,10 @@ def _candidate(row):
                       'suffix': 'Exact last four characters within this product',
                       'context': 'Open order for the specified customer'
                   }[row['tier']], context_boost=row.get('context_boost'))
+    if 'kosher_tier' in result:
+        result['kosher_label'] = 'EXTRA-KOSHER (SS)' if result['kosher_tier']=='extra_kosher' else 'Regular'
+        if 'EXTRA-KOSHER' not in result['label']:
+            result['label'] += ' — ' + result['kosher_label']
     return result
 
 
@@ -338,7 +342,7 @@ def decide(query, rows, *, truncated=False, note=None, limit=MAX_CANDIDATES, off
 
 
 PRODUCT_SOURCE = '''SELECT p.id, p.name, p.odoo_code, p.type, p.label_type,
-    p.case_size_lb, p.pack_format, p.default_batch_lb, p.parent_batch_product_id,
+    p.case_size_lb, p.pack_format, p.default_batch_lb, p.parent_batch_product_id, p.kosher_tier,
     p.bags_per_case, p.units_per_case, p.retail_bag_oz,
     p.name || COALESCE(' (' || p.odoo_code || ')', '') AS label,
     ARRAY[p.name, p.odoo_code] ||
@@ -384,14 +388,38 @@ def _target_ids(aliases, kind, query):
             and normalize(row['alias']) == normalize(query)]
 
 
+def classic_nine(query):
+    q = normalize(query)
+    nine = bool(re.search(r'(?<![a-z0-9])#?9(?![a-z0-9])', q))
+    sunshine = bool(re.search(r'(?<![a-z0-9])(ss|sunshine)(?![a-z0-9])', q))
+    bare = nine and not re.sub(r'(?<![a-z0-9])(ss|sunshine|classic|granola|batch|#?9)(?![a-z0-9])', '', q).strip()
+    return nine, sunshine, bare
+
+
 def _products(cur, req, variants, aliases):
     c = req.context
     ids = _target_ids(aliases, 'product', req.query)
-    params = (c.customer_id, c.supplier_id, ids, normalize(req.query),
+    nine, sunshine, bare = classic_nine(req.query)
+    source = PRODUCT_SOURCE
+    if nine and sunshine:
+        source += " AND p.kosher_tier='extra_kosher'"
+    if bare:
+        # Identity comes from tier metadata even when an obsolete alias names a
+        # regular product; catalog IDs cover finished labels without '#9'.
+        cur.execute("""SELECT id FROM products WHERE active IS DISTINCT FROM false
+            AND (id=ANY(%s) OR name ~* 'classic.*#?9([^0-9]|$)' OR (kosher_tier='extra_kosher' AND name ~* '(ss|sunshine).*#?9([^0-9]|$)'))""",
+            ([107,108,136,144,137,138,129,179,143,283,284,285,286,287,288,289,290],))
+        ids = [r['id'] for r in cur.fetchall()]
+        chosen = next((v for v in variants if 'ss' in v.text.split()), variants[0]) if sunshine else variants[0]
+        variants = [chosen]
+        source += ' AND p.id=ANY(%s::int[])'
+    params = (c.customer_id, c.supplier_id, ids, variants[0].text if bare else normalize(req.query),
               c.action, c.action, c.group, c.action, c.action, c.action,
               c.action, c.action, c.group, c.action, c.action, c.action,
               c.action, c.action, c.product_id, c.product_id)
-    rows = _search(cur, PRODUCT_SOURCE, params, variants, aliases, limit=req.limit, offset=req.offset)
+    if bare:
+        params += (ids,)
+    rows = _search(cur, source, params, variants, aliases, limit=req.limit, offset=req.offset)
     for row in rows:
         if row['score'] == 1 and (row['id'] in ids or row['_variant'].text not in
                                   (normalize(row['name']), normalize(row['odoo_code']))):
@@ -435,7 +463,7 @@ def _lots(cur, req):
     if not q:
         return choose([])
     source = '''SELECT l.id, l.product_id, l.lot_code, l.lot_code AS name,
-          l.status, l.merged_into_lot_id, b.on_hand_lb,
+          l.status, l.merged_into_lot_id, b.on_hand_lb, l.kosher_tier,
           ARRAY[regexp_replace(lower(regexp_replace(btrim(l.lot_code), '\\s+', ' ', 'g')), '\\s+lot$', ''),
                 l.supplier_lot_code] || ARRAY(SELECT supplier_lot_code FROM lot_supplier_codes WHERE lot_id = l.id) AS exact_terms,
           0 AS context_rank, 0::float AS recent_activity
@@ -635,6 +663,11 @@ def resolve(cur, req, *, aliases=None):
         variants, truncated = query_variants(req.query, aliases)
         rows = (_products if req.kind == 'product' else _parties)(cur, req, variants, aliases)
         result = decide(req.query, rows, truncated=truncated, limit=req.limit, offset=req.offset)
+    if req.kind=='product':
+        nine,sunshine,bare = classic_nine(req.query)
+        if bare and not sunshine and result['outcome']=='match':
+            result.update(outcome='ambiguous',match=None,needs_clarification=True,
+                ask='Choose the Classic #9 kosher tier: ' + '; '.join(c['label'] for c in result['candidates']))
     result['alias_table_available'] = available
     return result
 

@@ -5012,7 +5012,7 @@ def get_lot_by_code(lot_code: str, product_id: Optional[int] = Query(None), _: b
     try:
         with get_transaction() as cur:
             query = f"""
-                SELECT l.id, l.lot_uuid, l.lot_code, l.product_id, p.name as product_name, p.odoo_code,
+                SELECT l.id, l.lot_uuid, l.lot_code, l.product_id, l.kosher_tier, p.name as product_name, p.odoo_code,
                        COALESCE(SUM(tl.quantity_lb), 0) as quantity_on_hand,
                        l.entry_source, l.found_location, l.estimated_age,
                        l.supplier_lot_code, l.lot_type,
@@ -5555,6 +5555,7 @@ def _receive_preview_core(cur, req: ReceiveRequest, *, product=None):
          "reference_number": er_match["reference_number"]}
         if er_match else None
     )
+    response.update(kosher_tiers.fields(product))
     return response
 
 
@@ -5577,6 +5578,7 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
     lot_type = req.lot_type or ("commingled" if req.supplier_lot_entries else "single_supplier")
 
     lot_id, is_new_lot, lot_uuid = find_or_create_lot(cur, product['id'], lot_code, 'received', supplier_id=supplier_id)
+    kosher_tiers.output_matches(cur, lot_id, product)
     code_similarity = (
         check_suspicious_code_similarity(cur, product['id'], lot_id, lot_code)
         if is_new_lot else None
@@ -5607,15 +5609,15 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
             type, timestamp, bol_reference, shipper_name,
             shipper_code, cases_received, case_size_lb,
             expected_receipt_id, occurred_at, created_at_source, operator_id,
-            ticket_id, receipt_number, supplier_id, entered_by_actor_id
+            ticket_id, receipt_number, supplier_id, entered_by_actor_id, kosher_tier
         )
-        VALUES ('receive', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES ('receive', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id, occurred_at, business_date
     """, (
         now, req.bol_reference, req.shipper_name, shipper_code,
         req.cases, req.case_size_lb, expected_receipt_id,
         occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number, supplier_id,
-        _entered_by_actor_id(request),
+        _entered_by_actor_id(request), kosher_tiers.tier(product),
     ))
     txn_row = cur.fetchone()
     txn_id = txn_row['id']
@@ -5683,6 +5685,7 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
             + (" (now closed)" if expected_receipt_summary["auto_closed"] else
                f" ({expected_receipt_summary['remaining']:g} lb still expected)")
         )
+    response.update(kosher_tiers.fields(product))
     return response
 
 
@@ -8762,6 +8765,7 @@ def _make_preview_core(cur, req, *, product=None):
         if auto_count: parts.append(f"{auto_count} auto-excluded")
         if manual_count: parts.append(f"{manual_count} manually excluded")
         response["preview_message"] += f" ({', '.join(parts)} ingredient(s))"
+    response.update(kosher_tiers.fields(product))
     return response
 
 
@@ -9120,6 +9124,7 @@ def _pack_preview_core(cur, req, *, source=None, target=None):
         # Strip internal keys before returning
         public_info = {k: v for k, v in add_in_info.items() if not k.startswith('_')}
         result.update(public_info)
+    result.update(kosher_tiers.fields(target))
     return result
 
 
@@ -9427,7 +9432,7 @@ def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, pr
 
 
 def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, ticket_id=None, receipt_number=None, require_new_lot=False, reason_code=None):
-    cur.execute("SELECT id, name FROM products WHERE id = %s", (req.product_id,))
+    cur.execute("SELECT id, name, kosher_tier FROM products WHERE id = %s", (req.product_id,))
     product = cur.fetchone()
 
     if not product:
@@ -9465,14 +9470,14 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
     cur.execute("""
         INSERT INTO transactions (
             type, timestamp, notes, occurred_at, created_at_source, operator_id, ticket_id, receipt_number,
-            entered_by_actor_id, reason_code
+            entered_by_actor_id, reason_code, kosher_tier
         )
-        VALUES ('adjust', %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES ('adjust', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id, occurred_at, business_date
     """, (
         now, f"Found inventory: {req.reason_code}",
         occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number,
-        _entered_by_actor_id(request), reason_code,
+        _entered_by_actor_id(request), reason_code, kosher_tiers.tier(product),
     ))
     txn_row = cur.fetchone()
     txn_id = txn_row['id']
@@ -9525,6 +9530,7 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
         response.setdefault("warnings", []).append(code_similarity)
     if audit_error:
         response["audit_warning"] = audit_error
+    response.update(kosher_tiers.fields(product))
     return response
 
 
@@ -10077,7 +10083,7 @@ def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool 
             # First: look up the lot to determine its type
             query = """
                 SELECT l.id, l.lot_code, l.entry_source, l.supplier_lot_code,
-                       p.name as product_name, p.id as product_id
+                       p.name as product_name, p.id as product_id, l.kosher_tier,l.kosher_attested_by_actor_id,l.kosher_attested_at
                 FROM lots l
                 JOIN products p ON p.id = l.product_id
                 WHERE LOWER(l.lot_code) = LOWER(%s)
@@ -10187,6 +10193,9 @@ def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool 
             db_lb = float(prod_info['default_batch_lb']) if prod_info and prod_info['default_batch_lb'] else None
             output_lb = float(batch['output_lb'])
             result = {
+                **kosher_tiers.fields(lot_row),
+                "kosher_attested_by_actor_id":lot_row.get("kosher_attested_by_actor_id"),
+                "kosher_attested_at":lot_row.get("kosher_attested_at"),
                 "trace_type": "batch",
                 "lot_id": lot_row['id'],
                 "product_id": lot_row['product_id'],
@@ -10328,6 +10337,7 @@ def _trace_ingredient_backward(cur, lot_row):
     on_hand = lot_on_hand(cur, lot_row['id'])
 
     return {
+        **kosher_tiers.fields(lot_row),
         "trace_type": "ingredient",
         "lot_id": lot_row['id'],
         "product_id": lot_row['product_id'],
@@ -10349,7 +10359,7 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
         with get_transaction() as cur:
             query = """
                 SELECT l.id, l.lot_code, l.supplier_lot_code, l.entry_source,
-                       p.name as ingredient_name, l.product_id
+                       p.name as ingredient_name, l.product_id, l.kosher_tier,l.kosher_attested_by_actor_id,l.kosher_attested_at
                 FROM lots l
                 JOIN products p ON p.id = l.product_id
                 WHERE LOWER(l.lot_code) = LOWER(%s)
@@ -10476,6 +10486,7 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
             result = {
                 "lot_id": lot['id'],
                 "product_id": lot['product_id'],
+                **kosher_tiers.fields(lot),
                 "ingredient_lot_code": lot['lot_code'],
                 "supplier_lot_code": lot['supplier_lot_code'],
                 "ingredient_name": lot['ingredient_name'],

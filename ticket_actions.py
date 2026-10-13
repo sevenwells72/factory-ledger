@@ -220,6 +220,8 @@ def validate(api, cur, action, payload, lock=False):
 
     # Product/formula changes that alter the promised quantities need a fresh draft.
     # Balance-only changes are allowed if all exact pinned inputs remain sufficient.
+    if output_product:
+        specification['kosher_tier'] = a12.tier(output_product)
     specification = json.loads(json.dumps(specification, cls=api.DecimalSafeEncoder))
     if 'specification' in payload and specification != payload['specification']:
         fail('INPUT_PLAN_CHANGED', 'The product or recipe changed the draft quantities; prepare again.')

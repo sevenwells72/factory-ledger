@@ -100,7 +100,7 @@ def hold(api, cur, row, actor, draft, acknowledged, effective_payload):
         VALUES ('KOSHER_ATTESTATION','block',%s,%s,%s,%s,%s) RETURNING id""",
         (row['payload']['product_id'],row['id'],receipt,Json(detail),permissions.owner_actor_id(cur)))
     exception_id = cur.fetchone()['id']
-    response = {'held':True,'posted':False,'status':'awaiting_approval','ticket_id':row['id'],
+    response = {'success':False,'held':True,'posted':False,'status':'awaiting_approval','ticket_id':row['id'],
         'receipt_number':receipt,'exception_id':exception_id,'kosher_tier':EXTRA,'kosher_label':'EXTRA-KOSHER (SS)',
         'error_code':'KOSHER_ATTESTATION_REQUIRED',
         'message':"HELD — waiting for Michael's kosher approval. Nothing was posted.",

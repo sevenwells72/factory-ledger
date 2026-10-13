@@ -102,6 +102,9 @@ Pre-ticket (legacy) transactions never appear: no receipt number = not recorded 
   "happened_at": "2026-10-07T12:55:00-04:00",
   "entered_at":  "2026-10-07T12:58:41-04:00",
   "late_entry": false, "days_late": 0, "hours_late": 0, "entered_on_later_day": false,
+  "kosher_tier": "extra_kosher", "kosher_label": "EXTRA-KOSHER (SS)",
+  "transaction_kosher_downgrade": false,
+  "kosher_attested_by_actor_id": 1, "kosher_attested_at": "2026-10-07T13:00:00-04:00",
   "product": {"id": 283, "name": "Batch SS Classic Granola #9 (Kosher Ignition)", "odoo_code": "90025", "type": "batch"},
   "lot": {"id": 9321, "lot_code": "26-10-07-CLS9-001", "supplier_lot_code": null, "identity_status": "identified"},
   "quantity": {"lb": 323, "cases": null, "unit": "lb", "display": "323 lb", "display_en": "323 lb", "display_es": "323 lb"},
@@ -143,7 +146,16 @@ Pre-ticket (legacy) transactions never appear: no receipt number = not recorded 
 | `INVOICE_PENDING` | packed, shipped | Sunshine-owned pack / bulk dispatch awaiting invoice (R7, A8) | `invoice_trigger_id` |
 | `POSSIBLE_DUPLICATE_ACKED` | any | the committer acknowledged a possible-duplicate warning; names the earlier receipt | `receipt_number` |
 | `VOIDED` | any | the receipt's transaction(s) are voided; names the `VD-` receipt | `voided_by_receipt_number` |
-| `EXTRA_KOSHER` | made, packed, received | A12 follow-up (½ d): tier shown on the line | `kosher_tier` |
+| `EXTRA_KOSHER` | made, packed, received | A12: immutable output tier; line includes EXTRA-KOSHER (SS) | `kosher_tier` |
+| `KOSHER_DOWNGRADE` | packed | Extra-kosher batch consumed as regular; A12 transaction flag and output lot event, also listed weekly | `transaction_id`, `lot_id`, `transaction_kosher_downgrade` |
+
+A12 source fields are on prepare `draft`, committed `response`, receipt transactions and lots.
+`kosher_attested_by_actor_id` and `kosher_attested_at` name the signed-in owner;
+`actor` remains the preparer. A make with `status=awaiting_approval`, `held=true`,
+`posted=false` has a hold receipt reference and no ledger transactions; list it under
+NOT ENTERED YET? until approved. The hold receipt number is reused on approval.
+For hashing, these receipt fields are immutable per receipt; live catalog tier/name
+must never replace the stored tier or change a confirmed summary hash.
 
 #### 2.2.1 `detail` per action
 

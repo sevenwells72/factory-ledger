@@ -70,10 +70,24 @@
 
 ---
 
+## 2026-10-13 10:58 — A12 resolution and immutable snapshot rule tests
+- **File(s) changed:** `tests/test_kosher_tiers.py`, `tests/test_resolution.py`, `tests/test_resolution_review.py`, `tests/test_roles_a2.py`, `resolution.py`, `ticket_actions.py`, `main.py`, `docs/design/phase1-safe-operating-system.md`
+- **What changed:** Test metadata-based SS/#9 filtering, both-tier choice even at page cap, exact product/lot tier fields, trace labeling and catalog-edit stale rejection; update prior resolution fixtures to actual extra tier and clarify paper-log cutover tagging.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
+
+---
+
 ## 2026-10-13 10:57 — Apply additive A6 link migration only to verified staging
 - **File(s) changed:** `CHANGE_LOG.md`
 - **What changed:** Explicit 068 rerun on guarded staging adds private session-to-A6 links, retaining all legacy evidence; no production access. Full fresh suite passes 2487 Python/75 Node, no failures/skips. origin/main and remote PR head reverified unchanged (bc57da4/490ef2b). Final partial-order line provenance review refinement precedes deploy.
 - **Why:** Staging schema must support the authorized Assistant A6 integration before code deployment.
+
+---
+
+## 2026-10-13 10:56 — A12 part 3: tier-aware resolution, receipts, trace and A9 contract
+- **File(s) changed:** `kosher_tiers.py`, `resolution.py`, `main.py`, `dashboard/traceability.html`, `docs/contracts/shift-summary.md`
+- **What changed:** Expose kosher_tier and EXTRA-KOSHER (SS), resolve SS/Sunshine #9 against extra tier only and unqualified #9 with explicit tier choice; label trace and document A9 immutable receipt fields, held makes and weekly downgrades. Held response success=false prevents a recorded state.
+- **Why:** A12 Classic #9 kosher tiers; Michael decisions and design rev 3.8.
 
 ---
 

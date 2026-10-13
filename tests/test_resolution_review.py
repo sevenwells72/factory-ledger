@@ -116,7 +116,7 @@ def test_seeded_aliases_and_both_classic_nine_tiers(catalog):
 def test_pagination_counts_deduplicated_alias_union_before_slicing(catalog):
     alias(catalog)
     for i in range(30):
-        catalog['product'](f'SS Sunshine #9 Review {i:02}')
+        catalog['product'](f'SS Sunshine #9 Review {i:02}',kosher_tier='extra_kosher')
     seen = []
     for offset in range(0, 40, 5):
         result = resolve(catalog, 'product', 'Sunshine 9', limit=5, offset=offset)
