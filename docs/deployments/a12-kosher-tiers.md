@@ -50,14 +50,23 @@ or changed. No service was deployed; PR #101 remains draft and unmerged.
 
 ## Integration and rollout
 
-- A9: consume `kosher_tier`, `kosher_label`, attesting actor/time and
-  `transaction_kosher_downgrade` from stored receipts; use `EXTRA_KOSHER` and
-  `KOSHER_DOWNGRADE` flag refs from the updated contract. List held makes under
-  NOT ENTERED YET? (including held found tickets) and downgrades on the weekly view.
-  The current A9 renderer still needs these fields/flags and awaiting-approval
-  receipts wired in; use lot-level tier evidence for ship/adjust receipts whose
-  transaction top-level tier remains regular. See FOLLOWUPS P1.22. A9
-  implementation is in its own lane; this PR supplies the JSON fields and contract.
+- **Merge order (Michael, 2026-10-13): fixed PR #102 (A9) merges FIRST.**
+  This fix round rebases #101 onto `origin/main` at `a5b0ff6` (F1 merged).
+  PR #102 is still open; after it lands, #101 must rebase again and implement
+  the summary integration described in [Codex's #102 review](https://github.com/sevenwells72/factory-ledger/pull/102#issuecomment-6149165326)
+  before #101 can merge. Keep contract changes minimal until then.
+- A9 follow-up in #101: wire the five stored kosher fields and
+  `EXTRA_KOSHER` / `KOSHER_DOWNGRADE` flags into the report and clients;
+  show held make/found receipts under NOT ENTERED YET?, with owner/expiry.
+  Use immutable lot evidence for ship/adjust rows whose transaction tier
+  defaults regular; retain preparer attribution separately from the attester.
+  Reconcile contract §1.3 with the kosher hashing prose: include stored tier,
+  approving actor ID/time and downgrade evidence, exclude labels/names, live
+  catalog data and held expectations. Test held → approved using the same
+  receipt, tier/downgrade flags, catalog/label hash stability and stale confirm
+  after approval. Preserve 068/075/076 and both receipt null guards during
+  integration. Weekly downgrade rendering remains separate weekly-view work.
+  Full integration checklist: FOLLOWUPS P1.22.
 - Extra-kosher lot creation: receive of batches 283/284 is refused for every
   role; extra-kosher finished receive also refuses and directs callers to
   pack/found. Found of any extra-kosher product always holds for a separate
@@ -125,3 +134,22 @@ Production rollout is still an operator step: apply 075 as `postgres` before cod
 verify `ticket_attestations` and `lot_events` are owned by `postgres` with RLS on
 and zero policies, and account for the product 283–290 renames. No production
 access, other worktree changes, deployment or merge occurred.
+
+## Post-F1 rebase verification — 2026-10-13
+
+Rebased source `4795107` includes current `origin/main` `a5b0ff6` (F1 merged),
+all original A12 guards, the F1 route hooks and both migrations 068/075.
+A new isolated UTF-8 PostgreSQL 17 database was built from the current schema
+plus `pg_trgm`; **2,629 Python passed** (41.65 s), **75 Node passed**, zero
+failures/errors/skips. All **93 A12 regressions pass**; the independently rerun
+`928b601` baseline has **81 failed / 12 passed**, zero errors/skips.
+Evidence: `a12-review-rebase-tests.json`. The local cluster was stopped and its
+temporary database removed. Stored historical test/staging evidence above is
+unchanged. All project and regression changelog history from both heads was retained;
+the global iCloud log remains outside this worktree and was not written.
+
+Independent final review confirms F1 uses the guarded prepare/commit routes and
+preserves HTTP 202 holds. PR #102 is still open: its first merge and the subsequent
+#101 summary integration in FOLLOWUPS P1.22 remain required before #101 merges.
+Count loading and A10 legacy retirement remain in their respective workstreams.
+No production/staging access, count-tool edit, other-worktree edit, deploy or merge.

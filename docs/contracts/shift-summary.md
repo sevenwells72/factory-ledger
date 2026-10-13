@@ -156,6 +156,7 @@ A12 source fields are on prepare `draft`, committed `response`, receipt transact
 NOT ENTERED YET? until approved. The hold receipt number is reused on approval.
 For hashing, these receipt fields are immutable per receipt; live catalog tier/name
 must never replace the stored tier or change a confirmed summary hash.
+**Integration pending (Michael, 2026-10-13):** fixed #102 merges first; #101 then implements these consumers and reconciles §1.3’s reduced hash fields and flag scope. Until #102 lands, contract edits remain minimal; the implementation/regression checklist is in `FOLLOWUPS.md` P1.22.
 
 #### 2.2.1 `detail` per action
 

@@ -1,0 +1,34 @@
+{
+  "verified_at": "2026-10-13T11:54:39.429532-04:00",
+  "source_commit": "4795107387dcb4adafdc36f85964fdc7bf7911bf",
+  "base_commit": "a5b0ff6e7737008bc9613eb02e1f9354fa6b488b",
+  "database": "fresh isolated local PostgreSQL 17 UTF-8; schema.sql with 068/075 and pg_trgm",
+  "python": {
+    "passed": 2629,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 41.65
+  },
+  "node": {
+    "passed": 75,
+    "failed": 0,
+    "skipped": 0
+  },
+  "a12_regressions": {
+    "passed_after": 93,
+    "baseline_commit": "928b6010ed9d0d74e106dba844f0c3fa914ac141",
+    "baseline_failed": 81,
+    "baseline_passed": 12,
+    "baseline_errors": 0,
+    "baseline_skipped": 0
+  },
+  "boundaries": {
+    "production_access": false,
+    "staging_access": false,
+    "merge": false,
+    "count_tool_edits": false,
+    "other_worktree_edits": false
+  },
+  "pending": "Fixed PR #102 merges first; then PR #101 rebases again and implements shift-summary fields, held makes/found, hash rules and integration regressions per comment 6149165326."
+}

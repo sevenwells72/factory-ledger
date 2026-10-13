@@ -42,6 +42,27 @@
 
 ---
 
+## 2026-10-13 11:55 — Clarify scoped A12 changelog preservation
+- **File(s) changed:** `docs/deployments/a12-kosher-tiers.md`
+- **What changed:** Distinguish preserved project/regression history from the global iCloud log outside the authorized worktree.
+- **Why:** Keep the final verification note precise about Michael’s work-only-in-A12 boundary.
+
+---
+
+## 2026-10-13 11:54 — A12 post-F1 fresh database regression proof
+- **File(s) changed:** `docs/deployments/a12-review-rebase-tests.json`, `docs/deployments/a12-kosher-tiers.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record independent 928b601 baseline (81 failed/12 passed) and all 93 regressions passing after rebase, full fresh-local-DB 2,629 Python/75 Node with zero failures/errors/skips, preserved F1 hooks and explicit #102-first integration blocker. Preserve prior logs and staging evidence.
+- **Why:** Michael’s decisions 1–4 for PR #101; no production/staging access, other-worktree/count-tool edit, deployment or merge. Global iCloud log is outside work-only-in-A12 scope and remains unchanged.
+
+---
+
+## 2026-10-13 11:52 — A12 rebase onto F1 and A9-first integration handoff
+- **File(s) changed:** `main.py`, `tests/schema/schema.sql`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `FOLLOWUPS.md`, `docs/deployments/a12-kosher-tiers.md`, `docs/design/phase1-safe-operating-system.md`, `docs/contracts/shift-summary.md`
+- **What changed:** Rebase #101 onto current main a5b0ff6, retaining F1 hooks, 068/075 schema includes and complete A12/F1 changelog histories. Record fixed #102 first, then #101 rebase/report/client/held/hash integration and regressions, with minimal interim contract edits and both receipt null guards preserved.
+- **Why:** Michael’s decision 4 and Codex review comment 6149165326; #102 remains open. Fresh post-rebase validation follows. Work remains only in the A12 worktree; global iCloud log is outside the user’s authorized scope and is unchanged. No production, merge or count-tool edits.
+
+---
+
 ## 2026-10-13 11:47 — A12 review fixes fresh database verification
 - **File(s) changed:** `docs/deployments/a12-kosher-tiers.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Record final 2,550 Python/69 Node passes, zero failures/skips, corrected 93-case before/after regression proof, 263 focused passes, path-review results and explicit count/A10/production rollout boundaries while preserving prior evidence.
