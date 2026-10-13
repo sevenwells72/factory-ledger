@@ -1,4 +1,4 @@
-# Recipe corrections — 179 Fruit Nut and 284 chips (migration 078, PR branch `fix/recipe-corrections`)
+# Recipe corrections — 179 Fruit Nut and 284 chips (migration 078, PR #104 `fix/recipe-corrections`)
 
 Built in `~/dev/fl-recipes-wt` as BUILDER for Codex review; base `origin/main` **c195a39** (PR #101 A12 merge). **Staging only** — no production writes, no deploy, no merge. Approved by Michael on 2026-10-13 from the read-only recipe audit `~/Documents/fl-audits/recipe-check-2026-10-13/recipe-check.md` (rows 179 and 284) and `catalog-cleanup.csv` row 29 (284 chip size, APPROVED 2026-10-07).
 
