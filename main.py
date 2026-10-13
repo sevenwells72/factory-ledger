@@ -11000,6 +11000,27 @@ def export_late_records_csv(
     }
     return StreamingResponse(iter([output.getvalue()]), media_type="text/csv", headers=headers)
 
+def _dashboard_receipt_ids(cur, rows, id_key='id'):
+    """Add stored receipt identities to read models; never infer a receipt from TX ids."""
+    ids = list({r[id_key] for r in rows if r.get(id_key) is not None})
+    if not ids:
+        return
+    cur.execute("""SELECT t.id, t.receipt_number,
+        (SELECT wt.receipt_number FROM ledger_corrections c
+         JOIN write_tickets wt ON wt.result_ref->>'correction_id'=c.id::text AND wt.action='void'
+         WHERE c.event_type='void' AND wt.status='committed'
+           AND ((c.target_table='transactions' AND c.target_id=t.id)
+             OR (c.target_table='transaction_lines' AND EXISTS (
+                 SELECT 1 FROM transaction_lines l WHERE l.id=c.target_id AND l.transaction_id=t.id)))
+         ORDER BY c.created_at DESC,c.id DESC LIMIT 1) AS void_receipt_number
+        FROM transactions t WHERE t.id=ANY(%s)""", (ids,))
+    identities = {r['id']: dict(r) for r in cur.fetchall()}
+    for row in rows:
+        identity = identities.get(row.get(id_key), {})
+        row['receipt_number'] = identity.get('receipt_number')
+        row['void_receipt_number'] = identity.get('void_receipt_number')
+
+
 @app.get("/transactions/history")
 def get_transaction_history(
     limit: int = Query(default=20, ge=1, le=1000),
@@ -11084,6 +11105,7 @@ def get_transaction_history(
             
             cur.execute(query, params)
             transactions = cur.fetchall()
+            _dashboard_receipt_ids(cur, transactions, 'id')
             
             for txn in transactions:
                 date_str, time_str = format_timestamp(txn['occurred_at'])
@@ -11238,6 +11260,7 @@ def get_recent_ledger_events(
                 LIMIT %s
             """, (limit,))
             rows = cur.fetchall()
+            _dashboard_receipt_ids(cur, rows, 'transaction_id')
 
         events = []
         for row in rows:
@@ -11245,6 +11268,8 @@ def get_recent_ledger_events(
                 "event_id": row["event_id"],
                 "event_kind": row["event_kind"],
                 "transaction_id": row["transaction_id"],
+                "receipt_number": row.get("receipt_number"),
+                "void_receipt_number": row.get("void_receipt_number"),
                 "transaction_type": row["transaction_type"],
                 "event_type": row["event_type"],
                 "business_date": row["business_date"].isoformat() if row["business_date"] else None,
@@ -17371,6 +17396,7 @@ def dashboard_api_shipments(limit: int = Query(default=100, ge=1, le=500)):
                 LIMIT %s
             """, (limit,))
             shipments = cur.fetchall()
+            _dashboard_receipt_ids(cur, shipments, 'id')
 
         result = []
         for s in shipments:
@@ -17390,6 +17416,8 @@ def dashboard_api_shipments(limit: int = Query(default=100, ge=1, le=500)):
                 enriched_lines.append(ln)
             result.append({
                 "transaction_id": s['id'],
+                "receipt_number": s.get("receipt_number"),
+                "void_receipt_number": s.get("void_receipt_number"),
                 "date": d,
                 "time": tm,
                 "created_at": s['created_at'],
@@ -17445,6 +17473,7 @@ def dashboard_api_receipts(limit: int = Query(default=100, ge=1, le=500)):
                 LIMIT %s
             """, (limit,))
             receipts = cur.fetchall()
+            _dashboard_receipt_ids(cur, receipts, 'id')
 
         result = []
         for r in receipts:
@@ -17460,6 +17489,8 @@ def dashboard_api_receipts(limit: int = Query(default=100, ge=1, le=500)):
                 enriched_lines.append(ln)
             result.append({
                 "transaction_id": r['id'],
+                "receipt_number": r.get("receipt_number"),
+                "void_receipt_number": r.get("void_receipt_number"),
                 "date": d,
                 "time": tm,
                 "created_at": r['created_at'],
@@ -17535,6 +17566,7 @@ def dashboard_api_daily_entries(
                 ORDER BY entered_at, ct.id
             """, (target_date,))
             rows = cur.fetchall()
+            _dashboard_receipt_ids(cur, rows, 'id')
 
         entries = []
         for t in rows:
@@ -17550,6 +17582,8 @@ def dashboard_api_daily_entries(
             late_entry = entry_time_reliable and days_late > 0
             entries.append({
                 "transaction_id": t['id'],
+                "receipt_number": t.get("receipt_number"),
+                "void_receipt_number": t.get("void_receipt_number"),
                 "type": t['type'],
                 "event_date": t['business_date'].isoformat(),
                 "date": d,

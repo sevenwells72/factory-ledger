@@ -805,7 +805,7 @@
           <span class="recent-status-badge ${escAttr(status.className)}">${escHtml(status.label)}</span>
         </div>
         ${correctionDetail}
-        <p class="recent-summary">TX-${escHtml(String(event.transaction_id))} · ${lines.length} ledger line${lines.length===1?'':'s'}${lines[0] ? ' · '+escHtml(lines[0].product_name || 'Unknown product')+' · '+escHtml(fmt(lines[0].quantity))+' '+escHtml(ledgerUnit(lines[0].unit)) : ''}</p>
+        <p class="recent-summary">${receiptIdentity(event)} · ${lines.length} ledger line${lines.length===1?'':'s'}${lines[0] ? ' · '+escHtml(lines[0].product_name || 'Unknown product')+' · '+escHtml(fmt(lines[0].quantity))+' '+escHtml(ledgerUnit(lines[0].unit)) : ''}</p>
         <details class="record-details"><summary>View ledger lines and history</summary>${linesHtml}<a class="record-link" href="${escAttr('/history.html?'+new URLSearchParams({day:event.business_date || new Date(event.occurred_at).toLocaleDateString('en-CA',{timeZone:'America/New_York'}),transaction:event.transaction_id}))}">Open TX-${escHtml(String(event.transaction_id))} history →</a></details>
         <div class="recent-entry-dates"><span><strong>Occurred:</strong> ${escHtml(formatEnteredAt(event.occurred_at))}</span><span><strong>Entered:</strong> ${escHtml(formatEnteredAt(event.entered_at))}</span></div>
         ${timingFlags ? `<div class="recent-entry-timing-flags">${timingFlags}</div>` : ''}
@@ -1478,6 +1478,11 @@
     }
   }
 
+  function receiptIdentity(row) {
+    const number = row.receipt_number;
+    return number ? `<a class="record-id" href="${escAttr(FLReceipts.link(number))}">${escHtml(number)}</a>` : `<span class="muted">Legacy TX-${escHtml(String(row.transaction_id))}</span>`;
+  }
+
   function renderShipments(data, container) {
     const shipments = data.shipments || [];
     if (shipments.length === 0) {
@@ -1490,7 +1495,7 @@
       const products = (s.lines || []).map(l => l.product_name).filter(Boolean);
       const uniqueProducts = [...new Set(products)];
       html += `<tr class="expandable${overflowClass(idx)}" data-expand="${rowId}">`;
-      html += `<td data-sort-value="${escAttr(FLDesign.dateSortKey(s.date,s.time))}"><div>${escHtml(FLDesign.date(s.date))} ${escHtml(s.time)}</div>${createdAtMeta(s)}</td>`;
+      html += `<td data-sort-value="${escAttr(FLDesign.dateSortKey(s.date,s.time))}"><div>${receiptIdentity(s)}</div><div>${escHtml(FLDesign.date(s.date))} ${escHtml(s.time)}</div>${createdAtMeta(s)}</td>`;
       html += `<td>${uniqueProducts.map(escHtml).join(', ')}</td>`;
       html += `<td class="num">${s.total_units ? fmt(s.total_lbs) + ' lb &middot; ' + fmtInt(s.total_units) + ' units' : fmt(s.total_lbs) + ' lb'}</td>`;
       html += `<td>${escHtml(s.customer_name || '\u2014')}</td>`;
@@ -1543,7 +1548,7 @@
       const products = (r.lines || []).map(l => l.product_name).filter(Boolean);
       const uniqueProducts = [...new Set(products)];
       html += `<tr class="expandable${overflowClass(idx)}" data-expand="${rowId}">`;
-      html += `<td data-sort-value="${escAttr(FLDesign.dateSortKey(r.date,r.time))}"><div>${escHtml(FLDesign.date(r.date))} ${escHtml(r.time)}</div>${createdAtMeta(r)}</td>`;
+      html += `<td data-sort-value="${escAttr(FLDesign.dateSortKey(r.date,r.time))}"><div>${receiptIdentity(r)}</div><div>${escHtml(FLDesign.date(r.date))} ${escHtml(r.time)}</div>${createdAtMeta(r)}</td>`;
       html += `<td>${uniqueProducts.map(escHtml).join(', ')}</td>`;
       const recvUnits = r.cases_received || null;
       html += `<td class="num">${recvUnits ? fmt(r.total_lbs) + ' lb &middot; ' + fmtInt(recvUnits) + ' units' : fmt(r.total_lbs) + ' lb'}</td>`;
@@ -1618,7 +1623,7 @@
       lines.forEach((l, i) => {
         html += `<tr${rowClass}>`;
         if (i === 0) {
-          html += `<td data-sort-value="${escAttr(FLDesign.dateSortKey(t.created_date,t.created_time))}" rowspan="${lines.length}"><div>${escHtml(FLDesign.date(t.created_date) + ' ' + (t.created_time || ''))}${escHtml(provenance)}</div>`;
+          html += `<td data-sort-value="${escAttr(FLDesign.dateSortKey(t.created_date,t.created_time))}" rowspan="${lines.length}"><div>${receiptIdentity(t)}</div><div>${escHtml(FLDesign.date(t.created_date) + ' ' + (t.created_time || ''))}${escHtml(provenance)}</div>`;
           if (t.late_entry) {
             html += `<div class="late-lag" title="Event date ${escAttr(t.event_date)}">${escHtml(lateLagText(t))}</div>`;
           }

@@ -1,0 +1,43 @@
+.receipt-tools { display:flex; flex-wrap:wrap; gap:12px; align-items:end; width:100%; padding:10px 0; font:14px system-ui,sans-serif; box-sizing:border-box; grid-column:1/-1; }
+.receipt-lookup {display:flex;align-items:end;gap:8px;flex-wrap:wrap;margin:0;max-width:100%}
+.receipt-lookup label {display:grid;gap:4px;min-width:0;max-width:100%}
+.receipt-lookup input {width:190px;max-width:100%;box-sizing:border-box}
+.receipt-tools button,.receipt-tools input,.receipt-tools>a {min-height:44px;font:inherit}
+.receipt-tools>a {display:inline-flex;align-items:center}
+.ledger-page {margin:0;background:#f3f5f7;color:#172d3d;font:16px/1.5 system-ui,sans-serif}
+.ledger-page * {box-sizing:border-box}
+.ledger-page [hidden] {display:none!important}
+.ledger-page header {background:#fff;border-bottom:1px solid #c6d1d7;padding:16px max(16px,calc((100% - 1024px)/2));}
+.ledger-page main {max-width:1024px;margin:auto;padding:20px 16px 100px}
+.ledger-page h1 {font-size:28px;margin:12px 0}
+.ledger-page h2 {font-size:21px;margin-top:0}
+.ledger-page h3 {font-size:17px}
+.ledger-page a {color:#125678;overflow-wrap:anywhere}
+.ledger-page button,.ledger-page input,.ledger-page select,.ledger-page textarea {font:inherit;min-height:44px;border:1px solid #8799a6;border-radius:6px;padding:9px 12px;max-width:100%;color:inherit;background:#fff}
+.ledger-page button {cursor:pointer;font-weight:650}
+.ledger-page button.primary {background:#174e69;color:white;border-color:#174e69}
+.ledger-page button:disabled {opacity:.5;cursor:not-allowed}
+.ledger-page :focus-visible {outline:3px solid #bf6b12;outline-offset:3px}
+.ledger-page label {display:grid;gap:5px}
+.ledger-page label.check {display:flex;align-items:center;gap:10px}
+.ledger-page input[type=checkbox] {width:24px;flex:none}
+.ledger-page .toolbar {display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ledger-page .panel {background:white;border:1px solid #c6d1d7;border-radius:10px;padding:20px;margin:16px 0;overflow-wrap:anywhere}
+.ledger-page .fields {display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
+.ledger-page .wide {grid-column:1/-1}
+.ledger-page .bad {border-left:5px solid #b02930;background:#fff0f0;color:#82232a;padding:16px;white-space:pre-wrap}
+.ledger-page .good {border-left:5px solid #187342;background:#edf8f0;color:#125831;padding:16px}
+.ledger-page .notice {border-left:5px solid #a76813;background:#fff6e4;padding:12px;white-space:pre-wrap}
+.ledger-page .muted {color:#506575}
+.ledger-page .record-id {font-weight:750;font-size:18px}
+.ledger-page .exception-row {display:grid;grid-template-columns:minmax(0,2fr) 1fr 1fr auto;gap:12px;border-top:1px solid #d6dfe5;padding:16px 0;align-items:center}
+.ledger-page .overdue {border-left:4px solid #b02930;padding-left:10px}
+.ledger-page dl {margin:8px 0;display:grid;grid-template-columns:minmax(100px,1fr) minmax(0,3fr);gap:4px 14px}
+.ledger-page dt {font-weight:650;overflow-wrap:anywhere}
+.ledger-page dd {margin:0;min-width:0;overflow-wrap:anywhere}
+.ledger-page .draft-data {border-top:1px solid #d6dfe5;padding-top:12px}
+.ledger-page .picker-options {display:grid;gap:6px}
+.ledger-page .picker-options button {text-align:left}
+.ledger-page fieldset {border:1px solid #c6d1d7;min-width:0;margin:12px 0;padding:16px;border-radius:8px}
+.ledger-page .record-bar {display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}
+@media(max-width:520px){.receipt-tools{gap:8px}.receipt-lookup{width:100%}.receipt-lookup label{flex:1}.receipt-lookup input{width:100%}.receipt-lookup button{max-width:140px}.ledger-page .panel{padding:14px}.ledger-page .fields{grid-template-columns:minmax(0,1fr)}.ledger-page .exception-row{grid-template-columns:minmax(0,1fr)}.ledger-page dl{grid-template-columns:minmax(0,1fr)}.ledger-page dd{padding-left:12px}.ledger-page h1{font-size:24px}}
