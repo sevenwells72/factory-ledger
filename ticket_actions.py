@@ -167,12 +167,18 @@ def validate(api, cur, action, payload, lock=False):
         specification = {'requirements': requirements, 'output_lb': draft['total_lb'],
                          'case_weight_lb': draft['case_weight_lb']}
     elif action == 'adjust':
+        closing = payload.get('resolves_shortage_ids') or []
+        if closing:
+            # Shortage rows first, then the lot: the resolve route's lock order.
+            code = a3b.resolve_reason(cur, 'adjust', payload['reason_code'], note=payload.get('note'),
+                                      delta_lb=payload['delta_lb'])['code']
+            a3b.shortages_closed_by_count(cur, payload['lot_id'], closing, code, lock)
         current = lot(api, cur, payload['lot_id'], payload.get('product_id'), lock)
         p = product(api, cur, current['product_id'], lock)
         products.append(p)
         # A3b hook (R2/R3): fixed-list reason, no covering an open shortage, review facts.
         reason = a3b.resolve_reason(cur, 'adjust', payload['reason_code'], note=payload.get('note'), delta_lb=payload['delta_lb'])
-        a3b.refuse_cover_up(cur, 'adjust', p['id'], current['id'], payload['delta_lb'])
+        a3b.refuse_cover_up(cur, 'adjust', p['id'], current['id'], payload['delta_lb'], closing)
         req = api.AdjustRequest(**common, product_name=p['name'], lot_code=current['lot_code'],
             adjustment_lb=payload['delta_lb'], reason=reason['label_en'], reason_es=payload.get('reason_es') or reason['label_es'])
         api.validate_bilingual(req.reason, req.reason_es, 'reason')
@@ -183,6 +189,7 @@ def validate(api, cur, action, payload, lock=False):
                  'lot_code': current['lot_code'], 'current_quantity_lb': current['on_hand_lb'],
                  'delta_lb': req.adjustment_lb, 'new_balance_lb': float(current['on_hand_lb']) + req.adjustment_lb,
                  'reason_code': reason['code'], 'reason': reason, 'reason_es': req.reason_es, 'note': reason['note'],
+                 'resolves_shortage_ids': closing,
                  'attachment_ref': payload.get('attachment_ref'),
                  'correction_review': a3b.correction_review(api, 'adjust', p, req.adjustment_lb,
                                                             book_balance_before=current['on_hand_lb'], reason_code=reason['code'])}
@@ -316,6 +323,11 @@ def post(api, cur, action, validated, payload, request, ticket_id, receipt_numbe
         response['new_balance_lb'] = api.lot_on_hand(cur, response['lot_id'])
     elif action == 'adjust':
         response['lot_id'] = payload['lot_id']
+        if payload.get('resolves_shortage_ids'):
+            # Cutover reset: the counted correction closes the lot's named shortages.
+            response['shortages_closed'] = a3b.close_shortages_by_count(
+                api, cur, request, payload['resolves_shortage_ids'], response, ticket_id=ticket_id,
+                receipt_number=receipt_number, book_before_lb=draft['current_quantity_lb'])
     if action in ('adjust', 'found'):
         # A3b hook (R2): the review facts travel on the receipt for the weekly view.
         response['reason_code'] = draft['reason_code']

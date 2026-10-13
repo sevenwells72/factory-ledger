@@ -37,12 +37,55 @@ def native(p):
  u=p.get('uom') or 'lb'
  return 'lb' if p['type'] in ('batch','finished') or re.search(r'(?<![a-z])(?:lbs?|pounds?)(?![a-z])',u,re.I) else u
 
-def snapshot():
+def canonical_lot_code(code):
+ """= main.normalize_lot_code_input: what FL stores for a caller-supplied new code."""
+ return re.sub(r'\s+',' ',code.strip()).upper()
+
+OPENING=r'^OPENING BALANCE .+? \| v3 \S+ '
+def opening_texts(x,lot):
+ """Where an executor's reset text lives: the legacy direct-/adjust reason, the A1
+ adjust-ticket note (after 'Adjustment: N lb — '), or a found ticket's lot note."""
+ texts=[x.get('adjust_reason') or '']
+ notes=x.get('notes') or ''
+ if ' — ' in notes:texts.append(notes.split(' — ',1)[1])
+ if lot and lot.get('entry_source')=='found_inventory':texts.append(lot.get('entry_source_notes') or '')
+ return texts
+
+def looks_like_opening(x,lot,lid):
+ marks=['L'+str(lid)]+(['NEW '+re.escape(lot['lot_code'])] if lot and lot.get('lot_code') else [])
+ pattern=OPENING+'(?:'+'|'.join(marks)+r')(?=\s*\||$)'
+ return any(re.match(pattern,t) for t in opening_texts(x,lot))
+
+A3B_UNIT_TO_LB={'lb':D(1),'lbs':D(1),'pound':D(1),'pounds':D(1),'kg':D('2.20462262185'),'kgs':D('2.20462262185'),'kilogram':D('2.20462262185'),'kilograms':D('2.20462262185'),'g':D(1)/D('453.59237'),'gram':D(1)/D('453.59237'),'grams':D(1)/D('453.59237'),'oz':D(1)/D(16),'ounce':D(1)/D(16),'ounces':D(1)/D(16)}
+def a3b_lb_equivalent(p,q):
+ """Exactly exceptions_enforcement.to_lb(product, q, main.ledger_quantity_unit(uom)), so the
+ signed plan predicts the hold FL will apply. NB: for uom 'case' A3b multiplies the (lb)
+ delta by the case weight — mirrored here on purpose, reported in READINESS."""
+ unit=(p.get('uom') or 'lb').strip() or 'lb'
+ unit='lb' if re.search(r'(?<![a-z])(?:lbs?|pounds?)(?![a-z])',unit,re.I) else unit
+ unit=unit.strip().lower().rstrip('.')
+ if unit in A3B_UNIT_TO_LB:return abs(q)*A3B_UNIT_TO_LB[unit]
+ if unit in ('case','cases','cs'):
+  w=p.get('case_size_lb') or p.get('default_case_weight_lb');return abs(q)*f.number(w) if w else None
+ if unit in ('bag','bags'):
+  w=p.get('pack_size_lbs');return abs(q)*f.number(w) if w else None
+ return None
+
+def owner_approvals(row,p=None):
+ """Which FL owner holds this post will meet (A3b > 500 lb, A12 extra-kosher found)."""
+ needs=[]
+ if row['action']=='found':needs.append('KOSHER_ATTESTATION')
+ elif row['rounded_adjustment_lb']:
+  lb=a3b_lb_equivalent(p or dict(uom=row['ledger_unit']),row['rounded_adjustment_lb'])
+  if lb is not None and lb>f.LARGE_CORRECTION_LB+f.TOLERANCE:needs.append('LARGE_CORRECTION')
+ return needs
+
+def snapshot(target='production'):
  # Fixed statement, explicitly transaction-read-only, rollback, session-mode port.
  check(SQL.startswith('BEGIN;\nSET TRANSACTION READ ONLY;'),'Read-only query wrapper missing')
  check(SQL.rstrip().endswith('ROLLBACK;'),'Read-only rollback missing')
  check(not re.search(r'\b(INSERT|UPDATE|DELETE|ALTER|DROP|CREATE|COMMIT|COPY|CALL|DO)\b',SQL,re.I),'Mutation rejected')
- url=f.CREDENTIAL.read_text().strip().replace(':6543/',':5432/')
+ url=f.target_database_url(target)
  check(urlsplit(url).port==5432,'Read-only connection must use port 5432')
  env=dict(os.environ,DATABASE_URL=url,PGCONNECT_TIMEOUT='15');env.pop('PGOPTIONS',None)
  p=subprocess.run([str(f.WRAPPER),'-X','-A','-t','-v','ON_ERROR_STOP=1'],input=SQL,text=True,capture_output=True,env=env,cwd=f.ROOT,timeout=120)
@@ -51,6 +94,7 @@ def snapshot():
  try:s=json.JSONDecoder(parse_float=D).raw_decode(p.stdout[p.stdout.index('{'):])[0]
  except (ValueError,TypeError):raise RuntimeError('Invalid read-only snapshot; details suppressed') from None
  check(s.get('read_only')=='on','Database did not confirm read-only transaction')
+ s['target']=target
  return s
 
 def read_csv(path,headers=None):
@@ -103,11 +147,13 @@ def convert(row,p):
   raise ValueError('Legacy package identity requires owner decision; no conversion bypass')
  return q
 
-def baseline(s,pid,exclude=()):
+def baseline(s,pid,exclude=(),exclude_lots=()):
+ # exclude/exclude_lots: the executor's own proven reset lines and the extra-kosher
+ # lots its found tickets created, so its own posts never read as outside drift.
  xs=[x for x in s['lines'] if x['product_id']==pid and x['line_id'] not in set(exclude)]
  tx={x['transaction_id'] for x in xs};lineids={x['line_id'] for x in xs}
  cs=[c for c in s.get('corrections',[]) if (c['target_table']=='transactions' and c['target_id'] in tx) or (c['target_table']=='transaction_lines' and c['target_id'] in lineids)]
- return fingerprint(dict(product=next((p for p in s['products'] if p['id']==pid),None),lots=sorted([l for l in s['lots'] if l['product_id']==pid],key=lambda l:l['id']),lines=sorted(xs,key=lambda l:l['line_id']),corrections=sorted(cs,key=lambda c:str(c['id']))))
+ return fingerprint(dict(product=next((p for p in s['products'] if p['id']==pid),None),lots=sorted([l for l in s['lots'] if l['product_id']==pid and l['id'] not in set(exclude_lots)],key=lambda l:l['id']),lines=sorted(xs,key=lambda l:l['line_id']),corrections=sorted(cs,key=lambda c:str(c['id']))))
 
 def information_reason(row,products):
  pid=int(row['product_id']) if row.get('product_id','').isdigit() else None
@@ -134,7 +180,7 @@ def information_counts(data,products):
    records.append(dict(product_id=pid,SKU=p.get('odoo_code') or '',name=p['name'],quantity='',unit=native(p),category='billing item' if pid in f.BILLING_RESET_EXCLUDED_IDS else 'packaging',status='NOT COUNTED',exclusion_reason=reason))
  return records
 
-def analyze(s,data,verified_openings=()):
+def analyze(s,data,verified_openings=(),areas=None):
  """Physical timing uses occurred_at; late-entry review also uses entered_at.
  Owner answers only affect the local count basis.
  Per-location observations roll to one lot target, with each movement applied once.
@@ -146,6 +192,9 @@ def analyze(s,data,verified_openings=()):
  information_moves=[]
  lots={l['id']:l for l in s['lots'] if l['product_id'] in products};now=f.stamp(s['snapshot_at'])
  lines=s['lines'];review=data.get('review') or {};sources=data.get('sources',{})
+ # A3b: open SHORTAGE exceptions. A reset post on such a lot names them so the ADJ
+ # ticket closes them as 'counted' (owner decision 2026-10-13); FL refuses otherwise.
+ shortages=[x for x in s.get('shortages',[]) if x.get('status') in ('open','escalated')]
  countsha=sources.get('count',{}).get('sha256',fingerprint(data['count']))
  holds=defaultdict(list);lot_holds=defaultdict(list);sheet_follow_up=defaultdict(list);row_holds=set();general=[];observations=[];unknown=[];templates={k:{} for k in ('movement_reviews','move_reviews','duplicate_reviews','correction_reviews','ownership_reviews','multi_area_reviews','coverage_reviews')}
  def hold(pid,msg):
@@ -175,9 +224,20 @@ def analyze(s,data,verified_openings=()):
    sheetmeta[r['sheet_id']]=meta
    check(r['quantity'].strip() or r['partial_cases'].strip(),'Quantity is missing')
    matches=[l for l in lots.values() if l['product_id']==pid and l['lot_code']==r['lot_code']]
+   if not matches and r['lot_code'].strip() and p.get('kosher_tier')==f.EXTRA_KOSHER:
+    # P1.21: counted extra-kosher stock has no FL lot yet. It is loaded as a NEW lot
+    # through an owner-approved found ticket; regular lots are never created or retagged.
+    # FL stores the canonical code, so a lot made since (or by this reset) matches it.
+    code=canonical_lot_code(r['lot_code'])
+    matches=[l for l in lots.values() if l['product_id']==pid and l['lot_code']==code]
+   if not matches and r['lot_code'].strip() and p.get('kosher_tier')==f.EXTRA_KOSHER:
+    check(not any(l['product_id']==pid and l['lot_code'].casefold()==code.casefold() for l in lots.values() if not l.get('new')),'Case-insensitive lot ambiguity')
+    key=f'NEW-P{pid}-{code}'
+    lots.setdefault(key,dict(id=key,product_id=pid,lot_code=code,status=None,merged_into_lot_id=None,kosher_tier=f.EXTRA_KOSHER,new=True))
+    matches=[lots[key]]
    check(r['lot_code'] and len(matches)==1,'Unidentified or unmatched lot; never create/match automatically')
    lot=matches[0]
-   check(sum(l['lot_code'].casefold()==r['lot_code'].casefold() for l in lots.values() if l['product_id']==pid)==1,'Case-insensitive lot ambiguity')
+   check(lot.get('new') or sum(l['lot_code'].casefold()==lot['lot_code'].casefold() for l in lots.values() if l['product_id']==pid and not l.get('new'))==1,'Case-insensitive lot ambiguity')
    check(r['estimated'].strip().lower() in ('','n','no','false','0','y','yes','true','1','x'),'Estimated must be yes/no or a tick')
    check(r.get('duplicate','').strip() in ('','x','X','✓','✔','☑'),'Duplicate must be a tick (x, X, ✓, ✔ or ☑), or blank')
    obs=dict(r,pid=pid,lid=lot['id'],start=start,end=end,cut=cut,qty=convert(r,p),estimated=r['estimated'].strip().lower() in ('y','yes','true','1','x'),inferred=False)
@@ -303,10 +363,13 @@ def analyze(s,data,verified_openings=()):
   cuts=[r['cut'] for r in rs];earliest=min(cuts);cutoff=max(cuts);after=D(0);existing=D(0)
   current=sum((f.number(x['quantity_lb']) for x in xs if x['effective_status']=='posted'),D(0))
   # Reasons bind count source, lot and actual lot cutoff; estimates remain in the adjustment note.
-  reason=f'OPENING BALANCE {cutoff.astimezone(f.PLANT).date()} – physical count | v3 {countsha[:12]} L{lid} | Estimated={"yes" if any(r["estimated"] for r in rs) else "no"}'
+  # A lot this reset's found ticket created keeps its NEW mark, so rechecks match the signed reason.
+  made=lot.get('entry_source')=='found_inventory' and re.match(OPENING+'NEW '+re.escape(lot['lot_code'])+r'(?=\s*\||$)',lot.get('entry_source_notes') or '')
+  mark=('NEW '+lot['lot_code']) if lot.get('new') or made else f'L{lid}'
+  reason=f'OPENING BALANCE {cutoff.astimezone(f.PLANT).date()} – physical count | v3 {countsha[:12]} {mark} | Estimated={"yes" if any(r["estimated"] for r in rs) else "no"}'
   for x in xs:
    is_own=x['line_id'] in own
-   looks_open=bool(re.match(r'^OPENING BALANCE .+? \| v3 \S+ L'+str(lid)+r'(?=\s*\||$)',x.get('adjust_reason') or ''))
+   looks_open=looks_like_opening(x,lot,lid)
    # Conservatively hold even voided prior openings until journal proof is supplied.
    if looks_open and not is_own:lot_holds[lid].append('prior opening without journal proof')
    t=f.stamp(x.get('occurred_at'));entered=f.entered_at(x)
@@ -355,9 +418,16 @@ def analyze(s,data,verified_openings=()):
   if target<0:hold(pid,'Negative expected current stock')
   if rounded and (not p.get('active') or p.get('is_service')):hold(pid,'Inactive/service product quantity change needs owner identity decision')
   if (physical or current or rounded) and (lot.get('merged_into_lot_id') or lot.get('status') not in ('active',None)):hold(pid,'Merged/inactive lot with stock')
-  if current<0:hold(pid,'Negative ledger lot needs owner investigation')
+  # A3b posts a short make/pack negative on purpose and opens a SHORTAGE; the count
+  # closes it as 'counted'. Any other negative lot still needs the owner's investigation.
+  if current<0 and not any(x['lot_id']==lid for x in shortages):hold(pid,'Negative ledger lot needs owner investigation')
   if pid not in coverage:hold(pid,'All-location product coverage is incomplete')
-  lotrows.append(dict(product_id=pid,SKU=p.get('odoo_code') or '',name=p['name'],product_active=p.get('active'),product_type=p['type'],ledger_unit=native(p),lot_id=lid,lot_code=lot['lot_code'],row_ids=[r['row_id'] for r in rs],cutoff=cutoff.isoformat(),row_cutoffs={r['row_id']:r['cut'].isoformat() for r in rs},estimated=any(r['estimated'] for r in rs),physical_count_native=physical,internal_move_correction_native=move_effect[(pid,lid)],post_count_movement_native=after,counted_qty=physical,counted_lb=physical,adjustment_basis_lb=current-after-move_effect[(pid,lid)],candidate_adjustment_lb=original,rounded_adjustment_lb=rounded,rounding_delta_lb=rounded-original,planned_balance_lb=current+rounded,current_lb=current,expected_current_lb=target,existing_opening_lb=existing,reason=reason,backfill=True,time_since_count_hours=(now-cutoff).total_seconds()/3600))
+  new=bool(lot.get('new'));open_short=sorted(x['id'] for x in shortages if x['lot_id']==lid)
+  if new and rounded<0:hold(pid,'New extra-kosher lot cannot be loaded negative')
+  if new and any(x['product_id']==pid for x in shortages):hold(pid,'Open shortage on this extra-kosher product: FL refuses found stock until it is resolved')
+  if (lot.get('kosher_tier') or p.get('kosher_tier') or 'regular')!=(p.get('kosher_tier') or 'regular') and not new:hold(pid,'Lot kosher tier differs from its product; owner investigation')
+  lotrows.append(dict(product_id=pid,SKU=p.get('odoo_code') or '',name=p['name'],product_active=p.get('active'),product_type=p['type'],ledger_unit=native(p),lot_id=None if new else lid,lot_key=str(lid),new_lot=new,action='found' if new else 'adjust',kosher_tier=p.get('kosher_tier') or 'regular',resolves_shortage_ids=open_short if rounded and not new else [],open_shortage_ids=open_short,lot_code=lot['lot_code'],row_ids=[r['row_id'] for r in rs],cutoff=cutoff.isoformat(),row_cutoffs={r['row_id']:r['cut'].isoformat() for r in rs},estimated=any(r['estimated'] for r in rs),physical_count_native=physical,internal_move_correction_native=move_effect[(pid,lid)],post_count_movement_native=after,counted_qty=physical,counted_lb=physical,adjustment_basis_lb=current-after-move_effect[(pid,lid)],candidate_adjustment_lb=original,rounded_adjustment_lb=rounded,rounding_delta_lb=rounded-original,planned_balance_lb=current+rounded,current_lb=current,expected_current_lb=target,existing_opening_lb=existing,reason=reason,backfill=True,time_since_count_hours=(now-cutoff).total_seconds()/3600))
+  lotrows[-1]['owner_approvals']=owner_approvals(lotrows[-1],p)
   for r in rs:
    fl=sum((f.number(x['quantity_lb']) for x in xs if x['effective_status']=='posted' and x.get('occurred_at') and f.stamp(x['occurred_at'])<=r['cut']),D(0))
    row_comparison.append(dict(row_id=r['row_id'],sheet_id=r['sheet_id'],area=r['area'],location=r['location'],product_id=pid,lot_id=lid,lot_code=r['lot_code'],count_native=r['qty'],unit=native(p),cutoff=r['cut'].isoformat(),cutoff_source='coverage absence' if r['inferred'] else 'row time' if r.get('counted_time') else 'sheet end fallback',fl_whole_lot_at_row_time=fl,row_minus_whole_lot_reference=r['qty']-fl if len(rs)==1 else None,comparison_note='Whole-lot reference only: FL has no location balances' if len(rs)>1 else 'One observation of lot',estimated=r['estimated'],time_since_count_hours=(now-r['cut']).total_seconds()/3600))
@@ -386,6 +456,14 @@ def analyze(s,data,verified_openings=()):
    if not (ans.get('owner') and ans.get('all_counted_stock_cns_owned') is True and ans.get('evidence_reference')):
     hold(pid,'Sunshine custody/ownership reconciliation pending; customer-owned stock needs separate supported treatment')
   if pid not in coverage:hold(pid,'All-location product coverage is incomplete')
+ if areas:
+  # One area group at a time (P1.19 option A): a product is in this group only when
+  # every one of its count rows is in the selected areas. Everything else waits.
+  chosen=set(areas)
+  for pid in {r['product_id'] for r in lotrows}:
+   seen_areas={o['area'] for o in observations if o['pid']==pid and not o['inferred']}
+   if not seen_areas:hold(pid,'Area group: no count rows in '+', '.join(sorted(chosen))+'; apply in the final full pass')
+   elif seen_areas-chosen:hold(pid,'Area group: also counted in '+', '.join(sorted(seen_areas-chosen))+'; include those areas or wait')
  for r in lotrows:
   # Unknown products cannot be assigned a product hold. Keep affected sheets'
   # lots held without blocking unrelated sheets through the general bucket.
@@ -400,7 +478,7 @@ def analyze(s,data,verified_openings=()):
   area_records.append(dict(sheet_id=sid,area=meta[0],counter=meta[1],start=meta[2],end=meta[3],row_ids=[r['row_id'] for r in raws],movement_line_ids=[x['line_id'] for x in events],classifications_needed=[x['fingerprint'] for x in events if x['review_rows']],holds=sorted(local_holds),follow_up=sheet_follow_up[sid]))
  if holds.get(None):general+=holds[None]
  allready=not any(holds.values()) and not any(lot_holds.values()) and not any(sheet_follow_up.values()) and not move_follow_up and not general and len(coverage)==len(products)
- return dict(version=3,reset_scope_policy=f.RESET_SCOPE_POLICY,information_products=information_products,packaging_information_only=information,packaging_moves_information_only=information_moves,baseline={str(pid):baseline(s,pid) for pid in products},snapshot_at=s['snapshot_at'],input_sha256=countsha,sources=sources,data=data,rows=lotrows,row_comparison=row_comparison,activity=activity,area_reconciliation=area_records,moved_during_count=move_records,move_follow_up=move_follow_up,unidentified_follow_up=unknown,sheet_follow_up={sid:items for sid,items in sheet_follow_up.items() if items},review_template=templates,holds={str(k):v for k,v in holds.items() if v},lot_holds={str(k):v for k,v in lot_holds.items() if v},general=general,products=products,coverage_complete=sorted(coverage),full_scope_reviewed=allready,excluded_duplicate_rows=sorted(excluded))
+ return dict(version=3,reset_scope_policy=f.RESET_SCOPE_POLICY,information_products=information_products,packaging_information_only=information,packaging_moves_information_only=information_moves,baseline={str(pid):baseline(s,pid) for pid in products},snapshot_at=s['snapshot_at'],target=s.get('target','production'),ledger_lines=[dict(transaction_id=x['transaction_id'],product_id=x['product_id'],lot_id=x.get('lot_id')) for x in lines if x['product_id'] in {r['product_id'] for r in lotrows}],area_group=sorted(areas) if areas else None,input_sha256=countsha,sources=sources,data=data,rows=lotrows,row_comparison=row_comparison,activity=activity,area_reconciliation=area_records,moved_during_count=move_records,move_follow_up=move_follow_up,unidentified_follow_up=unknown,sheet_follow_up={sid:items for sid,items in sheet_follow_up.items() if items},review_template=templates,holds={str(k):v for k,v in holds.items() if v},lot_holds={str(k):v for k,v in lot_holds.items() if v},general=general,products=products,coverage_complete=sorted(coverage),full_scope_reviewed=allready,excluded_duplicate_rows=sorted(excluded))
 
 def write_csv(path,rows):
  if not rows:path.write_text('status\nNo rows\n');return
@@ -431,6 +509,12 @@ def report(a,output,verify=False):
  text+=f.table(['Sheet','Area','Start / end','Rows','Movement lines','Holds'],[[r['sheet_id'],r['area'],r['start']+' / '+r['end'],', '.join(r['row_ids']),', '.join(map(str,r['movement_line_ids'])),'; '.join(r['holds'])] for r in a['area_reconciliation']])
  text+=['','## Lot comparisons','']
  text+=f.table(['Item / lot','Unit','Physical total','After-count movement','Internal move correction','FL now','Expected now','Proposed change','Estimated','Status'],[[str(r['product_id'])+' / '+r['lot_code'],r['ledger_unit'],r['physical_count_native'],r['post_count_movement_native'],r['internal_move_correction_native'],r['current_lb'],r['expected_current_lb'],r['adjustment_lb'],r['estimated'],r['status']] for r in a['rows']])
+ special=[r for r in a['rows'] if r['status']=='READY' and r['adjustment_lb'] and (r['owner_approvals'] or r['resolves_shortage_ids'] or r['new_lot'])]
+ text+=['','## Owner-approved posts in this preview','', 'Every reset post is an FL ticket under the named owner key with reason `physical_count` and a receipt number. Rows below meet an FL owner hold or close an open shortage. Signing the approval with `Owner approves held entries: Y` and listing every new extra-kosher lot authorizes the executor to approve exactly these holds with the same key; anything else stops.','']
+ text+=f.table(['Item / lot','FL action','Change','Owner holds','Closes shortages'],[[str(r['product_id'])+' / '+r['lot_code']+(' (NEW extra-kosher lot)' if r['new_lot'] else ''),'found ticket (FND)' if r['action']=='found' else 'adjust ticket (ADJ)',r['adjustment_lb'],', '.join(r['owner_approvals']) or '-',', '.join(map(str,r['resolves_shortage_ids'])) or '-'] for r in special])
+ stays=[r for r in a['rows'] if r['open_shortage_ids'] and not r['resolves_shortage_ids']]
+ if stays:text+=['','Open shortages that this preview will NOT close (no change or held): '+'; '.join(str(r['product_id'])+' / '+r['lot_code']+' #'+','.join(map(str,r['open_shortage_ids'])) for r in stays)]
+ if a.get('area_group'):text+=['',f'**Area group:** {", ".join(a["area_group"])}. Products also counted elsewhere, or with no rows here, are held for a later group or the final full pass.']
  text+=['','## Holds','']
  for pid,hs in a['holds'].items():text.append('- '+pid+': '+'; '.join(hs))
  for lid,hs in a['lot_holds'].items():text.append('- Lot '+lid+': '+'; '.join(hs))
@@ -441,6 +525,96 @@ def report(a,output,verify=False):
  text+=['','## Owner review','',f'Fill `{path.name}` in a separate inputs folder. Answers bind exact movement, row times and quantities through fingerprints. Each required movement needs before/after answers; multi-area movements also need signed quantity allocations. Late entries need explicit confirmation. Move-log entries need both endpoint rows and inclusion decisions. Duplicate ticks and corrections need owner disposition. Each multi-area lot also needs confirmation of no unlogged moves; sheet follow-ups and coverage-without-rows reviews must be resolved.','', 'Only the separate `apply_reset.py` can submit an approved reset. This report and generator have no production-write capability. Intentional historical posting (`backfill=true`) is included in the signed v3 plan so actual count times can be retained even on an older reviewed count. There is no automatic retry of an uncertain write.']
  (output/f'reset-{suffix}-v3.md').write_text('\n'.join(text)+'\n')
  return 0 if not verify or complete else 2
+
+RECEIPT=re.compile(r'(ADJ|FND)-\d{6}-\d{3,}')
+
+
+def ticket_payload(r):
+    """The exact prepare body for one lot; journaled and re-derived for proof."""
+    common = dict(occurred_at=r['cutoff'], backfill=True, client_source='api', reason_code='physical_count')
+    if r.get('new_lot'):
+        return dict(common, product_id=r['pid'], quantity=float(r['change']), uom='lb', lot_code=r['lot_code'],
+                    notes=r['reason'], found_location='Cutover physical count', estimated_age='unknown')
+    body = dict(common, lot_id=r['lid'], delta_lb=float(r['change']), note=r['reason'])
+    if r.get('resolves_shortage_ids'):
+        body['resolves_shortage_ids'] = list(r['resolves_shortage_ids'])
+    return body
+
+
+def actor_id(actor_name, s):
+    found = [a for a in s.get('actors', []) if a['name'] == actor_name and a.get('active')]
+    check(len(found) == 1, 'Named actor is not exactly one active FL actor.')
+    return found[0]['id']
+
+
+def reconcile_tickets(rows, s, attempts_list, actor_name):
+    """Completed lot -> its one posted ledger line, proved by the ticket that posted it.
+    Also returns lots whose last ticket is held for the owner (resume by approval).
+    Read-only: shared by apply_reset (preflight) and verify (journal proof)."""
+    tickets = {t['id']: t for t in s.get('correction_tickets', [])}
+    lots = {l['id']: l for l in s['lots']}
+    owner_id = actor_id(actor_name, s)
+    completed, held, attempts = {}, {}, {}
+    for intent, receipt in attempts_list:
+        check(intent['phase'] in ('commit', 'approve'), 'Unknown journal phase.')
+        check(intent['lot_id'] in rows and intent['product_id'] == rows[intent['lot_id']]['pid'], 'Out-of-plan journal intent.')
+        attempts.setdefault(intent['lot_id'], []).append((intent, receipt))
+    for lid, items in attempts.items():
+        r = rows[lid]
+        posted = []
+        for intent, receipt in items:
+            tid = intent['ticket_id']
+            check(type(tid) is int and tid > 0, 'Journal intent has no ticket.')
+            if intent['phase'] == 'commit':
+                check(intent['payload'] == ticket_payload(r), 'Journal request differs from approved plan.')
+            lines = [x for x in s['lines'] if x.get('ticket_id') == tid]
+            ticket = tickets.get(tid)
+            check(ticket is not None and ticket['action'] == ('found' if r.get('new_lot') else 'adjust'),
+                    f'Lot {lid}: journal ticket is missing from FL; manual reconciliation required.')
+            if lines:
+                posted.append((tid, lines, ticket))
+            elif ticket['status'] == 'awaiting_approval':
+                held[lid] = tid
+            else:
+                # Prepared/expired/rejected/superseded with no ledger line: provably not posted.
+                check(ticket['status'] != 'committed', f'Lot {lid}: ticket committed but no ledger line; stop.')
+        if not posted:
+            continue
+        check(len({tid for tid, _, _ in posted}) == 1 and len(posted[0][1]) == 1,
+                f'Lot {lid}: more than one posted reset line; stop, never resubmit.')
+        tid, [x], ticket = posted[0]
+        lot = lots.get(x['lot_id'])
+        check(lot is not None and lot['product_id'] == r['pid'] and x['product_id'] == r['pid'] and
+                (lot['id'] == lid if not r.get('new_lot') else lot['lot_code'] == r['lot_code']),
+                f'Lot {lid}: posted line is on the wrong product/lot.')
+        check(x['effective_status'] == 'posted' and x['type'] == 'adjust' and
+                f.number(x['quantity_lb']) == f.number(str(float(r['change']))) and
+                f.stamp(x['occurred_at']) == f.stamp(r['cutoff']) and x.get('operator_id') == actor_name and
+                x.get('reason_code') == 'physical_count' and x.get('receipt_number') and RECEIPT.fullmatch(x['receipt_number']) and
+                x['receipt_number'] == ticket['receipt_number'] and ticket['status'] == 'committed' and
+                not x.get('line_correction_at') and not x.get('transaction_correction_at'),
+                f'Lot {lid}: posted reset has wrong actor/date/quantity/reason/receipt or was corrected; stop.')
+        check(s['transaction_line_counts'].get(str(x['transaction_id'])) == 1, 'Reset transaction has multiple lines or no complete readback; stop.')
+        if r.get('new_lot'):
+            check(x['receipt_number'].startswith('FND-') and lot.get('kosher_tier') == f.EXTRA_KOSHER and
+                    lot.get('kosher_attested_by_actor_id') == owner_id and x.get('kosher_attested_by_actor_id') == owner_id and
+                    x.get('transaction_kosher_tier') == f.EXTRA_KOSHER and lot.get('entry_source') == 'found_inventory' and
+                    lot.get('entry_source_notes') == r['reason'],
+                    f'Lot {lid}: extra-kosher load lacks tier/attestation by {actor_name}; stop.')
+        else:
+            check(x['receipt_number'].startswith('ADJ-') and r['reason'] in (x.get('notes') or ''), f'Lot {lid}: reset note missing; stop.')
+            for exception_id in r.get('resolves_shortage_ids') or []:
+                shortage = next((e for e in s.get('shortages', []) if e['id'] == exception_id), None)
+                check(shortage and shortage['status'] == 'resolved' and shortage['resolution_kind'] == 'counted' and
+                        shortage['resolution_ticket_id'] == tid, f'Lot {lid}: shortage #{exception_id} was not closed by this count.')
+        for e in s.get('held_exceptions', []):
+            if e['ticket_id'] == tid:
+                check(e['status'] == 'resolved' and e['resolution_kind'] in ('approved', 'photo_attached') and
+                        e['kind'] in (r.get('owner_approvals') or []), f'Lot {lid}: owner hold #{e["id"]} not released as approved.')
+        held.pop(lid, None)
+        completed[lid] = x
+    return completed, held
+
 
 def journal_openings(preview_path,approval_path,journal_path,s,data):
  """Read-only proof of prior executor writes. Never imports the write executor."""
@@ -469,43 +643,39 @@ def journal_openings(preview_path,approval_path,journal_path,s,data):
   previous=saved;events.append(event)
  header=events[0]
  check(header.get('kind')=='header' and header.get('preview_sha256')==sha(raw) and header.get('approval_sha256')==sha(signed) and header.get('count_sha256')==data['sources']['count']['sha256'] and header.get('actor')==fields['Named actor'],'Journal belongs to another approval')
- planned={r['lot_id']:r for r in plan['rows']};verified=set();used=set();intents={};receipts={}
+ intents={};receipts={}
  for event in events[1:]:
   if event['kind']=='intent':intents[event['seq']]=event
   elif event['kind']=='receipt':
    check(event['intent'] in intents and event['intent'] not in receipts,'Invalid journal receipt');receipts[event['intent']]=event
   else:check(False,'Unknown journal record')
- for seq,intent in intents.items():
-  if intent['phase']!='commit':continue
-  lid=intent['lot_id'];check(lid in planned and lid not in used,'Duplicate/out-of-plan commit');used.add(lid);r=planned[lid]
-  q=f.number(r['adjustment_lb']);check(q!=0,'Zero/held commit in journal')
-  body=dict(mode='commit',product_name=r['SKU'],lot_code=r['lot_code'],adjustment_lb=float(q),reason=r['reason'],occurred_at=r['cutoff'],backfill=True)
-  check(intent['payload']==body and intent['product_id']==r['product_id'],'Journal payload differs from preview')
-  known=intent.get('known_transaction_ids');check(isinstance(known,list),'Journal transaction baseline missing')
-  xs=[x for x in s['lines'] if x['product_id']==r['product_id'] and x['lot_id']==lid and x['type']=='adjust' and x.get('adjust_reason')==r['reason'] and x['transaction_id'] not in known]
-  check(len(xs)==1,'Uncertain write cannot be proved uniquely');x=xs[0]
-  check(x['effective_status']=='posted' and f.number(x['quantity_lb'])==f.number(str(float(q))) and x['operator_id']==fields['Named actor'] and f.stamp(x['occurred_at'])==f.stamp(r['cutoff']) and not x.get('line_correction_at') and not x.get('transaction_correction_at'),'Posted reset actor/date/quantity/status mismatch')
-  check(s['transaction_line_counts'].get(str(x['transaction_id']))==1,'Reset transaction is not one line')
-  receipt=receipts.get(seq,{})
-  check(not receipt.get('transaction_id') or receipt['transaction_id']==x['transaction_id'],'Receipt differs from ledger')
-  verified.add(x['line_id'])
- return verified
+ rows={}
+ for r in plan['rows']:
+  if r.get('adjustment_lb') is None or not f.number(r['adjustment_lb']):continue
+  lid=r['lot_key'] if r.get('new_lot') else r['lot_id']
+  rows[lid]=dict(r,pid=r['product_id'],lid=lid,change=f.number(r['adjustment_lb']))
+ completed,_=reconcile_tickets(rows,s,[(i,receipts.get(seq)) for seq,i in intents.items()],fields['Named actor'])
+ return {x['line_id'] for x in completed.values()}
 
 
 def main(verify=False):
  p=argparse.ArgumentParser(description=__doc__+' '+MOVE_DETECTION_NOTE);p.add_argument('count_csv',nargs='?');p.add_argument('--coverage');p.add_argument('--moves');p.add_argument('--review');p.add_argument('--snapshot',help='Saved read-only evidence; omitted means a fresh read-only snapshot');p.add_argument('--output-dir')
  p.add_argument('--write-count-template',help='Copy the blank issued CSV with the duplicate tick column; no snapshot is read')
  p.add_argument('--approved-preview');p.add_argument('--approval');p.add_argument('--journal')
+ p.add_argument('--target',choices=sorted(f.TARGETS),default='production',help='Which FL to read (default production; staging only for rehearsal)')
+ p.add_argument('--area',action='append',help='Limit approvable posts to products counted only in these areas (repeat per area)')
  args=p.parse_args()
  if args.write_count_template:
   check(not verify and not any((args.count_csv,args.coverage,args.moves,args.review,args.snapshot,args.output_dir,args.approved_preview,args.approval,args.journal)),'Template mode cannot be combined with reconciliation inputs')
   write_count_template(args.write_count_template);print(MOVE_DETECTION_NOTE);return 0
  if not all((args.count_csv,args.coverage,args.moves,args.output_dir)):p.error('count_csv, --coverage, --moves and --output-dir are required')
  data=load_inputs(args.count_csv,args.coverage,args.moves,args.review)
- s=json.loads(f.local_path(args.snapshot).read_text(),parse_float=D) if args.snapshot else snapshot()
+ s=json.loads(f.local_path(args.snapshot).read_text(),parse_float=D) if args.snapshot else snapshot(args.target)
+ check(s.get('target',args.target)==args.target,'Saved snapshot was read from another target')
+ s['target']=args.target
  own=set()
  if args.approved_preview or args.approval or args.journal:
   check(verify and args.approved_preview and args.approval and args.journal,'Standalone journal verification needs all three proof files')
   own=journal_openings(args.approved_preview,args.approval,args.journal,s,data)
- return report(analyze(s,data,own),args.output_dir,verify)
+ return report(analyze(s,data,own,args.area),args.output_dir,verify)
 if __name__=='__main__':raise SystemExit(main())

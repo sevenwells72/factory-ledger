@@ -62,3 +62,8 @@ node --test tests/*.js
 ```
 
 The full run includes the local historical v2/PDF tests, which are not added to this PR. The four expected setup errors are the same receipt extract/approve and sales upload/approve tripwire tests listed above. The extra 82 database skips versus the earlier run come from the tests restored by origin/main. No database-backed behavior is claimed verified. main.py, schema/migrations, dashboard, docs and application tests match origin/main exactly; the only PR changes are the fresh-start package and the two changelogs. The 27-file delivery manifest is refreshed and verified. The iCloud global log received one PR #69 row-160 line; the existing PR #68 row-159 entry was preserved, and the home-path file was not modified.
+
+
+## 2026-10-13 — Cutover readiness (draft PR `fix/count-tool-readiness`)
+
+Assessment, Michael's three decisions, fixes and the staging dress rehearsal are in [`READINESS-2026-10-13.md`](../READINESS-2026-10-13.md). Offline tool tests: 183 passed (`test_fresh_start_v3`, `test_apply_reset`), including 22 new cases for ticket posting, extra-kosher new lots, shortage closure, owner holds, signed duplicate acknowledgement, area groups and target guards. Packet regenerated from `raw/catalog-2026-10-13.json` (read-only production catalog export, products only): 110 pages, 210 products, 850 rows; page 1 (nine steps) and the 285/286 sheet were rendered and checked. One timed read-only production snapshot (4.0 s, `transaction_read_only=on`); no production write. Full repository suite on a fresh PG17 DB: 2,750 Python / 107 Node passed.
