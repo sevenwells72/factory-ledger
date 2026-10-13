@@ -9,12 +9,84 @@ import fresh_start_v3 as v
 import apply_reset as app
 from test_apply_reset import FakeBackend
 
+class FakeTicketBackend(FakeBackend):
+ """Offline stand-in for FL's ticket API (A1 prepare/commit, A3b holds/shortages, A12 found)."""
+ def __init__(self,s):
+  super().__init__(s);self.tickets={};self.n=0;self.approvals=0;self.prepares=0;self.dup_ref=99999;self.commit_bodies=[]
+  s.setdefault('actors',[dict(id=7,name='FAKE Owner',role='owner',active=True)])
+  for k in ('correction_tickets','shortages','held_exceptions'):s.setdefault(k,[])
+ def call(self,key,route,body):
+  self.calls.append((route,deepcopy(body)))
+  if route=='/auth/whoami':return 200,dict(key_kind='actor',actor=dict(name=self.actor_name,id=7))
+  if route in ('/adjust/prepare','/inventory/found/prepare'):return self.prepare(route,body)
+  if route.startswith('/tickets/'):
+   t=self.tickets[route.split('/')[2]]
+   if self.mode=='timeout_before':raise TimeoutError('FAKE SECRET MUST NOT LEAK')
+   if self.mode=='refuse_commit':t['row']['status']='rejected';return 409,dict(detail=dict(error_code='TICKET_STALE'))
+   self.commit_bodies.append(body)
+   if t['action']=='found' and t['draft']['kosher_tier']=='extra_kosher':return 202,self.hold(t,'KOSHER_ATTESTATION')
+   if t['action']=='adjust' and t['draft']['correction_review']['photo_required']:return 202,self.hold(t,'LARGE_CORRECTION')
+   return self.post(t)
+  if route.startswith('/exceptions/'):
+   e=next(e for e in self.s['held_exceptions'] if e['id']==int(route.split('/')[2]));t=next(t for t in self.tickets.values() if t['id']==e['ticket_id'])
+   self.approvals+=1;e.update(status='resolved',resolution_kind='approved',resolved_by_actor_id=7)
+   if self.mode=='approve_refused':e.update(status='open',resolution_kind=None);return 403,dict(detail=dict(error_code='ROLE_NOT_ALLOWED'))
+   return self.post(t)
+  raise AssertionError('unexpected route '+route)
+ def prepare(self,route,body):
+  self.prepares+=1;self.n+=1;tid=900+self.n;token='wt_'+'A'*30+str(self.n)
+  if route=='/adjust/prepare':
+   lot=next(l for l in self.s['lots'] if l['id']==body['lot_id'])
+   open_ids=sorted(e['id'] for e in self.s['shortages'] if e['lot_id']==lot['id'] and e['status'] in ('open','escalated'))
+   named=sorted(body.get('resolves_shortage_ids') or [])
+   if named and named!=open_ids:return 409,dict(detail=dict(error_code='SHORTAGE_SET_CHANGED'))
+   if body['delta_lb']>0 and open_ids and not named:return 409,dict(detail=dict(error_code='SHORTAGE_OPEN_RESOLVE_INSTEAD'))
+   current=sum(x['quantity_lb'] for x in self.s['lines'] if x['lot_id']==lot['id'] and x['effective_status']=='posted')
+   draft=dict(product_id=lot['product_id'],lot_id=lot['id'],lot_code=lot['lot_code'],delta_lb=body['delta_lb'],current_quantity_lb=current,reason_code='physical_count',resolves_shortage_ids=named,correction_review=dict(photo_required=abs(body['delta_lb'])>500))
+   action='adjust'
+  else:
+   p=next(p for p in self.s['products'] if p['id']==body['product_id'])
+   exists=any(l['product_id']==p['id'] and l['lot_code']==body['lot_code'] for l in self.s['lots'])
+   draft=dict(product_id=p['id'],lot_code=body['lot_code'],lot_exists=exists,quantity=body['quantity'],kosher_tier=p.get('kosher_tier') or 'regular',kosher_approval=dict(required=True) if p.get('kosher_tier')=='extra_kosher' else None)
+   action='found'
+  row=dict(id=tid,action=action,status='prepared',receipt_number=None,actor_id=7,operator_id=self.actor_name,payload_hash='h'+str(tid))
+  self.s['correction_tickets'].append(row);self.tickets[token]=dict(id=tid,action=action,draft=draft,body=body,row=row)
+  warnings=[dict(code='POSSIBLE_DUPLICATE',requires_ack=True,refs=dict(transaction_id=self.dup_ref))] if self.mode=='ack_warning' else []
+  return 200,dict(ticket=token,ticket_id=tid,payload_hash=row['payload_hash'],draft=draft,warnings=warnings,blockers=[],can_commit=True)
+ def hold(self,t,kind):
+  t['row']['status']='awaiting_approval';eid=500+len(self.s['held_exceptions'])
+  self.s['held_exceptions'].append(dict(id=eid,kind=kind,status='open',product_id=t['draft']['product_id'],ticket_id=t['id'],receipt_number=None,resolution_kind=None,resolved_by_actor_id=None))
+  return dict(held=True,exception_id=eid,error_code='PHOTO_REQUIRED' if kind=='LARGE_CORRECTION' else 'KOSHER_ATTESTATION_REQUIRED')
+ def post(self,t):
+  self.commits+=1;body=t['body'];tid=100+self.commits;now=datetime.now(timezone.utc).isoformat()
+  prefix='FND' if t['action']=='found' else 'ADJ';receipt=f'{prefix}-261020-{self.commits:03d}'
+  if t['action']=='found':
+   lid=7000+self.commits;self.s['lots'].append(dict(id=lid,product_id=body['product_id'],lot_code=body['lot_code'],status='active',merged_into_lot_id=None,kosher_tier='extra_kosher',kosher_attested_by_actor_id=7,entry_source='found_inventory',entry_source_notes=body['notes']))
+   q=f.D(str(body['quantity']));notes='Found inventory: physical_count';pid=body['product_id']
+  else:
+   lid=body['lot_id'];q=f.D(str(body['delta_lb']));notes=f'Adjustment: {body["delta_lb"]} lb — {body["note"]}';pid=t['draft']['product_id']
+  line=dict(line_id=tid,transaction_id=tid,product_id=pid,lot_id=lid,quantity_lb=q,occurred_at=body['occurred_at'],transaction_created_at=now,line_created_at=now,transaction_created_at_source='database',line_created_at_source='database',effective_status='posted',type='adjust',adjust_reason='Physical count',operator_id=self.actor_name,notes=notes,line_correction_at=None,transaction_correction_at=None,ticket_id=t['id'],receipt_number=receipt,reason_code='physical_count',transaction_kosher_tier='extra_kosher' if t['action']=='found' else 'regular',kosher_attested_by_actor_id=7 if t['action']=='found' else None)
+  if self.mode=='wrong_quantity':line['quantity_lb']+=f.D('0.000001')
+  self.s['lines'].append(line);self.s['transaction_line_counts'][str(tid)]=1
+  t['row'].update(status='committed',receipt_number=receipt)
+  closed=[]
+  for eid in body.get('resolves_shortage_ids') or []:
+   e=next(e for e in self.s['shortages'] if e['id']==eid);e.update(status='resolved',resolution_kind='counted',resolution_ticket_id=t['id']);closed.append(dict(exception_id=eid))
+  if self.mode=='timeout_after':self.mode=None;raise TimeoutError('FAKE SECRET MUST NOT LEAK')
+  bal=sum(x['quantity_lb'] for x in self.s['lines'] if x['lot_id']==lid and x['effective_status']=='posted')
+  out=dict(transaction_id=tid,receipt_number=receipt,reason_code='physical_count',lot_code=body.get('lot_code') or t['draft']['lot_code'],shortages_closed=closed)
+  if t['action']=='found':out.update(quantity=body['quantity'],kosher_tier='extra_kosher',kosher_attested_by_actor_id=7)
+  else:out.update(adjustment_lb=body['delta_lb'],new_balance_lb=bal)
+  return 200,out
+
+
 class V3Tests(unittest.TestCase):
  def setUp(self):
+  self.held_ok='N';self.kosher_lots='none';self.approved_ids='1'
   self.tmp=tempfile.TemporaryDirectory(prefix='.FAKE-v3-',dir=f.OUT);self.addCleanup(self.tmp.cleanup);self.out=Path(self.tmp.name)
   self.t=datetime.now(timezone.utc).replace(second=0,microsecond=0)-timedelta(hours=3)
   p=dict(id=1,odoo_code='11001',name='TEST ingredient',type='ingredient',active=True,is_service=False,uom='lb')
-  self.s=dict(snapshot_at=(self.t+timedelta(hours=2)).isoformat(),products=[p],catalog=[p],lots=[dict(id=1,product_id=1,lot_code='TEST-LOT',status='active',merged_into_lot_id=None)],lines=[],corrections=[],transaction_line_counts={})
+  self.s=dict(snapshot_at=(self.t+timedelta(hours=2)).isoformat(),products=[p],catalog=[p],lots=[dict(id=1,product_id=1,lot_code='TEST-LOT',status='active',merged_into_lot_id=None)],lines=[],corrections=[],transaction_line_counts={},actors=[dict(id=7,name='FAKE Owner',role='owner',active=True)],correction_tickets=[],shortages=[],held_exceptions=[])
   self.line(100,self.t-timedelta(days=1))
   self.data=dict(count=[self.row()],coverage=[dict(product_id='1',SKU='11001',name='TEST ingredient',all_locations_searched='yes',completed_at=(self.t+timedelta(hours=1)).isoformat(),owner_initials='TEST',notes='')],moves=[],review={})
   for name,val in [('KEY_FILE',self.out/'key'),('JOURNAL_ROOT',self.out/'state'),('LOCK',self.out/'lock'),('RESULTS',self.out/'results')]:
@@ -45,7 +117,7 @@ class V3Tests(unittest.TestCase):
   (self.out/'review.json').write_text(json.dumps(self.data['review']))
   data=v.load_inputs(self.out/'count.csv',self.out/'coverage.csv',self.out/'moves.csv',self.out/'review.json')
   self.a=v.analyze(self.s,data);self.preview=self.out/'preview.json';self.preview.write_text(json.dumps(self.a,default=str))
-  self.approval=self.out/'approval.md';self.approval.write_text('\n'.join([f'Preview file: {self.preview.name}',f'SHA-256: {app.digest(self.preview.read_bytes())}','Approved product IDs: 1','Owner name: FAKE Owner','Named actor: FAKE Owner',f'Date: {self.t.date()}','Signature: FAKE Owner','Opening entry classification: N']))
+  self.approval=self.out/'approval.md';self.approval.write_text('\n'.join([f'Preview file: {self.preview.name}',f'SHA-256: {app.digest(self.preview.read_bytes())}',f'Approved product IDs: {self.approved_ids}','Owner name: FAKE Owner','Named actor: FAKE Owner',f'Date: {self.t.date()}','Signature: FAKE Owner','Opening entry classification: N',f'Owner approves held entries: {self.held_ok}',f'Extra-kosher lots: {self.kosher_lots}']))
   return app.load_plan(self.preview,self.approval,self.out/'count.csv')
  def run_apply(self,backend,apply=True):
   plan=self.persist();phrase=f'APPLY OPENING BALANCE {plan["cutoff"].astimezone(f.PLANT).date()} {plan["sha"]}'
@@ -110,11 +182,13 @@ class V3Tests(unittest.TestCase):
  def test_correction_hold(self):
   self.s['corrections']=[dict(id=1,target_table='transactions',target_id=1,created_at=(self.t+timedelta(minutes=20)).isoformat(),reason='test')];self.assertEqual(self.target()['status'],'HELD')
  def test_dryrun_has_no_api(self):
-  b=FakeBackend(self.s);self.assertEqual(self.run_apply(b,False),0);self.assertEqual(b.calls,[])
+  b=FakeTicketBackend(self.s);self.assertEqual(self.run_apply(b,False),0);self.assertEqual(b.calls,[])
  def test_apply_verify_named_actor_and_per_lot_cutoff(self):
-  b=FakeBackend(self.s);self.assertEqual(self.run_apply(b),0);self.assertEqual(b.commits,1);body=next(body for route,body in b.calls if body and body['mode']=='commit');self.assertEqual(body['occurred_at'],self.t.isoformat());self.assertTrue(body['backfill'])
+  b=FakeTicketBackend(self.s);self.assertEqual(self.run_apply(b),0);self.assertEqual(b.commits,1);body=next(body for route,body in b.calls if route=='/adjust/prepare');self.assertEqual(body['occurred_at'],self.t.isoformat());self.assertTrue(body['backfill'])
+  self.assertEqual((body['reason_code'],body['lot_id']),('physical_count',1));self.assertTrue(body['note'].startswith('OPENING BALANCE'))
+  line=self.s['lines'][-1];self.assertEqual((line['receipt_number'][:4],line['operator_id'],line['reason_code']),('ADJ-','FAKE Owner','physical_count'))
  def test_old_reviewed_count_has_no_age_deadline(self):
-  self.t-=timedelta(days=30);self.data['count']=[self.row()];self.data['coverage'][0]['completed_at']=(self.t+timedelta(hours=1)).isoformat();self.s['lines'][0]['occurred_at']=(self.t-timedelta(days=1)).isoformat();self.s['lines'][0]['line_created_at']=self.s['lines'][0]['transaction_created_at']=self.s['lines'][0]['occurred_at'];b=FakeBackend(self.s);self.assertEqual(self.run_apply(b,False),0)
+  self.t-=timedelta(days=30);self.data['count']=[self.row()];self.data['coverage'][0]['completed_at']=(self.t+timedelta(hours=1)).isoformat();self.s['lines'][0]['occurred_at']=(self.t-timedelta(days=1)).isoformat();self.s['lines'][0]['line_created_at']=self.s['lines'][0]['transaction_created_at']=self.s['lines'][0]['occurred_at'];b=FakeTicketBackend(self.s);self.assertEqual(self.run_apply(b,False),0)
  def test_drift_refuses_write(self):
   plan=self.persist();self.s['lines'][0]['quantity_lb']+=1
   with self.assertRaisesRegex(RuntimeError,'changed since approval'):app.preflight(plan,self.s,app.Journal(self.out/'journal',plan))
@@ -125,7 +199,7 @@ class V3Tests(unittest.TestCase):
   self.line(-10,self.t)
   with self.assertRaisesRegex(RuntimeError,'Held lot'):self.persist()
  def test_uncertain_commit_does_not_retry(self):
-  b=FakeBackend(self.s);b.mode='timeout_after'
+  b=FakeTicketBackend(self.s);b.mode='timeout_after'
   plan=self.persist();phrase=f'APPLY OPENING BALANCE {plan["cutoff"].astimezone(f.PLANT).date()} {plan["sha"]}'
   with contextlib.redirect_stdout(io.StringIO()):
    with self.assertRaisesRegex(RuntimeError,'uncertain'):app.run(self.preview,self.approval,self.out/'count.csv',True,b,lambda _:phrase)
@@ -136,7 +210,7 @@ class V3Tests(unittest.TestCase):
   self.data['count']=[self.row(),self.row()]
   with self.assertRaisesRegex(ValueError,'Duplicate'):self.analyze()
  def test_standalone_readonly_journal_verification(self):
-  b=FakeBackend(self.s);self.assertEqual(self.run_apply(b),0)
+  b=FakeTicketBackend(self.s);self.assertEqual(self.run_apply(b),0)
   plan=app.load_plan(self.preview,self.approval,self.out/'count.csv')
   ids=v.journal_openings(self.preview,self.approval,app.JOURNAL_ROOT/plan['sha']/'journal.jsonl',self.s,plan['data'])
   result=v.analyze(self.s,plan['data'],ids)
@@ -164,14 +238,14 @@ class V3Tests(unittest.TestCase):
   self.s['lots'].append(dict(id=2,product_id=1,lot_code='SECOND',status='active',merged_into_lot_id=None))
   x=self.line(50,self.t-timedelta(days=1));x['lot_id']=2
   r=self.row('R2','B','40',self.t+timedelta(minutes=45));r['lot_code']='SECOND';self.data['count'].append(r)
-  b=FakeBackend(self.s);self.assertEqual(self.run_apply(b),0)
-  payloads=[body for route,body in b.calls if body and body['mode']=='commit'];self.assertEqual({body['occurred_at'] for body in payloads},{self.t.isoformat(),(self.t+timedelta(minutes=45)).isoformat()})
+  b=FakeTicketBackend(self.s);self.assertEqual(self.run_apply(b),0)
+  payloads=[body for route,body in b.calls if route=='/adjust/prepare'];self.assertEqual({body['occurred_at'] for body in payloads},{self.t.isoformat(),(self.t+timedelta(minutes=45)).isoformat()})
  def test_v3_personal_actor_required(self):
-  b=FakeBackend(self.s);b.actor_name='legacy-shared-key'
+  b=FakeTicketBackend(self.s);b.actor_name='legacy-shared-key'
   with self.assertRaisesRegex(RuntimeError,'named actor'):self.run_apply(b)
   self.assertEqual(b.calls,[])
  def test_v3_corrected_reset_does_not_reconcile(self):
-  b=FakeBackend(self.s);self.assertEqual(self.run_apply(b),0)
+  b=FakeTicketBackend(self.s);self.assertEqual(self.run_apply(b),0)
   plan=app.load_plan(self.preview,self.approval,self.out/'count.csv');self.s['lines'][-1]['line_correction_at']=self.s['snapshot_at']
   with self.assertRaisesRegex(RuntimeError,'corrected'):app.preflight(plan,self.s,app.Journal(app.JOURNAL_ROOT/plan['sha']/'journal.jsonl',plan))
  def packaging(self,pid=76,kind='packaging'):
@@ -216,7 +290,7 @@ class V3Tests(unittest.TestCase):
   text=(self.out/'reports/reset-verification-v3.md').read_text();self.assertIn('FULL RESET SCOPE RECONCILED',text);self.assertIn('Reset scope: 1 products',text)
   rows=v.read_csv(self.out/'reports/packaging-information-only.csv');self.assertEqual(rows[0]['quantity'],'120');self.assertFalse(any('adjustment' in k for k in rows[0]));self.assertTrue((self.out/'reports/packaging-information-only.md').exists())
  def test_apply_sends_no_packaging_requests(self):
-  self.packaging();b=FakeBackend(self.s);self.assertEqual(self.run_apply(b),0);self.assertEqual(b.commits,1);self.assertTrue(all(body['product_name']=='11001' for route,body in b.calls if body));self.assertEqual(self.s['lines'][1]['quantity_lb'],800)
+  self.packaging();b=FakeTicketBackend(self.s);self.assertEqual(self.run_apply(b),0);self.assertEqual(b.commits,1);self.assertTrue(all(body['lot_id']==1 for route,body in b.calls if route.endswith('/prepare')));self.assertEqual(self.s['lines'][1]['quantity_lb'],800)
  def test_old_signed_scope_policy_refused(self):
   self.persist();del self.a['reset_scope_policy'];self.resign()
   with self.assertRaisesRegex(RuntimeError,'scope decision changed'):app.load_plan(self.preview,self.approval,self.out/'count.csv')
@@ -227,7 +301,7 @@ class V3Tests(unittest.TestCase):
   self.persist();self.a['rows'][0]['product_id']=102;self.resign()
   with self.assertRaisesRegex(RuntimeError,'Packaging/billing item'):app.load_plan(self.preview,self.approval,self.out/'count.csv')
  def test_live_preflight_refuses_new_packaging_type_before_api(self):
-  plan=self.persist();self.s['products'][0]['type']='packaging';b=FakeBackend(self.s)
+  plan=self.persist();self.s['products'][0]['type']='packaging';b=FakeTicketBackend(self.s)
   with self.assertRaisesRegex(RuntimeError,'Packaging/billing item'):app.preflight(plan,self.s,app.Journal(self.out/'journal',plan))
   self.assertEqual(b.calls,[])
  def test_live_preflight_refuses_billing_identity_even_with_ingredient_type(self):
@@ -405,4 +479,116 @@ class V3Tests(unittest.TestCase):
   output=io.StringIO()
   with patch('sys.argv',['fresh_start_v3.py','--write-count-template',str(self.out/'wording.csv')]),contextlib.redirect_stdout(output):v.main()
   self.assertIn(v.MOVE_DETECTION_NOTE,output.getvalue())
+ # ── Cutover readiness 2026-10-13: tickets, extra-kosher loads, shortages, holds, areas ──
+ def extra(self,pid=283,code='ek-1',qty='300',unit='lb',ptype='batch',name='TEST extra batch'):
+  p=dict(id=pid,odoo_code='9'+str(pid),name=name,type=ptype,active=True,is_service=False,uom='lb',kosher_tier='extra_kosher')
+  self.s['products'].append(p);self.s['catalog']=deepcopy(self.s['products'])
+  r=self.row('X'+str(pid),qty=qty);r.update(product_id=str(pid),SKU=p['odoo_code'],name=p['name'],lot_code=code,unit=unit)
+  self.data['count'].append(r)
+  self.data['coverage'].append(dict(product_id=str(pid),SKU=p['odoo_code'],name=p['name'],all_locations_searched='yes',completed_at=(self.t+timedelta(hours=1)).isoformat(),owner_initials='TEST',notes=''))
+  return p
+ def shortage(self,eid=41,lot_id=1,product_id=1):
+  self.s['shortages'].append(dict(id=eid,product_id=product_id,lot_id=lot_id,status='open',resolution_kind=None,resolution_ticket_id=None,resolved_by_actor_id=None))
+ def rows_by_product(self,a):return {r['product_id']:r for r in a['rows']}
+ def test_R1_extra_kosher_count_becomes_a_new_lot_found_with_owner_attestation(self):
+  self.extra();a=self.analyze();r=self.rows_by_product(a)[283]
+  self.assertEqual((r['status'],r['new_lot'],r['action'],r['lot_id'],r['lot_code'],r['owner_approvals']),('READY',True,'found',None,'EK-1',['KOSHER_ATTESTATION']))
+  self.assertEqual(r['adjustment_lb'],f.D('300'));self.assertIn('NEW EK-1',r['reason'])
+ def test_R2_regular_unmatched_lot_still_never_created(self):
+  self.data['count'][0]['lot_code']='NOPE';r=self.target();self.assertEqual(r['status'],'HELD');self.assertIn('Unidentified or unmatched lot',str(self.analyze()['holds']))
+ def test_R3_285_and_288_count_in_lb_and_183_stays_expected_zero(self):
+  self.assertNotIn(285,f.EXPECTED_ZERO_PRODUCTS);self.assertNotIn(288,f.EXPECTED_ZERO_PRODUCTS);self.assertIn(183,f.EXPECTED_ZERO_PRODUCTS)
+  self.extra(285,'bulk-1','1200','lb','finished','TEST bulk extra');r=self.rows_by_product(self.analyze())[285]
+  self.assertEqual((r['status'],r['adjustment_lb'],r['owner_approvals']),('READY',f.D('1200'),['KOSHER_ATTESTATION']))
+  p=dict(id=183,odoo_code='183',name='TEST SS bulk',type='finished',active=True,is_service=False,uom='lb')
+  with self.assertRaisesRegex(ValueError,'Legacy package identity'):v.convert(dict(quantity='5',unit='lb',partial_cases=''),p)
+ def test_R4_open_shortage_is_named_for_the_count_ticket(self):
+  self.shortage();self.data['count'][0]['quantity']='130';r=self.target()
+  self.assertEqual((r['status'],r['resolves_shortage_ids'],r['open_shortage_ids']),('READY',[41],[41]))
+  self.data['count'][0]['quantity']='100';r=self.target();self.assertEqual((r['resolves_shortage_ids'],r['open_shortage_ids']),([],[41]))
+  v.report(self.analyze(),self.out/'short');self.assertIn('will NOT close',(self.out/'short/reset-preview-v3.md').read_text())
+ def test_R4b_negative_lot_from_a_shortage_is_countable_other_negatives_held(self):
+  self.line(-120,self.t-timedelta(days=1));self.data['count'][0]['quantity']='5';self.assertIn('Negative ledger lot',str(self.target()['holds']))
+  self.shortage();r=self.target();self.assertEqual((r['status'],r['resolves_shortage_ids'],r['adjustment_lb']),('READY',[41],f.D('25')))
+ def test_R5_new_extra_lot_with_product_shortage_is_held(self):
+  self.extra();self.shortage(42,None,283);r=self.rows_by_product(self.analyze())[283]
+  self.assertEqual(r['status'],'HELD');self.assertIn('refuses found stock',str(r['holds']))
+ def test_R6_large_change_is_predicted_as_an_owner_hold(self):
+  self.data['count'][0]['quantity']='700';self.assertEqual(self.target()['owner_approvals'],['LARGE_CORRECTION'])
+  self.data['count'][0]['quantity']='600';self.assertEqual(self.target()['owner_approvals'],[])
+ def test_R6b_hold_prediction_mirrors_a3b_units(self):
+  p=dict(id=9,uom='case',case_size_lb=15);self.assertEqual(v.a3b_lb_equivalent(p,f.D(-40)),f.D(600));self.assertIsNone(v.a3b_lb_equivalent(dict(uom='12x10 oz case'),f.D(-900)))
+  self.assertEqual(v.a3b_lb_equivalent(dict(uom='25 lb case'),f.D(-501)),f.D(501))
+  row=dict(action='adjust',rounded_adjustment_lb=f.D(-40),ledger_unit='lb');self.assertEqual(v.owner_approvals(row,p),['LARGE_CORRECTION']);self.assertEqual(v.owner_approvals(dict(row,rounded_adjustment_lb=f.D(-30)),p),[])
+ def test_R7_area_group_only_takes_products_counted_only_there(self):
+  self.extra();self.data['count'].append(self.row('R9','B','5',self.t+timedelta(minutes=5)))
+  self.confirm_multi_area();a=v.analyze(self.s,self.data,(),['A']);rows=self.rows_by_product(a)
+  self.assertEqual(rows[283]['status'],'READY');self.assertEqual(rows[1]['status'],'HELD');self.assertIn('also counted in B',str(rows[1]['holds']))
+  a=v.analyze(self.s,self.data,(),['A','B']);self.assertEqual(self.rows_by_product(a)[1]['status'],'READY');self.assertEqual(a['area_group'],['A','B'])
+ def rerun(self,b):
+  plan=app.load_plan(self.preview,self.approval,self.out/'count.csv');phrase=f'APPLY OPENING BALANCE {plan["cutoff"].astimezone(f.PLANT).date()} {plan["sha"]}'
+  with contextlib.redirect_stdout(io.StringIO()):return app.run(self.preview,self.approval,self.out/'count.csv',True,b,lambda _:phrase)
+ def run_extra(self,b,ids='1,283'):
+  self.approved_ids=ids;self.held_ok='Y';self.kosher_lots='283:EK-1';return self.run_apply(b)
+ def test_R8_extra_kosher_load_end_to_end_with_signed_attestation(self):
+  self.extra();b=FakeTicketBackend(self.s);self.assertEqual(self.run_extra(b),0)
+  self.assertEqual((b.commits,b.approvals),(2,1))
+  lot=next(l for l in self.s['lots'] if l['product_id']==283);self.assertEqual((lot['lot_code'],lot['kosher_tier'],lot['kosher_attested_by_actor_id']),('EK-1','extra_kosher',7))
+  found=next(body for route,body in b.calls if route=='/inventory/found/prepare');self.assertEqual((found['reason_code'],found['lot_code'],found['quantity']),('physical_count','EK-1',300.0))
+  approve=next(body for route,body in b.calls if route.startswith('/exceptions/'));self.assertIn('signed preview',approve['note'])
+  plan=app.load_plan(self.preview,self.approval,self.out/'count.csv')
+  ids=v.journal_openings(self.preview,self.approval,app.JOURNAL_ROOT/plan['sha']/'journal.jsonl',self.s,plan['data'])
+  result=v.analyze(self.s,plan['data'],ids);self.assertTrue(result['full_scope_reviewed']);self.assertEqual({r['adjustment_lb'] for r in result['rows']},{0})
+  readback=(app.RESULTS/plan['sha']/'readback.csv').read_text();self.assertIn('FND-',readback);self.assertIn('ADJ-',readback)
+ def test_R9_kosher_list_and_held_consent_must_be_signed(self):
+  self.extra();self.approved_ids='1,283';self.held_ok='Y';self.kosher_lots='none'
+  with self.assertRaisesRegex(RuntimeError,'Extra-kosher lots must list exactly'):self.persist()
+  self.held_ok='N';self.kosher_lots='283:EK-1'
+  with self.assertRaisesRegex(RuntimeError,'Owner approves held entries: Y'):self.persist()
+ def test_R10_large_correction_is_approved_once_under_the_signed_plan(self):
+  self.data['count'][0]['quantity']='800';self.held_ok='Y';b=FakeTicketBackend(self.s);self.assertEqual(self.run_apply(b),0)
+  self.assertEqual((b.commits,b.approvals,self.s['held_exceptions'][0]['status']),(1,1,'resolved'))
+ def test_R11_shortage_closed_by_the_count_ticket_and_drift_stops(self):
+  self.shortage();self.data['count'][0]['quantity']='130';b=FakeTicketBackend(self.s);self.assertEqual(self.run_apply(b),0)
+  body=next(body for route,body in b.calls if route=='/adjust/prepare');self.assertEqual(body['resolves_shortage_ids'],[41])
+  self.assertEqual((self.s['shortages'][0]['status'],self.s['shortages'][0]['resolution_kind']),('resolved','counted'))
+ def test_R12_shortage_set_change_after_preview_stops_before_any_write(self):
+  self.shortage();self.data['count'][0]['quantity']='130';plan=self.persist();self.s['shortages'][0]['status']='resolved'
+  with self.assertRaisesRegex(RuntimeError,'open shortages changed'):app.preflight(plan,self.s,app.Journal(self.out/'journal',plan))
+ def test_R13_refused_commit_stops_and_rerun_reprepares_once(self):
+  b=FakeTicketBackend(self.s);b.mode='refuse_commit'
+  with self.assertRaisesRegex(RuntimeError,'TICKET_STALE'):self.run_apply(b)
+  self.assertEqual(b.commits,0);b.mode=None;self.assertEqual(self.rerun(b),0);self.assertEqual((b.commits,b.prepares),(1,2))
+ def test_R14_duplicate_warning_is_never_acknowledged_for_the_owner(self):
+  b=FakeTicketBackend(self.s);b.mode='ack_warning'
+  with self.assertRaisesRegex(RuntimeError,'needs acknowledgement'):self.run_apply(b)
+  self.assertEqual(b.commits,0)
+ def test_R14b_duplicate_of_a_signed_movement_is_acknowledged_and_journaled(self):
+  b=FakeTicketBackend(self.s);b.mode='ack_warning';b.dup_ref=1;self.assertEqual(self.run_apply(b),0)
+  self.assertEqual((b.commits,b.commit_bodies[0]['acknowledged_warnings']),(1,['POSSIBLE_DUPLICATE']))
+  plan=app.load_plan(self.preview,self.approval,self.out/'count.csv')
+  intent=[json.loads(l) for l in (app.JOURNAL_ROOT/plan['sha']/'journal.jsonl').read_text().splitlines()][1];self.assertEqual(intent['acknowledged_warnings'],['POSSIBLE_DUPLICATE'])
+ def test_R15_refused_approval_stays_held_and_rerun_resumes_without_new_ticket(self):
+  self.extra();b=FakeTicketBackend(self.s);b.mode='approve_refused'
+  with self.assertRaisesRegex(RuntimeError,'stays held'):self.run_extra(b)
+  b.mode=None;self.assertEqual(self.rerun(b),0)
+  self.assertEqual([r for r,_ in b.calls].count('/inventory/found/prepare'),1);self.assertEqual((b.commits,b.approvals),(2,2))
+ def test_R16_preview_target_is_enforced(self):
+  self.persist();self.a['target']='staging';self.resign()
+  with self.assertRaisesRegex(RuntimeError,'made for staging'):app.load_plan(self.preview,self.approval,self.out/'count.csv','production')
+  self.assertEqual(app.load_plan(self.preview,self.approval,self.out/'count.csv','staging')['target'],'staging')
+ def test_R17_staging_and_production_database_guards(self):
+  cred=self.out/'cred';cred.write_text('postgresql://u:p@aws-1-us-east-1.pooler.supabase.com:6543/postgres');cred.chmod(0o600)
+  with patch.dict(f.TARGETS,{'staging':dict(f.TARGETS['staging'],credential=cred),'production':dict(f.TARGETS['production'],credential=cred)}):
+   with self.assertRaisesRegex(RuntimeError,'not point at the staging'):f.target_database_url('staging')
+   self.assertTrue(f.target_database_url('production').endswith(':5432/postgres'))
+   cred.write_text('postgresql://u:p@aws-0-us-east-1.pooler.supabase.com:5432/postgres')
+   with self.assertRaisesRegex(RuntimeError,'points at the staging'):f.target_database_url('production')
+ def test_R18_ticket_era_reset_is_recognised_as_a_prior_opening(self):
+  b=FakeTicketBackend(self.s);self.assertEqual(self.run_apply(b),0)
+  self.assertIn('prior opening without journal proof',str(self.analyze()['lot_holds']))
+ def test_R19_uncertain_held_approval_is_proved_by_ticket_on_rerun(self):
+  self.data['count'][0]['quantity']='800';self.held_ok='Y';b=FakeTicketBackend(self.s);b.mode='timeout_after'
+  with self.assertRaisesRegex(RuntimeError,'uncertain'):self.run_apply(b)
+  self.assertEqual(self.rerun(b),0);self.assertEqual((b.commits,b.approvals),(1,1))
 if __name__=='__main__':unittest.main()

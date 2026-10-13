@@ -26,7 +26,56 @@ INACTIVE_HOLD = 'HELD – inactive in FL, owner decision needed'
 COMPLETE = 'PRODUCT COUNT COMPLETE'
 # Owner decisions recorded in package-decisions.md; never written to the catalog.
 APPROVED_CASE_WEIGHTS = {pid: D('2.625') for pid in (150, 151, 152, 153)}
-EXPECTED_ZERO_PRODUCTS = frozenset((183, 184, 185, 186, 285, 288))
+EXPECTED_ZERO_PRODUCTS = frozenset((183, 184, 185, 186))
+# Owner decision 2026-10-13 (P1.21): extra-kosher bulk per lb is counted in lb and
+# loaded through the reset; it is no longer an expected-zero package identity.
+BULK_LB_FINISHED = frozenset((285, 288))
+EXTRA_KOSHER = 'extra_kosher'
+LARGE_CORRECTION_LB = Decimal('500')   # = exceptions_enforcement.LARGE_CORRECTION_LB
+# Where each tool reads and posts. Production stays the default; staging exists
+# only so the whole procedure can be rehearsed. A preview records its target and
+# apply/verify refuse a preview made for the other one.
+TARGETS = {
+    'production': dict(api='https://fastapi-production-b73a.up.railway.app',
+                       credential=Path.home() / '.config/factory-ledger/db_url',
+                       key=Path.home() / '.config/factory-ledger/blubber_key',
+                       state='apply-state', results='apply-results',
+                       refuse_hosts=('aws-0-us-east-1.pooler.supabase.com',)),
+    'staging': dict(api='https://fastapi-staging-production-dd7b.up.railway.app',
+                    credential=Path.home() / 'Documents/fl-secrets/staging-db-url.txt',
+                    key=Path.home() / '.config/factory-ledger/staging_owner_key',
+                    state='apply-state-staging', results='apply-results-staging',
+                    require_host='aws-0-us-east-1.pooler.supabase.com'),
+}
+
+
+def target_config(name):
+    if name not in TARGETS:
+        raise ValueError('Unknown target; use production or staging.')
+    config = dict(TARGETS[name], name=name)
+    # Rehearsal only: the branch API run locally against the staging database.
+    override = os.environ.get('FL_STAGING_API_URL')
+    if name == 'staging' and override:
+        if not re.fullmatch(r'http://127\.0\.0\.1:\d{2,5}', override):
+            raise ValueError('FL_STAGING_API_URL may only point at a local rehearsal server.')
+        config['api'] = override
+    return config
+
+
+def target_database_url(name):
+    """Session-mode (5432) URL for the target; never printed. Staging must be the
+    documented staging host and production must not be it."""
+    from urllib.parse import urlsplit
+    config = target_config(name)
+    url = config['credential'].read_text().strip().replace(':6543/', ':5432/')
+    parts = urlsplit(url)
+    if not url or '\n' in url or parts.port != 5432:
+        raise RuntimeError('Read-only database credential is missing or not port 5432.')
+    if config.get('require_host') and parts.hostname != config['require_host']:
+        raise RuntimeError('Staging target does not point at the staging database.')
+    if parts.hostname in config.get('refuse_hosts', ()):
+        raise RuntimeError('Production target points at the staging database.')
+    return url
 RESET_SCOPE_POLICY = 'v3-packaging-information-only-2026-10-06'
 BILLING_RESET_EXCLUDED_IDS = frozenset((102, 176))
 

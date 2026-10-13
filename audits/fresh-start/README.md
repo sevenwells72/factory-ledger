@@ -2,6 +2,8 @@
 
 **Count everything you physically find, one area at a time, while production continues. Write the item, printed lot, quantity and location. The office will compare the count to FL afterward. Use v3 only; the October 5 ingredient-total plan and older freeze instructions are superseded.**
 
+**October 13 reissue (use these sheets):** products 283–290 now carry their EXTRA-KOSHER (SS) names and stay on their own lines — never write extra-kosher stock on a regular line (107/108 or regular finished goods). 285 and 288 (bulk per lb) are counted in **lb**. Every row has a **Dup?** tick box.
+
 **October 6 owner decision:** Keep counting packaging (bags, boxes, tape, cases and labels) for information. Packaging and billing items Pallets 102 / Pallet Charge 176 will not be reset. Count physical pallets once; a billing charge is not another pallet. The office keeps these counts in a separate information-only report. The issued blind floor sheets remain valid.
 
 1. **Start an area.** Write Area, date, Counter and actual Start time before counting; write End time when finished. On every row write time counted (HH:MM), exact printed lot, quantity and unit, Location and Bin ID if marked. If another area needs the same item, copy a blank sheet and assign a new sheet/row ID. Do not invent official location names.
@@ -12,6 +14,8 @@
 6. **Unreadable or missing lot?** Use an Unidentified lot row: leave lot blank, write quantity/unit, description and location. Do not guess or create a lot. Use the Other sheet for items absent from the catalog, including labels and supplies. Blank rows do not mean zero.
 7. **Sunshine pouches are ordinary finished-goods counts:** SKU, physical lot, quantity and location. Only copy a physical hold/sold/customer tag if present. Do not decide ownership or invoicing on the floor. Record each physical stack once.
 8. **Finish and hand in.** Photograph every page and movement log, then transcribe without overwriting originals. Return the sheet register. Mark a product's coverage complete only after all its locations have been searched; record actual completion time. The owner resolves movement timing, duplicates and missing identities before approving any adjustment. Production need not wait for the whole review. No fixed waiting period after count: prepare the reset as soon as reviewed.
+
+9. **Cutover morning: pause posting per area.** When the office says your area is being loaded, stop entering FL movements for that area's items (15–30 minutes). Wait until the office reads back the receipt numbers (ADJ-/FND-) against your sheet, then resume. Other areas keep working.
 
 Moves are caught by the tool only when logged, tagged, or noted; for anything else, the H1 multi-area hold is the control. The owner must confirm no unlogged moves between all rows for each lot counted in multiple areas.
 

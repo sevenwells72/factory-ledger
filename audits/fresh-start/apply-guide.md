@@ -1,10 +1,19 @@
 # V3 apply safeguards - for the owner and office
 
-**Plain-English summary:** The count can run while production continues. Review the movements and exact proposed changes, then apply as soon as ready. There is no waiting period or age deadline. Only `apply_reset.py` can write inventory, and nothing was applied during this preparation. All other current count/preview/verification tools are write-incapable.
+**Plain-English summary:** The count can run while production continues. Review the movements and exact proposed changes, then apply as soon as ready. There is no waiting period or age deadline. Only `apply_reset.py` can write inventory. Since 2026-10-13 it posts through FL write tickets (receipts, A3b and A12 rules) instead of the direct `/adjust` route. All other current count/preview/verification tools are write-incapable.
 
 The new v3 path preserves signed preview hashes, exact original inputs, personal actor identity, fresh ledger checks, product/lot validation, rounded quantities, the process lock, a durable journal, exact typed confirmation, no automatic write retries, and independent posted-event readback. Ingredients use the same safeguards as finished goods; units remain explicit. Packaging is counted for information and excluded from apply, along with billing items Pallets 102 and Pallet Charge 176. The reset covers 178 of the 210 floor-count products. Archived/inactive products, service identities and unknown lots are not silently made writable. The former 171/209 physical-count exclusions are superseded in v3, but inactive-write holds remain.
 
 Pre-decision v3 previews must be regenerated and reapproved. A scope-policy marker and explicit packaging/billing exclusions are checked when loading the signed plan and against the current catalog before posting. Packaging counts cannot authorize adjustments, even when signed or showing zero change.
+
+## Cutover morning, one area at a time (owner decision P1.19 option A, 2026-10-12; tool update 2026-10-13)
+
+1. The area finishes counting and hands in sheets. The office transcribes and runs a fresh preview for that area group: `reset_preview.py --v3 … --area "<Area>" --target production`. Products counted in other areas, or with no rows here, stay held for a later group or the final full pass.
+2. **Pause posting for that area's items** (15–30 min). Rerun the preview if anything moved since step 1, review it, and sign `approval.md` for exactly the READY products.
+3. Dry run, then `--apply`. Each lot posts as an FL ticket (`/adjust/prepare` or, for a new extra-kosher lot, `/inventory/found/prepare`, then `/tickets/{ticket}/commit`) with reason `physical_count`, the count time, the named owner key and a receipt number. FL holds corrections over 500 lb and every extra-kosher load. If the signed approval says `Owner approves held entries: Y` and lists the extra-kosher lots, the executor approves exactly those holds with the same key (`/exceptions/{id}/approve`, note = preview hash). Anything else stops and stays held. A lot with an open shortage names it in the ticket, and the post closes it as *counted*.
+4. The executor prints a **read-back** (receipt, lot, change, balance now) and writes `apply-results/<sha>/readback.csv` and `timings.json`. Check the receipts against the sheet, then resume posting in that area.
+
+The staging rehearsal of this procedure, with timings, is in `READINESS-2026-10-13.md`. Use `--target staging` only for rehearsal; it needs `~/.config/factory-ledger/staging_owner_key` and writes to `apply-state-staging/`.
 
 ## Before a future live use
 
