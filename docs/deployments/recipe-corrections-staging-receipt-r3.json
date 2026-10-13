@@ -1,0 +1,285 @@
+{
+ "environment": "staging",
+ "host": "aws-0-us-east-1.pooler.supabase.com",
+ "migration": "078_recipe_corrections",
+ "recipe_state_before_apply": {
+  "products": [
+   {
+    "id": 142,
+    "odoo_code": "70061",
+    "default_batch_lb": null,
+    "yield_25lb_cases": null,
+    "yield_10lb_cases": null,
+    "case_size_lb": "25.0000",
+    "parent_batch_product_id": 179
+   },
+   {
+    "id": 179,
+    "odoo_code": "90008",
+    "default_batch_lb": "328.3000",
+    "yield_25lb_cases": 13,
+    "yield_10lb_cases": 32,
+    "case_size_lb": null,
+    "parent_batch_product_id": null
+   },
+   {
+    "id": 284,
+    "odoo_code": "90026",
+    "default_batch_lb": "348.0000",
+    "yield_25lb_cases": null,
+    "yield_10lb_cases": null,
+    "case_size_lb": null,
+    "parent_batch_product_id": null
+   }
+  ],
+  "batch_formulas": [
+   {
+    "product_id": 179,
+    "ingredient_product_id": 3,
+    "quantity_lb": "13.0000",
+    "excluded": false
+   },
+   {
+    "product_id": 179,
+    "ingredient_product_id": 17,
+    "quantity_lb": "13.0000",
+    "excluded": false
+   },
+   {
+    "product_id": 179,
+    "ingredient_product_id": 36,
+    "quantity_lb": "13.0000",
+    "excluded": false
+   },
+   {
+    "product_id": 179,
+    "ingredient_product_id": 49,
+    "quantity_lb": "13.0000",
+    "excluded": false
+   },
+   {
+    "product_id": 179,
+    "ingredient_product_id": 107,
+    "quantity_lb": "276.3000",
+    "excluded": false
+   },
+   {
+    "product_id": 284,
+    "ingredient_product_id": 13,
+    "quantity_lb": "12.5000",
+    "excluded": false
+   },
+   {
+    "product_id": 284,
+    "ingredient_product_id": 18,
+    "quantity_lb": "1.8000",
+    "excluded": false
+   },
+   {
+    "product_id": 284,
+    "ingredient_product_id": 30,
+    "quantity_lb": "1.6000",
+    "excluded": false
+   },
+   {
+    "product_id": 284,
+    "ingredient_product_id": 32,
+    "quantity_lb": "225.0000",
+    "excluded": false
+   },
+   {
+    "product_id": 284,
+    "ingredient_product_id": 34,
+    "quantity_lb": "30.0000",
+    "excluded": false
+   },
+   {
+    "product_id": 284,
+    "ingredient_product_id": 39,
+    "quantity_lb": "1.7000",
+    "excluded": false
+   },
+   {
+    "product_id": 284,
+    "ingredient_product_id": 44,
+    "quantity_lb": "50.0000",
+    "excluded": false
+   },
+   {
+    "product_id": 284,
+    "ingredient_product_id": 72,
+    "quantity_lb": "25.0000",
+    "excluded": false
+   }
+  ],
+  "product_bom": [
+   {
+    "finished_product_id": 142,
+    "component_product_id": 179,
+    "quantity": "25.0000",
+    "uom": "lb"
+   },
+   {
+    "finished_product_id": 179,
+    "component_product_id": 3,
+    "quantity": "13.0000",
+    "uom": "lb"
+   },
+   {
+    "finished_product_id": 179,
+    "component_product_id": 17,
+    "quantity": "13.0000",
+    "uom": "lb"
+   },
+   {
+    "finished_product_id": 179,
+    "component_product_id": 36,
+    "quantity": "13.0000",
+    "uom": "lb"
+   },
+   {
+    "finished_product_id": 179,
+    "component_product_id": 49,
+    "quantity": "13.0000",
+    "uom": "lb"
+   },
+   {
+    "finished_product_id": 179,
+    "component_product_id": 107,
+    "quantity": "276.3000",
+    "uom": "lb"
+   }
+  ],
+  "marker_078": true
+ },
+ "round": 3,
+ "test_makes": {
+  "fruit_nut_make": {
+   "resumed_already_posted": true,
+   "transaction_id": 1000000080,
+   "lot_code": "STG-078-FRUIT-NUT-003",
+   "output_lb": "328.3000",
+   "formula_weight_lb": null,
+   "message": "1 batch(es) of Granola Fruit Nut Batch",
+   "lines": [
+    {
+     "product_id": 179,
+     "name": "Granola Fruit Nut Batch",
+     "lot_code": "STG-078-FRUIT-NUT-003",
+     "quantity_lb": "328.3000"
+    },
+    {
+     "product_id": 3,
+     "name": "Almonds – Sliced",
+     "lot_code": "STG-078-ALMONDS",
+     "quantity_lb": "-4.0000"
+    },
+    {
+     "product_id": 17,
+     "name": "Cranberries Dried",
+     "lot_code": "STG-078-CRANBERRIES",
+     "quantity_lb": "-4.0000"
+    },
+    {
+     "product_id": 36,
+     "name": "Raisins",
+     "lot_code": "STG-078-RAISINS",
+     "quantity_lb": "-4.0000"
+    },
+    {
+     "product_id": 49,
+     "name": "Walnuts",
+     "lot_code": "STG-078-WALNUTS",
+     "quantity_lb": "-4.0000"
+    },
+    {
+     "product_id": 3,
+     "name": "Almonds – Sliced",
+     "lot_code": "STG-078-R2-ALMONDS",
+     "quantity_lb": "-9.0000"
+    },
+    {
+     "product_id": 17,
+     "name": "Cranberries Dried",
+     "lot_code": "STG-078-R2-CRANBERRIES",
+     "quantity_lb": "-9.0000"
+    },
+    {
+     "product_id": 36,
+     "name": "Raisins",
+     "lot_code": "STG-078-R2-RAISINS",
+     "quantity_lb": "-9.0000"
+    },
+    {
+     "product_id": 49,
+     "name": "Walnuts",
+     "lot_code": "STG-078-R2-WALNUTS",
+     "quantity_lb": "-9.0000"
+    },
+    {
+     "product_id": 107,
+     "name": "Batch Classic Granola #9",
+     "lot_code": "STG-078-R3-CLASSIC9",
+     "quantity_lb": "-28.9000"
+    },
+    {
+     "product_id": 107,
+     "name": "Batch Classic Granola #9",
+     "lot_code": "STG-078-R2-CLASSIC9",
+     "quantity_lb": "-247.4000"
+    }
+   ],
+   "on_hand_before": {
+    "179": "984.9000",
+    "107": "371.1000",
+    "3": "51.0000",
+    "49": "51.0000",
+    "36": "51.0000",
+    "17": "51.0000"
+   },
+   "on_hand_after": {
+    "179": "984.9000",
+    "107": "371.1000",
+    "3": "51.0000",
+    "49": "51.0000",
+    "36": "51.0000",
+    "17": "51.0000"
+   },
+   "pack_needed": null
+  },
+  "fruit_nut_pack_preview": {
+   "13_cases": {
+    "case_weight_lb": 25.0,
+    "total_lb": 325.0,
+    "all_lots_sufficient": true,
+    "total_batch_available_lb": 984.9000000000001,
+    "can_pack_lb": 325.0
+   },
+   "14_cases": {
+    "case_weight_lb": 25.0,
+    "total_lb": 350.0,
+    "all_lots_sufficient": true,
+    "total_batch_available_lb": 984.9000000000001,
+    "can_pack_lb": 350.0
+   },
+   "note": "preview only; no pack posted"
+  },
+  "kosher_cc_make": {
+   "preview": {
+    "total_output_lb": 348.0,
+    "all_ingredients_available": true,
+    "needs": {
+     "13": 12.5,
+     "18": 1.8,
+     "30": 1.6,
+     "32": 225.0,
+     "34": 30.0,
+     "39": 1.7,
+     "44": 50.0,
+     "72": 25.0
+    }
+   },
+   "commit": "refused by A12: KOSHER_ATTESTATION_REQUIRED (owner-approved ticket required)"
+  }
+ }
+}

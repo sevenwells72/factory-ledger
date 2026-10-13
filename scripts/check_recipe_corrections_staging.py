@@ -18,6 +18,13 @@ Steps (each flag is explicit; nothing runs by accident):
                       284 make can only succeed if the chips line moved to 72.
   --apply-migration   applies migrations/078_recipe_corrections.sql to STAGING in one
                       transaction (lock_timeout 5s, statement_timeout 60s).
+  --restock           with --round N (N > 1; marker `staging_recipe_fixture_078_v<N>`):
+                      one more batch's worth of the same labelled test stock (lot
+                      codes `STG-078-R<N>-*`), still nothing for 73, so the makes can
+                      be re-run after 078 changed (fix round 1: 179 yields 13/32,
+                      chips-line exclusion guard).
+  --round N           lot-code suffix for --make (default 1 → `…-001`) and receipt
+                      file (round > 1 → recipe-corrections-staging-receipt-r<N>.json).
   --make              one make of 179 (1 batch) and one of 284 (1 batch) through
                       POST /make, then POST /pack preview for 13 and 14 cases of 142;
                       verifies the posted lines and writes the sanitized receipt to
@@ -129,6 +136,33 @@ def seed(uri):
                 'formula_rows': len(FORMULAS_BEFORE), 'planner_rows': len(PLANNER_BEFORE)}
 
 
+def restock(uri, round_no):
+    if round_no < 2:
+        raise RuntimeError('--restock needs --round 2 or higher')
+    restock_marker = f'staging_recipe_fixture_078_v{round_no}'
+    with connection(uri) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+        if q(cur, 'SELECT 1 FROM migration_markers WHERE name=%s', (restock_marker,)):
+            return {'already_restocked': True}
+        if not q(cur, 'SELECT 1 FROM migration_markers WHERE name=%s', (MARKER,)):
+            raise RuntimeError('run --seed first; restock only tops up the 078 fixture')
+        cur.execute('SELECT pg_advisory_xact_lock(78078)')
+        cur.execute("INSERT INTO transactions (type, timestamp, notes, occurred_at, operator_id) VALUES ('adjust', now(), %s, now(), %s) RETURNING id",
+                    ('Found inventory: ' + LABEL + f' (top-up round {round_no})', OPERATOR))
+        txn = cur.fetchone()['id']
+        lots = []
+        for pid, code, lb in STOCK:
+            code = code.replace('STG-078-', f'STG-078-R{round_no}-')
+            cur.execute("INSERT INTO lots (product_id, lot_code, entry_source, entry_source_notes, received_at) VALUES (%s, %s, 'found_inventory', %s, now()) RETURNING id",
+                        (pid, code, LABEL))
+            lot = cur.fetchone()['id']
+            cur.execute('INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)', (txn, pid, lot, lb))
+            lots.append({'product_id': pid, 'lot_code': code, 'lb': lb, 'lot_id': lot})
+        cur.execute('INSERT INTO migration_markers (name) VALUES (%s)', (restock_marker,))
+        if min(txn, *(l['lot_id'] for l in lots)) < 1_000_000_000:
+            raise RuntimeError('Staging synthetic ID range is required')
+        return {'restocked': True, 'fixture_transaction_id': txn, 'lots': lots}
+
+
 def apply_migration(uri):
     with connection(uri) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(MIGRATION.read_text())
@@ -142,8 +176,8 @@ def apply_migration(uri):
 def recipe_state(uri):
     with connection(uri) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
         return {
-            'products': q(cur, 'SELECT id, odoo_code, default_batch_lb, case_size_lb, parent_batch_product_id FROM products WHERE id IN (179, 284, 142) ORDER BY id'),
-            'batch_formulas': q(cur, 'SELECT product_id, ingredient_product_id, quantity_lb FROM batch_formulas WHERE product_id IN (179, 284) ORDER BY product_id, ingredient_product_id'),
+            'products': q(cur, 'SELECT id, odoo_code, default_batch_lb, yield_25lb_cases, yield_10lb_cases, case_size_lb, parent_batch_product_id FROM products WHERE id IN (179, 284, 142) ORDER BY id'),
+            'batch_formulas': q(cur, 'SELECT product_id, ingredient_product_id, quantity_lb, COALESCE(exclude_from_inventory, false) AS excluded FROM batch_formulas WHERE product_id IN (179, 284) ORDER BY product_id, ingredient_product_id'),
             'product_bom': q(cur, 'SELECT finished_product_id, component_product_id, quantity, uom FROM product_bom WHERE finished_product_id IN (179, 142) ORDER BY finished_product_id, component_product_id'),
             'marker_078': bool(q(cur, "SELECT 1 FROM migration_markers WHERE name='078_recipe_corrections'")),
         }
@@ -168,7 +202,7 @@ def posted_lines(cur, txn_id):
     return rows, consumed
 
 
-def make_and_pack(uri):
+def make_and_pack(uri, round_no=1):
     from fastapi.testclient import TestClient
     os.environ.update(DATABASE_URL=uri, ENVIRONMENT='staging', PRODUCTION_DATABASE_HOST=PRODUCTION_DATABASE_HOST,
                       API_KEY=secrets.token_urlsafe(40), DASHBOARD_API_KEY=secrets.token_urlsafe(40))
@@ -200,16 +234,26 @@ def make_and_pack(uri):
     needed = {i['ingredient_id']: num(i['needed_lb']) for i in preview['ingredients']}
     if needed != {CLASSIC9: Decimal('276.3'), **{i: Decimal('13') for i in INCLUSIONS}} or not preview['all_ingredients_available']:
         raise RuntimeError(f'Fruit Nut preview needs wrong: {needed}')
-    fn = post('/make', {'mode': 'commit', 'product_name': '90008', 'batches': 1, 'lot_code': 'STG-078-FRUIT-NUT-001', 'confirmed_sku': True})
+    fn_lot = f'STG-078-FRUIT-NUT-{round_no:03d}'
+    with connection(uri) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+        # Resume: a round whose Fruit Nut make already posted is re-verified, never made twice.
+        posted = q(cur, "SELECT t.id AS transaction_id, l.lot_code, tl.quantity_lb AS output_lb, t.notes AS message FROM transactions t "
+                        "JOIN transaction_lines tl ON tl.transaction_id=t.id JOIN lots l ON l.id=tl.lot_id "
+                        "WHERE t.type='make' AND l.product_id=%s AND l.lot_code=%s AND tl.quantity_lb>0", (FRUIT_NUT, fn_lot))
+    resumed = bool(posted)
+    if resumed:
+        fn = dict(posted[0], formula_weight_lb=None, resumed=True)
+    else:
+        fn = post('/make', {'mode': 'commit', 'product_name': '90008', 'batches': 1, 'lot_code': fn_lot, 'confirmed_sku': True})
     with connection(uri) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
         fn_lines, fn_consumed = posted_lines(cur, fn['transaction_id'])
         fn_after = {pid: on_hand(cur, pid) for pid in (FRUIT_NUT, CLASSIC9, *INCLUSIONS)}
     if num(fn['output_lb']) != Decimal('328.3') or fn_consumed != {CLASSIC9: Decimal('276.3'), **{i: Decimal('13') for i in INCLUSIONS}}:
         raise RuntimeError(f'Fruit Nut make posted wrong lines: out {fn["output_lb"]}, consumed {fn_consumed}')
-    if fn_after[FRUIT_NUT] - before[FRUIT_NUT] != Decimal('328.3') or before[CLASSIC9] - fn_after[CLASSIC9] != Decimal('276.3') \
-            or any(before[i] - fn_after[i] != Decimal('13') for i in INCLUSIONS):
+    if not resumed and (fn_after[FRUIT_NUT] - before[FRUIT_NUT] != Decimal('328.3') or before[CLASSIC9] - fn_after[CLASSIC9] != Decimal('276.3')
+                        or any(before[i] - fn_after[i] != Decimal('13') for i in INCLUSIONS)):
         raise RuntimeError('Fruit Nut balances did not move by the corrected recipe')
-    receipt['fruit_nut_make'] = {'transaction_id': fn['transaction_id'], 'lot_code': fn['lot_code'], 'output_lb': fn['output_lb'],
+    receipt['fruit_nut_make'] = {'resumed_already_posted': resumed, 'transaction_id': fn['transaction_id'], 'lot_code': fn['lot_code'], 'output_lb': fn['output_lb'],
                                  'formula_weight_lb': fn['formula_weight_lb'], 'message': fn['message'],
                                  'lines': [{'product_id': r['product_id'], 'name': r['name'], 'lot_code': r['lot_code'], 'quantity_lb': r['quantity_lb']} for r in fn_lines],
                                  'on_hand_before': {str(k): v for k, v in before.items() if k in fn_after}, 'on_hand_after': {str(k): v for k, v in fn_after.items()},
@@ -233,7 +277,17 @@ def make_and_pack(uri):
     chips = [(i['ingredient_id'], num(i['needed_lb']), i['sufficient']) for i in preview['ingredients'] if i['ingredient_id'] in (CHIPS_1000, CHIPS_4000)]
     if chips != [(CHIPS_4000, Decimal('25'), True)] or not preview['all_ingredients_available']:
         raise RuntimeError(f'284 preview chips wrong: {chips}')
-    kc = post('/make', {'mode': 'commit', 'product_name': '90026', 'batches': 1, 'lot_code': 'STG-078-KOSHER-CC-001', 'confirmed_sku': True})
+    kc_preview = {'total_output_lb': preview['total_output_lb'], 'all_ingredients_available': preview['all_ingredients_available'],
+                  'needs': {str(i['ingredient_id']): i['needed_lb'] for i in preview['ingredients']}}
+    r = http.post('/make', json={'mode': 'commit', 'product_name': '90026', 'batches': 1, 'lot_code': f'STG-078-KOSHER-CC-{round_no:03d}', 'confirmed_sku': True}, headers=headers)
+    if r.status_code == 403 and (r.json().get('error_detail') or {}).get('code') == 'KOSHER_ATTESTATION_REQUIRED':
+        # A12 (075): 284 is extra-kosher on staging; a direct make needs a ticket approved
+        # from the owner's own signed-in session. Not simulated here.
+        receipt['kosher_cc_make'] = {'preview': kc_preview, 'commit': 'refused by A12: KOSHER_ATTESTATION_REQUIRED (owner-approved ticket required)'}
+        return receipt
+    if r.status_code != 200:
+        raise RuntimeError(f'Unexpected HTTP {r.status_code} on /make: {r.text[:400]}')
+    kc = r.json()
     with connection(uri) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
         kc_lines, kc_consumed = posted_lines(cur, kc['transaction_id'])
         kc_after = {pid: on_hand(cur, pid) for pid in (KOSHER_CC, CHIPS_4000, CHIPS_1000)}
@@ -254,25 +308,31 @@ def main_entry():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument('--seed', action='store_true')
     parser.add_argument('--apply-migration', action='store_true')
+    parser.add_argument('--restock', action='store_true')
+    parser.add_argument('--round', type=int, default=1)
     parser.add_argument('--make', action='store_true')
     args = parser.parse_args()
     uri = staging_uri()
     receipt = {'environment': 'staging', 'host': urlsplit(uri).hostname, 'migration': '078_recipe_corrections'}
     if args.seed:
         receipt['seed'] = seed(uri)
+    if args.restock:
+        receipt['restock'] = restock(uri, args.round)
     receipt['recipe_state_before_apply'] = recipe_state(uri)
     if args.apply_migration:
         receipt['apply'] = apply_migration(uri)
         receipt['recipe_state_after_apply'] = recipe_state(uri)
     if args.make:
-        receipt['test_makes'] = make_and_pack(uri)
+        receipt['round'] = args.round
+        receipt['test_makes'] = make_and_pack(uri, args.round)
     text = json.dumps(receipt, indent=1, default=str, ensure_ascii=False)
     for forbidden in (uri, os.environ.get('API_KEY', '\0'), os.environ.get('DASHBOARD_API_KEY', '\0')):
         if forbidden and forbidden in text:
             raise RuntimeError('refusing to write: secret material in output')
     if args.make:
-        OUT.write_text(text + '\n')
-        print(f'OK: receipt at {OUT.relative_to(ROOT)}')
+        out = OUT if args.round == 1 else OUT.with_name(f'{OUT.stem}-r{args.round}.json')
+        out.write_text(text + '\n')
+        print(f'OK: receipt at {out.relative_to(ROOT)}')
     print(text)
 
 
