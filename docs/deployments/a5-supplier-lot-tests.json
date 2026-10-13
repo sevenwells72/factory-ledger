@@ -1,0 +1,27 @@
+{
+  "checked_at": "2026-10-13T19:20:43.984846-04:00",
+  "base_commit": "f4e51b5668c0dec752875b4122484d89366bb95e",
+  "database": "fl_a5p2_final_20261013",
+  "database_setup": "New isolated UTF-8 PostgreSQL 17 DB from tests/schema/schema.sql + pg_trgm; no production fallback",
+  "python": {
+    "passed": 2795,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "warnings": 3862,
+    "seconds": 68.474
+  },
+  "node": {
+    "passed": 107,
+    "failures": 0,
+    "skipped": 0
+  },
+  "focused_supplier_lot_cases": 50,
+  "commands": [
+    "TEST_DATABASE_URL=postgresql://localhost:5432/fl_a5p2_final_20261013 python -m pytest -o addopts= -q --tb=short --disable-warnings",
+    "node --test tests/*.js"
+  ],
+  "staging_evidence": "a5-supplier-lot-staging.json",
+  "hosted_deployment": false,
+  "production_access": false
+}

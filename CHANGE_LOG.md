@@ -1,5 +1,61 @@
 # Change Log
 
+## 2026-10-13 19:20 — Record final A5 fresh-DB and staging verification
+- **File(s) changed:** `docs/deployments/a5-supplier-lot-tests.json`, `docs/deployments/a5-supplier-lot-ticket.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record 2,795 Python and 107 Node passing with zero failures/errors/skips on a fresh isolated PG17 DB. Add regression guard row 182 and actual staging receipt LOT-261013-001 resolving exception 22 once, using an office key session. Migration 079 staging only; no hosted deploy or production access.
+- **Why:** A5 part 2 / FOLLOWUPS P1.15; reason-coded, attributed supplier-lot corrections through A1 tickets.
+
+---
+
+## 2026-10-13 19:19 — Verify A5 correction on guarded staging
+- **File(s) changed:** `docs/deployments/a5-supplier-lot-staging.json`
+- **What changed:** Applied additive 079 only to verified staging; local branch HTTP with an office key session received an unidentified synthetic lot, proved a top-up retained its exception, corrected it and verified one lot event, one identified resolution and same-receipt replay. Temporary actor deactivated; no hosted deploy or production access.
+- **Why:** A5 part 2 / FOLLOWUPS P1.15; reason-coded, attributed supplier-lot corrections through A1 tickets.
+
+---
+
+## 2026-10-13 19:18 — Extend explicit actor-route regression guard for A5 correction
+- **File(s) changed:** `tests/test_named_actor_writes.py`
+- **What changed:** Add only the newly authorized supplier-lot prepare route to the exact actor allowlist expectation. Full suite found this single expected scope-guard update; 107 Node tests pass.
+- **Why:** A5 part 2 / FOLLOWUPS P1.15; reason-coded, attributed supplier-lot corrections through A1 tickets.
+
+---
+
+## 2026-10-13 19:18 — Document D1 supplier-lot correction API and rollout
+- **File(s) changed:** `docs/deployments/a5-supplier-lot-ticket.md`, `FOLLOWUPS.md`
+- **What changed:** Document request/response and error contract, fixed reasons, named roles/key sessions, replay/expiry, atomic resolution, component-lot limitation, migration order and guarded staging acceptance. Mark P1.15 built pending Claude Code review.
+- **Why:** A5 part 2 / FOLLOWUPS P1.15; reason-coded, attributed supplier-lot corrections through A1 tickets.
+
+---
+
+## 2026-10-13 19:17 — Add guarded A5 staging acceptance runner
+- **File(s) changed:** `scripts/check_supplier_lot_staging.py`
+- **What changed:** Add explicit staging-only migration 079 application and synthetic unidentified receive → top-up → key-session supplier correction → replay/readback scenario. No hosted deployment or startup hooks; sanitize output and deactivate temporary actor.
+- **Why:** A5 part 2 / FOLLOWUPS P1.15; reason-coded, attributed supplier-lot corrections through A1 tickets.
+
+---
+
+## 2026-10-13 19:16 — Correct supplier-lot regression fixtures
+- **File(s) changed:** `tests/test_supplier_lot_tickets.py`, `supplier_lot_tickets.py`
+- **What changed:** Scope the permission monkeypatch so it preserves the test DB connection; supply required escalation timestamp; remove an unused import. Initial focused run passed 48 cases including both HTTP concurrency races.
+- **Why:** A5 part 2 / FOLLOWUPS P1.15; reason-coded, attributed supplier-lot corrections through A1 tickets.
+
+---
+
+## 2026-10-13 19:16 — Add A5 supplier-lot correction regression coverage
+- **File(s) changed:** `tests/test_supplier_lot_tickets.py`
+- **What changed:** Cover all named roles and key sessions, invalid codes and reasons, expiry, binding, replay, real same/different-ticket HTTP races, immutable audit, escalated/count lots, receive non-resolution, stale drafts and atomic rollback; verify migration rerun/down/up and evidence retention.
+- **Why:** A5 part 2 / FOLLOWUPS P1.15; reason-coded, attributed supplier-lot corrections through A1 tickets.
+
+---
+
+## 2026-10-13 19:14 — Build A5 supplier-lot ticket lifecycle
+- **File(s) changed:** `supplier_lot_tickets.py`, `write_tickets.py`, `ticket_actions.py`, `migrations/079_supplier_lot_tickets.sql`, `migrations/down/079_supplier_lot_tickets_down.sql`, `tests/schema/schema.sql`
+- **What changed:** Add named-actor prepare/commit correction, real-code and fixed-reason validation, immutable lot event, atomic unidentified exception resolution, stale identity checks, and additive ticket action migration. Preserve existing ticket lifecycle and fresh-DB schema.
+- **Why:** A5 part 2 / FOLLOWUPS P1.15; reason-coded, attributed supplier-lot corrections through A1 tickets.
+
+---
+
 ## 2026-10-13 19:01 — PR #104 rebased onto 5228885: FL changelog numbering fixed, schema re-dumped with 077
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `tests/schema/schema.sql`, `CHANGE_LOG.md`
 - **What changed:** Rebased `fix/recipe-corrections` (f1c432c, Codex MERGE 6152874694) onto main 5228885 (#103 merge); only changelog conflicts, 078/down/tests/scripts/docs byte-identical. FACTORY_LEDGER_CHANGELOG: main's duplicate row 177 (pilot personal-key sessions, staging) renumbered to 180 and moved into order (stray blank line that split the table removed; its "Row 177 hosted pilot acceptance" note now says Row 180); this PR's row 179 → 181 (main already used 179). Rows now read 181, 180, 179, 178, 177, 176. `tests/schema/schema.sql` re-dumped from production (schema-only) so 077 key-session tables are in the dump; the `\ir 077` tail is gone. Fresh isolated UTF-8 PG17 DB: 2,743 Python / 107 Node passed, 0 failures/skips.

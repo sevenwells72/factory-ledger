@@ -165,6 +165,7 @@ def test_actor_only_scope_is_approved_writes_plus_product_resolution():
         ('POST', '/receive/prepare'), ('POST', '/tickets/{ticket}/commit'),
         ('POST', '/make/prepare'), ('POST', '/pack/prepare'),
         ('POST', '/lots/{lot_id}/move/prepare'),
+        ('POST', '/lots/{lot_id}/supplier-lot/prepare'),
         ('POST', '/adjust/prepare'), ('POST', '/inventory/found/prepare'),
         ('GET', '/receipts'), ('GET', '/receipts/{receipt_number}'),
         ('GET', '/receipts/by-transaction/{transaction_id}'),
