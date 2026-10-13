@@ -1,0 +1,78 @@
+{
+  "verified_at": "2026-10-13T14:09:37.873061-04:00",
+  "base_commit": "7fec510aa8fb5a52cd6b61b6413d2eea655aea9d",
+  "source_parent": "d23899a1134089523fbcd40ba90e2744294e708e",
+  "tested_files_sha256": {
+    "main.py": "087ad9213ffbfd1f219cf48403169cb578a7b2b382ad75ed09eb997dec615765",
+    "permissions.py": "1e98a7e8e4c0d64094409b8b3013d821ba69f129a6777931c9a9e9f61490337e",
+    "write_tickets.py": "bf1f1c6d850569a4bd40ff6527ddd3209400ccdf01ad3e64ae4b7c9a21da3771",
+    "key_sessions.py": "8c556fd3c4dac20b17af60c6f943d2855872c3a0223d62bbea892f6dc76138e7",
+    "shift_summary.py": "71e8b8bddd0fa139cd68e03ac81e6fd0969a223102352ecc0669b2eeabfe77a0",
+    "kosher_tiers.py": "5c520e95c55df8e415aa43c92fa01504d666f68a2eab9c1995150cc563ae09e1",
+    "dashboard/fl-assistant.js": "cd354e5693b27d59a3588abec8e65b2b690c8911574c85fb2e3997cc64540c64",
+    "dashboard/key-session.js": "4e805c5243b0ab346637f9c223e4e75ac724385ca6c1ba9c3e39a5724feb9cc6",
+    "dashboard/fetch-timeout.js": "3af77347734ced03b43befa20041d81cefae7577d2681b6e07e77e98c57298b3",
+    "tests/test_key_session_rebase.py": "7387cb1ca926ffe03e354939322a83c9211f75c2ceb557e496014e34d3989123",
+    "tests/test_a12_shift_integration.py": "3e45dc966f9af7986dbfd2ea1540b23baca3893e59f6a6aa1bcb6048fefe2005",
+    "scripts/check_key_sessions_staging.py": "f6a70c8523a6cb28f272e4fd1d0d4eb174b981187cd55bf295c1aa254c3d9c22",
+    "tests/schema/schema.sql": "40b2a9af82800f0e0711c3708c01c5d097abd92184acd494b6b61476b1b052c7",
+    "tests/test_write_tickets.py": "2762b149d2a311757ad5f8ac9b940c242cdba04693482497fa962e5362394429",
+    "tests/test_roles_a2.py": "d9545858cf0854f07c8972d2c0f960545984adc70745f17788c318353a1b4394",
+    "tests/test_exceptions_tables_061.py": "fee717fd86cc3dbcabd75783543046212524b0b3a407eab0550161083cf4ee67",
+    "tests/test_fl_assistant.py": "91cc6aac49e4c6b739ddc87e80b036d8c340c4863933eadf40f28db94fc7cf2c"
+  },
+  "database": "fresh isolated local UTF-8 PostgreSQL 17; merged 7fec510 schema dump includes applied 068/075/076; only 077 pending; pg_trgm",
+  "python": {
+    "passed": 2731,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 47.12
+  },
+  "node": {
+    "passed": 107,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "new_session_integration_regressions": 8,
+  "browser": {
+    "assistant_flag_on": "passed",
+    "assistant_flag_off": "passed",
+    "dashboard_flag_on_off_token_reload_expiry_logout_1440_390": "passed",
+    "visual_inspection": "no clipping or blocked controls"
+  },
+  "independent_review": "no blockers",
+  "gpt_openapi_operations": 30,
+  "staging_read_only_preflight": {
+    "075_076_077_present": true,
+    "private_pilot_RLS_tables": true,
+    "parked_PIN_schema_unchanged": true,
+    "ENVIRONMENT": "staging",
+    "KEY_SESSIONS_ENABLED": "1",
+    "PIN_LOGIN_ENABLED": "0",
+    "ASSISTANT_ENABLED": "1",
+    "before_upload_auth_session_config_status": 404
+  },
+  "boundaries": {
+    "production_access": false,
+    "production_variables_changed": false,
+    "other_worktree_edits": false,
+    "merge": false
+  },
+  "requested_base_commit": "c195a39b75a5ff271fec1833dc1b428ed1725666",
+  "initial_c195a39_run": {
+    "python": {
+      "passed": 2731,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 47.12
+    },
+    "source_parent": "216399b906628d627fe7200a04764cd997908da1",
+    "database": "fresh isolated local UTF-8 PostgreSQL 17; schema 068/075/076/077 plus pg_trgm"
+  },
+  "runtime_uploaded_commit": "90596f012648523e2139e1990fb5bfda8532d9fc",
+  "runtime_unchanged_by_housekeeping": true,
+  "node_and_browser_bytes_unchanged_by_housekeeping": true
+}

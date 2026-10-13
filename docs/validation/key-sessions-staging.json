@@ -1,0 +1,43 @@
+{
+  "reference": "STG-SIGNIN-11404F4E",
+  "base_url": "https://fastapi-staging-production-dd7b.up.railway.app",
+  "checked_at": "2026-10-13T16:17:10.380742+00:00",
+  "checks": [
+    "All four synthetic named people exchanged keys with PIN off",
+    "Only token hashes persisted; 180-minute sliding session expiry",
+    "Arturo real-model Assistant prepare/Record/replay: one person-attributed 10 lb receive, 10-minute ticket",
+    "Sign out ends token; subsequent Record receives SESSION_EXPIRED",
+    "180-minute idle and revoked key are rejected immediately",
+    "Shared staging master key refused"
+  ],
+  "actor": {
+    "id": 1000000058,
+    "name": "Arturo (STAGING STG-SIGNIN-11404F4E)",
+    "role": "floor"
+  },
+  "receipt_number": "RCV-261013-005",
+  "transaction": {
+    "id": 1000000072,
+    "entered_by_actor_id": 1000000058,
+    "operator_id": "Arturo (STAGING STG-SIGNIN-11404F4E)"
+  },
+  "ticket_id": 83,
+  "quantity_lb": 10,
+  "assistant_chat_id": "371e24e0-3a88-470d-a5b6-5dfcb163b1ac",
+  "draft_id": "3c917b44-48d8-414a-af1e-139f82c4058a",
+  "temporary_actors_inactive": true,
+  "deployment_id": "01c88707-d856-4955-bf7b-181750412821",
+  "tested_app_commit": "bd9fd77",
+  "pin_login_enabled": false,
+  "key_sessions_enabled": true,
+  "builder": "Codex",
+  "validation": {
+    "python_tests": 2526,
+    "node_tests": 82,
+    "fresh_db": "fl_signin_test (isolated UTF-8 PostgreSQL 17 localhost:57777)",
+    "assistant_browser": "on/off, expiry, reload, token custody, handover passed",
+    "dashboard_browser": "token writes, identity, expiry, logout, 1440/390 passed",
+    "health": 200,
+    "deployed_assets_match": true
+  }
+}

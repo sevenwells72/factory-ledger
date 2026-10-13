@@ -19,7 +19,7 @@
   if (!root.document) return;
   const $ = id => document.getElementById(id);
   let language = localStorage.getItem('fl-assistant-language') || 'en';
-  let key = '', session = '', actor = null, sessionStore = '', busy = false, attachments = [], retryTurn = null;
+  let credential = '', session = '', actor = null, sessionStore = '', busy = false, attachments = [], retryTurn = null;
   let held = false, recorder = null, stream = null, recordingTimer = null, micStarting = false;
   const drafts = new Map();
   const labels = new Map();
@@ -53,12 +53,23 @@
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeout);
     try {
       const response = await fetch(new URL(path, location.origin), {
-        method, headers: { 'X-API-Key': key, ...(form || !body ? {} : { 'Content-Type': 'application/json' }) },
+        method, headers: { 'X-API-Key': credential, ...(form || !body ? {} : { 'Content-Type': 'application/json' }) },
         body: form || (body ? JSON.stringify(body) : undefined), signal: controller.signal, credentials: 'same-origin', cache: 'no-store'
       });
       if (binary && response.ok) return response.blob();
       const data = await response.json();
-      if (!response.ok) throw { ...data, httpStatus: response.status };
+      if (!response.ok) {
+        if (data.detail?.error_code === 'SESSION_EXPIRED') {
+          pilot.clear(); credential = ''; actor = null; session = '';
+          drafts.clear(); attachments = []; retryTurn = null;
+          const welcome = $('welcome'); $('messages').replaceChildren(welcome); welcome.hidden = false;
+          renderAttachments();
+          $('sign-in-panel').hidden = false; $('chat-panel').hidden = true; $('sign-out').hidden = true;
+          $('identity').textContent = t('Sign in to your workspace', 'Inicia sesión en tu espacio');
+          notice(t('Your session ended. Sign in again; your saved drafts remain bound to you.', 'Tu sesión terminó. Inicia sesión otra vez; tus borradores siguen a tu nombre.'));
+        }
+        throw { ...data, httpStatus: response.status };
+      }
       return data;
     } catch (error) {
       if (error instanceof Error) throw { detail: t('Connection failed or timed out. Retry the same draft.', 'La conexión falló. Reintenta el mismo borrador.') };
@@ -305,21 +316,49 @@
       if (draft.status === 'cancelled') node.replaceChildren(el('p', t('Cancelled · NOT recorded', 'Cancelado · NO registrado')));
     }
   }
+  const pilot = root.FLKeySessions.create({ base: location.origin, fetch: root.fetch.bind(root), storage: sessionStorage });
+  const authReady = pilot.init().then(enabled => {
+    if (enabled) {
+      const hint = $('signin-hint');
+      hint.dataset.en = 'Sign in once per shift. Your key is exchanged for a session. Sign out before handing over this device.';
+      hint.dataset.es = 'Inicia sesión una vez por turno. Tu clave se cambia por una sesión. Cierra sesión antes de entregar este dispositivo.';
+      applyLanguage();
+    }
+    return enabled;
+  });
+  authReady.catch(() => notice(t('Sign-in unavailable. Please reload and try again.', 'No se puede iniciar sesión. Recarga e intenta otra vez.')));
+  async function enterChat(who) {
+    actor = who; sessionStore = 'fl-assistant-chat:' + (actor.id || actor.name);
+    await loadChat(); $('sign-in-panel').hidden = true; $('chat-panel').hidden = false; $('sign-out').hidden = false;
+    applyLanguage(); setBusy(false); $('message').focus();
+  }
   $('sign-in-form').addEventListener('submit', async event => {
-    event.preventDefault(); notice(''); key = $('actor-key').value.trim();
-    const submit = event.target.querySelector('button'); submit.disabled = true;
+    event.preventDefault(); notice(''); const submit = event.target.querySelector('button'); submit.disabled = true;
     try {
-      const who = await api('/auth/whoami', { method: 'GET' });
-      if (!who.actor) throw { detail: t('Use your personal actor key.', 'Usa tu clave personal.') };
-      actor = who.actor; sessionStore = 'fl-assistant-chat:' + (actor.id || actor.name);
-      await loadChat(); $('actor-key').value = ''; $('sign-in-panel').hidden = true; $('chat-panel').hidden = false; $('sign-out').hidden = false;
-      applyLanguage(); setBusy(false); $('message').focus();
-    } catch (error) { key = ''; notice(errorText(error)); }
-    finally { submit.disabled = false; }
+      const enabled = await authReady;
+      if (enabled) {
+        const exchange = pilot.signIn($('actor-key').value.trim()); $('actor-key').value = '';
+        const person = await exchange; credential = pilot.token; await enterChat(person);
+      } else {
+        credential = $('actor-key').value.trim(); $('actor-key').value = '';
+        const who = await api('/auth/whoami', { method: 'GET' });
+        if (!who.actor) throw { detail: t('Use your personal actor key.', 'Usa tu clave personal.') };
+        await enterChat(who.actor);
+      }
+    } catch (error) { credential = ''; notice(error instanceof Error ? error.message : errorText(error)); }
+    finally { $('actor-key').value = ''; submit.disabled = false; }
   });
-  $('sign-out').addEventListener('click', () => {
-    if (busy) return; stopMic(); key = ''; session = ''; actor = null; location.reload();
+  $('sign-out').addEventListener('click', async () => {
+    if (busy) return; $('sign-out').disabled = true;
+    try {
+      if (pilot.enabled) await pilot.signOut();
+      stopMic(); credential = ''; session = ''; actor = null; location.reload();
+    } catch (error) { notice(t('Sign out failed. Try again before handing over this device.', 'No se cerró la sesión. Intenta otra vez antes de entregar este dispositivo.')); }
+    finally { $('sign-out').disabled = false; }
   });
+  authReady.then(async enabled => {
+    if (enabled && pilot.actor) { credential = pilot.token; await enterChat(pilot.actor); }
+  }).catch(error => notice(error instanceof Error ? error.message : errorText(error)));
   $('new-chat').addEventListener('click', async () => {
     if (busy) return; setBusy(true);
     try { const result = await api('/assistant/session'); localStorage.setItem(sessionStore, result.session_id); location.reload(); }
