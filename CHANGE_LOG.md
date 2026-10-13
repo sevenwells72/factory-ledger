@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-10-13 14:09 — Verify restored Arturo staging sign-in and fresh latest-main suite
+- **File(s) changed:** `docs/validation/key-sessions-rebase-staging.json`, `docs/validation/key-sessions-rebase-tests.json`, `docs/deployments/key-sessions.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record staging 56979f32 SUCCESS, auth session route/assets restored, Arturo RCV-261013-006 one-post/replay/attribution and logout/idle/revocation proof, all temporary identities inactive. Fresh latest-main schema rerun 2731 Python/107 Node with zero failures/errors/skips; update digests, keep original staging receipt unchanged and document runtime parity after 7fec510 housekeeping.
+- **Why:** Complete the requested staging restoration/review evidence without touching production or merging.
+
+---
+
+## 2026-10-13 14:07 — Restore pilot staging and incorporate concurrent main schema housekeeping
+- **File(s) changed:** `tests/schema/schema.sql`, `tests/test_a12_shift_integration.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Staging upload 56979f32 SUCCESS from tested 90596f0. Rebase again onto concurrent main 7fec510 (#105), preserving the current dump with applied 068/075/076 and only 077 pending; adapt the numbering regression to allow that one include. Preserve both log histories and record staging row 179. Application runtime bytes match deployed 90596f0; fresh schema rerun and Arturo acceptance follow.
+- **Why:** Leave PR #103 current and restore displaced auth routes, without production access or merge.
+
+---
+
 ## 2026-10-13 14:02 — Post-A12 housekeeping: prod schema re-dump (067–076), FOLLOWUPS P1.23, FL changelog rows 177/178
 - **File(s) changed:** `tests/schema/schema.sql`, `tests/test_write_tickets.py`, `tests/test_roles_a2.py`, `tests/test_exceptions_tables_061.py`, `tests/test_fl_assistant.py`, `tests/test_a12_shift_integration.py`, `FOLLOWUPS.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** `tests/schema/schema.sql` re-dumped from production (scripts/dump_prod_schema.sh, 17:58Z) after 075 and 076 were applied; the pending `\ir` tails for 067/072/074/068/075/076 are gone (prod markers verified read-only: all six present, 077 absent — PR #103 adds its own tail). Isolated-DB fixtures follow the dump: the 058/065 up/down tests drop the empty 068 link table before the 074 down and re-run 068 after; the 061 fixture rolls back 076 → 068 link table → 074 before A3b; the 068 rerun test seeds its marker with one idempotent apply; the A12 numbering test asserts no pending tails and the dumped tables instead. FOLLOWUPS P1.23 records Sunshine SO-260817-001 (10,000 lb of 285/288): status unknown, off the cutover critical path, do not cancel/change in FL, ships only from owner-approved 283/284 lots, decide if urgent, owner Michael. FACTORY_LEDGER_CHANGELOG rows 177 (#102/076 rollout) and 178 (#101/075 rollout).

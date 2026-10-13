@@ -1,0 +1,41 @@
+{
+  "reference": "STG-SIGNIN-CAEA4CCD",
+  "base_url": "https://fastapi-staging-production-dd7b.up.railway.app",
+  "checked_at": "2026-10-13T18:07:35.747125+00:00",
+  "checks": [
+    "All four synthetic named people exchanged keys with PIN off",
+    "Only token hashes persisted; 180-minute sliding session expiry",
+    "Arturo real-model Assistant prepare/Record/replay: one person-attributed 10 lb receive, 10-minute ticket",
+    "Sign out ends token; subsequent Record receives SESSION_EXPIRED",
+    "180-minute idle and revoked key are rejected immediately",
+    "Shared staging master key refused"
+  ],
+  "actor": {
+    "id": 1000000062,
+    "name": "Arturo (STAGING STG-SIGNIN-CAEA4CCD)",
+    "role": "floor"
+  },
+  "receipt_number": "RCV-261013-006",
+  "transaction": {
+    "id": 1000000076,
+    "entered_by_actor_id": 1000000062,
+    "operator_id": "Arturo (STAGING STG-SIGNIN-CAEA4CCD)"
+  },
+  "ticket_id": 84,
+  "quantity_lb": 10,
+  "assistant_chat_id": "f4e02921-bd15-4e16-b714-262a9ed9e528",
+  "draft_id": "b5776f01-e429-4e30-b99b-bbbc8bb16840",
+  "temporary_actors_inactive": true,
+  "deployment_id": "56979f32-51d8-4d88-80af-3d282ed93379",
+  "deployment_status": "SUCCESS",
+  "uploaded_commit": "90596f012648523e2139e1990fb5bfda8532d9fc",
+  "rebase_main_commit": "7fec510aa8fb5a52cd6b61b6413d2eea655aea9d",
+  "runtime_unchanged_by_housekeeping": true,
+  "health_status": 200,
+  "auth_session_config_status": 200,
+  "browser_assets_match": true,
+  "KEY_SESSIONS_ENABLED": 1,
+  "PIN_LOGIN_ENABLED": 0,
+  "ASSISTANT_ENABLED": 1,
+  "production_access": false
+}
