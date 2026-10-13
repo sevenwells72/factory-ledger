@@ -11,9 +11,12 @@ WITH p AS (
         t.type,t.occurred_at,t.business_date,t.created_at transaction_created_at,
         t.created_at_source transaction_created_at_source,t.effective_status,
         t.latest_correction_created_at transaction_correction_at,
-        t.adjust_reason,t.notes,t.operator_id
+        t.adjust_reason,t.notes,t.operator_id,
+        raw.receipt_number,raw.ticket_id,raw.reason_code,raw.entered_by_actor_id,
+        raw.kosher_tier transaction_kosher_tier,raw.kosher_attested_by_actor_id
  FROM ledger_current_transaction_lines l
  JOIN ledger_current_transactions t ON t.id=l.transaction_id
+ JOIN transactions raw ON raw.id=t.id
  JOIN p ON p.id=l.product_id
 ), c AS (
  SELECT c.id,c.target_table,c.target_id,c.event_type,c.created_at,c.operator_id,c.reason
@@ -37,8 +40,19 @@ SELECT json_build_object(
  'lots',COALESCE((SELECT json_agg(q ORDER BY product_id,id) FROM
    (SELECT l.id,l.product_id,l.lot_code,l.status,l.merged_into_lot_id,
            l.received_at, l.created_at AT TIME ZONE 'America/New_York' AS lot_created_at,
-           l.created_at_source AS lot_created_at_source
+           l.created_at_source AS lot_created_at_source,l.entry_source,l.entry_source_notes,
+           l.kosher_tier,l.kosher_attested_by_actor_id,l.kosher_attested_at
     FROM lots l JOIN p ON p.id=l.product_id)q),'[]'::json),
+ 'shortages',COALESCE((SELECT json_agg(q ORDER BY id) FROM
+   (SELECT id,product_id,lot_id,status,resolution_kind,resolution_ticket_id,resolved_by_actor_id,
+           detail->'resolution' AS resolution FROM exceptions WHERE kind='SHORTAGE')q),'[]'::json),
+ 'held_exceptions',COALESCE((SELECT json_agg(q ORDER BY id) FROM
+   (SELECT id,kind,status,product_id,ticket_id,receipt_number,resolution_kind,resolved_by_actor_id
+    FROM exceptions WHERE kind IN ('LARGE_CORRECTION','KOSHER_ATTESTATION'))q),'[]'::json),
+ 'correction_tickets',COALESCE((SELECT json_agg(q ORDER BY id) FROM
+   (SELECT id,action,status,receipt_number,actor_id,operator_id,payload_hash
+    FROM write_tickets WHERE action IN ('adjust','found'))q),'[]'::json),
+ 'actors',COALESCE((SELECT json_agg(q ORDER BY id) FROM (SELECT id,name,role,active FROM actors)q),'[]'::json),
  'lines',COALESCE((SELECT json_agg(x ORDER BY line_id) FROM x),'[]'::json),
  'corrections',COALESCE((SELECT json_agg(c ORDER BY created_at,id) FROM c),'[]'::json));
 ROLLBACK;

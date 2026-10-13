@@ -204,6 +204,9 @@ class AdjustPrepareRequest(ActionPrepareRequest):
     # evidence a > 500 lb correction needs (a storage key/URL — see the A6 dependency).
     note: Optional[str] = Field(None, max_length=2000)
     attachment_ref: Optional[str] = Field(None, min_length=1, max_length=500)
+    # Cutover reset (Michael, 2026-10-13): the lot's open SHORTAGE exceptions this
+    # physical_count correction closes as 'counted' when it posts. Omitted = none.
+    resolves_shortage_ids: List[PositiveId] = Field(default_factory=list)
 
     @root_validator(pre=True)
     def reason_alias(cls, values):
@@ -499,6 +502,8 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
     entry_timing = permissions.require_backdating(
         approval['approved_by'] | {'key_kind': 'actor'} if approval else actor,
         datetime.fromisoformat(row['payload']['occurred_at']), api.get_plant_now())
+    if row['action'] == 'adjust' and row['payload'].get('resolves_shortage_ids'):
+        permissions.require('resolve_exception', actor)   # the preparer closes the shortages
     cur.execute('SAVEPOINT ticket_post')
     try:
         # Reuse the legacy lot-sequence locks before validation/posting.
@@ -668,7 +673,11 @@ def register_routes(app, api):
         permissions.require(action, actor)
         if action == 'update_supplier_lot' and actor['id'] is None:
             fail(403, 'ACTOR_REQUIRED', 'Sign in as a person to correct a supplier lot.')
+        if getattr(req, 'resolves_shortage_ids', None):
+            permissions.require('resolve_exception', actor)
         payload = json.loads(req.json(exclude={'client_source'}))
+        if action == 'adjust' and not payload.get('resolves_shortage_ids'):
+            payload.pop('resolves_shortage_ids', None)   # unchanged payload/hash for ordinary adjusts
         if lot_id is not None:
             payload['lot_id'] = lot_id
         event_time = req.occurred_at or api.get_plant_now()

@@ -28,6 +28,7 @@ from verify_reset import write_verification
 
 API = 'https://fastapi-production-b73a.up.railway.app'
 KEY_FILE = Path.home() / '.config/factory-ledger/blubber_key'
+TARGET_DEFAULT_KEY = KEY_FILE   # v3: the target's key file unless a test overrides KEY_FILE
 JOURNAL_ROOT = f.OUT / 'apply-state'
 LOCK = f.OUT / '.apply-reset.lock'
 RESULTS = f.OUT / 'apply-results'
@@ -65,9 +66,9 @@ def now():
     return datetime.now(timezone.utc).isoformat()
 
 
-def load_plan(preview, approval, count):
+def load_plan(preview, approval, count, target=None):
     if f.local_path(preview).suffix == ".json":
-        return load_v3_plan(preview, approval, count)
+        return load_v3_plan(preview, approval, count, target)
     preview, approval, count = map(f.local_path, (preview, approval, count))
     raw, signed, counted = preview.read_bytes(), approval.read_bytes(), count.read_bytes()
     fields = {}
@@ -152,11 +153,12 @@ def unchanged(plan):
         require(digest(plan[key].read_bytes()) == plan[hashkey], 'An approved input changed during the run; stop.')
 
 
-def read_key():
+def read_key(key_file=None):
+    KEY_FILE_ = key_file or KEY_FILE
     try:
-        require(KEY_FILE.is_file() and not KEY_FILE.is_symlink(), 'Personal key file is missing or is a symlink.')
-        require(stat.S_IMODE(KEY_FILE.stat().st_mode) & 0o077 == 0, 'Personal key file must be private (chmod 600).')
-        value = KEY_FILE.read_text().strip()
+        require(KEY_FILE_.is_file() and not KEY_FILE_.is_symlink(), 'Personal key file is missing or is a symlink.')
+        require(stat.S_IMODE(KEY_FILE_.stat().st_mode) & 0o077 == 0, 'Personal key file must be private (chmod 600).')
+        value = KEY_FILE_.read_text().strip()
         require(value and not any(c.isspace() for c in value), 'Personal key file is empty or malformed.')
         return value
     except (OSError, UnicodeError):
@@ -219,7 +221,9 @@ class LiveBackend:
 class Journal:
     def __init__(self, path, plan):
         self.path = f.local_path(path)
-        self.header = dict(kind='header', version=1, preview_sha256=plan['sha'], approval_sha256=plan['approval_sha'],
+        # Version 2 = A1 ticket-era v3 journals (intents carry ticket_id); 1 = legacy direct /adjust.
+        self.header = dict(kind='header', version=2 if plan.get('version') == 3 else 1,
+                           preview_sha256=plan['sha'], approval_sha256=plan['approval_sha'],
                            count_sha256=plan['count_sha'], actor=plan['actor'], cutoff=plan['cutoff'].isoformat())
         self.events = []
         if self.path.exists():
@@ -466,8 +470,10 @@ def validate_response(result, plan, row, mode):
         require('operator_id' not in result or result['operator_id'] == plan['actor'], 'Commit returned the wrong actor.')
 
 
-def run(preview, approval, count, apply=False, backend=None, input_fn=input):
+def run(preview, approval, count, apply=False, backend=None, input_fn=input, target=None):
     require(Path(__file__).resolve().parent == f.OUT, 'Use only the authorized fresh-start folder.')
+    if f.local_path(preview).suffix == '.json':
+        return run_v3(load_v3_plan(preview, approval, count, target), apply, backend, input_fn)
     plan = load_plan(preview, approval, count)
     for pid in sorted(plan['held_inactive']):
         print(f'Product {pid}: {f.INACTIVE_HOLD}; excluded from approved groups.')
@@ -529,7 +535,18 @@ def run(preview, approval, count, apply=False, backend=None, input_fn=input):
         return write_verification(a, output)
 
 
-def load_v3_plan(preview, approval, count):
+APPROVAL_FIELDS_V3 = APPROVAL_FIELDS + ('Owner approves held entries', 'Extra-kosher lots')
+HOLD_KINDS = {'PHOTO_REQUIRED': 'LARGE_CORRECTION', 'KOSHER_ATTESTATION_REQUIRED': 'KOSHER_ATTESTATION'}
+RECEIPT = re.compile(r'(ADJ|FND)-\d{6}-\d{3,}')
+TICKET = re.compile(r'wt_[A-Za-z0-9_-]{20,100}')
+ERROR_CODE = re.compile(r'[A-Z][A-Z0-9_]{2,60}')
+
+
+def lot_label(r):
+    return f'{r["pid"]}:{r["lot_code"]}'
+
+
+def load_v3_plan(preview, approval, count, target=None):
     import fresh_start_v3 as v
     preview, approval, count = map(f.local_path, (preview, approval, count))
     raw, signed = preview.read_bytes(), approval.read_bytes()
@@ -537,6 +554,9 @@ def load_v3_plan(preview, approval, count):
     require(a.get('version') == 3, 'Unsupported live-count preview version.')
     require(a.get('reset_scope_policy') == f.RESET_SCOPE_POLICY,
             'Reset scope decision changed; regenerate and reapprove preview.')
+    plan_target = a.get('target', 'production')
+    require(target is None or target == plan_target, f'Preview was made for {plan_target}, not {target}.')
+    f.target_config(plan_target)
     for p in a['products'].values():
         require(not f.reset_exclusion_reason(p), 'Packaging/billing item is excluded from reset approval.')
     for r in a['rows']:
@@ -546,14 +566,15 @@ def load_v3_plan(preview, approval, count):
     for line in signed.decode().splitlines():
         if ':' in line:
             key, value = line.split(':', 1)
-            if key in APPROVAL_FIELDS:
+            if key in APPROVAL_FIELDS_V3:
                 require(key not in fields, 'Duplicate approval field.')
                 fields[key] = value.strip()
-    require(set(fields) == set(APPROVAL_FIELDS) and all(fields.values()), 'Approval is incomplete.')
+    require(set(fields) == set(APPROVAL_FIELDS_V3) and all(fields.values()), 'Approval is incomplete.')
     require(fields['Preview file'] == preview.name and fields['SHA-256'].lower() == digest(raw), 'Signed preview hash/filename mismatch.')
     require(fields['Signature'] == fields['Owner name'], 'Owner signature mismatch.')
     require(fields['Named actor'] not in ('legacy-shared-key','shared','master'), 'Named personal actor required.')
     require(fields['Opening entry classification'] == 'N', 'Administrative opening classification must be N.')
+    require(fields['Owner approves held entries'] in ('Y', 'N'), 'Owner approves held entries must be Y or N.')
     require(re.fullmatch(r'[1-9]\d*(?:\s*,\s*[1-9]\d*)*',fields['Approved product IDs']), 'Invalid approved product IDs.')
     ids = [int(x.strip()) for x in fields['Approved product IDs'].split(',')]
     require(len(ids) == len(set(ids)), 'Duplicate approved product ID.')
@@ -570,7 +591,9 @@ def load_v3_plan(preview, approval, count):
         require(not change or pid in ids, 'Every proposed change must be approved; reissue a scoped preview.')
         if pid not in ids: continue
         require(r['status']=='READY' and not r['holds'], 'Held lot/product is not approvable.')
-        require(r['lot_id'] not in seen,'Duplicate lot proposal.');seen.add(r['lot_id'])
+        new = bool(r.get('new_lot'))
+        lid = r['lot_key'] if new else r['lot_id']
+        require(lid is not None and lid not in seen,'Duplicate lot proposal.');seen.add(lid)
         cut=f.stamp(r['cutoff']);require(cut<=at,'Count cutoff is after preview.')
         require(r['backfill'] is True,'V3 must disclose intentional count-time posting.')
         original=f.number(r['candidate_adjustment_lb']);rounded=f.round_adjustment(original)
@@ -581,15 +604,42 @@ def load_v3_plan(preview, approval, count):
                 close(r['planned_balance_lb'],r['expected_current_lb']), 'V3 count arithmetic mismatch.')
         require(f.number(r['expected_current_lb'])>=0 and math.isfinite(float(change)) and close(str(float(change)),change),'Invalid target/quantity.')
         require(not change or r['product_active'] is True,'Inactive product cannot be adjusted.')
-        r.update(pid=pid,lid=r['lot_id'],change=change)
+        require(r.get('action') == ('found' if new else 'adjust'), 'Preview action does not match the lot.')
+        if new:
+            # P1.21: only extra-kosher stock may arrive as a new lot, only positive, from zero.
+            require(r.get('kosher_tier') == f.EXTRA_KOSHER and change and change > 0 and f.number(r['current_lb']) == 0
+                    and r['ledger_unit'] == 'lb', 'A new lot is only an extra-kosher load in lb.')
+            require(r['lot_code'] == r['lot_code'].strip().upper(), 'New lot code is not in FL canonical form.')
+        r.update(pid=pid,lid=lid,change=change)
         selected.append(r)
     require(set(ids)=={r['pid'] for r in selected}, 'Approved product absent from lot preview.')
     require(not a['general'], 'Unidentified catalog items or general exceptions still require review.')
+    needs = [r for r in selected if r['change'] and r.get('owner_approvals')]
+    require(not needs or fields['Owner approves held entries'] == 'Y',
+            'This plan has entries FL holds for the owner (over 500 lb or extra-kosher); sign "Owner approves held entries: Y" or leave those products out.')
+    kosher = {lot_label(r) for r in selected if r.get('new_lot') and r['change']}
+    listed = set() if fields['Extra-kosher lots'].lower() == 'none' else {x.strip() for x in fields['Extra-kosher lots'].split(',') if x.strip()}
+    require(listed == kosher, 'Extra-kosher lots must list exactly the new lots in this plan as PRODUCT:LOT (or none).')
     return dict(version=3,preview=preview,approval=approval,count=count,sha=digest(raw),approval_sha=digest(signed),
                 count_sha=digest(count.read_bytes()),actor=fields['Named actor'],owner=fields['Owner name'],
                 approval_date=date.fromisoformat(fields['Date']),cutoff=max(f.stamp(r['cutoff']) for r in selected),
                 at=at,reason='v3 per-lot count reasons',ids=set(ids),rows=selected,records=[],held_inactive=set(),
-                v3=a,data=data,sources=src)
+                v3=a,data=data,sources=src,target=plan_target,v3_lines=a.get('ledger_lines', []),approve_held=fields['Owner approves held entries']=='Y',
+                area_group=a.get('area_group'))
+
+
+def ticket_payload(r):
+    import fresh_start_v3 as v
+    return v.ticket_payload(r)
+
+
+def reconcile_v3(plan, s, journal):
+    """Completed lot -> its one posted line, proved by ticket (shared with verify)."""
+    import fresh_start_v3 as v
+    try:
+        return v.reconcile_tickets({r['lid']: r for r in plan['rows'] if r['change']}, s, journal.attempts(), plan['actor'])
+    except ValueError as error:
+        raise RuntimeError(str(error)) from None
 
 
 def preflight_v3(plan,s,journal):
@@ -597,45 +647,333 @@ def preflight_v3(plan,s,journal):
     unchanged(plan)
     require(plan['v3'].get('reset_scope_policy') == f.RESET_SCOPE_POLICY,
             'Reset scope decision changed; regenerate and reapprove preview.')
+    require(s.get('target', plan['target']) == plan['target'], 'Snapshot is from another target.')
     live_products={p['id']:p for p in s['products']}
     for pid in plan['ids']:
         require(pid in live_products and not f.reset_exclusion_reason(live_products[pid]),
                 'Packaging/billing item or missing product is excluded from reset apply.')
-    completed=reconcile(plan,s,journal)
+    completed, held = reconcile_v3(plan, s, journal)
     own={x['line_id'] for x in completed.values()}
+    own_lots={x['lot_id'] for lid, x in completed.items() if not isinstance(lid, int)}
     require(plan['approval_date']<=f.stamp(s['snapshot_at']).astimezone(f.PLANT).date(),'Approval date is in the future.')
     products={p['id']:p for p in s['products']};lots={l['id']:l for l in s['lots']}
-    require({l['id'] for l in s['lots'] if l['product_id'] in plan['ids']}=={r['lid'] for r in plan['rows']},'New/missing/omitted lot in approved scope.')
+    expected={r['lid'] for r in plan['rows'] if not r.get('new_lot')} | own_lots
+    require({l['id'] for l in s['lots'] if l['product_id'] in plan['ids']}==expected,'New/missing/omitted lot in approved scope.')
     for pid in plan['ids']:
-        require(v.baseline(s,pid,own)==plan['v3']['baseline'][str(pid)], 'Ledger/catalog changed since approval; refresh movement review before any further write.')
+        require(v.baseline(s,pid,own,own_lots)==plan['v3']['baseline'][str(pid)], 'Ledger/catalog changed since approval; refresh movement review before any further write.')
+    open_short = {}
+    for e in s.get('shortages', []):
+        if e['status'] in ('open', 'escalated'):
+            open_short.setdefault(e['lot_id'], []).append(e['id'])
     for r in plan['rows']:
-        p=products.get(r['pid']);lot=lots.get(r['lid'])
-        require(p and lot and p['name']==r['name'] and (p.get('odoo_code') or '')==r['SKU'] and p['type']==r['product_type'] and v.native(p)==r['ledger_unit'], 'Product identity/unit changed.')
-        require(lot['product_id']==r['pid'] and lot['lot_code']==r['lot_code'],'Lot identity changed.')
+        p=products.get(r['pid'])
+        require(p and p['name']==r['name'] and (p.get('odoo_code') or '')==r['SKU'] and p['type']==r['product_type'] and v.native(p)==r['ledger_unit'], 'Product identity/unit changed.')
+        if r.get('new_lot'):
+            require((p.get('kosher_tier') or 'regular') == f.EXTRA_KOSHER, 'Product is no longer extra-kosher.')
+            same = [l for l in lots.values() if l['product_id'] == r['pid'] and l['lot_code'].casefold() == r['lot_code'].casefold()]
+            require(len(same) == (1 if r['lid'] in completed else 0), 'New lot code is already in use; refresh the preview.')
+            require(not any(e['product_id'] == r['pid'] and e['status'] in ('open', 'escalated') for e in s.get('shortages', [])),
+                    'Open shortage on an extra-kosher product; FL refuses the found load.')
+            continue
+        lot=lots.get(r['lid'])
+        require(lot and lot['product_id']==r['pid'] and lot['lot_code']==r['lot_code'],'Lot identity changed.')
         if r['change']:
             require(p.get('active') is True and not p.get('is_service'), 'Inactive/service item cannot be adjusted.')
             require(lot.get('status') in ('active',None) and not lot.get('merged_into_lot_id'),'Merged/inactive lot cannot be adjusted.')
-            require(r['SKU'] and [p2['id'] for p2 in s['catalog'] if p2.get('odoo_code')==r['SKU']]==[r['pid']],'SKU must be unique by exact field match.')
             require(sum(l['product_id']==r['pid'] and l['lot_code'].casefold()==r['lot_code'].casefold() for l in lots.values())==1,'Case-insensitive lot ambiguity.')
+            if r['lid'] not in completed:
+                require(sorted(open_short.get(r['lid'], [])) == sorted(r.get('resolves_shortage_ids') or []),
+                        f'Lot {r["lot_code"]}: open shortages changed since the preview; refresh it.')
     a=v.analyze(s,plan['data'],own)
-    actual={(r['product_id'],r['lot_id']):r for r in a['rows']}
+    actual={(r['product_id'],r['lot_code']):r for r in a['rows']}
     require(not a['general'],'General reconciliation exception.')
     for r in plan['rows']:
-        x=actual.get((r['pid'],r['lid']))
+        x=actual.get((r['pid'],r['lot_code']))
         require(x and x['status']=='READY','Count/movement review is held on recheck.')
         for key in ('physical_count_native','internal_move_correction_native','post_count_movement_native','expected_current_lb'):
             require(close(r[key],x[key]),'Recomputed count/movement differs from signed preview.')
         for key in ('row_cutoffs','cutoff','estimated','reason','ledger_unit','backfill'):
             require(r[key]==x[key],'Count cutoff, estimate or posting metadata changed.')
-        require(close(x['adjustment_lb'],0 if r['lid'] in completed else r['change']),'Recomputed adjustment differs from approval.')
-        require(close(x['current_lb'],f.number(r['current_lb'])+(r['change'] if r['lid'] in completed else 0)),'Balance drift.')
-    return completed
+        done = r['lid'] in completed
+        require(close(x['adjustment_lb'],0 if done else r['change']),'Recomputed adjustment differs from approval.')
+        require(close(x['current_lb'],f.number(r['current_lb'])+(r['change'] if done else 0)),'Balance drift.')
+    return completed, held
 
 
 class LiveBackendV3(LiveBackend):
+    """Ticket-era client for one explicit target. Only call() can write."""
+    def __init__(self, target='production'):
+        self.config = f.target_config(target)
+
+    def read_json(self, sql, variables=()):
+        require(sql == ACTOR_SQL and len(variables) == 2 and variables[0] == '-v' and
+                re.fullmatch(r'actor_hash=[0-9a-f]{64}', variables[1]), 'Only the fixed actor lookup is allowed.')
+        try:
+            env = dict(os.environ, DATABASE_URL=f.target_database_url(self.config['name']), PGCONNECT_TIMEOUT='15')
+            env.pop('PGOPTIONS', None)
+            result = subprocess.run([str(f.WRAPPER), '-X', '-qAt', '-v', 'ON_ERROR_STOP=1', *variables],
+                                    input=sql, text=True, capture_output=True, cwd=f.ROOT, env=env, timeout=60)
+            require(result.returncode == 0, 'Read-only query failed; details suppressed.')
+            return json.loads(result.stdout, parse_float=f.D)
+        except (OSError, ValueError, subprocess.SubprocessError):
+            raise RuntimeError('Read-only database lookup failed; details suppressed.') from None
+
     def snapshot(self):
         import fresh_start_v3 as v
-        return v.snapshot()
+        return v.snapshot(self.config['name'])
+
+    def call(self, key, route, body):
+        """(HTTP status, parsed JSON) for 200/202 and structured 4xx; anything else raises."""
+        require(route in ('/auth/whoami', '/adjust/prepare', '/inventory/found/prepare') or
+                re.fullmatch(r'/tickets/wt_[A-Za-z0-9_-]{20,100}/commit', route) or
+                re.fullmatch(r'/exceptions/[1-9]\d*/approve', route), 'Unsupported API route.')
+        req = Request(self.config['api'] + route, data=json.dumps(body).encode() if body is not None else None,
+                      headers={'X-API-Key': key, 'Content-Type': 'application/json'},
+                      method='POST' if body is not None else 'GET')
+        from urllib.error import HTTPError
+        try:
+            with build_opener(ProxyHandler({}), NoRedirect()).open(req, timeout=45) as response:
+                require(response.status in (200, 202), 'Uncertain API response.')
+                result = json.load(response, parse_float=f.D)
+                require(isinstance(result, dict), 'Malformed API response.')
+                return response.status, result
+        except HTTPError as error:
+            if 400 <= error.code < 500:
+                try:
+                    return error.code, json.load(error, parse_float=f.D)
+                except ValueError:
+                    return error.code, {}
+            raise RuntimeError('API outcome failed or uncertain. Stopped; no automatic retry; details suppressed.') from None
+        except Exception:
+            raise RuntimeError('API outcome failed or uncertain. Stopped; no automatic retry; details suppressed.') from None
+
+
+def error_code(body):
+    detail = body.get('detail') if isinstance(body, dict) else None
+    code = detail.get('error_code') if isinstance(detail, dict) else body.get('error_code') if isinstance(body, dict) else None
+    return code if isinstance(code, str) and ERROR_CODE.fullmatch(code) else 'UNKNOWN'
+
+
+def signed_duplicates(plan, r, body):
+    """POSSIBLE_DUPLICATE warnings the signed preview already answers: the matching
+    posting is a ledger line of this product that the preview was computed from
+    (its baseline is re-proved unchanged before every write). Anything else stops."""
+    known = {x['transaction_id'] for x in plan['v3_lines'] if x['product_id'] == r['pid']}
+    acks = []
+    for w in body.get('warnings') or []:
+        if not w.get('requires_ack'):
+            continue
+        refs = w.get('refs') or {}
+        require(w.get('code') == 'POSSIBLE_DUPLICATE' and refs.get('transaction_id') in known,
+                f'Prepared draft needs acknowledgement ({w.get("code")}) for a posting the signed preview does not show; '
+                'the executor never acknowledges that for you. Stop and review.')
+        acks.append('POSSIBLE_DUPLICATE')
+    return sorted(set(acks))
+
+
+def check_draft(r, status, body):
+    require(status == 200, f'Prepare refused ({error_code(body)}); nothing posted. Refresh the preview.')
+    d = body.get('draft') or {}
+    require(body.get('can_commit') is True and not body.get('blockers') and TICKET.fullmatch(str(body.get('ticket', ''))) and
+            type(body.get('ticket_id')) is int and isinstance(body.get('payload_hash'), str),
+            'Prepared draft is blocked or malformed; nothing posted.')
+    if r.get('new_lot'):
+        require(d.get('product_id') == r['pid'] and d.get('lot_code') == r['lot_code'] and d.get('lot_exists') is False and
+                close(d.get('quantity'), r['change']) and d.get('kosher_tier') == f.EXTRA_KOSHER and
+                (d.get('kosher_approval') or {}).get('required') is True, 'Found draft differs from the approved new lot.')
+    else:
+        require(d.get('product_id') == r['pid'] and d.get('lot_id') == r['lid'] and d.get('lot_code') == r['lot_code'] and
+                close(d.get('delta_lb'), r['change']) and d.get('reason_code') == 'physical_count' and
+                close(d.get('current_quantity_lb'), r['current_lb']) and
+                sorted(d.get('resolves_shortage_ids') or []) == sorted(r.get('resolves_shortage_ids') or []) and
+                bool((d.get('correction_review') or {}).get('photo_required')) == ('LARGE_CORRECTION' in (r.get('owner_approvals') or [])),
+                'Adjust draft differs from the approved plan (balance, shortage or hold prediction).')
+    return body
+
+
+def check_posted(r, body):
+    require(type(body.get('transaction_id')) is int and body['transaction_id'] > 0 and
+            RECEIPT.fullmatch(str(body.get('receipt_number', ''))) and body.get('reason_code') == 'physical_count',
+            'Commit did not return a valid receipt.')
+    if r.get('new_lot'):
+        require(body['receipt_number'].startswith('FND-') and body.get('lot_code') == r['lot_code'] and
+                close(body.get('quantity'), r['change']) and body.get('kosher_tier') == f.EXTRA_KOSHER and
+                body.get('kosher_attested_by_actor_id'), 'Found receipt differs from the approved new lot.')
+    else:
+        require(body['receipt_number'].startswith('ADJ-') and body.get('lot_code') == r['lot_code'] and
+                close(body.get('adjustment_lb'), r['change']) and close(body.get('new_balance_lb'), r['planned_balance_lb']),
+                'Adjust receipt differs from the approved plan.')
+        closed = sorted(c.get('exception_id') for c in body.get('shortages_closed') or [])
+        require(closed == sorted(r.get('resolves_shortage_ids') or []), 'Shortages closed differ from the approved plan.')
+    return body
+
+
+def post_lot(plan, backend, key, journal, r, before, resume_ticket=None):
+    """Prepare → commit (→ owner approval of a signed hold). Every write has a durable intent first."""
+    if resume_ticket is None:
+        status, draft = backend.call(key, '/inventory/found/prepare' if r.get('new_lot') else '/adjust/prepare', ticket_payload(r))
+        check_draft(r, status, draft)
+        acks = signed_duplicates(plan, r, draft)
+        known = sorted({x['transaction_id'] for x in before['lines'] if x['product_id'] == r['pid']})
+        journal.start()
+        intent = journal.append(kind='intent', phase='commit', lot_id=r['lid'], product_id=r['pid'], ticket_id=draft['ticket_id'],
+                                payload=ticket_payload(r), payload_hash=draft['payload_hash'], acknowledged_warnings=acks,
+                                known_transaction_ids=known, server_snapshot_at=before['snapshot_at'])
+        try:
+            status, body = backend.call(key, '/tickets/' + draft['ticket'] + '/commit',
+                                        {'payload_hash': draft['payload_hash'], 'acknowledged_warnings': acks})
+        except Exception:
+            journal.append(kind='receipt', intent=intent['seq'], outcome='uncertain', transaction_id=None)
+            raise RuntimeError('Write request failed or uncertain. Stopped; preserve journal.jsonl; a rerun proves it by ticket.') from None
+        ticket_id = draft['ticket_id']
+        if status == 200:
+            try:
+                check_posted(r, body)
+            except RuntimeError:
+                journal.append(kind='receipt', intent=intent['seq'], outcome='uncertain', transaction_id=None)
+                raise
+            journal.append(kind='receipt', intent=intent['seq'], outcome='ok', transaction_id=body['transaction_id'],
+                           receipt_number=body['receipt_number'])
+            return body
+        code = error_code(body)
+        if status != 202 or not body.get('held') or HOLD_KINDS.get(body.get('error_code')) is None:
+            journal.append(kind='receipt', intent=intent['seq'], outcome='refused', transaction_id=None, error_code=code)
+            raise RuntimeError(f'Commit refused ({code}); nothing posted for this lot. Refresh the preview.')
+        kind = HOLD_KINDS[body['error_code']]
+        exception_id = body.get('exception_id')
+        journal.append(kind='receipt', intent=intent['seq'], outcome='held', transaction_id=None, hold=kind,
+                       exception_id=exception_id if type(exception_id) is int else None)
+    else:
+        ticket_id = resume_ticket
+        held = [e for e in before.get('held_exceptions', []) if e['ticket_id'] == ticket_id and e['status'] in ('open', 'escalated')]
+        require(len(held) == 1, 'Held ticket has no single open owner exception; manual review.')
+        kind, exception_id = held[0]['kind'], held[0]['id']
+    require(kind in (r.get('owner_approvals') or []) and plan['approve_held'],
+            f'FL held this lot for {kind}, which the signed approval does not cover; it stays held for the owner.')
+    require(type(exception_id) is int and exception_id > 0, 'Held response has no exception to approve.')
+    intent = journal.append(kind='intent', phase='approve', lot_id=r['lid'], product_id=r['pid'], ticket_id=ticket_id,
+                            exception_id=exception_id, hold=kind)
+    note = f'Cutover physical count reset approved by {plan["owner"]} in signed preview {plan["sha"][:16]}'
+    try:
+        status, body = backend.call(key, f'/exceptions/{exception_id}/approve', {'note': note})
+    except Exception:
+        journal.append(kind='receipt', intent=intent['seq'], outcome='uncertain', transaction_id=None)
+        raise RuntimeError('Owner approval failed or uncertain. Stopped; preserve journal.jsonl; a rerun proves it by ticket.') from None
+    if status != 200:
+        journal.append(kind='receipt', intent=intent['seq'], outcome='refused', transaction_id=None, error_code=error_code(body))
+        raise RuntimeError(f'Owner approval refused ({error_code(body)}); the entry stays held.')
+    try:
+        check_posted(r, body)
+    except RuntimeError:
+        journal.append(kind='receipt', intent=intent['seq'], outcome='uncertain', transaction_id=None)
+        raise
+    journal.append(kind='receipt', intent=intent['seq'], outcome='ok', transaction_id=body['transaction_id'],
+                   receipt_number=body['receipt_number'])
+    return body
+
+
+def readback_rows(plan, s, completed):
+    lots = {l['id']: l for l in s['lots']}
+    balance = {}
+    for x in s['lines']:
+        if x['effective_status'] == 'posted':
+            balance[x['lot_id']] = balance.get(x['lot_id'], f.ZERO) + f.number(x['quantity_lb'])
+    rows = []
+    for r in plan['rows']:
+        x = completed.get(r['lid'])
+        lot_id = x['lot_id'] if x else (r['lid'] if not r.get('new_lot') else None)
+        rows.append(dict(product_id=r['pid'], name=r['name'], lot_code=r['lot_code'], new_lot=bool(r.get('new_lot')),
+                         change=r['change'], receipt_number=x['receipt_number'] if x else '', transaction_id=x['transaction_id'] if x else '',
+                         balance_now=balance.get(lot_id, f.ZERO) if lot_id else f.ZERO, planned=r['planned_balance_lb'],
+                         owner_holds=','.join(r.get('owner_approvals') or []),
+                         shortages_closed=','.join(map(str, r.get('resolves_shortage_ids') or [])) if x else '',
+                         kosher_tier=lots.get(lot_id, {}).get('kosher_tier', '') if lot_id else '',
+                         status='POSTED' if x else ('NO CHANGE' if not r['change'] else 'NOT POSTED')))
+    return rows
+
+
+def run_v3(plan, apply=False, backend=None, input_fn=input):
+    import time
+    config = f.target_config(plan['target'])
+    backend = backend or LiveBackendV3(plan['target'])
+    journal_root = f.OUT / config['state'] if JOURNAL_ROOT == f.OUT / 'apply-state' else JOURNAL_ROOT
+    results_root = f.OUT / config['results'] if RESULTS == f.OUT / 'apply-results' else RESULTS
+    key_file = config['key'] if KEY_FILE == TARGET_DEFAULT_KEY else KEY_FILE
+    fd = os.open(LOCK, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, 'a') as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise RuntimeError('Another reset process holds the lock; stop.') from None
+        journal = Journal(journal_root / plan['sha'] / 'journal.jsonl', plan)
+        timings = dict(started=time.monotonic())
+        completed, held = preflight_v3(plan, backend.snapshot(), journal)
+        pending = [r for r in plan['rows'] if r['change'] and r['lid'] not in completed]
+        key = read_key(key_file)
+        require(backend.actor(key) == plan['actor'], 'Key is not the owner-approved named actor; shared/master keys are refused.')
+        print(f'Target: {plan["target"].upper()}  ({config["api"]})')
+        if plan.get('area_group'):
+            print('Area group: ' + ', '.join(plan['area_group']))
+        print(f'Approved preview SHA-256: {plan["sha"]}')
+        print(f'Journal (preserve for reruns): {journal.path}')
+        print(f'{len(completed)} posted reset entries proved; {len(pending)} remaining ({len(held)} held for the owner).')
+        for r in pending:
+            extra = ('; NEW extra-kosher lot via found ticket' if r.get('new_lot') else '') + \
+                    (f'; owner hold: {",".join(r["owner_approvals"])}' if r.get('owner_approvals') else '') + \
+                    (f'; closes shortage(s) {",".join(map(str, r["resolves_shortage_ids"]))}' if r.get('resolves_shortage_ids') else '')
+            print(f'Product {r["pid"]} / lot {r["lot_code"]}: {f.fmt(r["current_lb"])} + ({f.fmt(r["change"])}) = {f.fmt(r["planned_balance_lb"])} {r.get("ledger_unit", "lb")}; cutoff {r["cutoff"]}{extra}')
+        if not apply:
+            print('DRY RUN ONLY: no API calls, no inventory changes. Named actor verified by read-only lookup.')
+            return 0
+        phrase = f'APPLY OPENING BALANCE {plan["cutoff"].astimezone(f.PLANT).date()} {plan["sha"]}'
+        print('PAUSE POSTING in this area now. Type exactly: ' + phrase)
+        require(input_fn('Confirmation: ') == phrase, 'Confirmation did not match; no API calls were made.')
+        timings['confirmed'] = time.monotonic()
+        unchanged(plan)
+        completed, held = preflight_v3(plan, backend.snapshot(), journal)
+        if pending:
+            status, who = backend.call(key, '/auth/whoami', None)
+            require(status == 200 and who.get('key_kind') == 'actor' and isinstance(who.get('actor'), dict) and
+                    who['actor'].get('name') == plan['actor'], 'Shared/master or wrong named key refused.')
+            before = backend.snapshot()
+            for r in plan['rows']:
+                if not r['change'] or r['lid'] in completed:
+                    continue
+                # The previous lot's read-back snapshot (taken just now) is this lot's
+                # pre-write state; it is re-proved here before anything is sent.
+                completed, held = preflight_v3(plan, before, journal)
+                if r['lid'] in completed:
+                    continue
+                lot_started = time.monotonic()
+                body = post_lot(plan, backend, key, journal, r, before, held.get(r['lid']))
+                before = backend.snapshot()
+                completed, held = preflight_v3(plan, before, journal)
+                require(r['lid'] in completed, 'Posted entry did not read back; stop.')
+                timings.setdefault('per_lot', []).append(round(time.monotonic() - lot_started, 1))
+                print(f'Read back {body["receipt_number"]}: product {r["pid"]} lot {r["lot_code"]} TX{completed[r["lid"]]["transaction_id"]} by {plan["actor"]}.')
+        timings['posted'] = time.monotonic()
+        del key
+        s = backend.snapshot()
+        completed, held = preflight_v3(plan, s, journal)
+        output = results_root / plan['sha']
+        output.mkdir(parents=True, exist_ok=True)
+        rows = readback_rows(plan, s, completed)
+        with (output / 'readback.csv').open('w', newline='') as stream:
+            writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+            writer.writeheader()
+            writer.writerows({k: (f.fmt(v) if isinstance(v, f.D) else v) for k, v in row.items()} for row in rows)
+        print('READ-BACK (check each receipt against the count sheet):')
+        for row in rows:
+            if row['status'] != 'NO CHANGE':
+                print(f'  {row["receipt_number"] or "-":>16}  {row["product_id"]} / {row["lot_code"]}  change {f.fmt(row["change"])}  balance now {f.fmt(row["balance_now"])}  {row["status"]}')
+        import fresh_start_v3 as v
+        a = v.analyze(s, plan['data'], {x['line_id'] for x in completed.values()}, plan.get('area_group'))
+        timings['verified'] = time.monotonic()
+        spent = {k: round(timings[k] - timings['started'], 1) for k in timings if k not in ('started', 'per_lot')}
+        spent['per_lot_s'] = timings.get('per_lot', [])
+        (output / 'timings.json').write_text(json.dumps(dict(spent, posts=sum(r['status'] == 'POSTED' for r in rows)), indent=2) + '\n')
+        print(f'Executor seconds from start: {spent}')
+        return v.report(a, output, verify=True)
 
 
 def main():
@@ -644,10 +982,13 @@ def main():
     parser.add_argument('--approval', default=str(f.OUT / 'approval.md'))
     parser.add_argument('--count-csv', required=True, help='Original filled count CSV; must match the preview input SHA-256.')
     parser.add_argument('--apply', action='store_true', help='Enable live API requests only after the exact typed phrase.')
+    parser.add_argument('--target', choices=sorted(f.TARGETS), help='v3: must match the preview target (production or staging).')
     args = parser.parse_args()
     if args.apply:
         require(sys.stdin.isatty(), '--apply requires an interactive terminal; piped confirmation is refused.')
-    return run(args.preview_csv, args.approval, args.count_csv, args.apply)
+    if f.local_path(args.preview_csv).suffix == '.json':
+        require(args.target, 'v3: name the target explicitly with --target production|staging.')
+    return run(args.preview_csv, args.approval, args.count_csv, args.apply, target=args.target)
 
 
 if __name__ == '__main__':

@@ -37,3 +37,11 @@ docs/design/audit/pr-screenshots/feat-runs-screen/*
 !docs/design/audit/pr-screenshots/feat-runs-screen/*.log
 docs/design/audit/pr-screenshots/feat-runs-screen/*-results.json
 docs/design/audit/pr-screenshots/feat-runs-screen/*-summary.json
+
+# Fresh-start executor state and staging rehearsal working files (local only).
+audits/fresh-start/apply-state*/
+audits/fresh-start/apply-results*/
+audits/fresh-start/.apply-reset.lock
+audits/fresh-start/v3/rehearsal/
+audits/fresh-start/v3/count-sheet-v3-pagination.json
+audits/fresh-start/v3/scope-products-and-lots.csv

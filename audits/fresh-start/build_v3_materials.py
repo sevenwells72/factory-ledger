@@ -1,5 +1,11 @@
-"""Offline blind materials and scope report. No database/API/write-to-FL path."""
-import csv,json,re
+"""Offline blind materials and scope report. No database/API/write-to-FL path.
+
+--catalog PATH replaces the saved snapshot's product list with a later read-only
+catalog export (products only), e.g. v3/raw/catalog-2026-10-13.json after A12
+renamed 283-290. Lots/lines for the office scope report still come from the saved
+snapshot. README.md is maintained by hand; its numbered steps print on page 1.
+"""
+import argparse,csv,json,re,sys
 from pathlib import Path
 from collections import defaultdict,Counter
 from decimal import Decimal as D
@@ -12,7 +18,12 @@ from reportlab.lib import colors
 BASE=Path(__file__).resolve().parent
 V=BASE/'v3'
 S=json.loads((V/'raw/01-scope.json').read_text(),parse_float=D)
-COUNT_COLUMNS=['sheet_id','area','count_date','counter','start_time','end_time','row_id','product_id','SKU','name','row_kind','lot_code','quantity','unit','partial_cases','location','bin_id','counted_time','estimated','tag_id','physical_marker','notes']
+ARGS=argparse.ArgumentParser(description=__doc__);ARGS.add_argument('--catalog');ARGS=ARGS.parse_args()
+if ARGS.catalog:
+ S['catalog_source']=ARGS.catalog;S['products']=json.loads(Path(ARGS.catalog).read_text(),parse_float=D)
+sys.path.insert(0,str(BASE))
+from fresh_start_common import BULK_LB_FINISHED
+from fresh_start_v3 import COUNT_COLUMNS   # includes the duplicate tick column
 MOVE_COLUMNS=['move_id','product_id','SKU','lot_code','quantity','unit','from_area','from_location','to_area','to_location','moved_at','tag_id','fl_transaction_id','notes']
 
 def category(p):
@@ -24,7 +35,8 @@ def category(p):
  return '06 Finished goods - all customers'
 
 def unit(p):
- if p['type']=='finished':return 'cases'
+ # Owner decision 2026-10-13: extra-kosher bulk per lb (285/288) is counted in lb.
+ if p['type']=='finished':return 'lb' if p['id'] in BULK_LB_FINISHED else 'cases'
  u=p.get('uom') or 'lb'
  return 'lb' if re.search(r'(?<![a-z])(?:lbs?|pounds?)(?![a-z])',u,re.I) else u
 
@@ -80,7 +92,7 @@ report=f'''# All-inventory scope check - v3
 
 **Plain-English summary:** Count all physical inventory, by item, printed lot and actual location, while production continues. FL has **{len(products)} catalog products and {len(S['lots'])} lot records** in this read-only snapshot. Packaging is present in the catalog, but **30 of its 32 products have no lots or posted movement history**. Count what is found. Packaging is information only and excluded from the reset; Pallets 102 and Pallet Charge 176 are excluded billing items. Reset scope is **178 products**; the **32 packaging/billing products** have a separate information-only report. Missing FL records for reset-scope stock are holds, never permission to create lots or discard stock. This v3 count replaces the October 5 ingredient-total proposal and the v2 frozen-count instructions.
 
-Snapshot: {S['snapshot_at']}. Fixed query `queries/01-scope.sql`, `BEGIN; SET TRANSACTION READ ONLY; ... ROLLBACK;`, port 5432; rollback confirmed. No writes/API calls. The category groupings below are suggested work groups, **not a verified physical location map**. Arturo fills actual Area and Location on every sheet/row, duplicating blank sheets for additional areas with new sheet and row IDs.
+Snapshot: {S['snapshot_at']}.{(' Product names, units and kosher tiers from the later read-only catalog export `'+Path(S['catalog_source']).name+'`.') if S.get('catalog_source') else ''} Fixed query `queries/01-scope.sql`, `BEGIN; SET TRANSACTION READ ONLY; ... ROLLBACK;`, port 5432; rollback confirmed. No writes/API calls. The category groupings below are suggested work groups, **not a verified physical location map**. Arturo fills actual Area and Location on every sheet/row, duplicating blank sheets for additional areas with new sheet and row IDs.
 
 {table(['Suggested work group','Products','Active products','All lots','Active lots','Nonzero lots'],counts)}
 
@@ -99,24 +111,7 @@ No standalone label product, consumable product, location/bin master, container 
 The complete identity inventory is in `scope-products-and-lots.csv` (office use). All historical/merged lot identities remain visible there; counters write the lot physically printed, with no FL quantities or suggested lot defaults on the floor sheet.
 '''
 (V/'scope-check.md').write_text(report)
-README='''# Live physical count - Arturo and helpers (v3)
-
-**Count everything you physically find, one area at a time, while production continues. Write the item, printed lot, quantity and location. The office will compare the count to FL afterward. Use v3 only; the October 5 ingredient-total plan and older freeze instructions are superseded.**
-
-**October 6 owner decision:** Keep counting packaging (bags, boxes, tape, cases and labels) for information. Packaging and billing items Pallets 102 / Pallet Charge 176 will not be reset. Count physical pallets once; a billing charge is not another pallet. The office keeps these counts in a separate information-only report. The issued blind floor sheets remain valid.
-
-1. **Start an area.** Write Area, date, Counter and actual Start time before counting; write End time when finished. On every row write time counted (HH:MM), exact printed lot, quantity and unit, Location and Bin ID if marked. If another area needs the same item, copy a blank sheet and assign a new sheet/row ID. Do not invent official location names.
-2. **Record every movement promptly.** Every make, pack, shipment, receipt, transfer, adjustment or other movement during count days must be entered in FL as it happens, or with its true occurred time. No end-of-day batch entry. If FL cannot record a location-only move, log it immediately on “Moved during count”; never invent a stock adjustment for an internal move.
-3. **Tag counted stock.** Mark each counted pallet/container COUNTED with sheet/row and time. For any move between a counted and uncounted area, in either direction, log item, lot, quantity/unit, from/to, time and tag ID. Production pulls still need their normal FL movement with the true time. The transfer log supplements FL; it does not replace it.
-4. **Avoid doubles and omissions.** Try to count every location of an item in the same session. Each area's rows keep their own times. Check tags before recounting a pallet. If there is no tag and you are unsure, count it and write “possible duplicate”. The office will hold it for review.
-5. **Use the right units.** Ingredients/bulk: net lb. Without a scale weight, tick Estimated; opened bags/pails are estimated to the nearest 5 lb. Subtract known tare only; note unknown tare. Finished goods: whole cases plus loose packs as “X of Y”. Packaging: pieces/units, with package conversion in notes. Container WIP: count containers, and note weight separately if measured.
-6. **Unreadable or missing lot?** Use an Unidentified lot row: leave lot blank, write quantity/unit, description and location. Do not guess or create a lot. Use the Other sheet for items absent from the catalog, including labels and supplies. Blank rows do not mean zero.
-7. **Sunshine pouches are ordinary finished-goods counts:** SKU, physical lot, quantity and location. Only copy a physical hold/sold/customer tag if present. Do not decide ownership or invoicing on the floor. Record each physical stack once.
-8. **Finish and hand in.** Photograph every page and movement log, then transcribe without overwriting originals. Return the sheet register. Mark a product's coverage complete only after all its locations have been searched; record actual completion time. The owner resolves movement timing, duplicates and missing identities before approving any adjustment. Production need not wait for the whole review. No fixed waiting period after count: prepare the reset as soon as reviewed.
-
-Print `v3/count-sheet-v3.pdf` landscape, actual size. It contains these instructions, area-grouped blank count sheets, an Other sheet and a movement log. Use the matching `v3/count-sheet-v3.csv`, `sheet-register-v3.csv`, `count-coverage-v3.csv` and `moved-during-count-v3.csv`. No FL balances appear on the floor packet. Keep office scope/preview reports away from counters.
-'''
-(BASE/'README.md').write_text(README)
+README=(BASE/'README.md').read_text()
 # A single print packet: one-page instructions, area-grouped sheets, catch-all and moves.
 w,h=landscape(letter);c=canvas.Canvas(str(V/'count-sheet-v3.pdf'),pagesize=(w,h),invariant=1)
 c.setTitle('All inventory - live blind count v3');c.setAuthor('CNS')
@@ -128,13 +123,13 @@ def footer(n):
 text(c,'LIVE PHYSICAL COUNT',24,h-35,23,True)
 text(c,'Arturo and helpers - production continues',24,h-57,13)
 y=h-78
-for para_text in [line for line in README.splitlines() if re.match(r'^[1-8]\.',line)]:
+for para_text in [line for line in README.splitlines() if re.match(r'^[1-9]\.',line)]:
  para_text=para_text.replace('**','').replace('`','')
  y-=para(c,para_text,24,y,w-48,11)+11
 assert y>30,y
 footer(1)
-colwidths=[74,78,55,67,124,65,62,50,169]
-headers=['Row / type','Lot as printed','Qty','Unit / partials','Location','Bin / tag','Time HH:MM','Est.','Notes / physical marker only']
+colwidths=[74,78,55,67,124,65,62,40,40,139]
+headers=['Row / type','Lot as printed','Qty','Unit / partials','Location','Bin / tag','Time HH:MM','Est.','Dup?','Notes / physical marker only']
 assert sum(colwidths)==w-48
 
 def header(sid,group):
@@ -151,11 +146,11 @@ def draw_rows(rs,top):
  y=top-30
  for r in rs:
   x=24
-  vals=[r['row_id']+(' UNID' if r['row_kind']=='UNIDENTIFIED' else ''),'','','','','','','','']
+  vals=[r['row_id']+(' UNID' if r['row_kind']=='UNIDENTIFIED' else ''),'','','','','','','','','']
   for j,(value,ww) in enumerate(zip(vals,colwidths)):
    c.setStrokeColor(colors.HexColor('#8c9aa3'));c.rect(x,y-35,ww,35,stroke=1,fill=0)
    if value:para(c,value,x+3,y-3,ww-6,8)
-   if j==7:c.rect(x+20,y-20,10,10,stroke=1,fill=0)
+   if j in (7,8):c.rect(x+15,y-20,10,10,stroke=1,fill=0)
    x+=ww
   y-=35
  return y
