@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict XaPsfTXvQYUEHaAzVXcRiJVaN9zvto2nZ7sBb7XwOOZm9mfHMGuOyxJCLf8SPIy
+\restrict 9BA4RS58E5zdxgjZbdz2DITIIaB3GgzjKSU2Yj88aiuKY9j3d4Jf5yYhRAFs28D
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.10 (Homebrew)
@@ -86,23 +86,20 @@ END $$;
 
 CREATE FUNCTION public.generate_order_number() RETURNS trigger
     LANGUAGE plpgsql
-    AS $$
+    AS $_$
 DECLARE
-    today_prefix TEXT;
-    seq INTEGER;
+    today_prefix text := 'SO-' || to_char(CURRENT_DATE, 'YYMMDD');
+    allocated bigint;
 BEGIN
-    today_prefix := 'SO-' || to_char(CURRENT_DATE, 'YYMMDD');
-    SELECT COALESCE(MAX(
-        CAST(SPLIT_PART(order_number, '-', 3) AS INTEGER)
-    ), 0) + 1
-    INTO seq
-    FROM sales_orders
-    WHERE order_number LIKE today_prefix || '-%';
-
-    NEW.order_number := today_prefix || '-' || LPAD(seq::TEXT, 3, '0');
+    INSERT INTO public.sales_order_number_counters(order_day, last_number)
+    SELECT CURRENT_DATE, COALESCE(MAX(split_part(order_number, '-', 3)::bigint), 0) + 1
+    FROM public.sales_orders WHERE order_number ~ ('^' || today_prefix || '-[0-9]+$')
+    ON CONFLICT (order_day) DO UPDATE
+        SET last_number = GREATEST(sales_order_number_counters.last_number + 1, EXCLUDED.last_number)
+    RETURNING last_number INTO allocated;
+    NEW.order_number := today_prefix || '-' || lpad(allocated::text, GREATEST(3, length(allocated::text)), '0');
     RETURN NEW;
-END;
-$$;
+END $_$;
 
 
 --
@@ -208,6 +205,46 @@ BEGIN
     RETURN NEW;
 END;
 $$;
+
+
+--
+-- Name: lot_kosher_tier_guard(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.lot_kosher_tier_guard() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+    IF TG_OP='INSERT' THEN
+        SELECT kosher_tier INTO NEW.kosher_tier FROM products WHERE id=NEW.product_id;
+    ELSIF NEW.kosher_tier IS DISTINCT FROM OLD.kosher_tier THEN
+        RAISE EXCEPTION 'LOT_KOSHER_TIER_IMMUTABLE';
+    END IF;
+    IF TG_OP='UPDATE' AND OLD.kosher_attested_by_actor_id IS NOT NULL
+       AND (NEW.kosher_attested_by_actor_id IS DISTINCT FROM OLD.kosher_attested_by_actor_id
+            OR NEW.kosher_attested_at IS DISTINCT FROM OLD.kosher_attested_at) THEN
+        RAISE EXCEPTION 'LOT_KOSHER_ATTESTATION_IMMUTABLE';
+    END IF;
+    RETURN NEW;
+END $$;
+
+
+--
+-- Name: protect_attachment_provenance(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.protect_attachment_provenance() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$ BEGIN
+ IF ROW(NEW.attachment_ref,NEW.kind,NEW.storage_path,NEW.sha256,NEW.content_type,NEW.bytes,NEW.uploaded_by_actor_id,NEW.created_at)
+ IS DISTINCT FROM ROW(OLD.attachment_ref,OLD.kind,OLD.storage_path,OLD.sha256,OLD.content_type,OLD.bytes,OLD.uploaded_by_actor_id,OLD.created_at)
+ OR (OLD.ticket_id IS NOT NULL AND NEW.ticket_id IS DISTINCT FROM OLD.ticket_id)
+ OR (OLD.shipment_id IS NOT NULL AND NEW.shipment_id IS DISTINCT FROM OLD.shipment_id)
+ OR (OLD.exception_id IS NOT NULL AND NEW.exception_id IS DISTINCT FROM OLD.exception_id) THEN
+  RAISE EXCEPTION 'attachment provenance is immutable';
+ END IF;
+ RETURN NEW;
+END $$;
 
 
 --
@@ -617,6 +654,137 @@ ALTER SEQUENCE public.allergens_id_seq OWNED BY public.allergens.id;
 
 
 --
+-- Name: assistant_attachment_links; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.assistant_attachment_links (
+    session_id uuid NOT NULL,
+    attachment_id bigint NOT NULL,
+    actor_id integer NOT NULL,
+    filename text NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL
+);
+
+
+--
+-- Name: assistant_drafts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.assistant_drafts (
+    id uuid NOT NULL,
+    session_id uuid NOT NULL,
+    actor_id integer NOT NULL,
+    ticket text NOT NULL,
+    payload_hash text NOT NULL,
+    card jsonb NOT NULL,
+    prepare_body jsonb DEFAULT '{}'::jsonb NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    result jsonb,
+    record_started_at timestamp with time zone,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT assistant_drafts_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'cancelled'::text, 'committed'::text])))
+);
+
+
+--
+-- Name: assistant_sessions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.assistant_sessions (
+    id uuid NOT NULL,
+    actor_id integer NOT NULL,
+    state jsonb DEFAULT '{"history": [], "resolved": {}}'::jsonb NOT NULL,
+    lease_id uuid,
+    lease_until timestamp with time zone,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    updated_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL
+);
+
+
+--
+-- Name: assistant_turns; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.assistant_turns (
+    session_id uuid NOT NULL,
+    id uuid NOT NULL,
+    request_hash text NOT NULL,
+    response jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL
+);
+
+
+--
+-- Name: assistant_unmatched_words; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.assistant_unmatched_words (
+    id bigint NOT NULL,
+    session_id uuid NOT NULL,
+    actor_id integer NOT NULL,
+    kind text NOT NULL,
+    query text NOT NULL,
+    context jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT assistant_unmatched_words_query_check CHECK ((length(query) <= 500))
+);
+
+
+--
+-- Name: assistant_unmatched_words_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.assistant_unmatched_words ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.assistant_unmatched_words_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: attachments; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.attachments (
+    id bigint NOT NULL,
+    attachment_ref text NOT NULL,
+    kind text NOT NULL,
+    storage_path text NOT NULL,
+    sha256 text NOT NULL,
+    content_type text NOT NULL,
+    bytes integer NOT NULL,
+    uploaded_by_actor_id integer NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    ticket_id bigint,
+    transaction_id integer,
+    shipment_id integer,
+    exception_id bigint,
+    extracted jsonb DEFAULT '{}'::jsonb NOT NULL,
+    CONSTRAINT attachments_bytes_check CHECK (((bytes > 0) AND (bytes <= 15728640))),
+    CONSTRAINT attachments_content_type_check CHECK ((content_type = ANY (ARRAY['image/jpeg'::text, 'image/png'::text, 'image/webp'::text, 'application/pdf'::text]))),
+    CONSTRAINT attachments_kind_check CHECK ((kind = ANY (ARRAY['bol'::text, 'truck_photo'::text, 'correction_photo'::text, 'lot_tag'::text, 'count_sheet'::text, 'signed_packing_slip'::text, 'other'::text]))),
+    CONSTRAINT attachments_sha256_check CHECK ((sha256 ~ '^[0-9a-f]{64}$'::text))
+);
+
+
+--
+-- Name: attachments_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.attachments ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.attachments_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: batch_formulas; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -931,7 +1099,7 @@ CREATE TABLE public.exceptions (
     resolution_ticket_id bigint,
     CONSTRAINT exceptions_detail_check CHECK ((jsonb_typeof(detail) = 'object'::text)),
     CONSTRAINT exceptions_escalated_needs_time CHECK (((status <> 'escalated'::text) OR (escalated_at IS NOT NULL))),
-    CONSTRAINT exceptions_kind_check CHECK (((kind = ANY (ARRAY['SHORTAGE'::text, 'UNIDENTIFIED_LOT'::text, 'LARGE_CORRECTION'::text, 'LATE_ENTRY'::text, 'SHIPMENT_PROOF_MISSING'::text, 'NEGATIVE_BALANCE'::text, 'POSSIBLE_DUPLICATE_ACK'::text, 'UNSHIPPED_PAST_DUE'::text, 'SUNSHINE_INVOICE_PENDING'::text, 'SHIFT_DISCREPANCY'::text])) OR (kind = 'PRE_MAKE_ADJUST'::text))),
+    CONSTRAINT exceptions_kind_check CHECK (((kind = ANY (ARRAY['SHORTAGE'::text, 'UNIDENTIFIED_LOT'::text, 'LARGE_CORRECTION'::text, 'LATE_ENTRY'::text, 'SHIPMENT_PROOF_MISSING'::text, 'NEGATIVE_BALANCE'::text, 'POSSIBLE_DUPLICATE_ACK'::text, 'UNSHIPPED_PAST_DUE'::text, 'SUNSHINE_INVOICE_PENDING'::text, 'SHIFT_DISCREPANCY'::text])) OR (kind = 'PRE_MAKE_ADJUST'::text) OR (kind = 'BOL_PHOTO_MISSING'::text) OR (kind = 'KOSHER_ATTESTATION'::text))),
     CONSTRAINT exceptions_resolved_needs_time CHECK (((status <> ALL (ARRAY['resolved'::text, 'waived'::text])) OR (resolved_at IS NOT NULL))),
     CONSTRAINT exceptions_severity_check CHECK ((severity = ANY (ARRAY['info'::text, 'warn'::text, 'block'::text]))),
     CONSTRAINT exceptions_status_check CHECK ((status = ANY (ARRAY['open'::text, 'resolved'::text, 'waived'::text, 'escalated'::text])))
@@ -969,6 +1137,7 @@ CREATE TABLE public.expected_receipts (
     created_by text,
     updated_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
     source_document_id integer,
+    ticket_id bigint,
     CONSTRAINT expected_receipts_expected_qty_check CHECK ((expected_qty > (0)::numeric)),
     CONSTRAINT expected_receipts_status_check CHECK ((status = ANY (ARRAY['open'::text, 'closed'::text, 'cancelled'::text])))
 );
@@ -1186,7 +1355,12 @@ CREATE TABLE public.transactions (
     ticket_id bigint,
     reason_code text,
     supplier_id integer,
-    entered_by_actor_id integer
+    entered_by_actor_id integer,
+    kosher_tier text DEFAULT 'regular'::text NOT NULL,
+    kosher_attested_by_actor_id integer,
+    kosher_attested_at timestamp with time zone,
+    transaction_kosher_downgrade boolean DEFAULT false NOT NULL,
+    CONSTRAINT transactions_kosher_tier_check CHECK ((kosher_tier = ANY (ARRAY['regular'::text, 'extra_kosher'::text])))
 );
 
 
@@ -1301,6 +1475,40 @@ SELECT
     NULL::text AS product,
     NULL::text AS type,
     NULL::numeric AS balance;
+
+
+--
+-- Name: lot_events; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.lot_events (
+    id bigint NOT NULL,
+    lot_id integer NOT NULL,
+    event text NOT NULL,
+    old jsonb,
+    new jsonb,
+    reason_code text,
+    happened_at timestamp with time zone NOT NULL,
+    entered_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    entered_by_actor_id integer,
+    ticket_id bigint,
+    transaction_id integer,
+    CONSTRAINT lot_events_event_check CHECK ((event = ANY (ARRAY['rename'::text, 'supplier_lot'::text, 'identified'::text, 'move'::text, 'ownership'::text, 'kosher_downgrade'::text])))
+);
+
+
+--
+-- Name: lot_events_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.lot_events ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.lot_events_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
 
 
 --
@@ -1446,7 +1654,11 @@ CREATE TABLE public.lots (
     identity_status text,
     identify_by date,
     supplier_id integer,
-    CONSTRAINT lots_identity_status_check CHECK ((identity_status = ANY (ARRAY['identified'::text, 'unidentified'::text])))
+    kosher_tier text DEFAULT 'regular'::text NOT NULL,
+    kosher_attested_by_actor_id integer,
+    kosher_attested_at timestamp with time zone,
+    CONSTRAINT lots_identity_status_check CHECK ((identity_status = ANY (ARRAY['identified'::text, 'unidentified'::text]))),
+    CONSTRAINT lots_kosher_tier_check CHECK ((kosher_tier = ANY (ARRAY['regular'::text, 'extra_kosher'::text])))
 );
 
 
@@ -1632,6 +1844,8 @@ CREATE TABLE public.products (
     no_production boolean DEFAULT false NOT NULL,
     pack_format text,
     low_stock_threshold numeric,
+    kosher_tier text DEFAULT 'regular'::text NOT NULL,
+    CONSTRAINT products_kosher_tier_check CHECK ((kosher_tier = ANY (ARRAY['regular'::text, 'extra_kosher'::text]))),
     CONSTRAINT products_low_stock_threshold_check CHECK (((low_stock_threshold IS NULL) OR (low_stock_threshold >= (0)::numeric))),
     CONSTRAINT products_pack_format_check CHECK (((pack_format IS NULL) OR (pack_format = ANY (ARRAY['10lb'::text, '25lb'::text, 'bagged'::text])))),
     CONSTRAINT products_type_check CHECK ((type = ANY (ARRAY['ingredient'::text, 'packaging'::text, 'batch'::text, 'finished'::text, 'consumable'::text])))
@@ -1658,6 +1872,7 @@ CREATE TABLE public.sales_order_lines (
     ordered_unit text,
     ordered_case_weight_lb numeric,
     amount numeric(18,2),
+    ticket_id bigint,
     CONSTRAINT sales_order_lines_line_status_check CHECK ((line_status = ANY (ARRAY['pending'::text, 'partial'::text, 'fulfilled'::text, 'cancelled'::text]))),
     CONSTRAINT sales_order_lines_quantity_lb_check CHECK ((quantity_lb >= (0)::numeric)),
     CONSTRAINT sales_order_lines_quantity_shipped_lb_check CHECK ((quantity_shipped_lb >= (0)::numeric))
@@ -1690,6 +1905,7 @@ CREATE TABLE public.sales_orders (
     related_so_id integer,
     status_before_exit text,
     external_order_reference text,
+    ticket_id bigint,
     CONSTRAINT sales_orders_external_reference_trimmed_check CHECK ((external_order_reference = btrim(external_order_reference))),
     CONSTRAINT sales_orders_state_check CHECK ((state = ANY (ARRAY['open'::text, 'closed'::text, 'cancelled'::text]))),
     CONSTRAINT sales_orders_state_reason_check CHECK (((state_reason IS NULL) OR (state_reason = ANY (ARRAY['shipped_recorded'::text, 'shipped_not_recorded'::text, 'short_closed'::text, 'customer_cancelled'::text, 'cns_declined'::text, 'duplicate'::text, 'superseded'::text, 'other'::text])))),
@@ -2232,6 +2448,17 @@ ALTER SEQUENCE public.sales_order_lines_id_seq OWNED BY public.sales_order_lines
 
 
 --
+-- Name: sales_order_number_counters; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.sales_order_number_counters (
+    order_day date NOT NULL,
+    last_number bigint NOT NULL,
+    CONSTRAINT sales_order_number_counters_last_number_check CHECK ((last_number > 0))
+);
+
+
+--
 -- Name: sales_order_shipments; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2340,6 +2567,43 @@ ALTER TABLE public.search_aliases ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTI
 
 
 --
+-- Name: shift_confirmations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.shift_confirmations (
+    id bigint NOT NULL,
+    business_date date NOT NULL,
+    actor_id integer NOT NULL,
+    outcome text NOT NULL,
+    notes text DEFAULT ''::text NOT NULL,
+    receipts_seen integer NOT NULL,
+    summary_hash text NOT NULL,
+    summary_snapshot jsonb NOT NULL,
+    exception_id bigint,
+    confirmed_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT shift_confirmations_check CHECK (((outcome <> 'discrepancy'::text) OR (btrim(notes) <> ''::text))),
+    CONSTRAINT shift_confirmations_outcome_check CHECK ((outcome = ANY (ARRAY['match'::text, 'discrepancy'::text]))),
+    CONSTRAINT shift_confirmations_receipts_seen_check CHECK ((receipts_seen >= 0)),
+    CONSTRAINT shift_confirmations_summary_hash_check CHECK ((length(summary_hash) = 64)),
+    CONSTRAINT shift_confirmations_summary_snapshot_check CHECK ((jsonb_typeof(summary_snapshot) = 'array'::text))
+);
+
+
+--
+-- Name: shift_confirmations_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.shift_confirmations ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.shift_confirmations_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: shipment_lines; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2386,7 +2650,14 @@ CREATE TABLE public.shipments (
     shipped_at timestamp with time zone NOT NULL,
     transaction_id integer,
     created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
-    created_at_source text DEFAULT 'database'::text NOT NULL
+    created_at_source text DEFAULT 'database'::text NOT NULL,
+    bol_reference text,
+    proof_status text,
+    proof_due_at timestamp with time zone,
+    ticket_id bigint,
+    entered_by_actor_id integer,
+    client_source text,
+    CONSTRAINT shipments_proof_status_check CHECK ((proof_status = ANY (ARRAY['complete'::text, 'photo_pending'::text])))
 );
 
 
@@ -2576,6 +2847,19 @@ ALTER TABLE public.supply_requests ALTER COLUMN id ADD GENERATED BY DEFAULT AS I
     NO MINVALUE
     NO MAXVALUE
     CACHE 1
+);
+
+
+--
+-- Name: ticket_attestations; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ticket_attestations (
+    ticket_id bigint NOT NULL,
+    kind text NOT NULL,
+    actor_id integer NOT NULL,
+    attested_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT ticket_attestations_kind_check CHECK ((kind = 'kosher_procedure'::text))
 );
 
 
@@ -3062,7 +3346,7 @@ CREATE TABLE public.write_tickets (
     response jsonb,
     acknowledged jsonb DEFAULT '[]'::jsonb NOT NULL,
     reject_reason text,
-    CONSTRAINT write_tickets_action_check CHECK (((action = ANY (ARRAY['receive'::text, 'make'::text, 'pack'::text, 'adjust'::text, 'found'::text])) OR (action = 'move_lot'::text))),
+    CONSTRAINT write_tickets_action_check CHECK (((action = ANY (ARRAY['receive'::text, 'make'::text, 'pack'::text, 'adjust'::text, 'found'::text])) OR (action = 'move_lot'::text) OR (action = ANY (ARRAY['create_order'::text, 'add_order_lines'::text, 'update_order_line'::text, 'cancel_order_line'::text, 'update_order_header'::text, 'update_order_status'::text, 'mark_order_ready'::text, 'cancel_order'::text, 'close_order'::text, 'reopen_order'::text])) OR (action = ANY (ARRAY['create_expected_receipt'::text, 'update_expected_receipt'::text, 'cancel_expected_receipt'::text])) OR (action = ANY (ARRAY['ship_order'::text, 'ship_standalone'::text, 'ship_bulk'::text])))),
     CONSTRAINT write_tickets_check CHECK (((key_kind = 'actor'::text) = (actor_id IS NOT NULL))),
     CONSTRAINT write_tickets_client_source_check CHECK ((client_source = ANY (ARRAY['mcp'::text, 'dashboard'::text, 'fl_assistant'::text, 'api'::text]))),
     CONSTRAINT write_tickets_key_kind_check CHECK ((key_kind = ANY (ARRAY['actor'::text, 'legacy_ledger'::text, 'legacy_dashboard'::text]))),
@@ -3361,6 +3645,78 @@ ALTER TABLE ONLY public.allergens
 
 
 --
+-- Name: assistant_attachment_links assistant_attachment_links_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.assistant_attachment_links
+    ADD CONSTRAINT assistant_attachment_links_pkey PRIMARY KEY (session_id, attachment_id);
+
+
+--
+-- Name: assistant_drafts assistant_drafts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.assistant_drafts
+    ADD CONSTRAINT assistant_drafts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: assistant_drafts assistant_drafts_ticket_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.assistant_drafts
+    ADD CONSTRAINT assistant_drafts_ticket_key UNIQUE (ticket);
+
+
+--
+-- Name: assistant_sessions assistant_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.assistant_sessions
+    ADD CONSTRAINT assistant_sessions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: assistant_turns assistant_turns_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.assistant_turns
+    ADD CONSTRAINT assistant_turns_pkey PRIMARY KEY (session_id, id);
+
+
+--
+-- Name: assistant_unmatched_words assistant_unmatched_words_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.assistant_unmatched_words
+    ADD CONSTRAINT assistant_unmatched_words_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: attachments attachments_attachment_ref_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.attachments
+    ADD CONSTRAINT attachments_attachment_ref_key UNIQUE (attachment_ref);
+
+
+--
+-- Name: attachments attachments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.attachments
+    ADD CONSTRAINT attachments_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: attachments attachments_storage_path_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.attachments
+    ADD CONSTRAINT attachments_storage_path_key UNIQUE (storage_path);
+
+
+--
 -- Name: batch_formulas batch_formulas_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3486,6 +3842,14 @@ ALTER TABLE ONLY public.ledger_corrections
 
 ALTER TABLE ONLY public.line_capacity_modes
     ADD CONSTRAINT line_capacity_modes_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: lot_events lot_events_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lot_events
+    ADD CONSTRAINT lot_events_pkey PRIMARY KEY (id);
 
 
 --
@@ -3801,6 +4165,14 @@ ALTER TABLE ONLY public.sales_order_lines
 
 
 --
+-- Name: sales_order_number_counters sales_order_number_counters_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_order_number_counters
+    ADD CONSTRAINT sales_order_number_counters_pkey PRIMARY KEY (order_day);
+
+
+--
 -- Name: sales_order_shipments sales_order_shipments_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3838,6 +4210,14 @@ ALTER TABLE ONLY public.scheduling_config
 
 ALTER TABLE ONLY public.search_aliases
     ADD CONSTRAINT search_aliases_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: shift_confirmations shift_confirmations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shift_confirmations
+    ADD CONSTRAINT shift_confirmations_pkey PRIMARY KEY (id);
 
 
 --
@@ -3910,6 +4290,14 @@ ALTER TABLE ONLY public.supply_requests
 
 ALTER TABLE ONLY public.trace_event_lots
     ADD CONSTRAINT tel_event_lot_role_uniq UNIQUE (trace_event_id, lot_id, role);
+
+
+--
+-- Name: ticket_attestations ticket_attestations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_attestations
+    ADD CONSTRAINT ticket_attestations_pkey PRIMARY KEY (ticket_id, kind);
 
 
 --
@@ -4016,10 +4404,52 @@ CREATE INDEX actor_write_audit_target_idx ON public.actor_write_audit USING btre
 
 
 --
+-- Name: assistant_attachment_links_actor; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX assistant_attachment_links_actor ON public.assistant_attachment_links USING btree (actor_id, attachment_id);
+
+
+--
+-- Name: assistant_drafts_session; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX assistant_drafts_session ON public.assistant_drafts USING btree (session_id, created_at);
+
+
+--
+-- Name: assistant_sessions_actor; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX assistant_sessions_actor ON public.assistant_sessions USING btree (actor_id, updated_at DESC);
+
+
+--
+-- Name: attachments_shipment_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX attachments_shipment_idx ON public.attachments USING btree (shipment_id);
+
+
+--
+-- Name: attachments_ticket_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX attachments_ticket_idx ON public.attachments USING btree (ticket_id);
+
+
+--
 -- Name: customer_product_aliases_uidx; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX customer_product_aliases_uidx ON public.customer_product_aliases USING btree (customer_id, alias_key);
+
+
+--
+-- Name: exceptions_bol_photo_shipment_uniq; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX exceptions_bol_photo_shipment_uniq ON public.exceptions USING btree (shipment_id) WHERE (kind = 'BOL_PHOTO_MISSING'::text);
 
 
 --
@@ -4034,6 +4464,13 @@ CREATE INDEX exceptions_lot_idx ON public.exceptions USING btree (lot_id) WHERE 
 --
 
 CREATE UNIQUE INDEX exceptions_one_hold_per_ticket_idx ON public.exceptions USING btree (ticket_id) WHERE (kind = 'LARGE_CORRECTION'::text);
+
+
+--
+-- Name: exceptions_one_kosher_hold_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX exceptions_one_kosher_hold_idx ON public.exceptions USING btree (ticket_id) WHERE (kind = 'KOSHER_ATTESTATION'::text);
 
 
 --
@@ -4097,6 +4534,13 @@ CREATE INDEX exceptions_transaction_idx ON public.exceptions USING btree (transa
 --
 
 CREATE UNIQUE INDEX exceptions_unidentified_open_lot_idx ON public.exceptions USING btree (lot_id) WHERE ((kind = 'UNIDENTIFIED_LOT'::text) AND (status = ANY (ARRAY['open'::text, 'escalated'::text])));
+
+
+--
+-- Name: expected_receipts_ticket_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX expected_receipts_ticket_id_idx ON public.expected_receipts USING btree (ticket_id) WHERE (ticket_id IS NOT NULL);
 
 
 --
@@ -4569,6 +5013,13 @@ CREATE INDEX idx_transactions_timestamp ON public.transactions USING btree ("tim
 
 
 --
+-- Name: lot_events_one_kosher_downgrade_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX lot_events_one_kosher_downgrade_idx ON public.lot_events USING btree (transaction_id, lot_id) WHERE (event = 'kosher_downgrade'::text);
+
+
+--
 -- Name: lot_moves_latest_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4604,10 +5055,38 @@ CREATE UNIQUE INDEX products_odoo_code_unique ON public.products USING btree (od
 
 
 --
+-- Name: sales_order_lines_ticket_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX sales_order_lines_ticket_id_idx ON public.sales_order_lines USING btree (ticket_id) WHERE (ticket_id IS NOT NULL);
+
+
+--
+-- Name: sales_order_receipts_reference_uniq; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX sales_order_receipts_reference_uniq ON public.sales_order_create_receipts USING btree (external_order_reference);
+
+
+--
 -- Name: sales_orders_customer_external_reference_uniq; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE UNIQUE INDEX sales_orders_customer_external_reference_uniq ON public.sales_orders USING btree (customer_id, external_order_reference) WHERE (external_order_reference IS NOT NULL);
+
+
+--
+-- Name: sales_orders_external_reference_uniq; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX sales_orders_external_reference_uniq ON public.sales_orders USING btree (external_order_reference) WHERE (external_order_reference IS NOT NULL);
+
+
+--
+-- Name: sales_orders_ticket_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX sales_orders_ticket_id_idx ON public.sales_orders USING btree (ticket_id) WHERE (ticket_id IS NOT NULL);
 
 
 --
@@ -4622,6 +5101,20 @@ CREATE INDEX search_aliases_active_norm_idx ON public.search_aliases USING btree
 --
 
 CREATE UNIQUE INDEX search_aliases_target_uniq ON public.search_aliases USING btree (kind, alias_norm, COALESCE(product_id, 0), COALESCE(customer_id, 0), COALESCE(supplier_id, 0));
+
+
+--
+-- Name: shift_confirmations_day_actor_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX shift_confirmations_day_actor_idx ON public.shift_confirmations USING btree (business_date, actor_id, confirmed_at DESC);
+
+
+--
+-- Name: shipments_ticket_uniq; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX shipments_ticket_uniq ON public.shipments USING btree (ticket_id) WHERE (ticket_id IS NOT NULL);
 
 
 --
@@ -4835,6 +5328,20 @@ CREATE INDEX write_tickets_open_idx ON public.write_tickets USING btree (status)
 
 
 --
+-- Name: write_tickets_order_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX write_tickets_order_idx ON public.write_tickets USING btree ((((result_ref ->> 'order_id'::text))::bigint)) WHERE (result_ref ? 'order_id'::text);
+
+
+--
+-- Name: write_tickets_order_reference_uniq; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX write_tickets_order_reference_uniq ON public.write_tickets USING btree (COALESCE((payload ->> 'external_order_reference'::text), receipt_number)) WHERE ((action = 'create_order'::text) AND (status = 'committed'::text) AND (receipt_number IS NOT NULL));
+
+
+--
 -- Name: write_tickets_supersession_idx; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4984,6 +5491,20 @@ CREATE OR REPLACE VIEW public.production_history AS
 
 
 --
+-- Name: lot_events a12_append_only; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER a12_append_only BEFORE DELETE OR UPDATE ON public.lot_events FOR EACH ROW EXECUTE FUNCTION public.ledger_block_append_only_change();
+
+
+--
+-- Name: ticket_attestations a12_append_only; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER a12_append_only BEFORE DELETE OR UPDATE ON public.ticket_attestations FOR EACH ROW EXECUTE FUNCTION public.ledger_block_append_only_change();
+
+
+--
 -- Name: lot_moves a5_evidence_append_only; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -5016,6 +5537,27 @@ CREATE TRIGGER a5_lot_supplier_immutable BEFORE UPDATE OF supplier_id ON public.
 --
 
 CREATE TRIGGER actor_write_audit_append_only BEFORE DELETE OR UPDATE ON public.actor_write_audit FOR EACH ROW EXECUTE FUNCTION public.ledger_block_append_only_change();
+
+
+--
+-- Name: attachments attachment_provenance; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER attachment_provenance BEFORE UPDATE ON public.attachments FOR EACH ROW EXECUTE FUNCTION public.protect_attachment_provenance();
+
+
+--
+-- Name: lots lot_kosher_tier_guard; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER lot_kosher_tier_guard BEFORE INSERT OR UPDATE ON public.lots FOR EACH ROW EXECUTE FUNCTION public.lot_kosher_tier_guard();
+
+
+--
+-- Name: shift_confirmations shift_confirmations_append_only; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER shift_confirmations_append_only BEFORE DELETE OR UPDATE ON public.shift_confirmations FOR EACH ROW EXECUTE FUNCTION public.ledger_block_append_only_change();
 
 
 --
@@ -5223,6 +5765,118 @@ ALTER TABLE ONLY public.actor_write_audit
 
 
 --
+-- Name: assistant_attachment_links assistant_attachment_links_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.assistant_attachment_links
+    ADD CONSTRAINT assistant_attachment_links_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: assistant_attachment_links assistant_attachment_links_attachment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.assistant_attachment_links
+    ADD CONSTRAINT assistant_attachment_links_attachment_id_fkey FOREIGN KEY (attachment_id) REFERENCES public.attachments(id);
+
+
+--
+-- Name: assistant_attachment_links assistant_attachment_links_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.assistant_attachment_links
+    ADD CONSTRAINT assistant_attachment_links_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.assistant_sessions(id);
+
+
+--
+-- Name: assistant_drafts assistant_drafts_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.assistant_drafts
+    ADD CONSTRAINT assistant_drafts_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: assistant_drafts assistant_drafts_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.assistant_drafts
+    ADD CONSTRAINT assistant_drafts_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.assistant_sessions(id);
+
+
+--
+-- Name: assistant_sessions assistant_sessions_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.assistant_sessions
+    ADD CONSTRAINT assistant_sessions_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: assistant_turns assistant_turns_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.assistant_turns
+    ADD CONSTRAINT assistant_turns_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.assistant_sessions(id);
+
+
+--
+-- Name: assistant_unmatched_words assistant_unmatched_words_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.assistant_unmatched_words
+    ADD CONSTRAINT assistant_unmatched_words_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: assistant_unmatched_words assistant_unmatched_words_session_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.assistant_unmatched_words
+    ADD CONSTRAINT assistant_unmatched_words_session_id_fkey FOREIGN KEY (session_id) REFERENCES public.assistant_sessions(id);
+
+
+--
+-- Name: attachments attachments_exception_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.attachments
+    ADD CONSTRAINT attachments_exception_id_fkey FOREIGN KEY (exception_id) REFERENCES public.exceptions(id);
+
+
+--
+-- Name: attachments attachments_shipment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.attachments
+    ADD CONSTRAINT attachments_shipment_id_fkey FOREIGN KEY (shipment_id) REFERENCES public.shipments(id);
+
+
+--
+-- Name: attachments attachments_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.attachments
+    ADD CONSTRAINT attachments_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.write_tickets(id);
+
+
+--
+-- Name: attachments attachments_transaction_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.attachments
+    ADD CONSTRAINT attachments_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES public.transactions(id);
+
+
+--
+-- Name: attachments attachments_uploaded_by_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.attachments
+    ADD CONSTRAINT attachments_uploaded_by_actor_id_fkey FOREIGN KEY (uploaded_by_actor_id) REFERENCES public.actors(id);
+
+
+--
 -- Name: batch_formulas batch_formulas_ingredient_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5383,6 +6037,14 @@ ALTER TABLE ONLY public.expected_receipts
 
 
 --
+-- Name: expected_receipts expected_receipts_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.expected_receipts
+    ADD CONSTRAINT expected_receipts_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.write_tickets(id);
+
+
+--
 -- Name: ingredient_lot_consumption ingredient_lot_consumption_ingredient_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5423,6 +6085,38 @@ ALTER TABLE ONLY public.line_capacity_modes
 
 
 --
+-- Name: lot_events lot_events_entered_by_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lot_events
+    ADD CONSTRAINT lot_events_entered_by_actor_id_fkey FOREIGN KEY (entered_by_actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: lot_events lot_events_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lot_events
+    ADD CONSTRAINT lot_events_lot_id_fkey FOREIGN KEY (lot_id) REFERENCES public.lots(id);
+
+
+--
+-- Name: lot_events lot_events_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lot_events
+    ADD CONSTRAINT lot_events_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.write_tickets(id);
+
+
+--
+-- Name: lot_events lot_events_transaction_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lot_events
+    ADD CONSTRAINT lot_events_transaction_id_fkey FOREIGN KEY (transaction_id) REFERENCES public.transactions(id);
+
+
+--
 -- Name: lot_moves lot_moves_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5460,6 +6154,14 @@ ALTER TABLE ONLY public.lot_supplier_codes
 
 ALTER TABLE ONLY public.lot_supplier_codes
     ADD CONSTRAINT lot_supplier_codes_supplier_id_fkey FOREIGN KEY (supplier_id) REFERENCES public.suppliers(id);
+
+
+--
+-- Name: lots lots_kosher_attested_by_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.lots
+    ADD CONSTRAINT lots_kosher_attested_by_actor_id_fkey FOREIGN KEY (kosher_attested_by_actor_id) REFERENCES public.actors(id);
 
 
 --
@@ -5703,6 +6405,14 @@ ALTER TABLE ONLY public.sales_order_lines
 
 
 --
+-- Name: sales_order_lines sales_order_lines_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_order_lines
+    ADD CONSTRAINT sales_order_lines_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.write_tickets(id);
+
+
+--
 -- Name: sales_order_shipments sales_order_shipments_sales_order_line_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5740,6 +6450,14 @@ ALTER TABLE ONLY public.sales_orders
 
 ALTER TABLE ONLY public.sales_orders
     ADD CONSTRAINT sales_orders_source_document_id_fkey FOREIGN KEY (source_document_id) REFERENCES public.purchase_documents(id);
+
+
+--
+-- Name: sales_orders sales_orders_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.sales_orders
+    ADD CONSTRAINT sales_orders_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.write_tickets(id);
 
 
 --
@@ -5783,6 +6501,22 @@ ALTER TABLE ONLY public.search_aliases
 
 
 --
+-- Name: shift_confirmations shift_confirmations_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shift_confirmations
+    ADD CONSTRAINT shift_confirmations_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: shift_confirmations shift_confirmations_exception_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shift_confirmations
+    ADD CONSTRAINT shift_confirmations_exception_id_fkey FOREIGN KEY (exception_id) REFERENCES public.exceptions(id);
+
+
+--
 -- Name: shipment_lines shipment_lines_product_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -5823,11 +6557,27 @@ ALTER TABLE ONLY public.shipments
 
 
 --
+-- Name: shipments shipments_entered_by_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shipments
+    ADD CONSTRAINT shipments_entered_by_actor_id_fkey FOREIGN KEY (entered_by_actor_id) REFERENCES public.actors(id);
+
+
+--
 -- Name: shipments shipments_sales_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.shipments
     ADD CONSTRAINT shipments_sales_order_id_fkey FOREIGN KEY (sales_order_id) REFERENCES public.sales_orders(id);
+
+
+--
+-- Name: shipments shipments_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shipments
+    ADD CONSTRAINT shipments_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.write_tickets(id);
 
 
 --
@@ -5956,6 +6706,22 @@ ALTER TABLE ONLY public.supplier_product_aliases
 
 ALTER TABLE ONLY public.supply_requests
     ADD CONSTRAINT supply_requests_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
+
+
+--
+-- Name: ticket_attestations ticket_attestations_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_attestations
+    ADD CONSTRAINT ticket_attestations_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: ticket_attestations ticket_attestations_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ticket_attestations
+    ADD CONSTRAINT ticket_attestations_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.write_tickets(id);
 
 
 --
@@ -6119,6 +6885,14 @@ ALTER TABLE ONLY public.transactions
 
 
 --
+-- Name: transactions transactions_kosher_attested_by_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.transactions
+    ADD CONSTRAINT transactions_kosher_attested_by_actor_id_fkey FOREIGN KEY (kosher_attested_by_actor_id) REFERENCES public.actors(id);
+
+
+--
 -- Name: transactions transactions_reason_code_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6157,6 +6931,42 @@ ALTER TABLE ONLY public.write_tickets
 ALTER TABLE public.actor_write_audit ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: assistant_attachment_links; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.assistant_attachment_links ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: assistant_drafts; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.assistant_drafts ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: assistant_sessions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.assistant_sessions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: assistant_turns; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.assistant_turns ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: assistant_unmatched_words; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.assistant_unmatched_words ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: attachments; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.attachments ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: correction_reason_legacy_codes; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -6173,6 +6983,12 @@ ALTER TABLE public.correction_reasons ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.exceptions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: lot_events; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.lot_events ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: lot_moves; Type: ROW SECURITY; Schema: public; Owner: -
@@ -6199,16 +7015,34 @@ ALTER TABLE public.receipt_counters ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sales_order_create_receipts ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: sales_order_number_counters; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.sales_order_number_counters ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: search_aliases; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.search_aliases ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: shift_confirmations; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.shift_confirmations ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: shortage_flags; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.shortage_flags ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: ticket_attestations; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.ticket_attestations ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: transaction_lot_confirmations; Type: ROW SECURITY; Schema: public; Owner: -
@@ -6232,19 +7066,5 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict XaPsfTXvQYUEHaAzVXcRiJVaN9zvto2nZ7sBb7XwOOZm9mfHMGuOyxJCLf8SPIy
+\unrestrict 9BA4RS58E5zdxgjZbdz2DITIIaB3GgzjKSU2Yj88aiuKY9j3d4Jf5yYhRAFs28D
 
-
--- Pending A7 migration (remove after prod migration + scripts/dump_prod_schema.sh).
--- pg_dump leaves search_path empty; restore it for standalone DDL.
-SET search_path TO public;
-\ir ../../migrations/067_order_tickets.sql
-\ir ../../migrations/072_order_ticket_review_fixes.sql
-\ir ../../migrations/074_ship_gate_attachments.sql
--- F1 additive state; apply 068 manually before production enablement.
-SET search_path = public;
-\ir ../../migrations/068_fl_assistant.sql
--- Pending A12 migration; explicit application only.
-\ir ../../migrations/075_kosher_tiers.sql
--- A9 migration 076 is applied in production; retained here for fresh test databases.
-\ir ../../migrations/076_shift_confirmations.sql

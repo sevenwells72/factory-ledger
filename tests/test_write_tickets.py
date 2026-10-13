@@ -413,7 +413,7 @@ def isolated_database(_db_connection):
             cur.execute('CREATE EXTENSION pg_trgm')
             cur.execute(schema)
             cur.execute('SET LOCAL search_path TO public')
-            # The dump is schema-only: it carries every object of 058–071 but no
+            # The dump is schema-only: it carries every object of 058–076 but no
             # migration_markers rows. Re-apply the migrations whose markers the
             # up/down tests below assert (all idempotent → no-ops on the DDL).
             cur.execute((ROOT/'migrations/058_write_tickets.sql').read_text())
@@ -469,6 +469,10 @@ def test_migration_up_down_up_and_marker_stability(isolated_database):
         cur.execute('DROP TABLE ticket_attestations,lot_events')
         # A9: 076 references exceptions (061), so it comes off first and goes back on last.
         cur.execute((ROOT/'migrations/down/076_shift_confirmations_down.sql').read_text())
+        # F1: the dump carries 068 since the 2026-10-13 prod apply; its empty link table
+        # references attachments (074) and 068 has no down file, so drop it here and
+        # re-run 068 (idempotent) once 074 is back.
+        cur.execute('DROP TABLE assistant_attachment_links')
         cur.execute((ROOT/'migrations/down/074_ship_gate_attachments_down.sql').read_text())
         cur.execute(down_071)
         cur.execute(down_070)
@@ -500,6 +504,7 @@ def test_migration_up_down_up_and_marker_stability(isolated_database):
         assert cur.fetchone()[0]
         cur.execute(up_067)
         cur.execute((ROOT/'migrations/074_ship_gate_attachments.sql').read_text())
+        cur.execute((ROOT/'migrations/068_fl_assistant.sql').read_text())
         cur.execute(up_067)   # rerunnable
         cur.execute((ROOT/'migrations/072_order_ticket_review_fixes.sql').read_text())
         cur.execute((ROOT/'migrations/076_shift_confirmations.sql').read_text())
