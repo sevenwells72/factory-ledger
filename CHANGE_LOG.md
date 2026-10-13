@@ -196,6 +196,83 @@
 
 ---
 
+## 2026-10-13 12:12 — Complete fresh-DB pilot validation before staging deployment
+- **File(s) changed:** `docs/deployments/key-sessions.md`
+- **What changed:** Final fresh PostgreSQL 17 suite: 2526 Python/82 Node passed, zero failures/skips. Assistant flag-on/off plus expiry/handover and dashboard browser layouts pass. GPT schema stays at 30; diff/syntax clean.
+- **Why:** Required complete verification before the isolated staging example and Claude Code review request. Global iCloud log pending explicit approval after automatic approval rejection.
+
+---
+
+## 2026-10-13 12:11 — Exercise Assistant expiry re-sign-in and safe card handover
+- **File(s) changed:** `tests/visual/run-fl-assistant.mjs`
+- **What changed:** Force SESSION_EXPIRED in the actual browser, verify token/card clearing, sign in again and restore the person-bound chat before server logout.
+- **Why:** Prove expired sign-in re-asks without displaying another person's prior cards or treating a failed entry as recorded. Global iCloud log pending explicit approval after automatic approval rejection.
+
+---
+
+## 2026-10-13 12:09 — Retain PUT and DELETE note attribution in the audit schema
+- **File(s) changed:** `migrations/077_key_sessions.sql`
+- **What changed:** Add PUT/DELETE to the audit method CHECK while preserving every existing method; idempotent change in unapplied 077.
+- **Why:** The note regression caught the existing POST/PATCH-only audit constraint before any staging application. Global iCloud log pending explicit approval after automatic approval rejection.
+
+---
+
+## 2026-10-13 12:08 — Document the pilot contract and add guarded Arturo staging acceptance
+- **File(s) changed:** `scripts/check_key_sessions_staging.py`, `docs/contracts/key-sessions.md`, `docs/deployments/key-sessions.md`
+- **What changed:** Add staging-only 077 runner and synthetic four-person real-Assistant acceptance with one Arturo receive, replay, attribution, logout/idle/revocation and actor cleanup. Document flags, limiter, browser hosting/storage, parked-table independence and production prerequisites.
+- **Why:** Prepare concrete staging proof and reviewer handoff without secrets, production access or merge. Global iCloud log pending explicit approval after automatic approval rejection.
+
+---
+
+## 2026-10-13 12:06 — Allow notes in the existing actor audit target constraint
+- **File(s) changed:** `migrations/077_key_sessions.sql`
+- **What changed:** Add notes to the existing audit CHECK without removing any approved target or rewriting rows; idempotent relaxation included in unapplied 077.
+- **Why:** The four-write notes regression exposed the audit target CHECK before deployment; keep attribution atomic and compatible. Global iCloud log pending explicit approval after automatic approval rejection.
+
+---
+
+## 2026-10-13 12:05 — Attribute session-authenticated dashboard note changes
+- **File(s) changed:** `main.py`, `tests/test_key_sessions.py`
+- **What changed:** Record note create/update/toggle/delete to the signed-in person in existing same-transaction actor_write_audit. Legacy and actor-key paths retain current behavior; add actual four-write audit regression.
+- **Why:** Every dashboard entry made under pilot sign-in must retain the person, including notes that previously had no attribution column. Global iCloud log pending explicit approval after automatic approval rejection.
+
+---
+
+## 2026-10-13 12:04 — Keep legacy actor scope fixed and test independent ticket expiry
+- **File(s) changed:** `main.py`, `permissions.py`, `tests/test_key_sessions.py`
+- **What changed:** Restrict logout authorization to session credentials instead of expanding the actor-key allowlist. Full suite found only the expected allowlist regression; add explicit expired-ticket/active-session test.
+- **Why:** Flag-off parity includes exact existing actor-key route scope; ticket expiry remains separate from sign-in. Global iCloud log pending explicit approval after automatic approval rejection.
+
+---
+
+## 2026-10-13 12:03 — Check dashboard personal writes and bounded sign-in requests
+- **File(s) changed:** `dashboard/key-session.js`, `tests/visual/run-key-sessions.mjs`
+- **What changed:** Bound config/exchange/logout requests to 15 seconds. Keep background reads independent of auth readiness. Exercise dashboard flag-off parity, token writes, identity, reload, expiry and logout in desktop/mobile Chrome.
+- **Why:** Preserve dashboard readability and prevent polling from extending unattended personal sessions. Global iCloud log pending explicit approval after automatic approval rejection.
+
+---
+
+## 2026-10-13 12:01 — Verify browser token custody, reload recovery and server logout
+- **File(s) changed:** `dashboard/fl-assistant.js`, `tests/test_key_session_ui.js`, `tests/visual/run-fl-assistant.mjs`
+- **What changed:** Add seven Node transport/storage cases and run the full Assistant browser harness in both pilot and flag-off modes. Expiry clears prior-person cards before handover.
+- **Why:** Prove the browser exchanges once, sends only token afterwards and retains the existing Assistant flow when disabled. Global iCloud log pending explicit approval after automatic approval rejection.
+
+---
+
+## 2026-10-13 11:59 — Wire Assistant and dashboard writes to personal session tokens
+- **File(s) changed:** `dashboard/key-session.js`, `dashboard/key-session.css`, `dashboard/fetch-timeout.js`, `dashboard/index.html`, `dashboard/runs.html`, `dashboard/fl-assistant.html`, `dashboard/fl-assistant.js`
+- **What changed:** Clear personal-key inputs immediately, persist only the token, restore identity, add handover controls and end tokens server-side. Dashboard writes use personal tokens after explicit configuration; hosted staging uses only its own origin. Flag-off keeps existing credentials.
+- **Why:** Rev 3.8 browser custody and person attribution. Production routing remains unconfigured in this build. Global iCloud log pending explicit approval after automatic approval rejection.
+
+---
+
+## 2026-10-13 11:58 — Isolate pilot tables from parked PIN staging schema
+- **File(s) changed:** `key_sessions.py`, `migrations/077_key_sessions.sql`, `tests/test_key_sessions.py`
+- **What changed:** Use key_actor_sessions without reading or altering parked actor_sessions; compare credential digests to safely refuse Unicode; add coexistence and sanitized counted-failure tests.
+- **Why:** Keep PR #96 parked and independent even when its migration already exists on staging. Global iCloud log pending explicit approval after automatic approval rejection.
+
+---
+
 ## 2026-10-13 11:54 — Redact exchange validation and finish backend verification
 - **File(s) changed:** `main.py`, `tests/test_key_sessions.py`
 - **What changed:** Suppress credential-bearing validation input; exercise invalid shapes and adjust logout assertion for the existing write-response envelope.

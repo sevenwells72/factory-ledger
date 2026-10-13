@@ -31,7 +31,7 @@ def test_exchange_hash_only_and_personal_permissions(client, actors, db_cursor, 
     result, h = sign_in(client, actors, role)
     assert result['key_kind'] == 'session' and result['idle_minutes'] == 180
     assert len(result['session_token']) >= 47
-    db_cursor.execute('SELECT * FROM actor_sessions WHERE token_hash=%s', (key_sessions.digest(result['session_token']),))
+    db_cursor.execute('SELECT * FROM key_actor_sessions WHERE token_hash=%s', (key_sessions.digest(result['session_token']),))
     row = db_cursor.fetchone()
     assert result['session_token'] not in str(row) and actors[role]['key'] not in str(row)
     assert row['expires_at'] - row['created_at'] >= timedelta(minutes=179, seconds=59)
@@ -48,12 +48,12 @@ def test_exchange_hash_only_and_personal_permissions(client, actors, db_cursor, 
 @pytest.mark.parametrize('minutes,expected', [(179.99,200),(180,401),(181,401)])
 def test_idle_boundary_slides_or_ends(client, actors, db_cursor, minutes, expected):
     result,h = sign_in(client,actors)
-    db_cursor.execute("""UPDATE actor_sessions SET last_seen_at=clock_timestamp()-(%s * interval '1 minute'),
+    db_cursor.execute("""UPDATE key_actor_sessions SET last_seen_at=clock_timestamp()-(%s * interval '1 minute'),
         expires_at=clock_timestamp()+((180-%s) * interval '1 minute') WHERE token_hash=%s""",
         (minutes,minutes,key_sessions.digest(result['session_token'])))
     r=client.get('/auth/whoami',headers=h)
     assert r.status_code == expected
-    db_cursor.execute('SELECT * FROM actor_sessions WHERE token_hash=%s',(key_sessions.digest(result['session_token']),))
+    db_cursor.execute('SELECT * FROM key_actor_sessions WHERE token_hash=%s',(key_sessions.digest(result['session_token']),))
     row=db_cursor.fetchone()
     if expected == 200:
         assert row['expires_at']-row['last_seen_at'] == timedelta(minutes=180)
@@ -68,7 +68,7 @@ def test_logout_ends_session_and_prevents_commit(client,actors,payload,db_cursor
     assert client.post('/auth/session/logout',headers=h).json()['signed_out'] is True
     committed=client.post('/tickets/'+prepared['ticket']+'/commit',headers=h,json={'payload_hash':prepared['payload_hash']})
     assert committed.status_code==401 and committed.json()['detail']['error_code']=='SESSION_EXPIRED'
-    db_cursor.execute("SELECT ended_reason FROM actor_sessions WHERE actor_id=%s",(actors['floor']['id'],))
+    db_cursor.execute("SELECT ended_reason FROM key_actor_sessions WHERE actor_id=%s",(actors['floor']['id'],))
     assert db_cursor.fetchone()['ended_reason']=='logout'
 
 
@@ -84,7 +84,7 @@ def test_revoke_live_key_ends_all_sessions_without_cache_delay(client,actors,db_
     for credential in (h,other):
         r=client.get('/auth/whoami',headers=credential)
         assert r.status_code==401 and r.json()['detail']['error_code']=='SESSION_EXPIRED'
-    db_cursor.execute('SELECT ended_reason FROM actor_sessions WHERE actor_id=%s',(actors['floor']['id'],))
+    db_cursor.execute('SELECT ended_reason FROM key_actor_sessions WHERE actor_id=%s',(actors['floor']['id'],))
     assert [r['ended_reason'] for r in db_cursor.fetchall()]==['revoked','revoked']
 
 
@@ -130,7 +130,7 @@ def test_global_limit_spans_sources(client,actors,db_cursor):
 
 def test_flag_off_needs_no_session_tables_and_preserves_existing_auth(client,actors,monkeypatch,db_cursor):
     monkeypatch.setenv('KEY_SESSIONS_ENABLED','0')
-    db_cursor.execute('DROP TABLE actor_sessions,key_session_attempts')
+    db_cursor.execute('DROP TABLE key_actor_sessions,key_session_attempts')
     for key,kind in [(main.API_KEY,'legacy_ledger'),(main.DASHBOARD_API_KEY,'legacy_dashboard'),(actors['floor']['key'],'actor')]:
         r=client.get('/auth/whoami',headers=headers(key))
         assert r.status_code==200 and r.json()['key_kind']==kind
@@ -178,9 +178,9 @@ def test_migration_rerun_preserves_sessions_and_private_tables(client,actors,db_
     result,_=sign_in(client,actors)
     migration=Path(__file__).resolve().parents[1]/'migrations/077_key_sessions.sql'
     db_cursor.execute(migration.read_text())
-    db_cursor.execute('SELECT token_hash FROM actor_sessions WHERE token_hash=%s',(key_sessions.digest(result['session_token']),))
+    db_cursor.execute('SELECT token_hash FROM key_actor_sessions WHERE token_hash=%s',(key_sessions.digest(result['session_token']),))
     assert db_cursor.fetchone()
-    db_cursor.execute("SELECT relrowsecurity FROM pg_class WHERE oid IN ('actor_sessions'::regclass,'key_session_attempts'::regclass)")
+    db_cursor.execute("SELECT relrowsecurity FROM pg_class WHERE oid IN ('key_actor_sessions'::regclass,'key_session_attempts'::regclass)")
     assert all(r['relrowsecurity'] for r in db_cursor.fetchall())
 
 
@@ -188,3 +188,43 @@ def test_migration_rerun_preserves_sessions_and_private_tables(client,actors,db_
 def test_exchange_validation_never_echoes_credentials(client,body):
     r=client.post('/auth/session',json=body)
     assert r.status_code==422 and 'secret-value' not in r.text and '123' not in r.text
+
+
+@pytest.mark.parametrize('invalid',['é','🔑'])
+def test_unicode_key_is_counted_refused_without_echo(client,db_cursor,invalid):
+    r=client.post('/auth/session',json={'actor_key':invalid})
+    assert r.status_code==401 and invalid not in r.text
+    db_cursor.execute('SELECT count(*) AS n FROM key_session_attempts WHERE NOT ok')
+    assert db_cursor.fetchone()['n']==1
+
+
+def test_pin_table_coexists_unchanged(client,actors,db_cursor):
+    # Independent pilot migration must tolerate the parked PIN lane's shape.
+    db_cursor.execute("CREATE TABLE IF NOT EXISTS actor_sessions(id bigint,auth_method text NOT NULL)")
+    db_cursor.execute("INSERT INTO actor_sessions VALUES (-770180,'pin')")
+    db_cursor.execute((Path(__file__).resolve().parents[1]/'migrations/077_key_sessions.sql').read_text())
+    sign_in(client,actors)
+    db_cursor.execute('SELECT auth_method FROM actor_sessions WHERE id=-770180')
+    assert db_cursor.fetchone()['auth_method']=='pin'
+
+
+def test_ticket_expiry_does_not_end_or_extend_session(client,actors,payload,db_cursor):
+    _,h=sign_in(client,actors)
+    prepared=client.post('/receive/prepare',headers=h,json=payload).json()
+    db_cursor.execute("UPDATE write_tickets SET expires_at=clock_timestamp()-interval '1 second' WHERE ticket_hash=%s",(main.write_tickets.token_hash(prepared['ticket']),))
+    r=client.post('/tickets/'+prepared['ticket']+'/commit',headers=h,json={'payload_hash':prepared['payload_hash']})
+    assert r.status_code==409 and r.json()['detail']['error_code']=='TICKET_EXPIRED'
+    assert client.get('/auth/whoami',headers=h).status_code==200
+
+
+def test_dashboard_note_session_writes_record_person(client,actors,db_cursor):
+    _,h=sign_in(client,actors)
+    created=client.post('/dashboard/api/notes',headers=h,json={'category':'note','title':'Pilot note'})
+    assert created.status_code==200
+    nid=created.json()['id']
+    assert client.put('/dashboard/api/notes/'+str(nid),headers=h,json={'title':'Updated note'}).status_code==200
+    assert client.put('/dashboard/api/notes/'+str(nid)+'/toggle',headers=h).status_code==200
+    assert client.delete('/dashboard/api/notes/'+str(nid),headers=h).status_code==200
+    db_cursor.execute("SELECT actor_id,operator_id FROM actor_write_audit WHERE target_table='notes' AND target_id=%s",(str(nid),))
+    rows=db_cursor.fetchall()
+    assert len(rows)==4 and all(r['actor_id']==actors['floor']['id'] and r['operator_id']==actors['floor']['name'] for r in rows)

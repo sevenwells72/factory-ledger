@@ -2888,7 +2888,7 @@ ACTOR_WRITE_ALLOWLIST = frozenset({
     ("PATCH", "/lots/{lot_code}/supplier-lot"),
     ("PATCH", "/lots/{lot_id}/rename"),
     ("PATCH", "/sales/orders/{order_id}/lines/{line_id}/cancel"),
-}) | write_tickets.ACTOR_ROUTES | exceptions_enforcement.ACTOR_ROUTES | attachments.ROUTES | fl_assistant.ACTOR_ROUTES | key_sessions.ROUTES
+}) | write_tickets.ACTOR_ROUTES | exceptions_enforcement.ACTOR_ROUTES | attachments.ROUTES | fl_assistant.ACTOR_ROUTES
 
 
 ACTOR_CACHE_TTL_S = 60
@@ -3219,6 +3219,8 @@ def _authorize_api_key(provided_key: str, request: Request, invalid_status: int 
         if kind == "actor":
             _touch_actor_last_used(actor)
         route_key = _route_key(request)
+        if kind == "session" and route_key in key_sessions.ROUTES:
+            return True
         if route_key in (DASHBOARD_KEY_ALLOWLIST | ACTOR_WRITE_ALLOWLIST):
             # A2: the §4.3 matrix on the direct routes too, so an office key
             # cannot post `POST /make` while `/make/prepare` denies it. 403
@@ -17880,7 +17882,7 @@ def dashboard_api_notes(
 
 
 @app.post("/dashboard/api/notes")
-def dashboard_api_notes_create(req: NoteCreate, _: bool = Depends(verify_api_key)):
+def dashboard_api_notes_create(req: NoteCreate, request: Request, _: bool = Depends(verify_api_key)):
     """Create a note/todo/reminder."""
     try:
         with get_transaction() as cur:
@@ -17895,6 +17897,8 @@ def dashboard_api_notes_create(req: NoteCreate, _: bool = Depends(verify_api_key
             """, (req.category, req.title, req.body or "", req.priority, due,
                   req.entity_type, req.entity_id))
             row = cur.fetchone()
+            if request.state.key_kind == "session":
+                _record_actor_write(cur, request, "notes", row['id'])
             return _note_row_to_dict(row)
     except ValueError as e:
         return JSONResponse(status_code=400, content={"error": str(e)})
@@ -17905,7 +17909,7 @@ def dashboard_api_notes_create(req: NoteCreate, _: bool = Depends(verify_api_key
 
 
 @app.put("/dashboard/api/notes/{note_id}")
-def dashboard_api_notes_update(note_id: int, req: NoteUpdate, _: bool = Depends(verify_api_key)):
+def dashboard_api_notes_update(note_id: int, req: NoteUpdate, request: Request, _: bool = Depends(verify_api_key)):
     """Update a note/todo/reminder."""
     try:
         with get_transaction() as cur:
@@ -17938,6 +17942,8 @@ def dashboard_api_notes_update(note_id: int, req: NoteUpdate, _: bool = Depends(
             row = cur.fetchone()
             if not row:
                 return JSONResponse(status_code=404, content={"error": "Note not found"})
+            if request.state.key_kind == "session":
+                _record_actor_write(cur, request, "notes", row['id'])
             return _note_row_to_dict(row)
     except ValueError as e:
         return JSONResponse(status_code=400, content={"error": str(e)})
@@ -17948,7 +17954,7 @@ def dashboard_api_notes_update(note_id: int, req: NoteUpdate, _: bool = Depends(
 
 
 @app.delete("/dashboard/api/notes/{note_id}")
-def dashboard_api_notes_delete(note_id: int, _: bool = Depends(verify_api_key)):
+def dashboard_api_notes_delete(note_id: int, request: Request, _: bool = Depends(verify_api_key)):
     """Delete a note/todo/reminder."""
     try:
         with get_transaction() as cur:
@@ -17956,6 +17962,8 @@ def dashboard_api_notes_delete(note_id: int, _: bool = Depends(verify_api_key)):
             row = cur.fetchone()
             if not row:
                 return JSONResponse(status_code=404, content={"error": "Note not found"})
+            if request.state.key_kind == "session":
+                _record_actor_write(cur, request, "notes", note_id)
             return {"deleted": True, "id": note_id}
     except Exception as e:
         if _is_readonly_error(e): raise
@@ -17964,7 +17972,7 @@ def dashboard_api_notes_delete(note_id: int, _: bool = Depends(verify_api_key)):
 
 
 @app.put("/dashboard/api/notes/{note_id}/toggle")
-def dashboard_api_notes_toggle(note_id: int, _: bool = Depends(verify_api_key)):
+def dashboard_api_notes_toggle(note_id: int, request: Request, _: bool = Depends(verify_api_key)):
     """Toggle a note's status between open and done."""
     try:
         with get_transaction() as cur:
@@ -17977,7 +17985,10 @@ def dashboard_api_notes_toggle(note_id: int, _: bool = Depends(verify_api_key)):
                 UPDATE notes SET status = %s, updated_at = NOW()
                 WHERE id = %s RETURNING *
             """, (new_status, note_id))
-            return _note_row_to_dict(cur.fetchone())
+            row = cur.fetchone()
+            if request.state.key_kind == "session":
+                _record_actor_write(cur, request, "notes", row['id'])
+            return _note_row_to_dict(row)
     except Exception as e:
         if _is_readonly_error(e): raise
         logger.error(f"Dashboard notes toggle failed: {e}")

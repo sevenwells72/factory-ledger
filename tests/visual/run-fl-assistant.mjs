@@ -10,6 +10,9 @@ const out = process.env.F1_VISUAL_OUT || path.join(root, '.venv-test', 'fl-f1-vi
 await fs.mkdir(out, { recursive: true });
 const server = await startStaticServer(root);
 const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) });
+const pilotMode = process.env.PILOT_SESSIONS === '1';
+let exchanges = 0, logouts = 0, expireNext = false;
+const sessionToken = 'fls_browser-fixture';
 const sid = '0c101ab1-8c56-42a2-8f29-c048330030c3', did = '616eac35-0b6e-4288-b40f-920639a83525';
 const receipt = { success: true, receipt_number: 'MK-261008-001', transaction_id: 17, product_name: 'Classic Test Batch', lot_code: 'B26-10-08-001',
   shortages: [{ product_name: 'Rolled Oats', lot_code: '26-10-08-OATS-004', short_lb: 10, exception_id: 26, due_at: '2026-10-12T23:59:00-04:00' }] };
@@ -46,8 +49,16 @@ try {
   });
   const page = await context.newPage(), errors = [];
   page.on('pageerror', e => errors.push(e.message));
-  await page.route('**/auth/whoami', route => route.fulfill({ json: { actor: { id: 4, name: 'Arturo', role: 'floor' } } }));
+  await page.route('**/auth/session/config', route => route.fulfill({ json: { key_sessions_enabled: pilotMode } }));
+  await page.route('**/auth/session', route => {
+    assert.equal(route.request().postDataJSON().actor_key, 'fixture-key'); exchanges++;
+    return route.fulfill({ json: { session_token: sessionToken, key_kind: 'session', actor: { id: 4, name: 'Arturo', role: 'floor' } } });
+  });
+  await page.route('**/auth/session/logout', route => { logouts++; assert.equal(route.request().headers()['x-api-key'], sessionToken); return route.fulfill({ json: { signed_out: true } }); });
+  await page.route('**/auth/whoami', route => route.fulfill({ json: { key_kind: pilotMode ? 'session' : 'actor', actor: { id: 4, name: 'Arturo', role: 'floor' } } }));
   await page.route('**/assistant/**', async route => {
+    assert.equal(route.request().headers()['x-api-key'], pilotMode ? sessionToken : 'fixture-key');
+    if (expireNext) { expireNext = false; return route.fulfill({ status: 401, json: { detail: { error_code: 'SESSION_EXPIRED', message: 'Sign in again.' } } }); }
     const url = new URL(route.request().url()), data = route.request().postDataJSON?.bind(route.request());
     if (url.pathname.endsWith('/session')) return route.fulfill({ json: { session_id: sid } });
     if (url.pathname.endsWith('/resume')) return route.fulfill({ json: { turns: [{ text: 'Made two batches', cards: [draft] }], drafts: [{ id: did, card: draft, status: 'committed', result: receipt },
@@ -128,7 +139,7 @@ try {
   await page.waitForFunction(() => document.querySelectorAll('[data-draft-id]').length === 2);
   assert.equal(turns.at(-1).selected_id, 2); assert.deepEqual(turns.at(-1).attachment_ids, [101]);
   // Recovered receipt comes from saved commit JSON, with no duplicate Record.
-  await page.reload(); await page.locator('#actor-key').fill('fixture-key'); await page.locator('#sign-in-form button').click();
+  await page.reload(); if (!pilotMode) { await page.locator('#actor-key').fill('fixture-key'); await page.locator('#sign-in-form button').click(); }
   await page.locator('.receipt').waitFor(); assert.equal(records.length, 2);
   await page.locator('#photo-kind').selectOption('correction_photo');
   await page.locator('#photo').setInputFiles({ name: 'correction.png', mimeType: 'image/png', buffer: photoBytes });
@@ -146,7 +157,7 @@ try {
   await page.getByRole('heading', { name: 'Waiting for owner approval', exact: true }).waitFor();
   assert.equal(await page.getByRole('button', { name: 'Cancel', exact: true }).count(), 0);
   assert.equal(await page.locator('.receipt').count(), 1);
-  await page.reload(); await page.locator('#actor-key').fill('fixture-key'); await page.locator('#sign-in-form button').click();
+  await page.reload(); if (!pilotMode) { await page.locator('#actor-key').fill('fixture-key'); await page.locator('#sign-in-form button').click(); }
   await page.getByRole('heading', { name: 'Waiting for owner approval', exact: true }).waitFor();
   await page.locator('#language').click();
   await page.getByRole('heading', { name: 'En espera de la aprobación del dueño', exact: true }).waitFor();
@@ -197,6 +208,21 @@ try {
     await shipment.scrollIntoViewIfNeeded();
     await page.screenshot({ path: path.join(out, 'receipt-mobile-' + scheme + '.png'), fullPage: true });
     await page.screenshot({ path: path.join(out, 'ship-receipt-mobile-' + scheme + '-viewport.png') });
+  }
+  if (pilotMode) {
+    assert.equal(exchanges, 1);
+    assert.equal(await page.locator('#actor-key').inputValue(), '');
+    assert.equal(await page.evaluate(() => JSON.stringify(sessionStorage).includes('fixture-key')), false);
+    assert.equal(await page.evaluate(() => sessionStorage.getItem('fl-key-session-token')), sessionToken);
+    expireNext = true;
+    await page.locator('#message').fill('What did I enter today?'); await page.locator('#send').click();
+    await page.locator('#sign-in-panel').waitFor({ state: 'visible' });
+    assert.equal(await page.evaluate(() => sessionStorage.getItem('fl-key-session-token')), null);
+    assert.equal(await page.locator('[data-draft-id]').count(), 0);
+    await page.locator('#actor-key').fill('fixture-key'); await page.locator('#sign-in-form button').click();
+    await page.locator('#chat-panel').waitFor({ state: 'visible' }); assert.equal(exchanges, 2);
+    await page.locator('#sign-out').click(); await page.locator('#sign-in-panel').waitFor({ state: 'visible' });
+    assert.equal(logouts, 1); assert.equal(await page.evaluate(() => sessionStorage.getItem('fl-key-session-token')), null);
   }
   assert.deepEqual(errors, []);
   console.log('F1 browser: draft/receipt, lost-response retry, lot inputs, warnings, editable dictation, A6 typed private integer attachments, BOL blocking, SHP retry, choices/XSS, reload recovery, ES, 390px light/dark passed.');

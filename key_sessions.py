@@ -44,7 +44,7 @@ def resolve(api, token, request):
         return None
     actor = None
     with api.get_transaction() as cur:
-        cur.execute('SELECT actor_id FROM actor_sessions WHERE token_hash=%s', (digest(token),))
+        cur.execute('SELECT actor_id FROM key_actor_sessions WHERE token_hash=%s', (digest(token),))
         owner = cur.fetchone()
         if owner:
             # A revoked key may end several sessions. Serialize by actor first
@@ -52,7 +52,7 @@ def resolve(api, token, request):
             cur.execute('SELECT pg_advisory_xact_lock(770181,%s)', (owner['actor_id'],))
         cur.execute("""SELECT s.*, a.name, a.role, a.active,
                               a.key_hash AS current_key_hash
-                       FROM actor_sessions s JOIN actors a ON a.id=s.actor_id
+                       FROM key_actor_sessions s JOIN actors a ON a.id=s.actor_id
                        WHERE s.token_hash=%s FOR UPDATE OF s FOR SHARE OF a""", (digest(token),))
         row = cur.fetchone()
         cur.execute('SELECT clock_timestamp() AS now')
@@ -62,14 +62,14 @@ def resolve(api, token, request):
                       else 'idle' if now >= row['expires_at'] else None)
             if reason:
                 # End all sessions issued against the revoked key on detection.
-                cur.execute("""UPDATE actor_sessions SET ended_at=%s, ended_reason=%s
+                cur.execute("""UPDATE key_actor_sessions SET ended_at=%s, ended_reason=%s
                                WHERE ended_at IS NULL AND """ +
                             ('actor_id=%s AND actor_key_hash=%s' if reason == 'revoked' else 'id=%s'),
                             (now, reason, row['actor_id'], row['actor_key_hash']) if reason == 'revoked'
                             else (now, reason, row['id']))
             else:
                 expiry = now + timedelta(minutes=IDLE_MINUTES)
-                cur.execute('UPDATE actor_sessions SET last_seen_at=%s,expires_at=%s WHERE id=%s',
+                cur.execute('UPDATE key_actor_sessions SET last_seen_at=%s,expires_at=%s WHERE id=%s',
                             (now, expiry, row['id']))
                 request.state.actor_session_id = row['id']
                 request.state.session_expires_at = expiry
@@ -103,8 +103,8 @@ def register_routes(app, api):
                     'message': 'Too many sign-in attempts. Try again later.'}, headers={'Retry-After': '900'})
             else:
                 key = body.actor_key.strip()
-                shared = (secrets.compare_digest(key, api.API_KEY) or
-                          bool(api.DASHBOARD_API_KEY and secrets.compare_digest(key, api.DASHBOARD_API_KEY)))
+                shared = (secrets.compare_digest(digest(key), digest(api.API_KEY)) or
+                          bool(api.DASHBOARD_API_KEY and secrets.compare_digest(digest(key), digest(api.DASHBOARD_API_KEY))))
                 cur.execute('SELECT id,name,role,key_hash FROM actors WHERE key_hash=%s AND active FOR SHARE', (digest(key),))
                 actor = cur.fetchone()
                 ok = bool(actor and not shared)
@@ -114,7 +114,7 @@ def register_routes(app, api):
                         'message': 'Use your active personal actor key.'})
                 else:
                     token = PREFIX + secrets.token_urlsafe(32)
-                    cur.execute("""INSERT INTO actor_sessions(token_hash,actor_id,actor_key_hash,expires_at)
+                    cur.execute("""INSERT INTO key_actor_sessions(token_hash,actor_id,actor_key_hash,expires_at)
                         VALUES (%s,%s,%s,clock_timestamp()+interval '180 minutes') RETURNING expires_at""",
                         (digest(token), actor['id'], actor['key_hash']))
                     result = {'session_token': token, 'key_kind': 'session',
@@ -131,7 +131,7 @@ def register_routes(app, api):
         if request.state.key_kind != 'session':
             raise HTTPException(403, {'error_code': 'SESSION_REQUIRED', 'message': 'Use a session to sign out.'})
         with api.get_transaction() as cur:
-            cur.execute("""UPDATE actor_sessions SET ended_at=clock_timestamp(),ended_reason='logout'
+            cur.execute("""UPDATE key_actor_sessions SET ended_at=clock_timestamp(),ended_reason='logout'
                            WHERE id=%s AND ended_at IS NULL""", (request.state.actor_session_id,))
         response.headers['Cache-Control'] = 'no-store'
         return {'signed_out': True}

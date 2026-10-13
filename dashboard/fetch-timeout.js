@@ -33,7 +33,26 @@
   /* Drop-in replacement for fetch(). Accepts the same arguments plus
      options.timeoutMs. Rejects with a StallError on timeout; anything the
      caller passed as options.signal still aborts the request as usual. */
+  var pilotSessions;
+  // Same-origin Railway staging works without an override. Other hosting
+  // explicitly sets FL_SESSION_API_BASE before this script at deployment.
+  var pilotBase = global.FL_SESSION_API_BASE || (global.location && /\.up\.railway\.app$/.test(global.location.hostname) ? global.location.origin : null);
+  if (global.FLKeySessions && global.document && pilotBase) {
+    pilotSessions = global.FLKeySessions.installDashboard(pilotBase);
+  }
   function fetchWithTimeout(url, options) {
+    if (pilotSessions) {
+      var destination = new URL(url, global.location.href);
+      // On the hosted staging dashboard, existing ledger URLs point to this
+      // staging origin; no requests are sent to another environment.
+      if (/\.up\.railway\.app$/.test(destination.hostname)) destination = new URL(destination.pathname + destination.search, pilotBase);
+      return pilotSessions.prepare(destination.href, options || {}).then(function (prepared) {
+        return timedFetch(destination.href, prepared).then(pilotSessions.observe);
+      });
+    }
+    return timedFetch(url, options);
+  }
+  function timedFetch(url, options) {
     var opts = options || {};
     var ms = typeof opts.timeoutMs === 'number' ? opts.timeoutMs : DEFAULT_TIMEOUT_MS;
 
