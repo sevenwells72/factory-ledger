@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="referrer" content="no-referrer">
   <title>FL Assistant · Factory Ledger</title>
-  <link rel="stylesheet" href="/dashboard/fl-assistant.css?v=1">
-  <script defer src="/dashboard/fl-assistant.js?v=1"></script>
+  <link rel="stylesheet" href="/dashboard/fl-assistant.css?v=2">
+  <script defer src="/dashboard/fl-assistant.js?v=2"></script>
 </head>
 <body>
   <aside class="rail">
@@ -24,7 +24,7 @@
     </header>
     <div id="sign-in-panel" class="sign-in-panel">
       <span class="hero-icon">✧</span><h2 data-en="Your work, in your words." data-es="Tu trabajo, en tus palabras.">Your work, in your words.</h2>
-      <p data-en="Receive, make, pack, adjust or find stock. Review every draft before it becomes an entry." data-es="Recibe, produce, empaca, ajusta o encuentra inventario. Revisa cada borrador antes de registrarlo.">Receive, make, pack, adjust or find stock. Review every draft before it becomes an entry.</p>
+      <p data-en="Receive, make, pack, ship, adjust or find stock. Review every draft before it becomes an entry." data-es="Recibe, produce, empaca, envía, ajusta o encuentra inventario. Revisa cada borrador antes de registrarlo.">Receive, make, pack, ship, adjust or find stock. Review every draft before it becomes an entry.</p>
       <form id="sign-in-form"><label for="actor-key" data-en="Personal actor key / session" data-es="Clave personal / sesión">Personal actor key / session</label><input id="actor-key" type="password" autocomplete="off" required placeholder="Enter your personal key"><button class="primary" type="submit" data-en="Continue →" data-es="Continuar →">Continue →</button></form>
       <small data-en="Your key stays in memory for this tab. PIN sign-in is coming later." data-es="Tu clave queda en memoria en esta pestaña. El acceso con PIN llegará después.">Your key stays in memory for this tab. PIN sign-in is coming later.</small>
     </div>
@@ -35,8 +35,8 @@
         </div>
       </section>
       <div class="composer-wrap"><div id="attachments" class="attachments"></div>
-        <form id="composer" class="composer"><label for="message" class="sr-only">Message / Mensaje</label><textarea id="message" rows="2" maxlength="4000" placeholder="Tell me what happened… / Cuéntame qué pasó…"></textarea><div class="composer-tools"><div><button type="button" id="photo-button" data-en="＋ Photo" data-es="＋ Foto">＋ Photo</button><input id="photo" type="file" accept="image/jpeg,image/png,image/webp" hidden><button type="button" id="dictate" aria-pressed="false" data-en="◉ Hold to talk" data-es="◉ Mantén para hablar">◉ Hold to talk</button></div><button id="send" class="primary" type="submit" data-en="Send ↑" data-es="Enviar ↑">Send ↑</button></div></form>
-        <p id="composer-hint" class="composer-hint" data-en="Dictation is editable before sending. Photos are stored as attachments only." data-es="Puedes editar el dictado antes de enviarlo. Las fotos se guardan solo como adjuntos.">Dictation is editable before sending. Photos are stored as attachments only.</p>
+        <form id="composer" class="composer"><label for="message" class="sr-only">Message / Mensaje</label><textarea id="message" rows="2" maxlength="4000" placeholder="Tell me what happened… / Cuéntame qué pasó…"></textarea><div class="composer-tools"><div><label for="photo-kind" class="sr-only" data-en="Evidence type" data-es="Tipo de evidencia">Evidence type</label><select id="photo-kind" aria-label="Evidence type / Tipo de evidencia"><option value="lot_tag" data-en="Lot tag" data-es="Etiqueta de lote">Lot tag</option><option value="bol" data-en="BOL" data-es="BOL">BOL</option><option value="truck_photo" data-en="Truck photo" data-es="Foto de camión">Truck photo</option><option value="correction_photo" data-en="Correction photo" data-es="Foto de corrección">Correction photo</option><option value="count_sheet" data-en="Count sheet" data-es="Hoja de conteo">Count sheet</option><option value="signed_packing_slip" data-en="Signed packing slip" data-es="Nota de empaque firmada">Signed packing slip</option><option value="other" data-en="Other evidence" data-es="Otra evidencia">Other evidence</option></select><button type="button" id="photo-button" data-en="＋ Photo" data-es="＋ Foto">＋ Photo</button><input id="photo" type="file" accept="image/jpeg,image/png,image/webp" hidden><button type="button" id="dictate" aria-pressed="false" data-en="◉ Hold to talk" data-es="◉ Mantén para hablar">◉ Hold to talk</button></div><button id="send" class="primary" type="submit" data-en="Send ↑" data-es="Enviar ↑">Send ↑</button></div></form>
+        <p id="composer-hint" class="composer-hint" data-en="Dictation is editable before sending. Choose the evidence type for each private photo. Ships require a BOL number." data-es="Puedes editar el dictado antes de enviarlo. Elige el tipo de evidencia para cada foto privada. Los envíos requieren un número BOL.">Dictation is editable before sending. Choose the evidence type for each private photo. Ships require a BOL number.</p>
       </div>
     </div>
     <div id="notice" class="notice" role="status" hidden></div>

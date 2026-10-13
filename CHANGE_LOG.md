@@ -1,5 +1,82 @@
 # Change Log
 
+## 2026-10-13 11:01 — Complete final fresh-DB A7/A6 validation before staging deploy
+- **File(s) changed:** `docs/contracts/fl-assistant-part1.md`, `docs/deployments/f1-assistant.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Final fresh PostgreSQL 17 current-schema suite passes 2494 Python/75 Node, zero failures/skips. Browser layouts and final read-only wiring review pass. Record unique 068, preserved core/upstream histories and guarded additive staging update.
+- **Why:** Owner-required complete verification before staging redeploy and PR review handoff.
+
+---
+
+## 2026-10-13 10:58 — Resolve partial shipment lines from actual FL order details
+- **File(s) changed:** `fl_assistant.py`, `assistant_tools.py`, `tests/test_fl_assistant.py`
+- **What changed:** Authenticated order match/human choice reads real FL order details, exposes lines to model and binds line provenance to that order. Partial ships refuse invented/unseen/other-order line IDs. Add seven regression cases including actual partial post, cancelled/fulfilled refusal and human-choice read. A6 stock/ship rules remain unchanged.
+- **Why:** Final review identified line IDs lacked the resolved-ID custody used by other model fields.
+
+---
+
+## 2026-10-13 10:57 — Apply additive A6 link migration only to verified staging
+- **File(s) changed:** `CHANGE_LOG.md`
+- **What changed:** Explicit 068 rerun on guarded staging adds private session-to-A6 links, retaining all legacy evidence; no production access. Full fresh suite passes 2487 Python/75 Node, no failures/skips. origin/main and remote PR head reverified unchanged (bc57da4/490ef2b). Final partial-order line provenance review refinement precedes deploy.
+- **Why:** Staging schema must support the authorized Assistant A6 integration before code deployment.
+
+---
+
+## 2026-10-13 10:54 — Complete focused A6 backend/browser verification
+- **File(s) changed:** `fl_assistant.py`, `tests/test_fl_assistant.py`, `dashboard/fl-assistant.css`, `tests/visual/run-fl-assistant.mjs`
+- **What changed:** Validate trusted record evidence before uncertain-attempt marker; prevent noninteractive notices intercepting Send. Use worktree-local ignored browser output. Focused backend 72 passes, complete Node 75 passes; browser checks and inspected desktop/390px light/dark layouts pass. Full fresh-suite validation in progress.
+- **Why:** Preserve recoverable invalid-evidence failures and usable phone photo controls before staging deployment.
+
+---
+
+## 2026-10-13 10:53 — Cover A6 authority and historical Assistant recovery
+- **File(s) changed:** `assistant_tools.py`, `fl_assistant.py`, `tests/test_fl_assistant.py`, `tests/visual/run-fl-assistant.mjs`
+- **What changed:** Add all-three-ship actual photo/BOL/replay, role/ID provenance, correction evidence, chat ownership, fresh/rerun migration security and historical UUID recovery regressions. Reject nested model evidence and ambiguous multiple correction photos; old attachment-only IDs stay saved but never become evidence. Browser harness can select installed Chrome via PLAYWRIGHT_CHANNEL without downloading or editing another checkout.
+- **Why:** Preserve FL authority and truthful saved-draft recovery while adopting A6.
+
+---
+
+## 2026-10-13 10:52 — Verify A6 Assistant controls in browser and keep acceptance evidence private
+- **File(s) changed:** `dashboard/fl-assistant.js`, `dashboard/fl-assistant.css`, `tests/visual/run-fl-assistant.mjs`, `scripts/check_assistant_staging.py`
+- **What changed:** Wrap photo controls for narrow screens, refresh evidence labels by locale, exercise integer private uploads, BOL blockers, ship summaries, SHP retry and lot evidence. Correct persisted-lot count key; omit signed bearer URLs from saved receipts after validating PDF live. Six focused UI tests pass; browser/full validation pending.
+- **Why:** Review actual mobile controls and preserve safe staged evidence without exposing credentials or signed links.
+
+---
+
+## 2026-10-13 10:51 — Extend staging acceptance to all A6 shipping actions and private photo checks
+- **File(s) changed:** `scripts/check_assistant_staging.py`
+- **What changed:** Add synthetic customer/order plus eight real-model action records; create readable BOL photos through A6/session relay and verify privacy, correction-photo links, three complete shipments, replay/exactly-once, A2 actor and A5 evidence. Prepare fresh isolated PostgreSQL 17 cluster entirely under the worktree's ignored .venv-test.
+- **Why:** Requested full fresh-DB validation and one live staging record per exposed action including shipping with BOL/photo.
+
+---
+
+## 2026-10-13 10:50 — Relay Assistant shipping and correction photos through A6
+- **File(s) changed:** `assistant_tools.py`, `fl_assistant.py`, `migrations/068_fl_assistant.sql`, `tests/test_fl_assistant.py`
+- **What changed:** Add three A6 ship prepares and SHP receipts; extend resolved-ID provenance; exclude model evidence assertions. Upload/download photos through A6 and store only private actor/session integer-ID links. Inject trusted correction attachment_id and ship attachment_ids. Pending 068 adds additive secured links while retaining legacy staging photo evidence intact.
+- **Why:** Reuse A6 BOL, owner/context and private storage checks; remove separate F1 photo storage.
+
+---
+
+## 2026-10-13 10:49 — Wire Assistant ship and photo controls to A6
+- **File(s) changed:** `dashboard/fl-assistant.js`, `dashboard/fl-assistant.html`, `tests/test_fl_assistant_ui.js`
+- **What changed:** Add SHP receipts, preserve BOL blocker checks, display shipping customer/lines/BOL/photos, require positive integer A6 photo IDs/kinds, and provide evidence-kind selection with correction-photo guidance.
+- **Why:** Assistant must use the existing A6 ship gate and private attachments without model-invented evidence.
+
+---
+
+## 2026-10-13 10:49 — Update F1 contract and deployment prerequisites for A7/A6
+- **File(s) changed:** `docs/contracts/fl-assistant-part1.md`, `docs/deployments/f1-assistant.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Document current base, unique 068 alongside 067/072/074, A6 private uploads/trusted correction IDs and three ship prepares. Preserve all upstream log lines and allocate only pending F1 rows after main. Staging feature flag/storage/signer presence checked with secret output suppressed.
+- **Why:** Requested A6 integration and staging review evidence; historical validation remains clearly labeled.
+
+---
+
+## 2026-10-13 10:47 — Rebase F1 onto merged A7/A6 main with all hooks preserved
+- **File(s) changed:** `main.py`, `permissions.py`, `tests/schema/schema.sql`, `tests/test_named_actor_writes.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Rebase PR #90 onto verified origin/main bc57da43b29a1e689a76015b764eaace76a1a481. #93 and #99 are merged. Resolve wiring-only imports/allowlists/registrations, preserve A3b/A7/A6 dispatch and permission labels, all upstream fixture changes and schema includes 067/072/074 plus 068. Preserve both changelog histories. No application-logic conflict, production access or merge.
+- **Why:** Owner requested A6 integration in only ~/dev/fl-f1-wt. The global iCloud log is outside that explicitly authorized worktree and remains untouched under the owner's scope restriction.
+
+---
+
 ## 2026-10-12 15:58 — A6 (PR #99) production rollout record, FOLLOWUPS P1.14 closed / P1.20 added, changelog rows 171–172
 - **File(s) changed:** `FOLLOWUPS.md`, `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/a6-ship-gate.md`
 - **What changed:** FOLLOWUPS P1.14 marks the sweep cron services as created (exceptions-sweep / exceptions-sweep-staging, 30 7 * * * UTC, verified run) and adds P1.20: A10 must retire or gate the direct `POST /sales/orders/{id}/close` route on cutover day (master key and owner key bypass the `shipped_not_recorded` cutoff there). FACTORY_LEDGER_CHANGELOG rows 172 (A6 rollout: bucket, variables, volume, 074 on prod, merge 81cb369, deploys, cron, hosted-staging checklist) and 171 (A7 rollout, recorded retroactively). Deployment doc gains the executed rollout record and the remaining open items.

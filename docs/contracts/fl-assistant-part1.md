@@ -1,11 +1,11 @@
 # FL Assistant part 1
 
 Builder: Codex. Reviewer: Claude Code. Draft PR; do not merge.
-Base: origin/main de31023 after A5 #88 and A2 #89 merged on 2026-10-08.
+Base: origin/main bc57da4 after A5/A2/A3b/A7 #93/A6 #99 merged.
 Implements phase1-safe-operating-system §1.8, F1 and §11 for staging only.
 Shared FL permission and lot validators remain authoritative.
 
-Merge order: **A5 → A2 → F1**. Apply **068 by hand with lock_timeout and
+Merge order: **A5 → A2 → A3b → A7 → A6 → F1**. Apply **068 by hand with lock_timeout and
 statement_timeout before ever enabling ASSISTANT_ENABLED in production**.
 See [deployment and recovery notes](../deployments/f1-assistant.md).
 GET /correction-reasons becomes a read-only route for master/actor keys even
@@ -53,7 +53,8 @@ when the assistant is disabled; GET /dash/fl-assistant returns 404 while disable
    live staging acceptance, changelogs and reviewer handoff.
 
 Migration `068_fl_assistant.sql` is additive F1 state only; merged 062–065 belong
-to A5/A2, unmerged 066 is deferred, and 067 is left available to A3b. No startup migration is added.
+to A5/A2; A7 owns 067/072 and A6 owns 074. Unmerged 066 is deferred; 073
+is absent from merged main. No startup migration is added.
 `ASSISTANT_ENABLED=1` and `OPENAI_API_KEY` are set only on FastAPI-staging.
 
 ## Validation and operations
@@ -73,12 +74,12 @@ to A5/A2, unmerged 066 is deferred, and 067 is left available to A3b. No startup
 - Page: `https://fastapi-staging-production-dd7b.up.railway.app/dash/fl-assistant`.
   API calls are locked to the page origin; use this Railway page, not a copied
   HTML file on another host. Authentication is a personal staging actor key.
-- Photos are stored privately in PostgreSQL bytea for part 1 (5 MB/photo,
-  50 MB/chat); no extra Storage credential is needed. The user sees the
-  attachment on its draft. A6 integration/retention policy is part 2. Session
-  history, receipts, attachment links and original tickets survive restarts.
-  Application rollback disables `ASSISTANT_ENABLED`; retain the additive
-  tables and committed evidence. No destructive down-migration is supplied.
+- New photos use A6 private evidence storage through its attachments API;
+  F1 stores only actor/session linkage to positive integer attachment IDs.
+  Correction photos pass `attachment_id`; ship photos pass `attachment_ids`.
+  A6 enforces uploader/context and BOL requirements; the model cannot invent
+  evidence IDs. Existing legacy staging photo bytes remain private and intact.
+  Rollback disables `ASSISTANT_ENABLED` and retains committed evidence/state.
 - A2 permissions and A5 lot rules are exercised through the same ASGI relay.
   The nine assistant transport routes are explicitly listed in A2 UNGATED_ROUTES;
   F1 authenticates every request, and the relayed actions enforce their role and
@@ -104,7 +105,7 @@ pending migration includes retained in `tests/schema/schema.sql`.
 ![Desktop draft](../validation/fl-assistant-desktop.png)
 ![Phone receipt in Spanish](../validation/fl-assistant-mobile.png)
 
-Part 2: photo-to-draft extraction and A6 evidence storage integration; A11 PIN
+Part 2: photo-to-draft extraction; A11 PIN
 login; A9 shift-summary tool when its endpoint exists; full A5 acceptance after
 merge; production readiness including owner-managed spend cap and email alerts.
 
@@ -179,3 +180,24 @@ The final runner recovers transient provider failures with bounded retries
 of the identical turn ID/body. Evidence is preserved under
 `a3b_integration_acceptance` in the validation JSON. No production access,
 additional migration or merge.
+
+## Merged A7/A6 integration — 2026-10-13
+
+Rebase onto `bc57da4` preserves all upstream imports, allowlists, ticket dispatch,
+permission labels, fixture migration ordering and schema-tail includes. New ship
+tools relay A6 order, standalone and bulk prepares; BOL blockers come from A6.
+SHP receipts use the same durable human-only Record boundary. Photos upload
+through A6, with actor/session linkage and private owner-checked downloads;
+correction evidence passes trusted attachment IDs. Historical validation
+checkpoints above remain intact. Fresh-suite and hosted acceptance results are appended below. Work stays in `~/dev/fl-f1-wt` and isolated staging;
+production, other worktrees and the global iCloud log remain untouched.
+
+Final A7/A6 local validation: fresh UTF-8 PostgreSQL 17 database
+`127.0.0.1:59574/fl_f1_a6_final_20261013` loaded from the current schema with
+067/072/074/068: **2,494 Python / 75 JavaScript passed**, no failures/skips.
+Browser harness passed and desktop/390px light/dark ship views were inspected.
+Order resolution reads authenticated FL detail before supplying partial line IDs.
+Model-invented/cross-order IDs, BOL-less ships and private-photo custody are covered.
+All upstream changelog lines and core A3b/A7/A6 modules are preserved; GPT schema
+remains 30 operations. Guarded staging 068 rerun added only private A6 links and
+retained all five legacy photos; no production access or merge.

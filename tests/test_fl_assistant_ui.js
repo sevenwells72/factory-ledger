@@ -22,3 +22,17 @@ test('A3b hold is an explicit pending outcome and cannot become a receipt', () =
   assert.equal(ui.validReceipt(held), false);
   for (const value of [null, {}, { held: true }, { status: 'awaiting_approval' }, { held: false, status: 'awaiting_approval' }]) assert.equal(ui.awaitingApproval(value), false);
 });
+
+test('A6 SHP receipts are real receipts while BOL blockers always prevent Record', () => {
+  assert.equal(ui.validReceipt({ success: true, receipt_number: 'SHP-261013-001', shipment_id: 4 }), true);
+  assert.equal(ui.validReceipt({ success: false, receipt_number: 'SHP-261013-001' }), false);
+  for (const can_commit of [false, true]) {
+    assert.equal(ui.canRecord({ can_commit, blockers: [{ code: 'BOL_REQUIRED' }] }), false);
+    assert.equal(ui.canRecord({ can_commit, blockers: [{ code: 'LOT_NOT_CONFIRMED' }, { code: 'BOL_REQUIRED' }] }), false);
+  }
+});
+test('A6 private evidence needs a positive integer ID and an explicit evidence kind', () => {
+  for (const kind of ui.evidenceKinds) assert.equal(ui.validAttachment({ id: 7, kind }), true);
+  for (const value of [null, {}, { id: '7', kind: 'bol' }, { id: '7e3381ea-acfb-4cd7-92c0-4ceda5d7c2e3', kind: 'bol' },
+    { id: 0, kind: 'bol' }, { id: 7.5, kind: 'bol' }, { id: 7 }, { id: 7, kind: 'public_photo' }]) assert.equal(ui.validAttachment(value), false);
+});

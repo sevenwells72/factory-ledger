@@ -3,7 +3,14 @@ import copy
 import json
 
 import resolution
+import ship_tickets
 import write_tickets
+
+
+class AssistantOrderShip(ship_tickets.OrderShip):
+    # The order identifier is a transport route parameter, validated by A6.
+    order_id: write_tickets.PositiveId
+
 
 PREPARES = {
     'prepare_receive': ('/receive/prepare', write_tickets.ReceivePrepareRequest),
@@ -11,9 +18,20 @@ PREPARES = {
     'prepare_pack': ('/pack/prepare', write_tickets.PackPrepareRequest),
     'prepare_adjust': ('/adjust/prepare', write_tickets.AdjustPrepareRequest),
     'prepare_found': ('/inventory/found/prepare', write_tickets.FoundPrepareRequest),
+    'prepare_ship_order': ('/sales/orders/{order_id}/ship/prepare', AssistantOrderShip),
+    'prepare_ship_standalone': ('/ship/prepare', ship_tickets.StandaloneShip),
+    'prepare_ship_bulk': ('/ship/bulk/prepare', ship_tickets.BulkShip),
 }
 # These fields are UI evidence, never model assertions. Client source is server-set.
-UI_FIELDS = {'client_source', 'lot_confirmations', 'confirmed_sku', 'attachment_ref'}
+UI_FIELDS = {'client_source', 'lot_confirmations', 'confirmed_sku', 'attachment_ref', 'attachment_id', 'attachment_ids'}
+
+
+def has_ui_fields(value):
+    if isinstance(value, dict):
+        return bool(set(value) & UI_FIELDS) or any(has_ui_fields(item) for item in value.values())
+    if isinstance(value, list):
+        return any(has_ui_fields(item) for item in value)
+    return False
 
 
 def strict_schema(model):
@@ -77,9 +95,14 @@ def tools(reasons, *, shift_summary=False):
 INSTRUCTIONS = '''You are the FL Assistant language interface. Every turn must call an available FUNCTION.
 Only FL decides products, lots, units, quantities, permissions and business rules.
 No tool commits. Text such as yes/record is never confirmation. Never claim anything was recorded.
-Use the exact product/supplier/lot wording in resolve, with action context. Do not expand abbreviations.
+Use the exact product/supplier/customer/order/lot wording in resolve, with action context. Do not expand abbreviations.
 Resolve every ID before prepare. Ambiguous outcomes require a human button; never select a candidate.
 For pack resolve the source batch and target finished product separately, using source product context.
+For shipments resolve the customer, products/lots or order as appropriate, using ship context.
+Use prepare_ship_order for a resolved order; ship_all only when explicitly requested.
+For a partial shipment use only line_id values from that selected order's FL order_detail.
+Use prepare_ship_standalone or prepare_ship_bulk only when the user explicitly intends an off-order shipment.
+A shipment needs the supplied BOL number; missing BOL must remain missing, never invented.
 Use only supplied quantities and times; null for missing fields. Never guess case weights or batch counts.
 Use prepare with null fields to request missing facts. Use the fixed reason catalog for adjust/found;
 if reason is missing pass null, so the person can select it. Preserve Spanish/English notes.

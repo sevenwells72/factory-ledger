@@ -20,7 +20,8 @@ pytestmark = pytest.mark.db
 
 
 @pytest.fixture(autouse=True)
-def enabled(monkeypatch):
+def enabled(monkeypatch, tmp_path):
+    monkeypatch.setenv('EVIDENCE_STORAGE_DIR', str(tmp_path / 'evidence'))
     monkeypatch.setenv('ASSISTANT_ENABLED', '1')
 
 
@@ -325,24 +326,30 @@ def test_a5_evidence_relay_preserves_hash_and_values(client, chat, payload, db_c
 
 def test_photo_private_durable_and_never_model_input(client, chat, actors, monkeypatch, db_cursor):
     data = b'\x89PNG\r\n\x1a\nattachment-only-test'
-    r = client.post('/assistant/attachment', params={'session_id': chat[0]}, headers=chat[1], files={'file': ('photo.png', data, 'image/png')})
+    r = client.post('/assistant/attachment', params={'session_id': chat[0]}, headers=chat[1], data={'kind': 'other'}, files={'file': ('photo.png', data, 'image/png')})
     assert r.status_code == 200, r.text
     aid = r.json()['id']
+    assert isinstance(aid, int) and aid > 0
+    db_cursor.execute('SELECT kind,uploaded_by_actor_id,bytes FROM attachments WHERE id=%s', (aid,))
+    assert dict(db_cursor.fetchone()) == {'kind': 'other', 'uploaded_by_actor_id': actors['floor']['id'], 'bytes': len(data)}
+    db_cursor.execute('SELECT attachment_id,actor_id FROM assistant_attachment_links WHERE session_id=%s', (chat[0],))
+    assert dict(db_cursor.fetchone()) == {'attachment_id': aid, 'actor_id': actors['floor']['id']}
     read = client.post('/assistant/attachment/read', headers=chat[1], json={'attachment_id': aid})
     assert read.content == data
+    assert read.headers['cache-control'] == 'private, no-store'
     assert client.post('/assistant/attachment/read', headers=headers(actors['office']['key']), json={'attachment_id': aid}).status_code == 404
     requests = model(monkeypatch, ('today_entries', {}))
     r = turn(client, chat, 'today', attachment_ids=[aid])
     assert r.status_code == 200
     assert 'attachment-only-test' not in json.dumps(requests)
     assert 'input_image' not in json.dumps(requests)
-    assert turn(client, chat, attachment_ids=[str(uuid4())]).status_code == 404
+    assert turn(client, chat, attachment_ids=[9223372036854775807]).status_code == 404
 
 
 @pytest.mark.parametrize('name,data,mime', [('x.svg', b'<svg/>', 'image/svg+xml'), ('x.jpg', b'bad', 'image/jpeg'),
     ('large.png', b'\x89PNG\r\n\x1a\n' + b'x' * fl_assistant.MAX_PHOTO, 'image/png')])
 def test_bad_photos_refused(client, chat, name, data, mime):
-    r = client.post('/assistant/attachment', params={'session_id': chat[0]}, headers=chat[1], files={'file': (name, data, mime)})
+    r = client.post('/assistant/attachment', params={'session_id': chat[0]}, headers=chat[1], data={'kind': 'other'}, files={'file': (name, data, mime)})
     assert r.status_code == 422
 
 
@@ -622,3 +629,317 @@ def test_model_cannot_invent_a3b_photo_evidence(client, chat, monkeypatch):
     response = turn(client, chat)
     assert response.status_code == 502
     assert response.json()['detail']['error_code'] == 'MODEL_EVIDENCE_FORBIDDEN'
+
+
+PNG = b'\x89PNG\r\n\x1a\nF1-A6-evidence'
+
+
+def upload_photo(client, chat, kind):
+    response = client.post('/assistant/attachment', params={'session_id': chat[0]}, headers=chat[1],
+        data={'kind': kind}, files={'file': ('evidence.png', PNG, 'image/png')})
+    assert response.status_code == 200, response.text
+    return response.json()['id']
+
+
+def shipping_chat(client, actors, role='owner'):
+    h = headers(actors[role]['key'])
+    response = client.post('/assistant/session', headers=h)
+    assert response.status_code == 200, response.text
+    return response.json()['session_id'], h
+
+
+def ship_draft(client, chat, data, db_cursor, monkeypatch, action, bol='F1-A6-BOL', attachment_ids=()):
+    from tests.test_ship_tickets import new_order
+    args = {'bol_reference': bol}
+    if action == 'ship_order':
+        # Only the order is selected here; A6 selects and validates its own lines.
+        oid = new_order(client, data, chat[1]['X-API-Key'])
+        db_cursor.execute('SELECT order_number FROM sales_orders WHERE id=%s', (oid,))
+        calls = [('resolve', {'kind': 'order', 'query': db_cursor.fetchone()['order_number'], 'context': {'action': 'ship'}})]
+        args.update(order_id=oid, ship_all=True)
+    else:
+        db_cursor.execute('SELECT name FROM customers WHERE id=%s', (data['customer'],))
+        calls = [('resolve', {'kind': 'customer', 'query': db_cursor.fetchone()['name'], 'context': {'action': 'ship'}}),
+                 resolve_product(db_cursor, data['products']['food']),
+                 ('resolve', {'kind': 'lot', 'query': data['lot_code'], 'context': {'action': 'ship'}})]
+        args.update(customer_id=data['customer'], order_reference='F1-off-order')
+        line = {'product_id': data['products']['food'], 'lot_id': data['lot_id'], 'quantity_lb': 50}
+        if action == 'ship_bulk':
+            args['lines'] = [dict(line, quantity_lb=20), dict(line, quantity_lb=30)]
+        else:
+            args.update(line)
+    model(monkeypatch, *calls, ('prepare_' + action, args))
+    response = turn(client, chat, 'ship test stock', attachment_ids=list(attachment_ids))
+    assert response.status_code == 200, response.text
+    return response.json()['cards'][0]
+
+
+@pytest.mark.parametrize('action', ['ship_order', 'ship_standalone', 'ship_bulk'])
+def test_a6_ship_bol_photo_lot_evidence_atomic_receipt_and_replay(client, actors, db_cursor, monkeypatch, action):
+    from tests.test_ship_tickets import seed_shipping
+    data = seed_shipping(db_cursor)
+    chat = shipping_chat(client, actors)
+    photo = upload_photo(client, chat, 'bol')
+    card = ship_draft(client, chat, data, db_cursor, monkeypatch, action, attachment_ids=[photo])
+    assert card['kind'] == 'draft', card
+    assert card['prepared']['action'] == action
+    assert card['attachment_ids'] == [photo]
+    assert card['prepared']['draft']['bol_reference'] == 'F1-A6-BOL'
+    assert card['prepared']['draft']['photo'] == 'attached'
+    ticket = card['prepared']['ticket_id']
+    db_cursor.execute('SELECT count(*) AS n FROM shipments WHERE ticket_id=%s', (ticket,))
+    assert db_cursor.fetchone()['n'] == 0
+    confirmations = [{'lot_id': item['lot_id'], 'method': 'full_code', 'value': item['lot_code']}
+                     for item in card['prepared']['draft']['input_plan']]
+    result = record(client, chat, card, lot_confirmations=confirmations)
+    assert result.status_code == 200, result.text
+    assert result.json()['kind'] == 'receipt'
+    receipt = result.json()['result']
+    assert receipt['receipt_number'].startswith('SHP-') and receipt['proof_status'] == 'complete'
+    assert receipt['bol_reference'] == 'F1-A6-BOL'
+    replay = record(client, chat, card, lot_confirmations=confirmations)
+    assert replay.json()['result'] == receipt | {'replayed': True}
+    db_cursor.execute('SELECT count(*) AS n FROM shipments WHERE ticket_id=%s', (ticket,))
+    assert db_cursor.fetchone()['n'] == 1
+    db_cursor.execute('SELECT ticket_id,shipment_id FROM attachments WHERE id=%s', (photo,))
+    assert dict(db_cursor.fetchone()) == {'ticket_id': ticket, 'shipment_id': receipt['shipment_id']}
+    db_cursor.execute('SELECT entered_by_actor_id,client_source,bol_reference FROM shipments WHERE id=%s', (receipt['shipment_id'],))
+    assert dict(db_cursor.fetchone()) == {'entered_by_actor_id': actors['owner']['id'], 'client_source': 'fl_assistant', 'bol_reference': 'F1-A6-BOL'}
+
+
+def test_a6_missing_bol_is_draft_blocker_and_commit_gate(client, actors, db_cursor, monkeypatch):
+    from tests.test_ship_tickets import seed_shipping
+    data = seed_shipping(db_cursor)
+    chat = shipping_chat(client, actors)
+    card = ship_draft(client, chat, data, db_cursor, monkeypatch, 'ship_standalone', bol='  ')
+    assert 'BOL_REQUIRED' in {item['code'] for item in card['prepared']['blockers']}
+    confirmations = [{'lot_id': item['lot_id'], 'method': 'full_code', 'value': item['lot_code']}
+                     for item in card['prepared']['draft']['input_plan']]
+    response = record(client, chat, card, lot_confirmations=confirmations)
+    assert response.status_code == 422
+    assert response.json()['kind'] == 'not_recorded'
+    assert response.json()['result']['detail']['error_code'] == 'BOL_REQUIRED'
+    db_cursor.execute('SELECT count(*) AS n FROM shipments WHERE ticket_id=%s', (card['prepared']['ticket_id'],))
+    assert db_cursor.fetchone()['n'] == 0
+
+
+def test_a6_floor_standalone_permission_survives_transport(client, actors, db_cursor, monkeypatch):
+    from tests.test_ship_tickets import seed_shipping
+    data = seed_shipping(db_cursor)
+    chat = shipping_chat(client, actors, 'floor')
+    card = ship_draft(client, chat, data, db_cursor, monkeypatch, 'ship_standalone')
+    assert card['kind'] == 'refusal' and card['status'] == 403
+    assert card['result']['detail']['error_code'] == 'ROLE_NOT_ALLOWED'
+    db_cursor.execute("SELECT count(*) AS n FROM write_tickets WHERE actor_id=%s AND action='ship_standalone'", (actors['floor']['id'],))
+    assert db_cursor.fetchone()['n'] == 0
+
+
+@pytest.mark.parametrize('action', ['adjust', 'found'])
+def test_a6_correction_photo_id_commits_large_count_without_hold(client, chat, actors, items, db_cursor, monkeypatch, action):
+    photo = upload_photo(client, chat, 'correction_photo')
+    args = action_body(action, items)
+    args.pop('reason', None)
+    args['reason_code'] = 'physical_count'
+    args['delta_lb' if action == 'adjust' else 'quantity'] = -600 if action == 'adjust' else 600
+    calls = ([('resolve', {'kind': 'lot', 'query': items['ingredient']['lot_code']})] if action == 'adjust'
+             else [resolve_product(db_cursor, args['product_id'])])
+    model(monkeypatch, *calls, ('prepare_' + action, args))
+    card = turn(client, chat, attachment_ids=[photo]).json()['cards'][0]
+    assert card['kind'] == 'draft', card
+    observed = []
+    original = fl_assistant.relay
+    async def capture(app, request, method, path, **kwargs):
+        if path.endswith('/commit'):
+            observed.append(kwargs['body'])
+        return await original(app, request, method, path, **kwargs)
+    monkeypatch.setattr(fl_assistant, 'relay', capture)
+    response = record(client, chat, card)
+    assert response.status_code == 200, response.text
+    assert response.json()['kind'] == 'receipt'
+    assert observed[0]['attachment_id'] == photo and 'attachment_ref' not in observed[0]
+    receipt = response.json()['result']
+    db_cursor.execute('SELECT ticket_id,transaction_id FROM attachments WHERE id=%s', (photo,))
+    assert dict(db_cursor.fetchone()) == {'ticket_id': card['prepared']['ticket_id'], 'transaction_id': receipt['transaction_id']}
+    assert record(client, chat, card).json()['result'] == receipt | {'replayed': True}
+
+
+def test_a6_photos_reject_other_actor_other_chat_and_unlinked_ids(client, chat, actors, monkeypatch):
+    photo = upload_photo(client, chat, 'correction_photo')
+    other = shipping_chat(client, actors)
+    model(monkeypatch, ('today_entries', {}))
+    assert turn(client, other, attachment_ids=[photo]).status_code == 404
+    assert client.post('/assistant/attachment/read', headers=other[1], json={'attachment_id': photo}).status_code == 404
+    # A6 grants office/owner read access; F1 still requires its own upload/chat.
+    assert client.get(f'/attachments/{photo}/file', headers=other[1]).status_code == 200
+    another_sid = client.post('/assistant/session', headers=chat[1]).json()['session_id']
+    assert turn(client, (another_sid, chat[1]), attachment_ids=[photo]).status_code == 404
+    direct = client.post('/attachments', headers=chat[1], data={'kind': 'correction_photo'}, files={'file': ('a.png', PNG, 'image/png')}).json()['id']
+    assert turn(client, chat, attachment_ids=[direct]).status_code == 404
+    assert client.post('/assistant/attachment', params={'session_id': chat[0]}, headers=other[1], data={'kind': 'bol'}, files={'file': ('a.png', PNG, 'image/png')}).status_code == 404
+
+
+@pytest.mark.parametrize('field,value', [('attachment_id', 1), ('attachment_ids', [1]), ('attachment_ref', 'att_invented'),
+                                        ('lines', [{'product_id': 1, 'attachment_id': 1}])])
+def test_model_cannot_assert_a6_photo_evidence(client, chat, monkeypatch, field, value):
+    for tool in assistant_tools.tools([{'code': 'physical_count'}]):
+        properties = json.dumps(tool['parameters'])
+        assert all(name not in properties for name in ('attachment_id', 'attachment_ref'))
+    model(monkeypatch, ('prepare_ship_bulk', {field: value}))
+    response = turn(client, chat)
+    assert response.status_code == 502
+    assert response.json()['detail']['error_code'] == 'MODEL_EVIDENCE_FORBIDDEN'
+
+
+@pytest.mark.parametrize('field,kind', [('customer_id', 'customer'), ('order_id', 'order')])
+def test_a6_customer_and_order_ids_require_resolution(field, kind):
+    assert fl_assistant.untrusted_ids({field: 42}, {}) == [field]
+    assert fl_assistant.untrusted_ids({field: 42}, {'resolved': {kind: [42]}}) == []
+
+
+def test_068_rerun_adds_private_a6_links_and_preserves_legacy_bytes(client, chat, actors, db_cursor):
+    db_cursor.execute("SELECT to_regclass('public.assistant_attachments') AS legacy")
+    assert db_cursor.fetchone()['legacy'] is None
+    db_cursor.execute("SELECT * FROM migration_markers WHERE name='068_fl_assistant'")
+    marker = dict(db_cursor.fetchone())
+    db_cursor.execute('''CREATE TABLE IF NOT EXISTS assistant_attachments (
+        id uuid PRIMARY KEY,session_id uuid NOT NULL REFERENCES assistant_sessions(id),
+        actor_id integer NOT NULL REFERENCES actors(id),filename text NOT NULL,
+        media_type text NOT NULL,sha256 text NOT NULL,content bytea NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT clock_timestamp())''')
+    old_id = str(uuid4())
+    db_cursor.execute('''INSERT INTO assistant_attachments(id,session_id,actor_id,filename,media_type,sha256,content)
+        VALUES (%s,%s,%s,'legacy.png','image/png','retained',%s)''', (old_id, chat[0], actors['floor']['id'], PNG))
+    photo = upload_photo(client, chat, 'other')
+    sql = (Path(__file__).resolve().parents[1] / 'migrations/068_fl_assistant.sql').read_text()
+    db_cursor.execute(sql)
+    db_cursor.execute(sql)
+    db_cursor.execute('SELECT content FROM assistant_attachments WHERE id=%s', (old_id,))
+    assert bytes(db_cursor.fetchone()['content']) == PNG
+    db_cursor.execute("SELECT relrowsecurity FROM pg_class WHERE oid='assistant_attachments'::regclass")
+    assert db_cursor.fetchone()['relrowsecurity'] is True
+    db_cursor.execute("SELECT relrowsecurity FROM pg_class WHERE oid='assistant_attachment_links'::regclass")
+    assert db_cursor.fetchone()['relrowsecurity'] is True
+    db_cursor.execute("SELECT column_name FROM information_schema.columns WHERE table_name='assistant_attachment_links'")
+    assert 'content' not in {item['column_name'] for item in db_cursor.fetchall()}
+    assert client.post('/assistant/attachment/read', headers=chat[1], json={'attachment_id': photo}).content == PNG
+    db_cursor.execute("SELECT count(*) AS n FROM migration_markers WHERE name='068_fl_assistant'")
+    assert db_cursor.fetchone()['n'] == 1
+    db_cursor.execute("SELECT * FROM migration_markers WHERE name='068_fl_assistant'")
+    assert dict(db_cursor.fetchone()) == marker
+
+
+def test_legacy_uuid_photo_metadata_does_not_break_existing_draft_replay(client, chat, payload, db_cursor, monkeypatch):
+    from psycopg2.extras import Json
+    card, _ = make_draft(client, chat, payload, db_cursor, monkeypatch)
+    old_id = str(uuid4())
+    card['attachment_ids'] = [old_id]
+    db_cursor.execute('UPDATE assistant_drafts SET card=%s WHERE id=%s', (Json(card), card['id']))
+    response = record(client, chat, card)
+    assert response.status_code == 200 and response.json()['kind'] == 'receipt', response.text
+    assert record(client, chat, card).status_code == 200
+    restored = client.post('/assistant/resume', headers=chat[1], json={'session_id': chat[0]}).json()['drafts'][0]
+    assert restored['card']['attachment_ids'] == [old_id]
+
+
+def test_multiple_correction_photos_need_an_explicit_single_selection(client, chat, items, db_cursor, monkeypatch):
+    photos = [upload_photo(client, chat, 'correction_photo') for _ in range(2)]
+    args = action_body('found', items)
+    args.update(reason_code='physical_count', quantity=600)
+    model(monkeypatch, resolve_product(db_cursor, args['product_id']), ('prepare_found', args))
+    response = turn(client, chat, attachment_ids=photos)
+    assert response.status_code == 422
+    assert response.json()['detail']['error_code'] == 'CORRECTION_PHOTO_AMBIGUOUS'
+    db_cursor.execute('SELECT count(*) AS n FROM assistant_drafts WHERE session_id=%s', (chat[0],))
+    assert db_cursor.fetchone()['n'] == 0
+
+
+
+def partial_order_fixture(client, actors, db_cursor):
+    from tests.test_ship_tickets import seed_shipping, new_order
+    data = seed_shipping(db_cursor)
+    chat = shipping_chat(client, actors)
+    order_id = new_order(client, data, chat[1]['X-API-Key'])
+    detail = client.get(f'/sales/orders/{order_id}', headers=chat[1]).json()
+    line = next(line for line in detail['lines'] if line['product_id'] == data['products']['food'])
+    args = {'order_id': order_id, 'bol_reference': 'F1-PARTIAL-BOL',
+            'lines': [{'line_id': line['line_id'], 'quantity_lb': 25}]}
+    resolve = ('resolve', {'kind': 'order', 'query': detail['order_number'], 'context': {'action': 'ship'}})
+    return chat, data, detail, args, resolve
+
+
+def test_partial_ship_order_gets_actual_line_ids_from_authenticated_order_detail(client, actors, db_cursor, monkeypatch):
+    chat, data, detail, args, resolve = partial_order_fixture(client, actors, db_cursor)
+    requests = model(monkeypatch, resolve, ('prepare_ship_order', args))
+    response = turn(client, chat)
+    assert response.status_code == 200, response.text
+    card = response.json()['cards'][0]
+    assert card['kind'] == 'draft' and card['prepared']['draft']['lines'][0]['line_id'] == args['lines'][0]['line_id']
+    outputs = [item for item in requests[1]['input'] if item.get('type') == 'function_call_output']
+    actual = json.loads(outputs[-1]['output'])['order_detail']
+    assert actual['order_id'] == detail['order_id']
+    assert actual['lines'] == detail['lines']
+    confirmations = [{'lot_id': item['lot_id'], 'method': 'full_code', 'value': item['lot_code']}
+                     for item in card['prepared']['draft']['input_plan']]
+    result = record(client, chat, card, lot_confirmations=confirmations)
+    assert result.status_code == 200, result.text
+    assert result.json()['result']['receipt_number'].startswith('SHP-')
+    db_cursor.execute('SELECT quantity_shipped_lb FROM sales_order_lines WHERE id=%s', (args['lines'][0]['line_id'],))
+    assert float(db_cursor.fetchone()['quantity_shipped_lb']) == 25
+
+
+def test_partial_ship_order_rejects_real_line_id_until_actual_detail_obtained(client, actors, db_cursor, monkeypatch):
+    from psycopg2.extras import Json
+    chat, data, detail, args, resolve = partial_order_fixture(client, actors, db_cursor)
+    # An older saved chat may know the order, but has never obtained its lines.
+    state = {'history': [], 'resolved': {'order': [detail['order_id']]}}
+    db_cursor.execute('UPDATE assistant_sessions SET state=%s WHERE id=%s', (Json(state), chat[0]))
+    requests = model(monkeypatch, *([('prepare_ship_order', args)] * fl_assistant.MAX_STEPS))
+    response = turn(client, chat)
+    assert response.status_code == 502
+    outputs = [item for item in requests[1]['input'] if item.get('type') == 'function_call_output']
+    assert json.loads(outputs[-1]['output'])['detail'] == {'error_code': 'RESOLVE_REQUIRED', 'fields': ['line_id']}
+    db_cursor.execute("SELECT count(*) AS n FROM write_tickets WHERE actor_id=%s AND action='ship_order'", (actors['owner']['id'],))
+    assert db_cursor.fetchone()['n'] == 0
+
+
+@pytest.mark.parametrize('line_status', ['invented', 'cancelled', 'fulfilled'])
+def test_partial_ship_order_rejects_invented_or_ineligible_detail_line_ids(client, actors, db_cursor, monkeypatch, line_status):
+    chat, data, detail, args, resolve = partial_order_fixture(client, actors, db_cursor)
+    if line_status == 'invented':
+        args['lines'][0]['line_id'] = 9223372036854775807
+    else:
+        db_cursor.execute('UPDATE sales_order_lines SET line_status=%s WHERE id=%s', (line_status, args['lines'][0]['line_id']))
+    requests = model(monkeypatch, resolve, *([('prepare_ship_order', args)] * (fl_assistant.MAX_STEPS - 1)))
+    response = turn(client, chat)
+    assert response.status_code == 502
+    outputs = [item for item in requests[2]['input'] if item.get('type') == 'function_call_output']
+    assert json.loads(outputs[-1]['output'])['detail']['fields'] == ['line_id']
+    db_cursor.execute("SELECT count(*) AS n FROM write_tickets WHERE actor_id=%s AND action='ship_order'", (actors['owner']['id'],))
+    assert db_cursor.fetchone()['n'] == 0
+
+
+def test_partial_ship_order_provenance_is_bound_to_the_selected_order():
+    state = {'resolved': {'order': [41, 42], 'order_line': {'41': [111], '42': [222]}}}
+    assert fl_assistant.untrusted_ids({'order_id': 42, 'lines': [{'line_id': 111}]}, state) == ['line_id']
+    assert fl_assistant.untrusted_ids({'order_id': 42, 'lines': [{'line_id': 222}]}, state) == []
+
+
+def test_order_choice_fetches_selected_detail_before_partial_prepare(client, actors, db_cursor, monkeypatch):
+    from tests.test_order_tickets import create_order
+    chat, data, detail, args, resolve = partial_order_fixture(client, actors, db_cursor)
+    create_order(client, data, actors['owner']['key'], customer_po='F1-OTHER-PO-' + data['suffix'])
+    model(monkeypatch, ('resolve', {'kind': 'order', 'query': 'open orders',
+                                  'context': {'action': 'ship', 'customer_id': data['customer']}}))
+    response = turn(client, chat)
+    choice = response.json()['cards'][0]
+    assert choice['kind'] == 'choices' and choice['result']['outcome'] == 'ambiguous', choice
+    requests = model(monkeypatch, ('prepare_ship_order', args))
+    response = turn(client, chat, text='', choice_id=choice['id'], selected_id=detail['order_id'])
+    assert response.status_code == 200, response.text
+    card = response.json()['cards'][0]
+    assert card['kind'] == 'draft' and card['prepared']['draft']['order_id'] == detail['order_id']
+    selection = next(item['content'] for item in reversed(requests[0]['input'])
+                     if item.get('role') == 'user' and item['content'].startswith('I selected this FL candidate: '))
+    chosen = json.loads(selection.removeprefix('I selected this FL candidate: '))
+    assert chosen['order_detail']['order_id'] == detail['order_id']
+    assert chosen['order_detail']['lines'] == detail['lines']

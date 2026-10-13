@@ -4,16 +4,16 @@ No network hop to another FL deployment, process-local ticket store, model prose
 renderer, hosted MCP, browser OpenAI key, or model-accessible commit tool.
 """
 import asyncio
-import hashlib
 import json
 import logging
 import os
 import re
 from pathlib import Path
+from typing import Literal
 from uuid import UUID, uuid4
 
 import httpx
-from fastapi import Depends, File, HTTPException, Request, UploadFile
+from fastapi import Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, Field, StrictInt, StrictStr
@@ -52,7 +52,7 @@ class TurnBody(SessionBody):
     choice_id: UUID | None = None
     selected_id: StrictInt | StrictStr | None = None
     next_page: bool = False
-    attachment_ids: list[UUID] = Field(default_factory=list, max_items=5)
+    attachment_ids: list[write_tickets.PositiveId] = Field(default_factory=list, max_items=5)
 
 
 class DraftBody(Body):
@@ -66,7 +66,7 @@ class RecordBody(DraftBody):
 
 
 class AttachmentRead(Body):
-    attachment_id: UUID
+    attachment_id: write_tickets.PositiveId
 
 
 async def openai(path, *, body=None, file=None):
@@ -88,16 +88,23 @@ async def openai(path, *, body=None, file=None):
         fail(502, 'OPENAI_UNAVAILABLE', 'OpenAI connection failed. NOT recorded / NO registrado.')
 
 
-async def relay(app, request, method, path, *, body=None, params=None):
+async def relay(app, request, method, path, *, body=None, params=None, file=None, form=None, binary=False):
     """Invoke actual FL routes including their auth, validation and error envelopes.
 
     A small ASGI client avoids logging the ticket in an HTTP client's URL log.
     Destination is the current application, never a configurable remote URL.
     """
     from urllib.parse import urlencode
-    content = json.dumps(body, default=str).encode() if body is not None else b''
+    if file is not None:
+        multipart = httpx.Request(method, 'http://fl-internal' + path,
+                                  files={'file': file}, data=form or {})
+        content = multipart.read()
+        content_type = multipart.headers['content-type'].encode()
+    else:
+        content = json.dumps(body, default=str).encode() if body is not None else b''
+        content_type = b'application/json'
     headers = [(b'x-api-key', request.headers.get('x-api-key', '').encode()),
-               (b'content-type', b'application/json'), (b'content-length', str(len(content)).encode())]
+               (b'content-type', content_type), (b'content-length', str(len(content)).encode())]
     scope = {'type': 'http', 'asgi': {'version': '3.0'}, 'http_version': '1.1',
              'method': method, 'scheme': 'http', 'path': path, 'raw_path': path.encode(),
              'query_string': urlencode(params or {}).encode(), 'root_path': '',
@@ -119,8 +126,11 @@ async def relay(app, request, method, path, *, body=None, params=None):
             finished.set()
 
     await app(scope, receive, send)
-    status = next(m['status'] for m in messages if m['type'] == 'http.response.start')
+    start = next(m for m in messages if m['type'] == 'http.response.start')
+    status = start['status']
     raw = b''.join(m.get('body', b'') for m in messages if m['type'] == 'http.response.body')
+    if binary and status == 200:
+        return status, (raw, dict(start['headers']))
     try:
         result = json.loads(raw)
     except ValueError:
@@ -150,6 +160,52 @@ def draft_row(api, draft_id, actor_id, *, lock=False, cur=None):
     return row
 
 
+def linked_attachments(api, session_id, actor_id, attachment_ids):
+    """Chat provenance only; A6 owns evidence storage and ticket-context checks."""
+    found = []
+    with api.get_transaction() as cur:
+        for aid in attachment_ids:
+            cur.execute('''SELECT a.id,a.kind FROM assistant_attachment_links l
+                JOIN attachments a ON a.id=l.attachment_id
+                JOIN assistant_sessions s ON s.id=l.session_id
+                WHERE l.attachment_id=%s AND l.session_id=%s AND l.actor_id=%s
+                  AND s.actor_id=%s AND a.uploaded_by_actor_id=%s''',
+                (aid, str(session_id), actor_id, actor_id, actor_id))
+            row = cur.fetchone()
+            if not row:
+                fail(404, 'ATTACHMENT_NOT_FOUND', 'Attachment unavailable / Adjunto no disponible.')
+            found.append(dict(row))
+    return found
+
+
+def evidence_fields(action, selected):
+    # Evidence comes from the page's authenticated uploads, never model output.
+    if action in write_tickets.SHIP_ACTIONS:
+        return {'attachment_ids': [a['id'] for a in selected
+                                  if a['kind'] in ('bol', 'truck_photo', 'signed_packing_slip')]}
+    if action in ('adjust', 'found'):
+        photos = [a for a in selected if a['kind'] == 'correction_photo']
+        if len(photos) > 1:
+            fail(422, 'CORRECTION_PHOTO_AMBIGUOUS', 'Select one correction photo / Selecciona una foto de corrección.')
+        return {'attachment_id': photos[0]['id']} if photos else {}
+    return {}
+
+
+def record_attachment_ids(card):
+    # Pre-A6 draft cards used UUID attachment-only photos. Keep their private
+    # metadata intact, but never treat those historical photos as A6 evidence.
+    selected = []
+    for aid in card.get('attachment_ids', []):
+        if isinstance(aid, int) and not isinstance(aid, bool) and aid > 0:
+            selected.append(aid)
+        else:
+            try:
+                UUID(str(aid))
+            except ValueError:
+                fail(409, 'ATTACHMENT_REUPLOAD_REQUIRED', 'Upload this photo again / Vuelve a subir esta foto.')
+    return selected
+
+
 def approve_id(state, kind, candidate):
     values = state.setdefault('resolved', {}).setdefault(kind, [])
     if candidate.get('id') not in values:
@@ -160,13 +216,16 @@ def untrusted_ids(args, state):
     """Transport provenance only. FL still validates identity and eligibility."""
     kinds = {'product_id': 'product', 'source_product_id': 'product', 'target_product_id': 'product',
              'ingredient_product_id': 'product', 'substitute_product_id': 'product',
-             'supplier_id': 'supplier', 'lot_id': 'lot'}
+             'supplier_id': 'supplier', 'customer_id': 'customer', 'order_id': 'order', 'lot_id': 'lot'}
     missing = []
+    order_lines = state.get('resolved', {}).get('order_line', {}).get(str(args.get('order_id')), [])
 
     def walk(value):
         if isinstance(value, dict):
             for name, item in value.items():
                 if name in kinds and item is not None and item not in state.get('resolved', {}).get(kinds[name], []):
+                    missing.append(name)
+                if name == 'line_id' and item is not None and item not in order_lines:
                     missing.append(name)
                 walk(item)
         elif isinstance(value, list):
@@ -179,7 +238,7 @@ def untrusted_ids(args, state):
 def receipt_ok(status, result):
     return (status == 200 and isinstance(result, dict) and result.get('success') is not False
             and isinstance(result.get('receipt_number'), str)
-            and re.fullmatch(r'(?:RCV|MK|PK|ADJ|FND)-\d{6}-\d{3,}', result['receipt_number']) is not None)
+            and re.fullmatch(r'(?:RCV|MK|PK|ADJ|FND|SHP)-\d{6}-\d{3,}', result['receipt_number']) is not None)
 
 
 def register_routes(app, api):
@@ -224,11 +283,32 @@ def register_routes(app, api):
                 'pending': row['state'].get('pending'),
                 'actor': {'id': actor['id'], 'name': actor['name'], 'role': actor['role']}}
 
+    async def approve_candidate(request, state, kind, candidate):
+        if kind != 'order':
+            approve_id(state, kind, candidate)
+            return 200, None
+        # Resolve names first, then obtain line identifiers from this actor's
+        # real order read. A model-supplied line ID is never its own provenance.
+        status, detail = await relay(app, request, 'GET', '/sales/orders/' + str(candidate['id']))
+        if status != 200:
+            return status, detail
+        if not isinstance(detail, dict) or detail.get('order_id') != candidate['id'] or not isinstance(detail.get('lines'), list):
+            fail(502, 'FL_RESPONSE_INVALID', 'FL returned no usable order detail / Detalle de pedido no disponible.')
+        approve_id(state, kind, candidate)
+        state['resolved'].setdefault('order_line', {})[str(candidate['id'])] = [
+            line['line_id'] for line in detail['lines']
+            if line.get('line_status') not in ('cancelled', 'fulfilled')]
+        return status, detail
+
     async def execute_tool(request, body, actor, state, name, args):
         if name == 'resolve':
             status, result = await relay(app, request, 'POST', '/resolve', body=args)
             if status == 200 and result.get('outcome') == 'match' and not result.get('needs_clarification'):
-                approve_id(state, args['kind'], result['match'])
+                selected_status, detail = await approve_candidate(request, state, args['kind'], result['match'])
+                if selected_status != 200:
+                    return selected_status, detail, {'kind': 'refusal', 'status': selected_status, 'result': detail}
+                if detail is not None:
+                    result = {**result, 'order_detail': detail}
                 return status, result, None
             if status == 200:
                 choice_id = str(uuid4())
@@ -241,13 +321,21 @@ def register_routes(app, api):
                 return status, result, card
             return status, result, {'kind': 'refusal', 'status': status, 'result': result}
         if name in catalog.PREPARES:
-            if set(args) & catalog.UI_FIELDS:
+            if catalog.has_ui_fields(args):
                 fail(502, 'MODEL_EVIDENCE_FORBIDDEN', 'Confirmation must come from the page / Confirma en la página.')
             unknown = untrusted_ids(args, state)
             if unknown:
                 return 422, {'detail': {'error_code': 'RESOLVE_REQUIRED', 'fields': unknown}}, None
             path, _ = catalog.PREPARES[name]
-            status, result = await relay(app, request, 'POST', path, body={**args, 'client_source': 'fl_assistant'})
+            prepared_args = {**args, 'client_source': 'fl_assistant'}
+            if name == 'prepare_ship_order' and 'order_id' in prepared_args:
+                path = path.format(order_id=prepared_args.pop('order_id'))
+            elif name == 'prepare_ship_order':
+                return 422, {'detail': {'error_code': 'ORDER_REQUIRED', 'message': 'Resolve the order first.'}}, None
+            action = name.removeprefix('prepare_')
+            prepared_args.update(evidence_fields(action, linked_attachments(
+                api, body.session_id, actor['id'], body.attachment_ids)))
+            status, result = await relay(app, request, 'POST', path, body=prepared_args)
             if status != 200 or not result.get('ticket') or not result.get('payload_hash') or not isinstance(result.get('draft'), dict):
                 return status, result, {'kind': 'refusal', 'status': status, 'result': catalog.safe_result(result)}
             card = store_draft(result, args, body.session_id, actor['id'], body.attachment_ids)
@@ -271,7 +359,7 @@ def register_routes(app, api):
     def store_draft(result, args, sid, actor_id, attachments):
         draft_id = str(uuid4())
         card = {'kind': 'draft', 'id': draft_id, 'prepared': catalog.safe_result(result),
-                'attachment_ids': [str(a) for a in attachments]}
+                'attachment_ids': list(attachments)}
         original = {**args, 'occurred_at': result['draft']['happened_at']}
         with api.get_transaction() as cur:
             cur.execute('INSERT INTO assistant_drafts(id,session_id,actor_id,ticket,payload_hash,card,prepare_body) VALUES (%s,%s,%s,%s,%s,%s,%s)',
@@ -323,13 +411,8 @@ def register_routes(app, api):
                 fail(409, 'CHAT_BUSY', 'Wait for the current message / Espera el mensaje actual.')
         state = claimed['state']
         try:
-            # Store names/bytes outside model context. Validate every attachment owner.
-            with api.get_transaction() as cur:
-                for aid in body.attachment_ids:
-                    cur.execute('SELECT id FROM assistant_attachments WHERE id=%s AND session_id=%s AND actor_id=%s',
-                                (str(aid), sid, actor['id']))
-                    if not cur.fetchone():
-                        fail(404, 'ATTACHMENT_NOT_FOUND', 'Attachment unavailable / Adjunto no disponible.')
+            # Names/bytes stay outside model context; A6 stores every photo.
+            linked_attachments(api, sid, actor['id'], body.attachment_ids)
             history = state.setdefault('history', [])
             pending = state.get('pending')
             if body.choice_id:
@@ -351,9 +434,13 @@ def register_routes(app, api):
                     cards = [{'kind': 'clarify', 'message': 'Give a fuller name or exact code / Escribe el nombre completo o código exacto.'}]
                     history.append({'role': 'user', 'content': 'None of these candidates; ask me for a fuller name.'})
                     return save_turn(state, cards, body, actor, digest, lease)
-                approve_id(state, pending['args']['kind'], selected)
+                selected_status, detail = await approve_candidate(request, state, pending['args']['kind'], selected)
+                if selected_status != 200:
+                    return save_turn(state, [{'kind': 'refusal', 'status': selected_status, 'result': detail}],
+                                     body, actor, digest, lease)
                 state.pop('pending', None)
-                history.append({'role': 'user', 'content': 'I selected this FL candidate: ' + json.dumps(selected, ensure_ascii=False)})
+                selection = {'candidate': selected, 'order_detail': detail} if detail is not None else selected
+                history.append({'role': 'user', 'content': 'I selected this FL candidate: ' + json.dumps(selection, ensure_ascii=False)})
             else:
                 if not body.text.strip():
                     fail(422, 'TEXT_REQUIRED', 'Enter a message / Escribe un mensaje.')
@@ -425,12 +512,15 @@ def register_routes(app, api):
             row = draft_row(api, body.draft_id, actor['id'], lock=True, cur=cur)
             if row['status'] == 'cancelled':
                 fail(409, 'DRAFT_CANCELLED', 'Draft cancelled. NOT recorded / Borrador cancelado. NO registrado.')
+            evidence = evidence_fields(row['card'].get('prepared', {}).get('action'),
+                linked_attachments(api, row['session_id'], actor['id'], record_attachment_ids(row['card'])))
             prior_attempt = row['record_started_at']
             cur.execute('UPDATE assistant_drafts SET record_started_at=clock_timestamp() WHERE id=%s RETURNING record_started_at', (str(body.draft_id),))
             attempt = cur.fetchone()['record_started_at']
         payload = {'payload_hash': row['payload_hash'], 'acknowledged_warnings': body.acknowledged_warnings}
         if body.lot_confirmations:
             payload['lot_confirmations'] = body.lot_confirmations
+        payload.update(evidence)
         # Always relay even after a saved result: FL re-authenticates and replays.
         status, result = await relay(app, request, 'POST', '/tickets/' + row['ticket'] + '/commit', body=payload)
         if status == 202 and result.get('held') is True and result.get('status') == 'awaiting_approval':
@@ -472,7 +562,9 @@ def register_routes(app, api):
         return {'kind': 'cancelled', 'draft_id': str(body.draft_id)}
 
     @app.post('/assistant/attachment')
-    async def attachment(session_id: UUID, file: UploadFile = File(...), actor=Depends(authenticate)):
+    async def attachment(session_id: UUID, request: Request, file: UploadFile = File(...),
+                         kind: Literal['bol','truck_photo','correction_photo','lot_tag','count_sheet','signed_packing_slip','other'] = Form(...),
+                         actor=Depends(authenticate)):
         session_row(api, session_id, actor['id'])
         data = await file.read(MAX_PHOTO + 1)
         await file.close()
@@ -481,27 +573,36 @@ def register_routes(app, api):
                 'image/webp' if data[:4] == b'RIFF' and data[8:12] == b'WEBP' else None)
         if not data or len(data) > MAX_PHOTO or not mime or file.content_type != mime:
             fail(422, 'PHOTO_INVALID', 'Use a JPEG, PNG or WebP photo up to 5 MB / Foto de hasta 5 MB.')
-        aid = str(uuid4())
         filename = Path(file.filename or 'photo').name[:150]
+        status, result = await relay(app, request, 'POST', '/attachments',
+            file=(filename, data, mime), form={'kind': kind})
+        if status != 200:
+            return JSONResponse(status_code=status, content=result)
+        aid = result['attachment_id']
         with api.get_transaction() as cur:
-            # Bound durable storage to 50 MB per conversation, independent of model input.
-            cur.execute('SELECT id FROM assistant_sessions WHERE id=%s FOR UPDATE', (str(session_id),))
-            cur.execute('SELECT coalesce(sum(octet_length(content)),0) AS size FROM assistant_attachments WHERE session_id=%s', (str(session_id),))
-            if cur.fetchone()['size'] + len(data) > 50 * 1024 * 1024:
-                fail(413, 'ATTACHMENT_LIMIT', 'Chat attachment limit reached / Límite de adjuntos alcanzado.')
-            cur.execute('INSERT INTO assistant_attachments(id,session_id,actor_id,filename,media_type,sha256,content) VALUES (%s,%s,%s,%s,%s,%s,%s)',
-                        (aid, str(session_id), actor['id'], filename, mime, hashlib.sha256(data).hexdigest(), data))
-        return {'id': aid, 'filename': filename, 'media_type': mime, 'size': len(data), 'attachment_only': True}
+            cur.execute('INSERT INTO assistant_attachment_links(session_id,attachment_id,actor_id,filename) VALUES (%s,%s,%s,%s)',
+                        (str(session_id), aid, actor['id'], filename))
+        return {'id': aid, 'attachment_id': aid, 'filename': filename, 'kind': kind,
+                'media_type': mime, 'size': len(data), 'attachment_only': True}
 
     @app.post('/assistant/attachment/read')
-    def read_attachment(body: AttachmentRead, actor=Depends(authenticate)):
+    async def read_attachment(body: AttachmentRead, request: Request, actor=Depends(authenticate)):
         with api.get_transaction() as cur:
-            cur.execute('SELECT content,media_type FROM assistant_attachments WHERE id=%s AND actor_id=%s', (str(body.attachment_id), actor['id']))
-            row = cur.fetchone()
-        if not row:
-            fail(404, 'ATTACHMENT_NOT_FOUND', 'Attachment unavailable / Adjunto no disponible.')
-        return Response(bytes(row['content']), media_type=row['media_type'],
-                        headers={'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff'})
+            cur.execute('''SELECT l.session_id FROM assistant_attachment_links l
+                JOIN assistant_sessions s ON s.id=l.session_id
+                JOIN attachments a ON a.id=l.attachment_id
+                WHERE l.attachment_id=%s AND l.actor_id=%s AND s.actor_id=%s
+                  AND a.uploaded_by_actor_id=%s''',
+                (body.attachment_id, actor['id'], actor['id'], actor['id']))
+            if not cur.fetchone():
+                fail(404, 'ATTACHMENT_NOT_FOUND', 'Attachment unavailable / Adjunto no disponible.')
+        status, result = await relay(app, request, 'GET',
+                                    '/attachments/' + str(body.attachment_id) + '/file', binary=True)
+        if status != 200:
+            return JSONResponse(status_code=status, content=result)
+        content, headers = result
+        return Response(content, media_type=headers.get(b'content-type', b'application/octet-stream').decode(),
+                        headers={'Cache-Control': 'private, no-store', 'X-Content-Type-Options': 'nosniff'})
 
     @app.post('/assistant/transcribe')
     async def transcribe(file: UploadFile = File(...), actor=Depends(authenticate)):

@@ -1,8 +1,10 @@
 /* F1: DOM cards come from FL responses. Model prose is never a UI input. */
 (function (root) {
   'use strict';
-  const validReceipt = value => !!(value && value.success !== false && typeof value.receipt_number === 'string' && /^(RCV|MK|PK|ADJ|FND)-\d{6}-\d{3,}$/.test(value.receipt_number));
-  const canRecord = prepared => !!(prepared && (prepared.can_commit || (prepared.blockers?.length && prepared.blockers.every(b => b.code === 'LOT_NOT_CONFIRMED'))));
+  const validReceipt = value => !!(value && value.success !== false && typeof value.receipt_number === 'string' && /^(RCV|MK|PK|ADJ|FND|SHP)-\d{6}-\d{3,}$/.test(value.receipt_number));
+  const canRecord = prepared => !!(prepared && (prepared.blockers?.length ? prepared.blockers.every(b => b.code === 'LOT_NOT_CONFIRMED') : prepared.can_commit === true));
+  const evidenceKinds = ['bol', 'truck_photo', 'correction_photo', 'lot_tag', 'count_sheet', 'signed_packing_slip', 'other'];
+  const validAttachment = value => !!(value && Number.isSafeInteger(value.id) && value.id > 0 && evidenceKinds.includes(value.kind));
   function errorText(value) {
     const data = value?.result || value;
     const detail = data?.detail || data?.error_detail || data;
@@ -12,7 +14,7 @@
     return String(detail || 'Request failed / Solicitud fallida');
   }
   const awaitingApproval = value => !!(value && value.held === true && value.status === 'awaiting_approval');
-  const exports = { validReceipt, canRecord, errorText, awaitingApproval };
+  const exports = { validReceipt, canRecord, validAttachment, evidenceKinds, errorText, awaitingApproval };
   if (typeof module !== 'undefined') module.exports = exports;
   if (!root.document) return;
   const $ = id => document.getElementById(id);
@@ -40,6 +42,7 @@
     $('language').setAttribute('aria-label', language === 'en' ? 'Cambiar a español' : 'Switch to English');
     $('actor-key').placeholder = t('Enter your personal key', 'Escribe tu clave personal');
     if (actor) $('identity').textContent = `${t('Signed in as', 'Sesión de')} ${actor.name} · ${actor.role}`;
+    renderAttachments();
   }
   function notice(message) { $('notice').textContent = message; $('notice').hidden = !message; }
   function failed(node, error) {
@@ -64,7 +67,7 @@
   }
   function setBusy(value) {
     busy = value;
-    ['send', 'photo-button', 'new-chat'].forEach(id => $(id).disabled = value || !session);
+    ['send', 'photo-button', 'photo-kind', 'new-chat'].forEach(id => $(id).disabled = value || !session);
     $('dictate').disabled = value || !session || !navigator.mediaDevices?.getUserMedia || !root.MediaRecorder;
     $('sign-out').disabled = value;
     drafts.forEach(node => node.refreshRecord?.());
@@ -90,7 +93,9 @@
     node.replaceChildren(); node.className = 'card receipt';
     node.append(el('span', t('✓ RECORDED IN FACTORY LEDGER', '✓ REGISTRADO EN FACTORY LEDGER'), 'eyebrow'), el('h3', result.receipt_number, 'receipt-number'));
     node.append(el('p', result.replayed ? t('Same entry, same receipt. Your retry did not create another entry.', 'Misma entrada, mismo recibo. El reintento no creó otra entrada.') : t('FL confirmed this entry.', 'FL confirmó esta entrada.')));
-    fields(node, [[t('Transaction', 'Transacción'), result.transaction_id], [t('Product', 'Producto'), result.product_name || result.target_product_name], [t('Lot', 'Lote'), result.lot_code || result.output_lot_code]]);
+    fields(node, [[t('Transaction', 'Transacción'), result.transaction_id], [t('Product', 'Producto'), result.product_name || result.target_product_name], [t('Lot', 'Lote'), result.lot_code || result.output_lot_code],
+      [t('Customer', 'Cliente'), result.customer_name || result.customer], [t('Shipment', 'Envío'), result.shipment_id],
+      [t('BOL', 'BOL'), result.bol_reference], [t('Photo status', 'Estado de foto'), result.proof_status === 'complete' ? t('Attached', 'Adjunta') : result.proof_status === 'photo_pending' ? t('Pending', 'Pendiente') : result.proof_status]]);
     for (const shortage of result.shortages || []) {
       const warning = el('div', undefined, 'warning'); warning.setAttribute('role', 'status');
       warning.append(el('strong', t('Shortage recorded', 'Faltante registrado')),
@@ -127,16 +132,26 @@
     const node = existing || shell(), prepared = card.prepared, draft = prepared.draft;
     drafts.set(card.id, node); node.dataset.draftId = card.id;
     node.append(el('span', t('DRAFT · NOT RECORDED', 'BORRADOR · NO REGISTRADO'), 'draft-badge'));
-    const actionNames = { receive: ['Receive', 'Recibir'], make: ['Make', 'Producir'], pack: ['Pack', 'Empacar'], adjust: ['Adjust', 'Ajustar'], found: ['Found inventory', 'Inventario encontrado'] };
+    const actionNames = { receive: ['Receive', 'Recibir'], make: ['Make', 'Producir'], pack: ['Pack', 'Empacar'], adjust: ['Adjust', 'Ajustar'], found: ['Found inventory', 'Inventario encontrado'],
+      ship_order: ['Ship order', 'Enviar pedido'], ship_standalone: ['Ship', 'Enviar'], ship_bulk: ['Ship multiple products', 'Enviar varios productos'] };
     node.append(el('h3', t(...(actionNames[prepared.action] || [prepared.action, prepared.action]))));
     node.append(el('p', t(`Recording as ${prepared.actor?.name || actor.name}`, `Registrando como ${prepared.actor?.name || actor.name}`), 'muted'));
     fields(node, [[t('Product', 'Producto'), draft.product_name || draft.target_product_name], [t('Source', 'Origen'), draft.source_product_name],
-      [t('Supplier', 'Proveedor'), draft.supplier_name], [t('Cases', 'Cajas'), draft.cases], [t('Batches', 'Lotes de producción'), draft.batches],
+      [t('Supplier', 'Proveedor'), draft.supplier_name], [t('Customer', 'Cliente'), draft.customer || draft.customer_name],
+      [t('Order', 'Pedido'), draft.order || draft.order_id], [t('Cases', 'Cajas'), draft.cases ?? draft.total_cases], [t('Batches', 'Lotes de producción'), draft.batches],
       [t('Pounds', 'Libras'), draft.total_lb ?? draft.total_output_lb ?? draft.total_weight_lb ?? draft.quantity],
       [t('Adjustment (lb)', 'Ajuste (lb)'), draft.delta_lb], [t('Lot', 'Lote'), draft.lot_code || draft.output_lot_code],
       [t('Supplier lot', 'Lote del proveedor'), draft.supplier_lot_code], [t('BOL', 'BOL'), draft.bol_reference],
+      [t('Photo status', 'Estado de foto'), draft.photo === 'attached' ? t('Attached', 'Adjunta') : draft.photo === 'pending' ? t('Pending', 'Pendiente') : draft.photo],
       [t('Reason', 'Motivo'), language === 'es' ? draft.reason_es || draft.reason_code : draft.reason_code],
       [t('Happened at', 'Ocurrió el'), draft.happened_at], [t('Expires', 'Vence'), prepared.expires_at]]);
+    for (const line of draft.lines || []) {
+      const row = el('div', undefined, 'ship-line');
+      row.append(el('strong', line.product || line.product_name));
+      fields(row, line.is_service ? [[t('Type', 'Tipo'), t('Service charge', 'Cargo por servicio')]] :
+        [[t('Pounds', 'Libras'), line.quantity_lb], [t('Cases', 'Cajas'), line.cases], [t('Lots', 'Lotes'), (line.lots || []).map(lot => lot.lot_code).join(', ')]]);
+      node.append(row);
+    }
     const confirmations = [], warningChecks = [];
     for (const lot of draft.input_plan || []) {
       const row = el('div', undefined, 'lot-confirmation');
@@ -317,9 +332,14 @@
   document.querySelectorAll('[data-prompt]').forEach(b => b.addEventListener('click', () => {
     $('message').value = language === 'es' ? (b.dataset.prompt.startsWith('What') ? '¿Qué registré hoy?' : 'Consulta el inventario de ') : b.dataset.prompt; $('message').focus();
   }));
+  function evidenceLabel(kind) {
+    return ({ bol: t('BOL', 'BOL'), truck_photo: t('Truck photo', 'Foto de camión'), correction_photo: t('Correction photo', 'Foto de corrección'),
+      lot_tag: t('Lot tag', 'Etiqueta de lote'), count_sheet: t('Count sheet', 'Hoja de conteo'),
+      signed_packing_slip: t('Signed packing slip', 'Nota de empaque firmada'), other: t('Other evidence', 'Otra evidencia') })[kind] || kind;
+  }
   function renderAttachments() {
     $('attachments').replaceChildren();
-    for (const a of attachments) { const chip = el('div', undefined, 'attachment-chip'); chip.append(el('span', a.filename), button('×', () => { attachments = attachments.filter(x => x.id !== a.id); renderAttachments(); })); $('attachments').append(chip); }
+    for (const a of attachments) { const chip = el('div', undefined, 'attachment-chip'); chip.append(el('span', `${a.filename} · ${evidenceLabel(a.kind)}`), button('×', () => { attachments = attachments.filter(x => x.id !== a.id); renderAttachments(); })); $('attachments').append(chip); }
   }
   async function viewPhoto(id) {
     try {
@@ -332,8 +352,14 @@
   $('photo').addEventListener('change', async () => {
     const file = $('photo').files[0]; $('photo').value = ''; if (!file || busy) return;
     if (attachments.length >= 5) { notice(t('Send at most five photos with a message.', 'Envía hasta cinco fotos con un mensaje.')); return; }
-    setBusy(true); notice(''); const form = new FormData(); form.append('file', file);
-    try { const result = await api('/assistant/attachment?session_id=' + encodeURIComponent(session), { form }); attachments.push(result); renderAttachments(); }
+    const kind = $('photo-kind').value;
+    if (kind === 'correction_photo' && attachments.some(a => a.kind === 'correction_photo')) { notice(t('Send one correction photo with a message. Remove the first photo to replace it.', 'Envía una foto de corrección por mensaje. Quita la primera foto para reemplazarla.')); return; }
+    setBusy(true); notice(''); const form = new FormData(); form.append('file', file); form.append('kind', kind);
+    try {
+      const result = await api('/assistant/attachment?session_id=' + encodeURIComponent(session), { form });
+      if (!validAttachment(result)) throw { detail: t('FL did not confirm a private evidence attachment.', 'FL no confirmó un adjunto privado de evidencia.') };
+      attachments.push(result); renderAttachments();
+    }
     catch (error) { notice(t('NOT recorded — photo upload failed. ', 'NO registrado — falló la carga de foto. ') + errorText(error)); }
     finally { setBusy(false); }
   });
