@@ -144,6 +144,10 @@
 - **File(s) changed:** `tests/test_pilot_triage_backend.py`, `.venv-test`
 - **What changed:** Add pilot regressions and prepare isolated test runtime
 - **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+## 2026-10-14 07:08 — Start isolated D2 office and void implementation from merged PR #107
+- **File(s) changed:** `docs/validation/dashboard-office-void.md`
+- **What changed:** Recorded authorized scope, base ancestry, isolated Git store recovery and validation gates.
+- **Why:** October 14 pilot decisions A and D; existing shared object store failed checkout twice.
 
 ---
 
