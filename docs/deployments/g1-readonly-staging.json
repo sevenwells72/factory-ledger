@@ -1,11 +1,13 @@
 {
   "check": "G1 READONLY_API_KEY on hosted FastAPI-staging",
   "service": "FastAPI-staging (Railway gleaming-solace)",
-  "deployment": "414feb47-5c52-43f3-a951-61915000c150 (railway up, SUCCESS)",
-  "code": "feat/gpt-readonly 49a9edb on origin/main e81f6e1",
-  "variable": "READONLY_API_KEY set on FastAPI-staging 2026-10-14 ~02:41Z (value in ~/Documents/fl-secrets/staging-readonly-key.txt, never printed)",
+  "deployment": "4cf9db98-51a5-425a-85e3-17edb1dee287 (railway up, SUCCESS)",
+  "code": "feat/gpt-readonly 63bd2dd (Codex fix round 1) on origin/main e81f6e1",
+  "variable": "READONLY_API_KEY unchanged on FastAPI-staging since 2026-10-14 ~02:41Z (value in ~/Documents/fl-secrets/staging-readonly-key.txt, never printed)",
   "production": "untouched",
-  "at": "2026-10-14T02:43:11+00:00",
+  "previous_run": "414feb47 on 49a9edb, 2026-10-14T02:43:11Z: 16/16, 118/118, 51/51 (no exchange check)",
+  "note": "The actor-key collision itself is proven by tests/test_readonly_api_key.py on a fresh local DB, not on staging (no staging actor rows were changed).",
+  "at": "2026-10-14T03:05:22+00:00",
   "base": "https://fastapi-staging-production-dd7b.up.railway.app",
   "unknown_key_control": {
     "status": 403,
@@ -14,6 +16,12 @@
   "gpt_reads_allowed": "16/16",
   "writes_refused_403": "118/118",
   "other_gets_refused_403": "51/51",
+  "session_exchange_refused": {
+    "route": "POST /auth/session (read-only key as actor_key)",
+    "status": 401,
+    "detail": "ACTOR_KEY_INVALID",
+    "ok": true
+  },
   "failures": [],
   "reads": [
     {
