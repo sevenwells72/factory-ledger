@@ -1,0 +1,27 @@
+{
+  "base": "adf4a50",
+  "fresh_db": "fl_d12_gate_full_20261014",
+  "python": {
+    "passed": 2835,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 99.11
+  },
+  "node": {
+    "passed": 126,
+    "failed": 0,
+    "skipped": 0
+  },
+  "browser_checks": [
+    "cutover off and config outage",
+    "cutover on",
+    "12 pages on 4 virtual Netlify hosts",
+    "D1 real routes",
+    "D2 seven write flows",
+    "session expiry/retry/logout",
+    "XR/VD and allowed-actions regressions"
+  ],
+  "hosted_fl_access": false,
+  "migrations": false
+}

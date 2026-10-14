@@ -21,7 +21,7 @@
     search.onclick=()=>find();input.onkeydown=event=>{if(event.key==='Enter'){event.preventDefault();find();}};
     return {set(candidate){value=candidate;input.value=candidate.label;status.textContent=ui.t('Selected: ','Seleccionado: ')+candidate.label;changed(candidate);},get value(){return value;},id(){if(!value)throw Error(ui.t('Choose ','Elige ')+ui.t(en,es));return value.id;},clear(){input.value='';reset();},input};
   }
-  function render(){invalidate();content.replaceChildren();const toolbar=ui.el('div',undefined,content);toolbar.className='toolbar';
+  function render(){if(!FLDashboard.writesEnabled)return;invalidate();content.replaceChildren();const toolbar=ui.el('div',undefined,content);toolbar.className='toolbar';
     const l=ui.el('label',ui.t('Entry type','Tipo de entrada'),toolbar),select=ui.el('select',undefined,l);select.id='entry-action';actions.forEach(([v,en,es])=>{const o=ui.el('option',ui.t(en,es),select);o.value=v;});select.value=action;select.onchange=()=>{action=select.value;const url=new URL(location.href);url.searchParams.set('action',action);history.replaceState({},'',url);render();};
     const form=ui.el('form',undefined,content);form.id='entry-form';form.className='panel';const fields=ui.el('div',undefined,form);fields.className='fields';const values={},choices={};
     function field(name,en,es,type='text',required=false,parent=fields){const label=ui.el('label',ui.t(en,es),parent),input=ui.el(type==='textarea'?'textarea':'input',undefined,label);input.name=name;if(type!=='textarea')input.type=type;input.required=required;if(type==='number')input.step='any';values[name]=input;return input;}
@@ -71,5 +71,5 @@
     }catch(error){ui.failure(error);}};
   }
   // Relabel in place: a language switch never clears the half-filled form or an open draft.
-  window.addEventListener('ledger-language',ui.relabel);window.addEventListener('ledger-signout',render);render();
+  window.addEventListener('ledger-language',ui.relabel);window.addEventListener('ledger-signout',render);ui.ready.then(on=>{if(on)render();}).catch(()=>{});
 })();

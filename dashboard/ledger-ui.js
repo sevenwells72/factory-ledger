@@ -71,31 +71,33 @@
   api.translate=()=>{document.documentElement.lang=api.lang;document.querySelectorAll('[data-en]').forEach(e=>e.textContent=e.dataset[api.lang]||e.dataset.en);const b=document.getElementById('language');if(b)b.textContent=api.lang==='en'?'ES':'EN';};
   api.notice=(message,kind='bad')=>{const box=document.getElementById('notice');box.hidden=false;box.className=kind;box.textContent=message;};
   api.failure=error=>api.notice(error?.transport?error.message:api.t('NOT recorded — ','NO registrado — ')+(error?.result?errorText(error.result,api.lang):error.message||String(error)));
-  api.base=root.FL_SESSION_API_BASE||(location.hostname.endsWith('netlify.app')?'https://fastapi-production-b73a.up.railway.app':location.origin);
+  api.base=root.FLDashboard.base;
   api.readKey='dashboard-key-2026';
-  let legacy='', actor=null;
-  api.session=FLKeySessions.create({base:api.base,fetch:root.fetch.bind(root),storage:root.sessionStorage,changed:()=>paintIdentity()});
-  function paintIdentity(){actor=api.session.actor||actor;const identity=document.getElementById('identity');if(!identity)return;const current=api.session.enabled?api.session.actor:actor;
+  let actor=null;
+  api.session=FLKeySessions.create({base:api.base,fetch:root.fetch.bind(root),storage:root.sessionStorage,config:root.FLDashboard.config,changed:()=>paintIdentity()});
+  function paintIdentity(){actor=api.session.actor||actor;const identity=document.getElementById('identity');if(!identity)return;const current=api.session.actor;
+    identity.hidden=!root.FLDashboard.writesEnabled;if(identity.hidden){identity.textContent='';document.getElementById('sign-in-form').hidden=true;document.getElementById('sign-out').hidden=true;return;}
     identity.textContent=current?api.t('Signed in as ','Sesión de ')+current.name:api.t('Sign in before recording','Inicia sesión antes de registrar');
     document.getElementById('sign-in-form').hidden=!!current;document.getElementById('sign-out').hidden=!current;
   }
-  api.ready=api.session.init().catch(error=>{api.failure(error);throw error;});api.ready.catch(()=>{});
+  api.ready=root.FLDashboard.ready.then(async on=>{if(!on){api.session.clear();return false;}await api.session.init();return true;}).catch(error=>{api.failure(error);throw error;});api.ready.catch(()=>{});
   api.request=async(path,body,{read=false,form=false}={})=>{
     await api.ready;
-    const key=api.session.enabled?api.session.token:legacy;
+    if(!read&&!root.FLDashboard.writesEnabled)throw Error('Recording is unavailable / El registro no está disponible');
+    const key=api.session.token;
     if(!key&&!read)throw Error(api.t('Sign in before recording.','Inicia sesión antes de registrar.'));
     const headers={'X-API-Key':key||api.readKey};if(body!==undefined&&!form)headers['Content-Type']='application/json';
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);let response,result;
     try{response=await fetch(api.base+path,{method:body===undefined?'GET':'POST',headers,body:body===undefined?undefined:form?body:JSON.stringify(body),signal:controller.signal,cache:'no-store'});result=await response.json();}
     catch(error){const plain=transportText(error,api.lang);if(!plain)throw error;const wrapped=Error(plain);wrapped.transport=true;throw wrapped;}finally{clearTimeout(timer);}
-    if(!response.ok){if(response.status===401&&result.detail?.error_code==='SESSION_EXPIRED'){api.session.clear();legacy='';actor=null;paintIdentity();}const error=Error(errorText(result,api.lang));error.result=result;error.status=response.status;throw error;}return result;
+    if(!response.ok){if(response.status===401&&result.detail?.error_code==='SESSION_EXPIRED'){api.session.clear();actor=null;paintIdentity();}const error=Error(errorText(result,api.lang));error.result=result;error.status=response.status;throw error;}return result;
   };
   api.upload=async(file,kind)=>{const body=new FormData();body.append('file',file);body.append('kind',kind);return api.request('/attachments',body,{form:true});};
   api.bind=()=>{
     api.translate();document.getElementById('language').onclick=()=>{api.lang=api.lang==='en'?'es':'en';sessionStorage.setItem('fl-ledger-language',api.lang);api.translate();paintIdentity();root.dispatchEvent(new Event('ledger-language'));};
     document.getElementById('sign-in-form').onsubmit=async e=>{e.preventDefault();const input=document.getElementById('actor-key'),value=input.value;input.value='';const submit=e.submitter;submit.disabled=true;
-      try{await api.ready;if(api.session.enabled)await api.session.signIn(value);else{legacy=value;const who=await api.request('/auth/whoami');actor=who.actor;if(!actor)throw Error('Use your personal actor key / Usa tu clave personal');}paintIdentity();root.dispatchEvent(new Event('ledger-auth'));}catch(error){legacy='';actor=null;paintIdentity();api.failure(error);}finally{submit.disabled=false;}};
-    document.getElementById('sign-out').onclick=async()=>{try{await api.session.signOut();legacy='';actor=null;paintIdentity();root.dispatchEvent(new Event('ledger-signout'));}catch(error){api.failure(error);}};
+      try{await api.ready;if(!root.FLDashboard.writesEnabled)throw Error('Recording is unavailable / El registro no está disponible');await api.session.signIn(value);paintIdentity();root.dispatchEvent(new Event('ledger-auth'));}catch(error){actor=null;paintIdentity();api.failure(error);}finally{submit.disabled=false;}};
+    document.getElementById('sign-out').onclick=async()=>{try{await api.session.signOut();actor=null;paintIdentity();root.dispatchEvent(new Event('ledger-signout'));}catch(error){api.failure(error);}};
     api.ready.then(paintIdentity).catch(()=>{});
   };
 })(typeof window==='undefined'?globalThis:window);
