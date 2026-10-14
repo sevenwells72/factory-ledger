@@ -58,15 +58,16 @@ def looks_like_opening(x,lot,lid):
 
 A3B_UNIT_TO_LB={'lb':D(1),'lbs':D(1),'pound':D(1),'pounds':D(1),'kg':D('2.20462262185'),'kgs':D('2.20462262185'),'kilogram':D('2.20462262185'),'kilograms':D('2.20462262185'),'g':D(1)/D('453.59237'),'gram':D(1)/D('453.59237'),'grams':D(1)/D('453.59237'),'oz':D(1)/D(16),'ounce':D(1)/D(16),'ounces':D(1)/D(16)}
 def a3b_lb_equivalent(p,q):
- """Exactly exceptions_enforcement.to_lb(product, q, main.ledger_quantity_unit(uom)), so the
- signed plan predicts the hold FL will apply. NB: for uom 'case' A3b multiplies the (lb)
- delta by the case weight — mirrored here on purpose, reported in READINESS."""
+ """Exactly exceptions_enforcement.correction_review for an adjust, so the signed plan
+ predicts the hold FL will apply. Since PR #109 an adjust delta on a WEIGHTED case
+ product is already pounds (40 lb is 40 lb, not 40 cases × 15 lb); only an unweighted
+ case/bag product has no pound equivalent (no 500 lb rule)."""
  unit=(p.get('uom') or 'lb').strip() or 'lb'
  unit='lb' if re.search(r'(?<![a-z])(?:lbs?|pounds?)(?![a-z])',unit,re.I) else unit
  unit=unit.strip().lower().rstrip('.')
  if unit in A3B_UNIT_TO_LB:return abs(q)*A3B_UNIT_TO_LB[unit]
  if unit in ('case','cases','cs'):
-  w=p.get('case_size_lb') or p.get('default_case_weight_lb');return abs(q)*f.number(w) if w else None
+  w=p.get('case_size_lb') or p.get('default_case_weight_lb');return abs(q) if w else None
  if unit in ('bag','bags'):
   w=p.get('pack_size_lbs');return abs(q)*f.number(w) if w else None
  return None
@@ -258,7 +259,9 @@ def analyze(s,data,verified_openings=(),areas=None):
  for lid,rs in observed_lots.items():
   if len({r['area'] for r in rs})<2:continue
   refs=[r['row_id'] for r in rs];message='owner confirms no unlogged moves between rows '+'/'.join(refs)
-  fp=fingerprint(dict(lot_id=lid,rows=rs));ans=review.get('multi_area_reviews',{}).get(fp,{})
+  # Bound to product + lot code, not the lot id: a new extra-kosher lot's synthetic key
+  # becomes a real id once its found ticket posts, and the confirmation must still hold.
+  fp=fingerprint(dict(product_id=rs[0]['pid'],lot_code=rs[0]['lot_code'],rows=[{k:x for k,x in r.items() if k!='lid'} for r in rs]));ans=review.get('multi_area_reviews',{}).get(fp,{})
   templates['multi_area_reviews'][fp]=dict(product_id=rs[0]['pid'],lot_id=lid,rows=refs,hold=message,owner='',no_unlogged_moves=False)
   if not (ans.get('owner') and ans.get('no_unlogged_moves') is True):lot_holds[lid].append(message)
  # Only ticked rows nominate duplicate groups; tags group evidence but never
@@ -424,6 +427,9 @@ def analyze(s,data,verified_openings=(),areas=None):
   if pid not in coverage:hold(pid,'All-location product coverage is incomplete')
   new=bool(lot.get('new'));open_short=sorted(x['id'] for x in shortages if x['lot_id']==lid)
   if new and rounded<0:hold(pid,'New extra-kosher lot cannot be loaded negative')
+  # A shortage the count does not change cannot close through an adjust ticket; never
+  # report the lot reset while it stays open (Codex PR #108 review).
+  if open_short and not new and not rounded:hold(pid,'Open shortage #'+',#'.join(map(str,open_short))+' on lot '+lot['lot_code']+' and the count matches FL: resolve it as counted on the dashboard (XR receipt), then refresh the preview')
   if new and any(x['product_id']==pid for x in shortages):hold(pid,'Open shortage on this extra-kosher product: FL refuses found stock until it is resolved')
   if (lot.get('kosher_tier') or p.get('kosher_tier') or 'regular')!=(p.get('kosher_tier') or 'regular') and not new:hold(pid,'Lot kosher tier differs from its product; owner investigation')
   lotrows.append(dict(product_id=pid,SKU=p.get('odoo_code') or '',name=p['name'],product_active=p.get('active'),product_type=p['type'],ledger_unit=native(p),lot_id=None if new else lid,lot_key=str(lid),new_lot=new,action='found' if new else 'adjust',kosher_tier=p.get('kosher_tier') or 'regular',resolves_shortage_ids=open_short if rounded and not new else [],open_shortage_ids=open_short,lot_code=lot['lot_code'],row_ids=[r['row_id'] for r in rs],cutoff=cutoff.isoformat(),row_cutoffs={r['row_id']:r['cut'].isoformat() for r in rs},estimated=any(r['estimated'] for r in rs),physical_count_native=physical,internal_move_correction_native=move_effect[(pid,lid)],post_count_movement_native=after,counted_qty=physical,counted_lb=physical,adjustment_basis_lb=current-after-move_effect[(pid,lid)],candidate_adjustment_lb=original,rounded_adjustment_lb=rounded,rounding_delta_lb=rounded-original,planned_balance_lb=current+rounded,current_lb=current,expected_current_lb=target,existing_opening_lb=existing,reason=reason,backfill=True,time_since_count_hours=(now-cutoff).total_seconds()/3600))
@@ -467,9 +473,12 @@ def analyze(s,data,verified_openings=(),areas=None):
  for r in lotrows:
   # Unknown products cannot be assigned a product hold. Keep affected sheets'
   # lots held without blocking unrelated sheets through the general bucket.
-  sids={obs['sheet_id'] for obs in observed_lots.get(r['lot_id'],[])}
+  # New extra-kosher lots have no FL id yet: their observations and lot holds (e.g. the
+  # multi-area no-unlogged-moves confirmation) live under the synthetic key.
+  key=r['lot_key'] if r['new_lot'] else r['lot_id']
+  sids={obs['sheet_id'] for obs in observed_lots.get(key,[])}
   local=[item['hold'] for sid in sorted(sids) for item in sheet_follow_up[sid] if item['product_id'] is None]
-  r['holds']=holds.get(r['product_id'],[])+lot_holds.get(r['lot_id'],[])+local;r['status']='HELD' if r['holds'] else 'READY';r['adjustment_lb']=None if r['holds'] else r['rounded_adjustment_lb']
+  r['holds']=holds.get(r['product_id'],[])+lot_holds.get(key,[])+local;r['status']='HELD' if r['holds'] else 'READY';r['adjustment_lb']=None if r['holds'] else r['rounded_adjustment_lb']
  for sid,raws in sheetrows.items():
   rs=[r for r in observations if r['sheet_id']==sid];pids_sheet={int(r['product_id']) for r in raws if r['product_id'].isdigit()}
   meta=sheetmeta.get(sid,(raws[0]['area'],raws[0]['counter'],raws[0]['start_time'],raws[0]['end_time']))
@@ -547,21 +556,29 @@ def actor_id(actor_name, s):
     return found[0]['id']
 
 
+TICKET_DEAD = ('expired', 'rejected', 'superseded')   # FL never posts these (commit refuses them)
+
+
 def reconcile_tickets(rows, s, attempts_list, actor_name):
     """Completed lot -> its one posted ledger line, proved by the ticket that posted it.
-    Also returns lots whose last ticket is held for the owner (resume by approval).
+    Also returns lots whose last ticket is held for the owner (resume by approval) and
+    lots whose commit outcome is UNCERTAIN: the ticket is still `prepared` and some
+    commit we sent for it has no definite answer (timeout, crash, lost response). Such
+    a commit may still land, so the executor must re-commit THAT ticket (FL replays or
+    posts it exactly once under the ticket row lock) and never prepare a second one
+    (Codex PR #108 review: timeout + rerun posted twice).
     Read-only: shared by apply_reset (preflight) and verify (journal proof)."""
     tickets = {t['id']: t for t in s.get('correction_tickets', [])}
     lots = {l['id']: l for l in s['lots']}
     owner_id = actor_id(actor_name, s)
-    completed, held, attempts = {}, {}, {}
+    completed, held, uncertain, attempts = {}, {}, {}, {}
     for intent, receipt in attempts_list:
         check(intent['phase'] in ('commit', 'approve'), 'Unknown journal phase.')
         check(intent['lot_id'] in rows and intent['product_id'] == rows[intent['lot_id']]['pid'], 'Out-of-plan journal intent.')
         attempts.setdefault(intent['lot_id'], []).append((intent, receipt))
     for lid, items in attempts.items():
         r = rows[lid]
-        posted = []
+        posted, open_commits = [], {}
         for intent, receipt in items:
             tid = intent['ticket_id']
             check(type(tid) is int and tid > 0, 'Journal intent has no ticket.')
@@ -575,13 +592,19 @@ def reconcile_tickets(rows, s, attempts_list, actor_name):
                 posted.append((tid, lines, ticket))
             elif ticket['status'] == 'awaiting_approval':
                 held[lid] = tid
+            elif ticket['status'] == 'prepared':
+                # Not posted YET. Definite only if every commit we sent was refused (4xx).
+                if intent['phase'] == 'commit' and (receipt is None or receipt.get('outcome') != 'refused'):
+                    open_commits[tid] = intent
             else:
-                # Prepared/expired/rejected/superseded with no ledger line: provably not posted.
-                check(ticket['status'] != 'committed', f'Lot {lid}: ticket committed but no ledger line; stop.')
+                check(ticket['status'] in TICKET_DEAD, f'Lot {lid}: ticket {ticket["status"]} with no ledger line; stop.')
+        check(len(open_commits) <= 1, f'Lot {lid}: several tickets with uncertain commits; manual reconciliation required.')
         if not posted:
+            if open_commits:
+                uncertain[lid] = next(iter(open_commits.values()))
             continue
-        check(len({tid for tid, _, _ in posted}) == 1 and len(posted[0][1]) == 1,
-                f'Lot {lid}: more than one posted reset line; stop, never resubmit.')
+        check(not open_commits and len({tid for tid, _, _ in posted}) == 1 and len(posted[0][1]) == 1,
+                f'Lot {lid}: more than one posted or pending reset ticket; stop, never resubmit.')
         tid, [x], ticket = posted[0]
         lot = lots.get(x['lot_id'])
         check(lot is not None and lot['product_id'] == r['pid'] and x['product_id'] == r['pid'] and
@@ -613,7 +636,9 @@ def reconcile_tickets(rows, s, attempts_list, actor_name):
                         e['kind'] in (r.get('owner_approvals') or []), f'Lot {lid}: owner hold #{e["id"]} not released as approved.')
         held.pop(lid, None)
         completed[lid] = x
-    return completed, held
+    for lid in held:
+        check(lid not in uncertain, f'Lot {lid}: a held ticket and an uncertain commit; manual reconciliation required.')
+    return completed, held, uncertain
 
 
 def journal_openings(preview_path,approval_path,journal_path,s,data):
@@ -654,7 +679,7 @@ def journal_openings(preview_path,approval_path,journal_path,s,data):
   if r.get('adjustment_lb') is None or not f.number(r['adjustment_lb']):continue
   lid=r['lot_key'] if r.get('new_lot') else r['lot_id']
   rows[lid]=dict(r,pid=r['product_id'],lid=lid,change=f.number(r['adjustment_lb']))
- completed,_=reconcile_tickets(rows,s,[(i,receipts.get(seq)) for seq,i in intents.items()],fields['Named actor'])
+ completed,_,_=reconcile_tickets(rows,s,[(i,receipts.get(seq)) for seq,i in intents.items()],fields['Named actor'])
  return {x['line_id'] for x in completed.values()}
 
 

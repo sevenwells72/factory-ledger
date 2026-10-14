@@ -652,7 +652,7 @@ def preflight_v3(plan,s,journal):
     for pid in plan['ids']:
         require(pid in live_products and not f.reset_exclusion_reason(live_products[pid]),
                 'Packaging/billing item or missing product is excluded from reset apply.')
-    completed, held = reconcile_v3(plan, s, journal)
+    completed, held, uncertain = reconcile_v3(plan, s, journal)
     own={x['line_id'] for x in completed.values()}
     own_lots={x['lot_id'] for lid, x in completed.items() if not isinstance(lid, int)}
     require(plan['approval_date']<=f.stamp(s['snapshot_at']).astimezone(f.PLANT).date(),'Approval date is in the future.')
@@ -697,7 +697,7 @@ def preflight_v3(plan,s,journal):
         done = r['lid'] in completed
         require(close(x['adjustment_lb'],0 if done else r['change']),'Recomputed adjustment differs from approval.')
         require(close(x['current_lb'],f.number(r['current_lb'])+(r['change'] if done else 0)),'Balance drift.')
-    return completed, held
+    return completed, held, uncertain
 
 
 class LiveBackendV3(LiveBackend):
@@ -808,24 +808,35 @@ def check_posted(r, body):
     return body
 
 
-def post_lot(plan, backend, key, journal, r, before, resume_ticket=None):
-    """Prepare → commit (→ owner approval of a signed hold). Every write has a durable intent first."""
+def post_lot(plan, backend, key, journal, r, before, resume_ticket=None, resume_commit=None):
+    """Prepare → commit (→ owner approval of a signed hold). Every write has a durable intent first.
+    `resume_commit` = the journal intent of a commit whose outcome is uncertain: that SAME
+    ticket is committed again (FL posts it once or replays the saved receipt); a second
+    ticket is never prepared while the first could still land (Codex PR #108 review)."""
     if resume_ticket is None:
-        status, draft = backend.call(key, '/inventory/found/prepare' if r.get('new_lot') else '/adjust/prepare', ticket_payload(r))
-        check_draft(r, status, draft)
-        acks = signed_duplicates(plan, r, draft)
+        if resume_commit is None:
+            status, draft = backend.call(key, '/inventory/found/prepare' if r.get('new_lot') else '/adjust/prepare', ticket_payload(r))
+            check_draft(r, status, draft)
+            acks = signed_duplicates(plan, r, draft)
+            ticket, ticket_id, payload_hash = draft['ticket'], draft['ticket_id'], draft['payload_hash']
+        else:
+            ticket, ticket_id, payload_hash = resume_commit.get('ticket'), resume_commit['ticket_id'], resume_commit['payload_hash']
+            acks = resume_commit['acknowledged_warnings']
+            require(isinstance(ticket, str) and TICKET.fullmatch(ticket),
+                    f'Lot {r["lot_code"]}: ticket {ticket_id} may still post and this journal cannot re-commit it; '
+                    'manual reconciliation required (never prepare a second ticket).')
         known = sorted({x['transaction_id'] for x in before['lines'] if x['product_id'] == r['pid']})
         journal.start()
-        intent = journal.append(kind='intent', phase='commit', lot_id=r['lid'], product_id=r['pid'], ticket_id=draft['ticket_id'],
-                                payload=ticket_payload(r), payload_hash=draft['payload_hash'], acknowledged_warnings=acks,
-                                known_transaction_ids=known, server_snapshot_at=before['snapshot_at'])
+        intent = journal.append(kind='intent', phase='commit', lot_id=r['lid'], product_id=r['pid'], ticket_id=ticket_id,
+                                ticket=ticket, payload=ticket_payload(r), payload_hash=payload_hash, acknowledged_warnings=acks,
+                                known_transaction_ids=known, server_snapshot_at=before['snapshot_at'],
+                                retry_of=resume_commit['seq'] if resume_commit else None)
         try:
-            status, body = backend.call(key, '/tickets/' + draft['ticket'] + '/commit',
-                                        {'payload_hash': draft['payload_hash'], 'acknowledged_warnings': acks})
+            status, body = backend.call(key, '/tickets/' + ticket + '/commit',
+                                        {'payload_hash': payload_hash, 'acknowledged_warnings': acks})
         except Exception:
             journal.append(kind='receipt', intent=intent['seq'], outcome='uncertain', transaction_id=None)
-            raise RuntimeError('Write request failed or uncertain. Stopped; preserve journal.jsonl; a rerun proves it by ticket.') from None
-        ticket_id = draft['ticket_id']
+            raise RuntimeError('Write request failed or uncertain. Stopped; preserve journal.jsonl; a rerun re-commits the same ticket.') from None
         if status == 200:
             try:
                 check_posted(r, body)
@@ -853,7 +864,7 @@ def post_lot(plan, backend, key, journal, r, before, resume_ticket=None):
     require(type(exception_id) is int and exception_id > 0, 'Held response has no exception to approve.')
     intent = journal.append(kind='intent', phase='approve', lot_id=r['lid'], product_id=r['pid'], ticket_id=ticket_id,
                             exception_id=exception_id, hold=kind)
-    note = f'Cutover physical count reset approved by {plan["owner"]} in signed preview {plan["sha"][:16]}'
+    note = f'Cutover physical count reset approved by {plan["owner"]} in signed preview SHA-256 {plan["sha"]}'
     try:
         status, body = backend.call(key, f'/exceptions/{exception_id}/approve', {'note': note})
     except Exception:
@@ -907,7 +918,7 @@ def run_v3(plan, apply=False, backend=None, input_fn=input):
             raise RuntimeError('Another reset process holds the lock; stop.') from None
         journal = Journal(journal_root / plan['sha'] / 'journal.jsonl', plan)
         timings = dict(started=time.monotonic())
-        completed, held = preflight_v3(plan, backend.snapshot(), journal)
+        completed, held, uncertain = preflight_v3(plan, backend.snapshot(), journal)
         pending = [r for r in plan['rows'] if r['change'] and r['lid'] not in completed]
         key = read_key(key_file)
         require(backend.actor(key) == plan['actor'], 'Key is not the owner-approved named actor; shared/master keys are refused.')
@@ -916,7 +927,8 @@ def run_v3(plan, apply=False, backend=None, input_fn=input):
             print('Area group: ' + ', '.join(plan['area_group']))
         print(f'Approved preview SHA-256: {plan["sha"]}')
         print(f'Journal (preserve for reruns): {journal.path}')
-        print(f'{len(completed)} posted reset entries proved; {len(pending)} remaining ({len(held)} held for the owner).')
+        print(f'{len(completed)} posted reset entries proved; {len(pending)} remaining ({len(held)} held for the owner'
+              f', {len(uncertain)} with an uncertain commit to re-send on the same ticket).')
         for r in pending:
             extra = ('; NEW extra-kosher lot via found ticket' if r.get('new_lot') else '') + \
                     (f'; owner hold: {",".join(r["owner_approvals"])}' if r.get('owner_approvals') else '') + \
@@ -930,7 +942,7 @@ def run_v3(plan, apply=False, backend=None, input_fn=input):
         require(input_fn('Confirmation: ') == phrase, 'Confirmation did not match; no API calls were made.')
         timings['confirmed'] = time.monotonic()
         unchanged(plan)
-        completed, held = preflight_v3(plan, backend.snapshot(), journal)
+        completed, held, uncertain = preflight_v3(plan, backend.snapshot(), journal)
         if pending:
             status, who = backend.call(key, '/auth/whoami', None)
             require(status == 200 and who.get('key_kind') == 'actor' and isinstance(who.get('actor'), dict) and
@@ -941,20 +953,20 @@ def run_v3(plan, apply=False, backend=None, input_fn=input):
                     continue
                 # The previous lot's read-back snapshot (taken just now) is this lot's
                 # pre-write state; it is re-proved here before anything is sent.
-                completed, held = preflight_v3(plan, before, journal)
+                completed, held, uncertain = preflight_v3(plan, before, journal)
                 if r['lid'] in completed:
                     continue
                 lot_started = time.monotonic()
-                body = post_lot(plan, backend, key, journal, r, before, held.get(r['lid']))
+                body = post_lot(plan, backend, key, journal, r, before, held.get(r['lid']), uncertain.get(r['lid']))
                 before = backend.snapshot()
-                completed, held = preflight_v3(plan, before, journal)
+                completed, held, uncertain = preflight_v3(plan, before, journal)
                 require(r['lid'] in completed, 'Posted entry did not read back; stop.')
                 timings.setdefault('per_lot', []).append(round(time.monotonic() - lot_started, 1))
                 print(f'Read back {body["receipt_number"]}: product {r["pid"]} lot {r["lot_code"]} TX{completed[r["lid"]]["transaction_id"]} by {plan["actor"]}.')
         timings['posted'] = time.monotonic()
         del key
         s = backend.snapshot()
-        completed, held = preflight_v3(plan, s, journal)
+        completed, held, uncertain = preflight_v3(plan, s, journal)
         output = results_root / plan['sha']
         output.mkdir(parents=True, exist_ok=True)
         rows = readback_rows(plan, s, completed)

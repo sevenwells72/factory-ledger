@@ -177,6 +177,10 @@ def validate(api, cur, action, payload, lock=False):
                                       delta_lb=payload['delta_lb'])['code']
             a3b.shortages_closed_by_count(cur, payload['lot_id'], closing, code, lock)
         current = lot(api, cur, payload['lot_id'], payload.get('product_id'), lock)
+        if closing:
+            # Again under the lot lock: no shortage opened meanwhile, no negative count.
+            a3b.shortages_closed_by_count(cur, current['id'], closing, code,
+                                          new_balance_lb=float(current['on_hand_lb']) + float(payload['delta_lb']))
         p = product(api, cur, current['product_id'], lock)
         products.append(p)
         # A3b hook (R2/R3): fixed-list reason, no covering an open shortage, review facts.

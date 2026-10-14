@@ -503,7 +503,7 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
         approval['approved_by'] | {'key_kind': 'actor'} if approval else actor,
         datetime.fromisoformat(row['payload']['occurred_at']), api.get_plant_now())
     if row['action'] == 'adjust' and row['payload'].get('resolves_shortage_ids'):
-        permissions.require('resolve_exception', actor)   # the preparer closes the shortages
+        a3b.require_shortage_closer(actor)   # the preparer (owner) closes the shortages
     cur.execute('SAVEPOINT ticket_post')
     try:
         # Reuse the legacy lot-sequence locks before validation/posting.
@@ -674,7 +674,7 @@ def register_routes(app, api):
         if action == 'update_supplier_lot' and actor['id'] is None:
             fail(403, 'ACTOR_REQUIRED', 'Sign in as a person to correct a supplier lot.')
         if getattr(req, 'resolves_shortage_ids', None):
-            permissions.require('resolve_exception', actor)
+            a3b.require_shortage_closer(actor)
         payload = json.loads(req.json(exclude={'client_source'}))
         if action == 'adjust' and not payload.get('resolves_shortage_ids'):
             payload.pop('resolves_shortage_ids', None)   # unchanged payload/hash for ordinary adjusts
