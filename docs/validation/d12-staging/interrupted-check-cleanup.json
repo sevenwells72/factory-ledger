@@ -1,0 +1,11 @@
+{
+  "marker": "STG-D12-F0DF2E28",
+  "reason": "First browser assertion ran before the detail form loaded; its synthetic shortage is now closed.",
+  "results": [
+    {
+      "exception_id": 37,
+      "source_receipt_number": "MK-261013-014",
+      "resolution_receipt_number": "XR-261013-005"
+    }
+  ]
+}

@@ -1,5 +1,75 @@
 # Change Log
 
+## 2026-10-13 22:44 — Record 2835 fresh-DB tests, 121 Node tests, all browser checks and staging XR 004 evidence
+- **File(s) changed:** `docs/validation/dashboard-d1-d2.md`
+- **What changed:** Record 2835 fresh-DB tests, 121 Node tests, all browser checks and staging XR 004 evidence
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 22:44 — Record closure of the exact interrupted staging fixture shortage 37
+- **File(s) changed:** `docs/validation/d12-staging/interrupted-check-cleanup.json`
+- **What changed:** Record closure of the exact interrupted staging fixture shortage 37
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 22:43 — Record hosted staging XR evidence and close the interrupted synthetic check shortage
+- **File(s) changed:** `docs/validation/d12-staging/interrupted-check-cleanup.json`, `docs/validation/d12-staging/evidence.json`, `docs/validation/d12-staging/receive-draft-390.png`, `docs/validation/d12-staging/receive-recorded-390.png`, `docs/validation/d12-staging/make-substitution-draft-390.png`, `docs/validation/d12-staging/make-substitution-recorded-390.png`, `docs/validation/d12-staging/exceptions-review-390.png`, `docs/validation/d12-staging/exceptions-xr-recorded-390.png`, `docs/validation/d12-staging/resolution-receipt-390.png`
+- **What changed:** Record hosted staging XR evidence and close the interrupted synthetic check shortage
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 22:42 — Wait for closed exception rows to disappear before assertions and staging screenshots
+- **File(s) changed:** `tests/visual/run-d12-staging.mjs`, `tests/visual/run-d12-fixes.mjs`
+- **What changed:** Wait for closed exception rows to disappear before assertions and staging screenshots
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 22:41 — Update dashboard validation for merged allowed_actions XR and VD contracts
+- **File(s) changed:** `docs/validation/dashboard-d1-d2.md`
+- **What changed:** Update dashboard validation for merged allowed_actions XR and VD contracts
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 22:40 — Wait for the selected exception detail in browser assertions and identify rows explicitly
+- **File(s) changed:** `dashboard/exceptions.js`, `tests/visual/run-d12-fixes.mjs`, `tests/visual/run-d12-staging.mjs`
+- **What changed:** Wait for the selected exception detail in browser assertions and identify rows explicitly
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 22:39 — Clear completed exception controls so closed actions cannot remain offered
+- **File(s) changed:** `dashboard/exceptions.js`
+- **What changed:** Clear completed exception controls so closed actions cannot remain offered
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 22:38 — Exercise hosted staging Exceptions with synthetic counted shortage and linked XR receipt
+- **File(s) changed:** `tests/visual/run-d12-staging.mjs`
+- **What changed:** Exercise hosted staging Exceptions with synthetic counted shortage and linked XR receipt
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 22:38 — Test authoritative actions, XR resolve and reject links, posting separation and live VD backlink
+- **File(s) changed:** `tests/test_d12_ui.js`, `tests/visual/run-d12-fixes.mjs`
+- **What changed:** Test authoritative actions, XR resolve and reject links, posting separation and live VD backlink
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 22:37 — Use server allowed_actions and XR decision receipts; retain live VD receipt backlinks
+- **File(s) changed:** `dashboard/ledger-ui.js`, `dashboard/exceptions.js`, `dashboard/entry.html`, `dashboard/exceptions.html`, `dashboard/receipt.html`
+- **What changed:** Use server allowed_actions and XR decision receipts; retain live VD receipt backlinks
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
 ## 2026-10-13 22:36 — Retain prior validation notes while rebasing PR 107 onto resolution-receipt main
 - **File(s) changed:** `CHANGE_LOG.md`
 - **What changed:** Retain prior validation notes while rebasing PR 107 onto resolution-receipt main
