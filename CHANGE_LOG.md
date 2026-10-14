@@ -1,5 +1,124 @@
 # Change Log
 
+## 2026-10-14 08:37 — Record 3100 Python and 126 Node passes and remove the disposable suite database
+- **File(s) changed:** `docs/deployments/pilot-triage-validation.json`
+- **What changed:** Record 3100 Python and 126 Node passes and remove the disposable suite database
+- **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+
+---
+
+## 2026-10-14 08:36 — Document pilot fixes, production before-after evidence and staging validation
+- **File(s) changed:** `docs/deployments/pilot-triage-backend.md`
+- **What changed:** Document pilot fixes, production before-after evidence and staging validation
+- **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+
+---
+
+## 2026-10-14 08:36 — Record staging SS1 substitution and sub-second 30-receipt acceptance
+- **File(s) changed:** `docs/deployments/pilot-triage-staging.json`
+- **What changed:** Record staging SS1 substitution and sub-second 30-receipt acceptance
+- **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+
+---
+
+## 2026-10-14 08:35 — Apply 081 oat bran and 082 plant-date migrations to guarded staging only
+- **File(s) changed:** `docs/deployments/pilot-triage-staging-migrations.json`
+- **What changed:** Apply 081 oat bran and 082 plant-date migrations to guarded staging only
+- **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+
+---
+
+## 2026-10-14 08:34 — Update existing recipe fixtures and verify batch-reader parity for six actions
+- **File(s) changed:** `tests/test_audit_savepoints_lotcodes.py`, `tests/test_lot_confirmation.py`, `tests/test_a12_shift_integration.py`, `tests/test_pilot_triage_backend.py`, `scripts/check_pilot_triage_staging.py`
+- **What changed:** Update existing recipe fixtures and verify batch-reader parity for six actions
+- **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+
+---
+
+## 2026-10-14 08:34 — Add guarded staging migration, substitution and 30-receipt acceptance runner
+- **File(s) changed:** `scripts/check_pilot_triage_staging.py`
+- **What changed:** Add guarded staging migration, substitution and 30-receipt acceptance runner
+- **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+
+---
+
+## 2026-10-14 08:32 — Load pending plant-date allocator in isolated race fixtures
+- **File(s) changed:** `tests/test_write_tickets.py`
+- **What changed:** Load pending plant-date allocator in isolated race fixtures
+- **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+
+---
+
+## 2026-10-14 08:32 — Use a valid lot code in historical immutability regression
+- **File(s) changed:** `tests/test_oat_bran_081.py`
+- **What changed:** Use a valid lot code in historical immutability regression
+- **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+
+---
+
+## 2026-10-14 08:31 — Add guarded rerunnable oat bran correction with strict down migration
+- **File(s) changed:** `migrations/081_restore_ss_oat_bran.sql`, `migrations/down/081_restore_ss_oat_bran_down.sql`, `tests/test_pilot_triage_backend.py`
+- **What changed:** Add guarded rerunnable oat bran correction with strict down migration
+- **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+
+---
+
+## 2026-10-14 08:30 — Bind migration history regression to real lots
+- **File(s) changed:** `tests/test_oat_bran_081.py`
+- **What changed:** Bind migration history regression to real lots
+- **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+
+---
+
+## 2026-10-14 08:30 — Add oat bran migration regression and strict rollback tests
+- **File(s) changed:** `tests/test_oat_bran_081.py`
+- **What changed:** Add oat bran migration regression and strict rollback tests
+- **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+
+---
+
+## 2026-10-14 08:30 — Pass the plant default in order INSERT parameters
+- **File(s) changed:** `main.py`
+- **What changed:** Pass the plant default in order INSERT parameters
+- **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+
+---
+
+## 2026-10-14 08:29 — Record read-only production recipe and historical consumption evidence
+- **File(s) changed:** `docs/deployments/pilot-triage-production-recipe-read.json`
+- **What changed:** Record read-only production recipe and historical consumption evidence
+- **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+
+---
+
+## 2026-10-14 08:29 — Batch shift receipts, evidence and touched balances in one query
+- **File(s) changed:** `shift_receipts.py`, `shift_summary.py`
+- **What changed:** Batch shift receipts, evidence and touched balances in one query
+- **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+
+---
+
+## 2026-10-14 08:28 — Refuse missing recipes, correct shipment identity and holds, and use the plant order date
+- **File(s) changed:** `main.py`, `permissions.py`, `exceptions_enforcement.py`, `migrations/082_order_plant_date.sql`, `tests/schema/schema.sql`
+- **What changed:** Refuse missing recipes, correct shipment identity and holds, and use the plant order date
+- **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+
+---
+
+## 2026-10-14 08:27 — Correct missing-recipe substitution regression input
+- **File(s) changed:** `tests/test_pilot_triage_backend.py`
+- **What changed:** Correct missing-recipe substitution regression input
+- **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+
+---
+
+## 2026-10-14 08:27 — Add pilot regressions and prepare isolated test runtime
+- **File(s) changed:** `tests/test_pilot_triage_backend.py`, `.venv-test`
+- **What changed:** Add pilot regressions and prepare isolated test runtime
+- **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+
+---
+
 ## 2026-10-14 00:40 — Rebase PR #107 onto main; changelog row 190 and followups
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
 - **What changed:** Rebased feat/dash-d1-d2 onto origin/main d5e9fea (CHANGE_LOG.md conflict only, both sides kept); added FACTORY_LEDGER_CHANGELOG row 190 (D1/D2 merged, write UI gated off on production); marked the PR #107 receipt-contract followup done and added the cutover reload note

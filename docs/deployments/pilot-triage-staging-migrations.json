@@ -1,0 +1,22 @@
+{
+  "checked_at_utc": "2026-10-14T12:35:08.014457+00:00",
+  "target": "FastAPI-staging",
+  "migrations": [
+    "081_restore_ss_oat_bran.sql",
+    "082_order_plant_date.sql"
+  ],
+  "oat_bran_after": [
+    {
+      "product_id": 114,
+      "quantity_lb": "29.0000"
+    },
+    {
+      "product_id": 116,
+      "quantity_lb": "28.0000"
+    },
+    {
+      "product_id": 118,
+      "quantity_lb": "28.0000"
+    }
+  ]
+}

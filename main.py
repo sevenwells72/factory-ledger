@@ -8712,6 +8712,17 @@ def _post_prepared_inputs(cur, txn_id, product_id, needed, plan):
     return consumed
 
 
+def _require_recipe_inputs(formula, product, excluded_ids=()):
+    """No manufacturing output without a positive, inventory-deducted input."""
+    if not any(float(row['quantity_lb']) > 0
+               and not row.get('exclude_from_inventory')
+               and row['ingredient_product_id'] not in excluded_ids for row in formula):
+        raise HTTPException(409, {
+            'error_code': 'RECIPE_MISSING',
+            'message': f"No usable recipe on file for {product['name']}; nothing can be deducted. Ask the owner to restore the recipe.",
+        })
+
+
 def _make_preview_core(cur, req, *, product=None):
     product = product if product is not None else resolve_product_full(cur, req.product_name)
     batch_size = float(product.get('default_batch_lb') or 0)
@@ -8728,6 +8739,7 @@ def _make_preview_core(cur, req, *, product=None):
         WHERE bf.product_id = %s
     """, (product['id'],))
     formula = cur.fetchall()
+    _require_recipe_inputs(formula, product, manual_excluded_ids)
 
     auto_excluded_ids = set()
     for ing in formula:
@@ -8878,6 +8890,14 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
     total_output = float(to_decimal(formula_weight_lb) * to_decimal(yield_multiplier))
     if total_output <= 0:
         raise HTTPException(400, f"Make rejected: output quantity is 0 lb. Product '{product['name']}' has batch_size={batch_size}, batches={req.batches}.")
+    cur.execute("""
+        SELECT bf.ingredient_product_id, bf.quantity_lb,
+               COALESCE(bf.exclude_from_inventory, false) as exclude_from_inventory
+        FROM batch_formulas bf WHERE bf.product_id = %s
+    """, (product['id'],))
+    formula = cur.fetchall()
+    _require_recipe_inputs(formula, product, req.excluded_ingredients or [])
+
     now = get_plant_now()
     manual_excluded_ids = set(req.excluded_ingredients or [])
     auto_excluded_ids = set()
@@ -8910,12 +8930,6 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
         if is_new_lot else None
     )
 
-    cur.execute("""
-        SELECT bf.ingredient_product_id, bf.quantity_lb,
-               COALESCE(bf.exclude_from_inventory, false) as exclude_from_inventory
-        FROM batch_formulas bf WHERE bf.product_id = %s
-    """, (product['id'],))
-    formula = cur.fetchall()
     # A5 hook: only ticket calls pass validated substitutions.
     if substitutions:
         formula = lot_confirmation.substituted_formula(formula, substitutions)
@@ -9694,15 +9708,9 @@ def resolve_pack_add_ins(cur, source: dict, target: dict, total_lb: float) -> di
     """, (parent_id,))
     formula = cur.fetchall()
     if not formula:
-        # No BOM on intermediate — fall back to old mismatch warning
-        cur.execute("SELECT name, odoo_code FROM products WHERE id = %s", (parent_id,))
-        expected = cur.fetchone()
-        if not expected:
-            return None
-        return {
-            "warning": f"Source batch mismatch: Target FG '{target['name']}' is normally packed from '{expected['name']}' ({expected['odoo_code']}), not from '{source['name']}' ({source.get('odoo_code', 'N/A')}). No BOM found for intermediate product.",
-            "warning_es": f"Lote fuente no coincide: el producto final '{target['name']}' normalmente se empaca desde '{expected['name']}' ({expected['odoo_code']}), no desde '{source['name']}' ({source.get('odoo_code', 'N/A')}). No se encontró fórmula para el producto intermedio.",
-        }
+        cur.execute('SELECT name FROM products WHERE id=%s', (parent_id,))
+        expected = cur.fetchone() or {'name': f'product {parent_id}'}
+        _require_recipe_inputs(formula, expected)
 
     # Find the base ingredient (source batch) in the BOM to get the ratio
     base_qty = None
@@ -12344,10 +12352,10 @@ def _create_sales_order_core(cur, customer_id, customer_name, requested_ship_dat
     cur.execute(
         """INSERT INTO sales_orders (customer_id, requested_ship_date, notes, notes_es, order_number, status,
                                      order_date, customer_po, source_document_id)
-           VALUES (%s, %s, %s, %s, '', 'confirmed', COALESCE(%s, CURRENT_DATE), %s, %s)
+           VALUES (%s, %s, %s, %s, '', 'confirmed', %s, %s, %s)
            RETURNING id, order_number""",
         (customer_id, requested_ship_date, notes, notes_es,
-         order_date, customer_po, source_document_id)
+         order_date if order_date is not None else _factory_today(), customer_po, source_document_id)
     )
     row = cur.fetchone()
     order_id, order_number = row['id'], row['order_number']
@@ -15063,12 +15071,18 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
                 lines.append(line_data)
 
             cur.execute(
-                """SELECT sos.id, sol.id AS line_id, p.name AS product,
+                """SELECT sos.id, header.shipment_id, sol.id AS line_id, p.name AS product,
                           sos.quantity_lb, sos.shipped_at, t.id AS transaction_id
                    FROM sales_order_shipments sos
                    JOIN sales_order_lines sol ON sol.id = sos.sales_order_line_id
                    JOIN products p ON p.id = sol.product_id
                    JOIN ledger_current_transactions t ON t.id = sos.transaction_id
+                   LEFT JOIN LATERAL (
+                       SELECT DISTINCT sl.shipment_id
+                       FROM shipment_lines sl JOIN shipments sh ON sh.id=sl.shipment_id
+                       WHERE sl.transaction_id=sos.transaction_id
+                         AND sl.sales_order_line_id=sol.id AND sh.sales_order_id=sol.sales_order_id
+                   ) header ON true
                    WHERE sol.sales_order_id = %s
                      AND t.effective_status = 'posted'
                    ORDER BY sos.shipped_at DESC""",
@@ -15078,7 +15092,8 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
             for r in cur.fetchall():
                 s_date, s_time = format_timestamp(r['shipped_at'])
                 shipments.append({
-                    "shipment_id": r['id'],
+                    "shipment_id": r['shipment_id'],
+                    "legacy_shipment_row_id": r['id'],
                     "line_id": r['line_id'],
                     "product": r['product'],
                     "quantity_lb": float(r['quantity_lb']),

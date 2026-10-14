@@ -509,7 +509,9 @@ def test_found_seq_survives_manual_nonnumeric_code(client, _db_connection):
 
 def test_make_preview_seq_survives_manual_nonnumeric_code(client, _db_connection):
     pid = _seed_product(_db_connection, product_type="batch")
+    ingredient = _seed_product(_db_connection)
     with _cur(_db_connection) as cur:
+        cur.execute("INSERT INTO batch_formulas(product_id,ingredient_product_id,quantity_lb) VALUES (%s,%s,50)", (pid, ingredient))
         cur.execute("UPDATE products SET default_batch_lb = 50 WHERE id = %s", (pid,))
         cur.execute("SELECT name FROM products WHERE id = %s", (pid,))
         name = cur.fetchone()["name"]

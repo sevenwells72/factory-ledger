@@ -205,8 +205,12 @@ def test_substitution_requires_nonblank_reason(client,items,reason):
     assert r.status_code==422,r.text
 
 
-def test_manual_exclusion_needs_reason_and_is_recorded(client,db_cursor,items):
-    payload=body('make',items)|{'excluded_ingredients':[items['ingredient']['id']]}
+def test_manual_exclusion_needs_reason_and_is_recorded(client,db_cursor,items,substitute):
+    # A real recipe still consumes an input after this optional ingredient is excluded.
+    db_cursor.execute('INSERT INTO batch_formulas(product_id,ingredient_product_id,quantity_lb) VALUES (%s,%s,10)',
+                      (items['batch']['id'],substitute['id']))
+    payload=body('make',items)|{'excluded_ingredients':[items['ingredient']['id']],
+                              'lot_confirmations':[evidence(substitute,'full_code')]}
     d=prepare(client,'make',payload)
     assert d['blockers'][0]['code']=='SUBSTITUTION_REASON_REQUIRED'
     d=prepare(client,'make',payload|{'reason_code':'trial_without_ingredient','note':'Approved trial'})

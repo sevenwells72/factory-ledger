@@ -7200,3 +7200,6 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 --
 
 \unrestrict i5XsCHF0IrViMMrjMaaw10HVKNQf0DVqj8OP239DSiCU6QFGbn31BuQ96DssZob
+
+-- Pending pilot backend schema migration (data-only 081 is fixture-tested separately).
+\ir ../../migrations/082_order_plant_date.sql
