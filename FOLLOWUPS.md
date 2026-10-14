@@ -448,6 +448,21 @@ suite at 00:05, 12:00, 20:30 and 23:59 ET under TZ=America/New_York and TZ=UTC. 
   Clients (dashboard, F1, GPT relay) must treat it as "waiting for owner", not as an error or a post;
   `tests/test_pilot_triage_backend.py::test_held_correction_never_reports_success` guards it.
 
+**P1.27 Rewrite or retire the integrated-intake browser runner (recorded 2026-10-14; low priority).**
+`tests/visual/run-integrated-intake.mjs` has failed since PR #33 (8b391ab, 2026-09-09: mobile entry
+layout overlaps the button it clicks) and PR #45 (fbe9c0d) then removed `#orders-status-filter` on
+purpose. It is the only browser test of the customer-PO upload → New Sales Order intake flow, so a
+rewrite against the current Sales Orders screen is preferred over deleting it. The other six legacy
+static runners were fixed in the harness (branch `test/fix-legacy-runners`).
+
+**P1.28 `dashboard-runtime.js` `apiBase()` only knows `cns-factory-ledger.netlify.app` as production (recorded 2026-10-14).**
+Any other non-Netlify host — including a future custom domain — sends every API call to its own
+origin (`location.origin`) unless the page sets `window.FL_SESSION_API_BASE` first. If the dashboard
+ever moves to a custom domain, add that host to `apiBase()` (next to `PRODUCTION_SITE`) in the same
+change, or the live dashboard calls itself and every read fails. Cutover runbook (PR #117) O-5/O-7
+carry the same note. The browser harness sets `FL_SESSION_API_BASE` in `tests/visual/lib/stub.mjs`
+for the same reason.
+
 ---
 
 ## 1. Backfill NULL addresses on recurring customers

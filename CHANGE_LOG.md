@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-14 12:05 — Fix six outdated dashboard browser runners (harness only); FOLLOWUPS P1.27/P1.28
+- **File(s) changed:** `tests/visual/lib/stub.mjs`, `tests/visual/run-runs-interactions.mjs`, `tests/visual/run-run-types.mjs`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
+- **What changed:** `installApiStub` sets `window.FL_SESSION_API_BASE` to the stubbed Railway host before page scripts run (fixes sales-orders-interactions, so-detail-interactions, so-exit-actions, production-trace); runs-interactions and run-types set the same override in their own contexts and answer `GET /auth/session/config` with `key_sessions_enabled:false`. FOLLOWUPS P1.27 (rewrite or retire the integrated-intake runner, low priority) and P1.28 (`apiBase()` knows only cns-factory-ledger.netlify.app as production; a custom domain must be added in the same change). No dashboard code changes.
+- **Why:** Since PR #107 (611d0c4) `dashboard-runtime.js` sends API calls to `location.origin` on the harness's 127.0.0.1 server, so stubs keyed on the production Railway host never matched; production is unaffected (2026-10-14 triage).
+
+---
+
 ## 2026-10-14 11:44 — Post-Oct-14 housekeeping: production rollout rows 196–201, schema re-dump with 081/082, FOLLOWUPS
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `tests/schema/schema.sql`, `migrations/081_restore_ss_oat_bran.sql` (header comment only), `FOLLOWUPS.md`, `CHANGE_LOG.md`
 - **What changed:** FL changelog rows 196–201 record the production rollouts of #108, #111 (code only; `READONLY_API_KEY` not set on prod), #107 (with deploy IDs), #116 (082/081 on prod), #115 (gated off) and #112 (test/docs, deploys skipped). #104/#106/#109 already had rollout rows 184/188/185. `tests/schema/schema.sql` re-dumped from production (New York order date/number now in the dump, `\ir` 082 tail removed). 081 header no longer says "staging only". FOLLOWUPS: P1.9 marked done (created 2026-10-13), P1.24 heading states that stock true-ups come from the count + reset, not adjustments, new P1.25 (done, #112) and P1.26 (A5 part 2 minors, optional 48-hour late-entry wording, held-correction `success:false` contract).

@@ -10,6 +10,8 @@ await fs.mkdir(out,{recursive:true});
 try {
  for(const width of [1440,390]) for(const theme of ['light','dark']) {
   const context=await browser.newContext({viewport:{width,height:950}});
+  // dashboard-runtime.js sends API calls to location.origin on non-Netlify hosts; pin the stubbed API host.
+  await context.addInitScript(()=>{window.FL_SESSION_API_BASE="https://fastapi-production-b73a.up.railway.app";});
   await context.addInitScript(({theme})=>{
    localStorage.setItem('dashboard-theme',theme);
    const D=Date;window.Date=class extends D {constructor(...a){super(...(a.length?a:['2026-09-15T12:00:00Z']));}static now(){return new D('2026-09-15T12:00:00Z').valueOf();}};
@@ -23,6 +25,7 @@ try {
    const req=route.request(),url=new URL(req.url()),p=url.pathname;
    if(url.origin===server.origin)return route.continue();
    const send=data=>route.fulfill({contentType:'application/json',body:JSON.stringify(data)});
+   if(p==='/auth/session/config')return send({key_sessions_enabled:false});
    if(p==='/products/search')return send({products:[recipe,coconut,fg]});
    if(p==='/production/runs'&&req.method()==='GET')return send({runs:runs.filter(r=>!url.searchParams.has('from')||(r.planned_date>=url.searchParams.get('from')&&r.planned_date<=url.searchParams.get('to')))});
    if(p==='/sales/orders')return send({orders:[{state:'open',order_id:5,pallet_lines:[{product_id:10}]}]});

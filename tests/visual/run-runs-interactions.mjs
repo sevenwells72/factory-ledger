@@ -44,6 +44,8 @@ async function auditRuns() {
   }
   for(const {width,theme} of variants) {
     const context=await browser.newContext({viewport:{width,height:900},timezoneId:'Pacific/Honolulu',colorScheme:theme});
+    // dashboard-runtime.js sends API calls to location.origin on non-Netlify hosts; pin the stubbed API host.
+    await context.addInitScript(()=>{window.FL_SESSION_API_BASE="https://fastapi-production-b73a.up.railway.app";});
     await context.addInitScript(({theme})=>{
       localStorage.setItem('dashboard-theme',theme);
       // Sunday on the browser's clock, Monday in the factory: date must use factory time.
@@ -56,6 +58,7 @@ async function auditRuns() {
       const req=route.request(),url=new URL(req.url()),method=req.method(),pathname=url.pathname;
       if(url.origin===server.origin)return route.continue();
       if(url.hostname!=='fastapi-production-b73a.up.railway.app'){unexpected.push(req.url());return route.abort();}
+      if(pathname==='/auth/session/config')return route.fulfill({json:{key_sessions_enabled:false}});
       assert.equal(req.headers()['x-api-key'],'dashboard-key-2026');
       if(nextError&&nextError.method===method&&pathname.includes(nextError.path)) {const e=nextError;nextError=null;return respond(route,{detail:{error_code:e.code,sales_order_line_id:e.line,message:'API JSON payload undefined qty_lb'}},e.status||409);}
       if(method==='GET')reads.push(pathname+url.search);
