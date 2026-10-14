@@ -437,6 +437,98 @@ class WholeResetTests(unittest.TestCase):
         self.assertEqual(self.proof['products_nothing_to_reset'], [5])
         self.assertEqual(self.proof['groups'][-1]['zero_stock_products'], [5])
 
+    def test_fabricated_owner_hold_identity_is_a_gap(self):
+        """Codex PR #120 re-check P2: a re-chained journal naming a hold FL does not have (wrong id,
+        negative id, wrong kind; on the held receipt or the approve intent) or an approval by
+        another actor was 0/no gaps. FL here has only #500 LARGE_CORRECTION resolved on G1's ticket."""
+        self.cutover()
+        self.assertEqual(self.prove(), 0, self.printed)
+        good = deepcopy(self.groups['G1'])
+        self.assertEqual([(e['id'], e['kind'], e['status']) for e in self.s['held_exceptions']], [(500, 'LARGE_CORRECTION', 'resolved')])
+
+        def held(**change):
+            def edit(events):
+                next(e for e in events if e.get('outcome') == 'held').update(change)
+                return events
+            return edit
+
+        def approve(**change):
+            def edit(events):
+                next(e for e in events if e['kind'] == 'intent' and e['phase'] == 'approve').update(change)
+                return events
+            return edit
+        for label, edit, detail in (('held id 424242', held(exception_id=424242), 'names exception #424242, which FL does not have'),
+                                    ('held id -1', held(exception_id=-1), 'names exception -1, not an FL exception id'),
+                                    ('held kind', held(hold='KOSHER_ATTESTATION'), 'FL exception #500 is LARGE_CORRECTION'),
+                                    ('held kind, no id', held(hold='KOSHER_ATTESTATION', exception_id=None), 'names a KOSHER_ATTESTATION hold that FL does not have'),
+                                    ('approve id', approve(exception_id=424242), 'names exception #424242, which FL does not have'),
+                                    ('approve kind', approve(hold='KOSHER_ATTESTATION'), 'FL exception #500 is LARGE_CORRECTION')):
+            with self.subTest(label):
+                self.groups['G1'] = deepcopy(good)
+                self.rewrite_journal('G1', edit)
+                self.assertEqual(self.prove(), 2, self.printed)
+                found = [g for g in self.proof['gaps'] if g['kind'] == 'HOLD_NOT_IN_FL']
+                self.assertEqual(len(found), 1, self.proof['gaps'])
+                self.assertIn(detail, found[0]['detail'])
+                self.assertEqual(found[0]['group'], 'G1')
+                # The executor shares the check: a rerun on the forged journal stops before any API call.
+                forged = (self.out / self.groups['G1']['journal']).read_bytes()
+                real = self.out / good['journal']
+                saved, calls = real.read_bytes(), len(self.b.calls)
+                real.write_bytes(forged)
+                try:
+                    with self.assertRaisesRegex(RuntimeError, 'FL'):
+                        self.groups['G1']['journal'] = good['journal']
+                        self.apply('G1')
+                finally:
+                    real.write_bytes(saved)
+                self.assertEqual(len(self.b.calls), calls)
+        self.groups['G1'] = deepcopy(good)
+        hold = self.s['held_exceptions'][0]
+        hold['resolved_by_actor_id'] = 99   # released by someone other than the signed named actor
+        self.assertEqual(self.prove(), 2)
+        self.assertIn('HOLD_NOT_IN_FL', self.kinds())
+        self.assertIn('approved by actor 99', self.printed)
+        hold['resolved_by_actor_id'] = 7
+        self.assertEqual(self.prove(), 0, self.printed)
+
+    def test_held_then_refused_then_approved_retry_still_reconciles(self):
+        """The legitimate retry (held → approve refused → approve ok) keeps passing."""
+        self.cutover(held_mode='approve_refused')
+        self.b.mode = None
+        self.assertIn(self.apply('G1'), (0, 2))
+        phases = [(e.get('phase'), e.get('outcome')) for e in map(json.loads, (self.out / self.groups['G1']['journal']).read_text().splitlines())
+                  if e['kind'] != 'header']
+        self.assertEqual(phases, [('commit', None), (None, 'held'), ('approve', None), (None, 'refused'), ('approve', None), (None, 'ok')])
+        self.assertEqual(self.prove(), 0, self.printed)
+
+    def test_zero_stock_only_group_applies_and_proves(self):
+        """Codex PR #120 re-check P2: approving only a zero-stock product crashed the confirmed
+        apply in the read-back (IndexError on rows[0]). It now posts nothing, writes no journal
+        and a header-only read-back, verifies, and the proof accepts the group as no-change."""
+        p = dict(id=5, odoo_code='11005', name='TEST ingredient 5', type='ingredient', active=True, is_service=False, uom='lb')
+        self.s['products'].append(p); self.s['catalog'].append(dict(p))
+        self.coverage.append(dict(self.coverage[0], product_id='5', SKU='11005', name=p['name']))
+        a = v.analyze(self.b.snapshot(), dict(count=self.count, coverage=self.coverage, moves=[], review={}))
+        self.review['coverage_reviews'] = {fp: dict(owner='TEST', confirmed=True) for fp in a['review_template']['coverage_reviews']}
+        self.inputs = self.write_inputs(self.out / 'inputs')
+        self.cutover()
+        preview, approval = self.sign('G5', ['D'], [5])
+        plan = app.load_plan(preview, approval, self.inputs['count'])
+        self.assertEqual(plan['rows'], [])
+        calls = len(self.b.calls)
+        self.assertIn(self.apply('G5'), (0, 2))   # 2 = area-scoped verify: products counted elsewhere stay held
+        self.assertEqual(len(self.b.calls), calls)   # snapshots only: no prepare/commit/approve, no whoami
+        self.assertFalse((app.JOURNAL_ROOT / plan['sha'] / 'journal.jsonl').exists())
+        readback = (app.RESULTS / plan['sha'] / 'readback.csv').read_text().splitlines()
+        self.assertEqual(readback, [','.join(app.READBACK_COLUMNS)])
+        verified = json.loads((app.RESULTS / plan['sha'] / 'reset-verification-v3.json').read_text())
+        self.assertNotIn('5', verified['holds'])
+        self.assertIn(5, verified['coverage_complete'])
+        del self.groups['G5']['journal']; self.groups['G5']['no_change'] = True
+        self.assertEqual(self.prove(), 0, self.printed)
+        self.assertEqual(self.proof['products_nothing_to_reset'], [5])
+
     def test_proof_never_imports_the_write_executor(self):
         source = Path(w.__file__).read_text()
         self.assertNotIn('import apply_reset', source)

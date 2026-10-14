@@ -1,0 +1,3 @@
+kind,group,product_id,lot_code,detail
+MISSING_PRODUCT,,1000000214,,zero stock (no counted or on-hand lot) but no signed group approves it
+MISSING_PRODUCT,,1000000217,,has counted or on-hand lots but no signed group approves it

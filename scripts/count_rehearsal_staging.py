@@ -161,7 +161,8 @@ def seed(uri, ref, t0):
                  ('granola', 'finished', 'Granola 25 LB', '25 lb case', 25, 1000),
                  # uom exactly 'case' (like the five real ones): the 500 lb rule is in real pounds since PR #109.
                  ('cases15', 'finished', 'Granola 15 LB case', 'case', 15, 300)] + \
-                [(f'misc{n}', 'ingredient', f'Ingredient {n}', 'lb', None, 100) for n in range(1, 7)]
+                [(f'misc{n}', 'ingredient', f'Ingredient {n}', 'lb', None, 100) for n in range(1, 7)] + \
+                [('empty', 'ingredient', 'Empty-shelf ingredient', 'lb', None, None)]   # zero-only group (fix round 2)
         for label, kind, name, uom, case, stock in specs:
             cur.execute('''INSERT INTO products(name,odoo_code,type,uom,case_size_lb,default_batch_lb,active)
                            VALUES (%s,%s,%s,%s,%s,%s,true) RETURNING id,name,odoo_code''',
@@ -332,13 +333,31 @@ def area_run(area, rows, products, workdir, env, owner, base_reason, coverage=No
     result, timing['dry_run_s'] = tool(apply_args, env)
     if result.returncode:
         raise RuntimeError('dry run failed: ' + (result.stderr or result.stdout)[-800:])
-    cutoff = max(datetime.fromisoformat(r['cutoff']) for r in preview['rows'] if r['product_id'] in approved)
+    # A zero-stock-only plan has no rows: the executor dates it at the preview snapshot.
+    cutoff = max((datetime.fromisoformat(r['cutoff']) for r in preview['rows'] if r['product_id'] in approved),
+                 default=datetime.fromisoformat(preview['snapshot_at']))
     phrase = f'APPLY OPENING BALANCE {cutoff.astimezone(NY).date()} {digest}'
     result, timing['apply_s'] = tool(apply_args + ['--apply'], env, stdin=phrase + '\n', pty=True)
-    apply_log = result.stdout
+    apply_result, apply_log = result, result.stdout
     if 'READ-BACK' not in apply_log:
         raise RuntimeError('apply failed: ' + apply_log[-1500:])
     state = TOOLS / 'apply-state-staging' / digest / 'journal.jsonl'
+    readback = list(csv.DictReader((TOOLS / 'apply-results-staging' / digest / 'readback.csv').open()))
+    if not state.exists():
+        # Zero-stock-only group (fix round 2): the confirmed apply posted nothing and wrote no
+        # journal, so it is proved like the runbook step-18 no-change branch.
+        if readback or any(r['adjustment_lb'] and float(r['adjustment_lb']) for r in rows_mine):
+            raise RuntimeError('apply wrote no journal but the plan or read-back has rows')
+        verify = ['audits/fresh-start/verify_reset.py', '--v3', str(inputs / 'count.csv'), '--coverage', str(inputs / 'coverage.csv'),
+                  '--moves', str(inputs / 'moves.csv'), '--output-dir', str(out / 'verification'), '--target', 'staging'] + areas + \
+                 (['--review', str(review_path)] if review_path else [])
+        result, timing['verify_s'] = tool(verify, env)
+        verified = json.loads((out / 'verification/reset-verification-v3.json').read_text())
+        return dict(area=', '.join(names), approved_products=approved, zero_stock_products=zero, preview_sha256=digest, no_change=True,
+                    applied=True, journal_written=False, readback_rows=len(readback),
+                    readback_header=(TOOLS / 'apply-results-staging' / digest / 'readback.csv').read_text().splitlines()[0],
+                    apply_exit=apply_result.returncode, timings_s=timing, verify_exit=result.returncode, paths=paths,
+                    zero_stock_held_in_verification=[pid for pid in zero if str(pid) in verified['holds']])
     verify = ['audits/fresh-start/verify_reset.py', '--v3', str(inputs / 'count.csv'), '--coverage', str(inputs / 'coverage.csv'),
               '--moves', str(inputs / 'moves.csv'), '--approved-preview', str(signed / 'reset-preview-v3.json'),
               '--approval', str(approval), '--journal', str(state), '--output-dir', str(out / 'verification'),
@@ -347,7 +366,6 @@ def area_run(area, rows, products, workdir, env, owner, base_reason, coverage=No
     timing['pause_total_s'] = round(time.monotonic() - pause, 1)
     verified = json.loads((out / 'verification/reset-verification-v3.json').read_text())
     after = [r for r in verified['rows'] if r['product_id'] in mine]
-    readback = list(csv.DictReader((TOOLS / 'apply-results-staging' / digest / 'readback.csv').open()))
     executor = json.loads((TOOLS / 'apply-results-staging' / digest / 'timings.json').read_text())
     paths['journal'] = state
     return dict(area=', '.join(names), window=[area['start'].isoformat(), area['end'].isoformat()], approved_products=approved, paths=paths,
@@ -439,6 +457,23 @@ def forged_journal(source, target):
     target.write_text('\n'.join(lines) + '\n')
 
 
+def forged_hold_journal(source, target, phase, change):
+    """Negative case (fix round 2): the executor's journal with the owner-hold identity changed on
+    the `held` receipt or the `approve` intent (fabricated exception id or hold kind), re-chained."""
+    import fresh_start_v3 as v
+    events = [json.loads(x) for x in source.read_text().splitlines()]
+    hit = next(e for e in events if (e.get('outcome') == 'held' if phase == 'held' else e.get('phase') == 'approve'))
+    hit.update(change)
+    previous, lines = '', []
+    for seq, e in enumerate(events):
+        e.pop('sha256', None)
+        e.update(seq=seq, previous=previous)
+        e['sha256'] = previous = v.sha(v.canonical(e).encode())
+        lines.append(json.dumps(e))
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text('\n'.join(lines) + '\n')
+
+
 def hosted_groups(base, owner_key, items, ref, workdir, env, owner, report, floor_key=None):
     """O-3 (2026-10-14): three area groups posted one after another on hosted staging, each
     signed and journaled on its own, then proved as a union with verify_reset --whole-reset.
@@ -485,6 +520,14 @@ def hosted_groups(base, owner_key, items, ref, workdir, env, owner, report, floo
     coverage += [(misc, g3['end']), (empty, g3['end'])]
     results.append(area_run(g3, list(rows), [misc, empty], workdir, env, owner, ref, coverage=list(coverage), apply=False))
 
+    # Group 4 (fix round 2) = a zero-stock-ONLY sign-off: one product searched everywhere, no lot,
+    # no stock. Run through the real confirmed --apply: it posts nothing and writes no journal.
+    zero_only = items['empty']
+    g4 = dict(name='Office', slug='group-4-zero-stock-only', start=g3['start'], end=now())
+    coverage += [(zero_only, g4['end'])]
+    results.append(area_run(g4, list(rows), [zero_only], workdir, env, owner, ref, coverage=list(coverage)))
+    results[-1]['group_name'] = 'Zero-stock sign-off'
+
     def rel(path):
         return os.path.relpath(path, workdir)
 
@@ -492,7 +535,7 @@ def hosted_groups(base, owner_key, items, ref, workdir, env, owner, report, floo
     final = results[-1]['paths']
     groups = []
     for r in results:
-        group = dict(name=r['area'], areas=[x.strip() for x in r['area'].split(',')], approved_preview=rel(r['paths']['preview']),
+        group = dict(name=r.get('group_name', r['area']), areas=[x.strip() for x in r['area'].split(',')], approved_preview=rel(r['paths']['preview']),
                      approval=rel(r['paths']['approval']))
         if r.get('no_change'):
             group['no_change'] = True
@@ -505,19 +548,28 @@ def hosted_groups(base, owner_key, items, ref, workdir, env, owner, report, floo
                                       moves=rel(final['inputs'] / 'moves.csv'), review=rel(final['review'])))
     proofs = {'complete': whole_reset(workdir, env, manifest, 'complete')}
     # Negative 1: leave the no-change group out — its products must be reported as missing.
-    proofs['without_office_group'] = whole_reset(workdir, env, dict(manifest, groups=groups[:2]), 'without-office')
+    proofs['without_office_group'] = whole_reset(workdir, env, dict(manifest, groups=groups[:2] + groups[3:]), 'without-office')
     # Negative 2 (fix round 1): the Office approval signed WITHOUT the zero-stock product.
-    office = results[-1]['paths']['approval']
+    office = results[2]['paths']['approval']
     narrow = office.with_name('approval-without-zero-stock.md')
-    narrow.write_text(office.read_text().replace('Approved product IDs: ' + ', '.join(map(str, results[-1]['approved_products'])),
+    narrow.write_text(office.read_text().replace('Approved product IDs: ' + ', '.join(map(str, results[2]['approved_products'])),
                                                  'Approved product IDs: ' + str(misc['id'])))
-    proofs['zero_stock_unapproved'] = whole_reset(workdir, env, dict(manifest, groups=groups[:2] + [dict(groups[2], approval=rel(narrow))]),
+    if narrow.read_text() == office.read_text():
+        raise RuntimeError('zero-stock-unapproved case did not narrow the Office approval')
+    proofs['zero_stock_unapproved'] = whole_reset(workdir, env, dict(manifest, groups=groups[:2] + [dict(groups[2], approval=rel(narrow))] + groups[3:]),
                                                   'zero-stock-unapproved')
     # Negative 3 (fix round 1): a forged `refused` receipt with a bogus receipt id, chain re-hashed.
     forged = workdir / 'forged' / 'group-1-journal-forged-receipt.jsonl'
     forged_journal(results[0]['paths']['journal'], forged)
     proofs['forged_receipt'] = whole_reset(workdir, env, dict(manifest, groups=[dict(groups[0], journal=rel(forged))] + groups[1:]),
                                            'forged-receipt')
+    # Negatives 3b/3c (fix round 2): the Dry storage journal names an owner hold FL does not have —
+    # a fabricated exception id on the held receipt, then a wrong hold kind on the approve intent.
+    for case, phase, change in (('forged-hold-id', 'held', dict(exception_id=424242)),
+                                ('forged-hold-kind', 'approve', dict(hold='KOSHER_ATTESTATION'))):
+        path = workdir / 'forged' / f'group-1-journal-{case}.jsonl'
+        forged_hold_journal(results[0]['paths']['journal'], path, phase, change)
+        proofs[case.replace('-', '_')] = whole_reset(workdir, env, dict(manifest, groups=[dict(groups[0], journal=rel(path))] + groups[1:]), case)
     # Negative 4 (fix round 1): a duplicate-ticked oats row added to the final count after the
     # Dry storage group was signed, excluded by an owner duplicate answer, so balances still match.
     import fresh_start_v3 as v

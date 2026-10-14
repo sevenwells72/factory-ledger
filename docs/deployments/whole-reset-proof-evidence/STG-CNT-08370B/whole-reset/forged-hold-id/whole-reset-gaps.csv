@@ -1,0 +1,9 @@
+kind,group,product_id,lot_code,detail
+HOLD_NOT_IN_FL,Dry storage,,,"Lot 1000000528: held receipt seq 4 names exception #424242, which FL does not have; FL has #258 LARGE_CORRECTION resolved on ticket 1187."
+FINAL_HOLD,,1000000212,,Negative expected current stock
+FINAL_LOT_HOLD,,,,lot 1000000527: prior opening without journal proof
+FINAL_LOT_HOLD,,,,lot 1000000528: prior opening without journal proof
+UNEXPLAINED_DIFFERENCE,,1000000211,STG-CNT-08370B-OATS-1,expected 390 vs FL 395 lb (difference -5)
+UNEXPLAINED_DIFFERENCE,,1000000212,STG-CNT-08370B-SUGAR-1,expected -160 vs FL 520 lb (difference -680)
+POST_OUTSIDE_APPROVED_PLAN,,1000000211,STG-CNT-08370B-OATS-1,TX 1000000595 ADJ-261014-023 -5 by Michael (STAGING STG-CNT-08370B) is not a proved post of any signed group
+POST_OUTSIDE_APPROVED_PLAN,,1000000212,STG-CNT-08370B-SUGAR-1,TX 1000000596 ADJ-261014-024 -680 by Michael (STAGING STG-CNT-08370B) is not a proved post of any signed group

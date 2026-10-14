@@ -640,7 +640,8 @@ def reconcile_v3(plan, s, journal):
     """Completed lot -> its one posted line, proved by ticket (shared with verify)."""
     import fresh_start_v3 as v
     try:
-        return v.reconcile_tickets({r['lid']: r for r in plan['rows'] if r['change']}, s, journal.attempts(), plan['actor'])
+        return v.reconcile_tickets({r['lid']: r for r in plan['rows'] if r['change']}, s, journal.attempts(), plan['actor'],
+                                   plan['approve_held'])
     except ValueError as error:
         raise RuntimeError(str(error)) from None
 
@@ -886,6 +887,10 @@ def post_lot(plan, backend, key, journal, r, before, resume_ticket=None, resume_
     return body
 
 
+READBACK_COLUMNS = ['product_id', 'name', 'lot_code', 'new_lot', 'change', 'receipt_number', 'transaction_id', 'balance_now',
+                    'planned', 'owner_holds', 'shortages_closed', 'kosher_tier', 'status']
+
+
 def readback_rows(plan, s, completed):
     lots = {l['id']: l for l in s['lots']}
     balance = {}
@@ -974,7 +979,8 @@ def run_v3(plan, apply=False, backend=None, input_fn=input):
         output.mkdir(parents=True, exist_ok=True)
         rows = readback_rows(plan, s, completed)
         with (output / 'readback.csv').open('w', newline='') as stream:
-            writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+            # Fixed columns: a zero-stock-only group has no rows yet must still verify (Codex PR #120 re-check).
+            writer = csv.DictWriter(stream, fieldnames=READBACK_COLUMNS)
             writer.writeheader()
             writer.writerows({k: (f.fmt(v) if isinstance(v, f.D) else v) for k, v in row.items()} for row in rows)
         print('READ-BACK (check each receipt against the count sheet):')

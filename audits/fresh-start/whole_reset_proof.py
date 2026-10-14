@@ -170,6 +170,9 @@ def prove_group(g, target, s, gaps):
         return result
     try:
         proof = v.journal_proof(g['approved_preview'], g['approval'], g['journal'], s, sp['data'])
+    except v.HoldMismatch as e:
+        gap(gaps, 'HOLD_NOT_IN_FL', str(e), name)
+        return result
     except (ValueError, RuntimeError, KeyError, OSError) as e:
         gap(gaps, 'JOURNAL_PROOF_FAILED', str(e) if isinstance(e, (ValueError, RuntimeError)) else f'{type(e).__name__}: {e}', name)
         return result
