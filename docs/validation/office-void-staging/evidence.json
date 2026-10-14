@@ -1,0 +1,63 @@
+{
+  "mode": "Branch UI and HTTP against guarded staging DB; lifespan off; no hosted deployment",
+  "staging_origin": "https://fastapi-staging-production-dd7b.up.railway.app",
+  "marker": "STG-D2OFF-77262046",
+  "checked_at": "2026-10-14T11:36:04.296Z",
+  "results": [
+    {
+      "action": "create_order",
+      "receipt_number": "ORD-261014-001",
+      "ticket_id": 561,
+      "order_id": 1000000025
+    },
+    {
+      "action": "receive",
+      "receipt_number": "RCV-261014-001",
+      "ticket_id": 562,
+      "transaction_id": 1000000441,
+      "lot_id": 1000000406
+    },
+    {
+      "action": "void",
+      "receipt_number": "VD-261014-001",
+      "ticket_id": 563
+    }
+  ],
+  "requests": [
+    "/resolve",
+    "/resolve",
+    "/resolve",
+    "/resolve",
+    "/resolve",
+    "/sales/orders/prepare",
+    "/tickets/{ticket}/commit",
+    "/tickets/{ticket}/commit",
+    "/resolve",
+    "/resolve",
+    "/receive/prepare",
+    "/tickets/{ticket}/commit",
+    "/tickets/{ticket}/commit",
+    "/void/1000000441/prepare",
+    "/tickets/{ticket}/commit",
+    "/tickets/{ticket}/commit"
+  ],
+  "checks": [
+    "Office personal key exchanged for session",
+    "PO leading zeroes retained",
+    "Two cases 50 lb plus three pallet charges: $97.50",
+    "ORD receipt + replay",
+    "Floor own same-day receive",
+    "Fixed data_entry_error prepare/draft/Record",
+    "VD receipt + replay",
+    "Original VOIDED and VD backlink",
+    "VD source receipt",
+    "EN/ES 390px no overflow",
+    "Temporary sessions signed out",
+    "No production access"
+  ],
+  "direct_database_checks": [
+    "One committed ticket per receipt",
+    "One receive post",
+    "Source posting voided"
+  ]
+}

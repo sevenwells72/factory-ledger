@@ -64,5 +64,6 @@ try{
  }
  await page.evaluate(()=>sessionStorage.setItem('fl-ledger-language','en'));
  await page.goto(base+'/dashboard/receipt.html?number=RCV-000000-999');await page.locator('#notice.neutral').waitFor();assert.equal(await page.locator('#notice').textContent(),'No receipt with this number');assert.equal(await page.locator('#notice.bad').count(),0);
+ await page.locator('#language').click();assert.equal(await page.locator('#notice').textContent(),'No hay recibo con este número');
  assert.deepEqual(errors,[]);await fs.writeFile(out+'/receipts.json',JSON.stringify(receipts,null,2));console.log('Office '+(on?'all 14 forms, duplicate/No PO, pouch rules, service line, document tickets, EN/ES and 390px':'all forms hidden, no write requests')+'; neutral missing receipt passed.');
 }catch(error){await page.screenshot({path:out+'/failure.png',fullPage:true});console.error('Visible notice:',await page.locator('#notice').textContent());throw error;}finally{await browser.close();}

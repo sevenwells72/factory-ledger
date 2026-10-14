@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';import fs from 'node:fs/promises';import path from 'node:path';import {chromium} from 'playwright';
 const base=process.env.D12_BASE||'http://127.0.0.1:8125';assert.ok(['localhost','127.0.0.1'].includes(new URL(base).hostname));
 const production='https://fastapi-production-b73a.up.railway.app',staging='https://fastapi-staging-production-dd7b.up.railway.app';
-const pages=['index.html','history.html','runs.html','process-flow.html','traceability.html','sankey.html','entry.html','exceptions.html','receipt.html','shift-summary.html','fl-assistant.html','scheduler/seven-wells-production-board.html'];
+const pages=['index.html','history.html','runs.html','process-flow.html','traceability.html','sankey.html','entry.html','office.html','exceptions.html','receipt.html','shift-summary.html','fl-assistant.html','scheduler/seven-wells-production-board.html'];
 const browser=await chromium.launch({channel:'chrome',headless:true});
 try{
  for(const host of ['deploy-preview-107--cns-factory-ledger.netlify.app','feature--cns-factory-ledger.netlify.app','other-site.netlify.app','cns-factory-ledger.netlify.app']){
@@ -26,5 +26,5 @@ try{
   }
   assert.deepEqual(blocked,[],'preview never targets production');assert.ok(calls.length>=pages.length);assert.ok(calls.every(c=>c.origin===expected));await context.close();
  }
- console.log('Netlify host routing passed: 12 pages × 4 hosts, unsafe overrides ignored on previews, zero hosted API network access.');
+ console.log('Netlify host routing passed: 13 pages × 4 hosts, unsafe overrides ignored on previews, zero hosted API network access.');
 }finally{await browser.close();}
