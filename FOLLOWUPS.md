@@ -209,7 +209,7 @@ app-startup sweep.
 
 ---
 
-**P1.9 Create the `expire-tickets` Railway cron service before the F1 pilot (deferred by Michael 2026-10-08 after PR #83 rollout).**
+**P1.9 Create the `expire-tickets` Railway cron service before the F1 pilot (deferred by Michael 2026-10-08 after PR #83 rollout). — DONE: created 2026-10-13.**
 **CREATED (verified read-only 2026-10-13):** Railway production has `expire-tickets` (schedule `15 7 * * *`, start `python scripts/expire_tickets.py`, `ENVIRONMENT=production`, `PRODUCTION_DATABASE_HOST` set, `DATABASE_URL` present) and `expire-tickets-staging` (same schedule); both latest deployments SUCCESS 2026-10-14 02:39Z. Remaining: confirm the first nightly run logs `Expired N prepared tickets`. Original instructions kept below.
 `scripts/expire_tickets.py` is live but nothing schedules it (commit still enforces expiry
 synchronously, so this is hygiene, not safety). Before pilot: add a service from the same
@@ -400,7 +400,7 @@ wants one audit feed. (e) The D3-lite page keeps the personal key in memory only
 part 1) until the key-to-session exchange (P1.16) lands; the dashboard key alone gets the
 read-only all-actors view.
 
-**P1.24 Recipe corrections 078 — what it deliberately leaves for later (built 2026-10-13, branch `fix/recipe-corrections`, staging only).**
+**P1.24 Recipe corrections 078 — what it deliberately leaves for later (built 2026-10-13, branch `fix/recipe-corrections`; 078 now on production). Stock true-ups are NOT done by adjustment — the cutover count + reset fixes them.**
 078 rewrites the 179 Fruit Nut recipe (276.3 + 13 × 4 = 328.3 lb, batch 328.3, planner rows, yields
 15 / 38 → 13 / 32 — added in review fix round 1, Michael approved) and moves 284's chips line 73 → 72
 (must stay deducted; a 1,000 CT make is an A5 substitution). Not included and still owed, each with
@@ -428,6 +428,25 @@ held for owner approval through A3b, and the Floor GPT cannot record one. At rol
 no stock, allocations or shipments and there were 0 lots of 283/284, so it could not ship either
 way. If it becomes urgent before cutover, decide then — **no workaround is built now**. Owner:
 **Michael (verify status with Sunshine)**. See P1.5 (tiers), P1.21 (count loading of 283–290).
+
+---
+
+**P1.25 Count-tool test fixtures use the New York plant date — DONE (PR #112, merge 2f11015, 2026-10-14).**
+The signed approval Date (v3 and v2 fixtures) and the v3 count_date come from the plant
+(America/New_York) date, as the tool compares them; `pinned_clock.py` + PlantDateClockTests prove the
+suite at 00:05, 12:00, 20:30 and 23:59 ET under TZ=America/New_York and TZ=UTC. Test/docs only.
+
+**P1.26 Small pilot follow-ups (recorded 2026-10-14; none blocks the pilot).**
+- **A5 part 2 minors (from the #106 review; detail in P1.15):** (a) the commingled-lot refusal in
+  `supplier_lot_tickets.py` should say the lot is commingled rather than "has component supplier
+  codes" when there are no component rows; (b) the prepare draft shows only the first open
+  UNIDENTIFIED_LOT `exception_id` while commit resolves all of them — show them all.
+- **Late-entry wording (optional):** the LATE_ENTRY message could name the rule — entries more than
+  48 hours after the event open a late-entry exception for floor/office (`permissions.LATE_ENTRY_AFTER`).
+- **Held-correction response is now the contract (PR #116, live 2026-10-14):** a correction held for
+  owner approval returns `success:false`, `posted:false`, `held:true`, `status:"awaiting_approval"`.
+  Clients (dashboard, F1, GPT relay) must treat it as "waiting for owner", not as an error or a post;
+  `tests/test_pilot_triage_backend.py::test_held_correction_never_reports_success` guards it.
 
 ---
 
