@@ -70,7 +70,7 @@ try {
     await page.getByRole('button', { name: 'Fixture Supplier — supplier #4', exact: true }).waitFor();
     assert.equal(calls.filter(call => call.path === '/suppliers').at(-1).background, undefined, 'typing a supplier search is user activity');
     const readKey = calls.find(call => call.path === '/sales/orders').key;
-    assert.ok(readKey); assert.equal(readKey === TOKEN, enabled);
+    assert.equal(readKey, enabled ? TOKEN : 'shared-fixture', 'flag off reads with the key FL serves');
     for (const endpoint of ['/sales/orders', '/expected-receipts', '/suppliers']) {
       const reads = calls.filter(call => call.path === endpoint);
       assert.ok(reads.length, endpoint + ' is exercised by its real screen');
