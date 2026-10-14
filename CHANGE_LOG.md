@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-13 22:36 — Retain prior validation notes while rebasing PR 107 onto resolution-receipt main
+- **File(s) changed:** `CHANGE_LOG.md`
+- **What changed:** Retain prior validation notes while rebasing PR 107 onto resolution-receipt main
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
 ## 2026-10-13 22:36 — Preserve dashboard review fixes and all upstream log history on 901ad5c
 - **File(s) changed:** `CHANGE_LOG.md`
 - **What changed:** Preserve dashboard review fixes and all upstream log history on 901ad5c
@@ -17,6 +24,13 @@
 ## 2026-10-13 22:33 — Rebase D1 onto merged resolution receipts; preserve both change-log histories
 - **File(s) changed:** `CHANGE_LOG.md`
 - **What changed:** Rebase D1 onto merged resolution receipts; preserve both change-log histories
+## 2026-10-13 21:19 — Record D1/D2 fix-round evidence, refreshed staging run and backend dependencies
+- **File(s) changed:** `docs/validation/dashboard-d1-d2.md`, `docs/validation/d12-staging/evidence.json`, `docs/validation/d12-staging/*.png`
+- **What changed:** Added the fix-round table (fixes 0–6 with their Node and browser regressions and before/after results), fresh-DB totals (2,796 Python passed, 1 clock-dependent failure unrelated to this PR; 119 Node), all five browser runners passing, and the staging overlay rerun (RCV-261013-013, MK-261013-013). Listed the minimal backend fields still owed: `allowed_resolutions`, XR resolution receipts, `void_receipt_number`.
+- **Why:** PR #107 review fix round 1 evidence. No production changes.
+
+---
+
 ## 2026-10-13 21:06 — D1/D2 review fix round 1: truthful exception outcomes, role-filtered choices, VOIDED receipts, plain timeouts, EN/ES keeps forms
 - **File(s) changed:** `dashboard/ledger-ui.js`, `dashboard/ledger-ticket.js`, `dashboard/exceptions.js`, `dashboard/receipt.js`, `dashboard/entry.js`, `dashboard/ledger-forms.css`, 12 dashboard HTML cache-bust tags, `tests/test_d12_ui.js`, `tests/visual/run-d12-fixes.mjs`, `tests/visual/run-d12.mjs`, `tests/visual/run-d2.mjs`
 - **What changed:** (0) the exception "Identify supplier lot" form runs the live A5 `/lots/{id}/supplier-lot/prepare` → ticket commit and shows FL's `resolved_exception_ids`. (1) /resolve and /reject outcomes show a neutral "Resolved / Waived / Rejected — no new receipt" state; only an /approve ticket receipt is green, and the source entry's receipt is never shown as this action's. (2) Resolution choices come from `allowed_resolutions` when FL returns it, otherwise owner-only choices are hidden using `/auth/whoami` permissions. (3) Owner approve note is optional and omitted when blank; reject, write-off and waive require a note. (4) Receipt page shows VOIDED / PARTLY VOIDED (grey, never green) from FL's per-entry effective_status, plus the VD receipt when FL returns one. (5) A 20 s timeout or a lost connection shows plain wording, never raw browser text, and the red banner clears when the same-ticket retry records. (6) The EN/ES switch relabels in place, keeping the half-filled entry form and any open draft. Runners updated: D1 now expects the live supplier-lot draft; D2 expects the open draft to survive the language switch and the plain lost-connection text.
