@@ -2,7 +2,7 @@
 """Real Chrome + branch HTTP against guarded staging; no startup or deployment."""
 from contextlib import contextmanager
 from hashlib import sha256
-import json, logging, os, re, secrets, subprocess, sys, threading, time
+import json, logging, os, secrets, subprocess, sys, threading, time
 from pathlib import Path
 from uuid import uuid4
 import httpx
@@ -49,9 +49,8 @@ def check():
                 cur.execute('INSERT INTO '+table+'(name,active) VALUES(%s,true) RETURNING id,name',(marker+' '+label,))
                 fixture[label]=dict(cur.fetchone())
         uri=(Path.home()/'Documents/fl-secrets/staging-db-url.txt').read_text().strip()
-        readkey=re.search(r"api.readKey='([^']+)'",(ROOT/'dashboard/ledger-ui.js').read_text()).group(1)
         os.environ.update(DATABASE_URL=uri,ENVIRONMENT='staging',PRODUCTION_DATABASE_HOST=PRODUCTION_DATABASE_HOST,
-                          API_KEY=secrets.token_urlsafe(40),DASHBOARD_API_KEY=readkey,KEY_SESSIONS_ENABLED='1',PIN_LOGIN_ENABLED='0')
+                          API_KEY=secrets.token_urlsafe(40),DASHBOARD_API_KEY=secrets.token_urlsafe(40),KEY_SESSIONS_ENABLED='1',PIN_LOGIN_ENABLED='0')
         logging.disable(logging.CRITICAL)
         import main
         main.get_db_connection=connection
