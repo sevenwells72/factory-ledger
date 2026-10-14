@@ -37,6 +37,18 @@ def fail(status, code, message):
     raise HTTPException(status, {'error_code': code, 'message': message})
 
 
+def argument_validation_error(status, result):
+    """Only schema/transport mistakes are retried, never FL business refusals."""
+    if status != 422 or not isinstance(result, dict):
+        return False
+    detail = result.get('detail')
+    return (isinstance(detail, list)
+            or (result.get('error_detail') or {}).get('code') == 'VALIDATION_ERROR'
+            or (isinstance(detail, dict) and detail.get('error_code') in {
+                'TOOL_ARGUMENTS_INVALID', 'INVALID_RECEIPT', 'RESOLVE_REQUIRED', 'ORDER_REQUIRED',
+                'IDS_REQUIRED', 'AMBIGUOUS_EVENT_TIME'}))
+
+
 class Body(BaseModel):
     class Config:
         extra = 'forbid'
@@ -301,12 +313,14 @@ def register_routes(app, api):
         return status, detail
 
     async def execute_tool(request, body, actor, state, name, args):
+        if name == 'unsupported_request':
+            return 200, {'outcome': 'unsupported_request'}, {'kind': 'unsupported_request'}
         if name == 'resolve':
             status, result = await relay(app, request, 'POST', '/resolve', body=args)
             if status == 200 and result.get('outcome') == 'match' and not result.get('needs_clarification'):
                 selected_status, detail = await approve_candidate(request, state, args['kind'], result['match'])
                 if selected_status != 200:
-                    return selected_status, detail, {'kind': 'refusal', 'status': selected_status, 'result': detail}
+                    return selected_status, detail, {'kind': 'lookup_failed'}
                 if detail is not None:
                     result = {**result, 'order_detail': detail}
                 return status, result, None
@@ -319,7 +333,7 @@ def register_routes(app, api):
                         cur.execute('INSERT INTO assistant_unmatched_words(session_id,actor_id,kind,query,context) VALUES (%s,%s,%s,%s,%s)',
                                     (str(body.session_id), actor['id'], args['kind'], args.get('query', ''), Json(args.get('context', {}))))
                 return status, result, card
-            return status, result, {'kind': 'refusal', 'status': status, 'result': result}
+            return status, result, {'kind': 'lookup_failed'}
         if name in catalog.PREPARES:
             if catalog.has_ui_fields(args):
                 fail(502, 'MODEL_EVIDENCE_FORBIDDEN', 'Confirmation must come from the page / Confirma en la página.')
@@ -346,15 +360,16 @@ def register_routes(app, api):
             path, params = '/inventory/lookup', args
         elif name == 'receipt_lookup':
             number = args.get('receipt_number', '')
-            if not re.fullmatch(r'[A-Z]{2,3}-\d{6}-\d{3,}', number):
-                fail(422, 'INVALID_RECEIPT', 'Enter the exact FL receipt number / Escribe el número del recibo FL.')
+            if not isinstance(number, str) or not re.fullmatch(r'[A-Z]{2,3}-\d{6}-\d{3,}', number):
+                return 422, {'detail': {'error_code': 'INVALID_RECEIPT', 'message': 'Supply an exact FL receipt number.'}}, None
             path, params = '/receipts/' + number, {}
         elif name == 'shift_summary' and any(getattr(r, 'path', '') == '/reports/shift-summary' for r in app.routes):
             path, params = '/reports/shift-summary', {'date': api.get_plant_now().date().isoformat(), 'actor': 'me'}
         else:
             fail(502, 'TOOL_NOT_ALLOWED', 'No permitted FL tool completed / Ninguna herramienta FL completó.')
         status, result = await relay(app, request, 'GET', path, params=params)
-        return status, result, {'kind': 'read' if status == 200 else 'refusal', 'tool': name, 'status': status, 'result': result}
+        card = {'kind': 'read', 'tool': name, 'status': status, 'result': result} if status == 200 else {'kind': 'lookup_failed'}
+        return status, result, card
 
     def store_draft(result, args, sid, actor_id, attachments):
         draft_id = str(uuid4())
@@ -436,7 +451,7 @@ def register_routes(app, api):
                     return save_turn(state, cards, body, actor, digest, lease)
                 selected_status, detail = await approve_candidate(request, state, pending['args']['kind'], selected)
                 if selected_status != 200:
-                    return save_turn(state, [{'kind': 'refusal', 'status': selected_status, 'result': detail}],
+                    return save_turn(state, [{'kind': 'lookup_failed'}],
                                      body, actor, digest, lease)
                 state.pop('pending', None)
                 selection = {'candidate': selected, 'order_detail': detail} if detail is not None else selected
@@ -448,11 +463,14 @@ def register_routes(app, api):
                 history.append({'role': 'user', 'content': body.text.strip()})
             reasons_status, reasons = await relay(app, request, 'GET', '/correction-reasons')
             if reasons_status != 200:
-                return save_turn(state, [{'kind': 'refusal', 'status': reasons_status, 'result': reasons}], body, actor, digest, lease)
+                return save_turn(state, [{'kind': 'lookup_failed'}], body, actor, digest, lease)
             functions = catalog.tools(reasons['reasons'], shift_summary=any(getattr(r, 'path', '') == '/reports/shift-summary' for r in app.routes))
             allowed = {f['name'] for f in functions}
             cards = []
-            for _ in range(MAX_STEPS):
+            validation_retries = 0
+            for step in range(MAX_STEPS + 1):
+                if step >= MAX_STEPS + validation_retries:
+                    break
                 renew_lease(sid, lease)
                 response = await openai('responses', body={
                     'model': os.getenv('ASSISTANT_MODEL', MODEL), 'store': False,
@@ -467,16 +485,24 @@ def register_routes(app, api):
                 if response.get('status') != 'completed' or len(calls) != 1 or calls[0].get('name') not in allowed:
                     fail(502, 'TOOL_REQUIRED', 'No FL tool completed. NOT recorded / NO registrado.')
                 call = calls[0]
+                # Keep the failed call/output pair for the one model repair attempt.
+                # Model prose is never rendered or retained.
+                history.extend(item for item in output if item.get('type') in ('reasoning', 'function_call'))
                 try:
                     args = json.loads(call['arguments'])
                     if not isinstance(args, dict):
                         raise ValueError()
                 except (KeyError, ValueError, TypeError):
-                    fail(502, 'TOOL_ARGUMENTS_INVALID', 'Invalid tool response. NOT recorded / NO registrado.')
-                # Retain reasoning items for Responses continuity; discard all model prose.
-                history.extend(item for item in output if item.get('type') in ('reasoning', 'function_call'))
-                status, result, card = await execute_tool(request, body, actor, state, call['name'], catalog.clean_arguments(args))
+                    status, result, card = 422, {'detail': {'error_code': 'TOOL_ARGUMENTS_INVALID', 'message': 'Arguments must be a JSON object.'}}, None
+                else:
+                    status, result, card = await execute_tool(request, body, actor, state, call['name'], catalog.clean_arguments(args))
                 history.append(catalog.output_item(call['call_id'], result))
+                if argument_validation_error(status, result):
+                    if validation_retries == 0:
+                        validation_retries = 1
+                        continue
+                    cards.append({'kind': 'misunderstood'})
+                    break
                 if card:
                     if card['kind'] == 'refusal':
                         card['reasons'] = reasons['reasons']

@@ -283,20 +283,99 @@ def test_model_cannot_escape_or_commit(client, chat, monkeypatch):
 
 
 def test_model_ids_need_resolution(client, chat, monkeypatch, payload):
-    calls = [('prepare_receive', payload)] * fl_assistant.MAX_STEPS
-    model(monkeypatch, *calls)
+    calls = [('prepare_receive', payload)] * 2
+    requests = model(monkeypatch, *calls)
     r = turn(client, chat)
-    assert r.status_code == 502
+    assert r.status_code == 200
+    assert r.json()['cards'] == [{'kind': 'misunderstood'}]
+    assert len(requests) == 2
 
 
-def test_prepare_refusal_is_exact_fl_response(client, chat, monkeypatch):
-    model(monkeypatch, ('prepare_receive', {}))
+def test_malformed_prepare_retries_once_then_hides_validation(client, chat, monkeypatch):
+    requests = model(monkeypatch, ('prepare_receive', {}), ('prepare_receive', {}))
     r = turn(client, chat)
-    card = r.json()['cards'][0]
-    expected = client.post('/receive/prepare', headers=chat[1], json={'client_source': 'fl_assistant'})
-    assert card['status'] == expected.status_code
-    assert card['result'] == expected.json()
-    assert len(card['reasons']) == 8
+    assert r.status_code == 200, r.text
+    assert r.json()['cards'] == [{'kind': 'misunderstood'}]
+    assert len(requests) == 2
+    assert 'Field required' not in r.text
+
+
+@pytest.mark.parametrize('text', [
+    "Smoke test only. Please reply 'Staging chat OK' and calculate 7 + 5. Do not create, save, update, or record anything",
+    'Solo una prueba. Calcula 7 + 5. No crees, guardes, actualices ni registres nada.',
+])
+def test_out_of_scope_has_fixed_neutral_outcome_and_no_fl_write(client, chat, monkeypatch, db_cursor, text):
+    requests = model(monkeypatch, ('unsupported_request', {}))
+    original = fl_assistant.relay
+    paths = []
+
+    async def observe(app, request, method, path, **kwargs):
+        paths.append((method, path))
+        return await original(app, request, method, path, **kwargs)
+
+    monkeypatch.setattr(fl_assistant, 'relay', observe)
+    response = turn(client, chat, text)
+    assert response.status_code == 200, response.text
+    assert response.json()['cards'] == [{'kind': 'unsupported_request'}]
+    assert paths == [('GET', '/correction-reasons')]
+    assert len(requests) == 1
+    assert 'RECORDED!' not in response.text
+    db_cursor.execute('SELECT count(*) AS n FROM assistant_drafts WHERE session_id=%s', (chat[0],))
+    assert db_cursor.fetchone()['n'] == 0
+
+
+@pytest.mark.parametrize('call', [
+    ('resolve', {'kind': None, 'query': None, 'context': None, 'quantity': None, 'limit': None, 'offset': None}),
+    ('inventory_lookup', {}), ('receipt_lookup', {'receipt_number': 42}),
+])
+def test_malformed_lookup_retries_once_then_plain_message_and_resume(client, chat, monkeypatch, call):
+    requests = model(monkeypatch, call, call)
+    response = turn(client, chat, 'look up inventory')
+    assert response.status_code == 200, response.text
+    assert response.json()['cards'] == [{'kind': 'misunderstood'}]
+    assert len(requests) == 2
+    error = requests[1]['input'][-1]
+    assert error['type'] == 'function_call_output'
+    assert 'detail' in json.loads(error['output'])
+    assert all(s not in response.text for s in ['Field required', 'VALIDATION_ERROR', 'not_recorded'])
+    resumed = client.post('/assistant/resume', headers=chat[1], json={'session_id': chat[0]})
+    assert resumed.json()['turns'][-1]['cards'] == [{'kind': 'misunderstood'}]
+
+
+def test_validation_retry_can_recover_real_lookup(client, chat, monkeypatch):
+    requests = model(monkeypatch, ('inventory_lookup', {}), ('inventory_lookup', {'q': 'NO-SUCH-F1-PRODUCT'}))
+    response = turn(client, chat, 'look up NO-SUCH-F1-PRODUCT')
+    assert response.status_code == 200, response.text
+    assert response.json()['cards'][0]['kind'] == 'read'
+    assert response.json()['cards'][0]['result']['results'] == []
+    assert len(requests) == 2
+
+
+def test_invalid_json_gets_one_repair_attempt(client, chat, monkeypatch):
+    malformed = {'status': 'completed', 'output': [
+        {'type': 'function_call', 'call_id': 'bad_json', 'name': 'inventory_lookup', 'arguments': '{'}]}
+    requests = model(monkeypatch, malformed, ('inventory_lookup', {}))
+    response = turn(client, chat)
+    assert response.status_code == 200, response.text
+    assert response.json()['cards'] == [{'kind': 'misunderstood'}]
+    assert len(requests) == 2
+
+
+@pytest.mark.parametrize('status', [403, 404, 422, 500])
+def test_lookup_business_failure_is_neutral_without_model_retry(client, chat, monkeypatch, status):
+    requests = model(monkeypatch, ('inventory_lookup', {'q': 'Classic'}))
+    original = fl_assistant.relay
+
+    async def refuse(app, request, method, path, **kwargs):
+        if path == '/inventory/lookup':
+            return status, {'detail': {'error_code': 'BUSINESS_REFUSAL', 'message': 'FL refused'}}
+        return await original(app, request, method, path, **kwargs)
+
+    monkeypatch.setattr(fl_assistant, 'relay', refuse)
+    response = turn(client, chat)
+    assert response.status_code == 200, response.text
+    assert response.json()['cards'] == [{'kind': 'lookup_failed'}]
+    assert len(requests) == 1
 
 
 def test_today_is_actor_bound_and_model_prose_hidden(client, chat, actors, monkeypatch):
@@ -896,9 +975,11 @@ def test_partial_ship_order_rejects_real_line_id_until_actual_detail_obtained(cl
     # An older saved chat may know the order, but has never obtained its lines.
     state = {'history': [], 'resolved': {'order': [detail['order_id']]}}
     db_cursor.execute('UPDATE assistant_sessions SET state=%s WHERE id=%s', (Json(state), chat[0]))
-    requests = model(monkeypatch, *([('prepare_ship_order', args)] * fl_assistant.MAX_STEPS))
+    requests = model(monkeypatch, *([('prepare_ship_order', args)] * 2))
     response = turn(client, chat)
-    assert response.status_code == 502
+    assert response.status_code == 200
+    assert response.json()['cards'] == [{'kind': 'misunderstood'}]
+    assert len(requests) == 2
     outputs = [item for item in requests[1]['input'] if item.get('type') == 'function_call_output']
     assert json.loads(outputs[-1]['output'])['detail'] == {'error_code': 'RESOLVE_REQUIRED', 'fields': ['line_id']}
     db_cursor.execute("SELECT count(*) AS n FROM write_tickets WHERE actor_id=%s AND action='ship_order'", (actors['owner']['id'],))
@@ -912,9 +993,11 @@ def test_partial_ship_order_rejects_invented_or_ineligible_detail_line_ids(clien
         args['lines'][0]['line_id'] = 9223372036854775807
     else:
         db_cursor.execute('UPDATE sales_order_lines SET line_status=%s WHERE id=%s', (line_status, args['lines'][0]['line_id']))
-    requests = model(monkeypatch, resolve, *([('prepare_ship_order', args)] * (fl_assistant.MAX_STEPS - 1)))
+    requests = model(monkeypatch, resolve, *([('prepare_ship_order', args)] * 2))
     response = turn(client, chat)
-    assert response.status_code == 502
+    assert response.status_code == 200
+    assert response.json()['cards'] == [{'kind': 'misunderstood'}]
+    assert len(requests) == 3
     outputs = [item for item in requests[2]['input'] if item.get('type') == 'function_call_output']
     assert json.loads(outputs[-1]['output'])['detail']['fields'] == ['line_id']
     db_cursor.execute("SELECT count(*) AS n FROM write_tickets WHERE actor_id=%s AND action='ship_order'", (actors['owner']['id'],))

@@ -11,6 +11,15 @@ await fs.mkdir(out, { recursive: true });
 const server = await startStaticServer(root);
 const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) });
 const pilotMode = process.env.PILOT_SESSIONS === '1';
+const neutralCases = [
+  ['Smoke test only. Please reply \'Staging chat OK\' and calculate 7 + 5. Do not create, save, update, or record anything',
+    { kind: 'unsupported_request' }, 'I can only record or look up Factory Ledger items', 'Solo puedo registrar o consultar elementos de Factory Ledger'],
+  ['malformed lookup', { kind: 'misunderstood' }, 'I didn’t understand that', 'No entendí eso'],
+  ['failed lookup', { kind: 'lookup_failed' }, 'Couldn’t look that up', 'No pude consultar eso'],
+  ['legacy validation', { kind: 'refusal', status: 422, result: { detail: [{ loc: ['body', 'kind'], msg: 'Field required' }] } },
+    'I didn’t understand that', 'No entendí eso'],
+  ['connection failure', null, 'Couldn’t look that up', 'No pude consultar eso'],
+];
 let exchanges = 0, logouts = 0, expireNext = false;
 const sessionToken = 'fls_browser-fixture';
 const sid = '0c101ab1-8c56-42a2-8f29-c048330030c3', did = '616eac35-0b6e-4288-b40f-920639a83525';
@@ -65,6 +74,8 @@ try {
       ...(heldRequested ? [{ id: heldId, card: heldDraft, status: 'pending', result: heldResult }] : [])] } });
     if (url.pathname.endsWith('/turn')) {
       const body = data(); turns.push(body);
+      const neutral = neutralCases.find(([text]) => text === body.text);
+      if (neutral) return neutral[1] ? route.fulfill({ json: { cards: [neutral[1]] } }) : route.abort('failed');
       const cards = body.text === 'ambiguous' ? [{ kind: 'choices', id: '811eac35-0b6e-4288-b40f-920639a83525', result: { ask: 'Which product?', candidates: [{ id: 1, label: '<img src=x onerror=alert(1)> Classic' }, { id: 2, label: 'Classic Chocolate Chip' }] } }] : [draft];
       return route.fulfill({ json: { cards: body.text === 'held' ? [{ ...heldDraft, attachment_ids: body.attachment_ids }] :
         body.text === 'ship without BOL' ? [blockedShipDraft] : body.text === 'ship' ? [{ ...shipDraft, attachment_ids: body.attachment_ids }] : cards } });
@@ -101,6 +112,20 @@ try {
   await page.locator('#chat-panel').waitFor({ state: 'visible' });
   await page.screenshot({ path: path.join(out, 'chat-desktop.png'), fullPage: true });
   assert.equal(await page.evaluate(() => JSON.stringify(localStorage).includes('fixture-key')), false);
+  // Fixed neutral outcomes never show raw fields, Record, red failure, or green receipt.
+  for (const [text, , en, es] of neutralCases) {
+    await page.locator('#message').fill(text); await page.locator('#send').click();
+    const card = page.locator('.assistant-message .card').last();
+    await card.getByText(en, { exact: false }).waitFor();
+    assert.equal(await card.locator('.error-box, .receipt-number').count(), 0);
+    assert.equal(await card.getByRole('button', { name: 'Record', exact: true }).count(), 0);
+    assert.ok(!/Field required|NOT recorded|NO registrado/.test(await card.innerText()));
+    await page.locator('#language').click(); await card.getByText(es, { exact: false }).waitFor();
+    assert.equal(await card.locator('.error-box, .receipt-number').count(), 0);
+    await page.locator('#language').click();
+  }
+  assert.equal(records.length, 0);
+  await page.screenshot({ path: path.join(out, 'neutral-outcomes-desktop.png'), fullPage: true });
   await page.locator('#message').fill('made two batches'); await page.locator('#send').click();
   const record = page.getByRole('button', { name: 'Record', exact: true });
   await record.waitFor(); assert.equal(await record.isDisabled(), true);
@@ -115,7 +140,14 @@ try {
   await page.screenshot({ path: path.join(out, 'draft-desktop.png'), fullPage: true });
   await record.click(); await page.getByText('NOT recorded — no receipt confirmed.', { exact: false }).waitFor();
   assert.equal(await page.locator('.receipt').count(), 0);
+  await page.locator('#language').click();
+  await page.getByText('NO registrado — no se confirmó un recibo.', { exact: true }).waitFor();
+  assert.equal(await page.locator('.error-box').count(), 1);
+  await page.locator('#language').click();
   await record.click(); await page.locator('.receipt').waitFor();
+  await page.locator('#language').click();
+  await page.getByText('✓ REGISTRADO EN FACTORY LEDGER', { exact: true }).waitFor();
+  await page.locator('#language').click();
   assert.deepEqual(records[0], records[1]); assert.equal(records[0].draft_id, did);
   assert.deepEqual(records[0].lot_confirmations, [{ lot_id: 19, method: 'last4', value: '-004' }]);
   assert.equal(JSON.stringify(records).includes('payload_hash'), false);

@@ -37,8 +37,8 @@ def has_ui_fields(value):
 def strict_schema(model):
     """Inline FL's schema, with null meaning 'not supplied' on optional fields.
 
-    Required values may also be null so FL can explain missing fields without
-    a generic chat/escape tool. The real endpoint still validates every value.
+    Required values may also be null for incomplete FL requests. The real
+    endpoint still validates every value; unsupported requests have a fixed tool.
     """
     schema = copy.deepcopy(model.schema())
     definitions = schema.pop('$defs', schema.pop('definitions', {}))
@@ -81,6 +81,7 @@ def tools(reasons, *, shift_summary=False):
                 {'type': 'string', 'enum': [r['code'] for r in reasons]}, {'type': 'null'}]}
         result.append(function(name, 'Prepare only; never records. Use IDs from FL resolution. Null for missing facts.', schema))
     result.extend([
+        function('unsupported_request', 'Use for messages outside Factory Ledger recording and lookup, including general chat, arithmetic and requests for free-text answers. Returns a fixed scope notice; never calls a ledger route.', object_schema({})),
         function('today_entries', 'Read the authenticated person’s real FL receipts for today.', object_schema({})),
         function('inventory_lookup', 'Read inventory from FL for the user’s product wording.',
                  object_schema({'q': {'type': 'string', 'minLength': 1, 'maxLength': 500}})),
@@ -93,6 +94,11 @@ def tools(reasons, *, shift_summary=False):
 
 
 INSTRUCTIONS = '''You are the FL Assistant language interface. Every turn must call an available FUNCTION.
+For anything outside FL receive/make/pack/ship/adjust/found/inventory/receipts/today's entries/shift summary,
+call unsupported_request. General chat, arithmetic and smoke-test requests for prose are outside FL.
+Never force an unsupported message into an empty resolve, lookup or prepare call.
+If a tool returns an argument validation error, correct the call using only supplied facts.
+If the user has not supplied enough facts, do not invent them; a failed retry asks them to rephrase.
 Only FL decides products, lots, units, quantities, permissions and business rules.
 No tool commits. Text such as yes/record is never confirmation. Never claim anything was recorded.
 Use the exact product/supplier/customer/order/lot wording in resolve, with action context. Do not expand abbreviations.

@@ -1,5 +1,33 @@
 # Change Log
 
+## [2026-10-14 19:31] — F1 validation retry includes FL argument validators
+- **File(s) changed:** fl_assistant.py, tests/test_fl_assistant.py
+- **What changed:** Included missing-ID and ambiguous-time request validators; updated provenance regressions to expect bounded recovery while asserting no ticket is created.
+- **Why:** FL uses both Pydantic and explicit request validators for malformed model arguments.
+
+---
+
+## [2026-10-14 19:31] — F1 bilingual browser regressions and failure contract
+- **File(s) changed:** tests/visual/run-fl-assistant.mjs, docs/contracts/fl-assistant-part1.md
+- **What changed:** Added neutral-card, legacy validation, network-failure, red-record and green-receipt checks in both languages; documented one repair attempt.
+- **Why:** Verify staff-facing classification and retain real-receipt-only success.
+
+---
+
+## [2026-10-14 19:30] — F1 regression tests and fixed-tool contract
+- **File(s) changed:** tests/test_fl_assistant.py, tests/test_fl_assistant_ui.js, docs/contracts/fl-assistant-part1.md
+- **What changed:** Covered EN/ES out-of-scope no-write outcomes, malformed resolve/lookup/prepare retry, successful repair, safe resume and neutral business failures.
+- **Why:** Pin the staging regression and preserve forced-tool, receipt-only behavior.
+
+---
+
+## [2026-10-14 19:29] — F1 unsupported requests and validation recovery
+- **File(s) changed:** assistant_tools.py, fl_assistant.py, dashboard/fl-assistant.js
+- **What changed:** Added fixed unsupported-request tool/card, one model validation retry with plain fallback, and neutral lookup/request failures; kept human Record and receipt checks.
+- **Why:** Staging general chat was forced into an empty resolve and displayed raw validation fields as a red record failure.
+
+---
+
 ## 2026-10-14 15:14 — O-2 decided (Sunshine paper bin log, A8 deferred), bin log sheet, #121 rollout row
 - **File(s) changed:** `FOLLOWUPS.md`, `docs/design/phase1-safe-operating-system.md`, `docs/pilot/sunshine-bin-log.pdf` (new), `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Design rev 3.9 + §11 item 45 and FOLLOWUPS P1.29 record Michael's Oct 14 O-2 decision: Sunshine bulk bins use a paper bin log until after cutover; A8 weighed bins deferred (A8 row and §8.3 marked). Temporary procedure: one paper line per bin (date, bin ID, product + lot, gross/tare/net lb, Sunshine order, who weighed), entered in FL the same day as a normal shipment; billing per §8.5 unchanged, invoicing trigger still undecided. New one-page bilingual EN/ES landscape bin log sheet (20 rows, extra FL receipt # column) generated with reportlab 4.2.5 (generator kept outside the repo). FL changelog row 204 = PR #121 production rollout (merge 9bd30be, Railway 571de5c0, Netlify 6acfcb43, no migration, cutoff unset).

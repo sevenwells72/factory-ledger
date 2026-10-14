@@ -5,16 +5,24 @@
   const canRecord = prepared => !!(prepared && (prepared.blockers?.length ? prepared.blockers.every(b => b.code === 'LOT_NOT_CONFIRMED') : prepared.can_commit === true));
   const evidenceKinds = ['bol', 'truck_photo', 'correction_photo', 'lot_tag', 'count_sheet', 'signed_packing_slip', 'other'];
   const validAttachment = value => !!(value && Number.isSafeInteger(value.id) && value.id > 0 && evidenceKinds.includes(value.kind));
+  const neutralMessages = {
+    unsupported_request: ['I can only record or look up Factory Ledger items (receive, make, pack, ship, adjust, found, inventory, receipts, today’s entries). For other questions, use ChatGPT.',
+      'Solo puedo registrar o consultar elementos de Factory Ledger (recibir, producir, empacar, enviar, ajustar, encontrado, inventario, recibos y entradas de hoy). Para otras preguntas, usa ChatGPT.'],
+    misunderstood: ['I didn’t understand that — please rephrase (e.g. “we packed 60 cases of Classic”).',
+      'No entendí eso — reformula el mensaje (por ejemplo, “empacamos 60 cajas de Classic”).'],
+    lookup_failed: ['Couldn’t look that up. Please try again.', 'No pude consultar eso. Inténtalo de nuevo.'],
+    request_failed: ['Couldn’t complete that request. Please try again.', 'No pude completar esa solicitud. Inténtalo de nuevo.']
+  };
   function errorText(value) {
     const data = value?.result || value;
     const detail = data?.detail || data?.error_detail || data;
-    if (Array.isArray(detail)) return detail.map(e => `${(e.loc || []).slice(1).join('.')}: ${e.msg}`).join('\n');
+    if (Array.isArray(detail) || data?.error_detail?.code === 'VALIDATION_ERROR') return neutralMessages.misunderstood.join(' / ');
     if (typeof detail === 'string') return detail;
     if (detail && typeof detail === 'object') return [detail.error_code || detail.code, detail.message, detail.action, detail.role].filter(Boolean).join(' · ') || JSON.stringify(detail);
     return String(detail || 'Request failed / Solicitud fallida');
   }
   const awaitingApproval = value => !!(value && value.held === true && value.status === 'awaiting_approval');
-  const exports = { validReceipt, canRecord, validAttachment, evidenceKinds, errorText, awaitingApproval };
+  const exports = { validReceipt, canRecord, validAttachment, evidenceKinds, errorText, awaitingApproval, neutralMessages };
   if (typeof module !== 'undefined') module.exports = exports;
   if (!root.document) return;
   const $ = id => document.getElementById(id);
@@ -46,8 +54,12 @@
   }
   function notice(message) { $('notice').textContent = message; $('notice').hidden = !message; }
   function failed(node, error) {
-    const box = el('div', t('NOT recorded — no receipt confirmed.\n', 'NO registrado — no se confirmó un recibo.\n') + errorText(error), 'error-box');
+    const box = el('div', undefined, 'error-box');
+    box.append(el('p', t('NOT recorded — no receipt confirmed.', 'NO registrado — no se confirmó un recibo.')), el('p', errorText(error)));
     box.setAttribute('role', 'alert'); node.append(box); return box;
+  }
+  function neutral(node, kind) {
+    node.append(el('p', t(...neutralMessages[kind])));
   }
   async function api(path, { body, form, method = 'POST', binary = false, timeout = 95000, background = false } = {}) {
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeout);
@@ -216,7 +228,7 @@
         try {
           const response = await api('/assistant/confirm-sku', { body: { draft_id: card.id } });
           node.replaceChildren(el('p', t('Output SKU confirmed. Review the new draft below.', 'Producto confirmado. Revisa el nuevo borrador.'))); renderCard(response.card);
-        } catch (error) { failed(errorArea, error); }
+        } catch (error) { neutral(errorArea, 'request_failed'); }
         finally { setBusy(false); }
       }));
     }
@@ -234,7 +246,7 @@
     const cancelButton = button(t('Cancel', 'Cancelar'), async () => {
       if (busy) return; setBusy(true); recordButton.disabled = cancelButton.disabled = true; errorArea.replaceChildren();
       try { await api('/assistant/cancel', { body: { draft_id: card.id } }); node.replaceChildren(el('p', t('Cancelled · NOT recorded', 'Cancelado · NO registrado'))); }
-      catch (error) { failed(errorArea, error); }
+      catch (error) { neutral(errorArea, 'request_failed'); }
       finally { setBusy(false); cancelButton.disabled = false; refreshRecord(); }
     });
     function refreshRecord() { recordButton.disabled = busy || !canRecord(prepared) || warningChecks.some(w => !w.checkbox.checked) || confirmations.some(c => !c.input.value.trim()); }
@@ -272,8 +284,15 @@
         if (!results.length) node.append(el('p', t('No inventory matches.', 'No hay coincidencias de inventario.')));
         for (const item of results) { const section = el('div'); section.append(el('p', item.product_name || item.name || item.product?.name || t('Inventory', 'Inventario'))); details(section, item); node.append(section); }
       } else details(node, card.result);
+    } else if (neutralMessages[card.kind]) {
+      neutral(node, card.kind);
     } else if (card.kind === 'refusal') {
-      failed(node, card.result);
+      // Also sanitize saved pre-fix validation failures when resuming a chat.
+      if (card.status === 422 && (Array.isArray(card.result?.detail) || card.result?.error_detail?.code === 'VALIDATION_ERROR')) {
+        neutral(node, 'misunderstood'); return;
+      }
+      neutral(node, 'request_failed');
+      node.append(el('p', errorText(card.result)));
       node.append(el('p', t('Update the message with the requested details. FL has not recorded this request.', 'Completa el mensaje con los datos solicitados. FL no ha registrado esta solicitud.'), 'muted'));
       if (JSON.stringify(card.result).includes('reason_code')) {
         for (const reason of card.reasons || []) node.append(button(language === 'es' ? reason.label_es : reason.label_en, () => {
@@ -294,7 +313,7 @@
       retryTurn = null;
       if (result.cards.some(c => c.kind === 'draft')) { attachments = []; renderAttachments(); }
     } catch (error) {
-      retryTurn = body; const card = shell(); failed(card, error);
+      retryTurn = body; const card = shell(); neutral(card, 'lookup_failed');
       card.append(button(t('Retry this message', 'Reintentar este mensaje'), () => sendTurn({}, body)));
     } finally { waiting.remove(); setBusy(false); $('message').focus(); }
   }

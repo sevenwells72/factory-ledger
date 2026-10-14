@@ -13,7 +13,19 @@ test('A5 recoverable lot confirmation blockers allow manual evidence; other bloc
 });
 test('permission refusals retain FL error code, action and role', () => {
   assert.equal(ui.errorText({ result: { detail: { error_code: 'ROLE_NOT_ALLOWED', action: 'make', role: 'office', message: 'Not allowed' } } }), 'ROLE_NOT_ALLOWED · Not allowed · make · office');
-  assert.equal(ui.errorText({ detail: [{ loc: ['body', 'cases'], msg: 'Field required' }] }), 'cases: Field required');
+  const validation = ui.errorText({ detail: [{ loc: ['body', 'cases'], msg: 'Field required' }] });
+  assert.equal(validation, ui.neutralMessages.misunderstood.join(' / '));
+  assert.ok(!validation.includes('Field required') && !validation.includes('cases:'));
+});
+
+test('neutral outcomes have fixed English and Spanish text with no receipt assertion', () => {
+  for (const [kind, messages] of Object.entries(ui.neutralMessages)) {
+    assert.equal(messages.length, 2, kind);
+    assert.notEqual(messages[0], messages[1], kind);
+    assert.ok(messages.every(text => !/NOT recorded|NO registrado|Field required|VALIDATION_ERROR/.test(text)), kind);
+    assert.equal(ui.validReceipt({ kind }), false);
+  }
+  assert.ok(ui.neutralMessages.unsupported_request.every(text => text.includes('ChatGPT')));
 });
 
 test('A3b hold is an explicit pending outcome and cannot become a receipt', () => {
