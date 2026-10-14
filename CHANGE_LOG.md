@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-13 23:08 — G1 Codex fix round 1: read-only key never a write credential; per-action GPT smoke
+- **File(s) changed:** `key_sessions.py`, `main.py`, `tests/test_readonly_api_key.py`, `gpt-configs/readonly/CUTOVER_CHECKLIST.md`, `scripts/check_readonly_key_staging.py`, `docs/deployments/g1-readonly-staging.json`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** `POST /auth/session` refuses the read-only key outright (alongside master/dashboard), even when an active actor's hash matches it; startup refuses `READONLY_API_KEY` equal to any active actor key (lookup failure logged, not fatal). 7 new tests (collision: direct write 403, exchange 401, no session, nothing written; startup refusal; inactive/unset ignored; checklist pins every action). Checklist §C now smokes all 14 office + 11 floor actions plus both write refusals; A4 adds a session-exchange curl → six codes, §D records six; per-step rollback. Fresh-DB suite 3,043 Python passed with the key unset and again with it set, 107 Node. Staging deployment 4cf9db98 (63bd2dd): 16/16 reads, 118/118 writes + 51/51 other GETs 403, exchange 401.
+- **Why:** Codex review of PR #111 (comment 6159795167) [P2] — a read-only key reused as an actor key exchanged for a write session. Production untouched; not merged.
+
+---
+
 ## 2026-10-13 23:04 — PR #108 rebased onto e81f6e1: changelog rows renumbered, #106 rollout row, P1.9 created, owner-count decision
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
 - **What changed:** Rebased `fix/count-tool-readiness` onto origin/main e81f6e1 (#110). This PR's changelog rows 184/185 became 186/187 (main already used 184/185; earlier entries below that say "row 185" now mean row 187). Added row 188: PR #106 / migration 079 production rollout (marker verified read-only). FOLLOWUPS: P1.9 `expire-tickets` cron marked CREATED (verified in Railway); recorded Michael's 2026-10-13 decision that the owner-only count-closing option may be used for any explicit owner physical count outside the cutover reset (ADJ + XR receipts, weekly view).
