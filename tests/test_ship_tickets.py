@@ -307,7 +307,11 @@ def test_shipping_revalidates_cancellation_and_remaining_quantity(client,db_curs
     r=client.post(f'/sales/orders/{oid}/ship/prepare',json=ship_body(shipping,lines=[{'line_id':p['draft']['lines'][0]['line_id'],'quantity_lb':2}]),headers=headers(key))
     error(r,422,'QTY_EXCEEDS_REMAINING')
 
-def test_future_time_and_new_york_timezone_are_enforced(client,shipping,actors):
+def test_future_time_and_new_york_timezone_are_enforced(client,shipping,actors,monkeypatch):
+    # Keep this future-time assertion inside one plant day. During the last six
+    # minutes of a real day, the separate office same-day policy otherwise wins.
+    now=main.get_plant_now().replace(hour=12,minute=0,second=0,microsecond=0)
+    monkeypatch.setattr(main,'get_plant_now',lambda:now)
     key=actors['office']['key'];oid=new_order(client,shipping,key)
     b=ship_body(shipping,ship_all=True,happened_at=(main.get_plant_now()+timedelta(minutes=6)).isoformat())
     error(client.post(f'/sales/orders/{oid}/ship/prepare',json=b,headers=headers(key)),400,'OCCURRED_AT_IN_FUTURE')

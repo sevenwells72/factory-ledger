@@ -1,0 +1,34 @@
+{
+  "health_status": 200,
+  "health": {
+    "status": "ok",
+    "milestone": "M0",
+    "environment": "staging",
+    "writes_enabled": false,
+    "actor_mappings_verified": false,
+    "auth": "locked",
+    "google_oauth_ready": false,
+    "backend_credential": "per-user named-actor key",
+    "read_tool_counts": {
+      "office": 14,
+      "floor": 12,
+      "all": 17
+    },
+    "write_tool_counts": {
+      "office": 0,
+      "floor": 0,
+      "all": 0
+    }
+  },
+  "/mcp tools/list": 401,
+  "/mcp tools/call": 401,
+  "/office/mcp tools/list": 401,
+  "/office/mcp tools/call": 401,
+  "/floor/mcp tools/list": 401,
+  "/floor/mcp tools/call": 401,
+  "oauth_discovery_status": 404,
+  "service_id": "ef21f85c-e0a1-44b3-a6f0-49a238d34be1",
+  "deployment_id": "8fd85ed2-41d1-47ad-8710-429583f7b970",
+  "connector_url": "https://factory-ledger-mcp-staging-production.up.railway.app/mcp",
+  "runtime_manifest_sha256": "d0711a023ab112f6e0873efe1ee1c22491cf9dd58ae96dc4e5783ab2bed931eb"
+}

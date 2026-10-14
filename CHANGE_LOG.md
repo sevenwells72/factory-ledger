@@ -1,5 +1,131 @@
 # Change Log
 
+## 2026-10-14 00:09 — Record complete final test evidence and database cleanup
+- **File(s) changed:** docs/deployments/m0-readonly-mcp.md
+- **What changed:** Final configured run: backend 3053 passed/6 unchanged-main midnight failures, MCP 197 passed, Node 107 passed. Separate audit: 190 passed/23 subtests/2 existing approval-date failures. All phases ran; failure exit preserved; zero disposable clusters remain. Prior pre-midnight backend partitions passed 3059 tests.
+- **Why:** Staging-only M0 read-only MCP connector; no production deploy or merge.
+
+---
+
+## 2026-10-14 00:07 — Document overnight baseline test limitations
+- **File(s) changed:** mcp_server/README.md, docs/deployments/m0-readonly-mcp.md
+- **What changed:** Explained the current-main midnight fixture failures and UTC timestamp-rendering diagnostics; the complete runner preserves failures and still executes all independent suites.
+- **Why:** Staging-only M0 read-only MCP connector; no production deploy or merge.
+
+---
+
+## 2026-10-14 00:06 — Finish every suite and expose baseline time-sensitive failures
+- **File(s) changed:** mcp_server/tests/ledger_harness.py, mcp_server/scripts/full_suite.py
+- **What changed:** Pinned the private database to plant-local time required by existing receipt contracts; UTC instead caused eight timestamp-representation failures. Run remaining independent phases after failures and exit nonzero; preserve current-main business behavior and report the overnight fixture failures.
+- **Why:** Staging-only M0 read-only MCP connector; no production deploy or merge.
+
+---
+
+## 2026-10-14 00:04 — Pin disposable PostgreSQL sessions to UTC
+- **File(s) changed:** mcp_server/tests/ledger_harness.py
+- **What changed:** Confirmed initdb inherited America/New_York and shifted legacy timestamps by four hours; explicitly set UTC to match the schema interpretation, without changing application code.
+- **Why:** Staging-only M0 read-only MCP connector; no production deploy or merge.
+
+---
+
+## 2026-10-14 00:02 — Record the staging deployment evidence and reviewer handoff
+- **File(s) changed:** `docs/deployments/m0-readonly-mcp.md`, `m0-readonly-mcp-smoke.json`
+- **What changed:** Records successful locked staging deployment, non-secret smoke evidence, source provenance, known unrelated count-audit/date-fixture failures, safe implementation choices and exact Google/personal-actor activation requirements for Michael and Claude Code.
+- **Why:** Staging-only M0 read-only MCP connector; no production deploy or merge.
+
+---
+
+## 2026-10-13 23:59 — Stabilize the existing shipment future-time test near midnight
+- **File(s) changed:** `tests/test_ship_tickets.py`
+- **What changed:** The final fresh-DB run exposed an existing six-minute-before-midnight fixture race: the office same-day gate masked the intended future-time error. Pinning only this test clock to plant noon preserves its original policy assertion; no business code changed.
+- **Why:** Staging-only M0 read-only MCP connector; no production deploy or merge.
+
+---
+
+## 2026-10-13 23:58 — Deploy and verify the separate locked staging MCP service
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `mcp_server/`
+- **What changed:** Railway deployment 8fd85ed2-41d1-47ad-8710-429583f7b970 succeeded on the new factory-ledger-mcp-staging service only. Live health reports M0 staging, 17 unique reads and zero writes; unauthenticated list/write probes on all three MCP endpoints return 401; OAuth remains deliberately unavailable until owner prerequisites are supplied. No production deploy, data writes or variable copies.
+- **Why:** Staging-only M0 read-only MCP connector; no production deploy or merge.
+
+---
+
+## 2026-10-13 23:57 — Write the plain-English staging connector activation guide
+- **File(s) changed:** `docs/mcp-staging-setup.md`, `mcp_server/README.md`, `scripts/full_suite.py`
+- **What changed:** Documents exact Railway service/URL, Google and per-person actor prerequisites, ChatGPT Business clicks, locked fallback, restart limitations and explicit-service-only redeploy commands. Keeps the independently failing count audit (known PR 112 fixture dates) available as an explicit extra suite outside configured backend tests.
+- **Why:** Staging-only M0 read-only MCP connector; no production deploy or merge.
+
+---
+
+## 2026-10-13 23:54 — Seed the assistant race fixture in its own scratch database
+- **File(s) changed:** `tests/test_fl_assistant.py`, `mcp_server/scripts/full_suite.py`
+- **What changed:** The assistant autouse seed now uses the test own isolated DB for committed races, so a second populated DB is unnecessary. Added an explicit phase rerun option; all assertions and normal-test seeding are preserved. Initial backend normal phase: 2,978 passed; scratch phase: 80 passed, one setup failure now addressed.
+- **Why:** Staging-only M0 read-only MCP connector; no production deploy or merge.
+
+---
+
+## 2026-10-13 23:53 — Document M0 runtime and prepare its isolated staging service
+- **File(s) changed:** `mcp_server/README.md`, `.env.example`, `railway.json`, `auth.py`, `server.py`, `scripts/full_suite.py`
+- **What changed:** Replaced stale write/production instructions with the M0 contract and one-database test workflow, added service-local Docker/health configuration, declared OAuth issuer response support and created only the new empty factory-ledger-mcp-staging Railway service (no copied variables).
+- **Why:** Staging-only M0 read-only MCP connector; no production deploy or merge.
+
+---
+
+## 2026-10-13 23:51 — Add sequential full-suite runner with disposable database cleanup
+- **File(s) changed:** `mcp_server/scripts/full_suite.py`, `single_db_partition.py`, `mcp_server/tests/ledger_harness.py`, `demo.py`
+- **What changed:** Runs all normal backend tests on one fresh DB, drops it before existing migration/race scratch fixtures, then runs offline audits, MCP and Node suites. Checks 5 GB disk floor before heavy phases; test subprocesses inherit no credentials. Corrected synthetic Google/local test identities.
+- **Why:** Staging-only M0 read-only MCP connector; no production deploy or merge.
+
+---
+
+## 2026-10-13 23:50 — Add M0 identity and read-only acceptance coverage
+- **File(s) changed:** `mcp_server/tests/test_m0.py`
+- **What changed:** Tests real app startup and Google flow, 17-tool discovery, read-only scopes, owner/floor write refusals, wrong/shared/swapped mappings, secret-safe failures, callback restrictions and per-request credential isolation.
+- **Why:** Staging-only M0 read-only MCP connector; no production deploy or merge.
+
+---
+
+## 2026-10-13 23:49 — Restrict OAuth clients to ChatGPT and correct the staging origin pin
+- **File(s) changed:** `mcp_server/src/factory_ledger_mcp/config.py`, `auth.py`, `mcp_server/tests/test_auth.py`
+- **What changed:** Accepts only documented HTTPS ChatGPT callback paths during dynamic registration and rejects arbitrary client redirects; corrects the staging URL pin and keeps Google and ChatGPT client registrations distinct.
+- **Why:** Staging-only M0 read-only MCP connector; no production deploy or merge.
+
+---
+
+## 2026-10-13 23:48 — Update MCP tests for M0 and one-database-at-a-time integration
+- **File(s) changed:** `mcp_server/tests/`, `mcp_server/src/factory_ledger_mcp/demo.py`, `catalog.json`
+- **What changed:** Adapted inherited OAuth, protocol, safety and real FL tests to read-only scopes, current identity payloads, combined catalog and startup refusal. Replaced the template-plus-clone database harness with sequential fresh schema databases; regenerated the catalog from current main.
+- **Why:** Staging-only M0 read-only MCP connector; no production deploy or merge.
+
+---
+
+## 2026-10-13 23:46 — Wire the read-only endpoint and startup identity checks
+- **File(s) changed:** `mcp_server/src/factory_ledger_mcp/server.py`, `auth.py`, `mcp_server/Dockerfile`
+- **What changed:** Exposes all 17 reads at /mcp plus legacy catalogs, no writes or write scopes, startup identity validation and staging-only defaults. OAuth uses DCR; URL client metadata fetches are disabled, tokens expire on restart to preserve replay/refusal guarantees, and access logging is disabled to avoid OAuth query secrets.
+- **Why:** Staging-only M0 read-only MCP connector; no production deploy or merge.
+
+---
+
+## 2026-10-13 23:45 — Fail closed on writes, production origins and wrong actor mappings
+- **File(s) changed:** `mcp_server/src/factory_ledger_mcp/config.py`, `identity.py`
+- **What changed:** M0 rejects writes_enabled=true and hosted non-staging targets; allowlists pin actor ID, name and role and expose only read scopes; startup verifier refuses shared, swapped, invalid and duplicate actor mappings.
+- **Why:** Staging-only M0 read-only MCP connector; no production deploy or merge.
+
+---
+
+## 2026-10-13 23:45 — Remove inherited write execution from the M0 adapter
+- **File(s) changed:** `mcp_server/src/factory_ledger_mcp/adapter.py`, `catalog.json`, `scripts/build_catalog.py`, `pyproject.toml`
+- **What changed:** Removed all mutation routing, confirmation SQLite and duplicated write business logic; retained explicit refusal names and combined the 17 unique reads into one catalog.
+- **Why:** Staging-only M0 read-only MCP connector; no production deploy or merge.
+
+---
+
+## 2026-10-13 23:44 — Port the additive MCP read and Google OAuth server for M0
+- **File(s) changed:** `mcp_server/`
+- **What changed:** Imported the read adapter, OAuth implementation and tests from integration/mcp-with-66 (feature/mcp-server + feature/mcp-auth ancestry); omitted stale write tests. Worktree uses sparse checkout to avoid archived screenshots.
+- **Why:** Build the staging-only M0 read connector on current main; write logic is being removed before shipping.
+
+---
+
 ## 2026-10-13 23:08 — G1 Codex fix round 1: read-only key never a write credential; per-action GPT smoke
 - **File(s) changed:** `key_sessions.py`, `main.py`, `tests/test_readonly_api_key.py`, `gpt-configs/readonly/CUTOVER_CHECKLIST.md`, `scripts/check_readonly_key_staging.py`, `docs/deployments/g1-readonly-staging.json`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** `POST /auth/session` refuses the read-only key outright (alongside master/dashboard), even when an active actor's hash matches it; startup refuses `READONLY_API_KEY` equal to any active actor key (lookup failure logged, not fatal). 7 new tests (collision: direct write 403, exchange 401, no session, nothing written; startup refusal; inactive/unset ignored; checklist pins every action). Checklist §C now smokes all 14 office + 11 floor actions plus both write refusals; A4 adds a session-exchange curl → six codes, §D records six; per-step rollback. Fresh-DB suite 3,043 Python passed with the key unset and again with it set, 107 Node. Staging deployment 4cf9db98 (63bd2dd): 16/16 reads, 118/118 writes + 51/51 other GETs 403, exchange 401.

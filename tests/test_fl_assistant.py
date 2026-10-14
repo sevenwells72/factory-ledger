@@ -26,11 +26,20 @@ def enabled(monkeypatch, tmp_path):
 
 
 @pytest.fixture(autouse=True)
-def reason_catalog(db_cursor):
+def reason_catalog(request):
     # Schema-only snapshots deliberately contain no seeds. Use A3a's migration.
     sql = (Path(__file__).resolve().parents[1] / 'migrations/061_exceptions_tables.sql').read_text()
     seed = sql[sql.index('INSERT INTO correction_reasons'):]
-    db_cursor.execute(seed[:seed.index('ON CONFLICT (code) DO NOTHING;') + len('ON CONFLICT (code) DO NOTHING;')])
+    seed = seed[:seed.index('ON CONFLICT (code) DO NOTHING;') + len('ON CONFLICT (code) DO NOTHING;')]
+    if 'isolated_database' in request.fixturenames:
+        # The committed race uses its own DB. Seed that DB too, so the full-suite
+        # runner need not keep an unrelated populated database alongside it.
+        import psycopg2
+        with psycopg2.connect(request.getfixturevalue('isolated_database')) as conn:
+            with conn.cursor() as cur:
+                cur.execute(seed)
+    else:
+        request.getfixturevalue('db_cursor').execute(seed)
 
 
 @pytest.fixture
