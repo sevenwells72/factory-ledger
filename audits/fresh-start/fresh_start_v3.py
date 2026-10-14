@@ -556,6 +556,14 @@ def actor_id(actor_name, s):
     return found[0]['id']
 
 
+def zero_stock_products(a):
+    """Reset-scope products a signed preview may approve with no lot row: coverage-certified,
+    no counted or on-hand lot, no product hold. Shared by apply_reset and the whole-reset proof."""
+    with_rows = {r['product_id'] for r in a['rows']}
+    return {int(pid) for pid in a['products'] if int(pid) not in with_rows and int(pid) in set(a['coverage_complete'])
+            and str(pid) not in a['holds']}
+
+
 TICKET_DEAD = ('expired', 'rejected', 'superseded')   # FL never posts these (commit refuses them)
 
 
@@ -578,7 +586,7 @@ def reconcile_tickets(rows, s, attempts_list, actor_name):
         attempts.setdefault(intent['lot_id'], []).append((intent, receipt))
     for lid, items in attempts.items():
         r = rows[lid]
-        posted, open_commits = [], {}
+        posted, open_commits, waiting = [], {}, set()
         for intent, receipt in items:
             tid = intent['ticket_id']
             check(type(tid) is int and tid > 0, 'Journal intent has no ticket.')
@@ -592,6 +600,7 @@ def reconcile_tickets(rows, s, attempts_list, actor_name):
                 posted.append((tid, lines, ticket))
             elif ticket['status'] == 'awaiting_approval':
                 held[lid] = tid
+                waiting.add(tid)
             elif ticket['status'] == 'prepared':
                 # Not posted YET. Definite only if every commit we sent was refused (4xx).
                 if intent['phase'] == 'commit' and (receipt is None or receipt.get('outcome') != 'refused'):
@@ -606,6 +615,10 @@ def reconcile_tickets(rows, s, attempts_list, actor_name):
         check(not open_commits and len({tid for tid, _, _ in posted}) == 1 and len(posted[0][1]) == 1,
                 f'Lot {lid}: more than one posted or pending reset ticket; stop, never resubmit.')
         tid, [x], ticket = posted[0]
+        # A second ticket still held for the owner could post the same lot again once
+        # approved: never treat the lot as done (Codex PR #120 review).
+        check(not waiting - {tid}, f'Lot {lid}: a reset is posted and ticket {sorted(waiting - {tid})} is still held for the owner; '
+              'manual reconciliation required, never approve it.')
         lot = lots.get(x['lot_id'])
         check(lot is not None and lot['product_id'] == r['pid'] and x['product_id'] == r['pid'] and
                 (lot['id'] == lid if not r.get('new_lot') else lot['lot_code'] == r['lot_code']),

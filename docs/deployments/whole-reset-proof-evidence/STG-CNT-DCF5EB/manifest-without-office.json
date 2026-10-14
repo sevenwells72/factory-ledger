@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "target": "staging",
+  "expected_reset_products": 6,
+  "rehearsal_scope_product_ids": [
+    1000000184,
+    1000000185,
+    1000000187,
+    1000000188,
+    1000000190,
+    1000000196
+  ],
+  "groups": [
+    {
+      "name": "Dry storage",
+      "areas": [
+        "Dry storage"
+      ],
+      "approved_preview": "group-1-dry-storage/approved/reset-preview-v3.json",
+      "approval": "group-1-dry-storage/approved/approval.md",
+      "journal": "../../../apply-state-staging/64c3f9b28a9700204d1a8b45ee6e906c62ac5a88994bcdfad46f309b15b7fd74/journal.jsonl"
+    },
+    {
+      "name": "Warehouse, Cooler",
+      "areas": [
+        "Warehouse",
+        "Cooler"
+      ],
+      "approved_preview": "group-2-warehouse-cooler/approved/reset-preview-v3.json",
+      "approval": "group-2-warehouse-cooler/approved/approval.md",
+      "journal": "../../../apply-state-staging/5d361ddd4e4724bc2118c2d5542c3d4057814b168f3918969b812b57a4049b56/journal.jsonl"
+    }
+  ],
+  "notes": "STG-CNT-DCF5EB hosted-staging O-3 rehearsal; final inputs = the last group's signed copies",
+  "final_inputs": {
+    "count": "group-3-office-no-change/inputs/count.csv",
+    "coverage": "group-3-office-no-change/inputs/coverage.csv",
+    "moves": "group-3-office-no-change/inputs/moves.csv",
+    "review": "group-3-office-no-change/inputs/owner-review.json"
+  }
+}

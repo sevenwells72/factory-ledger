@@ -35,3 +35,33 @@ Each proof took about 1 s (one read-only staging snapshot). The posting pauses t
 ## Left behind on staging
 
 Three synthetic sets: `STG-CNT-785330`, `STG-CNT-947168` and `STG-CNT-36A1AD`. The first two came from earlier runs of the same mode on this branch. Run 1 failed only in its final evidence read-back; run 2 showed the multi-area listing used the sheet's lot spelling. Both are fixed. All three sets have products, lots, receipts and the deliberate +1 lb post. Actors are deactivated and the staging owner key file is removed. Harmless; later staging tests of those ids must expect them.
+
+## Fix round 1 re-run — STG-CNT-DCF5EB (Codex review 6173615593)
+
+The review found six ways to get a false exit 0. All are fixed, each with a regression test that fails on 3c5195f and passes now:
+- receipts with bogus ids or unknown outcomes;
+- a second held ticket beside a posted reset;
+- `physical_count` posts by other actors, or without a ticket;
+- edits to duplicate-excluded rows;
+- zero-stock products with no approving group;
+- the step-20 journal paths.
+
+The run was repeated on the **deployed** FastAPI-staging with three groups. The Office group now also signs for a zero-stock product (batch, no lot, coverage confirmed). Every proof ran against a saved read-only snapshot.
+
+| Case | Exit | Gaps |
+|---|---|---|
+| complete (3 groups, 6 products) | **0** | FULL RESET SCOPE RECONCILED |
+| Office group left out | 2 | `MISSING_PRODUCT` ×2 (one zero-stock, one with stock) |
+| Office signed without the zero-stock product | 2 | `MISSING_PRODUCT` (zero stock) |
+| forged `refused` receipt, bogus `ADJ-999999-999` / TX, chain re-hashed | 2 | `INVALID_RECEIPT` ×2, `RECEIPT_CONTRADICTS_FL` |
+| duplicate-ticked oats row added after signing, excluded by an owner answer | 2 | `MISSING_OBSERVATION` |
+| owner `physical_count` post ADJ-261014-016 (+1 lb) | 2 | `POST_OUTSIDE_APPROVED_PLAN` + `FINAL_HOLD` |
+| **floor actor (Arturo)** `physical_count` post ADJ-261014-017 (+2 lb) | 2 | adds `POST_OUTSIDE_APPROVED_PLAN` "by Arturo" + `FINAL_HOLD` |
+| floor −505 lb count adjust, held for the owner (hold #254) | 2 | adds `OPEN_HOLD` |
+| after the owner declined hold #254 | 2 | `OPEN_HOLD` gone; the two posts remain |
+
+Group posts: ADJ-261014-013/014 (Dry storage, incl. the −680 lb held-and-released change), ADJ-261014-015 and FND-261014-206 (Warehouse+Cooler, the multi-area extra-kosher lot reset once), none for Office.
+
+**Raw artifacts for the reviewer:** `docs/deployments/whole-reset-proof-evidence/STG-CNT-DCF5EB/` holds the signed previews, approvals, inputs, manifests, redacted journals (ticket token only), scoped snapshots and proof outputs, plus `SHA256SUMS-originals.txt`. All 9 cases replayed identically from the scoped snapshots. A scan found no API key, ticket token or database URL.
+
+Also left on staging: the STG-CNT-DCF5EB synthetic set, including the +1/+2 lb posts and declined hold #254. Actors are deactivated.

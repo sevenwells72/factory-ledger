@@ -1,0 +1,139 @@
+{
+  "verdict": "WHOLE RESET NOT RECONCILED: 1 gap(s)",
+  "exit_code": 2,
+  "target": "staging",
+  "snapshot_at": "2026-10-14T17:08:35.416785+00:00",
+  "manifest": "v3/rehearsal/STG-CNT-DCF5EB/manifest-duplicate-observation-added.json",
+  "manifest_sha256": "c3202899d67952a6a2552b42177d1bea82a7838777fddba60d32b8761eafde67",
+  "reset_scope_products": 6,
+  "expected_reset_products": 6,
+  "rehearsal_scope": true,
+  "final_inputs": {
+    "count": {
+      "path": "v3/rehearsal/STG-CNT-DCF5EB/final-with-duplicate/count.csv",
+      "sha256": "02ce225e05fb5d348778aab58600ff8329b5242217130619d2c247bd7195021e"
+    },
+    "coverage": {
+      "path": "v3/rehearsal/STG-CNT-DCF5EB/group-3-office-no-change/inputs/coverage.csv",
+      "sha256": "4bc9c927fe3a2a687e3c9d6bab021eb687a4862217c14febe87237c0af84af05"
+    },
+    "moves": {
+      "path": "v3/rehearsal/STG-CNT-DCF5EB/group-3-office-no-change/inputs/moves.csv",
+      "sha256": "d2f14fbbf35840db8abe0924653d657d95aa168ce262edcf4a0d5b88655422c4"
+    },
+    "review": {
+      "path": "v3/rehearsal/STG-CNT-DCF5EB/final-with-duplicate/review.json",
+      "sha256": "27b3326d2535326568e8582eb3bfd5547506e8fd7abe4a0933d2112eec6e532a"
+    }
+  },
+  "final_verification_exit": 0,
+  "groups": [
+    {
+      "name": "Dry storage",
+      "areas": [
+        "Dry storage"
+      ],
+      "preview_sha256": "64c3f9b28a9700204d1a8b45ee6e906c62ac5a88994bcdfad46f309b15b7fd74",
+      "journal": {
+        "path": "apply-state-staging/64c3f9b28a9700204d1a8b45ee6e906c62ac5a88994bcdfad46f309b15b7fd74/journal.jsonl",
+        "sha256": "6ac8c366bc7fe71c904442b84f518bd6866bbbbda28900217768d74ed3af6bd1"
+      },
+      "no_change": false,
+      "approved_products": [
+        1000000184,
+        1000000185
+      ],
+      "zero_stock_products": [],
+      "approved_lots": 2,
+      "posts": [
+        "ADJ-261014-013",
+        "ADJ-261014-014"
+      ],
+      "actor": "Michael (STAGING STG-CNT-DCF5EB)",
+      "owner": "Michael (STAGING STG-CNT-DCF5EB)"
+    },
+    {
+      "name": "Warehouse, Cooler",
+      "areas": [
+        "Cooler",
+        "Warehouse"
+      ],
+      "preview_sha256": "5d361ddd4e4724bc2118c2d5542c3d4057814b168f3918969b812b57a4049b56",
+      "journal": {
+        "path": "apply-state-staging/5d361ddd4e4724bc2118c2d5542c3d4057814b168f3918969b812b57a4049b56/journal.jsonl",
+        "sha256": "c74142193eab9ae1e0c046eee87f16c62dbfa8317a12204792f949dc557be2be"
+      },
+      "no_change": false,
+      "approved_products": [
+        1000000188,
+        1000000196
+      ],
+      "zero_stock_products": [],
+      "approved_lots": 2,
+      "posts": [
+        "ADJ-261014-015",
+        "FND-261014-206"
+      ],
+      "actor": "Michael (STAGING STG-CNT-DCF5EB)",
+      "owner": "Michael (STAGING STG-CNT-DCF5EB)"
+    },
+    {
+      "name": "Office",
+      "areas": [
+        "Office"
+      ],
+      "preview_sha256": "7fc3a400fdbd67f8e9632f011d750731512ca400f78d4d80adbaca44bdd36d37",
+      "journal": null,
+      "no_change": true,
+      "approved_products": [
+        1000000187,
+        1000000190
+      ],
+      "zero_stock_products": [
+        1000000187
+      ],
+      "approved_lots": 1,
+      "posts": [],
+      "actor": "Michael (STAGING STG-CNT-DCF5EB)",
+      "owner": "Michael (STAGING STG-CNT-DCF5EB)"
+    }
+  ],
+  "products_nothing_to_reset": [
+    1000000187
+  ],
+  "multi_area_lots": [
+    {
+      "product_id": 1000000196,
+      "lot_code": "STG-CNT-DCF5EB-EK-1",
+      "areas": [
+        "Cooler",
+        "Warehouse"
+      ],
+      "handled_by": "Warehouse, Cooler",
+      "held_in": [
+        "Office"
+      ],
+      "row_ids": [
+        "RG2C-1",
+        "RG2W-2"
+      ]
+    }
+  ],
+  "proved_line_ids": [
+    713,
+    714,
+    715,
+    716
+  ],
+  "count_post_window_start": "2026-10-14T13:06:53-04:00",
+  "open_holds": [],
+  "gaps": [
+    {
+      "kind": "MISSING_OBSERVATION",
+      "group": "Dry storage",
+      "product_id": 1000000184,
+      "lot_code": "STG-CNT-DCF5EB-OATS-1",
+      "detail": "observation RG1D-1-dup was not in the plan signed for this product"
+    }
+  ]
+}

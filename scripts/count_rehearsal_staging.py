@@ -270,6 +270,9 @@ def area_run(area, rows, products, workdir, env, owner, base_reason, coverage=No
     for fp in template['multi_area_reviews']:
         # Scripted stand-in: the owner confirms no unlogged moves between the two areas' rows.
         review['multi_area_reviews'][fp] = dict(owner='MG (rehearsal)', no_unlogged_moves=True)
+    for fp in template['coverage_reviews']:
+        # Scripted stand-in: the owner confirms a searched product with no count rows really has none.
+        review['coverage_reviews'][fp] = dict(owner='MG (rehearsal)', confirmed=True)
     started = time.monotonic()
     for fp, item in template['movement_reviews'].items():
         # Scripted stand-in for the owner's answer: the floor's damage adjust happened after the count.
@@ -292,7 +295,11 @@ def area_run(area, rows, products, workdir, env, owner, base_reason, coverage=No
     held = [r for r in rows_mine if r['status'] != 'READY']
     if held:
         raise RuntimeError('area still held: ' + json.dumps([(r['product_id'], r['holds']) for r in held])[:800])
-    approved = sorted({r['product_id'] for r in rows_mine})
+    # Zero-stock products (no counted or on-hand lot) are signed for too (PR #120 fix round 1).
+    zero = sorted(mine - {r['product_id'] for r in rows_mine})
+    if any(pid not in preview['coverage_complete'] or str(pid) in preview['holds'] for pid in zero):
+        raise RuntimeError('zero-stock product not approvable: ' + json.dumps({pid: preview['holds'].get(str(pid)) for pid in zero})[:800])
+    approved = sorted({r['product_id'] for r in rows_mine} | set(zero))
     kosher = [f'{r["product_id"]}:{r["lot_code"]}' for r in rows_mine if r.get('new_lot') and r['adjustment_lb']]
     needs = any(r['owner_approvals'] and r['adjustment_lb'] for r in rows_mine)
     signed = folder / 'approved'
@@ -316,7 +323,7 @@ def area_run(area, rows, products, workdir, env, owner, base_reason, coverage=No
                  (['--review', str(review_path)] if review_path else [])
         result, timing['verify_s'] = tool(verify, env)
         verified = json.loads((out / 'verification/reset-verification-v3.json').read_text())
-        return dict(area=', '.join(names), approved_products=approved, preview_sha256=digest, no_change=True, timings_s=timing,
+        return dict(area=', '.join(names), approved_products=approved, zero_stock_products=zero, preview_sha256=digest, no_change=True, timings_s=timing,
                     verify_exit=result.returncode, paths=paths,
                     verified_rows=[dict(product_id=r['product_id'], lot_code=r['lot_code'], status=r['status'], adjustment=r['adjustment_lb'])
                                    for r in verified['rows'] if r['product_id'] in mine])
@@ -395,19 +402,44 @@ def hosted_area(base, floor_key, items, ref, t0, workdir, env, owner, report):
 
 
 def whole_reset(workdir, env, manifest, name):
-    """verify_reset.py --whole-reset on one manifest; returns exit code, verdict and gap kinds."""
+    """verify_reset.py --whole-reset on one manifest against one saved read-only snapshot (kept,
+    so the evidence can be replayed); returns exit code, verdict and gap kinds."""
+    import fresh_start_v3 as v
     path = workdir / f'manifest-{name}.json'
     path.write_text(json.dumps(manifest, indent=2, default=str) + '\n')
+    snap = workdir / 'snapshots' / f'{name}.json'
+    snap.parent.mkdir(exist_ok=True)
+    snap.write_text(json.dumps(v.snapshot('staging'), default=str))
     out = workdir / 'whole-reset' / name
-    result, seconds = tool(['audits/fresh-start/verify_reset.py', '--whole-reset', str(path), '--output-dir', str(out)], env)
+    result, seconds = tool(['audits/fresh-start/verify_reset.py', '--whole-reset', str(path), '--output-dir', str(out),
+                            '--snapshot', str(snap)], env)
     proof = json.loads((out / 'whole-reset-proof.json').read_text()) if (out / 'whole-reset-proof.json').exists() else {}
-    return dict(manifest=str(path.relative_to(TOOLS)), exit=result.returncode, seconds=seconds, verdict=proof.get('verdict'),
+    return dict(manifest=str(path.relative_to(TOOLS)), snapshot=str(snap.relative_to(TOOLS)), exit=result.returncode, seconds=seconds,
+                verdict=proof.get('verdict'),
                 gaps=[dict((k, g[k]) for k in ('kind', 'group', 'product_id', 'lot_code', 'detail')) for g in proof.get('gaps', [])],
                 groups=[dict((k, g[k]) for k in ('name', 'areas', 'approved_products', 'posts', 'no_change')) for g in proof.get('groups', [])],
                 multi_area_lots=proof.get('multi_area_lots'), stderr_tail=result.stderr[-400:] if result.returncode not in (0, 2) else '')
 
 
-def hosted_groups(base, owner_key, items, ref, workdir, env, owner, report):
+def forged_journal(source, target):
+    """Negative case: the executor's journal plus one forged `refused` receipt naming a bogus
+    receipt/transaction for the posted ticket, every hash re-chained so the chain still verifies."""
+    import fresh_start_v3 as v
+    events = [json.loads(x) for x in source.read_text().splitlines()]
+    intent = next(e for e in events if e['kind'] == 'intent' and e['phase'] == 'commit')
+    events += [dict(intent), dict(kind='receipt', intent=len(events), outcome='refused', transaction_id=999999999,
+                                  receipt_number='ADJ-999999-999', error_code='TICKET_STALE', at=intent['at'])]
+    previous, lines = '', []
+    for seq, e in enumerate(events):
+        e.pop('sha256', None)
+        e.update(seq=seq, previous=previous)
+        e['sha256'] = previous = v.sha(v.canonical(e).encode())
+        lines.append(json.dumps(e))
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text('\n'.join(lines) + '\n')
+
+
+def hosted_groups(base, owner_key, items, ref, workdir, env, owner, report, floor_key=None):
     """O-3 (2026-10-14): three area groups posted one after another on hosted staging, each
     signed and journaled on its own, then proved as a union with verify_reset --whole-reset.
     Files are cumulative like the real morning: each group's count/coverage/review copy holds
@@ -446,11 +478,12 @@ def hosted_groups(base, owner_key, items, ref, workdir, env, owner, report):
     coverage += [(granola, cooler['end']), (items['extra'], cooler['end'])]
     results.append(area_run(g2, list(rows), [granola, items['extra']], workdir, env, owner, ref, coverage=list(coverage)))
 
-    # Group 3 = Office: counted exactly at book, so nothing posts and no journal exists.
-    misc = items['misc1']
+    # Group 3 = Office: counted exactly at book, so nothing posts and no journal exists. It also
+    # signs for the batch product: searched everywhere, no lot, no stock (zero-stock approval).
+    misc, empty = items['misc1'], items['batch']
     g3 = counted(dict(name='Office', slug='group-3-office-no-change'), [(misc, misc['lot_code'], '100', 'lb', '')])
-    coverage += [(misc, g3['end'])]
-    results.append(area_run(g3, list(rows), [misc], workdir, env, owner, ref, coverage=list(coverage), apply=False))
+    coverage += [(misc, g3['end']), (empty, g3['end'])]
+    results.append(area_run(g3, list(rows), [misc, empty], workdir, env, owner, ref, coverage=list(coverage), apply=False))
 
     def rel(path):
         return os.path.relpath(path, workdir)
@@ -471,18 +504,176 @@ def hosted_groups(base, owner_key, items, ref, workdir, env, owner, report):
                     final_inputs=dict(count=rel(final['inputs'] / 'count.csv'), coverage=rel(final['inputs'] / 'coverage.csv'),
                                       moves=rel(final['inputs'] / 'moves.csv'), review=rel(final['review'])))
     proofs = {'complete': whole_reset(workdir, env, manifest, 'complete')}
-    # Negative 1: leave the no-change group out — its product must be reported as missing.
+    # Negative 1: leave the no-change group out — its products must be reported as missing.
     proofs['without_office_group'] = whole_reset(workdir, env, dict(manifest, groups=groups[:2]), 'without-office')
-    # Negative 2: an owner physical_count post outside every signed plan, through the hosted API.
+    # Negative 2 (fix round 1): the Office approval signed WITHOUT the zero-stock product.
+    office = results[-1]['paths']['approval']
+    narrow = office.with_name('approval-without-zero-stock.md')
+    narrow.write_text(office.read_text().replace('Approved product IDs: ' + ', '.join(map(str, results[-1]['approved_products'])),
+                                                 'Approved product IDs: ' + str(misc['id'])))
+    proofs['zero_stock_unapproved'] = whole_reset(workdir, env, dict(manifest, groups=groups[:2] + [dict(groups[2], approval=rel(narrow))]),
+                                                  'zero-stock-unapproved')
+    # Negative 3 (fix round 1): a forged `refused` receipt with a bogus receipt id, chain re-hashed.
+    forged = workdir / 'forged' / 'group-1-journal-forged-receipt.jsonl'
+    forged_journal(results[0]['paths']['journal'], forged)
+    proofs['forged_receipt'] = whole_reset(workdir, env, dict(manifest, groups=[dict(groups[0], journal=rel(forged))] + groups[1:]),
+                                           'forged-receipt')
+    # Negative 4 (fix round 1): a duplicate-ticked oats row added to the final count after the
+    # Dry storage group was signed, excluded by an owner duplicate answer, so balances still match.
+    import fresh_start_v3 as v
+    dup_dir = workdir / 'final-with-duplicate'
+    dup_dir.mkdir()
+    oats_row = next(r for r in rows if r['product_id'] == items['oats']['id'])
+    dup_rows = list(rows) + [dict(oats_row, row_id=oats_row['row_id'] + '-dup', duplicate='x', location=oats_row['location'] + ' (again)')]
+    write_csv(dup_dir / 'count.csv', COUNT_COLUMNS, dup_rows)
+    data = v.load_inputs(dup_dir / 'count.csv', final['inputs'] / 'coverage.csv', final['inputs'] / 'moves.csv')
+    fp = v.fingerprint([r for r in data['count'] if r['row_id'] in (oats_row['row_id'], oats_row['row_id'] + '-dup')])
+    dup_review = json.loads(final['review'].read_text())
+    dup_review.setdefault('duplicate_reviews', {})[fp] = dict(owner='MG (rehearsal)', action='exclude', exclude_rows=[oats_row['row_id'] + '-dup'],
+                                                             move_id='', notes='same pallet written twice (rehearsal negative case)')
+    (dup_dir / 'review.json').write_text(json.dumps(dup_review, indent=2))
+    proofs['duplicate_observation_added'] = whole_reset(workdir, env, dict(manifest, final_inputs=dict(
+        manifest['final_inputs'], count=rel(dup_dir / 'count.csv'), review=rel(dup_dir / 'review.json'))), 'duplicate-observation-added')
+    # Negative 5: an owner physical_count post outside every signed plan, through the hosted API.
     oats = items['oats']
     extra = committed(base, owner_key, '/adjust/prepare', dict(lot_id=oats['lot_id'], delta_lb=1, reason_code='physical_count',
                                                                note=f'{ref} unsigned recount (rehearsal negative case)',
                                                                occurred_at=now().isoformat()))
     report['unsigned_extra_post'] = dict(receipt=extra['receipt_number'], transaction_id=extra['transaction_id'], lb=1)
     proofs['after_unsigned_post'] = whole_reset(workdir, env, manifest, 'after-unsigned-post')
+    # Negative 6 (fix round 1): the FLOOR actor (not a group's named actor) posts a count adjust.
+    granola = items['granola']
+    floor = committed(base, floor_key, '/adjust/prepare', dict(lot_id=granola['lot_id'], delta_lb=2, reason_code='physical_count',
+                                                               note=f'{ref} floor recount (rehearsal negative case)',
+                                                               occurred_at=now().isoformat()))
+    report['floor_extra_post'] = dict(receipt=floor['receipt_number'], transaction_id=floor['transaction_id'], lb=2)
+    proofs['after_floor_post'] = whole_reset(workdir, env, manifest, 'after-floor-post')
+    # Negative 7 (fix round 1): a floor count adjust over 500 lb, held for the owner and left open.
+    status, prepared = call(base, floor_key, '/adjust/prepare', dict(lot_id=items['sugar']['lot_id'], delta_lb=-505, reason_code='physical_count',
+                                                                     note=f'{ref} floor recount, held (rehearsal negative case)',
+                                                                     occurred_at=now().isoformat()))
+    if status != 200 or not prepared.get('can_commit'):
+        raise RuntimeError(f'held-case prepare refused: {status} {json.dumps(prepared)[:400]}')
+    status, held = call(base, floor_key, '/tickets/' + prepared['ticket'] + '/commit',
+                        {'payload_hash': prepared['payload_hash'], 'acknowledged_warnings': [w['code'] for w in prepared['warnings'] if w.get('requires_ack')]})
+    if status != 202 or not held.get('held'):
+        raise RuntimeError(f'held-case commit was not held: {status} {json.dumps(held)[:400]}')
+    report['floor_open_hold'] = dict(exception_id=held.get('exception_id'), ticket_id=prepared['ticket_id'], lb=-505)
+    proofs['open_owner_hold'] = whole_reset(workdir, env, manifest, 'open-owner-hold')
+    # The owner declines it: the hold is resolved, nothing posts, and OPEN_HOLD clears.
+    status, declined = call(base, owner_key, f'/exceptions/{held["exception_id"]}/reject',
+                            dict(resolution_kind='declined', note=f'{ref} rehearsal: declined the held floor recount'))
+    report['floor_open_hold'].update(declined_status=status)
+    proofs['after_hold_declined'] = whole_reset(workdir, env, manifest, 'after-hold-declined')
     report['whole_reset'] = proofs
     report['whole_reset_manifest'] = manifest
     return results
+
+
+EVIDENCE = ROOT / 'docs/deployments/whole-reset-proof-evidence'
+TICKET_TOKEN = r'wt_[A-Za-z0-9_-]{20,100}'
+
+
+def scoped_snapshot(s, scope, ticket_ids, actor_ids):
+    """The saved staging snapshot cut to the rehearsal products, their lots/lines/tickets/holds and
+    the rehearsal actors. Other staging data (catalog, orders, schema) never leaves the machine."""
+    keep = set(scope)
+    lines = [x for x in s['lines'] if x['product_id'] in keep]
+    txs = {str(x['transaction_id']) for x in lines}
+    held = [e for e in s.get('held_exceptions', []) if e.get('product_id') in keep]
+    tickets = set(ticket_ids) | {x.get('ticket_id') for x in lines} | {e.get('ticket_id') for e in held}
+    line_ids = {x['line_id'] for x in lines}
+    out = dict(snapshot_at=s['snapshot_at'], read_only=s['read_only'], target=s.get('target'),
+               products=[p for p in s['products'] if p['id'] in keep], catalog=[p for p in s['catalog'] if p['id'] in keep],
+               lots=[l for l in s['lots'] if l['product_id'] in keep], lines=lines,
+               transaction_line_counts={k: n for k, n in s['transaction_line_counts'].items() if k in txs},
+               shortages=[e for e in s.get('shortages', []) if e.get('product_id') in keep], held_exceptions=held,
+               correction_tickets=[t for t in s.get('correction_tickets', []) if t['id'] in tickets],
+               actors=[a for a in s['actors'] if a['id'] in actor_ids],
+               corrections=[c for c in s.get('corrections', []) if (c['target_table'] == 'transactions' and str(c['target_id']) in txs)
+                            or (c['target_table'] == 'transaction_lines' and c['target_id'] in line_ids)])
+    for key in ('schema_columns', 'supply_requests', 'orders', 'order_lines', 'allocations', 'ship_transactions'):
+        out[key] = []
+    return out
+
+
+def export_evidence(workdir, ref, report, env, secrets_seen):
+    """Sanitized copy of every signed artifact, journal, manifest, saved snapshot and proof output
+    under docs/deployments/whole-reset-proof-evidence/<ref>/ for independent review. Journals keep
+    every field except the ticket token (a bearer reference); SHA256SUMS lists the originals.
+    Each proof is then replayed from the cut snapshot and must give the same verdict and gaps."""
+    import re
+    dest = EVIDENCE / ref
+    dest.mkdir(parents=True)
+    sums, files = [], []
+    proofs, manifest = report['whole_reset'], report['whole_reset_manifest']
+    scope = manifest['rehearsal_scope_product_ids']
+    actor_ids = {report['owner_actor']['id'], report['floor_actor']['id']}
+
+    def put(rel_path, data):
+        target = dest / rel_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+        files.append(target)
+
+    journals = {}
+    for case in proofs.values():
+        m = json.loads((TOOLS / case['manifest']).read_text())
+        for g in m['groups']:
+            for key in ('approved_preview', 'approval', 'journal'):
+                if g.get(key):
+                    journals.setdefault(os.path.normpath(workdir / g[key]), key)
+        for path in m['final_inputs'].values():
+            journals.setdefault(os.path.normpath(workdir / path), 'input')
+    for folder in sorted(p for p in workdir.iterdir() if p.is_dir() and p.name.startswith('group-')):
+        for path in sorted(folder.glob('inputs/*')) + sorted(folder.glob('approved/*')):
+            journals.setdefault(os.path.normpath(path), 'signed')
+    ticket_ids = set()
+    for original, kind in sorted(journals.items()):
+        original = Path(original)
+        raw = original.read_bytes()
+        sums.append(f'{sha256(raw).hexdigest()}  {os.path.relpath(original, workdir)}')
+        name = os.path.relpath(original, workdir)
+        if name.startswith('..'):   # executor journals live in audits/fresh-start/apply-state-staging/
+            name = os.path.relpath(original, TOOLS)
+        if original.suffix == '.jsonl':
+            events = [json.loads(x) for x in raw.decode().splitlines()]
+            for e in events:
+                if e.get('ticket_id'):
+                    ticket_ids.add(e['ticket_id'])
+                if 'ticket' in e:
+                    e['ticket'] = 'REDACTED-sha256:' + sha256(str(e['ticket']).encode()).hexdigest()[:16]
+            put(name.replace('.jsonl', '.redacted.jsonl'), ('\n'.join(json.dumps(e) for e in events) + '\n').encode())
+        else:
+            put(name, raw)
+    replay = {}
+    for key, case in proofs.items():
+        name = Path(case['manifest']).stem.replace('manifest-', '')
+        put(f'manifest-{name}.json', (TOOLS / case['manifest']).read_bytes())
+        cut = workdir / 'snapshots' / f'{name}.scoped.json'
+        cut.write_text(json.dumps(scoped_snapshot(json.loads((TOOLS / case['snapshot']).read_text()), scope, ticket_ids, actor_ids), default=str))
+        put(f'snapshots/{name}.scoped.json', cut.read_bytes())
+        out = workdir / 'whole-reset-replay' / name
+        result, _ = tool(['audits/fresh-start/verify_reset.py', '--whole-reset', str(TOOLS / case['manifest']), '--output-dir', str(out),
+                          '--snapshot', str(cut)], env)
+        again = json.loads((out / 'whole-reset-proof.json').read_text())
+        same = (result.returncode == case['exit'] and again['verdict'] == case['verdict'] and
+                [(g['kind'], g['product_id'], g['lot_code']) for g in again['gaps']] == [(g['kind'], g['product_id'], g['lot_code']) for g in case['gaps']])
+        replay[key] = dict(exit=result.returncode, same_verdict_and_gaps=same)
+        for leaf in ('whole-reset-proof.md', 'whole-reset-proof.json', 'whole-reset-gaps.csv'):
+            put(f'whole-reset/{name}/{leaf}', (workdir / 'whole-reset' / name / leaf).read_bytes())
+    put('SHA256SUMS-originals.txt', ('\n'.join(sums) + '\n').encode())
+    # Nothing secret may leave: no API key, ticket token, database URL or local key path.
+    for path in files:
+        text = path.read_text(errors='replace')
+        bad = [k for k in secrets_seen if k and k in text] or re.findall(TICKET_TOKEN, text) or \
+              [m for m in ('postgres://', 'postgresql://', 'X-API-Key', 'staging_owner_key') if m in text]
+        if bad:
+            raise RuntimeError(f'evidence file {path.name} would leak a secret; nothing committed')
+    report['evidence'] = dict(folder=str(dest.relative_to(ROOT)), files=len(files), replay_from_scoped_snapshot=replay,
+                              journals='ticket token redacted; every other field and each original event sha256 kept')
+    if not all(r['same_verdict_and_gaps'] for r in replay.values()):
+        raise RuntimeError('replay from the scoped snapshot differs: ' + json.dumps(replay))
 
 
 def rehearse(output, hosted=False, groups=False):
@@ -512,11 +703,13 @@ def rehearse(output, hosted=False, groups=False):
     try:
         if hosted:
             report['key_cache_wait_s'] = wait_for_keys(base, (owner_key, floor_key))
-            report['areas'] = (hosted_groups(base, owner_key, items, ref, workdir, env, owner, report) if groups else
+            report['areas'] = (hosted_groups(base, owner_key, items, ref, workdir, env, owner, report, floor_key) if groups else
                                hosted_area(base, floor_key, items, ref, t0, workdir, env, owner, report))
         else:
             report['areas'] = local_areas(base, floor_key, items, ref, t0, workdir, env, owner, report)
         evidence(uri, ids, items, report)
+        if groups:
+            export_evidence(workdir, ref, report, env, (owner_key, floor_key))
         return report
     finally:
         if server:

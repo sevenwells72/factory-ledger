@@ -1,41 +1,53 @@
 {
-  "reference": "STG-CNT-36A1AD",
+  "reference": "STG-CNT-DCF5EB",
   "mode": "THREE area groups + whole-reset proof (O-3) against the DEPLOYED FastAPI-staging https://fastapi-staging-production-dd7b.up.railway.app (guarded staging DB); no local server",
   "owner_actor": {
-    "id": 1000000108,
-    "name": "Michael (STAGING STG-CNT-36A1AD)"
+    "id": 1000000110,
+    "name": "Michael (STAGING STG-CNT-DCF5EB)"
   },
   "floor_actor": {
-    "id": 1000000109,
-    "name": "Arturo (STAGING STG-CNT-36A1AD)"
+    "id": 1000000111,
+    "name": "Arturo (STAGING STG-CNT-DCF5EB)"
   },
   "products": {
-    "oats": 1000000171,
-    "sugar": 1000000172,
-    "coconut": 1000000173,
-    "batch": 1000000174,
-    "granola": 1000000175,
-    "cases15": 1000000176,
-    "misc1": 1000000177,
-    "misc2": 1000000178,
-    "misc3": 1000000179,
-    "misc4": 1000000180,
-    "misc5": 1000000181,
-    "misc6": 1000000182,
-    "extra": 1000000183
+    "oats": 1000000184,
+    "sugar": 1000000185,
+    "coconut": 1000000186,
+    "batch": 1000000187,
+    "granola": 1000000188,
+    "cases15": 1000000189,
+    "misc1": 1000000190,
+    "misc2": 1000000191,
+    "misc3": 1000000192,
+    "misc4": 1000000193,
+    "misc5": 1000000194,
+    "misc6": 1000000195,
+    "extra": 1000000196
   },
   "synthetic_owner_not_michael": true,
-  "key_cache_wait_s": 1.0,
+  "key_cache_wait_s": 1.2,
   "unsigned_extra_post": {
-    "receipt": "ADJ-261014-012",
-    "transaction_id": 1000000549,
+    "receipt": "ADJ-261014-016",
+    "transaction_id": 1000000565,
     "lb": 1
+  },
+  "floor_extra_post": {
+    "receipt": "ADJ-261014-017",
+    "transaction_id": 1000000566,
+    "lb": 2
+  },
+  "floor_open_hold": {
+    "exception_id": 254,
+    "ticket_id": 894,
+    "lb": -505,
+    "declined_status": 200
   },
   "whole_reset": {
     "complete": {
-      "manifest": "v3/rehearsal/STG-CNT-36A1AD/manifest-complete.json",
+      "manifest": "v3/rehearsal/STG-CNT-DCF5EB/manifest-complete.json",
+      "snapshot": "v3/rehearsal/STG-CNT-DCF5EB/snapshots/complete.json",
       "exit": 0,
-      "seconds": 0.9,
+      "seconds": 0.1,
       "verdict": "FULL RESET SCOPE RECONCILED",
       "gaps": [],
       "groups": [
@@ -45,12 +57,12 @@
             "Dry storage"
           ],
           "approved_products": [
-            1000000171,
-            1000000172
+            1000000184,
+            1000000185
           ],
           "posts": [
-            "ADJ-261014-009",
-            "ADJ-261014-010"
+            "ADJ-261014-013",
+            "ADJ-261014-014"
           ],
           "no_change": false
         },
@@ -61,12 +73,12 @@
             "Warehouse"
           ],
           "approved_products": [
-            1000000175,
-            1000000183
+            1000000188,
+            1000000196
           ],
           "posts": [
-            "ADJ-261014-011",
-            "FND-261014-205"
+            "ADJ-261014-015",
+            "FND-261014-206"
           ],
           "no_change": false
         },
@@ -76,7 +88,8 @@
             "Office"
           ],
           "approved_products": [
-            1000000177
+            1000000187,
+            1000000190
           ],
           "posts": [],
           "no_change": true
@@ -84,8 +97,8 @@
       ],
       "multi_area_lots": [
         {
-          "product_id": 1000000183,
-          "lot_code": "STG-CNT-36A1AD-EK-1",
+          "product_id": 1000000196,
+          "lot_code": "STG-CNT-DCF5EB-EK-1",
           "areas": [
             "Cooler",
             "Warehouse"
@@ -103,15 +116,23 @@
       "stderr_tail": ""
     },
     "without_office_group": {
-      "manifest": "v3/rehearsal/STG-CNT-36A1AD/manifest-without-office.json",
+      "manifest": "v3/rehearsal/STG-CNT-DCF5EB/manifest-without-office.json",
+      "snapshot": "v3/rehearsal/STG-CNT-DCF5EB/snapshots/without-office.json",
       "exit": 2,
-      "seconds": 1.0,
-      "verdict": "WHOLE RESET NOT RECONCILED: 1 gap(s)",
+      "seconds": 0.1,
+      "verdict": "WHOLE RESET NOT RECONCILED: 2 gap(s)",
       "gaps": [
         {
           "kind": "MISSING_PRODUCT",
           "group": "",
-          "product_id": 1000000177,
+          "product_id": 1000000187,
+          "lot_code": "",
+          "detail": "zero stock (no counted or on-hand lot) but no signed group approves it"
+        },
+        {
+          "kind": "MISSING_PRODUCT",
+          "group": "",
+          "product_id": 1000000190,
           "lot_code": "",
           "detail": "has counted or on-hand lots but no signed group approves it"
         }
@@ -123,12 +144,12 @@
             "Dry storage"
           ],
           "approved_products": [
-            1000000171,
-            1000000172
+            1000000184,
+            1000000185
           ],
           "posts": [
-            "ADJ-261014-009",
-            "ADJ-261014-010"
+            "ADJ-261014-013",
+            "ADJ-261014-014"
           ],
           "no_change": false
         },
@@ -139,20 +160,20 @@
             "Warehouse"
           ],
           "approved_products": [
-            1000000175,
-            1000000183
+            1000000188,
+            1000000196
           ],
           "posts": [
-            "ADJ-261014-011",
-            "FND-261014-205"
+            "ADJ-261014-015",
+            "FND-261014-206"
           ],
           "no_change": false
         }
       ],
       "multi_area_lots": [
         {
-          "product_id": 1000000183,
-          "lot_code": "STG-CNT-36A1AD-EK-1",
+          "product_id": 1000000196,
+          "lot_code": "STG-CNT-DCF5EB-EK-1",
           "areas": [
             "Cooler",
             "Warehouse"
@@ -167,25 +188,19 @@
       ],
       "stderr_tail": ""
     },
-    "after_unsigned_post": {
-      "manifest": "v3/rehearsal/STG-CNT-36A1AD/manifest-after-unsigned-post.json",
+    "zero_stock_unapproved": {
+      "manifest": "v3/rehearsal/STG-CNT-DCF5EB/manifest-zero-stock-unapproved.json",
+      "snapshot": "v3/rehearsal/STG-CNT-DCF5EB/snapshots/zero-stock-unapproved.json",
       "exit": 2,
-      "seconds": 1.2,
-      "verdict": "WHOLE RESET NOT RECONCILED: 2 gap(s)",
+      "seconds": 0.1,
+      "verdict": "WHOLE RESET NOT RECONCILED: 1 gap(s)",
       "gaps": [
         {
-          "kind": "FINAL_HOLD",
+          "kind": "MISSING_PRODUCT",
           "group": "",
-          "product_id": 1000000171,
+          "product_id": 1000000187,
           "lot_code": "",
-          "detail": "Unclassified movement / allocation: TX1000000549 [7376783c7ffa99d5a07a8f9fb23245fa9fe8eba1ad1a7eadfe2cf2541ca22ab2]"
-        },
-        {
-          "kind": "POST_OUTSIDE_APPROVED_PLAN",
-          "group": "",
-          "product_id": 1000000171,
-          "lot_code": "STG-CNT-36A1AD-OATS-1",
-          "detail": "TX 1000000549 ADJ-261014-012 1 by Michael (STAGING STG-CNT-36A1AD) is not a proved post of any signed group"
+          "detail": "zero stock (no counted or on-hand lot) but no signed group approves it"
         }
       ],
       "groups": [
@@ -195,12 +210,12 @@
             "Dry storage"
           ],
           "approved_products": [
-            1000000171,
-            1000000172
+            1000000184,
+            1000000185
           ],
           "posts": [
-            "ADJ-261014-009",
-            "ADJ-261014-010"
+            "ADJ-261014-013",
+            "ADJ-261014-014"
           ],
           "no_change": false
         },
@@ -211,12 +226,12 @@
             "Warehouse"
           ],
           "approved_products": [
-            1000000175,
-            1000000183
+            1000000188,
+            1000000196
           ],
           "posts": [
-            "ADJ-261014-011",
-            "FND-261014-205"
+            "ADJ-261014-015",
+            "FND-261014-206"
           ],
           "no_change": false
         },
@@ -226,7 +241,7 @@
             "Office"
           ],
           "approved_products": [
-            1000000177
+            1000000190
           ],
           "posts": [],
           "no_change": true
@@ -234,8 +249,579 @@
       ],
       "multi_area_lots": [
         {
-          "product_id": 1000000183,
-          "lot_code": "STG-CNT-36A1AD-EK-1",
+          "product_id": 1000000196,
+          "lot_code": "STG-CNT-DCF5EB-EK-1",
+          "areas": [
+            "Cooler",
+            "Warehouse"
+          ],
+          "handled_by": "Warehouse, Cooler",
+          "held_in": [
+            "Office"
+          ],
+          "row_ids": [
+            "RG2C-1",
+            "RG2W-2"
+          ]
+        }
+      ],
+      "stderr_tail": ""
+    },
+    "forged_receipt": {
+      "manifest": "v3/rehearsal/STG-CNT-DCF5EB/manifest-forged-receipt.json",
+      "snapshot": "v3/rehearsal/STG-CNT-DCF5EB/snapshots/forged-receipt.json",
+      "exit": 2,
+      "seconds": 0.1,
+      "verdict": "WHOLE RESET NOT RECONCILED: 3 gap(s)",
+      "gaps": [
+        {
+          "kind": "INVALID_RECEIPT",
+          "group": "Dry storage",
+          "product_id": 1000000184,
+          "lot_code": "",
+          "detail": "journal receipt seq 8 for intent 7 (commit, ticket 886): unexpected field(s) receipt_number on an refused receipt"
+        },
+        {
+          "kind": "INVALID_RECEIPT",
+          "group": "Dry storage",
+          "product_id": 1000000184,
+          "lot_code": "",
+          "detail": "journal receipt seq 8 for intent 7 (commit, ticket 886): an refused receipt names transaction 999999999"
+        },
+        {
+          "kind": "RECEIPT_CONTRADICTS_FL",
+          "group": "Dry storage",
+          "product_id": 1000000184,
+          "lot_code": "",
+          "detail": "journal receipt seq 8 for intent 7 (commit, ticket 886): journal says the commit was refused but FL posted that ticket (ADJ-261014-013)"
+        }
+      ],
+      "groups": [
+        {
+          "name": "Dry storage",
+          "areas": [
+            "Dry storage"
+          ],
+          "approved_products": [
+            1000000184,
+            1000000185
+          ],
+          "posts": [
+            "ADJ-261014-013",
+            "ADJ-261014-014"
+          ],
+          "no_change": false
+        },
+        {
+          "name": "Warehouse, Cooler",
+          "areas": [
+            "Cooler",
+            "Warehouse"
+          ],
+          "approved_products": [
+            1000000188,
+            1000000196
+          ],
+          "posts": [
+            "ADJ-261014-015",
+            "FND-261014-206"
+          ],
+          "no_change": false
+        },
+        {
+          "name": "Office",
+          "areas": [
+            "Office"
+          ],
+          "approved_products": [
+            1000000187,
+            1000000190
+          ],
+          "posts": [],
+          "no_change": true
+        }
+      ],
+      "multi_area_lots": [
+        {
+          "product_id": 1000000196,
+          "lot_code": "STG-CNT-DCF5EB-EK-1",
+          "areas": [
+            "Cooler",
+            "Warehouse"
+          ],
+          "handled_by": "Warehouse, Cooler",
+          "held_in": [
+            "Office"
+          ],
+          "row_ids": [
+            "RG2C-1",
+            "RG2W-2"
+          ]
+        }
+      ],
+      "stderr_tail": ""
+    },
+    "duplicate_observation_added": {
+      "manifest": "v3/rehearsal/STG-CNT-DCF5EB/manifest-duplicate-observation-added.json",
+      "snapshot": "v3/rehearsal/STG-CNT-DCF5EB/snapshots/duplicate-observation-added.json",
+      "exit": 2,
+      "seconds": 0.1,
+      "verdict": "WHOLE RESET NOT RECONCILED: 1 gap(s)",
+      "gaps": [
+        {
+          "kind": "MISSING_OBSERVATION",
+          "group": "Dry storage",
+          "product_id": 1000000184,
+          "lot_code": "STG-CNT-DCF5EB-OATS-1",
+          "detail": "observation RG1D-1-dup was not in the plan signed for this product"
+        }
+      ],
+      "groups": [
+        {
+          "name": "Dry storage",
+          "areas": [
+            "Dry storage"
+          ],
+          "approved_products": [
+            1000000184,
+            1000000185
+          ],
+          "posts": [
+            "ADJ-261014-013",
+            "ADJ-261014-014"
+          ],
+          "no_change": false
+        },
+        {
+          "name": "Warehouse, Cooler",
+          "areas": [
+            "Cooler",
+            "Warehouse"
+          ],
+          "approved_products": [
+            1000000188,
+            1000000196
+          ],
+          "posts": [
+            "ADJ-261014-015",
+            "FND-261014-206"
+          ],
+          "no_change": false
+        },
+        {
+          "name": "Office",
+          "areas": [
+            "Office"
+          ],
+          "approved_products": [
+            1000000187,
+            1000000190
+          ],
+          "posts": [],
+          "no_change": true
+        }
+      ],
+      "multi_area_lots": [
+        {
+          "product_id": 1000000196,
+          "lot_code": "STG-CNT-DCF5EB-EK-1",
+          "areas": [
+            "Cooler",
+            "Warehouse"
+          ],
+          "handled_by": "Warehouse, Cooler",
+          "held_in": [
+            "Office"
+          ],
+          "row_ids": [
+            "RG2C-1",
+            "RG2W-2"
+          ]
+        }
+      ],
+      "stderr_tail": ""
+    },
+    "after_unsigned_post": {
+      "manifest": "v3/rehearsal/STG-CNT-DCF5EB/manifest-after-unsigned-post.json",
+      "snapshot": "v3/rehearsal/STG-CNT-DCF5EB/snapshots/after-unsigned-post.json",
+      "exit": 2,
+      "seconds": 0.2,
+      "verdict": "WHOLE RESET NOT RECONCILED: 2 gap(s)",
+      "gaps": [
+        {
+          "kind": "FINAL_HOLD",
+          "group": "",
+          "product_id": 1000000184,
+          "lot_code": "",
+          "detail": "Unclassified movement / allocation: TX1000000565 [965df1f141a61289f22b322d0d6eaf56abc53f0d3e0c37dedbbe40ca5d1d62e7]"
+        },
+        {
+          "kind": "POST_OUTSIDE_APPROVED_PLAN",
+          "group": "",
+          "product_id": 1000000184,
+          "lot_code": "STG-CNT-DCF5EB-OATS-1",
+          "detail": "TX 1000000565 ADJ-261014-016 1 by Michael (STAGING STG-CNT-DCF5EB) is not a proved post of any signed group"
+        }
+      ],
+      "groups": [
+        {
+          "name": "Dry storage",
+          "areas": [
+            "Dry storage"
+          ],
+          "approved_products": [
+            1000000184,
+            1000000185
+          ],
+          "posts": [
+            "ADJ-261014-013",
+            "ADJ-261014-014"
+          ],
+          "no_change": false
+        },
+        {
+          "name": "Warehouse, Cooler",
+          "areas": [
+            "Cooler",
+            "Warehouse"
+          ],
+          "approved_products": [
+            1000000188,
+            1000000196
+          ],
+          "posts": [
+            "ADJ-261014-015",
+            "FND-261014-206"
+          ],
+          "no_change": false
+        },
+        {
+          "name": "Office",
+          "areas": [
+            "Office"
+          ],
+          "approved_products": [
+            1000000187,
+            1000000190
+          ],
+          "posts": [],
+          "no_change": true
+        }
+      ],
+      "multi_area_lots": [
+        {
+          "product_id": 1000000196,
+          "lot_code": "STG-CNT-DCF5EB-EK-1",
+          "areas": [
+            "Cooler",
+            "Warehouse"
+          ],
+          "handled_by": "Warehouse, Cooler",
+          "held_in": [
+            "Office"
+          ],
+          "row_ids": [
+            "RG2C-1",
+            "RG2W-2"
+          ]
+        }
+      ],
+      "stderr_tail": ""
+    },
+    "after_floor_post": {
+      "manifest": "v3/rehearsal/STG-CNT-DCF5EB/manifest-after-floor-post.json",
+      "snapshot": "v3/rehearsal/STG-CNT-DCF5EB/snapshots/after-floor-post.json",
+      "exit": 2,
+      "seconds": 0.1,
+      "verdict": "WHOLE RESET NOT RECONCILED: 4 gap(s)",
+      "gaps": [
+        {
+          "kind": "FINAL_HOLD",
+          "group": "",
+          "product_id": 1000000184,
+          "lot_code": "",
+          "detail": "Unclassified movement / allocation: TX1000000565 [965df1f141a61289f22b322d0d6eaf56abc53f0d3e0c37dedbbe40ca5d1d62e7]"
+        },
+        {
+          "kind": "FINAL_HOLD",
+          "group": "",
+          "product_id": 1000000188,
+          "lot_code": "",
+          "detail": "Unclassified movement / allocation: TX1000000566 [5e83ce937d83f2d4760b5117428b733c48b49d1bb6a035811859e856af59c85d]"
+        },
+        {
+          "kind": "POST_OUTSIDE_APPROVED_PLAN",
+          "group": "",
+          "product_id": 1000000184,
+          "lot_code": "STG-CNT-DCF5EB-OATS-1",
+          "detail": "TX 1000000565 ADJ-261014-016 1 by Michael (STAGING STG-CNT-DCF5EB) is not a proved post of any signed group"
+        },
+        {
+          "kind": "POST_OUTSIDE_APPROVED_PLAN",
+          "group": "",
+          "product_id": 1000000188,
+          "lot_code": "STG-CNT-DCF5EB-GRANOLA-1",
+          "detail": "TX 1000000566 ADJ-261014-017 2 by Arturo (STAGING STG-CNT-DCF5EB) is not a proved post of any signed group"
+        }
+      ],
+      "groups": [
+        {
+          "name": "Dry storage",
+          "areas": [
+            "Dry storage"
+          ],
+          "approved_products": [
+            1000000184,
+            1000000185
+          ],
+          "posts": [
+            "ADJ-261014-013",
+            "ADJ-261014-014"
+          ],
+          "no_change": false
+        },
+        {
+          "name": "Warehouse, Cooler",
+          "areas": [
+            "Cooler",
+            "Warehouse"
+          ],
+          "approved_products": [
+            1000000188,
+            1000000196
+          ],
+          "posts": [
+            "ADJ-261014-015",
+            "FND-261014-206"
+          ],
+          "no_change": false
+        },
+        {
+          "name": "Office",
+          "areas": [
+            "Office"
+          ],
+          "approved_products": [
+            1000000187,
+            1000000190
+          ],
+          "posts": [],
+          "no_change": true
+        }
+      ],
+      "multi_area_lots": [
+        {
+          "product_id": 1000000196,
+          "lot_code": "STG-CNT-DCF5EB-EK-1",
+          "areas": [
+            "Cooler",
+            "Warehouse"
+          ],
+          "handled_by": "Warehouse, Cooler",
+          "held_in": [
+            "Office"
+          ],
+          "row_ids": [
+            "RG2C-1",
+            "RG2W-2"
+          ]
+        }
+      ],
+      "stderr_tail": ""
+    },
+    "open_owner_hold": {
+      "manifest": "v3/rehearsal/STG-CNT-DCF5EB/manifest-open-owner-hold.json",
+      "snapshot": "v3/rehearsal/STG-CNT-DCF5EB/snapshots/open-owner-hold.json",
+      "exit": 2,
+      "seconds": 0.1,
+      "verdict": "WHOLE RESET NOT RECONCILED: 5 gap(s)",
+      "gaps": [
+        {
+          "kind": "FINAL_HOLD",
+          "group": "",
+          "product_id": 1000000184,
+          "lot_code": "",
+          "detail": "Unclassified movement / allocation: TX1000000565 [965df1f141a61289f22b322d0d6eaf56abc53f0d3e0c37dedbbe40ca5d1d62e7]"
+        },
+        {
+          "kind": "FINAL_HOLD",
+          "group": "",
+          "product_id": 1000000188,
+          "lot_code": "",
+          "detail": "Unclassified movement / allocation: TX1000000566 [5e83ce937d83f2d4760b5117428b733c48b49d1bb6a035811859e856af59c85d]"
+        },
+        {
+          "kind": "POST_OUTSIDE_APPROVED_PLAN",
+          "group": "",
+          "product_id": 1000000184,
+          "lot_code": "STG-CNT-DCF5EB-OATS-1",
+          "detail": "TX 1000000565 ADJ-261014-016 1 by Michael (STAGING STG-CNT-DCF5EB) is not a proved post of any signed group"
+        },
+        {
+          "kind": "POST_OUTSIDE_APPROVED_PLAN",
+          "group": "",
+          "product_id": 1000000188,
+          "lot_code": "STG-CNT-DCF5EB-GRANOLA-1",
+          "detail": "TX 1000000566 ADJ-261014-017 2 by Arturo (STAGING STG-CNT-DCF5EB) is not a proved post of any signed group"
+        },
+        {
+          "kind": "OPEN_HOLD",
+          "group": "",
+          "product_id": 1000000185,
+          "lot_code": "",
+          "detail": "LARGE_CORRECTION hold #254 on ticket 894 is open: it can still post; resolve it (reject, or approve and prove it) before release"
+        }
+      ],
+      "groups": [
+        {
+          "name": "Dry storage",
+          "areas": [
+            "Dry storage"
+          ],
+          "approved_products": [
+            1000000184,
+            1000000185
+          ],
+          "posts": [
+            "ADJ-261014-013",
+            "ADJ-261014-014"
+          ],
+          "no_change": false
+        },
+        {
+          "name": "Warehouse, Cooler",
+          "areas": [
+            "Cooler",
+            "Warehouse"
+          ],
+          "approved_products": [
+            1000000188,
+            1000000196
+          ],
+          "posts": [
+            "ADJ-261014-015",
+            "FND-261014-206"
+          ],
+          "no_change": false
+        },
+        {
+          "name": "Office",
+          "areas": [
+            "Office"
+          ],
+          "approved_products": [
+            1000000187,
+            1000000190
+          ],
+          "posts": [],
+          "no_change": true
+        }
+      ],
+      "multi_area_lots": [
+        {
+          "product_id": 1000000196,
+          "lot_code": "STG-CNT-DCF5EB-EK-1",
+          "areas": [
+            "Cooler",
+            "Warehouse"
+          ],
+          "handled_by": "Warehouse, Cooler",
+          "held_in": [
+            "Office"
+          ],
+          "row_ids": [
+            "RG2C-1",
+            "RG2W-2"
+          ]
+        }
+      ],
+      "stderr_tail": ""
+    },
+    "after_hold_declined": {
+      "manifest": "v3/rehearsal/STG-CNT-DCF5EB/manifest-after-hold-declined.json",
+      "snapshot": "v3/rehearsal/STG-CNT-DCF5EB/snapshots/after-hold-declined.json",
+      "exit": 2,
+      "seconds": 0.1,
+      "verdict": "WHOLE RESET NOT RECONCILED: 4 gap(s)",
+      "gaps": [
+        {
+          "kind": "FINAL_HOLD",
+          "group": "",
+          "product_id": 1000000184,
+          "lot_code": "",
+          "detail": "Unclassified movement / allocation: TX1000000565 [965df1f141a61289f22b322d0d6eaf56abc53f0d3e0c37dedbbe40ca5d1d62e7]"
+        },
+        {
+          "kind": "FINAL_HOLD",
+          "group": "",
+          "product_id": 1000000188,
+          "lot_code": "",
+          "detail": "Unclassified movement / allocation: TX1000000566 [5e83ce937d83f2d4760b5117428b733c48b49d1bb6a035811859e856af59c85d]"
+        },
+        {
+          "kind": "POST_OUTSIDE_APPROVED_PLAN",
+          "group": "",
+          "product_id": 1000000184,
+          "lot_code": "STG-CNT-DCF5EB-OATS-1",
+          "detail": "TX 1000000565 ADJ-261014-016 1 by Michael (STAGING STG-CNT-DCF5EB) is not a proved post of any signed group"
+        },
+        {
+          "kind": "POST_OUTSIDE_APPROVED_PLAN",
+          "group": "",
+          "product_id": 1000000188,
+          "lot_code": "STG-CNT-DCF5EB-GRANOLA-1",
+          "detail": "TX 1000000566 ADJ-261014-017 2 by Arturo (STAGING STG-CNT-DCF5EB) is not a proved post of any signed group"
+        }
+      ],
+      "groups": [
+        {
+          "name": "Dry storage",
+          "areas": [
+            "Dry storage"
+          ],
+          "approved_products": [
+            1000000184,
+            1000000185
+          ],
+          "posts": [
+            "ADJ-261014-013",
+            "ADJ-261014-014"
+          ],
+          "no_change": false
+        },
+        {
+          "name": "Warehouse, Cooler",
+          "areas": [
+            "Cooler",
+            "Warehouse"
+          ],
+          "approved_products": [
+            1000000188,
+            1000000196
+          ],
+          "posts": [
+            "ADJ-261014-015",
+            "FND-261014-206"
+          ],
+          "no_change": false
+        },
+        {
+          "name": "Office",
+          "areas": [
+            "Office"
+          ],
+          "approved_products": [
+            1000000187,
+            1000000190
+          ],
+          "posts": [],
+          "no_change": true
+        }
+      ],
+      "multi_area_lots": [
+        {
+          "product_id": 1000000196,
+          "lot_code": "STG-CNT-DCF5EB-EK-1",
           "areas": [
             "Cooler",
             "Warehouse"
@@ -256,13 +842,14 @@
   "whole_reset_manifest": {
     "version": 1,
     "target": "staging",
-    "expected_reset_products": 5,
+    "expected_reset_products": 6,
     "rehearsal_scope_product_ids": [
-      1000000171,
-      1000000172,
-      1000000175,
-      1000000177,
-      1000000183
+      1000000184,
+      1000000185,
+      1000000187,
+      1000000188,
+      1000000190,
+      1000000196
     ],
     "groups": [
       {
@@ -272,7 +859,7 @@
         ],
         "approved_preview": "group-1-dry-storage/approved/reset-preview-v3.json",
         "approval": "group-1-dry-storage/approved/approval.md",
-        "journal": "../../../apply-state-staging/1561f106a1def7172f2904b091dd220edfd85c3ae42cab6068eb453690054bbe/journal.jsonl"
+        "journal": "../../../apply-state-staging/64c3f9b28a9700204d1a8b45ee6e906c62ac5a88994bcdfad46f309b15b7fd74/journal.jsonl"
       },
       {
         "name": "Warehouse, Cooler",
@@ -282,7 +869,7 @@
         ],
         "approved_preview": "group-2-warehouse-cooler/approved/reset-preview-v3.json",
         "approval": "group-2-warehouse-cooler/approved/approval.md",
-        "journal": "../../../apply-state-staging/7d27efec2eb6d037ee45470a9d04b0098ec164d52b9b19a8071d5525535b283a/journal.jsonl"
+        "journal": "../../../apply-state-staging/5d361ddd4e4724bc2118c2d5542c3d4057814b168f3918969b812b57a4049b56/journal.jsonl"
       },
       {
         "name": "Office",
@@ -294,7 +881,7 @@
         "no_change": true
       }
     ],
-    "notes": "STG-CNT-36A1AD hosted-staging O-3 rehearsal; final inputs = the last group's signed copies",
+    "notes": "STG-CNT-DCF5EB hosted-staging O-3 rehearsal; final inputs = the last group's signed copies",
     "final_inputs": {
       "count": "group-3-office-no-change/inputs/count.csv",
       "coverage": "group-3-office-no-change/inputs/coverage.csv",
@@ -306,51 +893,51 @@
     {
       "area": "Dry storage",
       "window": [
-        "2026-10-14T12:39:16-04:00",
-        "2026-10-14T12:39:26-04:00"
+        "2026-10-14T13:06:53-04:00",
+        "2026-10-14T13:07:03-04:00"
       ],
       "approved_products": [
-        1000000171,
-        1000000172
+        1000000184,
+        1000000185
       ],
       "paths": {
-        "inputs": "audits/fresh-start/v3/rehearsal/STG-CNT-36A1AD/group-1-dry-storage/inputs",
-        "preview": "audits/fresh-start/v3/rehearsal/STG-CNT-36A1AD/group-1-dry-storage/approved/reset-preview-v3.json",
-        "approval": "audits/fresh-start/v3/rehearsal/STG-CNT-36A1AD/group-1-dry-storage/approved/approval.md",
+        "inputs": "audits/fresh-start/v3/rehearsal/STG-CNT-DCF5EB/group-1-dry-storage/inputs",
+        "preview": "audits/fresh-start/v3/rehearsal/STG-CNT-DCF5EB/group-1-dry-storage/approved/reset-preview-v3.json",
+        "approval": "audits/fresh-start/v3/rehearsal/STG-CNT-DCF5EB/group-1-dry-storage/approved/approval.md",
         "review": null,
-        "journal": "audits/fresh-start/apply-state-staging/1561f106a1def7172f2904b091dd220edfd85c3ae42cab6068eb453690054bbe/journal.jsonl"
+        "journal": "audits/fresh-start/apply-state-staging/64c3f9b28a9700204d1a8b45ee6e906c62ac5a88994bcdfad46f309b15b7fd74/journal.jsonl"
       },
       "held_before_owner_review": [],
-      "preview_sha256": "1561f106a1def7172f2904b091dd220edfd85c3ae42cab6068eb453690054bbe",
+      "preview_sha256": "64c3f9b28a9700204d1a8b45ee6e906c62ac5a88994bcdfad46f309b15b7fd74",
       "owner_approves_held": true,
       "extra_kosher_lots": [],
       "timings_s": {
-        "preview_1_s": 1.3,
+        "preview_1_s": 1.9,
         "owner_review_scripted_s": 0.0,
         "dry_run_s": 1.4,
-        "apply_s": 14.4,
+        "apply_s": 16.6,
         "verify_s": 0.9,
-        "pause_total_s": 18.0
+        "pause_total_s": 20.8
       },
       "executor_timings_s": {
-        "confirmed": 1.5,
-        "posted": 12.9,
-        "verified": 13.7,
+        "confirmed": 1.6,
+        "posted": 14.9,
+        "verified": 15.8,
         "per_lot_s": [
-          3.6,
-          5.5
+          3.5,
+          5.6
         ],
         "posts": 2
       },
       "readback": [
         {
-          "product_id": "1000000171",
-          "name": "STG STG-CNT-36A1AD Oats",
-          "lot_code": "STG-CNT-36A1AD-OATS-1",
+          "product_id": "1000000184",
+          "name": "STG STG-CNT-DCF5EB Oats",
+          "lot_code": "STG-CNT-DCF5EB-OATS-1",
           "new_lot": "False",
           "change": "-5",
-          "receipt_number": "ADJ-261014-009",
-          "transaction_id": "1000000545",
+          "receipt_number": "ADJ-261014-013",
+          "transaction_id": "1000000561",
           "balance_now": "395",
           "planned": "395.0000",
           "owner_holds": "",
@@ -359,13 +946,13 @@
           "status": "POSTED"
         },
         {
-          "product_id": "1000000172",
-          "name": "STG STG-CNT-36A1AD Sugar",
-          "lot_code": "STG-CNT-36A1AD-SUGAR-1",
+          "product_id": "1000000185",
+          "name": "STG STG-CNT-DCF5EB Sugar",
+          "lot_code": "STG-CNT-DCF5EB-SUGAR-1",
           "new_lot": "False",
           "change": "-680",
-          "receipt_number": "ADJ-261014-010",
-          "transaction_id": "1000000546",
+          "receipt_number": "ADJ-261014-014",
+          "transaction_id": "1000000562",
           "balance_now": "520",
           "planned": "520.0000",
           "owner_holds": "LARGE_CORRECTION",
@@ -377,16 +964,16 @@
       "verify_exit": 2,
       "verified_rows": [
         {
-          "product_id": 1000000171,
-          "lot_code": "STG-CNT-36A1AD-OATS-1",
+          "product_id": 1000000184,
+          "lot_code": "STG-CNT-DCF5EB-OATS-1",
           "status": "READY",
           "adjustment": "0.0000",
           "current": "395.0000",
           "expected": "395"
         },
         {
-          "product_id": 1000000172,
-          "lot_code": "STG-CNT-36A1AD-SUGAR-1",
+          "product_id": 1000000185,
+          "lot_code": "STG-CNT-DCF5EB-SUGAR-1",
           "status": "READY",
           "adjustment": "0.0000",
           "current": "520.0000",
@@ -394,92 +981,92 @@
         }
       ],
       "apply_log_tail": [
-        "Read back ADJ-261014-010: product 1000000172 lot STG-CNT-36A1AD-SUGAR-1 TX1000000546 by Michael (STAGING STG-CNT-36A1AD).",
-        "    ADJ-261014-009  1000000171 / STG-CNT-36A1AD-OATS-1  change -5  balance now 395  POSTED",
-        "    ADJ-261014-010  1000000172 / STG-CNT-36A1AD-SUGAR-1  change -680  balance now 520  POSTED",
-        "Executor seconds from start: {'confirmed': 1.5, 'posted': 12.9, 'verified': 13.7, 'per_lot_s': [3.6, 5.5]}"
+        "Read back ADJ-261014-014: product 1000000185 lot STG-CNT-DCF5EB-SUGAR-1 TX1000000562 by Michael (STAGING STG-CNT-DCF5EB).",
+        "    ADJ-261014-013  1000000184 / STG-CNT-DCF5EB-OATS-1  change -5  balance now 395  POSTED",
+        "    ADJ-261014-014  1000000185 / STG-CNT-DCF5EB-SUGAR-1  change -680  balance now 520  POSTED",
+        "Executor seconds from start: {'confirmed': 1.6, 'posted': 14.9, 'verified': 15.8, 'per_lot_s': [3.5, 5.6]}"
       ]
     },
     {
       "area": "Warehouse, Cooler",
       "window": [
-        "2026-10-14T12:39:46-04:00",
-        "2026-10-14T12:39:56-04:00"
+        "2026-10-14T13:07:26-04:00",
+        "2026-10-14T13:07:36-04:00"
       ],
       "approved_products": [
-        1000000175,
-        1000000183
+        1000000188,
+        1000000196
       ],
       "paths": {
-        "inputs": "audits/fresh-start/v3/rehearsal/STG-CNT-36A1AD/group-2-warehouse-cooler/inputs",
-        "preview": "audits/fresh-start/v3/rehearsal/STG-CNT-36A1AD/group-2-warehouse-cooler/approved/reset-preview-v3.json",
-        "approval": "audits/fresh-start/v3/rehearsal/STG-CNT-36A1AD/group-2-warehouse-cooler/approved/approval.md",
-        "review": "audits/fresh-start/v3/rehearsal/STG-CNT-36A1AD/group-2-warehouse-cooler/inputs/owner-review.json",
-        "journal": "audits/fresh-start/apply-state-staging/7d27efec2eb6d037ee45470a9d04b0098ec164d52b9b19a8071d5525535b283a/journal.jsonl"
+        "inputs": "audits/fresh-start/v3/rehearsal/STG-CNT-DCF5EB/group-2-warehouse-cooler/inputs",
+        "preview": "audits/fresh-start/v3/rehearsal/STG-CNT-DCF5EB/group-2-warehouse-cooler/approved/reset-preview-v3.json",
+        "approval": "audits/fresh-start/v3/rehearsal/STG-CNT-DCF5EB/group-2-warehouse-cooler/approved/approval.md",
+        "review": "audits/fresh-start/v3/rehearsal/STG-CNT-DCF5EB/group-2-warehouse-cooler/inputs/owner-review.json",
+        "journal": "audits/fresh-start/apply-state-staging/5d361ddd4e4724bc2118c2d5542c3d4057814b168f3918969b812b57a4049b56/journal.jsonl"
       },
       "held_before_owner_review": [
         {
-          "product_id": 1000000171,
-          "lot_code": "STG-CNT-36A1AD-OATS-1",
+          "product_id": 1000000184,
+          "lot_code": "STG-CNT-DCF5EB-OATS-1",
           "new_lot": false,
           "holds": [
-            "Unclassified movement / allocation: TX1000000545 [b2ae8483e7d32137eef152fb231402d47fb4a1c3768ca7e936def864030231c0]",
+            "Unclassified movement / allocation: TX1000000561 [6ee13e36b30676e96fa7b87d4852fc3a854633534bfdb79d863b7568edaaef6a]",
             "Area group: also counted in Dry storage; include those areas or wait",
             "prior opening without journal proof"
           ]
         },
         {
-          "product_id": 1000000172,
-          "lot_code": "STG-CNT-36A1AD-SUGAR-1",
+          "product_id": 1000000185,
+          "lot_code": "STG-CNT-DCF5EB-SUGAR-1",
           "new_lot": false,
           "holds": [
-            "Unclassified movement / allocation: TX1000000546 [6d543b2216997051d5485b85dd4742d49165bcfa77f9dcf37180bd7ccd262a3c]",
+            "Unclassified movement / allocation: TX1000000562 [919a354ef7314ecbdeeca6b7e9bf72e605da2f3642d01e4392cf11093d412831]",
             "Area group: also counted in Dry storage; include those areas or wait",
             "prior opening without journal proof"
           ]
         },
         {
-          "product_id": 1000000183,
-          "lot_code": "STG-CNT-36A1AD-EK-1",
+          "product_id": 1000000196,
+          "lot_code": "STG-CNT-DCF5EB-EK-1",
           "new_lot": true,
           "holds": [
             "owner confirms no unlogged moves between rows RG2W-2/RG2C-1"
           ]
         }
       ],
-      "preview_sha256": "7d27efec2eb6d037ee45470a9d04b0098ec164d52b9b19a8071d5525535b283a",
+      "preview_sha256": "5d361ddd4e4724bc2118c2d5542c3d4057814b168f3918969b812b57a4049b56",
       "owner_approves_held": true,
       "extra_kosher_lots": [
-        "1000000183:STG-CNT-36A1AD-EK-1"
+        "1000000196:STG-CNT-DCF5EB-EK-1"
       ],
       "timings_s": {
-        "preview_1_s": 1.2,
+        "preview_1_s": 1.3,
         "owner_review_scripted_s": 0.0,
-        "preview_2_s": 1.0,
-        "dry_run_s": 1.4,
-        "apply_s": 15.9,
-        "verify_s": 0.9,
-        "pause_total_s": 20.3
+        "preview_2_s": 1.2,
+        "dry_run_s": 1.7,
+        "apply_s": 20.0,
+        "verify_s": 1.0,
+        "pause_total_s": 25.2
       },
       "executor_timings_s": {
-        "confirmed": 1.3,
-        "posted": 14.2,
-        "verified": 15.2,
+        "confirmed": 1.9,
+        "posted": 17.9,
+        "verified": 19.3,
         "per_lot_s": [
-          3.4,
-          7.2
+          3.5,
+          7.7
         ],
         "posts": 2
       },
       "readback": [
         {
-          "product_id": "1000000175",
-          "name": "STG STG-CNT-36A1AD Granola 25 LB",
-          "lot_code": "STG-CNT-36A1AD-GRANOLA-1",
+          "product_id": "1000000188",
+          "name": "STG STG-CNT-DCF5EB Granola 25 LB",
+          "lot_code": "STG-CNT-DCF5EB-GRANOLA-1",
           "new_lot": "False",
           "change": "-25",
-          "receipt_number": "ADJ-261014-011",
-          "transaction_id": "1000000547",
+          "receipt_number": "ADJ-261014-015",
+          "transaction_id": "1000000563",
           "balance_now": "975",
           "planned": "975.0000",
           "owner_holds": "",
@@ -488,13 +1075,13 @@
           "status": "POSTED"
         },
         {
-          "product_id": "1000000183",
-          "name": "STG STG-CNT-36A1AD Extra-kosher batch",
-          "lot_code": "STG-CNT-36A1AD-EK-1",
+          "product_id": "1000000196",
+          "name": "STG STG-CNT-DCF5EB Extra-kosher batch",
+          "lot_code": "STG-CNT-DCF5EB-EK-1",
           "new_lot": "True",
           "change": "300",
-          "receipt_number": "FND-261014-205",
-          "transaction_id": "1000000548",
+          "receipt_number": "FND-261014-206",
+          "transaction_id": "1000000564",
           "balance_now": "300",
           "planned": "300.0000",
           "owner_holds": "KOSHER_ATTESTATION",
@@ -506,16 +1093,16 @@
       "verify_exit": 2,
       "verified_rows": [
         {
-          "product_id": 1000000175,
-          "lot_code": "STG-CNT-36A1AD-GRANOLA-1",
+          "product_id": 1000000188,
+          "lot_code": "STG-CNT-DCF5EB-GRANOLA-1",
           "status": "READY",
           "adjustment": "0.0000",
           "current": "975.0000",
           "expected": "975.0000"
         },
         {
-          "product_id": 1000000183,
-          "lot_code": "STG-CNT-36A1AD-EK-1",
+          "product_id": 1000000196,
+          "lot_code": "STG-CNT-DCF5EB-EK-1",
           "status": "READY",
           "adjustment": "0.0000",
           "current": "300.0000",
@@ -523,36 +1110,40 @@
         }
       ],
       "apply_log_tail": [
-        "Read back FND-261014-205: product 1000000183 lot STG-CNT-36A1AD-EK-1 TX1000000548 by Michael (STAGING STG-CNT-36A1AD).",
-        "    ADJ-261014-011  1000000175 / STG-CNT-36A1AD-GRANOLA-1  change -25  balance now 975  POSTED",
-        "    FND-261014-205  1000000183 / STG-CNT-36A1AD-EK-1  change 300  balance now 300  POSTED",
-        "Executor seconds from start: {'confirmed': 1.3, 'posted': 14.2, 'verified': 15.2, 'per_lot_s': [3.4, 7.2]}"
+        "Read back FND-261014-206: product 1000000196 lot STG-CNT-DCF5EB-EK-1 TX1000000564 by Michael (STAGING STG-CNT-DCF5EB).",
+        "    ADJ-261014-015  1000000188 / STG-CNT-DCF5EB-GRANOLA-1  change -25  balance now 975  POSTED",
+        "    FND-261014-206  1000000196 / STG-CNT-DCF5EB-EK-1  change 300  balance now 300  POSTED",
+        "Executor seconds from start: {'confirmed': 1.9, 'posted': 17.9, 'verified': 19.3, 'per_lot_s': [3.5, 7.7]}"
       ]
     },
     {
       "area": "Office",
       "approved_products": [
-        1000000177
+        1000000187,
+        1000000190
       ],
-      "preview_sha256": "67769df2d8e024c6eb69ff9b0e62756f1f009040c0374583cc0def286e555e67",
+      "zero_stock_products": [
+        1000000187
+      ],
+      "preview_sha256": "7fc3a400fdbd67f8e9632f011d750731512ca400f78d4d80adbaca44bdd36d37",
       "no_change": true,
       "timings_s": {
-        "preview_1_s": 1.4,
+        "preview_1_s": 1.7,
         "owner_review_scripted_s": 0.0,
         "preview_2_s": 1.0,
-        "verify_s": 1.1
+        "verify_s": 0.9
       },
       "verify_exit": 2,
       "paths": {
-        "inputs": "audits/fresh-start/v3/rehearsal/STG-CNT-36A1AD/group-3-office-no-change/inputs",
-        "preview": "audits/fresh-start/v3/rehearsal/STG-CNT-36A1AD/group-3-office-no-change/approved/reset-preview-v3.json",
-        "approval": "audits/fresh-start/v3/rehearsal/STG-CNT-36A1AD/group-3-office-no-change/approved/approval.md",
-        "review": "audits/fresh-start/v3/rehearsal/STG-CNT-36A1AD/group-3-office-no-change/inputs/owner-review.json"
+        "inputs": "audits/fresh-start/v3/rehearsal/STG-CNT-DCF5EB/group-3-office-no-change/inputs",
+        "preview": "audits/fresh-start/v3/rehearsal/STG-CNT-DCF5EB/group-3-office-no-change/approved/reset-preview-v3.json",
+        "approval": "audits/fresh-start/v3/rehearsal/STG-CNT-DCF5EB/group-3-office-no-change/approved/approval.md",
+        "review": "audits/fresh-start/v3/rehearsal/STG-CNT-DCF5EB/group-3-office-no-change/inputs/owner-review.json"
       },
       "verified_rows": [
         {
-          "product_id": 1000000177,
-          "lot_code": "STG-CNT-36A1AD-MISC1-1",
+          "product_id": 1000000190,
+          "lot_code": "STG-CNT-DCF5EB-MISC1-1",
           "status": "READY",
           "adjustment": "0.0000"
         }
@@ -561,11 +1152,11 @@
   ],
   "extra_kosher_lot": [
     {
-      "id": 1000000502,
-      "lot_code": "STG-CNT-36A1AD-EK-1",
+      "id": 1000000514,
+      "lot_code": "STG-CNT-DCF5EB-EK-1",
       "kosher_tier": "extra_kosher",
-      "kosher_attested_by_actor_id": 1000000108,
-      "kosher_attested_at": "2026-10-14 16:40:24.969931+00:00",
+      "kosher_attested_by_actor_id": 1000000110,
+      "kosher_attested_at": "2026-10-14 17:08:08.424539+00:00",
       "entry_source": "found_inventory",
       "lb": "300.0000",
       "lines": 1
@@ -573,21 +1164,64 @@
   ],
   "owner_holds": [
     {
-      "id": 250,
+      "id": 252,
       "kind": "LARGE_CORRECTION",
       "status": "resolved",
       "resolution_kind": "approved",
-      "resolved_by_actor_id": 1000000108,
-      "receipt_number": "ADJ-261014-010"
+      "resolved_by_actor_id": 1000000110,
+      "receipt_number": "ADJ-261014-014"
     },
     {
-      "id": 251,
+      "id": 253,
       "kind": "KOSHER_ATTESTATION",
       "status": "resolved",
       "resolution_kind": "approved",
-      "resolved_by_actor_id": 1000000108,
-      "receipt_number": "FND-261014-205"
+      "resolved_by_actor_id": 1000000110,
+      "receipt_number": "FND-261014-206"
     }
   ],
+  "evidence": {
+    "folder": "docs/deployments/whole-reset-proof-evidence/STG-CNT-DCF5EB",
+    "files": 69,
+    "replay_from_scoped_snapshot": {
+      "complete": {
+        "exit": 0,
+        "same_verdict_and_gaps": true
+      },
+      "without_office_group": {
+        "exit": 2,
+        "same_verdict_and_gaps": true
+      },
+      "zero_stock_unapproved": {
+        "exit": 2,
+        "same_verdict_and_gaps": true
+      },
+      "forged_receipt": {
+        "exit": 2,
+        "same_verdict_and_gaps": true
+      },
+      "duplicate_observation_added": {
+        "exit": 2,
+        "same_verdict_and_gaps": true
+      },
+      "after_unsigned_post": {
+        "exit": 2,
+        "same_verdict_and_gaps": true
+      },
+      "after_floor_post": {
+        "exit": 2,
+        "same_verdict_and_gaps": true
+      },
+      "open_owner_hold": {
+        "exit": 2,
+        "same_verdict_and_gaps": true
+      },
+      "after_hold_declined": {
+        "exit": 2,
+        "same_verdict_and_gaps": true
+      }
+    },
+    "journals": "ticket token redacted; every other field and each original event sha256 kept"
+  },
   "actors_deactivated_after_rehearsal": true
 }

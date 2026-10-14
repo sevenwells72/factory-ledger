@@ -311,6 +311,132 @@ class WholeResetTests(unittest.TestCase):
                 w.signed_plan(preview, approval, 'production')
             approval.write_text(approval.read_text().replace(new, old))
 
+    # ── Codex PR #120 fix round 1: each of these returned exit 0 with no gaps at 3c5195f ──
+    def rewrite_journal(self, name, edit):
+        """Copy a group's journal, let `edit` change its events, re-chain every hash (a forged
+        but internally consistent journal) and point the group at the copy."""
+        events = [json.loads(x) for x in (self.out / self.groups[name]['journal']).read_text().splitlines()]
+        events = edit(events)
+        previous, lines = '', []
+        for seq, e in enumerate(events):
+            e.pop('sha256', None); e.update(seq=seq, previous=previous)
+            e['sha256'] = previous = v.sha(v.canonical(e).encode())
+            lines.append(json.dumps(e))
+        path = self.out / 'state' / f'forged-{name}.jsonl'
+        path.write_text('\n'.join(lines) + '\n')
+        self.groups[name]['journal'] = str(path.relative_to(self.out))
+
+    def test_receipts_with_bogus_ids_or_outcomes_are_gaps(self):
+        self.cutover()
+        good = deepcopy(self.groups['G2'])
+        for outcome, extra, expected in (('refused', dict(receipt_number='ADJ-999999-999', transaction_id=424242, error_code='TICKET_STALE'),
+                                          {'INVALID_RECEIPT', 'RECEIPT_CONTRADICTS_FL'}),
+                                         ('approved-by-phone', dict(receipt_number='ADJ-999999-998', transaction_id=None), {'INVALID_RECEIPT'}),
+                                         ('uncertain', dict(transaction_id=424243), {'INVALID_RECEIPT'})):
+            with self.subTest(outcome=outcome):
+                self.groups['G2'] = deepcopy(good)
+                def edit(events):
+                    intent = next(e for e in events if e['kind'] == 'intent' and e['phase'] == 'commit')
+                    again = dict(intent); events.append(again)
+                    events.append(dict(kind='receipt', intent=len(events) - 1, outcome=outcome, at=intent['at'], **extra))
+                    return events
+                self.rewrite_journal('G2', edit)
+                self.assertEqual(self.prove(), 2, self.printed)
+                self.assertEqual(self.kinds(), expected, self.printed)
+
+    def test_second_held_ticket_beside_a_posted_reset(self):
+        self.cutover()
+        g1 = w.signed_plan(self.out / self.groups['G1']['approved_preview'], self.out / self.groups['G1']['approval'], 'production')
+        r = next(iter(g1['approved'].values()))
+        body = v.ticket_payload(dict(r, pid=r['product_id'], lid=r['lot_id'], change=r['change']))
+        status, draft = self.b.call('k', '/adjust/prepare', body)
+        status, held = self.b.call('k', '/tickets/' + draft['ticket'] + '/commit', dict(payload_hash=draft['payload_hash'], acknowledged_warnings=[]))
+        self.assertEqual(status, 202)
+        def edit(events):
+            intent = dict(next(e for e in events if e['kind'] == 'intent' and e['phase'] == 'commit'), ticket_id=draft['ticket_id'], ticket=draft['ticket'])
+            events.append(intent)
+            events.append(dict(kind='receipt', intent=len(events) - 1, outcome='held', transaction_id=None, hold='LARGE_CORRECTION',
+                               exception_id=held['exception_id'], at=intent['at']))
+            return events
+        self.rewrite_journal('G1', edit)
+        self.assertEqual(self.prove(), 2)
+        self.assertTrue({'JOURNAL_PROOF_FAILED', 'OPEN_HOLD'} <= self.kinds(), self.kinds())
+        self.assertIn('still held for the owner', self.printed)
+        with self.assertRaisesRegex(ValueError, 'still held for the owner'):
+            v.journal_proof(self.out / self.groups['G1']['approved_preview'], self.out / self.groups['G1']['approval'],
+                            self.out / self.groups['G1']['journal'], self.b.snapshot(), g1['data'])
+
+    def test_open_owner_hold_outside_every_journal(self):
+        self.cutover()
+        self.b.actor_name = 'FAKE Floor'
+        status, draft = self.b.call('k', '/adjust/prepare', dict(lot_id=2, delta_lb=600, reason_code='physical_count', note='floor recount',
+                                                                 occurred_at=datetime.now(timezone.utc).isoformat()))
+        status, _ = self.b.call('k', '/tickets/' + draft['ticket'] + '/commit', dict(payload_hash=draft['payload_hash'], acknowledged_warnings=[]))
+        self.assertEqual(status, 202)   # nothing posted: balances still reconcile
+        self.assertEqual(self.prove(), 2)
+        self.assertEqual(self.kinds(), {'OPEN_HOLD'})
+        self.assertEqual(self.proof['final_verification_exit'], 0)
+
+    def test_count_post_by_another_actor_or_without_a_ticket(self):
+        self.cutover()
+        self.b.actor_name = 'FAKE Floor'
+        status, draft = self.b.call('k', '/adjust/prepare', dict(lot_id=2, delta_lb=5, reason_code='physical_count', note='floor recount',
+                                                                 occurred_at=datetime.now(timezone.utc).isoformat()))
+        self.b.call('k', '/tickets/' + draft['ticket'] + '/commit', dict(payload_hash=draft['payload_hash'], acknowledged_warnings=[]))
+        self.assertEqual(self.prove(), 2)
+        self.assertEqual(self.kinds(), {'POST_OUTSIDE_APPROVED_PLAN'})
+        self.assertIn('by FAKE Floor', self.proof['gaps'][0]['detail'])
+        # The same post through a non-ticket route by an unnamed operator is still caught.
+        line = next(x for x in self.s['lines'] if x.get('ticket_id') == draft['ticket_id'])
+        line.update(ticket_id=None, operator_id='floor-tablet')
+        self.assertEqual(self.prove(), 2)
+        self.assertEqual(self.kinds(), {'POST_OUTSIDE_APPROVED_PLAN'})
+
+    def test_duplicate_excluded_row_is_bound_to_its_signature(self):
+        dup = dict(next(r for r in self.count if r['row_id'] == 'B2'), row_id='B2dup', duplicate='x', location='B shelf 2')
+        self.count.append(dup)
+        a = v.analyze(self.b.snapshot(), dict(count=self.count, coverage=self.coverage, moves=[], review=self.review))
+        answer = dict(owner='TEST', action='exclude', exclude_rows=['B2dup'], move_id='', notes='same pallet counted twice')
+        self.review['duplicate_reviews'] = {fp: answer for fp in a['review_template']['duplicate_reviews']}
+        self.inputs = self.write_inputs(self.out / 'inputs')
+        self.cutover()
+        self.assertEqual(self.prove(), 0, self.printed)
+        for change, expected in ((dict(quantity='9999'), 'CHANGED_OBSERVATION'), (dict(row_id='B2dup2'), 'MISSING_OBSERVATION')):
+            with self.subTest(change=change):
+                edited = deepcopy(self.count)
+                rows = [r for r in edited if r['row_id'] == 'B2dup']
+                if 'row_id' in change:
+                    edited.append(dict(rows[0], **change))
+                else:
+                    rows[0].update(change)
+                b = v.analyze(self.b.snapshot(), dict(count=edited, coverage=self.coverage, moves=[], review={}))
+                saved = deepcopy(self.review)
+                for fp, item in b['review_template']['duplicate_reviews'].items():   # the owner re-answers the new duplicate group
+                    self.review['duplicate_reviews'][fp] = dict(answer, exclude_rows=[x for x in item['rows'] if x != 'B2'])
+                final = self.write_inputs(self.out / ('final-' + expected), edited)
+                self.review = saved
+                self.assertEqual(self.prove(final=final), 2, self.printed)
+                self.assertEqual(self.kinds(), {expected}, self.printed)
+
+    def test_zero_stock_product_needs_one_approving_group(self):
+        p = dict(id=5, odoo_code='11005', name='TEST ingredient 5', type='ingredient', active=True, is_service=False, uom='lb')
+        self.s['products'].append(p); self.s['catalog'].append(dict(p))
+        self.coverage.append(dict(self.coverage[0], product_id='5', SKU='11005', name=p['name']))
+        a = v.analyze(self.b.snapshot(), dict(count=self.count, coverage=self.coverage, moves=[], review={}))
+        self.review['coverage_reviews'] = {fp: dict(owner='TEST', confirmed=True) for fp in a['review_template']['coverage_reviews']}
+        self.inputs = self.write_inputs(self.out / 'inputs')
+        self.cutover()
+        self.assertEqual(self.prove(), 2)
+        self.assertEqual(self.kinds(), {'MISSING_PRODUCT'})
+        self.assertEqual(self.proof['gaps'][0]['product_id'], 5)
+        self.assertIn('zero stock', self.proof['gaps'][0]['detail'])
+        del self.groups['G4']
+        preview, approval = self.sign('G4z', ['D'], [4, 5]); self.groups['G4z']['no_change'] = True
+        app.load_plan(preview, approval, self.inputs['count'])   # the executor accepts the same signature
+        self.assertEqual(self.prove(), 0, self.printed)
+        self.assertEqual(self.proof['products_nothing_to_reset'], [5])
+        self.assertEqual(self.proof['groups'][-1]['zero_stock_products'], [5])
+
     def test_proof_never_imports_the_write_executor(self):
         source = Path(w.__file__).read_text()
         self.assertNotIn('import apply_reset', source)

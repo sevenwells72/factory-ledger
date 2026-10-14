@@ -35,6 +35,11 @@ INPUT_KEYS = {'count', 'coverage', 'moves', 'review'}
 APPROVAL_FIELDS = ('Preview file', 'SHA-256', 'Approved product IDs', 'Owner name', 'Named actor', 'Date', 'Signature',
                    'Opening entry classification', 'Owner approves held entries', 'Extra-kosher lots')
 SHARED_ACTORS = ('legacy-shared-key', 'shared', 'master')
+# What apply_reset.post_lot journals per outcome, beyond seq/previous/at/kind/intent/outcome/transaction_id.
+RECEIPT_FIELDS = dict(ok={'receipt_number'}, refused={'error_code'}, held={'hold', 'exception_id'}, uncertain=set())
+RECEIPT_BASE = {'seq', 'previous', 'at', 'kind', 'intent', 'outcome', 'transaction_id'}
+OPEN_HOLD_STATUSES = ('open', 'escalated')
+HOLD_KINDS = ('LARGE_CORRECTION', 'KOSHER_ATTESTATION')   # = apply_reset.HOLD_KINDS values
 VERDICT_OK = 'FULL RESET SCOPE RECONCILED'
 
 
@@ -124,7 +129,8 @@ def signed_plan(preview, approval, target):
         key = (r['product_id'], r['lot_code'])
         check(key not in approved, 'Duplicate lot proposal')
         approved[key] = dict(r, change=change or D(0))
-    check(set(ids) == {pid for pid, _ in approved}, 'Approved product absent from lot preview')
+    zero = v.zero_stock_products(plan)
+    check({pid for pid, _ in approved} <= set(ids) <= {pid for pid, _ in approved} | zero, 'Approved product absent from lot preview')
     needs = [r for r in approved.values() if r['change'] and r.get('owner_approvals')]
     check(not needs or fields['Owner approves held entries'] == 'Y', 'Plan has owner-held entries but approval says N')
     kosher = {f'{r["product_id"]}:{r["lot_code"]}' for r in approved.values() if r.get('new_lot') and r['change']}
@@ -136,7 +142,7 @@ def signed_plan(preview, approval, target):
         check(v.sha(f.local_path(item['path']).read_bytes()) == item['sha256'], 'A signed input file changed after approval')
     data = v.load_inputs(src['count']['path'], src['coverage']['path'], src['moves']['path'], src.get('review', {}).get('path'))
     check(v.canonical(data) == v.canonical(plan['data']), 'Embedded count/review differs from the signed input files')
-    return dict(plan=plan, fields=fields, ids=set(ids), approved=approved, data=data, sha=v.sha(raw))
+    return dict(plan=plan, fields=fields, ids=set(ids), approved=approved, zero_stock=set(ids) & zero, data=data, sha=v.sha(raw))
 
 
 def prove_group(g, target, s, gaps):
@@ -152,7 +158,7 @@ def prove_group(g, target, s, gaps):
     if 'areas' in g and sorted(g['areas']) != (plan.get('area_group') or []):
         gap(gaps, 'AREA_MISMATCH', f'manifest areas {sorted(g["areas"])} but the signed preview was made for {plan.get("area_group")}', name)
     result = dict(name=name, areas=plan.get('area_group'), preview_sha256=sp['sha'], approved_products=sorted(sp['ids']),
-                  approved=sp['approved'], data=sp['data'], actor=sp['fields']['Named actor'], owner=sp['fields']['Owner name'],
+                  approved=sp['approved'], zero_stock=sorted(sp['zero_stock']), data=sp['data'], actor=sp['fields']['Named actor'], owner=sp['fields']['Owner name'],
                   snapshot_at=plan['snapshot_at'], plan_rows=plan['rows'], completed={}, journal=None, no_change=g['no_change'])
     changes = {k: r for k, r in sp['approved'].items() if r['change']}
     if g['no_change']:
@@ -182,13 +188,39 @@ def prove_group(g, target, s, gaps):
         if key not in result['completed'] and lid not in proof['held'] and lid not in proof['uncertain']:
             gap(gaps, 'APPROVED_CHANGE_NOT_POSTED', f'approved change {f.fmt(r["change"])} {r["ledger_unit"]} has no proved post', name, *key)
     for seq, intent in proof['intents'].items():
-        receipt = proof['receipts'].get(seq)
-        if not receipt or receipt.get('outcome') != 'ok':
-            continue
-        line = proof['completed'].get(intent['lot_id'])
-        if not line or line['receipt_number'] != receipt.get('receipt_number') or line['transaction_id'] != receipt.get('transaction_id'):
-            gap(gaps, 'RECEIPT_NOT_MAPPED', f'journal receipt {receipt.get("receipt_number")} (seq {seq}) does not match the one proved post for its approved row', name, intent['product_id'])
+        receipt_gaps(name, seq, intent, proof['receipts'].get(seq), proof, gaps)
     return result
+
+
+def receipt_gaps(name, seq, intent, receipt, proof, gaps):
+    """Every journal receipt, whatever its outcome, must be one the executor writes and must
+    agree with FL: only `ok` names a transaction/receipt, and it is the one proved post."""
+    if receipt is None:
+        return   # crash before the receipt: the ticket proof alone decides (posted, held or uncertain)
+    pid, outcome = intent['product_id'], receipt.get('outcome')
+    line = proof['completed'].get(intent['lot_id'])
+    label = f'journal receipt seq {receipt.get("seq")} for intent {seq} ({intent["phase"]}, ticket {intent.get("ticket_id")})'
+    if outcome not in RECEIPT_FIELDS or (outcome == 'held' and intent['phase'] != 'commit'):
+        gap(gaps, 'INVALID_RECEIPT', f'{label}: outcome {outcome!r} is not one the executor writes for this phase', name, pid)
+        return
+    extra = set(receipt) - RECEIPT_BASE - RECEIPT_FIELDS[outcome]
+    if extra:
+        gap(gaps, 'INVALID_RECEIPT', f'{label}: unexpected field(s) {", ".join(sorted(extra))} on a {outcome!r} receipt', name, pid)
+    if outcome == 'ok':
+        tid, number = receipt.get('transaction_id'), receipt.get('receipt_number')
+        if not (type(tid) is int and tid > 0 and isinstance(number, str) and v.RECEIPT.fullmatch(number)):
+            gap(gaps, 'INVALID_RECEIPT', f'{label}: ok receipt without a valid transaction id and receipt number', name, pid)
+        elif not line or line['receipt_number'] != number or line['transaction_id'] != tid or line.get('ticket_id') != intent.get('ticket_id'):
+            gap(gaps, 'RECEIPT_NOT_MAPPED', f'{label}: {number} TX {tid} does not match the one proved post for its approved row', name, pid)
+        return
+    if receipt.get('transaction_id') is not None:
+        gap(gaps, 'INVALID_RECEIPT', f'{label}: a {outcome!r} receipt names transaction {receipt.get("transaction_id")}', name, pid)
+    if outcome == 'refused' and intent['phase'] == 'commit' and line and line.get('ticket_id') == intent.get('ticket_id'):
+        gap(gaps, 'RECEIPT_CONTRADICTS_FL', f'{label}: journal says the commit was refused but FL posted that ticket ({line["receipt_number"]})', name, pid)
+    if outcome == 'held' and (receipt.get('hold') not in HOLD_KINDS or not (receipt.get('exception_id') is None or type(receipt['exception_id']) is int)):
+        gap(gaps, 'INVALID_RECEIPT', f'{label}: held receipt with hold {receipt.get("hold")!r} / exception {receipt.get("exception_id")!r}', name, pid)
+    if outcome == 'refused' and not (isinstance(receipt.get('error_code'), str) and receipt['error_code']):
+        gap(gaps, 'INVALID_RECEIPT', f'{label}: refused receipt without an error code', name, pid)
 
 
 def scoped_snapshot(s, ids):
@@ -202,7 +234,6 @@ def union(groups, a, s, final_data, gaps):
     """Product, lot, observation, receipt and post coverage across all proved groups."""
     scope = set(a['products'])
     final_rows = {(r['product_id'], r['lot_code']): r for r in a['rows']}
-    final_count = {r['row_id']: r for r in final_data['count']}
     approvers = defaultdict(list)
     for g in groups:
         for pid in g['approved_products']:
@@ -215,9 +246,11 @@ def union(groups, a, s, final_data, gaps):
         gs = approvers.get(pid, [])
         if len(gs) > 1:
             gap(gaps, 'OVERLAP', 'approved in more than one group: ' + ', '.join(g['name'] for g in gs), None, pid)
-        elif not gs and pid in products_with_rows:
-            gap(gaps, 'MISSING_PRODUCT', 'has counted or on-hand lots but no signed group approves it', None, pid)
         elif not gs:
+            # Zero-stock products too: coverage alone is not a signature (Codex PR #120 review).
+            gap(gaps, 'MISSING_PRODUCT', 'has counted or on-hand lots but no signed group approves it' if pid in products_with_rows else
+                'zero stock (no counted or on-hand lot) but no signed group approves it', None, pid)
+        elif pid not in products_with_rows:
             nothing.append(pid)
     multi = []
     for key, r in sorted(final_rows.items(), key=lambda kv: (kv[0][0], kv[0][1])):
@@ -229,21 +262,32 @@ def union(groups, a, s, final_data, gaps):
         if not signed:
             gap(gaps, 'MISSING_LOT', 'lot is in the final count but not in the signed plan of the group that approved its product', g['name'], *key)
             continue
-        final_ids, signed_ids = set(r['row_ids']), set(signed['row_ids'])
-        for rid in sorted(final_ids - signed_ids):
-            gap(gaps, 'MISSING_OBSERVATION', f'observation {rid} was not in the signed plan that reset this lot', g['name'], *key)
-        for rid in sorted(signed_ids - final_ids):
-            gap(gaps, 'DROPPED_OBSERVATION', f'signed observation {rid} is absent from the final count', g['name'], *key)
-        signed_count = {x['row_id']: x for x in g['data']['count']}
-        for rid in sorted(final_ids & signed_ids):
-            if rid in signed_count and final_count.get(rid) != signed_count[rid]:
-                gap(gaps, 'CHANGED_OBSERVATION', f'count row {rid} changed after the group was signed', g['name'], *key)
+        final_ids = set(r['row_ids'])
         # By row id: a sheet may spell a new extra-kosher lot code differently from FL's canonical code.
         areas = sorted({o['area'] for o in a['row_comparison'] if o['row_id'] in final_ids and not o['row_id'].startswith('COVERAGE-')})
         if len(areas) > 1:
             elsewhere = sorted(o['name'] for o in groups if o is not g and any((x['product_id'], x['lot_code']) == key for x in o['plan_rows']))
             multi.append(dict(product_id=key[0], lot_code=key[1], areas=areas, handled_by=g['name'], held_in=elsewhere,
                               row_ids=sorted(final_ids)))
+    # Every count row of an approved product — duplicate-excluded rows included — is bound to
+    # the copy signed with its group: none added, dropped or edited (Codex PR #120 review).
+    final_by_pid = rows_by_product(final_data['count'])
+    final_cover = rows_by_product(final_data['coverage'])
+    for g in groups:
+        signed_by_pid, signed_cover = rows_by_product(g['data']['count']), rows_by_product(g['data']['coverage'])
+        for pid in g['approved_products']:
+            if len(approvers.get(pid, [])) != 1:
+                continue
+            now_rows, then_rows = final_by_pid.get(pid, {}), signed_by_pid.get(pid, {})
+            for rid in sorted(now_rows.keys() - then_rows.keys()):
+                gap(gaps, 'MISSING_OBSERVATION', f'observation {rid} was not in the plan signed for this product', g['name'], pid, now_rows[rid].get('lot_code'))
+            for rid in sorted(then_rows.keys() - now_rows.keys()):
+                gap(gaps, 'DROPPED_OBSERVATION', f'signed observation {rid} is absent from the final count', g['name'], pid, then_rows[rid].get('lot_code'))
+            for rid in sorted(now_rows.keys() & then_rows.keys()):
+                if now_rows[rid] != then_rows[rid]:
+                    gap(gaps, 'CHANGED_OBSERVATION', f'count row {rid} changed after the group was signed', g['name'], pid, then_rows[rid].get('lot_code'))
+            if final_cover.get(pid) != signed_cover.get(pid):
+                gap(gaps, 'CHANGED_COVERAGE', 'all-location coverage row differs from the one signed with this group', g['name'], pid)
     for g in groups:
         for key in g['approved']:
             if key not in final_rows:
@@ -256,11 +300,11 @@ def union(groups, a, s, final_data, gaps):
     for key, items in posted.items():
         if len(items) > 1:
             gap(gaps, 'DOUBLE_POST', 'reset posted by several groups: ' + ', '.join(f'{n} {x["receipt_number"]}' for n, x in items), None, *key)
-    # No executor post outside an approved plan: any reset-text post, or a physical_count
-    # ticket by a group's named actor since the first signed preview, must be a proved post.
+    # No count post outside an approved plan: any reset-text post, or a physical_count post by
+    # ANY actor (ticket or not) entered or dated inside the reset window — from the first count
+    # sheet or first signed preview, whichever is earlier — must be a proved post.
     own = {line['line_id'] for g in groups for line in g['completed'].values()}
-    actors = {g['actor'] for g in groups}
-    since = min((f.stamp(g['snapshot_at']) for g in groups), default=None)
+    since = window_start(groups, final_data)
     lots = {l['id']: l for l in s['lots']}
     extra = []
     for x in s['lines']:
@@ -269,13 +313,19 @@ def union(groups, a, s, final_data, gaps):
         lot = lots.get(x.get('lot_id'))
         opening = any(re.match(v.OPENING, t) for t in v.opening_texts(x, lot))
         entered = f.entered_at(x)
-        executor = (x.get('reason_code') == 'physical_count' and x.get('ticket_id') and x.get('operator_id') in actors
-                    and since is not None and entered is not None and entered >= since)
-        if opening or executor:
+        dated = f.stamp(x['occurred_at']) if x.get('occurred_at') else None
+        counted = (x.get('reason_code') == 'physical_count' and since is not None
+                   and any(t is not None and t >= since for t in (entered, dated)))
+        if opening or counted:
             extra.append(x)
             gap(gaps, 'POST_OUTSIDE_APPROVED_PLAN',
                 f'TX {x["transaction_id"]} {x.get("receipt_number") or "(no receipt)"} {f.fmt(f.number(x["quantity_lb"]))} by {x.get("operator_id")} is not a proved post of any signed group',
                 None, x['product_id'], lot['lot_code'] if lot else None)
+    # A hold still waiting for the owner can post later, after the release sign-off.
+    open_holds = [e for e in s.get('held_exceptions', []) if e.get('product_id') in scope and e.get('status') in OPEN_HOLD_STATUSES]
+    for e in open_holds:
+        gap(gaps, 'OPEN_HOLD', f'{e.get("kind")} hold #{e["id"]} on ticket {e.get("ticket_id")} is {e.get("status")}: it can still post; '
+            'resolve it (reject, or approve and prove it) before release', None, e['product_id'])
     # Owner answers signed with a group may not be changed in the final review.
     final_review = final_data.get('review') or {}
     for g in groups:
@@ -284,7 +334,23 @@ def union(groups, a, s, final_data, gaps):
                 later = (final_review.get(section) or {}).get(fp)
                 if later is not None and later != answer:
                     gap(gaps, 'REVIEW_CHANGED', f'{section} answer {fp[:12]} differs from the one signed with this group', g['name'])
-    return dict(nothing_to_reset=nothing, multi_area=multi, extra_posts=[x['line_id'] for x in extra], proved_line_ids=sorted(own))
+    return dict(nothing_to_reset=nothing, multi_area=multi, extra_posts=[x['line_id'] for x in extra], proved_line_ids=sorted(own),
+                window_start=since.isoformat() if since else None, open_holds=[e['id'] for e in open_holds])
+
+
+def rows_by_product(rows):
+    out = defaultdict(dict)
+    for r in rows:
+        pid = (r.get('product_id') or '').strip()
+        if pid.isdigit():
+            out[int(pid)][r.get('row_id')] = r
+    return out
+
+
+def window_start(groups, final_data):
+    times = [f.stamp(g['snapshot_at']) for g in groups]
+    times += [f.stamp(r['start_time']) for r in final_data['count'] if (r.get('start_time') or '').strip()]
+    return min(times, default=None)
 
 
 def final_gaps(a, exit_code, gaps):
@@ -344,7 +410,7 @@ def run(manifest_path, output, snapshot_path=None, target=None):
     ok = not gaps
     verdict = VERDICT_OK if ok else f'WHOLE RESET NOT RECONCILED: {len(gaps)} gap(s)'
     summary = [dict(name=g['name'], areas=g['areas'], preview_sha256=g['preview_sha256'], journal=g['journal'], no_change=g['no_change'],
-                    approved_products=g['approved_products'], approved_lots=len(g['approved']),
+                    approved_products=g['approved_products'], zero_stock_products=g['zero_stock'], approved_lots=len(g['approved']),
                     posts=sorted((x['receipt_number'] for x in g['completed'].values())), actor=g['actor'], owner=g['owner'])
                for g in groups]
     proof = dict(verdict=verdict, exit_code=0 if ok else 2, target=m['target'], snapshot_at=s['snapshot_at'],
@@ -352,14 +418,15 @@ def run(manifest_path, output, snapshot_path=None, target=None):
                  reset_scope_products=len(a['products']), expected_reset_products=m['expected_reset_products'],
                  rehearsal_scope=scope_ids is not None, final_inputs={k: dict(path=str(p.relative_to(f.OUT)), sha256=v.sha(p.read_bytes())) for k, p in m['final_inputs'].items()},
                  final_verification_exit=final_exit, groups=summary, products_nothing_to_reset=covered['nothing_to_reset'],
-                 multi_area_lots=covered['multi_area'], proved_line_ids=covered['proved_line_ids'], gaps=gaps)
+                 multi_area_lots=covered['multi_area'], proved_line_ids=covered['proved_line_ids'],
+                 count_post_window_start=covered['window_start'], open_holds=covered['open_holds'], gaps=gaps)
     (output / 'whole-reset-proof.json').write_text(json.dumps(proof, indent=2, default=str) + '\n')
     with (output / 'whole-reset-gaps.csv').open('w', newline='') as stream:
         w = csv.DictWriter(stream, fieldnames=['kind', 'group', 'product_id', 'lot_code', 'detail'])
         w.writeheader()
         w.writerows(gaps)
     lines = ['# Whole-reset proof', '',
-             f'**{verdict}.** ' + ('Every reset-scope product is approved by exactly one signed area group, every count observation sits inside that group\'s signed plan, every posted reset is proved by its own group\'s journal, no reset post exists outside a signed plan, and the final whole-scope verification reconciles with zero unexplained differences.'
+             f'**{verdict}.** ' + ('Every reset-scope product is approved by exactly one signed area group, every count observation sits inside that group\'s signed plan, every journal receipt matches FL, every posted reset is proved by its own group\'s journal, no physical_count post by any actor in the reset window falls outside a signed plan, no owner hold is still open, and the final whole-scope verification reconciles with zero unexplained differences.'
                                    if ok else 'This is not a release sign-off. Each gap below names the group, product and lot; fix the cause and rerun. Do not edit signed files or concatenate journals.'), '',
              f'Target **{m["target"]}**, one read-only snapshot at {s["snapshot_at"]}. Reset scope {len(a["products"])} products (manifest expects {m["expected_reset_products"]})'
              + ('; **staging rehearsal scope**, not the production catalog.' if scope_ids is not None else '.'), '',
@@ -371,7 +438,8 @@ def run(manifest_path, output, snapshot_path=None, target=None):
     lines += ['', '## Multi-area lots (handled once)', '']
     lines += f.table(['Product / lot', 'Areas', 'Reset by', 'Held in'],
                      [[f'{x["product_id"]} / {x["lot_code"]}', ', '.join(x['areas']), x['handled_by'], ', '.join(x['held_in']) or '-'] for x in covered['multi_area']]) if covered['multi_area'] else ['None.']
-    lines += ['', f'Products with no counted or on-hand lots (coverage-certified, nothing to reset): {len(covered["nothing_to_reset"])}.',
+    lines += ['', f'Zero-stock products (no counted or on-hand lot), each approved by one signed group: {len(covered["nothing_to_reset"])}.',
+              f'Count-post window checked from {covered["window_start"]} (all actors).',
               '', '## Gaps', '']
     lines += f.table(['Kind', 'Group', 'Product', 'Lot', 'Detail'], [[x['kind'], x['group'], x['product_id'], x['lot_code'], x['detail']] for x in gaps]) if gaps else ['None.']
     lines += ['', 'Final whole-scope verification: `final/reset-verification-v3.md` (exit ' + str(final_exit) + '). Machine-readable: `whole-reset-proof.json`, `whole-reset-gaps.csv`.']
