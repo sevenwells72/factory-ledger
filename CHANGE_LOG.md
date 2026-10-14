@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-14 12:05 — Runbook O-5/O-7: custom domain must be added to dashboard apiBase()
+- **File(s) changed:** `docs/cutover/CUTOVER-RUNBOOK.md`
+- **What changed:** O-5 and O-7 notes now say `dashboard-runtime.js` `apiBase()` recognises only cns-factory-ledger.netlify.app as production, so any custom domain must be added there in the same change (FOLLOWUPS P1.28 on branch test/fix-legacy-runners).
+- **Why:** Found in the 2026-10-14 legacy browser-runner triage: on any other non-Netlify host the dashboard sends API calls to its own origin. Docs only.
+
+---
+
 ## 2026-10-14 11:03 — Added master November cutover runbook
 - **File(s) changed:** `docs/cutover/CUTOVER-RUNBOOK.md`
 - **What changed:** Added Michael's one-page summary, a 36-step timed Nov 20/Dec 4 checklist, 17 owned OPEN items, count/reset/key/GPT/session/Assistant/A10/monitoring/M0 procedures and rollback evidence. Reconciled merged main 611d0c4 with draft PRs #112/#113; flagged multi-area reset proof and Friday direct-close bypass as gate blockers.
