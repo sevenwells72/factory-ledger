@@ -163,6 +163,7 @@ ROUTE_ACTIONS = {
     ('POST', '/inventory/found'): 'found',
     ('POST', '/inventory/found-with-new-product'): 'found',
     ('POST', '/void/{transaction_id}'): 'void',
+    ('POST', '/void/{transaction_id}/prepare'): 'void',
     ('PATCH', '/lots/{lot_id}/rename'): 'rename_lot',
     ('PATCH', '/lots/{lot_code}/supplier-lot'): 'update_supplier_lot',
     ('POST', '/ship'): 'ship_standalone',
@@ -189,6 +190,7 @@ ROUTE_ACTIONS = {
     ('PATCH', '/customers/{customer_id}'): 'manage_customers',
     # A3b /exceptions writes (named actors only; kind-specific owner checks in the handler)
     ('POST', '/exceptions/{exception_id}/resolve'): 'resolve_exception',
+    ('POST', '/exceptions/{exception_id}/resolve/prepare'): 'resolve_exception',
     ('POST', '/exceptions/{exception_id}/approve'): 'approve_exception',
     ('POST', '/exceptions/{exception_id}/reject'): 'approve_exception',
 }

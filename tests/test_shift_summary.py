@@ -408,7 +408,7 @@ def test_hash_is_deterministic_and_covers_only_receipt_rows(client, db_cursor, i
                       (items['ingredient']['id'], seed_receive(db_cursor)['supplier_id'], main.get_plant_now().date()))
     real_now = main.get_plant_now()
     monkeypatch.setattr(main, 'get_plant_now', lambda: real_now + timedelta(hours=3))
-    c = summary(client, key)
+    c = summary(client, key, date=a['date'])  # keep the requested day when +3h crosses midnight
     assert section(c, 'open_exceptions')['count'] == 1 and section(c, 'not_entered_yet')['count'] >= 1
     assert c['summary_hash'] == a['summary_hash']
     posted(client, 'adjust', adjust(items, -1), key)

@@ -1,0 +1,51 @@
+{
+  "validated_at": "2026-10-13T21:09:40.893048-04:00",
+  "base_commit": "1a423f767f202473862ef0b98d4e1601b652ac3f",
+  "baseline": {
+    "source": "unchanged GitHub main archive, isolated source directory (no other worktree)",
+    "regression_subset": "six requested changes and mandatory-note preservation",
+    "failed": 15,
+    "passed": 6
+  },
+  "targeted": {
+    "file": "tests/test_resolution_receipts.py",
+    "passed": 35,
+    "failed": 0,
+    "covers": [
+      "ADJ plus XR atomicity",
+      "nonstock XR",
+      "VD and restore backlink",
+      "blank regular and kosher approval",
+      "mandatory reject/write-off notes",
+      "actor action matrix",
+      "case lb and percentage thresholds",
+      "zero delta",
+      "partial evidence and immutable snapshots",
+      "prepared stale state",
+      "rollback including counters",
+      "concurrent commit replay"
+    ]
+  },
+  "full_python": {
+    "database": "fl_receipts_verified_20261013",
+    "fresh": true,
+    "postgres_major": 17,
+    "encoding": "UTF8",
+    "command": "TEST_DATABASE_URL=postgresql://localhost/fl_receipts_verified_20261013 scripts/run_tests.sh --tb=short",
+    "passed": 2833,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "elapsed_seconds": 74.31
+  },
+  "node": {
+    "command": "node --test tests/*.js",
+    "passed": 107,
+    "failed": 0,
+    "skipped": 0
+  },
+  "staging_evidence": "docs/deployments/resolution-receipts-staging.json",
+  "production_access": false,
+  "hosted_deployment": false,
+  "merged": false
+}

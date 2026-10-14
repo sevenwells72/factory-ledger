@@ -1,5 +1,19 @@
 # Followups
 
+## Resolution receipts coordination (2026-10-13; draft backend work)
+
+- PR #107: consume the exact receipt and `allowed_actions` contract in
+  `docs/contracts/resolution-receipts.md`; display effective void status and use
+  XR from the prepared commit, preserving the exception's source receipt.
+- PR #108: after the backend fix lands, update `a3b_lb_equivalent`,
+  `test_R6b_hold_prediction_mirrors_a3b_units` and the readiness case-unit hold
+  prediction: a 40 lb correction on a 15 lb case is 40 lb, not 600 lb. Preserve
+  its shortage-before-lot locking, exact shortage set, and fixing ADJ ticket
+  pointer when integrating XR. Count-tool files/worktree remain untouched here.
+- Production migration 080 and deployment require the operator's separate action
+  after Claude Code review; this builder only applied 080 to staging/local DBs.
+
+
 Deferred work from Pass 1 (2026-04-20). Not shipped in Pass 1 — tracked here for a
 future PR.
 

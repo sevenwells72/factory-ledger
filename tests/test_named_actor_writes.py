@@ -172,6 +172,8 @@ def test_actor_only_scope_is_approved_writes_plus_product_resolution():
         # A3b: the exceptions queue is named-actor only (shared keys get nothing new).
         ('GET', '/exceptions'), ('GET', '/exceptions/{exception_id}'),
         ('POST', '/exceptions/{exception_id}/resolve'),
+        ('POST', '/exceptions/{exception_id}/resolve/prepare'),
+        ('POST', '/void/{transaction_id}/prepare'),
         ('POST', '/exceptions/{exception_id}/approve'),
         ('POST', '/exceptions/{exception_id}/reject'),
         ('POST', '/ship/prepare'), ('POST', '/ship/bulk/prepare'),
@@ -265,6 +267,11 @@ def test_product_resolution_rejects_unauthorized_keys(
 @pytest.mark.parametrize('identity', NAMES + ('shared',))
 def test_each_write_persists_the_authenticated_operator(
         client, db_cursor, named_actors, prepared, method, route, identity, monkeypatch):
+    # A2 floor voids require an own, same-day posting. The generic seed is legacy.
+    if route.startswith('/void/') and identity != 'shared' and ROLES[identity] == 'floor':
+        db_cursor.execute("INSERT INTO transactions(type,entered_by_actor_id,operator_id) VALUES ('adjust',%s,%s) RETURNING id",
+                          (named_actors[identity]['id'], identity))
+        prepared = {**prepared, 'transaction_id': db_cursor.fetchone()['id']}
     body = _payload(db_cursor, route, prepared)
     allocation_id = None
     if route.endswith('/cancel'):

@@ -62,6 +62,7 @@ ACTOR_ROUTES = frozenset({
     ('GET', '/exceptions'),
     ('GET', '/exceptions/{exception_id}'),
     ('POST', '/exceptions/{exception_id}/resolve'),
+    ('POST', '/exceptions/{exception_id}/resolve/prepare'),
     ('POST', '/exceptions/{exception_id}/approve'),
     ('POST', '/exceptions/{exception_id}/reject'),
 })
@@ -225,6 +226,11 @@ def correction_review(api, action, product, quantity, *, book_balance_before=Non
     read (prepare: current; commit: under FOR UPDATE on the lot). `unknown` is
     highlighted whatever the size (§5.1)."""
     unit = uom or api.ledger_quantity_unit(product.get('uom'))
+    # Adjust delta_lb and the book balance already contain pounds for weighted
+    # cases. Only unweighted count-based stock retains container quantities.
+    if action == 'adjust' and unit.strip().lower() in ('case', 'cases', 'cs') and (
+            product.get('case_size_lb') or product.get('default_case_weight_lb')):
+        unit = 'lb'
     lb = to_lb(product, quantity, unit)
     magnitude = abs(lb) if lb is not None else None
     review = {'action': action, 'quantity': float(quantity), 'unit': unit, 'lb_equivalent': lb,
@@ -587,7 +593,10 @@ class DecisionRequest(BaseModel):
     attachment_id: Optional[int] = Field(None, gt=0)
     note: Optional[str] = Field(None, max_length=2000)
 
-    _strip = field_validator('note')(_non_blank)
+    @field_validator('note')
+    @classmethod
+    def optional_note(cls, value):
+        return value.strip() or None if isinstance(value, str) else value
 
     class Config:
         extra = 'forbid'
@@ -623,6 +632,7 @@ def shortage_evidence(api, cur, request, actor, row, body):
     voided           — the short posting itself is no longer effective (voided).
     Returns (resolution_ticket_id, detail patch, closes).
     """
+    import resolution_receipts
     cur.execute('SELECT id, short_lb FROM shortage_flags WHERE exception_id=%s', (row['id'],))
     flag = cur.fetchone()
     short_lb = float(flag['short_lb']) if flag else None
@@ -650,6 +660,7 @@ def shortage_evidence(api, cur, request, actor, row, body):
             import attachments
             evidence = attachments.verified(cur, body.attachment_ref, actor, exception_id=row['id'], kinds=('correction_photo',), claim=True)
             attachments.load(api, evidence)
+        adjustment = None
         if abs(delta) > EPSILON:
             if review['photo_required'] and not body.attachment_ref:
                 fail(422, 'PHOTO_REQUIRED',
@@ -660,16 +671,26 @@ def shortage_evidence(api, cur, request, actor, row, body):
             labels = cur.fetchone() or {'label_en': 'Physical count', 'label_es': 'Conteo físico'}
             req = api.AdjustRequest(mode='commit', product_name=product['name'], lot_code=lot['lot_code'], adjustment_lb=delta,
                                     reason=labels['label_en'], reason_es=labels['label_es'])
+            adjustment = resolution_receipts.begin(api, cur, 'adjust', actor,
+                {'lot_id': lot['id'], 'delta_lb': delta, 'reason_code': 'physical_count', 'note': body.note},
+                {'product_id': product['id'], 'product_name': product['name'], 'lot_id': lot['id'],
+                 'lot_code': lot['lot_code'], 'delta_lb': delta, 'correction_review': review, 'exception_id': row['id']})
             posted = api._adjust_commit_core(cur, req, request, api.get_plant_now(), 'database', product=product,
-                                             lot_id=lot['id'], reason_code='physical_count',
+                                             lot_id=lot['id'], **adjustment, reason_code='physical_count',
                                              note=f'Shortage #{row["id"]} counted {float(body.counted_lb)} lb: {body.note}')
             if hasattr(posted, 'status_code'):
                 fail(409, 'CORRECTION_BLOCKED', 'The counted correction is blocked by the product rules.',
                      blocked=json.loads(bytes(posted.body).decode()))
             if body.attachment_ref:
                 cur.execute('UPDATE attachments SET transaction_id=%s WHERE id=%s', (posted['transaction_id'], evidence['id']))
-            resolution.update(transaction_id=posted['transaction_id'], new_balance_lb=float(posted['new_balance_lb']))
-        return None, {'resolution': resolution}, True
+            posted.update(**adjustment, replayed=False, correction_review=review, exception_id=row['id'], lot_id=lot['id'])
+            import kosher_tiers
+            kosher_tiers.snapshot_response(cur, posted, 'adjust', {'lot_id': lot['id']})
+            resolution_receipts.finish(api, cur, adjustment, posted,
+                {'transaction_ids': [posted['transaction_id']], 'lot_ids': [lot['id']]})
+            resolution.update(transaction_id=posted['transaction_id'], new_balance_lb=float(posted['new_balance_lb']),
+                              **adjustment)
+        return adjustment['ticket_id'] if adjustment else None, {'resolution': resolution}, True
     if kind == 'missing_movement':
         if not body.receipt_number:
             fail(422, 'RECEIPT_REQUIRED', "Resolving as 'missing_movement' needs receipt_number: the receive/make that was never entered.",
@@ -757,8 +778,23 @@ def _nest(item, id_key, name_key, out_key, name_out='name'):
     item[out_key] = {'id': id_, name_out: name} if id_ is not None else None
 
 
-def _view(cur, row):
+def allowed_actions(row, actor):
+    """The same A2 policy as the write gate; evidence is still checked on write."""
+    role = permissions.role_of(actor)
+    if row['status'] not in ('open', 'escalated') or not permissions.allowed('resolve_exception', role):
+        return []
+    owner = permissions.allowed('approve_exception', role)
+    if row['kind'] in OWNER_KINDS and not owner:
+        return []
+    if row['kind'] in ('LARGE_CORRECTION', 'KOSHER_ATTESTATION'):
+        return ['approve', 'reject'] if row.get('ticket_status') == HELD and owner else []
+    return [kind for kind in RESOLUTION_KINDS.get(row['kind'], DEFAULT_RESOLUTIONS)
+            if kind not in OWNER_RESOLUTIONS or owner]
+
+
+def _view(cur, row, actor=None):
     item = dict(row)
+    item['allowed_actions'] = allowed_actions(row, actor) if actor else []
     item['overdue'] = bool(item['due_at'] and item['status'] in ('open', 'escalated')
                            and item['due_at'] < datetime.now(PLANT_TIMEZONE))
     _nest(item, 'product_id', 'product_name', 'product')
@@ -779,13 +815,15 @@ def _view(cur, row):
 
 
 _SELECT = '''SELECT e.*, p.name AS product_name, l.lot_code, o.name AS owner_name, r.name AS resolved_by_name,
-                    wt.status AS ticket_status, wt.receipt_number AS ticket_receipt_number
+                    wt.status AS ticket_status, wt.receipt_number AS ticket_receipt_number,
+                    fixing.receipt_number AS resolution_posting_receipt_number
              FROM exceptions e
              LEFT JOIN products p ON p.id=e.product_id
              LEFT JOIN lots l ON l.id=e.lot_id
              LEFT JOIN actors o ON o.id=e.owner_actor_id
              LEFT JOIN actors r ON r.id=e.resolved_by_actor_id
-             LEFT JOIN write_tickets wt ON wt.id=e.ticket_id'''
+             LEFT JOIN write_tickets wt ON wt.id=e.ticket_id
+             LEFT JOIN write_tickets fixing ON fixing.id=e.resolution_ticket_id'''
 
 
 def _one(cur, exception_id, lock=False):
@@ -798,6 +836,89 @@ def _one(cur, exception_id, lock=False):
     if not row:
         fail(404, 'EXCEPTION_NOT_FOUND', 'No exception has this id.')
     return row
+
+
+def _record_resolution(api, cur, row, actor, kind, *, prepared=None):
+    import resolution_receipts
+    receipt = resolution_receipts.decision(api, cur, row, actor, kind, prepared=prepared)
+    response = _view(cur, _one(cur, row['id']), actor)
+    response['replayed'] = False
+    if prepared is not None:
+        response = {**receipt, 'replayed': False, 'exception': response,
+                    'source_receipt_number': row['receipt_number'],
+                    'adjustment_receipt_number': (response.get('detail') or {}).get('resolution', {}).get('receipt_number')
+                    if kind == 'counted' else None}
+    return resolution_receipts.finish(api, cur, receipt, response,
+        {'exception_id': row['id'], 'transaction_ids': [], 'lot_ids': []})
+
+
+def require_resolution(row, actor, kind):
+    permissions.require('resolve_exception', actor)
+    if row['kind'] in OWNER_KINDS or kind in OWNER_RESOLUTIONS:
+        permissions.require('approve_exception', actor)
+    if row['kind'] in ('LARGE_CORRECTION', 'KOSHER_ATTESTATION'):
+        fail(409, 'USE_APPROVE_OR_REJECT', 'A held correction is approved or rejected, not resolved.',
+             approve=f"/exceptions/{row['id']}/approve", reject=f"/exceptions/{row['id']}/reject")
+    if row['status'] not in ('open', 'escalated'):
+        fail(409, 'EXCEPTION_CLOSED', f"Exception #{row['id']} is already {row['status']}.",
+             status=row['status'], resolution_kind=row['resolution_kind'],
+             resolved_at=row['resolved_at'].isoformat() if row['resolved_at'] else None)
+    choices = RESOLUTION_KINDS.get(row['kind'], DEFAULT_RESOLUTIONS)
+    if kind not in choices:
+        fail(422, 'RESOLUTION_KIND_INVALID', f"{row['kind']} resolves as one of {', '.join(choices)}.", allowed=list(choices))
+    if kind not in allowed_actions(row, actor):
+        permissions.require('approve_exception', actor)
+
+
+def lock_resolution(cur, exception_id):
+    # Same order as attachment writes: shipment before exception, then lot.
+    cur.execute('SELECT shipment_id,kind FROM exceptions WHERE id=%s', (exception_id,))
+    head = cur.fetchone()
+    if head and head['kind'] == 'BOL_PHOTO_MISSING':
+        cur.execute('SELECT id FROM shipments WHERE id=%s FOR UPDATE', (head['shipment_id'],))
+    return _one(cur, exception_id, lock=True)
+
+
+def resolve_in_transaction(api, cur, exception_id, body, request, actor, *, prepared=None):
+    permissions.require('resolve_exception', actor)
+    import resolution_receipts
+    actor = resolution_receipts.current_actor(cur, actor)
+    row = lock_resolution(cur, exception_id)
+    require_resolution(row, actor, body.resolution_kind)
+    # Evidence: a shortage closes on a matching correction or receipt, never on a note alone.
+    resolution_ticket_id, patch, closes = None, {}, True
+    if row['kind'] in EVIDENCE_KINDS:
+        resolution_ticket_id, patch, closes = shortage_evidence(api, cur, request, actor, row, body)
+    elif row['kind'] in ('BOL_PHOTO_MISSING', 'SHIPMENT_PROOF_MISSING') and body.resolution_kind == 'photo_attached':
+        if not body.attachment_ref:
+            fail(422, 'PHOTO_REQUIRED', 'Upload and attach the BOL photo.')
+        import attachments
+        patch = {'photo': attachments.attach_shipment(api, cur, row['shipment_id'], body.attachment_ref, actor)}
+        if patch['photo']['kind'] != 'bol' or not patch['photo']['content_type'].startswith('image/'):
+            fail(422, 'ATTACHMENT_KIND_INVALID', 'BOL photo evidence is required.')
+    elif row['kind'] == 'UNIDENTIFIED_LOT' and body.resolution_kind == 'identified':
+        patch = identified_evidence(cur, row)
+    if body.receipt_number and resolution_ticket_id is None:
+        resolution_ticket_id = _receipt_ticket(cur, body.receipt_number)['id']
+    if not closes:
+        # Partial coverage: the claim is recorded, the shortage stays open for the remainder.
+        cur.execute('UPDATE exceptions SET detail = detail || %s::jsonb WHERE id=%s',
+                    (json.dumps(patch, default=str), exception_id))
+        api._record_actor_write(cur, request, 'exceptions', exception_id)
+        return _record_resolution(api, cur, row, actor, body.resolution_kind, prepared=prepared)
+    new_status = 'waived' if body.resolution_kind in WAIVE_KINDS else 'resolved'
+    cur.execute('''UPDATE exceptions SET status=%s, resolved_at=clock_timestamp(), resolved_by_actor_id=%s,
+                       resolution_kind=%s, resolution_note=%s, resolution_ticket_id=%s,
+                       detail = detail || %s::jsonb WHERE id=%s''',
+                (new_status, actor['id'], body.resolution_kind, body.note, resolution_ticket_id,
+                 json.dumps(patch, default=str), exception_id))
+    if row['kind'] == 'SHORTAGE':
+        cur.execute('''UPDATE shortage_flags SET status='resolved', resolution_kind=%s, resolved_at=clock_timestamp(),
+                           resolved_by_actor_id=%s, resolution_ticket_id=%s
+                       WHERE exception_id=%s AND status IN ('open','escalated')''',
+                    (body.resolution_kind, actor['id'], resolution_ticket_id, exception_id))
+    api._record_actor_write(cur, request, 'exceptions', exception_id)
+    return _record_resolution(api, cur, row, actor, body.resolution_kind, prepared=prepared)
 
 
 def register_routes(app, api):
@@ -829,73 +950,20 @@ def register_routes(app, api):
                 (kinds, kinds, statuses, statuses, overdue, overdue, overdue, owner_actor_id, owner_actor_id,
                  product_id, product_id, lot_id, lot_id, limit))
             rows = cur.fetchall()
-            return {'count': len(rows), 'status': status, 'exceptions': [_view(cur, r) for r in rows]}
+            return {'count': len(rows), 'status': status, 'exceptions': [_view(cur, r, who(request)) for r in rows]}
 
     @app.get('/exceptions/{exception_id}')
     def get_exception(exception_id: int, request: Request, _: bool = Depends(api.verify_api_key)):
         permissions.require('list_exceptions', who(request))
         with api.get_transaction() as cur:
-            return _view(cur, _one(cur, exception_id))
+            return _view(cur, _one(cur, exception_id), who(request))
 
     @app.post('/exceptions/{exception_id}/resolve')
     def resolve_exception(exception_id: int, body: ResolveRequest, request: Request, _: bool = Depends(api.verify_api_key)):
         actor = who(request)
         permissions.require('resolve_exception', actor)
         with api.get_transaction() as cur:
-            cur.execute('SELECT shipment_id,kind FROM exceptions WHERE id=%s', (exception_id,))
-            head = cur.fetchone()
-            if head and head['kind'] == 'BOL_PHOTO_MISSING':
-                cur.execute('SELECT id FROM shipments WHERE id=%s FOR UPDATE', (head['shipment_id'],))
-            row = _one(cur, exception_id, lock=True)
-            if row['kind'] in OWNER_KINDS:
-                permissions.require('approve_exception', actor)
-            if row['kind'] in ('LARGE_CORRECTION','KOSHER_ATTESTATION'):
-                fail(409, 'USE_APPROVE_OR_REJECT', 'A held correction is approved or rejected, not resolved.',
-                     approve=f'/exceptions/{exception_id}/approve', reject=f'/exceptions/{exception_id}/reject')
-            if row['status'] not in ('open', 'escalated'):
-                fail(409, 'EXCEPTION_CLOSED', f'Exception #{exception_id} is already {row["status"]}.',
-                     status=row['status'], resolution_kind=row['resolution_kind'],
-                     resolved_at=row['resolved_at'].isoformat() if row['resolved_at'] else None)
-            allowed = RESOLUTION_KINDS.get(row['kind'], DEFAULT_RESOLUTIONS)
-            if body.resolution_kind not in allowed:
-                fail(422, 'RESOLUTION_KIND_INVALID', f'{row["kind"]} resolves as one of {", ".join(allowed)}.',
-                     allowed=list(allowed))
-            if body.resolution_kind in OWNER_RESOLUTIONS:
-                permissions.require('approve_exception', actor)     # written_off / waived: owner only
-            # Evidence: a shortage closes on a matching correction or receipt, never on a note alone.
-            resolution_ticket_id, patch, closes = None, {}, True
-            if row['kind'] in EVIDENCE_KINDS:
-                resolution_ticket_id, patch, closes = shortage_evidence(api, cur, request, actor, row, body)
-            elif row['kind'] in ('BOL_PHOTO_MISSING', 'SHIPMENT_PROOF_MISSING') and body.resolution_kind == 'photo_attached':
-                if not body.attachment_ref:
-                    fail(422, 'PHOTO_REQUIRED', 'Upload and attach the BOL photo.')
-                import attachments
-                patch = {'photo': attachments.attach_shipment(api, cur, row['shipment_id'], body.attachment_ref, actor)}
-                if patch['photo']['kind'] != 'bol' or not patch['photo']['content_type'].startswith('image/'):
-                    fail(422, 'ATTACHMENT_KIND_INVALID', 'BOL photo evidence is required.')
-            elif row['kind'] == 'UNIDENTIFIED_LOT' and body.resolution_kind == 'identified':
-                patch = identified_evidence(cur, row)
-            if body.receipt_number and resolution_ticket_id is None:
-                resolution_ticket_id = _receipt_ticket(cur, body.receipt_number)['id']
-            if not closes:
-                # Partial coverage: the claim is recorded, the shortage stays open for the remainder.
-                cur.execute('UPDATE exceptions SET detail = detail || %s::jsonb WHERE id=%s',
-                            (json.dumps(patch, default=str), exception_id))
-                api._record_actor_write(cur, request, 'exceptions', exception_id)
-                return _view(cur, _one(cur, exception_id))
-            new_status = 'waived' if body.resolution_kind in WAIVE_KINDS else 'resolved'
-            cur.execute('''UPDATE exceptions SET status=%s, resolved_at=clock_timestamp(), resolved_by_actor_id=%s,
-                               resolution_kind=%s, resolution_note=%s, resolution_ticket_id=%s,
-                               detail = detail || %s::jsonb WHERE id=%s''',
-                        (new_status, actor['id'], body.resolution_kind, body.note, resolution_ticket_id,
-                         json.dumps(patch, default=str), exception_id))
-            if row['kind'] == 'SHORTAGE':
-                cur.execute('''UPDATE shortage_flags SET status='resolved', resolution_kind=%s, resolved_at=clock_timestamp(),
-                                   resolved_by_actor_id=%s, resolution_ticket_id=%s
-                               WHERE exception_id=%s AND status IN ('open','escalated')''',
-                            (body.resolution_kind, actor['id'], resolution_ticket_id, exception_id))
-            api._record_actor_write(cur, request, 'exceptions', exception_id)
-            return _view(cur, _one(cur, exception_id))
+            return resolve_in_transaction(api, cur, exception_id, body, request, actor)
 
     def _held(cur, exception_id):
         """Lock the TICKET first, then the exception — the order the photo-release commit
@@ -1004,6 +1072,9 @@ def register_routes(app, api):
             row, ticket = _held(cur, exception_id)
             owner = _current_approver(cur, owner)
             if row['status'] == 'resolved' and row['resolution_kind'] == 'declined' and ticket['status'] == 'rejected':
+                if row['resolution_receipt_number']:
+                    cur.execute('SELECT response FROM write_tickets WHERE receipt_number=%s', (row['resolution_receipt_number'],))
+                    return {**cur.fetchone()['response'], 'replayed': True}
                 return {'rejected': True, 'replayed': True, 'exception_id': exception_id, 'ticket_id': ticket['id'],
                         'ticket_status': ticket['status']}
             if row['status'] not in ('open', 'escalated'):
@@ -1018,5 +1089,10 @@ def register_routes(app, api):
             cur.execute("UPDATE write_tickets SET status='rejected', reject_reason=%s WHERE id=%s",
                         (json.dumps([{'code': 'DECLINED_BY_OWNER', 'message': note, 'actor': owner['name']}]), ticket['id']))
             api._record_actor_write(cur, request, 'exceptions', exception_id)
-            return {'rejected': True, 'replayed': False, 'exception_id': exception_id, 'ticket_id': ticket['id'],
-                    'ticket_status': 'rejected', 'posted': False, 'declined_by': owner['name'], 'note': note}
+            import resolution_receipts
+            receipt = resolution_receipts.decision(api, cur, row, owner, 'declined')
+            return resolution_receipts.finish(api, cur, receipt,
+                {'rejected': True, 'replayed': False, 'exception_id': exception_id, 'ticket_id': ticket['id'],
+                 'ticket_status': 'rejected', 'posted': False, 'declined_by': owner['name'], 'note': note,
+                 'resolution_receipt_number': receipt['receipt_number']},
+                {'exception_id': exception_id, 'transaction_ids': [], 'lot_ids': []})
