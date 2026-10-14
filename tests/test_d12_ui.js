@@ -11,23 +11,33 @@ test('receipt times display the New York plant day across UTC midnight',()=>{ass
 test('commit failure retains nested FL blockers verbatim',()=>{assert.equal(ui.errorText({detail:{message:'Draft no longer valid; prepare again.',blockers:[{message:'Enter the BOL number before recording.'}]}},'en'),'Draft no longer valid; prepare again.\nEnter the BOL number before recording.');});
 
 // Review fix round 1 (PR #107). Each test failed on 71125d9.
-test('fix 1: a resolve or reject result never borrows the source receipt and is never green',()=>{
- const source={id:10,kind:'SHORTAGE',status:'resolved',receipt_number:'MK-261013-003'};
- assert.deepEqual(ui.decisionOutcome('resolve',source),{tone:'neutral',status:'resolved'});
- assert.deepEqual(ui.decisionOutcome('resolve',{...source,status:'waived'}),{tone:'neutral',status:'waived'});
- assert.deepEqual(ui.decisionOutcome('resolve',{...source,status:'open'}),{tone:'neutral',status:'still_open'});
- assert.deepEqual(ui.decisionOutcome('reject',{rejected:true,receipt_number:'ADJ-261013-004'}),{tone:'neutral',status:'declined'});
- assert.equal(ui.decisionOutcome('resolve',{detail:{error_code:'X'}}).tone,'bad');
- assert.deepEqual(ui.decisionOutcome('approve',{receipt_number:'ADJ-261013-004',transaction_id:24}),{tone:'good',receipt:'ADJ-261013-004'});
- assert.equal(ui.decisionOutcome('approve',{receipt_number:'ADJ-261013-004',held:true}).tone,'bad');
+test('resolve and reject use their XR receipt, never the source posting',()=>{
+ const source={id:10,kind:'SHORTAGE',status:'resolved',receipt_number:'MK-261013-003'},xr='XR-261013-001';
+ assert.deepEqual(ui.decisionOutcome('resolve',source),{tone:'bad'});
+ assert.deepEqual(ui.decisionOutcome('resolve',{...source,resolution_receipt_number:xr}),{tone:'good',receipt:xr,status:'resolved'});
+ assert.deepEqual(ui.decisionOutcome('resolve',{...source,status:'waived',resolution_receipt_number:xr}),{tone:'good',receipt:xr,status:'waived'});
+ assert.deepEqual(ui.decisionOutcome('resolve',{...source,status:'open',resolution_receipt_number:xr}),{tone:'good',receipt:xr,status:'still_open'});
+ assert.deepEqual(ui.decisionOutcome('reject',{rejected:true,posted:false,ticket_status:'rejected',receipt_number:'ADJ-261013-004',resolution_receipt_number:xr}),{tone:'good',receipt:xr,status:'declined'});
+ assert.equal(ui.decisionOutcome('reject',{rejected:true,receipt_number:'ADJ-261013-004'}).tone,'bad');
 });
-test('fix 2: only resolutions this person may use are offered',()=>{
- const floor={resolve_exception:true,approve_exception:false},owner={resolve_exception:true,approve_exception:true},office={resolve_exception:false,approve_exception:false};
- assert.deepEqual(ui.resolutionChoices({kind:'LARGE_CORRECTION'},floor,['approved','declined']),[]);
- assert.deepEqual(ui.resolutionChoices({kind:'UNIDENTIFIED_LOT'},floor,['identified','written_off']),['identified']);
- assert.deepEqual(ui.resolutionChoices({kind:'UNIDENTIFIED_LOT'},owner,['identified','written_off']),['identified','written_off']);
- assert.deepEqual(ui.resolutionChoices({kind:'SHORTAGE'},office,['counted','missing_movement','voided']),[]);
- assert.deepEqual(ui.resolutionChoices({kind:'SHORTAGE',allowed_resolutions:['counted']},owner,['counted','voided']),['counted'],'FL list wins');
+test('decision receipts fail closed on missing or malformed XR and failed actions',()=>{
+ for(const receipt of [undefined,null,'',123,'ADJ-261013-004','XR-',' XR-261013-001'])assert.equal(ui.decisionOutcome('resolve',{status:'resolved',resolution_receipt_number:receipt}).tone,'bad');
+ for(const extra of [{success:false},{held:true},{status:'unknown'}])assert.equal(ui.decisionOutcome('resolve',{status:'resolved',resolution_receipt_number:'XR-261013-001',...extra}).tone,'bad');
+ assert.equal(ui.decisionOutcome('reject',{rejected:false,resolution_receipt_number:'XR-261013-001'}).tone,'bad');
+});
+test('approve and counted decisions distinguish XR from the posting receipt',()=>{
+ const xr='XR-261013-001',adj='ADJ-261013-004';
+ assert.deepEqual(ui.decisionOutcome('approve',{receipt_number:adj,resolution_receipt_number:xr,transaction_id:24}),{tone:'good',receipt:xr,status:'approved',postingReceipt:adj});
+ assert.deepEqual(ui.decisionOutcome('resolve',{status:'resolved',receipt_number:'MK-261013-003',resolution_receipt_number:xr,resolution_posting_receipt_number:adj}),{tone:'good',receipt:xr,status:'resolved',postingReceipt:adj});
+ assert.equal(ui.decisionOutcome('approve',{receipt_number:adj,resolution_receipt_number:xr,held:true}).tone,'bad');
+ assert.equal(ui.decisionOutcome('approve',{receipt_number:adj}).tone,'bad');
+});
+test('only server allowed_actions are offered, with held-decision mappings',()=>{
+ assert.deepEqual(ui.resolutionChoices({kind:'SHORTAGE',allowed_actions:['counted']}),['counted'],'FL list wins');
+ assert.deepEqual(ui.resolutionChoices({kind:'LARGE_CORRECTION',allowed_actions:['approve','reject']}),['approved','declined']);
+ assert.deepEqual(ui.resolutionChoices({kind:'KOSHER_ATTESTATION',allowed_actions:['reject']}),['declined']);
+ assert.deepEqual(ui.resolutionChoices({kind:'UNIDENTIFIED_LOT',allowed_actions:['identified']}),['identified']);
+ for(const item of [{},{allowed_actions:[]},{allowed_actions:null},{allowed_resolutions:['counted']},{allowed_actions:[],allowed_resolutions:['counted']}])assert.deepEqual(ui.resolutionChoices(item,{approve_exception:true,resolve_exception:true},['counted']),[],'no frontend fallback');
 });
 test('fix 3: owner approve note is optional; reject and write-off require one',()=>{
  assert.deepEqual(ui.decisionRequest('approved','   '),{action:'approve',body:{}});
@@ -43,6 +53,9 @@ test('fix 4: a voided receipt is VOIDED, never recorded-green',()=>{
  assert.equal(ui.receiptState({status:'committed',transactions:[{effective_status:'voided'},{effective_status:'posted'}]}).state,'partly_voided');
  assert.deepEqual(ui.receiptState({status:'committed',transactions:[{effective_status:'posted'}]}),{tone:'good',state:'recorded'});
  assert.equal(ui.receiptState({status:'awaiting_approval',transactions:[]}).tone,'bad');
+ assert.deepEqual(ui.receiptState({status:'committed',effective_status:'voided',void_receipt_number:'VD-261013-001',transactions:[]}),{tone:'voided',state:'voided',voidReceipt:'VD-261013-001'});
+ assert.equal(ui.receiptState({status:'committed',effective_status:'partially_voided',void_receipt_number:'VD-261013-002'}).state,'partly_voided');
+ assert.equal(ui.receiptState({...base,transactions:[{effective_status:'voided',void_receipt_number:'VD-261013-003'}]}).voidReceipt,'VD-261013-003');
 });
 test('fix 5: a timeout or lost connection reads as plain language, never browser text',()=>{
  const abort=Object.assign(Error('signal is aborted without reason'),{name:'AbortError'});
