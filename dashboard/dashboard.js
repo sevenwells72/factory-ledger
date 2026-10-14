@@ -2993,7 +2993,7 @@
 
   function renderShippingPreviewSection(order) {
     if (order.state !== 'open') return '';
-    return '<a class="btn-secondary" href="' + FLReceipts.page('entry.html', {action:'ship',order:order.order_id}) + '">Record shipment — BOL + photo</a><section class="order-preview-card"><div class="order-section-heading"><div><h3>Shipping capacity preview</h3><p>Shows the quantity available to ship now. Previewing does not record a shipment.</p></div><button type="button" class="btn-secondary order-preview-btn">Preview all remaining lines</button></div><div class="order-ship-preview-results" aria-live="polite"></div></section>';
+    return '<a data-fl-write-ui class="btn-secondary" href="' + FLReceipts.page('entry.html', {action:'ship',order:order.order_id}) + '">Record shipment — BOL + photo</a><section class="order-preview-card"><div class="order-section-heading"><div><h3>Shipping capacity preview</h3><p>Shows the quantity available to ship now. Previewing does not record a shipment.</p></div><button type="button" class="btn-secondary order-preview-btn">Preview all remaining lines</button></div><div class="order-ship-preview-results" aria-live="polite"></div></section>';
   }
 
   function setAllocationFeedback(container, message, kind = 'error') {

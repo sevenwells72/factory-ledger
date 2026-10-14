@@ -9,6 +9,8 @@
   /** Where the API lives: `?api=` override, same origin when FL serves the page, else production. */
   function apiBase(loc, search) {
     const override = new URLSearchParams(search || '').get('api');
+    if(root.FLDashboard)return root.FLDashboard.apiBase(loc,override||root.FL_SESSION_API_BASE);
+    if((loc?.hostname||'').endsWith('.netlify.app')&&loc.hostname!=='cns-factory-ledger.netlify.app')return 'https://fastapi-staging-production-dd7b.up.railway.app';
     if (override && /^https?:\/\//.test(override)) return override.replace(/\/$/, '');
     if (!loc || loc.protocol === 'file:' || /netlify\.app$/.test(loc.hostname || '')) return PRODUCTION_API;
     return loc.origin;

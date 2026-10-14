@@ -36,11 +36,12 @@
   var pilotSessions;
   // Same-origin Railway staging works without an override. Other hosting
   // explicitly sets FL_SESSION_API_BASE before this script at deployment.
-  var pilotBase = global.FL_SESSION_API_BASE || (global.location && /\.up\.railway\.app$/.test(global.location.hostname) ? global.location.origin : null);
+  var pilotBase = (global.FLDashboard && global.FLDashboard.base) || global.FL_SESSION_API_BASE || (global.location && /\.up\.railway\.app$/.test(global.location.hostname) ? global.location.origin : null);
   if (global.FLKeySessions && global.document && pilotBase) {
     pilotSessions = global.FLKeySessions.installDashboard(pilotBase);
   }
   function fetchWithTimeout(url, options) {
+    if(global.FLDashboard)url=global.FLDashboard.route(url,global.FLDashboard.base,global.location);
     if (pilotSessions) {
       var destination = new URL(url, global.location.href);
       // On the hosted staging dashboard, existing ledger URLs point to this

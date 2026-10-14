@@ -52,7 +52,7 @@
   async function api(path, { body, form, method = 'POST', binary = false, timeout = 95000 } = {}) {
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeout);
     try {
-      const response = await fetch(new URL(path, location.origin), {
+      const response = await fetch(new URL(path, root.FLDashboard?.base||location.origin), {
         method, headers: { 'X-API-Key': credential, ...(form || !body ? {} : { 'Content-Type': 'application/json' }) },
         body: form || (body ? JSON.stringify(body) : undefined), signal: controller.signal, credentials: 'same-origin', cache: 'no-store'
       });
@@ -316,7 +316,7 @@
       if (draft.status === 'cancelled') node.replaceChildren(el('p', t('Cancelled · NOT recorded', 'Cancelado · NO registrado')));
     }
   }
-  const pilot = root.FLKeySessions.create({ base: location.origin, fetch: root.fetch.bind(root), storage: sessionStorage });
+  const pilot = root.FLKeySessions.create({ base: root.FLDashboard?.base||location.origin, fetch: root.fetch.bind(root), storage: sessionStorage });
   const authReady = pilot.init().then(enabled => {
     if (enabled) {
       const hint = $('signin-hint');

@@ -47,3 +47,6 @@
 .ledger-page label,.ledger-page fieldset {min-width:0}
 .ledger-page input:not([type=checkbox]),.ledger-page select,.ledger-page textarea {width:100%;min-width:0}
 .ledger-page input[type=file] {padding:8px 2px;font-size:14px}
+
+/* Hidden before config loads as well as when cutover is off or unavailable. */
+:root:not([data-fl-write-ui="on"]) [data-fl-write-ui]{display:none!important}

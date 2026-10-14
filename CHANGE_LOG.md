@@ -1,5 +1,47 @@
 # Change Log
 
+## 2026-10-13 23:12 — Record production cutover gating, preview isolation and 2835 Python 126 Node seven browser checks
+- **File(s) changed:** `docs/validation/dashboard-d1-d2.md`, `docs/validation/d12-cutover-tests.json`
+- **What changed:** Record production cutover gating, preview isolation and 2835 Python 126 Node seven browser checks
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 23:08 — Expand the real History row before asserting its receipt link visibility
+- **File(s) changed:** `tests/visual/run-d12-gating.mjs`
+- **What changed:** Expand the real History row before asserting its receipt link visibility
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 23:08 — Test every dashboard page on virtual Netlify preview and production hosts using only local API forwarding
+- **File(s) changed:** `tests/visual/run-d12-preview.mjs`
+- **What changed:** Test every dashboard page on virtual Netlify preview and production hosts using only local API forwarding
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 23:07 — Replace disabled-session form fallback test with production-look and enabled-cutover browser assertions
+- **File(s) changed:** `tests/visual/run-d12-gating.mjs`, `tests/visual/run-d12-auth-off.mjs`
+- **What changed:** Replace disabled-session form fallback test with production-look and enabled-cutover browser assertions
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 23:06 — Add strict cutover and preview-routing tests; enable real legacy read assertions on isolated browser DBs
+- **File(s) changed:** `tests/test_dashboard_runtime.js`, `tests/visual/d12_fixture.py`
+- **What changed:** Add strict cutover and preview-routing tests; enable real legacy read assertions on isolated browser DBs
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
+## 2026-10-13 23:04 — Gate new write UI on key sessions and route every Netlify preview to staging
+- **File(s) changed:** `dashboard/dashboard-runtime.js`, `dashboard/receipt.html`, `dashboard/runs.html`, `dashboard/index.html`, `dashboard/process-flow.html`, `dashboard/fl-assistant.html`, `dashboard/traceability.html`, `dashboard/exceptions.html`, `dashboard/shift-summary.html`, `dashboard/sankey.html`, `dashboard/history.html`, `dashboard/entry.html`, `dashboard/scheduler/seven-wells-production-board.html`, `dashboard/ledger-forms.css`, `dashboard/receipt-shell.js`, `dashboard/dashboard.js`, `dashboard/receipt.js`, `dashboard/entry.js`, `dashboard/ledger-ui.js`, `dashboard/key-session.js`, `dashboard/fetch-timeout.js`, `dashboard/shift-summary.js`, `dashboard/fl-assistant.js`
+- **What changed:** Gate new write UI on key sessions and route every Netlify preview to staging
+- **Why:** D1/D2 dashboard implementation and verification; no production changes.
+
+---
+
 ## 2026-10-13 22:44 — Record 2835 fresh-DB tests, 121 Node tests, all browser checks and staging XR 004 evidence
 - **File(s) changed:** `docs/validation/dashboard-d1-d2.md`
 - **What changed:** Record 2835 fresh-DB tests, 121 Node tests, all browser checks and staging XR 004 evidence

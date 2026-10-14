@@ -33,7 +33,7 @@ Part 1 final checks: 2,745 Python tests on fresh `fl_d12_20261013_p1_final`, 110
 
 All seven ledger flows use their actual `*/prepare` route then `/tickets/{ticket}/commit`, carrying the exact hash and only explicitly acknowledged warnings. Form edits invalidate the draft. The draft shows the signed-in person, plant-time occurrence/expiry and FL's quantities, warnings and blockers; the entry form folds away on a phone while the person reviews. A6 uploads carry photo bytes and returned attachment IDs; BOL photo is attached at ship commit. Record retries keep the same ticket, held/failed/no-receipt responses never show green, and only a returned receipt produces a green receipt link. No stock, threshold, permission, kosher, or substitution policy was implemented in the browser.
 
-With `KEY_SESSIONS_ENABLED` on, only the FL session token is kept in sessionStorage and sent as `X-API-Key`. Sign out revokes it. Expiry clears it and asks for sign-in; the same person can retry the same unexpired ticket. With the flag off, the new forms hold a personal key in memory for the current tab; existing dashboard behavior is retained. Configuration failure fails closed. Explicit `FL_SESSION_API_BASE` hosting configuration is honored, including staging previews. No credentials appear in screenshots, fixtures or committed evidence.
+With `KEY_SESSIONS_ENABLED` on, only the FL session token is kept in sessionStorage and sent as `X-API-Key`. Sign out revokes it. Expiry clears it and asks for sign-in; the same person can retry the same unexpired ticket. With the flag off, all new D1/D2 write UI and sign-in prompts are hidden; the existing dashboard keeps its legacy behavior. Configuration loading/failure also keeps the new write UI hidden while receipt reads remain available. Netlify previews always select staging, even when an explicit API override names production; only the canonical production Netlify host may select production. No credentials appear in screenshots, fixtures or committed evidence.
 
 ### Part 2 verification
 
@@ -96,3 +96,18 @@ The previous backend dependencies are now available on `901ad5c`: `allowed_actio
 - The sixth runner, `run-d12-staging`, passed against hosted staging as described above. Credentials and ticket tokens are excluded from saved evidence. All synthetic actors are inactive.
 - The only initial failures were browser assertions racing asynchronous exception detail/refresh. Tests now wait for the selected exception ID and closed-row removal; final reruns pass. The implementation also removes completed decision controls immediately.
 - No new migration or backend business logic in this update. No production, other-worktree, deployment or merge action.
+
+## Production cutover gate (2026-10-13)
+
+Michael's cutover decision is enforced by the existing `/auth/session/config` → `key_sessions_enabled` boolean, with no separate dashboard flag. The initial HTML/CSS hides new controls before configuration arrives. Only exact `true` reveals Record entry, shipment BOL/photo, Exceptions navigation/controls and the new sign-in UI. Direct Entry/Exceptions URLs do not build forms when off; the former personal-key fallback is removed. Completed receipt lookup and receipt-number rows remain visible without sign-in even if configuration is unavailable. Existing production controls, including shipment capacity preview, retain their behavior. Reload after changing FL's flag applies the cutover.
+
+Every receipt-enabled page loads the shared API routing module before its other scripts. The canonical `cns-factory-ledger.netlify.app` selects production; every other `*.netlify.app` host selects FastAPI-staging, overriding unsafe `FL_SESSION_API_BASE` and shift-summary `?api=` values. Legacy fetch wrappers, the new forms, shift summary and Assistant all use that destination. Local/FL-served pages keep their own origin unless explicitly configured.
+
+Verification:
+
+- Fresh UTF-8 local `fl_d12_gate_full_20261014`, schema + pg_trgm: **2,835 Python passed**, 0 errors/failures/skips, 99.11 s; started 2026-10-13 23:07 ET. Existing deprecation warnings only.
+- **126 Node passed**, 0 failures/skips. New checks cover exact boolean gating, loading/failure/malformed config, runtime-first script order, preview/branch/other Netlify host routing, and unsafe overrides.
+- **Seven browser checks passed** against isolated local databases: cutover off (`run-d12-auth-off`, now invoking the gating assertions), cutover on (`run-d12-gating`), Netlify routing (`run-d12-preview`), plus the existing D1, D2, session-expiry and review-fix runners.
+- Off: no new write links, shipment action, Exceptions controls, or sign-in; real legacy shipment preview still returns 200; receipt lookup and History receipt links work. Slow/503 configuration exposes no new forms and receipt lookup still succeeds. On: full links/forms and sign-in appear; seven recording flows and exception/session regressions remain green.
+- Routing: **12 pages × 4 virtual Netlify hosts**. Browser requests use the correct API origin, including explicit production overrides on previews. Interception forwards every API request only to local FL; no hosted production or staging request is made.
+- No backend, migration, production, deployment or other-worktree changes in this round. Earlier hosted staging evidence above belongs to the preceding XR integration round; no new hosted staging writes were needed for this gate.
