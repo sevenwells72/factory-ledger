@@ -372,6 +372,10 @@ Read-only check of the existing tools on 2026-10-13: `v3/count-sheet-v3.csv` alr
 
 **Decision (Michael, 2026-10-13): the owner-only count-closing option is not limited to the cutover reset.** An adjust ticket that names a lot's open SHORTAGE exceptions (`resolves_shortage_ids`, reason `physical_count`, owner only, exact open set) may also be used for any explicit owner physical count outside the Nov 20 reset. Each use leaves the ADJ receipt plus one XR decision receipt per closed shortage and appears in the weekly view; no server-side signed-reset authorization is required ([Codex MERGE review](https://github.com/sevenwells72/factory-ledger/pull/108#issuecomment-6159911158)).
 
+**Merged as PR #108 (5dd7711, 2026-10-14 03:09:42Z), no migration; Railway FastAPI 1dd4bc67 and FastAPI-staging 6a77afdf SUCCESS, /health 200 both.** Still owed before production use: hosted-staging rehearsal of one area, then Michael's production dry run with his named key (preview/verify only, no posting).
+
+**P1.25 Count-tool test fixture date bug — fix BEFORE the hosted-staging rehearsal (recorded 2026-10-13, PR #108 merge).** `audits/fresh-start/test_fresh_start_v3.py` builds its signed approval `Date:` from the UTC date (`self.t.date()`, `self.t` = UTC now − 3 h), while `apply_reset.py` (`load_plan`/apply, "Approval date is in the future") compares it with the New York plant date of the snapshot. Between 20:00 and 24:00 ET the two dates differ and 39 count-tool tests fail (seen 2026-10-13 ~23:00 ET, identical before and after the #108 rebase; 192/192 pass with the clock pinned to 16:00 UTC). Test-only: take the fixture date from `f.PLANT` like the tool does, and add a regression case with a pinned late-evening clock. The tool's check itself is correct.
+
 **P1.22 A12 A9 integration completed; remaining A10/client work — review #101, 2026-10-13.**
 Review: https://github.com/sevenwells72/factory-ledger/pull/101#issuecomment-6149065092. Merge/integration decision: Michael, 2026-10-13, and [Codex review of #102](https://github.com/sevenwells72/factory-ledger/pull/102#issuecomment-6149165326).
 

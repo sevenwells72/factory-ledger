@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-13 23:12 — Post-#108 housekeeping: production rollout row 189, P1.25 fixture date bug
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
+- **What changed:** Added changelog row 189 (PR #108 merged 5dd7711, no migration, Railway deploys SUCCESS, /health 200 prod + staging). FOLLOWUPS: #108 merge status + remaining hosted-staging rehearsal and Michael's dry run; new P1.25 count-tool test fixture date bug (UTC vs New York date, fails 20:00–24:00 ET) to fix before the hosted rehearsal.
+- **Why:** Record the #108 rollout; Michael asked (2026-10-13) to log the fixture bug in the next housekeeping PR.
+
+---
+
 ## 2026-10-13 23:04 — PR #108 rebased onto e81f6e1: changelog rows renumbered, #106 rollout row, P1.9 created, owner-count decision
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
 - **What changed:** Rebased `fix/count-tool-readiness` onto origin/main e81f6e1 (#110). This PR's changelog rows 184/185 became 186/187 (main already used 184/185; earlier entries below that say "row 185" now mean row 187). Added row 188: PR #106 / migration 079 production rollout (marker verified read-only). FOLLOWUPS: P1.9 `expire-tickets` cron marked CREATED (verified in Railway); recorded Michael's 2026-10-13 decision that the owner-only count-closing option may be used for any explicit owner physical count outside the cutover reset (ADJ + XR receipts, weekly view).
