@@ -1,0 +1,4 @@
+kind,group,product_id,lot_code,detail
+INVALID_RECEIPT,Dry storage,1000000211,,"journal receipt seq 8 for intent 7 (commit, ticket 1186): unexpected field(s) receipt_number on a 'refused' receipt"
+INVALID_RECEIPT,Dry storage,1000000211,,"journal receipt seq 8 for intent 7 (commit, ticket 1186): a 'refused' receipt names transaction 999999999"
+RECEIPT_CONTRADICTS_FL,Dry storage,1000000211,,"journal receipt seq 8 for intent 7 (commit, ticket 1186): journal says the commit was refused but FL posted that ticket (ADJ-261014-023)"

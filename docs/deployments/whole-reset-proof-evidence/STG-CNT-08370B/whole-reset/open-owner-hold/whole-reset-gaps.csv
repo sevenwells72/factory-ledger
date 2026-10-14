@@ -1,0 +1,6 @@
+kind,group,product_id,lot_code,detail
+FINAL_HOLD,,1000000211,,Unclassified movement / allocation: TX1000000599 [a11fb43a7b6e8c2290332eefae87b0965a2ea72051630167ce39f22f06c0f8d7]
+FINAL_HOLD,,1000000215,,Unclassified movement / allocation: TX1000000600 [2d701ba7106504ab0e18805b93f27d4f82559667d766c9cac4467959661fca35]
+POST_OUTSIDE_APPROVED_PLAN,,1000000211,STG-CNT-08370B-OATS-1,TX 1000000599 ADJ-261014-026 1 by Michael (STAGING STG-CNT-08370B) is not a proved post of any signed group
+POST_OUTSIDE_APPROVED_PLAN,,1000000215,STG-CNT-08370B-GRANOLA-1,TX 1000000600 ADJ-261014-027 2 by Arturo (STAGING STG-CNT-08370B) is not a proved post of any signed group
+OPEN_HOLD,,1000000212,,"LARGE_CORRECTION hold #260 on ticket 1194 is open: it can still post; resolve it (reject, or approve and prove it) before release"

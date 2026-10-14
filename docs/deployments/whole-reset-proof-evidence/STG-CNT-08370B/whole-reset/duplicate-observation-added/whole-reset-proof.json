@@ -1,0 +1,160 @@
+{
+  "verdict": "WHOLE RESET NOT RECONCILED: 1 gap(s)",
+  "exit_code": 2,
+  "target": "staging",
+  "snapshot_at": "2026-10-14T17:37:27.821171+00:00",
+  "manifest": "v3/rehearsal/STG-CNT-08370B/manifest-duplicate-observation-added.json",
+  "manifest_sha256": "ef84f9323b77b128d6534638ea405037c5dead674724f9f9efd6b640bb6b935f",
+  "reset_scope_products": 7,
+  "expected_reset_products": 7,
+  "rehearsal_scope": true,
+  "final_inputs": {
+    "count": {
+      "path": "v3/rehearsal/STG-CNT-08370B/final-with-duplicate/count.csv",
+      "sha256": "fbc2dd2c9bbe596273f003fc3353e61736446593ed7a33ee9c10c371803c2930"
+    },
+    "coverage": {
+      "path": "v3/rehearsal/STG-CNT-08370B/group-4-zero-stock-only/inputs/coverage.csv",
+      "sha256": "5ab28f75cf83fe61ae78851510428f5a6b00ffa3bc84c52c5914597d953cddcf"
+    },
+    "moves": {
+      "path": "v3/rehearsal/STG-CNT-08370B/group-4-zero-stock-only/inputs/moves.csv",
+      "sha256": "d2f14fbbf35840db8abe0924653d657d95aa168ce262edcf4a0d5b88655422c4"
+    },
+    "review": {
+      "path": "v3/rehearsal/STG-CNT-08370B/final-with-duplicate/review.json",
+      "sha256": "3e034b7bbf257d7fbbd22eb30bfe179fd15cc08944d349e90a134aae73726ad5"
+    }
+  },
+  "final_verification_exit": 0,
+  "groups": [
+    {
+      "name": "Dry storage",
+      "areas": [
+        "Dry storage"
+      ],
+      "preview_sha256": "878e5e72952919d98df802704fb0314e76e96b2d78b1552190061cccf9c48164",
+      "journal": {
+        "path": "apply-state-staging/878e5e72952919d98df802704fb0314e76e96b2d78b1552190061cccf9c48164/journal.jsonl",
+        "sha256": "e6e08802648746dc3a42837f7ad72803b6f95c400f3bd4d1922744d713fc7324"
+      },
+      "no_change": false,
+      "approved_products": [
+        1000000211,
+        1000000212
+      ],
+      "zero_stock_products": [],
+      "approved_lots": 2,
+      "posts": [
+        "ADJ-261014-023",
+        "ADJ-261014-024"
+      ],
+      "actor": "Michael (STAGING STG-CNT-08370B)",
+      "owner": "Michael (STAGING STG-CNT-08370B)"
+    },
+    {
+      "name": "Warehouse, Cooler",
+      "areas": [
+        "Cooler",
+        "Warehouse"
+      ],
+      "preview_sha256": "9a788a745aa245978f7a006f933e1af2e21066a7ba9114ab64645f0dd0015386",
+      "journal": {
+        "path": "apply-state-staging/9a788a745aa245978f7a006f933e1af2e21066a7ba9114ab64645f0dd0015386/journal.jsonl",
+        "sha256": "0769f30e15cc8b0e7c9fc9d7cab85b95a7c1e223f330903f0dde6fe5d0a7887f"
+      },
+      "no_change": false,
+      "approved_products": [
+        1000000215,
+        1000000224
+      ],
+      "zero_stock_products": [],
+      "approved_lots": 2,
+      "posts": [
+        "ADJ-261014-025",
+        "FND-261014-208"
+      ],
+      "actor": "Michael (STAGING STG-CNT-08370B)",
+      "owner": "Michael (STAGING STG-CNT-08370B)"
+    },
+    {
+      "name": "Office",
+      "areas": [
+        "Office"
+      ],
+      "preview_sha256": "b75be065f8c10b2e3fff25471156634d6a2864868a0438a5083560aba421c65b",
+      "journal": null,
+      "no_change": true,
+      "approved_products": [
+        1000000214,
+        1000000217
+      ],
+      "zero_stock_products": [
+        1000000214
+      ],
+      "approved_lots": 1,
+      "posts": [],
+      "actor": "Michael (STAGING STG-CNT-08370B)",
+      "owner": "Michael (STAGING STG-CNT-08370B)"
+    },
+    {
+      "name": "Zero-stock sign-off",
+      "areas": [
+        "Office"
+      ],
+      "preview_sha256": "f51b4483ab62f4660f70a94c433f5aaa544848ae7380b5e3c68ca413f2af0434",
+      "journal": null,
+      "no_change": true,
+      "approved_products": [
+        1000000223
+      ],
+      "zero_stock_products": [
+        1000000223
+      ],
+      "approved_lots": 0,
+      "posts": [],
+      "actor": "Michael (STAGING STG-CNT-08370B)",
+      "owner": "Michael (STAGING STG-CNT-08370B)"
+    }
+  ],
+  "products_nothing_to_reset": [
+    1000000214,
+    1000000223
+  ],
+  "multi_area_lots": [
+    {
+      "product_id": 1000000224,
+      "lot_code": "STG-CNT-08370B-EK-1",
+      "areas": [
+        "Cooler",
+        "Warehouse"
+      ],
+      "handled_by": "Warehouse, Cooler",
+      "held_in": [
+        "Office",
+        "Zero-stock sign-off"
+      ],
+      "row_ids": [
+        "RG2C-1",
+        "RG2W-2"
+      ]
+    }
+  ],
+  "proved_line_ids": [
+    747,
+    748,
+    749,
+    750
+  ],
+  "count_post_window_start": "2026-10-14T13:35:37-04:00",
+  "open_holds": [],
+  "gaps": [
+    {
+      "kind": "MISSING_OBSERVATION",
+      "group": "Dry storage",
+      "product_id": 1000000211,
+      "lot_code": "STG-CNT-08370B-OATS-1",
+      "detail": "observation RG1D-1-dup was not in the plan signed for this product"
+    }
+  ]
+}

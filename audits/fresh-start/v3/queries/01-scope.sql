@@ -47,7 +47,7 @@ SELECT json_build_object(
    (SELECT id,product_id,lot_id,status,resolution_kind,resolution_ticket_id,resolved_by_actor_id,
            detail->'resolution' AS resolution FROM exceptions WHERE kind='SHORTAGE')q),'[]'::json),
  'held_exceptions',COALESCE((SELECT json_agg(q ORDER BY id) FROM
-   (SELECT id,kind,status,product_id,ticket_id,receipt_number,resolution_kind,resolved_by_actor_id
+   (SELECT id,kind,status,product_id,lot_id,detail->>'lot_code' AS lot_code,ticket_id,receipt_number,resolution_kind,resolved_by_actor_id
     FROM exceptions WHERE kind IN ('LARGE_CORRECTION','KOSHER_ATTESTATION'))q),'[]'::json),
  'correction_tickets',COALESCE((SELECT json_agg(q ORDER BY id) FROM
    (SELECT id,action,status,receipt_number,actor_id,operator_id,payload_hash

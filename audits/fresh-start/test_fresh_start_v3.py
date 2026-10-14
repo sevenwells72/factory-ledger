@@ -75,7 +75,7 @@ class FakeTicketBackend(FakeBackend):
  def hold(self,t,kind):
   t['row']['status']='awaiting_approval';eid=500+len(self.s['held_exceptions'])
   if t.get('hold'):return t['hold']
-  self.s['held_exceptions'].append(dict(id=eid,kind=kind,status='open',product_id=t['draft']['product_id'],ticket_id=t['id'],receipt_number=None,resolution_kind=None,resolved_by_actor_id=None))
+  self.s['held_exceptions'].append(dict(id=eid,kind=kind,status='open',product_id=t['draft']['product_id'],lot_id=t['draft'].get('lot_id'),lot_code=t['draft']['lot_code'] if t['action']=='found' else None,ticket_id=t['id'],receipt_number=None,resolution_kind=None,resolved_by_actor_id=None))
   t['hold']=dict(held=True,exception_id=eid,error_code='PHOTO_REQUIRED' if kind=='LARGE_CORRECTION' else 'KOSHER_ATTESTATION_REQUIRED')
   return t['hold']
  def post(self,t):

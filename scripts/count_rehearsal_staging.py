@@ -14,6 +14,11 @@ Synthetic owner approval demonstrates the flow; it is not Michael's attestation.
 --hosted (P1.21 follow-up, 2026-10-14): ONE area against the DEPLOYED FastAPI-staging
 (no local server): an ordinary lot set plus a shortage lot, a >500 lb hold approved
 under the signed list and a new extra-kosher lot, with per-lot executor timings.
+
+--hosted-groups (O-3, 2026-10-14): three area groups on the DEPLOYED FastAPI-staging, each
+signed and journaled separately (one multi-area extra-kosher lot, one no-change group),
+then `verify_reset.py --whole-reset` proves the union; two negative proofs follow
+(a group left out; an unsigned owner physical_count post).
 """
 import argparse
 import csv
@@ -156,7 +161,8 @@ def seed(uri, ref, t0):
                  ('granola', 'finished', 'Granola 25 LB', '25 lb case', 25, 1000),
                  # uom exactly 'case' (like the five real ones): the 500 lb rule is in real pounds since PR #109.
                  ('cases15', 'finished', 'Granola 15 LB case', 'case', 15, 300)] + \
-                [(f'misc{n}', 'ingredient', f'Ingredient {n}', 'lb', None, 100) for n in range(1, 7)]
+                [(f'misc{n}', 'ingredient', f'Ingredient {n}', 'lb', None, 100) for n in range(1, 7)] + \
+                [('empty', 'ingredient', 'Empty-shelf ingredient', 'lb', None, None)]   # zero-only group (fix round 2)
         for label, kind, name, uom, case, stock in specs:
             cur.execute('''INSERT INTO products(name,odoo_code,type,uom,case_size_lb,default_batch_lb,active)
                            VALUES (%s,%s,%s,%s,%s,%s,true) RETURNING id,name,odoo_code''',
@@ -235,16 +241,19 @@ def tool(args, env, stdin=None, pty=False):
     return subprocess.CompletedProcess(command, proc.returncode, ''.join(seen), ''), round(time.monotonic() - started, 1)
 
 
-def area_run(area, rows, products, workdir, env, owner, base_reason):
-    """One cutover area: pause → preview → owner review → sign → dry run → apply → verify."""
+def area_run(area, rows, products, workdir, env, owner, base_reason, coverage=None, apply=True):
+    """One cutover area: pause → preview → owner review → sign → dry run → apply → verify.
+    `coverage` = (product, completed_at) pairs when a group's files are cumulative;
+    apply=False is the documented no-change group: signed, nothing to post, no journal."""
     folder = workdir / area['slug']
     inputs, out = folder / 'inputs', folder / 'out'
     inputs.mkdir(parents=True)
     write_csv(inputs / 'count.csv', COUNT_COLUMNS, rows)
+    done = max([area['end']] + [a['end'] for a in area.get('with', [])])
     write_csv(inputs / 'coverage.csv', ['product_id', 'SKU', 'name', 'all_locations_searched', 'completed_at', 'owner_initials', 'notes'],
               [dict(product_id=p['id'], SKU=p['odoo_code'], name=p['name'], all_locations_searched='yes',
-                    completed_at=max([area['end']] + [a['end'] for a in area.get('with', [])]).isoformat(),
-                    owner_initials='MG', notes='rehearsal') for p in products])
+                    completed_at=at.isoformat(), owner_initials='MG', notes='rehearsal')
+               for p, at in (coverage or [(p, done) for p in products])])
     write_csv(inputs / 'moves.csv', MOVE_COLUMNS, [])
     timing, pause = {}, time.monotonic()
     names = [area['name']] + [a['name'] for a in area.get('with', [])]
@@ -262,6 +271,9 @@ def area_run(area, rows, products, workdir, env, owner, base_reason):
     for fp in template['multi_area_reviews']:
         # Scripted stand-in: the owner confirms no unlogged moves between the two areas' rows.
         review['multi_area_reviews'][fp] = dict(owner='MG (rehearsal)', no_unlogged_moves=True)
+    for fp in template['coverage_reviews']:
+        # Scripted stand-in: the owner confirms a searched product with no count rows really has none.
+        review['coverage_reviews'][fp] = dict(owner='MG (rehearsal)', confirmed=True)
     started = time.monotonic()
     for fp, item in template['movement_reviews'].items():
         # Scripted stand-in for the owner's answer: the floor's damage adjust happened after the count.
@@ -284,7 +296,11 @@ def area_run(area, rows, products, workdir, env, owner, base_reason):
     held = [r for r in rows_mine if r['status'] != 'READY']
     if held:
         raise RuntimeError('area still held: ' + json.dumps([(r['product_id'], r['holds']) for r in held])[:800])
-    approved = sorted({r['product_id'] for r in rows_mine})
+    # Zero-stock products (no counted or on-hand lot) are signed for too (PR #120 fix round 1).
+    zero = sorted(mine - {r['product_id'] for r in rows_mine})
+    if any(pid not in preview['coverage_complete'] or str(pid) in preview['holds'] for pid in zero):
+        raise RuntimeError('zero-stock product not approvable: ' + json.dumps({pid: preview['holds'].get(str(pid)) for pid in zero})[:800])
+    approved = sorted({r['product_id'] for r in rows_mine} | set(zero))
     kosher = [f'{r["product_id"]}:{r["lot_code"]}' for r in rows_mine if r.get('new_lot') and r['adjustment_lb']]
     needs = any(r['owner_approvals'] and r['adjustment_lb'] for r in rows_mine)
     signed = folder / 'approved'
@@ -297,18 +313,51 @@ def area_run(area, rows, products, workdir, env, owner, base_reason):
                                    f'Named actor: {owner}', f'Date: {now().date()}', f'Signature: {owner}',
                                    'Opening entry classification: N', f'Owner approves held entries: {"Y" if needs else "N"}',
                                    'Extra-kosher lots: ' + (', '.join(kosher) or 'none')]) + '\n')
+    paths = dict(inputs=inputs, preview=signed / 'reset-preview-v3.json', approval=approval, review=review_path)
+    if not apply:
+        changes = [r for r in rows_mine if r['adjustment_lb'] and float(r['adjustment_lb'])]
+        if changes:
+            raise RuntimeError('no-change group has changes: ' + json.dumps([(r['product_id'], r['adjustment_lb']) for r in changes], default=str))
+        # Runbook step 18 no-change branch: the same verify, without the proof triplet.
+        verify = ['audits/fresh-start/verify_reset.py', '--v3', str(inputs / 'count.csv'), '--coverage', str(inputs / 'coverage.csv'),
+                  '--moves', str(inputs / 'moves.csv'), '--output-dir', str(out / 'verification'), '--target', 'staging'] + areas + \
+                 (['--review', str(review_path)] if review_path else [])
+        result, timing['verify_s'] = tool(verify, env)
+        verified = json.loads((out / 'verification/reset-verification-v3.json').read_text())
+        return dict(area=', '.join(names), approved_products=approved, zero_stock_products=zero, preview_sha256=digest, no_change=True, timings_s=timing,
+                    verify_exit=result.returncode, paths=paths,
+                    verified_rows=[dict(product_id=r['product_id'], lot_code=r['lot_code'], status=r['status'], adjustment=r['adjustment_lb'])
+                                   for r in verified['rows'] if r['product_id'] in mine])
     apply_args = ['audits/fresh-start/apply_reset.py', str(signed / 'reset-preview-v3.json'), '--approval', str(approval),
                   '--count-csv', str(inputs / 'count.csv'), '--target', 'staging']
     result, timing['dry_run_s'] = tool(apply_args, env)
     if result.returncode:
         raise RuntimeError('dry run failed: ' + (result.stderr or result.stdout)[-800:])
-    cutoff = max(datetime.fromisoformat(r['cutoff']) for r in preview['rows'] if r['product_id'] in approved)
+    # A zero-stock-only plan has no rows: the executor dates it at the preview snapshot.
+    cutoff = max((datetime.fromisoformat(r['cutoff']) for r in preview['rows'] if r['product_id'] in approved),
+                 default=datetime.fromisoformat(preview['snapshot_at']))
     phrase = f'APPLY OPENING BALANCE {cutoff.astimezone(NY).date()} {digest}'
     result, timing['apply_s'] = tool(apply_args + ['--apply'], env, stdin=phrase + '\n', pty=True)
-    apply_log = result.stdout
+    apply_result, apply_log = result, result.stdout
     if 'READ-BACK' not in apply_log:
         raise RuntimeError('apply failed: ' + apply_log[-1500:])
     state = TOOLS / 'apply-state-staging' / digest / 'journal.jsonl'
+    readback = list(csv.DictReader((TOOLS / 'apply-results-staging' / digest / 'readback.csv').open()))
+    if not state.exists():
+        # Zero-stock-only group (fix round 2): the confirmed apply posted nothing and wrote no
+        # journal, so it is proved like the runbook step-18 no-change branch.
+        if readback or any(r['adjustment_lb'] and float(r['adjustment_lb']) for r in rows_mine):
+            raise RuntimeError('apply wrote no journal but the plan or read-back has rows')
+        verify = ['audits/fresh-start/verify_reset.py', '--v3', str(inputs / 'count.csv'), '--coverage', str(inputs / 'coverage.csv'),
+                  '--moves', str(inputs / 'moves.csv'), '--output-dir', str(out / 'verification'), '--target', 'staging'] + areas + \
+                 (['--review', str(review_path)] if review_path else [])
+        result, timing['verify_s'] = tool(verify, env)
+        verified = json.loads((out / 'verification/reset-verification-v3.json').read_text())
+        return dict(area=', '.join(names), approved_products=approved, zero_stock_products=zero, preview_sha256=digest, no_change=True,
+                    applied=True, journal_written=False, readback_rows=len(readback),
+                    readback_header=(TOOLS / 'apply-results-staging' / digest / 'readback.csv').read_text().splitlines()[0],
+                    apply_exit=apply_result.returncode, timings_s=timing, verify_exit=result.returncode, paths=paths,
+                    zero_stock_held_in_verification=[pid for pid in zero if str(pid) in verified['holds']])
     verify = ['audits/fresh-start/verify_reset.py', '--v3', str(inputs / 'count.csv'), '--coverage', str(inputs / 'coverage.csv'),
               '--moves', str(inputs / 'moves.csv'), '--approved-preview', str(signed / 'reset-preview-v3.json'),
               '--approval', str(approval), '--journal', str(state), '--output-dir', str(out / 'verification'),
@@ -317,9 +366,9 @@ def area_run(area, rows, products, workdir, env, owner, base_reason):
     timing['pause_total_s'] = round(time.monotonic() - pause, 1)
     verified = json.loads((out / 'verification/reset-verification-v3.json').read_text())
     after = [r for r in verified['rows'] if r['product_id'] in mine]
-    readback = list(csv.DictReader((TOOLS / 'apply-results-staging' / digest / 'readback.csv').open()))
     executor = json.loads((TOOLS / 'apply-results-staging' / digest / 'timings.json').read_text())
-    return dict(area=', '.join(names), window=[area['start'].isoformat(), area['end'].isoformat()], approved_products=approved,
+    paths['journal'] = state
+    return dict(area=', '.join(names), window=[area['start'].isoformat(), area['end'].isoformat()], approved_products=approved, paths=paths,
                 held_before_owner_review=held_first,
                 preview_sha256=digest, owner_approves_held=needs, extra_kosher_lots=kosher, timings_s=timing,
                 executor_timings_s=executor, readback=readback,
@@ -370,7 +419,316 @@ def hosted_area(base, floor_key, items, ref, t0, workdir, env, owner, report):
     return [area_run(area, rows, [items['oats'], items['sugar'], coconut, items['extra'], cases15] + misc, workdir, env, owner, ref)]
 
 
-def rehearse(output, hosted=False):
+def whole_reset(workdir, env, manifest, name):
+    """verify_reset.py --whole-reset on one manifest against one saved read-only snapshot (kept,
+    so the evidence can be replayed); returns exit code, verdict and gap kinds."""
+    import fresh_start_v3 as v
+    path = workdir / f'manifest-{name}.json'
+    path.write_text(json.dumps(manifest, indent=2, default=str) + '\n')
+    snap = workdir / 'snapshots' / f'{name}.json'
+    snap.parent.mkdir(exist_ok=True)
+    snap.write_text(json.dumps(v.snapshot('staging'), default=str))
+    out = workdir / 'whole-reset' / name
+    result, seconds = tool(['audits/fresh-start/verify_reset.py', '--whole-reset', str(path), '--output-dir', str(out),
+                            '--snapshot', str(snap)], env)
+    proof = json.loads((out / 'whole-reset-proof.json').read_text()) if (out / 'whole-reset-proof.json').exists() else {}
+    return dict(manifest=str(path.relative_to(TOOLS)), snapshot=str(snap.relative_to(TOOLS)), exit=result.returncode, seconds=seconds,
+                verdict=proof.get('verdict'),
+                gaps=[dict((k, g[k]) for k in ('kind', 'group', 'product_id', 'lot_code', 'detail')) for g in proof.get('gaps', [])],
+                groups=[dict((k, g[k]) for k in ('name', 'areas', 'approved_products', 'posts', 'no_change')) for g in proof.get('groups', [])],
+                multi_area_lots=proof.get('multi_area_lots'), stderr_tail=result.stderr[-400:] if result.returncode not in (0, 2) else '')
+
+
+def forged_journal(source, target):
+    """Negative case: the executor's journal plus one forged `refused` receipt naming a bogus
+    receipt/transaction for the posted ticket, every hash re-chained so the chain still verifies."""
+    import fresh_start_v3 as v
+    events = [json.loads(x) for x in source.read_text().splitlines()]
+    intent = next(e for e in events if e['kind'] == 'intent' and e['phase'] == 'commit')
+    events += [dict(intent), dict(kind='receipt', intent=len(events), outcome='refused', transaction_id=999999999,
+                                  receipt_number='ADJ-999999-999', error_code='TICKET_STALE', at=intent['at'])]
+    previous, lines = '', []
+    for seq, e in enumerate(events):
+        e.pop('sha256', None)
+        e.update(seq=seq, previous=previous)
+        e['sha256'] = previous = v.sha(v.canonical(e).encode())
+        lines.append(json.dumps(e))
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text('\n'.join(lines) + '\n')
+
+
+def forged_hold_journal(source, target, phase, change):
+    """Negative case (fix round 2): the executor's journal with the owner-hold identity changed on
+    the `held` receipt or the `approve` intent (fabricated exception id or hold kind), re-chained."""
+    import fresh_start_v3 as v
+    events = [json.loads(x) for x in source.read_text().splitlines()]
+    hit = next(e for e in events if (e.get('outcome') == 'held' if phase == 'held' else e.get('phase') == 'approve'))
+    hit.update(change)
+    previous, lines = '', []
+    for seq, e in enumerate(events):
+        e.pop('sha256', None)
+        e.update(seq=seq, previous=previous)
+        e['sha256'] = previous = v.sha(v.canonical(e).encode())
+        lines.append(json.dumps(e))
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text('\n'.join(lines) + '\n')
+
+
+def hosted_groups(base, owner_key, items, ref, workdir, env, owner, report, floor_key=None):
+    """O-3 (2026-10-14): three area groups posted one after another on hosted staging, each
+    signed and journaled on its own, then proved as a union with verify_reset --whole-reset.
+    Files are cumulative like the real morning: each group's count/coverage/review copy holds
+    every area transcribed so far and is never edited after its signature."""
+    rows, coverage, results = [], [], []
+    ek_code = f'{ref}-EK-1'.lower()
+
+    def counted(area, specs):
+        area['start'] = now()
+        time.sleep(5)
+        at = now()
+        sheet = 'RG' + str(len(results) + 1) + area['name'][:1]
+        new = [sheet_row(area, sheet, n, product, code, qty, unit, at, est) for n, (product, code, qty, unit, est) in enumerate(specs, 1)]
+        time.sleep(5)
+        area['end'] = now()
+        for r in new:
+            r['end_time'] = area['end'].isoformat()
+        rows.extend(new)
+        time.sleep(2)
+        return area
+
+    g1 = counted(dict(name='Dry storage', slug='group-1-dry-storage'),
+                 [(items['oats'], items['oats']['lot_code'], '395', 'lb', 'x'),
+                  # 520 lb against 1,200 on the book: −680 lb, held for the owner and released under the signed list.
+                  (items['sugar'], items['sugar']['lot_code'], '520', 'lb', '')])
+    coverage += [(items['oats'], g1['end']), (items['sugar'], g1['end'])]
+    results.append(area_run(g1, list(rows), [items['oats'], items['sugar']], workdir, env, owner, ref, coverage=list(coverage)))
+
+    # Group 2 = Warehouse + Cooler: the new extra-kosher lot is counted in BOTH areas (multi-area,
+    # reset once by this group, held in the others) and the granola case lot only in the warehouse.
+    granola = items['granola']
+    g2 = counted(dict(name='Warehouse', slug='group-2-warehouse-cooler'),
+                 [(granola, granola['lot_code'], '39', 'cases', ''), (items['extra'], ek_code, '180', 'lb', '')])
+    cooler = counted(dict(name='Cooler', slug='group-2b-cooler'), [(items['extra'], ek_code, '120', 'lb', '')])
+    g2['with'] = [cooler]
+    coverage += [(granola, cooler['end']), (items['extra'], cooler['end'])]
+    results.append(area_run(g2, list(rows), [granola, items['extra']], workdir, env, owner, ref, coverage=list(coverage)))
+
+    # Group 3 = Office: counted exactly at book, so nothing posts and no journal exists. It also
+    # signs for the batch product: searched everywhere, no lot, no stock (zero-stock approval).
+    misc, empty = items['misc1'], items['batch']
+    g3 = counted(dict(name='Office', slug='group-3-office-no-change'), [(misc, misc['lot_code'], '100', 'lb', '')])
+    coverage += [(misc, g3['end']), (empty, g3['end'])]
+    results.append(area_run(g3, list(rows), [misc, empty], workdir, env, owner, ref, coverage=list(coverage), apply=False))
+
+    # Group 4 (fix round 2) = a zero-stock-ONLY sign-off: one product searched everywhere, no lot,
+    # no stock. Run through the real confirmed --apply: it posts nothing and writes no journal.
+    zero_only = items['empty']
+    g4 = dict(name='Office', slug='group-4-zero-stock-only', start=g3['start'], end=now())
+    coverage += [(zero_only, g4['end'])]
+    results.append(area_run(g4, list(rows), [zero_only], workdir, env, owner, ref, coverage=list(coverage)))
+    results[-1]['group_name'] = 'Zero-stock sign-off'
+
+    def rel(path):
+        return os.path.relpath(path, workdir)
+
+    scope = sorted({p['id'] for p, _ in coverage})
+    final = results[-1]['paths']
+    groups = []
+    for r in results:
+        group = dict(name=r.get('group_name', r['area']), areas=[x.strip() for x in r['area'].split(',')], approved_preview=rel(r['paths']['preview']),
+                     approval=rel(r['paths']['approval']))
+        if r.get('no_change'):
+            group['no_change'] = True
+        else:
+            group['journal'] = rel(r['paths']['journal'])
+        groups.append(group)
+    manifest = dict(version=1, target='staging', expected_reset_products=len(scope), rehearsal_scope_product_ids=scope, groups=groups,
+                    notes=f'{ref} hosted-staging O-3 rehearsal; final inputs = the last group\'s signed copies',
+                    final_inputs=dict(count=rel(final['inputs'] / 'count.csv'), coverage=rel(final['inputs'] / 'coverage.csv'),
+                                      moves=rel(final['inputs'] / 'moves.csv'), review=rel(final['review'])))
+    proofs = {'complete': whole_reset(workdir, env, manifest, 'complete')}
+    # Negative 1: leave the no-change group out — its products must be reported as missing.
+    proofs['without_office_group'] = whole_reset(workdir, env, dict(manifest, groups=groups[:2] + groups[3:]), 'without-office')
+    # Negative 2 (fix round 1): the Office approval signed WITHOUT the zero-stock product.
+    office = results[2]['paths']['approval']
+    narrow = office.with_name('approval-without-zero-stock.md')
+    narrow.write_text(office.read_text().replace('Approved product IDs: ' + ', '.join(map(str, results[2]['approved_products'])),
+                                                 'Approved product IDs: ' + str(misc['id'])))
+    if narrow.read_text() == office.read_text():
+        raise RuntimeError('zero-stock-unapproved case did not narrow the Office approval')
+    proofs['zero_stock_unapproved'] = whole_reset(workdir, env, dict(manifest, groups=groups[:2] + [dict(groups[2], approval=rel(narrow))] + groups[3:]),
+                                                  'zero-stock-unapproved')
+    # Negative 3 (fix round 1): a forged `refused` receipt with a bogus receipt id, chain re-hashed.
+    forged = workdir / 'forged' / 'group-1-journal-forged-receipt.jsonl'
+    forged_journal(results[0]['paths']['journal'], forged)
+    proofs['forged_receipt'] = whole_reset(workdir, env, dict(manifest, groups=[dict(groups[0], journal=rel(forged))] + groups[1:]),
+                                           'forged-receipt')
+    # Negatives 3b/3c (fix round 2): the Dry storage journal names an owner hold FL does not have —
+    # a fabricated exception id on the held receipt, then a wrong hold kind on the approve intent.
+    for case, phase, change in (('forged-hold-id', 'held', dict(exception_id=424242)),
+                                ('forged-hold-kind', 'approve', dict(hold='KOSHER_ATTESTATION'))):
+        path = workdir / 'forged' / f'group-1-journal-{case}.jsonl'
+        forged_hold_journal(results[0]['paths']['journal'], path, phase, change)
+        proofs[case.replace('-', '_')] = whole_reset(workdir, env, dict(manifest, groups=[dict(groups[0], journal=rel(path))] + groups[1:]), case)
+    # Negative 4 (fix round 1): a duplicate-ticked oats row added to the final count after the
+    # Dry storage group was signed, excluded by an owner duplicate answer, so balances still match.
+    import fresh_start_v3 as v
+    dup_dir = workdir / 'final-with-duplicate'
+    dup_dir.mkdir()
+    oats_row = next(r for r in rows if r['product_id'] == items['oats']['id'])
+    dup_rows = list(rows) + [dict(oats_row, row_id=oats_row['row_id'] + '-dup', duplicate='x', location=oats_row['location'] + ' (again)')]
+    write_csv(dup_dir / 'count.csv', COUNT_COLUMNS, dup_rows)
+    data = v.load_inputs(dup_dir / 'count.csv', final['inputs'] / 'coverage.csv', final['inputs'] / 'moves.csv')
+    fp = v.fingerprint([r for r in data['count'] if r['row_id'] in (oats_row['row_id'], oats_row['row_id'] + '-dup')])
+    dup_review = json.loads(final['review'].read_text())
+    dup_review.setdefault('duplicate_reviews', {})[fp] = dict(owner='MG (rehearsal)', action='exclude', exclude_rows=[oats_row['row_id'] + '-dup'],
+                                                             move_id='', notes='same pallet written twice (rehearsal negative case)')
+    (dup_dir / 'review.json').write_text(json.dumps(dup_review, indent=2))
+    proofs['duplicate_observation_added'] = whole_reset(workdir, env, dict(manifest, final_inputs=dict(
+        manifest['final_inputs'], count=rel(dup_dir / 'count.csv'), review=rel(dup_dir / 'review.json'))), 'duplicate-observation-added')
+    # Negative 5: an owner physical_count post outside every signed plan, through the hosted API.
+    oats = items['oats']
+    extra = committed(base, owner_key, '/adjust/prepare', dict(lot_id=oats['lot_id'], delta_lb=1, reason_code='physical_count',
+                                                               note=f'{ref} unsigned recount (rehearsal negative case)',
+                                                               occurred_at=now().isoformat()))
+    report['unsigned_extra_post'] = dict(receipt=extra['receipt_number'], transaction_id=extra['transaction_id'], lb=1)
+    proofs['after_unsigned_post'] = whole_reset(workdir, env, manifest, 'after-unsigned-post')
+    # Negative 6 (fix round 1): the FLOOR actor (not a group's named actor) posts a count adjust.
+    granola = items['granola']
+    floor = committed(base, floor_key, '/adjust/prepare', dict(lot_id=granola['lot_id'], delta_lb=2, reason_code='physical_count',
+                                                               note=f'{ref} floor recount (rehearsal negative case)',
+                                                               occurred_at=now().isoformat()))
+    report['floor_extra_post'] = dict(receipt=floor['receipt_number'], transaction_id=floor['transaction_id'], lb=2)
+    proofs['after_floor_post'] = whole_reset(workdir, env, manifest, 'after-floor-post')
+    # Negative 7 (fix round 1): a floor count adjust over 500 lb, held for the owner and left open.
+    status, prepared = call(base, floor_key, '/adjust/prepare', dict(lot_id=items['sugar']['lot_id'], delta_lb=-505, reason_code='physical_count',
+                                                                     note=f'{ref} floor recount, held (rehearsal negative case)',
+                                                                     occurred_at=now().isoformat()))
+    if status != 200 or not prepared.get('can_commit'):
+        raise RuntimeError(f'held-case prepare refused: {status} {json.dumps(prepared)[:400]}')
+    status, held = call(base, floor_key, '/tickets/' + prepared['ticket'] + '/commit',
+                        {'payload_hash': prepared['payload_hash'], 'acknowledged_warnings': [w['code'] for w in prepared['warnings'] if w.get('requires_ack')]})
+    if status != 202 or not held.get('held'):
+        raise RuntimeError(f'held-case commit was not held: {status} {json.dumps(held)[:400]}')
+    report['floor_open_hold'] = dict(exception_id=held.get('exception_id'), ticket_id=prepared['ticket_id'], lb=-505)
+    proofs['open_owner_hold'] = whole_reset(workdir, env, manifest, 'open-owner-hold')
+    # The owner declines it: the hold is resolved, nothing posts, and OPEN_HOLD clears.
+    status, declined = call(base, owner_key, f'/exceptions/{held["exception_id"]}/reject',
+                            dict(resolution_kind='declined', note=f'{ref} rehearsal: declined the held floor recount'))
+    report['floor_open_hold'].update(declined_status=status)
+    proofs['after_hold_declined'] = whole_reset(workdir, env, manifest, 'after-hold-declined')
+    report['whole_reset'] = proofs
+    report['whole_reset_manifest'] = manifest
+    return results
+
+
+EVIDENCE = ROOT / 'docs/deployments/whole-reset-proof-evidence'
+TICKET_TOKEN = r'wt_[A-Za-z0-9_-]{20,100}'
+
+
+def scoped_snapshot(s, scope, ticket_ids, actor_ids):
+    """The saved staging snapshot cut to the rehearsal products, their lots/lines/tickets/holds and
+    the rehearsal actors. Other staging data (catalog, orders, schema) never leaves the machine."""
+    keep = set(scope)
+    lines = [x for x in s['lines'] if x['product_id'] in keep]
+    txs = {str(x['transaction_id']) for x in lines}
+    held = [e for e in s.get('held_exceptions', []) if e.get('product_id') in keep]
+    tickets = set(ticket_ids) | {x.get('ticket_id') for x in lines} | {e.get('ticket_id') for e in held}
+    line_ids = {x['line_id'] for x in lines}
+    out = dict(snapshot_at=s['snapshot_at'], read_only=s['read_only'], target=s.get('target'),
+               products=[p for p in s['products'] if p['id'] in keep], catalog=[p for p in s['catalog'] if p['id'] in keep],
+               lots=[l for l in s['lots'] if l['product_id'] in keep], lines=lines,
+               transaction_line_counts={k: n for k, n in s['transaction_line_counts'].items() if k in txs},
+               shortages=[e for e in s.get('shortages', []) if e.get('product_id') in keep], held_exceptions=held,
+               correction_tickets=[t for t in s.get('correction_tickets', []) if t['id'] in tickets],
+               actors=[a for a in s['actors'] if a['id'] in actor_ids],
+               corrections=[c for c in s.get('corrections', []) if (c['target_table'] == 'transactions' and str(c['target_id']) in txs)
+                            or (c['target_table'] == 'transaction_lines' and c['target_id'] in line_ids)])
+    for key in ('schema_columns', 'supply_requests', 'orders', 'order_lines', 'allocations', 'ship_transactions'):
+        out[key] = []
+    return out
+
+
+def export_evidence(workdir, ref, report, env, secrets_seen):
+    """Sanitized copy of every signed artifact, journal, manifest, saved snapshot and proof output
+    under docs/deployments/whole-reset-proof-evidence/<ref>/ for independent review. Journals keep
+    every field except the ticket token (a bearer reference); SHA256SUMS lists the originals.
+    Each proof is then replayed from the cut snapshot and must give the same verdict and gaps."""
+    import re
+    dest = EVIDENCE / ref
+    dest.mkdir(parents=True)
+    sums, files = [], []
+    proofs, manifest = report['whole_reset'], report['whole_reset_manifest']
+    scope = manifest['rehearsal_scope_product_ids']
+    actor_ids = {report['owner_actor']['id'], report['floor_actor']['id']}
+
+    def put(rel_path, data):
+        target = dest / rel_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(data)
+        files.append(target)
+
+    journals = {}
+    for case in proofs.values():
+        m = json.loads((TOOLS / case['manifest']).read_text())
+        for g in m['groups']:
+            for key in ('approved_preview', 'approval', 'journal'):
+                if g.get(key):
+                    journals.setdefault(os.path.normpath(workdir / g[key]), key)
+        for path in m['final_inputs'].values():
+            journals.setdefault(os.path.normpath(workdir / path), 'input')
+    for folder in sorted(p for p in workdir.iterdir() if p.is_dir() and p.name.startswith('group-')):
+        for path in sorted(folder.glob('inputs/*')) + sorted(folder.glob('approved/*')):
+            journals.setdefault(os.path.normpath(path), 'signed')
+    ticket_ids = set()
+    for original, kind in sorted(journals.items()):
+        original = Path(original)
+        raw = original.read_bytes()
+        sums.append(f'{sha256(raw).hexdigest()}  {os.path.relpath(original, workdir)}')
+        name = os.path.relpath(original, workdir)
+        if name.startswith('..'):   # executor journals live in audits/fresh-start/apply-state-staging/
+            name = os.path.relpath(original, TOOLS)
+        if original.suffix == '.jsonl':
+            events = [json.loads(x) for x in raw.decode().splitlines()]
+            for e in events:
+                if e.get('ticket_id'):
+                    ticket_ids.add(e['ticket_id'])
+                if 'ticket' in e:
+                    e['ticket'] = 'REDACTED-sha256:' + sha256(str(e['ticket']).encode()).hexdigest()[:16]
+            put(name.replace('.jsonl', '.redacted.jsonl'), ('\n'.join(json.dumps(e) for e in events) + '\n').encode())
+        else:
+            put(name, raw)
+    replay = {}
+    for key, case in proofs.items():
+        name = Path(case['manifest']).stem.replace('manifest-', '')
+        put(f'manifest-{name}.json', (TOOLS / case['manifest']).read_bytes())
+        cut = workdir / 'snapshots' / f'{name}.scoped.json'
+        cut.write_text(json.dumps(scoped_snapshot(json.loads((TOOLS / case['snapshot']).read_text()), scope, ticket_ids, actor_ids), default=str))
+        put(f'snapshots/{name}.scoped.json', cut.read_bytes())
+        out = workdir / 'whole-reset-replay' / name
+        result, _ = tool(['audits/fresh-start/verify_reset.py', '--whole-reset', str(TOOLS / case['manifest']), '--output-dir', str(out),
+                          '--snapshot', str(cut)], env)
+        again = json.loads((out / 'whole-reset-proof.json').read_text())
+        same = (result.returncode == case['exit'] and again['verdict'] == case['verdict'] and
+                [(g['kind'], g['product_id'], g['lot_code']) for g in again['gaps']] == [(g['kind'], g['product_id'], g['lot_code']) for g in case['gaps']])
+        replay[key] = dict(exit=result.returncode, same_verdict_and_gaps=same)
+        for leaf in ('whole-reset-proof.md', 'whole-reset-proof.json', 'whole-reset-gaps.csv'):
+            put(f'whole-reset/{name}/{leaf}', (workdir / 'whole-reset' / name / leaf).read_bytes())
+    put('SHA256SUMS-originals.txt', ('\n'.join(sums) + '\n').encode())
+    # Nothing secret may leave: no API key, ticket token, database URL or local key path.
+    for path in files:
+        text = path.read_text(errors='replace')
+        bad = [k for k in secrets_seen if k and k in text] or re.findall(TICKET_TOKEN, text) or \
+              [m for m in ('postgres://', 'postgresql://', 'X-API-Key', 'staging_owner_key') if m in text]
+        if bad:
+            raise RuntimeError(f'evidence file {path.name} would leak a secret; nothing committed')
+    report['evidence'] = dict(folder=str(dest.relative_to(ROOT)), files=len(files), replay_from_scoped_snapshot=replay,
+                              journals='ticket token redacted; every other field and each original event sha256 kept')
+    if not all(r['same_verdict_and_gaps'] for r in replay.values()):
+        raise RuntimeError('replay from the scoped snapshot differs: ' + json.dumps(replay))
+
+
+def rehearse(output, hosted=False, groups=False):
     uri = guarded_uri()
     ref = 'STG-CNT-' + uuid4().hex[:6].upper()
     t0 = now()
@@ -388,17 +746,22 @@ def rehearse(output, hosted=False):
     for name in ('API_KEY', 'DASHBOARD_API_KEY', 'DATABASE_URL'):
         env.pop(name, None)
     workdir = TOOLS / 'v3' / 'rehearsal' / ref
-    report = dict(reference=ref, mode=('ONE area against the DEPLOYED FastAPI-staging ' + base + ' (guarded staging DB); no local server')
+    report = dict(reference=ref, mode=('THREE area groups + whole-reset proof (O-3) against the DEPLOYED FastAPI-staging ' + base
+                                       + ' (guarded staging DB); no local server') if groups else
+                  ('ONE area against the DEPLOYED FastAPI-staging ' + base + ' (guarded staging DB); no local server')
                   if hosted else 'branch API in-process on 127.0.0.1 against guarded STAGING; no hosted deployment',
                   owner_actor=ids['owner'], floor_actor=ids['floor'], products={k: v['id'] for k, v in items.items()},
                   synthetic_owner_not_michael=True)
     try:
         if hosted:
             report['key_cache_wait_s'] = wait_for_keys(base, (owner_key, floor_key))
-            report['areas'] = hosted_area(base, floor_key, items, ref, t0, workdir, env, owner, report)
+            report['areas'] = (hosted_groups(base, owner_key, items, ref, workdir, env, owner, report, floor_key) if groups else
+                               hosted_area(base, floor_key, items, ref, t0, workdir, env, owner, report))
         else:
             report['areas'] = local_areas(base, floor_key, items, ref, t0, workdir, env, owner, report)
         evidence(uri, ids, items, report)
+        if groups:
+            export_evidence(workdir, ref, report, env, (owner_key, floor_key))
         return report
     finally:
         if server:
@@ -410,7 +773,8 @@ def rehearse(output, hosted=False):
             OWNER_KEY_FILE.unlink()
         except FileNotFoundError:
             pass
-        output.write_text(json.dumps(report, indent=2, default=str) + '\n')
+        # Repo-relative paths only: the receipt is committed.
+        output.write_text(json.dumps(report, indent=2, default=str).replace(str(ROOT) + '/', '') + '\n')
 
 
 def local_areas(base, floor_key, items, ref, t0, workdir, env, owner, report):
@@ -490,13 +854,15 @@ def evidence(uri, ids, items, report):
     """Read back the shortage, the new extra-kosher lot and the owner holds from staging."""
     ek_code = report['reference'] + '-EK-1'
     with connection(uri) as cur:
+        shortage_ids = report.get('shortage', {}).get('exceptions', [])   # --hosted-groups has no shortage fixture
         cur.execute("""SELECT e.id,e.status,e.resolution_kind,e.resolution_ticket_id,e.resolution_receipt_number,
                               xr.action AS resolution_receipt_action,xr.status AS resolution_receipt_status,
                               fix.receipt_number AS resolution_posting_receipt_number,e.detail->'resolution' AS resolution
                        FROM exceptions e LEFT JOIN write_tickets xr ON xr.receipt_number=e.resolution_receipt_number
                        LEFT JOIN write_tickets fix ON fix.id=e.resolution_ticket_id
-                       WHERE e.id=ANY(%s)""", (report['shortage']['exceptions'],))
-        report['shortage']['after'] = [dict(r) for r in cur.fetchall()]
+                       WHERE e.id=ANY(%s)""", (shortage_ids,))
+        if 'shortage' in report:
+            report['shortage']['after'] = [dict(r) for r in cur.fetchall()]
         cur.execute("""SELECT l.id,l.lot_code,l.kosher_tier,l.kosher_attested_by_actor_id,l.kosher_attested_at,l.entry_source
                        FROM lots l WHERE l.product_id=%s AND l.lot_code=%s""", (items['extra']['id'], ek_code.upper()))
         report['extra_kosher_lot'] = [dict(r) for r in cur.fetchall()]
@@ -514,9 +880,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--hosted', action='store_true', help='one area against the deployed FastAPI-staging (no local server)')
+    parser.add_argument('--hosted-groups', action='store_true',
+                        help='three area groups on the deployed FastAPI-staging, then the whole-reset union proof (O-3)')
     args = parser.parse_args()
     try:
-        rehearse(args.output, args.hosted)
+        rehearse(args.output, args.hosted or args.hosted_groups, args.hosted_groups)
         print(args.output)
     except Exception as exc:
         # Never print libpq errors or tracebacks that could carry a URI or key.

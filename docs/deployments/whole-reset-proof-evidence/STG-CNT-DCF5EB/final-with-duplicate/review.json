@@ -1,0 +1,63 @@
+{
+  "movement_reviews": {
+    "6ee13e36b30676e96fa7b87d4852fc3a854633534bfdb79d863b7568edaaef6a": {
+      "owner": "MG (rehearsal)",
+      "classifications": {
+        "RG1D-1": "after count"
+      },
+      "late_confirmed": true,
+      "allocations": {}
+    },
+    "919a354ef7314ecbdeeca6b7e9bf72e605da2f3642d01e4392cf11093d412831": {
+      "owner": "MG (rehearsal)",
+      "classifications": {
+        "RG1D-2": "after count"
+      },
+      "late_confirmed": true,
+      "allocations": {}
+    },
+    "28631cc1fc92185e3bdf8415e16268b93c1c5e435025492d8bb14100b2865ad7": {
+      "owner": "MG (rehearsal)",
+      "classifications": {
+        "RG2W-1": "after count"
+      },
+      "late_confirmed": true,
+      "allocations": {}
+    },
+    "676e09734bb40cbbc440048b3574e2acd5a5c25bd20dd0924152d2c8bd7d5b27": {
+      "owner": "MG (rehearsal)",
+      "classifications": {
+        "RG2W-2": "before count",
+        "RG2C-1": "before count"
+      },
+      "late_confirmed": true,
+      "allocations": {}
+    }
+  },
+  "move_reviews": {},
+  "duplicate_reviews": {
+    "63bb365904df0a79c3db28ea2a0eb93326eaf4d777c127eb37f521572fe8f928": {
+      "owner": "MG (rehearsal)",
+      "action": "exclude",
+      "exclude_rows": [
+        "RG1D-1-dup"
+      ],
+      "move_id": "",
+      "notes": "same pallet written twice (rehearsal negative case)"
+    }
+  },
+  "correction_reviews": {},
+  "ownership_reviews": {},
+  "multi_area_reviews": {
+    "573864f29b69ac3719ed82f41013afa540fc23aa022beef1df3f379ba8eba7c8": {
+      "owner": "MG (rehearsal)",
+      "no_unlogged_moves": true
+    }
+  },
+  "coverage_reviews": {
+    "a590d2780d02b2f93c927aa1ee3b1fb2237d0d8e9c0c2bdef24a8a06099a72f4": {
+      "owner": "MG (rehearsal)",
+      "confirmed": true
+    }
+  }
+}

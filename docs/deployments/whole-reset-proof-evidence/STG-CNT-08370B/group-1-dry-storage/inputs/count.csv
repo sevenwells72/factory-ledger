@@ -1,0 +1,3 @@
+sheet_id,area,count_date,counter,start_time,end_time,row_id,product_id,SKU,name,row_kind,lot_code,quantity,unit,partial_cases,location,bin_id,counted_time,estimated,tag_id,physical_marker,duplicate,notes
+RG1D,Dry storage,2026-10-14,Arturo (rehearsal),2026-10-14T13:35:37-04:00,2026-10-14T13:35:47-04:00,RG1D-1,1000000211,STG-CNT-08370B-OATS,STG STG-CNT-08370B Oats,COUNT,STG-CNT-08370B-OATS-1,395,lb,,Dry storage rack 1,,2026-10-14T13:35:42-04:00,x,,,,
+RG1D,Dry storage,2026-10-14,Arturo (rehearsal),2026-10-14T13:35:37-04:00,2026-10-14T13:35:47-04:00,RG1D-2,1000000212,STG-CNT-08370B-SUGAR,STG STG-CNT-08370B Sugar,COUNT,STG-CNT-08370B-SUGAR-1,520,lb,,Dry storage rack 2,,2026-10-14T13:35:42-04:00,,,,,

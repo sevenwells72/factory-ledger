@@ -1,0 +1,31 @@
+{
+  "movement_reviews": {
+    "0bef4824ac730ef9afe431d38d1ee2e91108ce033623f2d23ac18e31dea8c363": {
+      "owner": "MG (rehearsal)",
+      "classifications": {
+        "RG1D-1": "after count"
+      },
+      "late_confirmed": true,
+      "allocations": {}
+    },
+    "c439a152b56fb074bb2e4f68d6cb7425c008ba7bffde801df5b9b9a0a5bb75c8": {
+      "owner": "MG (rehearsal)",
+      "classifications": {
+        "RG1D-2": "after count"
+      },
+      "late_confirmed": true,
+      "allocations": {}
+    }
+  },
+  "move_reviews": {},
+  "duplicate_reviews": {},
+  "correction_reviews": {},
+  "ownership_reviews": {},
+  "multi_area_reviews": {
+    "0d3001e3b032a1360004647aa4e785011a5d35eb418c65c92ce0005765ec070e": {
+      "owner": "MG (rehearsal)",
+      "no_unlogged_moves": true
+    }
+  },
+  "coverage_reviews": {}
+}

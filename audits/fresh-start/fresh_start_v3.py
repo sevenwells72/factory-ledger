@@ -556,10 +556,55 @@ def actor_id(actor_name, s):
     return found[0]['id']
 
 
+def zero_stock_products(a):
+    """Reset-scope products a signed preview may approve with no lot row: coverage-certified,
+    no counted or on-hand lot, no product hold. Shared by apply_reset and the whole-reset proof."""
+    with_rows = {r['product_id'] for r in a['rows']}
+    return {int(pid) for pid in a['products'] if int(pid) not in with_rows and int(pid) in set(a['coverage_complete'])
+            and str(pid) not in a['holds']}
+
+
 TICKET_DEAD = ('expired', 'rejected', 'superseded')   # FL never posts these (commit refuses them)
+OWNER_HOLD_KINDS = ('LARGE_CORRECTION', 'KOSHER_ATTESTATION')   # = apply_reset.HOLD_KINDS values
 
 
-def reconcile_tickets(rows, s, attempts_list, actor_name):
+class HoldMismatch(ValueError):
+    """A journaled owner hold that is not FL's actual exception for that ticket and lot."""
+
+
+def bind_hold(r, s, tid, kind, exception_id, label):
+    """The FL owner hold a journal names (held receipt or approve intent) must be the real
+    exception: same id, kind, ticket, product and lot, of a kind the owner signed for.
+    exception_id None = a held receipt where FL returned no id; its kind still binds by
+    ticket (Codex PR #120 re-check: fabricated hold IDs/kinds passed)."""
+    lid = r['lid']
+    if kind not in OWNER_HOLD_KINDS:
+        raise HoldMismatch(f'Lot {lid}: {label} names hold {kind!r}, not an FL owner hold kind.')
+    on_ticket = [e for e in s.get('held_exceptions', []) if e.get('ticket_id') == tid]
+    fl = '; FL has ' + (', '.join(f'#{e["id"]} {e["kind"]} {e["status"]}' for e in on_ticket) or 'no owner hold') + f' on ticket {tid}'
+    if exception_id is None:
+        found = [e for e in on_ticket if e['kind'] == kind]
+    else:
+        if not (type(exception_id) is int and exception_id > 0):
+            raise HoldMismatch(f'Lot {lid}: {label} names exception {exception_id!r}, not an FL exception id{fl}.')
+        found = [e for e in s.get('held_exceptions', []) if e['id'] == exception_id]
+        if not found:
+            raise HoldMismatch(f'Lot {lid}: {label} names exception #{exception_id}, which FL does not have{fl}.')
+    if len(found) != 1:
+        raise HoldMismatch(f'Lot {lid}: {label} names a {kind} hold that FL does not have{fl}.')
+    e = found[0]
+    if 'lot_id' not in e or 'lot_code' not in e:
+        raise HoldMismatch(f'Lot {lid}: snapshot lacks owner-hold lot identity (exception #{e["id"]}); take a fresh snapshot.')
+    same_lot = (e['lot_id'] is None and e['lot_code'] == r['lot_code']) if r.get('new_lot') else e['lot_id'] == lid
+    if not (e['kind'] == kind and e['ticket_id'] == tid and e['product_id'] == r['pid'] and same_lot):
+        raise HoldMismatch(f'Lot {lid}: {label} names #{e["id"]} {kind} on ticket {tid}, but FL exception #{e["id"]} is '
+                           f'{e["kind"]} on ticket {e["ticket_id"]}, product {e["product_id"]}, lot {e["lot_id"] or e["lot_code"]}.')
+    if kind not in (r.get('owner_approvals') or []):
+        raise HoldMismatch(f'Lot {lid}: {label} names a {kind} hold, which the signed plan does not list for this lot.')
+    return e
+
+
+def reconcile_tickets(rows, s, attempts_list, actor_name, approve_held=False):
     """Completed lot -> its one posted ledger line, proved by the ticket that posted it.
     Also returns lots whose last ticket is held for the owner (resume by approval) and
     lots whose commit outcome is UNCERTAIN: the ticket is still `prepared` and some
@@ -578,7 +623,7 @@ def reconcile_tickets(rows, s, attempts_list, actor_name):
         attempts.setdefault(intent['lot_id'], []).append((intent, receipt))
     for lid, items in attempts.items():
         r = rows[lid]
-        posted, open_commits = [], {}
+        posted, open_commits, waiting = [], {}, set()
         for intent, receipt in items:
             tid = intent['ticket_id']
             check(type(tid) is int and tid > 0, 'Journal intent has no ticket.')
@@ -588,10 +633,20 @@ def reconcile_tickets(rows, s, attempts_list, actor_name):
             ticket = tickets.get(tid)
             check(ticket is not None and ticket['action'] == ('found' if r.get('new_lot') else 'adjust'),
                     f'Lot {lid}: journal ticket is missing from FL; manual reconciliation required.')
+            if intent['phase'] == 'approve':
+                if not approve_held:
+                    raise HoldMismatch(f'Lot {lid}: journal approves an owner hold but the signed approval says '
+                                       '"Owner approves held entries: N".')
+                bind_hold(r, s, tid, intent.get('hold'), intent.get('exception_id'),
+                          f'approve intent seq {intent.get("seq")}')
+            if receipt is not None and receipt.get('outcome') == 'held':
+                bind_hold(r, s, tid, receipt.get('hold'), receipt.get('exception_id'),
+                          f'held receipt seq {receipt.get("seq")}')
             if lines:
                 posted.append((tid, lines, ticket))
             elif ticket['status'] == 'awaiting_approval':
                 held[lid] = tid
+                waiting.add(tid)
             elif ticket['status'] == 'prepared':
                 # Not posted YET. Definite only if every commit we sent was refused (4xx).
                 if intent['phase'] == 'commit' and (receipt is None or receipt.get('outcome') != 'refused'):
@@ -606,6 +661,10 @@ def reconcile_tickets(rows, s, attempts_list, actor_name):
         check(not open_commits and len({tid for tid, _, _ in posted}) == 1 and len(posted[0][1]) == 1,
                 f'Lot {lid}: more than one posted or pending reset ticket; stop, never resubmit.')
         tid, [x], ticket = posted[0]
+        # A second ticket still held for the owner could post the same lot again once
+        # approved: never treat the lot as done (Codex PR #120 review).
+        check(not waiting - {tid}, f'Lot {lid}: a reset is posted and ticket {sorted(waiting - {tid})} is still held for the owner; '
+              'manual reconciliation required, never approve it.')
         lot = lots.get(x['lot_id'])
         check(lot is not None and lot['product_id'] == r['pid'] and x['product_id'] == r['pid'] and
                 (lot['id'] == lid if not r.get('new_lot') else lot['lot_code'] == r['lot_code']),
@@ -634,6 +693,10 @@ def reconcile_tickets(rows, s, attempts_list, actor_name):
             if e['ticket_id'] == tid:
                 check(e['status'] == 'resolved' and e['resolution_kind'] in ('approved', 'photo_attached') and
                         e['kind'] in (r.get('owner_approvals') or []), f'Lot {lid}: owner hold #{e["id"]} not released as approved.')
+                # The owner decision is the signed one: an approval by the named actor under "Y".
+                if e['resolution_kind'] == 'approved' and not (approve_held and e.get('resolved_by_actor_id') == owner_id):
+                    raise HoldMismatch(f'Lot {lid}: owner hold #{e["id"]} was approved by actor {e.get("resolved_by_actor_id")}, not by '
+                                       f'{actor_name} under a signed "Owner approves held entries: Y".')
         held.pop(lid, None)
         completed[lid] = x
     for lid in held:
@@ -643,6 +706,13 @@ def reconcile_tickets(rows, s, attempts_list, actor_name):
 
 def journal_openings(preview_path,approval_path,journal_path,s,data):
  """Read-only proof of prior executor writes. Never imports the write executor."""
+ return {x['line_id'] for x in journal_proof(preview_path,approval_path,journal_path,s,data)['completed'].values()}
+
+
+def journal_proof(preview_path,approval_path,journal_path,s,data):
+ """journal_openings with its evidence: proved posts per lot, held/uncertain lots,
+ the plan rows with a change, approval fields and the journal's intents/receipts.
+ whole_reset_proof.py uses this per area group (O-3)."""
  preview_path,approval_path,journal_path=map(f.local_path,(preview_path,approval_path,journal_path))
  raw=preview_path.read_bytes();plan=json.loads(raw,parse_float=D);signed=approval_path.read_bytes()
  check(plan.get('version')==3,'Journal verification requires a v3 preview')
@@ -656,7 +726,7 @@ def journal_openings(preview_path,approval_path,journal_path,s,data):
  for line in signed.decode().splitlines():
   if ':' in line:
    k,value=line.split(':',1)
-   if k in ('SHA-256','Named actor','Owner name','Signature'):
+   if k in ('SHA-256','Named actor','Owner name','Signature','Owner approves held entries'):
     check(k not in fields,'Duplicate approval field');fields[k]=value.strip()
  check(fields.get('SHA-256')==sha(raw) and fields.get('Signature')==fields.get('Owner name') and fields.get('Named actor'),'Signed original preview required')
  check(canonical(plan['data'])==canonical(data),'Verification inputs differ from the signed count/review')
@@ -679,8 +749,10 @@ def journal_openings(preview_path,approval_path,journal_path,s,data):
   if r.get('adjustment_lb') is None or not f.number(r['adjustment_lb']):continue
   lid=r['lot_key'] if r.get('new_lot') else r['lot_id']
   rows[lid]=dict(r,pid=r['product_id'],lid=lid,change=f.number(r['adjustment_lb']))
- completed,_,_=reconcile_tickets(rows,s,[(i,receipts.get(seq)) for seq,i in intents.items()],fields['Named actor'])
- return {x['line_id'] for x in completed.values()}
+ completed,held,uncertain=reconcile_tickets(rows,s,[(i,receipts.get(seq)) for seq,i in intents.items()],fields['Named actor'],
+                                         fields.get('Owner approves held entries')=='Y')
+ return dict(completed=completed,held=held,uncertain=uncertain,rows=rows,fields=fields,plan=plan,intents=intents,receipts=receipts,
+             preview_sha256=sha(raw),approval_sha256=sha(signed),journal_sha256=sha(journal))
 
 
 def main(verify=False):

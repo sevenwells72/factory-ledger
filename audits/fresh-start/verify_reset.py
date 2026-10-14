@@ -60,6 +60,10 @@ def write_verification(a, output):
 
 def main():
     import sys
+    if '--whole-reset' in sys.argv:
+        # O-3: the union of every area group's signed plan and journal (runbook step 20).
+        from whole_reset_proof import main as whole_reset_main
+        return whole_reset_main(sys.argv[1:])
     if '--v3' in sys.argv:
         sys.argv.remove('--v3')
         from fresh_start_v3 import main as live_count_main

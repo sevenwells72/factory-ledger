@@ -612,7 +612,10 @@ def load_v3_plan(preview, approval, count, target=None):
             require(r['lot_code'] == r['lot_code'].strip().upper(), 'New lot code is not in FL canonical form.')
         r.update(pid=pid,lid=lid,change=change)
         selected.append(r)
-    require(set(ids)=={r['pid'] for r in selected}, 'Approved product absent from lot preview.')
+    # A coverage-certified product with no counted or on-hand lot has nothing to post, but
+    # its group still signs for it, so the whole-reset proof can bind every scope product.
+    zero = v.zero_stock_products(a)
+    require({r['pid'] for r in selected} <= set(ids) <= {r['pid'] for r in selected} | zero, 'Approved product absent from lot preview.')
     require(not a['general'], 'Unidentified catalog items or general exceptions still require review.')
     needs = [r for r in selected if r['change'] and r.get('owner_approvals')]
     require(not needs or fields['Owner approves held entries'] == 'Y',
@@ -622,7 +625,7 @@ def load_v3_plan(preview, approval, count, target=None):
     require(listed == kosher, 'Extra-kosher lots must list exactly the new lots in this plan as PRODUCT:LOT (or none).')
     return dict(version=3,preview=preview,approval=approval,count=count,sha=digest(raw),approval_sha=digest(signed),
                 count_sha=digest(count.read_bytes()),actor=fields['Named actor'],owner=fields['Owner name'],
-                approval_date=date.fromisoformat(fields['Date']),cutoff=max(f.stamp(r['cutoff']) for r in selected),
+                approval_date=date.fromisoformat(fields['Date']),cutoff=max((f.stamp(r['cutoff']) for r in selected), default=at),
                 at=at,reason='v3 per-lot count reasons',ids=set(ids),rows=selected,records=[],held_inactive=set(),
                 v3=a,data=data,sources=src,target=plan_target,v3_lines=a.get('ledger_lines', []),approve_held=fields['Owner approves held entries']=='Y',
                 area_group=a.get('area_group'))
@@ -637,7 +640,8 @@ def reconcile_v3(plan, s, journal):
     """Completed lot -> its one posted line, proved by ticket (shared with verify)."""
     import fresh_start_v3 as v
     try:
-        return v.reconcile_tickets({r['lid']: r for r in plan['rows'] if r['change']}, s, journal.attempts(), plan['actor'])
+        return v.reconcile_tickets({r['lid']: r for r in plan['rows'] if r['change']}, s, journal.attempts(), plan['actor'],
+                                   plan['approve_held'])
     except ValueError as error:
         raise RuntimeError(str(error)) from None
 
@@ -883,6 +887,10 @@ def post_lot(plan, backend, key, journal, r, before, resume_ticket=None, resume_
     return body
 
 
+READBACK_COLUMNS = ['product_id', 'name', 'lot_code', 'new_lot', 'change', 'receipt_number', 'transaction_id', 'balance_now',
+                    'planned', 'owner_holds', 'shortages_closed', 'kosher_tier', 'status']
+
+
 def readback_rows(plan, s, completed):
     lots = {l['id']: l for l in s['lots']}
     balance = {}
@@ -971,7 +979,8 @@ def run_v3(plan, apply=False, backend=None, input_fn=input):
         output.mkdir(parents=True, exist_ok=True)
         rows = readback_rows(plan, s, completed)
         with (output / 'readback.csv').open('w', newline='') as stream:
-            writer = csv.DictWriter(stream, fieldnames=list(rows[0]))
+            # Fixed columns: a zero-stock-only group has no rows yet must still verify (Codex PR #120 re-check).
+            writer = csv.DictWriter(stream, fieldnames=READBACK_COLUMNS)
             writer.writeheader()
             writer.writerows({k: (f.fmt(v) if isinstance(v, f.D) else v) for k, v in row.items()} for row in rows)
         print('READ-BACK (check each receipt against the count sheet):')
