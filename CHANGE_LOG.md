@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-14 15:16 — Runbook O-2 closed: Sunshine paper bin log until after cutover, A8 deferred
+- **File(s) changed:** `docs/cutover/CUTOVER-RUNBOOK.md`, `CHANGE_LOG.md`
+- **What changed:** The O-2 row is marked **CLOSED 2026-10-14** with Michael's decision: Sunshine bulk bins use a paper bin log until after cutover; A8 weighed bins deferred, revisited later. It gives the temporary procedure (one line per bin on `docs/pilot/sunshine-bin-log.pdf`, merged in PR #123 5592cdc; same-day FL entry as a normal shipment, net lb; billing per design §8.5 unchanged; invoicing trigger still undecided). The T−14 planning step no longer asks for a Nov 6 A8 choice.
+- **Why:** Michael decided O-2 on 2026-10-14 (design §11 item 45, FOLLOWUPS P1.29). Docs only.
+
+---
+
 ## 2026-10-14 14:06 — Runbook O-3 closed: Michael accepts the whole-reset GO criterion
 - **File(s) changed:** `docs/cutover/CUTOVER-RUNBOOK.md`, `CHANGE_LOG.md`
 - **What changed:** The O-3 open-items row is marked **CLOSED 2026-10-14**. It records who built it (PR #120, 5a2d57e), who reviewed it (Codex 6174657692), Michael's acceptance, the step-20 command and the staging evidence folder. Step 20's Rollback line now states the accepted GO criterion. The whole-reset proof must report FULL RESET SCOPE RECONCILED (exit 0) before any release step (key rotation, flags). Any gap or tool error stops release.
