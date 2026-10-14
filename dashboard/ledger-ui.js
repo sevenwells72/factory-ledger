@@ -5,6 +5,42 @@
   const text = (value,lang) => typeof value==='string'?value:(lang==='es'&&value?.message_es)||value?.message||value?.error_code||value?.code||'';
   function errorText(result,lang){const d=result?.detail||result;if(Array.isArray(d))return d.map(e=>text(e,lang)||e.msg).join('\n');return [text(d,lang),...(d?.blockers||[]).map(b=>text(b,lang))].filter(Boolean).join('\n')||'Request failed / La solicitud falló';}
   function recorded(result){return typeof result?.receipt_number==='string' && result.receipt_number.trim().length>0 && result.success!==false && result.posted!==false && !result.held && !['awaiting_approval','rejected','prepared'].includes(result.status||result.ticket_status);}
+  // Only a returned receipt for THIS call is green. /resolve and /reject return the exception
+  // (whose receipt_number is the SOURCE entry's) — they never show a receipt.
+  function decisionOutcome(action,result){
+    if(action==='approve')return recorded(result)?{tone:'good',receipt:result.receipt_number}:{tone:'bad'};
+    if(action==='reject')return result?.rejected?{tone:'neutral',status:'declined'}:{tone:'bad'};
+    const status=result?.status;
+    if(['resolved','waived'].includes(status))return {tone:'neutral',status};
+    if(['open','escalated'].includes(status))return {tone:'neutral',status:'still_open'};
+    return {tone:'bad'};
+  }
+  // FL's per-person list wins. Until FL returns allowed_resolutions, hide what /auth/whoami
+  // says this person may not do; FL still enforces every decision.
+  const OWNER_RESOLUTIONS=['approved','declined','written_off','waived'];
+  function resolutionChoices(item,permissions,fallback=[]){
+    if(Array.isArray(item?.allowed_resolutions))return item.allowed_resolutions.slice();
+    return fallback.filter(kind=>OWNER_RESOLUTIONS.includes(kind)?permissions?.approve_exception!==false:permissions?.resolve_exception!==false);
+  }
+  // Owner approve: note optional (blank is omitted). Reject, write-off and the rest need one.
+  function decisionRequest(kind,note,extra={}){
+    const text=String(note??'').trim();
+    if(kind==='approved')return {action:'approve',body:text?{note:text}:{}};
+    if(kind==='declined')return {action:'reject',body:{resolution_kind:'declined',note:text}};
+    return {action:'resolve',body:{resolution_kind:kind,note:text,...extra}};
+  }
+  const noteRequired=kind=>!['approved','identified'].includes(kind);
+  function receiptState(receipt){
+    if(receipt?.status!=='committed')return {tone:'bad',state:'not_recorded'};
+    const txns=receipt.transactions||[],voided=txns.filter(t=>t.effective_status==='voided').length;
+    const voidReceipt=receipt.void_receipt_number||txns.map(t=>t.void_receipt_number).find(Boolean)||null;
+    if(receipt.effective_status==='voided'||(txns.length&&voided===txns.length))return {tone:'voided',state:'voided',voidReceipt};
+    if(voided)return {tone:'voided',state:'partly_voided',voidReceipt};
+    return {tone:'good',state:'recorded'};
+  }
+  const TIMEOUT=['No answer from FL within 20 seconds — this is NOT confirmed. Press Record again to check: it reuses the same ticket and cannot record twice.','FL no respondió en 20 segundos — esto NO está confirmado. Presiona Registrar otra vez para verificar: usa el mismo ticket y no puede registrarse dos veces.'];
+  const OFFLINE=['Could not reach FL — this is NOT confirmed. Check the connection, then press Record again (same ticket).','No se pudo contactar a FL — esto NO está confirmado. Revisa la conexión y presiona Registrar otra vez (mismo ticket).'];
+  function transportText(error,lang){const pick=pair=>pair[lang==='es'?1:0];if(error?.name==='AbortError')return pick(TIMEOUT);if(error instanceof TypeError)return pick(OFFLINE);return null;}
   function groups(rows){const map=new Map();[...rows].sort((a,b)=>Number(!!b.overdue)-Number(!!a.overdue)||String(a.due_at||'z').localeCompare(String(b.due_at||'z'))||a.id-b.id).forEach(r=>{if(!map.has(r.kind))map.set(r.kind,[]);map.get(r.kind).push(r);});return [...map];}
   function dataHtml(value){
     if(value===null||value===undefined)return '—';
@@ -18,19 +54,23 @@
   function plantTime(value,lang='en'){return value?new Date(value).toLocaleString(lang==='es'?'es-US':'en-US',{timeZone:'America/New_York',year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'}):'—';}
   function draftHtml(value){
     if(Array.isArray(value))return '<ul>'+value.map(v=>'<li>'+draftHtml(v)+'</li>').join('')+'</ul>';
-    if(value&&typeof value==='object')return '<dl>'+Object.entries(value).filter(([k,v])=>labels[k]&&v!==null&&v!==undefined&&!(Array.isArray(v)&&!v.length)).map(([k,v])=>'<dt>'+esc(labels[k][api.lang==='es'?1:0])+'</dt><dd>'+(['happened_at','entered_at','proof_due_at'].includes(k)?esc(plantTime(v,api.lang)):draftHtml(v))+'</dd>').join('')+'</dl>';
+    if(value&&typeof value==='object')return '<dl>'+Object.entries(value).filter(([k,v])=>labels[k]&&v!==null&&v!==undefined&&!(Array.isArray(v)&&!v.length)).map(([k,v])=>'<dt data-en="'+esc(labels[k][0])+'" data-es="'+esc(labels[k][1])+'">'+esc(labels[k][api.lang==='es'?1:0])+'</dt><dd>'+(['happened_at','entered_at','proof_due_at'].includes(k)?esc(plantTime(v,api.lang)):draftHtml(v))+'</dd>').join('')+'</dl>';
     return esc(value);
   }
-  const api={esc,text,errorText,recorded,groups,dataHtml,draftHtml,plantTime};
+  const api={esc,text,errorText,recorded,decisionOutcome,resolutionChoices,decisionRequest,noteRequired,receiptState,transportText,groups,dataHtml,draftHtml,plantTime};
   if(typeof module!=='undefined')module.exports=api;
   root.FLLedger=api;
   if(!root.document)return;
   api.lang=sessionStorage.getItem('fl-ledger-language')||'en';
-  api.t=(en,es)=>api.lang==='es'?es:en;
-  api.el=(tag,value,parent)=>{const e=document.createElement(tag);if(value!==undefined)e.textContent=value;if(parent)parent.append(e);return e;};
+  // t() returns a String that remembers both languages; el() keeps that text node so a
+  // language switch can relabel in place (relabel) without rebuilding forms or drafts.
+  const labelled=new Set();
+  api.t=(en,es)=>Object.assign(new String(api.lang==='es'?es:en),{en,es});
+  api.el=(tag,value,parent)=>{const e=document.createElement(tag);if(value!==undefined){const node=document.createTextNode(String(value));if(value instanceof String&&value.en!==undefined){node.labels=[value.en,value.es];labelled.add(node);}e.append(node);}if(parent)parent.append(e);return e;};
+  api.relabel=()=>{for(const node of labelled){if(!node.isConnected){labelled.delete(node);continue;}node.nodeValue=node.labels[api.lang==='es'?1:0];}};
   api.translate=()=>{document.documentElement.lang=api.lang;document.querySelectorAll('[data-en]').forEach(e=>e.textContent=e.dataset[api.lang]||e.dataset.en);const b=document.getElementById('language');if(b)b.textContent=api.lang==='en'?'ES':'EN';};
   api.notice=(message,kind='bad')=>{const box=document.getElementById('notice');box.hidden=false;box.className=kind;box.textContent=message;};
-  api.failure=error=>api.notice(api.t('NOT recorded — ','NO registrado — ')+(error?.result?errorText(error.result,api.lang):error.message||String(error)));
+  api.failure=error=>api.notice(error?.transport?error.message:api.t('NOT recorded — ','NO registrado — ')+(error?.result?errorText(error.result,api.lang):error.message||String(error)));
   api.base=root.FL_SESSION_API_BASE||(location.hostname.endsWith('netlify.app')?'https://fastapi-production-b73a.up.railway.app':location.origin);
   api.readKey='dashboard-key-2026';
   let legacy='', actor=null;
@@ -46,7 +86,8 @@
     if(!key&&!read)throw Error(api.t('Sign in before recording.','Inicia sesión antes de registrar.'));
     const headers={'X-API-Key':key||api.readKey};if(body!==undefined&&!form)headers['Content-Type']='application/json';
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);let response,result;
-    try{response=await fetch(api.base+path,{method:body===undefined?'GET':'POST',headers,body:body===undefined?undefined:form?body:JSON.stringify(body),signal:controller.signal,cache:'no-store'});result=await response.json();}finally{clearTimeout(timer);}
+    try{response=await fetch(api.base+path,{method:body===undefined?'GET':'POST',headers,body:body===undefined?undefined:form?body:JSON.stringify(body),signal:controller.signal,cache:'no-store'});result=await response.json();}
+    catch(error){const plain=transportText(error,api.lang);if(!plain)throw error;const wrapped=Error(plain);wrapped.transport=true;throw wrapped;}finally{clearTimeout(timer);}
     if(!response.ok){if(response.status===401&&result.detail?.error_code==='SESSION_EXPIRED'){api.session.clear();legacy='';actor=null;paintIdentity();}const error=Error(errorText(result,api.lang));error.result=result;error.status=response.status;throw error;}return result;
   };
   api.upload=async(file,kind)=>{const body=new FormData();body.append('file',file);body.append('kind',kind);return api.request('/attachments',body,{form:true});};
