@@ -3,6 +3,8 @@
   'use strict';
 
   const API_BASE = 'https://fastapi-production-b73a.up.railway.app/dashboard/api';
+  // Automatic reads authenticate normally without extending personal-session idle time.
+  const BACKGROUND_READ = { headers: { 'X-FL-Background': '1' } };
 
   // ── State ──
   const state = {
@@ -386,13 +388,13 @@
       <div class="today-tile-card"><h3>Packed</h3>${packedRows.length ? packedRows.map(rowHtml).join('') : '<p class="today-tile-zero">No packing posted yet today.</p>'}</div>`;
   }
 
-  async function refreshTodayTile() {
+  async function refreshTodayTile({ headers } = {}) {
     const container = document.getElementById('today-tile');
     const dateLabel = document.getElementById('today-tile-date');
     container.innerHTML = '<div class="today-tile-state loading-indicator">Loading today’s production…</div>';
     dateLabel.textContent = 'Loading plant date…';
     try {
-      const data = await fetchSalesAPI('/production/today-tile');
+      const data = await fetchSalesAPI('/production/today-tile', { headers });
       setRefreshFailed('today-tile', false);
       renderTodayTile(data);
     } catch (e) {
@@ -682,14 +684,14 @@
   // Extracted from initTabs so the attention strip's deep links (IMP-030)
   // switch tabs through exactly the same path as a tab click — including the
   // Recent Entries polling start/stop, which a hand-rolled switch would miss.
-  function activateTab(target) {
+  function activateTab(target, options = {}) {
     const route=new URL(location.href);route.searchParams.set('section',target);route.searchParams.delete('searchRecord');history.replaceState({},'',route);
     state.currentTab = target;
     window.dispatchEvent(new CustomEvent('fl-tab-change', { detail: target }));
     document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === target));
     document.querySelectorAll('.tab-content').forEach(tc => tc.classList.toggle('active', tc.id === 'tab-' + target));
     if (target === 'recent') {
-      openRecentEntries();
+      openRecentEntries(options);
     } else {
       stopRecentEntriesPolling();
     }
@@ -814,7 +816,7 @@
     FLDesign.filterCards(document.getElementById('recent-search'), '.recent-entry-card');
   }
 
-  async function refreshRecentEntries() {
+  async function refreshRecentEntries({ headers } = {}) {
     const feed = document.getElementById('recent-entries-feed');
     const status = document.getElementById('recent-entries-status');
     const button = document.getElementById('recent-entries-refresh');
@@ -823,7 +825,7 @@
     button.classList.add('loading');
     button.disabled = true;
     try {
-      const data = await fetchSalesAPI('/ledger/recent?limit=20');
+      const data = await fetchSalesAPI('/ledger/recent?limit=20', { headers });
       const events = Array.isArray(data.events) ? data.events : [];
       state.recentEntries.loaded = true;
       status.textContent = events.length ? `Showing ${events.length} most recently entered ledger events.` : 'No ledger entries have been recorded.';
@@ -841,7 +843,7 @@
   function startRecentEntriesPolling() {
     if (state.recentEntries.pollTimer || document.hidden || state.currentTab !== 'recent') return;
     state.recentEntries.pollTimer = window.setInterval(() => {
-      if (!document.hidden && state.currentTab === 'recent') refreshRecentEntries();
+      if (!document.hidden && state.currentTab === 'recent') refreshRecentEntries(BACKGROUND_READ);
     }, 60000);
   }
 
@@ -850,8 +852,8 @@
     state.recentEntries.pollTimer = null;
   }
 
-  function openRecentEntries() {
-    if (!state.recentEntries.loaded) refreshRecentEntries();
+  function openRecentEntries(options = {}) {
+    if (!state.recentEntries.loaded) refreshRecentEntries(options);
     startRecentEntriesPolling();
   }
 
@@ -899,7 +901,7 @@
     }
   }
 
-  async function refreshProductionCalendar() {
+  async function refreshProductionCalendar({ headers } = {}) {
     hideError('production-error');
     const container = document.getElementById('production-calendar');
     const detail = document.getElementById('production-calendar-detail');
@@ -909,7 +911,7 @@
     updateCalendarLabel();
     try {
       const params = getCalendarParams();
-      const data = await fetchAPI('/production?' + params);
+      const data = await fetchAPI('/production?' + params, { headers });
       renderProductionCalendar(data, container);
     } catch (e) {
       container.innerHTML = '';
@@ -1178,12 +1180,12 @@
   }
 
   // ── Finished Goods Inventory ──
-  async function refreshFinishedGoods() {
+  async function refreshFinishedGoods({ headers } = {}) {
     hideError('finished-goods-error');
     const container = document.getElementById('finished-goods-panels');
     container.innerHTML = '<div class="loading-indicator">Loading finished goods...</div>';
     try {
-      const data = await fetchAPI('/inventory/finished-goods');
+      const data = await fetchAPI('/inventory/finished-goods', { headers });
       renderFinishedGoodsPanels(data, container);
     } catch (e) {
       container.innerHTML = '';
@@ -1254,12 +1256,12 @@
   }
 
   // ── Batch Inventory ──
-  async function refreshBatchInventory() {
+  async function refreshBatchInventory({ headers } = {}) {
     hideError('batches-error');
     const container = document.getElementById('batch-inventory');
     container.innerHTML = '<div class="loading-indicator">Loading batch inventory...</div>';
     try {
-      const data = await fetchAPI('/inventory/batches');
+      const data = await fetchAPI('/inventory/batches', { headers });
       renderBatchInventory(data, container);
     } catch (e) {
       container.innerHTML = '';
@@ -1370,12 +1372,12 @@
   }
 
   // ── Ingredients ──
-  async function refreshIngredients() {
+  async function refreshIngredients({ headers } = {}) {
     hideError('ingredients-error');
     const container = document.getElementById('ingredients-panels');
     container.innerHTML = '<div class="loading-indicator">Loading ingredients...</div>';
     try {
-      const data = await fetchAPI('/inventory/ingredients');
+      const data = await fetchAPI('/inventory/ingredients', { headers });
       renderIngredients(data, container);
     } catch (e) {
       container.innerHTML = '';
@@ -1465,12 +1467,12 @@
   }
 
   // ── Activity: Shipments ──
-  async function refreshShipments() {
+  async function refreshShipments({ headers } = {}) {
     hideError('shipments-error');
     const container = document.getElementById('shipments-table');
     container.innerHTML = '<div class="loading-indicator">Loading shipments...</div>';
     try {
-      const data = await fetchAPI('/activity/shipments?limit=100');
+      const data = await fetchAPI('/activity/shipments?limit=100', { headers });
       renderShipments(data, container);
     } catch (e) {
       container.innerHTML = '';
@@ -1523,12 +1525,12 @@
   }
 
   // ── Activity: Receipts ──
-  async function refreshReceipts() {
+  async function refreshReceipts({ headers } = {}) {
     hideError('receipts-error');
     const container = document.getElementById('receipts-table');
     container.innerHTML = '<div class="loading-indicator">Loading receipts...</div>';
     try {
-      const data = await fetchAPI('/activity/receipts?limit=100');
+      const data = await fetchAPI('/activity/receipts?limit=100', { headers });
       renderReceipts(data, container);
     } catch (e) {
       container.innerHTML = '';
@@ -1586,14 +1588,14 @@
     return input.value;
   }
 
-  async function refreshDailyEntries() {
+  async function refreshDailyEntries({ headers } = {}) {
     hideError('daily-entries-error');
     const container = document.getElementById('daily-entries-table');
     container.innerHTML = '<div class="loading-indicator">Loading entries...</div>';
     const day = dailyEntriesDate();
     const mode = document.getElementById('daily-entries-mode').value;
     try {
-      const data = await fetchAPI('/activity/daily-entries?date=' + encodeURIComponent(day) + '&date_mode=' + encodeURIComponent(mode));
+      const data = await fetchAPI('/activity/daily-entries?date=' + encodeURIComponent(day) + '&date_mode=' + encodeURIComponent(mode), { headers });
       renderDailyEntries(data, container);
     } catch (e) {
       container.innerHTML = '';
@@ -1642,7 +1644,7 @@
   }
 
   // ── Lot Detail Panel ──
-  async function openLotPanel(lotCode, productId) {
+  async function openLotPanel(lotCode, productId, options = {}) {
     FLDesign.setRecord({type:'lot',name:lotCode,id:productId || null});
     const overlay = document.getElementById('lot-panel-overlay');
     const body = document.getElementById('lot-panel-body');
@@ -1653,7 +1655,7 @@
     try {
       let url = API_BASE + '/lot/' + encodeURIComponent(lotCode);
       if (productId) url += '?product_id=' + encodeURIComponent(productId);
-      const res = await FL.fetchWithTimeout(url);
+      const res = await FL.fetchWithTimeout(url, options);
       if (res.status === 409) {
         // Ambiguous lot code — show disambiguation picker
         const err = await res.json();
@@ -1736,7 +1738,7 @@
     document.getElementById('lot-panel-overlay').classList.add('hidden');
   }
 
-  async function openProductPanel(productId, productName) {
+  async function openProductPanel(productId, productName, options = {}) {
     FLDesign.setRecord({type:'product',id:productId,name:productName || 'Product'});
     const overlay = document.getElementById('lot-panel-overlay');
     const body = document.getElementById('lot-panel-body');
@@ -1745,7 +1747,7 @@
     title.textContent = productName;
     body.innerHTML = '<div class="loading-indicator">Loading product lots...</div>';
     try {
-      const data = await fetchAPI('/product/' + productId + '/lots');
+      const data = await fetchAPI('/product/' + productId + '/lots', options);
       let html = '<dl class="lot-info-grid">';
       html += `<dt>Product</dt><dd>${escHtml(data.product_name)}</dd>`;
       html += `<dt>Type</dt><dd>${escHtml(operationalLabel(data.product_type))}</dd>`;
@@ -1806,12 +1808,12 @@
     }
   }
 
-  function openSearchRecord(record) {
-    if (record.type === 'product') { openProductPanel(record.id, record.name); document.getElementById('lot-panel-close').focus(); }
-    else if (record.type === 'lot') { openLotPanel(record.name, record.id); document.getElementById('lot-panel-close').focus(); }
-    else if (record.type === 'order') { activateTab('orders'); openOrderDetail(Number(record.id)); }
+  function openSearchRecord(record, options = {}) {
+    if (record.type === 'product') { openProductPanel(record.id, record.name, options); document.getElementById('lot-panel-close').focus(); }
+    else if (record.type === 'lot') { openLotPanel(record.name, record.id, options); document.getElementById('lot-panel-close').focus(); }
+    else if (record.type === 'order') { activateTab('orders', options); openOrderDetail(Number(record.id), options); }
     else if (record.type === 'customer') {
-      activateTab('orders');
+      activateTab('orders', options);
       document.getElementById('orders-customer-search').value = record.name;
       renderOrdersList();
     }
@@ -1860,7 +1862,7 @@
   state.notesLoaded = false;
   state.editingNoteId = null;
 
-  async function refreshNotes() {
+  async function refreshNotes({ headers } = {}) {
     hideError('notes-error');
     const container = document.getElementById('notes-list');
     container.innerHTML = '<div class="loading-indicator">Loading notes...</div>';
@@ -1870,7 +1872,7 @@
       if (state.notesFilter !== 'all') params.push('category=' + state.notesFilter);
       if (!state.notesShowDone) params.push('status=open');
       if (params.length) url += '?' + params.join('&');
-      const data = await fetchAPI(url);
+      const data = await fetchAPI(url, { headers });
       state.notesData = data.notes || [];
       state.notesLoaded = true;
       renderNotes(container);
@@ -2371,7 +2373,7 @@
     }
   }
 
-  async function refreshOrders() {
+  async function refreshOrders({ headers } = {}) {
     const generation = state.ordersGeneration = (state.ordersGeneration || 0) + 1;
     hideError('orders-error');
     const container = document.getElementById('orders-table-container');
@@ -2390,7 +2392,7 @@
       container.innerHTML = '<div class="loading-indicator">Loading sales orders…</div>';
     }
     try {
-      const [data, counts] = await Promise.all([fetchSalesAPI('/sales/orders?' + params), fetchSalesAPI('/sales/orders/counts')]);
+      const [data, counts] = await Promise.all([fetchSalesAPI('/sales/orders?' + params, { headers }), fetchSalesAPI('/sales/orders/counts', { headers })]);
       if (generation !== state.ordersGeneration) return;
       state.ordersData = (data.orders || []).map(order => ({ ...order, readyInFlight: state.orderReadyWrites.has(String(order.order_id)) }));
       state.ordersCounts = counts;
@@ -2628,7 +2630,7 @@
     });
   }
 
-  async function openOrderDetail(orderId) {
+  async function openOrderDetail(orderId, options = {}) {
     FLDesign.setRecord({type:'order',id:orderId});
     const listView = document.getElementById('orders-list-view');
     const detailView = document.getElementById('order-detail-view');
@@ -2641,10 +2643,10 @@
 
     try {
       const [data, allocations] = await Promise.all([
-        fetchSalesAPI('/sales/orders/' + orderId),
-        fetchSalesAPI('/sales/orders/' + orderId + '/allocations')
+        fetchSalesAPI('/sales/orders/' + orderId, options),
+        fetchSalesAPI('/sales/orders/' + orderId + '/allocations', options)
       ]);
-      await ensureOrderDetailFlag(data).catch(() => {});
+      await ensureOrderDetailFlag(data, options).catch(() => {});
       state.currentOrderDetail = data;
       state.currentOrderAllocations = allocations;
       state.orderDetailEditMode = false;
@@ -3241,12 +3243,12 @@
     return { ready: Boolean(order.ready ?? order.floor_ready ?? cached?.ready), ready_at: metadata?.ready_at, ready_by: metadata?.ready_by, note: metadata?.note, metadataKnown: Boolean(metadata) };
   }
 
-  async function ensureOrderDetailFlag(order) {
+  async function ensureOrderDetailFlag(order, options = {}) {
     const flag = orderDetailFlag(order);
     if (flag.metadataKnown) return flag;
     const params = new URLSearchParams({ state: order.state, limit: '200' });
     if (order.customer) params.set('customer', order.customer);
-    const result = await fetchSalesAPI('/sales/orders?' + params);
+    const result = await fetchSalesAPI('/sales/orders?' + params, options);
     const match = (result.orders || []).find(item => String(item.order_id) === String(order.order_id));
     // The detail endpoint omits the floor note. A missing record in the bounded
     // list is not a known empty note: never send a write that would erase it.
@@ -3449,14 +3451,14 @@
   state.erProductTimer = null;
   state.erIntake = null;         // AI intake session: {documentId, extraction, match, lines, force}
 
-  async function refreshExpectedReceipts() {
+  async function refreshExpectedReceipts({ headers } = {}) {
     hideError('er-error');
     const container = document.getElementById('er-table-container');
     if (!state.erLoaded) container.innerHTML = '<div class="loading-indicator">Loading expected receipts...</div>';
     try {
       const status = document.getElementById('er-status-filter').value;
       const params = new URLSearchParams({ status, limit: '500' });
-      const data = await fetchSalesAPI('/expected-receipts?' + params.toString());
+      const data = await fetchSalesAPI('/expected-receipts?' + params.toString(), { headers });
       state.erData = data.expected_receipts || [];
       state.erLoaded = true;
       renderExpectedReceipts();
@@ -4955,7 +4957,7 @@
     if ([...select.options].some(option => option.value === selected)) select.value = selected;
   }
 
-  async function refreshSuppliesInventory() {
+  async function refreshSuppliesInventory({ headers } = {}) {
     hideError('supplies-inventory-error');
     const container = document.getElementById('supplies-inventory-table');
     if (!state.supplies.inventoryLoaded) {
@@ -4963,8 +4965,8 @@
     }
     try {
       const [inventoryResult, expectedReceiptsResult] = await Promise.allSettled([
-        fetchSalesAPI('/supplies/inventory'),
-        fetchSalesAPI('/expected-receipts?status=open&limit=500'),
+        fetchSalesAPI('/supplies/inventory', { headers }),
+        fetchSalesAPI('/expected-receipts?status=open&limit=500', { headers }),
       ]);
       if (inventoryResult.status === 'rejected') throw inventoryResult.reason;
       const data = inventoryResult.value;
@@ -5174,14 +5176,14 @@
     state.supplies.feedbackTimer = setTimeout(() => el.classList.add('hidden'), 6000);
   }
 
-  async function refreshSupplyRequests() {
+  async function refreshSupplyRequests({ headers } = {}) {
     hideError('supply-requests-error');
     const container = document.getElementById('supply-requests-list');
     if (!state.supplies.requestsLoaded) {
       container.innerHTML = '<div class="loading-indicator">Loading supply requests...</div>';
     }
     try {
-      const data = await fetchSalesAPI('/supply-requests?status=all&limit=500');
+      const data = await fetchSalesAPI('/supply-requests?status=all&limit=500', { headers });
       state.supplies.requests = (data.supply_requests || []).sort((a, b) =>
         Date.parse(b.created_at || '') - Date.parse(a.created_at || '') || Number(b.id) - Number(a.id)
       );
@@ -5399,13 +5401,13 @@
     floating_point_dust: ['Very small residual lot balances', 'Review the listed lot balances with the ledger administrator before making any correction.'],
   };
 
-  async function refreshHealthBadge() {
+  async function refreshHealthBadge({ headers } = {}) {
     const badge = document.getElementById('health-badge');
     const body = document.getElementById('health-details');
     const retry = document.getElementById('health-retry');
     retry.disabled = true;
     try {
-      const res = await FL.fetchWithTimeout('https://fastapi-production-b73a.up.railway.app/audit/integrity');
+      const res = await FL.fetchWithTimeout('https://fastapi-production-b73a.up.railway.app/audit/integrity', { headers });
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
       if (!Number.isFinite(data.score) || !Array.isArray(data.checks)) throw new Error('Incomplete health check');
@@ -5490,9 +5492,9 @@
   }
 
   // Independent of list filters: always count the complete fulfillment-check set.
-  async function refreshDispatchAttention() {
+  async function refreshDispatchAttention({ headers } = {}) {
     try {
-      const data = await fetchSalesAPI('/sales/orders/fulfillment-check');
+      const data = await fetchSalesAPI('/sales/orders/fulfillment-check', { headers });
       if (!Array.isArray(data.orders) || data.orders.some(o => typeof o.dispatch_ready !== 'boolean')) {
         throw new Error('Dispatch checks missing');
       }
@@ -5666,31 +5668,31 @@
     renderAttentionStrip();
   }
 
-  async function refreshAll() {
+  async function refreshAll(options = {}) {
     const btn = document.getElementById('refresh-btn');
     btn.classList.add('loading');
     btn.textContent = 'Refreshing...';
 
     const ops = [
-      refreshTodayTile(),
-      refreshProductionCalendar(),
-      refreshFinishedGoods(),
-      refreshBatchInventory(),
-      refreshIngredients(),
+      refreshTodayTile(options),
+      refreshProductionCalendar(options),
+      refreshFinishedGoods(options),
+      refreshBatchInventory(options),
+      refreshIngredients(options),
     ];
 
     // Always load activity data too (even if tab not visible) so it's ready
-    ops.push(refreshShipments());
-    ops.push(refreshReceipts());
-    ops.push(refreshDailyEntries());
-    ops.push(refreshNotes());
-    ops.push(refreshOrders());
-    ops.push(refreshExpectedReceipts());
-    ops.push(refreshSuppliesInventory());
-    ops.push(refreshSupplyRequests());
-    if (state.currentTab === 'recent') ops.push(refreshRecentEntries());
-    ops.push(refreshHealthBadge());
-    ops.push(refreshDispatchAttention());
+    ops.push(refreshShipments(options));
+    ops.push(refreshReceipts(options));
+    ops.push(refreshDailyEntries(options));
+    ops.push(refreshNotes(options));
+    ops.push(refreshOrders(options));
+    ops.push(refreshExpectedReceipts(options));
+    ops.push(refreshSuppliesInventory(options));
+    ops.push(refreshSupplyRequests(options));
+    if (state.currentTab === 'recent') ops.push(refreshRecentEntries(options));
+    ops.push(refreshHealthBadge(options));
+    ops.push(refreshDispatchAttention(options));
 
     await Promise.allSettled(ops);
 
@@ -5723,7 +5725,7 @@
       if (document.hidden) {
         stopRecentEntriesPolling();
       } else if (state.currentTab === 'recent') {
-        refreshRecentEntries();
+        refreshRecentEntries(BACKGROUND_READ);
         startRecentEntriesPolling();
       }
     });
@@ -5754,16 +5756,16 @@
     window.addEventListener('fl-search-select', event => openSearchRecord(event.detail));
     const params = new URLSearchParams(location.search);
     const section = params.get('section');
-    if (section && document.querySelector('.tab[data-tab="' + CSS.escape(section) + '"]')) activateTab(section);
+    if (section && document.querySelector('.tab[data-tab="' + CSS.escape(section) + '"]')) activateTab(section, BACKGROUND_READ);
     if (params.has('searchRecord')) {
-      try { openSearchRecord(JSON.parse(params.get('searchRecord'))); } catch (_) { /* Ignore invalid incoming selections. */ }
+      try { openSearchRecord(JSON.parse(params.get('searchRecord')), BACKGROUND_READ); } catch (_) { /* Ignore invalid incoming selections. */ }
     }
 
     // Shareable day scope: inputs remain literal calendar dates.
     if (/^\d{4}-\d{2}-\d{2}$/.test(params.get('day') || '')) {
       document.getElementById('daily-entries-date').value=params.get('day');
       document.getElementById('daily-entries-mode').value=params.get('mode')==='entered'?'entered':'event';
-      refreshDailyEntries();
+      refreshDailyEntries(BACKGROUND_READ);
     }
     initNoteReference();
     initSupplierFilter();
@@ -5786,7 +5788,7 @@
     });
 
     // Initial data load
-    refreshAll();
+    refreshAll(BACKGROUND_READ);
   }
 
   // Kick off

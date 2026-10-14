@@ -23,7 +23,7 @@
     let value=null,generation=0;
     const clear=()=>{generation++;value=null;list.replaceChildren();status.textContent='';invalidate();changed(null);};
     input.oninput=clear;
-    function select(candidate){value=candidate;input.value=candidate.label||candidate.name;list.replaceChildren();status.textContent=ui.t('Selected: ','Seleccionado: ')+input.value;invalidate();changed(candidate);}
+    function select(candidate,requestOptions={}){value=candidate;input.value=candidate.label||candidate.name;list.replaceChildren();status.textContent=ui.t('Selected: ','Seleccionado: ')+input.value;invalidate();changed(candidate,requestOptions);}
     async function find(offset=0){const version=++generation;button.disabled=true;try{
       const result=await ui.request('/resolve',{kind,query:input.value.trim(),context:{action:'order',group:'office'},limit:8,offset});
       if(version!==generation||!box.isConnected)return;list.replaceChildren();
@@ -34,7 +34,7 @@
     button.onclick=()=>find();input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();find();}};
     return {input,select,clear,get value(){return value;},id(){if(!value)throw Error(ui.t('Choose ','Elige ')+ui.t(en,es));return value.id;}};
   }
-  function render(){
+  function render({background=false}={}){
     invalidate();content.replaceChildren();
     if(!FLDashboard.writesEnabled)return;
     const available=logic.permitted(grants,true);
@@ -45,6 +45,7 @@
     selector.value=action;selector.onchange=()=>{action=selector.value;render();};
     const form=ui.el('form',undefined,content);form.id='office-form';form.className='panel';
     const fields=ui.el('div',undefined,form);fields.className='fields';let controls={},choices={},rows=[],orderGeneration=0,documentLoaded=null,expectedLoaded=null,readyLoaded=null;
+    const initialRead={background};
     function field(name,en,es,type='text',required=false,parent=fields,registry=controls){
       const label=ui.el('label',ui.t(en,es),parent),el=ui.el(type==='textarea'?'textarea':'input',undefined,label);el.name=name;if(type!=='textarea')el.type=type;el.required=required;if(type==='number')el.step='any';if(type==='checkbox')label.className='check';registry[name]=el;return el;
     }
@@ -81,15 +82,15 @@
     let lineHost;
     const orderAction=['add_order_lines','update_order_line','cancel_order_line','update_order_header','update_order_status','mark_order_ready','close_order','cancel_order','reopen_order'].includes(action);
     if(orderAction){
-      choices.order=picker(fields,'order','Sales order','Pedido de venta','order',async selected=>{
+      choices.order=picker(fields,'order','Sales order','Pedido de venta','order',async (selected,requestOptions={})=>{
         const generation=++orderGeneration;readyLoaded=null;if(!selected)return;
-        try{const [order,options]=await Promise.all([ui.request('/sales/orders/'+selected.id),ui.request('/sales/orders/'+selected.id+'/office-options')]);
+        try{const [order,options]=await Promise.all([ui.request('/sales/orders/'+selected.id,undefined,requestOptions),ui.request('/sales/orders/'+selected.id+'/office-options',undefined,requestOptions)]);
           if(generation!==orderGeneration||!form.isConnected)return;
           if(action==='mark_order_ready'){
             let mark=String(readyIntent?.order_id)===String(selected.id)?readyIntent:null;
             if(!mark){
               const params=new URLSearchParams({state:order.state,limit:'200'});if(order.customer)params.set('customer',order.customer);
-              const result=await ui.request('/sales/orders?'+params);if(generation!==orderGeneration||!form.isConnected)return;
+              const result=await ui.request('/sales/orders?'+params,undefined,requestOptions);if(generation!==orderGeneration||!form.isConnected)return;
               mark=(result.orders||[]).find(row=>String(row.order_id)===String(selected.id));
               if(!mark||!Object.prototype.hasOwnProperty.call(mark,'note'))throw Error(ui.t('The ready-to-ship note could not be loaded. Choose the order again.','No se pudo cargar la nota de listo para enviar. Elige el pedido otra vez.'));
             }
@@ -129,9 +130,9 @@
       const input=field('expected_receipt_id','Expected delivery #','Entrega esperada #','number',true);input.step='1';
       const button=ui.el('button',ui.t('Load expected delivery','Cargar entrega esperada'),fields);button.type='button';const view=ui.el('div',undefined,fields);view.className='wide';
       input.oninput=()=>{expectedLoaded=null;view.replaceChildren();};
-      button.onclick=async()=>{expectedLoaded=null;const id=input.value;try{const result=await ui.request('/expected-receipts/'+encodeURIComponent(id));if(input.value!==id||!form.isConnected)return;expectedLoaded=Number(id);const record=result.expected_receipt||result;view.innerHTML=ui.draftHtml(record);for(const key of ['expected_qty','expected_date','reference_number','notes'])if(controls[key])controls[key].value=record[key]??'';}catch(error){ui.failure(error);}};
+      button.onclick=async({background=false}={})=>{expectedLoaded=null;const id=input.value;try{const result=await ui.request('/expected-receipts/'+encodeURIComponent(id),undefined,{background});if(input.value!==id||!form.isConnected)return;expectedLoaded=Number(id);const record=result.expected_receipt||result;view.innerHTML=ui.draftHtml(record);for(const key of ['expected_qty','expected_date','reference_number','notes'])if(controls[key])controls[key].value=record[key]??'';}catch(error){ui.failure(error);}};
       if(action==='update_expected_receipt'){field('expected_qty','Expected lb','lb esperadas','number',true);field('expected_date','Expected date (blank clears)','Fecha esperada (vacío borra)','date');field('reference_number','Reference (blank clears)','Referencia (vacío borra)');field('notes','Notes (blank clears)','Notas (vacío borra)','textarea');select('status','Delivery state','Estado de entrega',[['','Keep open','Mantener abierta'],['closed','Close delivery','Cerrar entrega']]);}
-      if(initial.get('expected')){input.value=initial.get('expected');initial.delete('expected');button.click();}
+      if(initial.get('expected')){input.value=initial.get('expected');initial.delete('expected');button.onclick(initialRead);}
     }
     if(['create_order','add_order_lines','approve_so','approve_er'].includes(action)){
       lineHost=ui.el('section',undefined,fields);lineHost.className='wide';lineHost.dataset.lines='';
@@ -139,14 +140,14 @@
         const input=field('document_id','Extracted document #','Documento extraído #','number',true);input.step='1';
         const load=ui.el('button',ui.t('Load extracted document','Cargar documento extraído'),fields);load.type='button';const status=ui.el('p','',fields);
         input.oninput=()=>{documentLoaded=null;status.textContent='';};
-        load.onclick=async()=>{documentLoaded=null;const id=input.value;try{const data=await ui.request('/purchase-documents/'+encodeURIComponent(id));if(input.value!==id||!form.isConnected)return;
+        load.onclick=async({background=false}={})=>{documentLoaded=null;const id=input.value;try{const data=await ui.request('/purchase-documents/'+encodeURIComponent(id),undefined,{background});if(input.value!==id||!form.isConnected)return;
           if(data.status!=='extracted'||data.document_kind!==(action==='approve_so'?'sales':'purchase'))throw Error(ui.t('Choose an extracted document of this type.','Elige un documento extraído de este tipo.'));
           const ex=data.extraction||{};documentLoaded=Number(id);status.textContent=data.original_filename||'#'+id;
           if(controls.customer_po)controls.customer_po.value=ex.po_number||'';if(controls.reference_number)controls.reference_number.value=ex.reference_number||ex.po_number||'';
           if(choices.customer)choices.customer.input.value=ex.customer_name||'';if(choices.supplier)choices.supplier.input.value=ex.supplier_name||'';
           rows=[];lineHost.replaceChildren();for(const row of ex.lines||[])addLine(row);if(!rows.length)addLine();
         }catch(error){ui.failure(error);}};
-        if(initial.get('document')){input.value=initial.get('document');initial.delete('document');load.click();}
+        if(initial.get('document')){input.value=initial.get('document');initial.delete('document');load.onclick(initialRead);}
       }else addLine();
       const add=ui.el('button',ui.t('Add line','Agregar línea'),fields);add.type='button';add.onclick=()=>addLine();
     }
@@ -186,12 +187,12 @@
         });draft.scrollIntoView({block:'start'});
       }catch(error){ui.failure(error);}finally{busy(false);}
     };
-    if(orderAction&&initial.get('order')){const id=initial.get('order');initial.delete('order');ui.request('/sales/orders/'+encodeURIComponent(id)).then(o=>{if(form.isConnected)choices.order.select({id:o.order_id,label:o.order_number});}).catch(ui.failure);}
+    if(orderAction&&initial.get('order')){const id=initial.get('order');initial.delete('order');ui.request('/sales/orders/'+encodeURIComponent(id),undefined,initialRead).then(o=>{if(form.isConnected)choices.order.select({id:o.order_id,label:o.order_number},initialRead);}).catch(ui.failure);}
   }
-  async function refresh(){const version=++authRevision;grants={};render();if(!FLDashboard.writesEnabled||!ui.session.token)return;
-    try{const who=await ui.request('/auth/whoami');if(version!==authRevision)return;grants=who.permissions||{};render();}catch(error){ui.failure(error);}
+  async function refresh({background=false}={}){const version=++authRevision;grants={};render({background});if(!FLDashboard.writesEnabled||!ui.session.token)return;
+    try{const who=await ui.request('/auth/whoami',undefined,{background});if(version!==authRevision)return;grants=who.permissions||{};render({background});}catch(error){ui.failure(error);}
   }
   window.addEventListener('ledger-language',ui.relabel);
   window.addEventListener('ledger-auth',refresh);window.addEventListener('ledger-signout',refresh);
-  ui.ready.then(on=>{if(on)refresh();}).catch(()=>{});
+  ui.ready.then(on=>{if(on)refresh({background:true});}).catch(()=>{});
 })();

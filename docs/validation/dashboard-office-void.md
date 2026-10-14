@@ -67,3 +67,14 @@ Final validation: **3,091 Python tests passed** across all 21 fresh UTF-8 Postgr
 Only ~/dev/fl-d2office-wt and its disposable local test databases were used. Both temporary databases were dropped and servers stopped. No production/staging access, migration, hosted deployment, other-worktree changes or merge. Cache versions are bumped. The project logs are updated; the global iCloud log is outside the user's explicit worktree scope and remains untouched. Keep PR #115 draft; this is builder validation for Claude's re-review.
 
 Machine-readable evidence: [fix-round results](dashboard-office-void-fix-round-tests.json).
+
+
+## PR #115 re-check: idle polling and ready labels (2026-10-14)
+
+Comment 6171191793 is fixed on current main `6efc5f7` after preserving both changelog histories. Automatic personal-session reads, poll callbacks and page restoration carry `X-FL-Background: 1`. Session resolution still checks expiry and live actor/key/role, but keeps last_seen_at and expires_at unchanged for marked requests. Explicit user refreshes and actions extend the normal 180-minute idle deadline. Both Python HTTP/SQL and Node/browser regressions exercise continuing polling through the exact idle boundary and token clearing.
+
+Shift Summary reads immutable `response.ready`: ready receipts say “order marked ready” / “pedido marcado listo”; un-ready receipts say “order marked not ready” / “pedido marcado no listo”. Regressions change the live flag afterward and retain each receipt's own bilingual text. Existing batched summary queries and confirmation hashes remain intact.
+
+Fresh task-owned local PostgreSQL 17: **3,140 Python passed**, zero failures/errors/skips. Full Node: **186 passed**, zero failures/skips. **17 browser scenarios passed**: office/void/gating/session/Shift/Assistant flag modes, D1/D2 real HTTP and auth flows, and 13 pages × 4 routing hosts in both modes with zero hosted API requests. All disposable databases removed; independent review clean. The single-database suite runner now applies merged 082 in its race-fixture replacement, matching the original fixture.
+
+Evidence: `docs/validation/dashboard-office-void-idle-fix-tests.json`. This Mac's task-owned cluster uses port 55417 to avoid the existing local server; the ignored runtime runner only adapts that local address. Code, tests and logs stay in `/Users/cns/dev/fl-d2office-wt`; the explicitly requested worktree creation used shared repository Git metadata. Global iCloud log stays unchanged because it is outside that scope. No production/staging access, deployment or merge.

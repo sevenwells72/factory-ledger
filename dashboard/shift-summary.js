@@ -193,13 +193,13 @@
   }
   if (typeof ResizeObserver === 'function') new ResizeObserver(fitFooter).observe($('confirm-bar'));
 
-  async function api(path, { body, method = 'GET', params, withKey } = {}) {
+  async function api(path, { body, method = 'GET', params, withKey, background = false } = {}) {
     const url = new URL(path, API);
     const requestKey = withKey === undefined ? key : withKey;
     Object.entries(params || {}).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v); });
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 60000);
     try {
-      const response = await fetch(url, { method, headers: { 'X-API-Key': requestKey, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      const response = await fetch(url, { method, headers: { 'X-API-Key': requestKey, ...(background ? { 'X-FL-Background': '1' } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}) },
         body: body ? JSON.stringify(body) : undefined, signal: controller.signal, cache: 'no-store' });
       const data = await response.json();
       if (response.status === 401 && data.detail?.error_code === 'SESSION_EXPIRED' && session?.token && requestKey === session.token) {
@@ -255,12 +255,12 @@
   }
   function lockConfirm() { ['confirm-match', 'confirm-notes', 'confirm-missing'].forEach(id => { $(id).disabled = true; }); }
 
-  async function load() {
+  async function load({ background = false } = {}) {
     const s = stamp(), date = $('date').value;
     if (pendingNotes && pendingNotes.date !== date) closeNotes();
     busy = true; lockConfirm(); $('load-status').textContent = t('Loading…', 'Cargando…'); notice('');
     try {
-      const result = await api('/reports/shift-summary', { params: { date, lang: language }, withKey: s.key });
+      const result = await api('/reports/shift-summary', { params: { date, lang: language }, withKey: s.key, background });
       if (!current(s)) return false;                 // superseded by a sign-out / new sign-in / newer load
       doc = result; $('load-status').textContent = '';
       busy = false; render();
@@ -375,6 +375,6 @@
   const initialGeneration = generation;
   sessionReady.then(enabled => {
     if (generation !== initialGeneration || !enabled || !session.actor) return;
-    showIdentity(session.actor, session.token); load();
+    showIdentity(session.actor, session.token); load({ background: true });
   }).catch(error => notice(errorText(error, language)));
 })(typeof window !== 'undefined' ? window : globalThis);

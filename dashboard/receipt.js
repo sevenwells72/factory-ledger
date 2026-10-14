@@ -26,10 +26,10 @@
     }
     const link=ui.el('a',ui.t('Open exceptions','Ver excepciones'),card);link.dataset.flWriteUi='';link.href=FLReceipts.page('exceptions.html',{receipt:receipt.receipt_number});
   }
-  async function load(){
+  async function load({background=false}={}){
     const current=++generation,number=new URLSearchParams(location.search).get('number');
     if(!number){ui.notice(ui.t('Enter a Receipt # above.','Ingresa un número de recibo arriba.'),'notice');return;}
-    try{const data=await ui.request('/receipts/'+encodeURIComponent(number),undefined,{read:true});
+    try{const data=await ui.request('/receipts/'+encodeURIComponent(number),undefined,{read:true,background});
       if(current!==generation)return;receipt=data;missing=false;render();
     }catch(error){if(current!==generation)return;receipt=null;content.replaceChildren();
       missing=error.status===404&&error.result?.detail?.error_code==='RECEIPT_NOT_FOUND';
@@ -39,5 +39,5 @@
   }
   function authChanged(){ticket?.invalidate();ticket=null;resolution.replaceChildren();receipt=null;content.replaceChildren();load();}
   window.addEventListener('ledger-language',()=>{render();ui.relabel();ui.translate();if(missing)ui.notice(ui.t('No receipt with this number','No hay recibo con este número'),'neutral');});
-  window.addEventListener('ledger-auth',authChanged);window.addEventListener('ledger-signout',authChanged);load();
+  window.addEventListener('ledger-auth',authChanged);window.addEventListener('ledger-signout',authChanged);load({background:true});
 })();

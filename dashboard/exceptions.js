@@ -15,7 +15,7 @@
       }
     }
   }
-  async function load(){try{const result=await ui.request('/exceptions?status=open&limit=1000');rows=result.exceptions||[];const number=new URLSearchParams(location.search).get('receipt');if(number)rows=rows.filter(r=>(r.receipt_number||r.ticket_receipt_number)===number);render();if(result.count>=1000)ui.notice(ui.t('First 1,000 items shown.','Se muestran los primeros 1.000 elementos.'),'notice');}catch(error){ui.failure(error);}}
+  async function load({background=false}={}){try{const result=await ui.request('/exceptions?status=open&limit=1000',undefined,{background});rows=result.exceptions||[];const number=new URLSearchParams(location.search).get('receipt');if(number)rows=rows.filter(r=>(r.receipt_number||r.ticket_receipt_number)===number);render();if(result.count>=1000)ui.notice(ui.t('First 1,000 items shown.','Se muestran los primeros 1.000 elementos.'),'notice');}catch(error){ui.failure(error);}}
   async function open(id){try{selected=await ui.request('/exceptions/'+id);renderForm();resolution.scrollIntoView({block:'start'});}catch(error){ui.failure(error);}}
   function renderForm(){resolution.replaceChildren();const item=selected;if(!item)return;
     const panel=ui.el('section',undefined,resolution);panel.className='panel';ui.el('h2',ui.t('Resolve ','Resolver ')+item.kind+' #'+item.id,panel);const detail=ui.el('div',undefined,panel);detail.innerHTML=ui.draftHtml(item.detail);
@@ -56,5 +56,5 @@
     if(outcome.status==='still_open')ui.el('p',ui.t('Evidence recorded; this exception is still open.','Evidencia registrada; esta excepción sigue abierta.'),box);
     if(outcome.status==='declined')ui.el('p',ui.t('Rejected; no stock was posted.','Rechazada; no se registró movimiento de inventario.'),box);
   }
-  window.addEventListener('ledger-auth',load);window.addEventListener('ledger-language',()=>{render();renderForm();});window.addEventListener('ledger-signout',()=>{rows=[];selected=null;content.replaceChildren();resolution.replaceChildren();});ui.ready.then(()=>{if(ui.session.actor)load();}).catch(()=>{});
+  window.addEventListener('ledger-auth',load);window.addEventListener('ledger-language',()=>{render();renderForm();});window.addEventListener('ledger-signout',()=>{rows=[];selected=null;content.replaceChildren();resolution.replaceChildren();});ui.ready.then(()=>{if(ui.session.actor)load({background:true});}).catch(()=>{});
 })();

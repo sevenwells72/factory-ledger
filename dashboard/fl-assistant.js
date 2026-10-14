@@ -49,11 +49,11 @@
     const box = el('div', t('NOT recorded — no receipt confirmed.\n', 'NO registrado — no se confirmó un recibo.\n') + errorText(error), 'error-box');
     box.setAttribute('role', 'alert'); node.append(box); return box;
   }
-  async function api(path, { body, form, method = 'POST', binary = false, timeout = 95000 } = {}) {
+  async function api(path, { body, form, method = 'POST', binary = false, timeout = 95000, background = false } = {}) {
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeout);
     try {
       const response = await fetch(new URL(path, root.FLDashboard?.base||location.origin), {
-        method, headers: { 'X-API-Key': credential, ...(form || !body ? {} : { 'Content-Type': 'application/json' }) },
+        method, headers: { 'X-API-Key': credential, ...(background ? { 'X-FL-Background': '1' } : {}), ...(form || !body ? {} : { 'Content-Type': 'application/json' }) },
         body: form || (body ? JSON.stringify(body) : undefined), signal: controller.signal, credentials: 'same-origin', cache: 'no-store'
       });
       if (binary && response.ok) return response.blob();
@@ -298,14 +298,14 @@
       card.append(button(t('Retry this message', 'Reintentar este mensaje'), () => sendTurn({}, body)));
     } finally { waiting.remove(); setBusy(false); $('message').focus(); }
   }
-  async function loadChat() {
+  async function loadChat({ background = false } = {}) {
     const saved = localStorage.getItem(sessionStore);
     let result;
     if (saved) {
-      try { result = await api('/assistant/resume', { body: { session_id: saved } }); session = saved; }
+      try { result = await api('/assistant/resume', { body: { session_id: saved }, background }); session = saved; }
       catch (error) { if (error.httpStatus !== 404) throw error; }
     }
-    if (!session) { result = await api('/assistant/session'); session = result.session_id; localStorage.setItem(sessionStore, session); }
+    if (!session) { result = await api('/assistant/session', { background }); session = result.session_id; localStorage.setItem(sessionStore, session); }
     for (const turn of result.turns || []) { userMessage(turn.text); turn.cards.forEach(renderCard); }
     // A saved receipt is a real commit result; no text/receipt lookup can call this renderer.
     for (const draft of result.drafts || []) {
@@ -327,9 +327,9 @@
     return enabled;
   });
   authReady.catch(() => notice(t('Sign-in unavailable. Please reload and try again.', 'No se puede iniciar sesión. Recarga e intenta otra vez.')));
-  async function enterChat(who) {
+  async function enterChat(who, { background = false } = {}) {
     actor = who; sessionStore = 'fl-assistant-chat:' + (actor.id || actor.name);
-    await loadChat(); $('sign-in-panel').hidden = true; $('chat-panel').hidden = false; $('sign-out').hidden = false;
+    await loadChat({ background }); $('sign-in-panel').hidden = true; $('chat-panel').hidden = false; $('sign-out').hidden = false;
     applyLanguage(); setBusy(false); $('message').focus();
   }
   $('sign-in-form').addEventListener('submit', async event => {
@@ -357,7 +357,7 @@
     finally { $('sign-out').disabled = false; }
   });
   authReady.then(async enabled => {
-    if (enabled && pilot.actor) { credential = pilot.token; await enterChat(pilot.actor); }
+    if (enabled && pilot.actor) { credential = pilot.token; await enterChat(pilot.actor, { background: true }); }
   }).catch(error => notice(error instanceof Error ? error.message : errorText(error)));
   $('new-chat').addEventListener('click', async () => {
     if (busy) return; setBusy(true);

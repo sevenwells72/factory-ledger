@@ -31,7 +31,7 @@
         if (enabled) {
           token = storage.getItem(STORE) || '';
           if (token) {
-            try { const who = await request('/auth/whoami');
+            try { const who = await request('/auth/whoami', { headers: { 'X-FL-Background': '1' } });
               if (operation !== revision) return enabled;
               if (who.key_kind !== 'session' || !who.actor) clear(); else actor = who.actor;
             } catch (error) { if (operation !== revision) return enabled; if (error.status === 401 || error.status === 403) clear(); else throw error; }

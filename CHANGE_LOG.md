@@ -1,5 +1,75 @@
 # Change Log
 
+## 2026-10-14 11:06 — Record PR 115 re-check validation and the background-session regression guard
+- **File(s) changed:** `tests/test_background_session_ui.js`, `docs/validation/dashboard-office-void-idle-fix-tests.json`, `docs/validation/dashboard-office-void.md`, `FACTORY_LEDGER_CHANGELOG.md`; local ignored runtime/test evidence
+- **What changed:** Strengthen the Node poll harness to evaluate the actual app marker declaration. Record 3,140 fresh-DB Python, 186 Node and 17 browser scenarios passing, add regression guard row 195, preserve historical evidence and document the task-owned local cluster/cleanup and unchanged global log.
+- **Why:** Complete PR #115 comment 6171191793 items 1–2 with reproducible evidence before the authorized branch push and PR note; no merge or production access.
+
+---
+
+## 2026-10-14 11:04 — Verify browser polling idle expiry and refresh changed dashboard assets
+- **File(s) changed:** `tests/test_session_shift_fix_ui.js`, `tests/visual/run-session-shift-fix.mjs`, `dashboard/receipt.html`, `dashboard/runs.html`, `dashboard/index.html`, `dashboard/process-flow.html`, `dashboard/fl-assistant.html`, `dashboard/traceability.html`, `dashboard/exceptions.html`, `dashboard/shift-summary.html`, `dashboard/sankey.html`, `dashboard/history.html`, `dashboard/office.html`, `dashboard/entry.html`
+- **What changed:** Assert restoration/summary background marking and unmarked user actions; exercise 179 browser polls, 180-minute refusal/token clearing and explicit Refresh renewal in both flag modes. Bump changed dashboard script versions in every consumer. Remove an ignored Promise.all argument and preserve background options through customer deep-link activation.
+- **Why:** PR #115 item 1 needs actual browser validation and returning browsers must load the fixed request transport.
+
+---
+
+## 2026-10-14 11:03 — Regress automatic startup marking across the remaining dashboard pages
+- **File(s) changed:** `tests/test_background_startup_ui.js`
+- **What changed:** Execute actual page scripts with restored sessions and assert automatic receipt/exceptions, shipping prefill plus chained detail, and Assistant resume/create carry background marking. Explicit sign-in, refresh, order selection and New Chat remain user activity.
+- **Why:** PR #115 item 1 requires that automatic reads across personal-session pages leave idle expiry unchanged.
+
+---
+
+## 2026-10-14 11:02 — Exercise dashboard transport across the full 180-minute idle boundary in Node
+- **File(s) changed:** `tests/test_background_session_ui.js`
+- **What changed:** Add four runtime transport regressions: restoration and 179 polls preserve activity/expiry; the 180th poll returns 401 and clears token custody; explicit refresh/write extends while following polls do not; flag-off parity and initial loader propagation remain correct.
+- **Why:** PR #115 item 1 requires Node coverage of both request marking and idle expiry with polling running.
+
+---
+
+## 2026-10-14 11:02 — Mark automatic receipt, exception, ship-prefill and Assistant restoration requests
+- **File(s) changed:** `dashboard/receipt.js`, `dashboard/exceptions.js`, `dashboard/entry.js`, `dashboard/fl-assistant.js`
+- **What changed:** Propagate background request options only for initial receipt/exceptions loads, initial shipping-order preload and chained detail reads, and automatic Assistant chat resume/create. Manual sign-in, refresh, picker and new-chat actions keep sliding normally.
+- **Why:** PR #115 re-check comment 6171191793; only user-initiated activity should extend the 180-minute idle timer.
+
+---
+
+## 2026-10-14 11:01 — Keep single-database suite runner aligned with merged race fixtures
+- **File(s) changed:** `scripts/run_single_db_suite.py`
+- **What changed:** Apply 082_order_plant_date in the isolated race-fixture replacement, matching the fixture updated by PR #116; keep all existing fixture SQL, shard scopes and database ownership checks.
+- **Why:** Rebased full-suite validation must exercise the same plant-date allocator as the current production-independent tests.
+
+---
+
+## 2026-10-14 11:00 — Mark automatic dashboard reads without extending personal sessions
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/key-session.js`, `dashboard/shift-summary.js`, `dashboard/process-flow.html`, `dashboard/mini-calendar.js`, `dashboard/history.js`, `dashboard/runs.js`, `dashboard/ledger-ui.js`, `dashboard/office.js`
+- **What changed:** Mark restored whoami, initial dashboard/summary/history/run/calendar/office reads and automatic Recent Entries/Production Lines polls with X-FL-Background: 1. Propagate the marker into chained automatic reads while user refresh, picker/search, sign-in and writes remain user activity.
+- **Why:** PR #115 re-check comment 6171191793; automatic reads must authenticate without sliding the 180-minute personal-session idle expiry.
+
+---
+
+## 2026-10-14 11:00 — Rebase PR 115 onto merged pilot backend fixes
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`; branch history rebased onto `6efc5f7`
+- **What changed:** Preserve both complete project and regression histories while resolving append-only log conflicts. Pending D2 office, void acceptance and first review rows now use 192–194 after main's row 191; earlier evidence keeps its original checkpoint references.
+- **Why:** PR #116 merged before this re-check. Work is confined to `/Users/cns/dev/fl-d2office-wt`, apart from explicitly authorized Git metadata used to create it; no production or merge.
+
+---
+
+## 2026-10-14 10:59 — Keep Shift Summary ready-state labels faithful to recorded receipts
+- **File(s) changed:** `shift_summary.py`, `tests/test_shift_ready_labels.py`
+- **What changed:** Use immutable mark_order_ready response.ready to show order marked not ready / pedido marcado no listo for false; add bilingual regressions proving later opposite flag changes cannot relabel historical receipts. Preserve the batched summary queries.
+- **Why:** PR #115 re-check comment 6171191793, minor item 2.
+
+---
+
+## 2026-10-14 10:59 — Prevent automatic personal-session reads from renewing idle expiry
+- **File(s) changed:** `key_sessions.py`, `tests/test_session_background.py`, `docs/contracts/key-sessions.md`
+- **What changed:** Background-marked requests authenticate and enforce live expiry/revocation without updating activity timestamps; user requests still slide 180 minutes. Add real HTTP/SQL poll, user-action, repeated 180-minute idle and revocation regressions; document the transport marker.
+- **Why:** PR #115 re-check comment 6171191793; automatic reads must not keep a tablet signed in. Global iCloud log remains outside the user-authorized worktree scope.
+
+---
+
 ## 2026-10-14 09:59 — Record completed PR 115 fix-round validation
 - **File(s) changed:** `docs/validation/dashboard-office-void.md`, `docs/validation/dashboard-office-void-fix-round-tests.json`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Record all four required fixes and both minors, failing-before regressions, 3,091 fresh-DB Python passes, 177 Node passes and browser on/off results. Add regression guard row 193 and document local cleanup and the scope exception for the global log.

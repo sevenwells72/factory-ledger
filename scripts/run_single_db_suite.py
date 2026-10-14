@@ -71,7 +71,7 @@ class SuitePlugin:
                 cur.execute(reference_seed_sql())
                 for number in ['069_exceptions_enforcement','070_pre_make_adjust','071_shortage_evidence_claims',
                                '067_order_tickets','072_order_ticket_review_fixes','074_ship_gate_attachments',
-                               '075_kosher_tiers','076_shift_confirmations','080_resolution_receipts']:
+                               '075_kosher_tiers','076_shift_confirmations','080_resolution_receipts','082_order_plant_date']:
                     cur.execute((ROOT/'migrations'/f'{number}.sql').read_text())
             value=URL
         elif origin==M61 and name=='isolated_database':

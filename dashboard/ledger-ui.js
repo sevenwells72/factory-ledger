@@ -89,12 +89,12 @@
     document.getElementById('sign-in-form').hidden=!!current;document.getElementById('sign-out').hidden=!current;
   }
   api.ready=root.FLDashboard.ready.then(async on=>{if(!on){api.session.clear();return false;}await api.session.init();return true;}).catch(error=>{api.failure(error);throw error;});api.ready.catch(()=>{});
-  api.request=async(path,body,{read=false,form=false}={})=>{
+  api.request=async(path,body,{read=false,form=false,background=false}={})=>{
     await api.ready;
     if(!read&&!root.FLDashboard.writesEnabled)throw Error('Recording is unavailable / El registro no está disponible');
     const key=api.session.token;
     if(!key&&!read)throw Error(api.t('Sign in before recording.','Inicia sesión antes de registrar.'));
-    const headers={'X-API-Key':key||api.readKey};if(body!==undefined&&!form)headers['Content-Type']='application/json';
+    const headers={'X-API-Key':key||api.readKey,...(background?{'X-FL-Background':'1'}:{})};if(body!==undefined&&!form)headers['Content-Type']='application/json';
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);let response,result;
     try{response=await fetch(api.base+path,{method:body===undefined?'GET':'POST',headers,body:body===undefined?undefined:form?body:JSON.stringify(body),signal:controller.signal,cache:'no-store'});result=await response.json();}
     catch(error){const plain=transportText(error,api.lang);if(!plain)throw error;const wrapped=Error(plain);wrapped.transport=true;throw wrapped;}finally{clearTimeout(timer);}

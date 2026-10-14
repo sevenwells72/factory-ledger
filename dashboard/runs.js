@@ -33,9 +33,9 @@
     COVERAGE_EXCEEDS_REMAINING:'Coverage is greater than this line still needs. Reduce its covered pounds.',
     DUPLICATE_LINE:'Each order line can appear only once.', NO_FIELDS:'Change a field before saving.'
   };
-  async function request(route,method='GET',body) {
+  async function request(route,method='GET',body,{background=false}={}) {
     try {
-      const response = await FL.fetchWithTimeout(API+route,{method,headers:{'X-API-Key':'dashboard-key-2026',...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)})});
+      const response = await FL.fetchWithTimeout(API+route,{method,headers:{'X-API-Key':'dashboard-key-2026',...(background?{'X-FL-Background':'1'}:{}),...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)})});
       const data = await response.json().catch(()=>({}));
       if (!response.ok) { const detail=data.detail||{}; const e=new Error(errors[detail.error_code] || (response.status===401||response.status===403?'Access is unavailable. Contact the dashboard administrator.':'Could not reach the ledger. Please try again.')); e.detail=detail; throw e; }
       return data;
@@ -76,11 +76,11 @@
       <div class="run-action-cell" role="cell"><button type="button" data-open="${r.id}" aria-label="Open ${esc(r.product_name)} run">Open</button></div>
     </div>`;
   }
-  async function load() {
+  async function load({background=false}={}) {
     const generation=++loadGeneration;
     runs=[]; render(); $('week-board').hidden=true; $('retry-load').hidden=true; $('load-status').textContent='Loading runs…';
     try {
-      const data=await request('/production/runs?'+new URLSearchParams({from:start,to:addDays(start,6)}));
+      const data=await request('/production/runs?'+new URLSearchParams({from:start,to:addDays(start,6)}),'GET',undefined,{background});
       if(generation!==loadGeneration)return;
       runs=data.runs||[]; render(); $('week-board').hidden=false; $('load-status').textContent='';
     } catch(e) { if(generation!==loadGeneration)return; $('load-status').textContent=e.message; $('retry-load').hidden=false; }
@@ -268,5 +268,5 @@
   $('run-tabs').addEventListener('click',e=>{const tab=e.target.closest('[data-tab]');if(tab){selected=tab.dataset.tab;render();$('run-tabs').querySelector('[aria-selected="true"]').focus();}});
   $('run-tabs').addEventListener('keydown',e=>{if(!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const tabs=[...$('run-tabs').children],index=tabs.indexOf(document.activeElement);tabs[e.key==='Home'?0:e.key==='End'?tabs.length-1:(index+(e.key==='ArrowRight'?1:-1)+tabs.length)%tabs.length].click();});
   $('week-board').addEventListener('click',e=>{const open=e.target.closest('[data-open]');if(open){const r=runs.find(r=>r.id===Number(open.dataset.open));if(r)openRun(r);}});
-  load();
+  load({background:true});
 })();

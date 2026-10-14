@@ -77,6 +77,10 @@ test('Shift Summary restores shared sign-in and confirms using its session witho
   assert.equal(h.calls.find(c => c.pathname === '/reports/shift-summary').init.headers['X-API-Key'], TOKEN);
   assert.equal(h.get('sign-in-panel').hidden, true);
   assert.equal(h.get('title').textContent, 'Arturo shared shift');
+  assert.equal(h.calls.find(c => c.pathname === '/auth/whoami').init.headers['X-FL-Background'], '1');
+  assert.equal(h.calls.find(c => c.pathname === '/reports/shift-summary').init.headers['X-FL-Background'], '1');
+  h.get('refresh').fire('click'); await settle();
+  assert.equal(h.calls.at(-1).init.headers['X-FL-Background'], undefined);
   h.get('confirm-match').fire('click'); await settle();
   assert.equal(h.calls.find(c => c.pathname.endsWith('/confirm')).init.headers['X-API-Key'], TOKEN);
   assert.equal(h.calls.filter(c => c.pathname === '/auth/session').length, 0);
@@ -89,6 +93,8 @@ test('Shift Summary exchanges a new personal key once and signs out the shared s
   assert.ok(exchange, 'sign-in exchanges the key through FLKeySessions');
   assert.equal(JSON.parse(exchange.init.body).actor_key, 'fixture-personal');
   assert.equal(h.get('actor-key').value, '');
+  assert.equal(exchange.init.headers['X-FL-Background'], undefined);
+  assert.equal(h.calls.at(-1).init.headers['X-FL-Background'], undefined);
   assert.equal(h.data.get('fl-key-session-token'), TOKEN);
   h.get('sign-out').fire('click'); await settle();
   assert.equal(h.calls.at(-1).pathname, '/auth/session/logout');
