@@ -6,8 +6,8 @@ happened, for one person (or, for the two shared keys with no `actor`, for the
 whole plant, read-only). `POST /reports/shift-summary/confirm` records that the
 person looked at exactly that document (`summary_hash`, §1.3) and whether it
 matched the floor. Nothing here computes from raw ledger lines: receipts come
-from `write_tickets.receipt_detail` (the same reader as `GET /receipts`), lot
-balances from `lot_on_hand()` (posted-only, effective), reason labels from
+from `shift_receipts.load` (the same effective tables/evidence as `GET /receipts`),
+lot balances from the posted-only effective lines in that one-query snapshot, reason labels from
 `correction_reasons`.
 
 Interface neutrality (§1.8): the D3-lite page, the FL Assistant and the MCP
@@ -46,6 +46,7 @@ from pydantic import BaseModel, Field
 import permissions
 import write_tickets as wt
 import kosher_tiers
+import shift_receipts
 
 ROUTES = frozenset({('GET', '/reports/shift-summary'), ('POST', '/reports/shift-summary/confirm')})
 
@@ -180,7 +181,7 @@ def localise(node, lang):
 
 
 # ---------------------------------------------------------------------------
-# Catalog lookups (one query per id per request; a 30-receipt day touches a few dozen)
+# Request-local catalog, preloaded with the receipt snapshot; fallback for other references
 # ---------------------------------------------------------------------------
 class Catalog:
     def __init__(self, cur):
@@ -261,18 +262,22 @@ def _flag(code, severity, en, es, refs, due_at=None):
     return flag
 
 
-def _open_exception(cur, **where):
+def _open_exception(cur, catalog=None, **where):
+    if catalog is not None and hasattr(catalog, "_exceptions"):
+        return next((r for r in catalog._exceptions if r["status"] in ("open", "escalated")
+                     and all(r.get(k) == v for k, v in where.items())), None)
     clauses = ' AND '.join(f'{k}=%s' for k in where)
     cur.execute(f"SELECT id,due_at,status FROM exceptions WHERE {clauses} AND status IN ('open','escalated') ORDER BY id LIMIT 1",
                 tuple(where.values()))
     return cur.fetchone()
 
 
-def receipt_row(api, cur, catalog, number, day):
-    receipt = wt.receipt_detail(api, cur, number)
-    cur.execute('SELECT id,action,actor_id,operator_id,key_kind,payload,response,draft,warnings,acknowledged,result_ref,committed_at '
+def receipt_row(api, cur, catalog, number, day, *, receipt=None, ticket=None):
+    receipt = receipt if receipt is not None else wt.receipt_detail(api, cur, number)
+    if ticket is None:
+        cur.execute('SELECT id,action,actor_id,operator_id,key_kind,payload,response,draft,warnings,acknowledged,result_ref,committed_at '
                 'FROM write_tickets WHERE receipt_number=%s', (number,))
-    ticket = cur.fetchone()
+        ticket = cur.fetchone()
     payload, response, draft = ticket['payload'], ticket['response'] or {}, ticket['draft'] or {}
     action = ticket['action']
     happened, entered = plant(receipt['happened_at'], api), plant(receipt['entered_at'], api)
@@ -334,7 +339,7 @@ def receipt_row(api, cur, catalog, number, day):
         row.update(pair(f'{number}  {row["product"]["name"]}  {fmt_lb(lb)} lb  lot {row["lot"]["lot_code"] if row["lot"] else "?"}{sup}  {clock}',
                         f'{number}  {row["product"]["name"]}  {fmt_lb(lb)} lb  lote {row["lot"]["lot_code"] if row["lot"] else "?"}{sup_es}  {clock}', 'line'))
         if row['lot'] and row['lot']['identity_status'] == 'unidentified':
-            exc = _open_exception(cur, kind='UNIDENTIFIED_LOT', lot_id=lot_id)
+            exc = _open_exception(cur, catalog, kind='UNIDENTIFIED_LOT', lot_id=lot_id)
             due = exc['due_at'] if exc else None
             row['flags'].append(_flag('UNIDENTIFIED_LOT', 'warn',
                                       f'UNIDENTIFIED — resolve by {short_date(due, "en")}' if due else 'UNIDENTIFIED',
@@ -422,10 +427,13 @@ def receipt_row(api, cur, catalog, number, day):
                                    f'{fmt_cases(cases)} cajas' if cases is not None else f'{fmt_lb(lb)} lb')
         order = None
         if shipment.get('sales_order_id'):
-            cur.execute('SELECT so.id,so.order_number,c.name FROM sales_orders so JOIN customers c ON c.id=so.customer_id WHERE so.id=%s',
-                        (shipment['sales_order_id'],))
-            o = cur.fetchone()
-            order = {'id': o['id'], 'so_number': o['order_number'], 'customer_name': o['name']} if o else None
+            if hasattr(catalog, '_orders'):
+                o = catalog._orders.get(shipment['sales_order_id'])
+            else:
+                cur.execute('SELECT so.id,so.order_number,c.name AS customer FROM sales_orders so JOIN customers c ON c.id=so.customer_id WHERE so.id=%s',
+                            (shipment['sales_order_id'],))
+                o = cur.fetchone()
+            order = {'id': o['id'], 'so_number': o['order_number'], 'customer_name': o['customer']} if o else None
         row['detail'] = {'sales_order': order, 'customer': {'id': draft.get('customer_id'), 'name': draft.get('customer')},
                          'lines': [{k: v for k, v in l.items() if k != 'is_service'} for l in lines],
                          'bol_reference': shipment.get('bol_reference') or payload.get('bol_reference'),
@@ -436,7 +444,7 @@ def receipt_row(api, cur, catalog, number, day):
         row.update(pair(f'{number}  {who}  {row["quantity"]["display_en"]}  BOL {row["detail"]["bol_reference"] or "?"}  {photo_en}',
                         f'{number}  {who}  {row["quantity"]["display_es"]}  BOL {row["detail"]["bol_reference"] or "?"}  {photo_es}', 'line'))
         if shipment.get('proof_status') == 'photo_pending':
-            exc = _open_exception(cur, kind='BOL_PHOTO_MISSING', shipment_id=shipment['id'])
+            exc = _open_exception(cur, catalog, kind='BOL_PHOTO_MISSING', shipment_id=shipment['id'])
             due = shipment.get('proof_due_at')
             row['flags'].append(_flag('PHOTO_PENDING', 'warn',
                                       f'BOL photo pending — due by {plant(due, api).strftime("%H:%M")}' if due else 'BOL photo pending',
@@ -476,9 +484,12 @@ def receipt_row(api, cur, catalog, number, day):
         if review.get('photo_required') or 'OVER_10_PERCENT_OF_BOOK' in (review.get('rules') or []):
             # The hold's exception (A3b) is resolved by the approval or the photo that let this
             # receipt post, so it is read in ANY status: the reference must survive resolution.
-            cur.execute("SELECT id,status,resolution_kind FROM exceptions WHERE kind='LARGE_CORRECTION' AND ticket_id=%s ORDER BY id LIMIT 1",
-                        (ticket['id'],))
-            exc = cur.fetchone()
+            if hasattr(catalog, '_exceptions'):
+                exc = next((e for e in catalog._exceptions if e['kind']=='LARGE_CORRECTION' and e['ticket_id']==ticket['id']), None)
+            else:
+                cur.execute("SELECT id,status,resolution_kind FROM exceptions WHERE kind='LARGE_CORRECTION' AND ticket_id=%s ORDER BY id LIMIT 1",
+                            (ticket['id'],))
+                exc = cur.fetchone()
             approved_by = (response.get('approval') or {}).get('approved_by') or None
             pct = review.get('pct_of_book')
             pct_text = f' ({pct * 100:.0f}% of lot)' if pct is not None else ''
@@ -549,10 +560,10 @@ def receipt_row(api, cur, catalog, number, day):
     return row
 
 
-def other_receipt_row(api, cur, catalog, number):
+def other_receipt_row(api, cur, catalog, number, *, receipt=None):
     """A metadata receipt (order / expected receipt / lot move): listed under `other_receipts`,
     outside the ten sections and outside the hash — never rendered as an adjustment."""
-    receipt = wt.receipt_detail(api, cur, number)
+    receipt = receipt if receipt is not None else wt.receipt_detail(api, cur, number)
     action = receipt['action']
     kind = OTHER_KIND.get(action, 'other')
     happened, entered = plant(receipt['happened_at'], api), plant(receipt['entered_at'], api)
@@ -751,10 +762,13 @@ def lot_balances(api, cur, catalog, receipt_rows):
     for lot_id, entry in touched.items():
         lot = catalog.lot(lot_id)
         p = catalog.product(lot['product_id'])
-        after = api.lot_on_hand(cur, lot_id)
+        if 'on_hand_lb' in lot:
+            after, short = float(lot['on_hand_lb']), lot['has_shortage']
+        else:
+            after = api.lot_on_hand(cur, lot_id)
+            cur.execute("SELECT 1 FROM shortage_flags WHERE lot_id=%s AND status IN ('open','escalated') LIMIT 1", (lot_id,))
+            short = cur.fetchone() is not None
         before = round(after - entry['delta'], 4)
-        cur.execute("SELECT 1 FROM shortage_flags WHERE lot_id=%s AND status IN ('open','escalated') LIMIT 1", (lot_id,))
-        short = cur.fetchone() is not None
         negative = after < 0
         tail_en, tail_es = (' (short)', ' (faltante)') if negative or short else ('', '')
         rows.append({'lot': {'id': lot_id, 'lot_code': lot['lot_code'], 'product': {'id': p['id'], 'name': p['name']}},
@@ -867,12 +881,12 @@ def build(api, cur, *, day, actor, caller, lang='en'):
     terms = [actor['name'], str(actor['id'])] if actor else None
     # Committed tickets only (contract §2.1/§2.2): a rejected or held ticket may already hold a receipt number.
     numbers = wt.receipt_numbers(cur, day, actor_terms=terms, status='committed')
-    cur.execute('SELECT receipt_number,action FROM write_tickets WHERE receipt_number=ANY(%s)', (numbers,))
-    action_of = {r['receipt_number']: r['action'] for r in cur.fetchall()}
+    loaded = shift_receipts.load(api, cur, numbers, catalog)
+    action_of = {n: ticket['action'] for n, (_, ticket) in loaded.items()}
     ledger_numbers = [n for n in numbers if action_of.get(n) in ACTION_SECTION]
     other_numbers = [n for n in numbers if action_of.get(n) not in ACTION_SECTION]
-    receipt_rows = [receipt_row(api, cur, catalog, number, day) for number in ledger_numbers]
-    other_rows = [other_receipt_row(api, cur, catalog, number) for number in other_numbers]
+    receipt_rows = [receipt_row(api, cur, catalog, number, day, receipt=loaded[number][0], ticket=loaded[number][1]) for number in ledger_numbers]
+    other_rows = [other_receipt_row(api, cur, catalog, number, receipt=loaded[number][0]) for number in other_numbers]
     sections = []
     by_key = {}
     for key, label_en, label_es, empty_en, empty_es in SECTIONS:

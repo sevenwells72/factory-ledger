@@ -1,0 +1,343 @@
+{
+  "observed_at_utc": "2026-10-14T12:29:54.418636+00:00",
+  "access": "port 5432; BEGIN TRANSACTION READ ONLY; ROLLBACK",
+  "products": [
+    {
+      "id": 31,
+      "odoo_code": "11031",
+      "name": "Oat Bran",
+      "type": "ingredient",
+      "default_batch_lb": null,
+      "active": true
+    },
+    {
+      "id": 32,
+      "odoo_code": "11032",
+      "name": "Oats",
+      "type": "ingredient",
+      "default_batch_lb": null,
+      "active": true
+    },
+    {
+      "id": 114,
+      "odoo_code": "90011",
+      "name": "Batch SS Chocolate Chip Granola #2",
+      "type": "batch",
+      "default_batch_lb": "393.0000",
+      "active": true
+    },
+    {
+      "id": 116,
+      "odoo_code": "90016",
+      "name": "Batch SS Original Granola #1",
+      "type": "batch",
+      "default_batch_lb": "350.0000",
+      "active": true
+    },
+    {
+      "id": 118,
+      "odoo_code": "90013",
+      "name": "Batch SS Cranberry Granola #3",
+      "type": "batch",
+      "default_batch_lb": "379.0000",
+      "active": true
+    }
+  ],
+  "formulas": [
+    {
+      "id": 53,
+      "product_id": 114,
+      "ingredient_product_id": 3,
+      "ingredient_code": "11003",
+      "ingredient_name": "Almonds \u2013 Sliced",
+      "quantity_lb": "19.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "19.00"
+    },
+    {
+      "id": 54,
+      "product_id": 114,
+      "ingredient_product_id": 13,
+      "ingredient_code": "11013",
+      "ingredient_name": "Coconut Macaroon Desiccated",
+      "quantity_lb": "19.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "19.00"
+    },
+    {
+      "id": 55,
+      "product_id": 114,
+      "ingredient_product_id": 30,
+      "ingredient_code": "11030",
+      "ingredient_name": "Honey",
+      "quantity_lb": "47.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "47.00"
+    },
+    {
+      "id": 56,
+      "product_id": 114,
+      "ingredient_product_id": 31,
+      "ingredient_code": "11031",
+      "ingredient_name": "Oat Bran",
+      "quantity_lb": "0.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "29.00"
+    },
+    {
+      "id": 57,
+      "product_id": 114,
+      "ingredient_product_id": 32,
+      "ingredient_code": "11032",
+      "ingredient_name": "Oats",
+      "quantity_lb": "200.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "200.00"
+    },
+    {
+      "id": 58,
+      "product_id": 114,
+      "ingredient_product_id": 34,
+      "ingredient_code": "11034",
+      "ingredient_name": "Oil \u2013 Canola",
+      "quantity_lb": "22.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "22.00"
+    },
+    {
+      "id": 59,
+      "product_id": 114,
+      "ingredient_product_id": 46,
+      "ingredient_code": "11046",
+      "ingredient_name": "Sunflower Seeds",
+      "quantity_lb": "19.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "19.00"
+    },
+    {
+      "id": 60,
+      "product_id": 114,
+      "ingredient_product_id": 72,
+      "ingredient_code": "25010",
+      "ingredient_name": "Chocolate Chips \u2013 Real \u2013 4,000 CT",
+      "quantity_lb": "38.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "38.00"
+    },
+    {
+      "id": 66,
+      "product_id": 116,
+      "ingredient_product_id": 3,
+      "ingredient_code": "11003",
+      "ingredient_name": "Almonds \u2013 Sliced",
+      "quantity_lb": "21.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "21.00"
+    },
+    {
+      "id": 67,
+      "product_id": 116,
+      "ingredient_product_id": 13,
+      "ingredient_code": "11013",
+      "ingredient_name": "Coconut Macaroon Desiccated",
+      "quantity_lb": "21.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "21.00"
+    },
+    {
+      "id": 68,
+      "product_id": 116,
+      "ingredient_product_id": 30,
+      "ingredient_code": "11030",
+      "ingredient_name": "Honey",
+      "quantity_lb": "50.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "50.00"
+    },
+    {
+      "id": 69,
+      "product_id": 116,
+      "ingredient_product_id": 31,
+      "ingredient_code": "11031",
+      "ingredient_name": "Oat Bran",
+      "quantity_lb": "0.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "28.00"
+    },
+    {
+      "id": 70,
+      "product_id": 116,
+      "ingredient_product_id": 32,
+      "ingredient_code": "11032",
+      "ingredient_name": "Oats",
+      "quantity_lb": "185.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "185.00"
+    },
+    {
+      "id": 71,
+      "product_id": 116,
+      "ingredient_product_id": 34,
+      "ingredient_code": "11034",
+      "ingredient_name": "Oil \u2013 Canola",
+      "quantity_lb": "24.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "24.00"
+    },
+    {
+      "id": 72,
+      "product_id": 116,
+      "ingredient_product_id": 46,
+      "ingredient_code": "11046",
+      "ingredient_name": "Sunflower Seeds",
+      "quantity_lb": "21.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "21.00"
+    },
+    {
+      "id": 77,
+      "product_id": 118,
+      "ingredient_product_id": 3,
+      "ingredient_code": "11003",
+      "ingredient_name": "Almonds \u2013 Sliced",
+      "quantity_lb": "21.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "21.00"
+    },
+    {
+      "id": 78,
+      "product_id": 118,
+      "ingredient_product_id": 7,
+      "ingredient_code": "11007",
+      "ingredient_name": "Cinnamon Ground",
+      "quantity_lb": "4.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "4.00"
+    },
+    {
+      "id": 79,
+      "product_id": 118,
+      "ingredient_product_id": 13,
+      "ingredient_code": "11013",
+      "ingredient_name": "Coconut Macaroon Desiccated",
+      "quantity_lb": "21.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "21.00"
+    },
+    {
+      "id": 80,
+      "product_id": 118,
+      "ingredient_product_id": 17,
+      "ingredient_code": "11017",
+      "ingredient_name": "Cranberries Dried",
+      "quantity_lb": "25.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "25.00"
+    },
+    {
+      "id": 81,
+      "product_id": 118,
+      "ingredient_product_id": 30,
+      "ingredient_code": "11030",
+      "ingredient_name": "Honey",
+      "quantity_lb": "50.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "50.00"
+    },
+    {
+      "id": 82,
+      "product_id": 118,
+      "ingredient_product_id": 31,
+      "ingredient_code": "11031",
+      "ingredient_name": "Oat Bran",
+      "quantity_lb": "0.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "28.00"
+    },
+    {
+      "id": 83,
+      "product_id": 118,
+      "ingredient_product_id": 32,
+      "ingredient_code": "11032",
+      "ingredient_name": "Oats",
+      "quantity_lb": "185.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "185.00"
+    },
+    {
+      "id": 84,
+      "product_id": 118,
+      "ingredient_product_id": 34,
+      "ingredient_code": "11034",
+      "ingredient_name": "Oil \u2013 Canola",
+      "quantity_lb": "24.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "24.00"
+    },
+    {
+      "id": 85,
+      "product_id": 118,
+      "ingredient_product_id": 46,
+      "ingredient_code": "11046",
+      "ingredient_name": "Sunflower Seeds",
+      "quantity_lb": "21.0000",
+      "exclude_from_inventory": false,
+      "backup_quantity_lb": "21.00"
+    }
+  ],
+  "totals": [
+    {
+      "product_id": 114,
+      "rows": 8,
+      "total": "364.0000"
+    },
+    {
+      "product_id": 116,
+      "rows": 7,
+      "total": "322.0000"
+    },
+    {
+      "product_id": 118,
+      "rows": 9,
+      "total": "351.0000"
+    }
+  ],
+  "history": [
+    {
+      "id": 2057,
+      "occurred_at": "2026-08-19 19:57:34.641037+00:00",
+      "product_id": 118,
+      "quantity_lb": "1895.0000"
+    },
+    {
+      "id": 2057,
+      "occurred_at": "2026-08-19 19:57:34.641037+00:00",
+      "product_id": 31,
+      "quantity_lb": "-140.0000"
+    },
+    {
+      "id": 2242,
+      "occurred_at": "2026-09-10 20:16:40.662716+00:00",
+      "product_id": 114,
+      "quantity_lb": "3930.0000"
+    },
+    {
+      "id": 2242,
+      "occurred_at": "2026-09-10 20:16:40.662716+00:00",
+      "product_id": 31,
+      "quantity_lb": "-290.0000"
+    },
+    {
+      "id": 2267,
+      "occurred_at": "2026-09-14 22:26:38.393643+00:00",
+      "product_id": 116,
+      "quantity_lb": "700.0000"
+    },
+    {
+      "id": 2267,
+      "occurred_at": "2026-09-14 22:26:38.393643+00:00",
+      "product_id": 31,
+      "quantity_lb": "-56.0000"
+    }
+  ]
+}

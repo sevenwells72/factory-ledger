@@ -302,7 +302,8 @@ def test_item7_migration_numbering_route_hooks_and_null_guards_preserved():
     # 068/075/076 are on production (2026-10-13) and in the re-dumped schema: no pending \ir tails.
     pending = [line for line in schema.splitlines() if line.startswith('\\ir ../../migrations/')]
     assert pending in ([], ['\\ir ../../migrations/077_key_sessions.sql'],
-                       ['\\ir ../../migrations/080_resolution_receipts.sql'])
+                       ['\\ir ../../migrations/080_resolution_receipts.sql'],
+                       ['\\ir ../../migrations/082_order_plant_date.sql'])
     for table in ('assistant_attachment_links', 'ticket_attestations', 'lot_events', 'shift_confirmations'):
         assert schema.count('CREATE TABLE public.' + table + ' (') == 1
     for number in ('075', '076'):

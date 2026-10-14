@@ -433,6 +433,7 @@ def isolated_database(_db_connection):
             # Pending A9 migration 076 (same reason).
             cur.execute((ROOT/'migrations/076_shift_confirmations.sql').read_text())
             cur.execute((ROOT/'migrations/080_resolution_receipts.sql').read_text())
+            cur.execute((ROOT/'migrations/082_order_plant_date.sql').read_text())
         yield url
     finally:
         with admin.cursor() as cur:

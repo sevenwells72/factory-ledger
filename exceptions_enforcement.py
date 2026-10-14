@@ -503,7 +503,7 @@ def pinned_lot_rows(cur, product_id, lot_ids):
 def hold_response(cur, ticket_id):
     cur.execute("SELECT id, status, due_at, detail FROM exceptions WHERE kind='LARGE_CORRECTION' AND ticket_id=%s", (ticket_id,))
     exc = cur.fetchone()
-    return {'held': True, 'status': HELD, 'ticket_id': ticket_id, 'exception_id': exc['id'] if exc else None,
+    return {'success': False, 'posted': False, 'held': True, 'status': HELD, 'ticket_id': ticket_id, 'exception_id': exc['id'] if exc else None,
             'exception_status': exc['status'] if exc else None,
             'error_code': 'PHOTO_REQUIRED',
             'message': (f'Corrections over {int(LARGE_CORRECTION_LB)} lb need a photo. Nothing was posted; the entry is '

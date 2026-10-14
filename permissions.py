@@ -81,7 +81,7 @@ _LABELS = {
     'found': ('record found inventory', 'registrar inventario encontrado'),
     'list_exceptions': ('view the exceptions queue', 'ver la cola de excepciones'),
     'resolve_exception': ('resolve an exception', 'resolver una excepción'),
-    'approve_exception': ('approve or decline a held correction', 'aprobar o rechazar una corrección retenida'),
+    'approve_exception': ('make an owner-only exception decision', 'tomar una decisión de excepción reservada al dueño'),
     'void': ('void a posting', 'anular un registro'),
     'move_lot': ('move a lot', 'mover un lote'),
     # A7 order tickets
