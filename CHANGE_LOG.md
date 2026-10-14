@@ -1,5 +1,40 @@
 # Change Log
 
+## 2026-10-14 14:25 — Record complete PR #121 re-check validation and cleanup
+- **File(s) changed:** `docs/validation/direct-order-close-guard-tests-fix2.json`; ignored local validation evidence and temporary dependency link cleanup
+- **What changed:** Record current-source hashes, 20/21 browser runner executions (only known integrated-intake P1.27 fails), all 36 detail checks, 206 Node tests and 5,668 Python tests including 2,519 guard cases across 21 fresh-DB groups, zero test failures/skips. Full visual audit completes 388 captures across 92 screens/6 variants with 0 capture errors; its informational rule findings are retained locally and the tracked report is restored byte-for-byte. Both assistant modes and extra OFF office/void/gating/preview modes pass. Drop every disposable database, stop the task-owned PostgreSQL cluster and remove the temporary Node dependency link.
+- **Why:** Complete comment 6174843954's one-item fix round before the authorized PR #121 leased push and note. Staging/local only; no production, deployment or merge.
+
+---
+
+## 2026-10-14 14:09 — Record verified detail and Node regression results
+- **File(s) changed:** ignored `.venv-test/` validation evidence and browser driver
+- **What changed:** The corrected detail runner passes all 36 checks; all 206 Node tests pass with zero failures/skips. Read the detail result's `passed` field in the sweep driver.
+- **Why:** Bind the requested note regression to real-browser evidence and continue the remaining runner and fresh-DB suite checks.
+
+---
+
+## 2026-10-14 14:08 — Prepare all-browser fix-round validation driver
+- **File(s) changed:** ignored `.venv-test/o4-fix2-browser-suite.py` and local validation evidence
+- **What changed:** Enumerate all 21 local browser runners, exclude the two hosted staging acceptance scripts, run current source with installed Chrome, and create/drop a fresh local DB for each real-HTTP runner mode. Include both office, void, gating, preview and assistant modes; preserve the tracked visual-audit report after generating ignored evidence.
+- **Why:** Complete the requested browser regression sweep with local fixtures and no hosted API credentials or production access.
+
+---
+
+## 2026-10-14 14:07 — Prepare isolated PR #121 fix-round validation runtimes
+- **File(s) changed:** ignored `.venv-test/` Python 3.12 dependencies, suite wrapper and Chrome launcher; ignored `node_modules` dependency link
+- **What changed:** Rebuild the pinned interpreter, use bundled Playwright with installed Chrome, and adapt the existing fresh-database suite driver to a task-owned local PostgreSQL port and evidence directory.
+- **Why:** Run complete local regression validation for comment 6174843954 without using production credentials or any other worktree.
+
+---
+
+## 2026-10-14 14:05 — Rebase PR #121 and require the legacy reopen note in the detail runner
+- **File(s) changed:** `tests/visual/run-so-detail-interactions.mjs`, `CHANGE_LOG.md`; branch history rebased onto current `origin/main` (`5a2d57e`)
+- **What changed:** Preserve both changelog histories newest first through the changelog-only rebase conflicts. For closed fixture 110 (`shipped_not_recorded`), assert the required Note control, blank-preview refusal and zero requests, then provide the owner reopen note before preview/commit.
+- **Why:** Claude Code re-check 6174843954 requested one runner fix for Michael's owner-only, note-required, pre-cutover reopen rule. Staging/local validation only; no production, deployment or merge.
+
+---
+
 ## 2026-10-14 13:38 — PR #120 fix round 2: bind journaled owner holds to FL, zero-stock-only apply completes (Codex re-check 6174135183)
 - **File(s) changed:** `audits/fresh-start/fresh_start_v3.py`, `audits/fresh-start/apply_reset.py`, `audits/fresh-start/whole_reset_proof.py`, `audits/fresh-start/v3/queries/01-scope.sql`, `audits/fresh-start/test_whole_reset.py`, `audits/fresh-start/test_fresh_start_v3.py`, `audits/fresh-start/tool-guide.md`, `audits/fresh-start/apply-guide.md`, `audits/fresh-start/WHOLE-RESET-PROOF-2026-10-14.md`, `scripts/count_rehearsal_staging.py`, `docs/deployments/whole-reset-proof-hosted-staging-receipt.json`, `docs/deployments/whole-reset-proof-evidence/STG-CNT-08370B/` (new), `CHANGE_LOG.md`
 - **What changed:**
@@ -8,6 +43,69 @@
   - **Staging rehearsal.** A fourth "Zero-stock sign-off" group runs the real `--apply`, and two forged-hold-journal negative cases are added.
   - **Tests.** Three new tests. `test_fabricated_owner_hold_identity_is_a_gap` covers 6 subtests plus a wrong-approver case, and checks that the executor stops before any API call. `test_zero_stock_only_group_applies_and_proves` is the other regression. `test_held_then_refused_then_approved_retry_still_reconciles` guards the legitimate retry.
 - **Why:** The Codex re-check found two problems. A fabricated hold id or kind in a re-chained journal still got exit 0. A zero-stock-only approval passed the dry run, then hit an `IndexError` on `--apply`. Both regressions fail on b8da383 (exit 0 ×7; `IndexError`) and pass now. Hosted staging STG-CNT-08370B: the complete 4-group manifest exits 0, with the zero-only group applied (no journal, header-only read-back). The forged hold id and forged hold kind each exit 2 with `HOLD_NOT_IN_FL`. All 11 cases replayed identically from the scoped snapshots. Count-tool suite 227/227 on a fresh DB in NY and UTC, 0 skipped. Fresh-DB full suite 3,140 passed in NY and UTC, 0 failed or skipped. Node 186/186. Staging only, no production access. Staging also keeps a first round-2 run, STG-CNT-780841. Its rehearsal-script bug is fixed and its evidence was not kept.
+
+---
+
+## 2026-10-14 13:36 — Record complete PR #121 fix-round staging acceptance
+- **File(s) changed:** `docs/deployments/direct-order-close-staging-receipt-fix1.json`, `docs/validation/direct-order-close-guard-tests-fix1.json`, `FACTORY_LEDGER_CHANGELOG.md`, `FOLLOWUPS.md`; task dependency link removed
+- **What changed:** Record STG-O4-B35B1C190751: 2,128 matrix cases / 2,408 HTTP calls, 16 real EN/ES dialog refusals and repeated 174 browser regressions passed against committed `5237934` source. Verify stable hashes, outer rollback and independent zero rows across 13 tables; add guard row 203 and the final P1.20 fix-round evidence without modifying history. Remove the temporary read-only Node dependency link.
+- **Why:** Finish requested items 1–3 and make the staging-only work reviewable before the authorized PR #121 push/note. No production, hosted deployment, migration or merge; external global log remains outside the user's work-only scope.
+
+---
+
+## 2026-10-14 13:22 — Clarify browser evidence and finish local test cleanup
+- **File(s) changed:** `docs/validation/direct-order-close-guard-tests-fix1.json`; ignored local PostgreSQL runtime
+- **What changed:** Identify the actual browser execution evidence without a nonexistent log path; the staging receipt will capture the same checks alongside real refusals. Record that the task-owned local cluster is stopped after all suite databases were dropped.
+- **Why:** Keep the validation report accurate and leave no active disposable test server.
+
+---
+
+## 2026-10-14 13:20 — Record source-bound PR #121 fix-round validation
+- **File(s) changed:** `docs/validation/direct-order-close-guard-tests-fix1.json`
+- **What changed:** Preserve historical evidence and record implementation `5237934` with 5,668 fresh-DB Python tests including 2,519 guard cases, 206 Node tests, 174 native-dialog checks, 20 Sales Orders browser groups and both session flag modes. Bind final source hashes, zero failures/skips and dropped suite databases.
+- **Why:** Provide the reviewer reproducible validation for dashboard refusal messages, Michael's owner-note-cutoff reopen rule and automated session cases.
+
+---
+
+## 2026-10-14 13:19 — Verify the PR #121 fix round on fresh databases and browsers
+- **File(s) changed:** `tests/visual/run-sales-orders-interactions.mjs`; ignored local test/browser evidence
+- **What changed:** Adapt the legacy shipped_not_recorded fixture to require its own reopen note and assert no request before a valid note. Complete 5,668 Python tests across 21 fresh UTF-8 PostgreSQL 17 database groups, 206 Node tests, 174 dialog browser checks, 20 Sales Orders contract groups across two viewports and both session flag modes; zero failures/skips. Drop every suite database.
+- **Why:** Validate final source and existing list/session behavior before the authorized PR push; preserve all earlier evidence and logs.
+
+---
+
+## 2026-10-14 13:17 — Preserve contextual messages and isolate browser runner fixtures
+- **File(s) changed:** `dashboard/so-list-actions.js`, `tests/test_so_list_actions_ui.js`, `tests/visual/run-so-exit-actions.mjs`, `tests/visual/run-sales-orders-interactions.mjs`, `scripts/check_direct_order_close_staging.py`
+- **What changed:** Explain shipment-required reopening and ordinary role refusals in the selected action's context. Route integrated browser fixtures through an explicit intercepted API base, stub the default-off feature flags and abort unexpected external requests; use installed Chrome. Verify structured bilingual live staging refusal evidence with credentials confined to a sanitized Node adapter environment.
+- **Why:** Make each refusal accurate and keep current localhost runtime behavior from bypassing older fixture adapters during required browser verification.
+
+---
+
+## 2026-10-14 13:14 — Add browser and role regressions for the PR #121 fix round
+- **File(s) changed:** `tests/test_so_list_actions_ui.js`, `tests/visual/run-so-exit-actions.mjs`, `tests/test_roles_a2.py`, `scripts/check_direct_order_close_staging.py`, `tests/test_direct_order_close_guard.py`
+- **What changed:** Cover each EN/ES policy message, required blank-note refusal and preview/commit behavior in Node and native browser dialogs, including a sanitized loopback hook for actual staging refusals. Pin the owner-only reopen permission and preserve the shared dashboard office-options refusal. Staging sessions, matrix and browser checks retain rollback/independent cleanup and suppress sensitive diagnostics.
+- **Why:** Complete required items 1–3 with reproducible UI, permission and live staging evidence without broadening access.
+
+---
+
+## 2026-10-14 13:12 — Extend the O-4 guard matrix with sessions and legacy reopening
+- **File(s) changed:** `tests/test_direct_order_close_guard.py`
+- **What changed:** Add owner/office session keys to the existing matrix and cover shipped_not_recorded reopen across every key kind, saved status, effective shipment, required note and cutoff before/on/after/unset. Assert no business writes on refusals, stale-commit rechecks and office-options eligibility.
+- **Why:** Automate the reviewer's session probes and prove Michael's Oct 14 reopening decision on all direct and ticket paths.
+
+---
+
+## 2026-10-14 13:12 — Fix bilingual legacy Sales Orders close and reopen refusals
+- **File(s) changed:** `dashboard/so-list-actions.js`, `dashboard/index.html`, `scripts/check_direct_order_close_staging.py`; ignored fresh-suite runner
+- **What changed:** Give SHIPMENT_REQUIRED, LEGACY_CLOSE_CUTOFF, ROLE_NOT_ALLOWED and NOTE_REQUIRED specific EN/ES messages; mark shipped_not_recorded close/reopen notes required and explain missing notes before requests. Bump the asset version. Expand guarded staging coverage with owner/office sessions and Michael's legacy reopen rule.
+- **Why:** Claude review comment 6173836660 found misleading conflict/access messages and optional-note labeling; Michael's decision requires consistent owner, note and cutoff behavior on every path.
+
+---
+
+## 2026-10-14 13:10 — Apply Michael's owner-only legacy reopen decision for PR #121
+- **File(s) changed:** `main.py`, `permissions.py`, `order_tickets.py`; ignored worktree test setup
+- **What changed:** Validate named-owner permission, required reopen note and immutable New York creation cutoff for every shipped_not_recorded reopen; recheck at commit and expose eligibility through office options. Preserve ordinary reopen shipment gates and saved status. Prepare a disposable worktree-local PostgreSQL 17 cluster and read-only installed test dependencies.
+- **Why:** Michael's Oct 14 decision allows correction of a mistaken pre-cutover legacy close while refusing every other role and on/after-cutoff orders. External global log is outside the user's explicit work-only scope and remains unchanged.
 
 ---
 
@@ -26,10 +124,122 @@
 
 ---
 
+## 2026-10-14 12:51 — Keep O-4 staging matrix evidence readable in the PR
+- **File(s) changed:** `docs/deployments/direct-order-close-staging-receipt.json`
+- **What changed:** Format each matrix case on one JSON line while preserving every receipt value, source hash, phase result and cleanup count exactly.
+- **Why:** Retain complete 968-case evidence without obscuring the implementation diff with generated indentation.
+
+---
+
+## 2026-10-14 12:50 — Record complete O-4 staging acceptance and draft review handoff
+- **File(s) changed:** `docs/deployments/direct-order-close-staging-receipt.json`, `FOLLOWUPS.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record STG-O4-113D15B9FEFC: 968 staging cases / 1,129 HTTP calls passed against final source, all synthetic fixtures and writes rolled back and independently verified absent. Add regression guard row 202 and P1.20 implementation evidence for draft PR #121; preserve prior entries and the separate Claude Code review/operator rollout gate.
+- **Why:** Finish the requested staging proof and make the authorized builder work reviewable without production access, deployment or merge.
+
+---
+
+## 2026-10-14 12:44 — Verify final O-4 source on the complete fresh-database suite
+- **File(s) changed:** `docs/validation/direct-order-close-guard-tests.json`; ignored local suite evidence
+- **What changed:** Refresh source-bound validation after the partial invoice reason fix: all 4,347 Python tests pass, including 1,203 guard cases, in 21 fresh-database groups; 186 Node tests pass; no failures/skips.
+- **Why:** The review evidence must cover the final implementation and added legitimate-partial-shipment regression.
+
+---
+
 ## 2026-10-14 12:43 — Whole-reset proof across all area groups (O-3, runbook step 20)
 - **File(s) changed:** `audits/fresh-start/whole_reset_proof.py` (new), `audits/fresh-start/test_whole_reset.py` (new), `audits/fresh-start/fresh_start_v3.py`, `audits/fresh-start/verify_reset.py`, `audits/fresh-start/apply-guide.md`, `audits/fresh-start/tool-guide.md`, `audits/fresh-start/WHOLE-RESET-PROOF-2026-10-14.md` (new), `scripts/count_rehearsal_staging.py`, `docs/deployments/whole-reset-proof-hosted-staging-receipt.json` (new), `CHANGE_LOG.md`
 - **What changed:** New read-only `verify_reset.py --whole-reset MANIFEST --output-dir DIR`. The manifest lists every area group, each as preview + approval + its own journal, or `no_change: true` with no journal. The tool proves each group as the single-group verify does: signature, hashes, unchanged signed inputs, journal chain, ticket proof. It also requires every approved change to be posted once, with no held or uncertain ticket, and every `ok` receipt to map to that post. It then proves the union: one approving group per reset-scope product, every final observation in that group's signed plan and unchanged, a multi-area lot reset once, no lot posted twice, no opening or owner `physical_count` post outside a signed plan, no signed owner answer changed. Finally it runs the whole-scope analysis on the final inputs with all proved posts. Exit 0 prints FULL RESET SCOPE RECONCILED; exit 2 lists typed gaps (md/json/csv). `journal_openings` now wraps a new `journal_proof` that also returns its evidence (same behaviour). `count_rehearsal_staging.py --hosted-groups` runs three groups on hosted staging and then the proofs. 21 new offline tests: complete, missing area, overlap, extra post, unsigned group, no-change group, concatenated journal and more.
 - **Why:** Cutover runbook O-3: the one-triplet verify could not certify that all area groups together cover the 178-product reset scope. Hosted staging STG-CNT-36A1AD: exit 0 for the complete manifest; exit 2 with the named gap when a group was left out or an unsigned post was made. Count-tool suite 218/218 (NY + UTC); fresh-DB full suite 3,140 passed, 0 skipped; Node 186/186. No production access; staging writes are synthetic rehearsal data only.
+
+---
+
+## 2026-10-14 12:42 — Prove recorded partial invoices cannot synthesize the owner exception
+- **File(s) changed:** `scripts/check_direct_order_close_staging.py`
+- **What changed:** Add a real partial historical shipment fixture and direct/ticket invoice controls across every key role, cutoff and supplied/missing note; require short_closed for successful partial invoices.
+- **Why:** Validate the uniform shipped_not_recorded reason policy while preserving legitimate recorded partial closes on staging.
+
+---
+
+## 2026-10-14 12:41 — Add recorded partial-invoice regression across key roles
+- **File(s) changed:** `tests/test_direct_order_close_guard.py`
+- **What changed:** Add 20 direct/ticket invoice cases with a real partial shipment, a stale legacy shipped status, every key role and supplied/missing notes; require short_closed on success and preserve the transition table.
+- **Why:** Legitimate partial recorded shipments stay closable without synthesizing the owner-only shipped_not_recorded reason.
+
+---
+
+## 2026-10-14 12:40 — Classify recorded partial-shipment invoices as short closes
+- **File(s) changed:** `main.py`, `tests/test_sales_order_state_model.py`
+- **What changed:** Invoice completion after a recorded partial shipment uses short_closed; shipped_not_recorded is reserved for the explicit named-owner, note-bearing exception. Update the existing partial invoice regression.
+- **Why:** Apply the same reason policy across paths while preserving legitimate office/master closes after recorded shipments.
+
+---
+
+## 2026-10-14 12:39 — Record complete fresh-database O-4 validation
+- **File(s) changed:** `docs/validation/direct-order-close-guard-tests.json`; ignored local suite evidence
+- **What changed:** Record 4,327 Python tests passing on fresh UTF-8 PostgreSQL 17 databases in 21 isolated groups, including the 1,183-case guard matrix, and 186 Node tests passing; no failures/skips. Preserve source hashes and test database ownership/cleanup evidence.
+- **Why:** Provide Claude Code with reproducible builder evidence for O-4 before review. No production access, migration, merge or deployment.
+
+---
+
+## 2026-10-14 12:37 — Bind O-4 staging receipt to exact executed source
+- **File(s) changed:** `scripts/check_direct_order_close_staging.py`
+- **What changed:** Capture source hashes before import and require unchanged files after staging cleanup, so the receipt identifies the code actually exercised.
+- **Why:** Prevent proof from accidentally describing a newer edit than the running staging process.
+
+---
+
+## 2026-10-14 12:36 — Strengthen O-4 staging proof with ledger shipments and remaining shortcuts
+- **File(s) changed:** `scripts/check_direct_order_close_staging.py`, `tests/test_order_tickets.py`
+- **What changed:** Stage synthetic receive/ship postings and lot/order shipment links; retain unsupported status-note refusals; add reopen and ship-repair controls. Preserve the dashboard ticket allowlist refusal assertion.
+- **Why:** Produce accurate staging evidence for every shortcut without relying on mutable line counters or changing hosted configuration.
+
+---
+
+## 2026-10-14 12:35 — Preserve invalid-transition errors before the invoice shipment guard
+- **File(s) changed:** `main.py`, `order_tickets.py`, `tests/test_sales_order_state_model.py`, `tests/test_order_tickets.py`
+- **What changed:** Run the recorded-shipment gate after existing status-transition validation and before all exit writes; document shortcut refusal; align synthetic lot codes with canonical constraints.
+- **Why:** Close valid invoice bypasses without changing the existing invalid-transition contract.
+
+---
+
+## 2026-10-14 12:35 — Adapt attribution and permission tests to the O-4 shipment rule
+- **File(s) changed:** `tests/test_actor_attribution.py`, `tests/test_order_tickets.py`, `tests/test_roles_a2.py`
+- **What changed:** Supply effective recorded shipments for close/invoice attribution checks; assert named-owner-only legacy permission and blocked shipment-free invoice drafts across all key kinds.
+- **Why:** Preserve prior authorization/attribution coverage while replacing obsolete expectations that allowed the direct-close bypass.
+
+---
+
+## 2026-10-14 12:34 — Preserve state-model regressions with recorded shipment fixtures
+- **File(s) changed:** `tests/test_sales_order_state_model.py`; ignored local test evidence
+- **What changed:** Seed positive effective shipments only where state, attribution and concurrent-close tests need a legitimate close; preserve unshipped cancellation and no-new-posting assertions. Verify the new 1,183-case guard matrix and all 186 Node tests without skips.
+- **Why:** The prior fixtures depended on the shipment-free close bypass; test the original invariants under Michael's enforced rule.
+
+---
+
+## 2026-10-14 12:32 — Align O-4 synthetic shipments with ledger and lot constraints
+- **File(s) changed:** `tests/test_direct_order_close_guard.py`
+- **What changed:** Add real stock lots for effective shipment lines, canonical uppercase lot codes, and assertions for unsupported ship-commit note fields.
+- **Why:** Exercise real PostgreSQL constraints and request contracts in the exhaustive O-4 matrix.
+
+---
+
+## 2026-10-14 12:31 — Add O-4 reopen and effective-void regressions
+- **File(s) changed:** `tests/test_direct_order_close_guard.py`
+- **What changed:** Exercise direct preview/commit and ticket reopening of saved shipped/invoiced statuses, normal operational restoration, and effective-ledger void refusal.
+- **Why:** Prevent the reopen shortcut from restoring shipping completion without a recorded shipment.
+
+---
+
+## 2026-10-14 12:31 — Add O-4 order-close regression matrix and guarded staging harness
+- **File(s) changed:** `tests/test_direct_order_close_guard.py`, `scripts/check_direct_order_close_staging.py`
+- **What changed:** Add role/key × creation-cutoff × effective shipment × note matrices for direct/ticket close and status paths, cancellation controls and ship shortcuts, plus a guarded rollback-only staging harness with independent cleanup verification.
+- **Why:** Prove Michael's owner/note/cutoff rule on every path and protect legitimate recorded closes/cancels for O-4 and P1.20.
+
+---
+
+## 2026-10-14 12:29 — Close O-4 direct order-close and status shipment bypasses
+- **File(s) changed:** `main.py`, `permissions.py`, `order_tickets.py`, `ship_tickets.py`
+- **What changed:** Enforce owner/note/creation-date shipment gates in shared close, invoice, reopen and ship-completion cores; remove the master legacy exception permission; recognize effective historical shipment links.
+- **Why:** Michael's Oct 12 rule, cutover runbook O-4 and FOLLOWUPS P1.20. Staging/local only, no production or merge.
 
 ---
 

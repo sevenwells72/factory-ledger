@@ -8318,7 +8318,9 @@ def _ship_order_commit_core(cur, request, order_id, req, occurred_at, created_at
     if not lines_to_ship:
         if ship_all and order_row['status'] == 'partial_ship':
             # Repair a legacy partial order whose quantities were
-            # reduced to what was already shipped. No stock moves.
+            # reduced to what was already shipped. No stock moves; mutable
+            # line counters alone cannot establish a recorded shipment.
+            _require_order_close_policy(cur, request, order_row, "shipped_recorded")
             cur.execute("UPDATE sales_orders SET status='shipped' WHERE id=%s", (order_id,))
             _record_actor_write(cur, request, 'sales_orders', order_id)
             return {"mode": "commit", "order_number": order_row['order_number'],
@@ -8542,6 +8544,8 @@ def _ship_order_commit_core(cur, request, order_id, req, occurred_at, created_at
             "lines_attempted": len(results)
         })
 
+    if all_fully_shipped:
+        _require_order_close_policy(cur, request, order_row, "shipped_recorded")
     new_order_status = 'shipped' if all_fully_shipped else 'partial_ship'
     cur.execute("UPDATE sales_orders SET status = %s WHERE id = %s", (new_order_status, order_id))
     logger.info(f"Ship order {order_row['order_number']}: {'fully' if all_fully_shipped else 'partially'} shipped")
@@ -14434,7 +14438,7 @@ def _load_so_for_state_change(cur, order_id: int) -> dict:
     """
     cur.execute(
         """SELECT so.id, so.order_number, so.status, so.state, so.state_reason,
-                  so.status_before_exit, so.requested_ship_date,
+                  so.status_before_exit, so.requested_ship_date, so.created_at,
                   COALESCE(sof.ready, false) AS ready
              FROM sales_orders so
              LEFT JOIN sales_order_flags sof ON sof.so_number = so.order_number
@@ -14454,11 +14458,57 @@ def _load_so_for_state_change(cur, order_id: int) -> dict:
     return order
 
 
+def _require_order_close_policy(cur, request, order: dict, reason: str, note=None):
+    """O-4: the same shipment policy for direct writes and ticket dry runs/posts.
+
+    The caller holds the order row lock. Shared keys cannot stand in for the
+    named owner, and a caller-supplied attribution is never authorization.
+    """
+    if reason == "shipped_not_recorded":
+        permissions.require("close_order_shipped_not_recorded", _actor_identity(request))
+        if not (note or "").strip():
+            _so_state_error("NOTE_REQUIRED", "A note is required for shipped_not_recorded.",
+                            status_code=422, order_id=order["id"])
+    blockers = ship_tickets.shipment_gate(sys.modules[__name__], cur, order, reason)
+    if blockers:
+        blocker = blockers[0]
+        _so_state_error(blocker["code"], blocker["message"],
+                        status_code=409, order_id=order["id"])
+
+
+def _require_order_reopen_policy(cur, actor, order: dict, note=None):
+    """Michael's legacy reopen rule, shared by direct and ticket paths.
+
+    A shipped_not_recorded exit remains an owner exception even when a later
+    shipment exists. It needs its own note and immutable pre-cutover creation
+    date; the saved pre-exit status remains authoritative on an allowed reopen.
+    """
+    restored_status = order.get("status_before_exit") or "confirmed"
+    if order["state"] == "closed" and order["state_reason"] == "shipped_not_recorded":
+        permissions.require("reopen_order_shipped_not_recorded", actor)
+        if not (note or "").strip():
+            _so_state_error("NOTE_REQUIRED", "A note is required to reopen an order closed as shipped_not_recorded.",
+                            status_code=422, order_id=order["id"])
+        cutoff = ship_tickets.legacy_close_cutoff()
+        if (cutoff is not None
+                and order["created_at"].astimezone(PLANT_TIMEZONE).date() >= cutoff):
+            _so_state_error("LEGACY_CLOSE_CUTOFF",
+                            "Orders created on or after the cutover date cannot be reopened from shipped_not_recorded, including by the owner.",
+                            status_code=403, order_id=order["id"])
+    elif restored_status in ("shipped", "invoiced"):
+        blockers = ship_tickets.shipment_gate(sys.modules[__name__], cur, order, "shipped_recorded")
+        if blockers:
+            blocker = blockers[0]
+            _so_state_error(blocker["code"], blocker["message"],
+                            status_code=409, order_id=order["id"])
+    return restored_status
+
+
 def _shipped_close_reason(order: dict) -> str:
-    """shipped_recorded when the ledger says nothing is still owed."""
+    """Classify an invoice close after the recorded-shipment gate has passed."""
     return ("shipped_recorded"
             if order["remaining_effective_lb"] <= BALANCE_EPSILON
-            else "shipped_not_recorded")
+            else "short_closed")
 
 
 def _validate_state_reason(reason: str, note, related_so_id, cur, order_id: int):
@@ -14681,7 +14731,7 @@ def _state_change_response(order: dict, updated: dict, released: list,
 def _close_sales_order_core(cur, request, order_id: int, req):
     """A7 hook: the state-change handler body, verbatim (preview and commit), on
     the caller's cursor — shared by the direct route and the matching order
-    ticket. Permission checks stay with the callers."""
+    ticket. The shipment/legacy-exception policy is enforced here too."""
     order = _load_so_for_state_change(cur, order_id)
     if order["state"] != "open":
         _so_state_error(
@@ -14691,6 +14741,7 @@ def _close_sales_order_core(cur, request, order_id: int, req):
             status_code=409, order_id=order_id,
             state=order["state"], state_reason=order["state_reason"],
         )
+    _require_order_close_policy(cur, request, order, req.reason, req.note)
     _validate_state_reason(req.reason, req.note, req.related_so_id,
                            cur, order_id)
 
@@ -14745,11 +14796,6 @@ def close_sales_order(
     trace events. It only takes the order off the board and releases whatever
     stock it was still holding.
     """
-    # A2 §4.3: the route is an office/owner order edit; closing as
-    # "shipped, not recorded" (R6) is owner-only and depends on the body, so
-    # it is checked here rather than in the route gate. Shared keys pass.
-    if req.reason == "shipped_not_recorded" and request_actor(request) is not None:
-        permissions.require("close_order_shipped_not_recorded", _actor_identity(request))
     try:
         with get_transaction() as cur:
             return _close_sales_order_core(cur, request, order_id, req)
@@ -14853,7 +14899,7 @@ def cancel_sales_order(
 def _reopen_sales_order_core(cur, request, order_id: int, req):
     """A7 hook: the state-change handler body, verbatim (preview and commit), on
     the caller's cursor — shared by the direct route and the matching order
-    ticket. Permission checks stay with the callers."""
+    ticket. The reason-specific owner/note/cutover policy is checked here too."""
     order = _load_so_for_state_change(cur, order_id)
     if order["state"] not in ("closed", "cancelled"):
         _so_state_error(
@@ -14863,7 +14909,8 @@ def _reopen_sales_order_core(cur, request, order_id: int, req):
             status_code=409, order_id=order_id, state=order["state"],
         )
 
-    restored_status = order.get("status_before_exit") or "confirmed"
+    restored_status = _require_order_reopen_policy(
+        cur, _actor_identity(request), order, req.note)
     changed_by = _state_changed_by(request, req.changed_by, order_id)
 
     if req.mode == "preview":
@@ -15544,6 +15591,11 @@ def _update_order_status_core(cur, request, order_id: int, req: "OrderStatusUpda
             f"Allowed transitions from '{current}': {allowed}."
         )
 
+    if req.status == 'invoiced':
+        # This shortcut has no explicit exception reason or human note. Only
+        # a recorded shipment can authorize it, for every key kind.
+        _require_order_close_policy(cur, request, order, "shipped_recorded")
+
     released_allocations = []
     state_fields = {}
 
@@ -15614,9 +15666,10 @@ def update_order_status(request: Request, order_id: int = Depends(resolve_order_
         close/short_closed.
       * 'invoiced' routes through close, with the reason picked from the
         ledger (shipped_recorded when nothing is still owed, else
-        shipped_not_recorded). Its mirror is overridden to 'invoiced' rather
+        short_closed). Its mirror is overridden to 'invoiced' rather
         than close's usual 'shipped', so this endpoint's own legacy callers
-        still see the status they asked for.
+        still see the status they asked for. A recorded shipment is required;
+        this shortcut cannot supply a legacy-close exception or a human note.
 
     The other four values — new, confirmed, in_production, ready — are purely
     operational, behave exactly as they always have, and never touch state.

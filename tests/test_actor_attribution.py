@@ -246,6 +246,19 @@ def _seed(cur, *, stock=500.0, qty=100.0, status="confirmed"):
             "product_id": product_id, "lot_id": lot_id, "customer_id": customer_id}
 
 
+def _recorded_shipment(cur, seeded):
+    """Close-attribution tests start after a real positive effective shipment."""
+    cur.execute("INSERT INTO transactions(type, timestamp) VALUES ('ship', NOW()) RETURNING id")
+    transaction_id = cur.fetchone()['id']
+    cur.execute("""INSERT INTO transaction_lines(transaction_id, product_id, lot_id, quantity_lb)
+                   VALUES (%s, %s, %s, -1)""",
+                (transaction_id, seeded['product_id'], seeded['lot_id']))
+    cur.execute("""INSERT INTO sales_order_shipments(sales_order_line_id, transaction_id, quantity_lb)
+                   VALUES (%s, %s, 1)""", (seeded['line_id'], transaction_id))
+    cur.execute("""UPDATE sales_order_lines SET quantity_shipped_lb = 1,
+                   line_status = 'partial' WHERE id = %s""", (seeded['line_id'],))
+
+
 def _allocate(cur, seeded, qty=100.0, *, line_id=None, source="manual", expired=False):
     cur.execute(
         "INSERT INTO sales_order_allocations "
@@ -314,6 +327,7 @@ def _released_for_line(cur, line_id):
 @pytest.mark.parametrize("which", ALL_KEYS)
 def test_close_records_the_actor(client, db_cursor, actors, which):
     seeded = _seed(db_cursor)
+    _recorded_shipment(db_cursor, seeded)
     allocation_id = _allocate(db_cursor, seeded)
 
     resp = client.post(
@@ -506,6 +520,7 @@ def test_legacy_status_invoiced_records_the_actor(client, db_cursor, actors, whi
     persisted pair is ('invoiced', 'closed') — and the attribution has to be
     right on both the order row and the reservations close releases."""
     seeded = _seed(db_cursor, status="shipped")
+    _recorded_shipment(db_cursor, seeded)
     allocation_id = _allocate(db_cursor, seeded)
 
     resp = client.patch(
@@ -658,6 +673,7 @@ def test_resolved_actor_beats_body_changed_by(client, db_cursor, actors):
     Letting the body win would let anyone holding a personal key sign someone
     else's name to an administrative exit."""
     seeded = _seed(db_cursor)
+    _recorded_shipment(db_cursor, seeded)
 
     resp = client.post(
         f"/sales/orders/{seeded['order_id']}/close",
@@ -675,6 +691,7 @@ def test_body_changed_by_still_wins_for_the_master_key(client, db_cursor, actors
     """Unchanged legacy behaviour: the office GPT holds the master key,
     resolves no actor, and its self-reported identity is still stored."""
     seeded = _seed(db_cursor)
+    _recorded_shipment(db_cursor, seeded)
 
     resp = client.post(
         f"/sales/orders/{seeded['order_id']}/close",
@@ -693,6 +710,7 @@ def test_over_long_changed_by_is_still_rejected_for_an_actor(client, db_cursor, 
     over-long changed_by must stay a 400 rather than becoming a value silently
     discarded because the caller happened to hold a personal key."""
     seeded = _seed(db_cursor)
+    _recorded_shipment(db_cursor, seeded)
 
     resp = client.post(
         f"/sales/orders/{seeded['order_id']}/close",
@@ -1443,6 +1461,7 @@ def test_a_failing_last_used_write_never_fails_the_request(client, db_cursor, ac
 
     # And a WRITE path, which is where a 500 would actually cost something.
     seeded = _seed(db_cursor)
+    _recorded_shipment(db_cursor, seeded)
     resp = client.post(
         f"/sales/orders/{seeded['order_id']}/close",
         json={"reason": "short_closed", "mode": "commit"},

@@ -315,6 +315,15 @@ try {
             await navigateDetail(page, 111, 'Cancelled');
           }
           await openExit(page, 'reopen');
+          if (id === 110) {
+            const note = page.getByRole('dialog').getByLabel('Note (required)', { exact: true });
+            assert.equal(await note.isVisible(), true);
+            const writesBeforePreview = api.writes.length;
+            await preview(page, 'reopen');
+            assert.match(await page.locator('.so-exit-error').innerText(), /Add a note/);
+            assert.equal(api.writes.length, writesBeforePreview, 'A blank required reopen note must block the request');
+            await note.fill('Owner confirmed this pre-cutover order should reopen.');
+          }
           await preview(page, 'reopen');
           assert.match(await page.locator('.so-exit-description').innerText(), /reservations are not restored/);
           await commit(page, 'Reopen');

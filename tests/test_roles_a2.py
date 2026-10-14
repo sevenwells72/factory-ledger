@@ -16,7 +16,7 @@ import main
 import permissions
 import ticket_actions
 import write_tickets
-from tests.test_actor_attribution import client, actors  # noqa: F401
+from tests.test_actor_attribution import client, actors, _seed as seed_order  # noqa: F401
 from tests.test_write_tickets import (headers, commit, ticket_row, posted_count, error,
                                       isolated_database, seed as seed_receive)  # noqa: F401
 from tests.test_write_tickets_part2 import items, body, prepare, seed as seed_items  # noqa: F401
@@ -49,8 +49,9 @@ EXPECTED = {
     'mark_order_ready':                 'owner floor office legacy_ledger',
     'cancel_order':                     'owner office legacy_ledger',
     'close_order':                      'owner office legacy_ledger',
-    'close_order_shipped_not_recorded': 'owner legacy_ledger',
+    'close_order_shipped_not_recorded': 'owner',
     'reopen_order':                     'owner legacy_ledger',
+    'reopen_order_shipped_not_recorded': 'owner',
     'create_expected_receipt':          'owner office legacy_ledger',
     'update_expected_receipt':          'owner office legacy_ledger',
     'cancel_expected_receipt':          'owner office legacy_ledger',
@@ -450,7 +451,7 @@ def test_direct_routes_gate_before_the_body_is_read(client, actors):
     ('floor', 'POST', '/expected-receipts', 'create_expected_receipt'),
     ('office', 'POST', '/void/1', 'void'),
     ('office', 'POST', '/sales/orders/1/reopen', 'reopen_order'),
-    ('floor', 'POST', '/sales/orders/1/close', 'cancel_order'),
+    ('floor', 'POST', '/sales/orders/1/close', 'close_order'),
 ])
 def test_direct_routes_apply_the_matrix_per_role(client, actors, which, method, path, action):
     response = client.request(method, path, json={}, headers=headers(actors[which]['key']))
@@ -458,16 +459,21 @@ def test_direct_routes_apply_the_matrix_per_role(client, actors, which, method, 
     assert (response.json()['detail']['action'], response.json()['detail']['role']) == (action, which)
 
 
-def test_close_shipped_not_recorded_is_owner_only_on_the_direct_route(client, actors):
-    """§4.3 R6: office may close an order, but not as 'shipped, not recorded'."""
-    body_ = {'reason': 'shipped_not_recorded', 'mode': 'commit'}
-    response = client.post('/sales/orders/1/close', json=body_, headers=headers(actors['office']['key']))
-    error(response, 403, 'ROLE_NOT_ALLOWED')
-    assert response.json()['detail']['action'] == 'close_order_shipped_not_recorded'
-    assert client.post('/sales/orders/1/close', json=body_ | {'reason': 'short_closed'},
-                       headers=headers(actors['office']['key'])).status_code != 403
-    assert client.post('/sales/orders/1/close', json=body_, headers=headers(actors['owner']['key'])).status_code != 403
-    assert client.post('/sales/orders/1/close', json=body_, headers=headers(main.API_KEY)).status_code != 403
+def test_close_shipped_not_recorded_is_owner_only_on_the_direct_route(client, db_cursor, actors, monkeypatch):
+    """The explicit legacy exception names an owner, including on direct routes."""
+    monkeypatch.delenv('ORDER_LEGACY_CLOSE_CUTOFF', raising=False)
+    order = seed_order(db_cursor)
+    path = f"/sales/orders/{order['order_id']}/close"
+    body_ = {'reason': 'shipped_not_recorded', 'note': 'Historical truck log', 'mode': 'commit'}
+    for key in (actors['office']['key'], main.API_KEY, main.DASHBOARD_API_KEY):
+        response = client.post(path, json=body_, headers=headers(key))
+        error(response, 403, 'ROLE_NOT_ALLOWED')
+        assert response.json()['detail']['action'] == 'close_order_shipped_not_recorded'
+    # Office ordinary close reaches shipment validation rather than the owner exception.
+    error(client.post(path, json=body_ | {'reason': 'short_closed'},
+                      headers=headers(actors['office']['key'])), 409, 'SHIPMENT_REQUIRED')
+    allowed = client.post(path, json=body_, headers=headers(actors['owner']['key']))
+    assert allowed.status_code == 200, allowed.text
 
 
 def test_direct_routes_still_open_where_the_matrix_allows(client, db_cursor, items, actors):

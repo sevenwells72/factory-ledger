@@ -56,8 +56,9 @@ ROLE_PERMISSIONS = {
     'mark_order_ready': _NAMED_AND_MASTER,            # floor's only status change
     'cancel_order': _NAMED_AND_MASTER - {FLOOR},
     'close_order': _NAMED_AND_MASTER - {FLOOR},            # A7 ticket action; reason shipped_not_recorded ALSO needs the row below
-    'close_order_shipped_not_recorded': frozenset({OWNER, LEGACY_LEDGER}),
+    'close_order_shipped_not_recorded': frozenset({OWNER}),
     'reopen_order': frozenset({OWNER, LEGACY_LEDGER}),
+    'reopen_order_shipped_not_recorded': frozenset({OWNER}),
     'create_expected_receipt': _NAMED_AND_MASTER - {FLOOR},
     'update_expected_receipt': _NAMED_AND_MASTER - {FLOOR},
     'cancel_expected_receipt': _NAMED_AND_MASTER - {FLOOR},
@@ -97,6 +98,8 @@ _LABELS = {
     'close_order_shipped_not_recorded': ('close an order as shipped without a recorded shipment',
                                          'cerrar un pedido como enviado sin envío registrado'),
     'reopen_order': ('reopen an order', 'reabrir un pedido'),
+    'reopen_order_shipped_not_recorded': ('reopen an order closed as shipped without a recorded shipment',
+                                          'reabrir un pedido cerrado como enviado sin envío registrado'),
     'backdate_over_14d': ('record an entry more than 14 days old', 'registrar una entrada de más de 14 días'),
 }
 _ROLE_NAMES = {OWNER: 'owner', FLOOR: 'floor', OFFICE: 'office',
@@ -181,7 +184,7 @@ ROUTE_ACTIONS = {
     ('PATCH', '/sales/orders/{order_id}/status'): 'update_order_status',
     ('POST', '/sales-orders/{so_number}/ready'): 'mark_order_ready',
     ('POST', '/sales/orders/{order_id}/cancel'): 'cancel_order',
-    ('POST', '/sales/orders/{order_id}/close'): 'cancel_order',   # reason shipped_not_recorded: owner-only, checked in the handler
+    ('POST', '/sales/orders/{order_id}/close'): 'close_order',    # legacy exception policy also enforced in the shared core
     ('POST', '/sales/orders/{order_id}/reopen'): 'reopen_order',
     ('POST', '/expected-receipts'): 'create_expected_receipt',
     ('PATCH', '/expected-receipts/{expected_receipt_id}'): 'create_expected_receipt',

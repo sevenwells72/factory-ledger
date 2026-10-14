@@ -378,14 +378,24 @@ def test_status_transitions_keep_the_table_and_block_shipped(client, db_cursor, 
     assert receipt['state'] == 'cancelled' and order_row(db_cursor, order['order_id'])['state'] == 'cancelled'
 
 
-def test_status_invoiced_without_recorded_shipment_is_owner_only(client, db_cursor, catalog, actors):
+@pytest.mark.parametrize('which', ['owner', 'office', 'floor', 'master', 'dashboard'])
+def test_status_invoiced_without_recorded_shipment_is_refused(client, db_cursor, catalog, actors, which):
     order = create_order(client, catalog, office(actors))
     db_cursor.execute("UPDATE sales_orders SET status='shipped' WHERE id=%s", (order['order_id'],))
     base = f"/sales/orders/{order['order_id']}/status/prepare"
-    error(prepare_raw(client, base, {'status': 'invoiced'}, office(actors)), 403, 'ROLE_NOT_ALLOWED')
-    prepared = prepare(client, base, {'status': 'invoiced'}, actors['owner']['key'])
-    assert prepared['blockers'][0]['code'] == 'SHIPMENT_REQUIRED'
-    error(commit(client, prepared, actors['owner']['key']), 409, 'TICKET_STALE')
+    key = (main.API_KEY if which == 'master' else main.DASHBOARD_API_KEY if which == 'dashboard'
+           else actors[which]['key'])
+    if which == 'dashboard':
+        refused = prepare_raw(client, base, {'status': 'invoiced'}, key)
+        assert refused.status_code == 403
+        assert refused.json()['detail'] == 'API key not authorized for this endpoint'
+    elif which == 'floor':
+        error(prepare_raw(client, base, {'status': 'invoiced'}, key), 403, 'ROLE_NOT_ALLOWED')
+    else:
+        prepared = prepare(client, base, {'status': 'invoiced'}, key)
+        assert prepared['can_commit'] is False
+        assert prepared['blockers'][0]['code'] == 'SHIPMENT_REQUIRED'
+        error(commit(client, prepared, key), 409, 'TICKET_STALE')
     assert order_row(db_cursor, order['order_id'])['state'] == 'open'
 
 
@@ -564,6 +574,21 @@ def test_direct_order_routes_unchanged(client, db_cursor, catalog, actors):
                       headers=headers(actors['floor']['key'])), 403, 'ROLE_NOT_ALLOWED')
     ready = client.post(f"/sales-orders/{direct.json()['order_number']}/ready", json={'ready': True}, headers=headers())
     assert ready.status_code == 200 and ready.json()['ready_by'] == 'floor'
+    # A direct close remains available after a recorded effective shipment.
+    order_id = direct.json()['order_id']
+    product_id = catalog['products']['food']
+    db_cursor.execute("INSERT INTO lots(product_id, lot_code, entry_source, received_at) VALUES (%s,%s,'received',NOW()) RETURNING id",
+                      (product_id, 'A7-DIRECT-' + catalog['suffix'].upper()))
+    lot_id = db_cursor.fetchone()['id']
+    db_cursor.execute("INSERT INTO transactions(type) VALUES ('ship') RETURNING id")
+    transaction_id = db_cursor.fetchone()['id']
+    db_cursor.execute("INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES (%s,%s,%s,-1)",
+                      (transaction_id, product_id, lot_id))
+    db_cursor.execute("SELECT id FROM sales_order_lines WHERE sales_order_id=%s AND product_id=%s", (order_id, product_id))
+    line_id = db_cursor.fetchone()['id']
+    db_cursor.execute("INSERT INTO sales_order_shipments(sales_order_line_id,transaction_id,quantity_lb) VALUES (%s,%s,1)",
+                      (line_id, transaction_id))
+    db_cursor.execute("UPDATE sales_order_lines SET quantity_shipped_lb=1,line_status='partial' WHERE id=%s", (line_id,))
     closed = client.post(f"/sales/orders/{direct.json()['order_id']}/close",
                          json={'reason': 'short_closed', 'mode': 'commit'}, headers=headers(office(actors)))
     assert closed.status_code == 200 and closed.json()['state'] == 'closed'
