@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-14 11:00 — PR #112 fix round 1: production dry-run paths under audits/fresh-start/
+- **File(s) changed:** `audits/fresh-start/HOSTED-REHEARSAL-2026-10-14.md`, `audits/fresh-start/test_dryrun_commands.py` (new), `.gitignore`, `CHANGE_LOG.md`
+- **What changed:** The production dry-run commands now take every input, the approval copy and every output from `D=audits/fresh-start/dryrun-$(date +%F)` instead of `~/fl-dryrun/` (which `fresh_start_common.local_path` refuses); the approval copy is a real `cp` line. `.gitignore` adds `audits/fresh-start/dryrun-*/` so nothing from the dry run is committed. New test parses the documented shell block: offline it checks the commands are preview / cp / apply-without-`--apply` / verify on `--target production`, that all 12 paths pass `local_path` and are gitignored; with a localhost `TEST_DATABASE_URL` it builds a throwaway DB from `tests/schema/schema.sql`, seeds one lot + owner actor, and runs the three documented commands as written (folder swapped for a temp dir) — preview exits 0, dry run prints `DRY RUN ONLY` with no journal/results, verify exits 2; sockets and API calls blocked; DB dropped after.
+- **Why:** Codex review of PR #112 (comment 6171087857, P2): the documented commands exited 1 before any DB access. No production or staging operations.
+
+---
+
 ## 2026-10-14 00:05 — Hosted-staging count rehearsal (one area) + production dry-run checklist
 - **File(s) changed:** `scripts/count_rehearsal_staging.py`, `audits/fresh-start/HOSTED-REHEARSAL-2026-10-14.md` (new), `docs/deployments/count-rehearsal-hosted-staging-receipt.json` (new), `CHANGE_LOG.md`
 - **What changed:** Rehearsal script gains `--hosted`: one area against the deployed FastAPI-staging (no local server), waits for the 60 s actor-key cache, seeds a shortage lot, a −680 lb hold and a new extra-kosher lot plus 8 ordinary lots. The three-area local flow moved into `local_areas()` and the DB read-back into `evidence()` unchanged (not re-run). Ran it against staging deployment 6d169ef7 (d5e9fea): reference STG-CNT-A13CF3, ADJ-261013-047…056 + FND-261013-006, SHORTAGE #52 resolved/counted with XR-261013-014, LARGE_CORRECTION #53 and KOSHER_ATTESTATION #54 approved, all 11 lots READY difference 0; pause 42.4 s, 2.6–6.5 s per lot. Report includes Michael's production dry-run checklist.

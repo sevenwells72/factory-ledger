@@ -45,3 +45,5 @@ audits/fresh-start/.apply-reset.lock
 audits/fresh-start/v3/rehearsal/
 audits/fresh-start/v3/count-sheet-v3-pagination.json
 audits/fresh-start/v3/scope-products-and-lots.csv
+# Production dry-run inputs and reports (HOSTED-REHEARSAL-2026-10-14.md); never committed.
+audits/fresh-start/dryrun-*/
