@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict 6N21bbBomq3cHokGbwrjULvrzDpROpnzRRqw8grch4fqdgVHKghoxwpWvWIFlV1
+\restrict i5XsCHF0IrViMMrjMaaw10HVKNQf0DVqj8OP239DSiCU6QFGbn31BuQ96DssZob
 
 -- Dumped from database version 17.6
--- Dumped by pg_dump version 17.10 (Homebrew)
+-- Dumped by pg_dump version 17.11 (Homebrew)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -1097,6 +1097,7 @@ CREATE TABLE public.exceptions (
     resolution_kind text,
     resolution_note text,
     resolution_ticket_id bigint,
+    resolution_receipt_number text,
     CONSTRAINT exceptions_detail_check CHECK ((jsonb_typeof(detail) = 'object'::text)),
     CONSTRAINT exceptions_escalated_needs_time CHECK (((status <> 'escalated'::text) OR (escalated_at IS NOT NULL))),
     CONSTRAINT exceptions_kind_check CHECK (((kind = ANY (ARRAY['SHORTAGE'::text, 'UNIDENTIFIED_LOT'::text, 'LARGE_CORRECTION'::text, 'LATE_ENTRY'::text, 'SHIPMENT_PROOF_MISSING'::text, 'NEGATIVE_BALANCE'::text, 'POSSIBLE_DUPLICATE_ACK'::text, 'UNSHIPPED_PAST_DUE'::text, 'SUNSHINE_INVOICE_PENDING'::text, 'SHIFT_DISCREPANCY'::text])) OR (kind = 'PRE_MAKE_ADJUST'::text) OR (kind = 'BOL_PHOTO_MISSING'::text) OR (kind = 'KOSHER_ATTESTATION'::text))),
@@ -3405,7 +3406,7 @@ CREATE TABLE public.write_tickets (
     response jsonb,
     acknowledged jsonb DEFAULT '[]'::jsonb NOT NULL,
     reject_reason text,
-    CONSTRAINT write_tickets_action_check CHECK (((action = ANY (ARRAY['receive'::text, 'make'::text, 'pack'::text, 'adjust'::text, 'found'::text])) OR (action = 'move_lot'::text) OR (action = ANY (ARRAY['create_order'::text, 'add_order_lines'::text, 'update_order_line'::text, 'cancel_order_line'::text, 'update_order_header'::text, 'update_order_status'::text, 'mark_order_ready'::text, 'cancel_order'::text, 'close_order'::text, 'reopen_order'::text])) OR (action = ANY (ARRAY['create_expected_receipt'::text, 'update_expected_receipt'::text, 'cancel_expected_receipt'::text])) OR (action = ANY (ARRAY['ship_order'::text, 'ship_standalone'::text, 'ship_bulk'::text]))) OR (action = 'update_supplier_lot'::text)),
+    CONSTRAINT write_tickets_action_check CHECK (((action = ANY (ARRAY['receive'::text, 'make'::text, 'pack'::text, 'adjust'::text, 'found'::text])) OR (action = 'move_lot'::text) OR (action = ANY (ARRAY['create_order'::text, 'add_order_lines'::text, 'update_order_line'::text, 'cancel_order_line'::text, 'update_order_header'::text, 'update_order_status'::text, 'mark_order_ready'::text, 'cancel_order'::text, 'close_order'::text, 'reopen_order'::text])) OR (action = ANY (ARRAY['create_expected_receipt'::text, 'update_expected_receipt'::text, 'cancel_expected_receipt'::text])) OR (action = ANY (ARRAY['ship_order'::text, 'ship_standalone'::text, 'ship_bulk'::text])) OR (action = 'update_supplier_lot'::text) OR (action = ANY (ARRAY['resolve_exception'::text, 'void'::text])))),
     CONSTRAINT write_tickets_check CHECK (((key_kind = 'actor'::text) = (actor_id IS NOT NULL))),
     CONSTRAINT write_tickets_client_source_check CHECK ((client_source = ANY (ARRAY['mcp'::text, 'dashboard'::text, 'fl_assistant'::text, 'api'::text]))),
     CONSTRAINT write_tickets_key_kind_check CHECK ((key_kind = ANY (ARRAY['actor'::text, 'legacy_ledger'::text, 'legacy_dashboard'::text]))),
@@ -5446,6 +5447,13 @@ CREATE INDEX write_tickets_supersession_idx ON public.write_tickets USING btree 
 
 
 --
+-- Name: write_tickets_void_correction_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX write_tickets_void_correction_idx ON public.write_tickets USING btree (((result_ref ->> 'correction_id'::text))) WHERE ((action = 'void'::text) AND (status = 'committed'::text));
+
+
+--
 -- Name: inventory_summary _RETURN; Type: RULE; Schema: public; Owner: -
 --
 
@@ -6059,6 +6067,14 @@ ALTER TABLE ONLY public.exceptions
 
 ALTER TABLE ONLY public.exceptions
     ADD CONSTRAINT exceptions_product_id_fkey FOREIGN KEY (product_id) REFERENCES public.products(id);
+
+
+--
+-- Name: exceptions exceptions_resolution_receipt_number_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.exceptions
+    ADD CONSTRAINT exceptions_resolution_receipt_number_fkey FOREIGN KEY (resolution_receipt_number) REFERENCES public.write_tickets(receipt_number);
 
 
 --
@@ -7183,8 +7199,4 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 6N21bbBomq3cHokGbwrjULvrzDpROpnzRRqw8grch4fqdgVHKghoxwpWvWIFlV1
-
-
--- Pending additive receipt migration; do not run the full schema on staging.
-\ir ../../migrations/080_resolution_receipts.sql
+\unrestrict i5XsCHF0IrViMMrjMaaw10HVKNQf0DVqj8OP239DSiCU6QFGbn31BuQ96DssZob

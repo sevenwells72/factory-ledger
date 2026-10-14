@@ -280,6 +280,12 @@ named-actor/key-session attribution and atomic resolution. D1 form contract:
 [`docs/deployments/a5-supplier-lot-ticket.md`](docs/deployments/a5-supplier-lot-ticket.md).
 Single-code correction refuses commingled/component-code lots rather than marking
 all components identified; component-by-component correction remains follow-up.
+**Merged as PR #106 (1a423f7) and 079 is on production (marker 2026-10-13 23:45:38Z).** Minor
+issues from the #106 review, for a later PR (recorded 2026-10-13): (a) the commingled-lot blocker in
+`supplier_lot_tickets.py` says "This lot has component supplier codes" even for
+`lot_type='commingled'` with no component rows — it should say the lot is commingled; (b) the
+prepare draft shows only the **first** open UNIDENTIFIED_LOT `exception_id`, while commit resolves
+all open/escalated ones — show them all.
 
 **F1/D2 A5 contract:** `lot_confirmations[].method='last4'` means the literal
 last **four characters**, including the hyphen: lot `26-10-08-DUTC-004` needs
@@ -400,6 +406,10 @@ refresh the recipe check; oat bran / flax / coconut questions wait on Arturo's s
 commit of 284 after 078 now needs the A12 owner-approved ticket (direct `/make` → 403
 KOSHER_ATTESTATION_REQUIRED since 284 is extra-kosher) — round-3 receipt has the preview only. Record:
 `docs/deployments/recipe-corrections-078.md`.
+**078 is on production** (PR #104 merged f4e51b5; marker 2026-10-13 23:03:57Z; changelog row 184).
+**Stock true-ups in (a) are NOT done by adjustment (Michael, 2026-10-13):** the cutover count and
+reset (P1.19) fix them. Do not post `/adjust` rows for the ghost Fruit Nut lot, Classic #9,
+inclusions or 4,000 CT chips.
 
 ---
 
