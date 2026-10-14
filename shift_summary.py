@@ -569,6 +569,9 @@ def other_receipt_row(api, cur, catalog, number, *, receipt=None):
     happened, entered = plant(receipt['happened_at'], api), plant(receipt['entered_at'], api)
     actor = receipt['actor'] or {}
     label_en, label_es = _OTHER_LABELS.get(action, (action.replace('_', ' '), action.replace('_', ' ')))
+    # A later ready/un-ready action must not rewrite this receipt's meaning.
+    if action == 'mark_order_ready' and (receipt.get('response') or {}).get('ready') is False:
+        label_en, label_es = 'order marked not ready', 'pedido marcado no listo'
     refs = {'order_id': None, 'order_number': None, 'expected_receipt_ids': [], 'lot_id': None}
     subject_en = subject_es = ''
     if kind == 'order' and receipt.get('order'):

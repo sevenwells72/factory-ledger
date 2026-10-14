@@ -30,6 +30,13 @@
     return {action:'resolve',body:{resolution_kind:kind,note:text,...extra}};
   }
   const noteRequired=kind=>!['approved','identified'].includes(kind);
+  function voidChoices(receipt,enabled){
+    return enabled===true?(receipt?.transactions||[]).filter(t=>Number.isInteger(t.id)&&t.allowed_actions?.includes('void')):[];
+  }
+  function voidRequest(transactionId){
+    if(!Number.isInteger(transactionId)||transactionId<=0)throw Error('Invalid entry');
+    return {path:'/void/'+transactionId+'/prepare',body:{reason:'data_entry_error',client_source:'dashboard'}};
+  }
   function receiptState(receipt){
     if(receipt?.status!=='committed')return {tone:'bad',state:'not_recorded'};
     const txns=receipt.transactions||[],voided=txns.filter(t=>t.effective_status==='voided').length;
@@ -51,13 +58,14 @@
   const labels={
     draft:['Reviewed draft','Borrador revisado'],response:['FL result','Resultado FL'],type:['Entry type','Tipo de entrada'],effective_status:['Effective status','Estado efectivo'],lot_confirmations:['Lot confirmations','Confirmaciones de lote'],method:['Confirmation method','Método de confirmación'],value:['Entered code','Código ingresado'],previous_supplier_lot_code:['Previous supplier lot','Lote de proveedor anterior'],exception_id:['Exception #','Excepción #'],product_name:['Product','Producto'],product:['Product','Producto'],source_product:['Source product','Producto de origen'],target_product:['Packed product','Producto empacado'],supplier:['Supplier','Proveedor'],supplier_name:['Supplier','Proveedor'],shipper_name:['Supplier','Proveedor'],supplier_lot_code:['Supplier lot','Lote del proveedor'],lot_code:['Lot','Lote'],output_lot_code:['Output lot','Lote de salida'],bol_reference:['BOL','BOL'],cases:['Cases','Cajas'],cases_received:['Cases','Cajas'],case_size_lb:['lb per case','lb por caja'],case_weight_lb:['lb per case','lb por caja'],quantity:['Quantity','Cantidad'],quantity_lb:['lb','lb'],total_lb:['Total lb','Total lb'],total_output_lb:['Output lb','Producción lb'],batches:['Batches','Lotes de producción'],delta_lb:['Change (lb)','Cambio (lb)'],current_balance_lb:['FL balance (lb)','Saldo FL (lb)'],new_balance_lb:['Resulting balance (lb)','Saldo resultante (lb)'],reason:['Reason','Motivo'],reason_code:['Reason','Motivo'],note:['Note','Nota'],notes:['Notes','Notas'],happened_at:['Happened','Ocurrió'],entered_at:['Recorded','Registrado'],actor:['Entered by','Ingresado por'],prepared_by:['Prepared by','Preparado por'],name:['Name','Nombre'],role:['Role','Rol'],ingredients:['Ingredients','Ingredientes'],ingredient_name:['Ingredient','Ingrediente'],substitute_name:['Substitute','Sustituto'],substitutions:['Substitutions','Sustituciones'],input_plan:['Lots to consume','Lotes a consumir'],lines:['Lines','Líneas'],needed_lb:['Needed lb','lb necesarios'],available_lb:['Available lb','lb disponibles'],short_lb:['Short lb','lb faltantes'],shortages:['Shortages','Faltantes'],customer:['Customer','Cliente'],order:['Order','Pedido'],photo:['Photo','Foto'],identity_status:['Lot identity','Identidad del lote'],identify_by:['Identify by','Identificar antes de'],message:['FL message','Mensaje FL'],message_es:['Mensaje FL','Mensaje FL'],kosher_tier:['Kosher tier','Nivel kosher'],kosher_label:['Kosher label','Etiqueta kosher'],production_warning:['Production warning','Advertencia de producción'],balance_warning:['Balance warning','Advertencia de saldo'],correction_review:['Correction review','Revisión de corrección'],photo_required:['Photo required','Foto requerida'],action:['Action','Acción'],counted_lb:['Counted lb','lb contadas'],resolution_kind:['Resolution','Resolución'],receipt_number:['Receipt #','Recibo #'],resolution_receipt_number:['Decision receipt #','Recibo de decisión #'],resolution_posting_receipt_number:['Correction receipt #','Recibo de corrección #'],source_receipt_number:['Source receipt #','Recibo de origen #'],void_receipt_number:['Void receipt #','Recibo de anulación #'],status:['Status','Estado'],transactions:['Ledger entries','Entradas'],lots:['Lots','Lotes'],shipment:['Shipment','Envío'],proof_status:['Shipment proof','Prueba de envío'],proof_due_at:['Photo due','Fecha límite de foto']
   };
+  Object.assign(labels,{transaction_id:["Entry #","Entrada #"],voided_transaction_id:["Voided entry #","Entrada anulada #"],"summary": ["Summary", "Resumen"], "summary_es": ["Resumen", "Resumen"], "customer_po": ["Customer PO", "PO del cliente"], "customer_po_status": ["PO status", "Estado PO"], "order_number": ["Order number", "Número de pedido"], "order_number_provisional": ["Provisional order number", "Número provisional del pedido"], "requested_ship_date": ["Ship by", "Enviar antes de"], "order_date": ["Order date", "Fecha del pedido"], "unit": ["Unit", "Unidad"], "unit_price": ["Price per unit", "Precio por unidad"], "amount": ["Line total", "Total de línea"], "total": ["Order total", "Total del pedido"], "lines_added": ["Lines added", "Líneas agregadas"], "expected_receipt": ["Expected delivery", "Entrega esperada"], "expected_receipts": ["Expected deliveries", "Entregas esperadas"], "created": ["Expected deliveries", "Entregas esperadas"], "expected_qty": ["Expected lb", "lb esperadas"], "expected_qty_lb": ["Expected lb", "lb esperadas"], "expected_date": ["Expected date", "Fecha esperada"], "reference_number": ["Reference", "Referencia"], "customer_description": ["Customer description", "Descripción del cliente"], "vendor_description": ["Vendor description", "Descripción del proveedor"], "is_service": ["Service line", "Línea de servicio"], "state": ["Order state", "Estado del pedido"], "warnings": ["FL warnings", "Advertencias FL"]});
   function plantTime(value,lang='en'){return value?new Date(value).toLocaleString(lang==='es'?'es-US':'en-US',{timeZone:'America/New_York',year:'numeric',month:'short',day:'numeric',hour:'numeric',minute:'2-digit',timeZoneName:'short'}):'—';}
   function draftHtml(value){
     if(Array.isArray(value))return '<ul>'+value.map(v=>'<li>'+draftHtml(v)+'</li>').join('')+'</ul>';
-    if(value&&typeof value==='object')return '<dl>'+Object.entries(value).filter(([k,v])=>labels[k]&&v!==null&&v!==undefined&&!(Array.isArray(v)&&!v.length)).map(([k,v])=>'<dt data-en="'+esc(labels[k][0])+'" data-es="'+esc(labels[k][1])+'">'+esc(labels[k][api.lang==='es'?1:0])+'</dt><dd>'+(['happened_at','entered_at','proof_due_at'].includes(k)?esc(plantTime(v,api.lang)):draftHtml(v))+'</dd>').join('')+'</dl>';
+    if(value&&typeof value==='object')return '<dl>'+Object.entries(value).filter(([k,v])=>labels[k]&&k!=='summary_es'&&v!==null&&v!==undefined&&!(Array.isArray(v)&&!v.length)).map(([k,v])=>'<dt data-en="'+esc(labels[k][0])+'" data-es="'+esc(labels[k][1])+'">'+esc(labels[k][api.lang==='es'?1:0])+'</dt><dd>'+(k==='summary'&&value.summary_es?'<span data-en="'+esc(v)+'" data-es="'+esc(value.summary_es)+'">'+esc(api.lang==='es'?value.summary_es:v)+'</span>':['happened_at','entered_at','proof_due_at'].includes(k)?esc(plantTime(v,api.lang)):draftHtml(v))+'</dd>').join('')+'</dl>';
     return esc(value);
   }
-  const api={esc,text,errorText,recorded,decisionOutcome,resolutionChoices,decisionRequest,noteRequired,receiptState,transportText,groups,dataHtml,draftHtml,plantTime};
+  const api={esc,text,errorText,recorded,decisionOutcome,resolutionChoices,decisionRequest,noteRequired,voidChoices,voidRequest,receiptState,transportText,groups,dataHtml,draftHtml,plantTime};
   if(typeof module!=='undefined')module.exports=api;
   root.FLLedger=api;
   if(!root.document)return;
@@ -81,12 +89,12 @@
     document.getElementById('sign-in-form').hidden=!!current;document.getElementById('sign-out').hidden=!current;
   }
   api.ready=root.FLDashboard.ready.then(async on=>{if(!on){api.session.clear();return false;}await api.session.init();return true;}).catch(error=>{api.failure(error);throw error;});api.ready.catch(()=>{});
-  api.request=async(path,body,{read=false,form=false}={})=>{
+  api.request=async(path,body,{read=false,form=false,background=false}={})=>{
     await api.ready;
     if(!read&&!root.FLDashboard.writesEnabled)throw Error('Recording is unavailable / El registro no está disponible');
     const key=api.session.token;
     if(!key&&!read)throw Error(api.t('Sign in before recording.','Inicia sesión antes de registrar.'));
-    const headers={'X-API-Key':key||api.readKey};if(body!==undefined&&!form)headers['Content-Type']='application/json';
+    const headers={'X-API-Key':key||api.readKey,...(background?{'X-FL-Background':'1'}:{})};if(body!==undefined&&!form)headers['Content-Type']='application/json';
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);let response,result;
     try{response=await fetch(api.base+path,{method:body===undefined?'GET':'POST',headers,body:body===undefined?undefined:form?body:JSON.stringify(body),signal:controller.signal,cache:'no-store'});result=await response.json();}
     catch(error){const plain=transportText(error,api.lang);if(!plain)throw error;const wrapped=Error(plain);wrapped.transport=true;throw wrapped;}finally{clearTimeout(timer);}

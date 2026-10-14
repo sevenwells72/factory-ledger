@@ -6,8 +6,9 @@
   <meta name="referrer" content="no-referrer">
   <title>Shift Summary · Factory Ledger</title>
   <link rel="stylesheet" href="shift-summary.css?v=3">
-  <script defer src="shift-summary.js?v=5"></script>
-<link rel="stylesheet" href="ledger-forms.css?v=4"><script defer src="receipt-shell.js?v=3"></script></head>
+  <script defer src="key-session.js?v=4"></script>
+  <script defer src="shift-summary.js?v=7"></script>
+<link rel="stylesheet" href="ledger-forms.css?v=4"><script defer src="receipt-shell.js?v=4"></script></head>
 <body>
   <header class="topbar">
     <div class="topbar-row">
@@ -23,7 +24,7 @@
   <main>
     <section id="sign-in-panel" class="panel sign-in-panel">
       <h2 data-en="Does today match the floor?" data-es="¿Hoy coincide con el piso?">Does today match the floor?</h2>
-      <p data-en="Your personal key shows your own receipts and lets you confirm the shift. It stays in memory for this tab only." data-es="Tu clave personal muestra tus propios recibos y te deja confirmar el turno. Queda en memoria solo en esta pestaña.">Your personal key shows your own receipts and lets you confirm the shift. It stays in memory for this tab only.</p>
+      <p data-en="Your sign-in shows your own receipts and lets you confirm the shift. An existing dashboard sign-in continues here automatically." data-es="Tu sesión muestra tus propios recibos y te deja confirmar el turno. Si ya iniciaste sesión en el tablero, continúa aquí automáticamente.">Your sign-in shows your own receipts and lets you confirm the shift. An existing dashboard sign-in continues here automatically.</p>
       <form id="sign-in-form">
         <label for="actor-key" data-en="Personal actor key" data-es="Clave personal">Personal actor key</label>
         <input id="actor-key" type="password" autocomplete="off" placeholder="Enter your personal key">

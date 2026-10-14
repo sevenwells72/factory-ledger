@@ -282,7 +282,7 @@
 <script src="fetch-timeout.js?v=3"></script>
   <link rel="stylesheet" href="shell-layout.css?v=6">
 <script src="design-controls.js?v=3"></script>
-<link rel="stylesheet" href="ledger-forms.css?v=4"><script defer src="receipt-shell.js?v=3"></script></head>
+<link rel="stylesheet" href="ledger-forms.css?v=4"><script defer src="receipt-shell.js?v=4"></script></head>
 <body>
 
 <nav class="site-nav" id="siteNav">
@@ -391,9 +391,9 @@
   // --- API helpers ---
   // Keep the response body: it is the only thing that says *why* the call
   // failed, and the banner shows it verbatim so it can be pasted as-is.
-  async function apiFetch(path) {
+  async function apiFetch(path, options = {}) {
     const res = await FL.fetchWithTimeout(API_BASE + path, {
-      headers: { 'X-Api-Key': API_KEY }
+      headers: { 'X-Api-Key': API_KEY, ...(options.headers || {}) }
     });
     if (!res.ok) {
       const body = await res.text().catch(() => '');
@@ -408,15 +408,15 @@
 
   // Product cache (name -> detail)
   const productCache = {};
-  async function getProductDetail(productName) {
+  async function getProductDetail(productName, options = {}) {
     if (productCache[productName]) return productCache[productName];
     try {
-      const res = await apiFetch('/products/search?q=' + encodeURIComponent(productName) + '&limit=5');
+      const res = await apiFetch('/products/search?q=' + encodeURIComponent(productName) + '&limit=5', options);
       if (res.products && res.products.length > 0) {
         // Find exact match first
         const exact = res.products.find(p => p.name === productName);
         const prod = exact || res.products[0];
-        const detail = await apiFetch('/products/' + prod.id);
+        const detail = await apiFetch('/products/' + prod.id, options);
         productCache[productName] = detail;
         return detail;
       }
@@ -437,13 +437,13 @@
     return error.message || String(error);
   }
 
-  async function fetchData() {
+  async function fetchData(options = {}) {
     if (isFetching) return null;
     isFetching = true;
     try {
       const [makeRes, packRes] = await Promise.all([
-        apiFetch('/transactions/history?transaction_type=make&limit=100'),
-        apiFetch('/transactions/history?transaction_type=pack&limit=100')
+        apiFetch('/transactions/history?transaction_type=make&limit=100', options),
+        apiFetch('/transactions/history?transaction_type=pack&limit=100', options)
       ]);
       consecutiveFailures = 0;
       lastError = null;
@@ -869,8 +869,8 @@
   }
 
   // --- Main loop ---
-  async function refresh() {
-    const data = await fetchData();
+  async function refresh(options = {}) {
+    const data = await fetchData(options);
     let lineData;
     let productDetails = {};
 
@@ -886,7 +886,7 @@
         }
       }
       const detailPromises = [...productNames].map(async (name) => {
-        const d = await getProductDetail(name);
+        const d = await getProductDetail(name, options);
         if (d) productDetails[name] = d;
       });
       await Promise.all(detailPromises);
@@ -917,12 +917,13 @@
 
   // Initial load
   document.getElementById('production-refresh').addEventListener('click',async()=>{const b=document.getElementById('production-refresh');b.disabled=true;b.textContent='Refreshing…';try{await refresh();}finally{b.disabled=false;b.textContent='Refresh Production Lines';}});
-  refresh();
-  setInterval(refresh, REFRESH_MS);
+  const backgroundRead = { headers: { 'X-FL-Background': '1' } };
+  refresh(backgroundRead);
+  setInterval(() => refresh(backgroundRead), REFRESH_MS);
 
 })();
 </script>
-<script src="mini-calendar.js?v=7"></script>
+<script src="mini-calendar.js?v=8"></script>
 <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
   <script src="shell.js?v=2"></script>
 </body>

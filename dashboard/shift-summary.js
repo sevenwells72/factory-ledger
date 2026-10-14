@@ -159,6 +159,18 @@
   // `generation` stamps every request with the session/view it was made for: a response that
   // comes back after a sign-out, a new sign-in or a day change is dropped, never rendered.
   let key = '', actor = null, doc = null, busy = false, generation = 0, pendingNotes = null;
+  let session = null, sharedMode = false;
+  // Same token store and exchange as the dashboard/office pages; personal keys
+  // are never retained after a session-enabled sign-in.
+  const sessionReady = root.FLKeySessions ? (async () => {
+    session = root.FLKeySessions.create({ base: API, fetch: root.fetch.bind(root), storage: root.sessionStorage,
+      config: root.FLDashboard?.config, changed: state => {
+        if (sharedMode && !state.signedIn && key) resetView();
+      } });
+    sharedMode = await session.init();
+    return sharedMode;
+  })() : Promise.resolve(false);
+  sessionReady.catch(() => {});
 
   function t(en, es) { return language === 'es' ? es : en; }
   function applyLanguage() {
@@ -169,6 +181,7 @@
     $('actor-key').placeholder = t('Enter your personal key', 'Escribe tu clave personal');
     if (actor) $('identity').textContent = `${t('Signed in as', 'Sesión de')} ${actor.name} · ${actor.role}`;
     else if (key) $('identity').textContent = t('Read-only view of all actors (shared key).', 'Vista de solo lectura de todos (clave compartida).');
+    else $('identity').textContent = t('Sign in with your personal key, or continue read-only.', 'Inicia sesión con tu clave personal o continúa en modo lectura.');
   }
   function notice(message, ok) { $('notice').textContent = message || ''; $('notice').hidden = !message; $('notice').classList.toggle('ok', !!ok); }
 
@@ -180,14 +193,19 @@
   }
   if (typeof ResizeObserver === 'function') new ResizeObserver(fitFooter).observe($('confirm-bar'));
 
-  async function api(path, { body, method = 'GET', params, withKey } = {}) {
+  async function api(path, { body, method = 'GET', params, withKey, background = false } = {}) {
     const url = new URL(path, API);
+    const requestKey = withKey === undefined ? key : withKey;
     Object.entries(params || {}).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v); });
-    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 20000);
+    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 60000);
     try {
-      const response = await fetch(url, { method, headers: { 'X-API-Key': withKey === undefined ? key : withKey, ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      const response = await fetch(url, { method, headers: { 'X-API-Key': requestKey, ...(background ? { 'X-FL-Background': '1' } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}) },
         body: body ? JSON.stringify(body) : undefined, signal: controller.signal, cache: 'no-store' });
       const data = await response.json();
+      if (response.status === 401 && data.detail?.error_code === 'SESSION_EXPIRED' && session?.token && requestKey === session.token) {
+        session.clear();
+        notice(errorText(data, language));
+      }
       if (!response.ok) throw { ...data, httpStatus: response.status };
       return data;
     } catch (error) {
@@ -237,12 +255,12 @@
   }
   function lockConfirm() { ['confirm-match', 'confirm-notes', 'confirm-missing'].forEach(id => { $(id).disabled = true; }); }
 
-  async function load() {
+  async function load({ background = false } = {}) {
     const s = stamp(), date = $('date').value;
     if (pendingNotes && pendingNotes.date !== date) closeNotes();
     busy = true; lockConfirm(); $('load-status').textContent = t('Loading…', 'Cargando…'); notice('');
     try {
-      const result = await api('/reports/shift-summary', { params: { date, lang: language }, withKey: s.key });
+      const result = await api('/reports/shift-summary', { params: { date, lang: language }, withKey: s.key, background });
       if (!current(s)) return false;                 // superseded by a sign-out / new sign-in / newer load
       doc = result; $('load-status').textContent = '';
       busy = false; render();
@@ -284,27 +302,54 @@
     $('notes-form').hidden = false; $('notes').focus(); fitFooter();
   }
 
-  function signOut() {
+  function resetView() {
     generation += 1;                                 // every in-flight request for the old person is dropped
     key = ''; actor = null; busy = false; clearSummary();
     $('summary-panel').hidden = true; $('sign-in-panel').hidden = false; $('sign-out').hidden = true;
     applyLanguage(); notice(''); fitFooter();
   }
 
+  async function signOut() {
+    // Invalidate requests immediately, including while the server logout runs.
+    const s = stamp(); busy = true; lockConfirm(); closeNotes();
+    try {
+      await sessionReady;
+      if (!current(s)) return;
+      if (sharedMode && session.token) await session.signOut();
+      else { if (sharedMode) session.clear(); resetView(); }
+    } catch (error) {
+      if (!current(s)) return;
+      busy = false; render(); notice(t('Sign out failed. Try again before handing over this device.', 'No se pudo cerrar la sesión. Inténtalo otra vez antes de entregar este dispositivo.'));
+    }
+  }
+
+  function showIdentity(person, credential) {
+    key = credential; actor = person;
+    $('sign-in-panel').hidden = true; $('summary-panel').hidden = false; $('sign-out').hidden = false; $('actor-key').value = '';
+    applyLanguage();
+  }
+
   async function signIn(personalKey) {
-    signOut();
-    key = personalKey || DASHBOARD_KEY;
+    resetView();
     const s = stamp();
     try {
+      await sessionReady;
+      if (!current(s)) return;
+      if (sharedMode && personalKey) {
+        const person = await session.signIn(personalKey);
+        if (!current(s)) return;
+        showIdentity(person, session.token); await load(); return;
+      }
+      if (sharedMode) session.clear(); // read-only cancels any pending personal exchange
+      key = personalKey || DASHBOARD_KEY;
+      s.key = key;
       const who = await api('/auth/whoami', { withKey: s.key });
       if (!current(s)) return;
-      actor = who.actor || null;
-      $('sign-in-panel').hidden = true; $('summary-panel').hidden = false; $('sign-out').hidden = false; $('actor-key').value = '';
-      applyLanguage(); await load();
+      showIdentity(who.actor || null, s.key); await load();
     } catch (error) { if (!current(s)) return; key = ''; actor = null; notice(errorText(error, language)); }
   }
 
-  $('sign-in-form').addEventListener('submit', event => { event.preventDefault(); const v = $('actor-key').value.trim(); if (v) signIn(v); else notice(t('Enter your key or choose read-only.', 'Escribe tu clave o elige solo lectura.')); });
+  $('sign-in-form').addEventListener('submit', event => { event.preventDefault(); const v = $('actor-key').value.trim(); $('actor-key').value = ''; if (v) signIn(v); else notice(t('Enter your key or choose read-only.', 'Escribe tu clave o elige solo lectura.')); });
   $('read-only').addEventListener('click', () => signIn(''));
   $('sign-out').addEventListener('click', signOut);
   $('language').addEventListener('click', () => { language = language === 'en' ? 'es' : 'en'; localStorage.setItem('fl-shift-language', language); applyLanguage(); if (key) load(); });
@@ -327,4 +372,9 @@
     sendConfirm(pendingNotes.outcome, notes);
   });
   applyLanguage(); fitFooter();
+  const initialGeneration = generation;
+  sessionReady.then(enabled => {
+    if (generation !== initialGeneration || !enabled || !session.actor) return;
+    showIdentity(session.actor, session.token); load({ background: true });
+  }).catch(error => notice(errorText(error, language)));
 })(typeof window !== 'undefined' ? window : globalThis);

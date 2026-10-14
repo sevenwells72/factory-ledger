@@ -1,5 +1,187 @@
 # Change Log
 
+## 2026-10-14 11:06 — Record PR 115 re-check validation and the background-session regression guard
+- **File(s) changed:** `tests/test_background_session_ui.js`, `docs/validation/dashboard-office-void-idle-fix-tests.json`, `docs/validation/dashboard-office-void.md`, `FACTORY_LEDGER_CHANGELOG.md`; local ignored runtime/test evidence
+- **What changed:** Strengthen the Node poll harness to evaluate the actual app marker declaration. Record 3,140 fresh-DB Python, 186 Node and 17 browser scenarios passing, add regression guard row 195, preserve historical evidence and document the task-owned local cluster/cleanup and unchanged global log.
+- **Why:** Complete PR #115 comment 6171191793 items 1–2 with reproducible evidence before the authorized branch push and PR note; no merge or production access.
+
+---
+
+## 2026-10-14 11:04 — Verify browser polling idle expiry and refresh changed dashboard assets
+- **File(s) changed:** `tests/test_session_shift_fix_ui.js`, `tests/visual/run-session-shift-fix.mjs`, `dashboard/receipt.html`, `dashboard/runs.html`, `dashboard/index.html`, `dashboard/process-flow.html`, `dashboard/fl-assistant.html`, `dashboard/traceability.html`, `dashboard/exceptions.html`, `dashboard/shift-summary.html`, `dashboard/sankey.html`, `dashboard/history.html`, `dashboard/office.html`, `dashboard/entry.html`
+- **What changed:** Assert restoration/summary background marking and unmarked user actions; exercise 179 browser polls, 180-minute refusal/token clearing and explicit Refresh renewal in both flag modes. Bump changed dashboard script versions in every consumer. Remove an ignored Promise.all argument and preserve background options through customer deep-link activation.
+- **Why:** PR #115 item 1 needs actual browser validation and returning browsers must load the fixed request transport.
+
+---
+
+## 2026-10-14 11:03 — Regress automatic startup marking across the remaining dashboard pages
+- **File(s) changed:** `tests/test_background_startup_ui.js`
+- **What changed:** Execute actual page scripts with restored sessions and assert automatic receipt/exceptions, shipping prefill plus chained detail, and Assistant resume/create carry background marking. Explicit sign-in, refresh, order selection and New Chat remain user activity.
+- **Why:** PR #115 item 1 requires that automatic reads across personal-session pages leave idle expiry unchanged.
+
+---
+
+## 2026-10-14 11:02 — Exercise dashboard transport across the full 180-minute idle boundary in Node
+- **File(s) changed:** `tests/test_background_session_ui.js`
+- **What changed:** Add four runtime transport regressions: restoration and 179 polls preserve activity/expiry; the 180th poll returns 401 and clears token custody; explicit refresh/write extends while following polls do not; flag-off parity and initial loader propagation remain correct.
+- **Why:** PR #115 item 1 requires Node coverage of both request marking and idle expiry with polling running.
+
+---
+
+## 2026-10-14 11:02 — Mark automatic receipt, exception, ship-prefill and Assistant restoration requests
+- **File(s) changed:** `dashboard/receipt.js`, `dashboard/exceptions.js`, `dashboard/entry.js`, `dashboard/fl-assistant.js`
+- **What changed:** Propagate background request options only for initial receipt/exceptions loads, initial shipping-order preload and chained detail reads, and automatic Assistant chat resume/create. Manual sign-in, refresh, picker and new-chat actions keep sliding normally.
+- **Why:** PR #115 re-check comment 6171191793; only user-initiated activity should extend the 180-minute idle timer.
+
+---
+
+## 2026-10-14 11:01 — Keep single-database suite runner aligned with merged race fixtures
+- **File(s) changed:** `scripts/run_single_db_suite.py`
+- **What changed:** Apply 082_order_plant_date in the isolated race-fixture replacement, matching the fixture updated by PR #116; keep all existing fixture SQL, shard scopes and database ownership checks.
+- **Why:** Rebased full-suite validation must exercise the same plant-date allocator as the current production-independent tests.
+
+---
+
+## 2026-10-14 11:00 — Mark automatic dashboard reads without extending personal sessions
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/key-session.js`, `dashboard/shift-summary.js`, `dashboard/process-flow.html`, `dashboard/mini-calendar.js`, `dashboard/history.js`, `dashboard/runs.js`, `dashboard/ledger-ui.js`, `dashboard/office.js`
+- **What changed:** Mark restored whoami, initial dashboard/summary/history/run/calendar/office reads and automatic Recent Entries/Production Lines polls with X-FL-Background: 1. Propagate the marker into chained automatic reads while user refresh, picker/search, sign-in and writes remain user activity.
+- **Why:** PR #115 re-check comment 6171191793; automatic reads must authenticate without sliding the 180-minute personal-session idle expiry.
+
+---
+
+## 2026-10-14 11:00 — Rebase PR 115 onto merged pilot backend fixes
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`; branch history rebased onto `6efc5f7`
+- **What changed:** Preserve both complete project and regression histories while resolving append-only log conflicts. Pending D2 office, void acceptance and first review rows now use 192–194 after main's row 191; earlier evidence keeps its original checkpoint references.
+- **Why:** PR #116 merged before this re-check. Work is confined to `/Users/cns/dev/fl-d2office-wt`, apart from explicitly authorized Git metadata used to create it; no production or merge.
+
+---
+
+## 2026-10-14 10:59 — Keep Shift Summary ready-state labels faithful to recorded receipts
+- **File(s) changed:** `shift_summary.py`, `tests/test_shift_ready_labels.py`
+- **What changed:** Use immutable mark_order_ready response.ready to show order marked not ready / pedido marcado no listo for false; add bilingual regressions proving later opposite flag changes cannot relabel historical receipts. Preserve the batched summary queries.
+- **Why:** PR #115 re-check comment 6171191793, minor item 2.
+
+---
+
+## 2026-10-14 10:59 — Prevent automatic personal-session reads from renewing idle expiry
+- **File(s) changed:** `key_sessions.py`, `tests/test_session_background.py`, `docs/contracts/key-sessions.md`
+- **What changed:** Background-marked requests authenticate and enforce live expiry/revocation without updating activity timestamps; user requests still slide 180 minutes. Add real HTTP/SQL poll, user-action, repeated 180-minute idle and revocation regressions; document the transport marker.
+- **Why:** PR #115 re-check comment 6171191793; automatic reads must not keep a tablet signed in. Global iCloud log remains outside the user-authorized worktree scope.
+
+---
+
+## 2026-10-14 09:59 — Record completed PR 115 fix-round validation
+- **File(s) changed:** `docs/validation/dashboard-office-void.md`, `docs/validation/dashboard-office-void-fix-round-tests.json`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record all four required fixes and both minors, failing-before regressions, 3,091 fresh-DB Python passes, 177 Node passes and browser on/off results. Add regression guard row 193 and document local cleanup and the scope exception for the global log.
+- **Why:** Provide reviewable evidence before pushing PR #115 for Claude's next review; no merge or production access.
+
+---
+
+## 2026-10-14 09:56 — Complete shared-session browser parity and narrow-header layout
+- **File(s) changed:** `dashboard/key-session.css`, `tests/test_session_shift_fix_ui.js`, `tests/visual/run-session-shift-fix.mjs`
+- **What changed:** Wrap the narrow runs header so receipt tools and the shared-session bar fit without overflow; infer flag-off credential parity from captured requests instead of copying credential literals into tests.
+- **Why:** Preserve visible identity controls at 390px and verify authenticated reads without emitting credentials.
+
+---
+
+## 2026-10-14 09:56 — Align the prior PO regression with prepare-time refusal
+- **File(s) changed:** `tests/test_a7_review_fixes.py`
+- **What changed:** Update the already-approved source assertion to require immediate HTTP 409 with a clear message instead of issuing a blocked draft. Keep atomic intake and duplicate-acknowledgement assertions intact.
+- **Why:** The full fresh-DB run found one historical assertion expecting the old behavior; the review explicitly requires refusal during prepare. New tests separately preserve both PO/SO commit-race checks.
+
+---
+
+## 2026-10-14 09:55 — Keep the shared sign-in bar inside narrow screens
+- **File(s) changed:** `dashboard/key-session.css`, `dashboard/index.html`, `dashboard/runs.html`
+- **What changed:** Permit the session bar and identity/status text to shrink and wrap; bump the stylesheet cache version.
+- **Why:** The existing sign-in browser runner exposed a four-pixel overflow at 390px on both baseline and fixed JavaScript. Preserve all identity text while satisfying the requested mobile browser regression checks.
+
+---
+
+## 2026-10-14 09:55 — Prevent a pending sign-in from surviving a read-only choice
+- **File(s) changed:** `dashboard/shift-summary.js`, `tests/test_session_shift_fix_ui.js`, `tests/visual/run-session-shift-fix.mjs`
+- **What changed:** Invalidate a pending session exchange when choosing read-only; add the failing race regression and a browser runner covering actual order, expected-receipt and supplier controls plus shared Shift Summary sign-in in both flag modes.
+- **Why:** Prevent a late sign-in response from persisting an identity after the user chose read-only. The new race test fails before and passes after the fix.
+
+---
+
+## 2026-10-14 09:54 — Verify flag-off Ready-to-ship parity in the browser
+- **File(s) changed:** `tests/visual/run-office.mjs`
+- **What changed:** Use the visible detail control for post-write waits, make the fixture rerunnable and retain original diagnostics. Disabled mode passes hidden-form/no-new-write checks and the three legacy ready actions.
+- **Why:** Confirm item 4 preserves flag-off behavior with stable assertions after page navigation.
+
+---
+
+## 2026-10-14 09:53 — Preserve session identity across overlapping sign-in requests
+- **File(s) changed:** `dashboard/key-session.js`, `dashboard/shift-summary.js`, `tests/test_key_session_ui.js`, `tests/test_shift_summary_ui.js`, `tests/test_session_shift_fix_ui.js`
+- **What changed:** Guard asynchronous session exchanges from overwriting a newer or cleared identity; pin expiry handling to the sent credential and add race regressions. Drain the existing test harness's follow-up request so timeout tests exit cleanly.
+- **Why:** Independent review found overlapping shared sign-in exchanges could persist a stale identity. Both new race checks fail before the guard and pass after; affected Node suites pass 46 tests.
+
+---
+
+## 2026-10-14 09:52 — Validate all office actions through real browser controls
+- **File(s) changed:** `tests/visual/run-office.mjs`
+- **What changed:** Match the backend Spanish warning text, await legacy write readback and use navigation-safe checkbox clicks. Enabled-mode browser run passes 15 actions and 19 receipts, including list/note/detail ready tickets and floor permissions.
+- **Why:** Keep browser assertions aligned with actual page navigation and the authoritative translated failure.
+
+---
+
+## 2026-10-14 09:51 — Extend real browser coverage for ready tickets and Spanish warning failures
+- **File(s) changed:** `tests/visual/run-office.mjs`
+- **What changed:** Exercise all 15 office actions, list checkbox/note and detail ready tickets, floor authority, note preservation, Spanish unacknowledged warnings and legacy ready writes with the flag off.
+- **Why:** Verify the review fixes through real browser controls in both feature-flag modes.
+
+---
+
+## 2026-10-14 09:50 — Reuse personal sessions for dashboard reads and Shift Summary
+- **File(s) changed:** `dashboard/key-session.js`, `dashboard/shift-summary.js`, `dashboard/shift-summary.html`
+- **What changed:** Authenticate signed-in reads with the personal session; restore the shared sign-in for Shift Summary with expiry/logout safeguards and a 60-second request timeout; bump Shift Summary assets.
+- **Why:** Fix review items 1–3, reproduced as nine failures and two passing parity checks before implementation.
+
+---
+
+## 2026-10-14 09:50 — Route Sales Orders ready changes through reviewed tickets
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/office-logic.js`, `dashboard/office.js`
+- **What changed:** Hand off the ready checkbox and note to the mark_order_ready form when enabled; use server permissions and require the action's ORD receipt before treating changes as saved. Preserve the legacy route with the flag off.
+- **Why:** Fix review item 4. New regressions improve from five failures/one pass to six passes; focused Node checks total 33 passes.
+
+---
+
+## 2026-10-14 09:50 — Refuse approved documents before issuing a draft and translate warning failures
+- **File(s) changed:** `order_tickets.py`, `write_tickets.py`
+- **What changed:** Return clear bilingual HTTP 409 from approval preparation when the existing atomic approval core finds an approved PO/SO; add Spanish warning-acknowledgement failure text.
+- **Why:** Both minor review findings reproduced as three failing baseline tests; existing commit-race guards remain intact.
+
+---
+
+## 2026-10-14 09:50 — Add approval-prepare and Spanish warning regressions
+- **File(s) changed:** `tests/test_office_prepare_review.py`
+- **What changed:** Add five cases for already-approved PO/SO refusal at prepare, stale document refusal at commit and translated warning retry.
+- **Why:** Capture both minor review findings and preserve the existing atomic commit guards.
+
+---
+
+## 2026-10-14 09:49 — Add session reads and Shift Summary review regressions
+- **File(s) changed:** `tests/test_session_shift_fix_ui.js`
+- **What changed:** Add behavior checks for personal-session reads, signed-out/flag-off/external parity, shared Shift Summary sign-in, expiry, stale responses and the 60-second request timeout.
+- **Why:** Reproduce review items 1–3 before changing the session integration.
+
+---
+
+## 2026-10-14 09:49 — Add failing Ready-to-ship review regressions
+- **File(s) changed:** `tests/test_ready_ticket_ui.js`
+- **What changed:** Six checks cover ticket preparation, permissions, checkbox/note handoff and flag-off parity; baseline reports five failures and one passing parity check.
+- **Why:** Reproduce review item 4 before replacing the direct ready mutation.
+
+---
+
+## 2026-10-14 09:49 — Invalidate browser caches for PR 115 review fixes
+- **File(s) changed:** `dashboard/entry.html`, `dashboard/exceptions.html`, `dashboard/fl-assistant.html`, `dashboard/index.html`, `dashboard/office.html`, `dashboard/receipt.html`, `dashboard/runs.html`
+- **What changed:** Bump personal-session, Sales Orders and office asset versions for the review fixes.
+- **Why:** Ensure browsers load the corrected session reads and ticketed ready controls. User restricts this round to this worktree; the global iCloud change log is outside scope and remains untouched.
+
+---
+
 ## 2026-10-14 08:42 — Record hosted SS1 make and 30-receipt summary under 1.3 seconds
 - **File(s) changed:** `docs/deployments/pilot-triage-staging-hosted.json`, `docs/deployments/pilot-triage-validation.json`, `docs/deployments/pilot-triage-backend.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Record hosted SS1 make and 30-receipt summary under 1.3 seconds
@@ -144,6 +326,199 @@
 - **File(s) changed:** `tests/test_pilot_triage_backend.py`, `.venv-test`
 - **What changed:** Add pilot regressions and prepare isolated test runtime
 - **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+## 2026-10-14 07:38 — Record final 3086 Python and 155 Node passes with staging walkthrough and regression guard
+- **File(s) changed:** docs/validation/dashboard-office-void-tests.json, docs/validation/dashboard-office-void.md, FACTORY_LEDGER_CHANGELOG.md
+- **What changed:** Record final 3086 Python and 155 Node passes with staging walkthrough and regression guard.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:37 — Document exact staging walkthrough and distinguish branch acceptance from hosted deployment
+- **File(s) changed:** docs/validation/dashboard-office-void.md
+- **What changed:** Document exact staging walkthrough and distinguish branch acceptance from hosted deployment.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:36 — Capture staging order PO and pallet charge plus same-day floor void receipts
+- **File(s) changed:** docs/validation/office-void-staging/evidence.json, docs/validation/office-void-staging/order-draft-390.png, docs/validation/office-void-staging/order-recorded-390.png, docs/validation/office-void-staging/void-draft-390.png, docs/validation/office-void-staging/voided-original-390.png, docs/validation/office-void-staging/voided-original-es-390.png, docs/validation/office-void-staging/void-receipt-390.png
+- **What changed:** Capture staging order PO and pallet charge plus same-day floor void receipts.
+- **Why:** Branch browser and HTTP acceptance against guarded staging only; no startup, deployment, migration or production access.
+
+---
+
+## 2026-10-14 07:36 — Keep neutral missing-receipt message bilingual when switching languages
+- **File(s) changed:** dashboard/receipt.js, tests/visual/run-office.mjs
+- **What changed:** Keep neutral missing-receipt message bilingual when switching languages.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:35 — Match signed-out session contract in staging walkthrough
+- **File(s) changed:** tests/visual/run-office-void-staging.mjs
+- **What changed:** Match signed-out session contract in staging walkthrough.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:34 — Acknowledge synthetic receive setup warnings and revoke all temporary staging sessions
+- **File(s) changed:** tests/visual/run-void.mjs, scripts/check_office_void_staging.py
+- **What changed:** Acknowledge synthetic receive setup warnings and revoke all temporary staging sessions.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:34 — Isolate void scope cases and include office page in preview-origin browser matrix
+- **File(s) changed:** tests/test_void_screen.py, tests/visual/run-d12-preview.mjs
+- **What changed:** Isolate void scope cases and include office page in preview-origin browser matrix.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:33 — Add guarded staging office and void browser walkthrough with synthetic identities
+- **File(s) changed:** scripts/check_office_void_staging.py, tests/visual/run-office-void-staging.mjs
+- **What changed:** Add guarded staging office and void browser walkthrough with synthetic identities.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:32 — Advance plant clock to test yesterday void eligibility without editing immutable ledger
+- **File(s) changed:** tests/test_void_screen.py
+- **What changed:** Advance plant clock to test yesterday void eligibility without editing immutable ledger.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:31 — Add real-browser void runner for both feature flag modes
+- **File(s) changed:** tests/visual/run-void.mjs
+- **What changed:** Add real-browser void runner for both feature flag modes.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:31 — Test live void eligibility, fixed reason, replay and role revocation
+- **File(s) changed:** tests/test_void_screen.py, tests/test_void_ui.js
+- **What changed:** Test live void eligibility, fixed reason, replay and role revocation.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:30 — Add receipt-specific FL void permissions and gated fixed-reason ticket screen
+- **File(s) changed:** write_tickets.py, dashboard/receipt.js, dashboard/receipt.html, dashboard/ledger-ui.js, dashboard/entry.html, dashboard/exceptions.html, dashboard/office.html
+- **What changed:** Add receipt-specific FL void permissions and gated fixed-reason ticket screen.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:29 — Record Part 1 full-suite and browser evidence for Claude Code review
+- **File(s) changed:** docs/validation/dashboard-office-void.md, docs/validation/dashboard-office-part1-tests.json, FACTORY_LEDGER_CHANGELOG.md
+- **What changed:** Record Part 1 full-suite and browser evidence for Claude Code review.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:26 — Pin the three new office routes in the exact named-actor scope regression
+- **File(s) changed:** tests/test_named_actor_writes.py
+- **What changed:** Pin the three new office routes in the exact named-actor scope regression.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:24 — Keep FL pouch conversion visible beside the draft; scope flag-off checks to controls
+- **File(s) changed:** dashboard/office.js, tests/visual/run-office.mjs
+- **What changed:** Keep FL pouch conversion visible beside the draft; scope flag-off checks to controls.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:23 — Pin legacy service edits to flag-off behavior and test all office redirects when enabled
+- **File(s) changed:** tests/test_order_create_review.js, tests/test_office_ui.js
+- **What changed:** Pin legacy service edits to flag-off behavior and test all office redirects when enabled.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:23 — Check neutral missing-receipt copy in an explicit language
+- **File(s) changed:** tests/visual/run-office.mjs
+- **What changed:** Check neutral missing-receipt copy in an explicit language.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:22 — Verify whole-case FL blocker before recording a corrected line edit
+- **File(s) changed:** tests/visual/run-office.mjs
+- **What changed:** Verify whole-case FL blocker before recording a corrected line edit.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:21 — Use resolved order numbers and pre-armed response waits in the office browser runner
+- **File(s) changed:** tests/visual/run-office.mjs
+- **What changed:** Use resolved order numbers and pre-armed response waits in the office browser runner.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:20 — Add full-suite partition runner that preserves fixture SQL with only one disposable database
+- **File(s) changed:** scripts/run_single_db_suite.py
+- **What changed:** Add full-suite partition runner that preserves fixture SQL with only one disposable database.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:19 — Verify office attribution through the canonical receipt actor
+- **File(s) changed:** tests/test_office_tickets.py
+- **What changed:** Verify office attribution through the canonical receipt actor.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:19 — Add real HTTP office browser runner and local catalog fixtures; assert receipt replay semantics
+- **File(s) changed:** tests/visual/office_seed.py, tests/visual/run-office.mjs, tests/visual/d12_fixture.py, tests/test_office_tickets.py
+- **What changed:** Add real HTTP office browser runner and local catalog fixtures; assert receipt replay semantics.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:17 — Add Node coverage for every office form and live database regressions for sales document tickets
+- **File(s) changed:** tests/test_office_ui.js, tests/test_office_tickets.py
+- **What changed:** Add Node coverage for every office form and live database regressions for sales document tickets.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:16 — Route existing office entry points through gated tickets and preserve bilingual draft summaries
+- **File(s) changed:** dashboard/dashboard.js, dashboard/so-list-actions.js, dashboard/receipt.html, dashboard/runs.html, dashboard/index.html, dashboard/process-flow.html, dashboard/fl-assistant.html, dashboard/traceability.html, dashboard/exceptions.html, dashboard/shift-summary.html, dashboard/sankey.html, dashboard/history.html, dashboard/office.html, dashboard/entry.html, dashboard/scheduler/seven-wells-production-board.html, dashboard/ledger-ticket.js, dashboard/ledger-ui.js
+- **What changed:** Route existing office entry points through gated tickets and preserve bilingual draft summaries.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:14 — Build bilingual permission-driven office forms with authoritative unit resolution and A7 drafts
+- **File(s) changed:** dashboard/office.js, dashboard/office-logic.js, dashboard/office.html, dashboard/receipt-shell.js
+- **What changed:** Build bilingual permission-driven office forms with authoritative unit resolution and A7 drafts.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:12 — Expose FL office choices and extracted documents; neutralize missing receipt lookup and extend ticket display
+- **File(s) changed:** order_tickets.py, write_tickets.py, main.py, dashboard/receipt.js, dashboard/ledger-ticket.js, dashboard/ledger-ui.js
+- **What changed:** Expose FL office choices and extracted documents; neutralize missing receipt lookup and extend ticket display.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:10 — Add atomic sales-document approval adapter to A7 tickets
+- **File(s) changed:** main.py, write_tickets.py, order_tickets.py, sales_document_tickets.py
+- **What changed:** Add atomic sales-document approval adapter to A7 tickets.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:08 — Start isolated D2 office and void implementation from merged PR #107
+- **File(s) changed:** `docs/validation/dashboard-office-void.md`
+- **What changed:** Recorded authorized scope, base ancestry, isolated Git store recovery and validation gates.
+- **Why:** October 14 pilot decisions A and D; existing shared object store failed checkout twice.
 
 ---
 

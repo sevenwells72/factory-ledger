@@ -59,6 +59,11 @@
   }
 
   function open(order, options) {
+    if(window.FLDashboard&&!document.documentElement.dataset.flWriteUi){FLDashboard.ready.then(()=>open(order,options));return null;}
+    if(window.FLDashboard?.writesEnabled&&order&&options){
+      const action=options.action||(order.state==='closed'||order.state==='cancelled'?'reopen':'close');
+      location.assign(FLReceipts.page('office.html',{action:action+'_order',order:order.order_id||order.id||order.order_number}));return null;
+    }
     if (!order || !options || typeof options.request !== 'function' || typeof options.format !== 'function') return null;
     if (currentDialog) {
       if (currentDialog.open && currentDialog.getAttribute('aria-busy') === 'true') return currentDialog;

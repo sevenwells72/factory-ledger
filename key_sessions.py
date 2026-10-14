@@ -39,7 +39,7 @@ class Exchange(BaseModel):
 
 
 def resolve(api, token, request):
-    """Serialize sliding activity with logout/expiry; return a fresh actor."""
+    """Authenticate every request; slide only user activity, never background reads."""
     if not enabled() or not token.startswith(PREFIX):
         return None
     actor = None
@@ -68,9 +68,11 @@ def resolve(api, token, request):
                             (now, reason, row['actor_id'], row['actor_key_hash']) if reason == 'revoked'
                             else (now, reason, row['id']))
             else:
-                expiry = now + timedelta(minutes=IDLE_MINUTES)
-                cur.execute('UPDATE key_actor_sessions SET last_seen_at=%s,expires_at=%s WHERE id=%s',
-                            (now, expiry, row['id']))
+                expiry = row['expires_at']
+                if request.headers.get('X-FL-Background') != '1':
+                    expiry = now + timedelta(minutes=IDLE_MINUTES)
+                    cur.execute('UPDATE key_actor_sessions SET last_seen_at=%s,expires_at=%s WHERE id=%s',
+                                (now, expiry, row['id']))
                 request.state.actor_session_id = row['id']
                 request.state.session_expires_at = expiry
                 actor = {'id': row['actor_id'], 'name': row['name'], 'role': row['role']}
