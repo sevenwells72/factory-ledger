@@ -70,5 +70,6 @@
       form.hidden=true;controller=ui.ticketCard(draft,path,body,{onEdit:()=>{invalidate();form.hidden=false;form.scrollIntoView({block:'start'});},photoKind:action==='ship'?'bol':'correction_photo',onBusy:busy=>{form.querySelectorAll('input,select,textarea,button').forEach(c=>c.disabled=busy);select.disabled=busy;document.getElementById('language').disabled=busy;document.getElementById('sign-out').disabled=busy;},onRecorded:()=>{form.querySelectorAll('input,select,textarea,button').forEach(c=>c.disabled=true);select.disabled=false;const another=ui.el('button',ui.t('Record another entry','Registrar otra entrada'),draft);another.type='button';another.onclick=render;}});draft.scrollIntoView({block:'start'});
     }catch(error){ui.failure(error);}};
   }
-  window.addEventListener('ledger-language',render);window.addEventListener('ledger-signout',render);render();
+  // Relabel in place: a language switch never clears the half-filled form or an open draft.
+  window.addEventListener('ledger-language',ui.relabel);window.addEventListener('ledger-signout',render);render();
 })();
