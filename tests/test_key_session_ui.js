@@ -54,3 +54,26 @@ test('configuration failure is surfaced without raw-key fallback',async()=>{
   const h=harness(); const client=create({base:'https://staging.example',storage:{removeItem(){}},fetch:async()=>{throw Error('offline')}});
   await assert.rejects(client.init());await assert.rejects(client.signIn('personal'));
 });
+
+test('out-of-order personal key exchanges never replace the newer shared identity',async()=>{
+  const data=new Map(),pending=[];
+  const client=create({base:'https://staging.example',config:Promise.resolve({key_sessions_enabled:true}),
+    storage:{getItem:k=>data.get(k),setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k)},
+    fetch:()=>new Promise(resolve=>pending.push(body=>resolve({ok:true,status:200,json:async()=>body})))});
+  await client.init();
+  const old=client.signIn('fixture-A'),oldResult=assert.rejects(old,/Sign-in changed/);
+  const latest=client.signIn('fixture-B');
+  pending[1]({session_token:'fls_B',key_kind:'session',actor:{id:8,name:'Beatriz'}});await latest;
+  pending[0]({session_token:'fls_A',key_kind:'session',actor:{id:7,name:'Arturo'}});await oldResult;
+  assert.equal(client.token,'fls_B');assert.equal(client.actor.name,'Beatriz');assert.equal(data.get(STORE),'fls_B');
+});
+
+test('clearing sign-in invalidates an exchange still waiting for FL',async()=>{
+  const data=new Map();let complete;
+  const client=create({base:'https://staging.example',config:Promise.resolve({key_sessions_enabled:true}),
+    storage:{getItem:k=>data.get(k),setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k)},
+    fetch:()=>new Promise(resolve=>{complete=body=>resolve({ok:true,status:200,json:async()=>body});})});
+  await client.init();const pending=client.signIn('fixture-A'),rejected=assert.rejects(pending,/Sign-in changed/);
+  client.clear();complete({session_token:'fls_A',key_kind:'session',actor:{id:7,name:'Arturo'}});await rejected;
+  assert.equal(client.token,'');assert.equal(client.actor,null);assert.equal(data.size,0);
+});

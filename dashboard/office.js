@@ -4,7 +4,11 @@
   const ui=FLLedger,logic=FLOffice;ui.bind();
   const content=document.getElementById('content'),draft=document.getElementById('resolution');
   const initial=new URLSearchParams(location.search);
-  let action=initial.get('action')||'create_order',grants={},controller,revision=0,authRevision=0;
+  let action=initial.get('action')||'create_order',grants={},controller,revision=0,authRevision=0,readyIntent=null;
+  if(action==='mark_order_ready'){
+    try{const saved=JSON.parse(sessionStorage.getItem('fl-order-ready-draft')||'null');if(saved&&String(saved.order_id)===initial.get('order')&&typeof saved.ready==='boolean')readyIntent=saved;}catch(_){}
+    sessionStorage.removeItem('fl-order-ready-draft');
+  }
   const reasonText={
     shipped_recorded:['Shipped, recorded','Enviado, registrado'],shipped_not_recorded:['Shipped, not recorded (legacy)','Enviado, no registrado (histórico)'],short_closed:['Short closed','Cierre parcial'],
     customer_cancelled:['Customer cancelled','Cancelado por cliente'],cns_declined:['CNS declined','CNS rechazó'],duplicate:['Duplicate','Duplicado'],superseded:['Replaced by another order','Reemplazado por otro pedido'],other:['Other','Otro'],
@@ -34,13 +38,13 @@
     invalidate();content.replaceChildren();
     if(!FLDashboard.writesEnabled)return;
     const available=logic.permitted(grants,true);
-    if(!available.length){ui.el('p',ui.t('Sign in with office or owner access to record office work.','Inicia sesión con acceso de oficina o propietario para registrar.'),content);return;}
+    if(!available.length){ui.el('p',ui.t('Sign in with permission for this action.','Inicia sesión con permiso para esta acción.'),content);return;}
     if(!available.some(([key])=>key===action))action=available[0][0];
     const label=ui.el('label',ui.t('Office action','Acción de oficina'),content),selector=ui.el('select',undefined,label);selector.id='office-action';
     for(const [key,en,es] of available){ui.el('option',ui.t(en,es),selector).value=key;}
     selector.value=action;selector.onchange=()=>{action=selector.value;render();};
     const form=ui.el('form',undefined,content);form.id='office-form';form.className='panel';
-    const fields=ui.el('div',undefined,form);fields.className='fields';let controls={},choices={},rows=[],orderGeneration=0,documentLoaded=null,expectedLoaded=null;
+    const fields=ui.el('div',undefined,form);fields.className='fields';let controls={},choices={},rows=[],orderGeneration=0,documentLoaded=null,expectedLoaded=null,readyLoaded=null;
     function field(name,en,es,type='text',required=false,parent=fields,registry=controls){
       const label=ui.el('label',ui.t(en,es),parent),el=ui.el(type==='textarea'?'textarea':'input',undefined,label);el.name=name;if(type!=='textarea')el.type=type;el.required=required;if(type==='number')el.step='any';if(type==='checkbox')label.className='check';registry[name]=el;return el;
     }
@@ -75,12 +79,22 @@
       const remove=ui.el('button',ui.t('Remove line','Quitar línea'),row);remove.type='button';remove.onclick=()=>{rows=rows.filter(r=>r!==item);row.remove();invalidate();};
     }
     let lineHost;
-    const orderAction=['add_order_lines','update_order_line','cancel_order_line','update_order_header','update_order_status','close_order','cancel_order','reopen_order'].includes(action);
+    const orderAction=['add_order_lines','update_order_line','cancel_order_line','update_order_header','update_order_status','mark_order_ready','close_order','cancel_order','reopen_order'].includes(action);
     if(orderAction){
       choices.order=picker(fields,'order','Sales order','Pedido de venta','order',async selected=>{
-        const generation=++orderGeneration;if(!selected)return;
+        const generation=++orderGeneration;readyLoaded=null;if(!selected)return;
         try{const [order,options]=await Promise.all([ui.request('/sales/orders/'+selected.id),ui.request('/sales/orders/'+selected.id+'/office-options')]);
           if(generation!==orderGeneration||!form.isConnected)return;
+          if(action==='mark_order_ready'){
+            let mark=String(readyIntent?.order_id)===String(selected.id)?readyIntent:null;
+            if(!mark){
+              const params=new URLSearchParams({state:order.state,limit:'200'});if(order.customer)params.set('customer',order.customer);
+              const result=await ui.request('/sales/orders?'+params);if(generation!==orderGeneration||!form.isConnected)return;
+              mark=(result.orders||[]).find(row=>String(row.order_id)===String(selected.id));
+              if(!mark||!Object.prototype.hasOwnProperty.call(mark,'note'))throw Error(ui.t('The ready-to-ship note could not be loaded. Choose the order again.','No se pudo cargar la nota de listo para enviar. Elige el pedido otra vez.'));
+            }
+            controls.ready.checked=Boolean(mark.ready);controls.note.value=mark.note||'';readyLoaded=selected.id;readyIntent=null;
+          }
           if(controls.line_id){controls.line_id.replaceChildren();ui.el('option',ui.t('Choose line','Elige línea'),controls.line_id).value='';for(const line of order.lines||[])ui.el('option','#'+line.line_id+' · '+line.product+' · '+line.quantity_lb+' lb · '+line.line_status,controls.line_id).value=line.line_id;}
           if(controls.status&&action==='update_order_status'){controls.status.replaceChildren();for(const status of options.statuses||[])ui.el('option',ui.t(...(reasonText[status]||[status,status])),controls.status).value=status;}
           if(action==='close_order'){controls.reason.replaceChildren();for(const reason of options.close_reasons||[])ui.el('option',ui.t(...reasonText[reason]),controls.reason).value=reason;if(!options.close_reasons?.length)ui.notice(ui.t('FL offers no close reason for this order.','FL no ofrece un motivo de cierre para este pedido.'),'neutral');}
@@ -97,6 +111,7 @@
       select('line_id','Order line','Línea del pedido',[]).required=true;
       if(action==='update_order_line'){field('quantity_lb','New total ordered lb (optional)','Nuevas lb totales (opcional)','number');field('unit_price','New price per unit (optional)','Nuevo precio por unidad (opcional)','number');}
     }
+    if(action==='mark_order_ready'){field('ready','Ready to ship','Listo para enviar','checkbox');field('note','Ready to ship note','Nota de listo para enviar','textarea');}
     if(action==='update_order_status')select('status','New status — FL choices','Estado nuevo — opciones FL',[]).required=true;
     if(['close_order','cancel_order'].includes(action)){
       const reasons=action==='close_order'?[]:['customer_cancelled','cns_declined','duplicate','superseded','other'];
@@ -144,6 +159,7 @@
         const v=values(),conversions=[];
         for(const name of ['customer','supplier','product','order'])if(choices[name]?.value)v[name+'_id']=choices[name].id();
         if(choices.related?.value)v.related_so_id=choices.related.id();
+        if(action==='mark_order_ready'&&readyLoaded!==v.order_id)throw Error(ui.t('Choose and load the sales order first.','Elige y carga el pedido primero.'));
         if(controls.document_id&&documentLoaded!==Number(v.document_id))throw Error(ui.t('Load and review the extracted document first.','Carga y revisa el documento primero.'));
         if(controls.expected_receipt_id&&expectedLoaded!==Number(v.expected_receipt_id))throw Error(ui.t('Load the expected delivery first.','Carga la entrega esperada primero.'));
         if(lineHost){

@@ -22,15 +22,37 @@ async function newOrder(po,duplicate=false){await action('create_order');await c
  await line('D2POUCH','24','pouches','30');await page.getByRole('button',{name:'Add line',exact:true}).click();await line('D2PALLET','1','each','12.50');
  await page.getByRole('button',{name:'ES',exact:true}).click();assert.equal(await page.locator('[name=customer_po]').inputValue(),po);await page.getByRole('button',{name:'EN',exact:true}).click();
  await prepare();assert.ok(calls.some(c=>c.path==='/resolve'&&c.body?.kind==='unit'&&c.body.query==='pouches'));
- if(duplicate){await page.locator('#resolution [data-warning=DUPLICATE_CUSTOMER_PO]').waitFor();await page.locator('#resolution').getByRole('button',{name:'Record',exact:true}).click();await page.locator('#notice.bad').waitFor();assert.equal(await page.locator('#resolution .good').count(),0);}
+ if(duplicate){await page.locator('#resolution [data-warning=DUPLICATE_CUSTOMER_PO]').waitFor();await page.getByRole('button',{name:'ES',exact:true}).click();await page.locator('#resolution').getByRole('button',{name:'Registrar',exact:true}).click();await page.locator('#notice.bad').waitFor();assert.equal(await page.locator('#notice').textContent(),'NO registrado — Confirme las advertencias del borrador antes de registrar.');assert.equal(await page.locator('#resolution .good').count(),0);await page.getByRole('button',{name:'EN',exact:true}).click();}
  await page.screenshot({path:out+'/order-draft-390.png',fullPage:true});
  return record(duplicate?'duplicate':'order');
+}
+
+async function ordersRow(id){await page.goto(base+'/dashboard/index.html?section=orders');await page.evaluate(()=>FLDashboard.ready);const row=page.locator('.order-row[data-order-id="'+id+'"]');await row.waitFor();return row;}
+async function readyChanges(id){
+ const initialMark=(await api('/sales/orders?state=open&limit=200')).orders.find(order=>order.order_id===id),markedReady=!initialMark.ready;
+ for(const [kind,ready,note] of [['checkbox',markedReady,initialMark.note||''],['note',markedReady,'Pallet 3 reviewed'],['detail',!markedReady,'Pallet 3 reviewed']]){
+  const row=await ordersRow(id),before=calls.filter(c=>c.path.endsWith('/commit')).length;
+  const legacyResponse=!on?page.waitForResponse(r=>/^\/sales-orders\/[^/]+\/ready$/.test(new URL(r.url()).pathname)&&r.request().method()==='POST'):null;
+  if(kind==='checkbox')await row.locator('.order-ready-checkbox').click();
+  else{await row.locator('.order-expand-toggle').click();if(kind==='note'){await page.locator('#ready-note-'+id).fill(note);await page.locator('.order-ready-note-save[data-order-id="'+id+'"]').click();}else{await page.locator('.so-open-detail[data-order-id="'+id+'"]').click();await page.locator('.so-detail-ready-checkbox').click();}}
+  if(on){
+   await page.waitForURL('**/office.html?*');await page.locator('#office-action').waitFor();assert.equal(await page.locator('#office-action').inputValue(),'mark_order_ready');
+   await page.waitForFunction(({ready,note})=>document.querySelector('[name=ready]')?.checked===ready&&document.querySelector('[name=note]')?.value===note,{ready,note});
+   assert.equal(calls.filter(c=>c.path.endsWith('/commit')).length,before,'Changing a control only opens a draft');
+   await prepare();const receipt=await record('ready-'+kind);assert.equal(receipt.action,'mark_order_ready');assert.equal(receipt.response.ready,ready);assert.equal(receipt.response.note,note||null);
+  }else{
+   assert.equal((await legacyResponse).status(),200);
+   await page.waitForFunction(({id,ready,kind})=>{const control=document.querySelector(kind==='detail'?'.so-detail-ready-checkbox':'.order-row[data-order-id="'+id+'"] .order-ready-checkbox');return control?.checked===ready&&!control.disabled;},{id,ready,kind});
+   const mark=(await api('/sales/orders?state=open&limit=200')).orders.find(o=>o.order_id===id);assert.equal(mark.ready,ready);assert.equal(mark.note,note||null);assert.ok(!page.url().includes('office.html'));
+  }
+ }
 }
 try{
  await page.goto(base+'/dashboard/office.html');assert.equal(await page.evaluate(()=>FLDashboard.ready),on);
  if(!on){
    for(const [key] of office.actions){await page.goto(base+'/dashboard/office.html?action='+key);await page.evaluate(()=>FLDashboard.ready);assert.equal(await page.locator('#office-form,#office-action').count(),0);assert.equal(await page.locator('[data-fl-write-ui]:not(html):visible').count(),0);}
    assert.equal(calls.some(c=>c.method==='POST'),false);assert.equal(calls.some(c=>c.path==='/auth/whoami'),false);
+   await readyChanges(fixture.order);assert.equal(calls.filter(c=>c.method==='POST').length,3);assert.ok(calls.filter(c=>c.method==='POST').every(c=>/^\/sales-orders\/[^/]+\/ready$/.test(c.path)));
  }else{
    await signIn('office');
    const created=await newOrder('000D2-PO');const id=created.order.id;
@@ -44,6 +66,7 @@ try{
    await action('cancel_order_line');await selectOrder(id);await page.locator('[name=line_id]').selectOption(String(lineId));await prepare();await record('lineCancel');
    await action('update_order_header');await selectOrder(id);await page.locator('[name=customer_po]').fill('000UPDATED');await page.locator('[name=notes]').fill('Pilot office edit');await page.locator('[name=notes_es]').fill('Edición de oficina');await prepare();await record('header');
    await action('update_order_status');await selectOrder(id);await page.locator('[name=status]').selectOption('in_production');await prepare();await record('status');
+   await readyChanges(id);await signIn('floor');assert.deepEqual(await page.locator('#office-action option').evaluateAll(options=>options.map(o=>o.value)),['mark_order_ready']);await selectOrder(id);await page.waitForFunction(()=>document.querySelector('[name=note]')?.value==='Pallet 3 reviewed');await signIn('office');
    await action('close_order');await selectOrder(id);assert.equal(await page.locator('[name=reason] option[value=shipped_not_recorded]').count(),0);
    await signIn('owner');await action('close_order');await selectOrder(id);await page.locator('[name=reason]').selectOption('shipped_not_recorded');await page.locator('[name=note]').fill('Local legacy close fixture');await prepare();await record('close');
    await action('reopen_order');await selectOrder(id);await page.locator('[name=note]').fill('Resume local fixture');await prepare();await record('reopen');
@@ -54,7 +77,7 @@ try{
      await action(kind);await page.locator('[name=document_id]').fill(String(fixture.documents[docKind]));await page.getByRole('button',{name:'Load extracted document',exact:true}).click();await page.getByText(docKind+'.png',{exact:true}).waitFor();await choose(party,query);await choose('product','D1270',page.locator('[data-lines]>fieldset').first());await prepare();await record(kind);
    }
    // Each successful form used a ticket's own receipt; no direct office write route.
-   assert.equal(Object.keys(receipts).length,16);
+   assert.equal(Object.keys(receipts).length,19);
    const writes=calls.filter(c=>c.method!=='GET'&&!c.path.startsWith('/auth/'));
    assert.ok(writes.every(c=>c.path==='/resolve'||c.path.endsWith('/prepare')||/^\/tickets\/[^/]+\/commit$/.test(c.path)),JSON.stringify(writes.map(c=>c.path)));
    await action('create_order');await choose('customer','D12 Test Customer');await line('D2POUCH','13','pouches');await page.getByRole('button',{name:'Prepare draft',exact:true}).click();await page.locator('#notice.bad').waitFor();assert.equal(await page.locator('#resolution .good').count(),0);
@@ -65,5 +88,5 @@ try{
  await page.evaluate(()=>sessionStorage.setItem('fl-ledger-language','en'));
  await page.goto(base+'/dashboard/receipt.html?number=RCV-000000-999');await page.locator('#notice.neutral').waitFor();assert.equal(await page.locator('#notice').textContent(),'No receipt with this number');assert.equal(await page.locator('#notice.bad').count(),0);
  await page.locator('#language').click();assert.equal(await page.locator('#notice').textContent(),'No hay recibo con este número');
- assert.deepEqual(errors,[]);await fs.writeFile(out+'/receipts.json',JSON.stringify(receipts,null,2));console.log('Office '+(on?'all 14 forms, duplicate/No PO, pouch rules, service line, document tickets, EN/ES and 390px':'all forms hidden, no write requests')+'; neutral missing receipt passed.');
-}catch(error){await page.screenshot({path:out+'/failure.png',fullPage:true});console.error('Visible notice:',await page.locator('#notice').textContent());throw error;}finally{await browser.close();}
+ assert.deepEqual(errors,[]);await fs.writeFile(out+'/receipts.json',JSON.stringify(receipts,null,2));console.log('Office '+(on?'all 15 forms, ready checkbox/note/detail tickets, floor permission, duplicate/No PO, pouch rules, service line, document tickets, EN/ES and 390px':'all ticket forms hidden, legacy ready checkbox/note/detail writes')+'; neutral missing receipt passed.');
+}catch(error){await page.screenshot({path:out+'/failure.png',fullPage:true});if(await page.locator('#notice').count())console.error('Visible notice:',await page.locator('#notice').textContent());throw error;}finally{await browser.close();}

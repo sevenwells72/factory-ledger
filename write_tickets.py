@@ -831,7 +831,8 @@ def register_routes(app, api):
             missing = sorted({w['code'] for w in row['warnings'] if w.get('requires_ack')} -
                              set(body.acknowledged_warnings))
             if missing:
-                fail(409, 'WARNING_NOT_ACKNOWLEDGED', 'Acknowledge the draft warnings.', missing=missing)
+                fail(409, 'WARNING_NOT_ACKNOWLEDGED', 'Acknowledge the draft warnings.',
+                     message_es='Confirme las advertencias del borrador antes de registrar.', missing=missing)
             if row['action'] in ('resolve_exception', 'void'):
                 import resolution_receipts
                 return resolution_receipts.commit(api, cur, row, body, actor, request)

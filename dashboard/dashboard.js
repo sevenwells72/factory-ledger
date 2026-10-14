@@ -2501,6 +2501,12 @@
   }
 
   async function postOrderReady(order, ready, note) {
+    await FLDashboard.ready;
+    if (FLDashboard.writesEnabled) {
+      sessionStorage.setItem('fl-order-ready-draft', JSON.stringify({ order_id: order.order_id, ready, note: note || null }));
+      location.assign(FLReceipts.page('office.html', { action: 'mark_order_ready', order: order.order_id }));
+      return null; // Navigation opens an editable draft; no change is recorded yet.
+    }
     return fetchSalesAPI('/sales-orders/' + encodeURIComponent(order.order_number) + '/ready', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -2533,6 +2539,7 @@
         btn.disabled = true;
         try {
           const saved = await postOrderReady(order, Boolean(order.ready), order.note);
+          if (!saved) { order.note = oldNote; return; }
           updateCachedOrderReady(orderId, saved);
           state.orderReadyWrites.delete(String(orderId));
           order.readyInFlight = false;
@@ -2561,6 +2568,7 @@
         checkbox.disabled = true;
         try {
           const saved = await postOrderReady(order, checkbox.checked, order.note || null);
+          if (!saved) { checkbox.checked = previous; return; }
           updateCachedOrderReady(order.order_id, saved);
           await refreshOrders();
         } catch (_) {
@@ -3288,6 +3296,7 @@
       try {
         const metadata = await ensureOrderDetailFlag(order);
         const saved = await postOrderReady(order, requestedReady, metadata.note ?? null);
+        if (!saved) { checkbox.checked = flag.ready; return; }
         Object.assign(order, { ready: Boolean(saved.ready), floor_ready: Boolean(saved.ready), ready_at: saved.ready_at, ready_by: saved.ready_by, ready_note: saved.note });
         updateCachedOrderReady(order.order_id, saved);
         await Promise.all([refreshOrderDetail(order.order_id, 'Ready to ship updated.'), refreshOrders()]);

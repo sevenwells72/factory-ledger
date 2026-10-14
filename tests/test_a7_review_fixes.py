@@ -277,11 +277,10 @@ def test_expected_receipt_atomic_intake_rollback_and_duplicate_ack(client, db_cu
     error(commit(client, draft, office(actors)), 409, 'WARNING_NOT_ACKNOWLEDGED')
     result = commit(client, draft, office(actors), acknowledged_warnings=['DUPLICATE_REFERENCE'])
     assert result.status_code == 200 and result.json()['duplicate_overridden']
-    # A second independently prepared approval cannot reuse the source document.
-    stale = prepare(client, '/expected-receipts/extract/approve/prepare', {**body,'force':True}, office(actors))
-    assert not stale['can_commit']
-    assert stale['blockers'][0]['code'] == 'DOCUMENT_ALREADY_APPROVED'
-    error(commit(client, stale, office(actors)), 409, 'TICKET_STALE')
+    # An approved source is refused before a second draft can be issued.
+    refused = prepare_raw(client, '/expected-receipts/extract/approve/prepare', {**body,'force':True}, office(actors))
+    error(refused, 409, 'DOCUMENT_ALREADY_APPROVED')
+    assert 'already approved' in refused.json()['detail']['message']
 
 
 def test_expected_routes_remain_usable_when_a10_removes_direct_allowlist(client, incoming, actors, monkeypatch):

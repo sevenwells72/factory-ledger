@@ -234,7 +234,11 @@ function mount() {
   delete require.cache[MODULE];
   require(MODULE);
   const settle = async () => { for (let i = 0; i < 8; i++) await new Promise(r => setImmediate(r)); };
-  const finish = async () => { calls.filter(c => !c.done).forEach(c => c.resolve({})); await settle(); };
+  const finish = async () => {
+    // Resolving a confirm starts its follow-up summary read; drain that too so
+    // the real 60-second request timer never outlives a completed test.
+    for (let i = 0; i < 3 && calls.some(c => !c.done); i++) { calls.filter(c => !c.done).forEach(c => c.resolve({})); await settle(); }
+  };
   return { els, calls, style, settle, finish };
 }
 
