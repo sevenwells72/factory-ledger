@@ -144,6 +144,90 @@
 - **File(s) changed:** `tests/test_pilot_triage_backend.py`, `.venv-test`
 - **What changed:** Add pilot regressions and prepare isolated test runtime
 - **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+## 2026-10-14 07:38 — Record final 3086 Python and 155 Node passes with staging walkthrough and regression guard
+- **File(s) changed:** docs/validation/dashboard-office-void-tests.json, docs/validation/dashboard-office-void.md, FACTORY_LEDGER_CHANGELOG.md
+- **What changed:** Record final 3086 Python and 155 Node passes with staging walkthrough and regression guard.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:37 — Document exact staging walkthrough and distinguish branch acceptance from hosted deployment
+- **File(s) changed:** docs/validation/dashboard-office-void.md
+- **What changed:** Document exact staging walkthrough and distinguish branch acceptance from hosted deployment.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:36 — Capture staging order PO and pallet charge plus same-day floor void receipts
+- **File(s) changed:** docs/validation/office-void-staging/evidence.json, docs/validation/office-void-staging/order-draft-390.png, docs/validation/office-void-staging/order-recorded-390.png, docs/validation/office-void-staging/void-draft-390.png, docs/validation/office-void-staging/voided-original-390.png, docs/validation/office-void-staging/voided-original-es-390.png, docs/validation/office-void-staging/void-receipt-390.png
+- **What changed:** Capture staging order PO and pallet charge plus same-day floor void receipts.
+- **Why:** Branch browser and HTTP acceptance against guarded staging only; no startup, deployment, migration or production access.
+
+---
+
+## 2026-10-14 07:36 — Keep neutral missing-receipt message bilingual when switching languages
+- **File(s) changed:** dashboard/receipt.js, tests/visual/run-office.mjs
+- **What changed:** Keep neutral missing-receipt message bilingual when switching languages.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:35 — Match signed-out session contract in staging walkthrough
+- **File(s) changed:** tests/visual/run-office-void-staging.mjs
+- **What changed:** Match signed-out session contract in staging walkthrough.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:34 — Acknowledge synthetic receive setup warnings and revoke all temporary staging sessions
+- **File(s) changed:** tests/visual/run-void.mjs, scripts/check_office_void_staging.py
+- **What changed:** Acknowledge synthetic receive setup warnings and revoke all temporary staging sessions.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:34 — Isolate void scope cases and include office page in preview-origin browser matrix
+- **File(s) changed:** tests/test_void_screen.py, tests/visual/run-d12-preview.mjs
+- **What changed:** Isolate void scope cases and include office page in preview-origin browser matrix.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:33 — Add guarded staging office and void browser walkthrough with synthetic identities
+- **File(s) changed:** scripts/check_office_void_staging.py, tests/visual/run-office-void-staging.mjs
+- **What changed:** Add guarded staging office and void browser walkthrough with synthetic identities.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:32 — Advance plant clock to test yesterday void eligibility without editing immutable ledger
+- **File(s) changed:** tests/test_void_screen.py
+- **What changed:** Advance plant clock to test yesterday void eligibility without editing immutable ledger.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:31 — Add real-browser void runner for both feature flag modes
+- **File(s) changed:** tests/visual/run-void.mjs
+- **What changed:** Add real-browser void runner for both feature flag modes.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:31 — Test live void eligibility, fixed reason, replay and role revocation
+- **File(s) changed:** tests/test_void_screen.py, tests/test_void_ui.js
+- **What changed:** Test live void eligibility, fixed reason, replay and role revocation.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:30 — Add receipt-specific FL void permissions and gated fixed-reason ticket screen
+- **File(s) changed:** write_tickets.py, dashboard/receipt.js, dashboard/receipt.html, dashboard/ledger-ui.js, dashboard/entry.html, dashboard/exceptions.html, dashboard/office.html
+- **What changed:** Add receipt-specific FL void permissions and gated fixed-reason ticket screen.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
 ## 2026-10-14 07:29 — Record Part 1 full-suite and browser evidence for Claude Code review
 - **File(s) changed:** docs/validation/dashboard-office-void.md, docs/validation/dashboard-office-part1-tests.json, FACTORY_LEDGER_CHANGELOG.md
 - **What changed:** Record Part 1 full-suite and browser evidence for Claude Code review.

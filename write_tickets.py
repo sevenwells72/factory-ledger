@@ -409,7 +409,7 @@ def allocate_receipt(cur, action, business_date):
     return f'{prefix}-{business_date:%y%m%d}-{sequence:03d}'
 
 
-def receipt_detail(api, cur, number):
+def receipt_detail(api, cur, number, actor=None):
     cur.execute('SELECT * FROM write_tickets WHERE receipt_number=%s', (number,))
     ticket = cur.fetchone()
     if not ticket:
@@ -420,6 +420,17 @@ def receipt_detail(api, cur, number):
     transactions = [dict(row) for row in cur.fetchall()]
     lot_ids = set((ticket.get('result_ref') or {}).get('lot_ids', []))   # NULL on a rejected/held ticket that already drew a number
     for txn in transactions:
+        # The same live authorization used by prepare/commit drives UI buttons.
+        # Anonymous/shared-key readers never gain a named-person write control.
+        txn['allowed_actions'] = []
+        if actor and actor.get('id') is not None and txn['effective_status'] == 'posted':
+            import resolution_receipts
+            try:
+                resolution_receipts.require_void(api, cur, actor, txn['id'])
+                txn['allowed_actions'] = ['void']
+            except HTTPException as error:
+                if error.status_code >= 500:
+                    raise
         cur.execute('''SELECT wt.receipt_number FROM ledger_corrections c
             LEFT JOIN write_tickets wt ON wt.action='void' AND wt.status='committed'
               AND wt.result_ref->>'correction_id'=c.id::text
@@ -847,7 +858,7 @@ def register_routes(app, api):
                                   preparer_inactive=actor['id'] is not None and not (current_actor and current_actor['active']))
 
     @app.get('/receipts')
-    def list_receipts(date: Optional[date] = Query(None), actor: Optional[str] = None,
+    def list_receipts(request: Request, date: Optional[date] = Query(None), actor: Optional[str] = None,
                       action: Optional[str] = None, status: Optional[str] = None,
                       client_source: Optional[ClientSource] = None,
                       policy_code: Optional[str] = None,
@@ -856,21 +867,21 @@ def register_routes(app, api):
         with api.get_transaction() as cur:
             numbers = receipt_numbers(cur, day, actor_terms=[actor] if actor else None, action=action, status=status,
                                       client_source=client_source, policy_code=policy_code)
-            return {'date': day, 'receipts': [receipt_detail(api, cur, number) for number in numbers]}
+            return {'date': day, 'receipts': [receipt_detail(api, cur, number, identity(api, request)) for number in numbers]}
 
     @app.get('/receipts/by-transaction/{transaction_id}')
-    def receipt_by_transaction(transaction_id: int, _: bool = Depends(api.verify_api_key)):
+    def receipt_by_transaction(transaction_id: int, request: Request, _: bool = Depends(api.verify_api_key)):
         with api.get_transaction() as cur:
             cur.execute('SELECT receipt_number FROM transactions WHERE id=%s', (transaction_id,))
             row = cur.fetchone()
             if not row or row['receipt_number'] is None:
                 fail(404, 'RECEIPT_NOT_FOUND', 'No ticket receipt is recorded for this transaction.')
-            return receipt_detail(api, cur, row['receipt_number'])
+            return receipt_detail(api, cur, row['receipt_number'], identity(api, request))
 
     @app.get('/receipts/{receipt_number}')
-    def get_receipt(receipt_number: str, _: bool = Depends(api.verify_api_key)):
+    def get_receipt(receipt_number: str, request: Request, _: bool = Depends(api.verify_api_key)):
         with api.get_transaction() as cur:
-            return receipt_detail(api, cur, receipt_number)
+            return receipt_detail(api, cur, receipt_number, identity(api, request))
 
     # A7 hook: the ten order prepares (ORDER_PREPARE_ROUTES) live in order_tickets.
     import order_tickets
