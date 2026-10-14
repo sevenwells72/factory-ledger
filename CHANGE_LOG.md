@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-13 23:50 — P1.25: count-tool test fixtures use the New York plant date
+- **File(s) changed:** `audits/fresh-start/test_fresh_start_v3.py`, `audits/fresh-start/test_apply_reset.py`, `audits/fresh-start/pinned_clock.py` (new), `CHANGE_LOG.md`
+- **What changed:** Test-only. The v3 fixture's signed approval `Date:` and count-row `count_date` now come from `self.t.astimezone(f.PLANT)` instead of the UTC date; the v2 fixture's approval date comes from the cutoff's plant date instead of the machine-local `datetime.now()`. New `pinned_clock.py` freezes `datetime.now()` in the count-tool modules (`python3 pinned_clock.py 2026-10-13T23:59 test_apply_reset test_fresh_start_v3`). New `PlantDateClockTests` in both files run the signed-apply/drift/shortage/extra-kosher paths at pinned 00:05, 01:30, 12:00, 20:30, 23:30, 23:59 ET plus both DST-change nights. Tool code unchanged.
+- **Why:** FOLLOWUPS P1.25 — 39 count-tool tests failed late evening ET (reproduced live at 23:35 ET). Proof: 194/194 pass with the clock pinned at 00:05, 12:00, 20:30 and 23:59 ET, both with TZ=America/New_York and TZ=UTC; the new regression tests fail (13 and 4 subtests) against the old fixtures.
+
+---
+
 ## 2026-10-14 11:06 — Record PR 115 re-check validation and the background-session regression guard
 - **File(s) changed:** `tests/test_background_session_ui.js`, `docs/validation/dashboard-office-void-idle-fix-tests.json`, `docs/validation/dashboard-office-void.md`, `FACTORY_LEDGER_CHANGELOG.md`; local ignored runtime/test evidence
 - **What changed:** Strengthen the Node poll harness to evaluate the actual app marker declaration. Record 3,140 fresh-DB Python, 186 Node and 17 browser scenarios passing, add regression guard row 195, preserve historical evidence and document the task-owned local cluster/cleanup and unchanged global log.
