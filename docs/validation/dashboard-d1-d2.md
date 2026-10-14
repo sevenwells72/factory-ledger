@@ -59,3 +59,35 @@ Evidence: [receive draft](d12-staging/receive-draft-390.png), [receive recorded]
 - After A5 supplier-lot reaches main: rebase, rerun actual identify/commit/automatic exception closure and LOT receipt lookup. No direct-route workaround exists.
 - A3b's non-ticketed counted-resolution/XR and missing held/legacy-void receipt gaps remain upstream, as described under Part 1.
 - Hosted deployment of the final branch and broad owner acceptance are separate from this browser-overlay staging walkthrough. No production action is included.
+
+## Review fix round 1 (Claude Code review, comment 6157664298)
+
+Rebased onto `origin/main` 1a423f7 (A5 part 2, #106). Builder for this round: Claude Code. Presentation only — FL still enforces every permission and rule.
+
+| # | Fix | Node regression | Browser regression (`run-d12-fixes.mjs`, real local FastAPI) |
+|---|-----|-----------------|------|
+| 0 | "Identify supplier lot" runs live `POST /lots/{lot_id}/supplier-lot/prepare` → `/tickets/{t}/commit`, shows `resolved_exception_ids` | route + field wiring | floor, 390 px: LOT receipt green; "Resolved exception #N"; exception now `resolved`; no second `/resolve` call |
+| 1 | `/resolve` and `/reject` never green, never the source receipt; neutral "Resolved / Waived / Rejected — no new receipt"; only an `/approve` ticket receipt is green | `decisionOutcome` | real SHORTAGE from a make (`MK-…`), resolved *counted 0*: neutral notice, no `MK-…`, no green anywhere |
+| 2 | Choices from `allowed_resolutions` when FL returns it; otherwise owner-only choices hidden via `/auth/whoami` `permissions.approve_exception` / `resolve_exception` | `resolutionChoices` | floor: LARGE_CORRECTION shows "The owner decides it" (no approve/reject); UNIDENTIFIED_LOT offers only "Identify supplier lot" |
+| 3 | Owner approve note optional (blank omitted → `{}`); reject, write-off and waive require a note | `decisionRequest`, `noteRequired` | owner, 1280 px, Spanish: reject with blank note blocked by the form; blank approve sends `{}` and shows green `ADJ-…` |
+| 4 | Receipt page: VOIDED / PARTLY VOIDED (grey) from FL's per-entry `effective_status`, never green; shows the VD receipt when FL returns one | `receiptState` | `ADJ-…` voided via legacy `/void`: `VOIDED —` / `ANULADO —`, no green; a live `MK-…` still green |
+| 5 | Plain timeout / lost-connection wording; red banner cleared when the same-ticket retry records | `transportText` | commit answered after 21 s: plain text (no "signal"/"abort"), never green; retry replays the receipt, banner hidden, exactly 2 commit requests |
+| 6 | EN/ES relabels in place; half-filled form and open draft survive | `draftHtml` carries both labels; no re-render on switch | adjust form keeps lot, −1 lb, reason, note across EN→ES; open draft survives ES→EN with English labels |
+
+Before/after: the 7 new Node tests fail on 71125d9's dashboard files and pass now. The browser runner, run block by block against 71125d9's dashboard files on a fresh DB, fails in all four blocks and passes on this head.
+
+Existing runners updated for the new truth: `run-d12` now expects the live supplier-lot draft (was the pre-#106 404); `run-d2` expects the open draft to survive the language switch and the plain lost-connection wording.
+
+### Verification (2026-10-13)
+
+- Fresh local DB `fl_d12_fix1_final2` (pg_trgm + `tests/schema/schema.sql`): **2,796 Python passed, 1 failed** — `test_shift_summary.py::test_hash_is_deterministic_and_covers_only_receipt_rows`, which moves the plant clock +3 h and fails when run after 21:00 ET (the run was at 21:17 ET). Neither that test nor `shift_summary.py` differs from `origin/main`.
+- Node: **119 passed**, 0 failed/skipped.
+- Browser, fresh `fl_d12_browser_*` DBs, Chrome: `run-d12`, `run-d2`, `run-d12-auth`, `run-d12-fixes` (sessions on) and `run-d12-auth-off` (sessions off) all pass.
+- Hosted staging (branch assets over the staging API, no deploy): receive + make substitution passed — **RCV-261013-013**, **MK-261013-013**; synthetic actor deactivated. The staging runner does not exercise the Exceptions page.
+
+### Waiting on the backend PR (minimal fields)
+
+- `GET /exceptions/{id}` → `allowed_resolutions: [kind, …]` for the signed-in person (computed in FL with `permissions.allowed`). The page already prefers it. Until then the browser keeps FL's kind list and hides only what `/auth/whoami` denies, so floor can still see e.g. "Acknowledge" on LATE_ENTRY or "Attach BOL photo" (owner-only kinds) and FL answers 403.
+- Ticketed exception resolution with an `XR-…` receipt (the counted adjust currently posts with no receipt). When `/resolve` returns a receipt for that action, the page will show it green; until then it shows the neutral "no new receipt" state.
+- `void_receipt_number` (a `VD-…` from a ticketed void) on `GET /receipts/{n}`; and ideally a receipt-level `effective_status`. The page already renders both when present.
+- `DecisionRequest` accepting a blank approve note — not needed by this page (it omits a blank note), but keeps other clients consistent.
