@@ -472,17 +472,26 @@ def register_routes(app, api):
                 if step >= MAX_STEPS + validation_retries:
                     break
                 renew_lease(sid, lease)
-                response = await openai('responses', body={
-                    'model': os.getenv('ASSISTANT_MODEL', MODEL), 'store': False,
-                    'instructions': catalog.INSTRUCTIONS + '\nCurrent FL plant time (America/New_York): ' + api.get_plant_now().isoformat()
-                        + '\nFL reason catalog: ' + json.dumps(reasons['reasons'], ensure_ascii=False),
-                    'input': history, 'tools': functions, 'tool_choice': 'required',
-                    'parallel_tool_calls': False, 'max_output_tokens': 4000,
-                    'reasoning': {'effort': 'low'},
-                })
+                try:
+                    response = await openai('responses', body={
+                        'model': os.getenv('ASSISTANT_MODEL', MODEL), 'store': False,
+                        'instructions': catalog.INSTRUCTIONS + '\nCurrent FL plant time (America/New_York): ' + api.get_plant_now().isoformat()
+                            + '\nFL reason catalog: ' + json.dumps(reasons['reasons'], ensure_ascii=False),
+                        'input': history, 'tools': functions, 'tool_choice': 'required',
+                        'parallel_tool_calls': False, 'max_output_tokens': 4000,
+                        'reasoning': {'effort': 'low'},
+                    })
+                except HTTPException:
+                    if not validation_retries:
+                        raise
+                    cards.append({'kind': 'misunderstood'})
+                    break
                 output = response.get('output', [])
                 calls = [c for c in output if c.get('type') == 'function_call']
                 if response.get('status') != 'completed' or len(calls) != 1 or calls[0].get('name') not in allowed:
+                    if validation_retries:
+                        cards.append({'kind': 'misunderstood'})
+                        break
                     fail(502, 'TOOL_REQUIRED', 'No FL tool completed. NOT recorded / NO registrado.')
                 call = calls[0]
                 # Keep the failed call/output pair for the one model repair attempt.
@@ -508,6 +517,8 @@ def register_routes(app, api):
                         card['reasons'] = reasons['reasons']
                     cards.append(card)
                     break
+            if not cards and validation_retries:
+                cards.append({'kind': 'misunderstood'})
             if not cards:
                 fail(502, 'TOOL_LIMIT', 'Please give more precise details. NOT recorded / NO registrado.')
             # Bounded transcript, trim only at user-message boundaries to keep call/output pairs.

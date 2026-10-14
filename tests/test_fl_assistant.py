@@ -361,6 +361,19 @@ def test_invalid_json_gets_one_repair_attempt(client, chat, monkeypatch):
     assert len(requests) == 2
 
 
+@pytest.mark.parametrize('repair', [
+    HTTPException(502, 'Provider unavailable'),
+    {'status': 'completed', 'output': [{'type': 'message', 'content': 'invented answer'}]},
+    {'status': 'completed', 'output': [{'type': 'function_call', 'name': 'commit', 'arguments': '{}'}]},
+])
+def test_failed_repair_always_returns_plain_rephrase(client, chat, monkeypatch, repair):
+    requests = model(monkeypatch, ('inventory_lookup', {}), repair)
+    response = turn(client, chat)
+    assert response.status_code == 200, response.text
+    assert response.json()['cards'] == [{'kind': 'misunderstood'}]
+    assert len(requests) == 2
+
+
 @pytest.mark.parametrize('status', [403, 404, 422, 500])
 def test_lookup_business_failure_is_neutral_without_model_retry(client, chat, monkeypatch, status):
     requests = model(monkeypatch, ('inventory_lookup', {'q': 'Classic'}))

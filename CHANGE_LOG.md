@@ -1,5 +1,12 @@
 # Change Log
 
+## [2026-10-14 19:34] — Keep failed model repairs on the plain rephrase outcome
+- **File(s) changed:** fl_assistant.py, tests/test_fl_assistant.py
+- **What changed:** Return the fixed rephrase card if the single repair call times out, returns prose/forbidden tool, or exhausts the bounded tool loop; added three regression cases.
+- **Why:** Every unsuccessful repair must have the same staff-safe outcome.
+
+---
+
 ## [2026-10-14 19:33] — Add staging-only F1 request smoke runner
 - **File(s) changed:** scripts/check_assistant_requests_staging.py
 - **What changed:** Added guarded hosted-model checks for exact original/observed chat, Spanish scope refusal, inventory, receipts, missing receipt and editable unsent dictation; privately authenticates Michael staging and verifies no draft.
