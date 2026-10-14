@@ -118,7 +118,7 @@ class V3Tests(unittest.TestCase):
    c=patch(target,side_effect=AssertionError('LIVE ACCESS FORBIDDEN'));c.start();self.addCleanup(c.stop)
  def row(self,rid='R1',area='A',qty='90',time=None):
   t=time or self.t;r={k:'' for k in v.COUNT_COLUMNS}
-  r.update(sheet_id=rid,area=area,count_date=t.date().isoformat(),counter='TEST',start_time=(t-timedelta(minutes=10)).isoformat(),end_time=(t+timedelta(minutes=10)).isoformat(),row_id=rid,product_id='1',SKU='11001',name='TEST ingredient',row_kind='COUNT',lot_code='TEST-LOT',quantity=qty,unit='lb',location=area+' shelf',counted_time=t.isoformat())
+  r.update(sheet_id=rid,area=area,count_date=t.astimezone(f.PLANT).date().isoformat(),counter='TEST',start_time=(t-timedelta(minutes=10)).isoformat(),end_time=(t+timedelta(minutes=10)).isoformat(),row_id=rid,product_id='1',SKU='11001',name='TEST ingredient',row_kind='COUNT',lot_code='TEST-LOT',quantity=qty,unit='lb',location=area+' shelf',counted_time=t.isoformat())
   return r
  def line(self,q,t,entered=None,status='posted'):
   i=len(self.s['lines'])+1;x=dict(line_id=i,transaction_id=i,product_id=1,lot_id=1,quantity_lb=f.D(q),occurred_at=t.isoformat(),transaction_created_at=(entered or t).isoformat(),line_created_at=(entered or t).isoformat(),transaction_created_at_source='database',line_created_at_source='database',type='receive' if q>0 else 'make',effective_status=status,adjust_reason=None,operator_id='TEST',notes='',line_correction_at=None,transaction_correction_at=None)
@@ -139,7 +139,7 @@ class V3Tests(unittest.TestCase):
   (self.out/'review.json').write_text(json.dumps(self.data['review']))
   data=v.load_inputs(self.out/'count.csv',self.out/'coverage.csv',self.out/'moves.csv',self.out/'review.json')
   self.a=v.analyze(self.s,data);self.preview=self.out/'preview.json';self.preview.write_text(json.dumps(self.a,default=str))
-  self.approval=self.out/'approval.md';self.approval.write_text('\n'.join([f'Preview file: {self.preview.name}',f'SHA-256: {app.digest(self.preview.read_bytes())}',f'Approved product IDs: {self.approved_ids}','Owner name: FAKE Owner','Named actor: FAKE Owner',f'Date: {self.t.date()}','Signature: FAKE Owner','Opening entry classification: N',f'Owner approves held entries: {self.held_ok}',f'Extra-kosher lots: {self.kosher_lots}']))
+  self.approval=self.out/'approval.md';self.approval.write_text('\n'.join([f'Preview file: {self.preview.name}',f'SHA-256: {app.digest(self.preview.read_bytes())}',f'Approved product IDs: {self.approved_ids}','Owner name: FAKE Owner','Named actor: FAKE Owner',f'Date: {self.t.astimezone(f.PLANT).date()}','Signature: FAKE Owner','Opening entry classification: N',f'Owner approves held entries: {self.held_ok}',f'Extra-kosher lots: {self.kosher_lots}']))
   return app.load_plan(self.preview,self.approval,self.out/'count.csv')
  def run_apply(self,backend,apply=True):
   plan=self.persist();phrase=f'APPLY OPENING BALANCE {plan["cutoff"].astimezone(f.PLANT).date()} {plan["sha"]}'
@@ -710,4 +710,15 @@ class V3Tests(unittest.TestCase):
   plan=app.load_plan(self.preview,self.approval,self.out/'count.csv')
   note=next(body for route,body in b.calls if route.startswith('/exceptions/'))['note']
   self.assertEqual(len(plan['sha']),64);self.assertIn(plan['sha'],note)
+
+class PlantDateClockTests(unittest.TestCase):
+ """P1.25: fixtures take the New York plant date like the tool, so they pass at any ET wall time."""
+ TESTS=('test_apply_verify_named_actor_and_per_lot_cutoff','test_drift_refuses_write','test_R12_shortage_set_change_after_preview_stops_before_any_write','test_R1_extra_kosher_count_becomes_a_new_lot_found_with_owner_attestation')
+ def test_signed_apply_at_pinned_new_york_times(self):
+  from pinned_clock import pinned
+  for clock in ('2026-10-13T00:05','2026-10-13T12:00','2026-10-13T20:30','2026-10-13T23:30','2026-10-13T23:59','2026-03-08T23:30','2026-11-01T00:30'):
+   for name in self.TESTS:
+    with self.subTest(clock=clock,test=name),pinned(clock):
+     r=unittest.TestResult();V3Tests(name).run(r)
+     self.assertEqual([str(x[1]).splitlines()[-1] for x in r.failures+r.errors],[])
 if __name__=='__main__':unittest.main()

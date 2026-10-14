@@ -1,0 +1,426 @@
+{
+  "reference": "STG-CNT-A13CF3",
+  "mode": "ONE area against the DEPLOYED FastAPI-staging https://fastapi-staging-production-dd7b.up.railway.app (guarded staging DB); no local server",
+  "owner_actor": {
+    "id": 1000000096,
+    "name": "Michael (STAGING STG-CNT-A13CF3)"
+  },
+  "floor_actor": {
+    "id": 1000000097,
+    "name": "Arturo (STAGING STG-CNT-A13CF3)"
+  },
+  "products": {
+    "oats": 1000000129,
+    "sugar": 1000000130,
+    "coconut": 1000000131,
+    "batch": 1000000132,
+    "granola": 1000000133,
+    "cases15": 1000000134,
+    "misc1": 1000000135,
+    "misc2": 1000000136,
+    "misc3": 1000000137,
+    "misc4": 1000000138,
+    "misc5": 1000000139,
+    "misc6": 1000000140,
+    "extra": 1000000141
+  },
+  "synthetic_owner_not_michael": true,
+  "key_cache_wait_s": 32.2,
+  "shortage": {
+    "make_receipt": "MK-261013-022",
+    "exceptions": [
+      52
+    ],
+    "after": [
+      {
+        "id": 52,
+        "status": "resolved",
+        "resolution_kind": "counted",
+        "resolution_ticket_id": 206,
+        "resolution_receipt_number": "XR-261013-014",
+        "resolution_receipt_action": "resolve_exception",
+        "resolution_receipt_status": "committed",
+        "resolution_posting_receipt_number": "ADJ-261013-049",
+        "resolution": {
+          "via": "adjust_ticket",
+          "kind": "counted",
+          "delta_lb": 45.0,
+          "short_lb": 20.0,
+          "counted_lb": 25.0,
+          "book_before_lb": -20.0,
+          "new_balance_lb": 25.0,
+          "receipt_number": "ADJ-261013-049",
+          "transaction_id": 1000000227
+        }
+      }
+    ]
+  },
+  "areas": [
+    {
+      "area": "Dry storage",
+      "window": [
+        "2026-10-13T23:41:31-04:00",
+        "2026-10-13T23:41:51-04:00"
+      ],
+      "approved_products": [
+        1000000129,
+        1000000130,
+        1000000131,
+        1000000134,
+        1000000135,
+        1000000136,
+        1000000137,
+        1000000138,
+        1000000139,
+        1000000140,
+        1000000141
+      ],
+      "held_before_owner_review": [],
+      "preview_sha256": "9c97a6f1dc652a7a10525c7fa2394d1824e3a7d89ca8a054c3fe5c43066e313d",
+      "owner_approves_held": true,
+      "extra_kosher_lots": [
+        "1000000141:STG-CNT-A13CF3-EK-1"
+      ],
+      "timings_s": {
+        "preview_1_s": 1.0,
+        "owner_review_scripted_s": 0.0,
+        "dry_run_s": 0.7,
+        "apply_s": 40.2,
+        "verify_s": 0.5,
+        "pause_total_s": 42.4
+      },
+      "executor_timings_s": {
+        "confirmed": 0.6,
+        "posted": 39.1,
+        "verified": 39.5,
+        "per_lot_s": [
+          2.6,
+          4.7,
+          4.2,
+          2.7,
+          2.7,
+          2.7,
+          3.1,
+          2.7,
+          2.8,
+          2.9,
+          6.5
+        ],
+        "posts": 11
+      },
+      "readback": [
+        {
+          "product_id": "1000000129",
+          "name": "STG STG-CNT-A13CF3 Oats",
+          "lot_code": "STG-CNT-A13CF3-OATS-1",
+          "new_lot": "False",
+          "change": "-5",
+          "receipt_number": "ADJ-261013-047",
+          "transaction_id": "1000000225",
+          "balance_now": "395",
+          "planned": "395.0000",
+          "owner_holds": "",
+          "shortages_closed": "",
+          "kosher_tier": "regular",
+          "status": "POSTED"
+        },
+        {
+          "product_id": "1000000130",
+          "name": "STG STG-CNT-A13CF3 Sugar",
+          "lot_code": "STG-CNT-A13CF3-SUGAR-1",
+          "new_lot": "False",
+          "change": "-680",
+          "receipt_number": "ADJ-261013-048",
+          "transaction_id": "1000000226",
+          "balance_now": "520",
+          "planned": "520.0000",
+          "owner_holds": "LARGE_CORRECTION",
+          "shortages_closed": "",
+          "kosher_tier": "regular",
+          "status": "POSTED"
+        },
+        {
+          "product_id": "1000000131",
+          "name": "STG STG-CNT-A13CF3 Coconut",
+          "lot_code": "STG-CNT-A13CF3-COCONUT-1",
+          "new_lot": "False",
+          "change": "45",
+          "receipt_number": "ADJ-261013-049",
+          "transaction_id": "1000000227",
+          "balance_now": "25",
+          "planned": "25.0000",
+          "owner_holds": "",
+          "shortages_closed": "52",
+          "kosher_tier": "regular",
+          "status": "POSTED"
+        },
+        {
+          "product_id": "1000000134",
+          "name": "STG STG-CNT-A13CF3 Granola 15 LB case",
+          "lot_code": "STG-CNT-A13CF3-CASES15-1",
+          "new_lot": "False",
+          "change": "-45",
+          "receipt_number": "ADJ-261013-050",
+          "transaction_id": "1000000228",
+          "balance_now": "255",
+          "planned": "255.0000",
+          "owner_holds": "",
+          "shortages_closed": "",
+          "kosher_tier": "regular",
+          "status": "POSTED"
+        },
+        {
+          "product_id": "1000000135",
+          "name": "STG STG-CNT-A13CF3 Ingredient 1",
+          "lot_code": "STG-CNT-A13CF3-MISC1-1",
+          "new_lot": "False",
+          "change": "-1",
+          "receipt_number": "ADJ-261013-051",
+          "transaction_id": "1000000229",
+          "balance_now": "99",
+          "planned": "99.0000",
+          "owner_holds": "",
+          "shortages_closed": "",
+          "kosher_tier": "regular",
+          "status": "POSTED"
+        },
+        {
+          "product_id": "1000000136",
+          "name": "STG STG-CNT-A13CF3 Ingredient 2",
+          "lot_code": "STG-CNT-A13CF3-MISC2-1",
+          "new_lot": "False",
+          "change": "-2",
+          "receipt_number": "ADJ-261013-052",
+          "transaction_id": "1000000230",
+          "balance_now": "98",
+          "planned": "98.0000",
+          "owner_holds": "",
+          "shortages_closed": "",
+          "kosher_tier": "regular",
+          "status": "POSTED"
+        },
+        {
+          "product_id": "1000000137",
+          "name": "STG STG-CNT-A13CF3 Ingredient 3",
+          "lot_code": "STG-CNT-A13CF3-MISC3-1",
+          "new_lot": "False",
+          "change": "-3",
+          "receipt_number": "ADJ-261013-053",
+          "transaction_id": "1000000231",
+          "balance_now": "97",
+          "planned": "97.0000",
+          "owner_holds": "",
+          "shortages_closed": "",
+          "kosher_tier": "regular",
+          "status": "POSTED"
+        },
+        {
+          "product_id": "1000000138",
+          "name": "STG STG-CNT-A13CF3 Ingredient 4",
+          "lot_code": "STG-CNT-A13CF3-MISC4-1",
+          "new_lot": "False",
+          "change": "-4",
+          "receipt_number": "ADJ-261013-054",
+          "transaction_id": "1000000232",
+          "balance_now": "96",
+          "planned": "96.0000",
+          "owner_holds": "",
+          "shortages_closed": "",
+          "kosher_tier": "regular",
+          "status": "POSTED"
+        },
+        {
+          "product_id": "1000000139",
+          "name": "STG STG-CNT-A13CF3 Ingredient 5",
+          "lot_code": "STG-CNT-A13CF3-MISC5-1",
+          "new_lot": "False",
+          "change": "-5",
+          "receipt_number": "ADJ-261013-055",
+          "transaction_id": "1000000233",
+          "balance_now": "95",
+          "planned": "95.0000",
+          "owner_holds": "",
+          "shortages_closed": "",
+          "kosher_tier": "regular",
+          "status": "POSTED"
+        },
+        {
+          "product_id": "1000000140",
+          "name": "STG STG-CNT-A13CF3 Ingredient 6",
+          "lot_code": "STG-CNT-A13CF3-MISC6-1",
+          "new_lot": "False",
+          "change": "-6",
+          "receipt_number": "ADJ-261013-056",
+          "transaction_id": "1000000234",
+          "balance_now": "94",
+          "planned": "94.0000",
+          "owner_holds": "",
+          "shortages_closed": "",
+          "kosher_tier": "regular",
+          "status": "POSTED"
+        },
+        {
+          "product_id": "1000000141",
+          "name": "STG STG-CNT-A13CF3 Extra-kosher batch",
+          "lot_code": "STG-CNT-A13CF3-EK-1",
+          "new_lot": "True",
+          "change": "180",
+          "receipt_number": "FND-261013-006",
+          "transaction_id": "1000000235",
+          "balance_now": "180",
+          "planned": "180.0000",
+          "owner_holds": "KOSHER_ATTESTATION",
+          "shortages_closed": "",
+          "kosher_tier": "extra_kosher",
+          "status": "POSTED"
+        }
+      ],
+      "verify_exit": 2,
+      "verified_rows": [
+        {
+          "product_id": 1000000129,
+          "lot_code": "STG-CNT-A13CF3-OATS-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "395.0000",
+          "expected": "395"
+        },
+        {
+          "product_id": 1000000130,
+          "lot_code": "STG-CNT-A13CF3-SUGAR-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "520.0000",
+          "expected": "520"
+        },
+        {
+          "product_id": 1000000131,
+          "lot_code": "STG-CNT-A13CF3-COCONUT-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "25.0000",
+          "expected": "25"
+        },
+        {
+          "product_id": 1000000134,
+          "lot_code": "STG-CNT-A13CF3-CASES15-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "255.0000",
+          "expected": "255.0000"
+        },
+        {
+          "product_id": 1000000135,
+          "lot_code": "STG-CNT-A13CF3-MISC1-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "99.0000",
+          "expected": "99"
+        },
+        {
+          "product_id": 1000000136,
+          "lot_code": "STG-CNT-A13CF3-MISC2-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "98.0000",
+          "expected": "98"
+        },
+        {
+          "product_id": 1000000137,
+          "lot_code": "STG-CNT-A13CF3-MISC3-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "97.0000",
+          "expected": "97"
+        },
+        {
+          "product_id": 1000000138,
+          "lot_code": "STG-CNT-A13CF3-MISC4-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "96.0000",
+          "expected": "96"
+        },
+        {
+          "product_id": 1000000139,
+          "lot_code": "STG-CNT-A13CF3-MISC5-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "95.0000",
+          "expected": "95"
+        },
+        {
+          "product_id": 1000000140,
+          "lot_code": "STG-CNT-A13CF3-MISC6-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "94.0000",
+          "expected": "94"
+        },
+        {
+          "product_id": 1000000141,
+          "lot_code": "STG-CNT-A13CF3-EK-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "180.0000",
+          "expected": "180"
+        }
+      ],
+      "apply_log_tail": [
+        "Read back ADJ-261013-048: product 1000000130 lot STG-CNT-A13CF3-SUGAR-1 TX1000000226 by Michael (STAGING STG-CNT-A13CF3).",
+        "Read back ADJ-261013-049: product 1000000131 lot STG-CNT-A13CF3-COCONUT-1 TX1000000227 by Michael (STAGING STG-CNT-A13CF3).",
+        "Read back ADJ-261013-050: product 1000000134 lot STG-CNT-A13CF3-CASES15-1 TX1000000228 by Michael (STAGING STG-CNT-A13CF3).",
+        "Read back ADJ-261013-051: product 1000000135 lot STG-CNT-A13CF3-MISC1-1 TX1000000229 by Michael (STAGING STG-CNT-A13CF3).",
+        "Read back ADJ-261013-052: product 1000000136 lot STG-CNT-A13CF3-MISC2-1 TX1000000230 by Michael (STAGING STG-CNT-A13CF3).",
+        "Read back ADJ-261013-053: product 1000000137 lot STG-CNT-A13CF3-MISC3-1 TX1000000231 by Michael (STAGING STG-CNT-A13CF3).",
+        "Read back ADJ-261013-054: product 1000000138 lot STG-CNT-A13CF3-MISC4-1 TX1000000232 by Michael (STAGING STG-CNT-A13CF3).",
+        "Read back ADJ-261013-055: product 1000000139 lot STG-CNT-A13CF3-MISC5-1 TX1000000233 by Michael (STAGING STG-CNT-A13CF3).",
+        "Read back ADJ-261013-056: product 1000000140 lot STG-CNT-A13CF3-MISC6-1 TX1000000234 by Michael (STAGING STG-CNT-A13CF3).",
+        "Read back FND-261013-006: product 1000000141 lot STG-CNT-A13CF3-EK-1 TX1000000235 by Michael (STAGING STG-CNT-A13CF3).",
+        "    ADJ-261013-047  1000000129 / STG-CNT-A13CF3-OATS-1  change -5  balance now 395  POSTED",
+        "    ADJ-261013-048  1000000130 / STG-CNT-A13CF3-SUGAR-1  change -680  balance now 520  POSTED",
+        "    ADJ-261013-049  1000000131 / STG-CNT-A13CF3-COCONUT-1  change 45  balance now 25  POSTED",
+        "    ADJ-261013-050  1000000134 / STG-CNT-A13CF3-CASES15-1  change -45  balance now 255  POSTED",
+        "    ADJ-261013-051  1000000135 / STG-CNT-A13CF3-MISC1-1  change -1  balance now 99  POSTED",
+        "    ADJ-261013-052  1000000136 / STG-CNT-A13CF3-MISC2-1  change -2  balance now 98  POSTED",
+        "    ADJ-261013-053  1000000137 / STG-CNT-A13CF3-MISC3-1  change -3  balance now 97  POSTED",
+        "    ADJ-261013-054  1000000138 / STG-CNT-A13CF3-MISC4-1  change -4  balance now 96  POSTED",
+        "    ADJ-261013-055  1000000139 / STG-CNT-A13CF3-MISC5-1  change -5  balance now 95  POSTED",
+        "    ADJ-261013-056  1000000140 / STG-CNT-A13CF3-MISC6-1  change -6  balance now 94  POSTED",
+        "    FND-261013-006  1000000141 / STG-CNT-A13CF3-EK-1  change 180  balance now 180  POSTED",
+        "Executor seconds from start: {'confirmed': 0.6, 'posted': 39.1, 'verified': 39.5, 'per_lot_s': [2.6, 4.7, 4.2, 2.7, 2.7, 2.7, 3.1, 2.7, 2.8, 2.9, 6.5]}"
+      ]
+    }
+  ],
+  "extra_kosher_lot": [
+    {
+      "id": 1000000200,
+      "lot_code": "STG-CNT-A13CF3-EK-1",
+      "kosher_tier": "extra_kosher",
+      "kosher_attested_by_actor_id": 1000000096,
+      "kosher_attested_at": "2026-10-14 03:42:31.748639+00:00",
+      "entry_source": "found_inventory",
+      "lb": "180.0000",
+      "lines": 1
+    }
+  ],
+  "owner_holds": [
+    {
+      "id": 53,
+      "kind": "LARGE_CORRECTION",
+      "status": "resolved",
+      "resolution_kind": "approved",
+      "resolved_by_actor_id": 1000000096,
+      "receipt_number": "ADJ-261013-048"
+    },
+    {
+      "id": 54,
+      "kind": "KOSHER_ATTESTATION",
+      "status": "resolved",
+      "resolution_kind": "approved",
+      "resolved_by_actor_id": 1000000096,
+      "receipt_number": "FND-261013-006"
+    }
+  ],
+  "actors_deactivated_after_rehearsal": true
+}

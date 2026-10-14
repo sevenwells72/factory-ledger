@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-10-14 11:00 — PR #112 fix round 1: production dry-run paths under audits/fresh-start/
+- **File(s) changed:** `audits/fresh-start/HOSTED-REHEARSAL-2026-10-14.md`, `audits/fresh-start/test_dryrun_commands.py` (new), `.gitignore`, `CHANGE_LOG.md`
+- **What changed:** The production dry-run commands now take every input, the approval copy and every output from `D=audits/fresh-start/dryrun-$(date +%F)` instead of `~/fl-dryrun/` (which `fresh_start_common.local_path` refuses); the approval copy is a real `cp` line. `.gitignore` adds `audits/fresh-start/dryrun-*/` so nothing from the dry run is committed. New test parses the documented shell block: offline it checks the commands are preview / cp / apply-without-`--apply` / verify on `--target production`, that all 12 paths pass `local_path` and are gitignored; with a localhost `TEST_DATABASE_URL` it builds a throwaway DB from `tests/schema/schema.sql`, seeds one lot + owner actor, and runs the three documented commands as written (folder swapped for a temp dir) — preview exits 0, dry run prints `DRY RUN ONLY` with no journal/results, verify exits 2; sockets and API calls blocked; DB dropped after.
+- **Why:** Codex review of PR #112 (comment 6171087857, P2): the documented commands exited 1 before any DB access. No production or staging operations.
+
+---
+
+## 2026-10-14 00:05 — Hosted-staging count rehearsal (one area) + production dry-run checklist
+- **File(s) changed:** `scripts/count_rehearsal_staging.py`, `audits/fresh-start/HOSTED-REHEARSAL-2026-10-14.md` (new), `docs/deployments/count-rehearsal-hosted-staging-receipt.json` (new), `CHANGE_LOG.md`
+- **What changed:** Rehearsal script gains `--hosted`: one area against the deployed FastAPI-staging (no local server), waits for the 60 s actor-key cache, seeds a shortage lot, a −680 lb hold and a new extra-kosher lot plus 8 ordinary lots. The three-area local flow moved into `local_areas()` and the DB read-back into `evidence()` unchanged (not re-run). Ran it against staging deployment 6d169ef7 (d5e9fea): reference STG-CNT-A13CF3, ADJ-261013-047…056 + FND-261013-006, SHORTAGE #52 resolved/counted with XR-261013-014, LARGE_CORRECTION #53 and KOSHER_ATTESTATION #54 approved, all 11 lots READY difference 0; pause 42.4 s, 2.6–6.5 s per lot. Report includes Michael's production dry-run checklist.
+- **Why:** P1.21 "still owed": repeat one area against hosted staging after #108 merged; record real per-lot timings. Staging only; no production access.
+
+---
+
+## 2026-10-13 23:50 — P1.25: count-tool test fixtures use the New York plant date
+- **File(s) changed:** `audits/fresh-start/test_fresh_start_v3.py`, `audits/fresh-start/test_apply_reset.py`, `audits/fresh-start/pinned_clock.py` (new), `CHANGE_LOG.md`
+- **What changed:** Test-only. The v3 fixture's signed approval `Date:` and count-row `count_date` now come from `self.t.astimezone(f.PLANT)` instead of the UTC date; the v2 fixture's approval date comes from the cutoff's plant date instead of the machine-local `datetime.now()`. New `pinned_clock.py` freezes `datetime.now()` in the count-tool modules (`python3 pinned_clock.py 2026-10-13T23:59 test_apply_reset test_fresh_start_v3`). New `PlantDateClockTests` in both files run the signed-apply/drift/shortage/extra-kosher paths at pinned 00:05, 01:30, 12:00, 20:30, 23:30, 23:59 ET plus both DST-change nights. Tool code unchanged.
+- **Why:** FOLLOWUPS P1.25 — 39 count-tool tests failed late evening ET (reproduced live at 23:35 ET). Proof: 194/194 pass with the clock pinned at 00:05, 12:00, 20:30 and 23:59 ET, both with TZ=America/New_York and TZ=UTC; the new regression tests fail (13 and 4 subtests) against the old fixtures.
+
+---
+
 ## 2026-10-14 11:06 — Record PR 115 re-check validation and the background-session regression guard
 - **File(s) changed:** `tests/test_background_session_ui.js`, `docs/validation/dashboard-office-void-idle-fix-tests.json`, `docs/validation/dashboard-office-void.md`, `FACTORY_LEDGER_CHANGELOG.md`; local ignored runtime/test evidence
 - **What changed:** Strengthen the Node poll harness to evaluate the actual app marker declaration. Record 3,140 fresh-DB Python, 186 Node and 17 browser scenarios passing, add regression guard row 195, preserve historical evidence and document the task-owned local cluster/cleanup and unchanged global log.
