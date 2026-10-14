@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-14 11:44 — Post-Oct-14 housekeeping: production rollout rows 196–201, schema re-dump with 081/082, FOLLOWUPS
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `tests/schema/schema.sql`, `migrations/081_restore_ss_oat_bran.sql` (header comment only), `FOLLOWUPS.md`, `CHANGE_LOG.md`
+- **What changed:** FL changelog rows 196–201 record the production rollouts of #108, #111 (code only; `READONLY_API_KEY` not set on prod), #107 (with deploy IDs), #116 (082/081 on prod), #115 (gated off) and #112 (test/docs, deploys skipped). #104/#106/#109 already had rollout rows 184/188/185. `tests/schema/schema.sql` re-dumped from production (New York order date/number now in the dump, `\ir` 082 tail removed). 081 header no longer says "staging only". FOLLOWUPS: P1.9 marked done (created 2026-10-13), P1.24 heading states that stock true-ups come from the count + reset, not adjustments, new P1.25 (done, #112) and P1.26 (A5 part 2 minors, optional 48-hour late-entry wording, held-correction `success:false` contract).
+- **Why:** Housekeeping after the Oct 13–14 merges. Checked with Railway deployment lists, Netlify deploy lists and a READ ONLY production `migration_markers`/`batch_formulas` read. No app code changed, nothing written to production or staging.
+
+---
+
 ## 2026-10-14 11:00 — PR #112 fix round 1: production dry-run paths under audits/fresh-start/
 - **File(s) changed:** `audits/fresh-start/HOSTED-REHEARSAL-2026-10-14.md`, `audits/fresh-start/test_dryrun_commands.py` (new), `.gitignore`, `CHANGE_LOG.md`
 - **What changed:** The production dry-run commands now take every input, the approval copy and every output from `D=audits/fresh-start/dryrun-$(date +%F)` instead of `~/fl-dryrun/` (which `fresh_start_common.local_path` refuses); the approval copy is a real `cp` line. `.gitignore` adds `audits/fresh-start/dryrun-*/` so nothing from the dry run is committed. New test parses the documented shell block: offline it checks the commands are preview / cp / apply-without-`--apply` / verify on `--target production`, that all 12 paths pass `local_path` and are gitignored; with a localhost `TEST_DATABASE_URL` it builds a throwaway DB from `tests/schema/schema.sql`, seeds one lot + owner actor, and runs the three documented commands as written (folder swapped for a temp dir) — preview exits 0, dry run prints `DRY RUN ONLY` with no journal/results, verify exits 2; sockets and API calls blocked; DB dropped after.

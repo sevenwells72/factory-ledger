@@ -6,7 +6,8 @@
 -- 82 / 118: 0 -> 28. Batch sizes stay 350, 393, 379 lb respectively.
 -- Full before evidence: docs/deployments/pilot-triage-production-recipe-read.json.
 -- DATA ONLY: no historical transactions, lines, consumption, lots or balances touched.
--- Apply explicitly in ONE transaction as table owner, port 5432, staging only:
+-- Applied to staging (2026-10-14) and to production 2026-10-14 14:43:34Z (PR #116 merge 6efc5f7).
+-- Apply explicitly in ONE transaction as table owner, port 5432:
 -- BEGIN; SET LOCAL lock_timeout='5s'; SET LOCAL statement_timeout='60s';
 -- SET LOCAL search_path=public; [this file]; COMMIT;
 -- Formula ids are preserved; logical product/ingredient identity permits staging ids.

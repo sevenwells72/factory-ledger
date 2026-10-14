@@ -2,10 +2,10 @@
 -- PostgreSQL database dump
 --
 
-\restrict i5XsCHF0IrViMMrjMaaw10HVKNQf0DVqj8OP239DSiCU6QFGbn31BuQ96DssZob
+\restrict 9AR9WaXWTtqJkeWt7ytxJva3DsGes1kdbWi0i3dIO2bG3bXEH4KQhYlABwktO3r
 
 -- Dumped from database version 17.6
--- Dumped by pg_dump version 17.11 (Homebrew)
+-- Dumped by pg_dump version 17.10 (Homebrew)
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -88,11 +88,12 @@ CREATE FUNCTION public.generate_order_number() RETURNS trigger
     LANGUAGE plpgsql
     AS $_$
 DECLARE
-    today_prefix text := 'SO-' || to_char(CURRENT_DATE, 'YYMMDD');
+    plant_day date := (now() AT TIME ZONE 'America/New_York')::date;
+    today_prefix text := 'SO-' || to_char(plant_day, 'YYMMDD');
     allocated bigint;
 BEGIN
     INSERT INTO public.sales_order_number_counters(order_day, last_number)
-    SELECT CURRENT_DATE, COALESCE(MAX(split_part(order_number, '-', 3)::bigint), 0) + 1
+    SELECT plant_day, COALESCE(MAX(split_part(order_number, '-', 3)::bigint), 0) + 1
     FROM public.sales_orders WHERE order_number ~ ('^' || today_prefix || '-[0-9]+$')
     ON CONFLICT (order_day) DO UPDATE
         SET last_number = GREATEST(sales_order_number_counters.last_number + 1, EXCLUDED.last_number)
@@ -1947,7 +1948,7 @@ CREATE TABLE public.sales_orders (
     id integer NOT NULL,
     order_number text NOT NULL,
     customer_id integer NOT NULL,
-    order_date date DEFAULT CURRENT_DATE NOT NULL,
+    order_date date DEFAULT ((now() AT TIME ZONE 'America/New_York'::text))::date NOT NULL,
     requested_ship_date date,
     status text DEFAULT 'new'::text NOT NULL,
     notes text,
@@ -7199,7 +7200,5 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict i5XsCHF0IrViMMrjMaaw10HVKNQf0DVqj8OP239DSiCU6QFGbn31BuQ96DssZob
+\unrestrict 9AR9WaXWTtqJkeWt7ytxJva3DsGes1kdbWi0i3dIO2bG3bXEH4KQhYlABwktO3r
 
--- Pending pilot backend schema migration (data-only 081 is fixture-tested separately).
-\ir ../../migrations/082_order_plant_date.sql
