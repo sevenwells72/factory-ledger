@@ -8,6 +8,7 @@
     ['cancel_order_line','Cancel order line','Cancelar línea'],
     ['update_order_header','Update order header','Modificar encabezado'],
     ['update_order_status','Update order status','Cambiar estado'],
+    ['mark_order_ready','Ready to ship and note','Listo para enviar y nota'],
     ['close_order','Close order','Cerrar pedido'],
     ['cancel_order','Cancel order','Cancelar pedido'],
     ['reopen_order','Reopen order','Reabrir pedido'],
@@ -23,13 +24,14 @@
   function build(action,v){
     const body={client_source:'dashboard'},copy=names=>names.forEach(k=>{if(v[k]!==undefined&&v[k]!=='')body[k]=v[k];});
     let path,prefix='ORD',order;
-    if(['add_order_lines','update_order_line','cancel_order_line','update_order_header','update_order_status','close_order','cancel_order','reopen_order'].includes(action))order='/sales/orders/'+id(v.order_id);
+    if(['add_order_lines','update_order_line','cancel_order_line','update_order_header','update_order_status','mark_order_ready','close_order','cancel_order','reopen_order'].includes(action))order='/sales/orders/'+id(v.order_id);
     if(action==='create_order'){path='/sales/orders/prepare';body.customer_id=id(v.customer_id);body.customer_po=v.no_po?null:(v.customer_po||null);copy(['requested_ship_date','order_date','notes','notes_es']);body.lines=v.lines;}
     if(action==='add_order_lines'){path=order+'/lines/prepare';body.lines=v.lines;}
     if(action==='update_order_line'){path=order+'/lines/'+id(v.line_id)+'/update/prepare';copy(['quantity_lb','unit_price']);}
     if(action==='cancel_order_line')path=order+'/lines/'+id(v.line_id)+'/cancel/prepare';
     if(action==='update_order_header'){path=order+'/header/prepare';body.customer_po=v.no_po?null:(v.customer_po||null);for(const k of ['requested_ship_date','notes','notes_es'])if(v[k]!==undefined)body[k]=v[k]||null;if(v.customer_id)body.customer_id=id(v.customer_id);}
     if(action==='update_order_status'){path=order+'/status/prepare';body.status=v.status;}
+    if(action==='mark_order_ready'){path=order+'/ready/prepare';body.ready=Boolean(v.ready);body.note=v.note||null;}
     if(['close_order','cancel_order','reopen_order'].includes(action)){path=order+'/'+({close_order:'close',cancel_order:'cancel',reopen_order:'reopen'}[action])+'/prepare';copy(['reason','note']);if(v.related_so_id)body.related_so_id=id(v.related_so_id);}
     if(action.includes('expected_receipt')){
       prefix='ER';

@@ -725,6 +725,13 @@ def register_routes(app, api):
             except HTTPException as exc:
                 if exc.status_code >= 500:
                     raise
+                # An approved intake document has no reviewable draft. Refuse
+                # at prepare while retaining the core's locked status check.
+                if (isinstance(exc.detail, dict)
+                        and exc.detail.get('error_code') == 'DOCUMENT_ALREADY_APPROVED'):
+                    fail(409, 'DOCUMENT_ALREADY_APPROVED',
+                         f"Document #{payload['document_id']} was already approved.",
+                         message_es=f"El documento #{payload['document_id']} ya fue aprobado.")
                 blockers = [wt.blocker(exc)]
             finally:
                 cur.execute('ROLLBACK TO SAVEPOINT order_draft')

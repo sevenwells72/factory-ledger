@@ -1,5 +1,117 @@
 # Change Log
 
+## 2026-10-14 09:59 — Record completed PR 115 fix-round validation
+- **File(s) changed:** `docs/validation/dashboard-office-void.md`, `docs/validation/dashboard-office-void-fix-round-tests.json`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record all four required fixes and both minors, failing-before regressions, 3,091 fresh-DB Python passes, 177 Node passes and browser on/off results. Add regression guard row 193 and document local cleanup and the scope exception for the global log.
+- **Why:** Provide reviewable evidence before pushing PR #115 for Claude's next review; no merge or production access.
+
+---
+
+## 2026-10-14 09:56 — Complete shared-session browser parity and narrow-header layout
+- **File(s) changed:** `dashboard/key-session.css`, `tests/test_session_shift_fix_ui.js`, `tests/visual/run-session-shift-fix.mjs`
+- **What changed:** Wrap the narrow runs header so receipt tools and the shared-session bar fit without overflow; infer flag-off credential parity from captured requests instead of copying credential literals into tests.
+- **Why:** Preserve visible identity controls at 390px and verify authenticated reads without emitting credentials.
+
+---
+
+## 2026-10-14 09:56 — Align the prior PO regression with prepare-time refusal
+- **File(s) changed:** `tests/test_a7_review_fixes.py`
+- **What changed:** Update the already-approved source assertion to require immediate HTTP 409 with a clear message instead of issuing a blocked draft. Keep atomic intake and duplicate-acknowledgement assertions intact.
+- **Why:** The full fresh-DB run found one historical assertion expecting the old behavior; the review explicitly requires refusal during prepare. New tests separately preserve both PO/SO commit-race checks.
+
+---
+
+## 2026-10-14 09:55 — Keep the shared sign-in bar inside narrow screens
+- **File(s) changed:** `dashboard/key-session.css`, `dashboard/index.html`, `dashboard/runs.html`
+- **What changed:** Permit the session bar and identity/status text to shrink and wrap; bump the stylesheet cache version.
+- **Why:** The existing sign-in browser runner exposed a four-pixel overflow at 390px on both baseline and fixed JavaScript. Preserve all identity text while satisfying the requested mobile browser regression checks.
+
+---
+
+## 2026-10-14 09:55 — Prevent a pending sign-in from surviving a read-only choice
+- **File(s) changed:** `dashboard/shift-summary.js`, `tests/test_session_shift_fix_ui.js`, `tests/visual/run-session-shift-fix.mjs`
+- **What changed:** Invalidate a pending session exchange when choosing read-only; add the failing race regression and a browser runner covering actual order, expected-receipt and supplier controls plus shared Shift Summary sign-in in both flag modes.
+- **Why:** Prevent a late sign-in response from persisting an identity after the user chose read-only. The new race test fails before and passes after the fix.
+
+---
+
+## 2026-10-14 09:54 — Verify flag-off Ready-to-ship parity in the browser
+- **File(s) changed:** `tests/visual/run-office.mjs`
+- **What changed:** Use the visible detail control for post-write waits, make the fixture rerunnable and retain original diagnostics. Disabled mode passes hidden-form/no-new-write checks and the three legacy ready actions.
+- **Why:** Confirm item 4 preserves flag-off behavior with stable assertions after page navigation.
+
+---
+
+## 2026-10-14 09:53 — Preserve session identity across overlapping sign-in requests
+- **File(s) changed:** `dashboard/key-session.js`, `dashboard/shift-summary.js`, `tests/test_key_session_ui.js`, `tests/test_shift_summary_ui.js`, `tests/test_session_shift_fix_ui.js`
+- **What changed:** Guard asynchronous session exchanges from overwriting a newer or cleared identity; pin expiry handling to the sent credential and add race regressions. Drain the existing test harness's follow-up request so timeout tests exit cleanly.
+- **Why:** Independent review found overlapping shared sign-in exchanges could persist a stale identity. Both new race checks fail before the guard and pass after; affected Node suites pass 46 tests.
+
+---
+
+## 2026-10-14 09:52 — Validate all office actions through real browser controls
+- **File(s) changed:** `tests/visual/run-office.mjs`
+- **What changed:** Match the backend Spanish warning text, await legacy write readback and use navigation-safe checkbox clicks. Enabled-mode browser run passes 15 actions and 19 receipts, including list/note/detail ready tickets and floor permissions.
+- **Why:** Keep browser assertions aligned with actual page navigation and the authoritative translated failure.
+
+---
+
+## 2026-10-14 09:51 — Extend real browser coverage for ready tickets and Spanish warning failures
+- **File(s) changed:** `tests/visual/run-office.mjs`
+- **What changed:** Exercise all 15 office actions, list checkbox/note and detail ready tickets, floor authority, note preservation, Spanish unacknowledged warnings and legacy ready writes with the flag off.
+- **Why:** Verify the review fixes through real browser controls in both feature-flag modes.
+
+---
+
+## 2026-10-14 09:50 — Reuse personal sessions for dashboard reads and Shift Summary
+- **File(s) changed:** `dashboard/key-session.js`, `dashboard/shift-summary.js`, `dashboard/shift-summary.html`
+- **What changed:** Authenticate signed-in reads with the personal session; restore the shared sign-in for Shift Summary with expiry/logout safeguards and a 60-second request timeout; bump Shift Summary assets.
+- **Why:** Fix review items 1–3, reproduced as nine failures and two passing parity checks before implementation.
+
+---
+
+## 2026-10-14 09:50 — Route Sales Orders ready changes through reviewed tickets
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/office-logic.js`, `dashboard/office.js`
+- **What changed:** Hand off the ready checkbox and note to the mark_order_ready form when enabled; use server permissions and require the action's ORD receipt before treating changes as saved. Preserve the legacy route with the flag off.
+- **Why:** Fix review item 4. New regressions improve from five failures/one pass to six passes; focused Node checks total 33 passes.
+
+---
+
+## 2026-10-14 09:50 — Refuse approved documents before issuing a draft and translate warning failures
+- **File(s) changed:** `order_tickets.py`, `write_tickets.py`
+- **What changed:** Return clear bilingual HTTP 409 from approval preparation when the existing atomic approval core finds an approved PO/SO; add Spanish warning-acknowledgement failure text.
+- **Why:** Both minor review findings reproduced as three failing baseline tests; existing commit-race guards remain intact.
+
+---
+
+## 2026-10-14 09:50 — Add approval-prepare and Spanish warning regressions
+- **File(s) changed:** `tests/test_office_prepare_review.py`
+- **What changed:** Add five cases for already-approved PO/SO refusal at prepare, stale document refusal at commit and translated warning retry.
+- **Why:** Capture both minor review findings and preserve the existing atomic commit guards.
+
+---
+
+## 2026-10-14 09:49 — Add session reads and Shift Summary review regressions
+- **File(s) changed:** `tests/test_session_shift_fix_ui.js`
+- **What changed:** Add behavior checks for personal-session reads, signed-out/flag-off/external parity, shared Shift Summary sign-in, expiry, stale responses and the 60-second request timeout.
+- **Why:** Reproduce review items 1–3 before changing the session integration.
+
+---
+
+## 2026-10-14 09:49 — Add failing Ready-to-ship review regressions
+- **File(s) changed:** `tests/test_ready_ticket_ui.js`
+- **What changed:** Six checks cover ticket preparation, permissions, checkbox/note handoff and flag-off parity; baseline reports five failures and one passing parity check.
+- **Why:** Reproduce review item 4 before replacing the direct ready mutation.
+
+---
+
+## 2026-10-14 09:49 — Invalidate browser caches for PR 115 review fixes
+- **File(s) changed:** `dashboard/entry.html`, `dashboard/exceptions.html`, `dashboard/fl-assistant.html`, `dashboard/index.html`, `dashboard/office.html`, `dashboard/receipt.html`, `dashboard/runs.html`
+- **What changed:** Bump personal-session, Sales Orders and office asset versions for the review fixes.
+- **Why:** Ensure browsers load the corrected session reads and ticketed ready controls. User restricts this round to this worktree; the global iCloud change log is outside scope and remains untouched.
+
+---
+
 ## 2026-10-14 08:42 — Record hosted SS1 make and 30-receipt summary under 1.3 seconds
 - **File(s) changed:** `docs/deployments/pilot-triage-staging-hosted.json`, `docs/deployments/pilot-triage-validation.json`, `docs/deployments/pilot-triage-backend.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Record hosted SS1 make and 30-receipt summary under 1.3 seconds

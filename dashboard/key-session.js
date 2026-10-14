@@ -3,19 +3,20 @@
   'use strict';
   const STORE = 'fl-key-session-token';
   function create({ base, fetch: transport, storage, config: sharedConfig, changed = () => {} }) {
-    let enabled = false, token = '', actor = null;
+    let enabled = false, token = '', actor = null, revision = 0;
     const publish = () => changed({ enabled, actor, signedIn: !!token });
-    function clear() { token = ''; actor = null; storage.removeItem(STORE); publish(); }
+    function clear() { revision += 1; token = ''; actor = null; storage.removeItem(STORE); publish(); }
     async function request(path, options = {}) {
+      const requestToken = token;
       const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 15000);
       let response, result;
       try {
         response = await transport(base + path, { ...options, cache: 'no-store', signal: controller.signal,
-          headers: { ...(options.headers || {}), ...(token ? { 'X-API-Key': token } : {}) } });
+          headers: { ...(options.headers || {}), ...(requestToken ? { 'X-API-Key': requestToken } : {}) } });
         result = await response.json();
       } finally { clearTimeout(timer); }
       if (!response.ok) {
-        if (result.detail?.error_code === 'SESSION_EXPIRED') clear();
+        if (result.detail?.error_code === 'SESSION_EXPIRED' && requestToken === token) clear();
         const error = new Error(result.detail?.message || 'Sign-in request failed. Please try again.');
         error.status = response.status; error.detail = result.detail; throw error;
       }
@@ -23,31 +24,38 @@
     }
     return {
       async init() {
+        const operation = revision;
         const config = await (sharedConfig || request('/auth/session/config'));
+        if (operation !== revision) return enabled;
         enabled = config.key_sessions_enabled === true;
         if (enabled) {
           token = storage.getItem(STORE) || '';
           if (token) {
             try { const who = await request('/auth/whoami');
+              if (operation !== revision) return enabled;
               if (who.key_kind !== 'session' || !who.actor) clear(); else actor = who.actor;
-            } catch (error) { if (error.status === 401 || error.status === 403) clear(); else throw error; }
+            } catch (error) { if (operation !== revision) return enabled; if (error.status === 401 || error.status === 403) clear(); else throw error; }
           }
         } else storage.removeItem(STORE);
         publish(); return enabled;
       },
       async signIn(personalKey) {
         if (!enabled) throw new Error('Key sessions are unavailable.');
+        const operation = ++revision;
         const result = await request('/auth/session', { method: 'POST',
           headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ actor_key: personalKey }) });
+        if (operation !== revision) throw new Error('Sign-in changed. Please try again.');
         if (result.key_kind !== 'session' || !result.session_token || !result.actor) throw new Error('FL did not confirm a session.');
         token = result.session_token; actor = result.actor;
         storage.setItem(STORE, token); publish(); return actor;
       },
       async signOut() {
+        const operation = ++revision;
         if (token) {
           try { await request('/auth/session/logout', { method: 'POST' }); }
           catch (error) { if (error.status !== 401) throw error; }
         }
+        if (operation !== revision) return;
         clear();
       },
       clear,
@@ -113,12 +121,15 @@
     // Configuration errors are surfaced by saves and must not silently downgrade auth.
     ready.catch(() => {});
     return {
-      async prepare(url, options) {
-        // Background reads retain the shared credential and cannot keep a
-        // personal session alive while a tablet is unattended.
-        if (['GET','HEAD','OPTIONS'].includes((options.method || 'GET').toUpperCase())) return options;
+      async prepare(url, options = {}) {
+        // Restoration must finish before any authenticated request. Signed-in
+        // reads need the same person-bound scope as writes on the pilot API.
+        if (new URL(url, location.href).origin !== new URL(base).origin) return options;
         await ready;
-        if (!client.enabled || new URL(url, location.href).origin !== new URL(base).origin) return options;
+        if (!client.enabled) return options;
+        if (['GET','HEAD','OPTIONS'].includes((options.method || 'GET').toUpperCase())) {
+          return client.actor ? { ...options, headers: await client.headers(options.headers) } : options;
+        }
         if (!client.actor) {
           if (!dialog) throw new Error('Sign-in is still loading. Please try again.');
           if (resolvePending) throw new Error('Complete the pending sign-in first.');

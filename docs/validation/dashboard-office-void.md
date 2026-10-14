@@ -48,3 +48,22 @@ Local Chrome acceptance passes all 14 office forms and owner/floor void with the
 **3,086 Python tests and 155 Node tests passed**, zero failures/errors/skips. The full suite used fresh UTF-8 PostgreSQL 17 databases in 21 sequential groups; the sole disposable database was dropped after every group. No browser database or local server remains. Disk checked before heavy steps (6.3 GiB free at final suite start). All browser checks above passed on the final application behavior, including bilingual neutral lookup. Source syntax and diff checks pass. No additional schema migration.
 
 Part 1 pushed at **9b073b1**, with its Claude Code review-request note on PR #115. Part 2 is pushed separately with its own review request. These are builder checks; Claude Code's independent review remains pending.
+
+## PR #115 fix round — October 14
+
+Addressed the full [Claude review](https://github.com/sevenwells72/factory-ledger/pull/115#issuecomment-6168408916) of 585ac28. Current origin/main remains 611d0c4, already an ancestor; no rebase was needed.
+
+1. Signed-in Sales Orders, Expected Receipts and supplier reads await session restoration and use the personal session. Signed-out/flag-off reads retain existing behavior; credentials stay on the API origin.
+2. Shift Summary loads the shared sign-in library, restores the existing session, and exchanges a key only when starting a new sign-in. Expiry/logout and late responses cannot restore an old person; overlapping exchanges and a switch to read-only cannot persist a stale session.
+3. Shift Summary reads and confirmations allow 60 seconds.
+4. With the flag on, list/detail Ready-to-ship checkboxes and the ready note open the existing mark_order_ready prepare → reviewed draft → Record flow. The exact mark/note is preserved, floor permission comes from FL, and success requires that action's ORD receipt. Flag-off legacy writes remain unchanged.
+
+Both minors are fixed: unacknowledged-warning failure text is entirely Spanish when Spanish is selected; an already-approved PO or SO returns a clear bilingual HTTP 409 at prepare without issuing a ticket. Approval that happens after prepare is still refused at Record.
+
+Regression evidence before fixes: session/Shift checks **9 failed / 2 passed**; ready controls **5 failed / 1 passed**; approval/Spanish checks **3 failed / 2 passed**. Independent review also found overlapping-exchange and read-only-transition races; their new tests failed before and pass after the guards. All regressions pass in the final suites. One historical PO assertion expected a blocked draft and was updated to the requested immediate refusal, retaining its atomic intake and duplicate-warning checks.
+
+Final validation: **3,091 Python tests passed** across all 21 fresh UTF-8 PostgreSQL 17 groups, with one disposable database at a time; **177 Node tests passed**. Zero failures, errors or skips. Office Chrome ON passes 15 actions/19 receipts, list checkbox/note/detail ticket routes, floor authority and fully Spanish failure; OFF passes hidden forms and three legacy ready writes. Void, D1/D2 gating, session, and new session/Shift browser runners pass both flags. Preview routing passes 13 pages × 4 hosts in each mode, with zero hosted API calls. The existing session runner exposed a baseline four-pixel mobile overflow; wrapping the session header fixes it at 390px. Syntax and diff checks pass; independent subagent review is clear.
+
+Only ~/dev/fl-d2office-wt and its disposable local test databases were used. Both temporary databases were dropped and servers stopped. No production/staging access, migration, hosted deployment, other-worktree changes or merge. Cache versions are bumped. The project logs are updated; the global iCloud log is outside the user's explicit worktree scope and remains untouched. Keep PR #115 draft; this is builder validation for Claude's re-review.
+
+Machine-readable evidence: [fix-round results](dashboard-office-void-fix-round-tests.json).
