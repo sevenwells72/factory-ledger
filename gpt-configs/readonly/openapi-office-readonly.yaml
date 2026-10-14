@@ -1,0 +1,332 @@
+openapi: 3.1.0
+info:
+  title: Factory Ledger System (read-only)
+  version: 4.0.0
+  description: "READ-ONLY. Answers questions from Factory Ledger: inventory, lots, traceability, production, customers and sales orders. Every write action was removed at cutover (G1); entries go through the FL Assistant in the FL dashboard."
+# G1 read-only copy of openapi-gpt-v3.yaml v3.5.0: the 13 GET operations plus
+# resolveProducts (a lookup) — 14 of the 30-operation cap. Paste into the
+# office GPT's Actions panel on cutover day (gpt-configs/readonly/CUTOVER_CHECKLIST.md).
+servers:
+  - url: https://fastapi-production-b73a.up.railway.app
+security:
+  - ApiKeyAuth: []
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+  schemas:
+    ErrorResponse:
+      type: object
+      description: "Structured 4xx error. GPT surfaces detail.suggestions to the operator. Some failures also carry success: false and error_detail {code, message}."
+      properties:
+        success:
+          type: boolean
+          description: "Always false on error responses."
+        error_detail:
+          type: object
+          description: "Uniform structured error: code (stable machine code or HTTP_<status>) and message."
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+        detail:
+          type: object
+          properties:
+            error_code:
+              type: string
+              description: "Stable machine code, e.g. CUSTOMER_AMBIGUOUS, PRODUCT_NOT_FOUND, ORDER_NOT_FOUND."
+            message:
+              type: string
+            input:
+              type: string
+              description: "The raw input that triggered the error."
+            suggestions:
+              type: array
+              items:
+                type: object
+              description: "Candidate matches when applicable. Surface to operator for disambiguation."
+paths:
+  /products/search:
+    get:
+      operationId: searchProducts
+      summary: "Search products using 3-tier matching: exact -> keyword (word-order independent) -> trigram similarity. Returns match_tier per result."
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          description: "Product name, partial name, or odoo_code. Word order does not matter -- 'Chocolate Sprinkles 10' finds 'Sprinkles Chocolate 10 LB'."
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: "Product search results with match_tier (exact, keyword, or trigram). Includes case_size_lb, default_batch_lb."
+  /products/resolve:
+    post:
+      operationId: resolveProducts
+      summary: "Bulk-resolve raw product names to database products. Use to match several product names at once (e.g. from a pasted list or an order confirmation). Returns a match only when unambiguous; otherwise ask the user to choose from candidates."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [names]
+              properties:
+                names:
+                  type: array
+                  maxItems: 50
+                  items:
+                    type: string
+                    maxLength: 500
+                  description: "Up to 50 raw product names from OCR or order confirmations; NUL bytes are rejected with 422."
+            example:
+              names:
+                - "Chocolate Sprinkles 10 lb"
+                - "Rainbow Sprinkles 10 lb Case"
+                - "90002"
+      responses:
+        '200':
+          description: |
+            success: true, plus each item: input, match {id, name, odoo_code} or null, match_tier (exact/alias/keyword/trigram/null), confidence (high/medium/low/none).
+            Ambiguous or unconfident inputs return match: null with candidates, alternatives, and ask; never pick a candidate automatically. Summary has total/resolved/unresolved.
+  /bom/batches/{batch_id}/formula:
+    get:
+      operationId: getBatchFormula
+      summary: Get batch formula with ingredient IDs needed for lot overrides and exclusions
+      parameters:
+        - name: batch_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Batch formula with ingredient product IDs. May include verification_notes / verification_notes_es and production_warning (e.g. Kosher Ignition requirement) — relay the note verbatim to the operator
+  /inventory/lookup:
+    get:
+      operationId: inventoryLookup
+      summary: "Search inventory by product name (fuzzy). This is the PRIMARY endpoint for all inventory questions."
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Fuzzy product name query (e.g. "rainbow sprinkles")
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 50
+      responses:
+        '200':
+          description: "Returns {query, results[]} where each result has product, sku, lots[], total_on_hand"
+  /lots/by-code/{lot_code}:
+    get:
+      operationId: getLotByCode
+      summary: Look up lot by lot code (includes supplier_lot_code and supplier_lot_entries)
+      parameters:
+        - name: lot_code
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lot details with supplier lot info
+  /trace/batch/{lot_code}:
+    get:
+      operationId: traceBatch
+      summary: Trace batch ingredients (backward trace)
+      parameters:
+        - name: lot_code
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: product_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Disambiguate when lot_code matches multiple products. Pass the product_id from the 409 ambiguous_lot_code response.
+      responses:
+        '200':
+          description: "Batch trace with ingredient lots. Includes case_size_lb, output_units, on_hand_units for packaged products."
+  /trace/ingredient/{lot_code}:
+    get:
+      operationId: traceIngredient
+      summary: Trace ingredient usage (forward trace)
+      parameters:
+        - name: lot_code
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: product_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Disambiguate when lot_code matches multiple products. Pass the product_id from the 409 ambiguous_lot_code response.
+      responses:
+        '200':
+          description: Ingredient usage trace
+  /trace/supplier-lot/{supplier_lot_code}:
+    get:
+      operationId: traceSupplierLot
+      summary: FDA recall trace — find all internal lots and exposure for a supplier lot code
+      parameters:
+        - name: supplier_lot_code
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: product_id
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Filter to a specific product when supplier lot code matches multiple.
+      responses:
+        '200':
+          description: Supplier lot exposure trace with matched internal lots and total exposure summary
+  /transactions/history:
+    get:
+      operationId: getTransactionHistory
+      summary: Get recent transaction history
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+        - name: transaction_type
+          in: query
+          schema:
+            type: string
+            enum: [receive, ship, make, pack, adjust]
+        - name: product_name
+          in: query
+          schema:
+            type: string
+        - name: since
+          in: query
+          description: Start date (inclusive), format YYYY-MM-DD
+          schema:
+            type: string
+            format: date
+        - name: until
+          in: query
+          description: End date (inclusive), format YYYY-MM-DD
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Transaction history
+  /production/day-summary:
+    get:
+      operationId: getDaySummary
+      summary: "Get daily production summary — all make/pack/adjust activity grouped by product with lot-level detail."
+      parameters:
+        - name: date
+          in: query
+          description: "Date in YYYY-MM-DD format; defaults to today"
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: "Day summary with batches_made, finished_goods_packed, adjustments, ingredient consumption"
+  /customers:
+    get:
+      operationId: listCustomers
+      summary: List all customers
+      parameters:
+        - name: active_only
+          in: query
+          schema:
+            type: boolean
+            default: true
+      responses:
+        '200':
+          description: Customer list
+  /customers/search:
+    get:
+      operationId: searchCustomers
+      summary: "Search customers by name (fuzzy, includes aliases). Use for customer lookup and disambiguation."
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+            minLength: 1
+          description: "Customer name or partial name to search"
+      responses:
+        '200':
+          description: "Matching customers with id, name, contact_name, phone, email"
+  /sales/orders:
+    get:
+      operationId: listOrders
+      summary: List sales orders with filters
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: customer
+          in: query
+          schema:
+            type: string
+        - name: overdue_only
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 200
+      responses:
+        '200':
+          description: "Sales orders with packaged-unit totals plus additive inventory_ready, dispatch_ready, fulfillment_diverged, shortage_lb, allocated_lb, remaining_effective_lb, and blockers readiness fields. Rows also carry state, fulfillment, health, ordered_lb, and shipped_effective_lb."
+  /sales/orders/{order_id}:
+    get:
+      operationId: getOrder
+      summary: Get sales order details
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: "Order DB id (integer) or order number (e.g. 'SO-260323-001')"
+      responses:
+        '200':
+          description: "Order details with additive order readiness and per-line readiness objects derived from posted ledger shipments, live allocations, and dispatch blockers; service lines are excluded from physical readiness totals."
+        '404':
+          description: "ORDER_NOT_FOUND"
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

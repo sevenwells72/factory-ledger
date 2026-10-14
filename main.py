@@ -358,6 +358,11 @@ API_KEY = (os.getenv("API_KEY") or "").strip()
 # DASHBOARD_KEY_ALLOWLIST (see verify_api_key); everything else -> 403.
 # Env-only (no literal fallback) — startup() raises if it is missing.
 DASHBOARD_API_KEY = (os.getenv("DASHBOARD_API_KEY") or "").strip()
+# G1 (design §0.6, §10.1 steps 3–4): third shared key, for the two custom GPTs
+# once they go read-only at cutover. Accepted ONLY on READONLY_KEY_ALLOWLIST;
+# every other route -> 403. Optional: unset (the default) = the key does not
+# exist and nothing about the other keys changes.
+READONLY_API_KEY = (os.getenv("READONLY_API_KEY") or "").strip()
 
 # Timezone configuration
 PLANT_TIMEZONE = ZoneInfo("America/New_York")
@@ -2443,6 +2448,10 @@ async def startup():
         raise RuntimeError("DASHBOARD_API_KEY env var required — the dashboard's scoped key has no fallback")
     if DASHBOARD_API_KEY == API_KEY:
         logger.warning("DASHBOARD_API_KEY equals API_KEY — dashboard key scoping is ineffective")
+    if READONLY_API_KEY and READONLY_API_KEY in (API_KEY, DASHBOARD_API_KEY):
+        # The legacy keys are compared first, so a shared value would silently
+        # hand the GPTs master or dashboard (write) scope.
+        raise RuntimeError("READONLY_API_KEY must differ from API_KEY and DASHBOARD_API_KEY")
     try:
         db_pool = pool.ThreadedConnectionPool(minconn=2, maxconn=20, dsn=DATABASE_URL)
         logger.info("Database connection pool created")
@@ -2714,6 +2723,8 @@ def _capture_readonly_diagnostics() -> dict:
 #   * API_KEY (master)          — full access to every authenticated route.
 #   * DASHBOARD_API_KEY (scoped) — accepted ONLY on (METHOD, route-template)
 #     pairs in DASHBOARD_KEY_ALLOWLIST; any other route returns 403.
+#   * READONLY_API_KEY (G1, optional) — the GPTs after cutover; accepted ONLY
+#     on READONLY_KEY_ALLOWLIST (reads); any other route returns 403.
 #
 # The allowlist is keyed on the *route template* (request.scope["route"].path,
 # e.g. "/sales/orders/{order_id}"), not the raw URL, so path params can't be
@@ -2832,6 +2843,31 @@ DASHBOARD_KEY_ALLOWLIST = frozenset({
     ("POST", "/supply-requests"),
     ("PATCH", "/supply-requests/{supply_request_id}"),
 }) | write_tickets.DASHBOARD_ROUTES | shift_summary.ROUTES   # A9: the shift summary GET + confirm POST (contract §1, §3)
+
+
+# G1: the read-only GPT key (READONLY_API_KEY). Exactly the operations left in
+# the trimmed GPT action schemas (gpt-configs/readonly/) — the GETs both GPTs
+# use plus the POST /products/resolve lookup, which writes nothing. Every entry
+# is also on DASHBOARD_KEY_ALLOWLIST or ACTOR_WRITE_ALLOWLIST; nothing here is
+# a write. tests/test_readonly_api_key.py pins this set to the two YAMLs.
+READONLY_KEY_ALLOWLIST = frozenset({
+    ("POST", "/products/resolve"),
+    ("GET", "/products/search"),
+    ("GET", "/bom/products"),
+    ("GET", "/bom/batches/{batch_id}/formula"),
+    ("GET", "/inventory/lookup"),
+    ("GET", "/lots/by-code/{lot_code}"),
+    ("GET", "/lots/by-supplier-lot/{supplier_lot_code}"),
+    ("GET", "/trace/batch/{lot_code}"),
+    ("GET", "/trace/ingredient/{lot_code}"),
+    ("GET", "/trace/supplier-lot/{supplier_lot_code}"),
+    ("GET", "/transactions/history"),
+    ("GET", "/production/day-summary"),
+    ("GET", "/customers"),
+    ("GET", "/customers/search"),
+    ("GET", "/sales/orders"),
+    ("GET", "/sales/orders/{order_id}"),
+})
 
 
 def _route_key(request: Request):
@@ -3187,8 +3223,9 @@ def _record_actor_write(cur, request: Optional[Request], target_table: str,
 
 def _authorize_api_key(provided_key: str, request: Request, invalid_status: int = 403) -> bool:
     """Shared check for all dependencies. Master key -> always OK. Dashboard
-    key -> DASHBOARD_KEY_ALLOWLIST. Actor keys additionally reach
-    ACTOR_WRITE_ALLOWLIST, regardless of role.
+    key -> DASHBOARD_KEY_ALLOWLIST. Read-only GPT key (G1, only when
+    READONLY_API_KEY is set) -> READONLY_KEY_ALLOWLIST. Actor keys additionally
+    reach ACTOR_WRITE_ALLOWLIST, regardless of role.
 
     Status codes are unchanged from before FR-15, deliberately: a missing key
     is 401, and an unrecognised key is `invalid_status` (403 on the header
@@ -3206,6 +3243,11 @@ def _authorize_api_key(provided_key: str, request: Request, invalid_status: int 
     if DASHBOARD_API_KEY and secrets.compare_digest(provided_key, DASHBOARD_API_KEY):
         request.state.key_kind = "legacy_dashboard"
         if _route_key(request) in DASHBOARD_KEY_ALLOWLIST:
+            return True
+        raise HTTPException(status_code=403, detail="API key not authorized for this endpoint")
+    if READONLY_API_KEY and secrets.compare_digest(provided_key, READONLY_API_KEY):
+        request.state.key_kind = "readonly"
+        if _route_key(request) in READONLY_KEY_ALLOWLIST:
             return True
         raise HTTPException(status_code=403, detail="API key not authorized for this endpoint")
     actor = _resolve_actor(provided_key)
