@@ -1,5 +1,18 @@
 # Change Log
 
+## 2026-10-14 14:48 — O-7 Codex fix round 1 (6175101774): actor-key refusal, Shift Summary rotation, literal redaction + stronger guard, CI workflow
+- **File(s) changed:** `main.py`, `dashboard/shift-summary.js`, `dashboard/shift-summary.html` (v=9), `scripts/check_no_key_literals.py`, `.github/workflows/key-literal-guard.yml` (moved from `docs/cutover/key-literal-guard.workflow.yml`), `docs/cutover/O-7-dashboard-key-rotation.md`, `docs/deployments/o7-dashboard-key-staging.md`, `tests/test_dashboard_key_delivery.py`, `tests/test_session_shift_fix_ui.js`; values redacted in `DEPLOYMENT.md`, `gpt-instructions-v3.md`, `gpt-configs/sources/floor-specific.md`, `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`, `archive/superseded-instructions/GPT_INSTRUCTIONS.md`, `audits/reports/DASHBOARD_ACTIONABILITY_AUDIT.md`, 7 `docs/design*` files, `docs/manual-tests/044-so-allocations-pr6-dashboard.md`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:**
+  - **(1)** Startup raises if `DASHBOARD_API_KEY` equals `API_KEY` (was a warning), `READONLY_API_KEY` or any actor key, active or not. `GET /auth/dashboard-key` returns 503 in the same cases and when the actor lookup fails. A lookup result is cached for 60 s; a failure is never cached.
+  - **(2)** Shift Summary read-only holds a marker, not the key. Each request resolves `FLDashboard.key(API)`, so an open view follows a rotation.
+  - **(3)** 46 occurrences of the retired dashboard literal and the documented master literal are redacted (values only; GPT sources and dist stay in sync and under 8,000 chars). This edits key values inside earlier CHANGE_LOG/FL rows on Michael's explicit instruction. The guard drops its history exemption, adds the master fingerprint, and flags key-shaped literals (`X-API-Key`, Bearer, `?key=`, `*API_KEY=`) outside `tests/`; a planted fake fails it with redacted output.
+  - **(4)** Hosted 404/502 in review = staging redeployed from `main` by the #120 merge (879c4de7, 18:01:44Z). The visual audit gives 417 FAIL on main 5a2d57e vs 421 on the branch; the only differing rule is LAYOUT-020 (timing), flipping both ways — pre-existing noise, nothing to fix.
+  - **(5)** CI workflow added; the guard check passed on the PR.
+  - **Staging:** rotated twice with `--skip-deploys` + `railway up` (`ec4a2065`, `43034346`). Probe and pages ALL PASS on both hosts; open read-only Shift Summary views switched keys with no 403.
+- **Why:** Codex review fix round 1 on PR #122; Michael's instructions for items 1–5.
+
+---
+
 ## 2026-10-14 14:02 — O-7 staging rotation proof; runbook staging-redeploy gotcha; page check waits for network idle
 - **File(s) changed:** `docs/deployments/o7-dashboard-key-staging.md` (new), `docs/cutover/O-7-dashboard-key-rotation.md`, `scripts/check_dashboard_pages.mjs`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Rotated the FastAPI-staging `DASHBOARD_API_KEY` (sha256 e5addd5647ef → c543da8ada2c) using the O-7 procedure. Branch upload `c5ac4ef3`; the variable deploy `bb760e54` built `main` and the route returned 404; re-upload `a2c97d4c`. The probe then gave ALL PASS: route serves the new key no-store, new key 200, old key 403, session 401, seven prepare routes 403. The page check gave ALL PASS on Railway `/dashboard/` and on Netlify deploy-preview-122 with no rebuild. Open tabs switched keys without a reload. The live-value guard gave 0 findings. Runbook now uses `railway variable set --stdin` and documents `--skip-deploys` + re-upload for staging branch uploads. The page check waits for network idle (staging index reads took more than 4 s).

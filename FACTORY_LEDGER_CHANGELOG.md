@@ -1,5 +1,12 @@
 # Factory Ledger Changelog — Regression Guard
 
+**Row 204 fix round 1 (2026-10-14; PR #122 unmerged, staging only; Codex 6175101774):**
+
+- **Startup refusal:** startup now refuses a `DASHBOARD_API_KEY` equal to master, read-only or any actor key; the route returns 503 then, and fails closed if the lookup fails. **Breaks if reverted:** a published dashboard key could be a personal key that becomes a full actor credential after rotation.
+- **Shift Summary:** read-only re-reads the key on every request.
+- **Redaction and guard:** retired dashboard and master literal values are redacted repo-wide (including values inside earlier rows, on Michael's instruction). The guard has no history exemption and catches planted key-shaped literals. CI workflow: `.github/workflows/key-literal-guard.yml`.
+- **Staging re-proof:** `--skip-deploys` + `railway up`, `43034346`, key sha `4769877cf319`.
+
 **Row 204 staging proof (2026-10-14; PR #122 unmerged, staging only):** FastAPI-staging `DASHBOARD_API_KEY` rotated (sha256 e5addd5647ef → c543da8ada2c, values in `~/Documents/fl-secrets/staging-dashboard-key*.txt`). Branch upload `c5ac4ef3`, then the variable deploy `bb760e54`. That deploy built GitHub `main` (`/auth/dashboard-key` 404), so the branch was re-uploaded as `a2c97d4c` SUCCESS. Probe ALL PASS: route serves the new key no-store, new key 200, old key 403, `/auth/session` 401, 7 make/pack/adjust/found/ship prepare routes 403. Page check ALL PASS (8 pages) on Railway `/dashboard/` and on Netlify deploy-preview-122 with no rebuild. Open tabs switched keys without a reload. Evidence: `docs/deployments/o7-dashboard-key-staging.md`. Staging is left on the branch build with the new key.
 
 **PR #124 fix-round hosted recheck acceptance (2026-10-14; row 206, staging only):** Deployment `6f4b3516-40e6-4cbb-ae93-5243c3823aaa` SUCCESS from `47c2e06`. Exact complete receive → committable draft then cancelled; exact incomplete receive → neutral plain EN/ES cases, case size and BOL prompts. Transactions remain 589 and committed tickets 645; zero Record/commit calls and no draft record marker. Deployed JS matches tested source; screenshots inspected. All 5693 fresh-DB Python / 211 Node / both F1 browser modes pass; created test DBs dropped. Evidence: `docs/validation/fl-assistant-fix-round/`. No production access or merge.

@@ -115,13 +115,98 @@ therefore switch within the 60 s refresh (KEY_TTL_MS) after the deploy's
 key-literal guard: 0 finding(s); 2 live value(s) checked
 ```
 
+## Fix round 1 re-check (Codex 6175101774) — 2026-10-14
+
+Head `bb77c1d` (rebased on main `5a2d57e`). This time the runbook order was
+followed: `railway variable set DASHBOARD_API_KEY --stdin --skip-deploys`, then
+`railway up`.
+
+**Why the review's hosted checks failed (environment only):** merging #120 at
+18:01:44Z redeployed FastAPI-staging from GitHub `main` as `879c4de7`. That
+replaced the branch upload, so `/auth/dashboard-key` returned 404 throughout the
+review (the review comment is timestamped 18:11:15Z). The 502s fell in that
+redeploy window. The code did not change.
+
+| Time (UTC) | Step |
+|---|---|
+| 18:29:57 | Rotated `c543da8ada2c` → `b94a405680dc` with `--skip-deploys`. No deploy was triggered; the latest deployment stayed `879c4de7`. |
+| 18:36:29 | `railway up` → `ec4a2065` **SUCCESS**. Probe **ALL PASS**; pages **ALL PASS** on both hosts (preview rebuilt for `bb77c1d`). |
+| 18:38:49 | With a read-only Shift Summary view open on each host, rotated forward again: `b94a405680dc` → `4769877cf319`, `--skip-deploys`, then `railway up` → `43034346` **SUCCESS** (18:42:10). |
+
+Probe after the first rotation:
+
+```
+PASS  GET /auth/dashboard-key: 200, cache-control=no-store, served sha256 b94a405680dc vs new b94a405680dc
+PASS  new key GET /auth/whoami: 200, key_kind=legacy_dashboard
+PASS  old key GET /auth/whoami: 403 (want 403)
+PASS  new key POST /auth/session: 401 (want 401, or 404 with sessions off)
+PASS  new key POST /make/prepare: 403 (want 403)
+PASS  new key POST /pack/prepare: 403 (want 403)
+PASS  new key POST /adjust/prepare: 403 (want 403)
+PASS  new key POST /inventory/found/prepare: 403 (want 403)
+PASS  new key POST /ship/prepare: 403 (want 403)
+PASS  new key POST /ship/bulk/prepare: 403 (want 403)
+PASS  new key POST /sales/orders/999999999/ship/prepare: 403 (want 403)
+ALL PASS
+```
+
+Pages, Railway `/dashboard/`:
+
+```
+PASS  index.html: page 200, /auth/dashboard-key 200 (sha256 b94a405680dc), keyed reads 9, refused 0, page errors 0
+PASS  process-flow.html: page 200, /auth/dashboard-key 200 (sha256 b94a405680dc), keyed reads 5, refused 0, page errors 0
+PASS  sankey.html: page 200, /auth/dashboard-key 200 (sha256 b94a405680dc), keyed reads 3, refused 0, page errors 0
+PASS  traceability.html: page 200, /auth/dashboard-key 200 (sha256 b94a405680dc), keyed reads 2, refused 0, page errors 0
+PASS  history.html: page 200, /auth/dashboard-key 200 (sha256 b94a405680dc), keyed reads 1, refused 0, page errors 0
+PASS  runs.html: page 200, /auth/dashboard-key 200 (sha256 b94a405680dc), keyed reads 1, refused 0, page errors 0
+PASS  entry.html: page 200, /auth/dashboard-key none (sha256 -), keyed reads 0, refused 0, page errors 0
+PASS  shift-summary.html: page 200, /auth/dashboard-key 200 (sha256 b94a405680dc), keyed reads 1, refused 0, page errors 0
+ALL PASS
+```
+
+Pages, Netlify deploy-preview-122:
+
+```
+PASS  index.html: page 200, /auth/dashboard-key 200 (sha256 b94a405680dc), keyed reads 9, refused 0, page errors 0
+PASS  process-flow.html: page 200, /auth/dashboard-key 200 (sha256 b94a405680dc), keyed reads 5, refused 0, page errors 0
+PASS  sankey.html: page 200, /auth/dashboard-key 200 (sha256 b94a405680dc), keyed reads 3, refused 0, page errors 0
+PASS  traceability.html: page 200, /auth/dashboard-key 200 (sha256 b94a405680dc), keyed reads 2, refused 0, page errors 0
+PASS  history.html: page 200, /auth/dashboard-key 200 (sha256 b94a405680dc), keyed reads 1, refused 0, page errors 0
+PASS  runs.html: page 200, /auth/dashboard-key 200 (sha256 b94a405680dc), keyed reads 1, refused 0, page errors 0
+PASS  entry.html: page 200, /auth/dashboard-key none (sha256 -), keyed reads 0, refused 0, page errors 0
+PASS  shift-summary.html: page 200, /auth/dashboard-key 200 (sha256 b94a405680dc), keyed reads 1, refused 0, page errors 0
+ALL PASS
+```
+
+Open read-only Shift Summary views across the second rotation, Refresh every 20 s
+(item 2 of the review):
+
+```
+18:38:21 fastapi-staging-producti shift-summary key b94a405680dc status 200
+18:38:23 deploy-preview-122--cns- shift-summary key b94a405680dc status 200
+18:41:22 fastapi-staging-producti shift-summary key b94a405680dc status 200
+18:41:22 deploy-preview-122--cns- shift-summary key b94a405680dc status 200
+18:41:55 fastapi-staging-producti shift-summary key b94a405680dc status 502
+18:42:02 fastapi-staging-producti shift-summary key 4769877cf319 status 200
+18:42:03 deploy-preview-122--cns- shift-summary key 4769877cf319 status 200
+18:42:25 deploy-preview-122--cns- shift-summary key 4769877cf319 status 200
+18:42:25 fastapi-staging-producti shift-summary key 4769877cf319 status 200
+18:42:42 fastapi-staging-producti shift-summary key 4769877cf319 status 200
+18:42:43 deploy-preview-122--cns- shift-summary key 4769877cf319 status 200
+```
+
+Both views switched to the new key without a reload, with **no 403 window**: with
+`--skip-deploys`, the old deployment kept serving the old key until the new one
+went live. The single 502 is Railway's container swap.
+
+Guard with both live values: `key-literal guard: 0 finding(s); 2 live value(s) checked`
+
 ## State left behind
 
-* FastAPI-staging runs this branch (`a2c97d4c`) with the **new** key.
-* The next `main` deploy of staging will serve pages without
-  `/auth/dashboard-key` until O-7 merges. Those are pre-O-7 pages carrying the
-  old public literal, and staging already rejected that literal before this
-  proof. So they lose nothing that worked before.
-* The old staging value is kept privately in
-  `~/Documents/fl-secrets/staging-dashboard-key.old.txt` until its fingerprint
-  joins `RETIRED_FINGERPRINTS`.
+* FastAPI-staging runs the branch upload `43034346` with key `4769877cf319`.
+  The value is in `~/Documents/fl-secrets/staging-dashboard-key.txt`; the
+  previous value `b94a405680dc` is in `.old.txt`.
+* The next `main` deploy of staging serves pages without `/auth/dashboard-key`
+  until O-7 merges. Those pre-O-7 pages carry the old public literal, which
+  staging already rejected before this work, so they lose nothing that worked
+  before.
