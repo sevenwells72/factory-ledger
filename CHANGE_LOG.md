@@ -1,5 +1,12 @@
 # Change Log
 
+## [2026-10-14 19:33] — Add staging-only F1 request smoke runner
+- **File(s) changed:** scripts/check_assistant_requests_staging.py
+- **What changed:** Added guarded hosted-model checks for exact original/observed chat, Spanish scope refusal, inventory, receipts, missing receipt and editable unsent dictation; privately authenticates Michael staging and verifies no draft.
+- **Why:** Make the requested staging regression smoke reproducible without recording ledger data.
+
+---
+
 ## [2026-10-14 19:31] — F1 validation retry includes FL argument validators
 - **File(s) changed:** fl_assistant.py, tests/test_fl_assistant.py
 - **What changed:** Included missing-ID and ambiguous-time request validators; updated provenance regressions to expect bounded recovery while asserting no ticket is created.
