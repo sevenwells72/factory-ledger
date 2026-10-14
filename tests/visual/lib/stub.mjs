@@ -136,6 +136,8 @@ function matchRoute(url) {
  *   state.status    = { '/dashboard/api/lot/': 409 }
  */
 export async function installApiStub(context, tokens, state) {
+  // dashboard-runtime.js sends API calls to location.origin on non-Netlify hosts; pin the stubbed API host.
+  await context.addInitScript(host => { window.FL_SESSION_API_BASE = "https://" + host; }, API_HOST);
   await context.route(`**://${API_HOST}/**`, async route => {
     const request = route.request();
     const url = new URL(request.url());
