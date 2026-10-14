@@ -1,0 +1,957 @@
+{
+  "check": "G1 READONLY_API_KEY on hosted FastAPI-staging",
+  "service": "FastAPI-staging (Railway gleaming-solace)",
+  "deployment": "4cf9db98-51a5-425a-85e3-17edb1dee287 (railway up, SUCCESS)",
+  "code": "feat/gpt-readonly 63bd2dd (Codex fix round 1) on origin/main e81f6e1",
+  "variable": "READONLY_API_KEY unchanged on FastAPI-staging since 2026-10-14 ~02:41Z (value in ~/Documents/fl-secrets/staging-readonly-key.txt, never printed)",
+  "production": "untouched",
+  "previous_run": "414feb47 on 49a9edb, 2026-10-14T02:43:11Z: 16/16, 118/118, 51/51 (no exchange check)",
+  "note": "The actor-key collision itself is proven by tests/test_readonly_api_key.py on a fresh local DB, not on staging (no staging actor rows were changed).",
+  "at": "2026-10-14T03:05:22+00:00",
+  "base": "https://fastapi-staging-production-dd7b.up.railway.app",
+  "unknown_key_control": {
+    "status": 403,
+    "detail": "Invalid API key"
+  },
+  "gpt_reads_allowed": "16/16",
+  "writes_refused_403": "118/118",
+  "other_gets_refused_403": "51/51",
+  "session_exchange_refused": {
+    "route": "POST /auth/session (read-only key as actor_key)",
+    "status": 401,
+    "detail": "ACTOR_KEY_INVALID",
+    "ok": true
+  },
+  "failures": [],
+  "reads": [
+    {
+      "route": "GET /bom/batches/{batch_id}/formula",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "route": "GET /bom/products",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "route": "GET /customers",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "route": "GET /customers/search",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "route": "GET /inventory/lookup",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "route": "GET /lots/by-code/{lot_code}",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "route": "GET /lots/by-supplier-lot/{supplier_lot_code}",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "route": "GET /production/day-summary",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "route": "GET /products/search",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "route": "GET /sales/orders",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "route": "GET /sales/orders/{order_id}",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "route": "GET /trace/batch/{lot_code}",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "route": "GET /trace/ingredient/{lot_code}",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "route": "GET /trace/supplier-lot/{supplier_lot_code}",
+      "status": 404,
+      "ok": true
+    },
+    {
+      "route": "GET /transactions/history",
+      "status": 200,
+      "ok": true
+    },
+    {
+      "route": "POST /products/resolve",
+      "status": 200,
+      "ok": true
+    }
+  ],
+  "writes": [
+    {
+      "route": "DELETE /admin/bom/lines/{line_id}",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "DELETE /admin/product-bom/{mapping_id}",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "DELETE /dashboard/api/notes/{note_id}",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "PATCH /customers/{customer_id}",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "PATCH /expected-receipts/{expected_receipt_id}",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "PATCH /lots/{lot_code}/supplier-lot",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "PATCH /lots/{lot_id}/received-at",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "PATCH /lots/{lot_id}/rename",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "PATCH /production/runs/{run_id}",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "PATCH /sales/orders/{order_id}",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "PATCH /sales/orders/{order_id}/lines/{line_id}/cancel",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "PATCH /sales/orders/{order_id}/lines/{line_id}/update",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "PATCH /sales/orders/{order_id}/status",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "PATCH /supply-requests/{supply_request_id}",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /adjust",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /adjust/commit",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /adjust/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /adjust/preview",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /admin/bom/{product_id}/lines",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /admin/lots/merge",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /admin/product-bom",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /assistant/attachment",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /assistant/attachment/read",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /assistant/cancel",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /assistant/confirm-sku",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /assistant/record",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /assistant/resume",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /assistant/session",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /assistant/transcribe",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /assistant/turn",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /attachments",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /auth/session/logout",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /customers",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /dashboard/api/notes",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /exceptions/{exception_id}/approve",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /exceptions/{exception_id}/reject",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /exceptions/{exception_id}/resolve",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /exceptions/{exception_id}/resolve/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /expected-receipts",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /expected-receipts/extract",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /expected-receipts/extract/approve",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /expected-receipts/extract/approve/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /expected-receipts/match",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /expected-receipts/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /expected-receipts/{expected_receipt_id}/cancel/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /expected-receipts/{expected_receipt_id}/update/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /inventory/found",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /inventory/found-with-new-product",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /inventory/found/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /lots/{lot_id}/move/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /lots/{lot_id}/reassign",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /lots/{lot_id}/supplier-lot/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /make",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /make/commit",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /make/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /make/preview",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /pack",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /pack/commit",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /pack/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /pack/preview",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /production/runs",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /production/runs/{run_id}/cancel",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /production/runs/{run_id}/complete",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /products/quick-create",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /products/quick-create-batch",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /products/{product_id}/verify",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /purchase-documents/{document_id}/extract",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /receive",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /receive/commit",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /receive/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /receive/preview",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /records/certifications",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /records/certifications/{certification_id}/corrections",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /records/transactions/{transaction_id}/corrections",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /reports/shift-summary/confirm",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /resolve",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales-orders/{so_number}/ready",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/extract",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/extract/approve",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/match",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/allocations",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/allocations/{allocation_id}/release",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/cancel",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/cancel/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/close",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/close/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/header/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/lines",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/lines/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/lines/{line_id}/cancel/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/lines/{line_id}/update/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/ready/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/reopen",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/reopen/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/ship",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/ship/commit",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/ship/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/ship/preview",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/status/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /schedule",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /ship",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /ship/bulk/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /ship/commit",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /ship/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /ship/preview",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /shipments/{shipment_id}/attachments",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /suppliers",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /supply-requests",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /tickets/{ticket}/commit",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /void/{transaction_id}",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "POST /void/{transaction_id}/prepare",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "PUT /admin/bom/lines/{line_id}",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "PUT /admin/products/{product_id}",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "PUT /dashboard/api/notes/{note_id}",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "PUT /dashboard/api/notes/{note_id}/toggle",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "PUT /production/runs/{run_id}/coverage",
+      "status": 403,
+      "ok": true
+    }
+  ],
+  "other_gets": [
+    {
+      "route": "GET /admin/bom/search",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /admin/bom/{product_id}/lines",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /admin/lots/duplicates",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /admin/product-bom",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /aliases",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /attachments/{attachment_id}",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /attachments/{attachment_id}/file",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /auth/whoami",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /correction-reasons",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /dashboard/api/production/trace",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /dashboard/inventory",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /dashboard/lots",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /dashboard/low-stock",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /dashboard/production",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /dashboard/today",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /exceptions",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /exceptions/{exception_id}",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /expected-receipts",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /expected-receipts/{expected_receipt_id}",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /export/orders-matrix.xlsx",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /inventory/current",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /inventory/found/queue",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /inventory/{item_name}",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /ledger/recent",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /lots/{lot_id}",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /production/requirements",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /production/runs",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /production/runs/{run_id}/evidence",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /production/today-tile",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /products/missing-case-size",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /products/test-batches",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /products/unverified",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /products/{product_id}",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /purchase-documents/{document_id}/url",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /reason-codes",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /receipts",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /receipts/by-transaction/{transaction_id}",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /receipts/{receipt_number}",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /records/certifications/{business_date}",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /records/late",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /records/late.csv",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /reports/shift-summary",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /sales/dashboard",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /sales/orders/counts",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /sales/orders/fulfillment-check",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /sales/orders/{order_id}/allocations",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /sales/orders/{order_id}/packing-slip",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /suppliers",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /supplies/inventory",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /supplies/inventory/{product_id}/lots",
+      "status": 403,
+      "ok": true
+    },
+    {
+      "route": "GET /supply-requests",
+      "status": 403,
+      "ok": true
+    }
+  ]
+}

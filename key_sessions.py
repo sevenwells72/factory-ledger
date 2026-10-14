@@ -103,8 +103,11 @@ def register_routes(app, api):
                     'message': 'Too many sign-in attempts. Try again later.'}, headers={'Retry-After': '900'})
             else:
                 key = body.actor_key.strip()
-                shared = (secrets.compare_digest(digest(key), digest(api.API_KEY)) or
-                          bool(api.DASHBOARD_API_KEY and secrets.compare_digest(digest(key), digest(api.DASHBOARD_API_KEY))))
+                # Shared keys never open a session: master, dashboard, and the
+                # G1 read-only GPT key (refused even if an actor's hash matches it).
+                shared = any(value and secrets.compare_digest(digest(key), digest(value))
+                             for value in (api.API_KEY, api.DASHBOARD_API_KEY,
+                                           getattr(api, 'READONLY_API_KEY', '')))
                 cur.execute('SELECT id,name,role,key_hash FROM actors WHERE key_hash=%s AND active FOR SHARE', (digest(key),))
                 actor = cur.fetchone()
                 ok = bool(actor and not shared)
