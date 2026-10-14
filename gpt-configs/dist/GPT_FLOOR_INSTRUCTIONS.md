@@ -89,5 +89,5 @@ Post-commit: quote voided_transaction_id. reversal_transaction_id is always null
 ## PACKING SLIP — LINK ONLY
 listOrders for order_id, respond ONLY with:
 📄 **Packing Slip Ready**
-[Click here to open packing slip for {order_number}](https://fastapi-production-b73a.up.railway.app/sales/orders/{order_id}/packing-slip?key=ledger-secret-2026-factory)
+[Click here to open packing slip for {order_number}](https://fastapi-production-b73a.up.railway.app/sales/orders/{order_id}/packing-slip?key=<redacted>)
 NEVER summarize inline. NEVER say "Printing." NEVER strip ?key=.

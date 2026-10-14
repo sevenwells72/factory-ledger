@@ -161,3 +161,19 @@ test('choosing read-only cancels custody of a personal exchange still in flight'
   assert.equal(readOnlyKey, 'shared-fixture', 'read-only uses the key FL serves'); assert.notEqual(readOnlyKey, TOKEN); assert.notEqual(readOnlyKey, 'fixture-personal');
   assert.equal(h.calls.at(-1).init.headers['X-API-Key'], readOnlyKey);
 });
+
+test('O-7 fix round: an open read-only view follows a dashboard-key rotation without a reload', async () => {
+  for (const enabled of [false, true]) {
+    const h = harness({ enabled, saved: '' }); let served = 'shared-fixture';
+    h.context.FLDashboard.key = async base => { assert.equal(base, 'https://fl.local'); return served; };
+    h.run('shift-summary.js'); await settle();
+    h.get('read-only').fire('click'); await settle();
+    const reads = () => h.calls.filter(c => c.pathname === '/reports/shift-summary').map(c => c.init.headers['X-API-Key']);
+    assert.deepEqual(reads(), ['shared-fixture']);
+    served = 'rotated-fixture';                       // FL now serves the rotated key
+    h.get('refresh').fire('click'); await settle();
+    assert.deepEqual(reads(), ['shared-fixture', 'rotated-fixture'], 'the next read uses the rotated key, same view');
+    assert.equal(h.get('summary-panel').hidden, false);
+    assert.ok(!reads().includes('\u0000read-only'), 'the marker is never sent');
+  }
+});

@@ -50,20 +50,31 @@ Tests: `tests/test_dashboard_key_delivery.py`. Probe:
 **Open tabs** re-read the key every 60 s (`KEY_TTL_MS`). If a re-read fails, the
 tab keeps the last good key. If the first read fails, nothing is cached and the
 next request retries. Within a minute of a rotation, open tabs send the new key
-and need no reload. One exception: a Shift Summary viewer who chose *Read-only*
-holds the key for that view. They press Sign out → Read-only again, or reload.
+and need no reload. That includes a Shift Summary view opened as *Read-only*:
+it holds a marker, not the key, and every request re-reads the key the same way.
 
 **Literals stay out.** `scripts/check_no_key_literals.py` fails if any of these
 appear in a tracked file:
 
-* a retired key (matched by SHA-256 fingerprint);
+* a retired key, matched by SHA-256 fingerprint, in any file including the
+  change logs. Both the pre-O-7 dashboard literal and the documented master
+  literal were redacted to `<redacted-…>` in the O-7 fix round; git history
+  still holds them, so rotation remains the real control;
 * a hard-coded `X-API-Key` value or `*API_KEY = '…'` in `dashboard/**`;
+* any key-shaped literal outside `tests/`: a quoted `X-API-Key` value, a
+  curl-style `X-API-Key: value`, `Bearer value`, `?key=value` or
+  `*API_KEY=value` of 12+ characters. `<placeholders>`, `$VARIABLES` and the
+  exact `DOCUMENTED_FAKES` are allowed. A planted fake key fails it;
 * any live value passed in `FL_KEY_GUARD_VALUES`.
 
 It prints only `path:line` and never the value. It runs in pytest
-(`test_repository_has_no_key_literals`). It is also ready for GitHub Actions:
-`docs/cutover/key-literal-guard.workflow.yml` becomes `.github/workflows/key-literal-guard.yml`
-once the pushing token has the `workflow` scope.
+(`test_repository_has_no_key_literals`) and in GitHub Actions on every push and
+pull request (`.github/workflows/key-literal-guard.yml`).
+
+**The dashboard key never doubles as another credential.** Startup refuses a
+`DASHBOARD_API_KEY` equal to `API_KEY`, `READONLY_API_KEY` or any actor's key
+(active or not). The route returns 503 in the same cases, and also when the
+actor lookup fails (fail closed; a result is cached for 60 s).
 
 ## First production rollout of this change (one time)
 
@@ -96,7 +107,8 @@ fingerprints, never a value. `<SVC>` = `FastAPI-staging` or `FastAPI`;
    * Generate the new value from the password manager, or with
      `python3 -c "import secrets;print('fld_'+secrets.token_urlsafe(32))" > ~/Documents/fl-secrets/<ENV>-dashboard-key.txt`.
    * Run `chmod 600` on both files. The new value must differ from `API_KEY`,
-     `READONLY_API_KEY` and every actor key.
+     `READONLY_API_KEY` and every actor key; the service refuses to start (and
+     the route returns 503) if it does not.
 2. **Set it on the server.** Railway → `<SVC>` → Variables → `DASHBOARD_API_KEY`
    → paste → Deploy. From the CLI, which keeps the value off the command line:
    `railway variable set DASHBOARD_API_KEY --stdin --service <SVC> < ~/Documents/fl-secrets/<ENV>-dashboard-key.txt`.

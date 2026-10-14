@@ -157,6 +157,9 @@
   let language = localStorage.getItem('fl-shift-language') || 'en';
   // `generation` stamps every request with the session/view it was made for: a response that
   // comes back after a sign-out, a new sign-in or a day change is dropped, never rendered.
+  // Read-only holds this marker, never the key: every request re-reads the scoped
+  // dashboard key (FLDashboard.key, 60 s cache) so a rotation reaches open views (O-7).
+  const READ_ONLY = '\u0000read-only';
   let key = '', actor = null, doc = null, busy = false, generation = 0, pendingNotes = null;
   let session = null, sharedMode = false;
   // Same token store and exchange as the dashboard/office pages; personal keys
@@ -194,7 +197,8 @@
 
   async function api(path, { body, method = 'GET', params, withKey, background = false } = {}) {
     const url = new URL(path, API);
-    const requestKey = withKey === undefined ? key : withKey;
+    const credential = withKey === undefined ? key : withKey;
+    const requestKey = credential === READ_ONLY ? await root.FLDashboard.key(API) : credential;
     Object.entries(params || {}).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v); });
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 60000);
     try {
@@ -340,10 +344,8 @@
         showIdentity(person, session.token); await load(); return;
       }
       if (sharedMode) session.clear(); // read-only cancels any pending personal exchange
-      // Read-only uses the scoped dashboard key FL serves for this API (O-7).
-      const credential = personalKey || await root.FLDashboard.key(API);
-      if (!current(s)) return;
-      key = credential; s.key = key;
+      key = personalKey || READ_ONLY;
+      s.key = key;
       const who = await api('/auth/whoami', { withKey: s.key });
       if (!current(s)) return;
       showIdentity(who.actor || null, s.key); await load();

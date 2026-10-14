@@ -404,7 +404,7 @@ Every ✗ is a 403 `ROLE_NOT_ALLOWED {action, role}` from FL. The MCP lists tool
 
 **Requirement (Michael, 2026-10-07):** every entry records the actual **person** who entered and confirmed it — "Arturo", never "the production iPad". FL already binds the ticket to the actor (`write_tickets.actor_id`, `TICKET_WRONG_USER` on commit, `entered_by_actor_id` on the row), so the only question is how a person on the floor proves who they are to the F1 backend.
 
-**Facts today:** `actors` (migration 052) holds `name, role, key_hash, active` — one long-lived key per person, minted by `scripts/mint_actor_keys.py`; no PIN, no e-mail (059 adds it), no device or session concept. The dashboard sends the shared `dashboard-key-2026` from `dashboard.js`; no screen asks who you are. D3 (§11 item 3) plans "personal actor key entered once per browser, kept in `localStorage`" for dashboard write screens.
+**Facts today:** `actors` (migration 052) holds `name, role, key_hash, active` — one long-lived key per person, minted by `scripts/mint_actor_keys.py`; no PIN, no e-mail (059 adds it), no device or session concept. The dashboard sends the shared `<redacted-retired-dashboard-key>` from `dashboard.js`; no screen asks who you are. D3 (§11 item 3) plans "personal actor key entered once per browser, kept in `localStorage`" for dashboard write screens.
 
 | Option | How it works | For | Against |
 |---|---|---|---|
