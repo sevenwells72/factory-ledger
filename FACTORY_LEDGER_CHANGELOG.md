@@ -1,5 +1,12 @@
 # Factory Ledger Changelog — Regression Guard
 
+**Row 204 fix round 1 (2026-10-14; PR #122 unmerged, staging only; Codex 6175101774):**
+
+- **Startup refusal:** startup now refuses a `DASHBOARD_API_KEY` equal to master, read-only or any actor key; the route returns 503 then, and fails closed if the lookup fails. **Breaks if reverted:** a published dashboard key could be a personal key that becomes a full actor credential after rotation.
+- **Shift Summary:** read-only re-reads the key on every request.
+- **Redaction and guard:** retired dashboard and master literal values are redacted repo-wide (including values inside earlier rows, on Michael's instruction). The guard has no history exemption and catches planted key-shaped literals. CI workflow: `.github/workflows/key-literal-guard.yml`.
+- **Staging re-proof:** `--skip-deploys` + `railway up`, `43034346`, key sha `4769877cf319`.
+
 **Row 204 staging proof (2026-10-14; PR #122 unmerged, staging only):** FastAPI-staging `DASHBOARD_API_KEY` rotated (sha256 e5addd5647ef → c543da8ada2c, values in `~/Documents/fl-secrets/staging-dashboard-key*.txt`). Branch upload `c5ac4ef3`, then the variable deploy `bb760e54`. That deploy built GitHub `main` (`/auth/dashboard-key` 404), so the branch was re-uploaded as `a2c97d4c` SUCCESS. Probe ALL PASS: route serves the new key no-store, new key 200, old key 403, `/auth/session` 401, 7 make/pack/adjust/found/ship prepare routes 403. Page check ALL PASS (8 pages) on Railway `/dashboard/` and on Netlify deploy-preview-122 with no rebuild. Open tabs switched keys without a reload. Evidence: `docs/deployments/o7-dashboard-key-staging.md`. Staging is left on the branch build with the new key.
 
 **Row 191 hosted pilot triage acceptance (2026-10-14; staging only):** Deployment `9116e3a2` SUCCESS / runtime `cf1ae6d`; health 200. Hosted HTTPS `MK-261014-005` (ticket 623, transaction 1000000501) produces 350 lb SS #1, consumes 213 lb rolled oats (185 + 28 restored oat-bran substitution), zero oat bran; replay verified one post. Thirty-receipt summary 1.229/1.089/1.008 s, confirm 1.454 s. Synthetic actors 1000000102/103 inactive; labelled receipts retained. Fresh PG17 3100 Python / 126 Node passed, no failures/skips; disposable DB removed. Production read-only evidence only; no production change or merge. Evidence: `docs/deployments/pilot-triage-staging-hosted.json`.
