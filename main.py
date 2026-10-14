@@ -3317,6 +3317,20 @@ def verify_api_key_flexible(
 key_sessions.register_routes(app, sys.modules[__name__])
 
 
+# O-7: the browser dashboard reads its SCOPED key from here instead of a
+# literal in dashboard/*.js|html, so rotating DASHBOARD_API_KEY is an env change
+# on this service only (Netlify pages ask the API they talk to). Unauthenticated
+# by design: the key was already public in the served JS, and this route hands
+# out exactly that scope — never the master or read-only key.
+@app.get("/auth/dashboard-key")
+def auth_dashboard_key(response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    if not DASHBOARD_API_KEY or DASHBOARD_API_KEY in (API_KEY, READONLY_API_KEY):
+        raise HTTPException(status_code=503, detail="Dashboard key unavailable",
+                            headers={"Cache-Control": "no-store"})
+    return {"dashboard_key": DASHBOARD_API_KEY}
+
+
 # A4 is isolated from ticket/write handlers; defer transaction lookup for tests.
 app.include_router(resolution.build_router(lambda: get_transaction(), verify_api_key))
 

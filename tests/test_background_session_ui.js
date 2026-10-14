@@ -29,8 +29,8 @@ function harness({ enabled = true } = {}) {
     location: { href: 'https://fl.local/dashboard/index.html?section=recent', origin: 'https://fl.local', hostname: 'fl.local' },
     sessionStorage: storage,
     document: { readyState: 'complete', hidden: false, body: element('body'), createElement: element, getElementById: get, querySelector: () => null },
-    FLDashboard: { base: 'https://fl.local', config: Promise.resolve({ key_sessions_enabled: enabled }), ready: Promise.resolve(enabled), route: url => String(url) },
-    SALES_API_BASE: 'https://fl.local', SALES_API_KEY: 'shared-fixture',
+    FLDashboard: { base: 'https://fl.local', config: Promise.resolve({ key_sessions_enabled: enabled }), ready: Promise.resolve(enabled), route: url => String(url), key: async () => 'shared-fixture' },
+    SALES_API_BASE: 'https://fl.local',
     state: { currentTab: 'recent', recentEntries: { loaded: false, pollTimer: null } },
     renderRecentEntries: () => { get('recent-entries-feed').innerHTML = ''; }, escHtml: String,
     fetch: async (url, options = {}) => {
