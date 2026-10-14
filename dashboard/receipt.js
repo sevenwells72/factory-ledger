@@ -10,6 +10,6 @@
     const view=ui.el('div',undefined,card);view.innerHTML=ui.draftHtml(data);
     const link=ui.el('a',ui.t('Open exceptions','Ver excepciones'),card);link.dataset.flWriteUi='';link.href=FLReceipts.page('exceptions.html',{receipt:receipt.receipt_number});
   }
-  async function load(){const number=new URLSearchParams(location.search).get('number');if(!number){ui.notice(ui.t('Enter a Receipt # above.','Ingresa un número de recibo arriba.'),'notice');return;}try{receipt=await ui.request('/receipts/'+encodeURIComponent(number),undefined,{read:true});render();}catch(error){ui.failure(error);}}
+  async function load(){const number=new URLSearchParams(location.search).get('number');if(!number){ui.notice(ui.t('Enter a Receipt # above.','Ingresa un número de recibo arriba.'),'notice');return;}try{receipt=await ui.request('/receipts/'+encodeURIComponent(number),undefined,{read:true});render();}catch(error){if(error.status===404&&error.result?.detail?.error_code==='RECEIPT_NOT_FOUND')ui.notice(ui.t('No receipt with this number','No hay recibo con este número'),'neutral');else ui.notice(error.message,'neutral');}}
   window.addEventListener('ledger-language',render);window.addEventListener('ledger-auth',load);load();
 })();

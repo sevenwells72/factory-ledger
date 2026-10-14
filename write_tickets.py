@@ -40,6 +40,7 @@ PREFIXES = {'resolve_exception': 'XR', 'void': 'VD', **{action: 'SHP' for action
             **{action: 'ORD' for action in ORDER_ACTIONS},
             **{action: 'ER' for action in EXPECTED_RECEIPT_ACTIONS}}
 ORDER_PREPARE_ROUTES = frozenset({
+    ('POST', '/sales/orders/extract/approve/prepare'),
     ('POST', '/sales/orders/prepare'),
     ('POST', '/sales/orders/{order_id}/lines/prepare'),
     ('POST', '/sales/orders/{order_id}/lines/{line_id}/update/prepare'),
@@ -60,6 +61,8 @@ DASHBOARD_ROUTES = frozenset({
     ('GET', '/receipts/by-transaction/{transaction_id}'),
 })
 ACTOR_ROUTES = DASHBOARD_ROUTES | frozenset({
+    ('GET', '/sales/orders/{order_id}/office-options'),
+    ('GET', '/purchase-documents/{document_id}'),
     ('POST', '/void/{transaction_id}/prepare'),
     ('POST', '/lots/{lot_id}/move/prepare'),
     ('POST', '/lots/{lot_id}/supplier-lot/prepare'),
