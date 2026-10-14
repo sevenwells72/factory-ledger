@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-14 14:04 — Runbook step 20: insert the whole-reset proof procedure (O-3, PR #120)
+- **File(s) changed:** `docs/cutover/CUTOVER-RUNBOOK.md`, `CHANGE_LOG.md`
+- **What changed:** Step 20's "OPEN — no combined CLI command" text is replaced by the procedure merged in PR #120 (5a2d57e, Codex review 6174657692). The step now gives the frozen final inputs, the `verify_reset.py --whole-reset` command, manifest paths relative to `$RUN`, `no_change` groups and zero-stock approvals. It also lists every per-group and cross-group check and the typed exit-2 gaps. The text is revised note 6173956596 plus the fix-round-2 additions: the `HOLD_NOT_IN_FL` hold binding, and a zero-stock-only group that posts nothing and is listed as `no_change`. The O-3 row names the procedure; it stays open until Michael accepts the GO criteria.
+- **Why:** PR #120 merged. Its review made O-3 closure depend on this step-20 replacement. Docs only.
+
+---
+
 ## 2026-10-14 12:05 — Runbook O-5/O-7: custom domain must be added to dashboard apiBase()
 - **File(s) changed:** `docs/cutover/CUTOVER-RUNBOOK.md`
 - **What changed:** O-5 and O-7 notes now say `dashboard-runtime.js` `apiBase()` recognises only cns-factory-ledger.netlify.app as production, so any custom domain must be added there in the same change (FOLLOWUPS P1.28 on branch test/fix-legacy-runners).
