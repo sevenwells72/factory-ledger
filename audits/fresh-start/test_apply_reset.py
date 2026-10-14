@@ -154,7 +154,7 @@ class ApplyTests(unittest.TestCase):
     def sign(self, ids='107,108', **overrides):
         fields = {'Preview file':self.preview.name,'SHA-256':app.digest(self.preview.read_bytes()),
                   'Approved product IDs':ids,'Owner name':'FAKE Owner','Named actor':'FAKE Owner',
-                  'Date':datetime.now().date().isoformat(),'Signature':'FAKE Owner','Opening entry classification':'N'}
+                  'Date':self.cut.astimezone(f.PLANT).date().isoformat(),'Signature':'FAKE Owner','Opening entry classification':'N'}
         fields.update(overrides)
         self.approval.write_text('\n'.join(f'{k}: {v}' for k,v in fields.items())+'\n')
 
@@ -633,6 +633,20 @@ class ApplyTests(unittest.TestCase):
     def test_http_redirect_is_refused(self):
         with self.assertRaisesRegex(RuntimeError,'Redirect refused'):
             app.NoRedirect().redirect_request(None,None,302,None,None,'https://example.invalid')
+
+
+
+class PlantDateClockTests(unittest.TestCase):
+    """P1.25: the signed approval date is the New York plant date, so these pass at any ET wall time."""
+    TESTS = ('test_real_flow_mocked_and_rerun_no_duplicates', 'test_dry_run_no_requests_no_journal')
+
+    def test_signed_apply_at_pinned_new_york_times(self):
+        from pinned_clock import pinned
+        for clock in ('2026-10-13T00:05', '2026-10-13T01:30', '2026-10-13T12:00', '2026-10-13T20:30', '2026-10-13T23:59'):
+            for name in self.TESTS:
+                with self.subTest(clock=clock, test=name), pinned(clock):
+                    r = unittest.TestResult(); ApplyTests(name).run(r)
+                    self.assertEqual([str(x[1]).splitlines()[-1] for x in r.failures + r.errors], [])
 
 
 if __name__=='__main__':

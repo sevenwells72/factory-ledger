@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-13 23:50 — P1.25: count-tool test fixtures use the New York plant date
+- **File(s) changed:** `audits/fresh-start/test_fresh_start_v3.py`, `audits/fresh-start/test_apply_reset.py`, `audits/fresh-start/pinned_clock.py` (new), `CHANGE_LOG.md`
+- **What changed:** Test-only. The v3 fixture's signed approval `Date:` and count-row `count_date` now come from `self.t.astimezone(f.PLANT)` instead of the UTC date; the v2 fixture's approval date comes from the cutoff's plant date instead of the machine-local `datetime.now()`. New `pinned_clock.py` freezes `datetime.now()` in the count-tool modules (`python3 pinned_clock.py 2026-10-13T23:59 test_apply_reset test_fresh_start_v3`). New `PlantDateClockTests` in both files run the signed-apply/drift/shortage/extra-kosher paths at pinned 00:05, 01:30, 12:00, 20:30, 23:30, 23:59 ET plus both DST-change nights. Tool code unchanged.
+- **Why:** FOLLOWUPS P1.25 — 39 count-tool tests failed late evening ET (reproduced live at 23:35 ET). Proof: 194/194 pass with the clock pinned at 00:05, 12:00, 20:30 and 23:59 ET, both with TZ=America/New_York and TZ=UTC; the new regression tests fail (13 and 4 subtests) against the old fixtures.
+
+---
+
 ## 2026-10-13 23:04 — PR #108 rebased onto e81f6e1: changelog rows renumbered, #106 rollout row, P1.9 created, owner-count decision
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
 - **What changed:** Rebased `fix/count-tool-readiness` onto origin/main e81f6e1 (#110). This PR's changelog rows 184/185 became 186/187 (main already used 184/185; earlier entries below that say "row 185" now mean row 187). Added row 188: PR #106 / migration 079 production rollout (marker verified read-only). FOLLOWUPS: P1.9 `expire-tickets` cron marked CREATED (verified in Railway); recorded Michael's 2026-10-13 decision that the owner-only count-closing option may be used for any explicit owner physical count outside the cutover reset (ADJ + XR receipts, weekly view).
