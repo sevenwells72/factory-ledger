@@ -353,3 +353,106 @@ def test_unset_readonly_key_is_just_an_unknown_key(client_unset):
     assert r.status_code == 401
     assert client_unset.get("/customers", headers=MASTER).status_code == 200
     assert client_unset.get("/customers", headers=DASH).status_code == 200
+
+
+# ─────────────────────────────────────────────────────────────────
+# Codex FIX ROUND 1 [P2]: a read-only key that is also an active actor's key
+# must never become a write credential (direct, via session, or at startup).
+# ─────────────────────────────────────────────────────────────────
+
+from hashlib import sha256  # noqa: E402
+
+from tests.test_actor_attribution import actors  # noqa: E402,F401
+
+
+@pytest.fixture
+def colliding(client, actors, db_cursor):
+    """The owner actor's live key hash is the read-only key's hash."""
+    db_cursor.execute("UPDATE actors SET key_hash=%s WHERE id=%s",
+                      (sha256(READONLY_TEST_KEY.encode()).hexdigest(), actors["owner"]["id"]))
+    main._reset_actor_cache()
+    yield actors["owner"]
+    main._reset_actor_cache()
+
+
+def _customer_count(db_cursor, name):
+    db_cursor.execute("SELECT count(*) AS n FROM customers WHERE name=%s", (name,))
+    return db_cursor.fetchone()["n"]
+
+
+@pytest.mark.db
+def test_readonly_key_equal_to_actor_key_cannot_write(client, colliding, db_cursor):
+    name = "G1 COLLISION " + READONLY_TEST_KEY
+    # Direct: still read-only scope (the read-only check precedes actors).
+    r = client.post("/customers", json={"name": name}, headers=RO)
+    assert r.status_code == 403 and r.json()["detail"] == NOT_AUTHORIZED
+    assert client.get("/auth/whoami", headers=RO).status_code == 403
+    # Exchange: refused outright, no token issued.
+    r = client.post("/auth/session", json={"actor_key": READONLY_TEST_KEY})
+    assert r.status_code == 401 and "session_token" not in r.text
+    assert r.json()["detail"]["error_code"] == "ACTOR_KEY_INVALID"
+    db_cursor.execute("SELECT count(*) AS n FROM key_actor_sessions WHERE actor_id=%s", (colliding["id"],))
+    assert db_cursor.fetchone()["n"] == 0
+    assert _customer_count(db_cursor, name) == 0
+
+
+@pytest.mark.db
+def test_readonly_key_refused_at_exchange_without_a_collision(client, actors):
+    # No actor hash matches: still refused, never a session.
+    r = client.post("/auth/session", json={"actor_key": READONLY_TEST_KEY})
+    assert r.status_code == 401 and "session_token" not in r.text
+    # A genuine actor key still exchanges with the read-only key set.
+    assert client.post("/auth/session", json={"actor_key": actors["owner"]["key"]}).status_code == 200
+
+
+@pytest.mark.db
+def test_startup_refuses_readonly_key_equal_to_an_active_actor_key(client, colliding, monkeypatch):
+    import asyncio
+    with pytest.raises(RuntimeError, match="every active actor key"):
+        main._assert_readonly_key_is_not_an_actor_key()
+    # And through the real startup hook (pool + migrations stubbed; the
+    # proxied get_db_connection still sees the colliding actor).
+    monkeypatch.setattr(main, "assert_staging_database", lambda url: None)
+    monkeypatch.setattr(main.pool, "ThreadedConnectionPool", lambda **kw: None)
+    monkeypatch.setattr(main, "_run_startup_migrations", lambda: None)
+    pool_before = main.db_pool
+    try:
+        with pytest.raises(RuntimeError, match="every active actor key"):
+            asyncio.run(main.startup())
+    finally:
+        main.db_pool = pool_before
+
+
+@pytest.mark.db
+def test_startup_check_ignores_inactive_actor_and_unset_key(client, actors, db_cursor, monkeypatch):
+    db_cursor.execute("UPDATE actors SET key_hash=%s WHERE id=%s",
+                      (sha256(READONLY_TEST_KEY.encode()).hexdigest(), actors["retired"]["id"]))
+    main._assert_readonly_key_is_not_an_actor_key()  # inactive: no refusal
+    monkeypatch.setattr(main, "READONLY_API_KEY", "")
+    main._assert_readonly_key_is_not_an_actor_key()  # unset: no query, no refusal
+
+
+@pytest.mark.parametrize("schema,prefix", [(OFFICE_READONLY, "O"), (FLOOR_READONLY, "F")])
+def test_cutover_checklist_smokes_every_gpt_action(schema, prefix):
+    """Codex FIX ROUND 1: §C of the checklist runs every action, one row each."""
+    text = (READONLY_DIR / "CUTOVER_CHECKLIST.md").read_text()
+    rows = dict(re.findall(rf"^\| ({prefix}\d+) \|.*\| `(\w+)` \|$", text, re.M))
+    ops = sorted(_operations(schema).values())
+    assert sorted(rows.values()) == ops
+    assert sorted(rows) == sorted(f"{prefix}{n}" for n in range(1, len(ops) + 1))
+    assert f"**{len(_operations(OFFICE_READONLY)) + len(_operations(FLOOR_READONLY))}** action results" in text
+    assert "the **six** `curl` codes" in text and text.count("-w \"") == 6
+
+
+def test_startup_check_logs_and_continues_when_the_lookup_fails(monkeypatch, caplog):
+    """Like the startup migrations: a DB error is not a match. The exchange
+    route still refuses the read-only key on every request."""
+    @contextmanager
+    def _broken():
+        raise RuntimeError("db down")
+        yield  # pragma: no cover
+
+    monkeypatch.setattr(main, "READONLY_API_KEY", READONLY_TEST_KEY)
+    monkeypatch.setattr(main, "get_db_connection", _broken)
+    main._assert_readonly_key_is_not_an_actor_key()
+    assert "READONLY_KEY_ACTOR_CHECK_SKIPPED" in caplog.text

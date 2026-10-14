@@ -6,7 +6,8 @@ FastAPI-staging) with READONLY_API_KEY:
   * each GPT read (READONLY_KEY_ALLOWLIST) must get past auth — 200, or a
     handler 404 for a lookup of a value that does not exist;
   * every other authenticated route — every write, every other GET — must
-    answer 403 "API key not authorized for this endpoint".
+    answer 403 "API key not authorized for this endpoint";
+  * POST /auth/session with the read-only key as actor_key must be refused.
 Write calls carry an empty JSON body and placeholder path ids; they are refused
 by the auth dependency before any handler runs, so nothing is written.
 
@@ -106,6 +107,15 @@ def check(base):
             (other_gets if method == "GET" else writes).append(row)
             if not ok:
                 failures.append(row)
+        # Codex FIX ROUND 1: the read-only key never opens a session (401
+        # ACTOR_KEY_INVALID; 404 when KEY_SESSIONS_ENABLED is off).
+        r = http.post("/auth/session", json={"actor_key": key})
+        body = r.json() if r.headers.get("content-type", "").startswith("application/json") else {}
+        code = body.get("detail", {}).get("error_code") if isinstance(body.get("detail"), dict) else body.get("detail")
+        exchange = {"route": "POST /auth/session (read-only key as actor_key)", "status": r.status_code,
+                    "detail": code, "ok": r.status_code in (401, 404) and "session_token" not in r.text}
+        if not exchange["ok"]:
+            failures.append({k: exchange[k] for k in ("route", "status", "ok")})
     return {
         "check": "G1 READONLY_API_KEY on hosted FastAPI-staging",
         "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -115,6 +125,7 @@ def check(base):
         "gpt_reads_allowed": f"{sum(r['ok'] for r in reads)}/{len(reads)}",
         "writes_refused_403": f"{sum(r['ok'] for r in writes)}/{len(writes)}",
         "other_gets_refused_403": f"{sum(r['ok'] for r in other_gets)}/{len(other_gets)}",
+        "session_exchange_refused": exchange,
         "failures": failures,
         "reads": reads,
         "writes": writes,
@@ -129,7 +140,8 @@ if __name__ == "__main__":
     args = ap.parse_args()
     result = check(args.base.rstrip("/"))
     summary = {k: result[k] for k in ("base", "unknown_key_control", "gpt_reads_allowed",
-                                      "writes_refused_403", "other_gets_refused_403", "failures")}
+                                      "writes_refused_403", "other_gets_refused_403",
+                                      "session_exchange_refused", "failures")}
     print(json.dumps(summary, indent=2))
     if args.out:
         Path(args.out).write_text(json.dumps(result, indent=2) + "\n")
