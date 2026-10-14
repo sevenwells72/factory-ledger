@@ -26,6 +26,20 @@
 
 ---
 
+## 2026-10-14 12:51 — Keep O-4 staging matrix evidence readable in the PR
+- **File(s) changed:** `docs/deployments/direct-order-close-staging-receipt.json`
+- **What changed:** Format each matrix case on one JSON line while preserving every receipt value, source hash, phase result and cleanup count exactly.
+- **Why:** Retain complete 968-case evidence without obscuring the implementation diff with generated indentation.
+
+---
+
+## 2026-10-14 12:50 — Record complete O-4 staging acceptance and draft review handoff
+- **File(s) changed:** `docs/deployments/direct-order-close-staging-receipt.json`, `FOLLOWUPS.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record STG-O4-113D15B9FEFC: 968 staging cases / 1,129 HTTP calls passed against final source, all synthetic fixtures and writes rolled back and independently verified absent. Add regression guard row 202 and P1.20 implementation evidence for draft PR #121; preserve prior entries and the separate Claude Code review/operator rollout gate.
+- **Why:** Finish the requested staging proof and make the authorized builder work reviewable without production access, deployment or merge.
+
+---
+
 ## 2026-10-14 12:44 — Verify final O-4 source on the complete fresh-database suite
 - **File(s) changed:** `docs/validation/direct-order-close-guard-tests.json`; ignored local suite evidence
 - **What changed:** Refresh source-bound validation after the partial invoice reason fix: all 4,347 Python tests pass, including 1,203 guard cases, in 21 fresh-database groups; 186 Node tests pass; no failures/skips.

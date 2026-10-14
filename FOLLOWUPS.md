@@ -363,6 +363,11 @@ cutoff is enforceable the moment `ORDER_LEGACY_CLOSE_CUTOFF` is set (§10.1 step
 https://github.com/sevenwells72/factory-ledger/pull/99#issuecomment-6131307183.
 
 
+**Builder implementation — 2026-10-14, draft PR #121 (Codex builds; Claude Code reviews; no merge/deployment):**
+Shared close/status cores now enforce the recorded-shipment gate for every key kind, including master. The explicit `shipped_not_recorded` exception is named-owner-only with a nonblank note; without an effective recorded shipment, immutable `created_at` converted to America/New_York must be strictly before `ORDER_LEGACY_CLOSE_CUTOFF`. Status-to-invoiced refuses missing shipments outright. Recorded partial invoices use `short_closed`; effective historical shipment links and service-only shipment headers remain valid. Ship completion/repair and reopening a saved shipped/invoiced status also require recorded shipments; cancels retain their existing policy.
+Validation: **4,347 fresh-DB Python / 186 Node passed**, including **1,203 guard regressions**; **968 synthetic staging cases / 1,129 HTTP calls** passed (`STG-O4-113D15B9FEFC`), all fixtures rolled back and independently verified absent. Receipt: `docs/deployments/direct-order-close-staging-receipt.json` (local branch HTTP against guarded staging DB, no hosted deployment). Review and a separately authorized rollout before enabling the cutoff remain required; this builder does not mark the live cutover gate complete. [Draft PR #121](https://github.com/sevenwells72/factory-ledger/pull/121).
+
+
 **P1.21 Extra-kosher cutover count/reset support — count workstream (Michael, 2026-10-13; A12 review #101).**
 The fresh-start count sheet must list **283, 284, 285, 286, 287, 288, 289 and 290 as their own product lines**, with regular 107/108 and regular finished stock separate. On cutover day physically counted extra-kosher stock is loaded under these extra-kosher products through the reset **with explicit owner approval and approving-owner attestation**. Regular-product lots are never retagged; A12 supplies no retag route.
 
