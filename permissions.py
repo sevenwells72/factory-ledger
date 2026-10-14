@@ -58,6 +58,7 @@ ROLE_PERMISSIONS = {
     'close_order': _NAMED_AND_MASTER - {FLOOR},            # A7 ticket action; reason shipped_not_recorded ALSO needs the row below
     'close_order_shipped_not_recorded': frozenset({OWNER}),
     'reopen_order': frozenset({OWNER, LEGACY_LEDGER}),
+    'reopen_order_shipped_not_recorded': frozenset({OWNER}),
     'create_expected_receipt': _NAMED_AND_MASTER - {FLOOR},
     'update_expected_receipt': _NAMED_AND_MASTER - {FLOOR},
     'cancel_expected_receipt': _NAMED_AND_MASTER - {FLOOR},
@@ -97,6 +98,8 @@ _LABELS = {
     'close_order_shipped_not_recorded': ('close an order as shipped without a recorded shipment',
                                          'cerrar un pedido como enviado sin envío registrado'),
     'reopen_order': ('reopen an order', 'reabrir un pedido'),
+    'reopen_order_shipped_not_recorded': ('reopen an order closed as shipped without a recorded shipment',
+                                          'reabrir un pedido cerrado como enviado sin envío registrado'),
     'backdate_over_14d': ('record an entry more than 14 days old', 'registrar una entrada de más de 14 días'),
 }
 _ROLE_NAMES = {OWNER: 'owner', FLOOR: 'floor', OFFICE: 'office',

@@ -1,5 +1,7 @@
 // Sales Orders exit regressions in real native dialogs, using the shipped
-// module/styles and representative API responses. No request leaves the page.
+// module/styles and representative API responses. Ordinary checks use only stubs.
+// Optional FL_SO_EXIT_STAGING_CASES uses the guarded loopback staging bridge;
+// credentials stay in this Node process and never enter the page or proof output.
 // Run: node tests/visual/run-so-exit-actions.mjs [dashboard-root]
 import assert from 'node:assert/strict';
 import path from 'node:path';
@@ -10,22 +12,23 @@ import { installApiStub, buildTokenTable, API_HOST } from './lib/stub.mjs';
 import { SCREENS } from './lib/screens.mjs';
 
 const dashboard = path.resolve(process.argv[2] || fileURLToPath(new URL('../../dashboard/', import.meta.url)));
-const browser = await chromium.launch();
+const browser = await chromium.launch({ headless: true, channel: process.env.PLAYWRIGHT_CHANNEL || 'chrome' });
 const results = [];
 
-async function prepare(page, theme) {
-  await page.setContent(`<html data-theme="${theme}"><body>
+async function prepare(page, theme, lang = 'en') {
+  await page.setContent(`<html lang="${lang}" data-theme="${theme}"><body>
     <button id="refresh-btn">Refresh</button><button id="trigger">Close…</button>
   </body></html>`);
   await page.addStyleTag({ path: path.join(dashboard, 'dashboard.css') });
   await page.addStyleTag({ path: path.join(dashboard, 'so-list-actions.css') });
   await page.addScriptTag({ path: path.join(dashboard, 'so-list-actions.js') });
-  await page.evaluate(() => {
+  await page.evaluate(lang => {
+    window.testLanguage = lang;
     window.testState = { calls: [], commits: 0, refreshes: 0, scenario: '' };
     window.beginExit = (action, state = 'open', scenario = '') => {
       Object.assign(window.testState, { calls: [], commits: 0, refreshes: 0, scenario });
-      return window.SOListActions.open({ id: 12, order_number: 'SO-26-012', state }, {
-        action,
+      return window.SOListActions.open({ id: 12, order_number: 'SO-26-012', state, state_reason: scenario.includes('reopen-legacy') ? 'shipped_not_recorded' : null }, {
+        action, lang: window.testLanguage,
         format: number => new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(number),
         trigger: document.getElementById('trigger'),
         request: async (url, config) => {
@@ -37,6 +40,7 @@ async function prepare(page, theme) {
           });
           if (/^error-/.test(test.scenario)) throw apiError(Number(test.scenario.slice(6)));
           if (test.scenario === 'network') throw new TypeError('RAW_DATABASE_SECRET');
+          if (test.scenario.includes('guard:')) throw { status: 403, payload: { detail: { error_code: test.scenario.split('guard:')[1], message: 'RAW_DATABASE_SECRET' } } };
           if (!config) {
             if (test.scenario === 'related-missing') throw apiError(404);
             return test.scenario === 'related-self'
@@ -71,7 +75,7 @@ async function prepare(page, theme) {
         },
       });
     };
-  });
+  }, lang);
 }
 
 async function begin(page, action, state = 'open', scenario = '') {
@@ -292,6 +296,137 @@ async function runChecks(page, variant) {
   });
 }
 
+const policyMessages = {
+  SHIPMENT_REQUIRED: {
+    close: ['This order has no recorded shipment, so it cannot be closed as shipped. Record the shipment first.', 'Este pedido no tiene un envío registrado, así que no puede cerrarse como enviado. Registra el envío primero.'],
+    reopen: ['This order has no recorded shipment, so it cannot be reopened with its saved shipped or invoiced status. Record the shipment first.', 'Este pedido no tiene un envío registrado, así que no puede reabrirse con su estado guardado de enviado o facturado. Registra el envío primero.'],
+  },
+  LEGACY_CLOSE_CUTOFF: {
+    close: ['This order was created on or after the cutover date. It cannot be closed as “Shipped, not recorded”; record the shipment first.', 'Este pedido se creó en la fecha de corte o después. No puede cerrarse como “Enviado, no registrado”; registra el envío primero.'],
+    reopen: ['This order was created on or after the cutover date and cannot be reopened from “Shipped, not recorded”.', 'Este pedido se creó en la fecha de corte o después y no puede reabrirse desde “Enviado, no registrado”.'],
+  },
+  ROLE_NOT_ALLOWED: {
+    close: ['Only the owner can close an order as “Shipped, not recorded”.', 'Solo el propietario puede cerrar un pedido como “Enviado, no registrado”.'],
+    reopen: ['Only the owner can reopen an order closed as “Shipped, not recorded”.', 'Solo el propietario puede reabrir un pedido cerrado como “Enviado, no registrado”.'],
+  },
+  NOTE_REQUIRED: {
+    close: ['Add a note explaining why this order is being closed as “Shipped, not recorded”.', 'Agrega una nota que explique por qué se cierra este pedido como “Enviado, no registrado”.'],
+    reopen: ['Add a note explaining why this order closed as “Shipped, not recorded” is being reopened.', 'Agrega una nota que explique por qué se reabre este pedido cerrado como “Enviado, no registrado”.'],
+  },
+};
+const expectedMessage = (code, action, lang) => policyMessages[code][action][lang === 'es' ? 1 : 0];
+const previewLabel = (action, lang) => lang === 'es' ? `Previsualizar ${action === 'reopen' ? 'reabrir' : 'cerrar'}` : `Preview ${action}`;
+
+async function runPolicyChecks(page, variant, lang) {
+  for (const [code, actions] of Object.entries(policyMessages)) {
+    for (const action of Object.keys(actions)) {
+      await begin(page, action, action === 'reopen' ? 'closed' : 'open', `${action === 'reopen' && code !== 'SHIPMENT_REQUIRED' ? 'reopen-legacy-' : ''}guard:${code}`);
+      if (action === 'close') await page.locator('#so-exit-reason').selectOption(code === 'SHIPMENT_REQUIRED' ? 'shipped_recorded' : 'shipped_not_recorded');
+      await page.locator('#so-exit-note').fill('Reviewed with the owner');
+      await page.getByRole('button', { name: previewLabel(action, lang), exact: true }).click();
+      await page.waitForFunction(() => document.querySelector('.so-exit-dialog').getAttribute('aria-busy') === 'false');
+      assert.equal((await page.getByRole('alert').textContent()).trim(), expectedMessage(code, action, lang));
+      assert.doesNotMatch(await page.locator('.so-exit-dialog').textContent(), /RAW_DATABASE_SECRET/);
+      assert.equal(await page.evaluate(() => testState.calls.length), 1);
+      assert.equal(await page.locator('.so-exit-preview').isVisible(), false);
+      await dismiss(page);
+      results.push({ variant, check: `${lang} ${action} ${code} uses a specific refusal`, passed: true });
+    }
+  }
+  for (const action of ['close', 'cancel', 'reopen']) {
+    await begin(page, action, action === 'reopen' ? 'closed' : 'open', 'guard:ROLE_NOT_ALLOWED');
+    if (action === 'close') await page.locator('#so-exit-reason').selectOption('shipped_recorded');
+    await page.locator('.so-exit-form').dispatchEvent('submit');
+    await page.waitForFunction(() => document.querySelector('.so-exit-dialog').getAttribute('aria-busy') === 'false');
+    const message = (await page.getByRole('alert').textContent()).trim();
+    assert.doesNotMatch(message, /Shipped, not recorded|Enviado, no registrado/);
+    assert.match(message, lang === 'es' ? /Tu rol no permite/ : /Your role does not allow/);
+    await dismiss(page);
+    results.push({ variant, check: `${lang} ordinary ${action} role refusal names the selected action`, passed: true });
+  }
+  for (const action of ['close', 'reopen']) {
+    await begin(page, action, action === 'reopen' ? 'closed' : 'open', action === 'reopen' ? 'reopen-legacy' : '');
+    if (action === 'close') await page.locator('#so-exit-reason').selectOption('shipped_not_recorded');
+    const noteLabel = lang === 'es' ? 'Nota (obligatoria)' : 'Note (required)';
+    const note = page.getByLabel(noteLabel, { exact: true });
+    assert.equal(await note.getAttribute('required'), '');
+    for (const value of ['', '   ']) {
+      await note.fill(value);
+      await page.getByRole('button', { name: previewLabel(action, lang), exact: true }).click();
+      assert.equal((await page.getByRole('alert').textContent()).trim(), expectedMessage('NOTE_REQUIRED', action, lang));
+      assert.equal(await page.evaluate(() => testState.calls.length), 0);
+    }
+    await note.fill('Owner reviewed the legacy shipping record');
+    await page.getByRole('button', { name: previewLabel(action, lang), exact: true }).click();
+    await page.locator('.so-exit-preview').waitFor({ state: 'visible' });
+    await note.fill('Corrected note');
+    assert.equal(await page.locator('.so-exit-preview').isVisible(), false);
+    await page.getByRole('button', { name: previewLabel(action, lang), exact: true }).click();
+    const commitLabel = lang === 'es' ? `${action === 'reopen' ? 'Reabrir' : 'Cerrar'} pedido` : `${action === 'reopen' ? 'Reopen' : 'Close'} order`;
+    await page.getByRole('button', { name: commitLabel, exact: true }).click();
+    await page.locator('.so-exit-dialog').waitFor({ state: 'detached' });
+    assert.deepEqual(await page.evaluate(() => testState.calls.map(call => call.body.mode)), ['preview', 'preview', 'commit']);
+    assert.equal(await page.evaluate(() => testState.calls.at(-1).body.note), 'Corrected note');
+    results.push({ variant, check: `${lang} ${action} missing legacy note is required and specific before requests; corrected note reaches commit`, passed: true });
+  }
+}
+
+async function runStagingPolicyChecks() {
+  if (!process.env.FL_SO_EXIT_STAGING_CASES) return;
+  const live = JSON.parse(process.env.FL_SO_EXIT_STAGING_CASES);
+  const base = new URL(live.api_base);
+  assert(['127.0.0.1', 'localhost', '[::1]'].includes(base.hostname), 'Staging bridge must be loopback');
+  assert(Array.isArray(live.cases) && live.cases.length, 'Staging policy cases are required');
+  const proof = [];
+  let calls = 0;
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  await context.route('**/*', route => route.abort());
+  const page = await context.newPage();
+  let active;
+  await page.exposeFunction('stagingExitRequest', async (url, config) => {
+    const allowed = `/sales/orders/${encodeURIComponent(active.order.id || active.order.order_id)}/${active.action}`;
+    assert.equal(url, allowed, 'Only the synthetic staging exit route is permitted');
+    const response = await fetch(new URL(url, base), { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-API-Key': active.api_key }, body: config.body });
+    calls++;
+    const result = await response.json();
+    const code = result.detail?.error_code || result.error_detail?.code;
+    assert.equal(code, active.expected_code, 'Live staging refusal differs from the expected policy');
+    // Only the known policy code is needed by the UI. Never forward backend
+    // response text, actor keys or transport diagnostics into the page/proof.
+    return { status: response.status, payload: { detail: { error_code: code } } };
+  });
+  try {
+    for (const item of live.cases) {
+      active = item;
+      assert(policyMessages[item.expected_code]?.[item.action], 'Unsupported staging refusal case');
+      for (const lang of ['en', 'es']) {
+        if (item.setup_path) {
+          assert(/^\/__o4__\/setup\/\d+$/.test(item.setup_path), 'Only synthetic staging setup routes are permitted');
+          const setup = await fetch(new URL(item.setup_path, base), { method: 'POST' });
+          assert.equal(setup.status, 200, 'Staging fixture setup failed');
+        }
+        await prepare(page, 'light', lang);
+        await page.evaluate(({ order, action, lang }) => window.SOListActions.open(order, {
+          action, lang, format: number => new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 }).format(number),
+          request: async (url, config) => { const response = await window.stagingExitRequest(url, config); throw response; },
+        }), { order: item.order, action: item.action, lang });
+        if (item.action === 'close') await page.locator('#so-exit-reason').selectOption(item.reason);
+        await page.locator('#so-exit-note').fill(item.note || '');
+        if (item.expected_code === 'NOTE_REQUIRED') await page.locator('#so-exit-note').evaluate(node => { node.required = false; });
+        await page.getByRole('button', { name: previewLabel(item.action, lang), exact: true }).click();
+        await page.waitForFunction(() => document.querySelector('.so-exit-dialog').getAttribute('aria-busy') === 'false');
+        assert.equal((await page.getByRole('alert').textContent()).trim(), expectedMessage(item.expected_code, item.action, lang));
+        assert.equal(await page.locator('.so-exit-preview').isVisible(), false);
+        proof.push({ case: item.name, language: lang, code: item.expected_code, passed: true });
+        await dismiss(page);
+      }
+    }
+    console.log('STAGING_SO_EXIT_PROOF ' + JSON.stringify({ passed: true, count: proof.length, api_calls: calls, checks: proof }));
+  } finally {
+    await context.close();
+  }
+}
+
 async function runIntegratedFocusChecks() {
   const server = await startStaticServer(dashboard);
   try {
@@ -303,6 +438,10 @@ async function runIntegratedFocusChecks() {
         await context.route('**/*', route => new URL(route.request().url()).origin === server.origin
           ? route.continue() : route.abort());
         await installApiStub(context, buildTokenTable(), { fail: [], overrides: {}, status: {} });
+        // The runtime routes localhost to its own origin. Point this local
+        // integration at the fully intercepted fixture destination instead.
+        await context.addInitScript(base => { window.FL_SESSION_API_BASE = base; }, `https://${API_HOST}`);
+        await context.route(`https://${API_HOST}/auth/session/config`, route => route.fulfill({ json: { key_sessions_enabled: false } }));
         const writes = [];
         await context.route(`https://${API_HOST}/sales/orders/*/close`, async route => {
           const body = route.request().postDataJSON();
@@ -352,6 +491,10 @@ try {
         page.on('pageerror', error => pageErrors.push(error.message));
         await prepare(page, theme);
         await runChecks(page, variant);
+        for (const lang of ['en', 'es']) {
+          await prepare(page, theme, lang);
+          await runPolicyChecks(page, variant, lang);
+        }
         assert.deepEqual(pageErrors, [], `${variant}: unexpected browser errors`);
         console.log(`PASS ${variant}: ${results.filter(result => result.variant === variant).length} exit-action checks`);
       } finally {
@@ -360,7 +503,8 @@ try {
     }
   }
   await runIntegratedFocusChecks();
-  console.log(`PASS: ${results.length} Sales Orders exit-action checks; all API calls stubbed in memory.`);
+  await runStagingPolicyChecks();
+  console.log(`PASS: ${results.length} Sales Orders exit-action checks; ${process.env.FL_SO_EXIT_STAGING_CASES ? 'live staging refusal proof reported separately above' : 'all API calls stubbed in memory'}.`);
 } finally {
   await browser.close();
 }

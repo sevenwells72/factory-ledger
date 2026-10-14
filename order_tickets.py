@@ -246,6 +246,16 @@ def require_reason_permissions(api, cur, action, payload, actor, *, lock=False):
             if exc.status_code==404: return  # validate reports the missing order
             raise
         shipment_gate(api,cur,order,payload['reason'])  # cutoff refusal is a plain 403 at prepare and commit
+    if action == 'reopen_order':
+        try:
+            order = load_order(cur, payload['order_id'], lock=lock)
+        except HTTPException as exc:
+            if exc.status_code == 404: return  # validate reports the missing order
+            raise
+        if order['state'] == 'closed' and order['state_reason'] == 'shipped_not_recorded':
+            # Plain permission/note/cutoff refusals at prepare and again before
+            # commit posting; ordinary shipment blockers stay in the dry run.
+            api._require_order_reopen_policy(cur, actor, order, payload.get('note'))
     if action == 'update_order_status':
         if payload['status'] == 'cancelled':
             permissions.require('cancel_order', actor)
@@ -750,7 +760,19 @@ def register_routes(app, api):
                     except HTTPException as exc:
                         if exc.status_code >= 500:
                             raise
+            reopen_note_required = (order['state'] == 'closed'
+                                    and order['state_reason'] == 'shipped_not_recorded')
+            if grants.get('reopen_order') and order['state'] in ('closed', 'cancelled'):
+                try:
+                    api._require_order_reopen_policy(cur, actor, order, 'eligibility check')
+                except HTTPException as exc:
+                    if exc.status_code >= 500:
+                        raise
+                    grants['reopen_order'] = False
+            else:
+                grants['reopen_order'] = False
             return {'permissions': grants, 'close_reasons': reasons,
+                    'reopen_note_required': reopen_note_required,
                     'statuses': api.MANUAL_TRANSITIONS.get(order['status'], [])
                                 if grants.get('update_order_status') else []}
 

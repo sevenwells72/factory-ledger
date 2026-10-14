@@ -11,7 +11,7 @@ const root=path.resolve(process.argv[2]||'dashboard');
 const out=path.resolve(process.argv[3]||'docs/design/audit/screenshots/sales-orders-interactions');
 await fs.mkdir(out,{recursive:true});
 const server=await startStaticServer(root);
-const browser=await chromium.launch();
+const browser=await chromium.launch({headless:true,channel:process.env.PLAYWRIGHT_CHANNEL||'chrome'});
 const results=[];
 
 async function installStatefulList(context){
@@ -41,6 +41,7 @@ async function installStatefulList(context){
    assert.equal(Object.hasOwn(body,'changed_by'),false,'The client must not invent attribution');
    if(failNextExit){failNextExit=false;return route.fulfill({status:503,json:{error:'HTTP 503: internal_database_error',trace:'raw_json_secret'}});}
    if(action==='cancel'&&order.fulfillment!=='unshipped')return route.fulfill({status:409,json:{detail:{error_code:'ORDER_ALREADY_SHIPPED',message:'POST /sales/orders/105/close short_closed',suggested_action:'close',suggested_reason:'short_closed'}}});
+   if(action==='reopen'&&order.state==='closed'&&order.state_reason==='shipped_not_recorded'&&!body.note?.trim())return route.fulfill({status:422,json:{detail:{error_code:'NOTE_REQUIRED'}}});
    const reservations=[{id:901,quantity_lb:1250},{id:902,quantity_lb:250}];
    if(body.mode==='preview')return route.fulfill({json:{mode:'preview',order_id:order.order_id,resulting_state:action==='close'?'closed':action==='cancel'?'cancelled':'open',reservations_to_release:action==='reopen'?[]:reservations}});
    assert.equal(body.mode,'commit');
@@ -88,8 +89,12 @@ async function checkExplanation(page,trigger,mode){
 try{
  for(const width of [1440,390]){
   const context=await browser.newContext({viewport:{width,height:900},hasTouch:width===390,isMobile:width===390,colorScheme:'light'});
-  await context.addInitScript(()=>localStorage.setItem('dashboard-theme','light'));
+  // Keep the current localhost runtime pointed at this fully intercepted
+  // API fixture origin, with the legacy write UI selected by FL's config.
+  await context.route('**/*',route=>new URL(route.request().url()).origin===server.origin?route.continue():route.abort());
+  await context.addInitScript(base=>{localStorage.setItem('dashboard-theme','light');window.FL_SESSION_API_BASE=base;},`https://${API_HOST}`);
   const api=await installStatefulList(context),page=await context.newPage(),errors=[];
+  await context.route(`https://${API_HOST}/auth/session/config`,route=>route.fulfill({json:{key_sessions_enabled:false}}));
   page.on('pageerror',e=>errors.push(e.message));
   await page.goto(server.origin,{waitUntil:'domcontentloaded'});
   await page.locator(width===390?'.mobile-nav > a[data-section="orders"]':'.tab[data-tab="orders"]').click();
@@ -158,8 +163,14 @@ try{
   await dialog.getByRole('button',{name:/Preview close instead/}).click();await dialog.locator('.so-exit-preview').waitFor({state:'visible'});
   assert.equal(api.writes.at(-1).action,'close');assert.equal(api.writes.at(-1).body.reason,'short_closed');assert.equal(api.writes.at(-1).body.mode,'preview');
   assert(!/POST|short_closed|error_code|HTTP/.test(await dialog.innerText()));await dialog.getByRole('button',{name:'Back',exact:true}).click();
-  await switchTab(page,'Closed');dialog=await openAction(page,110,'reopen');await dialog.getByRole('button',{name:'Preview reopen',exact:true}).click();await dialog.getByRole('button',{name:'Reopen order',exact:true}).click();await dialog.waitFor({state:'hidden'});await loaded(page);
-  assert.deepEqual(api.writes.filter(w=>w.id===110).map(w=>w.body.mode),['preview','commit']);assert(!(await ids(page)).includes(110));
+  await switchTab(page,'Closed');dialog=await openAction(page,110,'reopen');
+  before=api.writes.length;await dialog.getByRole('button',{name:'Preview reopen',exact:true}).click();
+  assert.equal(api.writes.length,before,'Legacy shipped-not-recorded reopen needs a note before a request');
+  assert.match(await dialog.getByRole('alert').innerText(),/Add a note explaining why this order closed as “Shipped, not recorded” is being reopened/);
+  await dialog.getByLabel('Note (required)',{exact:true}).fill('Owner reviewed the pre-cutover shipping record.');
+  await dialog.getByRole('button',{name:'Preview reopen',exact:true}).click();await dialog.getByRole('button',{name:'Reopen order',exact:true}).click();await dialog.waitFor({state:'hidden'});await loaded(page);
+  assert.deepEqual(api.writes.filter(w=>w.id===110).map(w=>w.body.mode),['preview','commit']);
+  assert.equal(api.writes.filter(w=>w.id===110).at(-1).body.note,'Owner reviewed the pre-cutover shipping record.');assert(!(await ids(page)).includes(110));
   await switchTab(page,'Cancelled');dialog=await openAction(page,111,'reopen');await dialog.getByRole('button',{name:'Preview reopen',exact:true}).click();await dialog.getByRole('button',{name:'Reopen order',exact:true}).click();await dialog.waitFor({state:'hidden'});await loaded(page);
   assert.deepEqual(api.writes.filter(w=>w.id===111).map(w=>w.body.mode),['preview','commit']);
   await switchTab(page,'Open');dialog=await openAction(page,104,'close');api.setExitFailure();await dialog.getByRole('button',{name:'Preview close',exact:true}).click();await dialog.locator('.so-exit-error').waitFor({state:'visible'});
@@ -167,7 +178,9 @@ try{
   api.setListFailure(true);await page.locator('#refresh-btn').click();await page.locator('#orders-error').waitFor({state:'visible'});
   assert(!/HTTP|503|database_connection|raw_json/.test(await page.locator('#orders-error').innerText()));api.setListFailure(false);await page.locator('#refresh-btn').click();await loaded(page);
   await page.screenshot({path:path.join(out,`${width}-interactions.png`)});
-  assert.deepEqual(errors,[]);results.push({width,tabs:true,counts:true,refinements:true,popovers:true,healthDetail:true,readyToggle:true,previewBeforeCommit:true,previewInvalidation:true,cancelValidation:true,relatedOrderResolution:true,conflictCloseOffer:true,reopenBothStates:true,plainLanguageErrors:true,pageErrors:errors,writes:api.writes});await context.close();
+  assert.deepEqual(errors,[]);results.push({width,tabs:true,counts:true,refinements:true,popovers:true,healthDetail:true,readyToggle:true,previewBeforeCommit:true,previewInvalidation:true,cancelValidation:true,relatedOrderResolution:true,conflictCloseOffer:true,reopenBothStates:true,requiredLegacyReopenNote:true,plainLanguageErrors:true,pageErrors:errors,writes:api.writes});await context.close();
  }
 }finally{await browser.close();await server.close();}
 await fs.writeFile(path.join(out,'results.json'),JSON.stringify(results,null,2)+'\n');console.log(JSON.stringify(results,null,2));
+
+console.log(`PASS: ${results.length} Sales Orders interaction scenarios (${results.reduce((total,result)=>total+Object.values(result).filter(value=>value===true).length,0)} contract groups); all API calls stubbed in memory.`);

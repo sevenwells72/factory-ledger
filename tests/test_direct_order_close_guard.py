@@ -1,8 +1,8 @@
 """O-4: every order-close/status shortcut obeys the recorded-shipment gate.
 
 Real HTTP routes and a disposable PostgreSQL database cover shared/personal
-keys, the immutable America/New_York creation date, notes, previews, ticket
-commits, voids, and the two ship-all paths that can change status without
+keys and owner/office sessions, the immutable America/New_York creation date,
+notes, previews, ticket commits, voids, and the two ship-all paths that can change status without
 posting stock. Refusals must leave orders, lines, reservations and audit intact.
 """
 from uuid import uuid4
@@ -16,7 +16,7 @@ from tests.test_write_tickets import commit, headers
 pytestmark = pytest.mark.db
 CUTOFF = "2026-11-20"
 CREATED = {"before": "2026-11-20 04:59:59+00", "after": "2026-11-20 05:00:00+00"}
-ROLES = ("owner", "office", "floor", "master", "dashboard")
+ROLES = ("owner", "office", "floor", "master", "dashboard", "owner_session", "office_session")
 CLOSE_PATHS = ("direct-preview", "direct-commit", "ticket")
 STATUS_PATHS = ("direct", "ticket")
 NOTE = "Michael confirmed the historical truck log"
@@ -25,9 +25,19 @@ NOTE = "Michael confirmed the historical truck log"
 @pytest.fixture(autouse=True)
 def cutoff(monkeypatch):
     monkeypatch.setenv("ORDER_LEGACY_CLOSE_CUTOFF", CUTOFF)
+    monkeypatch.setenv("KEY_SESSIONS_ENABLED", "1")
 
 
-def _key(role, actors):
+def _role(role):
+    return role.removesuffix("_session")
+
+
+def _key(role, actors, client):
+    if role.endswith("_session"):
+        response = client.post("/auth/session", json={"actor_key": actors[_role(role)]["key"]})
+        assert response.status_code == 200
+        assert response.json()["actor"]["id"] == actors[_role(role)]["id"]
+        return response.json()["session_token"]
     if role == "master":
         return main.API_KEY
     if role == "dashboard":
@@ -139,10 +149,10 @@ def _ticket(client, cur, oid, path, body, key, expected_status=200, code=None):
 
 
 def _close_expected(path, role, created, recorded, note, reason):
-    if role == "floor" or (path == "ticket" and role == "dashboard"):
+    if _role(role) == "floor" or (path == "ticket" and role == "dashboard"):
         return 403, None
     if reason == "shipped_not_recorded":
-        if role != "owner":
+        if _role(role) != "owner":
             return 403, "ROLE_NOT_ALLOWED"
         if not note:
             return 422, "NOTE_REQUIRED"
@@ -161,7 +171,7 @@ def _close_expected(path, role, created, recorded, note, reason):
 @pytest.mark.parametrize("note", (False, True))
 def test_close_guard_matrix(client, db_cursor, actors, path, reason, role, created, recorded, note):
     order = _seed(db_cursor, created=created, recorded=recorded)
-    oid, key = order["id"], _key(role, actors)
+    oid, key = order["id"], _key(role, actors, client)
     body = {"reason": reason}
     if note:
         body["note"] = NOTE
@@ -197,7 +207,7 @@ def test_close_guard_matrix(client, db_cursor, actors, path, reason, role, creat
 @pytest.mark.parametrize("note", (False, True))
 def test_status_guard_matrix(client, db_cursor, actors, path, status, role, created, recorded, note):
     order = _seed(db_cursor, created=created, recorded=recorded, status="shipped")
-    oid, key = order["id"], _key(role, actors)
+    oid, key = order["id"], _key(role, actors, client)
     body = {"status": status}
     if note:
         body["note"] = NOTE  # An ignored/unsupported note cannot grant an exemption.
@@ -206,7 +216,7 @@ def test_status_guard_matrix(client, db_cursor, actors, path, status, role, crea
         expected, code = 403, None
     elif path == "ticket" and note:
         expected, code = 422, None
-    elif role == "floor":
+    elif _role(role) == "floor":
         expected, code = 403, None
     elif status != "invoiced":
         expected, code = 400, None  # These values can only be set by real shipping.
@@ -240,7 +250,7 @@ def test_status_guard_matrix(client, db_cursor, actors, path, status, role, crea
 @pytest.mark.parametrize("note", (False, True))
 def test_cancel_paths_still_obey_the_existing_policy(client, db_cursor, actors, path, role, created, recorded, note):
     order = _seed(db_cursor, created=created, recorded=recorded)
-    oid, key = order["id"], _key(role, actors)
+    oid, key = order["id"], _key(role, actors, client)
     is_status = path.endswith("status")
     body = {"status": "cancelled"} if is_status else {"reason": "customer_cancelled"}
     if note:
@@ -250,7 +260,7 @@ def test_cancel_paths_still_obey_the_existing_policy(client, db_cursor, actors, 
         expected, code = 403, None
     elif path == "ticket-status" and note:
         expected, code = 422, None
-    elif role == "floor":
+    elif _role(role) == "floor":
         expected, code = 403, None
     elif recorded:
         expected, code = 409, "ORDER_ALREADY_SHIPPED"
@@ -284,7 +294,7 @@ def test_cancel_paths_still_obey_the_existing_policy(client, db_cursor, actors, 
 @pytest.mark.parametrize("note", (False, True))
 def test_ship_all_no_remaining_lines_cannot_forge_shipped(client, db_cursor, actors, path, role, created, recorded, note):
     order = _seed(db_cursor, created=created, recorded=recorded, status="partial_ship", fake_fulfilled=True)
-    oid, key = order["id"], _key(role, actors)
+    oid, key = order["id"], _key(role, actors, client)
     body = {"ship_all": True}
     if note:
         body["note"] = NOTE
@@ -425,12 +435,12 @@ def test_invalid_cutoff_fails_closed(client, db_cursor, actors, monkeypatch, pat
 
 def _reopen(client, cur, actors, path, role, created, recorded, note, restore):
     order = _seed(cur, created=created, recorded=recorded)
-    oid, key = order["id"], _key(role, actors)
+    oid, key = order["id"], _key(role, actors, client)
     cur.execute("""UPDATE sales_orders SET state='cancelled',state_reason='customer_cancelled',
                    status='cancelled',status_before_exit=%s WHERE id=%s""", (restore, oid))
     before = _snapshot(cur, oid)
     body = {"note": NOTE} if note else {}
-    if role in ("office", "floor") or (path == "ticket" and role == "dashboard"):
+    if _role(role) in ("office", "floor") or (path == "ticket" and role == "dashboard"):
         expected, code = 403, None
     elif restore in ("shipped", "invoiced") and not recorded:
         expected, code = 409, "SHIPMENT_REQUIRED"
@@ -480,7 +490,7 @@ def test_normal_reopen_remains_available_without_recorded_shipment(client, db_cu
 def test_recorded_partial_invoice_uses_short_close_reason_without_legacy_exception(client, db_cursor, actors, path, role, note):
     # A legacy stored shipped status may overstate the actual recorded pounds.
     order = _seed(db_cursor, created="after", status="shipped")
-    oid, key = order["id"], _key(role, actors)
+    oid, key = order["id"], _key(role, actors, client)
     db_cursor.execute("INSERT INTO lots(product_id,lot_code) VALUES(%s,%s) RETURNING id",
                       (order["product"], "O4-PARTIAL-" + uuid4().hex[:12].upper()))
     lot = db_cursor.fetchone()["id"]
@@ -503,7 +513,7 @@ def test_recorded_partial_invoice_uses_short_close_reason_without_legacy_excepti
         expected = 403
     elif path == "ticket" and note:
         expected = 422  # Status tickets never accept a legacy-close note.
-    elif role == "floor":
+    elif _role(role) == "floor":
         expected = 403
     else:
         expected = 200
@@ -528,3 +538,174 @@ def test_recorded_partial_invoice_uses_short_close_reason_without_legacy_excepti
         assert after["transactions"] == before["transactions"]
         assert after["transaction_lines"] == before["transaction_lines"]
         assert after["shipments"] == before["shipments"]
+
+
+def _legacy_closed(cur, *, created="before", recorded=False, restore="ready"):
+    order = _seed(cur, created=created, recorded=recorded)
+    cur.execute("""UPDATE sales_orders SET state='closed',state_reason='shipped_not_recorded',
+                   state_note='Original historical close',status='shipped',status_before_exit=%s
+                   WHERE id=%s""", (restore, order["id"]))
+    return order
+
+
+@pytest.mark.parametrize("path", CLOSE_PATHS)
+@pytest.mark.parametrize("role", ROLES)
+@pytest.mark.parametrize("cutover", ("before", "after", "unset"))
+@pytest.mark.parametrize("recorded", (False, True))
+@pytest.mark.parametrize("note", (False, True))
+@pytest.mark.parametrize("restore", ("ready", "shipped", "invoiced"))
+def test_legacy_reopen_guard_matrix(client, db_cursor, actors, monkeypatch, path, role,
+                                   cutover, recorded, note, restore):
+    # immutable created_at straddles New York midnight; order_date deliberately
+    # lies in the opposite direction, and a later recorded shipment cannot
+    # grant anyone a cutover or owner exemption.
+    order = _legacy_closed(db_cursor, created="after" if cutover == "unset" else cutover,
+                           recorded=recorded, restore=restore)
+    if cutover == "unset":
+        monkeypatch.delenv("ORDER_LEGACY_CLOSE_CUTOFF")
+    oid, key = order["id"], _key(role, actors, client)
+    before = _snapshot(db_cursor, oid)
+    body = {"note": NOTE} if note else {}
+    if _role(role) != "owner":
+        expected, code = 403, "ROLE_NOT_ALLOWED" if role != "dashboard" else None
+    elif not note:
+        expected, code = 422, "NOTE_REQUIRED"
+    elif cutover == "after":
+        expected, code = 403, "LEGACY_CLOSE_CUTOFF"
+    else:
+        expected, code = 200, None
+    if path == "ticket":
+        response = _ticket(client, db_cursor, oid, "reopen", body, key, expected, code)
+    else:
+        body["mode"] = "preview" if path == "direct-preview" else "commit"
+        response = client.post(f"/sales/orders/{oid}/reopen", json=body, headers=headers(key))
+        if expected != 200:
+            _assert_refused(response, expected, code)
+        else:
+            assert response.status_code == 200, response.text
+    after = _snapshot(db_cursor, oid)
+    if expected != 200 or path == "direct-preview":
+        assert after == before
+        if expected == 200:
+            assert response.json()["resulting_status"] == restore
+    else:
+        assert after["order"][0]["state"] == "open"
+        assert after["order"][0]["status"] == restore
+        assert after["order"][0]["status_before_exit"] is None
+        assert after["order"][0]["state_note"] == NOTE
+        assert after["order"][0]["state_reason"] is None
+        assert after["order"][0]["state_changed_by"] == actors["owner"]["name"]
+        for field in ("allocations", "lines", "shipments", "transactions", "transaction_lines", "trace_events"):
+            assert after[field] == before[field]
+
+
+@pytest.mark.parametrize("path", CLOSE_PATHS)
+@pytest.mark.parametrize("role", ("owner", "owner_session"))
+@pytest.mark.parametrize("note", ("", "   ", "\t\n"))
+def test_legacy_reopen_requires_its_own_nonblank_note(client, db_cursor, actors, path, role, note):
+    order = _legacy_closed(db_cursor)
+    key = _key(role, actors, client)
+    before = _snapshot(db_cursor, order["id"])
+    body = {"note": note}
+    if path == "ticket":
+        _ticket(client, db_cursor, order["id"], "reopen", body, key, 422, "NOTE_REQUIRED")
+    else:
+        body["mode"] = "preview" if path == "direct-preview" else "commit"
+        response = client.post(f"/sales/orders/{order['id']}/reopen", json=body, headers=headers(key))
+        _assert_refused(response, 422, "NOTE_REQUIRED")
+    assert _snapshot(db_cursor, order["id"]) == before
+
+
+@pytest.mark.parametrize("role", ("owner", "owner_session"))
+@pytest.mark.parametrize("recorded", (False, True))
+@pytest.mark.parametrize("change", ("cutoff", "exit_reason"))
+def test_legacy_reopen_ticket_commit_rechecks_policy_without_mutation(client, db_cursor, actors,
+                                                                    monkeypatch, role, recorded, change):
+    order = _legacy_closed(db_cursor, recorded=recorded, restore="shipped")
+    key = _key(role, actors, client)
+    prepared = client.post(f"/sales/orders/{order['id']}/reopen/prepare", json={"note": NOTE}, headers=headers(key))
+    assert prepared.status_code == 200 and prepared.json()["can_commit"], prepared.text
+    if change == "cutoff":
+        monkeypatch.setenv("ORDER_LEGACY_CLOSE_CUTOFF", "2026-11-19")
+    else:
+        # A draft prepared for the legacy exception cannot keep its exemption
+        # after another writer changes the exit reason.
+        db_cursor.execute("UPDATE sales_orders SET state_reason='shipped_recorded' WHERE id=%s", (order["id"],))
+        if recorded:
+            db_cursor.execute("""INSERT INTO ledger_corrections(target_table,target_id,event_type,previous_values,
+                               replacement_values,reason,operator_id)
+                               VALUES('transactions',%s,'void','{}','{}','O4 synthetic void','test')""", (order["transaction"],))
+    before = _snapshot(db_cursor, order["id"])
+    response = commit(client, prepared.json(), key)
+    _assert_refused(response, 403 if change == "cutoff" else 409,
+                    "LEGACY_CLOSE_CUTOFF" if change == "cutoff" else "TICKET_STALE")
+    if change != "cutoff":
+        assert "SHIPMENT_REQUIRED" in {b["code"] for b in response.json()["detail"]["blockers"]}
+    assert _snapshot(db_cursor, order["id"]) == before
+
+
+@pytest.mark.parametrize("role", ("master", "owner", "owner_session"))
+@pytest.mark.parametrize("recorded", (False, True))
+@pytest.mark.parametrize("change", ("legacy_reason", "missing_note"))
+def test_ordinary_reopen_ticket_rechecks_new_legacy_reason(client, db_cursor, actors,
+                                                          monkeypatch, role, recorded, change):
+    order = _seed(db_cursor, recorded=recorded)
+    db_cursor.execute("""UPDATE sales_orders SET state='closed',state_reason='shipped_recorded',
+                       status='shipped',status_before_exit='ready' WHERE id=%s""", (order["id"],))
+    key = _key(role, actors, client)
+    body = {} if change == "missing_note" else {"note": NOTE}
+    prepared = client.post(f"/sales/orders/{order['id']}/reopen/prepare", json=body, headers=headers(key))
+    assert prepared.status_code == 200 and prepared.json()["can_commit"], prepared.text
+    db_cursor.execute("UPDATE sales_orders SET state_reason='shipped_not_recorded' WHERE id=%s", (order["id"],))
+    monkeypatch.setenv("ORDER_LEGACY_CLOSE_CUTOFF", "2026-11-19")
+    before = _snapshot(db_cursor, order["id"])
+    response = commit(client, prepared.json(), key)
+    status, code = ((403, "ROLE_NOT_ALLOWED") if role == "master"
+                    else (422, "NOTE_REQUIRED") if change == "missing_note"
+                    else (403, "LEGACY_CLOSE_CUTOFF"))
+    _assert_refused(response, status, code)
+    assert _snapshot(db_cursor, order["id"]) == before
+
+
+@pytest.mark.parametrize("role", ROLES)
+@pytest.mark.parametrize("cutover", ("before", "after", "unset"))
+@pytest.mark.parametrize("recorded", (False, True))
+def test_legacy_reopen_office_options_match_policy(client, db_cursor, actors, monkeypatch,
+                                                  role, cutover, recorded):
+    order = _legacy_closed(db_cursor, created="after" if cutover == "unset" else cutover, recorded=recorded)
+    if cutover == "unset":
+        monkeypatch.delenv("ORDER_LEGACY_CLOSE_CUTOFF")
+    key = _key(role, actors, client)
+    before = _snapshot(db_cursor, order["id"])
+    response = client.get(f"/sales/orders/{order['id']}/office-options", headers=headers(key))
+    if role == "dashboard":
+        _assert_refused(response, 403)  # Shared dashboard keys cannot read ticket options.
+        assert _snapshot(db_cursor, order["id"]) == before
+        return
+    assert response.status_code == 200, response.text
+    options = response.json()
+    assert options["reopen_note_required"] is True
+    assert options["permissions"]["reopen_order"] is (_role(role) == "owner" and cutover != "after")
+    assert _snapshot(db_cursor, order["id"]) == before
+
+
+@pytest.mark.parametrize("role", ("owner", "owner_session"))
+@pytest.mark.parametrize("path", ("direct-preview", "direct-commit", "ticket"))
+@pytest.mark.parametrize("bad_cutoff", ("2026-13-01", "20261120"))
+def test_legacy_reopen_invalid_cutoff_fails_closed(client, db_cursor, actors, monkeypatch,
+                                                  role, path, bad_cutoff):
+    order = _legacy_closed(db_cursor)
+    key = _key(role, actors, client)
+    monkeypatch.setenv("ORDER_LEGACY_CLOSE_CUTOFF", bad_cutoff)
+    body = {"note": NOTE}
+    if path != "ticket":
+        body["mode"] = "preview" if path == "direct-preview" else "commit"
+    before = _snapshot(db_cursor, order["id"])
+    try:
+        response = client.post(f"/sales/orders/{order['id']}/reopen" + ("/prepare" if path == "ticket" else ""),
+                               json=body, headers=headers(key))
+    except RuntimeError as exc:
+        assert "ORDER_LEGACY_CLOSE_CUTOFF" in str(exc)
+    else:
+        assert response.status_code >= 500, response.text
+    assert _snapshot(db_cursor, order["id"]) == before

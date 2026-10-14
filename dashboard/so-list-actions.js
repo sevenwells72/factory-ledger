@@ -1,23 +1,41 @@
 /* Sales Orders list administrative exits. The server owns state and release totals. */
-(function () {
+(function (root) {
   'use strict';
 
   const REASONS = {
     close: [
-      ['shipped_recorded', 'Shipped, recorded'],
-      ['shipped_not_recorded', 'Shipped, not recorded'],
-      ['short_closed', 'Short-closed'],
+      ['shipped_recorded', 'Shipped, recorded', 'Enviado, registrado'],
+      ['shipped_not_recorded', 'Shipped, not recorded', 'Enviado, no registrado'],
+      ['short_closed', 'Short-closed', 'Cerrado con faltante'],
     ],
     cancel: [
-      ['customer_cancelled', 'Customer cancelled'],
-      ['cns_declined', 'CNS declined'],
-      ['duplicate', 'Duplicate'],
-      ['superseded', 'Superseded'],
-      ['other', 'Other'],
+      ['customer_cancelled', 'Customer cancelled', 'Cancelado por el cliente'],
+      ['cns_declined', 'CNS declined', 'Rechazado por CNS'],
+      ['duplicate', 'Duplicate', 'Duplicado'],
+      ['superseded', 'Superseded', 'Reemplazado'],
+      ['other', 'Other', 'Otro'],
     ],
   };
-  const TITLES = { close: 'Close', cancel: 'Cancel', reopen: 'Reopen' };
-  const PAST = { close: 'closed', cancel: 'cancelled', reopen: 'reopened' };
+  const TITLES = { close: ['Close', 'Cerrar'], cancel: ['Cancel', 'Cancelar'], reopen: ['Reopen', 'Reabrir'] };
+  const PAST = { close: ['closed', 'cerrado'], cancel: ['cancelled', 'cancelado'], reopen: ['reopened', 'reabierto'] };
+  const pick = (en, es, lang) => lang === 'es' ? es : en;
+
+  function noteRequired(order, action, reason) {
+    return (action === 'cancel' && reason === 'other')
+      || (action === 'close' && reason === 'shipped_not_recorded')
+      || (action === 'reopen' && order.state === 'closed' && order.state_reason === 'shipped_not_recorded');
+  }
+
+  function noteMessage(action, reason, lang) {
+    if (action === 'reopen') return pick(
+      'Add a note explaining why this order closed as “Shipped, not recorded” is being reopened.',
+      'Agrega una nota que explique por qué se reabre este pedido cerrado como “Enviado, no registrado”.', lang);
+    if (reason === 'shipped_not_recorded') return pick(
+      'Add a note explaining why this order is being closed as “Shipped, not recorded”.',
+      'Agrega una nota que explique por qué se cierra este pedido como “Enviado, no registrado”.', lang);
+    return pick('Add a note explaining why this order is being cancelled.',
+      'Agrega una nota que explique por qué se cancela este pedido.', lang);
+  }
   let currentDialog = null;
 
   function element(tag, className, text) {
@@ -32,30 +50,43 @@
     return detail && typeof detail === 'object' && !Array.isArray(detail) ? detail : {};
   }
 
-  function errorMessage(error, context) {
+  function errorMessage(error, context, lang = 'en', action = 'close', reason = 'shipped_not_recorded') {
     const detail = detailOf(error);
+    const t = (en, es) => pick(en, es, lang);
     const specific = {
-      ORDER_NOT_OPEN: 'This order is already closed or cancelled. Refresh the list to see its current state.',
-      ORDER_NOT_CLOSED: 'This order is already open. Refresh the list to see its current state.',
-      ORDER_ALREADY_SHIPPED: 'Some pounds have already shipped, so this order cannot be cancelled.',
-      STATE_NOTE_REQUIRED: 'Add a note explaining why this order is being cancelled.',
-      RELATED_SO_REQUIRED: 'Enter the related sales order number.',
-      RELATED_SO_INVALID: 'Choose a different sales order as the related SO.',
-      RELATED_SO_NOT_FOUND: 'The related sales order was not found. Check its SO number and try again.',
-      RELATED_SO_NOT_APPLICABLE: 'The related SO applies only to Duplicate or Superseded. Choose the reason again.',
+      ORDER_NOT_OPEN: t('This order is already closed or cancelled. Refresh the list to see its current state.', 'Este pedido ya está cerrado o cancelado. Actualiza la lista para ver su estado actual.'),
+      ORDER_NOT_CLOSED: t('This order is already open. Refresh the list to see its current state.', 'Este pedido ya está abierto. Actualiza la lista para ver su estado actual.'),
+      ORDER_ALREADY_SHIPPED: t('Some pounds have already shipped, so this order cannot be cancelled.', 'Ya se enviaron algunas libras, así que este pedido no puede cancelarse.'),
+      SHIPMENT_REQUIRED: action === 'reopen'
+        ? t('This order has no recorded shipment, so it cannot be reopened with its saved shipped or invoiced status. Record the shipment first.', 'Este pedido no tiene un envío registrado, así que no puede reabrirse con su estado guardado de enviado o facturado. Registra el envío primero.')
+        : t('This order has no recorded shipment, so it cannot be closed as shipped. Record the shipment first.', 'Este pedido no tiene un envío registrado, así que no puede cerrarse como enviado. Registra el envío primero.'),
+      LEGACY_CLOSE_CUTOFF: action === 'reopen'
+        ? t('This order was created on or after the cutover date and cannot be reopened from “Shipped, not recorded”.', 'Este pedido se creó en la fecha de corte o después y no puede reabrirse desde “Enviado, no registrado”.')
+        : t('This order was created on or after the cutover date. It cannot be closed as “Shipped, not recorded”; record the shipment first.', 'Este pedido se creó en la fecha de corte o después. No puede cerrarse como “Enviado, no registrado”; registra el envío primero.'),
+      ROLE_NOT_ALLOWED: reason === 'shipped_not_recorded' || detail.action?.endsWith('_shipped_not_recorded')
+        ? action === 'reopen'
+          ? t('Only the owner can reopen an order closed as “Shipped, not recorded”.', 'Solo el propietario puede reabrir un pedido cerrado como “Enviado, no registrado”.')
+          : t('Only the owner can close an order as “Shipped, not recorded”.', 'Solo el propietario puede cerrar un pedido como “Enviado, no registrado”.')
+        : t(`Your role does not allow you to ${action} this order. Ask the owner for help.`, `Tu rol no permite ${action === 'close' ? 'cerrar' : action === 'reopen' ? 'reabrir' : 'cancelar'} este pedido. Pide ayuda al propietario.`),
+      NOTE_REQUIRED: noteMessage(action, reason, lang),
+      STATE_NOTE_REQUIRED: noteMessage('cancel', 'other', lang),
+      RELATED_SO_REQUIRED: t('Enter the related sales order number.', 'Ingresa el número del pedido relacionado.'),
+      RELATED_SO_INVALID: t('Choose a different sales order as the related SO.', 'Elige otro pedido como el SO relacionado.'),
+      RELATED_SO_NOT_FOUND: t('The related sales order was not found. Check its SO number and try again.', 'No se encontró el pedido relacionado. Revisa su número de SO e inténtalo otra vez.'),
+      RELATED_SO_NOT_APPLICABLE: t('The related SO applies only to Duplicate or Superseded. Choose the reason again.', 'El SO relacionado solo corresponde a Duplicado o Reemplazado. Elige el motivo otra vez.'),
     };
     if (specific[detail.error_code]) return specific[detail.error_code];
     if (error && error.status === 404) return context === 'related'
-      ? 'The related sales order was not found. Check its SO number and try again.'
-      : 'This sales order could not be found. Refresh the list and try again.';
-    if (error && (error.status === 401 || error.status === 403)) return 'Your connection does not allow this change. Check your access and try again.';
-    if (error && error.status === 503) return 'Sales orders are temporarily unavailable. Wait a moment, then try again.';
-    if (error && error.status === 409) return 'This order changed while you were working. Refresh the list and try again.';
-    if (error && (error.status === 400 || error.status === 422)) return 'Some details could not be accepted. Check the reason, note, and related SO, then preview again.';
-    if (error && error.status >= 500) return 'The change could not be confirmed. Refresh the list before trying again.';
+      ? specific.RELATED_SO_NOT_FOUND
+      : t('This sales order could not be found. Refresh the list and try again.', 'No se encontró este pedido. Actualiza la lista e inténtalo otra vez.');
+    if (error && (error.status === 401 || error.status === 403)) return t('Your connection does not allow this change. Check your access and try again.', 'Tu conexión no permite este cambio. Revisa tu acceso e inténtalo otra vez.');
+    if (error && error.status === 503) return t('Sales orders are temporarily unavailable. Wait a moment, then try again.', 'Los pedidos no están disponibles temporalmente. Espera un momento e inténtalo otra vez.');
+    if (error && error.status === 409) return t('This order changed while you were working. Refresh the list and try again.', 'Este pedido cambió mientras trabajabas. Actualiza la lista e inténtalo otra vez.');
+    if (error && (error.status === 400 || error.status === 422)) return t('Some details could not be accepted. Check the reason, note, and related SO, then preview again.', 'No se aceptaron algunos datos. Revisa el motivo, la nota y el SO relacionado, y vuelve a previsualizar.');
+    if (error && error.status >= 500) return t('The change could not be confirmed. Refresh the list before trying again.', 'No se pudo confirmar el cambio. Actualiza la lista antes de intentarlo otra vez.');
     return context === 'related'
-      ? 'The related sales order could not be checked. Check your connection and try again.'
-      : 'The request could not be confirmed. Check your connection and refresh the list before trying again.';
+      ? t('The related sales order could not be checked. Check your connection and try again.', 'No se pudo verificar el pedido relacionado. Revisa tu conexión e inténtalo otra vez.')
+      : t('The request could not be confirmed. Check your connection and refresh the list before trying again.', 'No se pudo confirmar la solicitud. Revisa tu conexión y actualiza la lista antes de intentarlo otra vez.');
   }
 
   function open(order, options) {
@@ -71,6 +102,12 @@
       currentDialog.remove();
       currentDialog = null;
     }
+    let lang = options.lang || root.FLLedger?.lang;
+    if (!lang) { try { lang = sessionStorage.getItem('fl-ledger-language'); } catch (_) {} }
+    lang ||= document.documentElement.lang || 'en';
+    const t = (en, es) => pick(en, es, lang);
+    const titleFor = action => t(...TITLES[action]);
+    const pastFor = action => t(...PAST[action]);
     const trigger = options.trigger || document.activeElement;
     let action = options.action || (order.state === 'closed' || order.state === 'cancelled' ? 'reopen' : 'close');
     if (!TITLES[action]) return null;
@@ -79,13 +116,16 @@
     let previewPayload = null;
     let suggestedReason = null;
     const orderKey = order.order_id || order.id || order.order_number;
-    const orderLabel = String(order.order_number || 'sales order');
+    const orderLabel = String(order.order_number || t('sales order', 'pedido'));
 
     const dialog = element('dialog', 'so-exit-dialog');
     currentDialog = dialog;
     dialog.setAttribute('aria-labelledby', 'so-exit-title');
     dialog.setAttribute('aria-describedby', 'so-exit-description');
     const form = element('form', 'so-exit-form');
+    // Validate explicitly so missing required notes receive the same clear alert
+    // as a server refusal, including a blank field blocked by native validation.
+    form.noValidate = true;
     const header = element('header', 'so-exit-header');
     const title = element('h2');
     title.id = 'so-exit-title';
@@ -94,7 +134,7 @@
     header.append(title, description);
     const fields = element('div', 'so-exit-fields');
     const reasonGroup = element('div', 'so-exit-field');
-    const reasonLabel = element('label', '', 'Reason');
+    const reasonLabel = element('label', '', t('Reason', 'Motivo'));
     reasonLabel.htmlFor = 'so-exit-reason';
     const reason = element('select');
     reason.id = 'so-exit-reason';
@@ -102,7 +142,7 @@
     reasonGroup.append(reasonLabel, reason);
 
     const relatedGroup = element('div', 'so-exit-field');
-    const relatedLabel = element('label', '', 'Related SO');
+    const relatedLabel = element('label', '', t('Related SO', 'SO relacionado'));
     relatedLabel.htmlFor = 'so-exit-related';
     const related = element('input');
     related.id = 'so-exit-related';
@@ -111,7 +151,7 @@
     related.autocomplete = 'off';
     related.spellcheck = false;
     related.setAttribute('aria-describedby', 'so-exit-related-hint');
-    const relatedHint = element('p', 'so-exit-hint', 'Enter the SO number this order duplicates or was replaced by.');
+    const relatedHint = element('p', 'so-exit-hint', t('Enter the SO number this order duplicates or was replaced by.', 'Ingresa el número de SO que este pedido duplica o que lo reemplazó.'));
     relatedHint.id = 'so-exit-related-hint';
     relatedGroup.append(relatedLabel, related, relatedHint);
 
@@ -143,7 +183,7 @@
     preview.append(previewSummary, previewDetail);
 
     const footer = element('footer', 'so-exit-footer');
-    const dismiss = element('button', 'so-exit-button so-exit-secondary', 'Back');
+    const dismiss = element('button', 'so-exit-button so-exit-secondary', t('Back', 'Volver'));
     dismiss.type = 'button';
     const previewButton = element('button', 'so-exit-button so-exit-primary');
     previewButton.type = 'submit';
@@ -157,15 +197,15 @@
 
     function updateLabels() {
       dialog.dataset.action = action;
-      title.textContent = `${TITLES[action]} ${orderLabel}`;
+      title.textContent = `${titleFor(action)} ${orderLabel}`;
       description.textContent = action === 'reopen'
-        ? 'Return this order to Open. Previously released reservations are not restored; reserve stock again after reopening.'
+        ? t('Return this order to Open. Previously released reservations are not restored; reserve stock again after reopening.', 'Devuelve este pedido a Abierto. Las reservas liberadas no se restauran; vuelve a reservar inventario después de reabrirlo.')
         : action === 'close'
-          ? 'Remove this order from Open and release its stock reservations. Closing does not record a shipment.'
-          : 'Cancel this unshipped order and release its stock reservations.';
+          ? t('Remove this order from Open and release its stock reservations. Closing does not record a shipment.', 'Quita este pedido de Abierto y libera sus reservas de inventario. Cerrar no registra un envío.')
+          : t('Cancel this unshipped order and release its stock reservations.', 'Cancela este pedido no enviado y libera sus reservas de inventario.');
       reason.replaceChildren();
-      (REASONS[action] || []).forEach(([value, label]) => {
-        const option = element('option', '', label);
+      (REASONS[action] || []).forEach(([value, en, es]) => {
+        const option = element('option', '', t(en, es));
         option.value = value;
         reason.append(option);
       });
@@ -182,13 +222,13 @@
       relatedGroup.hidden = !needsRelated;
       related.required = needsRelated;
       related.disabled = !needsRelated || busy;
-      note.required = action === 'cancel' && reason.value === 'other';
-      noteLabel.textContent = note.required ? 'Note (required)' : 'Note (optional)';
+      note.required = noteRequired(order, action, reason.value);
+      noteLabel.textContent = note.required ? t('Note (required)', 'Nota (obligatoria)') : t('Note (optional)', 'Nota (opcional)');
     }
 
     function updateButtons() {
-      previewButton.textContent = busy && !previewPayload ? 'Checking…' : `Preview ${action}`;
-      commitButton.textContent = busy && previewPayload ? `${TITLES[action]} in progress…` : `${TITLES[action]} order`;
+      previewButton.textContent = busy && !previewPayload ? t('Checking…', 'Verificando…') : t(`Preview ${action}`, `Previsualizar ${titleFor(action).toLowerCase()}`);
+      commitButton.textContent = busy && previewPayload ? t(`${titleFor(action)} in progress…`, `${titleFor(action)} en curso…`) : t(`${titleFor(action)} order`, `${titleFor(action)} pedido`);
       previewButton.hidden = !!previewPayload || committed;
       commitButton.hidden = !previewPayload || committed;
       [previewButton, commitButton, dismiss, offer, note].forEach(control => { control.disabled = busy; });
@@ -210,22 +250,24 @@
     }
 
     function showError(error, context) {
-      errorText.textContent = errorMessage(error, context);
+      errorText.textContent = errorMessage(error, context, lang, action, action === 'reopen' ? order.state_reason : reason.value);
       const detail = detailOf(error);
       suggestedReason = action === 'cancel' && error.status === 409 && detail.suggested_action === 'close'
         && REASONS.close.some(([value]) => value === detail.suggested_reason) ? detail.suggested_reason : null;
       offer.hidden = !suggestedReason;
       if (suggestedReason) {
-        const label = REASONS.close.find(([value]) => value === suggestedReason)[1];
-        offer.textContent = `Preview close instead · ${label}`;
+        const labels = REASONS.close.find(([value]) => value === suggestedReason);
+        offer.textContent = t('Preview close instead', 'Previsualizar cierre en su lugar') + ' · ' + t(labels[1], labels[2]);
       }
       errorBox.hidden = false;
     }
 
     async function performPreview() {
       if (busy || committed) return;
-      related.setCustomValidity(related.required && !related.value.trim() ? 'Enter the related SO number.' : '');
-      note.setCustomValidity(note.required && !note.value.trim() ? 'Add a note explaining the cancellation.' : '');
+      related.setCustomValidity(related.required && !related.value.trim() ? t('Enter the related SO number.', 'Ingresa el número del SO relacionado.') : '');
+      const missingNote = note.required && !note.value.trim();
+      note.setCustomValidity(missingNote ? noteMessage(action, reason.value, lang) : '');
+      if (missingNote) showError({ detail: { error_code: 'NOTE_REQUIRED' } }, 'preview');
       if (!form.reportValidity()) return;
       previewPayload = null;
       preview.hidden = true;
@@ -243,7 +285,7 @@
           const targetId = Number(target.order_id || target.id);
           if (!Number.isInteger(targetId) || targetId <= 0) throw new Error('Related SO lookup unavailable');
           if (String(targetId) === String(orderKey) || String(target.order_number) === String(order.order_number)) {
-            related.setCustomValidity('Choose a different sales order as the related SO.');
+            related.setCustomValidity(t('Choose a different sales order as the related SO.', 'Elige otro pedido como el SO relacionado.'));
             throw { status: 400, detail: { error_code: 'RELATED_SO_INVALID' } };
           }
           payload.related_so_id = targetId;
@@ -260,10 +302,10 @@
         const pounds = reservations.reduce((sum, row) => sum + Number(row.quantity_lb), 0);
         if (!Number.isFinite(pounds) || pounds < 0) throw new Error('Preview totals unavailable');
         previewPayload = payload;
-        previewSummary.textContent = `Will release ${options.format(reservations.length)} reservations (${options.format(pounds, 'pounds')} lb)`;
+        previewSummary.textContent = t(`Will release ${options.format(reservations.length)} reservations (${options.format(pounds, 'pounds')} lb)`, `Se liberarán ${options.format(reservations.length)} reservas (${options.format(pounds, 'pounds')} lb)`);
         previewDetail.textContent = action === 'reopen'
-          ? 'This order will return to Open. Previously released reservations will not be restored.'
-          : `This order will be ${PAST[action]}. Released stock becomes available for other orders.`;
+          ? t('This order will return to Open. Previously released reservations will not be restored.', 'Este pedido volverá a Abierto. Las reservas liberadas no se restaurarán.')
+          : t(`This order will be ${pastFor(action)}. Released stock becomes available for other orders.`, `Este pedido será ${pastFor(action)}. El inventario liberado queda disponible para otros pedidos.`);
         preview.hidden = false;
       } catch (error) {
         showError(error, context);
@@ -291,11 +333,11 @@
           dialog.close();
         } catch (_) {
           preview.hidden = true;
-          errorText.textContent = `Order ${PAST[action]}. The list could not refresh; use Refresh to see the updated order.`;
+          errorText.textContent = t(`Order ${pastFor(action)}. The list could not refresh; use Refresh to see the updated order.`, `Pedido ${pastFor(action)}. No se pudo actualizar la lista; usa Actualizar para ver el pedido actualizado.`);
           errorBox.hidden = false;
           offer.hidden = true;
           fields.hidden = true;
-          dismiss.textContent = 'Dismiss';
+          dismiss.textContent = t('Dismiss', 'Cerrar');
         }
       } catch (error) {
         // Any failure requires a new preview. Do not blindly resend a commit
@@ -325,6 +367,7 @@
       invalidatePreview();
       updateLabels();
       reason.value = nextReason;
+      updateConditionalFields();
       performPreview();
     });
     commitButton.addEventListener('click', commit);
@@ -344,5 +387,7 @@
     return dialog;
   }
 
-  window.SOListActions = Object.freeze({ open });
-})();
+  const api = Object.freeze({ open, errorMessage, noteRequired });
+  if (typeof module !== 'undefined') module.exports = api;
+  root.SOListActions = api;
+})(typeof window !== 'undefined' ? window : globalThis);

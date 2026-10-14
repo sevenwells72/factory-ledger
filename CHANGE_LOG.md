@@ -11,6 +11,48 @@
 
 ---
 
+## 2026-10-14 13:19 — Verify the PR #121 fix round on fresh databases and browsers
+- **File(s) changed:** `tests/visual/run-sales-orders-interactions.mjs`; ignored local test/browser evidence
+- **What changed:** Adapt the legacy shipped_not_recorded fixture to require its own reopen note and assert no request before a valid note. Complete 5,668 Python tests across 21 fresh UTF-8 PostgreSQL 17 database groups, 206 Node tests, 174 dialog browser checks, 20 Sales Orders contract groups across two viewports and both session flag modes; zero failures/skips. Drop every suite database.
+- **Why:** Validate final source and existing list/session behavior before the authorized PR push; preserve all earlier evidence and logs.
+
+---
+
+## 2026-10-14 13:17 — Preserve contextual messages and isolate browser runner fixtures
+- **File(s) changed:** `dashboard/so-list-actions.js`, `tests/test_so_list_actions_ui.js`, `tests/visual/run-so-exit-actions.mjs`, `tests/visual/run-sales-orders-interactions.mjs`, `scripts/check_direct_order_close_staging.py`
+- **What changed:** Explain shipment-required reopening and ordinary role refusals in the selected action's context. Route integrated browser fixtures through an explicit intercepted API base, stub the default-off feature flags and abort unexpected external requests; use installed Chrome. Verify structured bilingual live staging refusal evidence with credentials confined to a sanitized Node adapter environment.
+- **Why:** Make each refusal accurate and keep current localhost runtime behavior from bypassing older fixture adapters during required browser verification.
+
+---
+
+## 2026-10-14 13:14 — Add browser and role regressions for the PR #121 fix round
+- **File(s) changed:** `tests/test_so_list_actions_ui.js`, `tests/visual/run-so-exit-actions.mjs`, `tests/test_roles_a2.py`, `scripts/check_direct_order_close_staging.py`, `tests/test_direct_order_close_guard.py`
+- **What changed:** Cover each EN/ES policy message, required blank-note refusal and preview/commit behavior in Node and native browser dialogs, including a sanitized loopback hook for actual staging refusals. Pin the owner-only reopen permission and preserve the shared dashboard office-options refusal. Staging sessions, matrix and browser checks retain rollback/independent cleanup and suppress sensitive diagnostics.
+- **Why:** Complete required items 1–3 with reproducible UI, permission and live staging evidence without broadening access.
+
+---
+
+## 2026-10-14 13:12 — Extend the O-4 guard matrix with sessions and legacy reopening
+- **File(s) changed:** `tests/test_direct_order_close_guard.py`
+- **What changed:** Add owner/office session keys to the existing matrix and cover shipped_not_recorded reopen across every key kind, saved status, effective shipment, required note and cutoff before/on/after/unset. Assert no business writes on refusals, stale-commit rechecks and office-options eligibility.
+- **Why:** Automate the reviewer's session probes and prove Michael's Oct 14 reopening decision on all direct and ticket paths.
+
+---
+
+## 2026-10-14 13:12 — Fix bilingual legacy Sales Orders close and reopen refusals
+- **File(s) changed:** `dashboard/so-list-actions.js`, `dashboard/index.html`, `scripts/check_direct_order_close_staging.py`; ignored fresh-suite runner
+- **What changed:** Give SHIPMENT_REQUIRED, LEGACY_CLOSE_CUTOFF, ROLE_NOT_ALLOWED and NOTE_REQUIRED specific EN/ES messages; mark shipped_not_recorded close/reopen notes required and explain missing notes before requests. Bump the asset version. Expand guarded staging coverage with owner/office sessions and Michael's legacy reopen rule.
+- **Why:** Claude review comment 6173836660 found misleading conflict/access messages and optional-note labeling; Michael's decision requires consistent owner, note and cutoff behavior on every path.
+
+---
+
+## 2026-10-14 13:10 — Apply Michael's owner-only legacy reopen decision for PR #121
+- **File(s) changed:** `main.py`, `permissions.py`, `order_tickets.py`; ignored worktree test setup
+- **What changed:** Validate named-owner permission, required reopen note and immutable New York creation cutoff for every shipped_not_recorded reopen; recheck at commit and expose eligibility through office options. Preserve ordinary reopen shipment gates and saved status. Prepare a disposable worktree-local PostgreSQL 17 cluster and read-only installed test dependencies.
+- **Why:** Michael's Oct 14 decision allows correction of a mistaken pre-cutover legacy close while refusing every other role and on/after-cutoff orders. External global log is outside the user's explicit work-only scope and remains unchanged.
+
+---
+
 ## 2026-10-14 13:09 — PR #120 fix round 1: whole-reset proof closes six false-green paths (Codex review 6173615593)
 - **File(s) changed:** `audits/fresh-start/whole_reset_proof.py`, `audits/fresh-start/fresh_start_v3.py`, `audits/fresh-start/apply_reset.py`, `audits/fresh-start/test_whole_reset.py`, `audits/fresh-start/tool-guide.md`, `audits/fresh-start/apply-guide.md`, `audits/fresh-start/WHOLE-RESET-PROOF-2026-10-14.md`, `scripts/count_rehearsal_staging.py`, `docs/deployments/whole-reset-proof-hosted-staging-receipt.json`, `docs/deployments/whole-reset-proof-evidence/STG-CNT-DCF5EB/` (new), `CHANGE_LOG.md`
 - **What changed:** Six proof gaps closed:

@@ -14476,6 +14476,34 @@ def _require_order_close_policy(cur, request, order: dict, reason: str, note=Non
                         status_code=409, order_id=order["id"])
 
 
+def _require_order_reopen_policy(cur, actor, order: dict, note=None):
+    """Michael's legacy reopen rule, shared by direct and ticket paths.
+
+    A shipped_not_recorded exit remains an owner exception even when a later
+    shipment exists. It needs its own note and immutable pre-cutover creation
+    date; the saved pre-exit status remains authoritative on an allowed reopen.
+    """
+    restored_status = order.get("status_before_exit") or "confirmed"
+    if order["state"] == "closed" and order["state_reason"] == "shipped_not_recorded":
+        permissions.require("reopen_order_shipped_not_recorded", actor)
+        if not (note or "").strip():
+            _so_state_error("NOTE_REQUIRED", "A note is required to reopen an order closed as shipped_not_recorded.",
+                            status_code=422, order_id=order["id"])
+        cutoff = ship_tickets.legacy_close_cutoff()
+        if (cutoff is not None
+                and order["created_at"].astimezone(PLANT_TIMEZONE).date() >= cutoff):
+            _so_state_error("LEGACY_CLOSE_CUTOFF",
+                            "Orders created on or after the cutover date cannot be reopened from shipped_not_recorded, including by the owner.",
+                            status_code=403, order_id=order["id"])
+    elif restored_status in ("shipped", "invoiced"):
+        blockers = ship_tickets.shipment_gate(sys.modules[__name__], cur, order, "shipped_recorded")
+        if blockers:
+            blocker = blockers[0]
+            _so_state_error(blocker["code"], blocker["message"],
+                            status_code=409, order_id=order["id"])
+    return restored_status
+
+
 def _shipped_close_reason(order: dict) -> str:
     """Classify an invoice close after the recorded-shipment gate has passed."""
     return ("shipped_recorded"
@@ -14871,7 +14899,7 @@ def cancel_sales_order(
 def _reopen_sales_order_core(cur, request, order_id: int, req):
     """A7 hook: the state-change handler body, verbatim (preview and commit), on
     the caller's cursor — shared by the direct route and the matching order
-    ticket. Permission checks stay with the callers."""
+    ticket. The reason-specific owner/note/cutover policy is checked here too."""
     order = _load_so_for_state_change(cur, order_id)
     if order["state"] not in ("closed", "cancelled"):
         _so_state_error(
@@ -14881,9 +14909,8 @@ def _reopen_sales_order_core(cur, request, order_id: int, req):
             status_code=409, order_id=order_id, state=order["state"],
         )
 
-    restored_status = order.get("status_before_exit") or "confirmed"
-    if restored_status in ("shipped", "invoiced"):
-        _require_order_close_policy(cur, request, order, "shipped_recorded")
+    restored_status = _require_order_reopen_policy(
+        cur, _actor_identity(request), order, req.note)
     changed_by = _state_changed_by(request, req.changed_by, order_id)
 
     if req.mode == "preview":

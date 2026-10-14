@@ -13,13 +13,16 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from hashlib import sha256
 from itertools import product
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import logging
+import re
 import os
 from pathlib import Path
 import secrets
 import subprocess
 import sys
+from threading import Lock, Thread
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
@@ -33,7 +36,7 @@ from staging_safety import assert_staging_database, database_host, PRODUCTION_DA
 from scripts.seed_staging import secret_file
 
 PLANT_TIMEZONE = ZoneInfo('America/New_York')
-ROLES = ('owner', 'office', 'floor', 'master', 'dashboard')
+ROLES = ('owner', 'office', 'floor', 'master', 'dashboard', 'owner_session', 'office_session')
 CLOSE_REASONS = ('shipped_not_recorded', 'shipped_recorded', 'short_closed')
 STATUS_TARGETS = ('invoiced', 'shipped', 'partial_ship')
 PATHS = (
@@ -52,6 +55,10 @@ PATHS = (
     + [(f'direct_reopen_{mode}_{status}', 'direct_reopen', status, mode)
        for status in ('shipped', 'invoiced') for mode in ('preview', 'commit')]
     + [(f'ticket_reopen_{status}', 'ticket_reopen', status, 'commit')
+       for status in ('shipped', 'invoiced')]
+    + [(f'direct_reopen_legacy_{mode}_{status}', 'direct_reopen', status, mode)
+       for status in ('shipped', 'invoiced') for mode in ('preview', 'commit')]
+    + [(f'ticket_reopen_legacy_{status}', 'ticket_reopen', status, 'commit')
        for status in ('shipped', 'invoiced')]
     + [('direct_ship_repair', 'direct_ship_repair', 'shipped', 'commit'),
        ('direct_ship_commit_repair', 'direct_ship_commit_repair', 'shipped', 'commit')]
@@ -97,12 +104,19 @@ def outcome(response):
             'blocker_codes': sorted({b.get('code', '') for b in blockers})}
 
 
-def allowed(kind, target, role, period, recorded, note):
+def allowed(kind, target, role, period, recorded, note, legacy_reopen=False):
+    role = role.removesuffix('_session')
     roles = {'owner', 'office', 'master'} if kind.startswith('ticket_') else {'owner', 'office', 'master', 'dashboard'}
     if kind.endswith('reopen'):
-        return role in {'owner', 'master'} and recorded
+        if legacy_reopen:
+            return role == 'owner' and note and period in {'before', 'unset'}
+        reopen_roles = {'owner', 'master'} | ({'dashboard'} if kind == 'direct_reopen' else set())
+        return role in reopen_roles and recorded
     if kind.endswith('repair'):
-        return role in {'owner', 'master'} and recorded and not (kind == 'direct_ship_commit_repair' and note)
+        repair_roles = {'owner', 'office', 'floor', 'master'}
+        if kind == 'direct_ship_commit_repair':
+            repair_roles.add('dashboard')  # existing shared-key direct-commit allowlist
+        return role in repair_roles and recorded and not (kind == 'direct_ship_commit_repair' and note)
     if kind == 'ticket_status' and note:
         return False  # status tickets reject a note; cannot turn it into permission
     if role not in roles:
@@ -116,8 +130,140 @@ def allowed(kind, target, role, period, recorded, note):
     return recorded
 
 
+def check_browser(client, conn, keys, fixture, reference):
+    """The shipped legacy dialog receives real staging refusals over loopback.
+
+    Playwright's Node adapter holds keys only in memory. Its browser page sees
+    public error metadata; the loopback server never logs requests. Each case
+    resets the synthetic fixture/cutoff inside the enclosing rollback. No app
+    server startup/lifespan or hosted endpoint is used.
+    """
+    order_id = fixture['order_id']
+    created_on = datetime.fromisoformat(fixture['created_at']).astimezone(PLANT_TIMEZONE).date()
+    cases = [
+        ('unshipped-close', 'close', 'shipped_recorded', 'owner', 'before', None, 'SHIPMENT_REQUIRED'),
+        ('after-cutoff-close', 'close', 'shipped_not_recorded', 'owner', 'on_or_after', 'Staging truck log', 'LEGACY_CLOSE_CUTOFF'),
+        ('owner-only-close', 'close', 'shipped_not_recorded', 'office_session', 'before', 'Staging truck log', 'ROLE_NOT_ALLOWED'),
+        ('missing-note-close', 'close', 'shipped_not_recorded', 'owner_session', 'before', None, 'NOTE_REQUIRED'),
+        ('after-cutoff-reopen', 'reopen', None, 'owner_session', 'on_or_after', 'Staging correction', 'LEGACY_CLOSE_CUTOFF'),
+        ('owner-only-reopen-master', 'reopen', None, 'master', 'before', 'Staging correction', 'ROLE_NOT_ALLOWED'),
+        ('owner-only-reopen-session', 'reopen', None, 'office_session', 'before', 'Staging correction', 'ROLE_NOT_ALLOWED'),
+        ('missing-note-reopen', 'reopen', None, 'owner_session', 'before', None, 'NOTE_REQUIRED'),
+    ]
+    live_cases, responses = [], []
+    for index, (name, action, reason, role, period, note, code) in enumerate(cases):
+        live_cases.append({'name': name, 'action': action, 'reason': reason, 'note': note,
+                           'api_key': keys[role], 'setup_path': f'/__o4__/setup/{index}',
+                           'order': {'id': order_id, 'order_number': reference,
+                                     'state': 'closed' if action == 'reopen' else 'open',
+                                     'state_reason': 'shipped_not_recorded' if action == 'reopen' else None},
+                           'expected_code': code})
+    lock = Lock()
+    active = None
+
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, *_):
+            pass  # Never print a key, path, request body, response or exception.
+
+        def do_POST(self):
+            nonlocal active
+            with lock:
+                try:
+                    match = re.fullmatch(r'/__o4__/setup/([0-9]+)', self.path)
+                    if match:
+                        index = int(match.group(1))
+                        require(0 <= index < len(cases), 'Invalid browser setup case')
+                        active = index
+                        _, action, _, _, period, _, _ = cases[index]
+                        cutoff = created_on + timedelta(days=1) if period == 'before' else created_on
+                        os.environ['ORDER_LEGACY_CLOSE_CUTOFF'] = cutoff.isoformat()
+                        with conn.cursor() as cur:
+                            cur.execute('ROLLBACK TO SAVEPOINT o4_case')
+                            cur.execute("""UPDATE sales_orders SET status=%s,state=%s,state_reason=%s,
+                                          status_before_exit=%s,state_note=NULL WHERE id=%s""",
+                                        ('shipped' if action == 'reopen' else 'ready',
+                                         'closed' if action == 'reopen' else 'open',
+                                         'shipped_not_recorded' if action == 'reopen' else None,
+                                         'ready' if action == 'reopen' else None, order_id))
+                        status, body = 200, {'ready': True}
+                    else:
+                        require(active is not None, 'Browser request lacks setup')
+                        name, action, _, role, period, _, expected_code = cases[active]
+                        require(self.path == f'/sales/orders/{order_id}/{action}', 'Non-synthetic browser request refused')
+                        require(secrets.compare_digest(self.headers.get('X-API-Key', ''), keys[role]),
+                                'Browser request used wrong synthetic key')
+                        length = int(self.headers.get('Content-Length', '0'))
+                        require(0 < length <= 4096, 'Invalid browser request length')
+                        payload = json.loads(self.rfile.read(length))
+                        require(payload.get('mode') == 'preview', 'Browser commit is outside message proof scope')
+                        response = client.post(self.path, json=payload, headers={'X-API-Key': keys[role]})
+                        phase = outcome(response)
+                        require(phase['error_code'] == expected_code, f'Unexpected browser refusal: {name}')
+                        responses.append({'case': name, 'role': role, 'created': period, **phase})
+                        # The UI uses codes/actions, never backend diagnostic text.
+                        detail = response.json().get('detail', {})
+                        safe_detail = {field: detail[field] for field in ('error_code', 'action') if field in detail}
+                        status, body = response.status_code, {'detail': safe_detail}
+                except BaseException:
+                    status, body = 500, {'detail': {'error_code': 'STAGING_PROOF_FAILED'}}
+                encoded = json.dumps(body).encode()
+                self.send_response(status)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Content-Length', str(len(encoded)))
+                self.end_headers()
+                self.wfile.write(encoded)
+
+    server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        config = {'api_base': f'http://127.0.0.1:{server.server_port}', 'cases': live_cases}
+        # Give Node only its runtime environment and synthetic browser cases;
+        # the real staging URI and unrelated app credentials never cross over.
+        env = {name: os.environ[name] for name in ('PATH', 'HOME', 'NODE_PATH', 'PLAYWRIGHT_BROWSERS_PATH', 'PLAYWRIGHT_CHANNEL')
+               if name in os.environ}
+        tmpdir = ROOT / '.venv-test/o4-fix1-browser-tmp'
+        tmpdir.mkdir(parents=True, exist_ok=True)
+        env['TMPDIR'] = str(tmpdir)
+        env['FL_SO_EXIT_STAGING_CASES'] = json.dumps(config)
+        runner = subprocess.run(['node', 'tests/visual/run-so-exit-actions.mjs'], cwd=ROOT,
+                                env=env, capture_output=True, text=True, timeout=600)
+        require(runner.returncode == 0, 'Staging browser message runner failed; sensitive output suppressed')
+        proof_lines = [line.removeprefix('STAGING_SO_EXIT_PROOF ') for line in runner.stdout.splitlines()
+                       if line.startswith('STAGING_SO_EXIT_PROOF ')]
+        require(len(proof_lines) == 1, 'Browser omitted its structured EN/ES proof')
+        proof = json.loads(proof_lines[0])
+        expected_checks = {(name, language, code) for name, *_, code in cases for language in ('en', 'es')}
+        ui_checks = proof.get('checks', [])
+        require(proof.get('passed') is True and proof.get('count') == len(expected_checks)
+                and proof.get('api_calls') == len(expected_checks), 'Browser proof counts do not match the cases')
+        require(len(ui_checks) == len(expected_checks)
+                and {(item.get('case'), item.get('language'), item.get('code')) for item in ui_checks} == expected_checks
+                and all(item.get('passed') is True for item in ui_checks), 'Browser proof omitted an EN/ES policy message')
+        runner_count = re.search(r'^PASS: ([0-9]+) Sales Orders exit-action checks;', runner.stdout, re.MULTILINE)
+        require(runner_count is not None, 'Browser omitted the existing regression count')
+        require(len(responses) == len(cases) * 2, 'Browser did not prove every refusal in EN/ES')
+        counts = Counter(response['case'] for response in responses)
+        require(all(counts[name] == 2 for name, *_ in cases), 'Browser repeated or omitted a refusal case')
+        return {'passed': True, 'languages': ['en', 'es'], 'live_message_checks': len(responses),
+                'existing_and_stubbed_message_checks': int(runner_count.group(1)),
+                'ui_checks': [{'case': name, 'language': language, 'code': code, 'passed': True}
+                              for name, language, code in sorted(expected_checks)],
+                'real_staging_http_refusals': responses,
+                'shipped_dashboard_module': True, 'keys_kept_in_node_adapter_memory': True,
+                'responses_expose_allowlisted_public_error_metadata_only': True,
+                'localhost_only': True, 'app_startup_or_lifespan_run': False,
+                'browser_runner': 'tests/visual/run-so-exit-actions.mjs'}
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
 def check():
-    source_names = ('main.py', 'order_tickets.py', 'ship_tickets.py', 'permissions.py', 'scripts/check_direct_order_close_staging.py')
+    source_names = ('main.py', 'order_tickets.py', 'ship_tickets.py', 'permissions.py', 'key_sessions.py',
+                    'dashboard/so-list-actions.js', 'tests/visual/run-so-exit-actions.mjs',
+                    'scripts/check_direct_order_close_staging.py')
     source_hashes = {name: sha256((ROOT / name).read_bytes()).hexdigest() for name in source_names}
     uri = secret_file(Path.home() / 'Documents/fl-secrets/staging-db-url.txt')
     assert_staging_database(uri, 'staging', PRODUCTION_DATABASE_HOST)
@@ -126,7 +272,7 @@ def check():
     os.environ.update(DATABASE_URL=uri, ENVIRONMENT='staging',
                       PRODUCTION_DATABASE_HOST=PRODUCTION_DATABASE_HOST,
                       API_KEY=secrets.token_urlsafe(40), DASHBOARD_API_KEY=secrets.token_urlsafe(40),
-                      READONLY_API_KEY='')
+                      READONLY_API_KEY='', KEY_SESSIONS_ENABLED='1', PIN_LOGIN_ENABLED='0')
     # Import has no database connection; TestClient is deliberately never used
     # as a context manager, so app lifespan/startup sweeps cannot run.
     import main
@@ -161,7 +307,7 @@ def check():
            'lots': [base], 'transactions': [base, base + 1, base + 2],
            'transaction_lines': [base, base + 1, base + 2], 'sales_order_shipments': [base, base + 1],
            'shipments': [base], 'shipment_lines': [base],
-           'write_tickets': []}
+           'write_tickets': [], 'key_actor_sessions': []}
     keys = {role: secrets.token_urlsafe(40) for role in ('owner', 'office', 'floor')}
     keys.update(master=main.API_KEY, dashboard=main.DASHBOARD_API_KEY)
     fixtures, rows = {}, []
@@ -172,7 +318,7 @@ def check():
             cur.execute("SET LOCAL search_path=public")
             cur.execute("SET LOCAL lock_timeout='5s'")
             cur.execute("SET LOCAL statement_timeout='60s'")
-            for marker in ('067_order_tickets', '074_ship_gate_attachments'):
+            for marker in ('067_order_tickets', '074_ship_gate_attachments', '077_key_sessions'):
                 cur.execute('SELECT 1 FROM migration_markers WHERE name=%s', (marker,))
                 require(cur.fetchone() is not None, f'Required staging marker absent: {marker}')
             for offset, role in enumerate(('owner', 'office', 'floor')):
@@ -180,6 +326,13 @@ def check():
                 cur.execute('INSERT INTO actors(id,name,role,key_hash,active) VALUES(%s,%s,%s,%s,true)',
                             (actor_id, f'{reference} {role}', role, sha256(keys[role].encode()).hexdigest()))
                 ids['actors'].append(actor_id)
+                if role in ('owner', 'office'):
+                    session_key = 'fls_' + secrets.token_urlsafe(32)
+                    keys[role + '_session'] = session_key
+                    cur.execute('''INSERT INTO key_actor_sessions(token_hash,actor_id,actor_key_hash,expires_at)
+                                   VALUES(%s,%s,%s,clock_timestamp()+interval '180 minutes') RETURNING id''',
+                                (sha256(session_key.encode()).hexdigest(), actor_id, sha256(keys[role].encode()).hexdigest()))
+                    ids['key_actor_sessions'].append(cur.fetchone()['id'])
             cur.execute('INSERT INTO customers(id,name,active) VALUES(%s,%s,true)', (base, reference + ' customer'))
             cur.execute("INSERT INTO products(id,name,type,uom,is_service,active) VALUES(%s,%s,'finished','lb',false,true)",
                         (base, reference + ' product'))
@@ -222,22 +375,37 @@ def check():
         def call(method, path, payload, role):
             return client.request(method, path, json=payload, headers={'X-API-Key': keys[role]})
 
+        session_auth = []
+        for role in ('owner_session', 'office_session'):
+            response = call('GET', '/auth/whoami', None, role)
+            body = response.json()
+            require(response.status_code == 200 and body.get('key_kind') == 'session',
+                    f'Synthetic session did not authenticate: {role}')
+            require((body.get('actor') or {}).get('role') == role.removesuffix('_session'),
+                    f'Synthetic session has wrong role: {role}')
+            session_auth.append({'role': role, 'key_kind': body['key_kind'], 'http': response.status_code})
+
         for path_label, kind, target, mode in PATHS:
-            role_cases = ('owner', 'master') if kind.endswith(('reopen', 'repair')) else ROLES
+            role_cases = ROLES
+            legacy_reopen = '_reopen_legacy_' in path_label
+            periods = ('before', 'on_or_after', 'unset') if legacy_reopen else ('before', 'on_or_after')
             is_recorded_partial = path_label.endswith('recorded_partial')
             shipment_cases = (True,) if is_recorded_partial else (False, True)
-            for role, period, recorded, note in product(role_cases, ('before', 'on_or_after'), shipment_cases, (False, True)):
+            for role, period, recorded, note in product(role_cases, periods, shipment_cases, (False, True)):
                 fixture = fixtures['partial'] if is_recorded_partial else fixtures[recorded]
                 order_id = fixture['order_id']
                 created_on = datetime.fromisoformat(fixture['created_at']).astimezone(PLANT_TIMEZONE).date()
                 cutoff = created_on + timedelta(days=1) if period == 'before' else created_on
-                os.environ['ORDER_LEGACY_CLOSE_CUTOFF'] = cutoff.isoformat()
+                if period == 'unset':
+                    os.environ.pop('ORDER_LEGACY_CLOSE_CUTOFF', None)
+                else:
+                    os.environ['ORDER_LEGACY_CLOSE_CUTOFF'] = cutoff.isoformat()
                 is_reopen, is_repair = kind.endswith('reopen'), kind.endswith('repair')
                 initial_state = 'closed' if is_reopen else 'open'
                 initial_status = 'partial_ship' if is_repair else 'shipped' if target == 'invoiced' or recorded else 'ready'
                 with conn.cursor() as cur:
                     cur.execute('''UPDATE sales_orders SET status=%s,state=%s,state_reason=%s,status_before_exit=%s WHERE id=%s''',
-                                (initial_status, initial_state, 'short_closed' if is_reopen else None,
+                                (initial_status, initial_state, 'shipped_not_recorded' if legacy_reopen else 'short_closed' if is_reopen else None,
                                  target if is_reopen else None, order_id))
                     if is_repair:
                         # Deliberately spoof counters when no effective ship
@@ -247,7 +415,7 @@ def check():
                            if is_reopen else {'ship_all': True} if is_repair else {'status': target})
                 if note:
                     payload['note'] = 'Synthetic legacy truck log for ' + reference
-                expected = allowed(kind, target, role, period, recorded, note)
+                expected = allowed(kind, target, role, period, recorded, note, legacy_reopen)
                 phases = {}
                 if kind.startswith('ticket_'):
                     suffix = kind.removeprefix('ticket_')
@@ -291,7 +459,10 @@ def check():
                     if expected and target == 'shipped_not_recorded' and mode == 'commit':
                         require(state['state_note'] == payload['note'] and state['state_changed_by'] == f'{reference} owner',
                                 'Legacy close lost named owner or note')
-                    if expected and target == 'invoiced' and mode == 'commit':
+                    if expected and legacy_reopen and mode == 'commit':
+                        require(state['state_note'] == payload['note'] and state['state_changed_by'] == f'{reference} owner',
+                                'Legacy reopen lost named owner or required note')
+                    if expected and target == 'invoiced' and mode == 'commit' and not is_reopen:
                         require(state['state_reason'] != 'shipped_not_recorded', 'Invoice inferred legacy owner exception')
                         if is_recorded_partial:
                             require(state['state_reason'] == 'short_closed', 'Recorded partial invoice did not use short_closed')
@@ -299,10 +470,13 @@ def check():
                 rows.append({'path': path_label, 'role': role, 'created': period,
                              'recorded_shipment': recorded, 'note': note,
                              'effective_shipped_lb': fixture['effective_shipped_lb'],
-                             'cutoff_ny': cutoff.isoformat(), 'expected_allowed': expected,
+                             'cutoff_ny': None if period == 'unset' else cutoff.isoformat(),
+                             'initial_state_reason': 'shipped_not_recorded' if legacy_reopen else 'short_closed' if is_reopen else None, 'expected_allowed': expected,
                              'phases': phases, 'resulting_state': expected_state,
                              'resulting_state_reason': state['state_reason']})
             print(f'O-4 staging matrix: {len(rows)} cases verified', flush=True)
+
+        browser_proof = check_browser(client, conn, keys, fixtures[False], reference)
     finally:
         client.close()
         conn.rollback()
@@ -332,7 +506,8 @@ def check():
             'production_connection_or_change': False, 'real_api_keys_loaded': False,
             'cutoff_configuration': 'process-local per-case value; hosted settings unchanged',
             'note_dimension': 'Actual note field supplied when true, including schema refusals on unsupported endpoints',
-            'matrix_scope': '20 close/status/cancel paths with all five key kinds; 2 recorded-partial invoice paths with all five key kinds; 8 additional reopen/ship repair controls with owner and master',
+            'matrix_scope': 'Every path covers five raw key kinds plus owner/office sessions; legacy shipped_not_recorded reopen also covers unset cutoff and every recorded-shipment/note combination',
+            'key_kinds': list(ROLES), 'session_authentication': session_auth, 'browser_proof': browser_proof,
             'synthetic_fixtures': list(fixtures.values()), 'synthetic_order_date': '1999-01-01',
             'fixtures_and_http_writes_rolled_back': True, 'post_rollback_counts': remaining,
             'sequence_policy': 'PostgreSQL sequences may advance; no shared sequences reset',
