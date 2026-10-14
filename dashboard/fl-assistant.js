@@ -418,7 +418,7 @@
       if (!validAttachment(result)) throw { detail: t('FL did not confirm a private evidence attachment.', 'FL no confirmó un adjunto privado de evidencia.') };
       attachments.push(result); renderAttachments();
     }
-    catch (error) { notice(t('NOT recorded — photo upload failed. ', 'NO registrado — falló la carga de foto. ') + errorText(error)); }
+    catch (error) { notice(t('Photo upload failed. Please try again.', 'Falló la carga de foto. Inténtalo de nuevo.')); }
     finally { setBusy(false); }
   });
   async function startMic() {
@@ -438,7 +438,7 @@
           const result = await api('/assistant/transcribe', { form });
           $('message').value = [$('message').value.trim(), result.text].filter(Boolean).join(' ');
           $('composer-hint').textContent = t('Review and edit your transcript, then press Send. Nothing has been sent.', 'Revisa y edita el dictado. Después pulsa Enviar. No se ha enviado nada.');
-        } catch (error) { notice(t('NOT recorded — dictation failed. ', 'NO registrado — falló el dictado. ') + errorText(error)); }
+        } catch (error) { notice(t('Dictation failed. Please try again or type your message.', 'Falló el dictado. Inténtalo de nuevo o escribe tu mensaje.')); }
         finally { setBusy(false); $('message').focus(); }
       };
       recorder.start(); recordingTimer = setTimeout(stopMic, 90000);

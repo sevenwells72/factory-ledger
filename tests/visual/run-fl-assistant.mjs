@@ -20,7 +20,7 @@ const neutralCases = [
     'I didn’t understand that', 'No entendí eso'],
   ['connection failure', null, 'Couldn’t look that up', 'No pude consultar eso'],
 ];
-let exchanges = 0, logouts = 0, expireNext = false;
+let exchanges = 0, logouts = 0, expireNext = false, failDictation = false;
 const sessionToken = 'fls_browser-fixture';
 const sid = '0c101ab1-8c56-42a2-8f29-c048330030c3', did = '616eac35-0b6e-4288-b40f-920639a83525';
 const receipt = { success: true, receipt_number: 'MK-261008-001', transaction_id: 17, product_name: 'Classic Test Batch', lot_code: 'B26-10-08-001',
@@ -96,7 +96,7 @@ try {
       if (records.length === 1) return route.abort('failed');
       return route.fulfill({ json: { kind: 'receipt', result: { ...receipt, replayed: true } } });
     }
-    if (url.pathname.endsWith('/transcribe')) { transcribed++; return route.fulfill({ json: { text: 'Recibí dos cajas', editable: true, sent: false } }); }
+    if (url.pathname.endsWith('/transcribe')) { transcribed++; if (failDictation) return route.fulfill({ status: 502, json: { detail: 'Provider unavailable' } }); return route.fulfill({ json: { text: 'Recibí dos cajas', editable: true, sent: false } }); }
     if (url.pathname.endsWith('/attachment/read')) { reads.push(data().attachment_id); return route.fulfill({ body: photoBytes, contentType: 'image/png' }); }
     if (url.pathname.endsWith('/attachment')) {
       assert.equal(url.searchParams.get('session_id'), sid);
@@ -161,6 +161,14 @@ try {
   await page.locator('#dictate').dispatchEvent('pointerup', { pointerId: 1 });
   await page.waitForFunction(() => document.querySelector('#message').value.includes('Recibí dos cajas'));
   assert.equal(turns.length, priorTurns); assert.equal(transcribed, 1);
+  failDictation = true;
+  await page.locator('#dictate').dispatchEvent('pointerdown', { pointerId: 2 });
+  await page.waitForFunction(() => document.querySelector('#dictate').getAttribute('aria-pressed') === 'true');
+  await page.locator('#dictate').dispatchEvent('pointerup', { pointerId: 2 });
+  await page.getByText('Dictation failed. Please try again or type your message.', { exact: true }).waitFor();
+  assert.equal(turns.length, priorTurns);
+  assert.ok(!/NOT recorded|NO registrado|Provider unavailable/.test(await page.locator('#notice').innerText()));
+  failDictation = false;
   await page.locator('#message').fill('Edited transcript');
   await page.locator('#photo').setInputFiles({ name: 'tag.png', mimeType: 'image/png', buffer: Buffer.from('photo fixture') });
   await page.locator('.attachment-chip').waitFor(); assert.equal(uploaded, 1); assert.deepEqual(uploadedKinds, ['lot_tag']);

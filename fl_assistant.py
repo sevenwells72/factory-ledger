@@ -84,7 +84,7 @@ class AttachmentRead(Body):
 async def openai(path, *, body=None, file=None):
     key = os.getenv('OPENAI_API_KEY', '').strip()
     if not key:
-        fail(503, 'ASSISTANT_NOT_CONFIGURED', 'OpenAI is unavailable. NOT recorded / NO registrado.')
+        fail(503, 'ASSISTANT_NOT_CONFIGURED', 'OpenAI is unavailable.')
     try:
         async with httpx.AsyncClient(timeout=60, follow_redirects=False) as client:
             kwargs = {'json': body} if file is None else {
@@ -94,10 +94,10 @@ async def openai(path, *, body=None, file=None):
                                          headers={'Authorization': 'Bearer ' + key}, **kwargs)
         if response.status_code != 200:
             logger.warning('OpenAI request failed: status=%s', response.status_code)
-            fail(502, 'OPENAI_UNAVAILABLE', 'OpenAI request failed. NOT recorded / NO registrado.')
+            fail(502, 'OPENAI_UNAVAILABLE', 'OpenAI request failed.')
         return response.json()
     except (httpx.HTTPError, ValueError):
-        fail(502, 'OPENAI_UNAVAILABLE', 'OpenAI connection failed. NOT recorded / NO registrado.')
+        fail(502, 'OPENAI_UNAVAILABLE', 'OpenAI connection failed.')
 
 
 async def relay(app, request, method, path, *, body=None, params=None, file=None, form=None, binary=False):
@@ -146,7 +146,7 @@ async def relay(app, request, method, path, *, body=None, params=None, file=None
     try:
         result = json.loads(raw)
     except ValueError:
-        fail(502, 'FL_RESPONSE_INVALID', 'FL returned no usable response. NOT recorded / NO registrado.')
+        fail(502, 'FL_RESPONSE_INVALID', 'FL returned no usable response.')
     return status, result
 
 
@@ -492,7 +492,7 @@ def register_routes(app, api):
                     if validation_retries:
                         cards.append({'kind': 'misunderstood'})
                         break
-                    fail(502, 'TOOL_REQUIRED', 'No FL tool completed. NOT recorded / NO registrado.')
+                    fail(502, 'TOOL_REQUIRED', 'No FL tool completed.')
                 call = calls[0]
                 # Keep the failed call/output pair for the one model repair attempt.
                 # Model prose is never rendered or retained.
@@ -520,7 +520,7 @@ def register_routes(app, api):
             if not cards and validation_retries:
                 cards.append({'kind': 'misunderstood'})
             if not cards:
-                fail(502, 'TOOL_LIMIT', 'Please give more precise details. NOT recorded / NO registrado.')
+                fail(502, 'TOOL_LIMIT', 'Please give more precise details.')
             # Bounded transcript, trim only at user-message boundaries to keep call/output pairs.
             while len(json.dumps(history)) > 90000 and sum(x.get('role') == 'user' for x in history) > 1:
                 next_user = next(i for i, x in enumerate(history[1:], 1) if x.get('role') == 'user')

@@ -1,5 +1,12 @@
 # Change Log
 
+## [2026-10-14 19:36] — Remove record-failure wording from non-record transport errors
+- **File(s) changed:** fl_assistant.py, dashboard/fl-assistant.js, tests/visual/run-fl-assistant.mjs
+- **What changed:** Removed NOT-recorded wording from provider/tool transport errors and photo/dictation notices; browser checks prove failed dictation stays unsent without a record claim.
+- **Why:** Reserve the red NOT-recorded outcome for an actual Record attempt.
+
+---
+
 ## [2026-10-14 19:34] — Keep failed model repairs on the plain rephrase outcome
 - **File(s) changed:** fl_assistant.py, tests/test_fl_assistant.py
 - **What changed:** Return the fixed rephrase card if the single repair call times out, returns prose/forbidden tool, or exhausts the bounded tool loop; added three regression cases.
