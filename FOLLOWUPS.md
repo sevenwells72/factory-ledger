@@ -2,9 +2,11 @@
 
 ## Resolution receipts coordination (2026-10-13; draft backend work)
 
-- PR #107: consume the exact receipt and `allowed_actions` contract in
-  `docs/contracts/resolution-receipts.md`; display effective void status and use
-  XR from the prepared commit, preserving the exception's source receipt.
+- ~~PR #107: consume the exact receipt and `allowed_actions` contract~~ DONE in
+  PR #107 (review 6160416726; changelog row 190).
+- D1/D2 cutover: the dashboard's Record entry / shipment / Exceptions UI stays
+  hidden on production until FL's `KEY_SESSIONS_ENABLED` is true there; open
+  dashboard tabs need a reload after the flip.
 - PR #108: after the backend fix lands, update `a3b_lb_equivalent`,
   `test_R6b_hold_prediction_mirrors_a3b_units` and the readiness case-unit hold
   prediction: a 40 lb correction on a 15 lb case is 40 lb, not 600 lb. Preserve

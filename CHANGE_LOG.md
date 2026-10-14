@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-14 00:40 — Rebase PR #107 onto main; changelog row 190 and followups
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
+- **What changed:** Rebased feat/dash-d1-d2 onto origin/main d5e9fea (CHANGE_LOG.md conflict only, both sides kept); added FACTORY_LEDGER_CHANGELOG row 190 (D1/D2 merged, write UI gated off on production); marked the PR #107 receipt-contract followup done and added the cutover reload note
+- **Why:** Claude review 6160416726 verdict MERGE; rows 186–189 already used on main
+
+---
+
 ## 2026-10-13 23:12 — Record production cutover gating, preview isolation and 2835 Python 126 Node seven browser checks
 - **File(s) changed:** `docs/validation/dashboard-d1-d2.md`, `docs/validation/d12-cutover-tests.json`
 - **What changed:** Record production cutover gating, preview isolation and 2835 Python 126 Node seven browser checks
