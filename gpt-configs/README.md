@@ -47,6 +47,16 @@ header to every output.
 - **Sales & Admin** — planned, not yet built.
 - **Trace & Recall** — planned, not yet built.
 
+## Read-only GPTs at cutover (G1)
+
+`readonly/` holds what gets pasted into **both** GPTs on cutover day (design
+§0.6, §10.1 steps 3–4): the two trimmed schemas (every write operation
+removed), the two read-only instruction files, and `CUTOVER_CHECKLIST.md`
+(click-by-click). The GPTs then authenticate with `READONLY_API_KEY`, which FL
+accepts only on the operations in those two schemas (`READONLY_KEY_ALLOWLIST`
+in `main.py`, pinned by `tests/test_readonly_api_key.py`). The instruction
+files are pasted as-is — they are not built by `build_gpt_instructions.py`.
+
 ## Legacy production GPT
 
 The currently-deployed single GPT is still driven by files at the repo root,
