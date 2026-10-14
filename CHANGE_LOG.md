@@ -1,5 +1,40 @@
 # Change Log
 
+## 2026-10-14 14:25 — Record complete PR #121 re-check validation and cleanup
+- **File(s) changed:** `docs/validation/direct-order-close-guard-tests-fix2.json`; ignored local validation evidence and temporary dependency link cleanup
+- **What changed:** Record current-source hashes, 20/21 browser runner executions (only known integrated-intake P1.27 fails), all 36 detail checks, 206 Node tests and 5,668 Python tests including 2,519 guard cases across 21 fresh-DB groups, zero test failures/skips. Full visual audit completes 388 captures across 92 screens/6 variants with 0 capture errors; its informational rule findings are retained locally and the tracked report is restored byte-for-byte. Both assistant modes and extra OFF office/void/gating/preview modes pass. Drop every disposable database, stop the task-owned PostgreSQL cluster and remove the temporary Node dependency link.
+- **Why:** Complete comment 6174843954's one-item fix round before the authorized PR #121 leased push and note. Staging/local only; no production, deployment or merge.
+
+---
+
+## 2026-10-14 14:09 — Record verified detail and Node regression results
+- **File(s) changed:** ignored `.venv-test/` validation evidence and browser driver
+- **What changed:** The corrected detail runner passes all 36 checks; all 206 Node tests pass with zero failures/skips. Read the detail result's `passed` field in the sweep driver.
+- **Why:** Bind the requested note regression to real-browser evidence and continue the remaining runner and fresh-DB suite checks.
+
+---
+
+## 2026-10-14 14:08 — Prepare all-browser fix-round validation driver
+- **File(s) changed:** ignored `.venv-test/o4-fix2-browser-suite.py` and local validation evidence
+- **What changed:** Enumerate all 21 local browser runners, exclude the two hosted staging acceptance scripts, run current source with installed Chrome, and create/drop a fresh local DB for each real-HTTP runner mode. Include both office, void, gating, preview and assistant modes; preserve the tracked visual-audit report after generating ignored evidence.
+- **Why:** Complete the requested browser regression sweep with local fixtures and no hosted API credentials or production access.
+
+---
+
+## 2026-10-14 14:07 — Prepare isolated PR #121 fix-round validation runtimes
+- **File(s) changed:** ignored `.venv-test/` Python 3.12 dependencies, suite wrapper and Chrome launcher; ignored `node_modules` dependency link
+- **What changed:** Rebuild the pinned interpreter, use bundled Playwright with installed Chrome, and adapt the existing fresh-database suite driver to a task-owned local PostgreSQL port and evidence directory.
+- **Why:** Run complete local regression validation for comment 6174843954 without using production credentials or any other worktree.
+
+---
+
+## 2026-10-14 14:05 — Rebase PR #121 and require the legacy reopen note in the detail runner
+- **File(s) changed:** `tests/visual/run-so-detail-interactions.mjs`, `CHANGE_LOG.md`; branch history rebased onto current `origin/main` (`5a2d57e`)
+- **What changed:** Preserve both changelog histories newest first through the changelog-only rebase conflicts. For closed fixture 110 (`shipped_not_recorded`), assert the required Note control, blank-preview refusal and zero requests, then provide the owner reopen note before preview/commit.
+- **Why:** Claude Code re-check 6174843954 requested one runner fix for Michael's owner-only, note-required, pre-cutover reopen rule. Staging/local validation only; no production, deployment or merge.
+
+---
+
 ## 2026-10-14 13:38 — PR #120 fix round 2: bind journaled owner holds to FL, zero-stock-only apply completes (Codex re-check 6174135183)
 - **File(s) changed:** `audits/fresh-start/fresh_start_v3.py`, `audits/fresh-start/apply_reset.py`, `audits/fresh-start/whole_reset_proof.py`, `audits/fresh-start/v3/queries/01-scope.sql`, `audits/fresh-start/test_whole_reset.py`, `audits/fresh-start/test_fresh_start_v3.py`, `audits/fresh-start/tool-guide.md`, `audits/fresh-start/apply-guide.md`, `audits/fresh-start/WHOLE-RESET-PROOF-2026-10-14.md`, `scripts/count_rehearsal_staging.py`, `docs/deployments/whole-reset-proof-hosted-staging-receipt.json`, `docs/deployments/whole-reset-proof-evidence/STG-CNT-08370B/` (new), `CHANGE_LOG.md`
 - **What changed:**

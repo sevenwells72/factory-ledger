@@ -1,0 +1,258 @@
+{
+  "validated_at": "2026-10-14T14:25:41-04:00",
+  "request": {
+    "pull_request": 121,
+    "recheck_comment": 6174843954,
+    "branch": "fix/direct-close-guard",
+    "scope": "staging/local only; no production, deployment or merge"
+  },
+  "rebase": {
+    "old_head": "3d181079189a118e6d496e189b8bb0d85546de59",
+    "origin_main": "5a2d57efa8d68c76c29487106ddc257b277fd19a",
+    "rebased_parent": "1db7e48ea3100413851f5bbe1bc1be2cae019595",
+    "conflicts": [
+      "CHANGE_LOG.md"
+    ],
+    "every_historical_entry_preserved": true,
+    "divergent_entries_newest_first": true
+  },
+  "fix": {
+    "file": "tests/visual/run-so-detail-interactions.mjs",
+    "fixture": 110,
+    "required_note_label": true,
+    "blank_note_preview_refused": true,
+    "blank_note_sends_zero_requests": true,
+    "supplied_note_before_preview_commit": true,
+    "ordinary_cancelled_order_reopen_preserved": true
+  },
+  "source_sha256": {
+    "main.py": "4b4bf1cd320c7fbb245b6f28830f7a32bc442857ea768b5cef0de3daabf408fd",
+    "permissions.py": "8a79bf29ad77c4c21c432233ff8bf84ccb6d2458eba9bc0bcd0ed089db22fdea",
+    "order_tickets.py": "2ef31c2492ce76fc93dfcdbea6b5d560015f0ea8a29d29e209c32134c42d9fa6",
+    "ship_tickets.py": "cf779342b8a807db6d493342e920416d344b7e3a3fa13450b5528d3e870b82ce",
+    "dashboard/so-list-actions.js": "6089e11183726c0ca345ddfb8b693d2583252637e17d4d89fb0a2b0295767494",
+    "tests/visual/lib/stub.mjs": "e561ae2db08e2ae33799c1854ff587dc2576061d56b3fe12d0d47a276218a088",
+    "tests/visual/run-so-detail-interactions.mjs": "7e0e5b932254925cc11eda641ee656118b67d94c980608dc9d5923346636baea"
+  },
+  "python": {
+    "driver": "scripts/run_single_db_suite.py; local copy changes only ROOT, OUT, DB and URL for isolated localhost:55425",
+    "collected": 5668,
+    "passed": 5668,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "fresh_database_groups": 21,
+    "guard_cases": 2519
+  },
+  "node": {
+    "command": "node --test tests/*.js",
+    "tests": 206,
+    "pass": 206,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0
+  },
+  "browser": {
+    "total_runner_files": 21,
+    "passed_runner_executions": 20,
+    "failed_runner_executions": 1,
+    "detail_checks": 36,
+    "excluded_hosted_acceptance_scripts": [
+      "run-d12-staging.mjs",
+      "run-office-void-staging.mjs"
+    ],
+    "known_failure": {
+      "file": "run-integrated-intake.mjs",
+      "followup": "P1.27",
+      "cause": "Timeout selecting removed #orders-status-filter"
+    },
+    "runners": {
+      "run-d12-auth-off.mjs": {
+        "returncode": 0,
+        "mode_returncodes": [
+          0
+        ],
+        "passed": true,
+        "fresh_database_per_mode": true
+      },
+      "run-d12-auth.mjs": {
+        "returncode": 0,
+        "mode_returncodes": [
+          0
+        ],
+        "passed": true,
+        "fresh_database_per_mode": true
+      },
+      "run-d12-fixes.mjs": {
+        "returncode": 0,
+        "mode_returncodes": [
+          0
+        ],
+        "passed": true,
+        "fresh_database_per_mode": true
+      },
+      "run-d12-gating.mjs": {
+        "returncode": 0,
+        "mode_returncodes": [
+          0,
+          0
+        ],
+        "passed": true,
+        "fresh_database_per_mode": true
+      },
+      "run-d12-preview.mjs": {
+        "returncode": 0,
+        "mode_returncodes": [
+          0,
+          0
+        ],
+        "passed": true,
+        "fresh_database_per_mode": true
+      },
+      "run-d12.mjs": {
+        "returncode": 0,
+        "mode_returncodes": [
+          0
+        ],
+        "passed": true,
+        "fresh_database_per_mode": true
+      },
+      "run-d2.mjs": {
+        "returncode": 0,
+        "mode_returncodes": [
+          0
+        ],
+        "passed": true,
+        "fresh_database_per_mode": true
+      },
+      "run-fl-assistant.mjs": {
+        "returncode": 0,
+        "mode_returncodes": [
+          0,
+          0
+        ],
+        "passed": true
+      },
+      "run-integrated-intake.mjs": {
+        "returncode": 1,
+        "mode_returncodes": [
+          1
+        ],
+        "passed": false
+      },
+      "run-key-sessions.mjs": {
+        "returncode": 0,
+        "mode_returncodes": [
+          0
+        ],
+        "passed": true
+      },
+      "run-office.mjs": {
+        "returncode": 0,
+        "mode_returncodes": [
+          0,
+          0
+        ],
+        "passed": true,
+        "fresh_database_per_mode": true
+      },
+      "run-production-trace.mjs": {
+        "returncode": 0,
+        "mode_returncodes": [
+          0
+        ],
+        "passed": true
+      },
+      "run-run-types.mjs": {
+        "returncode": 0,
+        "mode_returncodes": [
+          0
+        ],
+        "passed": true
+      },
+      "run-runs-interactions.mjs": {
+        "returncode": 0,
+        "mode_returncodes": [
+          0
+        ],
+        "passed": true
+      },
+      "run-sales-orders-interactions.mjs": {
+        "returncode": 0,
+        "mode_returncodes": [
+          0
+        ],
+        "passed": true
+      },
+      "run-sales-orders-layout.mjs": {
+        "returncode": 0,
+        "mode_returncodes": [
+          0
+        ],
+        "passed": true
+      },
+      "run-session-shift-fix.mjs": {
+        "returncode": 0,
+        "mode_returncodes": [
+          0
+        ],
+        "passed": true
+      },
+      "run-so-detail-interactions.mjs": {
+        "returncode": 0,
+        "checks": 36,
+        "passed": true
+      },
+      "run-so-exit-actions.mjs": {
+        "returncode": 0,
+        "mode_returncodes": [
+          0
+        ],
+        "passed": true
+      },
+      "run-visual-audit.mjs": {
+        "returncode": 0,
+        "mode_returncodes": [
+          0
+        ],
+        "passed": true
+      },
+      "run-void.mjs": {
+        "returncode": 0,
+        "mode_returncodes": [
+          0,
+          0
+        ],
+        "passed": true,
+        "fresh_database_per_mode": true
+      }
+    },
+    "full_visual_audit": {
+      "captures": 388,
+      "screens": 92,
+      "variants": 6,
+      "rule_results": {
+        "PASS": 3252,
+        "FAIL": 418,
+        "WARN": 70,
+        "N/A": 1304,
+        "ERROR": 0
+      },
+      "rule_findings_are_informational": true,
+      "tracked_report_restored": true
+    }
+  },
+  "cleanup": {
+    "suite_and_browser_databases_dropped": true,
+    "task_owned_local_cluster_stopped": true,
+    "temporary_node_dependency_link_removed": true
+  },
+  "local_evidence": [
+    ".venv-test/o4-fix2-python-suite/summary.json",
+    ".venv-test/o4-fix2-node.log",
+    ".venv-test/o4-fix2-so-detail/results.json",
+    ".venv-test/o4-fix2-browsers/static.json",
+    ".venv-test/o4-fix2-browsers/live.json",
+    ".venv-test/o4-fix2-browsers/full-visual-browser-check.md"
+  ]
+}
