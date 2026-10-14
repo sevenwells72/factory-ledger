@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-14 11:03 — Added master November cutover runbook
+- **File(s) changed:** `docs/cutover/CUTOVER-RUNBOOK.md`
+- **What changed:** Added Michael's one-page summary, a 36-step timed Nov 20/Dec 4 checklist, 17 owned OPEN items, count/reset/key/GPT/session/Assistant/A10/monitoring/M0 procedures and rollback evidence. Reconciled merged main 611d0c4 with draft PRs #112/#113; flagged multi-area reset proof and Friday direct-close bypass as gate blockers.
+- **Why:** Consolidate the approved cutover decisions into one reviewable operations document. Validation was source/peer review, relative-link/topic/field checks and shell syntax only; no application tests, DB, staging/production changes, secrets or merge.
+
+---
+
 ## 2026-10-14 00:40 — Rebase PR #107 onto main; changelog row 190 and followups
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
 - **What changed:** Rebased feat/dash-d1-d2 onto origin/main d5e9fea (CHANGE_LOG.md conflict only, both sides kept); added FACTORY_LEDGER_CHANGELOG row 190 (D1/D2 merged, write UI gated off on production); marked the PR #107 receipt-contract followup done and added the cutover reload note
