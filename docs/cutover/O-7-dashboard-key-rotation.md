@@ -98,13 +98,23 @@ fingerprints, never a value. `<SVC>` = `FastAPI-staging` or `FastAPI`;
    * Run `chmod 600` on both files. The new value must differ from `API_KEY`,
      `READONLY_API_KEY` and every actor key.
 2. **Set it on the server.** Railway → `<SVC>` → Variables → `DASHBOARD_API_KEY`
-   → paste → Deploy. From the CLI:
-   `railway variables --service <SVC> --set "DASHBOARD_API_KEY=$(cat ~/Documents/fl-secrets/<ENV>-dashboard-key.txt)"`.
+   → paste → Deploy. From the CLI, which keeps the value off the command line:
+   `railway variable set DASHBOARD_API_KEY --stdin --service <SVC> < ~/Documents/fl-secrets/<ENV>-dashboard-key.txt`.
    Wait until the deployment shows **Success**.
+   * **Staging while a branch is uploaded** (`railway up`): a variable change
+     redeploys the service's **GitHub source (`main`)**, not the uploaded
+     build. This happened in the O-7 proof; see
+     `docs/deployments/o7-dashboard-key-staging.md`.
+   * Before O-7 is merged, pass `--skip-deploys` and then run `railway up` from
+     the branch. Otherwise, re-upload straight after the variable deploy.
+   * Production deploys `main`, so it is not affected once O-7 is merged.
 3. **Hosts.** No action is needed.
    * Netlify serves no key, so it needs no rebuild and no cache clear.
    * Railway `/dashboard/*` is served by the same deployment.
-   * The route is `no-store`. Open tabs pick up the new key within 60 s.
+   * The route is `no-store`. Open tabs pick up the new key within 60 s
+     (KEY_TTL_MS). Until then, an open tab's keyed reads get 403.
+   * In the staging proof, open tabs switched without a reload about 15 s after
+     the route served the new key.
 4. **Verify. Every line must print PASS:**
    * `python3 scripts/check_dashboard_key_rotation.py --base <API> --new-key-file ~/Documents/fl-secrets/<ENV>-dashboard-key.txt --old-key-file ~/Documents/fl-secrets/<ENV>-dashboard-key.old.txt`
      (add `--allow-production` for production). This checks that the route
