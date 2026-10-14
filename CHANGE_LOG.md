@@ -1,5 +1,19 @@
 # Change Log
 
+## [2026-10-14 19:38] — Use active pointer in dictation failure browser regression
+- **File(s) changed:** tests/visual/run-fl-assistant.mjs
+- **What changed:** Reused the browser mouse pointer ID for the second synthetic hold-to-talk attempt so setPointerCapture accepts the test input.
+- **Why:** The new regression had timed out before starting dictation; application behavior was unchanged.
+
+---
+
+## [2026-10-14 19:37] — Record read-only F1 staging failure diagnosis
+- **File(s) changed:** docs/validation/fl-assistant-request-errors.json
+- **What changed:** Saved exact turn/tool/null arguments, empty relay body, route/status, deployed model configuration and cause; final verification remains explicitly pending.
+- **Why:** Preserve the requested read-only diagnosis without credentials.
+
+---
+
 ## [2026-10-14 19:36] — Remove record-failure wording from non-record transport errors
 - **File(s) changed:** fl_assistant.py, dashboard/fl-assistant.js, tests/visual/run-fl-assistant.mjs
 - **What changed:** Removed NOT-recorded wording from provider/tool transport errors and photo/dictation notices; browser checks prove failed dictation stays unsent without a record claim.

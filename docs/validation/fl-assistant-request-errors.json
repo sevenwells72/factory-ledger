@@ -1,0 +1,40 @@
+{
+  "scope": "staging only; no production access or merge",
+  "diagnosis": {
+    "session_id": "88097cbb-0723-4456-8852-6db588079995",
+    "turn_id": "06d216bb-413c-47f3-ae7c-e4211d56e922",
+    "actor": "Michael (staging)",
+    "created_at": "2026-10-14T19:22:36.649035-04:00",
+    "tool": "resolve",
+    "arguments": {
+      "kind": null,
+      "query": null,
+      "context": null,
+      "quantity": null,
+      "limit": null,
+      "offset": null
+    },
+    "relayed_arguments": {},
+    "fl_route": "POST /resolve",
+    "fl_status": 422,
+    "assistant_route": "POST /assistant/turn",
+    "assistant_status": 200,
+    "validation_fields": [
+      "kind",
+      "query"
+    ],
+    "validation_message": "Field required",
+    "requested_model": "gpt-6.1-sol",
+    "model_evidence": "Deployed 5592cdc default MODEL plus verified absence of ASSISTANT_MODEL override in staging service variables; historical turn stores calls/results, not provider model metadata.",
+    "deployment_id": "3994c4fd-b84e-4341-ab25-490b67c143ea",
+    "deployed_commit": "5592cdc011b38d068d0792ed3af1e8a75b2b0c91",
+    "cause": "tool_choice=required with no out-of-scope tool forced general chat into empty resolution. clean_arguments omitted all null values; UI rendered every refusal with failed(), including read validation errors."
+  },
+  "application_commit": "f08a214",
+  "targeted_python_before_final_wording_cleanup": {
+    "passed": 93,
+    "failed": 0
+  },
+  "full_validation": "pending",
+  "staging_smoke": "pending"
+}

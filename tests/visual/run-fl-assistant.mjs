@@ -162,9 +162,9 @@ try {
   await page.waitForFunction(() => document.querySelector('#message').value.includes('Recibí dos cajas'));
   assert.equal(turns.length, priorTurns); assert.equal(transcribed, 1);
   failDictation = true;
-  await page.locator('#dictate').dispatchEvent('pointerdown', { pointerId: 2 });
+  await page.locator('#dictate').dispatchEvent('pointerdown', { pointerId: 1 });
   await page.waitForFunction(() => document.querySelector('#dictate').getAttribute('aria-pressed') === 'true');
-  await page.locator('#dictate').dispatchEvent('pointerup', { pointerId: 2 });
+  await page.locator('#dictate').dispatchEvent('pointerup', { pointerId: 1 });
   await page.getByText('Dictation failed. Please try again or type your message.', { exact: true }).waitFor();
   assert.equal(turns.length, priorTurns);
   assert.ok(!/NOT recorded|NO registrado|Provider unavailable/.test(await page.locator('#notice').innerText()));
