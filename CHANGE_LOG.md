@@ -11,6 +11,27 @@
 
 ---
 
+## 2026-10-14 13:36 — Record complete PR #121 fix-round staging acceptance
+- **File(s) changed:** `docs/deployments/direct-order-close-staging-receipt-fix1.json`, `docs/validation/direct-order-close-guard-tests-fix1.json`, `FACTORY_LEDGER_CHANGELOG.md`, `FOLLOWUPS.md`; task dependency link removed
+- **What changed:** Record STG-O4-B35B1C190751: 2,128 matrix cases / 2,408 HTTP calls, 16 real EN/ES dialog refusals and repeated 174 browser regressions passed against committed `5237934` source. Verify stable hashes, outer rollback and independent zero rows across 13 tables; add guard row 203 and the final P1.20 fix-round evidence without modifying history. Remove the temporary read-only Node dependency link.
+- **Why:** Finish requested items 1–3 and make the staging-only work reviewable before the authorized PR #121 push/note. No production, hosted deployment, migration or merge; external global log remains outside the user's work-only scope.
+
+---
+
+## 2026-10-14 13:22 — Clarify browser evidence and finish local test cleanup
+- **File(s) changed:** `docs/validation/direct-order-close-guard-tests-fix1.json`; ignored local PostgreSQL runtime
+- **What changed:** Identify the actual browser execution evidence without a nonexistent log path; the staging receipt will capture the same checks alongside real refusals. Record that the task-owned local cluster is stopped after all suite databases were dropped.
+- **Why:** Keep the validation report accurate and leave no active disposable test server.
+
+---
+
+## 2026-10-14 13:20 — Record source-bound PR #121 fix-round validation
+- **File(s) changed:** `docs/validation/direct-order-close-guard-tests-fix1.json`
+- **What changed:** Preserve historical evidence and record implementation `5237934` with 5,668 fresh-DB Python tests including 2,519 guard cases, 206 Node tests, 174 native-dialog checks, 20 Sales Orders browser groups and both session flag modes. Bind final source hashes, zero failures/skips and dropped suite databases.
+- **Why:** Provide the reviewer reproducible validation for dashboard refusal messages, Michael's owner-note-cutoff reopen rule and automated session cases.
+
+---
+
 ## 2026-10-14 13:19 — Verify the PR #121 fix round on fresh databases and browsers
 - **File(s) changed:** `tests/visual/run-sales-orders-interactions.mjs`; ignored local test/browser evidence
 - **What changed:** Adapt the legacy shipped_not_recorded fixture to require its own reopen note and assert no request before a valid note. Complete 5,668 Python tests across 21 fresh UTF-8 PostgreSQL 17 database groups, 206 Node tests, 174 dialog browser checks, 20 Sales Orders contract groups across two viewports and both session flag modes; zero failures/skips. Drop every suite database.
