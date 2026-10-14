@@ -9862,6 +9862,7 @@ def _append_transaction_correction(
     *,
     trace_operator_id: Optional[str] = None,
     entered_by_actor_id: Optional[int] = None,
+    receipt_ticket=None,
 ):
     reason = (reason or "").strip()
     if not reason:
@@ -9885,6 +9886,11 @@ def _append_transaction_correction(
         raise HTTPException(400, f"Transaction #{transaction_id} is already voided")
     if event_type == "restore" and current_status != "voided":
         raise HTTPException(400, f"Transaction #{transaction_id} is not voided")
+
+    if event_type == 'void':
+        import resolution_receipts
+        receipt_actor = resolution_receipts.correction_actor(cur, entered_by_actor_id, operator_id)
+        resolution_receipts.require_void(sys.modules[__name__], cur, receipt_actor, transaction_id)
 
     restore_product_ids = []
     prepared_restore = None
@@ -9988,6 +9994,9 @@ def _append_transaction_correction(
             correction_id=correction_id,
             operator_id=trace_operator_id,
         )
+    if event_type == 'void':
+        result = resolution_receipts.record_void(sys.modules[__name__], cur, transaction_id, result,
+                                                 receipt_actor, reason, ticket=receipt_ticket)
     return result
 
 
@@ -10060,7 +10069,7 @@ def void_transaction(transaction_id: int, req: VoidRequest, _: bool = Depends(ve
                     f"Voided transaction #{transaction_id} through correction "
                     f"{event['correction_id']}"
                 )
-                return {
+                response = {
                     "success": True,
                     "voided_transaction_id": transaction_id,
                     "correction_id": event["correction_id"],
@@ -10074,6 +10083,8 @@ def void_transaction(transaction_id: int, req: VoidRequest, _: bool = Depends(ve
                         "the original is preserved and its lines are excluded from balances"
                     ),
                 }
+                return {**response, 'receipt_number': event['receipt_number'], 'ticket_id': event['ticket_id'],
+                        'source_receipt_number': event['source_receipt_number'], 'replayed': False}
     except HTTPException:
         raise
     except Exception as e:

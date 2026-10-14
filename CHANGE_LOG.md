@@ -1,5 +1,131 @@
 # Change Log
 
+## 2026-10-13 21:09 — Record full fresh-DB and staging validation plus dashboard/count-tool followups
+- **File(s) changed:** docs/deployments/resolution-receipts-tests.json, FACTORY_LEDGER_CHANGELOG.md, FOLLOWUPS.md
+- **What changed:** Record full fresh-DB and staging validation plus dashboard/count-tool followups
+- **Why:** 2833 Python and 107 Node passed; 35 focused tests pass and 15 fail on unchanged baseline; preserve staging evidence and cross-PR coordination for Claude Code review.
+
+---
+
+## 2026-10-13 21:08 — Document resolution, void and actor-action response contracts and PR 108 coordination
+- **File(s) changed:** docs/contracts/resolution-receipts.md
+- **What changed:** Document resolution, void and actor-action response contracts and PR 108 coordination
+- **Why:** Give PR 107 exact receipt fields, action button mappings and prepare/replay behavior; preserve PR 108 shortage lock/evidence semantics and flag its obsolete case hold prediction.
+
+---
+
+## 2026-10-13 21:07 — Add real concurrent counted-resolution and void receipt tests
+- **File(s) changed:** tests/test_resolution_receipts.py
+- **What changed:** Add real concurrent counted-resolution and void receipt tests
+- **Why:** Two simultaneous commits of the same ticket must return one number and post once.
+
+---
+
+## 2026-10-13 21:07 — Expose posted effective status distinctly from ticket commit status
+- **File(s) changed:** write_tickets.py, tests/test_resolution_receipts.py
+- **What changed:** Expose posted effective status distinctly from ticket commit status
+- **Why:** The dashboard must distinguish immutable committed tickets from currently posted, voided or partly voided ledger effects.
+
+---
+
+## 2026-10-13 21:06 — Repair full-suite integration for migration 080 and new A2 ticket routes
+- **File(s) changed:** migrations/080_resolution_receipts.sql, tests/test_a12_shift_integration.py, tests/test_named_actor_writes.py
+- **What changed:** Repair full-suite integration for migration 080 and new A2 ticket routes
+- **Why:** Qualify the migration marker for empty pg_dump search paths; retain schema guards and test floor attribution on an eligible own posting.
+
+---
+
+## 2026-10-13 21:06 — Verify 080 and counted ADJ XR receipts on guarded staging
+- **File(s) changed:** docs/deployments/resolution-receipts-staging.json
+- **What changed:** Verify 080 and counted ADJ XR receipts on guarded staging
+- **Why:** Synthetic shortage 35 recorded ADJ-261013-027 and XR-261013-001; VD backlink, case pounds, approval and replay passed; temporary actors deactivated, no production or hosted deployment.
+
+---
+
+## 2026-10-13 21:05 — Correct shift metadata receipt assertion to use its rows envelope
+- **File(s) changed:** tests/test_resolution_receipts.py
+- **What changed:** Correct shift metadata receipt assertion to use its rows envelope
+- **Why:** Exercise the existing other_receipts API shape without changing the report contract.
+
+---
+
+## 2026-10-13 21:04 — Add guarded staging receipt acceptance script
+- **File(s) changed:** scripts/check_resolution_receipts_staging.py
+- **What changed:** Add guarded staging receipt acceptance script
+- **Why:** Exercise counted ADJ+XR, case-unit correction, VD backlinks and blank approval using synthetic actors; apply only 080, without startup or hosted deploy.
+
+---
+
+## 2026-10-13 21:04 — Persist the standard success envelope in new receipt responses
+- **File(s) changed:** resolution_receipts.py
+- **What changed:** Persist the standard success envelope in new receipt responses
+- **Why:** Receipt readback must equal the commit response including middleware success semantics.
+
+---
+
+## 2026-10-13 21:03 — Extend regression coverage for atomic rollback, prepared replay, stale state and permission filtering
+- **File(s) changed:** tests/test_resolution_receipts.py
+- **What changed:** Extend regression coverage for atomic rollback, prepared replay, stale state and permission filtering
+- **Why:** Verify no double stock posting, truthful zero/partial outcomes, VD restore backlinks and A2 enforcement.
+
+---
+
+## 2026-10-13 21:02 — Make prepared XR responses unambiguous and preserve held-release atomicity
+- **File(s) changed:** exceptions_enforcement.py, write_tickets.py, resolution_receipts.py, tests/test_shift_summary.py
+- **What changed:** Make prepared XR responses unambiguous and preserve held-release atomicity
+- **Why:** Generic ticket clients receive XR in receipt_number; recheck counted review facts and pin an existing time-dependent shift test to its requested day.
+
+---
+
+## 2026-10-13 21:02 — Reconcile both builders into one receipt lifecycle
+- **File(s) changed:** resolution_receipts.py, exceptions_enforcement.py, write_tickets.py, permissions.py, main.py, tests/test_write_tickets.py
+- **What changed:** Reconcile both builders into one receipt lifecycle
+- **Why:** Keep the case-weight fix, optional approval notes, A2 action list, regression tests and source/evidence semantics; replace incompatible duplicate helper calls with one atomic ADJ/XR/VD implementation and prepare/commit routes.
+
+---
+
+## 2026-10-13 21:01 — Reconcile duplicate builder edits under this chat ownership and connect prepare/commit routes
+- **File(s) changed:** resolution_receipts.py, exceptions_enforcement.py, write_tickets.py, permissions.py, main.py, migrations/080_resolution_receipts.sql, tests/test_write_tickets.py
+- **What changed:** Reconcile duplicate builder edits under this chat ownership and connect prepare/commit routes
+- **Why:** User explicitly assigned this chat the worktree; unify transaction ownership, held decision receipts and referenced ticket producers.
+
+---
+
+## 2026-10-13 20:57 — Wire atomic ADJ/XR/VD receipts, actor actions, optional approval notes and case-pound correction review
+- **File(s) changed:** exceptions_enforcement.py, write_tickets.py, main.py, tests/schema/schema.sql, tests/test_resolution_receipts.py
+- **What changed:** Wire atomic ADJ/XR/VD receipts, actor actions, optional approval notes and case-pound correction review
+- **Why:** Keep fixing ADJ identity separate from XR; keep saved posting responses immutable and expose effective void evidence.
+
+---
+
+## 2026-10-13 20:56 — Add atomic receipt helpers and additive migration 080
+- **File(s) changed:** resolution_receipts.py, migrations/080_resolution_receipts.sql
+- **What changed:** Add atomic receipt helpers and additive migration 080
+- **Why:** Preserve source and fixing-post identities while separately recording XR decisions and VD corrections.
+
+---
+
+## 2026-10-13 20:56 — Add receipt, approval, action permission and case-weight regression tests
+- **File(s) changed:** tests/test_resolution_receipts.py
+- **What changed:** Add receipt, approval, action permission and case-weight regression tests
+- **Why:** Demonstrate the six requested backend issues before implementation.
+
+---
+
+## 2026-10-13 20:55 — Add D1/D2 resolution receipt regression tests
+- **File(s) changed:** `tests/test_resolution_receipts.py`
+- **What changed:** Added receipt, ticket replay, approval note, permission-list and void regressions before implementation.
+- **Why:** PR #107 item 7; no FL receipt number means not recorded.
+
+---
+
+## 2026-10-13 20:55 — Create isolated resolution receipts worktree at 1a423f7 and fresh local test database
+- **File(s) changed:** CHANGE_LOG.md
+- **What changed:** Create isolated resolution receipts worktree at 1a423f7 and fresh local test database
+- **Why:** Authorized backend fixes for PRs #107/#108; recover checkout from matching GitHub archive after local object read timeout. No other worktree or production writes.
+
+---
+
 ## 2026-10-13 19:20 — Record final A5 fresh-DB and staging verification
 - **File(s) changed:** `docs/deployments/a5-supplier-lot-tests.json`, `docs/deployments/a5-supplier-lot-ticket.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Record 2,795 Python and 107 Node passing with zero failures/errors/skips on a fresh isolated PG17 DB. Add regression guard row 182 and actual staging receipt LOT-261013-001 resolving exception 22 once, using an office key session. Migration 079 staging only; no hosted deploy or production access.

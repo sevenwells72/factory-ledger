@@ -36,7 +36,7 @@ EXPECTED_RECEIPT_PREPARE_ROUTES = frozenset({
     ('POST', '/expected-receipts/extract/approve/prepare'),
 })
 SHIP_ACTIONS = ('ship_order', 'ship_standalone', 'ship_bulk')
-PREFIXES = {**{action: 'SHP' for action in SHIP_ACTIONS}, 'receive': 'RCV', 'make': 'MK', 'pack': 'PK', 'adjust': 'ADJ', 'found': 'FND', 'move_lot': 'LOT', 'update_supplier_lot': 'LOT',
+PREFIXES = {'resolve_exception': 'XR', 'void': 'VD', **{action: 'SHP' for action in SHIP_ACTIONS}, 'receive': 'RCV', 'make': 'MK', 'pack': 'PK', 'adjust': 'ADJ', 'found': 'FND', 'move_lot': 'LOT', 'update_supplier_lot': 'LOT',
             **{action: 'ORD' for action in ORDER_ACTIONS},
             **{action: 'ER' for action in EXPECTED_RECEIPT_ACTIONS}}
 ORDER_PREPARE_ROUTES = frozenset({
@@ -60,6 +60,7 @@ DASHBOARD_ROUTES = frozenset({
     ('GET', '/receipts/by-transaction/{transaction_id}'),
 })
 ACTOR_ROUTES = DASHBOARD_ROUTES | frozenset({
+    ('POST', '/void/{transaction_id}/prepare'),
     ('POST', '/lots/{lot_id}/move/prepare'),
     ('POST', '/lots/{lot_id}/supplier-lot/prepare'),
     ('POST', '/make/prepare'),
@@ -413,6 +414,13 @@ def receipt_detail(api, cur, number):
     transactions = [dict(row) for row in cur.fetchall()]
     lot_ids = set((ticket.get('result_ref') or {}).get('lot_ids', []))   # NULL on a rejected/held ticket that already drew a number
     for txn in transactions:
+        cur.execute('''SELECT wt.receipt_number FROM ledger_corrections c
+            LEFT JOIN write_tickets wt ON wt.action='void' AND wt.status='committed'
+              AND wt.result_ref->>'correction_id'=c.id::text
+            WHERE c.target_table='transactions' AND c.target_id=%s AND c.event_type IN ('void','restore')
+            ORDER BY c.created_at DESC,c.id DESC LIMIT 1''', (txn['id'],))
+        last_void = cur.fetchone()
+        txn['void_receipt_number'] = last_void['receipt_number'] if last_void and txn['effective_status'] == 'voided' else None
         cur.execute('''SELECT l.product_id,p.name AS product_name,l.lot_id,lot.lot_code,l.quantity_lb
                        FROM ledger_current_transaction_lines l JOIN products p ON p.id=l.product_id
                        LEFT JOIN lots lot ON lot.id=l.lot_id WHERE l.transaction_id=%s ORDER BY l.id''',
@@ -447,6 +455,11 @@ def receipt_detail(api, cur, number):
             'draft': ticket['draft'], 'response': ticket['response'],
             'warnings': ticket['warnings'], 'acknowledged': ticket['acknowledged'],
             'transactions': transactions, 'lots': lots}
+    statuses = {t['effective_status'] for t in transactions}
+    receipt['effective_status'] = ('voided' if statuses == {'voided'} else
+                                   'partially_voided' if 'voided' in statuses else
+                                   'posted' if statuses else ticket['status'])
+    receipt['void_receipt_number'] = next((t['void_receipt_number'] for t in transactions if t['void_receipt_number']), None)
     receipt.update(kosher_tiers.summary_fields(receipt))
     return receipt
 
@@ -573,10 +586,14 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
                                     'entered_by': actor, 'late_entry_exception_id': exception_id}
         if approval:
             response['approval'] = {**approval, 'approved_at': entered_at}
-        elif row['status'] == a3b.HELD:
-            # A photo released the hold on the normal commit path.
-            a3b.release_hold(cur, row['id'], resolution_kind='photo_attached', actor_id=actor['id'], note=None,
-                             response={**response, 'receipt_number': receipt}, attachment_ref=photo)
+        if approval or row['status'] == a3b.HELD:
+            resolver = ({**approval['approved_by'], 'key_kind': 'actor'} if approval else actor)
+            kind = 'approved' if approval else 'photo_attached'
+            closed_id = a3b.release_hold(cur, row['id'], resolution_kind=kind, actor_id=resolver['id'],
+                             note=approval.get('note') if approval else None, response=response, attachment_ref=photo)
+            if closed_id:
+                xr = a3b._record_resolution(api, cur, a3b._one(cur, closed_id), resolver, kind)
+                response['resolution_receipt_number'] = xr['resolution_receipt_number']
         a12.snapshot_response(cur, response, row['action'], draft)
         response = json_value(api, response)
     except HTTPException as exc:
@@ -792,6 +809,9 @@ def register_routes(app, api):
                              set(body.acknowledged_warnings))
             if missing:
                 fail(409, 'WARNING_NOT_ACKNOWLEDGED', 'Acknowledge the draft warnings.', missing=missing)
+            if row['action'] in ('resolve_exception', 'void'):
+                import resolution_receipts
+                return resolution_receipts.commit(api, cur, row, body, actor, request)
             if row['action'] in SHIP_ACTIONS:
                 import ship_tickets
                 return ship_tickets.commit(api, cur, row, body, actor, request, entry_timing)
@@ -843,3 +863,5 @@ def register_routes(app, api):
     # A7 hook: the ten order prepares (ORDER_PREPARE_ROUTES) live in order_tickets.
     import order_tickets
     order_tickets.register_routes(app, api)
+    import resolution_receipts
+    resolution_receipts.register_routes(app, api)

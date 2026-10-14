@@ -7185,3 +7185,6 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 
 \unrestrict 6N21bbBomq3cHokGbwrjULvrzDpROpnzRRqw8grch4fqdgVHKghoxwpWvWIFlV1
 
+
+-- Pending additive receipt migration; do not run the full schema on staging.
+\ir ../../migrations/080_resolution_receipts.sql

@@ -1,0 +1,36 @@
+{
+  "environment": "staging",
+  "mode": "local_branch_http_against_guarded_staging",
+  "reference": "STG-XR-CCAF19C68F",
+  "migration": "080_resolution_receipts",
+  "production_access": false,
+  "counted_shortage": {
+    "exception_id": 35,
+    "source_receipt_number": "MK-261013-012",
+    "adjustment_receipt_number": "ADJ-261013-027",
+    "resolution_receipt_number": "XR-261013-001",
+    "book_before_lb": -6,
+    "counted_lb": 4,
+    "delta_lb": 10,
+    "final_balance_lb": 4,
+    "replay_verified": true
+  },
+  "case_unit": {
+    "case_weight_lb": 15,
+    "delta_lb": -40,
+    "lb_equivalent": -40,
+    "held": false,
+    "receipt_number": "ADJ-261013-028"
+  },
+  "void": {
+    "receipt_number": "VD-261013-001",
+    "original_receipt_number": "ADJ-261013-028",
+    "backlink_verified": true
+  },
+  "blank_approval": {
+    "posting_receipt_number": "ADJ-261013-029",
+    "resolution_receipt_number": "XR-261013-002",
+    "replay_verified": true
+  },
+  "synthetic_actors_deactivated": true
+}
