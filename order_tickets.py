@@ -238,9 +238,6 @@ def core_lines(payload_lines, products):
 def require_reason_permissions(api, cur, action, payload, actor, *, lock=False):
     if action == 'close_order' and payload['reason'] == 'shipped_not_recorded':
         permissions.require('close_order_shipped_not_recorded', actor)
-        # A6 ticket exemption is for a named owner; direct master-key routes keep their legacy reach.
-        if permissions.role_of(actor)!='owner':
-            fail(403,'ROLE_NOT_ALLOWED','Only the named owner may close as shipped_not_recorded.')
         if not (payload.get('note') or '').strip():
             fail(422,'NOTE_REQUIRED','A note is required for shipped_not_recorded.')
         try:
@@ -254,12 +251,7 @@ def require_reason_permissions(api, cur, action, payload, actor, *, lock=False):
             permissions.require('cancel_order', actor)
         elif payload['status'] == 'invoiced':
             permissions.require('close_order', actor)
-            try:
-                order = api._load_so_for_state_change(cur, payload['order_id'])
-            except HTTPException:
-                return   # validate() reports the missing order as a blocker
-            if order['state'] == 'open' and api._shipped_close_reason(order) == 'shipped_not_recorded':
-                permissions.require('close_order_shipped_not_recorded', actor)
+
 
 
 # ---------------------------------------------------------------------------

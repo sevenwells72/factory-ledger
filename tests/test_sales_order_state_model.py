@@ -204,6 +204,37 @@ def _trace_count(cur):
     return cur.fetchone()["n"]
 
 
+def _recorded_close_shipment(cur, order_id):
+    """An effective positive shipment for tests of administrative behavior.
+
+    Use an existing physical line when present; unrelated cancellation and
+    health fixtures remain unshipped unless this helper is explicitly called.
+    """
+    cur.execute("""SELECT sol.id, sol.product_id FROM sales_order_lines sol
+                   JOIN products p ON p.id = sol.product_id
+                   WHERE sol.sales_order_id = %s AND NOT COALESCE(p.is_service, false)
+                     AND sol.line_status != 'cancelled' ORDER BY sol.id LIMIT 1""", (order_id,))
+    line = cur.fetchone()
+    if line:
+        line_id, product_id = line['id'], line['product_id']
+        cur.execute("SELECT id FROM lots WHERE product_id = %s ORDER BY id LIMIT 1", (product_id,))
+        lot = cur.fetchone()
+        if lot:
+            lot_id = lot['id']
+        else:
+            cur.execute("""INSERT INTO lots(product_id, lot_code, entry_source, received_at)
+                           VALUES (%s, %s, 'received', NOW()) RETURNING id""",
+                        (product_id, 'SST-CLOSE-' + uuid4().hex[:10].upper()))
+            lot_id = cur.fetchone()['id']
+    else:
+        product_id, lot_id = _seed_product(cur, uuid4().hex[:10].upper(), with_lot=True, stock=100)
+        line_id = _add_line(cur, order_id, product_id, 100)
+    txn_id = _post_ship(cur, line_id, product_id, lot_id, 1)
+    cur.execute("""UPDATE sales_order_lines SET quantity_shipped_lb = 1,
+                      line_status = 'partial' WHERE id = %s""", (line_id,))
+    return txn_id
+
+
 def _state_row(cur, order_id):
     cur.execute(
         "SELECT status, state, state_reason, state_note, state_changed_at, "
@@ -435,6 +466,7 @@ def test_close_sets_state_mirrors_status_and_preserves_prior_status(db_cursor, c
     order_id, _ = _seed_order(db_cursor, customer_id, token, status="ready")
     _add_line(db_cursor, order_id, product_id, 100)
 
+    _recorded_close_shipment(db_cursor, order_id)
     resp = client.post(f"/sales/orders/{order_id}/close",
                        json={"reason": "short_closed", "mode": "commit"})
     assert resp.status_code == 200, resp.text
@@ -560,6 +592,7 @@ def test_reopen_restores_the_status_the_order_had_before_it_closed(db_cursor, cl
     customer_id, token = _seed_customer(db_cursor)
     order_id, _ = _seed_order(db_cursor, customer_id, token, status="ready")
 
+    _recorded_close_shipment(db_cursor, order_id)
     closed = client.post(f"/sales/orders/{order_id}/close",
                          json={"reason": "short_closed", "mode": "commit"})
     assert closed.status_code == 200, closed.text
@@ -620,6 +653,7 @@ def test_close_releases_reservations_and_audits_the_release(db_cursor, client):
     line_id = _add_line(db_cursor, order_id, product_id, 100)
     alloc_id = _allocate(db_cursor, order_id, line_id, product_id, 100, lot_id=lot_id)
 
+    _recorded_close_shipment(db_cursor, order_id)
     resp = client.post(f"/sales/orders/{order_id}/close",
                        json={"reason": "short_closed", "mode": "commit",
                              "changed_by": "office-jo"})
@@ -672,6 +706,7 @@ def test_preview_reports_the_reservations_and_state_without_writing(db_cursor, c
     line_id = _add_line(db_cursor, order_id, product_id, 100)
     alloc_id = _allocate(db_cursor, order_id, line_id, product_id, 100, lot_id=lot_id)
 
+    _recorded_close_shipment(db_cursor, order_id)
     resp = client.post(f"/sales/orders/{order_id}/close",
                        json={"reason": "short_closed", "mode": "preview"})
     assert resp.status_code == 200, resp.text
@@ -705,6 +740,9 @@ def test_state_changes_create_no_ledger_rows_and_no_trace_events(db_cursor, clie
     line_id = _add_line(db_cursor, order_id, product_id, 100)
     _allocate(db_cursor, order_id, line_id, product_id, 100, lot_id=lot_id)
 
+    _recorded_close_shipment(db_cursor, order_id)
+    cancel_id, _ = _seed_order(db_cursor, customer_id, token)
+    _add_line(db_cursor, cancel_id, product_id, 100)
     ledger_before = _ledger_count(db_cursor)
     trace_before = _trace_count(db_cursor)
 
@@ -712,7 +750,7 @@ def test_state_changes_create_no_ledger_rows_and_no_trace_events(db_cursor, clie
                        json={"reason": "short_closed", "mode": "commit"}).status_code == 200
     assert client.post(f"/sales/orders/{order_id}/reopen",
                        json={"mode": "commit"}).status_code == 200
-    assert client.post(f"/sales/orders/{order_id}/cancel",
+    assert client.post(f"/sales/orders/{cancel_id}/cancel",
                        json={"reason": "customer_cancelled", "mode": "commit"}).status_code == 200
 
     assert _ledger_count(db_cursor) == ledger_before, "no ledger postings"
@@ -726,6 +764,8 @@ def test_changed_by_prefers_the_body_field_then_the_source_tag(db_cursor, client
     customer_id, token = _seed_customer(db_cursor)
     order_a, _ = _seed_order(db_cursor, customer_id, token)
     order_b, _ = _seed_order(db_cursor, customer_id, token)
+    _recorded_close_shipment(db_cursor, order_a)
+    _recorded_close_shipment(db_cursor, order_b)
 
     verbatim = client.post(f"/sales/orders/{order_a}/close",
                            json={"reason": "short_closed", "mode": "commit",
@@ -746,6 +786,7 @@ def test_dashboard_key_is_recorded_as_the_dashboard_surface(db_cursor, client, m
     customer_id, token = _seed_customer(db_cursor)
     order_id, _ = _seed_order(db_cursor, customer_id, token)
 
+    _recorded_close_shipment(db_cursor, order_id)
     resp = client.post(f"/sales/orders/{order_id}/close",
                        json={"reason": "short_closed", "mode": "commit"},
                        headers={"X-API-Key": "sostate-dashboard-key"})
@@ -1814,6 +1855,7 @@ def test_health_is_quiet_once_the_order_is_closed(db_cursor, client):
 
     assert client.get(f"/sales/orders/{order_id}").json()["health"]["level"] == "critical"
 
+    _recorded_close_shipment(db_cursor, order_id)
     closed = client.post(f"/sales/orders/{order_id}/close",
                          json={"reason": "short_closed", "mode": "commit"})
     assert closed.status_code == 200, closed.text
@@ -1846,6 +1888,7 @@ def test_list_and_detail_expose_the_state_fields(db_cursor, client):
     product_id, _ = _seed_product(db_cursor, token)
     order_id, order_number = _seed_order(db_cursor, customer_id, token)
     _add_line(db_cursor, order_id, product_id, 100)
+    _recorded_close_shipment(db_cursor, order_id)
     client.post(f"/sales/orders/{order_id}/close",
                 json={"reason": "short_closed", "note": "n/a", "mode": "commit",
                       "changed_by": "office-jo"})
@@ -2036,6 +2079,7 @@ def test_state_filter_selects_by_state(db_cursor, client):
     customer_id, token = _seed_customer(db_cursor)
     open_id, open_number = _seed_order(db_cursor, customer_id, token)
     closed_id, closed_number = _seed_order(db_cursor, customer_id, token)
+    _recorded_close_shipment(db_cursor, closed_id)
     client.post(f"/sales/orders/{closed_id}/close",
                 json={"reason": "short_closed", "mode": "commit"})
 
@@ -2076,6 +2120,7 @@ def test_counts_endpoint_buckets(db_cursor, client):
     _post_ship(db_cursor, line_id, product_id, lot_id, 10, recorded=10)
 
     closed_id, _ = _seed_order(db_cursor, customer_id, token)
+    _recorded_close_shipment(db_cursor, closed_id)
     client.post(f"/sales/orders/{closed_id}/close",
                 json={"reason": "short_closed", "mode": "commit"})
     cancelled_id, _ = _seed_order(db_cursor, customer_id, token)
@@ -2198,6 +2243,7 @@ def test_status_open_consumers_are_unchanged_by_the_mirror(db_cursor, client):
 
     assert order_number in open_numbers()
 
+    _recorded_close_shipment(db_cursor, order_id)
     client.post(f"/sales/orders/{order_id}/close",
                 json={"reason": "short_closed", "mode": "commit"})
     assert order_number not in open_numbers(), "mirror should hide it from status=open"
@@ -2524,6 +2570,8 @@ def test_shipping_a_closed_or_cancelled_order_is_rejected(db_cursor, client, exi
     order_id, _ = _seed_order(db_cursor, customer_id, token, status="ready")
     _add_line(db_cursor, order_id, product_id, 100)
 
+    if exit_kind == "close":
+        _recorded_close_shipment(db_cursor, order_id)
     body = ({"reason": "short_closed", "mode": "commit"} if exit_kind == "close"
             else {"reason": "customer_cancelled", "mode": "commit"})
     assert client.post(f"/sales/orders/{order_id}/{exit_kind}", json=body).status_code == 200
@@ -2545,6 +2593,7 @@ def test_ship_preview_refuses_a_closed_order_too(db_cursor, client):
     product_id, _ = _seed_product(db_cursor, token, with_lot=True, stock=500)
     order_id, _ = _seed_order(db_cursor, customer_id, token, status="ready")
     _add_line(db_cursor, order_id, product_id, 100)
+    _recorded_close_shipment(db_cursor, order_id)
     client.post(f"/sales/orders/{order_id}/close",
                 json={"reason": "short_closed", "mode": "commit"})
 
@@ -2568,6 +2617,8 @@ def test_adding_a_line_to_a_closed_or_cancelled_order_is_rejected(
     order_id, _ = _seed_order(db_cursor, customer_id, token)
     _add_line(db_cursor, order_id, product_id, 100)
 
+    if exit_kind == "close":
+        _recorded_close_shipment(db_cursor, order_id)
     body = ({"reason": "short_closed", "mode": "commit"} if exit_kind == "close"
             else {"reason": "customer_cancelled", "mode": "commit"})
     assert client.post(f"/sales/orders/{order_id}/{exit_kind}",
@@ -2596,6 +2647,7 @@ def test_adding_a_line_works_again_after_reopen(db_cursor, client):
     product_name = db_cursor.fetchone()["name"]
     order_id, _ = _seed_order(db_cursor, customer_id, token)
     _add_line(db_cursor, order_id, product_id, 100)
+    _recorded_close_shipment(db_cursor, order_id)
     client.post(f"/sales/orders/{order_id}/close",
                 json={"reason": "short_closed", "mode": "commit"})
     client.post(f"/sales/orders/{order_id}/reopen", json={"mode": "commit"})
@@ -2613,6 +2665,7 @@ def test_allocation_after_close_is_rejected(db_cursor, client):
     order_id, _ = _seed_order(db_cursor, customer_id, token)
     line_id = _add_line(db_cursor, order_id, product_id, 100)
 
+    _recorded_close_shipment(db_cursor, order_id)
     assert client.post(f"/sales/orders/{order_id}/close",
                        json={"reason": "short_closed", "mode": "commit"}).status_code == 200
 
@@ -2630,6 +2683,7 @@ def test_allocation_after_reopen_works_again(db_cursor, client):
     product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=500)
     order_id, _ = _seed_order(db_cursor, customer_id, token)
     line_id = _add_line(db_cursor, order_id, product_id, 100)
+    _recorded_close_shipment(db_cursor, order_id)
     client.post(f"/sales/orders/{order_id}/close",
                 json={"reason": "short_closed", "mode": "commit"})
     client.post(f"/sales/orders/{order_id}/reopen", json={"mode": "commit"})
@@ -2643,6 +2697,7 @@ def test_allocation_after_reopen_works_again(db_cursor, client):
 def test_double_close_is_rejected(db_cursor, client):
     customer_id, token = _seed_customer(db_cursor)
     order_id, _ = _seed_order(db_cursor, customer_id, token)
+    _recorded_close_shipment(db_cursor, order_id)
     first = client.post(f"/sales/orders/{order_id}/close",
                         json={"reason": "short_closed", "mode": "commit"})
     assert first.status_code == 200, first.text
@@ -2684,6 +2739,7 @@ def test_exit_leaves_other_orders_reservations_alone(db_cursor, client):
     )
     their_stale = db_cursor.fetchone()["id"]
 
+    _recorded_close_shipment(db_cursor, mine)
     resp = client.post(f"/sales/orders/{mine}/close",
                        json={"reason": "short_closed", "mode": "commit"})
     assert resp.status_code == 200, resp.text
@@ -2716,6 +2772,7 @@ def test_exit_releases_this_orders_expired_row_too(db_cursor, client):
     )
     expired = db_cursor.fetchone()["id"]
 
+    _recorded_close_shipment(db_cursor, order_id)
     preview = client.post(f"/sales/orders/{order_id}/close",
                           json={"reason": "short_closed", "mode": "preview"})
     assert expired in [r["id"] for r in preview.json()["reservations_to_release"]]
@@ -2732,6 +2789,7 @@ def test_changed_by_is_stripped_but_never_truncated(db_cursor, client):
     customer_id, token = _seed_customer(db_cursor)
     order_id, _ = _seed_order(db_cursor, customer_id, token)
     at_limit = "j" * 120
+    _recorded_close_shipment(db_cursor, order_id)
     resp = client.post(f"/sales/orders/{order_id}/close",
                        json={"reason": "short_closed", "mode": "commit",
                              "changed_by": f"  {at_limit}  "})
@@ -2744,6 +2802,7 @@ def test_changed_by_is_stripped_but_never_truncated(db_cursor, client):
 def test_changed_by_over_the_limit_is_rejected_not_truncated(db_cursor, client):
     customer_id, token = _seed_customer(db_cursor)
     order_id, _ = _seed_order(db_cursor, customer_id, token)
+    _recorded_close_shipment(db_cursor, order_id)
     resp = client.post(f"/sales/orders/{order_id}/close",
                        json={"reason": "short_closed", "mode": "commit",
                              "changed_by": "j" * 121})
@@ -2756,6 +2815,7 @@ def test_changed_by_over_the_limit_is_rejected_not_truncated(db_cursor, client):
 def test_changed_by_is_validated_in_preview_too(db_cursor, client):
     customer_id, token = _seed_customer(db_cursor)
     order_id, _ = _seed_order(db_cursor, customer_id, token)
+    _recorded_close_shipment(db_cursor, order_id)
     resp = client.post(f"/sales/orders/{order_id}/close",
                        json={"reason": "short_closed", "mode": "preview",
                              "changed_by": "j" * 121})
@@ -2869,6 +2929,7 @@ def test_cancel_preview_reports_state_and_reservations_without_writing(db_cursor
 def test_reopen_preview_reports_the_restored_status_without_writing(db_cursor, client):
     customer_id, token = _seed_customer(db_cursor)
     order_id, _ = _seed_order(db_cursor, customer_id, token, status="in_production")
+    _recorded_close_shipment(db_cursor, order_id)
     client.post(f"/sales/orders/{order_id}/close",
                 json={"reason": "short_closed", "mode": "commit"})
 
@@ -2886,6 +2947,7 @@ def test_reopen_preview_reports_the_restored_status_without_writing(db_cursor, c
 def test_preview_carries_the_attribution_note(db_cursor, client):
     customer_id, token = _seed_customer(db_cursor)
     order_id, _ = _seed_order(db_cursor, customer_id, token)
+    _recorded_close_shipment(db_cursor, order_id)
     body = client.post(f"/sales/orders/{order_id}/close",
                        json={"reason": "short_closed", "mode": "preview",
                              "changed_by": "office-jo"}).json()
@@ -3009,7 +3071,7 @@ def test_legacy_patch_invoiced_routes_through_close_and_mirrors_invoiced(db_curs
 
 
 @pytest.mark.db
-def test_legacy_patch_invoiced_picks_not_recorded_when_pounds_remain(db_cursor, client):
+def test_legacy_patch_invoiced_short_closes_after_a_partial_recorded_shipment(db_cursor, client):
     customer_id, token = _seed_customer(db_cursor)
     product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=500)
     order_id, _ = _seed_order(db_cursor, customer_id, token, status="shipped")
@@ -3018,7 +3080,7 @@ def test_legacy_patch_invoiced_picks_not_recorded_when_pounds_remain(db_cursor, 
 
     resp = client.patch(f"/sales/orders/{order_id}/status", json={"status": "invoiced"})
     assert resp.status_code == 200, resp.text
-    assert resp.json()["state_reason"] == "shipped_not_recorded"
+    assert resp.json()["state_reason"] == "short_closed"
 
 
 @pytest.mark.db
@@ -3909,6 +3971,7 @@ class TestNoDeadlock:
                         "(sales_order_id,sales_order_line_id,product_id,lot_id,"
                         " quantity_lb,source) VALUES (%s,%s,%s,%s,50,'staged_lot')",
                         (b_id, line_id, pid_, lot))
+                _recorded_close_shipment(sc, b_id)
                 made = {"customer_id": customer_id, "products": [p_low, p_high],
                         "orders": [(a_id, a_num), (b_id, b_num)]}
 
@@ -4101,6 +4164,7 @@ class TestNoDeadlock:
         try:
             with seed.cursor(cursor_factory=RealDictCursor) as sc:
                 ids = _seed_committed(sc, status="confirmed", with_alloc=True)
+                _recorded_close_shipment(sc, ids["order_id"])
 
             conns = {"reduce": _EndpointConn(url, "qty-reduce"),
                      "exit": _EndpointConn(url, "qty-exit")}

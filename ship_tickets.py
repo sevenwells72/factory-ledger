@@ -309,6 +309,14 @@ def shipment_gate(api,cur,order,close_reason):
       OR NOT EXISTS(SELECT 1 FROM sales_order_lines sol JOIN products p ON p.id=sol.product_id
                     WHERE sol.sales_order_id=s.sales_order_id AND NOT COALESCE(p.is_service,false))) LIMIT 1''',(order['id'],))
     if cur.fetchone(): return []
+    # Older recorded order shipments predate the unified header. Require a
+    # positive, effective ship posting; counters and voided links do not count.
+    cur.execute('''SELECT sos.id FROM sales_order_shipments sos
+      JOIN sales_order_lines sol ON sol.id=sos.sales_order_line_id
+      JOIN ledger_current_transactions t ON t.id=sos.transaction_id
+      WHERE sol.sales_order_id=%s AND sos.quantity_lb>0
+        AND t.type='ship' AND t.effective_status='posted' LIMIT 1''',(order['id'],))
+    if cur.fetchone(): return []
     if close_reason=='shipped_not_recorded':
         cutoff=legacy_close_cutoff()
         if cutoff is not None and order['created_at'].astimezone(api.PLANT_TIMEZONE).date()>=cutoff:

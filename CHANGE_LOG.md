@@ -26,10 +26,108 @@
 
 ---
 
+## 2026-10-14 12:44 — Verify final O-4 source on the complete fresh-database suite
+- **File(s) changed:** `docs/validation/direct-order-close-guard-tests.json`; ignored local suite evidence
+- **What changed:** Refresh source-bound validation after the partial invoice reason fix: all 4,347 Python tests pass, including 1,203 guard cases, in 21 fresh-database groups; 186 Node tests pass; no failures/skips.
+- **Why:** The review evidence must cover the final implementation and added legitimate-partial-shipment regression.
+
+---
+
 ## 2026-10-14 12:43 — Whole-reset proof across all area groups (O-3, runbook step 20)
 - **File(s) changed:** `audits/fresh-start/whole_reset_proof.py` (new), `audits/fresh-start/test_whole_reset.py` (new), `audits/fresh-start/fresh_start_v3.py`, `audits/fresh-start/verify_reset.py`, `audits/fresh-start/apply-guide.md`, `audits/fresh-start/tool-guide.md`, `audits/fresh-start/WHOLE-RESET-PROOF-2026-10-14.md` (new), `scripts/count_rehearsal_staging.py`, `docs/deployments/whole-reset-proof-hosted-staging-receipt.json` (new), `CHANGE_LOG.md`
 - **What changed:** New read-only `verify_reset.py --whole-reset MANIFEST --output-dir DIR`. The manifest lists every area group, each as preview + approval + its own journal, or `no_change: true` with no journal. The tool proves each group as the single-group verify does: signature, hashes, unchanged signed inputs, journal chain, ticket proof. It also requires every approved change to be posted once, with no held or uncertain ticket, and every `ok` receipt to map to that post. It then proves the union: one approving group per reset-scope product, every final observation in that group's signed plan and unchanged, a multi-area lot reset once, no lot posted twice, no opening or owner `physical_count` post outside a signed plan, no signed owner answer changed. Finally it runs the whole-scope analysis on the final inputs with all proved posts. Exit 0 prints FULL RESET SCOPE RECONCILED; exit 2 lists typed gaps (md/json/csv). `journal_openings` now wraps a new `journal_proof` that also returns its evidence (same behaviour). `count_rehearsal_staging.py --hosted-groups` runs three groups on hosted staging and then the proofs. 21 new offline tests: complete, missing area, overlap, extra post, unsigned group, no-change group, concatenated journal and more.
 - **Why:** Cutover runbook O-3: the one-triplet verify could not certify that all area groups together cover the 178-product reset scope. Hosted staging STG-CNT-36A1AD: exit 0 for the complete manifest; exit 2 with the named gap when a group was left out or an unsigned post was made. Count-tool suite 218/218 (NY + UTC); fresh-DB full suite 3,140 passed, 0 skipped; Node 186/186. No production access; staging writes are synthetic rehearsal data only.
+
+---
+
+## 2026-10-14 12:42 — Prove recorded partial invoices cannot synthesize the owner exception
+- **File(s) changed:** `scripts/check_direct_order_close_staging.py`
+- **What changed:** Add a real partial historical shipment fixture and direct/ticket invoice controls across every key role, cutoff and supplied/missing note; require short_closed for successful partial invoices.
+- **Why:** Validate the uniform shipped_not_recorded reason policy while preserving legitimate recorded partial closes on staging.
+
+---
+
+## 2026-10-14 12:41 — Add recorded partial-invoice regression across key roles
+- **File(s) changed:** `tests/test_direct_order_close_guard.py`
+- **What changed:** Add 20 direct/ticket invoice cases with a real partial shipment, a stale legacy shipped status, every key role and supplied/missing notes; require short_closed on success and preserve the transition table.
+- **Why:** Legitimate partial recorded shipments stay closable without synthesizing the owner-only shipped_not_recorded reason.
+
+---
+
+## 2026-10-14 12:40 — Classify recorded partial-shipment invoices as short closes
+- **File(s) changed:** `main.py`, `tests/test_sales_order_state_model.py`
+- **What changed:** Invoice completion after a recorded partial shipment uses short_closed; shipped_not_recorded is reserved for the explicit named-owner, note-bearing exception. Update the existing partial invoice regression.
+- **Why:** Apply the same reason policy across paths while preserving legitimate office/master closes after recorded shipments.
+
+---
+
+## 2026-10-14 12:39 — Record complete fresh-database O-4 validation
+- **File(s) changed:** `docs/validation/direct-order-close-guard-tests.json`; ignored local suite evidence
+- **What changed:** Record 4,327 Python tests passing on fresh UTF-8 PostgreSQL 17 databases in 21 isolated groups, including the 1,183-case guard matrix, and 186 Node tests passing; no failures/skips. Preserve source hashes and test database ownership/cleanup evidence.
+- **Why:** Provide Claude Code with reproducible builder evidence for O-4 before review. No production access, migration, merge or deployment.
+
+---
+
+## 2026-10-14 12:37 — Bind O-4 staging receipt to exact executed source
+- **File(s) changed:** `scripts/check_direct_order_close_staging.py`
+- **What changed:** Capture source hashes before import and require unchanged files after staging cleanup, so the receipt identifies the code actually exercised.
+- **Why:** Prevent proof from accidentally describing a newer edit than the running staging process.
+
+---
+
+## 2026-10-14 12:36 — Strengthen O-4 staging proof with ledger shipments and remaining shortcuts
+- **File(s) changed:** `scripts/check_direct_order_close_staging.py`, `tests/test_order_tickets.py`
+- **What changed:** Stage synthetic receive/ship postings and lot/order shipment links; retain unsupported status-note refusals; add reopen and ship-repair controls. Preserve the dashboard ticket allowlist refusal assertion.
+- **Why:** Produce accurate staging evidence for every shortcut without relying on mutable line counters or changing hosted configuration.
+
+---
+
+## 2026-10-14 12:35 — Preserve invalid-transition errors before the invoice shipment guard
+- **File(s) changed:** `main.py`, `order_tickets.py`, `tests/test_sales_order_state_model.py`, `tests/test_order_tickets.py`
+- **What changed:** Run the recorded-shipment gate after existing status-transition validation and before all exit writes; document shortcut refusal; align synthetic lot codes with canonical constraints.
+- **Why:** Close valid invoice bypasses without changing the existing invalid-transition contract.
+
+---
+
+## 2026-10-14 12:35 — Adapt attribution and permission tests to the O-4 shipment rule
+- **File(s) changed:** `tests/test_actor_attribution.py`, `tests/test_order_tickets.py`, `tests/test_roles_a2.py`
+- **What changed:** Supply effective recorded shipments for close/invoice attribution checks; assert named-owner-only legacy permission and blocked shipment-free invoice drafts across all key kinds.
+- **Why:** Preserve prior authorization/attribution coverage while replacing obsolete expectations that allowed the direct-close bypass.
+
+---
+
+## 2026-10-14 12:34 — Preserve state-model regressions with recorded shipment fixtures
+- **File(s) changed:** `tests/test_sales_order_state_model.py`; ignored local test evidence
+- **What changed:** Seed positive effective shipments only where state, attribution and concurrent-close tests need a legitimate close; preserve unshipped cancellation and no-new-posting assertions. Verify the new 1,183-case guard matrix and all 186 Node tests without skips.
+- **Why:** The prior fixtures depended on the shipment-free close bypass; test the original invariants under Michael's enforced rule.
+
+---
+
+## 2026-10-14 12:32 — Align O-4 synthetic shipments with ledger and lot constraints
+- **File(s) changed:** `tests/test_direct_order_close_guard.py`
+- **What changed:** Add real stock lots for effective shipment lines, canonical uppercase lot codes, and assertions for unsupported ship-commit note fields.
+- **Why:** Exercise real PostgreSQL constraints and request contracts in the exhaustive O-4 matrix.
+
+---
+
+## 2026-10-14 12:31 — Add O-4 reopen and effective-void regressions
+- **File(s) changed:** `tests/test_direct_order_close_guard.py`
+- **What changed:** Exercise direct preview/commit and ticket reopening of saved shipped/invoiced statuses, normal operational restoration, and effective-ledger void refusal.
+- **Why:** Prevent the reopen shortcut from restoring shipping completion without a recorded shipment.
+
+---
+
+## 2026-10-14 12:31 — Add O-4 order-close regression matrix and guarded staging harness
+- **File(s) changed:** `tests/test_direct_order_close_guard.py`, `scripts/check_direct_order_close_staging.py`
+- **What changed:** Add role/key × creation-cutoff × effective shipment × note matrices for direct/ticket close and status paths, cancellation controls and ship shortcuts, plus a guarded rollback-only staging harness with independent cleanup verification.
+- **Why:** Prove Michael's owner/note/cutoff rule on every path and protect legitimate recorded closes/cancels for O-4 and P1.20.
+
+---
+
+## 2026-10-14 12:29 — Close O-4 direct order-close and status shipment bypasses
+- **File(s) changed:** `main.py`, `permissions.py`, `order_tickets.py`, `ship_tickets.py`
+- **What changed:** Enforce owner/note/creation-date shipment gates in shared close, invoice, reopen and ship-completion cores; remove the master legacy exception permission; recognize effective historical shipment links.
+- **Why:** Michael's Oct 12 rule, cutover runbook O-4 and FOLLOWUPS P1.20. Staging/local only, no production or merge.
 
 ---
 
