@@ -38,6 +38,7 @@ try {
       }
       let body = {};
       if (p === '/auth/session/config') body = { key_sessions_enabled: enabled };
+      else if (p === '/auth/dashboard-key') body = { dashboard_key: 'shared-fixture' };
       else if (p === '/auth/whoami') body = { key_kind: enabled ? 'session' : 'actor', actor };
       else if (p === '/auth/session') { expiresAt = now + IDLE; exchanges++; body = { key_kind: 'session', session_token: TOKEN, actor }; }
       else if (p === '/auth/session/logout') { logouts++; body = { signed_out: true }; }
