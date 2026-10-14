@@ -106,9 +106,9 @@ Legend: **works** = still fine; **breaks** = would fail or violate a live rule;
 
 | Was | Now |
 |---|---|
-| Direct `/adjust`, no receipts, skips A3b | `apply_reset.py` v3 posts `/adjust/prepare` or `/inventory/found/prepare` → `/tickets/{t}/commit`, reason `physical_count`, `occurred_at` = count cutoff, `backfill=true`, named key. Receipts `ADJ-…` / `FND-…`. Journal v2 records the ticket per write; proof is by `ticket_id` + receipt, so an interrupted run is proved or provably not posted (no blind retry). |
+| Direct `/adjust`, no receipts, skips A3b | `apply_reset.py` v3 posts `/adjust/prepare` or `/inventory/found/prepare` → `/tickets/{t}/commit`, reason `physical_count`, `occurred_at` = count cutoff, `backfill=true`, named key. Receipts `ADJ-…` / `FND-…`. Journal v2 records the ticket (id and token) per write; proof is by `ticket_id` + receipt. A commit with no definite answer is **re-sent on the same ticket** (FL posts it once or replays the receipt); a second ticket is prepared only once the first is provably dead (expired/rejected/superseded, or every commit refused). |
 | >500 lb would be held | Preview marks the row `LARGE_CORRECTION`; the signed `Owner approves held entries: Y` lets the executor approve that one hold (`/exceptions/{id}/approve`), then the read-back proves it was released as approved. |
-| Open shortage refused (409) | **API (smallest change):** `resolves_shortage_ids` on `AdjustPrepareRequest`; `physical_count` only; must equal the lot's open set (re-read `FOR UPDATE` at commit, before the lot lock); owner/floor only; the post closes each as `counted` with the receipt. Without naming them the old 409 still applies. Preview lists the IDs; apply stops if they changed. A negative lot is no longer held when an open shortage explains it (A3b posts short makes negative on purpose). |
+| Open shortage refused (409) | **API (smallest change):** `resolves_shortage_ids` on `AdjustPrepareRequest`; `physical_count` only; must equal the lot's open set (re-read `FOR UPDATE` before the lot lock, again once the lot lock is held, and once more just before closing); **owner only**; the counted balance may not be negative; the post closes each as `counted` with the ADJ receipt and its own **XR** decision receipt (PR #109) in the same transaction. Without naming them the old 409 still applies. Preview lists the IDs; apply stops if they changed. A negative lot is no longer held when an open shortage explains it (A3b posts short makes negative on purpose). |
 | Extra-kosher stock could not be loaded | A counted lot code that FL does not have, on an **extra-kosher** product, becomes a NEW lot (FL's canonical upper-case code) loaded by a found ticket. FL always holds it for kosher attestation; the executor approves only lots listed under `Extra-kosher lots`, then checks tier + attester on the lot and the FND receipt. Regular unmatched lots are still held and never created; nothing is retagged; receive of 283/284 is never used. |
 | 283–290 names stale; 285/288 held | Packet reissued from a read-only catalog export (`v3/raw/catalog-2026-10-13.json`): new names, 285/288 printed in lb, **Dup?** box on every row, step 9 "pause posting per area". 210 products / 850 rows / 110 pages; only 6 products changed sheet number. |
 | No per-area apply, production only | `--area` (repeatable) on preview/verify; `--target staging|production` on every v3 tool (apply requires it explicitly; preview records it; mismatch refused; staging must be the staging host and production must not be). |
@@ -117,7 +117,23 @@ Legend: **works** = still fine; **breaks** = would fail or violate a live rule;
 
 Tests: 183 offline tool tests (`test_fresh_start_v3.py`, `test_apply_reset.py`; 22 new) and 7 new DB tests (`tests/test_reset_shortage_close.py`). Full suite on a freshly built PG17 DB from `tests/schema/schema.sql`: **2,750 Python passed, 0 failed, 0 skipped; 107 Node passed.**
 
-**Observation for review (not changed here):** A3b's 500 lb rule converts a correction by the product's ledger unit. For the five finished products whose uom is exactly `case`, it multiplies the (pound) delta by the case weight. A 40 lb reset on a 15 lb-case item therefore counts as "600 lb" and is held. The preview mirrors FL exactly, so the hold is predicted, signed and approved rather than stalling. The A3b conversion itself probably deserves a separate look.
+**Case-unit threshold (updated after PR #109):** an adjust delta on a weighted case product is pounds, so FL measures the 500 lb rule in real pounds. A 40 lb reset on a 15 lb-case item is **40 lb, not 600 lb, and is not held**. `a3b_lb_equivalent` and `test_R6b` now mirror that (−501 lb still predicts `LARGE_CORRECTION`). The earlier predicted "600 lb case-unit hold" no longer happens.
+
+## Part 2b — Codex review fix round 1 (2026-10-13)
+
+| Review finding | Fix | Regression test (fails before, passes after) |
+|---|---|---|
+| P1 retry safety: timeout + rerun posted two ADJ tickets (100 → 80) | `reconcile_tickets` reports a lot whose ticket is still `prepared` with an unanswered commit as **uncertain**; the executor re-commits that same ticket. An old journal without the token stops for manual reconciliation. | `test_RF1` (lost commit that lands late), `test_RF2` (crash/timeout at each of 9 steps, plain and held: posts once), `test_RF3` (expired retry), `test_RF4` |
+| P1 API: floor could close shortages | `require_shortage_closer`: owner role (`approve_exception`) at prepare and at commit | `test_floor_key_cannot_close…`, `test_owner_demoted_after_prepare…` |
+| P1 API: counted −5 accepted | `COUNT_NEGATIVE` (422 at prepare, stale at commit) when book + delta < 0 | `test_negative_counted_balance_is_refused[3, 5.99]`, `test_negative_count_that_appears_after_prepare…` |
+| P1 API: concurrent make left a new shortage open | open set re-read after the lot lock and again before closing | `test_shortage_opened_while_the_reset_waits_for_the_lot_lock…` (real two-connection race) |
+| P1 new extra-kosher lots lost multi-area holds | holds looked up by the synthetic lot key; the owner's no-unlogged-moves confirmation is bound to product + lot code so it survives the lot getting a real id | `test_RF5`–`test_RF7` (held until confirmed; executor makes no API call; posts 600 lb once and only with the signed `Extra-kosher lots` list) |
+| Zero-change count with an open shortage reported success | the lot is HELD ("resolve it as counted on the dashboard (XR), then refresh") | `test_RF8` |
+| Approval note had 16 hex chars | full 64-char preview SHA-256 | `test_RF9` |
+| #109: shortages closed by the reset had no XR | `_record_resolution(…, 'counted')` per closed shortage, inside the commit transaction; `shortages_closed[].resolution_receipt_number` | `test_each_closed_shortage_gets_its_xr…`, `test_held_count_close_gets_xr…`, `test_xr_failure_rolls_back…` |
+
+Every new test was run against the pre-fix code and failed there (in `test_RF2` the lost-commit step fails; the other eight steps were already safe and stay covered). After the fix: **192 offline tool tests** (+23 subtests) and **16 DB tests** in `tests/test_reset_shortage_close.py` pass; full suite on a fresh PG17 DB built from `tests/schema/schema.sql` (started 22:47 EDT): **2,849 Python passed, 0 failed, 0 errors, 0 skipped; 107 Node passed.**
+
 
 ## Part 3 — staging dress rehearsal (2026-10-13 ~19:47 EDT)
 
@@ -136,6 +152,18 @@ After each apply, verification shows every lot in the area READY with remaining 
 **What this means for the real pause (production).** A read-only production snapshot takes **4.0 s** (6,543 lines, 1,235 lots; measured 2026-10-13); staging took about 1 s. The executor reads one snapshot per lot plus about three per run, and preview/dry run/verify read one each. Expect roughly **35 s fixed + about 6 s per lot**: a 40-lot area needs **about 4–5 minutes of machine time**. The rest of the 15–30 minutes is people: the owner checks the fresh preview against the sheet and signs. Review the area's first preview **before** the pause; at the pause, re-run it, confirm nothing changed, sign and apply. Areas over about 100 lots, or with many held/kosher rows, should be split.
 
 Earlier attempts (kept honest): run `A575D9` stopped at the typed confirmation (pty quirk, nothing posted). `3A3FEE` stopped in area 2 on the old negative-lot hold (fixed above). `C5CDEB` stopped in area 3 on the duplicate warning (rule added above) after loading a synthetic extra-kosher lot on staging **285**. `EA2A30` completed on **288**. Those synthetic lots remain on staging and are labelled with their reference.
+
+## Part 3b — rehearsal re-run after review fix round 1 (2026-10-13 ~22:50 EDT)
+
+Same script and guards, rebased on #109 (staging already carries 080). Receipt: `docs/deployments/count-rehearsal-staging-receipt-fix1.json` (reference `STG-CNT-625A72`). Every real extra-kosher lb product now carries an earlier run's lot, so the new-lot load used a synthetic extra-kosher lb product (id ≥ 10⁹).
+
+| Area | What the fix round changed | Result |
+|---|---|---|
+| Dry storage (8 lots) | approval note | ADJ-261013-033 … -040; −680 lb sugar held, approved; the note has the **full 64-char preview SHA-256** (read back from staging); hold XR-261013-006 |
+| Production floor (1) | owner-only close, recheck under the lot lock, XR | coconut book −20 → +45 = 25 lb: ADJ-261013-041; SHORTAGE #40 `resolved/counted`, fixing ticket = ADJ, decision **XR-261013-007** (`resolve_exception`, committed) |
+| Warehouse + Cooler (3) | case pounds, multi-area extra-kosher hold | 17 × 15 lb cases vs 300 lb: **−45 lb, no hold** (would have been read as 675 lb): ADJ-261013-044. Granola −25: ADJ-261013-043. New extra-kosher lot counted 180 + 120 lb in two areas: preview 1 **held** it ("owner confirms no unlogged moves between rows RH3-2/RH4-1"); after the scripted confirmation and the signed `Extra-kosher lots` list: one FND-261013-005, 300 lb, one ledger line, attested; kosher hold XR-261013-008 |
+
+Machine time of each pause: 13.7 s, 5.8 s, 9.8 s (about 1 s per lot posted). Verification shows every rehearsal lot READY with difference 0 (exit 2 only for the uncounted rest of staging). Rehearsal actors deactivated; owner key file removed. Retry/crash safety was proved offline (`test_RF1`–`RF4`) and by the API race test, not by injecting faults on staging.
 
 ## Still owed before Nov 20
 

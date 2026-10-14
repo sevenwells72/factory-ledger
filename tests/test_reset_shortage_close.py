@@ -8,9 +8,9 @@ import pytest
 
 import main
 from tests.test_actor_attribution import client, actors  # noqa: F401
-from tests.test_write_tickets import headers, commit, error, posted_count  # noqa: F401
+from tests.test_write_tickets import headers, commit, error, posted_count, isolated_database  # noqa: F401
 from tests.test_write_tickets_part2 import items, prepare  # noqa: F401
-from tests.test_exceptions_enforcement import (adjust, open_shortage, exceptions_for, approve,  # noqa: F401
+from tests.test_exceptions_enforcement import (adjust, open_shortage, exceptions_for, approve, set_balance,  # noqa: F401
                                                private_evidence_volume)
 
 pytestmark = pytest.mark.db
@@ -113,3 +113,165 @@ def test_ordinary_adjust_payload_is_unchanged(client, db_cursor, items, actors):
     prepared = prepare(client, 'adjust', adjust(items, -2), actors['owner']['key'])
     db_cursor.execute('SELECT payload FROM write_tickets WHERE id=%s', (prepared['ticket_id'],))
     assert 'resolves_shortage_ids' not in db_cursor.fetchone()['payload']
+
+
+# ── Codex PR #108 review fix round 1: API safeguards that hold outside the reset tool ──
+
+def test_floor_key_cannot_close_shortages_by_count(client, db_cursor, items, actors):
+    """Owner only: floor resolves one shortage at a time on the resolve route."""
+    exception_id, _ = open_shortage(client, db_cursor, items, actors)
+    db_cursor.execute('SELECT count(*) AS n FROM write_tickets')
+    before = db_cursor.fetchone()['n']
+    error(client.post('/adjust/prepare', json=closing(items, 9, [exception_id]), headers=headers(actors['floor']['key'])),
+          403, 'ROLE_NOT_ALLOWED')
+    db_cursor.execute('SELECT count(*) AS n FROM write_tickets')
+    assert db_cursor.fetchone()['n'] == before
+    assert exceptions_for(db_cursor, id=exception_id)[0]['status'] == 'open'
+
+
+def test_owner_demoted_after_prepare_cannot_commit_the_close(client, db_cursor, items, actors):
+    exception_id, _ = open_shortage(client, db_cursor, items, actors)
+    owner = actors['owner']['key']
+    prepared = prepare(client, 'adjust', closing(items, 9, [exception_id]), owner)
+    db_cursor.execute("UPDATE actors SET role='floor' WHERE id=%s", (actors['owner']['id'],))
+    main._reset_actor_cache()
+    refused = commit(client, prepared, owner)
+    assert refused.status_code == 403, refused.text
+    assert posted_count(db_cursor, prepared) == 0
+    assert exceptions_for(db_cursor, id=exception_id)[0]['status'] == 'open'
+
+
+@pytest.mark.parametrize('delta', [3, 5.99])
+def test_negative_counted_balance_is_refused(client, db_cursor, items, actors, delta):
+    """The lot is at −6 lb; a count is physical stock and never leaves it negative."""
+    exception_id, _ = open_shortage(client, db_cursor, items, actors)
+    owner = headers(actors['owner']['key'])
+    db_cursor.execute('SELECT count(*) AS n FROM write_tickets')
+    before = db_cursor.fetchone()['n']
+    response = client.post('/adjust/prepare', json=closing(items, delta, [exception_id]), headers=owner)
+    error(response, 422, 'COUNT_NEGATIVE')
+    db_cursor.execute('SELECT count(*) AS n FROM write_tickets')
+    assert db_cursor.fetchone()['n'] == before
+    assert main.lot_on_hand(db_cursor, items['ingredient']['lot_id']) == -6.0
+    assert exceptions_for(db_cursor, id=exception_id)[0]['status'] == 'open'
+
+
+def test_negative_count_that_appears_after_prepare_makes_the_ticket_stale(client, db_cursor, items, actors):
+    exception_id, _ = open_shortage(client, db_cursor, items, actors)
+    owner = actors['owner']['key']
+    prepared = prepare(client, 'adjust', closing(items, 6, [exception_id]), owner)      # −6 + 6 = 0
+    set_balance(db_cursor, items, 'ingredient', -7)                                    # 1 lb used since
+    stale = commit(client, prepared, owner)
+    assert stale.status_code == 409 and stale.json()['detail']['blockers'][0]['code'] == 'COUNT_NEGATIVE'
+    assert posted_count(db_cursor, prepared) == 0
+    assert exceptions_for(db_cursor, id=exception_id)[0]['status'] == 'open'
+
+
+def test_each_closed_shortage_gets_its_xr_receipt_in_the_same_transaction(client, db_cursor, items, actors):
+    """PR #109: every resolution records an XR decision; the ADJ stays the fixing ticket."""
+    exception_id, _ = open_shortage(client, db_cursor, items, actors)
+    owner = actors['owner']['key']
+    prepared = prepare(client, 'adjust', closing(items, 9, [exception_id]), owner)
+    posted = commit(client, prepared, owner)
+    assert posted.status_code == 200, posted.text
+    [closed] = posted.json()['shortages_closed']
+    xr = closed['resolution_receipt_number']
+    assert xr.startswith('XR-')
+    [row] = exceptions_for(db_cursor, id=exception_id)
+    assert (row['resolution_receipt_number'], row['resolution_ticket_id']) == (xr, prepared['ticket_id'])
+    receipt = client.get('/receipts/' + xr, headers=headers()).json()
+    assert (receipt['status'], receipt['action'], receipt['actor']['id']) == ('committed', 'resolve_exception', actors['owner']['id'])
+    db_cursor.execute("SELECT count(*) AS n FROM write_tickets WHERE action='resolve_exception' AND payload->>'exception_id'=%s",
+                      (str(exception_id),))
+    assert db_cursor.fetchone()['n'] == 1
+    replay = commit(client, prepared, owner)
+    assert replay.json()['replayed'] is True and replay.json()['shortages_closed'][0]['resolution_receipt_number'] == xr
+    db_cursor.execute("SELECT count(*) AS n FROM write_tickets WHERE action='resolve_exception'")
+    assert db_cursor.fetchone()['n'] == 1
+
+
+def test_held_count_close_gets_xr_on_owner_approval(client, db_cursor, items, actors):
+    exception_id, _ = open_shortage(client, db_cursor, items, actors)
+    owner = actors['owner']['key']
+    held = commit(client, prepare(client, 'adjust', closing(items, 606, [exception_id]), owner), owner)
+    assert held.status_code == 202, held.text
+    approved = approve(client, held.json()['exception_id'], owner)
+    assert approved.status_code == 200, approved.text
+    xr = approved.json()['shortages_closed'][0]['resolution_receipt_number']
+    assert xr.startswith('XR-') and xr != approved.json()['resolution_receipt_number']
+    assert exceptions_for(db_cursor, id=exception_id)[0]['resolution_receipt_number'] == xr
+
+
+def test_xr_failure_rolls_back_the_count_post(client, db_cursor, items, actors, monkeypatch):
+    import resolution_receipts
+    exception_id, _ = open_shortage(client, db_cursor, items, actors)
+    owner = actors['owner']['key']
+    prepared = prepare(client, 'adjust', closing(items, 9, [exception_id]), owner)
+
+    def broken(*_, **__):
+        raise RuntimeError('TEST XR failure')
+    monkeypatch.setattr(resolution_receipts, 'decision', broken)
+    with pytest.raises(RuntimeError, match='TEST XR failure'):
+        commit(client, prepared, owner)
+    assert posted_count(db_cursor, prepared) == 0
+    assert main.lot_on_hand(db_cursor, items['ingredient']['lot_id']) == -6.0
+    assert exceptions_for(db_cursor, id=exception_id)[0]['status'] == 'open'
+
+
+def test_shortage_opened_while_the_reset_waits_for_the_lot_lock_makes_it_stale(isolated_database, monkeypatch):
+    """Codex PR #108: a make that opens a new shortage on the lot while the reset
+    commit waits for the lot lock must not leave that shortage open behind the reset."""
+    import threading
+    import time
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    from fastapi.testclient import TestClient
+    from tests.test_exceptions_enforcement import Race, race_actors
+    from tests.test_write_tickets_part2 import body
+    keys, stock, actor_ids = race_actors(isolated_database)
+    monkeypatch.setattr(main, 'get_db_connection', Race(isolated_database).connection)
+    main._reset_actor_cache()
+    lot_id = stock['ingredient']['lot_id']
+    http = TestClient(main.app)
+    try:
+        with psycopg2.connect(isolated_database) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+            set_balance(cur, stock, 'ingredient', 4)
+        made = commit(http, prepare(http, 'make', body('make', stock), keys['floor']), keys['floor']).json()
+        first = made['shortages'][0]['exception_id']
+        prepared = prepare(http, 'adjust', {**adjust(stock, 9, resolves_shortage_ids=[first])}, keys['owner'])
+        side = psycopg2.connect(isolated_database)
+        side_cur = side.cursor(cursor_factory=RealDictCursor)
+        side_cur.execute('SELECT id FROM lots WHERE id=%s FOR UPDATE', (lot_id,))   # the concurrent make holds the lot
+        result = {}
+        worker = threading.Thread(target=lambda: result.update(response=commit(http, prepared, keys['owner'])))
+        worker.start()
+        watch = psycopg2.connect(isolated_database)
+        watch.autocommit = True          # a fresh activity snapshot per poll
+        with watch.cursor() as wcur:
+            for _ in range(160):
+                wcur.execute("SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() "
+                             "AND wait_event_type='Lock' AND query LIKE '%%FROM lots l%%FOR UPDATE%%'")
+                if wcur.fetchone()[0]:
+                    break
+                time.sleep(0.05)
+            else:
+                raise AssertionError('reset commit never waited for the lot lock')
+        watch.close()
+        side_cur.execute('''INSERT INTO exceptions(kind,status,severity,product_id,lot_id,detail)
+                            VALUES ('SHORTAGE','open','warn',%s,%s,'{}') RETURNING id''', (stock['ingredient']['id'], lot_id))
+        second = side_cur.fetchone()['id']
+        side.commit()
+        side.close()
+        worker.join(30)
+        response = result['response']
+        assert response.status_code == 409, response.text
+        assert response.json()['detail']['blockers'][0]['code'] == 'SHORTAGE_SET_CHANGED'
+        with psycopg2.connect(isolated_database) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+            assert main.lot_on_hand(cur, lot_id) == -6.0
+            cur.execute('SELECT id, status FROM exceptions WHERE id IN (%s,%s) ORDER BY id', (first, second))
+            assert [r['status'] for r in cur.fetchall()] == ['open', 'open']
+            cur.execute("SELECT count(*) n FROM transactions WHERE ticket_id=%s", (prepared['ticket_id'],))
+            assert cur.fetchone()['n'] == 0
+    finally:
+        http.close()
+        main._reset_actor_cache()

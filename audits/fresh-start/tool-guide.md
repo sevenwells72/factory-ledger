@@ -40,9 +40,10 @@ FL has no current location balance. A row's FL reference is the whole-lot balanc
 
 - **Targets.** Every v3 command takes `--target production|staging` (default production for preview/verify; apply requires it explicitly). A preview records its target and apply refuses a preview made for the other one. Staging reads `~/Documents/fl-secrets/staging-db-url.txt` and must point at the staging host; production must not.
 - **Area groups.** `--area "<Area>"` (repeatable) limits approvable posts to products whose every count row is in those areas.
-- **Extra-kosher stock (283–290).** A counted lot code not in FL for an extra-kosher product becomes a NEW lot (canonical upper-case code), loaded by an owner-approved found ticket and listed in `approval.md` under `Extra-kosher lots`. Unmatched lots of regular products are still held and never created. 285/288 are counted in lb.
+- **Extra-kosher stock (283–290).** A counted lot code not in FL for an extra-kosher product becomes a NEW lot (canonical upper-case code), loaded by an owner-approved found ticket and listed in `approval.md` under `Extra-kosher lots`. Unmatched lots of regular products are still held and never created. 285/288 are counted in lb. A new lot counted in more than one area is held until the owner confirms no unlogged moves (multi-area review), like any other lot.
 - **Shortages.** A lot with an open SHORTAGE shows its exception IDs; the reset post names them and closes them as *counted*. If they change after the preview, apply stops before writing.
-- **Owner holds.** Rows over 500 lb and new extra-kosher lots are marked with the FL hold they will meet; see `approval.md`.
+- **Owner holds.** Rows over 500 lb (real pounds, also for weighted case products) and new extra-kosher lots are marked with the FL hold they will meet; see `approval.md`.
+- **Open shortage, count matches FL.** A lot whose count needs no change cannot close its shortage through the reset; it is held until the shortage is resolved as counted on the dashboard (XR receipt) and the preview refreshed.
 
 ## Create and review a preview
 

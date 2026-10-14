@@ -135,7 +135,9 @@ def seed(uri, ref, t0):
             ids[role] = dict(cur.fetchone())
         specs = [('oats', 'ingredient', 'Oats', 'lb', None, 400), ('sugar', 'ingredient', 'Sugar', 'lb', None, 1200),
                  ('coconut', 'ingredient', 'Coconut', 'lb', None, 10), ('batch', 'batch', 'Batch granola', 'lb', None, None),
-                 ('granola', 'finished', 'Granola 25 LB', '25 lb case', 25, 1000)] + \
+                 ('granola', 'finished', 'Granola 25 LB', '25 lb case', 25, 1000),
+                 # uom exactly 'case' (like the five real ones): the 500 lb rule is in real pounds since PR #109.
+                 ('cases15', 'finished', 'Granola 15 LB case', 'case', 15, 300)] + \
                 [(f'misc{n}', 'ingredient', f'Ingredient {n}', 'lb', None, 100) for n in range(1, 7)]
         for label, kind, name, uom, case, stock in specs:
             cur.execute('''INSERT INTO products(name,odoo_code,type,uom,case_size_lb,default_batch_lb,active)
@@ -162,7 +164,13 @@ def seed(uri, ref, t0):
                     (list(EXTRA_CANDIDATES), list(EXTRA_CANDIDATES)))
         extra = cur.fetchone()
         if not extra:
-            raise RuntimeError('No extra-kosher lb product without lots is left on staging for the new-lot load')
+            # Every real lb candidate already carries an earlier run's lot: use a synthetic
+            # extra-kosher lb batch product instead (real products are never reused twice).
+            cur.execute('''INSERT INTO products(name,odoo_code,type,uom,active,kosher_tier)
+                           VALUES (%s,%s,'batch','lb',true,'extra_kosher') RETURNING id,name,odoo_code''',
+                        (f'STG {ref} Extra-kosher batch', f'{ref}-EXTRA'))
+            extra = cur.fetchone()
+            assert extra['id'] >= 1_000_000_000
         items['extra'] = dict(extra)
     return ids, items, owner_key, floor_key
 
@@ -217,16 +225,25 @@ def area_run(area, rows, products, workdir, env, owner, base_reason):
     write_csv(inputs / 'count.csv', COUNT_COLUMNS, rows)
     write_csv(inputs / 'coverage.csv', ['product_id', 'SKU', 'name', 'all_locations_searched', 'completed_at', 'owner_initials', 'notes'],
               [dict(product_id=p['id'], SKU=p['odoo_code'], name=p['name'], all_locations_searched='yes',
-                    completed_at=area['end'].isoformat(), owner_initials='MG', notes='rehearsal') for p in products])
+                    completed_at=max([area['end']] + [a['end'] for a in area.get('with', [])]).isoformat(),
+                    owner_initials='MG', notes='rehearsal') for p in products])
     write_csv(inputs / 'moves.csv', MOVE_COLUMNS, [])
     timing, pause = {}, time.monotonic()
+    names = [area['name']] + [a['name'] for a in area.get('with', [])]
+    areas = [x for name in names for x in ('--area', name)]
     base = ['audits/fresh-start/reset_preview.py', '--v3', str(inputs / 'count.csv'), '--coverage', str(inputs / 'coverage.csv'),
-            '--moves', str(inputs / 'moves.csv'), '--target', 'staging', '--area', area['name']]
+            '--moves', str(inputs / 'moves.csv'), '--target', 'staging'] + areas
     result, timing['preview_1_s'] = tool(base + ['--output-dir', str(out / 'preview-1')], env)
     if result.returncode:
         raise RuntimeError('preview failed: ' + result.stderr[-800:])
     template = json.loads((out / 'preview-1/owner-review-template.json').read_text())
+    first = json.loads((out / 'preview-1/reset-preview-v3.json').read_text())
+    held_first = [dict(product_id=r['product_id'], lot_code=r['lot_code'], new_lot=r.get('new_lot'), holds=r['holds'])
+                  for r in first['rows'] if r['status'] != 'READY']
     review = {k: {} for k in template}
+    for fp in template['multi_area_reviews']:
+        # Scripted stand-in: the owner confirms no unlogged moves between the two areas' rows.
+        review['multi_area_reviews'][fp] = dict(owner='MG (rehearsal)', no_unlogged_moves=True)
     started = time.monotonic()
     for fp, item in template['movement_reviews'].items():
         # Scripted stand-in for the owner's answer: the floor's damage adjust happened after the count.
@@ -277,14 +294,15 @@ def area_run(area, rows, products, workdir, env, owner, base_reason):
     verify = ['audits/fresh-start/verify_reset.py', '--v3', str(inputs / 'count.csv'), '--coverage', str(inputs / 'coverage.csv'),
               '--moves', str(inputs / 'moves.csv'), '--approved-preview', str(signed / 'reset-preview-v3.json'),
               '--approval', str(approval), '--journal', str(state), '--output-dir', str(out / 'verification'),
-              '--target', 'staging', '--area', area['name']] + (['--review', str(review_path)] if review_path else [])
+              '--target', 'staging'] + areas + (['--review', str(review_path)] if review_path else [])
     result, timing['verify_s'] = tool(verify, env)
     timing['pause_total_s'] = round(time.monotonic() - pause, 1)
     verified = json.loads((out / 'verification/reset-verification-v3.json').read_text())
     after = [r for r in verified['rows'] if r['product_id'] in mine]
     readback = list(csv.DictReader((TOOLS / 'apply-results-staging' / digest / 'readback.csv').open()))
     executor = json.loads((TOOLS / 'apply-results-staging' / digest / 'timings.json').read_text())
-    return dict(area=area['name'], window=[area['start'].isoformat(), area['end'].isoformat()], approved_products=approved,
+    return dict(area=', '.join(names), window=[area['start'].isoformat(), area['end'].isoformat()], approved_products=approved,
+                held_before_owner_review=held_first,
                 preview_sha256=digest, owner_approves_held=needs, extra_kosher_lots=kosher, timings_s=timing,
                 executor_timings_s=executor, readback=readback,
                 verify_exit=result.returncode, verified_rows=[dict(product_id=r['product_id'], lot_code=r['lot_code'],
@@ -370,17 +388,35 @@ def rehearse(output):
         time.sleep(8)
         ek_code = f'{ref}-EK-1'.lower()   # as written on the sheet; FL stores it upper-case
         rows.append(sheet_row(a3, 'RH3', 2, items['extra'], ek_code, '180', 'lb', now()))
+        # 17 cases of 15 lb against 300 lb on the book: −45 lb (before PR #109 FL read it as 675 lb and held it).
+        cases15 = items['cases15']
+        rows.append(sheet_row(a3, 'RH3', 3, cases15, cases15['lot_code'], '17', 'cases', now()))
         time.sleep(8)
         close_area(a3, rows)
-        results.append(area_run(a3, rows, [granola, items['extra']], workdir, env, owner, ref))
+        # The same new extra-kosher lot is also in the cooler: counted in two areas, so
+        # it is held until the owner confirms no unlogged moves (Codex PR #108 review).
+        cooler = window('Cooler', 'area-3b-cooler')
+        time.sleep(5)
+        cooler_rows = [sheet_row(cooler, 'RH4', 1, items['extra'], ek_code, '120', 'lb', now())]
+        time.sleep(5)
+        close_area(cooler, cooler_rows)
+        a3['with'] = [cooler]
+        results.append(area_run(a3, rows + cooler_rows, [granola, cases15, items['extra']], workdir, env, owner, ref))
         report['areas'] = results
         with connection(uri) as cur:
-            cur.execute("""SELECT id,status,resolution_kind,resolution_ticket_id,detail->'resolution' AS resolution
-                           FROM exceptions WHERE id=ANY(%s)""", (report['shortage']['exceptions'],))
+            cur.execute("""SELECT e.id,e.status,e.resolution_kind,e.resolution_ticket_id,e.resolution_receipt_number,
+                                  xr.action AS resolution_receipt_action,xr.status AS resolution_receipt_status,
+                                  fix.receipt_number AS resolution_posting_receipt_number,e.detail->'resolution' AS resolution
+                           FROM exceptions e LEFT JOIN write_tickets xr ON xr.receipt_number=e.resolution_receipt_number
+                           LEFT JOIN write_tickets fix ON fix.id=e.resolution_ticket_id
+                           WHERE e.id=ANY(%s)""", (report['shortage']['exceptions'],))
             report['shortage']['after'] = [dict(r) for r in cur.fetchall()]
             cur.execute("""SELECT l.id,l.lot_code,l.kosher_tier,l.kosher_attested_by_actor_id,l.kosher_attested_at,l.entry_source
                            FROM lots l WHERE l.product_id=%s AND l.lot_code=%s""", (items['extra']['id'], ek_code.upper()))
             report['extra_kosher_lot'] = [dict(r) for r in cur.fetchall()]
+            for lot in report['extra_kosher_lot']:
+                cur.execute('SELECT COALESCE(sum(quantity_lb),0) AS lb, count(*) AS lines FROM transaction_lines WHERE lot_id=%s', (lot['id'],))
+                lot.update(cur.fetchone())
             cur.execute("""SELECT e.id,e.kind,e.status,e.resolution_kind,e.resolved_by_actor_id,wt.receipt_number
                            FROM exceptions e JOIN write_tickets wt ON wt.id=e.ticket_id
                            WHERE e.kind IN ('LARGE_CORRECTION','KOSHER_ATTESTATION') AND wt.actor_id=%s ORDER BY e.id""",

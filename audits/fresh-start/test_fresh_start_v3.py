@@ -12,29 +12,48 @@ from test_apply_reset import FakeBackend
 class FakeTicketBackend(FakeBackend):
  """Offline stand-in for FL's ticket API (A1 prepare/commit, A3b holds/shortages, A12 found)."""
  def __init__(self,s):
-  super().__init__(s);self.tickets={};self.n=0;self.approvals=0;self.prepares=0;self.dup_ref=99999;self.commit_bodies=[]
+  super().__init__(s);self.tickets={};self.n=0;self.approvals=0;self.prepares=0;self.dup_ref=99999;self.commit_bodies=[];self.inflight=[]
   s.setdefault('actors',[dict(id=7,name='FAKE Owner',role='owner',active=True)])
   for k in ('correction_tickets','shortages','held_exceptions'):s.setdefault(k,[])
  def call(self,key,route,body):
   self.calls.append((route,deepcopy(body)))
   if route=='/auth/whoami':return 200,dict(key_kind='actor',actor=dict(name=self.actor_name,id=7))
+  self.land()   # a commit still in flight reaches FL before this request does
   if route in ('/adjust/prepare','/inventory/found/prepare'):return self.prepare(route,body)
   if route.startswith('/tickets/'):
-   t=self.tickets[route.split('/')[2]]
-   if self.mode=='timeout_before':raise TimeoutError('FAKE SECRET MUST NOT LEAK')
-   if self.mode=='refuse_commit':t['row']['status']='rejected';return 409,dict(detail=dict(error_code='TICKET_STALE'))
-   self.commit_bodies.append(body)
-   if t['action']=='found' and t['draft']['kosher_tier']=='extra_kosher':return 202,self.hold(t,'KOSHER_ATTESTATION')
-   if t['action']=='adjust' and t['draft']['correction_review']['photo_required']:return 202,self.hold(t,'LARGE_CORRECTION')
-   return self.post(t)
+   token=route.split('/')[2];t=self.tickets[token]
+   if self.mode=='timeout_before':self.mode=None;raise TimeoutError('FAKE SECRET MUST NOT LEAK')
+   if self.mode=='lost':self.mode=None;self.inflight.append((token,body));raise TimeoutError('FAKE SECRET MUST NOT LEAK')
+   return self.commit(t,body)
   if route.startswith('/exceptions/'):
+   if self.mode=='approve_lost':self.mode=None;raise TimeoutError('FAKE SECRET MUST NOT LEAK')
    e=next(e for e in self.s['held_exceptions'] if e['id']==int(route.split('/')[2]));t=next(t for t in self.tickets.values() if t['id']==e['ticket_id'])
+   if e['status']=='resolved':return 200,dict(t['response'],replayed=True)
    self.approvals+=1;e.update(status='resolved',resolution_kind='approved',resolved_by_actor_id=7)
    if self.mode=='approve_refused':e.update(status='open',resolution_kind=None);return 403,dict(detail=dict(error_code='ROLE_NOT_ALLOWED'))
    return self.post(t)
   raise AssertionError('unexpected route '+route)
+ def land(self):
+  while self.inflight:
+   token,body=self.inflight.pop(0)
+   try:self.commit(self.tickets[token],body)
+   except TimeoutError:pass
+ def commit(self,t,body):
+  """FL's commit route: the ticket row lock serializes; committed replays its receipt;
+  expired/rejected/superseded never post; a held ticket stays held."""
+  if t['row']['status']=='committed':return 200,dict(t['response'],replayed=True)
+  if t['row']['status'] in ('expired','rejected','superseded'):return 409,dict(detail=dict(error_code='TICKET_NOT_COMMITTABLE'))
+  if t['row']['status']=='awaiting_approval':return 202,t['hold']
+  if self.mode=='expire':self.mode=None;t['row']['status']='expired';return 409,dict(detail=dict(error_code='TICKET_EXPIRED'))
+  if self.mode=='refuse_commit':t['row']['status']='rejected';return 409,dict(detail=dict(error_code='TICKET_STALE'))
+  self.commit_bodies.append(body)
+  if t['action']=='found' and t['draft']['kosher_tier']=='extra_kosher':return 202,self.hold(t,'KOSHER_ATTESTATION')
+  if t['action']=='adjust' and t['draft']['correction_review']['photo_required']:return 202,self.hold(t,'LARGE_CORRECTION')
+  return self.post(t)
  def prepare(self,route,body):
   self.prepares+=1;self.n+=1;tid=900+self.n;token='wt_'+'A'*30+str(self.n)
+  for other in self.tickets.values():   # FL supersedes an identical still-prepared ticket
+   if other['row']['status']=='prepared' and other['body']==body:other['row']['status']='superseded'
   if route=='/adjust/prepare':
    lot=next(l for l in self.s['lots'] if l['id']==body['lot_id'])
    open_ids=sorted(e['id'] for e in self.s['shortages'] if e['lot_id']==lot['id'] and e['status'] in ('open','escalated'))
@@ -55,8 +74,10 @@ class FakeTicketBackend(FakeBackend):
   return 200,dict(ticket=token,ticket_id=tid,payload_hash=row['payload_hash'],draft=draft,warnings=warnings,blockers=[],can_commit=True)
  def hold(self,t,kind):
   t['row']['status']='awaiting_approval';eid=500+len(self.s['held_exceptions'])
+  if t.get('hold'):return t['hold']
   self.s['held_exceptions'].append(dict(id=eid,kind=kind,status='open',product_id=t['draft']['product_id'],ticket_id=t['id'],receipt_number=None,resolution_kind=None,resolved_by_actor_id=None))
-  return dict(held=True,exception_id=eid,error_code='PHOTO_REQUIRED' if kind=='LARGE_CORRECTION' else 'KOSHER_ATTESTATION_REQUIRED')
+  t['hold']=dict(held=True,exception_id=eid,error_code='PHOTO_REQUIRED' if kind=='LARGE_CORRECTION' else 'KOSHER_ATTESTATION_REQUIRED')
+  return t['hold']
  def post(self,t):
   self.commits+=1;body=t['body'];tid=100+self.commits;now=datetime.now(timezone.utc).isoformat()
   prefix='FND' if t['action']=='found' else 'ADJ';receipt=f'{prefix}-261020-{self.commits:03d}'
@@ -72,11 +93,12 @@ class FakeTicketBackend(FakeBackend):
   closed=[]
   for eid in body.get('resolves_shortage_ids') or []:
    e=next(e for e in self.s['shortages'] if e['id']==eid);e.update(status='resolved',resolution_kind='counted',resolution_ticket_id=t['id']);closed.append(dict(exception_id=eid))
-  if self.mode=='timeout_after':self.mode=None;raise TimeoutError('FAKE SECRET MUST NOT LEAK')
   bal=sum(x['quantity_lb'] for x in self.s['lines'] if x['lot_id']==lid and x['effective_status']=='posted')
   out=dict(transaction_id=tid,receipt_number=receipt,reason_code='physical_count',lot_code=body.get('lot_code') or t['draft']['lot_code'],shortages_closed=closed)
   if t['action']=='found':out.update(quantity=body['quantity'],kosher_tier='extra_kosher',kosher_attested_by_actor_id=7)
   else:out.update(adjustment_lb=body['delta_lb'],new_balance_lb=bal)
+  t['response']=out
+  if self.mode=='timeout_after':self.mode=None;raise TimeoutError('FAKE SECRET MUST NOT LEAK')
   return 200,out
 
 
@@ -517,9 +539,11 @@ class V3Tests(unittest.TestCase):
   self.data['count'][0]['quantity']='700';self.assertEqual(self.target()['owner_approvals'],['LARGE_CORRECTION'])
   self.data['count'][0]['quantity']='600';self.assertEqual(self.target()['owner_approvals'],[])
  def test_R6b_hold_prediction_mirrors_a3b_units(self):
-  p=dict(id=9,uom='case',case_size_lb=15);self.assertEqual(v.a3b_lb_equivalent(p,f.D(-40)),f.D(600));self.assertIsNone(v.a3b_lb_equivalent(dict(uom='12x10 oz case'),f.D(-900)))
+  # PR #109: an adjust on a weighted case product is pounds — −40 lb is 40 lb, not 40 × 15 = 600.
+  p=dict(id=9,uom='case',case_size_lb=15);self.assertEqual(v.a3b_lb_equivalent(p,f.D(-40)),f.D(40));self.assertIsNone(v.a3b_lb_equivalent(dict(uom='12x10 oz case'),f.D(-900)))
+  self.assertEqual(v.a3b_lb_equivalent(dict(uom='case',default_case_weight_lb=25),f.D(-501)),f.D(501))
   self.assertEqual(v.a3b_lb_equivalent(dict(uom='25 lb case'),f.D(-501)),f.D(501))
-  row=dict(action='adjust',rounded_adjustment_lb=f.D(-40),ledger_unit='lb');self.assertEqual(v.owner_approvals(row,p),['LARGE_CORRECTION']);self.assertEqual(v.owner_approvals(dict(row,rounded_adjustment_lb=f.D(-30)),p),[])
+  row=dict(action='adjust',rounded_adjustment_lb=f.D(-40),ledger_unit='lb');self.assertEqual(v.owner_approvals(row,p),[]);self.assertEqual(v.owner_approvals(dict(row,rounded_adjustment_lb=f.D(-501)),p),['LARGE_CORRECTION'])
  def test_R7_area_group_only_takes_products_counted_only_there(self):
   self.extra();self.data['count'].append(self.row('R9','B','5',self.t+timedelta(minutes=5)))
   self.confirm_multi_area();a=v.analyze(self.s,self.data,(),['A']);rows=self.rows_by_product(a)
@@ -591,4 +615,99 @@ class V3Tests(unittest.TestCase):
   self.data['count'][0]['quantity']='800';self.held_ok='Y';b=FakeTicketBackend(self.s);b.mode='timeout_after'
   with self.assertRaisesRegex(RuntimeError,'uncertain'):self.run_apply(b)
   self.assertEqual(self.rerun(b),0);self.assertEqual((b.commits,b.approvals),(1,1))
+ # ── Codex PR #108 review fix round 1 ──
+ def balance(self,lot_id=1):return sum(x['quantity_lb'] for x in self.s['lines'] if x['lot_id']==lot_id and x['effective_status']=='posted')
+ def crash_journal(self,when):
+  """Kill the executor right after FL answered but before the journal records it (or before the intent)."""
+  real=app.Journal.append;state=dict(done=False)
+  def append(journal,**event):
+   if not state['done'] and when(event):state['done']=True;raise RuntimeError('FAKE CRASH')
+   return real(journal,**event)
+  return patch.object(app.Journal,'append',append)
+ def test_RF1_lost_commit_that_lands_late_never_posts_twice(self):
+  """The verified double post: timeout, rerun, then the first commit lands. 100 → 90, never 80."""
+  b=FakeTicketBackend(self.s);b.mode='lost'
+  with self.assertRaisesRegex(RuntimeError,'uncertain'):self.run_apply(b)
+  self.assertEqual((b.commits,self.balance()),(0,100))
+  self.assertEqual(self.rerun(b),0);b.land()
+  self.assertEqual((b.commits,b.prepares,self.balance()),(1,1,90))
+  self.assertEqual([r for r,_ in b.calls if r.startswith('/tickets/')].count(next(r for r,_ in b.calls if r.startswith('/tickets/'))),2)
+ def test_RF2_crash_or_timeout_at_every_step_posts_once(self):
+  steps=dict(
+   before_intent=lambda b:self.crash_journal(lambda e:e.get('kind')=='intent' and e.get('phase')=='commit'),
+   commit_not_sent=lambda b:setattr(b,'mode','timeout_before'),
+   commit_lost=lambda b:setattr(b,'mode','lost'),
+   response_lost=lambda b:setattr(b,'mode','timeout_after'),
+   receipt_not_journaled=lambda b:self.crash_journal(lambda e:e.get('kind')=='receipt' and e.get('outcome')=='ok'),
+   held_not_journaled=lambda b:self.crash_journal(lambda e:e.get('kind')=='receipt' and e.get('outcome')=='held'),
+   approve_lost=lambda b:setattr(b,'mode','approve_lost'),
+   approval_not_journaled=lambda b:self.crash_journal(lambda e:e.get('kind')=='intent' and e.get('phase')=='approve'),
+   readback_lost=lambda b:patch.object(b,'snapshot',side_effect=[deepcopy(self.s)]*2+[RuntimeError('FAKE CRASH')]))
+  for step,inject in steps.items():
+   for qty,held in (('90',False),('800',True)):
+    if 'approv' in step or 'held' in step:
+     if not held:continue
+    with self.subTest(step=step,qty=qty):
+     self.setUp();self.data['count'][0]['quantity']=qty;self.held_ok='Y' if held else 'N'
+     b=FakeTicketBackend(self.s);ctx=inject(b)
+     if ctx is not None:
+      with ctx:
+       with self.assertRaises(RuntimeError):self.run_apply(b)
+     else:
+      with self.assertRaises(RuntimeError):self.run_apply(b)
+     self.assertEqual(self.rerun(b),0);b.land();self.assertEqual(self.rerun(b),0)
+     self.assertEqual(b.commits,1,step);self.assertEqual(self.balance(),f.D(qty),step)
+     self.assertLessEqual(b.approvals,1 if held else 0)
+     self.assertLessEqual(b.prepares,2)
+ def test_RF3_expired_retry_stops_then_a_fresh_ticket_posts_once(self):
+  b=FakeTicketBackend(self.s);b.mode='timeout_before'
+  with self.assertRaisesRegex(RuntimeError,'uncertain'):self.run_apply(b)
+  b.mode='expire'
+  with self.assertRaisesRegex(RuntimeError,'TICKET_EXPIRED'):self.rerun(b)
+  self.assertEqual((b.commits,b.prepares),(0,1))
+  self.assertEqual(self.rerun(b),0);self.assertEqual((b.commits,b.prepares,self.balance()),(1,2,90))
+ def test_RF4_uncertain_commit_from_a_journal_without_the_ticket_stops(self):
+  b=FakeTicketBackend(self.s);b.mode='timeout_before'
+  with self.assertRaisesRegex(RuntimeError,'uncertain'):self.run_apply(b)
+  plan=app.load_plan(self.preview,self.approval,self.out/'count.csv');path=app.JOURNAL_ROOT/plan['sha']/'journal.jsonl'
+  events=[json.loads(l) for l in path.read_text().splitlines()];events[1].pop('ticket');path.unlink();j=app.Journal(path,plan);prev=''
+  for e in events:
+   e.pop('sha256');e['previous']=prev;e['sha256']=j.hash(e);prev=e['sha256']
+  path.write_text(''.join(json.dumps(e,sort_keys=True,separators=(',',':'))+'\n' for e in events))
+  with self.assertRaisesRegex(RuntimeError,'never prepare a second ticket'):self.rerun(b)
+  self.assertEqual((b.commits,b.prepares),(0,1))
+ def two_area_extra(self):
+  self.extra();r=self.row('X283B','B','300',self.t+timedelta(minutes=5));r.update(product_id='283',SKU='9283',name='TEST extra batch',lot_code='ek-1',unit='lb')
+  self.data['count'].append(r)
+ def test_RF5_extra_kosher_lot_counted_in_two_areas_is_held_until_the_owner_confirms(self):
+  self.two_area_extra();a=self.analyze();r=self.rows_by_product(a)[283]
+  self.assertEqual((r['status'],r['adjustment_lb'],r['new_lot']),('HELD',None,True))
+  self.assertIn('no unlogged moves',str(r['holds']))
+  self.assertIn('NEW-P283-EK-1',a['lot_holds'])
+ def test_RF6_executor_never_posts_an_unconfirmed_multi_area_extra_kosher_lot(self):
+  self.two_area_extra();b=FakeTicketBackend(self.s)
+  with self.assertRaisesRegex(RuntimeError,'Held lot'):self.run_extra(b)
+  self.assertEqual((b.calls,b.commits,b.approvals),([],0,0))
+  self.assertFalse(any(l['product_id']==283 for l in self.s['lots']))
+ def test_RF7_confirmed_multi_area_extra_kosher_lot_posts_once_only_per_the_signed_list(self):
+  self.two_area_extra();self.confirm_multi_area();self.assertEqual(self.rows_by_product(self.analyze())[283]['adjustment_lb'],f.D(600))
+  self.approved_ids='1,283';self.held_ok='Y';self.kosher_lots='none'
+  with self.assertRaisesRegex(RuntimeError,'Extra-kosher lots must list exactly'):self.persist()
+  self.kosher_lots='283:EK-2'
+  with self.assertRaisesRegex(RuntimeError,'Extra-kosher lots must list exactly'):self.persist()
+  b=FakeTicketBackend(self.s);self.assertEqual(self.run_extra(b),0)
+  lot=next(l for l in self.s['lots'] if l['product_id']==283)
+  self.assertEqual((b.commits,b.approvals,self.balance(lot['id']),lot['kosher_tier']),(2,1,f.D(600),'extra_kosher'))
+ def test_RF8_zero_change_count_never_reports_success_with_an_open_shortage(self):
+  self.shortage();self.data['count'][0]['quantity']='100';r=self.target()
+  self.assertEqual((r['status'],r['resolves_shortage_ids']),('HELD',[]))
+  self.assertIn('Open shortage #41',str(r['holds']))
+  self.assertFalse(self.analyze()['full_scope_reviewed'])
+  with self.assertRaisesRegex(RuntimeError,'Held lot'):self.run_apply(FakeTicketBackend(self.s))
+  self.s['shortages'][0]['status']='resolved';self.assertEqual(self.target()['status'],'READY')
+ def test_RF9_owner_approval_note_carries_the_full_preview_hash(self):
+  self.data['count'][0]['quantity']='800';self.held_ok='Y';b=FakeTicketBackend(self.s);self.assertEqual(self.run_apply(b),0)
+  plan=app.load_plan(self.preview,self.approval,self.out/'count.csv')
+  note=next(body for route,body in b.calls if route.startswith('/exceptions/'))['note']
+  self.assertEqual(len(plan['sha']),64);self.assertIn(plan['sha'],note)
 if __name__=='__main__':unittest.main()
