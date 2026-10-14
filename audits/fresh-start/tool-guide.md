@@ -15,7 +15,7 @@ python audits/fresh-start/fresh_start_v3.py \
   --write-count-template audits/fresh-start/v3/count-inputs/count-template.csv
 ```
 
-Create the inputs folder first. The command refuses to overwrite an existing file. Previously issued CSVs without the column still load, with every duplicate tick treated as blank. Add the column to a transcription copy when needed; retain the original. The older PDF/material builder does not issue this new column: use the template command above and add a labeled duplicate tick column to paper copies.
+Create the inputs folder first. The command refuses to overwrite an existing file. Previously issued CSVs without the column still load, with every duplicate tick treated as blank. Add the column to a transcription copy when needed; retain the original. Since the October 13 reissue the builder prints a **Dup?** box on every row and the CSV has the `duplicate` column.
 
 This replaces v2's single-cutoff, non-production-day workflow. The old v1/v2 sheets and dated reports remain historical evidence, not current floor instructions. All 210 catalog products remain in v3's floor-count scope, including inactive products formerly excluded as 171/209. The reset covers 178 products; the 32 packaging/billing products are information only, including Pallets 102 and Pallet Charge 176. Inactive/service or unresolved identities cannot receive adjustments. The earlier owner-approved direct database write archiving product 185 remains documented in `archive-185-execution.txt`; it was not repeated or changed here.
 
@@ -35,6 +35,15 @@ The tool and its snapshot guard resolve paths from the checked-out source file, 
 **Packaging is information only.** Keep packaging observations on the same floor sheets. Preview and verification write a separate `packaging-information-only.md` / `.csv` with the entered quantities, units, lots and locations, plus `packaging-moves-information-only.csv`. Missing quantities remain not counted; no packaging balance or adjustment is inferred. Packaging coverage and movement problems do not hold up the reset. Pallets 102 and Pallet Charge 176 are excluded billing items. For uncatalogued labels or other confirmed packaging, the office may set `row_kind=PACKAGING_INFO`, leaving product ID blank and explaining the classification in notes on an input copy. Preserve the original sheet; never assign that mark to an unidentified food item. Catalogued food cannot bypass reconciliation this way.
 
 FL has no current location balance. A row's FL reference is the whole-lot balance at that row time, not a fictitious balance for that shelf. Separate area observations are combined only after relevant movements are classified and allocated once.
+
+## October 13 cutover changes
+
+- **Targets.** Every v3 command takes `--target production|staging` (default production for preview/verify; apply requires it explicitly). A preview records its target and apply refuses a preview made for the other one. Staging reads `~/Documents/fl-secrets/staging-db-url.txt` and must point at the staging host; production must not.
+- **Area groups.** `--area "<Area>"` (repeatable) limits approvable posts to products whose every count row is in those areas.
+- **Extra-kosher stock (283–290).** A counted lot code not in FL for an extra-kosher product becomes a NEW lot (canonical upper-case code), loaded by an owner-approved found ticket and listed in `approval.md` under `Extra-kosher lots`. Unmatched lots of regular products are still held and never created. 285/288 are counted in lb. A new lot counted in more than one area is held until the owner confirms no unlogged moves (multi-area review), like any other lot.
+- **Shortages.** A lot with an open SHORTAGE shows its exception IDs; the reset post names them and closes them as *counted*. If they change after the preview, apply stops before writing.
+- **Owner holds.** Rows over 500 lb (real pounds, also for weighted case products) and new extra-kosher lots are marked with the FL hold they will meet; see `approval.md`.
+- **Open shortage, count matches FL.** A lot whose count needs no change cannot close its shortage through the reset; it is held until the shortage is resolved as counted on the dashboard (XR receipt) and the preview refreshed.
 
 ## Create and review a preview
 

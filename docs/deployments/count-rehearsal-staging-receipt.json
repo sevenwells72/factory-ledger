@@ -1,0 +1,493 @@
+{
+  "reference": "STG-CNT-9F7F22",
+  "mode": "branch API in-process on 127.0.0.1 against guarded STAGING; no hosted deployment",
+  "owner_actor": {
+    "id": 1000000080,
+    "name": "Michael (STAGING STG-CNT-9F7F22)"
+  },
+  "floor_actor": {
+    "id": 1000000081,
+    "name": "Arturo (STAGING STG-CNT-9F7F22)"
+  },
+  "products": {
+    "oats": 1000000078,
+    "sugar": 1000000079,
+    "coconut": 1000000080,
+    "batch": 1000000081,
+    "granola": 1000000082,
+    "misc1": 1000000083,
+    "misc2": 1000000084,
+    "misc3": 1000000085,
+    "misc4": 1000000086,
+    "misc5": 1000000087,
+    "misc6": 1000000088,
+    "extra": 283
+  },
+  "synthetic_owner_not_michael": true,
+  "shortage": {
+    "make_receipt": "MK-261013-011",
+    "exceptions": [
+      32
+    ],
+    "after": [
+      {
+        "id": 32,
+        "status": "resolved",
+        "resolution_kind": "counted",
+        "resolution_ticket_id": 122,
+        "resolution": {
+          "via": "adjust_ticket",
+          "kind": "counted",
+          "delta_lb": 45.0,
+          "short_lb": 20.0,
+          "counted_lb": 25.0,
+          "book_before_lb": -20.0,
+          "new_balance_lb": 25.0,
+          "receipt_number": "ADJ-261013-024",
+          "transaction_id": 1000000140
+        }
+      }
+    ]
+  },
+  "movement_in_window": {
+    "receipt": "ADJ-261013-025",
+    "transaction_id": 1000000141,
+    "lb": -25
+  },
+  "areas": [
+    {
+      "area": "Dry storage",
+      "window": [
+        "2026-10-13T19:47:34-04:00",
+        "2026-10-13T19:47:59-04:00"
+      ],
+      "approved_products": [
+        1000000078,
+        1000000079,
+        1000000083,
+        1000000084,
+        1000000085,
+        1000000086,
+        1000000087,
+        1000000088
+      ],
+      "preview_sha256": "173dd9c70b66182978d95c00174c8e9224d33bc979569856e2b0c20e90c552c0",
+      "owner_approves_held": true,
+      "extra_kosher_lots": [],
+      "timings_s": {
+        "preview_1_s": 2.1,
+        "owner_review_scripted_s": 0.0,
+        "dry_run_s": 1.6,
+        "apply_s": 24.7,
+        "verify_s": 0.9,
+        "pause_total_s": 29.3
+      },
+      "executor_timings_s": {
+        "confirmed": 1.4,
+        "posted": 23.2,
+        "verified": 24.0,
+        "per_lot_s": [
+          2.3,
+          3.3,
+          2.7,
+          2.0,
+          2.5,
+          2.4,
+          2.3,
+          2.2
+        ],
+        "posts": 8
+      },
+      "readback": [
+        {
+          "product_id": "1000000078",
+          "name": "STG STG-CNT-9F7F22 Oats",
+          "lot_code": "STG-CNT-9F7F22-OATS-1",
+          "new_lot": "False",
+          "change": "-5",
+          "receipt_number": "ADJ-261013-016",
+          "transaction_id": "1000000132",
+          "balance_now": "395",
+          "planned": "395.0000",
+          "owner_holds": "",
+          "shortages_closed": "",
+          "kosher_tier": "regular",
+          "status": "POSTED"
+        },
+        {
+          "product_id": "1000000079",
+          "name": "STG STG-CNT-9F7F22 Sugar",
+          "lot_code": "STG-CNT-9F7F22-SUGAR-1",
+          "new_lot": "False",
+          "change": "-680",
+          "receipt_number": "ADJ-261013-017",
+          "transaction_id": "1000000133",
+          "balance_now": "520",
+          "planned": "520.0000",
+          "owner_holds": "LARGE_CORRECTION",
+          "shortages_closed": "",
+          "kosher_tier": "regular",
+          "status": "POSTED"
+        },
+        {
+          "product_id": "1000000083",
+          "name": "STG STG-CNT-9F7F22 Ingredient 1",
+          "lot_code": "STG-CNT-9F7F22-MISC1-1",
+          "new_lot": "False",
+          "change": "-1",
+          "receipt_number": "ADJ-261013-018",
+          "transaction_id": "1000000134",
+          "balance_now": "99",
+          "planned": "99.0000",
+          "owner_holds": "",
+          "shortages_closed": "",
+          "kosher_tier": "regular",
+          "status": "POSTED"
+        },
+        {
+          "product_id": "1000000084",
+          "name": "STG STG-CNT-9F7F22 Ingredient 2",
+          "lot_code": "STG-CNT-9F7F22-MISC2-1",
+          "new_lot": "False",
+          "change": "-2",
+          "receipt_number": "ADJ-261013-019",
+          "transaction_id": "1000000135",
+          "balance_now": "98",
+          "planned": "98.0000",
+          "owner_holds": "",
+          "shortages_closed": "",
+          "kosher_tier": "regular",
+          "status": "POSTED"
+        },
+        {
+          "product_id": "1000000085",
+          "name": "STG STG-CNT-9F7F22 Ingredient 3",
+          "lot_code": "STG-CNT-9F7F22-MISC3-1",
+          "new_lot": "False",
+          "change": "-3",
+          "receipt_number": "ADJ-261013-020",
+          "transaction_id": "1000000136",
+          "balance_now": "97",
+          "planned": "97.0000",
+          "owner_holds": "",
+          "shortages_closed": "",
+          "kosher_tier": "regular",
+          "status": "POSTED"
+        },
+        {
+          "product_id": "1000000086",
+          "name": "STG STG-CNT-9F7F22 Ingredient 4",
+          "lot_code": "STG-CNT-9F7F22-MISC4-1",
+          "new_lot": "False",
+          "change": "-4",
+          "receipt_number": "ADJ-261013-021",
+          "transaction_id": "1000000137",
+          "balance_now": "96",
+          "planned": "96.0000",
+          "owner_holds": "",
+          "shortages_closed": "",
+          "kosher_tier": "regular",
+          "status": "POSTED"
+        },
+        {
+          "product_id": "1000000087",
+          "name": "STG STG-CNT-9F7F22 Ingredient 5",
+          "lot_code": "STG-CNT-9F7F22-MISC5-1",
+          "new_lot": "False",
+          "change": "-5",
+          "receipt_number": "ADJ-261013-022",
+          "transaction_id": "1000000138",
+          "balance_now": "95",
+          "planned": "95.0000",
+          "owner_holds": "",
+          "shortages_closed": "",
+          "kosher_tier": "regular",
+          "status": "POSTED"
+        },
+        {
+          "product_id": "1000000088",
+          "name": "STG STG-CNT-9F7F22 Ingredient 6",
+          "lot_code": "STG-CNT-9F7F22-MISC6-1",
+          "new_lot": "False",
+          "change": "-6",
+          "receipt_number": "ADJ-261013-023",
+          "transaction_id": "1000000139",
+          "balance_now": "94",
+          "planned": "94.0000",
+          "owner_holds": "",
+          "shortages_closed": "",
+          "kosher_tier": "regular",
+          "status": "POSTED"
+        }
+      ],
+      "verify_exit": 2,
+      "verified_rows": [
+        {
+          "product_id": 1000000078,
+          "lot_code": "STG-CNT-9F7F22-OATS-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "395.0000",
+          "expected": "395"
+        },
+        {
+          "product_id": 1000000079,
+          "lot_code": "STG-CNT-9F7F22-SUGAR-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "520.0000",
+          "expected": "520"
+        },
+        {
+          "product_id": 1000000083,
+          "lot_code": "STG-CNT-9F7F22-MISC1-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "99.0000",
+          "expected": "99"
+        },
+        {
+          "product_id": 1000000084,
+          "lot_code": "STG-CNT-9F7F22-MISC2-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "98.0000",
+          "expected": "98"
+        },
+        {
+          "product_id": 1000000085,
+          "lot_code": "STG-CNT-9F7F22-MISC3-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "97.0000",
+          "expected": "97"
+        },
+        {
+          "product_id": 1000000086,
+          "lot_code": "STG-CNT-9F7F22-MISC4-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "96.0000",
+          "expected": "96"
+        },
+        {
+          "product_id": 1000000087,
+          "lot_code": "STG-CNT-9F7F22-MISC5-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "95.0000",
+          "expected": "95"
+        },
+        {
+          "product_id": 1000000088,
+          "lot_code": "STG-CNT-9F7F22-MISC6-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "94.0000",
+          "expected": "94"
+        }
+      ],
+      "apply_log_tail": [
+        "Read back ADJ-261013-017: product 1000000079 lot STG-CNT-9F7F22-SUGAR-1 TX1000000133 by Michael (STAGING STG-CNT-9F7F22).",
+        "Read back ADJ-261013-018: product 1000000083 lot STG-CNT-9F7F22-MISC1-1 TX1000000134 by Michael (STAGING STG-CNT-9F7F22).",
+        "Read back ADJ-261013-019: product 1000000084 lot STG-CNT-9F7F22-MISC2-1 TX1000000135 by Michael (STAGING STG-CNT-9F7F22).",
+        "Read back ADJ-261013-020: product 1000000085 lot STG-CNT-9F7F22-MISC3-1 TX1000000136 by Michael (STAGING STG-CNT-9F7F22).",
+        "Read back ADJ-261013-021: product 1000000086 lot STG-CNT-9F7F22-MISC4-1 TX1000000137 by Michael (STAGING STG-CNT-9F7F22).",
+        "Read back ADJ-261013-022: product 1000000087 lot STG-CNT-9F7F22-MISC5-1 TX1000000138 by Michael (STAGING STG-CNT-9F7F22).",
+        "Read back ADJ-261013-023: product 1000000088 lot STG-CNT-9F7F22-MISC6-1 TX1000000139 by Michael (STAGING STG-CNT-9F7F22).",
+        "    ADJ-261013-016  1000000078 / STG-CNT-9F7F22-OATS-1  change -5  balance now 395  POSTED",
+        "    ADJ-261013-017  1000000079 / STG-CNT-9F7F22-SUGAR-1  change -680  balance now 520  POSTED",
+        "    ADJ-261013-018  1000000083 / STG-CNT-9F7F22-MISC1-1  change -1  balance now 99  POSTED",
+        "    ADJ-261013-019  1000000084 / STG-CNT-9F7F22-MISC2-1  change -2  balance now 98  POSTED",
+        "    ADJ-261013-020  1000000085 / STG-CNT-9F7F22-MISC3-1  change -3  balance now 97  POSTED",
+        "    ADJ-261013-021  1000000086 / STG-CNT-9F7F22-MISC4-1  change -4  balance now 96  POSTED",
+        "    ADJ-261013-022  1000000087 / STG-CNT-9F7F22-MISC5-1  change -5  balance now 95  POSTED",
+        "    ADJ-261013-023  1000000088 / STG-CNT-9F7F22-MISC6-1  change -6  balance now 94  POSTED",
+        "Executor seconds from start: {'confirmed': 1.4, 'posted': 23.2, 'verified': 24.0, 'per_lot_s': [2.3, 3.3, 2.7, 2.0, 2.5, 2.4, 2.3, 2.2]}"
+      ]
+    },
+    {
+      "area": "Production floor",
+      "window": [
+        "2026-10-13T19:48:30-04:00",
+        "2026-10-13T19:48:55-04:00"
+      ],
+      "approved_products": [
+        1000000080
+      ],
+      "preview_sha256": "8442f1eee0dfedc23ae5ae2a3c5344e5cd20c4018bd0c36dfdad22c5ef3d13f3",
+      "owner_approves_held": false,
+      "extra_kosher_lots": [],
+      "timings_s": {
+        "preview_1_s": 1.2,
+        "owner_review_scripted_s": 0.0,
+        "dry_run_s": 1.3,
+        "apply_s": 7.7,
+        "verify_s": 0.9,
+        "pause_total_s": 11.2
+      },
+      "executor_timings_s": {
+        "confirmed": 1.2,
+        "posted": 6.2,
+        "verified": 7.0,
+        "per_lot_s": [
+          2.5
+        ],
+        "posts": 1
+      },
+      "readback": [
+        {
+          "product_id": "1000000080",
+          "name": "STG STG-CNT-9F7F22 Coconut",
+          "lot_code": "STG-CNT-9F7F22-COCONUT-1",
+          "new_lot": "False",
+          "change": "45",
+          "receipt_number": "ADJ-261013-024",
+          "transaction_id": "1000000140",
+          "balance_now": "25",
+          "planned": "25.0000",
+          "owner_holds": "",
+          "shortages_closed": "32",
+          "kosher_tier": "regular",
+          "status": "POSTED"
+        }
+      ],
+      "verify_exit": 2,
+      "verified_rows": [
+        {
+          "product_id": 1000000080,
+          "lot_code": "STG-CNT-9F7F22-COCONUT-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "25.0000",
+          "expected": "25"
+        }
+      ],
+      "apply_log_tail": [
+        "    ADJ-261013-024  1000000080 / STG-CNT-9F7F22-COCONUT-1  change 45  balance now 25  POSTED",
+        "Executor seconds from start: {'confirmed': 1.2, 'posted': 6.2, 'verified': 7.0, 'per_lot_s': [2.5]}"
+      ]
+    },
+    {
+      "area": "Warehouse",
+      "window": [
+        "2026-10-13T19:49:08-04:00",
+        "2026-10-13T19:49:47-04:00"
+      ],
+      "approved_products": [
+        283,
+        1000000082
+      ],
+      "preview_sha256": "8c45c8755e8efd4e6b54e07637eb8f15789ea9ebc47fc6d3e7f78fa8e824f3b6",
+      "owner_approves_held": true,
+      "extra_kosher_lots": [
+        "283:STG-CNT-9F7F22-EK-1"
+      ],
+      "timings_s": {
+        "preview_1_s": 0.9,
+        "owner_review_scripted_s": 0.0,
+        "preview_2_s": 0.9,
+        "dry_run_s": 1.5,
+        "apply_s": 11.3,
+        "verify_s": 1.0,
+        "pause_total_s": 15.4
+      },
+      "executor_timings_s": {
+        "confirmed": 1.4,
+        "posted": 9.7,
+        "verified": 10.5,
+        "per_lot_s": [
+          4.5,
+          2.1
+        ],
+        "posts": 2
+      },
+      "readback": [
+        {
+          "product_id": "283",
+          "name": "Batch Classic Granola #9 \u2014 EXTRA-KOSHER (SS)",
+          "lot_code": "STG-CNT-9F7F22-EK-1",
+          "new_lot": "True",
+          "change": "180",
+          "receipt_number": "FND-261013-004",
+          "transaction_id": "1000000142",
+          "balance_now": "180",
+          "planned": "180.0000",
+          "owner_holds": "KOSHER_ATTESTATION",
+          "shortages_closed": "",
+          "kosher_tier": "extra_kosher",
+          "status": "POSTED"
+        },
+        {
+          "product_id": "1000000082",
+          "name": "STG STG-CNT-9F7F22 Granola 25 LB",
+          "lot_code": "STG-CNT-9F7F22-GRANOLA-1",
+          "new_lot": "False",
+          "change": "-25",
+          "receipt_number": "ADJ-261013-026",
+          "transaction_id": "1000000143",
+          "balance_now": "950",
+          "planned": "950.0000",
+          "owner_holds": "",
+          "shortages_closed": "",
+          "kosher_tier": "regular",
+          "status": "POSTED"
+        }
+      ],
+      "verify_exit": 2,
+      "verified_rows": [
+        {
+          "product_id": 283,
+          "lot_code": "STG-CNT-9F7F22-EK-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "180.0000",
+          "expected": "180"
+        },
+        {
+          "product_id": 1000000082,
+          "lot_code": "STG-CNT-9F7F22-GRANOLA-1",
+          "status": "READY",
+          "adjustment": "0.0000",
+          "current": "950.0000",
+          "expected": "950.0000"
+        }
+      ],
+      "apply_log_tail": [
+        "Read back ADJ-261013-026: product 1000000082 lot STG-CNT-9F7F22-GRANOLA-1 TX1000000143 by Michael (STAGING STG-CNT-9F7F22).",
+        "    FND-261013-004  283 / STG-CNT-9F7F22-EK-1  change 180  balance now 180  POSTED",
+        "    ADJ-261013-026  1000000082 / STG-CNT-9F7F22-GRANOLA-1  change -25  balance now 950  POSTED",
+        "Executor seconds from start: {'confirmed': 1.4, 'posted': 9.7, 'verified': 10.5, 'per_lot_s': [4.5, 2.1]}"
+      ]
+    }
+  ],
+  "extra_kosher_lot": [
+    {
+      "id": 1000000141,
+      "lot_code": "STG-CNT-9F7F22-EK-1",
+      "kosher_tier": "extra_kosher",
+      "kosher_attested_by_actor_id": 1000000080,
+      "kosher_attested_at": "2026-10-13 23:49:58.215870+00:00",
+      "entry_source": "found_inventory"
+    }
+  ],
+  "owner_holds": [
+    {
+      "id": 33,
+      "kind": "LARGE_CORRECTION",
+      "status": "resolved",
+      "resolution_kind": "approved",
+      "resolved_by_actor_id": 1000000080,
+      "receipt_number": "ADJ-261013-017"
+    },
+    {
+      "id": 34,
+      "kind": "KOSHER_ATTESTATION",
+      "status": "resolved",
+      "resolution_kind": "approved",
+      "resolved_by_actor_id": 1000000080,
+      "receipt_number": "FND-261013-004"
+    }
+  ],
+  "actors_deactivated_after_rehearsal": true
+}

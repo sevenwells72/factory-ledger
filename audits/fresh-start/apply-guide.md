@@ -1,10 +1,19 @@
 # V3 apply safeguards - for the owner and office
 
-**Plain-English summary:** The count can run while production continues. Review the movements and exact proposed changes, then apply as soon as ready. There is no waiting period or age deadline. Only `apply_reset.py` can write inventory, and nothing was applied during this preparation. All other current count/preview/verification tools are write-incapable.
+**Plain-English summary:** The count can run while production continues. Review the movements and exact proposed changes, then apply as soon as ready. There is no waiting period or age deadline. Only `apply_reset.py` can write inventory. Since 2026-10-13 it posts through FL write tickets (receipts, A3b and A12 rules) instead of the direct `/adjust` route. All other current count/preview/verification tools are write-incapable.
 
 The new v3 path preserves signed preview hashes, exact original inputs, personal actor identity, fresh ledger checks, product/lot validation, rounded quantities, the process lock, a durable journal, exact typed confirmation, no automatic write retries, and independent posted-event readback. Ingredients use the same safeguards as finished goods; units remain explicit. Packaging is counted for information and excluded from apply, along with billing items Pallets 102 and Pallet Charge 176. The reset covers 178 of the 210 floor-count products. Archived/inactive products, service identities and unknown lots are not silently made writable. The former 171/209 physical-count exclusions are superseded in v3, but inactive-write holds remain.
 
 Pre-decision v3 previews must be regenerated and reapproved. A scope-policy marker and explicit packaging/billing exclusions are checked when loading the signed plan and against the current catalog before posting. Packaging counts cannot authorize adjustments, even when signed or showing zero change.
+
+## Cutover morning, one area at a time (owner decision P1.19 option A, 2026-10-12; tool update 2026-10-13)
+
+1. The area finishes counting and hands in sheets. The office transcribes and runs a fresh preview for that area group: `reset_preview.py --v3 … --area "<Area>" --target production`. Products counted in other areas, or with no rows here, stay held for a later group or the final full pass.
+2. **Pause posting for that area's items** (15–30 min). Rerun the preview if anything moved since step 1, review it, and sign `approval.md` for exactly the READY products.
+3. Dry run, then `--apply`. Each lot posts as an FL ticket (`/adjust/prepare` or, for a new extra-kosher lot, `/inventory/found/prepare`, then `/tickets/{ticket}/commit`) with reason `physical_count`, the count time, the named owner key and a receipt number. FL holds corrections over 500 lb and every extra-kosher load. If the signed approval says `Owner approves held entries: Y` and lists the extra-kosher lots, the executor approves exactly those holds with the same key (`/exceptions/{id}/approve`, note = preview hash). Anything else stops and stays held. A lot with an open shortage names it in the ticket, and the post closes it as *counted*.
+4. The executor prints a **read-back** (receipt, lot, change, balance now) and writes `apply-results/<sha>/readback.csv` and `timings.json`. Check the receipts against the sheet, then resume posting in that area.
+
+The staging rehearsal of this procedure, with timings, is in `READINESS-2026-10-13.md`. Use `--target staging` only for rehearsal; it needs `~/.config/factory-ledger/staging_owner_key` and writes to `apply-state-staging/`.
 
 ## Before a future live use
 
@@ -24,7 +33,7 @@ A later separately authorized live run adds `--apply` and requires an interactiv
 
 ## If interrupted or something changes
 
-Preserve `apply-state/<preview SHA-256>/journal.jsonl`. The journal records durable intent before every write, a complete transaction baseline, and validated receipt metadata afterward. A timeout or interruption is never retried blindly. On rerun, only one exact posted event with the approved product/lot, quantity, reason, cutoff and named actor can prove success; wrong/duplicate/voided/corrected events stop the process. Never delete the journal to force a retry. Already completed writes are not rolled back when a later check fails.
+Preserve `apply-state/<preview SHA-256>/journal.jsonl`. The journal records durable intent before every write, a complete transaction baseline, and validated receipt metadata afterward. A timeout or interruption is never retried blindly. If a commit got no definite answer, the rerun re-sends that **same ticket** (FL posts it once or replays its receipt) and never prepares a second ticket while the first could still land; if the ticket has expired meanwhile, the rerun stops ("TICKET_EXPIRED"), and the next rerun prepares a fresh one. On rerun, only one exact posted event with the approved product/lot, quantity, reason, cutoff and named actor can prove success; wrong/duplicate/voided/corrected events stop the process. Never delete the journal to force a retry. Already completed writes are not rolled back when a later check fails.
 
 The executor verifies original source hashes throughout, refuses drift/new or omitted lots, compares the recomputed live-count reconciliation to the approved figures, and verifies every post. Standalone verification also reads and checks the journal without importing the write executor. Follow `tool-guide.md` for the verification command. Require **FULL RESET SCOPE RECONCILED** plus owner review of all reset-scope physical/ownership exceptions before declaring the reset complete. Informational packaging counts are reported separately and are not a reset sign-off requirement.
 

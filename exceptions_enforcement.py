@@ -55,7 +55,8 @@ EPSILON = 0.0001                # = main.BALANCE_EPSILON
 # Prepare refuses these outright (no ticket is issued), like A5's SUPPLIER_REQUIRED:
 # a correction without a valid reason, or one that would cover an open shortage.
 PREPARE_REFUSALS = frozenset({'REASON_CODE_REQUIRED', 'REASON_CODE_INVALID', 'NOTE_REQUIRED',
-                              'REASON_SIGN_MISMATCH', 'SHORTAGE_OPEN_RESOLVE_INSTEAD'})
+                              'REASON_SIGN_MISMATCH', 'SHORTAGE_OPEN_RESOLVE_INSTEAD',
+                              'SHORTAGE_CLOSE_REASON', 'SHORTAGE_SET_CHANGED', 'COUNT_NEGATIVE'})
 
 # Named-actor routes; the two shared keys never reach them (A2: nothing new).
 ACTOR_ROUTES = frozenset({
@@ -261,11 +262,80 @@ def correction_review(api, action, product, quantity, *, book_balance_before=Non
     return review
 
 
-def refuse_cover_up(cur, action, product_id, lot_id, delta):
+def shortages_closed_by_count(cur, lot_id, named, reason_code, lock=False, *, new_balance_lb=None):
+    """Cutover reset (Michael, 2026-10-13): a `physical_count` adjust ticket may name
+    the lot's open SHORTAGE exceptions; its post then closes them as 'counted' in the
+    same transaction (the count is the evidence, as in the `counted` resolution, but
+    with a receipt number and the count time). The named set must be EXACTLY the
+    lot's open shortages. Validation reads it FOR UPDATE before the lot lock (the
+    resolve route's order) and again once the lot lock is held, so a shortage that a
+    concurrent make/pack opened meanwhile makes the ticket stale instead of staying
+    open behind the reset (Codex PR #108 review). A count is never negative."""
+    if reason_code != 'physical_count':
+        fail(422, 'SHORTAGE_CLOSE_REASON', 'Only a physical_count correction can close a shortage.',
+             message_es='Solo una corrección por conteo físico puede cerrar un faltante.')
+    if new_balance_lb is not None and float(new_balance_lb) < -EPSILON:
+        fail(422, 'COUNT_NEGATIVE', f'A physical count cannot leave the lot at {float(new_balance_lb)} lb.',
+             message_es='Un conteo físico no puede dejar el lote en negativo.', new_balance_lb=float(new_balance_lb))
+    cur.execute("SELECT id FROM exceptions WHERE kind='SHORTAGE' AND lot_id=%s AND status IN ('open','escalated') "
+                'ORDER BY id' + (' FOR UPDATE' if lock else ''), (lot_id,))
+    open_ids = [row['id'] for row in cur.fetchall()]
+    if len(named) != len(set(named)) or sorted(named) != open_ids:
+        fail(409, 'SHORTAGE_SET_CHANGED', 'Name exactly the open shortages on this lot; prepare again.',
+             message_es='Indique exactamente los faltantes abiertos de este lote; prepare de nuevo.',
+             open_shortage_ids=open_ids, named_shortage_ids=sorted(named))
+    return open_ids
+
+
+def require_shortage_closer(actor):
+    """Only the owner closes shortages through a count correction (Codex PR #108
+    review); floor resolves one shortage at a time on the resolve route."""
+    permissions.require('approve_exception', actor)
+
+
+def close_shortages_by_count(api, cur, request, named, response, *, ticket_id, receipt_number, book_before_lb):
+    """Close the named shortages as 'counted' after the count correction posted. Each
+    gets its own XR decision receipt in the same transaction (PR #109); the exception's
+    resolution_ticket_id stays the ADJ ticket that fixed the stock."""
+    cur.execute('''SELECT w.actor_id AS id, w.operator_id AS name, w.key_kind, a.role
+                   FROM write_tickets w LEFT JOIN actors a ON a.id=w.actor_id WHERE w.id=%s''', (ticket_id,))
+    actor = dict(cur.fetchone())          # the preparer (owner) closes them
+    # Last check, lot lock held since validation: exactly the named set is still open.
+    shortages_closed_by_count(cur, response['lot_id'], named, 'physical_count', lock=True)
+    closed = []
+    for exception_id in sorted(named):
+        cur.execute('SELECT short_lb FROM shortage_flags WHERE exception_id=%s', (exception_id,))
+        flag = cur.fetchone()
+        resolution = {'kind': 'counted', 'via': 'adjust_ticket', 'counted_lb': float(response['new_balance_lb']),
+                      'book_before_lb': float(book_before_lb), 'delta_lb': float(response['adjustment_lb']),
+                      'short_lb': float(flag['short_lb']) if flag and flag['short_lb'] is not None else None,
+                      'transaction_id': response['transaction_id'], 'receipt_number': receipt_number,
+                      'new_balance_lb': float(response['new_balance_lb'])}
+        cur.execute('''UPDATE exceptions SET status='resolved', resolved_at=clock_timestamp(), resolved_by_actor_id=%s,
+                           resolution_kind='counted', resolution_note=%s, resolution_ticket_id=%s,
+                           detail = detail || %s::jsonb
+                       WHERE id=%s AND kind='SHORTAGE' AND status IN ('open','escalated') RETURNING id''',
+                    (actor['id'], f'Closed by physical count {receipt_number}', ticket_id,
+                     json.dumps({'resolution': resolution}), exception_id))
+        if not cur.fetchone():
+            fail(409, 'SHORTAGE_SET_CHANGED', f'Shortage #{exception_id} is no longer open; prepare again.')
+        cur.execute('''UPDATE shortage_flags SET status='resolved', resolution_kind='counted', resolved_at=clock_timestamp(),
+                           resolved_by_actor_id=%s, resolution_ticket_id=%s
+                       WHERE exception_id=%s AND status IN ('open','escalated')''', (actor['id'], ticket_id, exception_id))
+        api._record_actor_write(cur, request, 'exceptions', exception_id)
+        xr = _record_resolution(api, cur, _one(cur, exception_id), actor, 'counted')
+        closed.append({'exception_id': exception_id, 'resolution': resolution,
+                       'resolution_receipt_number': xr['resolution_receipt_number']})
+    return closed
+
+
+def refuse_cover_up(cur, action, product_id, lot_id, delta, closing=()):
     """R3 "never add stock to get around it": positive adjust on a lot with an open
-    shortage, or found stock for a product with one → 409; resolve the shortage first."""
+    shortage, or found stock for a product with one → 409; resolve the shortage first.
+    `closing` = the open shortages a physical_count ticket names and will close
+    (already checked to be exactly the lot's open set by `shortages_closed_by_count`)."""
     if action == 'adjust':
-        if float(delta) <= 0:
+        if float(delta) <= 0 or closing:
             return
         cur.execute("""SELECT e.id, e.due_at, f.short_lb FROM exceptions e
                        LEFT JOIN shortage_flags f ON f.exception_id=e.id
