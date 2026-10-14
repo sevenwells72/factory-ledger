@@ -1,0 +1,55 @@
+{
+  "base": "https://fastapi-staging-production-dd7b.up.railway.app",
+  "marker": "STG-D12-815187CF",
+  "checked_at": "2026-10-14T02:43:32.496Z",
+  "mode": "Branch dashboard assets over hosted staging API; no deployment",
+  "results": [
+    {
+      "action": "receive",
+      "receipt_number": "RCV-261013-016",
+      "transaction_id": 1000000157,
+      "lot_id": 1000000151,
+      "lot_code": "26-10-13-STGV-001"
+    },
+    {
+      "action": "make",
+      "receipt_number": "MK-261013-016",
+      "transaction_id": 1000000158,
+      "lot_id": 1000000152,
+      "lot_code": "B26-1013-014"
+    },
+    {
+      "action": "resolve",
+      "exception_id": 39,
+      "source_receipt_number": "MK-261013-016",
+      "resolution_receipt_number": "XR-261013-004",
+      "adjustment_receipt_number": "ADJ-261013-031",
+      "status": "resolved"
+    }
+  ],
+  "requests": [
+    "/resolve",
+    "/resolve",
+    "/receive/prepare",
+    "/tickets/{ticket}/commit",
+    "/resolve",
+    "/resolve",
+    "/resolve",
+    "/resolve",
+    "/make/prepare",
+    "/make/prepare",
+    "/tickets/{ticket}/commit",
+    "/exceptions/39/resolve"
+  ],
+  "checks": [
+    "Session auth headers",
+    "No personal key retained",
+    "Receive prepare/review/commit",
+    "Rolled oats for oat bran substitution with typed last-four lot confirmation",
+    "Exceptions allowed_actions only",
+    "Counted resolution XR receipt distinct from source and ADJ",
+    "XR receipt detail link",
+    "390px no horizontal overflow",
+    "Sign out revoked session"
+  ]
+}

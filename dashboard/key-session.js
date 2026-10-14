@@ -2,7 +2,7 @@
 (function (root) {
   'use strict';
   const STORE = 'fl-key-session-token';
-  function create({ base, fetch: transport, storage, changed = () => {} }) {
+  function create({ base, fetch: transport, storage, config: sharedConfig, changed = () => {} }) {
     let enabled = false, token = '', actor = null;
     const publish = () => changed({ enabled, actor, signedIn: !!token });
     function clear() { token = ''; actor = null; storage.removeItem(STORE); publish(); }
@@ -23,7 +23,7 @@
     }
     return {
       async init() {
-        const config = await request('/auth/session/config');
+        const config = await (sharedConfig || request('/auth/session/config'));
         enabled = config.key_sessions_enabled === true;
         if (enabled) {
           token = storage.getItem(STORE) || '';
@@ -60,13 +60,15 @@
   }
   function installDashboard(base) {
     let dialog, label, signIn, signOut, status, resolvePending;
-    const client = create({ base, fetch: root.fetch.bind(root), storage: root.sessionStorage,
+    const runtime=root.FLDashboard;
+    const client = create({ base, fetch: root.fetch.bind(root), storage: root.sessionStorage, config:runtime?.config,
       changed: state => {
         if (!label) return;
         label.textContent = state.actor ? 'Signed in as ' + state.actor.name : 'Sign in before recording an entry';
         signIn.hidden = !!state.actor; signOut.hidden = !state.actor;
       } });
-    const ready = client.init().then(enabled => {
+    const initialized=runtime?runtime.ready.then(on=>{if(!on){client.clear();return false;}return client.init();}):client.init();
+    const ready = initialized.then(enabled => {
       if (!enabled) return;
       const mount = () => {
         const bar = document.createElement('div'); bar.className = 'fl-session-bar';
