@@ -14,6 +14,13 @@
 
 ---
 
+## 2026-10-13 22:43 — G1: read-only GPT key, trimmed GPT schemas/instructions, cutover checklist (staging verified)
+- **File(s) changed:** `main.py`, `tests/test_readonly_api_key.py` (new), `gpt-configs/readonly/openapi-office-readonly.yaml` (new), `gpt-configs/readonly/openapi-floor-readonly.yaml` (new), `gpt-configs/readonly/office-instructions.md` (new), `gpt-configs/readonly/floor-instructions.md` (new), `gpt-configs/readonly/CUTOVER_CHECKLIST.md` (new), `gpt-configs/README.md`, `docs/design/phase1-safe-operating-system.md` (§10.1 step 4 pointer), `scripts/check_readonly_key_staging.py` (new), `docs/deployments/g1-readonly-staging.json` (new), `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Optional `READONLY_API_KEY` env → `key_kind='readonly'`, accepted only on `READONLY_KEY_ALLOWLIST` (15 GETs the two GPTs use + `POST /products/resolve`); every other route 403; unset = no change; startup refuses a value equal to `API_KEY`/`DASHBOARD_API_KEY`. Read-only schema copies: office 14 ops (13 GET + resolveProducts), floor 11 GET; read-only instructions 5,260 / 4,928 chars (floor bilingual; packing-slip key links dropped). Click-by-click checklist for §10.1 steps 3–4. Fresh-DB suite 3,036 Python passed with the key unset and again with it set; 107 Node passed. Staging: variable set on FastAPI-staging, branch uploaded (deployment 414feb47), sweep 16/16 GPT reads allowed, 118/118 writes and 51/51 other GETs refused 403.
+- **Why:** Design §0.6 / §10 row G1 — the GPTs go read-only at cutover; built early behind an unset key. Production untouched; not merged.
+
+---
+
 ## 2026-10-13 21:09 — Record full fresh-DB and staging validation plus dashboard/count-tool followups
 - **File(s) changed:** docs/deployments/resolution-receipts-tests.json, FACTORY_LEDGER_CHANGELOG.md, FOLLOWUPS.md
 - **What changed:** Record full fresh-DB and staging validation plus dashboard/count-tool followups
