@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-14 14:06 — Runbook O-3 closed: Michael accepts the whole-reset GO criterion
+- **File(s) changed:** `docs/cutover/CUTOVER-RUNBOOK.md`, `CHANGE_LOG.md`
+- **What changed:** The O-3 open-items row is marked **CLOSED 2026-10-14**. It records who built it (PR #120, 5a2d57e), who reviewed it (Codex 6174657692), Michael's acceptance, the step-20 command and the staging evidence folder. Step 20's Rollback line now states the accepted GO criterion. The whole-reset proof must report FULL RESET SCOPE RECONCILED (exit 0) before any release step (key rotation, flags). Any gap or tool error stops release.
+- **Why:** Michael accepted the O-3 GO criterion on 2026-10-14. That was the last open condition from Codex's PR #120 review. Docs only.
+
+---
+
 ## 2026-10-14 14:04 — Runbook step 20: insert the whole-reset proof procedure (O-3, PR #120)
 - **File(s) changed:** `docs/cutover/CUTOVER-RUNBOOK.md`, `CHANGE_LOG.md`
 - **What changed:** Step 20's "OPEN — no combined CLI command" text is replaced by the procedure merged in PR #120 (5a2d57e, Codex review 6174657692). The step now gives the frozen final inputs, the `verify_reset.py --whole-reset` command, manifest paths relative to `$RUN`, `no_change` groups and zero-stock approvals. It also lists every per-group and cross-group check and the typed exit-2 gaps. The text is revised note 6173956596 plus the fix-round-2 additions: the `HOLD_NOT_IN_FL` hold binding, and a zero-stock-only group that posts nothing and is listed as `no_change`. The O-3 row names the procedure; it stays open until Michael accepts the GO criteria.
