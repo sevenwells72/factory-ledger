@@ -115,7 +115,7 @@ There is **no** receiving/shipping dashboard screen in tree (`dashboard.js` has 
 
 `DASHBOARD_KEY_ALLOWLIST` is keyed on the **route template**, not the raw URL (`main.py:878–880`, `954–958`). Tests: `tests/test_dashboard_api_key.py`.
 
-The dashboard ships the scoped key in JS (`dashboard.js:1856`, `SALES_API_KEY = 'dashboard-key-2026'`) via `fetchSalesAPI` (`1868–1870`) for sales/ER/SO/supplies. Notes writes (`1719–1812`) send the same key on raw `fetch` to `API_BASE` (`dashboard.js:5`, `…/dashboard/api`). Unauthenticated `fetchAPI` (`485–486`) hits `/dashboard/api/*` with no key.
+The dashboard ships the scoped key in JS (`dashboard.js:1856`, `SALES_API_KEY = '<redacted-retired-dashboard-key>'`) via `fetchSalesAPI` (`1868–1870`) for sales/ER/SO/supplies. Notes writes (`1719–1812`) send the same key on raw `fetch` to `API_BASE` (`dashboard.js:5`, `…/dashboard/api`). Unauthenticated `fetchAPI` (`485–486`) hits `/dashboard/api/*` with no key.
 
 Line numbers below were re-grepped from this checkout on 2026-08-19. Prefer function names + unique strings (`ORDER_ALREADY_FULFILLED`, `INSERT INTO shipments (sales_order_id`) if `main.py` grows again.
 

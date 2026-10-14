@@ -4,7 +4,7 @@ Run this procedure only against a local API using the `factory_ledger_test` data
 
 ## Prerequisites
 
-1. Start the API against `postgresql://localhost:5432/factory_ledger_test` with `DASHBOARD_API_KEY=dashboard-key-2026`.
+1. Start the API against `postgresql://localhost:5432/factory_ledger_test` with `DASHBOARD_API_KEY=<redacted-retired-dashboard-key>`.
 2. In `dashboard/dashboard.js` line 1855, temporarily replace the committed `const SALES_API_BASE = 'https://fastapi-production-b73a.up.railway.app';` with the exact uncommitted localhost override `const SALES_API_BASE = 'http://127.0.0.1:8000';`. Serve `dashboard/` as static files, open the Sales Orders tab, and restore the committed constant before committing.
 3. Prepare two open, physical sales-order lines for the same SKU and enough positive posted lot inventory to test both covered and competing demand. At least one lot should be eligible for a manual pin. Keep the order and line IDs available for API/database fixture setup.
 4. For the auto-FIFO case, have two positive lots so the allocation can show one or more FIFO rows with `source=auto_fifo` and a future expiry.
@@ -19,17 +19,17 @@ Run this procedure only against a local API using the `factory_ledger_test` data
    LINE_ID=456
 
    RELEASE_JSON=$(curl -fsS -X POST "$API_BASE/sales/orders/$ORDER_ID/allocations" \
-     -H 'X-API-Key: dashboard-key-2026' -H 'Content-Type: application/json' \
+     -H 'X-API-Key: <redacted-retired-dashboard-key>' -H 'Content-Type: application/json' \
      -d "{\"mode\":\"manual\",\"line_id\":$LINE_ID,\"quantity_lb\":5,\"note\":\"PR6 released fixture\"}")
    RELEASE_ID=$(printf '%s' "$RELEASE_JSON" | jq -r '.allocations[0].id')
    curl -fsS -X POST "$API_BASE/sales/orders/$ORDER_ID/allocations/$RELEASE_ID/release" \
-     -H 'X-API-Key: dashboard-key-2026'
+     -H 'X-API-Key: <redacted-retired-dashboard-key>'
 
    curl -fsS -X POST "$API_BASE/sales/orders/$ORDER_ID/allocations" \
-     -H 'X-API-Key: dashboard-key-2026' -H 'Content-Type: application/json' \
+     -H 'X-API-Key: <redacted-retired-dashboard-key>' -H 'Content-Type: application/json' \
      -d "{\"mode\":\"manual\",\"line_id\":$LINE_ID,\"quantity_lb\":5,\"note\":\"PR6 shipped fixture\"}"
    curl -fsS -X POST "$API_BASE/sales/orders/$ORDER_ID/ship/commit" \
-     -H 'X-API-Key: dashboard-key-2026' -H 'Content-Type: application/json' \
+     -H 'X-API-Key: <redacted-retired-dashboard-key>' -H 'Content-Type: application/json' \
      -d "{\"ship_all\":false,\"lines\":[{\"line_id\":$LINE_ID,\"quantity_lb\":5}]}"
    ```
 
@@ -80,4 +80,4 @@ Run this procedure only against a local API using the `factory_ledger_test` data
 
 11. Reload the page and reopen the tested order.
 
-    Expected: allocation history, current computed readiness, effective remaining pounds, blockers, and TTL state all come from the API and remain consistent after reload. The browser console has no uncaught exception, and all dashboard requests use `X-API-Key: dashboard-key-2026` rather than the master key.
+    Expected: allocation history, current computed readiness, effective remaining pounds, blockers, and TTL state all come from the API and remain consistent after reload. The browser console has no uncaught exception, and all dashboard requests use `X-API-Key: <redacted-retired-dashboard-key>` rather than the master key.

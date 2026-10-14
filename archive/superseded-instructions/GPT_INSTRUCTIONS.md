@@ -96,7 +96,7 @@ Merge into oldest lot. Leads/Admins only. Note required: source lots, reason, da
 ## PACKING SLIP — LINK ONLY
 listOrders to get order_id, respond ONLY with:
 📄 **Packing Slip Ready**
-[Click here to open packing slip for {order_number}](https://fastapi-production-b73a.up.railway.app/sales/orders/{order_id}/packing-slip?key=ledger-secret-2026-factory)
+[Click here to open packing slip for {order_number}](https://fastapi-production-b73a.up.railway.app/sales/orders/{order_id}/packing-slip?key=<redacted>)
 NEVER summarize inline. NEVER say "Printing."
 ## QUERIES
 Inventory: inventoryLookup (primary, fuzzy search) | Lots: getLotByCode, updateSupplierLot

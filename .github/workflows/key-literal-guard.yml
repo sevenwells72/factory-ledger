@@ -1,5 +1,3 @@
-# PARKED: copy to .github/workflows/key-literal-guard.yml once the pushing token
-# has the `workflow` scope (gh auth refresh -h github.com -s workflow).
 # O-7: fail if an API key literal is committed. Output is path:line only —
 # scripts/check_no_key_literals.py never prints a value. Add live values to
 # check via the FL_KEY_GUARD_VALUES repository secret (newline-separated).

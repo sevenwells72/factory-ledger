@@ -800,7 +800,7 @@ Three surfaces have no responsive rules beyond the shared nav:
 **Rules:** INPUT-003 (Critical where applicable) · INPUT-017 (Critical, Hard rule) · OTHER-003 (Hard rule) · SEARCH-006 · NOTIFY-012
 **Screens:** all 91 · **Importance:** Critical · **Effort:** L
 
-`dashboard/dashboard.js:1882` — `const SALES_API_KEY = 'dashboard-key-2026';`, repeated in `mini-calendar.js:8`, `traceability.html:334`, `sankey.html`, and `process-flow.html`. It is sent as `X-API-Key` on every **write** path — notes create/update/delete, Factory Ready, order header/line/status PATCH, allocations create/release, expected receipts, supply requests. A write-capable credential ships in clear to every browser that loads the page.
+`dashboard/dashboard.js:1882` — `const SALES_API_KEY = '<redacted-retired-dashboard-key>';`, repeated in `mini-calendar.js:8`, `traceability.html:334`, `sankey.html`, and `process-flow.html`. It is sent as `X-API-Key` on every **write** path — notes create/update/delete, Factory Ready, order header/line/status PATCH, allocations create/release, expected receipts, supply requests. A write-capable credential ships in clear to every browser that loads the page.
 
 Three design consequences follow from the same root:
 - **INPUT-017:** `#supply-request-requested-by` asks who is requesting on every submission (`index.html:374-386`) because the app cannot know; and `postOrderReady` sends `by: 'floor'` as a hard-coded literal (`2414`) which the READY pill then displays as though it were audit data (`2232`).

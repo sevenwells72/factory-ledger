@@ -176,7 +176,7 @@
 ### Current Auth Mechanism
 
 - **Method:** Single shared API key via `X-API-Key` header
-- **Key value:** Hardcoded in dashboard JS: `ledger-secret-2026-factory`
+- **Key value:** Hardcoded in dashboard JS: `<redacted-retired-master-key>`
 - **Two tiers:**
   - `/dashboard/api/*` endpoints: **No auth** (designed for the Netlify dashboard)
   - All other endpoints: Require API key via `verify_api_key` dependency
@@ -468,7 +468,7 @@ const res = await fetch(API_BASE + path);
 **Sales endpoints (with auth):**
 ```javascript
 const SALES_API_BASE = 'https://fastapi-production-b73a.up.railway.app';
-const SALES_API_KEY = 'ledger-secret-2026-factory';
+const SALES_API_KEY = '<redacted-retired-master-key>';
 const res = await fetch(SALES_API_BASE + path, {
   headers: { 'X-API-Key': SALES_API_KEY }
 });

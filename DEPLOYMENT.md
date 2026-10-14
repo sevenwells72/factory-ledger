@@ -88,7 +88,7 @@ Factory Ledger is a manufacturing operations system designed to replace Odoo wit
                                                                                   8. | Variable | Value | Notes |
                                                                                   9. |----------|-------|-------|
                                                                                   10. | `DATABASE_URL` | `postgresql://postgres:[PASSWORD]@db.vrafvwcdpcijvxdvefpr.supabase.co:5432/postgres` | Full PostgreSQL connection string |
-                                                                                  11. | `API_KEY` | `ledger-secret-2026-factory` | Bearer token for API authentication |
+                                                                                  11. | `API_KEY` | `<redacted-retired-master-key>` | Bearer token for API authentication |
                                                                                   12. | `PYTHON_VERSION` | `3.11.0` | Specified in runtime.txt |
                                                                                  
                                                                                   13. ### 2.3 Render Deployment Configuration
@@ -121,7 +121,7 @@ Factory Ledger is a manufacturing operations system designed to replace Odoo wit
                                                                                                     
                                                                                                     **Headers Required:**
                                                                                                     ```
-                                                                                                    Authorization: Bearer ledger-secret-2026-factory
+                                                                                                    Authorization: Bearer <redacted-retired-master-key>
                                                                                                     Content-Type: application/json
                                                                                                     ```
                                                                                                     
@@ -130,7 +130,7 @@ Factory Ledger is a manufacturing operations system designed to replace Odoo wit
                                                                                                     #### 1. GET `/`
                                                                                                     Health check endpoint
                                                                                                     ```bash
-                                                                                                    curl -H "Authorization: Bearer ledger-secret-2026-factory" \
+                                                                                                    curl -H "Authorization: Bearer <redacted-retired-master-key>" \
                                                                                                       https://[render-url].onrender.com/
                                                                                                     ```
                                                                                                     
@@ -138,7 +138,7 @@ Factory Ledger is a manufacturing operations system designed to replace Odoo wit
                                                                                                     Record a manufacturing or inventory transaction
                                                                                                     ```bash
                                                                                                     curl -X POST \
-                                                                                                      -H "Authorization: Bearer ledger-secret-2026-factory" \
+                                                                                                      -H "Authorization: Bearer <redacted-retired-master-key>" \
                                                                                                       -H "Content-Type: application/json" \
                                                                                                       -d '{
                                                                                                         "transaction_type": "manufacture",
@@ -154,7 +154,7 @@ Factory Ledger is a manufacturing operations system designed to replace Odoo wit
                                                                                                     Adjust inventory (receive, issue, count)
                                                                                                     ```bash
                                                                                                     curl -X POST \
-                                                                                                      -H "Authorization: Bearer ledger-secret-2026-factory" \
+                                                                                                      -H "Authorization: Bearer <redacted-retired-master-key>" \
                                                                                                       -H "Content-Type: application/json" \
                                                                                                       -d '{
                                                                                                         "product_id": "oats",
@@ -169,7 +169,7 @@ Factory Ledger is a manufacturing operations system designed to replace Odoo wit
                                                                                                     #### 4. GET `/api/product-status/{product_id}`
                                                                                                     Get current inventory and lot information
                                                                                                     ```bash
-                                                                                                    curl -H "Authorization: Bearer ledger-secret-2026-factory" \
+                                                                                                    curl -H "Authorization: Bearer <redacted-retired-master-key>" \
                                                                                                       https://[render-url].onrender.com/api/product-status/classic-granola
                                                                                                     ```
                                                                                                     
@@ -177,7 +177,7 @@ Factory Ledger is a manufacturing operations system designed to replace Odoo wit
                                                                                                     Define a batch formula (recipe)
                                                                                                     ```bash
                                                                                                     curl -X POST \
-                                                                                                      -H "Authorization: Bearer ledger-secret-2026-factory" \
+                                                                                                      -H "Authorization: Bearer <redacted-retired-master-key>" \
                                                                                                       -H "Content-Type: application/json" \
                                                                                                       -d '{
                                                                                                         "product_id": "classic-granola",
@@ -192,7 +192,7 @@ Factory Ledger is a manufacturing operations system designed to replace Odoo wit
                                                                                                     #### 6. GET `/api/transaction-log`
                                                                                                     Retrieve complete transaction history (audit log)
                                                                                                     ```bash
-                                                                                                    curl -H "Authorization: Bearer ledger-secret-2026-factory" \
+                                                                                                    curl -H "Authorization: Bearer <redacted-retired-master-key>" \
                                                                                                       https://[render-url].onrender.com/api/transaction-log
                                                                                                     ```
                                                                                                     
@@ -202,7 +202,7 @@ Factory Ledger is a manufacturing operations system designed to replace Odoo wit
                                                                                                     
                                                                                                     ```bash
                                                                                                     # 1. Test health check
-                                                                                                    curl -H "Authorization: Bearer ledger-secret-2026-factory" \
+                                                                                                    curl -H "Authorization: Bearer <redacted-retired-master-key>" \
                                                                                                       https://[render-url].onrender.com/
 
                                                                                                     # Expected response:
@@ -210,14 +210,14 @@ Factory Ledger is a manufacturing operations system designed to replace Odoo wit
 
                                                                                                     # 2. Create initial products
                                                                                                     curl -X POST \
-                                                                                                      -H "Authorization: Bearer ledger-secret-2026-factory" \
+                                                                                                      -H "Authorization: Bearer <redacted-retired-master-key>" \
                                                                                                       -H "Content-Type: application/json" \
                                                                                                       -d '{"product_id": "sugar", "name": "Sugar", "unit": "pounds"}' \
                                                                                                       https://[render-url].onrender.com/api/product
 
                                                                                                     # 3. Test inventory adjustment
                                                                                                     curl -X POST \
-                                                                                                      -H "Authorization: Bearer ledger-secret-2026-factory" \
+                                                                                                      -H "Authorization: Bearer <redacted-retired-master-key>" \
                                                                                                       -H "Content-Type: application/json" \
                                                                                                       -d '{"product_id": "sugar", "adjustment_type": "receive", "quantity": 1000, "unit": "pounds", "reference": "Initial stock"}' \
                                                                                                       https://[render-url].onrender.com/api/inventory-adjustment
@@ -305,7 +305,7 @@ Factory Ledger is a manufacturing operations system designed to replace Odoo wit
                                                                                                                                                                      5. **Problem:** 401 Unauthorized on API calls
                                                                                                                                                                     
                                                                                                                                                                      6. **Check:**
-                                                                                                                                                                     7. 1. Bearer token is exactly: `ledger-secret-2026-factory`
+                                                                                                                                                                     7. 1. Bearer token is exactly: `<redacted-retired-master-key>`
                                                                                                                                                                         2. 2. Header format: `Authorization: Bearer [TOKEN]`
                                                                                                                                                                            3. 3. Environment variable API_KEY matches token
                                                                                                                                                                              
