@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-14 15:14 — O-2 decided (Sunshine paper bin log, A8 deferred), bin log sheet, #121 rollout row
+- **File(s) changed:** `FOLLOWUPS.md`, `docs/design/phase1-safe-operating-system.md`, `docs/pilot/sunshine-bin-log.pdf` (new), `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Design rev 3.9 + §11 item 45 and FOLLOWUPS P1.29 record Michael's Oct 14 O-2 decision: Sunshine bulk bins use a paper bin log until after cutover; A8 weighed bins deferred (A8 row and §8.3 marked). Temporary procedure: one paper line per bin (date, bin ID, product + lot, gross/tare/net lb, Sunshine order, who weighed), entered in FL the same day as a normal shipment; billing per §8.5 unchanged, invoicing trigger still undecided. New one-page bilingual EN/ES landscape bin log sheet (20 rows, extra FL receipt # column) generated with reportlab 4.2.5 (generator kept outside the repo). FL changelog row 204 = PR #121 production rollout (merge 9bd30be, Railway 571de5c0, Netlify 6acfcb43, no migration, cutoff unset).
+- **Why:** Michael decided O-2 on 2026-10-14; #121 rollout row was owed. Docs only — no app code, no production or staging writes.
+
+---
+
 ## 2026-10-14 14:25 — Record complete PR #121 re-check validation and cleanup
 - **File(s) changed:** `docs/validation/direct-order-close-guard-tests-fix2.json`; ignored local validation evidence and temporary dependency link cleanup
 - **What changed:** Record current-source hashes, 20/21 browser runner executions (only known integrated-intake P1.27 fails), all 36 detail checks, 206 Node tests and 5,668 Python tests including 2,519 guard cases across 21 fresh-DB groups, zero test failures/skips. Full visual audit completes 388 captures across 92 screens/6 variants with 0 capture errors; its informational rule findings are retained locally and the tracked report is restored byte-for-byte. Both assistant modes and extra OFF office/void/gating/preview modes pass. Drop every disposable database, stop the task-owned PostgreSQL cluster and remove the temporary Node dependency link.
