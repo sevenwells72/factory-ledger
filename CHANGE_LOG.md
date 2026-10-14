@@ -1,5 +1,12 @@
 # Change Log
 
+## [2026-10-14 19:41] — Accept equivalent numeral spelling in real dictation smoke
+- **File(s) changed:** scripts/check_assistant_requests_staging.py; /tmp/fl-f1chat-staging-ui.mjs
+- **What changed:** Accept either two or 2 in the synthetic speech transcript; prepared real hosted browser checks for sanitized old turns, new EN/ES cards and editable unsent microphone dictation.
+- **Why:** Transcript formatting may vary while preserving the requested quantity.
+
+---
+
 ## [2026-10-14 19:38] — Use active pointer in dictation failure browser regression
 - **File(s) changed:** tests/visual/run-fl-assistant.mjs
 - **What changed:** Reused the browser mouse pointer ID for the second synthetic hold-to-talk attempt so setPointerCapture accepts the test input.

@@ -8,6 +8,7 @@ import argparse
 from datetime import datetime
 from hashlib import sha256
 import json
+import re
 from pathlib import Path
 import sys
 from uuid import uuid4
@@ -84,7 +85,7 @@ def check(audio_file):
         assert response.status_code == 200
         transcript = response.json()
         assert transcript['editable'] and transcript['sent'] is False
-        assert 'two cases' in transcript['text'].lower()
+        assert re.search(r'\b(two|2) cases\b', transcript['text'], re.IGNORECASE)
         with connect() as conn, conn.cursor() as cur:
             cur.execute('SET TRANSACTION READ ONLY')
             cur.execute('SELECT count(*) FROM assistant_turns t JOIN assistant_sessions s ON s.id=t.session_id WHERE s.actor_id=%s', (actor['id'],))
