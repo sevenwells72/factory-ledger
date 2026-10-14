@@ -51,8 +51,9 @@ try {
     });
     const loaded = await page.goto(base + name, { waitUntil: 'load' });
     row.status = loaded?.status();
-    await page.waitForTimeout(4000);
-    if (step) { await step(page); await page.waitForTimeout(3000); }
+    const settle = () => page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+    await settle();
+    if (step) { await step(page); await page.waitForTimeout(1000); await settle(); }
     row.ok = row.status === 200 && row.key_endpoint.every(s => s === 200) && !row.refused.length && !row.errors.length
       && (!needsKeyedRead || (row.keyed > 0 && row.key_endpoint.length > 0));
     failed ||= !row.ok;
