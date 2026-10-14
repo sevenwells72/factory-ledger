@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
-<head><script src="dashboard-runtime.js?v=1"></script>
+<head><script src="dashboard-runtime.js?v=2"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Factory Ledger — Lot Traceability</title>
@@ -412,7 +412,6 @@ function displaySource(value) {
   return labels[value] || String(value || 'Unknown').replaceAll('_', ' ');
 }
 const API_BASE = 'https://fastapi-production-b73a.up.railway.app';
-const API_KEY  = 'dashboard-key-2026';
 
 let direction = 'forward';
 let lotIndex = [];
@@ -424,13 +423,12 @@ let fullChainMode = false;
 let svgZoom = null;
 let selectedLotCode = '';
 
-const headers = { 'X-Api-Key': API_KEY };
 
 // ═══════════════════════════════════════════════════════
 // API HELPERS
 // ═══════════════════════════════════════════════════════
 async function api(path) {
-  const res = await FL.fetchWithTimeout(API_BASE + path, { headers });
+  const res = await FL.fetchWithTimeout(API_BASE + path, { headers: { 'X-Api-Key': await FLDashboard.key() } });
   const data = await res.json();
   if (!res.ok) {
     const err = new Error(data.detail || data.error || `HTTP ${res.status}`);
@@ -1517,7 +1515,7 @@ function loadFromURL() {
   loadFromURL();
 })();
 </script>
-<script src="mini-calendar.js?v=8"></script>
+<script src="mini-calendar.js?v=9"></script>
 <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
   <script src="shell.js?v=2"></script>
 </body>

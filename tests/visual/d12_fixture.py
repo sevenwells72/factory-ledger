@@ -1,13 +1,12 @@
 """Seed and serve a dedicated LOCAL browser DB. Never reads credential files."""
-import os,sys,json,hashlib,re
+import os,sys,json,hashlib
 from pathlib import Path
 from urllib.parse import urlsplit
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT))
 url=os.environ['TEST_DATABASE_URL']; parsed=urlsplit(url)
 assert parsed.hostname in ('localhost','127.0.0.1') and parsed.path.startswith('/fl_d12_browser'), 'Dedicated local DB required'
 os.environ.update(DATABASE_URL=url,API_KEY='d12-local-master',DASHBOARD_API_KEY='d12-local-read',KEY_SESSIONS_ENABLED=os.environ.get('KEY_SESSIONS_ENABLED','1'),EVIDENCE_STORAGE_DIR=str(ROOT/'.venv-test/d12-evidence'),PACKING_SLIP_SIGNING_KEY='d12-local-signing')
-# Match the legacy browser read credential only inside this guarded local fixture.
-os.environ['DASHBOARD_API_KEY']=re.search(r"api.readKey='([^']+)'",(ROOT/'dashboard/ledger-ui.js').read_text()).group(1)
+# O-7: pages read DASHBOARD_API_KEY from GET /auth/dashboard-key, so any value works.
 import psycopg2
 from psycopg2.extras import RealDictCursor
 with psycopg2.connect(url) as conn,conn.cursor(cursor_factory=RealDictCursor) as cur:

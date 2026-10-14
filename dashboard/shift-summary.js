@@ -2,7 +2,6 @@
    computes anything from ledger rows — every line, label and flag text comes from FL. */
 (function (root) {
   'use strict';
-  const DASHBOARD_KEY = 'dashboard-key-2026';
   const PRODUCTION_API = 'https://fastapi-production-b73a.up.railway.app';
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -148,7 +147,7 @@
     return lang === 'es' ? `Confirmado por ${who} el ${when}${c.latest.notes ? ' — ' + c.latest.notes : ''}` : `Confirmed by ${who} at ${when}${c.latest.notes ? ' — ' + c.latest.notes : ''}`;
   }
 
-  const exports = { apiBase, errorText, staleSummary, confirmBody, receiptRowHtml, sectionHtml, summaryHtml, otherReceiptsHtml, bannerText, DASHBOARD_KEY, PRODUCTION_API };
+  const exports = { apiBase, errorText, staleSummary, confirmBody, receiptRowHtml, sectionHtml, summaryHtml, otherReceiptsHtml, bannerText, PRODUCTION_API };
   if (typeof module !== 'undefined') module.exports = exports;
   if (!root.document) return;
 
@@ -341,8 +340,10 @@
         showIdentity(person, session.token); await load(); return;
       }
       if (sharedMode) session.clear(); // read-only cancels any pending personal exchange
-      key = personalKey || DASHBOARD_KEY;
-      s.key = key;
+      // Read-only uses the scoped dashboard key FL serves for this API (O-7).
+      const credential = personalKey || await root.FLDashboard.key(API);
+      if (!current(s)) return;
+      key = credential; s.key = key;
       const who = await api('/auth/whoami', { withKey: s.key });
       if (!current(s)) return;
       showIdentity(who.actor || null, s.key); await load();

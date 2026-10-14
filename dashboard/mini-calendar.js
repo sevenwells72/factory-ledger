@@ -5,7 +5,6 @@
   const DOW_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
   const SHIP_DATES_EVENT = 'factory-ledger:ship-dates';
   const SALES_API_BASE = 'https://fastapi-production-b73a.up.railway.app';
-  const SALES_API_KEY = 'dashboard-key-2026';
 
   // IMP-069: below 520px the three-month strip collapses to one row — today's
   // date with a disclosure that expands the current month inline, one month
@@ -230,7 +229,7 @@
   async function fetchShipDateCounts() {
     try {
       const res = await FL.fetchWithTimeout(SALES_API_BASE + '/sales/orders?limit=200', {
-        headers: { 'X-API-Key': SALES_API_KEY, 'X-FL-Background': '1' }
+        headers: { 'X-API-Key': await FLDashboard.key(), 'X-FL-Background': '1' }
       });
       if (!res.ok) return;
       const data = await res.json();
