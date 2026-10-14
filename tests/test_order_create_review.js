@@ -48,6 +48,7 @@ test('service price can still be saved without a quantity input', async () => {
     selector === '.order-line-price-input' ? { value: '0' } : null };
   const context = vm.createContext({
     URLSearchParams,
+    FLDashboard: { ready: Promise.resolve(false), writesEnabled: false },
     state: { currentOrderDetail: { order_id: 1, lines: [
       { line_id: 11, unit: 'each', quantity: 3, quantity_lb: 0, case_price: 12.5 },
     ] } },

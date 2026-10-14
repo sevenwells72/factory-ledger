@@ -28,6 +28,7 @@ import permissions
 import ticket_actions
 import write_tickets as wt
 import expected_receipt_tickets as er_tickets
+import sales_document_tickets as so_documents
 
 ACTIONS = wt.ORDER_ACTIONS
 PositiveId = wt.PositiveId
@@ -268,6 +269,8 @@ def validate(api, cur, action, payload, *, lock=False):
     """Pre-checks the cores do not make, plus the state snapshot. Returns context."""
     if action in er_tickets.ACTIONS:
         return er_tickets.validate(api, cur, action, payload, lock=lock)
+    if action == 'create_order' and 'document_id' in payload:
+        return so_documents.validate(api, cur, payload, lock=lock)
     ctx = {'blockers': []}
     if action == 'create_order':
         reference = payload.get('external_order_reference')
@@ -354,6 +357,8 @@ def post(api, cur, action, payload, request, ctx, *, ticket_id, receipt, allow_d
     if action in er_tickets.ACTIONS:
         return er_tickets.post(api, cur, action, payload, request, ctx, ticket_id=ticket_id,
                                allow_duplicate=allow_duplicate_po)
+    if action == 'create_order' and 'document_id' in payload:
+        return so_documents.post(api, cur, payload, request, ticket_id, allow_duplicate_po)
     if ctx.get('replay'):
         return {**ctx['replay']['response'], 'replayed': True}
     order_id = payload.get('order_id')
@@ -728,7 +733,30 @@ def register_routes(app, api):
                                    state=state, warnings=warnings, blockers=blockers,
                                    client_source=req.client_source, event_time=now)
 
+    @app.get('/sales/orders/{order_id}/office-options')
+    def office_options(request: Request, _: bool = Depends(api.verify_api_key),
+                       order_id: int = Depends(api.resolve_order_id)):
+        actor = wt.identity(api, request)
+        grants = permissions.permissions_for(actor)
+        with api.get_transaction() as cur:
+            order = load_order(cur, order_id)
+            reasons = []
+            if grants.get('close_order') and order['state'] == 'open':
+                for reason in ('shipped_recorded', 'shipped_not_recorded', 'short_closed'):
+                    try:
+                        require_reason_permissions(api, cur, 'close_order',
+                            {'order_id': order_id, 'reason': reason, 'note': 'eligibility check'}, actor)
+                        if not shipment_gate(api, cur, order, reason):
+                            reasons.append(reason)
+                    except HTTPException as exc:
+                        if exc.status_code >= 500:
+                            raise
+            return {'permissions': grants, 'close_reasons': reasons,
+                    'statuses': api.MANUAL_TRANSITIONS.get(order['status'], [])
+                                if grants.get('update_order_status') else []}
+
     er_tickets.register_routes(app, api, prepare)
+    so_documents.register_routes(app, api, prepare)
 
     # verify_api_key is listed first so an unknown key is refused before the
     # order id is even resolved.

@@ -2789,6 +2789,8 @@
   }
 
   async function saveOrderHeader(container) {
+    await FLDashboard.ready;
+    if(FLDashboard.writesEnabled)return location.assign(FLReceipts.page('office.html',{action:'update_order_header',order:state.currentOrderDetail.order_id}));
     const order = state.currentOrderDetail;
     if (!order) return;
     const payload = {};
@@ -2821,6 +2823,8 @@
   }
 
   async function saveOrderLines(container) {
+    await FLDashboard.ready;
+    if(FLDashboard.writesEnabled)return location.assign(FLReceipts.page('office.html',{action:'update_order_line',order:state.currentOrderDetail.order_id}));
     const order = state.currentOrderDetail;
     if (!order) return;
     const changes = [];
@@ -3551,6 +3555,8 @@
   }
 
   async function erSetStatus(id, status, btn) {
+    await FLDashboard.ready;
+    if(FLDashboard.writesEnabled)return location.assign(FLReceipts.page('office.html',{action:status==='cancelled'?'cancel_expected_receipt':'update_expected_receipt',expected:id}));
     const rec = state.erData.find(r => r.id === id);
     const label = rec ? `${fmtWt(rec.expected_qty)} lb ${rec.product_name} from ${rec.supplier_name}` : `#${id}`;
     const verb = status === 'closed' ? 'Close' : 'Cancel';
@@ -3641,6 +3647,8 @@
   }
 
   async function openErModal(record) {
+    await FLDashboard.ready;
+    if(FLDashboard.writesEnabled)return location.assign(FLReceipts.page('office.html',{action:record?'update_expected_receipt':'create_expected_receipt',...(record?{expected:record.id}:{})}));
     state.erEditing = record || null;
     hideError('er-modal-error');
     document.getElementById('er-save-btn').textContent = record ? 'Save Receipt Changes' : 'Create Expected Receipt';
@@ -3695,6 +3703,8 @@
   }
 
   async function saveEr() {
+    await FLDashboard.ready;
+    if(FLDashboard.writesEnabled)return location.assign(FLReceipts.page('office.html',{action:state.erEditing?'update_expected_receipt':'create_expected_receipt',...(state.erEditing?{expected:state.erEditing.id}:{})}));
     if (state.erSaving || !updateErSaveState()) return;
     hideError('er-modal-error');
     const qtyField = document.getElementById('er-qty');
@@ -4218,6 +4228,8 @@
   }
 
   async function erApprove() {
+    await FLDashboard.ready;
+    if(FLDashboard.writesEnabled)return location.assign(FLReceipts.page('office.html',{action:'approve_er',document:state.erIntake.documentId}));
     const intake = state.erIntake;
     hideError('er-review-error');
     if (intake.matching) { showError('er-review-error', 'Matching is still running — one moment.'); return; }
@@ -4803,6 +4815,8 @@
   }
 
   async function soApprove() {
+    await FLDashboard.ready;
+    if(FLDashboard.writesEnabled)return location.assign(FLReceipts.page('office.html',{action:'approve_so',document:state.soIntake.documentId}));
     const intake = state.soIntake;
     hideError('so-review-error');
     if (intake.matching) { showError('so-review-error', 'Matching is still running — one moment.'); return; }

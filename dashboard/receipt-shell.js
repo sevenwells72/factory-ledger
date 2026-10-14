@@ -14,7 +14,7 @@
     const button = document.createElement('button'); button.type = 'submit'; button.textContent = 'Look up / Buscar';
     form.append(label, button); form.onsubmit = event => {event.preventDefault(); location.assign(page('receipt.html',{number:input.value.trim().toUpperCase()}));};
     bar.append(form);
-    for (const [name,text] of [['exceptions.html','Exceptions / Excepciones'],['entry.html','Record entry / Registrar']]) {const a=document.createElement('a');a.dataset.flWriteUi='';a.href=page(name);a.textContent=text;bar.append(a);}
+    for (const [name,text] of [['exceptions.html','Exceptions / Excepciones'],['entry.html','Record entry / Registrar'],['office.html','Office / Oficina']]) {const a=document.createElement('a');a.dataset.flWriteUi='';a.href=page(name);a.textContent=text;bar.append(a);}
     host.append(bar);
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',mount); else mount();

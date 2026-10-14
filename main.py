@@ -7497,6 +7497,18 @@ def approve_extracted_receipts(req: ExpectedReceiptApproveRequest, request: Requ
         return _approve_extracted_receipts_core(cur, req, request)
 
 
+@app.get("/purchase-documents/{document_id}")
+def office_document(document_id: int, request: Request, _: bool = Depends(verify_api_key)):
+    permissions.require('create_order', _actor_identity(request))
+    with get_transaction() as cur:
+        cur.execute("SELECT id, document_kind, original_filename, status, extraction FROM purchase_documents WHERE id=%s",
+                    (document_id,))
+        doc = cur.fetchone()
+        if not doc:
+            raise HTTPException(404, detail={"error_code": "DOCUMENT_NOT_FOUND", "message": "Document not found."})
+        return dict(doc)
+
+
 @app.get("/purchase-documents/{document_id}/url")
 def purchase_document_signed_url(document_id: int, request: Request, _: bool = Depends(verify_api_key)):
     """Short-lived signed URL for viewing the original file."""
@@ -7521,12 +7533,8 @@ def match_sales_order_extraction_endpoint(req: SalesOrderMatchRequest, _: bool =
         return match_sales_extraction(cur, req.extraction.model_dump())
 
 
-@app.post("/sales/orders/extract/approve", status_code=201)
-def approve_extracted_sales_order(req: SalesOrderApproveRequest, request: Request,
-                                  _: bool = Depends(verify_api_key)):
-    """SO intake step 3: create ONE sales order with its lines — atomically,
-    via the same _create_sales_order_core() the manual endpoint uses — and
-    learn customer_product_aliases (latest-wins) for lines with save_alias."""
+def _approve_extracted_sales_order_core(cur, req, request):
+    """Atomic SO intake core shared by direct compatibility and A7 tickets."""
     if not req.lines:
         raise HTTPException(status_code=422, detail={"error_code": "NO_LINES", "message": "At least one line is required"})
     customer_po = (req.customer_po or "").strip()
@@ -7577,107 +7585,105 @@ def approve_extracted_sales_order(req: SalesOrderApproveRequest, request: Reques
             )
 
     created_by = caller_source_tag(request, req.created_by)
-    with get_transaction() as cur:
-        cur.execute("SELECT id, status, document_kind FROM purchase_documents WHERE id = %s FOR UPDATE",
-                    (req.document_id,))
-        doc = cur.fetchone()
-        if not doc:
-            raise HTTPException(status_code=404, detail={"error_code": "DOCUMENT_NOT_FOUND", "message": f"Purchase document {req.document_id} not found"})
-        if (doc.get("document_kind") or "purchase") != "sales":
-            raise HTTPException(
-                status_code=409,
-                detail={"error_code": "DOCUMENT_KIND_MISMATCH",
-                        "message": f"Purchase document {req.document_id} is a '{doc.get('document_kind') or 'purchase'}' document — this endpoint approves customer POs only"},
-            )
-        if doc["status"] == "approved":
-            raise HTTPException(status_code=409, detail={"error_code": "DOCUMENT_ALREADY_APPROVED", "message": f"Purchase document {req.document_id} was already approved"})
-        if doc["status"] != "extracted":
-            raise HTTPException(
-                status_code=409,
-                detail={"error_code": "DOCUMENT_NOT_EXTRACTED",
-                        "message": f"Purchase document {req.document_id} has status '{doc['status']}' — approval requires a successful extraction"},
-            )
-
-        cur.execute("SELECT id, name, active FROM customers WHERE id = %s", (req.customer_id,))
-        customer = cur.fetchone()
-        if not customer:
-            raise HTTPException(status_code=404, detail={"error_code": "CUSTOMER_NOT_FOUND", "message": f"Customer id {req.customer_id} not found"})
-        if not customer["active"]:
-            raise HTTPException(status_code=422, detail={"error_code": "CUSTOMER_INACTIVE", "message": f"Customer '{customer['name']}' is inactive."})
-
-        # Serialize on the (customer, normalized PO) pair BEFORE the duplicate
-        # check — the per-document FOR UPDATE can't see a concurrent approval
-        # of a different document with the same PO (ER audit fix 10).
-        _lock_customer_po(cur, req.customer_id, customer_po)
-        duplicates = _dedupe_existing_sales_orders(cur, req.customer_id, customer_po)
-        if duplicates and not req.force:
-            raise HTTPException(
-                status_code=409,
-                detail={"error_code": "DUPLICATE_PO",
-                        "message": f"Customer '{customer['name']}' already has sales order(s) with PO '{customer_po}'. Pass force=true to create anyway.",
-                        "existing": duplicates},
-            )
-
-        # Prior-sales pool BEFORE the new order's own lines exist — it feeds
-        # the private-label first-sale warning (owner ruling 2: warn, never block).
-        pool = set(_so_prior_sales_pool(cur, req.customer_id))
-        warnings = []
-        core_lines = []
-        for idx, line in enumerate(req.lines, start=1):
-            cur.execute(
-                "SELECT id, name, COALESCE(label_type, 'house') AS label_type FROM products WHERE id = %s",
-                (line.product_id,),
-            )
-            prod = cur.fetchone()
-            if not prod:
-                raise HTTPException(status_code=404, detail={"error_code": "PRODUCT_NOT_FOUND", "message": f"Product id {line.product_id} not found"})
-            if prod["label_type"] == "private_label" and prod["id"] not in pool:
-                warnings.append(
-                    f"⚠️ '{prod['name']}' is a private-label SKU with no prior sales to "
-                    f"{customer['name']} — double-check this is their product."
-                )
-            note = f"PO {customer_po}: {line.customer_description}"
-            if line.quantity is not None:
-                note += f" — {line.quantity:g} {line.unit or 'unit(s)'}"
-            # quantity_lb is authoritative. A cases line with its case size
-            # goes through the core as cases (no lookup fires — the weight is
-            # supplied); anything else goes through as lb so the core's
-            # case-weight auto-lookup can never overwrite the reviewed pounds.
-            if _normalize_unit(line.unit) not in _LB_UNITS \
-                    and line.case_size_lb is not None and line.quantity is not None:
-                core_line = {"quantity": line.quantity, "unit": "cases",
-                             "case_weight_lb": line.case_size_lb}
-            else:
-                core_line = {"quantity": line.quantity_lb, "unit": "lb",
-                             "case_weight_lb": None}
-            core_lines.append(dict(
-                core_line,
-                product_id=prod["id"], product_name=prod["name"],
-                quantity_lb=line.quantity_lb, unit_price=line.unit_price,
-                notes=note, notes_es=None,
-            ))
-
-        result = _create_sales_order_core(
-            cur, req.customer_id, customer["name"], req.requested_ship_date,
-            req.notes, None, core_lines,
-            order_date=req.order_date, customer_po=customer_po,
-            source_document_id=req.document_id, request=request,
+    cur.execute("SELECT id, status, document_kind FROM purchase_documents WHERE id = %s FOR UPDATE",
+                (req.document_id,))
+    doc = cur.fetchone()
+    if not doc:
+        raise HTTPException(status_code=404, detail={"error_code": "DOCUMENT_NOT_FOUND", "message": f"Purchase document {req.document_id} not found"})
+    if (doc.get("document_kind") or "purchase") != "sales":
+        raise HTTPException(
+            status_code=409,
+            detail={"error_code": "DOCUMENT_KIND_MISMATCH",
+                    "message": f"Purchase document {req.document_id} is a '{doc.get('document_kind') or 'purchase'}' document — this endpoint approves customer POs only"},
         )
-        warnings.extend(result["warnings"])
+    if doc["status"] == "approved":
+        raise HTTPException(status_code=409, detail={"error_code": "DOCUMENT_ALREADY_APPROVED", "message": f"Purchase document {req.document_id} was already approved"})
+    if doc["status"] != "extracted":
+        raise HTTPException(
+            status_code=409,
+            detail={"error_code": "DOCUMENT_NOT_EXTRACTED",
+                    "message": f"Purchase document {req.document_id} has status '{doc['status']}' — approval requires a successful extraction"},
+        )
 
-        aliases_saved = 0
-        for line in req.lines:
-            if line.save_alias:
-                upsert_customer_alias(cur, req.customer_id, line.customer_item_code,
-                                      line.customer_description, line.product_id,
-                                      line.case_size_lb, created_by)
-                aliases_saved += 1
+    cur.execute("SELECT id, name, active FROM customers WHERE id = %s", (req.customer_id,))
+    customer = cur.fetchone()
+    if not customer:
+        raise HTTPException(status_code=404, detail={"error_code": "CUSTOMER_NOT_FOUND", "message": f"Customer id {req.customer_id} not found"})
+    if not customer["active"]:
+        raise HTTPException(status_code=422, detail={"error_code": "CUSTOMER_INACTIVE", "message": f"Customer '{customer['name']}' is inactive."})
 
+    # Serialize on the (customer, normalized PO) pair BEFORE the duplicate
+    # check — the per-document FOR UPDATE can't see a concurrent approval
+    # of a different document with the same PO (ER audit fix 10).
+    _lock_customer_po(cur, req.customer_id, customer_po)
+    duplicates = _dedupe_existing_sales_orders(cur, req.customer_id, customer_po)
+    if duplicates and not req.force:
+        raise HTTPException(
+            status_code=409,
+            detail={"error_code": "DUPLICATE_PO",
+                    "message": f"Customer '{customer['name']}' already has sales order(s) with PO '{customer_po}'. Pass force=true to create anyway.",
+                    "existing": duplicates},
+        )
+
+    # Prior-sales pool BEFORE the new order's own lines exist — it feeds
+    # the private-label first-sale warning (owner ruling 2: warn, never block).
+    pool = set(_so_prior_sales_pool(cur, req.customer_id))
+    warnings = []
+    core_lines = []
+    for idx, line in enumerate(req.lines, start=1):
         cur.execute(
-            "UPDATE purchase_documents SET status = 'approved', approved_at = clock_timestamp() WHERE id = %s",
-            (req.document_id,),
+            "SELECT id, name, COALESCE(label_type, 'house') AS label_type FROM products WHERE id = %s",
+            (line.product_id,),
         )
+        prod = cur.fetchone()
+        if not prod:
+            raise HTTPException(status_code=404, detail={"error_code": "PRODUCT_NOT_FOUND", "message": f"Product id {line.product_id} not found"})
+        if prod["label_type"] == "private_label" and prod["id"] not in pool:
+            warnings.append(
+                f"⚠️ '{prod['name']}' is a private-label SKU with no prior sales to "
+                f"{customer['name']} — double-check this is their product."
+            )
+        note = f"PO {customer_po}: {line.customer_description}"
+        if line.quantity is not None:
+            note += f" — {line.quantity:g} {line.unit or 'unit(s)'}"
+        # quantity_lb is authoritative. A cases line with its case size
+        # goes through the core as cases (no lookup fires — the weight is
+        # supplied); anything else goes through as lb so the core's
+        # case-weight auto-lookup can never overwrite the reviewed pounds.
+        if _normalize_unit(line.unit) not in _LB_UNITS \
+                and line.case_size_lb is not None and line.quantity is not None:
+            core_line = {"quantity": line.quantity, "unit": "cases",
+                         "case_weight_lb": line.case_size_lb}
+        else:
+            core_line = {"quantity": line.quantity_lb, "unit": "lb",
+                         "case_weight_lb": None}
+        core_lines.append(dict(
+            core_line,
+            product_id=prod["id"], product_name=prod["name"],
+            quantity_lb=line.quantity_lb, unit_price=line.unit_price,
+            notes=note, notes_es=None,
+        ))
 
+    result = _create_sales_order_core(
+        cur, req.customer_id, customer["name"], req.requested_ship_date,
+        req.notes, None, core_lines,
+        order_date=req.order_date, customer_po=customer_po,
+        source_document_id=req.document_id, request=request,
+    )
+    warnings.extend(result["warnings"])
+
+    aliases_saved = 0
+    for line in req.lines:
+        if line.save_alias:
+            upsert_customer_alias(cur, req.customer_id, line.customer_item_code,
+                                  line.customer_description, line.product_id,
+                                  line.case_size_lb, created_by)
+            aliases_saved += 1
+
+    cur.execute(
+        "UPDATE purchase_documents SET status = 'approved', approved_at = clock_timestamp() WHERE id = %s",
+        (req.document_id,),
+    )
     logger.info(f"SO intake approve: document {req.document_id} → order {result['order_number']} "
                 f"({len(core_lines)} line(s)), {aliases_saved} alias(es)")
     return {
@@ -7692,6 +7698,14 @@ def approve_extracted_sales_order(req: SalesOrderApproveRequest, request: Reques
         "warnings": warnings if warnings else None,
         "message": f"Created sales order {result['order_number']} from document {req.document_id}",
     }
+
+
+
+@app.post("/sales/orders/extract/approve", status_code=201)
+def approve_extracted_sales_order(req: SalesOrderApproveRequest, request: Request,
+                                  _: bool = Depends(verify_api_key)):
+    with get_transaction() as cur:
+        return _approve_extracted_sales_order_core(cur, req, request)
 
 
 # ═══════════════════════════════════════════════════════════════

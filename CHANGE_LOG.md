@@ -144,6 +144,111 @@
 - **File(s) changed:** `tests/test_pilot_triage_backend.py`, `.venv-test`
 - **What changed:** Add pilot regressions and prepare isolated test runtime
 - **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+## 2026-10-14 07:29 — Record Part 1 full-suite and browser evidence for Claude Code review
+- **File(s) changed:** docs/validation/dashboard-office-void.md, docs/validation/dashboard-office-part1-tests.json, FACTORY_LEDGER_CHANGELOG.md
+- **What changed:** Record Part 1 full-suite and browser evidence for Claude Code review.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:26 — Pin the three new office routes in the exact named-actor scope regression
+- **File(s) changed:** tests/test_named_actor_writes.py
+- **What changed:** Pin the three new office routes in the exact named-actor scope regression.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:24 — Keep FL pouch conversion visible beside the draft; scope flag-off checks to controls
+- **File(s) changed:** dashboard/office.js, tests/visual/run-office.mjs
+- **What changed:** Keep FL pouch conversion visible beside the draft; scope flag-off checks to controls.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:23 — Pin legacy service edits to flag-off behavior and test all office redirects when enabled
+- **File(s) changed:** tests/test_order_create_review.js, tests/test_office_ui.js
+- **What changed:** Pin legacy service edits to flag-off behavior and test all office redirects when enabled.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:23 — Check neutral missing-receipt copy in an explicit language
+- **File(s) changed:** tests/visual/run-office.mjs
+- **What changed:** Check neutral missing-receipt copy in an explicit language.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:22 — Verify whole-case FL blocker before recording a corrected line edit
+- **File(s) changed:** tests/visual/run-office.mjs
+- **What changed:** Verify whole-case FL blocker before recording a corrected line edit.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:21 — Use resolved order numbers and pre-armed response waits in the office browser runner
+- **File(s) changed:** tests/visual/run-office.mjs
+- **What changed:** Use resolved order numbers and pre-armed response waits in the office browser runner.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:20 — Add full-suite partition runner that preserves fixture SQL with only one disposable database
+- **File(s) changed:** scripts/run_single_db_suite.py
+- **What changed:** Add full-suite partition runner that preserves fixture SQL with only one disposable database.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:19 — Verify office attribution through the canonical receipt actor
+- **File(s) changed:** tests/test_office_tickets.py
+- **What changed:** Verify office attribution through the canonical receipt actor.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:19 — Add real HTTP office browser runner and local catalog fixtures; assert receipt replay semantics
+- **File(s) changed:** tests/visual/office_seed.py, tests/visual/run-office.mjs, tests/visual/d12_fixture.py, tests/test_office_tickets.py
+- **What changed:** Add real HTTP office browser runner and local catalog fixtures; assert receipt replay semantics.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:17 — Add Node coverage for every office form and live database regressions for sales document tickets
+- **File(s) changed:** tests/test_office_ui.js, tests/test_office_tickets.py
+- **What changed:** Add Node coverage for every office form and live database regressions for sales document tickets.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:16 — Route existing office entry points through gated tickets and preserve bilingual draft summaries
+- **File(s) changed:** dashboard/dashboard.js, dashboard/so-list-actions.js, dashboard/receipt.html, dashboard/runs.html, dashboard/index.html, dashboard/process-flow.html, dashboard/fl-assistant.html, dashboard/traceability.html, dashboard/exceptions.html, dashboard/shift-summary.html, dashboard/sankey.html, dashboard/history.html, dashboard/office.html, dashboard/entry.html, dashboard/scheduler/seven-wells-production-board.html, dashboard/ledger-ticket.js, dashboard/ledger-ui.js
+- **What changed:** Route existing office entry points through gated tickets and preserve bilingual draft summaries.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:14 — Build bilingual permission-driven office forms with authoritative unit resolution and A7 drafts
+- **File(s) changed:** dashboard/office.js, dashboard/office-logic.js, dashboard/office.html, dashboard/receipt-shell.js
+- **What changed:** Build bilingual permission-driven office forms with authoritative unit resolution and A7 drafts.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:12 — Expose FL office choices and extracted documents; neutralize missing receipt lookup and extend ticket display
+- **File(s) changed:** order_tickets.py, write_tickets.py, main.py, dashboard/receipt.js, dashboard/ledger-ticket.js, dashboard/ledger-ui.js
+- **What changed:** Expose FL office choices and extracted documents; neutralize missing receipt lookup and extend ticket display.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
+## 2026-10-14 07:10 — Add atomic sales-document approval adapter to A7 tickets
+- **File(s) changed:** main.py, write_tickets.py, order_tickets.py, sales_document_tickets.py
+- **What changed:** Add atomic sales-document approval adapter to A7 tickets.
+- **Why:** October 14 D2 office and void pilot; staging only.
+
+---
+
 ## 2026-10-14 07:08 — Start isolated D2 office and void implementation from merged PR #107
 - **File(s) changed:** `docs/validation/dashboard-office-void.md`
 - **What changed:** Recorded authorized scope, base ancestry, isolated Git store recovery and validation gates.
