@@ -43,4 +43,11 @@ the recipes, so no recipe seeding was necessary. See `pilot-triage-staging-migra
 - The staging acceptance runner creates labelled test stock and exactly 30 numbered receipts through the real routes, verifies substitution ledger lines and replay, confirms the shift, and deactivates its temporary actor. These staging receipts remain as audit evidence.
 - Initial staging database check: `MK-261014-004`, ticket 593, transaction 1000000471; 350 lb output, 213 lb oats consumed (185 + 28 substituted), zero oat bran. Summary 0.499/0.409/0.320 s; confirmation 0.428 s. Evidence: `pilot-triage-staging.json`.
 
-Hosted deployment and final test results are recorded in the companion validation JSON.
+Final full suite: **3,100 Python and 126 Node passed**, zero failures/skips; fresh UTF-8
+PostgreSQL 17 database removed. Runtime `cf1ae6d` deployed to FastAPI-staging as
+`9116e3a2-736a-4fc3-a811-941c96074ea7` (SUCCESS); health HTTP 200.
+Hosted HTTPS acceptance: **MK-261014-005**, ticket 623, transaction 1000000501:
+350 lb output, 213 lb rolled oats (185 + 28 substituted), zero oat bran; replay one post.
+Thirty-receipt summary **1.229 / 1.089 / 1.008 s**; confirmation **1.454 s**.
+Both temporary actors were deactivated. See `pilot-triage-staging-hosted.json` and
+`pilot-triage-validation.json`. Production remains unchanged; draft review only.

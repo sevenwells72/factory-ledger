@@ -1,5 +1,33 @@
 # Change Log
 
+## 2026-10-14 08:42 — Record hosted SS1 make and 30-receipt summary under 1.3 seconds
+- **File(s) changed:** `docs/deployments/pilot-triage-staging-hosted.json`, `docs/deployments/pilot-triage-validation.json`, `docs/deployments/pilot-triage-backend.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record hosted SS1 make and 30-receipt summary under 1.3 seconds
+- **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+
+---
+
+## 2026-10-14 08:40 — Record hosted staging health and disposable database cleanup
+- **File(s) changed:** `docs/deployments/pilot-triage-validation.json`
+- **What changed:** Record hosted staging health and disposable database cleanup
+- **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+
+---
+
+## 2026-10-14 08:39 — Record successful staging-only deployment and regression guard row 191
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/pilot-triage-validation.json`
+- **What changed:** Record successful staging-only deployment and regression guard row 191
+- **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+
+---
+
+## 2026-10-14 08:38 — Preserve separate local and hosted staging acceptance evidence
+- **File(s) changed:** `scripts/check_pilot_triage_staging.py`
+- **What changed:** Preserve separate local and hosted staging acceptance evidence
+- **Why:** October 14 pilot backend triage; staging only, no production writes or merge.
+
+---
+
 ## 2026-10-14 08:37 — Record 3100 Python and 126 Node passes and remove the disposable suite database
 - **File(s) changed:** `docs/deployments/pilot-triage-validation.json`
 - **What changed:** Record 3100 Python and 126 Node passes and remove the disposable suite database

@@ -1,0 +1,78 @@
+{
+  "checked_at_utc": "2026-10-14T12:39:44.830382+00:00",
+  "target": "FastAPI-staging",
+  "migrations": [],
+  "ref": "STG-TRIAGE-C31C73D8FC",
+  "transport": "hosted HTTPS",
+  "receipts": [
+    "RCV-261014-031",
+    "RCV-261014-032",
+    "RCV-261014-033",
+    "RCV-261014-034",
+    "RCV-261014-035",
+    "RCV-261014-036",
+    "RCV-261014-037",
+    "RCV-261014-038",
+    "RCV-261014-039",
+    "RCV-261014-040",
+    "RCV-261014-041",
+    "RCV-261014-042",
+    "RCV-261014-043",
+    "RCV-261014-044",
+    "RCV-261014-045",
+    "RCV-261014-046",
+    "RCV-261014-047",
+    "RCV-261014-048",
+    "RCV-261014-049",
+    "RCV-261014-050",
+    "RCV-261014-051",
+    "RCV-261014-052",
+    "RCV-261014-053",
+    "RCV-261014-054",
+    "RCV-261014-055",
+    "RCV-261014-056",
+    "RCV-261014-057",
+    "RCV-261014-058",
+    "RCV-261014-059",
+    "MK-261014-005"
+  ],
+  "make": {
+    "receipt_number": "MK-261014-005",
+    "ticket_id": 623,
+    "transaction_id": 1000000501,
+    "output_lb": 350,
+    "oat_bran_consumed_lb": 0,
+    "rolled_oats_consumed_lb": 213,
+    "substituted_lb": 28,
+    "replay_one_post": true,
+    "lines": {
+      "3": "-21.0000",
+      "13": "-21.0000",
+      "30": "-50.0000",
+      "32": "-213.0000",
+      "34": "-24.0000",
+      "46": "-21.0000",
+      "116": "350.0000"
+    },
+    "substitution": [
+      {
+        "ingredient_product_id": 31,
+        "substitute_product_id": 32,
+        "lot_id": 1000000440,
+        "reason_code": "ingredient_substitution"
+      }
+    ]
+  },
+  "summary": {
+    "receipts": 30,
+    "seconds": [
+      1.229,
+      1.089,
+      1.008
+    ],
+    "under_3_seconds": true,
+    "confirm_seconds": 1.454,
+    "confirmation_id": 6
+  },
+  "synthetic_actor_deactivated": 1000000103
+}

@@ -131,6 +131,7 @@ def run(apply=False, check=False, hosted=False):
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('--apply-migrations',action='store_true');parser.add_argument('--check',action='store_true');parser.add_argument('--hosted',action='store_true')
     args=parser.parse_args()
+    if args.hosted: OUT = ROOT/'docs/deployments/pilot-triage-staging-hosted.json'
     if not (args.apply_migrations or args.check): parser.error('Choose --apply-migrations and/or --check')
     try:
         result=run(args.apply_migrations,args.check,args.hosted)

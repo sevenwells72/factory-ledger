@@ -20,5 +20,20 @@
   },
   "staging_database_acceptance": "pilot-triage-staging.json",
   "staging_migrations": "pilot-triage-staging-migrations.json",
-  "hosted_deployment": null
+  "hosted_deployment": {
+    "id": "9116e3a2-736a-4fc3-a811-941c96074ea7",
+    "status": "SUCCESS",
+    "service": "FastAPI-staging",
+    "runtime_commit": "cf1ae6d"
+  },
+  "disposable_database_removed": true,
+  "hosted_health_http_status": 200,
+  "hosted_acceptance": "pilot-triage-staging-hosted.json",
+  "hosted_summary_seconds": [
+    1.229,
+    1.089,
+    1.008
+  ],
+  "hosted_confirm_seconds": 1.454,
+  "hosted_make_receipt": "MK-261014-005"
 }
