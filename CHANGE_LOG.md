@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-13 23:54 — Pilot playbook and staff guides (docs only)
+- **File(s) changed:** `docs/pilot/README.md`, `docs/pilot/PILOT-PLAN.md`, `docs/pilot/ARTURO-GUIDE.md`, `docs/pilot/OFFICE-GUIDE.md`, `docs/pilot/MICHAEL-DAILY-CHECK.md`, `docs/pilot/cards/{card.css,arturo-quick-card.html,arturo-quick-card.pdf,office-quick-card.html,office-quick-card.pdf}`, `CHANGE_LOG.md`
+- **What changed:** New `docs/pilot/`: Michael's pilot plan (dates Nov 2 → Nov 20, fallback Dec 4; roles; 10-day test script with per-day pass criteria; problem classes and log; Nov 17 readiness-gate checklist; open points P-1…P-7), Arturo's and the office's EN/ES guides, Michael's 10-minute daily check, and two one-page EN/ES quick-card PDFs (headless Chrome from HTML). Written against origin/main d5e9fea; features waiting on PR #107 are marked 🟡 "coming before the pilot", features with no screen or PR (order/ER ticket screens, void screen, weekly view) are marked ⛔.
+- **Why:** Pilot preparation requested by Michael. Docs only — no code, DB, staging or production changes.
+
+---
+
 ## 2026-10-13 23:08 — G1 Codex fix round 1: read-only key never a write credential; per-action GPT smoke
 - **File(s) changed:** `key_sessions.py`, `main.py`, `tests/test_readonly_api_key.py`, `gpt-configs/readonly/CUTOVER_CHECKLIST.md`, `scripts/check_readonly_key_staging.py`, `docs/deployments/g1-readonly-staging.json`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** `POST /auth/session` refuses the read-only key outright (alongside master/dashboard), even when an active actor's hash matches it; startup refuses `READONLY_API_KEY` equal to any active actor key (lookup failure logged, not fatal). 7 new tests (collision: direct write 403, exchange 401, no session, nothing written; startup refusal; inactive/unset ignored; checklist pins every action). Checklist §C now smokes all 14 office + 11 floor actions plus both write refusals; A4 adds a session-exchange curl → six codes, §D records six; per-step rollback. Fresh-DB suite 3,043 Python passed with the key unset and again with it set, 107 Node. Staging deployment 4cf9db98 (63bd2dd): 16/16 reads, 118/118 writes + 51/51 other GETs 403, exchange 401.
