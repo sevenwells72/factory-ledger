@@ -90,21 +90,31 @@ root, `python3` and `psql` on PATH. Production is read through `scripts/psql_ro.
 2. `~/.config/factory-ledger/db_url` — production read credential (present).
 3. A small real sheet: 3–5 lots he counts himself in one area, rows copied from
    `audits/fresh-start/v3/count-sheet-v3.csv` with real times, plus `coverage.csv` and an empty
-   `moves.csv`, in a folder such as `~/fl-dryrun/`.
+   `moves.csv` (header row only), saved in **`audits/fresh-start/dryrun-<today>/`** — e.g.
+   `audits/fresh-start/dryrun-2026-10-15/`. Every input and output must sit under
+   `audits/fresh-start/` or the tools refuse ("Count inputs and report outputs must stay under
+   audits/fresh-start/"). `audits/fresh-start/dryrun-*/` is in `.gitignore`: nothing from the dry
+   run is committed.
 
 **Commands** (about **30 minutes** in all: ~15 min counting/typing, ~5 min signing, **under 30 s**
-of machine time — production preview ≈ 5 s, dry run ≈ 5 s, verify ≈ 5 s):
+of machine time — production preview ≈ 5 s, dry run ≈ 5 s, verify ≈ 5 s). Run them from the
+repository root; `D` is the dry-run folder from step 3:
 ```sh
-python3 -B audits/fresh-start/reset_preview.py --v3 ~/fl-dryrun/count.csv --coverage ~/fl-dryrun/coverage.csv \
-  --moves ~/fl-dryrun/moves.csv --area "Dry storage" --target production --output-dir ~/fl-dryrun/preview
-# cp audits/fresh-start/approval.md ~/fl-dryrun/preview/ and fill it: Preview file reset-preview-v3.json + its SHA-256 (shasum -a 256), Approved product IDs = READY rows,
-# Owner name + Named actor + Signature = Blubber, Date = today (New York), Opening entry classification: N,
-# Owner approves held entries: N, Extra-kosher lots: none
-python3 -B audits/fresh-start/apply_reset.py ~/fl-dryrun/preview/reset-preview-v3.json \
-  --approval ~/fl-dryrun/preview/approval.md --count-csv ~/fl-dryrun/count.csv --target production   # NO --apply
-python3 -B audits/fresh-start/verify_reset.py --v3 ~/fl-dryrun/count.csv --coverage ~/fl-dryrun/coverage.csv \
-  --moves ~/fl-dryrun/moves.csv --area "Dry storage" --target production --output-dir ~/fl-dryrun/verify
+D=audits/fresh-start/dryrun-$(date +%F)
+python3 -B audits/fresh-start/reset_preview.py --v3 $D/count.csv --coverage $D/coverage.csv \
+  --moves $D/moves.csv --area "Dry storage" --target production --output-dir $D/preview
+cp audits/fresh-start/approval.md $D/preview/approval.md
+# Fill $D/preview/approval.md: Preview file reset-preview-v3.json + its SHA-256 (shasum -a 256 $D/preview/reset-preview-v3.json),
+# Approved product IDs = READY rows, Owner name + Named actor + Signature = Blubber, Date = today (New York),
+# Opening entry classification: N, Owner approves held entries: N, Extra-kosher lots: none
+python3 -B audits/fresh-start/apply_reset.py $D/preview/reset-preview-v3.json \
+  --approval $D/preview/approval.md --count-csv $D/count.csv --target production   # NO --apply
+python3 -B audits/fresh-start/verify_reset.py --v3 $D/count.csv --coverage $D/coverage.csv \
+  --moves $D/moves.csv --area "Dry storage" --target production --output-dir $D/verify
 ```
+`audits/fresh-start/test_dryrun_commands.py` parses this block and runs the three commands (no
+`--apply`) against a throwaway local database, so a path or flag change here that the tools would
+refuse fails the suite.
 
 **What to look at:**
 - Preview: each row READY or HELD with a reason; counted vs book and the proposed change look right;
