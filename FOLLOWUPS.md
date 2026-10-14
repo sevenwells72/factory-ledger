@@ -471,6 +471,17 @@ change, or the live dashboard calls itself and every read fails. Cutover runbook
 carry the same note. The browser harness sets `FL_SESSION_API_BASE` in `tests/visual/lib/stub.mjs`
 for the same reason.
 
+**P1.29 Sunshine bulk bins on a paper bin log until after cutover — decided by Michael 2026-10-14 (O-2; design §11 item 45).**
+The weighed-bin feature (A8 Sunshine-lite: `bins`, `bulk_dispatch_lines`, `/ship/bulk/prepare`) is
+**deferred** and will be revisited after cutover; there is no Nov 6 A8 choice any more. Temporary
+procedure: each bin leaving for Sunshine gets one line on the bilingual Sunshine Bin Log
+(`docs/pilot/sunshine-bin-log.pdf`) — date, bin ID, product + lot, gross lb, tare lb, net lb,
+Sunshine order, who weighed. The same day, the office/floor enters it in FL as a **normal shipment**
+to Sunshine (quantity = net lb, lot from the sheet) and writes the FL receipt number on the line.
+Billing per P1.10 (unchanged); the invoicing trigger is **still undecided**. Keep the filled sheets
+with the shipping paperwork. Revisit A8 after cutover (needs P1.10's trigger decision for
+`invoice_triggers`). Cutover runbook (PR #117) O-2 is closed with the same text.
+
 ---
 
 ## 1. Backfill NULL addresses on recurring customers
