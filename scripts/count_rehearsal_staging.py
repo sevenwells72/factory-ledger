@@ -10,6 +10,10 @@ reset_preview --v3 --area → owner review (scripted stand-in) → signed approv
 apply dry run → apply (typed phrase through a pty) → verify, and records how long
 each area's posting pause takes. Never reads or writes production; never prints keys.
 Synthetic owner approval demonstrates the flow; it is not Michael's attestation.
+
+--hosted (P1.21 follow-up, 2026-10-14): ONE area against the DEPLOYED FastAPI-staging
+(no local server): an ordinary lot set plus a shortage lot, a >500 lb hold approved
+under the signed list and a new extra-kosher lot, with per-lot executor timings.
 """
 import argparse
 import csv
@@ -105,6 +109,20 @@ def start_server(uri):
             return f'http://127.0.0.1:{port}', server
         time.sleep(0.1)
     raise RuntimeError('Local rehearsal server did not start')
+
+
+def wait_for_keys(base, keys, limit_s=180):
+    """Hosted FL caches actor keys for up to ACTOR_CACHE_TTL_S (60 s): wait until each new key answers."""
+    started = time.monotonic()
+    for key in keys:
+        while True:
+            status, body = call(base, key, '/auth/whoami')
+            if status == 200 and body.get('key_kind') == 'actor':
+                break
+            if time.monotonic() - started > limit_s:
+                raise RuntimeError(f'hosted staging did not accept the rehearsal key: {status}')
+            time.sleep(5)
+    return round(time.monotonic() - started, 1)
 
 
 def call(base, key, path, body=None):
@@ -319,112 +337,72 @@ def sheet_row(area, sheet, n, product, lot_code, quantity, unit, at, estimated='
                 unit=unit, location=area['name'] + ' rack ' + str(n), counted_time=at.isoformat(), estimated=estimated)
 
 
-def rehearse(output):
+def hosted_area(base, floor_key, items, ref, t0, workdir, env, owner, report):
+    """One area on hosted staging: shortage lot, >500 lb hold, new extra-kosher lot, ordinary lots."""
+    coconut = items['coconut']
+    made = committed(base, floor_key, '/make/prepare', dict(
+        product_id=items['batch']['id'], batches=1, confirmed_sku=True,
+        occurred_at=(t0 - timedelta(minutes=90)).isoformat(),
+        lot_confirmations=[dict(lot_id=coconut['lot_id'], method='full_code', value=coconut['lot_code'])]))
+    report['shortage'] = dict(make_receipt=made['receipt_number'], exceptions=[s['exception_id'] for s in made.get('shortages') or []])
+    if not report['shortage']['exceptions']:
+        raise RuntimeError('fixture make did not open a shortage')
+    area = dict(name='Dry storage', slug='hosted-area-dry-storage', start=now())
+    time.sleep(10)
+    at = now()
+    misc = [items[f'misc{n}'] for n in range(1, 7)]
+    cases15 = items['cases15']
+    ek_code = f'{ref}-EK-1'.lower()   # as written on the sheet; FL stores it upper-case
+    rows = [sheet_row(area, 'RH1', 1, items['oats'], items['oats']['lot_code'], '395', 'lb', at, 'x'),
+            # 520 lb counted against 1,200 on the book: −680 lb → LARGE_CORRECTION hold, approved under the signed list.
+            sheet_row(area, 'RH1', 2, items['sugar'], items['sugar']['lot_code'], '520', 'lb', at),
+            # Book −20 after the short make; counted 25 lb → +45 closes the open SHORTAGE as counted.
+            sheet_row(area, 'RH1', 3, coconut, coconut['lot_code'], '25', 'lb', at),
+            # Extra-kosher stock on a lot FL has never seen → NEW lot via an owner-attested found ticket.
+            sheet_row(area, 'RH1', 4, items['extra'], ek_code, '180', 'lb', at),
+            sheet_row(area, 'RH1', 5, cases15, cases15['lot_code'], '17', 'cases', at)] + \
+           [sheet_row(area, 'RH1', 5 + n, m, m['lot_code'], str(100 - n), 'lb', at) for n, m in enumerate(misc, 1)]
+    time.sleep(10)
+    area['end'] = now()
+    for r in rows:
+        r['end_time'] = area['end'].isoformat()
+    time.sleep(2)
+    return [area_run(area, rows, [items['oats'], items['sugar'], coconut, items['extra'], cases15] + misc, workdir, env, owner, ref)]
+
+
+def rehearse(output, hosted=False):
     uri = guarded_uri()
     ref = 'STG-CNT-' + uuid4().hex[:6].upper()
     t0 = now()
     ids, items, owner_key, floor_key = seed(uri, ref, t0)
-    base, server = start_server(uri)
+    server = None
+    if hosted:
+        sys.path.insert(0, str(TOOLS))
+        from fresh_start_common import TARGETS
+        base = TARGETS['staging']['api']
+        env = {k: v for k, v in os.environ.items() if k != 'FL_STAGING_API_URL'}
+    else:
+        base, server = start_server(uri)
+        env = dict(os.environ, FL_STAGING_API_URL=base)
     owner = ids['owner']['name']
-    env = dict(os.environ, FL_STAGING_API_URL=base)
     for name in ('API_KEY', 'DASHBOARD_API_KEY', 'DATABASE_URL'):
         env.pop(name, None)
     workdir = TOOLS / 'v3' / 'rehearsal' / ref
-    report = dict(reference=ref, mode='branch API in-process on 127.0.0.1 against guarded STAGING; no hosted deployment',
+    report = dict(reference=ref, mode=('ONE area against the DEPLOYED FastAPI-staging ' + base + ' (guarded staging DB); no local server')
+                  if hosted else 'branch API in-process on 127.0.0.1 against guarded STAGING; no hosted deployment',
                   owner_actor=ids['owner'], floor_actor=ids['floor'], products={k: v['id'] for k, v in items.items()},
                   synthetic_owner_not_michael=True)
     try:
-        # A make 90 minutes ago used 30 lb of coconut with 10 lb on the book: it posts short and opens a SHORTAGE.
-        coconut = items['coconut']
-        made = committed(base, floor_key, '/make/prepare', dict(
-            product_id=items['batch']['id'], batches=1, confirmed_sku=True,
-            occurred_at=(t0 - timedelta(minutes=90)).isoformat(),
-            lot_confirmations=[dict(lot_id=coconut['lot_id'], method='full_code', value=coconut['lot_code'])]))
-        report['shortage'] = dict(make_receipt=made['receipt_number'], exceptions=[s['exception_id'] for s in made.get('shortages') or []])
-        if not report['shortage']['exceptions']:
-            raise RuntimeError('fixture make did not open a shortage')
-        results = []
-
-        def window(name, slug):
-            return dict(name=name, slug=slug, start=now())
-
-        def close_area(area, rows):
-            time.sleep(5)
-            area['end'] = now()
-            for r in rows:
-                r['end_time'] = area['end'].isoformat()
-            time.sleep(2)
-
-        # Area 1 — Dry storage: oats (estimated) and sugar (−680 lb → over-500 owner hold).
-        a1 = window('Dry storage', 'area-1-dry-storage')
-        time.sleep(10)
-        at = now()
-        misc = [items[f'misc{n}'] for n in range(1, 7)]
-        rows = [sheet_row(a1, 'RH1', 1, items['oats'], items['oats']['lot_code'], '395', 'lb', at, 'x'),
-                sheet_row(a1, 'RH1', 2, items['sugar'], items['sugar']['lot_code'], '520', 'lb', at)] + \
-               [sheet_row(a1, 'RH1', 2 + n, m, m['lot_code'], str(100 - n), 'lb', at) for n, m in enumerate(misc, 1)]
-        time.sleep(10)
-        close_area(a1, rows)
-        results.append(area_run(a1, rows, [items['oats'], items['sugar']] + misc, workdir, env, owner, ref))
-
-        # Area 2 — Production floor: coconut found at 25 lb against −20 on the book (closes the shortage).
-        a2 = window('Production floor', 'area-2-production-floor')
-        time.sleep(10)
-        rows = [sheet_row(a2, 'RH2', 1, coconut, coconut['lot_code'], '25', 'lb', now())]
-        time.sleep(10)
-        close_area(a2, rows)
-        results.append(area_run(a2, rows, [coconut], workdir, env, owner, ref))
-
-        # Area 3 — Warehouse: 39 cases of granola, a damage write-off INSIDE the window
-        # after that row, and extra-kosher bulk 285 on a lot FL has never seen.
-        a3 = window('Warehouse', 'area-3-warehouse')
-        time.sleep(8)
-        granola = items['granola']
-        rows = [sheet_row(a3, 'RH3', 1, granola, granola['lot_code'], '39', 'cases', now())]
-        time.sleep(8)
-        damage = committed(base, floor_key, '/adjust/prepare', dict(lot_id=granola['lot_id'], delta_lb=-25, reason_code='damage_disposal',
-                                                                    occurred_at=now().isoformat()))
-        report['movement_in_window'] = dict(receipt=damage['receipt_number'], transaction_id=damage['transaction_id'], lb=-25)
-        time.sleep(8)
-        ek_code = f'{ref}-EK-1'.lower()   # as written on the sheet; FL stores it upper-case
-        rows.append(sheet_row(a3, 'RH3', 2, items['extra'], ek_code, '180', 'lb', now()))
-        # 17 cases of 15 lb against 300 lb on the book: −45 lb (before PR #109 FL read it as 675 lb and held it).
-        cases15 = items['cases15']
-        rows.append(sheet_row(a3, 'RH3', 3, cases15, cases15['lot_code'], '17', 'cases', now()))
-        time.sleep(8)
-        close_area(a3, rows)
-        # The same new extra-kosher lot is also in the cooler: counted in two areas, so
-        # it is held until the owner confirms no unlogged moves (Codex PR #108 review).
-        cooler = window('Cooler', 'area-3b-cooler')
-        time.sleep(5)
-        cooler_rows = [sheet_row(cooler, 'RH4', 1, items['extra'], ek_code, '120', 'lb', now())]
-        time.sleep(5)
-        close_area(cooler, cooler_rows)
-        a3['with'] = [cooler]
-        results.append(area_run(a3, rows + cooler_rows, [granola, cases15, items['extra']], workdir, env, owner, ref))
-        report['areas'] = results
-        with connection(uri) as cur:
-            cur.execute("""SELECT e.id,e.status,e.resolution_kind,e.resolution_ticket_id,e.resolution_receipt_number,
-                                  xr.action AS resolution_receipt_action,xr.status AS resolution_receipt_status,
-                                  fix.receipt_number AS resolution_posting_receipt_number,e.detail->'resolution' AS resolution
-                           FROM exceptions e LEFT JOIN write_tickets xr ON xr.receipt_number=e.resolution_receipt_number
-                           LEFT JOIN write_tickets fix ON fix.id=e.resolution_ticket_id
-                           WHERE e.id=ANY(%s)""", (report['shortage']['exceptions'],))
-            report['shortage']['after'] = [dict(r) for r in cur.fetchall()]
-            cur.execute("""SELECT l.id,l.lot_code,l.kosher_tier,l.kosher_attested_by_actor_id,l.kosher_attested_at,l.entry_source
-                           FROM lots l WHERE l.product_id=%s AND l.lot_code=%s""", (items['extra']['id'], ek_code.upper()))
-            report['extra_kosher_lot'] = [dict(r) for r in cur.fetchall()]
-            for lot in report['extra_kosher_lot']:
-                cur.execute('SELECT COALESCE(sum(quantity_lb),0) AS lb, count(*) AS lines FROM transaction_lines WHERE lot_id=%s', (lot['id'],))
-                lot.update(cur.fetchone())
-            cur.execute("""SELECT e.id,e.kind,e.status,e.resolution_kind,e.resolved_by_actor_id,wt.receipt_number
-                           FROM exceptions e JOIN write_tickets wt ON wt.id=e.ticket_id
-                           WHERE e.kind IN ('LARGE_CORRECTION','KOSHER_ATTESTATION') AND wt.actor_id=%s ORDER BY e.id""",
-                        (ids['owner']['id'],))
-            report['owner_holds'] = [dict(r) for r in cur.fetchall()]
+        if hosted:
+            report['key_cache_wait_s'] = wait_for_keys(base, (owner_key, floor_key))
+            report['areas'] = hosted_area(base, floor_key, items, ref, t0, workdir, env, owner, report)
+        else:
+            report['areas'] = local_areas(base, floor_key, items, ref, t0, workdir, env, owner, report)
+        evidence(uri, ids, items, report)
         return report
     finally:
-        server.should_exit = True
+        if server:
+            server.should_exit = True
         with connection(uri) as cur:
             cur.execute('UPDATE actors SET active=false WHERE id=ANY(%s)', ([ids['owner']['id'], ids['floor']['id']],))
         report['actors_deactivated_after_rehearsal'] = True
@@ -435,12 +413,110 @@ def rehearse(output):
         output.write_text(json.dumps(report, indent=2, default=str) + '\n')
 
 
+def local_areas(base, floor_key, items, ref, t0, workdir, env, owner, report):
+    """The three-area local rehearsal (2026-10-13)."""
+    # A make 90 minutes ago used 30 lb of coconut with 10 lb on the book: it posts short and opens a SHORTAGE.
+    coconut = items['coconut']
+    made = committed(base, floor_key, '/make/prepare', dict(
+        product_id=items['batch']['id'], batches=1, confirmed_sku=True,
+        occurred_at=(t0 - timedelta(minutes=90)).isoformat(),
+        lot_confirmations=[dict(lot_id=coconut['lot_id'], method='full_code', value=coconut['lot_code'])]))
+    report['shortage'] = dict(make_receipt=made['receipt_number'], exceptions=[s['exception_id'] for s in made.get('shortages') or []])
+    if not report['shortage']['exceptions']:
+        raise RuntimeError('fixture make did not open a shortage')
+    results = []
+
+    def window(name, slug):
+        return dict(name=name, slug=slug, start=now())
+
+    def close_area(area, rows):
+        time.sleep(5)
+        area['end'] = now()
+        for r in rows:
+            r['end_time'] = area['end'].isoformat()
+        time.sleep(2)
+
+    # Area 1 — Dry storage: oats (estimated) and sugar (−680 lb → over-500 owner hold).
+    a1 = window('Dry storage', 'area-1-dry-storage')
+    time.sleep(10)
+    at = now()
+    misc = [items[f'misc{n}'] for n in range(1, 7)]
+    rows = [sheet_row(a1, 'RH1', 1, items['oats'], items['oats']['lot_code'], '395', 'lb', at, 'x'),
+            sheet_row(a1, 'RH1', 2, items['sugar'], items['sugar']['lot_code'], '520', 'lb', at)] + \
+           [sheet_row(a1, 'RH1', 2 + n, m, m['lot_code'], str(100 - n), 'lb', at) for n, m in enumerate(misc, 1)]
+    time.sleep(10)
+    close_area(a1, rows)
+    results.append(area_run(a1, rows, [items['oats'], items['sugar']] + misc, workdir, env, owner, ref))
+
+    # Area 2 — Production floor: coconut found at 25 lb against −20 on the book (closes the shortage).
+    a2 = window('Production floor', 'area-2-production-floor')
+    time.sleep(10)
+    rows = [sheet_row(a2, 'RH2', 1, coconut, coconut['lot_code'], '25', 'lb', now())]
+    time.sleep(10)
+    close_area(a2, rows)
+    results.append(area_run(a2, rows, [coconut], workdir, env, owner, ref))
+
+    # Area 3 — Warehouse: 39 cases of granola, a damage write-off INSIDE the window
+    # after that row, and extra-kosher bulk 285 on a lot FL has never seen.
+    a3 = window('Warehouse', 'area-3-warehouse')
+    time.sleep(8)
+    granola = items['granola']
+    rows = [sheet_row(a3, 'RH3', 1, granola, granola['lot_code'], '39', 'cases', now())]
+    time.sleep(8)
+    damage = committed(base, floor_key, '/adjust/prepare', dict(lot_id=granola['lot_id'], delta_lb=-25, reason_code='damage_disposal',
+                                                                occurred_at=now().isoformat()))
+    report['movement_in_window'] = dict(receipt=damage['receipt_number'], transaction_id=damage['transaction_id'], lb=-25)
+    time.sleep(8)
+    ek_code = f'{ref}-EK-1'.lower()   # as written on the sheet; FL stores it upper-case
+    rows.append(sheet_row(a3, 'RH3', 2, items['extra'], ek_code, '180', 'lb', now()))
+    # 17 cases of 15 lb against 300 lb on the book: −45 lb (before PR #109 FL read it as 675 lb and held it).
+    cases15 = items['cases15']
+    rows.append(sheet_row(a3, 'RH3', 3, cases15, cases15['lot_code'], '17', 'cases', now()))
+    time.sleep(8)
+    close_area(a3, rows)
+    # The same new extra-kosher lot is also in the cooler: counted in two areas, so
+    # it is held until the owner confirms no unlogged moves (Codex PR #108 review).
+    cooler = window('Cooler', 'area-3b-cooler')
+    time.sleep(5)
+    cooler_rows = [sheet_row(cooler, 'RH4', 1, items['extra'], ek_code, '120', 'lb', now())]
+    time.sleep(5)
+    close_area(cooler, cooler_rows)
+    a3['with'] = [cooler]
+    results.append(area_run(a3, rows + cooler_rows, [granola, cases15, items['extra']], workdir, env, owner, ref))
+    return results
+
+
+def evidence(uri, ids, items, report):
+    """Read back the shortage, the new extra-kosher lot and the owner holds from staging."""
+    ek_code = report['reference'] + '-EK-1'
+    with connection(uri) as cur:
+        cur.execute("""SELECT e.id,e.status,e.resolution_kind,e.resolution_ticket_id,e.resolution_receipt_number,
+                              xr.action AS resolution_receipt_action,xr.status AS resolution_receipt_status,
+                              fix.receipt_number AS resolution_posting_receipt_number,e.detail->'resolution' AS resolution
+                       FROM exceptions e LEFT JOIN write_tickets xr ON xr.receipt_number=e.resolution_receipt_number
+                       LEFT JOIN write_tickets fix ON fix.id=e.resolution_ticket_id
+                       WHERE e.id=ANY(%s)""", (report['shortage']['exceptions'],))
+        report['shortage']['after'] = [dict(r) for r in cur.fetchall()]
+        cur.execute("""SELECT l.id,l.lot_code,l.kosher_tier,l.kosher_attested_by_actor_id,l.kosher_attested_at,l.entry_source
+                       FROM lots l WHERE l.product_id=%s AND l.lot_code=%s""", (items['extra']['id'], ek_code.upper()))
+        report['extra_kosher_lot'] = [dict(r) for r in cur.fetchall()]
+        for lot in report['extra_kosher_lot']:
+            cur.execute('SELECT COALESCE(sum(quantity_lb),0) AS lb, count(*) AS lines FROM transaction_lines WHERE lot_id=%s', (lot['id'],))
+            lot.update(cur.fetchone())
+        cur.execute("""SELECT e.id,e.kind,e.status,e.resolution_kind,e.resolved_by_actor_id,wt.receipt_number
+                       FROM exceptions e JOIN write_tickets wt ON wt.id=e.ticket_id
+                       WHERE e.kind IN ('LARGE_CORRECTION','KOSHER_ATTESTATION') AND wt.actor_id=%s ORDER BY e.id""",
+                    (ids['owner']['id'],))
+        report['owner_holds'] = [dict(r) for r in cur.fetchall()]
+
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--hosted', action='store_true', help='one area against the deployed FastAPI-staging (no local server)')
     args = parser.parse_args()
     try:
-        rehearse(args.output)
+        rehearse(args.output, args.hosted)
         print(args.output)
     except Exception as exc:
         # Never print libpq errors or tracebacks that could carry a URI or key.
