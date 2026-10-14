@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-14 07:08 — Start isolated D2 office and void implementation from merged PR #107
+- **File(s) changed:** `docs/validation/dashboard-office-void.md`
+- **What changed:** Recorded authorized scope, base ancestry, isolated Git store recovery and validation gates.
+- **Why:** October 14 pilot decisions A and D; existing shared object store failed checkout twice.
+
+---
+
 ## 2026-10-14 00:40 — Rebase PR #107 onto main; changelog row 190 and followups
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `FOLLOWUPS.md`, `CHANGE_LOG.md`
 - **What changed:** Rebased feat/dash-d1-d2 onto origin/main d5e9fea (CHANGE_LOG.md conflict only, both sides kept); added FACTORY_LEDGER_CHANGELOG row 190 (D1/D2 merged, write UI gated off on production); marked the PR #107 receipt-contract followup done and added the cutover reload note
