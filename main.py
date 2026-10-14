@@ -2463,6 +2463,31 @@ async def startup():
     # migration_markers row so its ALTER TABLE / CREATE TABLE runs once per
     # database instead of once per process start.
     _run_startup_migrations()
+    _assert_readonly_key_is_not_an_actor_key()
+
+
+def _assert_readonly_key_is_not_an_actor_key() -> None:
+    """G1: refuse to start if READONLY_API_KEY is also an active actor's key.
+
+    The direct check gives that value read-only scope (it is compared before
+    actors), but the shared value would still be a write credential through
+    POST /auth/session, and the GPT editors hold it. key_sessions.exchange
+    refuses the read-only key on every request; this makes the
+    misconfiguration loud. Only a confirmed match refuses: a failed lookup
+    is logged, like the startup migrations, and the exchange guard stands."""
+    if not READONLY_API_KEY:
+        return
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1 FROM actors WHERE active AND key_hash = %s",
+                            (_hash_api_key(READONLY_API_KEY),))
+                clash = cur.fetchone() is not None
+    except Exception as e:
+        logger.warning(f"READONLY_KEY_ACTOR_CHECK_SKIPPED: {type(e).__name__}")
+        return
+    if clash:
+        raise RuntimeError("READONLY_API_KEY must differ from every active actor key")
 
 
 @app.on_event("shutdown")

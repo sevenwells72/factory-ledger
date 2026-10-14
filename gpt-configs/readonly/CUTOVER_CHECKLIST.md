@@ -40,8 +40,9 @@ it so the GPTs are only unable to answer for a few minutes.
 2. **Put it on Railway.** Railway → **gleaming-solace** → **FastAPI** (not
    FastAPI-staging) → **Variables** tab → **+ New Variable** →
    name `READONLY_API_KEY`, value = the key → **Add**. The value must be
-   different from `API_KEY` and `DASHBOARD_API_KEY` (the service refuses to
-   start otherwise — by design).
+   different from `API_KEY`, `DASHBOARD_API_KEY` and every active person's
+   actor key (the service refuses to start otherwise — by design). A freshly
+   generated key from A1 always is; never reuse an existing key here.
 3. **Deploy it.** Railway shows "Apply changes" / "Deploy" at the top of the
    canvas → click it. Wait until the deployment shows **Active / Success**
    (about 2–3 minutes).
@@ -55,10 +56,15 @@ it so the GPTs are only unable to answer for a few minutes.
    curl -s -o /dev/null -w "write /make           -> %{http_code}\n" -H "X-API-Key: $RO" -H "Content-Type: application/json" -X POST "$API/make" -d '{}'
    curl -s -o /dev/null -w "write /receive        -> %{http_code}\n" -H "X-API-Key: $RO" -H "Content-Type: application/json" -X POST "$API/receive" -d '{}'
    curl -s -o /dev/null -w "write /sales/orders   -> %{http_code}\n" -H "X-API-Key: $RO" -H "Content-Type: application/json" -X POST "$API/sales/orders" -d '{}'
+   printf '{"actor_key":"%s"}' "$RO" | curl -s -o /dev/null -w "session exchange    -> %{http_code}\n" -H "Content-Type: application/json" -X POST "$API/auth/session" --data-binary @-
    unset RO
    ```
-   **Expected:** both reads `200`; all three writes `403`. The write calls send
-   an empty body and are refused before any handler runs, so nothing is written.
+   **Expected:** six codes — both reads `200`; all three writes `403`; the
+   session exchange `401` (or `404` if key sessions are switched off). The
+   write calls send an empty body and are refused before any handler runs, so
+   nothing is written. The exchange line proves the read-only key cannot be
+   turned into a personal-key session (the key goes in via `printf`, a shell
+   built-in, so it never appears in the process list).
    Anything else → stop and tell Michael; do not continue to B.
    (The full route-by-route proof is the test suite:
    `tests/test_readonly_api_key.py` — every write route 403, every GPT read
@@ -92,30 +98,67 @@ files.
    **Update** → **Update** again on the confirm dialog (keep the same sharing
    setting). Wait for "GPT updated".
 
-## C. Smoke test — 3 questions per GPT, then 1 write attempt
+## C. Smoke test — every action in each GPT, then 1 write attempt
 
-Open each GPT in a **new chat** (not the editor preview). Use real names from
-today's stock if these come back empty — the point is that each question gets
-a real FL answer, not an error.
+Every action left in each schema is checked once: **14** for the office GPT,
+**11** for the floor GPT (design §10 G1 lists them all). Open each GPT in a
+**new chat** (not the editor preview) and paste the questions in order — later
+questions reuse a lot / order / product from earlier answers.
 
-**Office GPT**
+**How to see which action ran:** under each answer ChatGPT shows
+"Talked to fastapi-production-b73a.up.railway.app". Click it → the panel names
+the action (e.g. `inventoryLookup`). An answer **passes** when the action in the
+"Must run" column appears there and the answer has real FL data (or an honest
+"none found" for a code that does not exist). It **fails** on "Invalid API key",
+"not authorized", 403, an action error, or if the GPT says it can't reach FL.
+If ChatGPT asks "Allow / Always allow" for the action, click **Always allow**.
+If the names below come back empty, swap in a real product / lot from answer 1.
 
-1. "How much Classic Granola do we have?" → stock by lot (inventoryLookup).
-2. "Show me the open sales orders." → list of SOs (listOrders).
-3. "Look up order SO-…" (any order number from answer 2) → order with its lines
-   (getOrder).
-4. **Write attempt:** "Receive 50 lb of rolled oats from our supplier, lot
-   TEST123." → **Expected:** a reply that it is read-only and to use the FL
-   Assistant in the FL dashboard. It must **not** say it recorded anything.
+Tick each row in your cutover notes (pass / fail). Any fail → stop and use
+**If something goes wrong** below.
 
-**Floor GPT** (do one in Spanish)
+**Office GPT — 14 actions**
 
-1. "¿Cuánto hay de avena?" → stock, answered in Spanish (inventoryLookup).
-2. "What did we make today?" → day summary (getDaySummary).
-3. "Look up lot …" (any lot code from answer 1) → lot details (getLotByCode).
-4. **Write attempt:** "Empaca 20 cajas de Classic Granola." → **Expected:**
-   "Solo puedo consultar. Para registrarlo, usa el FL Assistant en el
-   dashboard de FL." — no claim that anything was packed.
+| # | Paste this | Must run |
+|---|---|---|
+| O1 | "Find the product Classic Granola." | `searchProducts` |
+| O2 | "Match these names to our products: classic granola, rolled oats, honey." | `resolveProducts` |
+| O3 | "How much Classic Granola do we have?" | `inventoryLookup` |
+| O4 | "Show the details for lot …" (any lot code from O3) | `getLotByCode` |
+| O5 | "What's the formula for a batch of Classic Granola?" | `getBatchFormula` |
+| O6 | "What went into lot …?" (a finished-goods lot from O3) | `traceBatch` |
+| O7 | "Where was ingredient lot … used?" (an oats/honey lot — ask "How much rolled oats do we have?" first if needed) | `traceIngredient` |
+| O8 | "Run a recall trace for supplier lot …" (the supplier lot shown in O4 or O7; any code is fine — "none found" passes) | `traceSupplierLot` |
+| O9 | "Show the last 10 transactions." | `getTransactionHistory` |
+| O10 | "What did we make today?" | `getDaySummary` |
+| O11 | "List our customers." | `listCustomers` |
+| O12 | "Find the customer …" (any name from O11) | `searchCustomers` |
+| O13 | "Show me the open sales orders." | `listOrders` |
+| O14 | "Look up order SO-…" (any order number from O13) | `getOrder` |
+| O-W | **Write attempt:** "Receive 50 lb of rolled oats from our supplier, lot TEST123." | **no action** |
+
+O-W **passes** when the reply says it is read-only and to use the FL Assistant
+in the FL dashboard, and does **not** say it recorded anything.
+
+**Floor GPT — 11 actions** (F4 and the write attempt in Spanish)
+
+| # | Paste this | Must run |
+|---|---|---|
+| F1 | "Find the product rolled oats." | `searchProducts` |
+| F2 | "List all batch products." | `listProducts` |
+| F3 | "What's the formula for a batch of Classic Granola?" | `getBatchFormula` |
+| F4 | "¿Cuánto hay de avena?" (answer must be in Spanish) | `inventoryLookup` |
+| F5 | "Look up lot …" (any lot code from F4) | `getLotByCode` |
+| F6 | "Which of our lots came from supplier lot …?" (the supplier lot shown in F5; any code is fine — "none found" passes) | `getLotsBySupplierLot` |
+| F7 | "Run a recall trace for supplier lot …" (same code as F6) | `traceSupplierLot` |
+| F8 | "Show the last 10 transactions." | `getTransactionHistory` |
+| F9 | "What did we make today?" | `getDaySummary` |
+| F10 | "Show the open sales orders." | `listOrders` |
+| F11 | "Look up order SO-…" (any order number from F10) | `getOrder` |
+| F-W | **Write attempt:** "Empaca 20 cajas de Classic Granola." | **no action** |
+
+F-W **passes** with "Solo puedo consultar. Para registrarlo, usa el FL
+Assistant en el dashboard de FL." — no claim that anything was packed.
 
 **Confirm nothing was written:** dashboard → **Recent Entries** — no new
 entry from either GPT since the switch. (The GPT has no write action to call,
@@ -125,16 +168,31 @@ belt-and-braces check.)
 ## D. Record
 
 Write down, for the cutover log: time the key was added, the Railway deployment
-id, the four `curl` codes from A4, the 6 answers + 2 refusals from C (pass/fail
-each), and who did the editor pastes.
+id, the **six** `curl` codes from A4 (2 reads, 3 writes, 1 session exchange),
+the **25** action results from C (O1–O14, F1–F11, pass/fail each) plus the
+**2** write refusals (O-W, F-W), and who did the editor pastes.
 
 ## If something goes wrong
 
 - **A GPT answers "Invalid API key" / 403 on a read:** the key in the GPT's
   Authentication does not match Railway, or step A3 has not finished deploying.
   Re-paste the key (B5) and Update.
-- **Railway deployment fails to start after A2:** `READONLY_API_KEY` equals
-  one of the other two keys. Generate a new one (A1) and replace it.
+- **Railway deployment fails to start after A2:** the deploy log says
+  `READONLY_API_KEY must differ …` — it equals `API_KEY`, `DASHBOARD_API_KEY`
+  or an active actor key. Railway → **FastAPI** → **Variables** → click
+  `READONLY_API_KEY` → **⋮** → **Edit** → paste a new key from A1 → **Save** →
+  **Deploy**. Update the password-manager entry to the new key.
+- **A4 shows anything other than the six expected codes:** stop. Railway →
+  **FastAPI** → **Variables** → `READONLY_API_KEY` → **⋮** → **Remove** →
+  **Deploy** (server-side rollback below), then tell Michael. Do not start B.
+- **One row in C fails (an action errors or the wrong action runs):** in that
+  GPT's editor redo B3–B6 (re-paste the schema and the key) → **Update** → new
+  chat → re-run that row only. Still failing → leave that GPT as it is (it can
+  only read; a broken read is not a safety problem) and tell Michael.
+- **O-W or F-W claims it recorded something:** check dashboard → **Recent
+  Entries**. Nothing new = the GPT is only wording it badly; redo B2 (re-paste
+  instructions) and re-run the write row. Something new = stop, do the
+  server-side rollback below immediately, and tell Michael.
 - **Rollback (GPT side):** there is no going back to write-capable GPTs — the
   old schemas used the master key, which §10.1 step 2 has just rotated. Reads
   can always be restored by re-doing B with the read-only files.
