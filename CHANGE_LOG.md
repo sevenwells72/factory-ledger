@@ -1,5 +1,40 @@
 # Change Log
 
+## [2026-10-14 19:51] — Prepare draft PR evidence and Claude Code review handoff
+- **File(s) changed:** `CHANGE_LOG.md`; temporary PR body/review-request text
+- **What changed:** Prepared final PR validation summary and explicit Claude Code review request, including baseline P1.27, successful staging smoke and runtime hash agreement. Verified all prior project/regression changelog lines remain in order.
+- **Why:** Complete the authorized builder handoff without merging or touching production.
+
+---
+
+## [2026-10-14 19:50] — Preserve final F1 validation and hosted staging acceptance
+- **File(s) changed:** `docs/validation/fl-assistant-request-errors.json`, `docs/validation/fl-assistant-request-errors/*`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Saved local suite manifest, hosted API/browser results, four inspected screenshots, runtime hash agreement, cleanup proof, and row-205 acceptance note. 5682 Python / 207 Node pass; 20 of 21 local browser runners pass, with only baseline P1.27 failing; both final F1 modes pass. Hosted original chat EN/ES, inventory, entries, neutral missing receipt, legacy sanitization and editable unsent dictation pass without drafts or Record requests.
+- **Why:** Provide concrete staging-only evidence for Claude Code review of draft PR #124; preserve all earlier changelog entries.
+
+---
+
+## [2026-10-14 19:48] — Correct hosted smoke static-asset preflight path
+- **File(s) changed:** `scripts/check_assistant_requests_staging.py`
+- **What changed:** Check deployed Assistant JS/CSS through the existing `/dashboard/` static mount.
+- **Why:** Initial staging preflight requested `/dash/` and stopped at its 404 before scenarios; application code is unchanged.
+
+---
+
+## [2026-10-14 19:46] — Deploy validated F1 request fix to staging only
+- **File(s) changed:** FACTORY_LEDGER_CHANGELOG.md, docs/validation/fl-assistant-request-errors.json
+- **What changed:** Recorded FastAPI-staging deployment 0e2f676f SUCCESS from c60649d and appended regression guard row 205; no migration, production access or merge.
+- **Why:** Preserve rollout evidence and the forced-tool/receipt safety invariants.
+
+---
+
+## [2026-10-14 19:45] — Record full F1 verification and staging upload
+- **File(s) changed:** docs/validation/fl-assistant-request-errors.json
+- **What changed:** Saved 5682 clean fresh-DB Python / 207 Node / both Assistant browser passes and source hashes; uploaded c60649d only to FastAPI-staging (deployment 0e2f676f, building).
+- **Why:** Track validated code and staging rollout without production or merge.
+
+---
+
 ## [2026-10-14 19:41] — Accept equivalent numeral spelling in real dictation smoke
 - **File(s) changed:** scripts/check_assistant_requests_staging.py; /tmp/fl-f1chat-staging-ui.mjs
 - **What changed:** Accept either two or 2 in the synthetic speech transcript; prepared real hosted browser checks for sanitized old turns, new EN/ES cards and editable unsent microphone dictation.

@@ -1,0 +1,328 @@
+{
+  "verified_at": "2026-10-14T19:48:48.025771-04:00",
+  "scope": "Local verification only; no hosted staging or production access",
+  "verification_checkout_commit": "fb2492d59850136b34eca186b4fecc7e9fe2c5dc",
+  "final_application_commit": "f08a214",
+  "deployment_candidate": "c60649d",
+  "source_sha256": {
+    "assistant_tools.py": "c493306523879e52d928cfea20b58042c73e58a9355fe78b1f9e146d3408a535",
+    "fl_assistant.py": "9e551a1badad35027229bd7738bb0548774c9c377c67a6a4ac6cfd77c0ea8528",
+    "dashboard/fl-assistant.js": "ad43cf9bf5a39e5933d1d78319783e141a9aad86430c607f61053d2edf6c7c43",
+    "tests/test_fl_assistant.py": "f83bfa896d1600e7df05b5174a8d497089dad6c66ed3bb4f419ddfe380431294",
+    "tests/test_fl_assistant_ui.js": "81293ab78b6d80fd9e7b81fa0e6dce0132cb4fe373e9c1c3e7b8997647287ece",
+    "tests/visual/run-fl-assistant.mjs": "52b41f6c6d4dd2bce36b0cceab3679bfa6ff9c11c01f6ee364f41b7233e5458a"
+  },
+  "python": {
+    "commit": "fb2492d59850136b34eca186b4fecc7e9fe2c5dc",
+    "application_commit": "f08a214",
+    "application_and_python_test_sources_match_final": true,
+    "collected": 5682,
+    "groups": 21,
+    "passed": 5682,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "fresh_private_database_per_group": true,
+    "details": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-head-python/summary.json",
+    "preserved_initial_setup_error": {
+      "passed": 5600,
+      "errors": 1,
+      "cause": "localhost IPv6 SSL-negotiation error in PostgreSQL connection startup",
+      "resolution": "Complete fresh-DB rerun over explicit 127.0.0.1; no tests suppressed",
+      "evidence": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-head-python-ipv6-failure/00.log"
+    },
+    "final_commit_changes": [
+      "CHANGE_LOG.md",
+      "docs/validation/fl-assistant-request-errors.json",
+      "tests/visual/run-fl-assistant.mjs"
+    ]
+  },
+  "node": {
+    "commit": "f08a214",
+    "node_test_sources_match_final": true,
+    "stats": {
+      "tests": 207,
+      "pass": 207,
+      "fail": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-head-node.log"
+  },
+  "browsers": {
+    "suite_start_commit": "22021c7f9e76857075a383de8f362e90ac1f5d97",
+    "unique_runners": 21,
+    "mode_runs": 26,
+    "passed_mode_runs": 25,
+    "results": [
+      {
+        "runner": "run-d12-auth-off.mjs",
+        "mode": 0,
+        "code": 0,
+        "seconds": 4.0,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-d12-auth-off-off.log"
+      },
+      {
+        "runner": "run-d12-auth.mjs",
+        "mode": 1,
+        "code": 0,
+        "seconds": 3.4,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-d12-auth-on.log"
+      },
+      {
+        "runner": "run-d12-fixes.mjs",
+        "mode": 1,
+        "code": 0,
+        "seconds": 31.0,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-d12-fixes-on.log"
+      },
+      {
+        "runner": "run-d12-gating.mjs",
+        "mode": 1,
+        "code": 0,
+        "seconds": 6.7,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-d12-gating-on.log"
+      },
+      {
+        "runner": "run-d12-gating.mjs",
+        "mode": 0,
+        "code": 0,
+        "seconds": 4.9,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-d12-gating-off.log"
+      },
+      {
+        "runner": "run-d12-preview.mjs",
+        "mode": 1,
+        "code": 0,
+        "seconds": 6.4,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-d12-preview-on.log"
+      },
+      {
+        "runner": "run-d12-preview.mjs",
+        "mode": 0,
+        "code": 0,
+        "seconds": 5.6,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-d12-preview-off.log"
+      },
+      {
+        "runner": "run-d12.mjs",
+        "mode": 1,
+        "code": 0,
+        "seconds": 3.2,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-d12-on.log"
+      },
+      {
+        "runner": "run-d2.mjs",
+        "mode": 1,
+        "code": 0,
+        "seconds": 6.4,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-d2-on.log"
+      },
+      {
+        "runner": "run-fl-assistant.mjs",
+        "mode": 1,
+        "code": 0,
+        "seconds": 6.4,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-fl-assistant-on.log"
+      },
+      {
+        "runner": "run-fl-assistant.mjs",
+        "mode": 0,
+        "code": 0,
+        "seconds": 6.2,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-fl-assistant-off.log"
+      },
+      {
+        "runner": "run-integrated-intake.mjs",
+        "mode": 1,
+        "code": 1,
+        "seconds": 31.6,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-integrated-intake-on.log"
+      },
+      {
+        "runner": "run-key-sessions.mjs",
+        "mode": 1,
+        "code": 0,
+        "seconds": 3.0,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-key-sessions-on.log"
+      },
+      {
+        "runner": "run-office.mjs",
+        "mode": 1,
+        "code": 0,
+        "seconds": 10.8,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-office-on.log"
+      },
+      {
+        "runner": "run-office.mjs",
+        "mode": 0,
+        "code": 0,
+        "seconds": 6.2,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-office-off.log"
+      },
+      {
+        "runner": "run-production-trace.mjs",
+        "mode": 1,
+        "code": 0,
+        "seconds": 3.7,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-production-trace-on.log"
+      },
+      {
+        "runner": "run-run-types.mjs",
+        "mode": 1,
+        "code": 0,
+        "seconds": 6.8,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-run-types-on.log"
+      },
+      {
+        "runner": "run-runs-interactions.mjs",
+        "mode": 1,
+        "code": 0,
+        "seconds": 16.8,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-runs-interactions-on.log"
+      },
+      {
+        "runner": "run-sales-orders-interactions.mjs",
+        "mode": 1,
+        "code": 0,
+        "seconds": 8.3,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-sales-orders-interactions-on.log"
+      },
+      {
+        "runner": "run-sales-orders-layout.mjs",
+        "mode": 1,
+        "code": 0,
+        "seconds": 54.2,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-sales-orders-layout-on.log"
+      },
+      {
+        "runner": "run-session-shift-fix.mjs",
+        "mode": 1,
+        "code": 0,
+        "seconds": 4.1,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-session-shift-fix-on.log"
+      },
+      {
+        "runner": "run-so-detail-interactions.mjs",
+        "mode": 1,
+        "code": 0,
+        "seconds": 16.8,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-so-detail-interactions-on.log"
+      },
+      {
+        "runner": "run-so-exit-actions.mjs",
+        "mode": 1,
+        "code": 0,
+        "seconds": 22.4,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-so-exit-actions-on.log"
+      },
+      {
+        "runner": "run-visual-audit.mjs",
+        "mode": 1,
+        "code": 0,
+        "seconds": 594.4,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-visual-audit-on.log"
+      },
+      {
+        "runner": "run-void.mjs",
+        "mode": 1,
+        "code": 0,
+        "seconds": 5.3,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-void-on.log"
+      },
+      {
+        "runner": "run-void.mjs",
+        "mode": 0,
+        "code": 0,
+        "seconds": 2.2,
+        "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/run-void-off.log"
+      }
+    ],
+    "final_f1_rerun": {
+      "commit": "fb2492d59850136b34eca186b4fecc7e9fe2c5dc",
+      "mode_returncodes": {
+        "0": 0,
+        "1": 0
+      },
+      "neutral_outcome_screenshot": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-fixed-browser-0/neutral-outcomes-desktop.png",
+      "logs": [
+        "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-fixed-browser-0.log",
+        "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-fixed-browser-1.log"
+      ]
+    },
+    "reuse_note": "All other browser runner files and frontend sources are unchanged from 22021c7; only FL Assistant frontend/runner changed, and both F1 modes were rerun on final head.",
+    "full_visual_audit": {
+      "captures": 388,
+      "variants": 6,
+      "captured_screen_ids": 88,
+      "capture_errors": 0,
+      "details": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/audit-results.json",
+      "findings_are_informational": true,
+      "rule_results_text": "{ PASS: 3257, FAIL: 419, WARN: 64, 'N/A': 1304, ERROR: 0 }",
+      "inventory_screens": 92,
+      "unmatched_endpoints": [
+        "/auth/session/config"
+      ],
+      "rule_results": {
+        "PASS": 3257,
+        "FAIL": 419,
+        "WARN": 64,
+        "N/A": 1304,
+        "ERROR": 0
+      }
+    },
+    "tracked_report_preserved": true,
+    "passed_unique_runners": 20,
+    "extra_final_f1_mode_runs": 2,
+    "so_detail_checks_passed": 36
+  },
+  "known_baseline_failure": {
+    "issue": "FOLLOWUPS.md P1.27",
+    "runner": "run-integrated-intake.mjs",
+    "baseline_commit": "5592cdc011b38d068d0792ed3af1e8a75b2b0c91",
+    "baseline_result": {
+      "runner": "run-integrated-intake.mjs",
+      "mode": 1,
+      "code": 1,
+      "seconds": 31.4,
+      "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-baseline-browsers/run-integrated-intake-on.log"
+    },
+    "cause": "30s timeout waiting for intentionally removed #orders-status-filter; matches preexisting P1.27"
+  },
+  "reuse_proof": {
+    "node_tests": {
+      "checked_file_count": 18,
+      "different_from_tested_commit": []
+    },
+    "browser_files": {
+      "checked_file_count": 71,
+      "different_from_tested_commit": [
+        "tests/visual/run-fl-assistant.mjs"
+      ]
+    },
+    "dashboard_files": {
+      "checked_file_count": 51,
+      "different_from_tested_commit": [
+        "dashboard/fl-assistant.js"
+      ]
+    }
+  },
+  "deployment_source_equality": {
+    "changes_from_application_commit": [
+      "CHANGE_LOG.md",
+      "docs/validation/fl-assistant-request-errors.json",
+      "scripts/check_assistant_requests_staging.py",
+      "tests/visual/run-fl-assistant.mjs"
+    ],
+    "changes_from_f1_browser_commit": [
+      "CHANGE_LOG.md",
+      "scripts/check_assistant_requests_staging.py"
+    ]
+  },
+  "cleanup": {
+    "owned_databases_dropped": true,
+    "private_cluster_stopped": true,
+    "node_dependency_link_removed": true
+  }
+}

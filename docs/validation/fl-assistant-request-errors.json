@@ -35,6 +35,111 @@
     "passed": 93,
     "failed": 0
   },
-  "full_validation": "pending",
-  "staging_smoke": "pending"
+  "full_validation": {
+    "python": {
+      "collected": 5682,
+      "passed": 5682,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "fresh_database_groups": 21,
+      "host": "127.0.0.1:55471",
+      "initial_run_note": "First final run encountered a local SSL-negotiation connection setup error after 5600 passes. Complete fresh IPv4 rerun passed all 5682; no test suppression."
+    },
+    "node": {
+      "passed": 207,
+      "failed": 0,
+      "skipped": 0
+    },
+    "assistant_browser": {
+      "key_sessions_off": "passed",
+      "key_sessions_on": "passed",
+      "runner_commit": "fb2492d"
+    },
+    "all_browser_runners": {
+      "runner_files": 21,
+      "passed_runner_files": 20,
+      "mode_runs": 26,
+      "passed_mode_runs": 25,
+      "final_assistant_mode_runs": 2,
+      "final_assistant_modes_passed": 2,
+      "known_baseline_failure": {
+        "issue": "FOLLOWUPS.md P1.27",
+        "runner": "run-integrated-intake.mjs",
+        "baseline_commit": "5592cdc011b38d068d0792ed3af1e8a75b2b0c91",
+        "baseline_result": {
+          "runner": "run-integrated-intake.mjs",
+          "mode": 1,
+          "code": 1,
+          "seconds": 31.4,
+          "log": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-baseline-browsers/run-integrated-intake-on.log"
+        },
+        "cause": "30s timeout waiting for intentionally removed #orders-status-filter; matches preexisting P1.27"
+      },
+      "visual_audit": {
+        "captures": 388,
+        "variants": 6,
+        "captured_screen_ids": 88,
+        "capture_errors": 0,
+        "details": "/Users/michaelgross/dev/fl-f1chat-verify-wt/.venv-test/f1-final-browsers/audit-results.json",
+        "findings_are_informational": true,
+        "rule_results_text": "{ PASS: 3257, FAIL: 419, WARN: 64, 'N/A': 1304, ERROR: 0 }",
+        "inventory_screens": 92,
+        "unmatched_endpoints": [
+          "/auth/session/config"
+        ],
+        "rule_results": {
+          "PASS": 3257,
+          "FAIL": 419,
+          "WARN": 64,
+          "N/A": 1304,
+          "ERROR": 0
+        }
+      },
+      "evidence": "fl-assistant-request-errors/local-verification.json"
+    }
+  },
+  "staging_smoke": {
+    "status": "passed",
+    "api_scenarios": [
+      "original_chat",
+      "observed_chat",
+      "spanish_chat",
+      "inventory",
+      "today_entries",
+      "missing_receipt",
+      "dictation"
+    ],
+    "browser_scenarios": [
+      "historical validation card sanitized",
+      "original chat neutral EN desktop / ES mobile",
+      "inventory lookup",
+      "missing receipt neutral",
+      "real dictation editable and unsent"
+    ],
+    "api_evidence": "fl-assistant-request-errors/staging-api-smoke.json",
+    "browser_evidence": "fl-assistant-request-errors/staging-browser-smoke.json",
+    "all_draft_counts": 0,
+    "browser_prepare_record_requests": 0,
+    "initial_preflight_note": "The first helper run used /dash/ for static assets and failed before any scenarios; corrected to the existing /dashboard/ mount, then all hosted checks passed."
+  },
+  "deployment_candidate": "c60649da586384ac14949a109b16e445913ecf30",
+  "source_sha256": {
+    "assistant_tools.py": "c493306523879e52d928cfea20b58042c73e58a9355fe78b1f9e146d3408a535",
+    "fl_assistant.py": "9e551a1badad35027229bd7738bb0548774c9c377c67a6a4ac6cfd77c0ea8528",
+    "dashboard/fl-assistant.js": "ad43cf9bf5a39e5933d1d78319783e141a9aad86430c607f61053d2edf6c7c43",
+    "tests/visual/run-fl-assistant.mjs": "52b41f6c6d4dd2bce36b0cceab3679bfa6ff9c11c01f6ee364f41b7233e5458a"
+  },
+  "staging_deployment": {
+    "id": "0e2f676f-da97-41d0-a6c2-e1903be46bb1",
+    "service_id": "0d957be1-8787-41e5-ab38-de71287c30ce",
+    "status": "SUCCESS",
+    "verified_at": "2026-10-14T19:46:41.022091-04:00",
+    "final_runtime_source_matches_verified_files": true
+  },
+  "local_cleanup": {
+    "owned_databases_dropped": true,
+    "private_cluster_stopped": true,
+    "node_dependency_link_removed": true
+  }
 }

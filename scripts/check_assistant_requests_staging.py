@@ -47,7 +47,7 @@ def check(audio_file):
         assert actor['name'] == 'Michael (staging)' and actor['role'] == 'owner'
         evidence['actor'] = actor['name']
         for filename in ['fl-assistant.js', 'fl-assistant.css']:
-            asset = http.get('/dash/' + filename)
+            asset = http.get('/dashboard/' + filename)
             assert asset.status_code == 200
             assert asset.content == (ROOT / 'dashboard' / filename).read_bytes()
             evidence.setdefault('asset_sha256', {})[filename] = sha256(asset.content).hexdigest()

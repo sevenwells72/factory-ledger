@@ -1,0 +1,108 @@
+{
+  "validated_at": "2026-10-14T19:48:22.323481-04:00",
+  "base_url": "https://fastapi-staging-production-dd7b.up.railway.app",
+  "scenarios": {
+    "original_chat": {
+      "status": "pass",
+      "session_id": "d86853e1-8bb4-47ab-b00f-66a1eac09fe3",
+      "turn_id": "6a942495-1322-44f9-8751-022d663f877c",
+      "kind": "unsupported_request",
+      "model_calls": [
+        {
+          "name": "unsupported_request",
+          "arguments": {}
+        }
+      ],
+      "replay_identical": true,
+      "draft_count": 0
+    },
+    "observed_chat": {
+      "status": "pass",
+      "session_id": "f94047a3-9487-417e-ac84-21e06e262458",
+      "turn_id": "4fff2067-1012-44f9-9d01-7164552c5016",
+      "kind": "unsupported_request",
+      "model_calls": [
+        {
+          "name": "unsupported_request",
+          "arguments": {}
+        }
+      ],
+      "replay_identical": true,
+      "draft_count": 0
+    },
+    "spanish_chat": {
+      "status": "pass",
+      "session_id": "148d5d4c-d9e4-4955-b1da-743914baea6b",
+      "turn_id": "63e15b05-fa70-4da1-8217-1e9406696535",
+      "kind": "unsupported_request",
+      "model_calls": [
+        {
+          "name": "unsupported_request",
+          "arguments": {}
+        }
+      ],
+      "replay_identical": true,
+      "draft_count": 0
+    },
+    "inventory": {
+      "status": "pass",
+      "session_id": "13777629-62a3-446b-bbdf-b42a7fe2cab9",
+      "turn_id": "fcfc70a9-dd55-4964-b466-645854cbf0d0",
+      "kind": "read",
+      "model_calls": [
+        {
+          "name": "inventory_lookup",
+          "arguments": {
+            "q": "SMOKE-TEST-NO-SUCH-ITEM"
+          }
+        }
+      ],
+      "replay_identical": true,
+      "draft_count": 0
+    },
+    "today_entries": {
+      "status": "pass",
+      "session_id": "9f6941cd-0630-4c07-9189-e80005623ed8",
+      "turn_id": "879d727c-0f3f-4ae3-9c84-009818d9b060",
+      "kind": "read",
+      "model_calls": [
+        {
+          "name": "today_entries",
+          "arguments": {}
+        }
+      ],
+      "replay_identical": true,
+      "draft_count": 0
+    },
+    "missing_receipt": {
+      "status": "pass",
+      "session_id": "b118feb5-da54-4929-8eef-e89fafb966b3",
+      "turn_id": "51c53263-0577-4071-8487-8f35052783bc",
+      "kind": "lookup_failed",
+      "model_calls": [
+        {
+          "name": "receipt_lookup",
+          "arguments": {
+            "receipt_number": "RCV-000000-999"
+          }
+        }
+      ],
+      "replay_identical": true,
+      "draft_count": 0
+    },
+    "dictation": {
+      "status": "pass",
+      "text": "I received two cases.",
+      "editable": true,
+      "sent": false,
+      "success": true,
+      "assistant_turns_unchanged": true
+    }
+  },
+  "production_accessed": false,
+  "actor": "Michael (staging)",
+  "asset_sha256": {
+    "fl-assistant.js": "ad43cf9bf5a39e5933d1d78319783e141a9aad86430c607f61053d2edf6c7c43",
+    "fl-assistant.css": "25d8f699352658e9e983df1b6070aad9e320613a2d9f4b5a863421acb69c4b6b"
+  }
+}
