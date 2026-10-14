@@ -15,6 +15,7 @@ try {
     const page=await context.newPage(), errors=[], writes=[];let exchanges=0,logouts=0,expired=false;
     page.on('pageerror',e=>errors.push(e.message));
     await page.route('**/auth/session/config',r=>r.fulfill({json:{key_sessions_enabled:enabled}}));
+    await page.route('**/auth/dashboard-key',r=>r.fulfill({json:{dashboard_key:'shared-fixture'}}));
     await page.route('**/auth/session',r=>{assert.equal(r.request().postDataJSON().actor_key,'fixture-personal');exchanges++;
       return r.fulfill({json:{session_token:'fls_fixture',key_kind:'session',actor:{id:4,name:'Arturo',role:'floor'}}})});
     await page.route('**/auth/whoami',r=>r.fulfill({json:{key_kind:'session',actor:{id:4,name:'Arturo',role:'floor'}}}));
