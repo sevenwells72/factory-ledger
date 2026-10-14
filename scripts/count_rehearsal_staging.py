@@ -14,6 +14,11 @@ Synthetic owner approval demonstrates the flow; it is not Michael's attestation.
 --hosted (P1.21 follow-up, 2026-10-14): ONE area against the DEPLOYED FastAPI-staging
 (no local server): an ordinary lot set plus a shortage lot, a >500 lb hold approved
 under the signed list and a new extra-kosher lot, with per-lot executor timings.
+
+--hosted-groups (O-3, 2026-10-14): three area groups on the DEPLOYED FastAPI-staging, each
+signed and journaled separately (one multi-area extra-kosher lot, one no-change group),
+then `verify_reset.py --whole-reset` proves the union; two negative proofs follow
+(a group left out; an unsigned owner physical_count post).
 """
 import argparse
 import csv
@@ -235,16 +240,19 @@ def tool(args, env, stdin=None, pty=False):
     return subprocess.CompletedProcess(command, proc.returncode, ''.join(seen), ''), round(time.monotonic() - started, 1)
 
 
-def area_run(area, rows, products, workdir, env, owner, base_reason):
-    """One cutover area: pause → preview → owner review → sign → dry run → apply → verify."""
+def area_run(area, rows, products, workdir, env, owner, base_reason, coverage=None, apply=True):
+    """One cutover area: pause → preview → owner review → sign → dry run → apply → verify.
+    `coverage` = (product, completed_at) pairs when a group's files are cumulative;
+    apply=False is the documented no-change group: signed, nothing to post, no journal."""
     folder = workdir / area['slug']
     inputs, out = folder / 'inputs', folder / 'out'
     inputs.mkdir(parents=True)
     write_csv(inputs / 'count.csv', COUNT_COLUMNS, rows)
+    done = max([area['end']] + [a['end'] for a in area.get('with', [])])
     write_csv(inputs / 'coverage.csv', ['product_id', 'SKU', 'name', 'all_locations_searched', 'completed_at', 'owner_initials', 'notes'],
               [dict(product_id=p['id'], SKU=p['odoo_code'], name=p['name'], all_locations_searched='yes',
-                    completed_at=max([area['end']] + [a['end'] for a in area.get('with', [])]).isoformat(),
-                    owner_initials='MG', notes='rehearsal') for p in products])
+                    completed_at=at.isoformat(), owner_initials='MG', notes='rehearsal')
+               for p, at in (coverage or [(p, done) for p in products])])
     write_csv(inputs / 'moves.csv', MOVE_COLUMNS, [])
     timing, pause = {}, time.monotonic()
     names = [area['name']] + [a['name'] for a in area.get('with', [])]
@@ -297,6 +305,21 @@ def area_run(area, rows, products, workdir, env, owner, base_reason):
                                    f'Named actor: {owner}', f'Date: {now().date()}', f'Signature: {owner}',
                                    'Opening entry classification: N', f'Owner approves held entries: {"Y" if needs else "N"}',
                                    'Extra-kosher lots: ' + (', '.join(kosher) or 'none')]) + '\n')
+    paths = dict(inputs=inputs, preview=signed / 'reset-preview-v3.json', approval=approval, review=review_path)
+    if not apply:
+        changes = [r for r in rows_mine if r['adjustment_lb'] and float(r['adjustment_lb'])]
+        if changes:
+            raise RuntimeError('no-change group has changes: ' + json.dumps([(r['product_id'], r['adjustment_lb']) for r in changes], default=str))
+        # Runbook step 18 no-change branch: the same verify, without the proof triplet.
+        verify = ['audits/fresh-start/verify_reset.py', '--v3', str(inputs / 'count.csv'), '--coverage', str(inputs / 'coverage.csv'),
+                  '--moves', str(inputs / 'moves.csv'), '--output-dir', str(out / 'verification'), '--target', 'staging'] + areas + \
+                 (['--review', str(review_path)] if review_path else [])
+        result, timing['verify_s'] = tool(verify, env)
+        verified = json.loads((out / 'verification/reset-verification-v3.json').read_text())
+        return dict(area=', '.join(names), approved_products=approved, preview_sha256=digest, no_change=True, timings_s=timing,
+                    verify_exit=result.returncode, paths=paths,
+                    verified_rows=[dict(product_id=r['product_id'], lot_code=r['lot_code'], status=r['status'], adjustment=r['adjustment_lb'])
+                                   for r in verified['rows'] if r['product_id'] in mine])
     apply_args = ['audits/fresh-start/apply_reset.py', str(signed / 'reset-preview-v3.json'), '--approval', str(approval),
                   '--count-csv', str(inputs / 'count.csv'), '--target', 'staging']
     result, timing['dry_run_s'] = tool(apply_args, env)
@@ -319,7 +342,8 @@ def area_run(area, rows, products, workdir, env, owner, base_reason):
     after = [r for r in verified['rows'] if r['product_id'] in mine]
     readback = list(csv.DictReader((TOOLS / 'apply-results-staging' / digest / 'readback.csv').open()))
     executor = json.loads((TOOLS / 'apply-results-staging' / digest / 'timings.json').read_text())
-    return dict(area=', '.join(names), window=[area['start'].isoformat(), area['end'].isoformat()], approved_products=approved,
+    paths['journal'] = state
+    return dict(area=', '.join(names), window=[area['start'].isoformat(), area['end'].isoformat()], approved_products=approved, paths=paths,
                 held_before_owner_review=held_first,
                 preview_sha256=digest, owner_approves_held=needs, extra_kosher_lots=kosher, timings_s=timing,
                 executor_timings_s=executor, readback=readback,
@@ -370,7 +394,98 @@ def hosted_area(base, floor_key, items, ref, t0, workdir, env, owner, report):
     return [area_run(area, rows, [items['oats'], items['sugar'], coconut, items['extra'], cases15] + misc, workdir, env, owner, ref)]
 
 
-def rehearse(output, hosted=False):
+def whole_reset(workdir, env, manifest, name):
+    """verify_reset.py --whole-reset on one manifest; returns exit code, verdict and gap kinds."""
+    path = workdir / f'manifest-{name}.json'
+    path.write_text(json.dumps(manifest, indent=2, default=str) + '\n')
+    out = workdir / 'whole-reset' / name
+    result, seconds = tool(['audits/fresh-start/verify_reset.py', '--whole-reset', str(path), '--output-dir', str(out)], env)
+    proof = json.loads((out / 'whole-reset-proof.json').read_text()) if (out / 'whole-reset-proof.json').exists() else {}
+    return dict(manifest=str(path.relative_to(TOOLS)), exit=result.returncode, seconds=seconds, verdict=proof.get('verdict'),
+                gaps=[dict((k, g[k]) for k in ('kind', 'group', 'product_id', 'lot_code', 'detail')) for g in proof.get('gaps', [])],
+                groups=[dict((k, g[k]) for k in ('name', 'areas', 'approved_products', 'posts', 'no_change')) for g in proof.get('groups', [])],
+                multi_area_lots=proof.get('multi_area_lots'), stderr_tail=result.stderr[-400:] if result.returncode not in (0, 2) else '')
+
+
+def hosted_groups(base, owner_key, items, ref, workdir, env, owner, report):
+    """O-3 (2026-10-14): three area groups posted one after another on hosted staging, each
+    signed and journaled on its own, then proved as a union with verify_reset --whole-reset.
+    Files are cumulative like the real morning: each group's count/coverage/review copy holds
+    every area transcribed so far and is never edited after its signature."""
+    rows, coverage, results = [], [], []
+    ek_code = f'{ref}-EK-1'.lower()
+
+    def counted(area, specs):
+        area['start'] = now()
+        time.sleep(5)
+        at = now()
+        sheet = 'RG' + str(len(results) + 1) + area['name'][:1]
+        new = [sheet_row(area, sheet, n, product, code, qty, unit, at, est) for n, (product, code, qty, unit, est) in enumerate(specs, 1)]
+        time.sleep(5)
+        area['end'] = now()
+        for r in new:
+            r['end_time'] = area['end'].isoformat()
+        rows.extend(new)
+        time.sleep(2)
+        return area
+
+    g1 = counted(dict(name='Dry storage', slug='group-1-dry-storage'),
+                 [(items['oats'], items['oats']['lot_code'], '395', 'lb', 'x'),
+                  # 520 lb against 1,200 on the book: −680 lb, held for the owner and released under the signed list.
+                  (items['sugar'], items['sugar']['lot_code'], '520', 'lb', '')])
+    coverage += [(items['oats'], g1['end']), (items['sugar'], g1['end'])]
+    results.append(area_run(g1, list(rows), [items['oats'], items['sugar']], workdir, env, owner, ref, coverage=list(coverage)))
+
+    # Group 2 = Warehouse + Cooler: the new extra-kosher lot is counted in BOTH areas (multi-area,
+    # reset once by this group, held in the others) and the granola case lot only in the warehouse.
+    granola = items['granola']
+    g2 = counted(dict(name='Warehouse', slug='group-2-warehouse-cooler'),
+                 [(granola, granola['lot_code'], '39', 'cases', ''), (items['extra'], ek_code, '180', 'lb', '')])
+    cooler = counted(dict(name='Cooler', slug='group-2b-cooler'), [(items['extra'], ek_code, '120', 'lb', '')])
+    g2['with'] = [cooler]
+    coverage += [(granola, cooler['end']), (items['extra'], cooler['end'])]
+    results.append(area_run(g2, list(rows), [granola, items['extra']], workdir, env, owner, ref, coverage=list(coverage)))
+
+    # Group 3 = Office: counted exactly at book, so nothing posts and no journal exists.
+    misc = items['misc1']
+    g3 = counted(dict(name='Office', slug='group-3-office-no-change'), [(misc, misc['lot_code'], '100', 'lb', '')])
+    coverage += [(misc, g3['end'])]
+    results.append(area_run(g3, list(rows), [misc], workdir, env, owner, ref, coverage=list(coverage), apply=False))
+
+    def rel(path):
+        return os.path.relpath(path, workdir)
+
+    scope = sorted({p['id'] for p, _ in coverage})
+    final = results[-1]['paths']
+    groups = []
+    for r in results:
+        group = dict(name=r['area'], areas=[x.strip() for x in r['area'].split(',')], approved_preview=rel(r['paths']['preview']),
+                     approval=rel(r['paths']['approval']))
+        if r.get('no_change'):
+            group['no_change'] = True
+        else:
+            group['journal'] = rel(r['paths']['journal'])
+        groups.append(group)
+    manifest = dict(version=1, target='staging', expected_reset_products=len(scope), rehearsal_scope_product_ids=scope, groups=groups,
+                    notes=f'{ref} hosted-staging O-3 rehearsal; final inputs = the last group\'s signed copies',
+                    final_inputs=dict(count=rel(final['inputs'] / 'count.csv'), coverage=rel(final['inputs'] / 'coverage.csv'),
+                                      moves=rel(final['inputs'] / 'moves.csv'), review=rel(final['review'])))
+    proofs = {'complete': whole_reset(workdir, env, manifest, 'complete')}
+    # Negative 1: leave the no-change group out — its product must be reported as missing.
+    proofs['without_office_group'] = whole_reset(workdir, env, dict(manifest, groups=groups[:2]), 'without-office')
+    # Negative 2: an owner physical_count post outside every signed plan, through the hosted API.
+    oats = items['oats']
+    extra = committed(base, owner_key, '/adjust/prepare', dict(lot_id=oats['lot_id'], delta_lb=1, reason_code='physical_count',
+                                                               note=f'{ref} unsigned recount (rehearsal negative case)',
+                                                               occurred_at=now().isoformat()))
+    report['unsigned_extra_post'] = dict(receipt=extra['receipt_number'], transaction_id=extra['transaction_id'], lb=1)
+    proofs['after_unsigned_post'] = whole_reset(workdir, env, manifest, 'after-unsigned-post')
+    report['whole_reset'] = proofs
+    report['whole_reset_manifest'] = manifest
+    return results
+
+
+def rehearse(output, hosted=False, groups=False):
     uri = guarded_uri()
     ref = 'STG-CNT-' + uuid4().hex[:6].upper()
     t0 = now()
@@ -388,14 +503,17 @@ def rehearse(output, hosted=False):
     for name in ('API_KEY', 'DASHBOARD_API_KEY', 'DATABASE_URL'):
         env.pop(name, None)
     workdir = TOOLS / 'v3' / 'rehearsal' / ref
-    report = dict(reference=ref, mode=('ONE area against the DEPLOYED FastAPI-staging ' + base + ' (guarded staging DB); no local server')
+    report = dict(reference=ref, mode=('THREE area groups + whole-reset proof (O-3) against the DEPLOYED FastAPI-staging ' + base
+                                       + ' (guarded staging DB); no local server') if groups else
+                  ('ONE area against the DEPLOYED FastAPI-staging ' + base + ' (guarded staging DB); no local server')
                   if hosted else 'branch API in-process on 127.0.0.1 against guarded STAGING; no hosted deployment',
                   owner_actor=ids['owner'], floor_actor=ids['floor'], products={k: v['id'] for k, v in items.items()},
                   synthetic_owner_not_michael=True)
     try:
         if hosted:
             report['key_cache_wait_s'] = wait_for_keys(base, (owner_key, floor_key))
-            report['areas'] = hosted_area(base, floor_key, items, ref, t0, workdir, env, owner, report)
+            report['areas'] = (hosted_groups(base, owner_key, items, ref, workdir, env, owner, report) if groups else
+                               hosted_area(base, floor_key, items, ref, t0, workdir, env, owner, report))
         else:
             report['areas'] = local_areas(base, floor_key, items, ref, t0, workdir, env, owner, report)
         evidence(uri, ids, items, report)
@@ -410,7 +528,8 @@ def rehearse(output, hosted=False):
             OWNER_KEY_FILE.unlink()
         except FileNotFoundError:
             pass
-        output.write_text(json.dumps(report, indent=2, default=str) + '\n')
+        # Repo-relative paths only: the receipt is committed.
+        output.write_text(json.dumps(report, indent=2, default=str).replace(str(ROOT) + '/', '') + '\n')
 
 
 def local_areas(base, floor_key, items, ref, t0, workdir, env, owner, report):
@@ -490,13 +609,15 @@ def evidence(uri, ids, items, report):
     """Read back the shortage, the new extra-kosher lot and the owner holds from staging."""
     ek_code = report['reference'] + '-EK-1'
     with connection(uri) as cur:
+        shortage_ids = report.get('shortage', {}).get('exceptions', [])   # --hosted-groups has no shortage fixture
         cur.execute("""SELECT e.id,e.status,e.resolution_kind,e.resolution_ticket_id,e.resolution_receipt_number,
                               xr.action AS resolution_receipt_action,xr.status AS resolution_receipt_status,
                               fix.receipt_number AS resolution_posting_receipt_number,e.detail->'resolution' AS resolution
                        FROM exceptions e LEFT JOIN write_tickets xr ON xr.receipt_number=e.resolution_receipt_number
                        LEFT JOIN write_tickets fix ON fix.id=e.resolution_ticket_id
-                       WHERE e.id=ANY(%s)""", (report['shortage']['exceptions'],))
-        report['shortage']['after'] = [dict(r) for r in cur.fetchall()]
+                       WHERE e.id=ANY(%s)""", (shortage_ids,))
+        if 'shortage' in report:
+            report['shortage']['after'] = [dict(r) for r in cur.fetchall()]
         cur.execute("""SELECT l.id,l.lot_code,l.kosher_tier,l.kosher_attested_by_actor_id,l.kosher_attested_at,l.entry_source
                        FROM lots l WHERE l.product_id=%s AND l.lot_code=%s""", (items['extra']['id'], ek_code.upper()))
         report['extra_kosher_lot'] = [dict(r) for r in cur.fetchall()]
@@ -514,9 +635,11 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--hosted', action='store_true', help='one area against the deployed FastAPI-staging (no local server)')
+    parser.add_argument('--hosted-groups', action='store_true',
+                        help='three area groups on the deployed FastAPI-staging, then the whole-reset union proof (O-3)')
     args = parser.parse_args()
     try:
-        rehearse(args.output, args.hosted)
+        rehearse(args.output, args.hosted or args.hosted_groups, args.hosted_groups)
         print(args.output)
     except Exception as exc:
         # Never print libpq errors or tracebacks that could carry a URI or key.

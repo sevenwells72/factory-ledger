@@ -105,3 +105,35 @@ python3 -B audits/fresh-start/verify_reset.py --v3 \
 ```
 
 Replace every example path/hash with the actual files. Before any apply, verification without journal flags is a valid read-only comparison. After an apply, unproved opening entries cause a hold. Verification returns 0 only for full reset scope with no unexplained differences; otherwise 2. Newly entered ordinary movements remain visible and must be reviewed when they meet the live-count rules. A new read-only report does not authorize another write.
+
+## Whole-reset proof (all area groups — cutover runbook step 20, O-3)
+
+The command above proves one group. After the last group, prove all of them together. Write a manifest (JSON, kept under `audits/fresh-start/`, outside the output folder; relative paths resolve from the manifest's folder):
+
+```json
+{
+  "version": 1,
+  "target": "production",
+  "expected_reset_products": 178,
+  "final_inputs": {"count": "inputs-final/count.csv", "coverage": "inputs-final/coverage.csv",
+                   "moves": "inputs-final/moves.csv", "review": "inputs-final/owner-review.json"},
+  "groups": [
+    {"name": "G1 Dry storage", "areas": ["Dry storage"],
+     "approved_preview": "G1/reset-preview-v3.json", "approval": "G1/approval.md",
+     "journal": "../apply-state/<G1 preview SHA-256>/journal.jsonl"},
+    {"name": "G3 Office", "areas": ["Office"],
+     "approved_preview": "G3/reset-preview-v3.json", "approval": "G3/approval.md", "no_change": true}
+  ]
+}
+```
+
+```sh
+python3 -B audits/fresh-start/verify_reset.py --whole-reset audits/fresh-start/<run>/whole-reset-manifest.json \
+  --output-dir audits/fresh-start/<run>/verification/whole-reset
+```
+
+- **Each group is proved first.** The signature, the preview hash, the signed input files (unchanged since signing), the journal chain and the ticket proof are checked as in the single-group verify. Every approved change must have exactly one proved post, with no held or uncertain ticket. Every `ok` journal receipt must match that post. A group with `"no_change": true` must approve only zero changes and must have no journal.
+- **Then the union is proved.** Each reset-scope product is approved by exactly one group (`OVERLAP` / `MISSING_PRODUCT`). Each lot and observation in the final count is in the approving group's signed plan, unchanged (`MISSING_LOT`, `MISSING_OBSERVATION`, `CHANGED_OBSERVATION`). A multi-area lot is reset once, by the group that selected all its areas, and held in the others. No lot is posted by two groups (`DOUBLE_POST`). A post is `POST_OUTSIDE_APPROVED_PLAN` when it is not a proved post of a group and either has opening-balance text or is a `physical_count` ticket by a group's named actor since the first signed preview. A signed owner answer may not change later (`REVIEW_CHANGED`). The reset scope must equal `expected_reset_products` (`SCOPE_CHANGED`).
+- **Final whole-scope check.** The final inputs are analysed with every group's proved posts. Their usual home is the last group's signed copies, which hold every area transcribed. It must reach FULL RESET SCOPE RECONCILED; any remaining hold or difference is a gap.
+- **Output.** `whole-reset-proof.md` / `.json`, `whole-reset-gaps.csv`, and the standard verification files under `final/`. Exit 0 = **FULL RESET SCOPE RECONCILED**; exit 2 = gaps; a malformed manifest stops with a message. The tool makes one read-only snapshot, has no API client and never imports the write executor.
+- Never concatenate journals or edit a signed file to make the proof pass. `rehearsal_scope_product_ids` is refused unless `target` is `staging`. Hosted-staging proof: `WHOLE-RESET-PROOF-2026-10-14.md`.

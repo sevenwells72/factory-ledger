@@ -643,6 +643,13 @@ def reconcile_tickets(rows, s, attempts_list, actor_name):
 
 def journal_openings(preview_path,approval_path,journal_path,s,data):
  """Read-only proof of prior executor writes. Never imports the write executor."""
+ return {x['line_id'] for x in journal_proof(preview_path,approval_path,journal_path,s,data)['completed'].values()}
+
+
+def journal_proof(preview_path,approval_path,journal_path,s,data):
+ """journal_openings with its evidence: proved posts per lot, held/uncertain lots,
+ the plan rows with a change, approval fields and the journal's intents/receipts.
+ whole_reset_proof.py uses this per area group (O-3)."""
  preview_path,approval_path,journal_path=map(f.local_path,(preview_path,approval_path,journal_path))
  raw=preview_path.read_bytes();plan=json.loads(raw,parse_float=D);signed=approval_path.read_bytes()
  check(plan.get('version')==3,'Journal verification requires a v3 preview')
@@ -679,8 +686,9 @@ def journal_openings(preview_path,approval_path,journal_path,s,data):
   if r.get('adjustment_lb') is None or not f.number(r['adjustment_lb']):continue
   lid=r['lot_key'] if r.get('new_lot') else r['lot_id']
   rows[lid]=dict(r,pid=r['product_id'],lid=lid,change=f.number(r['adjustment_lb']))
- completed,_,_=reconcile_tickets(rows,s,[(i,receipts.get(seq)) for seq,i in intents.items()],fields['Named actor'])
- return {x['line_id'] for x in completed.values()}
+ completed,held,uncertain=reconcile_tickets(rows,s,[(i,receipts.get(seq)) for seq,i in intents.items()],fields['Named actor'])
+ return dict(completed=completed,held=held,uncertain=uncertain,rows=rows,fields=fields,plan=plan,intents=intents,receipts=receipts,
+             preview_sha256=sha(raw),approval_sha256=sha(signed),journal_sha256=sha(journal))
 
 
 def main(verify=False):
