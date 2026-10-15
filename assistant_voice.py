@@ -174,6 +174,55 @@ _CODE_RE = re.compile(
 _LETTER_CODE_RE = re.compile(rf'\b(?P<prefix>[a-z])\s+(?P<number>{_CODE_PHRASE})\b', re.I)
 
 
+
+def normalize_order_code(value: str) -> str:
+    """Canonicalize only a complete explicit SO spelling, retaining its zeros."""
+    words = r'(?:[0-9]+|zero|oh|one|two|three|four|five|six|seven|eight|nine|cero|uno|dos|tres|cuatro|cinco|seis|siete|ocho|nueve)'
+    # A greedy word pattern cannot determine the date/sequence boundary in an
+    # all-digit dictation without dash; parse the complete explicit SO span.
+    whole = re.compile(r'(?<!\w)(?:s\s*\.?\s*o\.?|ese\s+o)[\s-]+'
+        r'(?P<body>(?:' + words + r'|dash|guion|guión)(?:[\s-]+(?:' + words + r'|dash|guion|guión))*)(?!\w)', re.I)
+    digits = {**{key:str(v) for key,v in _EN_SMALL.items() if v < 10},
+              **{key:str(v) for key,v in _ES_SMALL.items() if v < 10}, 'oh':'0'}
+    def convert(match):
+        # Typed separators are opaque. Only the documented six-digit SO date
+        # and sequence may retain their existing hyphen in this helper.
+        if '-' in match['body'] and not re.search(r'[a-z]', match['body'], re.I):
+            if not re.fullmatch(r'\d{6}-\d{3,}', match['body']):
+                return match[0]
+        tokens = _tokens(match['body'])
+        separators=[i for i,t in enumerate(tokens) if t in {'dash','guion'}]
+        if separators:
+            if len(separators)!=1: return match[0]
+            at=separators[0]
+            groups=[tokens[:at],tokens[at+1:]]
+        elif len(tokens)==2 and all(t.isdigit() for t in tokens):
+            groups=[[tokens[0]],[tokens[1]]]
+        else:
+            raw=''.join(t if t.isdigit() else digits.get(t,'?') for t in tokens)
+            if '?' in raw or len(raw)<9: return match[0]
+            groups=[[raw[:6]],[raw[6:]]]
+        parts=[''.join(t if t.isdigit() else digits.get(t,'?') for t in group) for group in groups]
+        if '?' in ''.join(parts) or len(parts[0])!=6 or len(parts[1])<3: return match[0]
+        return 'SO-' + parts[0] + '-' + parts[1]
+    # Keep a following shipment quantity outside the identifier. Look for
+    # parseable quantity/unit spans at every word boundary so a spoken code's
+    # number words cannot greedily hide a later 'ten cases' / 'diez cajas'.
+    quantities = []
+    end = 0
+    for start in re.finditer(r'(?<!\w)(?=\w)', value):
+        match = _QUANTITY_RE.match(value, start.start())
+        if match and match.start() >= end and _quantity(match['number']) is not None:
+            quantities.append((match.start(), match.end(), match[0]))
+            end = match.end()
+    for index, (start, end, original) in reversed(list(enumerate(quantities))):
+        value = value[:start] + f'\ue010{chr(0xe200 + index)}\ue011' + value[end:]
+    value = whole.sub(convert, value)
+    for index, (_, _, original) in enumerate(quantities):
+        value = value.replace(f'\ue010{chr(0xe200 + index)}\ue011', original)
+    return value
+
+
 def normalize_voice_text(text: str, *, protected_codes=()) -> str:
     """Return the same utterance with explicit voice spellings canonicalized.
 
@@ -241,6 +290,7 @@ def normalize_voice_text(text: str, *, protected_codes=()) -> str:
         label = match.groupdict().get('label')
         return (label + ' ' if label else '') + prefix + number + suffix
 
+    text = normalize_order_code(text)
     text = _PRODUCT_RE.sub(product, text)
     text = _BOL_RE.sub('BOL', text)
     text = _CODE_RE.sub(code, text)

@@ -8,7 +8,7 @@ def language(text, previous='en'):
         return 'es'
     words = unicodedata.normalize('NFKD', text.lower())
     words = ''.join(c for c in words if not unicodedata.combining(c))
-    if re.search(r"\b(hola|registre|registramos|entradas|hoy|puedes|puede|donde|quien|cual|cantidad|recibio|recibieron|totalmente|solo una prueba|calcula|registres|guardes|ordenes|abiertas|fabricamos|existencias|avena|miel|recibimos|recibi|recibir|hicimos|hice|empacamos|empacado|empaque|enviamos|enviar|cuanto|cuanta|cuantos|cuales|que pedidos|pedidos abiertos|muestra|mostrar|semillas|girasol|libras|cajas|lote|inventario|tenemos|hay|ajusta|ajustar|ninguno|otro)\b", words):
+    if re.search(r"\b(hola|registre|registramos|entradas|hoy|puedes|puede|donde|quien|cual|cantidad|recibio|recibieron|totalmente|solo una prueba|calcula|registres|guardes|ordenes|abiertas|fabricamos|existencias|avena|miel|recibimos|recibi|recibir|hicimos|hice|empacamos|empacado|empaque|enviamos|enviar|envia|envie|pedido|cuanto|cuanta|cuantos|cuales|que pedidos|pedidos abiertos|muestra|mostrar|semillas|girasol|libras|cajas|lote|inventario|tenemos|hay|ajusta|ajustar|ninguno|otro)\b", words):
         return 'es'
     if re.search(r"\b(what|which|how|received|receive|made|make|packed|pack|ship|orders|inventory|lot|show|adjust)\b", words):
         return 'en'
@@ -146,7 +146,7 @@ FIELD_LABELS = {
     'occurred_at': ('when it happened', 'cuándo ocurrió'), 'case_weight_lb': ('case size (lb)', 'peso por caja (lb)'),
     'supplier_id': ('supplier', 'proveedor'), 'product_id': ('product', 'producto'),
     'cases': ('number of cases', 'número de cajas'), 'case_size_lb': ('case size (lb)', 'peso por caja (lb)'),
-    'bol_reference': ('BOL number', 'número de BOL'), 'source_product_id': ('source batch', 'lote de producción de origen'),
+    'bol_reference': ('BOL number', 'número de BOL'), 'source_product_id': ('bulk batch', 'lote a granel'),
     'target_product_id': ('finished product', 'producto terminado'), 'batches': ('number of batches', 'número de tandas'),
 }
 
@@ -161,6 +161,9 @@ def decorate(card, lang):
     elif kind == 'clarify':
         card['message'] = ('No reconocí «' + card.get('query', '') + '». Escriba el nombre, número de producto o SKU.' if es else
                            'I did not recognize “' + card.get('query', '') + '”. Give the name, product number or SKU.')
+        if card.get('resolution_kind') == 'order':
+            card['message'] = (f"No encontré el pedido {card.get('query', '')}. Escriba su número o el nombre del cliente." if es else
+                               f"I couldn't find order {card.get('query', '')}. Give its number or customer name.")
         if card.get('resolution_kind') == 'lot':
             card['message'] = (f"No hay un lote llamado {card.get('query', '')}." if es else f"No lot called {card.get('query', '')}.")
     elif kind == 'choices':
@@ -171,12 +174,23 @@ def decorate(card, lang):
             query = card.get('query', '')
             card['message'] = ((f'No encontré el lote {query}. ' if query else '') + '¿De qué lote a granel salieron?' if es else
                                (f"I couldn't find lot {query}. " if query else '') + 'Which batch did these come from?')
+        if card.get('packing_outputs'):
+            card['message'] = '¿Qué producto terminado empacaron?' if es else 'Which finished product did you pack?'
+        if card.get('order_not_found'):
+            card['message'] = (f"No encontré el pedido {card.get('query', '')}. Elija un pedido abierto de ese cliente." if es else
+                               f"I couldn't find order {card.get('query', '')}. Choose that customer's open order.")
         result = dict(card['result'])
         result['ask'] = card['message']
         # Catalog names remain the identities printed on physical labels.
         card['result'] = result
     elif kind == 'missing_facts':
         card['message'] = 'Agrega los datos que faltan.' if es else 'Please add the missing details.'
+        if card.get('packing_batch_needed'):
+            card['message'] = '¿De qué lote a granel salieron? Escriba el código de la etiqueta.' if es else 'Which batch did these come from? Give the code on its tag.'
+        if card.get('shipping_quantity_needed'):
+            order = card['order']
+            card['message'] = (f"¿Cuánto del pedido {order['order_number']} vamos a enviar? Quedan {number(order['remaining_lb'])} lb." if es else
+                               f"How much of order {order['order_number']} should we ship? {number(order['remaining_lb'])} lb remains.")
         card['missing_details'] = [{'field': f, 'label': FIELD_LABELS.get(f, (f.replace('_', ' '), f.replace('_', ' ')))[es]} for f in card['fields']]
         if card.get('known_facts', {}).get('quantity_lb') is not None:
             qty = number(card['known_facts']['quantity_lb'])

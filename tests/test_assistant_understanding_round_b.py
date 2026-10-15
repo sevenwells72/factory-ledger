@@ -110,6 +110,14 @@ def test_packing_uses_real_parent_or_batch_lot_then_filled_draft(client,chat,ite
            ((' del lote ' if spanish else ' from batch ')+source['lot_code'] if with_lot else ''))
     assert r.status_code==200,r.text
     c=r.json()['cards'][0]
+    if not with_lot:
+        assert c['kind']=='choices' and c['packing_lots'] is True
+        assert [lot['id'] for lot in c['result']['candidates']] == [source['lot_id']]
+        assert ('¿De qué lote a granel salieron?' if spanish else 'Which batch did these come from?') in c['message']
+        model(monkeypatch, ('prepare_pack',args))
+        r=turn(client,chat,choice_id=c['id'],selected_id=source['lot_id'])
+        assert r.status_code==200,r.text
+        c=r.json()['cards'][0]
     assert c['kind']=='draft',c
     draft=c['prepared']['draft']
     assert draft['total_lb']==50 and draft['cases']==10

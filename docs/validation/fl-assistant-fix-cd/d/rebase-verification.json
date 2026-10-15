@@ -1,0 +1,21 @@
+{
+  "prior_tested_head": "317d7db7e0fc652d94cc77ef4fc0960c8b66c443",
+  "rebased_head": "67a7fd5925870bd8d97577ebe6e828e3f9c56798",
+  "new_base": "440b8c652db3e520cf21468aed2f473f6b0ef186",
+  "previous_tree": "5f7c84d7f674ca1f95926a8eaff92599f335a5f7",
+  "rebased_tree": "5f7c84d7f674ca1f95926a8eaff92599f335a5f7",
+  "entire_tree_identical": true,
+  "runtime_hashes_matched": 14,
+  "conflicts": 0,
+  "source_test_schema_and_config_changed": false,
+  "existing_both_mode_validation_retained": {
+    "python_per_mode": 6443,
+    "node": 379,
+    "real_model_transcripts": 40
+  },
+  "tests_rerun": false,
+  "reason": "Rebase changed ancestry only; every repository file is byte-identical to the fully tested D head.",
+  "new_staging_dump": false,
+  "new_real_model_calls": 0,
+  "checked_at_utc": "2026-10-15T20:00:05.721388+00:00"
+}

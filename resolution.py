@@ -39,6 +39,9 @@ def normalize_lot(text):
 # active product names, so a translation cannot invent a product or bypass an
 # inactive catalog row. Long phrases precede words to preserve the intended food.
 CATALOG_SPANISH_ALIASES = {
+    'coco en hojuelas endulzado': 'sweetened flake coconut',
+    'coco endulzado en hojuelas': 'sweetened flake coconut',
+    'hojuelas de coco endulzadas': 'sweetened flake coconut',
     'semillas de girasol': 'sunflower seeds',
     'semilla de girasol': 'sunflower seeds',
     'semillas de calabaza': 'pumpkin seeds',

@@ -3281,7 +3281,7 @@ def _record_actor_write(cur, request: Optional[Request], target_table: str,
     )
 
 
-def _authorize_api_key(provided_key: str, request: Request, invalid_status: int = 403) -> bool:
+def _authenticate_incoming_api_key(provided_key: str, request: Request, invalid_status: int = 403) -> bool:
     """Shared check for all dependencies. Master key -> always OK. Dashboard
     key -> DASHBOARD_KEY_ALLOWLIST. Read-only GPT key (G1, only when
     READONLY_API_KEY is set) -> READONLY_KEY_ALLOWLIST. Actor keys additionally
@@ -3331,6 +3331,42 @@ def _authorize_api_key(provided_key: str, request: Request, invalid_status: int 
             return True
         raise HTTPException(status_code=403, detail="API key not authorized for this endpoint")
     raise HTTPException(status_code=invalid_status, detail="Invalid API key")
+
+
+class _VerifiedApiIdentity:
+    """A Python-only capability for internal steps of one authenticated request.
+
+    HTTP headers cannot supply this object. Every new incoming request still
+    resolves its live session before any internal step can reuse the actor.
+    """
+    def __init__(self, request):
+        self.actor = dict(request.state.actor)
+        self.kind = request.state.key_kind
+        self.session_id = getattr(request.state, 'actor_session_id', None)
+        self.expires_at = getattr(request.state, 'session_expires_at', None)
+
+    def authorize(self, request):
+        request.state.actor = dict(self.actor)
+        request.state.key_kind = self.kind
+        request.state.actor_session_id = self.session_id
+        request.state.session_expires_at = self.expires_at
+        route_key = _route_key(request)
+        if self.kind == 'session' and route_key in key_sessions.ROUTES:
+            return True
+        if route_key in (DASHBOARD_KEY_ALLOWLIST | ACTOR_WRITE_ALLOWLIST):
+            permissions.require_route(route_key, _actor_identity(request))
+            return True
+        raise HTTPException(status_code=403, detail="API key not authorized for this endpoint")
+
+
+def _authorize_api_key(provided_key: str, request: Request, invalid_status: int = 403) -> bool:
+    verified = request.scope.get('_fl_verified_identity')
+    if isinstance(verified, _VerifiedApiIdentity):
+        return verified.authorize(request)
+    result = _authenticate_incoming_api_key(provided_key, request, invalid_status)
+    if request_actor(request) is not None:
+        request.scope['_fl_verified_identity'] = _VerifiedApiIdentity(request)
+    return result
 
 
 def verify_api_key(request: Request, x_api_key: str = Header(None, alias="X-API-Key")):
@@ -14066,7 +14102,8 @@ def list_sales_orders(
                                'product', pallet_p.name,
                                'sku', pallet_p.odoo_code,
                                'uom', COALESCE(pallet_p.uom, 'lb'),
-                               'case_size_lb', pallet_p.case_size_lb,
+                               'case_size_lb', COALESCE(pallet_sol.ordered_case_weight_lb, pallet_p.case_size_lb),
+                               'ordered_unit', pallet_sol.ordered_unit,
                                'unit_count', CASE WHEN pallet_p.case_size_lb > 0 THEN ROUND(pallet_sol.quantity_lb / pallet_p.case_size_lb) END,
                                'shipped_units', CASE WHEN pallet_p.case_size_lb > 0 THEN ROUND(pallet_sol.quantity_shipped_lb / pallet_p.case_size_lb) END,
                                'remaining_units', CASE WHEN pallet_p.case_size_lb > 0 THEN ROUND((pallet_sol.quantity_lb - pallet_sol.quantity_shipped_lb) / pallet_p.case_size_lb) END,
@@ -14161,7 +14198,8 @@ def list_sales_orders(
                     "total_units": total_units,
                     "shipped_units": shipped_units,
                     "remaining_units": total_units - shipped_units,
-                    "pallet_lines": r['pallet_lines'],
+                    "pallet_lines": [dict(line, remaining_lb=readiness_by_line.get(line['line_id'], {}).get('readiness', {}).get('remaining_lb', 0))
+                                     for line in r['pallet_lines']],
                     "ready": bool(r['ready']),
                     "ready_at": r['ready_at'].isoformat() if r['ready_at'] else None,
                     "ready_by": r['ready_by'],

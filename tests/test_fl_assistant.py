@@ -151,6 +151,11 @@ def test_each_action_uses_real_fl_prepare_and_commit(client, chat, items, db_cur
     r = turn(client, chat, action)
     assert r.status_code == 200, r.text
     card = r.json()['cards'][0]
+    if action == 'pack':
+        assert card['kind'] == 'choices' and card['packing_lots'] is True
+        assert any(lot['id'] == items['batch']['lot_id'] for lot in card['result']['candidates'])
+        model(monkeypatch, ('prepare_pack', payload))
+        card = turn(client, chat, text='', choice_id=card['id'], selected_id=items['batch']['lot_id']).json()['cards'][0]
     assert card['kind'] == 'draft', card
     confirmations = []
     if action in ('make', 'pack'):
@@ -405,7 +410,7 @@ def test_out_of_scope_has_fixed_neutral_outcome_and_no_fl_write(client, chat, mo
     response = turn(client, chat, text)
     assert response.status_code == 200, response.text
     assert response.json()['cards'] == message_cards('unsupported_request', language)
-    assert paths == [('GET', '/correction-reasons')]
+    assert paths == [], 'The fixed reason catalog is cached without internal HTTP relays'
     assert len(requests) == 1
     assert 'RECORDED!' not in response.text
     db_cursor.execute('SELECT count(*) AS n FROM assistant_drafts WHERE session_id=%s', (chat[0],))
@@ -496,7 +501,9 @@ def test_today_has_separate_actor_team_counts_and_model_prose_hidden(client, cha
     assert r.status_code == 200, r.text
     card = r.json()['cards'][0]
     expected = client.get('/receipts', headers=chat[1], params={'summary': 'true'}).json()
-    assert card['kind'] == 'read' and card['result']['receipts'] == expected['receipts']
+    assert card['kind'] == 'read'
+    assert [r['receipt_number'] for r in card['result']['receipts']] == [r['receipt_number'] for r in expected['receipts'][:20]]
+    assert card['result']['view_all'] is True
     assert card['result']['team_count'] == len(expected['receipts'])
     assert card['result']['own_count'] == sum(row['actor']['id'] == actors['floor']['id'] for row in expected['receipts'])
     assert not requests, 'Day review must work without model availability'
@@ -761,6 +768,11 @@ def test_a3b_shortage_warning_and_receipt_survive_assistant(client, chat, items,
              ('product_id', 'source_product_id', 'target_product_id') if f in payload]
     model(monkeypatch, *calls, ('prepare_' + action, payload))
     card = turn(client, chat).json()['cards'][0]
+    if action == 'pack':
+        assert card['kind'] == 'choices' and card['packing_lots'] is True
+        assert any(lot['id'] == items['batch']['lot_id'] for lot in card['result']['candidates'])
+        model(monkeypatch, ('prepare_pack', payload))
+        card = turn(client, chat, text='', choice_id=card['id'], selected_id=items['batch']['lot_id']).json()['cards'][0]
     warnings = card['prepared']['warnings']
     assert any(w['code'] == 'WILL_CREATE_SHORTAGE' and w['message_es'] and not w['requires_ack'] for w in warnings)
     confirmations = [{'lot_id': i['lot_id'], 'method': 'full_code', 'value': i['lot_code']}
@@ -1108,6 +1120,11 @@ def test_partial_ship_order_rejects_invented_or_ineligible_detail_line_ids(clien
         args['lines'][0]['line_id'] = 9223372036854775807
     else:
         db_cursor.execute('UPDATE sales_order_lines SET line_status=%s WHERE id=%s', (line_status, args['lines'][0]['line_id']))
+        if line_status == 'cancelled':
+            # Keep actual shipment work on the order while testing the cancelled
+            # line; an order with no remaining physical work is excluded in D.
+            db_cursor.execute('INSERT INTO sales_order_lines(sales_order_id,product_id,quantity_lb) VALUES (%s,%s,1)',
+                              (detail['order_id'], data['products']['food']))
     requests = model(monkeypatch, resolve, *([('prepare_ship_order', args)] * 2))
     response = turn(client, chat)
     assert response.status_code == 200

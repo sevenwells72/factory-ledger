@@ -1,0 +1,126 @@
+{
+  "actor_role": "owner",
+  "reason_note": "STAGING TEST CLEANUP",
+  "selected": [
+    {
+      "order_number": "SO-261012-001",
+      "order_id": 1000000007,
+      "customer": "STG-A6-EC3429B9180B customer",
+      "remaining_lb": 0.0
+    },
+    {
+      "order_number": "SO-261012-003",
+      "order_id": 1000000011,
+      "customer": "STG-A6H-83911280CA customer",
+      "remaining_lb": 0.0
+    },
+    {
+      "order_number": "SO-261012-004",
+      "order_id": 1000000013,
+      "customer": "STG-A6H-A52A97B6FF customer",
+      "remaining_lb": 0.0
+    },
+    {
+      "order_number": "SO-261012-005",
+      "order_id": 1000000015,
+      "customer": "STG-A6H-A52A97B6FF customer",
+      "remaining_lb": 0.0
+    },
+    {
+      "order_number": "SO-261013-001",
+      "order_id": 1000000019,
+      "customer": "STG-F1-AABCF507E9 customer",
+      "remaining_lb": 0.0
+    },
+    {
+      "order_number": "SO-261014-001",
+      "order_id": 1000000021,
+      "customer": "STG-PILOT-261014-D60C7286 TEST CUSTOMER",
+      "remaining_lb": 0.0
+    },
+    {
+      "order_number": "SO-261014-002",
+      "order_id": 1000000023,
+      "customer": "STG-PILOT-261014-D60C7286 TEST CUSTOMER",
+      "remaining_lb": 0.0
+    }
+  ],
+  "changed": [
+    {
+      "order_number": "SO-261012-001",
+      "customer": "STG-A6-EC3429B9180B customer",
+      "action": "close",
+      "state_after": "closed",
+      "reason": "shipped_recorded",
+      "note": "STAGING TEST CLEANUP",
+      "receipt_number": "ORD-261015-010"
+    },
+    {
+      "order_number": "SO-261012-003",
+      "customer": "STG-A6H-83911280CA customer",
+      "action": "close",
+      "state_after": "closed",
+      "reason": "shipped_recorded",
+      "note": "STAGING TEST CLEANUP",
+      "receipt_number": "ORD-261015-011"
+    },
+    {
+      "order_number": "SO-261012-004",
+      "customer": "STG-A6H-A52A97B6FF customer",
+      "action": "close",
+      "state_after": "closed",
+      "reason": "shipped_recorded",
+      "note": "STAGING TEST CLEANUP",
+      "receipt_number": "ORD-261015-012"
+    },
+    {
+      "order_number": "SO-261012-005",
+      "customer": "STG-A6H-A52A97B6FF customer",
+      "action": "close",
+      "state_after": "closed",
+      "reason": "shipped_recorded",
+      "note": "STAGING TEST CLEANUP",
+      "receipt_number": "ORD-261015-013"
+    },
+    {
+      "order_number": "SO-261013-001",
+      "customer": "STG-F1-AABCF507E9 customer",
+      "action": "close",
+      "state_after": "closed",
+      "reason": "shipped_recorded",
+      "note": "STAGING TEST CLEANUP",
+      "receipt_number": "ORD-261015-014"
+    },
+    {
+      "order_number": "SO-261014-001",
+      "customer": "STG-PILOT-261014-D60C7286 TEST CUSTOMER",
+      "action": "close",
+      "state_after": "closed",
+      "reason": "shipped_recorded",
+      "note": "STAGING TEST CLEANUP",
+      "receipt_number": "ORD-261015-015"
+    },
+    {
+      "order_number": "SO-261014-002",
+      "customer": "STG-PILOT-261014-D60C7286 TEST CUSTOMER",
+      "action": "close",
+      "state_after": "closed",
+      "reason": "shipped_recorded",
+      "note": "STAGING TEST CLEANUP",
+      "receipt_number": "ORD-261015-016"
+    }
+  ],
+  "blocked": [],
+  "protected_before": {
+    "SO-261015-001": "65cc043f5903340d2b4ad923411d92c83ee31f8a0567b5bf69ed89acd31e6b4e",
+    "SO-261015-002": "544035e9c886a0ff0aa6883922afe70aba847c18a32436666ff0ab6d473a82b0",
+    "SO-261015-003": "b57ac9c3b930a97900c36eaa0856dbb1b65deefcfe23284c05b136c0cc098b5c"
+  },
+  "protected_after": {
+    "SO-261015-001": "65cc043f5903340d2b4ad923411d92c83ee31f8a0567b5bf69ed89acd31e6b4e",
+    "SO-261015-002": "544035e9c886a0ff0aa6883922afe70aba847c18a32436666ff0ab6d473a82b0",
+    "SO-261015-003": "b57ac9c3b930a97900c36eaa0856dbb1b65deefcfe23284c05b136c0cc098b5c"
+  },
+  "protected_unchanged": true,
+  "remaining_open_stg": []
+}

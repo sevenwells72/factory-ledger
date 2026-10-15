@@ -49,14 +49,42 @@ def response_dict(response):
 
 
 def choose_inputs(api, cur, requirements, overrides):
+    # Fetch every candidate's identity and posted balance once. This preserves
+    # the old per-product FIFO order, including zero/negative lots used by the
+    # shortage policy, while avoiding two database trips for every lot.
+    automatic = sorted(set(requirements) - set(overrides))
+    explicit_ids = sorted({overrides[pid] for pid in requirements if pid in overrides})
+    by_id, by_product = {}, {}
+    if requirements:
+        cur.execute(f'''SELECT l.id,l.product_id,l.lot_code,l.status,l.kosher_tier,
+                p.name AS product_name,COALESCE(sum(tl.quantity_lb),0) AS on_hand_lb
+            FROM lots l JOIN products p ON p.id=l.product_id
+            LEFT JOIN {api.POSTED_LINES} tl ON tl.lot_id=l.id
+            WHERE (l.product_id=ANY(%s::int[]) AND l.status IS DISTINCT FROM 'merged')
+               OR l.id=ANY(%s::int[])
+            GROUP BY l.id,p.name
+            ORDER BY l.product_id,COALESCE(l.received_at,l.created_at),l.id''',
+            (automatic, explicit_ids))
+        for record in cur.fetchall():
+            row = dict(record, on_hand_lb=float(record['on_hand_lb']))
+            by_id[row['id']] = row
+            if row['product_id'] in automatic and row['status'] != 'merged':
+                by_product.setdefault(row['product_id'], []).append(row)
     plan = []
     for pid, needed in sorted(requirements.items()):
         if pid in overrides:
-            rows = [lot(api, cur, overrides[pid], pid)]
+            row = by_id.get(overrides[pid])
+            if not row:
+                fail('LOT_NOT_FOUND', 'Lot is missing; resolve an existing lot.')
+            label = f'{row["product_name"]} lot {row["lot_code"]}'
+            if row['product_id'] != pid:
+                expected = product(api, cur, pid)
+                fail('LOT_NOT_FOUND', f'{label} does not belong to {expected["name"]}.')
+            if row['status'] == 'merged':
+                fail('LOT_MERGED', f'{label} was merged; prepare again with the surviving lot.')
+            rows = [row]
         else:
-            cur.execute('''SELECT id FROM lots WHERE product_id=%s AND status IS DISTINCT FROM 'merged'
-                           ORDER BY COALESCE(received_at,created_at),id''', (pid,))
-            rows = [lot(api, cur, row['id'], pid) for row in cur.fetchall()]
+            rows = by_product.get(pid, [])
         remaining = needed
         for row in rows:
             take = min(max(0, float(row['on_hand_lb'])), remaining)
@@ -72,7 +100,6 @@ def choose_inputs(api, cur, requirements, overrides):
                 name = product(api, cur, pid)['name']
                 fail('INSUFFICIENT_STOCK', f'{name} needs {float(needed)} lb and has no lot to record the shortage against; receive it first.')
     return plan
-
 
 def validate(api, cur, action, payload, lock=False):
     # A5 hook: non-ledger pallet evidence uses the same ticket lifecycle.

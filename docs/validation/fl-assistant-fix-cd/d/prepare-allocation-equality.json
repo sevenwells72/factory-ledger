@@ -1,0 +1,18 @@
+[
+  {
+    "product_id": 107,
+    "name": "Batch Classic Granola #9",
+    "before_queries": 230,
+    "after_queries": 38,
+    "allocation_evidence_equal": true,
+    "changed_fields": []
+  },
+  {
+    "product_id": 116,
+    "name": "Batch SS Original Granola #1",
+    "before_queries": 220,
+    "after_queries": 37,
+    "allocation_evidence_equal": true,
+    "changed_fields": []
+  }
+]
