@@ -39,6 +39,7 @@ import ship_tickets
 import kosher_tiers
 import shift_summary
 import lot_confirmation
+import oat_bran_substitution
 import exceptions_enforcement
 import resolution
 import permissions
@@ -8791,7 +8792,7 @@ def _require_recipe_inputs(formula, product, excluded_ids=()):
         })
 
 
-def _make_preview_core(cur, req, *, product=None):
+def _make_preview_core(cur, req, *, product=None, auto_substitute=True):
     product = product if product is not None else resolve_product_full(cur, req.product_name)
     batch_size = float(product.get('default_batch_lb') or 0)
     yield_multiplier = float(product.get('yield_multiplier') or 1.0)
@@ -8933,11 +8934,14 @@ def _make_preview_core(cur, req, *, product=None):
         if auto_count: parts.append(f"{auto_count} auto-excluded")
         if manual_count: parts.append(f"{manual_count} manually excluded")
         response["preview_message"] += f" ({', '.join(parts)} ingredient(s))"
+    if auto_substitute:
+        oat_bran_substitution.apply_preview(sys.modules[__name__], cur, product, response,
+                                            override_codes=lot_overrides)
     response.update(kosher_tiers.fields(product))
     return response
 
 
-def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, ticket_id=None, receipt_number=None, require_new_lot=False, input_plan=None, substitutions=None, kosher_attestation=None):
+def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, ticket_id=None, receipt_number=None, require_new_lot=False, input_plan=None, substitutions=None, auto_substitutions=None, kosher_attestation=None):
     product = product if product is not None else resolve_product_full(cur, req.product_name)
 
     if kosher_tiers.tier(product)==kosher_tiers.EXTRA:
@@ -9002,6 +9006,26 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
     if substitutions:
         formula = lot_confirmation.substituted_formula(formula, substitutions)
 
+    if auto_substitutions is None and oat_bran_substitution.eligible(product):
+        # All make routes take advisory lock 3 before input locks. Lock the
+        # candidate lots in the same ID order as tickets, then measure stock.
+        # A concurrent receipt may add a new lot, but existing stock cannot be
+        # consumed between this decision and the real ledger deductions.
+        pair = oat_bran_substitution.identities(cur, product)
+        if pair:
+            ids = sorted({r['ingredient_product_id'] for r in formula} | {pair[1]['id']})
+            cur.execute('SELECT id FROM lots WHERE product_id=ANY(%s) ORDER BY id FOR UPDATE', (ids,))
+            cur.fetchall()
+        original_inputs = [{'ingredient_id': r['ingredient_product_id'],
+                            'needed_lb': float(to_decimal(r['quantity_lb']) * to_decimal(req.batches))}
+                           for r in formula if not r.get('exclude_from_inventory')
+                           and r['ingredient_product_id'] not in manual_excluded_ids]
+        auto_substitutions = oat_bran_substitution.plan(sys.modules[__name__], cur, product, original_inputs,
+                                                       excluded=manual_excluded_ids | {r['ingredient_product_id'] for r in formula if r.get('exclude_from_inventory')},
+                                                       override_codes=req.get_lot_overrides())
+    auto_substitutions = auto_substitutions or []
+    formula = oat_bran_substitution.formula(formula, auto_substitutions, req.batches)
+
     auto_excluded_ids = set()
     for ing in formula:
         if ing.get('exclude_from_inventory'):
@@ -9013,6 +9037,9 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
         exclusion_note += f" (manually excluded IDs: {sorted(manual_excluded_ids)})"
     if auto_excluded_ids:
         exclusion_note += f" (auto-excluded IDs: {sorted(auto_excluded_ids)})"
+    posted_substitutions = [oat_bran_substitution.messages(row, posted=True) for row in auto_substitutions]
+    if posted_substitutions:
+        exclusion_note += ' ' + ' '.join(row['message_en'] + ' / ' + row['message_es'] for row in posted_substitutions)
 
     cur.execute("""
         INSERT INTO transactions (
@@ -9052,7 +9079,8 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
 
     for ing in formula:
         ing_id = ing['ingredient_product_id']
-        needed = float(to_decimal(ing['quantity_lb']) * to_decimal(req.batches))
+        needed = (float(to_decimal(Decimal(str(ing['quantity_lb'])) * to_decimal(req.batches)))
+                  if auto_substitutions else float(to_decimal(ing['quantity_lb']) * to_decimal(req.batches)))
         ing_name = ing_names.get(ing_id, f"ID {ing_id}")
         if ing_id in excluded_ids:
             excluded_from_run.append({
@@ -9119,6 +9147,8 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
             if remaining > BALANCE_EPSILON:
                 raise HTTPException(status_code=400, detail=f"Insufficient inventory for ingredient ID {ing_id}. Missing {remaining:.2f} lb")
 
+    oat_bran_substitution.record(cur, txn_id, auto_substitutions, _entered_by_actor_id(request))
+
     # Trace emission (§4): after every transaction_lines/ILC
     # write, fail-hard. /make has no allocation side-writes.
     if trace_emit_enabled():
@@ -9147,6 +9177,11 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
         "ingredients_consumed_grouped": list(consumed_by_ingredient.values()),
         "message": f"Produced {total_output} lb as lot {lot_code}"
     }
+    if oat_bran_substitution.eligible(product):
+        response['auto_substitutions'] = posted_substitutions
+    if posted_substitutions:
+        response['message'] += ' ' + ' '.join(row['message_en'] for row in posted_substitutions)
+        response['message_es'] = f"Se produjeron {total_output} lb como lote {lot_code}. " + ' '.join(row['message_es'] for row in posted_substitutions)
     if code_similarity:
         response.setdefault("warnings", []).append(code_similarity)
     production_warning = build_production_warning(product)

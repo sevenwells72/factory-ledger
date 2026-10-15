@@ -130,11 +130,19 @@
       list.append(el('dt', name), el('dd', typeof value === 'object' ? JSON.stringify(value) : String(value)));
     }); node.append(list);
   }
+  function autoSubstitutions(node, result) {
+    for (const item of result.auto_substitutions || []) {
+      if (!item.message_en || !item.message_es) continue;
+      const message = el('p', t(item.message_en, item.message_es), 'auto-substitution');
+      message.setAttribute('role', 'status'); node.append(message);
+    }
+  }
   function renderReceipt(node, result) {
     if (!validReceipt(result)) { failed(node, t('FL returned no receipt number.', 'FL no devolvió un número de recibo.')); return; }
     node.replaceChildren(); node.className = 'card receipt';
     node.append(el('span', t('✓ RECORDED IN FACTORY LEDGER', '✓ REGISTRADO EN FACTORY LEDGER'), 'eyebrow'), el('h3', result.receipt_number, 'receipt-number'));
     node.append(el('p', result.replayed ? t('Same entry, same receipt. Your retry did not create another entry.', 'Misma entrada, mismo recibo. El reintento no creó otra entrada.') : t('FL confirmed this entry.', 'FL confirmó esta entrada.')));
+    autoSubstitutions(node, result);
     fields(node, [[t('Transaction', 'Transacción'), result.transaction_id], [t('Product', 'Producto'), result.product_name || result.target_product_name], [t('Lot', 'Lote'), result.lot_code || result.output_lot_code],
       [t('Customer', 'Cliente'), result.customer_name || result.customer], [t('Shipment', 'Envío'), result.shipment_id],
       [t('BOL', 'BOL'), result.bol_reference], [t('Photo status', 'Estado de foto'), result.proof_status === 'complete' ? t('Attached', 'Adjunta') : result.proof_status === 'photo_pending' ? t('Pending', 'Pendiente') : result.proof_status]]);
@@ -187,6 +195,7 @@
       [t('Photo status', 'Estado de foto'), draft.photo === 'attached' ? t('Attached', 'Adjunta') : draft.photo === 'pending' ? t('Pending', 'Pendiente') : draft.photo],
       [t('Reason', 'Motivo'), language === 'es' ? draft.reason_es || draft.reason_code : draft.reason_code],
       [t('Happened at', 'Ocurrió el'), draft.happened_at], [t('Expires', 'Vence'), prepared.expires_at]]);
+    autoSubstitutions(node, draft);
     for (const line of draft.lines || []) {
       const row = el('div', undefined, 'ship-line');
       row.append(el('strong', line.product || line.product_name));
@@ -292,6 +301,11 @@
       if (card.result.has_more) { const more = button(t('More choices →', 'Más opciones →'), () => select(null, true), 'choice-button'); choices.push(more); node.append(more); }
     } else if (card.kind === 'read') {
       node.append(el('span', t('FROM FACTORY LEDGER', 'DE FACTORY LEDGER'), 'eyebrow'), el('h3', t('Here’s what FL shows', 'Esto muestra FL')));
+      const directMakes = card.result.direct_make_substitutions;
+      if (directMakes?.rows?.length) {
+        node.append(el('h4', t(directMakes.label_en, directMakes.label_es)));
+        for (const row of directMakes.rows) node.append(el('p', t(row.line_en, row.line_es)));
+      }
       const receipts = card.result.receipts;
       if (receipts) {
         if (!receipts.length) node.append(el('p', t('No receipts for you today.', 'No hay recibos tuyos hoy.')));

@@ -386,6 +386,7 @@ def receipt_row(api, cur, catalog, number, day, *, receipt=None, ticket=None):
                 substitutions.append({'ingredient_product': catalog.product_ref(s['ingredient_product_id']),
                                       'substitute_product': catalog.product_ref(s['substitute_product_id']),
                                       'lot': catalog.lot_ref(s.get('lot_id')),
+                                      'note': s.get('note'),
                                       'reason_code': {k: reason[k] for k in ('code', 'label_en', 'label_es')} if reason else None})
             row['quantity'] = quantity(lb)
             row['detail'] = {'batch_product': catalog.product_ref(out_product), 'output_lb': lb, 'ingredients': ingredients,
@@ -398,6 +399,11 @@ def receipt_row(api, cur, catalog, number, day, *, receipt=None, ticket=None):
                             + (f'  ingredients: {ing_en}' if ing_en else ''),
                             f'{number}  {row["product"]["name"]} {_ACTION_ES["make"]} {code}  {fmt_lb(lb)} lb  lote {row["lot"]["lot_code"] if row["lot"] else "?"}'
                             + (f'  ingredientes: {ing_es}' if ing_es else ''), 'line'))
+            if response.get('auto_substitutions'):
+                row['detail']['auto_substitutions'] = response['auto_substitutions']
+                for substitution in response['auto_substitutions']:
+                    row['line_en'] += '  ' + substitution['message_en']
+                    row['line_es'] += '  ' + substitution['message_es']
         else:
             source = payload['source_product_id']
             src = next((i for i in draft.get('input_plan') or [] if i['product_id'] == source), None)
@@ -633,9 +639,55 @@ def reduced(row):
     return out
 
 
-def summary_hash(api, sections):
+def summary_hash(api, sections, direct_makes=None):
     reduced_sections = [{'key': s['key'], 'rows': [reduced(r) for r in s['rows']]} for s in sections if s['key'] in RECEIPT_SECTIONS]
+    if direct_makes:
+        # Direct GPT makes have no MK receipt. Include their immutable substitution
+        # evidence without inventing receipt numbers or changing receipt counts.
+        reduced_sections.append({'key': 'direct_make_substitutions', 'rows': [
+            dict(_without_lang_copies({k: r[k] for k in ('transaction_id', 'happened_at', 'entered_at',
+                                                       'quantity_lb', 'auto_substitutions')}),
+                 consumed_lots=[{k: lot[k] for k in ('lot_id', 'quantity_lb')} for lot in r['consumed_lots']])
+            for r in direct_makes]})
     return wt.canonical_hash(wt.json_value(api, reduced_sections))
+
+
+def direct_make_substitutions(api, cur, day, actor):
+    """Expose the direct GPT route's persisted swaps, without manufacturing tickets."""
+    cur.execute(f'''SELECT t.id AS transaction_id,t.occurred_at,t.created_at,
+                          p.id AS product_id,p.name AS product_name,l.id AS lot_id,l.lot_code,
+                          output.quantity_lb,s.note,
+                          COALESCE((SELECT jsonb_agg(jsonb_build_object(
+                              'lot_id',used.lot_id,'lot_code',used_lot.lot_code,
+                              'quantity_lb',-used.quantity_lb) ORDER BY used.id)
+                              FROM {api.POSTED_LINES} used JOIN lots used_lot ON used_lot.id=used.lot_id
+                              WHERE used.transaction_id=t.id AND used.product_id=s.substitute_product_id
+                                AND used.quantity_lb<0),'[]'::jsonb) AS consumed_lots
+                   FROM transactions t JOIN transaction_substitutions s ON s.transaction_id=t.id
+                   JOIN {api.POSTED_LINES} output ON output.transaction_id=t.id AND output.quantity_lb>0
+                   JOIN products p ON p.id=output.product_id JOIN lots l ON l.id=output.lot_id
+                   WHERE t.type='make' AND t.ticket_id IS NULL AND t.business_date=%s
+                     AND s.reason_code='oat_bran_auto_substitute'
+                     AND (%s::integer IS NULL OR t.entered_by_actor_id=%s)
+                   ORDER BY t.occurred_at,t.id''', (day, actor['id'] if actor else None, actor['id'] if actor else None))
+    rows = []
+    for result in cur.fetchall():
+        try:
+            evidence = json.loads(result['note'] or '{}')
+        except (TypeError, ValueError):
+            continue
+        if not isinstance(evidence, dict) or not evidence.get('automatic'):
+            continue
+        row = {k: result[k] for k in ('transaction_id', 'quantity_lb', 'consumed_lots')}
+        row.update(product={'id': result['product_id'], 'name': result['product_name']},
+                   lot={'id': result['lot_id'], 'lot_code': result['lot_code']},
+                   happened_at=iso(result['occurred_at'], api), entered_at=iso(result['created_at'], api),
+                   auto_substitutions=[evidence])
+        en = f'Transaction {result["transaction_id"]}  {result["product_name"]}  {fmt_lb(result["quantity_lb"])} lb  lot {result["lot_code"]}'
+        es = f'Transacción {result["transaction_id"]}  {result["product_name"]}  {fmt_lb(result["quantity_lb"])} lb  lote {result["lot_code"]}'
+        row.update(pair(en + '  ' + evidence['message_en'], es + '  ' + evidence['message_es'], 'line'))
+        rows.append(row)
+    return rows
 
 
 # ---------------------------------------------------------------------------
@@ -890,6 +942,7 @@ def build(api, cur, *, day, actor, caller, lang='en'):
     other_numbers = [n for n in numbers if action_of.get(n) not in ACTION_SECTION]
     receipt_rows = [receipt_row(api, cur, catalog, number, day, receipt=loaded[number][0], ticket=loaded[number][1]) for number in ledger_numbers]
     other_rows = [other_receipt_row(api, cur, catalog, number, receipt=loaded[number][0]) for number in other_numbers]
+    direct_makes = direct_make_substitutions(api, cur, day, actor)
     sections = []
     by_key = {}
     for key, label_en, label_es, empty_en, empty_es in SECTIONS:
@@ -942,10 +995,13 @@ def build(api, cur, *, day, actor, caller, lang='en'):
         'other_receipts': {**pair('OTHER ENTRIES (orders, expected receipts, lot moves)',
                                   'OTRAS ENTRADAS (pedidos, recepciones esperadas, movimientos de lote)', 'label'),
                            **pair('none', 'ninguno', 'empty'), 'count': len(other_rows), 'rows': other_rows},
+        'direct_make_substitutions': {
+            **pair('DIRECT MAKES — OAT SUBSTITUTIONS', 'PRODUCCIÓN DIRECTA — SUSTITUCIONES CON AVENA', 'label'),
+            'count': len(direct_makes), 'rows': direct_makes},
         'sections': sections,
     }
     document = localise(wt.json_value(api, document), lang)
-    document['summary_hash'] = summary_hash(api, document['sections'])
+    document['summary_hash'] = summary_hash(api, document['sections'], document['direct_make_substitutions']['rows'])
     return document
 
 

@@ -4,7 +4,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT))
 url=os.environ['TEST_DATABASE_URL']; parsed=urlsplit(url)
-assert parsed.hostname in ('localhost','127.0.0.1') and parsed.path.startswith('/fl_d12_browser'), 'Dedicated local DB required'
+assert parsed.hostname in ('localhost','127.0.0.1') and parsed.path.startswith(('/fl_d12_browser','/fl_oatbran_browser_')), 'Dedicated local DB required'
 os.environ.update(DATABASE_URL=url,API_KEY='d12-local-master',DASHBOARD_API_KEY='d12-local-read',KEY_SESSIONS_ENABLED=os.environ.get('KEY_SESSIONS_ENABLED','1'),EVIDENCE_STORAGE_DIR=str(ROOT/'.venv-test/d12-evidence'),PACKING_SLIP_SIGNING_KEY='d12-local-signing')
 # O-7: pages read DASHBOARD_API_KEY from GET /auth/dashboard-key, so any value works.
 import psycopg2
@@ -28,6 +28,17 @@ with psycopg2.connect(url) as conn,conn.cursor(cursor_factory=RealDictCursor) as
  cur.execute("INSERT INTO sales_orders(customer_id,order_number,order_date,status) VALUES(%s,'SO-D12-BROWSER',CURRENT_DATE,'confirmed') RETURNING id",(customer,));order=cur.fetchone()['id']
  cur.execute('INSERT INTO sales_order_lines(sales_order_id,product_id,quantity_lb,unit_price) VALUES(%s,%s,5,1)',(order,products['Test Cases']))
  data={'products':products,'lots':lots,'supplier':supplier,'customer':customer,'actors':actors,'order':order}
+ if os.environ.get('OATBRAN_BROWSER')=='1':
+  oatbran_products={};oatbran_lots={}
+  for name,kind,code in [('Oat Bran','ingredient','11031'),('Rolled Oats','ingredient','11032'),('SS #1','batch','90016'),('SS #2','batch','90011'),('SS #3','batch','90013')]:
+   cur.execute("INSERT INTO products(name,odoo_code,type,uom,default_batch_lb,active) VALUES(%s,%s,%s,'lb',350,true) RETURNING id",('Oatbran Browser '+name,code,kind));oatbran_products[name]=cur.fetchone()['id']
+  for name,bran_lb in [('SS #1',28),('SS #2',29),('SS #3',28)]:
+   for ingredient,lb in [('Oat Bran',bran_lb),('Rolled Oats',185)]:
+    cur.execute('INSERT INTO batch_formulas(product_id,ingredient_product_id,quantity_lb) VALUES(%s,%s,%s)',(oatbran_products[name],oatbran_products[ingredient],lb))
+  for name,qty,code in [('Oat Bran',10,'OATBRAN-BROWSER-001'),('Rolled Oats',500,'OATS-BROWSER-001')]:
+   pid=oatbran_products[name];cur.execute('INSERT INTO lots(product_id,lot_code) VALUES(%s,%s) RETURNING id',(pid,code));lid=cur.fetchone()['id'];oatbran_lots[name]={'id':lid,'code':code}
+   cur.execute("INSERT INTO transactions(type,notes) VALUES('receive','Oat bran automatic substitution browser fixture') RETURNING id");tx=cur.fetchone()['id'];cur.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES(%s,%s,%s,%s)',(tx,pid,lid,qty))
+  data['oatbran']={'products':oatbran_products,'lots':oatbran_lots}
  if os.environ.get('D2_OFFICE_FIXTURE')=='1':
   from tests.visual.office_seed import seed_office
   seed_office(cur,data)

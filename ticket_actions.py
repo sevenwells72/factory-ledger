@@ -6,6 +6,7 @@ import json
 import kosher_tiers as a12
 import lot_confirmation as a5
 import exceptions_enforcement as a3b
+import oat_bran_substitution as oat_bran
 
 from fastapi import HTTPException
 
@@ -102,13 +103,19 @@ def validate(api, cur, action, payload, lock=False):
         req = api.MakeRequest(**common, product_name=p['name'], batches=payload['batches'],
             lot_code=payload.get('lot_code'), excluded_ingredients=payload.get('excluded_ingredients'),
             confirmed_sku=payload['confirmed_sku'], ingredient_lot_overrides=override_codes)
-        draft = api._make_preview_core(cur, req, product=p)
+        draft = api._make_preview_core(cur, req, product=p, auto_substitute=False)
         if draft['total_output_lb'] <= 0:
             fail('INVALID_OUTPUT', f'{p["name"]} requires a positive configured batch weight.')
         if draft.get('sku_confirmation_required') and not req.confirmed_sku:
             fail('SKU_CONFIRMATION_REQUIRED', f'Confirm {p["name"]} as the output SKU and prepare again.')
         # A5 hook: explicitly substitute recipe inputs before selecting lots.
         substitutions = a5.prepare_substitutions(api, cur, payload, draft, overrides, lock)
+        frozen_auto = payload.get('specification', {}).get('auto_substitutions') if input_plan is not None else None
+        auto_substitutions = oat_bran.apply_preview(api, cur, p, draft, manual=substitutions,
+                                                   overrides=overrides, frozen=frozen_auto)
+        for automatic in auto_substitutions:
+            if automatic['available_bran_lb'] <= api.BALANCE_EPSILON:
+                overrides.pop(automatic['ingredient_product_id'], None)
         for ingredient in draft['ingredients']:
             pid = ingredient['ingredient_id']
             requirements[pid] = requirements.get(pid, 0) + float(api.to_decimal(ingredient['needed_lb']))
@@ -116,10 +123,13 @@ def validate(api, cur, action, payload, lock=False):
             fail('UNUSED_LOT_SELECTION', 'An ingredient override is not part of this batch.')
         input_plan = input_plan if input_plan is not None else choose_inputs(api, cur, requirements, overrides)
         output_product, output_code = p, draft['lot_code']
-        options = {'product': p, 'input_plan': input_plan, 'substitutions': substitutions}
+        options = {'product': p, 'input_plan': input_plan, 'substitutions': substitutions,
+                   'auto_substitutions': auto_substitutions}
         specification = {'requirements': requirements, 'output_lb': draft['total_output_lb'],
                          'excluded': draft.get('excluded_ingredients', []),
                          'original_requirements': {i['ingredient_id']: i['needed_lb'] for i in draft['original_ingredients']}}
+        if oat_bran.eligible(p):
+            specification['auto_substitutions'] = auto_substitutions
     elif action == 'pack':
         if lock:
             # Keep the legacy source-lot/allocation lock order before any pinned input locks.
@@ -255,6 +265,13 @@ def validate(api, cur, action, payload, lock=False):
     # at commit under FOR UPDATE — and posted + flagged instead of blocking.
     if action in ('make', 'pack'):
         draft['shortages'] = a3b.shortfalls(input_plan, states)
+        if action == 'make' and lock and oat_bran.eligible(p):
+            pair = oat_bran.identities(cur, p)
+            manually_changed = {s['ingredient_product_id'] for s in substitutions}
+            excluded_inputs = {i['ingredient_id'] for i in draft.get('excluded_ingredients', [])}
+            if pair and pair[0]['id'] not in manually_changed and pair[1]['id'] not in excluded_inputs and any(
+                    shortage['product_id'] == pair[0]['id'] for shortage in draft['shortages']):
+                fail('INPUT_PLAN_CHANGED', 'The reviewed oat bran is no longer available; prepare again to use extra oats.')
     if action == 'adjust':
         states.append(current)
     if output_product:

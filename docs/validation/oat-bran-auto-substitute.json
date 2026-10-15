@@ -1,0 +1,121 @@
+{
+  "branch": "fix/oat-bran-auto-substitute",
+  "base": "e41bc2e9ee182096cf6fe3dbb0599c18fcd4c225",
+  "date": "2026-10-15",
+  "production_read_only": {
+    "access": "SELECT queries in explicit READ ONLY transactions, port 5432; GET live OpenAPI; no writes",
+    "migration_081_applied_at": "2026-10-14T14:43:34.483451Z",
+    "stock_lb": {
+      "Oat Bran (31, 11031)": 0,
+      "Oats (32, 11032)": 14041.2
+    },
+    "oats_lots": [
+      {
+        "id": 1511,
+        "code": "26-09-28-QUAL-001",
+        "lb": 12041.2
+      },
+      {
+        "id": 1585,
+        "code": "26-10-12-DUTC-005",
+        "lb": 2000
+      }
+    ],
+    "ss_makes_since_migration": [
+      {
+        "transaction_id": 2661,
+        "product_id": 116,
+        "batches": 4,
+        "output_lb": 1400,
+        "created_at": "2026-10-14T20:43:13.192Z",
+        "bran_excluded": true,
+        "recorded_oats_lb": 740,
+        "extra_oats_not_recorded_lb": 112
+      }
+    ],
+    "make_tickets_since_migration": 0,
+    "relevant_shortage_exceptions_since_migration": 0,
+    "limitation": "Rejected direct HTTP makes are not persisted, so SELECT history cannot prove whether an attempt failed or was blocked.",
+    "current_gpt_make_can_record_true_swap": false,
+    "workaround": "Existing /make/prepare manual substitution: Oat Bran (31) to Oats (32), selecting the actual oats lot. The direct GPT /make exclusion merely skips bran and cannot add replacement oats."
+  },
+  "implementation": {
+    "scope": [
+      "90016 SS #1",
+      "90011 SS #2",
+      "90013 SS #3"
+    ],
+    "rule": "Use available oat bran first; substitute rolled oats pound-for-pound for missing bran, added to normal recipe oats.",
+    "paths": [
+      "direct /make (+ preview/commit aliases)",
+      "make prepare/commit tickets",
+      "dashboard make",
+      "FL Assistant"
+    ],
+    "audit": "Actual oats lots in transaction_lines and ingredient_lot_consumption, immutable transaction_substitutions JSON, bilingual notes and receipts, ticket and direct shift-summary display.",
+    "manual": "Explicit swaps/exclusions preserved; no recipe data or migration changes.",
+    "ticket_stock_change": "Confirmed input quantities stay frozen. Depleted confirmed bran requires a fresh draft; depleted oats retains normal shortage policy."
+  },
+  "validation": {
+    "python_full": {
+      "passed": 5805,
+      "failed": 0,
+      "skipped": 0,
+      "database": "fl_oatbran_final_20261015",
+      "source": "fresh local PG17 schema, pinned Python 3.12",
+      "seconds": 145.61,
+      "final_source_rerun": true
+    },
+    "python_new_regressions": 39,
+    "python_shift_audit_regressions": 2,
+    "baseline_main": {
+      "ref": "e41bc2e",
+      "python_new_behavior_failed": 31,
+      "python_preservation_passed": 6,
+      "tested_version_cases": 37,
+      "node_new_display_failed": 13
+    },
+    "node_full": {
+      "passed": 234,
+      "failed": 0,
+      "skipped": 0
+    },
+    "browser_runs_passed": 12,
+    "browser_runs": [
+      "run-d2",
+      "run-d12",
+      "run-d12-fixes",
+      "run-d12-auth",
+      "run-d12-gating",
+      "run-d12-auth-off",
+      "run-d12-preview",
+      "run-oatbran",
+      "run-fl-assistant legacy",
+      "run-fl-assistant key sessions",
+      "run-production-trace",
+      "run-dashboard-key-failure"
+    ],
+    "browser_details": {
+      "real_auto_makes": 3,
+      "production_trace_viewport_theme_cases": 4,
+      "dashboard_key_cases": 48,
+      "netlify_local_forwarding_pages": 13,
+      "netlify_local_forwarding_hosts": 4,
+      "visual_review": "English and Spanish preview/receipt at 390px and desktop inspected; no overflow."
+    },
+    "independent_review": "No concrete correctness blockers reported. Audit hash label stability checked separately.",
+    "production_or_staging_writes": false,
+    "all_created_databases_dropped": true,
+    "runtime_sha256": {
+      "main.py": "79b260d3d8a954401b92ac7ac9cc139f046435e50e6b428d5975f9746bb0a750",
+      "ticket_actions.py": "0311d566cf99f076e30ba8ca310b7d82f8adf62b95c55bbf7653f736ebb93b3c",
+      "oat_bran_substitution.py": "f7875b7f3faef170d0bb96c481a894fcfd2fb924baa21f7d80718955afed26f3",
+      "shift_summary.py": "4b754bad7a7928ead5701ae649fdcd90a07a7e59adb99821e67532ab51a7fa8d",
+      "dashboard/ledger-ui.js": "b4326cad980f2aa923cd2e3410dd1ea1557e7e24178c88fb87e77667af276e21",
+      "dashboard/ledger-ticket.js": "5d63b5131c9efc081bcae5e0830f1da5c7595f31af5d1b421d30da34718aeb2d",
+      "dashboard/fl-assistant.js": "b0778aa54c9ace947b8cd00f09d40679c3f6d56dfd36df59cf4c5461fcc41e5a",
+      "dashboard/shift-summary.js": "f216d40cfeabc0a841203bc6fd01f2f2574422ce7b258d8f5e78cdaeee437e0b"
+    }
+  },
+  "deployment": "Draft PR only; not merged or deployed."
+}

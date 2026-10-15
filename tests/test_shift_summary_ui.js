@@ -2,6 +2,17 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const ui = require('../dashboard/shift-summary.js');
 
+for (const lang of ['en', 'es']) test(`direct oat substitutions are visible in ${lang} without fake receipts`, () => {
+  const block = { count: 1, label_en: 'DIRECT MAKES — OAT SUBSTITUTIONS', label_es: 'PRODUCCIÓN DIRECTA — SUSTITUCIONES CON AVENA',
+    rows: [{ transaction_id: 123, line_en: 'Transaction 123 <SS> — used 28 lb extra oats instead.',
+      line_es: 'Transacción 123 <SS> — se usaron 28 lb adicionales de avena.' }] };
+  const html = ui.summaryHtml({ sections: [], direct_make_substitutions: block }, lang);
+  assert.match(html, /data-key="direct_make_substitutions"/);
+  assert.ok(html.includes(lang === 'es' ? 'se usaron 28 lb adicionales' : 'used 28 lb extra oats'));
+  assert.ok(html.includes('&lt;SS&gt;'));
+  assert.ok(!html.includes('/receipts/'));
+});
+
 const doc = {
   date: '2026-10-07', lang: 'en', receipts_today: 2, summary_hash: 'a'.repeat(64),
   title: 'SHIFT SUMMARY — Tue Oct 7 — Arturo', title_en: 'SHIFT SUMMARY — Tue Oct 7 — Arturo', title_es: 'RESUMEN DEL TURNO — mar 7 oct — Arturo',

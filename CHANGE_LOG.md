@@ -1,5 +1,75 @@
 # Change Log
 
+## 2026-10-15 10:13 — Verify final SS oat fallback and remove all disposable test databases
+- **File(s) changed:** docs/validation/oat-bran-auto-substitute.json
+- **What changed:** Final-source fresh PG17 run passes 5,805 Python tests (zero failures/skips); full Node 234 and 12 browser runs pass. Record runtime hashes and verify all created fl_oatbran databases and suite-created databases are removed.
+- **Why:** Complete requested verification and cleanup before pushing the draft PR. Production remained SELECT-only.
+
+---
+
+## 2026-10-15 10:12 — Record production read-only findings and SS automatic substitution regression guard
+- **File(s) changed:** FACTORY_LEDGER_CHANGELOG.md, docs/validation/oat-bran-auto-substitute.json
+- **What changed:** Add next regression-guard row 208 and production findings, implemented scope, baseline failures, full Python/Node counts and local browser evidence.
+- **Why:** Make the urgent Sunshine fix and its verified behavior reviewable before the authorized draft PR. No production or staging writes, deployment or merge.
+
+---
+
+## 2026-10-15 10:09 — Complete exclusion regression coverage and preserve immutable summary hashes
+- **File(s) changed:** tests/test_oat_bran_auto_substitute.py, shift_summary.py, tests/test_oat_bran_shift_summary.py
+- **What changed:** Test both direct and ticket explicit oats exclusion; hash direct make evidence by consumed lot IDs and pounds, excluding mutable lot display codes.
+- **Why:** Preserve manual choices and keep a label correction from invalidating an unchanged shift confirmation.
+
+---
+
+## 2026-10-15 10:07 — Preserve explicit oats exclusions without invalid automatic evidence
+- **File(s) changed:** oat_bran_substitution.py, ticket_actions.py
+- **What changed:** Respect an explicitly excluded oats ingredient instead of adding then skipping replacement oats; keep the existing shortage behavior for that manual override.
+- **Why:** Automatic fallback must preserve explicit manual choices and must never create empty lot evidence or an internal error.
+
+---
+
+## 2026-10-15 10:07 — Preserve empty-lot choices and test original-main failures
+- **File(s) changed:** oat_bran_substitution.py, tests/test_oat_bran_auto_substitute.py, tests/visual/run-d12-auth.mjs
+- **What changed:** Drop obsolete empty-bran lot selection after full replacement, pin recipe-test IDs independently of sequences, and allow isolated fl_oatbran browser databases with the pinned interpreter.
+- **Why:** Empty bran lots must not block the automatic swap; test isolation must not create false baseline failures.
+
+---
+
+## 2026-10-15 10:05 — Add real-browser make coverage and stabilize bilingual audit hashes
+- **File(s) changed:** shift_summary.py, tests/test_oat_bran_shift_summary.py, tests/test_oat_bran_auto_substitute.py, tests/visual/d12_fixture.py, tests/visual/run-oatbran.mjs, tests/visual/run-fl-assistant.mjs
+- **What changed:** Exclude language display copies from direct substitution hashes; test effective void events; add isolated browser fixtures and real no/partial/short-oats makes plus Assistant EN/ES notices, expanding manual-swap regressions.
+- **Why:** Verify displayed substitutions, lot deductions and confirmations stay correct in each client.
+
+---
+
+## 2026-10-15 10:05 — Wire all make paths to automatic oat replacement and add route regressions
+- **File(s) changed:** main.py, ticket_actions.py, oat_bran_substitution.py, tests/test_oat_bran_auto_substitute.py
+- **What changed:** Apply automatic bran-first/oats-rest planning in direct preview/commit and signed ticket preparation; preserve confirmed input quantities, record actual lots and substitution evidence, and add direct/ticket/Assistant regression cases against main.
+- **Why:** Prevent absent oat bran blocking SS makes while preserving explicit manual swaps and existing oats shortage behavior.
+
+---
+
+## 2026-10-15 10:04 — Test direct substitution shift evidence and bilingual display
+- **File(s) changed:** tests/test_oat_bran_shift_summary.py, tests/test_shift_summary_ui.js
+- **What changed:** Assert actual consumed lots, language copies, hash changes, actor/day/void filtering, no invented tickets and escaped browser rendering.
+- **Why:** Verify the direct GPT make remains visible and correctly attributed in shift reports.
+
+---
+
+## 2026-10-15 10:04 — Implement shared SS oat fallback and bilingual make notices
+- **File(s) changed:** oat_bran_substitution.py, dashboard/ledger-ui.js, dashboard/ledger-ticket.js, dashboard/fl-assistant.js, tests/test_d12_ui.js, tests/test_fl_assistant_ui.js
+- **What changed:** Add SS-only stock planning and durable lot substitution evidence; render English/Spanish preview and recorded notices in dashboard and Assistant, with Node regressions.
+- **Why:** Oat bran shortages must use available bran first and extra oats for the remainder, without approval.
+
+---
+
+## 2026-10-15 10:03 — Show automatic Sunshine oat substitution in shift reports
+- **File(s) changed:** `shift_summary.py`, `dashboard/shift-summary.js`
+- **What changed:** Show bilingual ticket swap notices and persisted direct-make substitution evidence with real oats lots; include direct evidence in confirmation hashes without inventing receipt numbers.
+- **Why:** Michael requires automatic oat substitution to remain visible in audit and shift summary for every make path.
+
+---
+
 ## 2026-10-14 23:26 — PR #122 current-main verification complete; ready for reviewer re-check
 - **File(s) changed:** CHANGE_LOG.md, FACTORY_LEDGER_CHANGELOG.md, docs/validation/o7-fix2-tests.json, ignored local PR comment/evidence helpers
 - **What changed:** Final e0f4dd2-based sweep passes 5,764 Python tests on fresh fl_pr122fx_full2, 219 Node, 48 refusal/recovery browser cases and all 15 legacy browser executions. Current-main rebase checks pass; historical log lines preserved except prior required redactions. Renumber only this unpublished fix-round row to207 after main205/206 and clarify the historical duplicate204. Drop the final DB; no task databases remain.

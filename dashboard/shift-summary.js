@@ -134,7 +134,13 @@
       other.rows.map(r => receiptRowHtml(r, lang)).join('') + '</section>';
   }
 
-  function summaryHtml(doc, lang) { return (doc.sections || []).map(s => sectionHtml(s, lang)).join('') + otherReceiptsHtml(doc.other_receipts, lang); }
+  function directMakesHtml(block, lang) {
+    if (!block || !(block.rows || []).length) return '';
+    return `<section class="section" data-key="direct_make_substitutions"><div class="section-head"><span>${esc(localized(block, 'label', lang))}</span><span class="count">${esc(block.count)}</span></div>` +
+      block.rows.map(row => `<div class="row"><div>${esc(localized(row, 'line', lang))}</div></div>`).join('') + '</section>';
+  }
+
+  function summaryHtml(doc, lang) { return (doc.sections || []).map(s => sectionHtml(s, lang)).join('') + otherReceiptsHtml(doc.other_receipts, lang) + directMakesHtml(doc.direct_make_substitutions, lang); }
 
   /** The confirmation banner text for the latest row, or null when unconfirmed. */
   function bannerText(doc, lang) {
@@ -148,7 +154,7 @@
     return lang === 'es' ? `Confirmado por ${who} el ${when}${c.latest.notes ? ' — ' + c.latest.notes : ''}` : `Confirmed by ${who} at ${when}${c.latest.notes ? ' — ' + c.latest.notes : ''}`;
   }
 
-  const exports = { apiBase, errorText, staleSummary, confirmBody, receiptRowHtml, sectionHtml, summaryHtml, otherReceiptsHtml, bannerText, PRODUCTION_API };
+  const exports = { apiBase, errorText, staleSummary, confirmBody, receiptRowHtml, sectionHtml, summaryHtml, otherReceiptsHtml, directMakesHtml, bannerText, PRODUCTION_API };
   if (typeof module !== 'undefined') module.exports = exports;
   if (!root.document) return;
 

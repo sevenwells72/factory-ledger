@@ -28,7 +28,9 @@ const missingReason = { kind: 'refusal', status: 422,
 let exchanges = 0, logouts = 0, expireNext = false, failDictation = false;
 const sessionToken = 'fls_browser-fixture';
 const sid = '0c101ab1-8c56-42a2-8f29-c048330030c3', did = '616eac35-0b6e-4288-b40f-920639a83525';
-const receipt = { success: true, receipt_number: 'MK-261008-001', transaction_id: 17, product_name: 'Classic Test Batch', lot_code: 'B26-10-08-001',
+const autoPreview = { automatic: true, quantity_lb: 28, message_en: 'No oat bran in stock — will use 28 lb extra oats instead.', message_es: 'No hay salvado de avena — se usarán 28 lb de avena extra.' };
+const autoReceipt = { ...autoPreview, message_en: 'No oat bran in stock — used 28 lb extra oats instead.', message_es: 'No hay salvado de avena — se usaron 28 lb de avena extra.' };
+const receipt = { auto_substitutions: [autoReceipt], success: true, receipt_number: 'MK-261008-001', transaction_id: 17, product_name: 'Classic Test Batch', lot_code: 'B26-10-08-001',
   shortages: [{ product_name: 'Rolled Oats', lot_code: '26-10-08-OATS-004', short_lb: 10, exception_id: 26, due_at: '2026-10-12T23:59:00-04:00' }] };
 let records = [], turns = [], uploaded = 0, uploadedKinds = [], reads = [], shipAttempts = 0, transcribed = 0, heldRequested = false, approved = false;
 const photoBytes = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+iDbcAAAAASUVORK5CYII=', 'base64');
@@ -52,7 +54,7 @@ const draft = { kind: 'draft', id: did, attachment_ids: [], prepared: {
   blockers: [{ code: 'LOT_NOT_CONFIRMED', message: 'Confirm the physical lot / Confirma el lote físico.' }],
   warnings: [{ code: 'POSSIBLE_DUPLICATE', message: 'A similar entry exists.', message_es: 'Existe una entrada similar.', requires_ack: true },
     { code: 'WILL_CREATE_SHORTAGE', message: 'Will create a shortage of 10 lb.', message_es: 'Creará un faltante de 10 lb.', requires_ack: false }],
-  draft: { product_name: 'Classic Test Batch', batches: 2, total_output_lb: 800, happened_at: '2026-10-08T18:20:00-04:00',
+  draft: { auto_substitutions: [autoPreview], product_name: 'Classic Test Batch', batches: 2, total_output_lb: 800, happened_at: '2026-10-08T18:20:00-04:00',
     input_plan: [{ lot_id: 19, lot_code: '26-10-08-OATS-004', quantity_lb: 800, product_name: 'Rolled Oats', confirmed: false }] }
 } };
 try {
@@ -149,6 +151,10 @@ try {
   await page.locator('#message').fill('made two batches'); await page.locator('#send').click();
   const record = page.getByRole('button', { name: 'Record', exact: true });
   await record.waitFor(); assert.equal(await record.isDisabled(), true);
+  await page.locator('.auto-substitution').getByText(autoPreview.message_en, { exact: true }).waitFor();
+  await page.locator('#language').click();
+  await page.locator('.auto-substitution').getByText(autoPreview.message_es, { exact: true }).waitFor();
+  await page.locator('#language').click();
   const lotInput = page.locator('.lot-controls input'); assert.equal(await lotInput.inputValue(), '');
   await page.getByText('Will create a shortage of 10 lb.', { exact: true }).waitFor();
   await page.getByText('including the hyphen (for example, "-004").', { exact: false }).waitFor();
@@ -167,10 +173,12 @@ try {
   await record.click(); await page.locator('.receipt').waitFor();
   await page.locator('#language').click();
   await page.getByText('✓ REGISTRADO EN FACTORY LEDGER', { exact: true }).waitFor();
+  await page.locator('.receipt .auto-substitution').getByText(autoReceipt.message_es, { exact: true }).waitFor();
   await page.locator('#language').click();
   assert.deepEqual(records[0], records[1]); assert.equal(records[0].draft_id, did);
   assert.deepEqual(records[0].lot_confirmations, [{ lot_id: 19, method: 'last4', value: '-004' }]);
   assert.equal(JSON.stringify(records).includes('payload_hash'), false);
+  await page.locator('.receipt .auto-substitution').getByText(autoReceipt.message_en, { exact: true }).waitFor();
   await page.getByText('Shortage recorded', { exact: true }).waitFor();
   await page.getByText('short 10 lb. The floor must resolve this shortage.', { exact: false }).waitFor();
   await page.screenshot({ path: path.join(out, 'receipt-desktop.png'), fullPage: true });
