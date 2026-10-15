@@ -51,9 +51,9 @@ test at tests/test_fl_assistant_ui.js:38:38
 test at tests/test_fl_assistant_ui.js:54:38
 ✖ missing correction reason keeps reason buttons in en (2.041875ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  
+
   0 !== 1
-  
+
       at TestContext.<anonymous> (/Users/michaelgross/dev/fl-f1chat-wt/tests/test_fl_assistant_ui.js:59:10)
       at async Test.run (node:internal/test_runner/test:1208:7)
       at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
@@ -68,9 +68,9 @@ test at tests/test_fl_assistant_ui.js:54:38
 test at tests/test_fl_assistant_ui.js:54:38
 ✖ missing correction reason keeps reason buttons in es (1.076ms)
   AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
-  
+
   0 !== 1
-  
+
       at TestContext.<anonymous> (/Users/michaelgross/dev/fl-f1chat-wt/tests/test_fl_assistant_ui.js:59:10)
       at async Test.run (node:internal/test_runner/test:1208:7)
       at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {

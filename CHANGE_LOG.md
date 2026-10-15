@@ -1,5 +1,12 @@
 # Change Log
 
+## [2026-10-14 23:03] — Normalize whitespace in captured regression logs
+- **File(s) changed:** `docs/validation/fl-assistant-fix-round/backend-before.log, docs/validation/fl-assistant-fix-round/ui-before.log`
+- **What changed:** Removed test-runner trailing spaces from saved logs; assertions, results and source hashes are unchanged.
+- **Why:** Keep final diff validation clean.
+
+---
+
 ## [2026-10-14 23:03] — Finalize PR 124 staging recheck evidence
 - **File(s) changed:** `docs/validation/fl-assistant-fix-round/*, FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Saved passing hosted complete/incomplete receive results and inspected EN/ES screenshots. Complete draft cancelled; 589 transactions / 645 committed tickets unchanged; zero Record/commit requests. Verified all runtime/test hashes still match tested candidate 47c2e06.
