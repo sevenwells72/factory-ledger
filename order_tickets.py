@@ -551,7 +551,7 @@ def possible_duplicate(cur, action, payload, key_field):
         return [{'code': 'POSSIBLE_DUPLICATE', 'requires_ack': True,
                  'message': f"The same lines were recorded {minutes} minutes ago as {row['receipt_number']} "
                             f"(order {ref.get('order_number')}) by {row['operator_id']}.",
-                 'message_es': f"Las mismas líneas se registraron hace {minutes} minutos como {row['receipt_number']} "
+                 'message_es': f"Las mismas líneas se registraron hace {minutes} {'minuto' if minutes == 1 else 'minutos'} como {row['receipt_number']} "
                                f"(pedido {ref.get('order_number')}) por {row['operator_id']}.",
                  'refs': {'receipt_number': row['receipt_number'], 'ticket_id': row['id'],
                           'order_id': ref.get('order_id'), 'order_number': ref.get('order_number'),

@@ -1,3 +1,5 @@
+**Latest: [final round B3](final-b3/README.md)** — rebased onto #130/main, Pydantic 2.14.1, 6,103 Python per mode, 353 Node and all requested browser runners pass. Earlier B2 evidence below is historical.
+
 # PR #132 round B fix recheck
 
 Rebased first onto `origin/fix/assistant-page-ux` at `c2b57e9`; complete changelog histories remain, row 210 above 209. PR #131 subsequently merged as `9b978b82`. This round owns the display files too. PR #130 and the other worktrees were not changed.

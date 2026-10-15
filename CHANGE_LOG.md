@@ -1,5 +1,33 @@
 # Change Log
 
+## 2026-10-15 13:51 — Normalize saved validation log whitespace before final push
+- **File(s) changed:** docs/validation/fl-assistant-round-b/final-b3/*.log, README.md
+- **What changed:** Strip trailing whitespace and extra terminal blank lines from saved output; document normalization.
+- **Why:** Keep git diff --check clean without changing test results or runtime files.
+
+---
+
+## 2026-10-15 13:50 — Verify final PR132 B3 integration on merged main in both session modes
+- **File(s) changed:** fl_assistant.py, tests/test_fl_assistant.py, dashboard/fl-assistant.js, docs/validation/fl-assistant-round-b/README.md, final-b3/, FACTORY_LEDGER_CHANGELOG.md
+- **What changed:** Preserve #130 Add-new for a completely unmatched customer and B decorated refusal assertions; save full fresh 6103 Python per mode, 353 Node, existing/customer both modes, A30 per mode, B9 per mode and 68 actual-page results plus inspected screenshots. Different lot removes the code separator with the hidden code. Save exact fresh-DB runners and source hashes.
+- **Why:** Make every final conflict resolution and requested fix reviewable before force-with-lease push.
+
+---
+
+## 2026-10-15 13:39 — Correct singular Spanish duplicate timing and lot labels across ticket warnings
+- **File(s) changed:** ticket_actions.py, order_tickets.py, ship_tickets.py, write_tickets.py, tests/test_duplicate_warning_spanish.py
+- **What changed:** Use hace 1 minuto and plural minutos for two or more; translate the Spanish lot reference label to lotes while retaining English wording and immutable references. Add 24 focused warning checks.
+- **Why:** Finish the small bilingual correction requested for final round B; no posting or traceability behavior changed.
+
+---
+
+## 2026-10-15 13:39 — Rebase final round B onto merged customer tickets and apply final review fixes
+- **File(s) changed:** assistant_tools.py, fl_assistant.py, dashboard/fl-assistant.js, dashboard/fl-assistant.html, tests/test_fl_assistant_ui.js, tests/test_assistant_display.js, scratch DB tests, requirements.txt, tests/test_assistant_request_compatibility.py, round-B browser runners, FACTORY_LEDGER_CHANGELOG.md
+- **What changed:** Resolve all eleven reviewed conflicts preserving B and every #130 customer addition; scope keeps B wording with no ChatGPT. Reserve B row 211 after main 210; advance Assistant/display caches. Pin Pydantic 2.14.1 and retain strict schema lookaround guard plus existing jsonschema test dependency. Different lot hides only that ingredient’s suggestion, method and hint, restores them on toggle, and still requires physical tags. Use fl_fixB3_ browser databases.
+- **Why:** Complete PR #132 comment 6198313762 without changing reviewed traceability; final validation follows.
+
+---
+
 ## 2026-10-15 13:12 — Include voided receipt and unverified inventory visual proof
 - **File(s) changed:** docs/validation/fl-assistant-round-b/README.md, verification.json, screenshot-manifest.json
 - **What changed:** Add eight clearly labeled renderer checks and screenshots to the complete248-image evidence index.

@@ -1,6 +1,6 @@
 """Local real-page acceptance server: real handlers/DB; selectable real model.
 
-The runner owns and drops a fresh fl_fixB2_ database. This process never reads
+The runner owns and drops a fresh fl_fixB3_ database. This process never reads
 hosted database credentials. Only deterministic mode replaces model selection.
 """
 from contextlib import contextmanager
@@ -23,7 +23,7 @@ ROOT = Path.cwd()
 sys.path.insert(0, str(ROOT))
 URL = os.environ['TEST_DATABASE_URL']
 parsed = urlsplit(URL)
-assert parsed.hostname == '127.0.0.1' and parsed.path.startswith('/fl_fixB2_')
+assert parsed.hostname == '127.0.0.1' and parsed.path.startswith('/fl_fixB3_')
 REAL_MODEL = os.environ.get('FIXB_REAL_MODEL') == '1'
 os.environ.update(DATABASE_URL=URL, API_KEY='fixb-page-master',
                   DASHBOARD_API_KEY='fixb-page-read', ASSISTANT_ENABLED='1')

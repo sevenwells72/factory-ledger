@@ -21,8 +21,8 @@ def nodes(value):
 
 def test_requirements_lock_the_reviewed_openai_compatible_pydantic():
     requirements = (Path(__file__).resolve().parents[1] / 'requirements.txt').read_text()
-    assert re.search(r'^pydantic==2\.11\.9$', requirements, re.M)
-    assert pydantic.__version__ == '2.11.9', 'Install requirements.txt before validating the deployed request'
+    assert re.search(r'^pydantic==2\.14\.1$', requirements, re.M)
+    assert pydantic.__version__ == '2.14.1', 'Install requirements.txt before validating the deployed request'
 
 
 @pytest.mark.parametrize('shift_summary', [False, True])

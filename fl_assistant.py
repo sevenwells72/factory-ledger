@@ -415,7 +415,7 @@ def register_routes(app, api):
                     state.setdefault('make_products', []).append(result['match']['id'])
                 return status, result, None
             if status == 200:
-                if not result.get('candidates'):
+                if not result.get('candidates') and not similar_customer:
                     state.pop('pending', None)
                     with api.get_transaction() as cur:
                         cur.execute('INSERT INTO assistant_unmatched_words(session_id,actor_id,kind,query,context) VALUES (%s,%s,%s,%s,%s)',

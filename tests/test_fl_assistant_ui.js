@@ -349,6 +349,14 @@ for (const language of ['en', 'es']) {
     different[0].listeners.click();
     assert.equal(inputs[0].value, '', 'choosing Different lot clears prior evidence');
     assert.equal(record.disabled, true, 'Different lot never skips physical evidence');
+    const suggestions = nodes.filter(node => node.className === 'suggested-lot-code');
+    const methods = nodes.filter(node => node.tag === 'select');
+    assert.deepEqual(suggestions.map(node => !!node.hidden), [true, true, false], 'hide only this ingredient suggestions');
+    assert.deepEqual(methods.map(node => !!node.hidden), [true, true, false], 'hide only this ingredient method pickers');
+    different[0].listeners.click();
+    assert.ok(suggestions.every(node => !node.hidden)); assert.ok(methods.every(node => !node.hidden));
+    assert.equal(inputs[0].value, '', 'returning to the suggested lot clears physical evidence');
+    different[0].listeners.click();
     for (const [i, input] of inputs.entries()) { input.value = ['REAL-0001', 'REAL-0002', 'IJKL'][i]; input.listeners.input(); }
     assert.equal(record.disabled, false);
     record.listeners.click();

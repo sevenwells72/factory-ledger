@@ -300,7 +300,11 @@
         const different = button(t('Different lot', 'Otro lote'), () => {
           const entries = confirmations.filter(c => c.lot.product_id === ingredient.product_id);
           const useDifferent = !entries.every(c => c.different);
-          for (const entry of entries) { entry.different = useDifferent; entry.input.value = ''; entry.input.placeholder = useDifferent ? t('Code from the bag actually used', 'Código de la bolsa que usaste') : t('Read the physical tag', 'Lee la etiqueta física'); }
+          for (const entry of entries) {
+            entry.different = useDifferent; entry.input.value = '';
+            entry.suggested.hidden = entry.method.hidden = entry.hint.hidden = useDifferent;
+            entry.input.placeholder = useDifferent ? t('Code from the bag actually used', 'Código de la bolsa que usaste') : t('Read the physical tag', 'Lee la etiqueta física');
+          }
           different.setAttribute('aria-pressed', String(useDifferent));
           status.textContent = useDifferent ? t('Enter the actual tag for every bag below. Its lot will remain unverified, awaiting follow-up.', 'Escribe la etiqueta real de cada bolsa abajo. Su lote quedará sin verificar, pendiente de seguimiento.') : '';
           node.refreshRecord?.();
@@ -312,8 +316,8 @@
     }
     for (const lot of draft.input_plan || []) {
       const row = el('div', undefined, 'lot-confirmation');
-      const lotLabel = `${lot.product_name || t('Input', 'Insumo')} · ${lot.lot_code} · ${lot.quantity_lb} lb`;
-      const title = el('label', lotLabel); row.append(title);
+      const title = el('label'), suggested = el('span', ` · ${lot.lot_code}`, 'suggested-lot-code');
+      title.append(el('span', lot.product_name || t('Input', 'Insumo')), suggested, el('span', ` · ${lot.quantity_lb} lb`)); row.append(title);
       if (!lot.confirmed) {
         const controls = el('div', undefined, 'lot-controls'), method = el('select'), input = el('input');
         [['last4', t('Last 4, including hyphen', 'Últimos 4, incluido el guion')],
@@ -341,7 +345,7 @@
         }
         method.addEventListener('change', updateHint); updateHint();
         controls.append(method, input); row.append(controls, hint);
-        confirmations.push({ lot, method, input });
+        confirmations.push({ lot, method, input, suggested, hint });
       } else row.append(el('small', lot.confirmed ? t('Confirmed by FL', 'Confirmado por FL') : t('Suggested by FL', 'Sugerido por FL'), 'muted'));
       (lotGroups.get(lot.product_id) || node).append(row);
     }

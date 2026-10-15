@@ -1216,7 +1216,7 @@ def test_unrecorded_customer_draft_cannot_supply_order_customer_id(client, actor
     model(monkeypatch, *([('prepare_create_order', args)] * 2))
     response = turn(client, office_chat, 'yes record and make order')
     assert response.status_code == 200
-    assert response.json()['cards'] == [{'kind': 'misunderstood'}]
+    assert response.json()['cards'] == message_cards()
     db_cursor.execute('SELECT count(*) AS n FROM sales_orders WHERE customer_id=%s', (data['customer'],))
     assert db_cursor.fetchone()['n'] == 0
 

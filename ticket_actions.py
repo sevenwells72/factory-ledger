@@ -425,10 +425,11 @@ def duplicates(cur, action, payload, draft):
     previous = cur.fetchone()
     codes = ', '.join(previous['lot_codes'] or [])
     label = f'{previous["name"]} (lots {codes})' if codes else previous['name']
+    label_es = f'{previous["name"]} (lotes {codes})' if codes else previous['name']
     ago = max(0, int(row['minutes_ago']))
     ref = row['receipt_number'] or f'transaction {row["id"]} (legacy; no receipt number)'
     return [{'code': 'POSSIBLE_DUPLICATE', 'requires_ack': True,
              'message': f'A matching {action} for {label} was posted {ago} minutes ago as {ref} by {row["operator_id"]}.',
-             'message_es': f'Una operación similar para {label} se registró hace {ago} minutos como {ref} por {row["operator_id"]}.',
+             'message_es': f'Una operación similar para {label_es} se registró hace {ago} {"minuto" if ago == 1 else "minutos"} como {ref} por {row["operator_id"]}.',
              'refs': {'transaction_id': row['id'], 'receipt_number': row['receipt_number'],
                       'operator_id': row['operator_id'], 'minutes_ago': ago}}]

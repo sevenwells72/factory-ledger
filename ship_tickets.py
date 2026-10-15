@@ -199,7 +199,7 @@ def possible_duplicate(cur,action,payload,customer_id,total_lb):
     minutes=max(0,int(row['minutes_ago']))
     return [{'code':'POSSIBLE_DUPLICATE','requires_ack':True,
              'message':f"A matching shipment was recorded {minutes} minutes ago as {receipt} by {row['operator_id']}.",
-             'message_es':f"Un envío similar se registró hace {minutes} minutos como {receipt} por {row['operator_id']}.",
+             'message_es':f"Un envío similar se registró hace {minutes} {'minuto' if minutes == 1 else 'minutos'} como {receipt} por {row['operator_id']}.",
              'refs':dict(row)}]
 
 def _sign(order_id,receipt,expires):

@@ -27,7 +27,7 @@ let failed = 0;
 try {
   for (const mode of modes) {
     const modeName = `sessions-${mode ? 'on' : 'off'}`;
-    const db = `fl_fixB2_page_${process.pid}_${mode}_${realModel ? 'real' : 'queued'}`;
+    const db = `fl_fixB3_page_${process.pid}_${mode}_${realModel ? 'real' : 'queued'}`;
     const run = (command, args) => execFileSync(path.join(pg, command), args, { cwd: root, env: localEnv, stdio: 'pipe' });
     let child;
     run('createdb', ['-h', '127.0.0.1', db]);
@@ -185,6 +185,24 @@ try {
             evidence.supplemental_screenshots.push(await take(`04-make-instruction-${lang}`));
             await card.locator('.ingredient-confirmation').last().evaluate(element => element.scrollIntoView({ block: 'center' }));
             evidence.supplemental_screenshots.push(await take(`04-make-final-ingredient-${lang}`));
+            const groups = card.locator('.ingredient-confirmation'), first = groups.first();
+            const different = first.getByRole('button', { name: es ? 'Otro lote' : 'Different lot', exact: true });
+            const suggestedCode = await first.locator('.suggested-lot-code').innerText();
+            await first.locator('select').selectOption('full_code');
+            await different.click();
+            assert.equal(await first.locator('.suggested-lot-code').isVisible(), false);
+            assert.equal(await first.locator('select').isVisible(), false);
+            assert.equal(await first.locator('small').isVisible(), false, 'Full-code hints also retire');
+            assert.ok(!(await first.innerText()).includes(suggestedCode));
+            assert.equal(await groups.nth(1).locator('.suggested-lot-code').isVisible(), true);
+            assert.equal(await groups.nth(1).locator('select').isVisible(), true);
+            assert.equal(await card.getByRole('button', { name: es ? 'Registrar' : 'Record', exact: true }).isDisabled(), true);
+            evidence.supplemental_screenshots.push(await take(`04-different-lot-${lang}`));
+            await first.locator('input').fill('TAG-TO-CLEAR');
+            await different.click();
+            assert.equal(await first.locator('.suggested-lot-code').isVisible(), true);
+            assert.equal(await first.locator('select').isVisible(), true);
+            assert.equal(await first.locator('input').inputValue(), '');
           });
           await check(5, lang, 'out-of-scope', async () => {
             const card = await send(es ? '¿Cuánto es siete más cinco?' : 'Tell me a joke', [['unsupported_request', {}]]);
