@@ -1,5 +1,40 @@
 # Change Log
 
+## [2026-10-14 22:58] — Prepare bounded staging recheck and preserve local regression evidence
+- **File(s) changed:** `.venv-test/pr124-fix-round/staging_readonly.py, .venv-test/pr124-fix-round/staging_recheck.mjs, local test logs/screenshots` (ignored verification artifacts)
+- **What changed:** Prepared exact complete/incomplete receive browser probes with guarded staging reads, session/turn/cancel-only HTTP allowlist, draft cancellation, plain EN/ES assertions and zero Record/commit verification. Saved before/after regression and local browser evidence.
+- **Why:** Complete the review re-check list without recording staging stock.
+
+---
+
+## [2026-10-14 22:57] — Restore missing-reason picker and neutral missing-facts flow
+- **File(s) changed:** `fl_assistant.py, dashboard/fl-assistant.js`
+- **What changed:** Preserve reason-only prepare refusals and buttons without retry. Classify all-missing explicit-null prepare arguments before retry; render fixed plain EN/ES missing-fact labels neutrally.
+- **Why:** Fix A/B in review 6183130934 while retaining formatting retries and receipt/Record safeguards.
+
+---
+
+## [2026-10-14 22:56] — Constrain resolve identity and add bilingual UI regression coverage
+- **File(s) changed:** `assistant_tools.py, tests/test_fl_assistant_ui.js, tests/visual/run-fl-assistant.mjs`
+- **What changed:** Made resolve kind/query required and non-null with nonempty query; aligned missing-facts instruction. Added EN/ES missing-details and reason-button UI/browser regressions.
+- **Why:** Review comment 6183130934; pre-fix proof is 4 backend, 4 schema and 4 UI failures, with existing guard cases passing.
+
+---
+
+## [2026-10-14 22:56] — Add resolve identity schema regression tests
+- **File(s) changed:** `tests/test_assistant_tools_schema.py, tests/requirements-test.txt`
+- **What changed:** Added JSON Schema validation for all-null, individually null, missing and empty resolve identity; nullable optional fields remain valid. Added test-only validator dependency.
+- **Why:** Prove review fix C rejects the original all-null call.
+
+---
+
+## [2026-10-14 22:55] — Add PR 124 reason and missing-facts regression tests
+- **File(s) changed:** `tests/test_fl_assistant.py`
+- **What changed:** Added tests before implementation for reason-null refusal, missing receive facts before/after formatting retry, and retained model-error retries.
+- **Why:** Reproduce review comment 6183130934 on c5578f0.
+
+---
+
 ## [2026-10-14 19:51] — Prepare draft PR evidence and Claude Code review handoff
 - **File(s) changed:** `CHANGE_LOG.md`; temporary PR body/review-request text
 - **What changed:** Prepared final PR validation summary and explicit Claude Code review request, including baseline P1.27, successful staging smoke and runtime hash agreement. Verified all prior project/regression changelog lines remain in order.

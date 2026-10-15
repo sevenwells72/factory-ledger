@@ -61,6 +61,25 @@
   function neutral(node, kind) {
     node.append(el('p', t(...neutralMessages[kind])));
   }
+  function missingFacts(node, missing) {
+    const names = {
+      product_id: ['product', 'producto'], supplier_lot_code: ['supplier lot number', 'número de lote del proveedor'],
+      cases: ['number of cases', 'número de cajas'], case_size_lb: ['case size (lb)', 'peso por caja (lb)'],
+      bol_reference: ['BOL number', 'número de BOL'], batches: ['number of batches', 'número de lotes de producción'],
+      ingredient_product_id: ['ingredient', 'ingrediente'], substitute_product_id: ['substitute ingredient', 'ingrediente sustituto'],
+      lot_id: ['lot', 'lote'],
+      source_product_id: ['source product', 'producto de origen'], target_product_id: ['finished product', 'producto terminado'],
+      delta_lb: ['weight change (lb)', 'cambio de peso (lb)'], reason_code: ['correction reason', 'motivo de la corrección'],
+      quantity: ['quantity (lb)', 'cantidad (lb)'], order_id: ['order', 'pedido'],
+      line_id: ['order item', 'producto del pedido'], quantity_lb: ['quantity (lb)', 'cantidad (lb)'],
+      customer_id: ['customer', 'cliente'], order_reference: ['order reference', 'referencia del pedido'],
+      lines: ['items to ship', 'productos que se van a enviar']
+    };
+    node.append(el('p', t('Please add the missing details:', 'Agrega los datos que faltan:')));
+    const list = el('ul');
+    for (const field of new Set(missing || [])) list.append(el('li', t(...(names[field] || ['additional details', 'datos adicionales']))));
+    node.append(list);
+  }
   async function api(path, { body, form, method = 'POST', binary = false, timeout = 95000, background = false } = {}) {
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeout);
     try {
@@ -284,16 +303,24 @@
         if (!results.length) node.append(el('p', t('No inventory matches.', 'No hay coincidencias de inventario.')));
         for (const item of results) { const section = el('div'); section.append(el('p', item.product_name || item.name || item.product?.name || t('Inventory', 'Inventario'))); details(section, item); node.append(section); }
       } else details(node, card.result);
+    } else if (card.kind === 'missing_facts') {
+      missingFacts(node, card.fields);
     } else if (neutralMessages[card.kind]) {
       neutral(node, card.kind);
     } else if (card.kind === 'refusal') {
+      const missingReason = card.status === 422 && card.reasons?.length && Array.isArray(card.result?.detail)
+        && card.result.detail.length && card.result.detail.every(error => error.type === 'missing'
+          && error.loc?.length === 2 && error.loc[0] === 'body' && error.loc[1] === 'reason_code');
       // Also sanitize saved pre-fix validation failures when resuming a chat.
-      if (card.status === 422 && (Array.isArray(card.result?.detail) || card.result?.error_detail?.code === 'VALIDATION_ERROR')) {
+      if (!missingReason && card.status === 422 && (Array.isArray(card.result?.detail) || card.result?.error_detail?.code === 'VALIDATION_ERROR')) {
         neutral(node, 'misunderstood'); return;
       }
-      neutral(node, 'request_failed');
-      node.append(el('p', errorText(card.result)));
-      node.append(el('p', t('Update the message with the requested details. FL has not recorded this request.', 'Completa el mensaje con los datos solicitados. FL no ha registrado esta solicitud.'), 'muted'));
+      if (missingReason) node.append(el('p', t('Choose a correction reason.', 'Elige un motivo de la corrección.')));
+      else {
+        neutral(node, 'request_failed');
+        node.append(el('p', errorText(card.result)));
+        node.append(el('p', t('Update the message with the requested details. FL has not recorded this request.', 'Completa el mensaje con los datos solicitados. FL no ha registrado esta solicitud.'), 'muted'));
+      }
       if (JSON.stringify(card.result).includes('reason_code')) {
         for (const reason of card.reasons || []) node.append(button(language === 'es' ? reason.label_es : reason.label_en, () => {
           $('message').value = `${t('The correction reason is', 'El motivo de corrección es')} ${reason.code}. `; $('message').focus();

@@ -300,6 +300,71 @@ def test_malformed_prepare_retries_once_then_hides_validation(client, chat, monk
     assert 'Field required' not in r.text
 
 
+@pytest.mark.parametrize('action', ['adjust', 'found'])
+def test_missing_correction_reason_keeps_picker_without_retry(client, chat, items, db_cursor, monkeypatch, action):
+    args = action_body(action, items)
+    args.pop('reason', None)
+    args['reason_code'] = None
+    resolve = (('resolve', {'kind': 'lot', 'query': items['ingredient']['lot_code']}) if action == 'adjust'
+               else resolve_product(db_cursor, args['product_id']))
+    requests = model(monkeypatch, resolve, ('prepare_' + action, args), ('prepare_' + action, args))
+    response = turn(client, chat, 'found 2 lb' if action == 'found' else 'adjust this lot down by 2 lb')
+    assert response.status_code == 200, response.text
+    card = response.json()['cards'][0]
+    assert card['kind'] == 'refusal'
+    assert card['status'] == 422
+    assert [(error['type'], error['loc']) for error in card['result']['detail']] == [
+        ('missing', ['body', 'reason_code'])]
+    expected_reasons = client.get('/correction-reasons', headers=chat[1]).json()['reasons']
+    assert card['reasons'] == expected_reasons
+    assert len(requests) == 2
+    db_cursor.execute('SELECT count(*) AS n FROM assistant_drafts WHERE session_id=%s', (chat[0],))
+    assert db_cursor.fetchone()['n'] == 0
+
+
+@pytest.mark.parametrize('earlier_format_retry', [False, True])
+def test_missing_receive_facts_are_neutral_even_after_resolve_format_retry(
+        client, chat, payload, db_cursor, monkeypatch, earlier_format_retry):
+    product_resolve = resolve_product(db_cursor, payload['product_id'])
+    db_cursor.execute('SELECT name FROM suppliers WHERE id=%s', (payload['supplier_id'],))
+    supplier_resolve = ('resolve', {'kind': 'supplier', 'query': db_cursor.fetchone()['name']})
+    args = {**payload, 'cases': None, 'case_size_lb': None, 'bol_reference': None}
+    calls = []
+    if earlier_format_retry:
+        calls.append(('resolve', {**product_resolve[1], 'quantity': '10 lb'}))
+    calls += [product_resolve, supplier_resolve, ('prepare_receive', args)]
+    requests = model(monkeypatch, *calls, ('prepare_receive', args))
+    response = turn(client, chat, 'We received 10 lb of this product from this supplier, supplier lot SMOKE-124-REVIEW.')
+    assert response.status_code == 200, response.text
+    expected = [{'kind': 'missing_facts', 'fields': ['cases', 'case_size_lb', 'bol_reference']}]
+    assert response.json()['cards'] == expected
+    assert len(requests) == len(calls)
+    if earlier_format_retry:
+        error = json.loads(requests[1]['input'][-1]['output'])
+        assert any(item['type'] != 'missing' and item['loc'] == ['body', 'quantity'] for item in error['detail'])
+    assert all(word not in response.text for word in ['Field required', 'VALIDATION_ERROR', 'not_recorded'])
+    resumed = client.post('/assistant/resume', headers=chat[1], json={'session_id': chat[0]})
+    assert resumed.json()['turns'][-1]['cards'] == expected
+    db_cursor.execute('SELECT count(*) AS n FROM assistant_drafts WHERE session_id=%s', (chat[0],))
+    assert db_cursor.fetchone()['n'] == 0
+
+
+@pytest.mark.parametrize('cases', ['omitted', 'ten cases'])
+def test_prepare_missing_facts_does_not_hide_model_argument_errors(client, chat, payload, db_cursor, monkeypatch, cases):
+    args = {**payload, 'case_size_lb': None, 'bol_reference': None}
+    if cases == 'omitted':
+        args.pop('cases')
+    else:
+        args['cases'] = cases
+    requests = model(monkeypatch, resolve_product(db_cursor, payload['product_id']),
+                     ('prepare_receive', {**args, 'supplier_id': None}),
+                     ('prepare_receive', {**args, 'supplier_id': None}))
+    response = turn(client, chat)
+    assert response.status_code == 200, response.text
+    assert response.json()['cards'] == [{'kind': 'misunderstood'}]
+    assert len(requests) == 3
+
+
 @pytest.mark.parametrize('text', [
     "Smoke test only. Please reply 'Staging chat OK' and calculate 7 + 5. Do not create, save, update, or record anything",
     'Solo una prueba. Calcula 7 + 5. No crees, guardes, actualices ni registres nada.',

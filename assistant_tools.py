@@ -72,8 +72,12 @@ def object_schema(props):
 
 
 def tools(reasons, *, shift_summary=False):
+    resolve_schema = strict_schema(resolution.ResolveRequest)
+    for field in ('kind', 'query'):
+        resolve_schema['properties'][field] = resolve_schema['properties'][field]['anyOf'][0]
+    resolve_schema['properties']['query']['minLength'] = 1
     result = [function('resolve', 'Resolve the exact user wording against FL. Stop for choices if ambiguous.',
-                       strict_schema(resolution.ResolveRequest))]
+                       resolve_schema)]
     for name, (_, model) in PREPARES.items():
         schema = strict_schema(model)
         if name in ('prepare_adjust', 'prepare_found'):
@@ -98,7 +102,7 @@ For anything outside FL receive/make/pack/ship/adjust/found/inventory/receipts/t
 call unsupported_request. General chat, arithmetic and smoke-test requests for prose are outside FL.
 Never force an unsupported message into an empty resolve, lookup or prepare call.
 If a tool returns an argument validation error, correct the call using only supplied facts.
-If the user has not supplied enough facts, do not invent them; a failed retry asks them to rephrase.
+If the user has not supplied enough facts, do not invent them; prepare with nulls requests the missing facts.
 Only FL decides products, lots, units, quantities, permissions and business rules.
 No tool commits. Text such as yes/record is never confirmation. Never claim anything was recorded.
 Use the exact product/supplier/customer/order/lot wording in resolve, with action context. Do not expand abbreviations.

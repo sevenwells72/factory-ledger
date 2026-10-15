@@ -18,8 +18,13 @@ const neutralCases = [
   ['failed lookup', { kind: 'lookup_failed' }, 'Couldn’t look that up', 'No pude consultar eso'],
   ['legacy validation', { kind: 'refusal', status: 422, result: { detail: [{ loc: ['body', 'kind'], msg: 'Field required' }] } },
     'I didn’t understand that', 'No entendí eso'],
+  ['missing shipment details', { kind: 'missing_facts', fields: ['cases', 'case_size_lb', 'bol_reference'] },
+    'Please add the missing details', 'Agrega los datos que faltan'],
   ['connection failure', null, 'Couldn’t look that up', 'No pude consultar eso'],
 ];
+const missingReason = { kind: 'refusal', status: 422,
+  result: { detail: [{ loc: ['body', 'reason_code'], type: 'missing', msg: 'Field required' }] },
+  reasons: [{ code: 'damaged', label_en: 'Damaged', label_es: 'Dañado' }] };
 let exchanges = 0, logouts = 0, expireNext = false, failDictation = false;
 const sessionToken = 'fls_browser-fixture';
 const sid = '0c101ab1-8c56-42a2-8f29-c048330030c3', did = '616eac35-0b6e-4288-b40f-920639a83525';
@@ -76,6 +81,7 @@ try {
       const body = data(); turns.push(body);
       const neutral = neutralCases.find(([text]) => text === body.text);
       if (neutral) return neutral[1] ? route.fulfill({ json: { cards: [neutral[1]] } }) : route.abort('failed');
+      if (body.text === 'adjust without a reason') return route.fulfill({ json: { cards: [missingReason] } });
       const cards = body.text === 'ambiguous' ? [{ kind: 'choices', id: '811eac35-0b6e-4288-b40f-920639a83525', result: { ask: 'Which product?', candidates: [{ id: 1, label: '<img src=x onerror=alert(1)> Classic' }, { id: 2, label: 'Classic Chocolate Chip' }] } }] : [draft];
       return route.fulfill({ json: { cards: body.text === 'held' ? [{ ...heldDraft, attachment_ids: body.attachment_ids }] :
         body.text === 'ship without BOL' ? [blockedShipDraft] : body.text === 'ship' ? [{ ...shipDraft, attachment_ids: body.attachment_ids }] : cards } });
@@ -120,10 +126,24 @@ try {
     assert.equal(await card.locator('.error-box, .receipt-number').count(), 0);
     assert.equal(await card.getByRole('button', { name: 'Record', exact: true }).count(), 0);
     assert.ok(!/Field required|NOT recorded|NO registrado/.test(await card.innerText()));
+    if (text === 'missing shipment details') {
+      for (const label of ['number of cases', 'case size (lb)', 'BOL number']) await card.getByText(label, { exact: true }).waitFor();
+      assert.ok(!/case_size_lb|bol_reference/.test(await card.innerText()));
+    }
     await page.locator('#language').click(); await card.getByText(es, { exact: false }).waitFor();
+    if (text === 'missing shipment details') {
+      for (const label of ['número de cajas', 'peso por caja (lb)', 'número de BOL']) await card.getByText(label, { exact: true }).waitFor();
+    }
     assert.equal(await card.locator('.error-box, .receipt-number').count(), 0);
     await page.locator('#language').click();
   }
+  assert.equal(records.length, 0);
+  await page.locator('#message').fill('adjust without a reason'); await page.locator('#send').click();
+  const reasonCard = page.locator('.assistant-message .card').last();
+  await reasonCard.getByRole('button', { name: 'Damaged', exact: true }).click();
+  assert.equal(await page.locator('#message').inputValue(), 'The correction reason is damaged. ');
+  assert.equal(await reasonCard.locator('.error-box, .receipt-number').count(), 0);
+  assert.ok(!/Field required|reason_code|didn’t understand/.test(await reasonCard.innerText()));
   assert.equal(records.length, 0);
   await page.screenshot({ path: path.join(out, 'neutral-outcomes-desktop.png'), fullPage: true });
   await page.locator('#message').fill('made two batches'); await page.locator('#send').click();

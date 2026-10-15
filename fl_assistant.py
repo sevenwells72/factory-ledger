@@ -49,6 +49,35 @@ def argument_validation_error(status, result):
                 'IDS_REQUIRED', 'AMBIGUOUS_EVENT_TIME'}))
 
 
+def missing_prepare_card(name, status, result, arguments):
+    """Keep user omissions out of the model's formatting-repair budget."""
+    if name not in catalog.PREPARES or status != 422 or not isinstance(result, dict):
+        return None
+    errors = result.get('detail')
+    if not isinstance(errors, list) or not errors:
+        return None
+    if any(not isinstance(error, dict) or error.get('type') != 'missing' for error in errors):
+        return None
+    locations = [error.get('loc') for error in errors]
+    if any(not isinstance(loc, (list, tuple)) or len(loc) < 2 or loc[0] != 'body' for loc in locations):
+        return None
+    if name in ('prepare_adjust', 'prepare_found') and all(list(loc) == ['body', 'reason_code'] for loc in locations):
+        return {'kind': 'refusal', 'status': status, 'result': catalog.safe_result(result)}
+    fields = []
+    for loc in locations:
+        value = arguments
+        try:
+            for key in loc[1:]:
+                value = value[key]
+        except (KeyError, IndexError, TypeError):
+            return None
+        if value is not None or not isinstance(loc[-1], str):
+            return None
+        if loc[-1] not in fields:
+            fields.append(loc[-1])
+    return {'kind': 'missing_facts', 'fields': fields}
+
+
 class Body(BaseModel):
     class Config:
         extra = 'forbid'
@@ -497,6 +526,7 @@ def register_routes(app, api):
                 # Keep the failed call/output pair for the one model repair attempt.
                 # Model prose is never rendered or retained.
                 history.extend(item for item in output if item.get('type') in ('reasoning', 'function_call'))
+                missing_card = None
                 try:
                     args = json.loads(call['arguments'])
                     if not isinstance(args, dict):
@@ -505,8 +535,11 @@ def register_routes(app, api):
                     status, result, card = 422, {'detail': {'error_code': 'TOOL_ARGUMENTS_INVALID', 'message': 'Arguments must be a JSON object.'}}, None
                 else:
                     status, result, card = await execute_tool(request, body, actor, state, call['name'], catalog.clean_arguments(args))
+                    missing_card = missing_prepare_card(call['name'], status, result, args)
                 history.append(catalog.output_item(call['call_id'], result))
-                if argument_validation_error(status, result):
+                if missing_card:
+                    card = missing_card
+                elif argument_validation_error(status, result):
                     if validation_retries == 0:
                         validation_retries = 1
                         continue
