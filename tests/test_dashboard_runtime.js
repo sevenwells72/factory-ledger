@@ -31,3 +31,28 @@ test('every receipt-enabled page loads routing before other scripts and hides ne
 test('shift-summary preview routing also refuses its production query override',()=>{
  const summary=require('../dashboard/shift-summary.js');assert.equal(summary.apiBase(loc('preview.netlify.app'),'?api='+runtime.PRODUCTION),runtime.STAGING);
 });
+test('O-7 key client: one no-store read per base, refreshed after the TTL, last good value survives a failed refresh',async()=>{
+ let clock=0,answer={ok:true,json:async()=>({dashboard_key:'k1'})};const calls=[];
+ const key=runtime.keyClient(async(url,options)=>{calls.push([url,options.cache]);if(answer instanceof Error)throw answer;return answer;},()=>clock);
+ const [a,b]=await Promise.all([key(runtime.STAGING),key(runtime.STAGING)]);
+ assert.deepEqual([a,b],['k1','k1']);assert.deepEqual(calls,[[runtime.STAGING+'/auth/dashboard-key','no-store']]);
+ assert.equal(await key(runtime.PRODUCTION),'k1');assert.equal(calls.length,2,'each API base has its own key');
+ clock=runtime.KEY_TTL_MS-1;await key(runtime.STAGING);assert.equal(calls.length,2);
+ clock=runtime.KEY_TTL_MS;answer={ok:true,json:async()=>({dashboard_key:'k2'})};
+ assert.equal(await key(runtime.STAGING),'k2','a rotated key reaches an open tab after the TTL');
+ clock*=3;answer=new Error('offline');assert.equal(await key(runtime.STAGING),'k2','a failed refresh keeps the last good key');
+});
+test('O-7 key client: a failed or malformed first read rejects and is retried, never cached',async()=>{
+ for(const bad of [new Error('offline'),{ok:false,status:503},{ok:true,json:async()=>({})},{ok:true,json:async()=>({dashboard_key:''})},{ok:true,json:async()=>({dashboard_key:42})}]){
+  let answer=bad,calls=0;const key=runtime.keyClient(async()=>{calls++;if(answer instanceof Error)throw answer;return answer;});
+  await assert.rejects(key(runtime.STAGING));answer={ok:true,json:async()=>({dashboard_key:'k'})};
+  assert.equal(await key(runtime.STAGING),'k');assert.equal(calls,2);
+ }
+});
+test('O-7 pages read the scoped key at runtime; no served file carries a key literal',()=>{
+ const directory=path.join(__dirname,'../dashboard');
+ for(const name of ['dashboard.js','mini-calendar.js','process-flow.html','sankey.html','traceability.html','history.js','runs.js','ledger-ui.js','shift-summary.js']){
+  const source=fs.readFileSync(path.join(directory,name),'utf8');
+  assert.match(source,/FLDashboard\.key\(/,name);assert.doesNotMatch(source,/SALES_API_KEY|readKey|DASHBOARD_KEY|const API_KEY/,name);
+ }
+});

@@ -11,6 +11,9 @@ import { fileURLToPath } from 'node:url';
 
 const FIXTURE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'fixtures');
 export const API_HOST = 'fastapi-production-b73a.up.railway.app';
+// O-7: pages fetch the scoped key from GET /auth/dashboard-key; runners assert
+// outgoing X-API-Key headers against this fixture value, never a real key.
+export const FIXTURE_DASHBOARD_KEY = 'fixture-dashboard-key';
 
 const WEEKDAY = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -149,6 +152,11 @@ export async function installApiStub(context, tokens, state) {
         contentType: 'application/json',
         body: JSON.stringify({ error: 'Service Unavailable (visual-audit stub)' }),
       });
+      return;
+    }
+
+    if (url.pathname === '/auth/dashboard-key') {
+      await route.fulfill({ json: { dashboard_key: FIXTURE_DASHBOARD_KEY } });
       return;
     }
 

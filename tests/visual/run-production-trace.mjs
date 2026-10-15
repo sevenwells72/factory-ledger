@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { chromium } from 'playwright';
 import { startStaticServer } from './lib/server.mjs';
-import { API_HOST, buildTokenTable, installApiStub } from './lib/stub.mjs';
+import { API_HOST, FIXTURE_DASHBOARD_KEY, buildTokenTable, installApiStub } from './lib/stub.mjs';
 const out = path.resolve(process.argv[2] || 'work/production-trace');
 await fs.mkdir(out, {recursive: true});
 const server = await startStaticServer(path.resolve('dashboard'));
@@ -25,7 +25,7 @@ try {
    const url=new URL(route.request().url());
    assert.equal(route.request().method(),'GET');
    if(url.pathname.endsWith('/trace')) {
-    assert.equal(await route.request().headerValue('X-API-Key'), 'dashboard-key-2026',
+    assert.equal(await route.request().headerValue('X-API-Key'), FIXTURE_DASHBOARD_KEY,
       'Every outgoing trace request must carry the dashboard key, including retries and nested traces');
     requests.push(Object.fromEntries(url.searchParams));
     if(!failed){failed=true;return route.fulfill({status:503,json:{error:'private technical error'}});}

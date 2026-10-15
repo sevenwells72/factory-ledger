@@ -1542,7 +1542,7 @@ GPT needs this route.
 
 ### Deliberately deferred
 
-* **The dashboard still sends `dashboard-key-2026`** (`dashboard/dashboard.js`
+* **The dashboard still sends `<redacted-retired-dashboard-key>`** (`dashboard/dashboard.js`
   line 2067, injected by `fetchSalesAPI`). Nothing in `dashboard/` was touched
   by this step, so **production attribution stays unattributed until the Codex
   UI step ships**. This PR makes per-user attribution possible; it does not

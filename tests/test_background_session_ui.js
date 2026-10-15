@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const ROOT = path.resolve(__dirname, '..');
+const dashboardRuntime = require('../dashboard/dashboard-runtime.js');
 const IDLE = 180 * 60000, TOKEN = 'fls_background-fixture';
 const actor = { id: 7, name: 'Arturo', role: 'office' };
 const dashboard = fs.readFileSync(path.join(ROOT, 'dashboard/dashboard.js'), 'utf8');
@@ -29,8 +30,8 @@ function harness({ enabled = true } = {}) {
     location: { href: 'https://fl.local/dashboard/index.html?section=recent', origin: 'https://fl.local', hostname: 'fl.local' },
     sessionStorage: storage,
     document: { readyState: 'complete', hidden: false, body: element('body'), createElement: element, getElementById: get, querySelector: () => null },
-    FLDashboard: { base: 'https://fl.local', config: Promise.resolve({ key_sessions_enabled: enabled }), ready: Promise.resolve(enabled), route: url => String(url) },
-    SALES_API_BASE: 'https://fl.local', SALES_API_KEY: 'shared-fixture',
+    FLDashboard: { ...dashboardRuntime, base: 'https://fl.local', config: Promise.resolve({ key_sessions_enabled: enabled }), ready: Promise.resolve(enabled), route: url => String(url), key: async () => 'shared-fixture' },
+    SALES_API_BASE: 'https://fl.local',
     state: { currentTab: 'recent', recentEntries: { loaded: false, pollTimer: null } },
     renderRecentEntries: () => { get('recent-entries-feed').innerHTML = ''; }, escHtml: String,
     fetch: async (url, options = {}) => {

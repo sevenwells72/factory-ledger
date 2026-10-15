@@ -1,5 +1,78 @@
 # Change Log
 
+## 2026-10-14 23:26 — PR #122 current-main verification complete; ready for reviewer re-check
+- **File(s) changed:** CHANGE_LOG.md, FACTORY_LEDGER_CHANGELOG.md, docs/validation/o7-fix2-tests.json, ignored local PR comment/evidence helpers
+- **What changed:** Final e0f4dd2-based sweep passes 5,764 Python tests on fresh fl_pr122fx_full2, 219 Node, 48 refusal/recovery browser cases and all 15 legacy browser executions. Current-main rebase checks pass; historical log lines preserved except prior required redactions. Renumber only this unpublished fix-round row to207 after main205/206 and clarify the historical duplicate204. Drop the final DB; no task databases remain.
+- **Why:** Record results from the actual final integration before the authorized same-branch leased push, draft PR comment and re-check label. No production/staging settings changed.
+
+---
+
+## 2026-10-14 23:23 — PR #122: integrate newly merged main PR #124 before push
+- **File(s) changed:** CHANGE_LOG.md, FACTORY_LEDGER_CHANGELOG.md; rebased upstream Assistant implementation and tests; ignored local verification logs
+- **What changed:** Main advanced to e0f4dd2 while the first validation sweep finished. Rebase all O-7 commits onto it, retain both log histories and list-actions v4, install the new jsonschema test dependency, then rerun full fresh-DB Python/Node and all requested browser checks before pushing.
+- **Why:** User requires current main and green validation; do not publish a result tested only against the previous main. Other sessions worktrees remain untouched.
+
+---
+
+## 2026-10-14 23:22 — PR #122 fix round 2: all checks pass and disposable databases removed
+- **File(s) changed:** dashboard consumers, tests/test_dashboard_access_errors.js, tests/visual/run-dashboard-key-failure.mjs, FACTORY_LEDGER_CHANGELOG.md, docs/validation/o7-fix2-tests.json
+- **What changed:** Finish nested-read access messages and recoverable placeholders. Record 5,739 fresh-DB Python tests, 214 Node tests, 48 new browser refusal/recovery cases and 15 existing browser executions, all passing; final affected Python subset 107 passed. New regressions fail on 7370f99 (4 preflight CLI, 4 Node, 48 browser, 11 guard and 3 rebase checks). Drop all ten task databases, including the auth-prefix exception; retain only ignored local evidence.
+- **Why:** Complete review 6183537320 before authorized leased push/comment/label. Draft remains unmerged; Michael must run both live preflights and populate the two-line CI secret before merge.
+
+---
+
+## 2026-10-14 23:17 — PR #122: Railway pre-merge instructions and retry regression coverage
+- **File(s) changed:** docs/cutover/O-7-dashboard-key-rotation.md, tests/test_dashboard_access_errors.js, tests/test_background_session_ui.js, tests/test_session_shift_fix_ui.js, tests/test_shift_summary_ui.js, preflight script/tests, local rebase evidence
+- **What changed:** Document exact project/environment/service commands for production and staging plus newline-only live-secret format. Preflight failures now exit2 silently so only OK or clashing kinds can print. Cover rejected-cache invalidation including custom API bases and adapt existing UI mocks to real shared runtime helpers. Three rebase checks fail on 7370f99 and pass after preserving current main ancestry, v4 list actions and upstream log additions.
+- **Why:** Complete strict status-only review requirements and preserve existing session behavior. Preflight 18 unit/CLI and three real read-only DB smoke checks pass; guard 33 focused checks pass. Final full suites ongoing.
+
+---
+
+## 2026-10-14 23:16 — PR #122: boot preflight and header-literal guard regressions
+- **File(s) changed:** scripts/check_dashboard_key_preflight.py, scripts/check_no_key_literals.py, tests/test_dashboard_key_preflight.py, tests/test_key_literal_guard.py, .github/workflows/key-literal-guard.yml, local log helper
+- **What changed:** Add status-only read-only boot collision preflight with missing-input/lookup refusal; cover master/read-only and active/inactive personal-key clashes. Detect literal header setters, appenders, tuples and simple variable/alias flows; emit explicit CI warning if live-value list is empty. Add subprocess regression tests proving redacted output.
+- **Why:** Required fixes from review 6183537320. Validation pending; no hosted settings or database changes.
+
+---
+
+## 2026-10-14 23:16 — PR #122: plain access errors and isolated browser regression driver
+- **File(s) changed:** dashboard runtime/fetch/consumers and asset references; ignored .venv-test/browser-suite.py and chrome-launch.mjs
+- **What changed:** Centralize bilingual access-unavailable errors for failed key delivery and rejected keyed reads; invalidate rejected cached keys for immediate Retry. Add visible recoverable errors to calendar, traceability and receipt paths. Prepare local browser driver with a fresh named DB per real-HTTP runner and installed Chrome; adapt only the untracked fixture invocation's DB-name guard for fl_pr122fx_ names.
+- **Why:** Address re-check 6183537320 while preserving session expiry behavior and avoiding raw HTTP/JSON or write-permission text on read failures. No hosted writes or setting changes.
+
+---
+
+## 2026-10-14 23:14 — PR #122 second fix round: rebase and regression preparation
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `dashboard/index.html`; ignored local `.venv-test/` and `node_modules/`
+- **What changed:** Rebased the seven O-7 commits from reviewed 7370f99 onto current main 5592cdc. Preserved both changelog histories and main's so-list-actions.js v4 alongside O-7 dashboard.js v75. Prepare isolated Python 3.12 and browser tooling for preflight, literal guard and access-message regression fixes.
+- **Why:** Address re-check 6183537320 with failing-before/passing-after tests, then fresh local suites and sign-in/key browser checks. Only this worktree; no production/staging settings, merge or deployment.
+
+---
+
+## 2026-10-14 14:48 — O-7 Codex fix round 1 (6175101774): actor-key refusal, Shift Summary rotation, literal redaction + stronger guard, CI workflow
+- **File(s) changed:** `main.py`, `dashboard/shift-summary.js`, `dashboard/shift-summary.html` (v=9), `scripts/check_no_key_literals.py`, `.github/workflows/key-literal-guard.yml` (moved from `docs/cutover/key-literal-guard.workflow.yml`), `docs/cutover/O-7-dashboard-key-rotation.md`, `docs/deployments/o7-dashboard-key-staging.md`, `tests/test_dashboard_key_delivery.py`, `tests/test_session_shift_fix_ui.js`; values redacted in `DEPLOYMENT.md`, `gpt-instructions-v3.md`, `gpt-configs/sources/floor-specific.md`, `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`, `archive/superseded-instructions/GPT_INSTRUCTIONS.md`, `audits/reports/DASHBOARD_ACTIONABILITY_AUDIT.md`, 7 `docs/design*` files, `docs/manual-tests/044-so-allocations-pr6-dashboard.md`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:**
+  - **(1)** Startup raises if `DASHBOARD_API_KEY` equals `API_KEY` (was a warning), `READONLY_API_KEY` or any actor key, active or not. `GET /auth/dashboard-key` returns 503 in the same cases and when the actor lookup fails. A lookup result is cached for 60 s; a failure is never cached.
+  - **(2)** Shift Summary read-only holds a marker, not the key. Each request resolves `FLDashboard.key(API)`, so an open view follows a rotation.
+  - **(3)** 46 occurrences of the retired dashboard literal and the documented master literal are redacted (values only; GPT sources and dist stay in sync and under 8,000 chars). This edits key values inside earlier CHANGE_LOG/FL rows on Michael's explicit instruction. The guard drops its history exemption, adds the master fingerprint, and flags key-shaped literals (`X-API-Key`, Bearer, `?key=`, `*API_KEY=`) outside `tests/`; a planted fake fails it with redacted output.
+  - **(4)** Hosted 404/502 in review = staging redeployed from `main` by the #120 merge (879c4de7, 18:01:44Z). The visual audit gives 417 FAIL on main 5a2d57e vs 421 on the branch; the only differing rule is LAYOUT-020 (timing), flipping both ways — pre-existing noise, nothing to fix.
+  - **(5)** CI workflow added; the guard check passed on the PR.
+  - **Staging:** rotated twice with `--skip-deploys` + `railway up` (`ec4a2065`, `43034346`). Probe and pages ALL PASS on both hosts; open read-only Shift Summary views switched keys with no 403.
+- **Why:** Codex review fix round 1 on PR #122; Michael's instructions for items 1–5.
+
+---
+
+## 2026-10-14 14:02 — O-7 staging rotation proof; runbook staging-redeploy gotcha; page check waits for network idle
+- **File(s) changed:** `docs/deployments/o7-dashboard-key-staging.md` (new), `docs/cutover/O-7-dashboard-key-rotation.md`, `scripts/check_dashboard_pages.mjs`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Rotated the FastAPI-staging `DASHBOARD_API_KEY` (sha256 e5addd5647ef → c543da8ada2c) using the O-7 procedure. Branch upload `c5ac4ef3`; the variable deploy `bb760e54` built `main` and the route returned 404; re-upload `a2c97d4c`. The probe then gave ALL PASS: route serves the new key no-store, new key 200, old key 403, session 401, seven prepare routes 403. The page check gave ALL PASS on Railway `/dashboard/` and on Netlify deploy-preview-122 with no rebuild. Open tabs switched keys without a reload. The live-value guard gave 0 findings. Runbook now uses `railway variable set --stdin` and documents `--skip-deploys` + re-upload for staging branch uploads. The page check waits for network idle (staging index reads took more than 4 s).
+- **Why:** O-7 staging proof requested before review; the gotcha would otherwise recur on the next staging rehearsal.
+
+---
+
+## 2026-10-14 13:40 — O-7: dashboard reads its scoped key from FL at runtime; rotation needs no code edit
+- **File(s) changed:** `main.py`, `dashboard/dashboard-runtime.js`, `dashboard/dashboard.js`, `dashboard/mini-calendar.js`, `dashboard/process-flow.html`, `dashboard/sankey.html`, `dashboard/traceability.html`, `dashboard/history.js`, `dashboard/runs.js`, `dashboard/ledger-ui.js`, `dashboard/shift-summary.js`, cache-bust `?v=` in 14 `dashboard/**/*.html`, `scripts/check_no_key_literals.py` (new), `scripts/check_dashboard_key_rotation.py` (new), `scripts/check_dashboard_pages.mjs` (new), `scripts/check_office_void_staging.py`, `docs/cutover/key-literal-guard.workflow.yml` (new; parked GitHub Actions workflow — push token lacks `workflow` scope), `docs/cutover/O-7-dashboard-key-rotation.md` (new), `tests/test_dashboard_key_delivery.py` (new), `tests/test_dashboard_runtime.js`, `tests/test_background_session_ui.js`, `tests/test_session_shift_fix_ui.js`, `tests/visual/lib/stub.mjs`, `tests/visual/d12_fixture.py`, `tests/visual/run-production-trace.mjs`, `tests/visual/run-runs-interactions.mjs`, `tests/visual/run-run-types.mjs`, `tests/visual/run-key-sessions.mjs`, `tests/visual/run-session-shift-fix.mjs`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** New public `GET /auth/dashboard-key` returns only `DASHBOARD_API_KEY` (no-store); it returns 503 rather than a key that is unset or equal to `API_KEY`/`READONLY_API_KEY`. `FLDashboard.key(base)` in dashboard-runtime.js reads it from the API the page already uses: prod, staging for Netlify previews, same origin on Railway `/dashboard/*`. It caches per base for 60 s, keeps the last good key if a refresh fails, and never caches a failed first read. The hard-coded dashboard key was removed from all nine served files (the runbook listed five; history.js, runs.js, ledger-ui.js and shift-summary.js also carried it). The redacting guard `check_no_key_literals.py` fails on retired-key fingerprints, on hard-coded `X-API-Key`/`*API_KEY` literals in `dashboard/**`, and on live values passed in `FL_KEY_GUARD_VALUES`. It runs in pytest; a ready GitHub Actions workflow is parked at docs/cutover/key-literal-guard.workflow.yml because the push token lacks the `workflow` scope. Also added a rotation probe and a page checker, both status-code-only, and the O-7 rotation procedure doc. Runners, stubs and the office-void staging script no longer scrape or assert the literal. Validation (rebased on fd0e00b): fresh-DB suite 3,158 passed via run_single_db_suite.py, Node 189/189, all 21 browser runners green except integrated-intake (known P1.27).
+- **Why:** Cutover runbook step 3/23, O-7. The key rotates on cutover day, and Netlify env vars cannot rewrite static literals.
 ## [2026-10-14 23:03] — Normalize whitespace in captured regression logs
 - **File(s) changed:** `docs/validation/fl-assistant-fix-round/backend-before.log, docs/validation/fl-assistant-fix-round/ui-before.log`
 - **What changed:** Removed test-runner trailing spaces from saved logs; assertions, results and source hashes are unchanged.
@@ -3840,7 +3913,7 @@
 - **Files changed:** `migrations/052_actors.sql`, `main.py`, `scripts/mint_actor_keys.py`, `tests/test_actor_attribution.py`, `tests/test_sales_order_state_model.py`, `docs/design/so-state-model-findings.md`, `FACTORY_LEDGER_CHANGELOG.md`, `.gitignore`.
 - **What changed:** New `actors` table (name, role owner|floor|office, sha256 key_hash, active, last_used_at) with no seed rows. `_authorize_api_key` resolves a third kind of key to an actor, but only after both legacy key comparisons have failed, and attaches it to `request.state`. `caller_source_tag()` and `_state_changed_by()` return the actor's name when one is resolved, so close, cancel, reopen, the legacy status exits, allocate, release and ship all attribute to a person; `ready_by` is stamped explicitly. Actor keys are scoped to `DASHBOARD_KEY_ALLOWLIST` and nothing wider. The active actor set is cached in-process for 60 s so authentication costs no query; `last_used_at` is written at most once per key per 10 minutes. New `GET /auth/whoami` returns `{actor, key_kind}`, allowlisted, and is NOT in `openapi-gpt-v3.yaml` (still exactly 30 operations). `scripts/mint_actor_keys.py` mints 32-byte keys, prints each plaintext once, and writes hash-only INSERT SQL for the Supabase SQL editor. Also fixed the last allocation writer still using the operator-id placeholder: `update_order_line` wrote `released_by = 'legacy-shared-key'` at both its expire and its shrink site.
 - **Validation:** 906 Python tests pass (848 baseline + 58 new: 47 in tests/test_actor_attribution.py, 11 parametrized lock-sequence cases). Migration 052 verified idempotent against the local test database — applied, re-applied, marker count unchanged. The ordered lock sequence of all eleven sales-order write paths was extracted from `72b5546` and from this branch and diffed: identical. No lock added, removed, or reordered.
-- **Why:** The attribution columns could only ever record a surface tag (`'dashboard'`) or NULL, so no write in the system could say who made it — the prerequisite for the per-order timeline. The dashboard still sends `dashboard-key-2026`, so production attribution is unchanged until the Codex UI step ships.
+- **Why:** The attribution columns could only ever record a surface tag (`'dashboard'`) or NULL, so no write in the system could say who made it — the prerequisite for the per-order timeline. The dashboard still sends `<redacted-retired-dashboard-key>`, so production attribution is unchanged until the Codex UI step ships.
 
 ---
 
@@ -5342,8 +5415,8 @@
 
 ## 2026-08-18 13:28 — DASHBOARD_API_KEY is env-only: removed literal fallback, fail-loud at startup
 - **File(s) changed:** `main.py`, `tests/conftest.py`, `FACTORY_LEDGER_CHANGELOG.md` (row 67)
-- **What changed:** `DASHBOARD_API_KEY = (os.getenv("DASHBOARD_API_KEY") or "").strip()` — the `"dashboard-key-2026"` literal fallback and its TODO are gone; `startup()` now raises `RuntimeError` when `DASHBOARD_API_KEY` is unset (mirrors the existing `API_KEY` check — master key was confirmed to have no literal fallback and was not touched). `tests/conftest.py` adds `os.environ.setdefault("DASHBOARD_API_KEY", "test-dashboard-key")` beside the `API_KEY` default so TestClient startup passes. Verified: suite 95/95 on the local test DB; `startup()` without the var raises as intended; `railway variables` shows `DASHBOARD_API_KEY` already set in prod before pushing.
-- **Why:** Env var is set and verified live on Railway; keeping a well-known literal fallback would let a future env misconfiguration silently accept `dashboard-key-2026` instead of failing loud.
+- **What changed:** `DASHBOARD_API_KEY = (os.getenv("DASHBOARD_API_KEY") or "").strip()` — the `"<redacted-retired-dashboard-key>"` literal fallback and its TODO are gone; `startup()` now raises `RuntimeError` when `DASHBOARD_API_KEY` is unset (mirrors the existing `API_KEY` check — master key was confirmed to have no literal fallback and was not touched). `tests/conftest.py` adds `os.environ.setdefault("DASHBOARD_API_KEY", "test-dashboard-key")` beside the `API_KEY` default so TestClient startup passes. Verified: suite 95/95 on the local test DB; `startup()` without the var raises as intended; `railway variables` shows `DASHBOARD_API_KEY` already set in prod before pushing.
+- **Why:** Env var is set and verified live on Railway; keeping a well-known literal fallback would let a future env misconfiguration silently accept `<redacted-retired-dashboard-key>` instead of failing loud.
 
 ---
 
@@ -5361,16 +5434,16 @@
 
 ---
 
-## 2026-08-18 13:05 — Dashboard front-end switched to scoped dashboard-key-2026 (0082d7e)
+## 2026-08-18 13:05 — Dashboard front-end switched to scoped <redacted-retired-dashboard-key> (0082d7e)
 - **File(s) changed:** `dashboard/dashboard.js`, `dashboard/mini-calendar.js`, `dashboard/sankey.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`, `dashboard/index.html`
-- **What changed:** Replaced the hardcoded master key `ledger-secret-2026-factory` with `dashboard-key-2026` in all five front-end consumers (no packing-slip URLs exist in the front-end); cache-bust dashboard.js v28→29 and mini-calendar.js v2→3 in index.html and the three sub-pages. `grep -r ledger-secret-2026-factory dashboard/` now returns nothing. Verified against a local run of the new backend with only the dashboard key: curl matrix of every endpoint each page calls + Chrome network log for index (Operations/Sales Orders tabs), sankey, process-flow, traceability — all 200; the only 403s were the intended negative controls (`/admin/sql`, `/make`, `/ship`, `/void`, `/admin/lots/duplicates`). Local test DB is schema-only, so pages rendered empty-state, not real data.
+- **What changed:** Replaced the hardcoded master key `<redacted-retired-master-key>` with `<redacted-retired-dashboard-key>` in all five front-end consumers (no packing-slip URLs exist in the front-end); cache-bust dashboard.js v28→29 and mini-calendar.js v2→3 in index.html and the three sub-pages. `grep -r <redacted-retired-master-key> dashboard/` now returns nothing. Verified against a local run of the new backend with only the dashboard key: curl matrix of every endpoint each page calls + Chrome network log for index (Operations/Sales Orders tabs), sankey, process-flow, traceability — all 200; the only 403s were the intended negative controls (`/admin/sql`, `/make`, `/ship`, `/void`, `/admin/lots/duplicates`). Local test DB is schema-only, so pages rendered empty-state, not real data.
 - **Why:** Follow-up to the scoped-key backend (fa69b7b): the browser bundle no longer ships the all-powerful master key. **Deploy order:** Railway backend first, then Netlify — publishing the front-end before the backend makes every keyed dashboard call 403.
 
 ---
 
 ## 2026-08-18 12:55 — Scoped DASHBOARD_API_KEY with route allowlist (branch feat/dashboard-scoped-api-key, fa69b7b)
 - **File(s) changed:** `main.py`, `tests/test_dashboard_api_key.py`
-- **What changed:** Added a second API key `DASHBOARD_API_KEY` (env var, fallback literal `dashboard-key-2026` until set on Railway). `verify_api_key` and `verify_api_key_flexible` now share `_authorize_api_key()`: the master `API_KEY` keeps full access unchanged; the dashboard key is accepted only when `(METHOD, request.scope["route"].path)` is in the new `DASHBOARD_KEY_ALLOWLIST` (44 routes: dashboard/read-only GETs, the sales-order edits the dashboard performs, notes CRUD, `POST /sales/orders/{id}/ship/preview|commit`, `POST /receive/preview|commit`); every other route — all `/admin/*` incl. `/admin/sql`, make/pack/adjust/void, raw `/ship`/`/receive`, deletes — returns 403 `API key not authorized for this endpoint`. Missing key → 401 and unknown key → 403 (401 for packing-slip `?key=`) unchanged. Startup warns if the two keys are equal. New test file (11 tests) checks allowlist entries resolve to real routes, no admin/dangerous routes are listed, and the 200/403/401 matrix. Suite 90/90 on the local test DB. NOT YET DEPLOYED / not merged to main.
+- **What changed:** Added a second API key `DASHBOARD_API_KEY` (env var, fallback literal `<redacted-retired-dashboard-key>` until set on Railway). `verify_api_key` and `verify_api_key_flexible` now share `_authorize_api_key()`: the master `API_KEY` keeps full access unchanged; the dashboard key is accepted only when `(METHOD, request.scope["route"].path)` is in the new `DASHBOARD_KEY_ALLOWLIST` (44 routes: dashboard/read-only GETs, the sales-order edits the dashboard performs, notes CRUD, `POST /sales/orders/{id}/ship/preview|commit`, `POST /receive/preview|commit`); every other route — all `/admin/*` incl. `/admin/sql`, make/pack/adjust/void, raw `/ship`/`/receive`, deletes — returns 403 `API key not authorized for this endpoint`. Missing key → 401 and unknown key → 403 (401 for packing-slip `?key=`) unchanged. Startup warns if the two keys are equal. New test file (11 tests) checks allowlist entries resolve to real routes, no admin/dangerous routes are listed, and the 200/403/401 matrix. Suite 90/90 on the local test DB. NOT YET DEPLOYED / not merged to main.
 - **Why:** The browser dashboard hardcodes the single master key; a scoped key lets the front-end authenticate without exposing full (SQL/admin/write) access.
 ## 2026-08-17 15:27 — Fixed broken URL port substitution in dump_prod_schema.sh
 - **File(s) changed:** `scripts/dump_prod_schema.sh`

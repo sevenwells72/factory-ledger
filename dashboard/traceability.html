@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
-<head><script src="dashboard-runtime.js?v=1"></script>
+<head><script src="dashboard-runtime.js?v=3"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Factory Ledger — Lot Traceability</title>
 <link rel="stylesheet" href="mini-calendar.css?v=5">
-<script src="fetch-timeout.js?v=3"></script>
+<script src="fetch-timeout.js?v=4"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <script>
   // Same preference dashboard.js writes (initTheme); applied before first paint.
@@ -412,7 +412,6 @@ function displaySource(value) {
   return labels[value] || String(value || 'Unknown').replaceAll('_', ' ');
 }
 const API_BASE = 'https://fastapi-production-b73a.up.railway.app';
-const API_KEY  = 'dashboard-key-2026';
 
 let direction = 'forward';
 let lotIndex = [];
@@ -424,13 +423,12 @@ let fullChainMode = false;
 let svgZoom = null;
 let selectedLotCode = '';
 
-const headers = { 'X-Api-Key': API_KEY };
 
 // ═══════════════════════════════════════════════════════
 // API HELPERS
 // ═══════════════════════════════════════════════════════
 async function api(path) {
-  const res = await FL.fetchWithTimeout(API_BASE + path, { headers });
+  const res = await FL.fetchWithTimeout(API_BASE + path, { headers: { 'X-Api-Key': await FLDashboard.key() } });
   const data = await res.json();
   if (!res.ok) {
     const err = new Error(data.detail || data.error || `HTTP ${res.status}`);
@@ -475,8 +473,10 @@ async function buildLotIndex() {
     }
     lotIndex.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
     renderRecentLots();
+    if(document.querySelector('#statusBar button'))setStatus('ready');
   } catch (e) {
     console.error('[Index] Failed to build lot index:', e);
+    if(e.accessUnavailable){const el=document.getElementById('statusBar');el.className='status-bar error';FLDashboard.renderAccess(el,async()=>{await buildLotIndex();});}
   }
 }
 
@@ -616,6 +616,8 @@ async function runTrace() {
       el.className = 'status-bar error';
       el.innerHTML = '';
       FL.renderStall(el, runTrace, null);
+    } else if(e.accessUnavailable){
+      const el=document.getElementById('statusBar');el.className='status-bar error';FLDashboard.renderAccess(el,runTrace);
     } else if (e.status === 409 && e.data && e.data.error === 'ambiguous_lot_code') {
       showDisambiguation(lotCode, e.data.matches);
     } else if (e.message.includes('404')) {
@@ -671,7 +673,7 @@ async function traceBackward(lotCode) {
   try {
     data = await api(appendParam(`/trace/batch/${encodeURIComponent(lotCode)}`, productIdParam()));
   } catch (e) {
-    if (e.status === 409) throw e;  // disambiguation — bubble up
+    if (e.status === 409 || e.accessUnavailable) throw e;  // disambiguation — bubble up
     if (e.message.includes('404')) {
       throw new Error(`404 — Lot "${lotCode}" not found`);
     }
@@ -809,7 +811,7 @@ async function traceForward(lotCode) {
   try {
     ingData = await api(appendParam(`/trace/ingredient/${encodeURIComponent(lotCode)}`, productIdParam()));
   } catch (e) {
-    if (e.status === 409) throw e;  // disambiguation — bubble up
+    if (e.status === 409 || e.accessUnavailable) throw e;  // disambiguation — bubble up
     if (e.status === 400 && e.data && e.data.error === 'wrong_trace_type') {
       // Finished goods lot called with forward trace — auto-route to batch trace (shipments)
       await traceForwardAsBatch(lotCode);
@@ -892,7 +894,7 @@ async function traceForwardAsBatch(lotCode) {
   try {
     batchData = await api(appendParam(`/trace/batch/${encodeURIComponent(lotCode)}`, productIdParam()));
   } catch (e) {
-    if (e.status === 409) throw e;  // disambiguation — bubble up
+    if (e.status === 409 || e.accessUnavailable) throw e;  // disambiguation — bubble up
     // Not a batch either — try as any lot
   }
 
@@ -900,7 +902,7 @@ async function traceForwardAsBatch(lotCode) {
   try {
     lotInfo = await api(appendParam(`/lots/by-code/${encodeURIComponent(lotCode)}`, productIdParam()));
   } catch (e) {
-    if (e.status === 409) throw e;  // disambiguation — bubble up
+    if (e.status === 409 || e.accessUnavailable) throw e;  // disambiguation — bubble up
     throw new Error(`404 — Lot "${lotCode}" not found`);
   }
 
@@ -954,6 +956,7 @@ async function findSupplierForLot(lotId, ingNodeId) {
     });
     addLink('supplier-unknown-' + lotId, ingNodeId, 0, 'legacy');
   } catch (e) {
+    if(e.accessUnavailable)throw e;
     console.warn('[Supplier lookup failed]', e);
   }
 }
@@ -1005,6 +1008,7 @@ async function findShipmentsForLot(lotId, batchNodeId) {
       addLink(batchNodeId, stockId, 0, 'confirmed');
     }
   } catch (e) {
+    if(e.accessUnavailable)throw e;
     console.warn('[Shipment lookup failed]', e);
   }
 }
@@ -1517,7 +1521,7 @@ function loadFromURL() {
   loadFromURL();
 })();
 </script>
-<script src="mini-calendar.js?v=8"></script>
+<script src="mini-calendar.js?v=10"></script>
 <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
   <script src="shell.js?v=2"></script>
 </body>

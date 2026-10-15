@@ -702,7 +702,7 @@ Four of those are the ACCESS-008 contrast failures above. The rule's stated purp
 
 **FAIL on both clauses.** *Hard rule.*
 
-**There is no role model.** One shared `SALES_API_KEY = 'dashboard-key-2026'` (`dashboard.js:1882`), no login, no user identity, no permission check anywhere. Every screen renders every control for everyone. The rule's clause — *"Read-only roles have no mutation controls rendered"* — has nothing to act on.
+**There is no role model.** One shared `SALES_API_KEY = '<redacted-retired-dashboard-key>'` (`dashboard.js:1882`), no login, no user identity, no permission check anywhere. Every screen renders every control for everyone. The rule's clause — *"Read-only roles have no mutation controls rendered"* — has nothing to act on.
 
 **Data the floor does not need is rendered.** The rule's example is *"Floor role sees quantities and lots, not customer pricing."* The dashboard renders:
 - `case_price` in the Order Detail read view (`dashboard.js:3270`) and as an editable `unit_price` in edit mode (`3264`, PATCHed at `2776`)

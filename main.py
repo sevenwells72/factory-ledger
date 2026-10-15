@@ -2447,7 +2447,8 @@ async def startup():
     if not DASHBOARD_API_KEY:
         raise RuntimeError("DASHBOARD_API_KEY env var required — the dashboard's scoped key has no fallback")
     if DASHBOARD_API_KEY == API_KEY:
-        logger.warning("DASHBOARD_API_KEY equals API_KEY — dashboard key scoping is ineffective")
+        # O-7: GET /auth/dashboard-key publishes this value; it must never be the master.
+        raise RuntimeError("DASHBOARD_API_KEY must differ from API_KEY")
     if READONLY_API_KEY and READONLY_API_KEY in (API_KEY, DASHBOARD_API_KEY):
         # The legacy keys are compared first, so a shared value would silently
         # hand the GPTs master or dashboard (write) scope.
@@ -2464,6 +2465,8 @@ async def startup():
     # database instead of once per process start.
     _run_startup_migrations()
     _assert_readonly_key_is_not_an_actor_key()
+    if _dashboard_key_actor_clash() is True:
+        raise RuntimeError("DASHBOARD_API_KEY must differ from every actor key")
 
 
 def _assert_readonly_key_is_not_an_actor_key() -> None:
@@ -2488,6 +2491,37 @@ def _assert_readonly_key_is_not_an_actor_key() -> None:
         return
     if clash:
         raise RuntimeError("READONLY_API_KEY must differ from every active actor key")
+
+
+_dashboard_key_clash_cache: dict = {}   # key hash -> (checked_at monotonic, clash)
+DASHBOARD_KEY_CLASH_TTL_S = 60
+
+
+def _dashboard_key_actor_clash() -> Optional[bool]:
+    """O-7: is DASHBOARD_API_KEY also an actor's key (active or not)?
+
+    GET /auth/dashboard-key publishes the value, so a collision would publish a
+    personal credential that becomes a full actor key once the dashboard key
+    rotates away. True/False is cached for DASHBOARD_KEY_CLASH_TTL_S so the
+    public route is not a per-request DB lever; a failed lookup returns None
+    and is not cached (startup logs it, the route fails closed)."""
+    if not DASHBOARD_API_KEY:
+        return None
+    key_hash = _hash_api_key(DASHBOARD_API_KEY)
+    hit = _dashboard_key_clash_cache.get(key_hash)
+    if hit and time.monotonic() - hit[0] < DASHBOARD_KEY_CLASH_TTL_S:
+        return hit[1]
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1 FROM actors WHERE key_hash = %s LIMIT 1", (key_hash,))
+                clash = cur.fetchone() is not None
+    except Exception as e:
+        logger.warning(f"DASHBOARD_KEY_ACTOR_CHECK_FAILED: {type(e).__name__}")
+        return None
+    _dashboard_key_clash_cache.clear()
+    _dashboard_key_clash_cache[key_hash] = (time.monotonic(), clash)
+    return clash
 
 
 @app.on_event("shutdown")
@@ -3315,6 +3349,22 @@ def verify_api_key_flexible(
 
 
 key_sessions.register_routes(app, sys.modules[__name__])
+
+
+# O-7: the browser dashboard reads its SCOPED key from here instead of a
+# literal in dashboard/*.js|html, so rotating DASHBOARD_API_KEY is an env change
+# on this service only (Netlify pages ask the API they talk to). Unauthenticated
+# by design: the key was already public in the served JS, and this route hands
+# out exactly that scope — never the master, read-only or any actor key.
+@app.get("/auth/dashboard-key")
+def auth_dashboard_key(response: Response):
+    response.headers["Cache-Control"] = "no-store"
+    # Fail closed: never publish a value that is (or might be) another credential.
+    if (not DASHBOARD_API_KEY or DASHBOARD_API_KEY in (API_KEY, READONLY_API_KEY)
+            or _dashboard_key_actor_clash() is not False):
+        raise HTTPException(status_code=503, detail="Dashboard key unavailable",
+                            headers={"Cache-Control": "no-store"})
+    return {"dashboard_key": DASHBOARD_API_KEY}
 
 
 # A4 is isolated from ticket/write handlers; defer transaction lookup for tests.

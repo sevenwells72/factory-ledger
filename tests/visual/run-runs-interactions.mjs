@@ -4,6 +4,7 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 import { startStaticServer } from './lib/server.mjs';
 import { CHECK_SOURCE } from './lib/checks.mjs';
+import { FIXTURE_DASHBOARD_KEY } from './lib/stub.mjs';
 
 const SCREENS = {runs:{path:'/runs.html',region:'#runs-screen'},dialog:{region:'#run-dialog'}};
 const out = path.resolve(process.env.RUNS_AUDIT_OUT || 'docs/design/audit/pr-screenshots/feat-runs-screen');
@@ -59,7 +60,8 @@ async function auditRuns() {
       if(url.origin===server.origin)return route.continue();
       if(url.hostname!=='fastapi-production-b73a.up.railway.app'){unexpected.push(req.url());return route.abort();}
       if(pathname==='/auth/session/config')return route.fulfill({json:{key_sessions_enabled:false}});
-      assert.equal(req.headers()['x-api-key'],'dashboard-key-2026');
+      if(pathname==='/auth/dashboard-key')return respond(route,{dashboard_key:FIXTURE_DASHBOARD_KEY});
+      assert.equal(req.headers()['x-api-key'],FIXTURE_DASHBOARD_KEY);
       if(nextError&&nextError.method===method&&pathname.includes(nextError.path)) {const e=nextError;nextError=null;return respond(route,{detail:{error_code:e.code,sales_order_line_id:e.line,message:'API JSON payload undefined qty_lb'}},e.status||409);}
       if(method==='GET')reads.push(pathname+url.search);
       if(pathname==='/products/search'){

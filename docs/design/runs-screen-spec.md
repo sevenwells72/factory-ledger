@@ -14,7 +14,7 @@ New run: searchable active finished product, quantity, cases/lb, date, optional 
 
 Coverage editor: load open sales orders, filter for the product, show each eligible line's exact effective remaining pounds, editable covered pounds, running total against the plan, and one full-replacement Save. Zero removes a line; all zero clears coverage. Preserve entered values on failure. RUN_OVERCOVERED and per-line conflicts appear inline in plain language. Terminal runs have no write controls.
 
-All requests use the same dashboard service and X-API-Key (`dashboard-key-2026`) as existing pages. No key-entry field. New assets use `?v=1`; existing assets retain current versions.
+All requests use the same dashboard service and X-API-Key (`<redacted-retired-dashboard-key>`) as existing pages. No key-entry field. New assets use `?v=1`; existing assets retain current versions.
 
 ## Implementation decisions and API reconciliation
 

@@ -5,6 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const ROOT = path.resolve(__dirname, '..');
+const dashboardRuntime = require('../dashboard/dashboard-runtime.js');
 const TOKEN = 'fls_fixture-restored';
 const PERSON = { id: 7, name: 'Arturo', role: 'floor' };
 const settle = async () => { for (let i = 0; i < 10; i++) await new Promise(resolve => setImmediate(resolve)); };
@@ -40,7 +41,7 @@ function harness({ enabled = true, saved = TOKEN, whoDeferred = false } = {}) {
       else if (pathname === '/auth/session/config') call.resolve({ key_sessions_enabled: enabled });
     }) });
   context.window = context;
-  context.FLDashboard = { base: 'https://fl.local', apiBase: () => 'https://fl.local', config: Promise.resolve({ key_sessions_enabled: enabled }), ready: Promise.resolve(enabled), writesEnabled: enabled };
+  context.FLDashboard = { ...dashboardRuntime, base: 'https://fl.local', apiBase: () => 'https://fl.local', config: Promise.resolve({ key_sessions_enabled: enabled }), ready: Promise.resolve(enabled), writesEnabled: enabled, key: async base => { assert.equal(base, 'https://fl.local'); return 'shared-fixture'; } };
   function run(name) { vm.runInContext(fs.readFileSync(path.join(ROOT, 'dashboard', name), 'utf8'), context, { filename: name }); }
   run('key-session.js');
   return { context, run, calls, timers, data, get, summary, deferSummary: () => { summaryDeferred = true; }, deferExchange: () => { exchangeDeferred = true; }, exchangeAs: (token, person) => { exchangeToken = token; exchangePerson = person; } };
@@ -158,6 +159,22 @@ test('choosing read-only cancels custody of a personal exchange still in flight'
   exchange.resolve({ key_kind: 'session', session_token: TOKEN, actor: PERSON }); await settle();
   assert.equal(h.data.has('fl-key-session-token'), false);
   const readOnlyKey = h.calls.find(c => c.pathname === '/auth/whoami').init.headers['X-API-Key'];
-  assert.ok(readOnlyKey); assert.notEqual(readOnlyKey, TOKEN); assert.notEqual(readOnlyKey, 'fixture-personal');
+  assert.equal(readOnlyKey, 'shared-fixture', 'read-only uses the key FL serves'); assert.notEqual(readOnlyKey, TOKEN); assert.notEqual(readOnlyKey, 'fixture-personal');
   assert.equal(h.calls.at(-1).init.headers['X-API-Key'], readOnlyKey);
+});
+
+test('O-7 fix round: an open read-only view follows a dashboard-key rotation without a reload', async () => {
+  for (const enabled of [false, true]) {
+    const h = harness({ enabled, saved: '' }); let served = 'shared-fixture';
+    h.context.FLDashboard.key = async base => { assert.equal(base, 'https://fl.local'); return served; };
+    h.run('shift-summary.js'); await settle();
+    h.get('read-only').fire('click'); await settle();
+    const reads = () => h.calls.filter(c => c.pathname === '/reports/shift-summary').map(c => c.init.headers['X-API-Key']);
+    assert.deepEqual(reads(), ['shared-fixture']);
+    served = 'rotated-fixture';                       // FL now serves the rotated key
+    h.get('refresh').fire('click'); await settle();
+    assert.deepEqual(reads(), ['shared-fixture', 'rotated-fixture'], 'the next read uses the rotated key, same view');
+    assert.equal(h.get('summary-panel').hidden, false);
+    assert.ok(!reads().includes('\u0000read-only'), 'the marker is never sent');
+  }
 });

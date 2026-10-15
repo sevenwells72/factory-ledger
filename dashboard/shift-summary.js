@@ -2,7 +2,6 @@
    computes anything from ledger rows — every line, label and flag text comes from FL. */
 (function (root) {
   'use strict';
-  const DASHBOARD_KEY = 'dashboard-key-2026';
   const PRODUCTION_API = 'https://fastapi-production-b73a.up.railway.app';
   const esc = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -18,6 +17,7 @@
 
   /** The error text a person reads: `error_detail.message_es` when Spanish and present, else the message. */
   function errorText(error, lang) {
+    if(error?.accessUnavailable)return root.FLDashboard.accessMessage(lang);
     const data = error && (error.result || error);
     const detail = data && (data.error_detail || data.detail || data);
     if (Array.isArray(detail)) return detail.map(e => `${(e.loc || []).slice(1).join('.')}: ${e.msg}`).join('\n');
@@ -148,7 +148,7 @@
     return lang === 'es' ? `Confirmado por ${who} el ${when}${c.latest.notes ? ' — ' + c.latest.notes : ''}` : `Confirmed by ${who} at ${when}${c.latest.notes ? ' — ' + c.latest.notes : ''}`;
   }
 
-  const exports = { apiBase, errorText, staleSummary, confirmBody, receiptRowHtml, sectionHtml, summaryHtml, otherReceiptsHtml, bannerText, DASHBOARD_KEY, PRODUCTION_API };
+  const exports = { apiBase, errorText, staleSummary, confirmBody, receiptRowHtml, sectionHtml, summaryHtml, otherReceiptsHtml, bannerText, PRODUCTION_API };
   if (typeof module !== 'undefined') module.exports = exports;
   if (!root.document) return;
 
@@ -158,6 +158,9 @@
   let language = localStorage.getItem('fl-shift-language') || 'en';
   // `generation` stamps every request with the session/view it was made for: a response that
   // comes back after a sign-out, a new sign-in or a day change is dropped, never rendered.
+  // Read-only holds this marker, never the key: every request re-reads the scoped
+  // dashboard key (FLDashboard.key, 60 s cache) so a rotation reaches open views (O-7).
+  const READ_ONLY = '\u0000read-only';
   let key = '', actor = null, doc = null, busy = false, generation = 0, pendingNotes = null;
   let session = null, sharedMode = false;
   // Same token store and exchange as the dashboard/office pages; personal keys
@@ -195,20 +198,23 @@
 
   async function api(path, { body, method = 'GET', params, withKey, background = false } = {}) {
     const url = new URL(path, API);
-    const requestKey = withKey === undefined ? key : withKey;
+    const credential = withKey === undefined ? key : withKey;
+    const requestKey = credential === READ_ONLY ? await root.FLDashboard.key(API,language) : credential;
     Object.entries(params || {}).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v); });
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 60000);
     try {
       const response = await fetch(url, { method, headers: { 'X-API-Key': requestKey, ...(background ? { 'X-FL-Background': '1' } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}) },
         body: body ? JSON.stringify(body) : undefined, signal: controller.signal, cache: 'no-store' });
-      const data = await response.json();
+      const data = await Promise.resolve().then(()=>response.json()).catch(error=>{if([401,403].includes(response.status))return {};throw error;});
       if (response.status === 401 && data.detail?.error_code === 'SESSION_EXPIRED' && session?.token && requestKey === session.token) {
         session.clear();
         notice(errorText(data, language));
       }
+      root.FLDashboard.checkReadAccess(response,{method,headers:{'X-API-Key':requestKey}},language,API);
       if (!response.ok) throw { ...data, httpStatus: response.status };
       return data;
     } catch (error) {
+      if (error?.accessUnavailable) throw error;
       if (error instanceof Error) throw { detail: { error_code: 'NETWORK', message: 'Connection failed or timed out.', message_es: 'La conexión falló o tardó demasiado.' } };
       throw error;
     } finally { clearTimeout(timer); }
@@ -341,7 +347,7 @@
         showIdentity(person, session.token); await load(); return;
       }
       if (sharedMode) session.clear(); // read-only cancels any pending personal exchange
-      key = personalKey || DASHBOARD_KEY;
+      key = personalKey || READ_ONLY;
       s.key = key;
       const who = await api('/auth/whoami', { withKey: s.key });
       if (!current(s)) return;
