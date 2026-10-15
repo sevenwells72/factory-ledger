@@ -434,8 +434,11 @@ def test_validation_retry_can_recover_real_lookup(client, chat, monkeypatch):
     requests = model(monkeypatch, ('inventory_lookup', {}), ('inventory_lookup', {'q': 'NO-SUCH-F1-PRODUCT'}))
     response = turn(client, chat, 'look up NO-SUCH-F1-PRODUCT')
     assert response.status_code == 200, response.text
-    assert response.json()['cards'][0]['kind'] == 'read'
-    assert response.json()['cards'][0]['result']['results'] == []
+    card = response.json()['cards'][0]
+    assert card['kind'] in ('clarify', 'choices')
+    assert 'NO-SUCH-F1-PRODUCT' in card['message']
+    if card['kind'] == 'choices':
+        assert card['result']['candidates']
     assert len(requests) == 2
 
 
@@ -481,18 +484,22 @@ def test_lookup_business_failure_is_neutral_without_model_retry(client, chat, db
         'kind': 'lookup_failed', 'status': status,
         'result': {'detail': {'error_code': 'BUSINESS_REFUSAL', 'message': 'FL refused'}},
         'language': 'en', 'error_code': 'BUSINESS_REFUSAL',
-        'message': 'I could not complete that Factory Ledger request. Check the item and details.',
+        'message': ('Factory Ledger is temporarily unavailable — try again in a minute.' if status >= 500 else
+                    'I could not complete that Factory Ledger request. Check the item and details.'),
     }]
     assert len(requests) == 1
 
 
-def test_today_is_actor_bound_and_model_prose_hidden(client, chat, actors, monkeypatch):
+def test_today_has_separate_actor_team_counts_and_model_prose_hidden(client, chat, actors, monkeypatch):
     requests = model(monkeypatch, ('today_entries', {}))
     r = turn(client, chat, 'what did I enter today?')
     assert r.status_code == 200, r.text
     card = r.json()['cards'][0]
-    expected = client.get('/receipts', headers=chat[1], params={'actor': actors['floor']['id']})
-    assert card['kind'] == 'read' and card['result'] == expected.json()
+    expected = client.get('/receipts', headers=chat[1], params={'summary': 'true'}).json()
+    assert card['kind'] == 'read' and card['result']['receipts'] == expected['receipts']
+    assert card['result']['team_count'] == len(expected['receipts'])
+    assert card['result']['own_count'] == sum(row['actor']['id'] == actors['floor']['id'] for row in expected['receipts'])
+    assert not requests, 'Day review must work without model availability'
     assert 'RECORDED!' not in r.text
 
 

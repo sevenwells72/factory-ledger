@@ -418,3 +418,36 @@ for (const language of ['en', 'es']) for (const prefix of ['supplier', 'proveedo
   assert.equal(bubble.textContent, language === 'es' ? 'Buscar proveedor: Supplier 57' : 'Supplier search: Supplier 57');
   assert.deepEqual(h.calls, ['/assistant/resume']);
 });
+
+for (const language of ['en', 'es']) test(`catalog choices appear once as buttons with no model enumeration in ${language}`, async () => {
+  const h = await resumedCard({kind: 'choices', id: 'voice-choice', resolution_kind: 'product', query: 'Classic number nine', result: {ask: 'Please clarify: 1) Classic #9 2) Classic Chocolate Chip #9', candidates: [{id: 1, name: 'Classic #9'}, {id: 2, name: 'Classic Chocolate Chip #9'}]}}, language);
+  const nodes = descendants(h.card), prose = nodes.filter(node => node.tag !== 'button').map(node => node.textContent || '').join(' ');
+  assert.match(prose, language === 'en' ? /Did you mean one of these/ : /¿Quiso decir una de estas opciones/);
+  assert.doesNotMatch(prose, /Classic #9|Classic Chocolate Chip|Please clarify|Which one|¿Cuál/);
+  assert.equal(nodes.filter(node => node.tag === 'button' && node.textContent === 'Classic #9').length, 1);
+});
+
+for (const language of ['en', 'es']) test(`zero catalog candidates have a useful named response in ${language}`, async () => {
+  const h = await resumedCard({kind: 'choices', id: 'no-choice', resolution_kind: 'product', query: 'Invisible flour', result: {candidates: []}}, language);
+  const nodes = descendants(h.card), text = nodes.map(node => node.textContent || '').join(' ');
+  assert.match(text, /Invisible flour/);
+  assert.match(text, language === 'en' ? /Check the name or add more details/ : /Revisa el nombre o agrega más detalles/);
+  assert.doesNotMatch(text, /Which one|¿Cuál|try again|Inténtalo de nuevo/);
+  assert.equal(nodes.filter(node => node.tag === 'button').length, 0);
+});
+
+for (const language of ['en', 'es']) test(`order draft omits assignment notes and unspecified midnight in ${language}`, async () => {
+  const h = await resumedCard({kind: 'draft', id: 'order-wording', prepared: {action: 'create_order', can_commit: true, blockers: [], draft: {product_name: 'Rainbow Sprinkles', cases: 5, note: 'order_id, line ids and the order number are assigned at commit.', happened_at: '2026-10-15T04:00:00Z'}}}, language, {role: 'office'});
+  const text = descendants(h.card).map(node => node.textContent || '').join(' ');
+  assert.doesNotMatch(text, /order_id|line ids|assigned at commit|12:00 AM|Happened at|Ocurrió el/);
+  assert.match(text, /Rainbow Sprinkles/);
+});
+
+for (const language of ['en', 'es']) test(`fuzzy catalog fallback identifies the unmatched name without listing button names in ${language}`, async () => {
+  const h = await resumedCard({kind: 'choices', id: 'fuzzy-choice', resolution_kind: 'supplier', query: 'Green Supply', result: {outcome: 'none', ask: 'Please clarify: 1) Grain Supply', candidates: [{id:1, name:'Grain Supply'}]}}, language);
+  const prose = descendants(h.card).filter(node => node.tag === 'p').map(node => node.textContent).join(' ');
+  assert.match(prose, /Green Supply/); assert.doesNotMatch(prose, /Grain Supply|Please clarify/);
+  assert.match(prose, language === 'en' ? /Did you mean one of these/ : /¿Quiso decir una de estas opciones/);
+  await h.get('language').listeners.click();
+  assert.match(descendants(h.card).filter(node => node.tag === 'p').map(node => node.textContent).join(' '), language === 'en' ? /No encontré.*¿Quiso decir una de estas opciones/ : /I couldn’t find.*Did you mean one of these/);
+});

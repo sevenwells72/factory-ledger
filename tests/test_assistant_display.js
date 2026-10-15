@@ -337,3 +337,13 @@ for (const language of ['en', 'es']) {
     assert.ok(section.notes.includes(language === 'en' ? 'VOIDED' : 'ANULADO'));
   });
 }
+
+for (const language of ['en', 'es']) test(`round C errors and server Today counts are readable in ${language}`, () => {
+  for (const value of ['Internal server error', {detail: {message: 'Internal server error'}}, {detail: 'FL returned an unreadable response. Please try again.'}]) {
+    const shown = display.errorMessage(value, language);
+    assert.equal(shown, display.unavailable(language));
+    assert.doesNotMatch(shown, /Internal server error|unreadable response/);
+  }
+  const [section] = display.readSections({tool: 'today_entries', result: {receipts: [], own_count: 5, team_count: 23}}, {language});
+  assert.equal(section.sentence, language === 'en' ? 'You recorded 5 entries today; the team recorded 23.' : 'Registraste 5 entradas hoy; el equipo registró 23.');
+});

@@ -12,6 +12,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const python = process.env.FIXB_PYTHON || path.join(root, '.venv-test/bin/python');
 const pg = process.env.FIXB_PG_BIN || '/opt/homebrew/opt/postgresql@17/bin';
 const realModel = process.env.FIXB_REAL_MODEL === '1';
+const previewOnly = process.env.ASSISTANT_BROWSER_PREVIEW_ONLY === '1';
 const bugQueriesOnly = process.env.FIXB_PAGE_BUG_QUERIES_ONLY === '1';
 const selectedItems = process.env.FIXB_PAGE_ITEMS ? new Set(process.env.FIXB_PAGE_ITEMS.split(',').map(Number)) : null;
 const evidenceRoot = process.env.FIXB_PAGE_OUT || path.join(root, 'docs/validation/fl-assistant-round-b', realModel ? 'real-model' : 'real-page');
@@ -27,7 +28,7 @@ let failed = 0;
 try {
   for (const mode of modes) {
     const modeName = `sessions-${mode ? 'on' : 'off'}`;
-    const db = `fl_fixB3_page_${process.pid}_${mode}_${realModel ? 'real' : 'queued'}`;
+    const db = `${process.env.TEST_DB_PREFIX || 'fl_fixB3_'}page_${process.pid}_${mode}_${realModel ? 'real' : 'queued'}`;
     const run = (command, args) => execFileSync(path.join(pg, command), args, { cwd: root, env: localEnv, stdio: 'pipe' });
     let child;
     run('createdb', ['-h', '127.0.0.1', db]);
@@ -240,6 +241,10 @@ try {
           assert.equal(await card.getByRole('button', { name: 'Record', exact: true }).isDisabled(), true, 'Every other ingredient still needs a physical tag');
           await groups.nth(1).locator('input').fill('EFGH');
           for (const warning of await card.locator('.warning input[type="checkbox"]').all()) await warning.check();
+          if (previewOnly) {
+            assert.equal(await card.getByRole('button', { name: 'Record', exact: true }).isEnabled(), true);
+            return;
+          }
           await card.getByRole('button', { name: 'Record', exact: true }).click();
           await page.waitForFunction(() => !document.getElementById('send').disabled);
           assert.match(await card.innerText(), /RECORDED IN FACTORY LEDGER/);
@@ -284,7 +289,7 @@ try {
           await check(11, lang, 'exact-classic-inventory', async () => {
             const card = await send(es ? '¿Cuánto hay de Batch Classic Granola #9?' : 'How much Batch Classic Granola #9?', [['inventory_lookup', { q: 'Batch Classic Granola #9' }]]);
             const text = await card.innerText();
-            const made = evidence.results.filter(row => row.item === 8 && row.sessions_enabled === Boolean(mode) && row.status === 'passed').length;
+            const made = previewOnly ? 0 : evidence.results.filter(row => row.item === 8 && row.sessions_enabled === Boolean(mode) && row.status === 'passed').length;
             assert.match(text, /Batch Classic Granola #9/); assert.ok(text.includes(`${100 + 10 * made} lb`), 'Exact product stock reflects only explicitly recorded fixture makes');
             assert.doesNotMatch(text, /Chocolate Chip|Fruit Nut|Kookies/);
             assert.equal(await page.locator('.assistant-message .card').count(), 1);
@@ -297,7 +302,7 @@ try {
         await context.close();
       }
       const after = await (await fetch(origin + '/test/verify')).json();
-      const recorded = evidence.results.filter(row => row.sessions_enabled === Boolean(mode) && row.item === 8 && row.status === 'passed').length;
+      const recorded = previewOnly ? 0 : evidence.results.filter(row => row.sessions_enabled === Boolean(mode) && row.item === 8 && row.status === 'passed').length;
       assert.equal(after.transactions, before.transactions + recorded, 'Only explicit completed trace scenarios write ledger stock');
       assert.equal(after.committed, recorded, 'No lot is skipped or auto-recorded');
       assert.equal(after.supplier_count, 66, 'Display deduplication does not mutate suppliers');

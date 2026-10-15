@@ -6,7 +6,7 @@
   window.FLReceipts = { page, link: number => page('receipt.html', {number}) };
   function mount() {
     if (document.querySelector('.receipt-lookup')) return;
-    const host = document.querySelector('header, .header, .topbar') || document.body;
+    const host = document.querySelector('[data-receipt-tools-host]') || document.querySelector('header, .header, .topbar') || document.body;
     const bar = document.createElement('nav'); bar.className = 'receipt-tools'; bar.setAttribute('aria-label', 'Ledger tools / Herramientas');
     const form = document.createElement('form'); form.className = 'receipt-lookup';
     const label = document.createElement('label'); label.textContent = 'Receipt # / Recibo #';

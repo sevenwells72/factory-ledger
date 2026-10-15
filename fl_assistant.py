@@ -24,6 +24,7 @@ import assistant_tools as catalog
 import write_tickets
 import resolution
 import assistant_replies as replies
+from assistant_voice import normalize_voice_text
 
 ROUTES = ('session', 'resume', 'turn', 'record', 'cancel', 'confirm-sku', 'attachment', 'attachment/read', 'transcribe')
 ACTOR_ROUTES = frozenset({('POST', '/assistant/' + p) for p in ROUTES} |
@@ -34,6 +35,17 @@ MAX_STEPS = 8
 MODEL = 'gpt-6.1-sol'  # PoC choice; service may explicitly override it.
 TRANSCRIBE_MODEL = 'gpt-transcribe'
 logger = logging.getLogger(__name__)
+
+
+def voice_lot_code(value):
+    """Normalize a supplied spoken code without treating its label as identity."""
+    normalized = normalize_voice_text(value)
+    label = re.match(r'^\s*(?:lot|lote)(?:\s+(?:number|n[uú]mero))?\s+(.+)$', value, re.I)
+    # Literal existing codes such as LOT 1234 stay literal; strip a dictation
+    # label only when spoken words actually changed within the supplied code.
+    if label and normalized != value:
+        value = label.group(1)
+    return normalize_voice_text('lot ' + value)[4:]
 
 
 def fail(status, code, message):
@@ -388,6 +400,15 @@ def register_routes(app, api):
                 'resolution_kind': 'supplier', 'supplier_search': True, 'result': result}
 
     async def execute_tool(request, body, actor, state, name, args):
+        args = dict(args)
+        if name == 'resolve' and args.get('kind') == 'product' and isinstance(args.get('query'), str):
+            args['query'] = normalize_voice_text(args.get('query', ''))
+        elif name == 'resolve' and args.get('kind') == 'lot' and isinstance(args.get('query'), str):
+            args['query'] = voice_lot_code(args['query'])
+        elif name == 'inventory_lookup' and isinstance(args.get('q'), str):
+            args['q'] = normalize_voice_text(args['q'])
+        elif name in ('lot_lookup', 'packing_context') and isinstance(args.get('lot_code'), str):
+            args['lot_code'] = voice_lot_code(args['lot_code'])
         context = args.get('context')
         action = context.get('action') if isinstance(context, dict) else None
         if name not in ('resolve', 'prepare_receive') or (name == 'resolve' and (action not in (None, 'receive') or args.get('kind') in ('order', 'lot', 'customer'))):
@@ -402,10 +423,12 @@ def register_routes(app, api):
             # A similar customer can be a different business. Let office staff
             # choose the suggestion or add their exact wording before approving
             # that customer ID for an order. Exact names and aliases still resolve.
+            similar_name = (status == 200 and args.get('kind') in ('product', 'supplier', 'customer')
+                            and (result.get('match') or {}).get('tier') == 'trigram')
             similar_customer = (status == 200 and args.get('kind') == 'customer' and actor['role'] in ('office', 'owner')
                                 and (result.get('match') or {}).get('tier') not in ('exact', 'alias'))
             if (status == 200 and result.get('outcome') == 'match'
-                    and not result.get('needs_clarification') and not similar_customer):
+                    and not result.get('needs_clarification') and not similar_customer and not similar_name):
                 selected_status, detail = await approve_candidate(request, state, args['kind'], result['match'])
                 if selected_status != 200:
                     return selected_status, detail, {'kind': 'lookup_failed'}
@@ -415,6 +438,10 @@ def register_routes(app, api):
                     state.setdefault('make_products', []).append(result['match']['id'])
                 return status, result, None
             if status == 200:
+                if args.get('kind') in ('product', 'supplier', 'customer'):
+                    candidates = result.get('candidates') or result.get('near_misses', [])
+                    if candidates:
+                        result = {**result, 'candidates': candidates}
                 if not result.get('candidates') and not similar_customer:
                     state.pop('pending', None)
                     with api.get_transaction() as cur:
@@ -561,7 +588,23 @@ def register_routes(app, api):
         if name == 'lot_lookup':
             path, params = '/lots/by-code/' + quote(args.get('lot_code', ''), safe=''), {}
         elif name == 'today_entries':
-            path, params = '/receipts', {'date': api.get_plant_now().date().isoformat(), 'actor': str(actor['id'])}
+            day = api.get_plant_now().date().isoformat()
+            rows, offset = [], 0
+            while True:
+                status, page = await relay(app, request, 'GET', '/receipts',
+                    params={'date': day, 'summary': 'true', 'limit': 500, 'offset': offset})
+                if status != 200:
+                    return status, page, {'kind': 'lookup_failed', 'status': status, 'result': page}
+                rows.extend(page.get('receipts', []))
+                if not page.get('has_more'):
+                    break
+                next_offset = page.get('next_offset')
+                if not isinstance(next_offset, int) or next_offset <= offset:
+                    fail(502, 'FL_RESPONSE_INVALID', 'Factory Ledger is temporarily unavailable — try again in a minute.')
+                offset = next_offset
+            own = sum(1 for row in rows if str((row.get('actor') or {}).get('id')) == str(actor['id']))
+            result = {'date': day, 'receipts': rows, 'own_count': own, 'team_count': len(rows)}
+            return 200, result, replies.read_card(name, result, state.get('language', 'en'))
         elif name == 'inventory_lookup':
             if not isinstance(args.get('q'), str) or not args['q'].strip():
                 return 422, {'detail': [{'loc': ['query', 'q'], 'type': 'missing', 'msg': 'Supply product wording.'}]}, None
@@ -570,6 +613,9 @@ def register_routes(app, api):
             if resolved_status != 200:
                 return resolved_status, products, {'kind': 'lookup_failed', 'status': resolved_status, 'result': products}
             matches = [products['match']] if products.get('match') else products.get('candidates', [])
+            if not matches or any(p.get('tier') == 'trigram' for p in matches):
+                return await execute_tool(request, body, actor, state, 'resolve',
+                    {'kind': 'product', 'query': args['q']})
             rows = []
             for product in matches:
                 lookup_status, inventory = await relay(app, request, 'GET', '/inventory/lookup', params={'q': product.get('odoo_code') or product['name'], 'limit': 50})
@@ -666,22 +712,23 @@ def register_routes(app, api):
                 fail(409, 'CHAT_BUSY', 'Wait for the current message / Espera el mensaje actual.')
         state = claimed['state']
         state['language'] = replies.language(body.text, body.language or state.get('language', 'en'))
-        if re.search(r'\b(?:pack(?:ed)?|empacamos|empacado|empaque)\b', body.text, re.I):
+        text = normalize_voice_text(body.text)
+        if re.search(r'\b(?:pack(?:ed)?|empacamos|empacado|empaque)\b', text, re.I):
             state.pop('packing_case_weight_lb', None)
-            weight = re.search(r'(\d+(?:\.\d+)?)\s*(?:lb|pounds?|libras?)\s*(?:per|por|/)\s*(?:case|caja)', body.text, re.I)
+            weight = re.search(r'(\d+(?:\.\d+)?)\s*(?:lb|pounds?|libras?)\s*(?:per|por|/)\s*(?:case|caja)', text, re.I)
             if weight:
                 state['packing_case_weight_lb'] = float(weight.group(1))
         # A correction belongs to the current receive, even without repeating "received".
-        receive_start = bool(re.search(r'\b(?:receive(?:d)?|recibimos|recibi|recibí|recibir)\b', body.text, re.I))
+        receive_start = bool(re.search(r'\b(?:receive(?:d)?|recibimos|recibi|recibí|recibir)\b', text, re.I))
         receive_correction = not receive_start and bool(state.get('receive_context') or state.get('receive_facts')) and bool(
-            re.search(r'\b(?:total|actually|correction|correct|it was|were|era|eran|fue|fueron|corrijo|correccion|corrección)\b', body.text, re.I))
+            re.search(r'\b(?:total|actually|correction|correct|it was|were|era|eran|fue|fueron|corrijo|correccion|corrección)\b', text, re.I))
         if receive_start:
             state.pop('receive_facts', None)
             state.pop('receive_context', None)
         new_receive_total = None
         if receive_start or receive_correction:
-            for qty in re.finditer(r'(?<![\w.])(\d+(?:\.\d+)?)\s*(?:lb\b|lbs\b|pounds?\b|libras?\b)', body.text, re.I):
-                before, after = body.text[:qty.start()], body.text[qty.end():]
+            for qty in re.finditer(r'(?<![\w.])(\d+(?:\.\d+)?)\s*(?:lb\b|lbs\b|pounds?\b|libras?\b)', text, re.I):
+                before, after = text[:qty.start()], text[qty.end():]
                 if re.match(r'\s*(?:(?:per|por|/)\s*(?:case|caja)|each|cada)', after, re.I):
                     continue
                 is_total = re.search(r'\btotal\s*[:=]?\s*$', before, re.I) or re.match(r'\s*(?:in\s+|en\s+)?total\b', after, re.I)
@@ -740,7 +787,7 @@ def register_routes(app, api):
                 if args.get('cases'):
                     # Explicit total / previously supplied case count is arithmetic, not a guessed fact.
                     args['case_size_lb'] = state['receive_facts']['quantity_lb'] / args['cases']
-                    history.append({'role': 'user', 'content': body.text.strip()})
+                    history.append({'role': 'user', 'content': text.strip()})
                     if context.get('draft_id'):
                         # Claim the replacement before preparing. A concurrent Record
                         # holds this row lock and wins by setting record_started_at.
@@ -789,7 +836,10 @@ def register_routes(app, api):
                 if not body.text.strip():
                     fail(422, 'TEXT_REQUIRED', 'Enter a message / Escribe un mensaje.')
                 state.pop('pending', None)
-                history.append({'role': 'user', 'content': body.text.strip()})
+                history.append({'role': 'user', 'content': text.strip()})
+            if not body.choice_id and replies.is_today_query(body.text):
+                _, _, card = await execute_tool(request, body, actor, state, 'today_entries', {})
+                return save_turn(state, [card], body, actor, digest, lease)
             reasons_status, reasons = await relay(app, request, 'GET', '/correction-reasons')
             if reasons_status != 200:
                 return save_turn(state, [{'kind': 'lookup_failed'}], body, actor, digest, lease)

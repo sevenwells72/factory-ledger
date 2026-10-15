@@ -1,5 +1,124 @@
 # Change Log
 
+## 2026-10-15 14:21 — Add round C regression guard row 212
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md, dashboard/fl-assistant.css, tests/visual/run-fl-assistant-round-c-phone.mjs, docs/validation/fl-assistant-round-c/phone/`
+- **What changed:** Document the complete voice/phone change and unchanged B physical traceability; enforce readable focused receipt/tag controls at all four phone widths.
+- **Why:** Round C natural phone voice and layout regression protection.
+
+---
+
+## 2026-10-15 14:21 — Handle reviewed lot labels safely
+- **File(s) changed:** `fl_assistant.py, assistant_replies.py, tests/test_assistant_voice_recovery_round_c.py, tests/visual/run-fl-assistant-round-c-phone.mjs, docs/validation/fl-assistant-round-c/phone/`
+- **What changed:** Accept spoken lot labels while preserving literal numeric lot codes; validate malformed model arguments through FL rather than regex exceptions; support Spanish review follow-up and measure every menu tool at phone widths.
+- **Why:** Round C natural phone voice and layout regression protection.
+
+---
+
+## 2026-10-15 14:20 — Preserve correction intent in day queries
+- **File(s) changed:** `assistant_replies.py, tests/test_assistant_voice_recovery_round_c.py`
+- **What changed:** Anchor direct Today matching to read-review phrases so Spanish corrections and void requests keep their action intent.
+- **Why:** Round C natural phone voice and layout regression protection.
+
+---
+
+## 2026-10-15 14:19 — Round C transcript-driven frontend completion
+- **File(s) changed:** `dashboard/fl-assistant.js, tests/test_fl_assistant_ui.js, tests/test_assistant_page_round_a.js, tests/visual/run-fl-assistant-round-a.mjs, docs/validation/fl-assistant-round-c/phone/`
+- **What changed:** Correct direct Spanish Today language, preserve named unmatched queries above buttons, sanitize auth errors and validate compact Menu containment. Final phone matrix: 288 pass, zero Record.
+- **Why:** Round C natural phone voice and layout regression protection.
+
+---
+
+## 2026-10-15 14:17 — Align regression checks with intended voice recovery
+- **File(s) changed:** `tests/test_fl_assistant.py, tests/test_assistant_voice_recovery_round_c.py, tests/test_assistant_voice_e2e_round_c.py, assistant_voice.py, tests/test_assistant_voice_round_c.py`
+- **What changed:** Keep validation repair coverage while expecting named misses and safe server errors; assert separate day counts, no model calls, misheard product buttons and party-name preservation.
+- **Why:** Round C natural phone voice and layout regression protection.
+
+---
+
+## 2026-10-15 14:16 — Round C final phone evidence and legacy expectations
+- **File(s) changed:** `docs/validation/fl-assistant-round-c/phone/, tests/visual/run-fl-assistant-round-c-phone.mjs, dashboard/fl-assistant.css, tests/visual/run-fl-assistant-round-a.mjs, tests/visual/run-assistant-round-b.mjs, assistant_voice.py, tests/test_assistant_voice_round_c.py`
+- **What changed:** 288 phone checks pass in Chromium/WebKit at four widths with zero Record; adapt legacy summaries and permit nonempty unmatched-name buttons; retain comma magnitudes and clause boundaries.
+- **Why:** Round C natural phone voice and layout regression protection.
+
+---
+
+## 2026-10-15 14:15 — Round C reviewed phone and Spanish refinements
+- **File(s) changed:** `assistant_replies.py, dashboard/fl-assistant.js, dashboard/fl-assistant.css, dashboard/assistant-display.js, tests/test_assistant_page_round_a.js, tests/test_fl_assistant_ui.js, tests/visual/run-fl-assistant-round-c-phone.mjs, tests/test_assistant_voice_e2e_round_c.py`
+- **What changed:** Recognize Spanish day dictation without punctuation, keep open Menu compact, require physical tags in phone screenshots and fix fixture make output fields.
+- **Why:** Round C natural phone voice and layout regression protection.
+
+---
+
+## 2026-10-15 14:15 — Keep browser walkthroughs before Record
+- **File(s) changed:** `tests/visual/run-fl-assistant-round-b-page.mjs, tests/visual/run-assistant-round-b.mjs, tests/visual/run-fl-assistant.mjs, tests/visual/assistant_round_c_page_bridge.py, tests/visual/run-fl-assistant-round-c.mjs`
+- **What changed:** Add opt-in preview-only mode to B browser runners; real round C page/API bridge covers exact voice transcripts without browser Record; refresh availability expectations.
+- **Why:** Round C natural phone voice and layout regression protection.
+
+---
+
+## 2026-10-15 14:14 — Contextual lot query normalization and phone checks
+- **File(s) changed:** `fl_assistant.py, tests/visual/run-fl-assistant-round-c-phone.mjs, dashboard/fl-assistant.js, tests/test_assistant_page_round_a.js`
+- **What changed:** Normalize bare spoken lot queries with explicit lot context; add four-width phone checks and robust unreadable error handling.
+- **Why:** Round C natural phone voice and layout regression protection.
+
+---
+
+## 2026-10-15 14:14 — Add deterministic voice recovery checks
+- **File(s) changed:** `tests/test_assistant_voice_recovery_round_c.py, assistant_voice.py, tests/test_assistant_voice_round_c.py`
+- **What changed:** Test day-review routing without any model, full 601-row pagination and human choice before fuzzy names; cover natural Spanish clásica and bounded number phrases.
+- **Why:** Round C natural phone voice and layout regression protection.
+
+---
+
+## 2026-10-15 14:13 — Keep spoken quantity normalization scoped
+- **File(s) changed:** `assistant_voice.py, tests/test_assistant_voice_round_c.py`
+- **What changed:** Handle lowercase BOL, singular count units and preserve Pound Supply names.
+- **Why:** Round C natural phone voice and layout regression protection.
+
+---
+
+## 2026-10-15 14:13 — Round C isolated validation wiring
+- **File(s) changed:** `tests/visual/run-fl-assistant-round-b-page.mjs, tests/visual/assistant_round_b_page_bridge.py, tests/visual/run-assistant-round-b.mjs`
+- **What changed:** Allow an explicit test database prefix for legacy B runners, preserving local-only guards and default behavior.
+- **Why:** Round C natural phone voice and layout regression protection.
+
+---
+
+## 2026-10-15 14:13 — Round C bilingual frontend regressions
+- **File(s) changed:** `dashboard/fl-assistant.js, dashboard/assistant-display.js, tests/test_assistant_page_round_a.js, tests/test_fl_assistant_ui.js, tests/test_assistant_display.js`
+- **What changed:** Cover own/team day summaries, safe errors, choice-only labels, missing matches, midnight omission and hidden developer order notes.
+- **Why:** Round C natural phone voice and layout regression protection.
+
+---
+
+## 2026-10-15 14:13 — Allow spoken day-review question
+- **File(s) changed:** `assistant_replies.py`
+- **What changed:** Keep What did I record today as a deterministic read intent.
+- **Why:** Round C natural phone voice and layout regression protection.
+
+---
+
+## 2026-10-15 14:13 — Round C bilingual spoken number normalization
+- **File(s) changed:** `assistant_voice.py, tests/test_assistant_voice_round_c.py`
+- **What changed:** Add scoped English/Spanish spoken product numbers, quantities, lot codes and BOL spelling normalization with unit coverage.
+- **Why:** Round C natural phone voice and layout regression protection.
+
+---
+
+## 2026-10-15 14:12 — Round C compact phone layout and voice end-to-end coverage
+- **File(s) changed:** `dashboard/fl-assistant.html, dashboard/fl-assistant.js, dashboard/fl-assistant.css, dashboard/assistant-display.js, dashboard/receipt-shell.js, tests/test_assistant_voice_e2e_round_c.py`
+- **What changed:** Compact phone tools menu, constrained layout, readable Today own/team counts, safe bilingual errors and real API transcript tests preserving physical tags.
+- **Why:** Address Michael’s iPhone voice failures and clipped page.
+
+---
+
+## 2026-10-15 14:12 — Round C voice recovery and Today routing
+- **File(s) changed:** `fl_assistant.py, assistant_replies.py, assistant_tools.py`
+- **What changed:** Normalize spoken catalog/code text before understanding; return real fuzzy-name buttons; route day-review speech directly to complete team entries with own/team counts and safe errors.
+- **Why:** iPhone dictation must reach a useful result while all physical lot evidence remains required.
+
+---
+
 ## 2026-10-15 14:05 — Complete approved real-model round-B repeat in both session modes
 - **File(s) changed:** docs/validation/fl-assistant-round-b/README.md, final-b3/README.md, verification.json, real-model-results.json, real-model.log, three screenshots, database-cleanup.txt, FACTORY_LEDGER_CHANGELOG.md
 - **What changed:** Save 68/68 real gpt-6.1-sol page checks under Pydantic 2.14.1, EN/ES at 1440/390 with sessions off/on; every model request completed. Verify unchanged source hashes, original suggested stock/physical-tag trace evidence, exact explicit transaction counts and independent zero-DB cleanup.

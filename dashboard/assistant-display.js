@@ -36,8 +36,9 @@
     }
     return raw;
   }
+  const unavailable = (language = 'en') => choose(language, 'Factory Ledger is temporarily unavailable — try again in a minute.', 'Factory Ledger no está disponible temporalmente — inténtalo de nuevo en un minuto.');
   function plainMessage(value, language = 'en') {
-    return scalar(value).replace(/\bUNIDENTIFIED(?:_LOT)?\b/g, plainLabel('unidentified', language))
+    return scalar(value).replace(/(?:internal server error|FL returned an unreadable response(?:\. Please try again\.)?)/gi, unavailable(language)).replace(/\bUNIDENTIFIED(?:_LOT)?\b/g, plainLabel('unidentified', language))
       .replace(/\b(?:physical_count|missing_receipt|missing_production|wrong_lot_used|damage_disposal|unrecorded_usage|data_entry_error)\b/g, code => plainLabel(code, language));
   }
   function formatTime(value, { language = 'en', now = new Date(), timeOnly = false } = {}) {
@@ -114,9 +115,11 @@
     add('BOL', 'BOL', draft.bol_reference);
     add('Photo status', 'Estado de foto', plainLabel(draft.photo || draft.proof_status, language));
     add('Reason', 'Motivo', plainLabel(draft.reason || (language === 'es' && draft.reason_es) || draft.reason_code, language));
-    add('Note', 'Nota', plainMessage((language === 'es' && (customer.notes_es || draft.notes_es || draft.note_es)) || customer.notes || draft.notes || draft.note, language));
+    const note = (language === 'es' && (customer.notes_es || draft.notes_es || draft.note_es)) || customer.notes || draft.notes || draft.note;
+    if (!(/order/.test(prepared.action || '') && /^(?:order_id, line ids and the order number|line ids) are assigned at commit\.?$/i.test(note || ''))) add('Note', 'Nota', plainMessage(note, language));
     if (/unidentified/i.test(draft.identity_status || '')) add('Lot note', 'Nota del lote', plainLabel('unidentified', language));
-    add('Happened at', 'Ocurrió el', formatTime(draft.happened_at, { language, now }));
+    const happened = formatTime(draft.happened_at, { language, now });
+    if (!/12:00 AM$/.test(happened)) add('Happened at', 'Ocurrió el', happened);
     add('Expires', 'Vence', formatTime(prepared.expires_at, { language, now }));
     return pairs;
   }
@@ -227,7 +230,10 @@
       if (!sections.length) table(choose(language, 'No inventory matches.', 'No hay coincidencias de inventario.'));
     } else if (Array.isArray(data.receipts)) {
       const receipts = [...data.receipts].sort((a, b) => new Date(b.entered_at || b.happened_at || 0) - new Date(a.entered_at || a.happened_at || 0) || scalar(b.receipt_number).localeCompare(scalar(a.receipt_number)));
-      const sentence = card.tool === 'today_entries' ? choose(language,
+      const counts = data.entry_counts || (data.own_count !== undefined ? { own: data.own_count, team: data.team_count } : null);
+      const sentence = counts && Number.isSafeInteger(counts.own) && Number.isSafeInteger(counts.team) ? choose(language,
+        `You recorded ${counts.own} ${counts.own === 1 ? 'entry' : 'entries'} today; the team recorded ${counts.team}.`,
+        `Registraste ${counts.own} ${counts.own === 1 ? 'entrada' : 'entradas'} hoy; el equipo registró ${counts.team}.`) : card.tool === 'today_entries' ? choose(language,
         `You've recorded ${receipts.length} ${receipts.length === 1 ? 'entry' : 'entries'} today. Team total: see Today's entries.`,
         `Has registrado ${receipts.length} ${receipts.length === 1 ? 'entrada' : 'entradas'} hoy. Total del equipo: consulta las entradas de hoy.`) :
         choose(language, `${receipts.length} ${receipts.length === 1 ? 'entry' : 'entries'} today.`, `${receipts.length} ${receipts.length === 1 ? 'entrada' : 'entradas'} hoy.`);
@@ -266,7 +272,7 @@
     const text = typeof value === 'string' ? value : scalar(value?.receipt_number || value?.source_receipt_number || value?.result?.receipt_number);
     return text.match(/\b(?:RCV|MK|PK|ADJ|FND|SHP)-\d{6}-\d{3,}\b/i)?.[0]?.toUpperCase() || null;
   }
-  const api = { plainLabel, plainMessage, formatTime, errorMessage, inventoryUnit, quantityLabel, draftFields, lineFields, existingCustomerChoice, newCustomerChoice, receiptSummary, readSections, dedupeCards, voidReceipt };
+  const api = { unavailable, plainLabel, plainMessage, formatTime, errorMessage, inventoryUnit, quantityLabel, draftFields, lineFields, existingCustomerChoice, newCustomerChoice, receiptSummary, readSections, dedupeCards, voidReceipt };
   if (typeof module !== 'undefined') module.exports = api;
   root.FLAssistantDisplay = api;
 })(typeof window === 'undefined' ? globalThis : window);

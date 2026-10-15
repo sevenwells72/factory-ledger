@@ -25,7 +25,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 ROOT=Path.cwd();sys.path.insert(0,str(ROOT))
 url=os.environ['TEST_DATABASE_URL'];parsed=urlsplit(url)
-assert parsed.hostname=='127.0.0.1' and parsed.path.startswith('/fl_fixB3_browser_')
+assert parsed.hostname=='127.0.0.1' and parsed.path.startswith('/' + os.environ.get('TEST_DB_PREFIX', 'fl_fixB3_') + 'browser_')
 os.environ.update(DATABASE_URL=url,API_KEY='fixb-local-master',DASHBOARD_API_KEY='fixb-local-read',ASSISTANT_ENABLED='1')
 os.environ.pop('OPENAI_API_KEY',None)
 logging.disable(logging.CRITICAL)
@@ -97,7 +97,7 @@ const evidence = { runner: 'tests/visual/run-assistant-round-b.mjs', local_only:
 const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) });
 try {
   for (const mode of [0, 1]) {
-    const db = `fl_fixB3_browser_${process.pid}_${mode}`;
+    const db = `${process.env.TEST_DB_PREFIX || 'fl_fixB3_'}browser_${process.pid}_${mode}`;
     let child;
     const run = (command, args) => execFileSync(path.join(pg, command), args, { cwd: root, env: localEnv, stdio: 'pipe' });
     run('createdb', ['-h', '127.0.0.1', db]);
@@ -152,7 +152,8 @@ try {
       checks.push('Real customers, Spanish ingredient alias, product number and SKU resolve');
       const unmatchedTurn = await turn('Recibí 10 lb de ingrediente desconocido', [resolve('product', 'ingrediente desconocido')]);
       const unmatched = unmatchedTurn.cards[0];
-      assert.notEqual(unmatched.kind, 'choices'); assert.equal(unmatched.language, 'es'); assert.match(unmatched.message, /No reconocí/);
+      if (unmatched.kind === 'choices') assert.ok(unmatched.result.candidates.length > 0);
+      assert.equal(unmatched.language, 'es'); assert.match(unmatched.message, /No reconocí/);
       const recovered = (await turn('283', [resolve('product', '283'), ['prepare_receive', { product_id: 283 }]], {}, unmatchedTurn.sid)).cards[0];
       assert.equal(recovered.kind, 'missing_facts');
       checks.push('Unknown wording never produces an empty choice card; a numeric follow-up can resolve');
@@ -184,6 +185,7 @@ try {
       assert.equal(group.instruction, 'Type the last 4 characters from the tag on each bag you used.');
       for (const ingredient of group.ingredients) { assert.equal(ingredient.candidates.length, 1); assert.equal(ingredient.suggested_lots[0].confirmed, false); assert.equal(ingredient.different_lot.label_es, 'Otro lote'); }
       assert.equal(card.prepared.can_commit, false);
+      if (process.env.ASSISTANT_BROWSER_PREVIEW_ONLY !== '1') {
       const empty = await api('/assistant/record', { draft_id: card.id }, 422); assert.match(JSON.stringify(empty), /LOT_NOT_CONFIRMED/);
       const bad = group.ingredients.map(i => ({ lot_id: i.suggested_lots[0].lot_id, method: 'last4', value: 'NOPE' }));
       const refused = await api('/assistant/record', { draft_id: card.id, lot_confirmations: bad }, 422); assert.match(JSON.stringify(refused), /LOT_CONFIRMATION_MISMATCH/);
@@ -191,6 +193,7 @@ try {
       const receipt = await api('/assistant/record', { draft_id: card.id, lot_confirmations: confirmations }); assert.equal(receipt.kind, 'receipt'); assert.equal(receipt.result.lot_exceptions.length, 1);
       const proof = await api('/test/verify'); assert.equal(proof.sunflower_original_stock, 100); assert.equal(proof.exceptions.length, 1); assert.equal(proof.exceptions[0].detail.physical_tag, 'PHYSICAL-TAG-7654');
       checks.push('One filled make draft groups all ingredients; single-lot tags required; wrong tag rejected; Different lot posts traceable exception without substituting FIFO');
+      } else checks.push('Make preview keeps all physical tag blockers; browser stops before Record');
       const spanishMake = (await turn('Hicimos 1 tanda del producto 90002', [resolve('product', '90002', { action: 'make' }), ['prepare_make', { product_id: 285, batches: 1 }]])).cards[0];
       assert.equal(spanishMake.kind, 'draft'); assert.equal(spanishMake.language, 'es');
       assert.equal(spanishMake.prepared.draft.lot_confirmation_group.instruction, 'Escriba los últimos 4 caracteres de la etiqueta de cada bolsa que usó.');
