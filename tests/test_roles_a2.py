@@ -40,6 +40,7 @@ EXPECTED = {
     'ship_order':                       'owner floor office legacy_ledger',
     'ship_standalone':                  'owner office legacy_ledger',
     'ship_bulk':                        'owner floor office legacy_ledger',
+    'create_customer':                  'owner office',
     'create_order':                     'owner office legacy_ledger',
     'add_order_lines':                  'owner office legacy_ledger',
     'update_order_line':                'owner office legacy_ledger',

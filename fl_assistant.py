@@ -279,7 +279,7 @@ def untrusted_ids(args, state):
 def receipt_ok(status, result):
     return (status == 200 and isinstance(result, dict) and result.get('success') is not False
             and isinstance(result.get('receipt_number'), str)
-            and re.fullmatch(r'(?:RCV|MK|PK|ADJ|FND|SHP)-\d{6}-\d{3,}', result['receipt_number']) is not None)
+            and re.fullmatch(r'(?:RCV|MK|PK|ADJ|FND|SHP|CUS|ORD)-\d{6}-\d{3,}', result['receipt_number']) is not None)
 
 
 def register_routes(app, api):
@@ -355,7 +355,7 @@ def register_routes(app, api):
                 return status, result, None
             if status == 200:
                 choice_id = str(uuid4())
-                card = {'kind': 'choices', 'id': choice_id, 'resolution_kind': args['kind'], 'result': result}
+                card = {'kind': 'choices', 'id': choice_id, 'resolution_kind': args['kind'], 'query': args.get('query', ''), 'result': result}
                 state['pending'] = {'id': choice_id, 'args': args, 'result': result}
                 if result.get('outcome') == 'none':
                     with api.get_transaction() as cur:
@@ -458,6 +458,34 @@ def register_routes(app, api):
             # Names/bytes stay outside model context; A6 stores every photo.
             linked_attachments(api, sid, actor['id'], body.attachment_ids)
             history = state.setdefault('history', [])
+            # Only a customer actually recorded in this person's chat grants an
+            # ID. Read the saved receipt at turn start so Record never races a
+            # running turn's state/lease. Pending/cancelled drafts grant nothing.
+            with api.get_transaction() as cur:
+                cur.execute("""SELECT id,result FROM assistant_drafts
+                    WHERE session_id=%s AND actor_id=%s AND status='committed'
+                      AND card->'prepared'->>'action'='create_customer'
+                    ORDER BY created_at,id""", (sid, actor['id']))
+                customer_receipts = [dict(row) for row in cur.fetchall()]
+            known_receipts = state.setdefault('customer_receipts', [])
+            for saved in customer_receipts:
+                result = saved['result']
+                if not receipt_ok(200, result) or not result['receipt_number'].startswith('CUS-'):
+                    continue
+                customer = result.get('customer')
+                if not isinstance(customer, dict):
+                    continue
+                customer_id = result.get('customer_id')
+                if (not isinstance(customer_id, int) or isinstance(customer_id, bool)
+                        or customer_id <= 0 or customer.get('id') != customer_id):
+                    continue
+                approve_id(state, 'customer', customer)
+                receipt_number = result['receipt_number']
+                if receipt_number not in known_receipts:
+                    history.append({'role': 'user', 'content': 'FL confirmed the customer Record: ' +
+                        json.dumps({'receipt_number': receipt_number, 'customer': {
+                            'id': customer_id, 'name': customer.get('name')}}, ensure_ascii=False)})
+                    known_receipts.append(receipt_number)
             pending = state.get('pending')
             if body.choice_id:
                 if not pending or str(body.choice_id) != pending['id']:

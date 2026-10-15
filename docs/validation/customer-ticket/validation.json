@@ -1,0 +1,60 @@
+{
+  "validated_at": "2026-10-15T10:55:40.929488-04:00",
+  "branch": "feat/customer-ticket",
+  "worktree": "/Users/cns/dev/fl-cust-wt",
+  "base_commit": "e41bc2e9ee182096cf6fe3dbb0599c18fcd4c225",
+  "scope": "Local test databases and local browser servers only; no hosted database, deployment or merge.",
+  "python": {
+    "passed": 5837,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 106.589,
+    "command": "env -u DATABASE_URL TEST_DATABASE_URL=postgresql://127.0.0.1:57635/fl_cust_full_final scripts/run_tests.sh",
+    "fresh_schema": "tests/schema/schema.sql; pending083 applied transactionally by customer tests",
+    "baseline_passed": 5764
+  },
+  "node": {
+    "passed": 235,
+    "failed": 0,
+    "skipped": 0,
+    "command": "node --test tests/test_*.js"
+  },
+  "focused": {
+    "customer_backend": 58,
+    "assistant_python": 111,
+    "role_and_scope": 289,
+    "office_node": 35
+  },
+  "browser": {
+    "office_sessions_on": "PASS: all 15 forms; 21 actual ticket receipts, including CUS then ORD; preserved PO, notes, ship date and lines; normalized duplicate choice; floor restrictions; 390px EN/ES",
+    "office_sessions_off": "PASS: ticket forms hidden; legacy ready controls and neutral receipt lookup work",
+    "assistant_sessions_on": "PASS: existing mocked-API Chromium interaction suite",
+    "assistant_sessions_off": "PASS: existing mocked-API Chromium interaction suite",
+    "customer_receipt_page": "PASS: actual local CUS receipt has recorded status and all contact fields at 390px",
+    "screenshots": [
+      "new-customer-draft-390.png",
+      "new-customer-receipt-390.png"
+    ]
+  },
+  "assistant_contract": "Real FL HTTP/DB customer and order prepares/Records tested with mocked model only. New order for new customer stops at each human Record; pending customer cannot grant order ID.",
+  "migration": {
+    "required": "083_customer_tickets.sql",
+    "apply_before_app_deploy": true,
+    "up_rerun_down_up_and_evidence_guard_tested": true,
+    "applied_only_locally": true
+  },
+  "security": "Office and owner only; floor/shared keys refused. Person/hash binding, expiry, supersession, audit rollback, replay, concurrent same-ticket/two-ticket/direct-insert race covered.",
+  "direct_routes": "main.py unchanged; legacy exact-name direct uniqueness and PATCH covered",
+  "independent_review": "No actionable findings",
+  "cleanup": {
+    "all_fl_cust_databases_dropped": true,
+    "automatic_race_databases_dropped": true,
+    "local_servers_stopped": true,
+    "isolated_postgres_cluster_stopped": true,
+    "remaining_non_template_databases": [
+      "postgres"
+    ]
+  },
+  "not_done": []
+}

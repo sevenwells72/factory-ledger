@@ -180,6 +180,8 @@ def test_actor_only_scope_is_approved_writes_plus_product_resolution():
         ('POST', '/sales/orders/{order_id}/ship/prepare'),
         ('POST', '/attachments'), ('GET', '/attachments/{attachment_id}'),
         ('GET', '/attachments/{attachment_id}/file'), ('POST', '/shipments/{shipment_id}/attachments'),
+        # Customer tickets are named office/owner only; direct routes stay unchanged.
+        ('POST', '/customers/prepare'),
         # D2 office: actor-scoped metadata and atomic SO document approval.
         ('GET', '/sales/orders/{order_id}/office-options'),
         ('GET', '/purchase-documents/{document_id}'),
