@@ -1,295 +1,141 @@
-# Factory Ledger pilot plan — Nov 2 to Nov 20, 2026
+# Factory Ledger pilot plan
 
-**For:** Michael (owner). **Staff guides:** [Arturo](ARTURO-GUIDE.md) · [Office](OFFICE-GUIDE.md) · [Michael's daily check](MICHAEL-DAILY-CHECK.md) · [quick cards (PDF)](cards/).
-**Based on:** `origin/main` @ `d5e9fea` (PR #111 merged), design `docs/design/phase1-safe-operating-system.md` rev 3.8 + the 2026-10-13 decisions, `FOLLOWUPS.md`, `docs/contracts/`, `docs/deployments/`. Written 2026-10-13.
+## Key dates
 
-This plan only describes what is merged on main today. Anything else is labelled:
-
-- **🟡 Coming before the pilot (PR #107):** waits on PR #107 (D1 + D2 dashboard: receipt page, Exceptions page, "Record an entry" forms). It is a draft today. It must be merged and on staging before Nov 2, or that day's test moves.
-- **⛔ Not built (no PR):** nothing is in progress for it. The plan works around it.
-
----
-
-## 1. Dates
-
-| Date | What happens |
-|---|---|
-| **by Wed Oct 28** | Production OpenAI key (its own project, $20/month hard cap, alerts at 50 % and 80 %) set on FastAPI-staging (decision 38). |
-| **by Fri Oct 30** | Pilot stack on staging; PR #107 merged and on staging. Staging personal keys for Arturo, Luz and Miriam handed over in person. |
-| **Mon Nov 2** | **Staging pilot starts** (day 1 of the 10-day script below). |
-| **Fri Nov 6** | **Checkpoint** (day 5). Old OpenAI test key revoked before today. Go / fix / use the "simplify" lever (design §10.2 item 9). |
-| **Mon Nov 9 – Fri Nov 13** | **Five confirmed shift summaries in a row** (days 6–10), with zero unexplained discrepancies (gate (d)). Gate (e) is tested Tue Nov 10. |
-| Mon Nov 16 | Spare day, used only if one day of Nov 9–13 has to be redone. The latest clean five-day run that still meets the gate starts Wed Nov 11. |
-| **Tue Nov 17** | **Go / no-go** against the readiness gate (§6). |
-| **Fri Nov 20** | **Cutover** (count, reset, key rotation, GPTs read-only, FL Assistant live on production; design §10.1). |
-| Mon Nov 23 | A10 stage 1 (old direct write routes closed). |
-| **Fri Dec 4** | **Fallback cutover date** if the gate is not green on Nov 17. The date never overrides the gate. |
-
-## 2. How the pilot works (read this first)
-
-1. **The pilot runs on staging, not production.** Staging is a separate copy of Factory Ledger. Nothing entered there changes real inventory.
-2. **Until cutover, the real record stays exactly as today.** Arturo keeps recording real events the current way (the Floor GPT). He *also* enters the same real events in the FL Assistant on staging. The staging shift summary is then checked against what really happened on the floor. *(Safest-option choice made for this plan. If you want only some events on staging, cut the script, not the real recording.)*
-3. **Staging stock does not match the floor.** Unless staging is given opening stock, almost every make or pack will create a shortage flag. See decision P-2 in §8.
-4. **Pages (staging):**
-   - FL Assistant: `https://fastapi-staging-production-dd7b.up.railway.app/dash/fl-assistant`
-   - Shift summary: `https://fastapi-staging-production-dd7b.up.railway.app/dashboard/shift-summary.html`
-   - Dashboard: `https://fastapi-staging-production-dd7b.up.railway.app/dashboard/index.html`
-
-   Use the Railway addresses, not the Netlify site. The Netlify site is production and does not show the sign-in bar.
-5. **Sign-in:** each person types their **personal key** once per shift. FL swaps it for a session (180 min idle limit) and every entry is recorded to that person. **Sign out** before handing over a shared tablet. PIN login stays off. A QR badge is built only if typing the key fails in week 1 (decision 33).
-6. **One rule for everyone:** *no receipt number = not recorded.* Only the green "✓ RECORDED IN FACTORY LEDGER" card with a number like `MK-261102-003` counts.
-
-## 3. Who does what
-
-| Person | Role in FL | Pilot job |
+| Milestone | Date (2026, New York) | What happens |
 |---|---|---|
-| **Michael** | owner | Runs the pilot. Daily 10-minute check ([MICHAEL-DAILY-CHECK.md](MICHAEL-DAILY-CHECK.md)). Approves held entries (large corrections, extra-kosher makes) **from his own signed-in device only**. Keeps the problem log (§7). Makes the go/no-go call. |
-| **Arturo** | floor | Enters real floor events on staging. Confirms his shift summary every day. Owns shortages and unidentified lots (2 and 7 business days). |
-| **Luz** | office | Office tests (receipts, ships, lookups, exceptions list). **Fallback operator** on the dashboard forms (decision 10). |
-| **Miriam** | office | Same tests as Luz on at least two days, so the gate has a second office user. |
-| **Engineering** (Claude Code / Codex) | — | Fixes problems from the log. Staging only. Every production step and merge needs Michael's per-action approval. |
+| Pilot start | Wed Oct 21 | Arturo and Luz practice on staging for part of each day. |
+| Clean-summary and dry-run window | Oct 26–30 | Five clean shift summaries plus the production dry run. |
+| Packet printing | Fri Oct 30 | Print approved count packets. |
+| Go / no-go | Mon Nov 2 | Michael decides from the evidence. |
+| Physical count and signing | Thu Nov 5 | Count while production runs; Michael signs the approval list that evening. |
+| Reset and cutover | Fri Nov 6 | Each area pauses 15–30 minutes; whole-reset proof before release; rotate master key; GPTs become read-only. |
+| A10 stage 1 | Mon Nov 9 | Retire the approved old staff write paths. |
+| First fallback | Fri Nov 13 | Cutover only after renewed readiness approval. |
+| Second fallback | Fri Nov 20 | Cutover only after renewed readiness approval. |
+| M0 and GPT retirement deadline | Before Fri Dec 11 | M0 read-only plugin live; old GPTs retired. |
 
-### Every pilot day
+**For Michael.** [Floor guide](ARTURO-GUIDE.md) · [Office guide](OFFICE-GUIDE.md) · [Daily check](MICHAEL-DAILY-CHECK.md) · [Printable cards](cards/).
 
-| When | Who | What |
-|---|---|---|
-| Start of shift | Arturo | Sign in to the FL Assistant on the floor tablet. Check the header says "Signed in as Arturo · floor". |
-| During the shift | Arturo | Enter each real event in the Assistant right after it happens. Wait for the green card. Record a NOT recorded card on the problem sheet. |
-| During the day | Luz (Miriam on her days) | The office test for that day (§4). |
-| End of shift | Arturo | Open the shift summary, check it against the floor, press **Confirm**, **Confirm with notes** or **Something is missing**. Sign out. |
-| Next morning, 10 min | Michael | Daily check: approvals, exceptions, yesterday's summary, late entries, the problem log. |
-| Next morning | Engineering | Fixes from the log, on staging only. |
+Use the **Key dates** table for the schedule. This replaces the old ten-day plan. Arturo and Luz practice on staging for **part of each day**. The exact daily practice slot, selected events and opening stock remain Michael's decisions (§8); this plan does not assume double entry of every production event or authorize staging stock creation.
 
-## 4. The 10-day test script
+## 1. Operating rules
 
-Each day still includes **all normal real entries** for that day. The script adds the special tests. "✓ day passes" means every item in that row is true.
+- **Sign in once per shift with your personal key.** Use an FL session with a **180-minute idle timeout**. Background auto-refresh does not extend it. Sign out at handover; sign in again after expiry. **PIN login stays OFF.** A second routine sign-in at shift summary is a pilot defect to resolve, not the planned staff workflow.
+- **No receipt = not recorded.** Every write follows **prepare → Record → receipt**. Read the prepared details before Record. Only a receipt number proves the entry is in the ledger; a draft, chat reply, hold or button press does not.
+- **FL Assistant:** unsupported requests get a **neutral English/Spanish card**, never a raw error. **Red is only for a failed Record.** Missing details are listed in plain words. Adjust/found without a reason shows reason buttons. Staff supply the missing facts; FL must not guess.
+- **Extra-kosher:** receive is refused; found stock is held until **Michael approves from his phone**. Extra-kosher makes also need his attestation. Pre-cutover stock belongs in the physical count under **283/284 batches and 285–290 finished goods**. Never receive it to bypass a hold or relabel a regular lot.
+- **Live count:** production keeps running during the physical count. Record movements and count times. Each area pauses **15–30 minutes at reset**. Michael signs the exact approval list **the evening before**; changed evidence requires renewed approval.
+- **Whole reset:** proof must say **FULL RESET SCOPE RECONCILED (exit 0)** before **any release step**, including key rotation or flags. Any gap stops release. **O-3 closed**; acceptance still requires actual cutover proof.
+- **Master key rotates on cutover day**, after that proof. GPTs become read-only at cutover and never become the write fallback.
+- **Close/reopen an order as “shipped, not recorded”: owner-only, note required, pre-cutover only.** Every path enforces the same rule, including requests using the master key, which cannot impersonate the owner. **O-4 closed.**
+- **Sunshine bulk:** use the paper bin log until after cutover. **O-2 closed; A8 deferred.** No new invoicing trigger is assumed.
 
-### Week 1: learn each entry type (Nov 2–6)
+### Recipe reference
 
-**Day 1 · Mon Nov 2 — sign in, receive, shift summary**
-- **Arturo:**
-  - Sign in once.
-  - Record every real receive. Choose the real supplier. Type the supplier lot from the bag or pallet.
-  - Ask "what did I enter today?".
-  - Look up one receipt by number.
-  - Confirm the shift summary.
-  - Sign out. Sign in again. Check the name.
-- **Luz:**
-  - Sign in on her own device.
-  - Record one receive from paperwork in the Assistant (office may receive).
-  - Look up Arturo's receipt by number in the Assistant.
-  - Open the shift summary with "View all actors (read-only)".
-- **✓ day passes when:**
-  - Every receive has a receipt number **and** a real supplier.
-  - Every receipt shows the right person.
-  - The summary is confirmed.
-  - Sign out worked.
-
-**Day 2 · Tue Nov 3 — make and pack with lot confirmation**
-- **Arturo:**
-  - Record each make and pack.
-  - Confirm each ingredient lot from the physical tag: **last 4 characters including the hyphen** (e.g. `-004`).
-  - Once, type a wrong last-4 on purpose and see FL refuse it.
-  - When FL asks, use **Confirm this output SKU**.
-- **Luz:** Try to record a make in her Assistant. FL must refuse it (office cannot make).
-- **✓ day passes when:**
-  - Every make/pack has a receipt.
-  - No make posted without a confirmed lot.
-  - The wrong last-4 was refused.
-  - The office make was refused.
-
-**Day 3 · Wed Nov 4 — substitutions, voice and text**
-- **Arturo:**
-  - One make with a recorded substitution: **rolled oats for oat bran, pound for pound**, with the reason said out loud.
-  - On a chocolate-chip batch, **1,000 CT chips in place of 4,000 CT** as a substitution (4,000 CT is the standard; decision 19).
-  - Record at least three entries by **voice** (hold to talk, read the transcript, fix it, Send) and three by typing.
-- **Michael:** Read the substitution receipts.
-- **✓ day passes when:**
-  - Each substitution receipt names the substitute product, its lot and the reason.
-  - Pounds are the same as the recipe line.
-  - Nothing was sent without Arturo pressing Send.
-- ⚠ **Not yet proven:** FL accepts substitutions and the Assistant can pass them, but the substitution has never been tested end to end through the Assistant. **If the draft card does not show the substitute and its lot, do not press Record.** Use the 🟡 "Record an entry" make form (PR #107), which has substitution fields. Log it as a problem.
-
-**Day 4 · Thu Nov 5 — shipping with BOL and photo**
-- **Arturo:**
-  - Ship one real order: BOL number in the draft, BOL photo attached, Record.
-  - Ship a second one with the BOL number but no photo, then attach the BOL photo later the same day.
-- **Luz:**
-  - Ship one order from the office (office may ship).
-  - Try a ship dated yesterday. FL must refuse it: only owner or floor may confirm a "not same day" ship.
-- **✓ day passes when:**
-  - No ship posted without a BOL number.
-  - Every ship has its BOL photo by 23:59.
-  - Next morning Michael sees **no** "BOL photo missing" item. If a photo was left out on purpose, he sees exactly one.
-
-**Day 5 · Fri Nov 6 — corrections with reasons + CHECKPOINT**
-- **Arturo:**
-  - One small correction with a reason from the fixed list of 8 (e.g. Damage/disposal).
-  - One "found" stock with a reason.
-  - One correction with reason **Unknown**: FL must ask for a note.
-  - One correction **over 500 lb with a photo**: it posts.
-  - One correction **over 500 lb without a photo**: it shows "Waiting for owner approval".
-- **Michael:** Approve or reject the held correction from his own device (🟡 Exceptions page, PR #107). Arturo then taps **Check approval** and sees the receipt.
-- **Checkpoint (Michael, end of day):**
-  - Days 1–5 all passed or have a fix date.
-  - No problem in the "stop" class is open (§7).
-  - PR #107 is on staging.
-  - The OpenAI test key is revoked.
-  - If red: apply the §10.2 item 9 "simplify" set and/or move A8, and write down what moved.
-- **✓ day passes when:**
-  - Every correction has one of the 8 reasons.
-  - Unknown has a note.
-  - The held correction posted only after approval, under the same receipt number.
-
-### Week 2: five confirmed shift summaries in a row (Nov 9–13)
-
-From today every day must end with a **confirmed** shift summary, and every discrepancy must have a written explanation. A day with "Something is missing" that nobody can explain breaks the run of five.
-
-**Day 6 · Mon Nov 9 — shortages**
-- **Arturo:**
-  - Record a make that uses more than staging has. The draft warns of a shortage; Record anyway: the make posts and a shortage opens, due in 2 business days.
-  - Try to "fix" it by adding stock with a correction. FL must refuse it ("resolve the shortage instead").
-  - Resolve the shortage (counted, or the missing receive entered and linked) in the 🟡 Exceptions page (PR #107).
-- **✓ day passes when:**
-  - The make was not blocked.
-  - The add-stock attempt was refused.
-  - The shortage was closed with a reason inside 2 business days.
-  - The summary is confirmed.
-
-**Day 7 · Tue Nov 10 — extra-kosher hold (gate (e))**
-- **Arturo:**
-  - Record one **Extra-Kosher Classic #9** make (after Michael turns on the oven). It shows "Waiting for owner approval".
-  - Then pack an extra-kosher finished product from that lot.
-  - Try to pack an extra-kosher finished product from a **regular** #9 lot. FL must refuse it.
-  - Keep the paper extra-kosher log (date + lot) as today.
-- **Michael:** Approve the held make from **his own** signed-in device (🟡 Exceptions page, PR #107). Never on Arturo's tablet.
-- **✓ day passes when:**
-  - The make posted only after Michael's approval, with Michael shown as the kosher approver.
-  - The pack shows EXTRA-KOSHER.
-  - The regular-lot pack was refused.
-  - Every receive this day has a real supplier.
-  - The summary is confirmed.
-
-**Day 8 · Wed Nov 11 — unidentified lots**
-- **Arturo:** Receive one real delivery whose bag has no readable supplier lot (supplier lot "N/A"). It posts, flagged UNIDENTIFIED, due in 7 business days.
-- **Luz** (or Arturo): Find the real supplier lot from the packing slip or supplier and enter it on the 🟡 Exceptions page (PR #107) → supplier lot, reason **Data-entry error** or **Wrong lot used**.
-- **✓ day passes when:**
-  - The flag shows on the summary.
-  - Entering the real code closed it.
-  - The summary is confirmed.
-
-**Day 9 · Thu Nov 12 — paper and fallback drill**
-- **Arturo:**
-  - For one hour, write events on paper as if FL were down (§9 of his guide). Enter them the same shift with the time from the paper.
-  - Look up one entry from yesterday by asking the Assistant.
-- **Luz:**
-  - Enter one of Arturo's paper events on the 🟡 "Record an entry" dashboard form (PR #107), as the fallback operator.
-  - Check its receipt.
-- **✓ day passes when:**
-  - Every paper event got a receipt number written back on the paper.
-  - Paper times were used.
-  - Nothing was entered twice (a "possible duplicate" warning was read, not just ticked).
-  - The summary is confirmed.
-
-**Day 10 · Fri Nov 13 — a normal day, no help**
-- **Arturo:** The whole shift with no script and no one standing by.
-- **Miriam:** Repeats Luz's day-1 and day-4 office tests on her own key.
-- **✓ day passes when:**
-  - Every event has a receipt.
-  - The summary is confirmed with zero unexplained discrepancies.
-  - This is the 5th confirmed day in a row.
-
-### Tests that run every day
-- **Sign out on the shared tablet** at every hand-over and at end of shift.
-- **NOT recorded drill:** whenever a red card appears, follow Arturo's guide §6. Log every red card.
-- **FL Assistant by voice and text:** at least a few of each, every day.
-
-## 5. Success criteria summary
-
-| Area | Pass when |
+| Recipe / product | Settled rule |
 |---|---|
-| Identity | Every receipt in the pilot shows the person who entered it. Sign out ends the session, and a Record after sign-out is refused. A 180-min idle session asks to sign in again. |
-| Recorded = receipt | No event counted as recorded without a receipt number. No entry posted twice (retry shows "Same entry, same receipt"). |
-| Lots | Every make/pack/ship consumed lot was confirmed from the physical tag. |
-| Suppliers | 100 % of receives in Nov 9–13 carry a real supplier (gate (e)). |
-| Corrections | Every correction has one of the 8 reasons. Over 500 lb has a photo or was approved by Michael. |
-| Shortages | None open past its 2-business-day deadline without Michael knowing. |
-| Shipping | Every ship has a BOL number. Every BOL photo arrives the same day, or the miss is visible the next morning. |
-| Kosher | The extra-kosher make and pack were tested with Michael's approval, and the regular-source refusal was seen (gate (e)). |
-| Shift summary | Five consecutive confirmed days Nov 9–13, zero unexplained discrepancies (gate (d)). |
+| SS #1 / #2 / #3 | Oat bran stays in the recipes: **29 / 28 / 28 lb**, respectively. |
+| Rolled oats substitution | Rolled oats may replace oat bran **pound-for-pound without approval**. Record the substitute and its lot; this does not change the base recipe. |
+| Fruit Nut | **328.3 lb = 276.3 lb Classic #9 + 13 lb each of four nuts/fruits**. |
+| Product 284 | **4,000-count chips**. Do not teach a different chip standard. |
 
-## 6. Readiness gate checklist — Tue Nov 17 (go / no-go)
+## 2. People and daily routine
 
-From design §11 item 10, as amended by rev 3, 3.2 and 3.8. **All must be ✅ to go. If (d) is not met, cutover moves to Dec 4.**
+| Person | Responsibility |
+|---|---|
+| Michael | Selects practice scope and accepts evidence; approves holds from his phone; reviews daily; decides go/no-go and each production action. |
+| Arturo | Floor practice, physical lot confirmation, receipt checks and shift summary; directs the count. |
+| Luz | Office practice and receipt/paper reconciliation; coordinates fallback within office permissions. |
+| Miriam | Office guide applies to her too; Michael confirms her acceptance slot rather than assuming extra pilot days. |
+| Engineering | Fixes and verifies reported defects in separately reviewed work; no production action is authorized by this docs update. |
 
-**(a) Master-key rotation**
-- [ ] Not a Nov 17 item since rev 3.8: rotation happens **on cutover day** (§10.1 step 2). Confirm the cutover-day runbook is ready.
+At practice start, verify the **staging** label and the signed-in name. Use the FL Assistant at `https://fastapi-staging-production-dd7b.up.railway.app/dash/fl-assistant` and staging dashboard at `https://fastapi-staging-production-dd7b.up.railway.app/dashboard/index.html`. Staging entries do not update real inventory. Michael must state how selected practice entries relate to the real recording process before practice begins (P-1).
 
-**(b) Software on staging, accepted by Michael, Arturo and one office user**
-- [ ] A1–A6, A7, A9, A12 and F1 on staging (merged on main today).
-- [ ] **PR #107 (D1 + D2) merged and on staging** — receipt lookup, Exceptions page, "Record an entry" forms.
-- [ ] G1 read-only GPT build ready for cutover day (merged as PR #111; key issue and editor pastes are cutover-day steps).
-- [ ] Pilot sign-in checks passed for all four people: key exchange works, the 180-min idle end asks again, Sign out → a later Record is refused, the right person is on every receipt. (PIN items are "at PIN activation", not gate items.)
-- [ ] Resolution tests (design §3.1) pass on staging, e.g. "Classic" and "chocolate chip" ask which one, never auto-pick.
-- [ ] Michael, Arturo and Luz or Miriam each signed off their part of the 10-day script.
+During the agreed practice slot, run the relevant checks below. At shift end, Arturo compares the summary with the agreed practice record and chooses **Confirm**, **Confirm with notes** or **Something is missing**. Luz reconciles office entries. Michael does the [daily check](MICHAEL-DAILY-CHECK.md) next morning. A partial-day pilot still needs an accurate summary of its agreed scope; do not claim an unpracticed full shift was tested.
 
-**(c) Physical count reviewed and reset approved**
-- [ ] Count packet and per-area procedure ready (option A, live count, 15–30 min pause per area).
-- [ ] Count-tool PR merged and the hosted-staging rehearsal repeated (FOLLOWUPS P1.21/P1.19).
-- [ ] Reset approval plan ready, including the owner-approved extra-kosher stock loading.
+## 3. Practice checks
 
-**(d) Five consecutive confirmed shift summaries on staging, zero unexplained discrepancies**
-- [ ] Nov 9–13, or a clean run of five ending by Nov 17.
+Use selected staging examples approved by Michael. Repeat failed checks after the fix. Checks are grouped by skill, not invented calendar days.
 
-**(e) Suppliers and kosher**
-- [ ] Every RCV receipt in those five days has a real supplier.
-- [ ] At least one extra-kosher make + pack ran with Michael's approval.
-- [ ] The "regular source" pack refusal was seen.
+| Check | Arturo / Luz do | Pass evidence |
+|---|---|---|
+| Sign-in and handover | Personal sign-in; verify own name; sign out at handover. Engineering verifies 180-minute real inactivity while background refresh runs. | Correct actor on receipts; expired/signed-out Record refused; no routine second key entry for the summary; PIN off. |
+| Receive and receipts | Receive with real supplier and supplier lot; look up the returned receipt. | Supplier and quantities match; exactly one receipt for one event; no receipt is treated as not recorded. |
+| Make and pack | Arturo checks physical tags and confirms ingredient/source lots, including a wrong-last-four refusal. Luz attempts a floor-only action on staging. | Correct lots on receipts; wrong lot and office make refused without a raw error. |
+| Recipes and substitution | Verify the recipe reference; record an oats-for-bran example through the accepted interface. | Correct recipe pounds; substitute and lot visible before Record; no approval demanded for the settled substitution. If missing, stop and report P-4. |
+| Shipping | BOL number; physical lot confirmation; BOL photo same day by 23:59 plant time. Exercise missing-photo follow-up on staging. | Receipt plus BOL proof; a deliberately missing photo is visible for follow-up. A packing-slip/truck photo is not BOL proof. |
+| Missing facts and reasons | Omit a quantity or lot; try adjust/found without a reason; try an unsupported request, in both languages. | Missing details listed plainly; reason buttons appear; neutral bilingual unsupported card; no raw errors or red pre-Record card. |
+| Correction and failed Record | Use a stated reason; Unknown needs a note. Exercise a large correction hold and a failed Record. | Over 500 lb needs photo or Michael's approval; held ≠ recorded; red only after failed Record; use same draft/receipt check before retry. |
+| Extra-kosher | Attempt receive; prepare found stock and make; Michael approves from his phone; pack from correct lot; attempt regular-source pack. | Receive refused; found/make held until owner approval; receipt after approval; regular-source extra-kosher pack refused. |
+| Shortage and identification | Record an approved shortage example and resolve from actual count/missing movement; identify an unreadable supplier lot from evidence. | No invented stock to force a make through; shortage within 2 business days; unidentified received lot within 7 business days. |
+| Office work and close guard | Use **Office / Oficina → Office action / Acción de oficina** for order/expected-receipt work: prepare → Record → receipt. Check “shipped, not recorded” owner/note/pre-cutover restrictions. | ORD/ER receipts; planned receipt does not add stock; all close/reopen paths enforce the rule, including master-key paths. O-8 and O-4 are closed decisions; verify the accepted deployment. |
+| Paper fallback | Write a chosen event on numbered paper and enter once with original time through the permitted form. | Receipt number written back to paper; duplicate warning resolved; Luz does only office-authorized actions. Arturo/Michael enter floor-only work. |
+| Summary and unaided use | Arturo and Luz finish the agreed practice scope without coaching; compare summary, receipts and paper. | Correct attribution and quantities; confirmed summary; every discrepancy explained. |
 
-**Also needed (from FOLLOWUPS, not in item 10)**
-- [ ] Production OpenAI key on staging since Oct 28; test key revoked before Nov 6 (decision 38).
-- [ ] Nightly jobs proven: the first `expire-tickets` run logged, and one `BOL_PHOTO_MISSING` opened by `exceptions-sweep` for a deliberately photo-less staging ship (P1.9, P1.14).
-- [ ] No open "stop" problem in the log (§7). Every "fix before cutover" problem is fixed or has Michael's written waiver.
-- [ ] Spanish: every message Arturo saw on a red card during the pilot was understood (several server messages are English-only today; see P-4).
-- [ ] Decision made on how office creates **orders and expected receipts** after cutover (P-3).
+## 4. Clean-summary and dry-run window
 
-## 7. How problems are reported
+During the **clean-summary and dry-run window** in Key dates, collect **five clean shift summaries** with zero unexplained discrepancies. Every receive needs a real supplier. Include the extra-kosher approval/pack/refusal evidence. A missing event, false confirmation or unexplained difference prevents that summary from counting.
 
-**On the floor (Arturo) or in the office (Luz/Miriam):**
-1. **Do not try to fix it by entering something else.** A wrong entry fixed by guessing is worse than a missing entry.
-2. Take a photo of the screen. **Never photograph the sign-in screen while a key is typed.**
-3. Write on the problem sheet (or text Michael): the time, what you were trying to record, the receipt number, or the words "NOT recorded".
-4. If it is about a real event, the real record is unchanged (the old way). Keep going.
+The **production dry run** is a separate owner-approved, no-apply operation with real count evidence, correct production owner identity and measured timings. Staging proof does not replace it. Michael supplies evidence/approval, engineering executes the accepted runbook, and the reviewer checks output. **O-10 stays open until performed.** This docs task performs none of those operations.
 
-**Michael** copies each report into the problem log below every morning and sorts it:
+If five clean summaries or the dry run are incomplete, report the gap at **go/no-go**. Do not invent a spare day or silently compress acceptance. Use the listed fallbacks only with renewed readiness review; Michael must set the revised count/signing/rehearsal schedule (P-7).
 
-| Class | Meaning | Examples | Action |
-|---|---|---|---|
-| **STOP** | The ledger may be wrong or attributed to the wrong person | Green card but the receipt doesn't exist; one event posted twice; a receipt shows the wrong person; posted values differ from the draft card; a key or token visible in a screen, log or photo | Pause that entry type for everyone. Engineering fixes the same day. The day does not count toward the five. |
-| **FIX BEFORE CUTOVER** | Blocks a real event with no workaround, or confuses staff | A refusal Arturo can't understand; Spanish missing; a summary row is wrong; a needed screen is missing | Fix before Nov 17, or written waiver from Michael. |
-| **LATER** | Annoying but safe | Wording, speed, extra taps | After cutover. |
+## 5. Count and cutover handoff
 
-**Problem log** (keep in the PR thread or a copy of this table):
+At **packet printing**, Luz prints the approved packet and Arturo checks readability. At **physical count and signing**, count while production runs, capture every movement and preserve private evidence. Extra-kosher pre-cutover stock goes under products **283/284/285–290**, with Michael's attestation; uncertain identity/ownership remains held. Michael signs each exact reset approval list that evening.
 
-| # | Date/time | Who | What happened | Receipt # / NOT recorded | Class | Owner | Fixed (date / PR) |
+At **reset and cutover**, each area pauses 15–30 minutes. Use the signed plan, current movements, one receipt per posted entry and independent readback. The master runbook controls reset execution. **FULL RESET SCOPE RECONCILED (exit 0) must precede any release step.** Rotate the master key on this cutover day, then make the GPTs read-only and release accepted personal-session workflows in the runbook order.
+
+A10 stage 1 and the M0/GPT retirement deadline are in Key dates. A10 stage 2 still requires its accepted rollout; closed O-8 does not mean an unverified rollout already occurred. Sunshine stays on its paper bin log until after cutover; A8 remains deferred.
+
+## 6. Go / no-go checklist
+
+Michael signs GO only from evidence. The later physical count and signed reset remain release conditions; do not pretend they happened before the go/no-go meeting.
+
+- [ ] Current staging software and required flows accepted by Michael, Arturo and an office user; each personal sign-in has correct attribution and idle/sign-out behavior.
+- [ ] Five clean summaries from the agreed practice scope; every receive has a real supplier; owner-approved extra-kosher make/found/pack and refusals demonstrated.
+- [ ] Neutral bilingual unsupported/missing-detail/reason behavior accepted; red only for failed Record; no raw error taught as normal staff workflow.
+- [ ] Current packet, area grouping, staffing, live count, evening signing and 15–30 minute pauses ready; production dry run completed (O-10).
+- [ ] Whole-reset proof procedure accepted (O-3 closed); proof wording required before any release. All-path order close/reopen rule accepted (O-4 closed); production deployment evidence checked.
+- [ ] Production sessions/proxy plan, complete private key-consumer inventory and dashboard-key delivery ready (O-5/O-6/O-7); master rotation scheduled for cutover day.
+- [ ] Dedicated OpenAI project/key, $20 cap, 50%/80% alerts and test-key retirement evidenced (O-13); owner must confirm readiness, not assume from an old deadline.
+- [ ] Office order/expected-receipt workflow accepted (O-8 closed); supported fallback and staffing cover required actions; open P-items resolved or explicitly deferred without weakening the gate.
+- [ ] No open STOP problem. Safety defects are repaired and rechecked; a date is not a waiver.
+
+If any mandatory check fails, NO-GO. Michael selects the appropriate fallback from Key dates and schedules fresh acceptance, count evidence and signatures.
+
+## 7. Problem reporting
+
+Staff call **Michael** when stuck. They record the time, attempted action and receipt number or **NOT recorded**, plus a screen photo with no key visible. Keep the event on paper; check for an existing receipt before entering it again.
+
+| Class | Examples | Action |
+|---|---|---|
+| STOP | False success/missing receipt, duplicate event, wrong actor, changed quantity after draft, exposed key or a rule bypass | Stop that action, preserve evidence, tell Michael and engineering; repair and reverify before resuming. |
+| FIX BEFORE CUTOVER | Missing details unclear, unsupported request/raw error, wrong language, missing required screen or failed fallback | Assign owner; resolve before go/no-go for required work. |
+| LATER | Safe wording or speed improvement | Track for later without hiding a safety defect. |
+
+| Item | Milestone / time | Who | What happened | Receipt / NOT recorded | Class | Owner | Resolution |
 |---|---|---|---|---|---|---|---|
-| 1 | | | | | | | |
+| | | | | | | | |
 
-## 8. Open points for Michael (safest option chosen; change if you disagree)
+Record actual dated operational evidence in the private pilot log. Do not add competing schedule dates to this document.
 
-| # | Question | What this plan assumes |
+## 8. Open questions for Michael
+
+| ID | Question | Status / owner |
 |---|---|---|
-| P-1 | Do real events still go through the current process during the pilot? | **Yes.** The Floor GPT stays the real record until cutover. Staging entries are practice copies of the same events. |
-| P-2 | Should staging get opening stock so makes don't always create shortages? | **Recommended:** engineering loads a clearly labelled staging stock fixture (the same `STG-` labelling used in earlier acceptance) before Nov 2, staging only, with your approval. Never entered by Arturo. Until then a staging shortage is expected and is noted in the summary, not counted as a discrepancy. |
-| P-3 | How does the office create orders and expected receipts *with tickets*? | FL has the ticket routes (A7), but **⛔ no screen uses them**: the dashboard Sales Orders and Expected Receipts tabs still use the old direct path, and PR #107 has no order or expected-receipt form. **For the pilot the office keeps using the existing tabs.** A screen, or a decision to keep the old tabs until A10 stage 2, is needed before cutover. |
-| P-4 | Spanish | The Assistant and shift summary are bilingual. **Several server messages are English-only** (session ended, wrong key, too many sign-in tries, output-SKU confirmation) and the dashboard sign-in bar is English-only. The guides translate them. Fix or accept before Nov 17. |
-| P-5 | Undo a wrong entry (void) | FL has a void ticket route, but **⛔ no screen** uses it. For the pilot: tell Michael the receipt number. A wrong quantity can be corrected with reason *Data-entry error*. |
-| P-6 | Shift summary page sign-in | That page still takes the **personal key** directly (kept in that browser tab only), not the session. Arturo types his key a second time at end of shift (FOLLOWUPS P1.21(e)). |
-| P-7 | Weekly view | **⛔ Not built** (planned Nov 23–27). During the pilot, Michael's daily check replaces it. |
+| P-1 | Which part-day practice slots and events should Arturo/Luz use, and exactly how should those selected events relate to the current real recording process? | OPEN — Michael. No all-day or blanket double-entry assumption. |
+| P-2 | What opening stock/examples should staging use, and who approves/prepares them? | OPEN — Michael with engineering. No fixture load authorized; shortages need an explained disposition. |
+| P-3 | When should Miriam do her acceptance checks, and will Arturo/Luz confirm the Spanish and printed-card readability? | OPEN — Michael schedules; staff validate. |
+| P-4 | Which accepted screen should staff use if a substitution is not fully shown, and who demonstrates it during practice? | OPEN — Michael with engineering. Do not guess a substitute lot or teach a no-receipt shortcut. |
+| P-5 | Who backs up Michael for urgent help, and what phone/contact details should appear on the printed cards? | OPEN — Michael. Current guides say call Michael; no invented number. |
+| P-6 | Where is the approved numbered paper form/private evidence folder, and who covers floor-only work if Arturo is unavailable? | OPEN — Michael with Luz. Office permissions do not expand during fallback. |
+| P-7 | If a fallback is used, what are the revised go/no-go, clean-summary/dry-run, printing, count/signing and A10 slots? | OPEN — Michael. Only fallback cutover dates are settled. |
+| P-8 | What is the accepted M0/GPT retirement method and plan if M0 acceptance is late? | OPEN — Michael; tracked as O-16/O-17 in the runbook. Deadline remains as in Key dates. |
 
-## 9. What is not part of the pilot
+The accepted office screens and shared shift-summary session are from [PR #115](https://github.com/sevenwells72/factory-ledger/pull/115) (merged `d962a1f`); the all-path close/reopen guard is [PR #121](https://github.com/sevenwells72/factory-ledger/pull/121) (merged `9bd30be`). Reopen requires a new note and the order’s immutable New York creation date before the configured cutoff, even if it was later shipped. Master-key requests are refused for this owner-only action.
 
-- Sunshine bulk bins and invoicing (A8): not built. Sunshine ships stay standalone ship + paper bin log.
-- Orders/expected receipts via tickets: see P-3.
-- MCP plugin, PIN login, QR badges: off.
-- Production: no pilot entry touches production. Cutover-day steps are in design §10.1 and `gpt-configs/readonly/CUTOVER_CHECKLIST.md`.
+For an erroneous entry, an authorized floor/owner opens **Receipt # / Recibo # → Look up / Buscar → Prepare void for entry #**, checks the Data-entry error draft, then **Record → VD receipt**. Office users call Arturo/Michael. Confirm the affected entry before voiding; never guess a reversal quantity.
+
+O-2, O-3, O-4 and O-8 are closed settled decisions. The runbook retains the owned open-item register for the remaining operational work. Closed decisions do not certify production deployment or authorize action in this docs task.

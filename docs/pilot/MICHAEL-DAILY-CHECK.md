@@ -1,71 +1,57 @@
-# Michael — 10-minute daily check (pilot, Nov 2 – Nov 20)
+# Michael — ten-minute daily check
 
-Do this every morning, about yesterday, on **your own** device, signed in as **you**. Never use Arturo's tablet: an approval records the signed-in person.
-Staging pages are listed in [PILOT-PLAN.md §2](PILOT-PLAN.md#2-how-the-pilot-works-read-this-first).
-🟡 = needs PR #107 (Exceptions page, receipt page) on staging. Until it is there, the fallback is in *italics*.
+## Key dates
 
----
+| Milestone | Date (2026, New York) | What happens |
+|---|---|---|
+| Pilot start | Wed Oct 21 | Arturo and Luz practice on staging for part of each day. |
+| Clean-summary and dry-run window | Oct 26–30 | Five clean shift summaries plus the production dry run. |
+| Packet printing | Fri Oct 30 | Print approved count packets. |
+| Go / no-go | Mon Nov 2 | Michael decides from the evidence. |
+| Physical count and signing | Thu Nov 5 | Count while production runs; Michael signs the approval list that evening. |
+| Reset and cutover | Fri Nov 6 | Each area pauses 15–30 minutes; whole-reset proof before release; rotate master key; GPTs become read-only. |
+| A10 stage 1 | Mon Nov 9 | Retire the approved old staff write paths. |
+| First fallback | Fri Nov 13 | Cutover only after renewed readiness approval. |
+| Second fallback | Fri Nov 20 | Cutover only after renewed readiness approval. |
+| M0 and GPT retirement deadline | Before Fri Dec 11 | M0 read-only plugin live; old GPTs retired. |
 
-## 1. Approvals — 2 min
+Use **Key dates** for the schedule. Review yesterday's agreed part-day staging practice. Sign in personally; approve holds **from your phone**. Never approve under Arturo's sign-in.
 
-🟡 **Exceptions page** → filter on items waiting for you.
+## 1. Approvals — two minutes
 
-| Item | What to do |
+| Item | Check |
 |---|---|
-| **Large correction** (over 500 lb without a photo) | Look at the draft. Ask Arturo for the photo or the reason. **Approve** → it posts under the same receipt number, recorded as entered by Arturo and approved by you. **Reject** → note required, nothing posts. |
-| **Kosher approval** (held Extra-Kosher make or found) | Approve only if you turned on the oven for that batch (or the found stock is truly extra-kosher). Your approval **is** the kosher attestation. The hold expires after 7 days but stays on the list until you reject it. |
-| Late entry (48 h – 14 days late) | Acknowledge, or ask why. |
-| BOL photo missing | Get the photo uploaded, or waive with a note (owner only). |
+| Extra-kosher found/make | Receive must be refused. Found and make remain held until your approval from your phone. Verify product/lot and actual extra-kosher evidence. Pre-cutover stock belongs in the count under 283/284/285–290. |
+| Large correction | Over 500 lb needs a photo or your approval. Read the reason and quantity; a hold is not recorded. Verify the receipt after approval. |
+| Late entry / missing BOL photo | Read the original event time, explanation and proof. Obtain missing evidence; do not clear an unexplained item just to tidy the list. |
 
-*Without #107: there is no approve screen on main. Approval is possible only through the API (`POST /exceptions/{id}/approve` or `/reject`, owner key or session). Do not ask engineering to approve for you: the approval must be your own identity. Leave the item held and move the test day.*
+## 2. Open items — two minutes
 
-## 2. Open exceptions — 2 min
+- Shortages: Arturo resolves from a count or the actual missing movement; no made-up stock. Follow up within two business days.
+- Unidentified received lots: obtain the real supplier lot within seven business days.
+- Unexplained summary or pre-make stock adjustment: investigate, record the explanation and exclude a dirty summary from the clean five.
+- Sunshine bulk remains on the paper bin log until after cutover; A8 is deferred (O-2 closed).
 
-- **Shortages:** any open past **2 business days**? Make sure Arturo has a plan today. Overdue items are marked escalated by the nightly sweep (02:30 ET).
-- **Unidentified lots:** any past **7 business days**?
-- **Shift discrepancy:** read Arturo's note. Explained → write the explanation in the problem log. Not explained → that day does **not** count toward the five.
-- **"Pre-make adjust"** (stock added shortly before a make): ask Arturo why. This is the "never add stock to make it go through" check.
+## 3. Summary and receipts — two minutes
 
-*Without #107: shift summary page → **View all actors (read-only)** → OPEN EXCEPTIONS shows every open item, read-only.*
+- [ ] Arturo confirmed the agreed practice scope accurately; Luz reconciled office entries. A part-day practice is not proof of an unpracticed whole shift.
+- [ ] Every receive has a real supplier; every recorded event has a receipt number.
+- [ ] Spot-check two receipts against paper/tag/BOL: person, product, lot, quantity and time match.
+- [ ] Clean-summary count: **__ of 5** during the window in Key dates. An unexplained discrepancy does not count.
+- [ ] Sign-in is once per shift, with a 180-minute idle timeout; background auto-refresh does not extend it. PIN stays off. Routine second sign-in or incorrect expiry goes to engineering.
 
-## 3. Yesterday's shift summary — 2 min
+## 4. Assistant and recipe checks — two minutes
 
-Shift summary page → date = yesterday → **View all actors (read-only)**, or sign in with your key to see your own.
+Unsupported requests must get neutral English/Spanish cards, never raw errors. Red cards mean **failed Record only**. Missing details must be plain words. Adjust/found with no reason must show reason buttons. Every write remains **prepare → Record → receipt**; “no receipt = not recorded.”
 
-- [ ] Arturo confirmed (banner shows who, when and the outcome). Not confirmed = the run of five breaks (gate (d)).
-- [ ] Every **RCV** has a real supplier (no "supplier missing" flag; gate (e)).
-- [ ] **NOT ENTERED YET?** is empty or explained.
-- [ ] Any red line (short or negative lot, overdue) is known.
-- [ ] Count toward the gate: **day __ of 5**.
+Verify recipe examples: oat bran stays in SS #1/#2/#3 at **29/28/28 lb**. Rolled oats may replace it **pound-for-pound without approval**. Fruit Nut totals **328.3 lb: 276.3 Classic #9 + 13 lb each of four nuts/fruits**. Product **284 uses 4,000-count chips**.
 
-## 4. Late entries and corrections — 2 min
+## 5. Problems and readiness — two minutes
 
-- **LATE ENTRIES** section in the summary: what was entered late, and why? Over 48 hours late opens a Late entry item for you.
-- Corrections on yesterday's receipts: every one has one of the 8 reasons; **Unknown** always has a note; anything over 500 lb has a photo or your approval.
-- Spot-check **two receipts** against reality (paper, the bag tag, the BOL). 🟡 Receipt box → receipt page. *Without #107: ask the FL Assistant "receipt MK-…".*
+Update [the pilot problem log and open questions](PILOT-PLAN.md#7-problem-reporting). Stop the affected action and call engineering for a missing/false receipt, duplicate, wrong person, draft/post mismatch, exposed key or policy bypass. Do not waive these to meet a date.
 
-## 5. Problem log — 2 min
+At **go/no-go**, require the five clean summaries and real production dry run, plus the readiness evidence in [the pilot checklist](PILOT-PLAN.md#6-go--no-go-checklist). Resolve open daily slots, staging stock, fallback staffing and contact details; do not silently adopt the old assumptions.
 
-Copy the floor and office reports into the log ([PILOT-PLAN.md §7](PILOT-PLAN.md#7-how-problems-are-reported)) and class each one **STOP / FIX BEFORE CUTOVER / LATER**.
+At **physical count and signing**, production continues; sign the exact approval list that evening. At **reset and cutover**, each area pauses 15–30 minutes. Require **FULL RESET SCOPE RECONCILED (exit 0)** before any release step (O-3 closed). Rotate the master key **on cutover day**, then proceed in the runbook order. GPTs become read-only.
 
-## What to escalate (same day, to engineering)
-
-**Stop that entry type and escalate at once if:**
-- A green receipt number does not exist when you look it up.
-- One real event appears twice (two receipts), or a retry made a second post.
-- A receipt shows the wrong person.
-- Posted values differ from what the draft card showed.
-- Something posted that should have been refused: no BOL, unconfirmed lot, an office make, an Extra-Kosher make without your approval, a regular-lot pack into an Extra-Kosher product.
-- A key or session token is visible anywhere: screen, log, photo, PR. Then **revoke that key** (a new key for that person ends all their sessions at once).
-
-**Escalate the same day (fix before cutover) if:**
-- Arturo or Luz cannot record a real event and there is no workaround.
-- A message they could not understand (record the exact text; several server messages are English-only).
-- The Assistant is down for more than one hour (OpenAI outage or the $20 cap reached: check the OpenAI alert e-mails at 50 % / 80 %).
-
-**Do not escalate** wording or speed issues during the run: log them as LATER.
-
-## Friday add-ons
-
-- **Fri Nov 6 — checkpoint:** see [PILOT-PLAN.md day 5](PILOT-PLAN.md#4-the-10-day-test-script). Confirm the OpenAI test key is revoked.
-- **Fri Nov 13:** count the confirmed days. If five are clean, prepare the Nov 17 gate ([PILOT-PLAN.md §6](PILOT-PLAN.md#6-readiness-gate-checklist--tue-nov-17-go--no-go)). If not, plan the Nov 16 spare day or the Dec 4 fallback.
+“Shipped, not recorded” order close/reopen is **owner-only, note required, pre-cutover only**, on every path including the master key (O-4 closed). O-8 office workflow is closed; verify its accepted deployment. Keep the runbook's other operational items open until evidence exists. Use only the fallback dates and the M0/GPT retirement deadline in Key dates; Michael must decide any revised supporting schedule.

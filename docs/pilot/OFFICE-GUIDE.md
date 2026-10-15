@@ -1,101 +1,65 @@
 # Office guide — Luz and Miriam · Guía de oficina — Luz y Miriam
 
-Pilot on **staging**, Nov 2 – Nov 20, 2026. Piloto en **staging** (prueba), 2 – 20 de noviembre de 2026.
-Printable card: [cards/office-quick-card.pdf](cards/office-quick-card.pdf).
+## Key dates · Fechas clave
 
-🟡 = coming before the pilot (PR #107) · llega antes del piloto (PR #107).
-⛔ = not built yet · todavía no existe.
+| English | Date / Fecha (2026) | Español |
+|---|---|---|
+| Practice starts: Arturo and Luz, part of each day, on staging (practice site). | Wed Oct 21 / mié. 21 oct. | Empieza la práctica: Arturo y Luz, parte de cada día, en el sitio de prueba. |
+| Five clean shift summaries and production dry run. | Oct 26–30 / 26–30 oct. | Cinco resúmenes de turno sin diferencias pendientes de explicar y ensayo en producción sin cambiar inventario. |
+| Print count packets. | Fri Oct 30 / vie. 30 oct. | Imprimir hojas para contar. |
+| Michael decides go / no-go. | Mon Nov 2 / lun. 2 nov. | Michael decide si se sigue. |
+| Count while production runs; signed list that evening. | Thu Nov 5 / jue. 5 nov. | Contar mientras sigue la producción; lista firmada esa tarde. |
+| Reset and changeover; each area pauses 15–30 min; GPTs only answer questions. | Fri Nov 6 / vie. 6 nov. | Ajustar al conteo y cambiar; cada área pausa 15–30 min; los GPT solo contestan preguntas. |
+| A10 stage 1: old ways of entering stock close. | Mon Nov 9 / lun. 9 nov. | A10 etapa 1: se cierran las formas antiguas de registrar inventario. |
+| First backup changeover. | Fri Nov 13 / vie. 13 nov. | Primera fecha de respaldo para el cambio. |
+| Second backup changeover. | Fri Nov 20 / vie. 20 nov. | Segunda fecha de respaldo para el cambio. |
+| New ChatGPT connection (M0) ready for questions; old GPTs retired. | Before Fri Dec 11 / antes del vie. 11 dic. | Nueva conexión de ChatGPT (M0) lista para consultas; se retiran los GPT anteriores. |
 
----
+[Print card / Tarjeta para imprimir](cards/office-quick-card.pdf). Use **Key dates** above. / Usa **Fechas clave** arriba.
 
-## 0. The rule · La regla
-
-| English | Español |
-|---|---|
-| **No receipt number = not recorded.** | **Sin número de recibo = no registrado.** |
-| During the pilot, keep doing real office work the old way too. Staging is practice. | Durante el piloto, sigue haciendo el trabajo real como siempre. Staging es práctica. |
-| Use the staging pages (Railway address) Michael gives you, not the Netlify site. | Usa las páginas de staging (dirección de Railway) que te da Michael, no el sitio de Netlify. |
-
-## 1. Sign in · Iniciar sesión
-
-| English | Español |
-|---|---|
-| Use **your own** personal key, on **your own** computer. | Usa **tu propia** clave personal, en **tu propia** computadora. |
-| **FL Assistant:** type the key → **Continue →** → "Signed in as Luz · office". | **FL Assistant:** escribe la clave → **Continuar →** → "Sesión de Luz · office". |
-| **Dashboard:** press **Sign in** (top bar) → "Personal actor key" → **Sign in**. | **Tablero:** pulsa **Sign in** (barra de arriba) → "Personal actor key" → **Sign in**. |
-| The dashboard bar is in English: "Sign in before recording an entry" means you must sign in to save. | La barra del tablero está en inglés: "Sign in before recording an entry" = debes iniciar sesión para guardar. |
-| "Entry was not saved. Sign in to continue." = nothing was saved. | "Entry was not saved. Sign in to continue." = no se guardó nada. |
-| Sessions end after 180 minutes without use. Sign in again. | La sesión termina tras 180 minutos sin uso. Inicia sesión otra vez. |
-| Leaving your desk or sharing a computer → **Sign out**. | Si dejas tu escritorio o compartes la computadora → **Sign out / Cerrar sesión**. |
-| Never share or text your key. If someone saw it, tell Michael. | Nunca compartas ni mandes tu clave. Si alguien la vio, avisa a Michael. |
-
-## 2. Orders and expected receipts · Órdenes y recepciones esperadas
+## Start your shift · Empieza tu turno
 
 | English | Español |
 |---|---|
-| **For the pilot, use the dashboard tabs as today:** **Sales Orders** and **Expected Receipts**. | **Para el piloto, usa las pestañas del tablero como hoy:** **Sales Orders** y **Expected Receipts**. |
-| FL has the new "ticket" way (draft → Record → receipt `ORD-…` / `ER-…`) behind the scenes. | FL ya tiene la nueva forma con "ticket" (borrador → Registrar → recibo `ORD-…` / `ER-…`) por dentro. |
-| ⛔ No screen uses it yet. The FL Assistant cannot create orders or expected receipts. | ⛔ Ninguna pantalla la usa todavía. El FL Assistant no puede crear órdenes ni recepciones esperadas. |
-| Michael decides before cutover how this will work (pilot plan P-3). | Michael decide antes del cambio cómo va a funcionar (plan, punto P-3). |
-| An expected receipt is only a plan. It **never adds stock**. Stock comes only from a receive. | Una recepción esperada es solo un plan. **Nunca suma inventario**. El inventario solo entra con una recepción. |
-| A delivery that is due but not received shows on Arturo's summary under **NOT ENTERED YET?**. | Una entrega que vence y no se recibe aparece en el resumen de Arturo en **¿FALTA REGISTRAR?**. |
+| Michael gives you the practice page and tells you which work to try. Staging is practice; it does not change real stock. | Michael te da la página de prueba y te dice qué trabajo practicar. No cambia el inventario real. |
+| Sign in with **your personal key once each shift**. Check your name after signing in. Keep your key private. **No PIN.** | Inicia sesión con **tu clave personal una vez por turno**. Revisa tu nombre al iniciar sesión. No compartas tu clave. **Sin PIN.** |
+| After **180 minutes without use**, sign in again. The page updating by itself does not keep you signed in. Sign out when leaving or sharing the computer. | Después de **180 minutos sin usarlo**, inicia sesión otra vez. Que la página se actualice sola no mantiene tu sesión abierta. Cierra sesión al salir o compartir la computadora. |
 
-## 3. What you can record · Lo que puedes registrar
+## Every entry · Cada entrada
 
 | English | Español |
 |---|---|
-| **Receive** from paperwork (FL Assistant). Pick the real supplier. Type the supplier lot. | **Recibir** con papeles (FL Assistant). Escoge el proveedor real. Escribe el lote del proveedor. |
-| **Ship an order**: BOL number required, BOL photo the same day (by 23:59). | **Enviar una orden**: número de BOL obligatorio, foto del BOL el mismo día (antes de 23:59). |
-| **Ship without an order** (standalone) to a known customer. | **Enviar sin orden** (independiente) a un cliente existente. |
-| Confirm each lot from its tag: last 4 **including the hyphen** (e.g. `-004`). | Confirma cada lote con su etiqueta: últimos 4 **incluido el guion** (ej. `-004`). |
-| Wait for the green **"✓ RECORDED IN FACTORY LEDGER"** card and its number. | Espera la tarjeta verde **"✓ REGISTRADO EN FACTORY LEDGER"** y su número. |
-| Red **"NOT recorded"** → press **Record** again (never posts twice). Still red → tell Michael. | Rojo **"NO registrado"** → pulsa **Registrar** otra vez (nunca registra dos veces). Sigue rojo → avisa a Michael. |
-| 🟡 **Identify an unidentified lot**: Exceptions → supplier lot → real code → reason *Data-entry error* or *Wrong lot used*. | 🟡 **Identificar un lote sin identificar**: Exceptions → lote del proveedor → código real → razón *Error de captura* o *Lote equivocado*. |
+| **Prepare:** say or type the work. Read the draft: product, lot, amount and time. Then press **Record**. | **Prepara:** di o escribe el trabajo. Lee el borrador: producto, lote, cantidad y hora. Luego pulsa **Registrar**. |
+| **No receipt = not recorded.** Look for the green **RECORDED** card and its number, like **RCV-…-001**. This is a sample format; save the full number FL gives you. | **Sin recibo = no registrado.** Busca la tarjeta verde **REGISTRADO** y su número, como **RCV-…-001**. Es un ejemplo del formato; guarda el número completo que te da FL. |
+| The number lets you find what was saved. Use the receipt box to check person, product and amount. A draft or “waiting for approval” is not a receipt. | El número permite buscar qué se guardó. Usa la casilla de recibos para revisar persona, producto y cantidad. Un borrador o “en espera de aprobación” no es un recibo. |
+| **Missing details?** Read the list and supply the facts. Do not guess. A correction/found request with no reason shows reason buttons; Arturo or Michael handles that stock work. | **¿Faltan datos?** Lee la lista y da los datos. No adivines. Una corrección o inventario encontrado sin razón muestra botones de razones; Arturo o Michael hace ese trabajo. |
+| **Neutral card:** FL cannot do that request. Read the English/Spanish help. **Red card:** Record failed. Check the same draft or receipt before retrying; do not enter the event twice. | **Tarjeta neutral:** FL no puede hacer lo que pediste. Lee la ayuda en inglés/español. **Tarjeta roja:** falló Registrar. Revisa el mismo borrador o recibo antes de intentar otra vez; no registres dos veces lo mismo. |
+| If a receipt cannot be found, stop and call Michael. Do not assume it is safe to enter the event again. | Si no encuentras un recibo, detente y llama a Michael. No supongas que puedes registrar otra vez. |
 
-## 4. Receipt lookup · Buscar un recibo
-
-| English | Español |
-|---|---|
-| **Today:** in the FL Assistant, type "receipt RCV-261102-001". | **Hoy:** en el FL Assistant escribe "recibo RCV-261102-001". |
-| "What did I enter today?" shows your own receipts. | "¿Qué registré hoy?" muestra tus propios recibos. |
-| 🟡 **Receipt box** on the dashboard → a receipt page (who, when, what, voided or not). | 🟡 **Caja de recibo** en el tablero → página del recibo (quién, cuándo, qué, anulado o no). |
-| A number FL can't find = it was **never recorded**. | Un número que FL no encuentra = **nunca se registró**. |
-| Prefixes: RCV receive · MK make · PK pack · SHP ship · ADJ adjust · FND found · VD void · LOT lot change · ORD order · ER expected receipt · XR exception decision. | Prefijos: RCV recibir · MK producir · PK empacar · SHP enviar · ADJ ajuste · FND encontrado · VD anulado · LOT cambio de lote · ORD orden · ER recepción esperada · XR decisión de excepción. |
-
-## 5. Exceptions list · Lista de excepciones
+## Office work · Trabajo de oficina
 
 | English | Español |
 |---|---|
-| **Today:** shift summary page → **"View all actors (read-only)"** shows everyone's open exceptions. | **Hoy:** página del resumen → **"Ver todos (solo lectura)"** muestra las excepciones abiertas de todos. |
-| 🟡 **Exceptions page:** open items, overdue first, with owner and due date. | 🟡 **Página Exceptions:** pendientes abiertos, vencidos primero, con responsable y fecha límite. |
-| Kinds you will see: shortage (2 business days), unidentified lot (7 business days), large correction, BOL photo missing, late entry, kosher approval, shift discrepancy. | Tipos que verás: faltante (2 días hábiles), lote sin identificar (7 días hábiles), corrección grande, falta foto del BOL, entrada tardía, aprobación kosher, diferencia del turno. |
-| The page only shows buttons you are allowed to use. | La página solo muestra los botones que puedes usar. |
+| Receive from paperwork: real supplier, supplier lot and amount. Confirm lots from the tag, including the hyphen if asked for the last four: **-004**. | Recibe con papeles: proveedor real, lote del proveedor y cantidad. Confirma el lote de la etiqueta; incluye el guion si pide los últimos cuatro: **-004**. |
+| Ship: BOL number and photo of that shipping paper the same day. Ask Arturo or Michael about a shipment from an earlier day. | Enviar: número de BOL y foto de ese documento el mismo día. Pregunta a Arturo o Michael sobre un envío de otro día. |
+| Orders and expected deliveries: use the accepted **Office → Office action** pages. Prepare, check, **Record**, save the receipt. An expected delivery does **not** add stock. | Órdenes y entregas esperadas: usa las páginas aprobadas **Oficina → Acción de oficina**. Prepara, revisa, **Registra**, guarda el recibo. Una entrega esperada **no** suma inventario. |
+| Production, packing, stock corrections, found stock and undoing an entry: **Arturo or Michael**. Owner approval: **Michael**. Never borrow a key. | Producir, empacar, corregir inventario, inventario encontrado y anular una entrada: **Arturo o Michael**. Aprobaciones del dueño: **Michael**. Nunca uses una clave prestada. |
+| Close/reopen as **“shipped, not recorded”**: Michael only, for **orders created before changeover**. Closing needs a note; reopening needs a **new note**. Do not try another screen to get around this. | Cerrar/reabrir como **“enviada, no registrada”**: solo Michael, para **órdenes creadas antes del cambio**. Cerrar necesita una nota; reabrir necesita una **nota nueva**. No uses otra pantalla para evitar esta regla. |
 
-## 6. What you can't do, and why · Lo que no puedes hacer, y por qué
-
-| English | Español |
-|---|---|
-| **Make, pack, correct (adjust), found stock, void** — floor and owner only. Whoever saw the stock records it. | **Producir, empacar, corregir (ajuste), inventario encontrado, anular** — solo piso y dueño. Lo registra quien vio el inventario. |
-| **Close a shortage** — Arturo or Michael. The inventory owner (Arturo) answers for it. | **Cerrar un faltante** — Arturo o Michael. El responsable del inventario (Arturo) responde por él. |
-| **Approve** a large correction or an Extra-Kosher batch — Michael only, from his own device. His name is the approval. | **Aprobar** una corrección grande o un lote Extra-Kosher — solo Michael, desde su propio dispositivo. Su nombre es la aprobación. |
-| **Confirm a "not same day" ship** — owner or floor only. The office was not at the dock. | **Confirmar un envío "no del mismo día"** — solo dueño o piso. La oficina no estuvo en el muelle. |
-| **Close an order as "shipped, not recorded"** or **reopen** an order — Michael only. | **Cerrar una orden como "enviada, no registrada"** o **reabrir** una orden — solo Michael. |
-| **Enter something more than 14 days old** — Michael only. 2–14 days late is allowed but Michael sees it. | **Registrar algo de hace más de 14 días** — solo Michael. De 2 a 14 días tarde se permite, pero Michael lo ve. |
-| FL refuses these with a message. That is correct, not a bug. | FL los rechaza con un mensaje. Es correcto, no es un error. |
-
-## 7. Fallback operator (Luz) · Operadora de respaldo (Luz)
+## Extra-kosher and count · Extra-kosher y conteo
 
 | English | Español |
 |---|---|
-| If the FL Assistant is down but FL works, Luz enters floor events on 🟡 the **"Record an entry"** dashboard forms. | Si el FL Assistant falla pero FL funciona, Luz registra eventos del piso en 🟡 los formularios **"Record an entry"** del tablero. |
-| Same rules: real supplier, lot last 4, reason, BOL + photo. | Mismas reglas: proveedor real, últimos 4 del lote, razón, BOL + foto. |
-| Use the **time from Arturo's paper**, and write the receipt number back on the paper. | Usa la **hora del papel de Arturo** y escribe el número de recibo en el papel. |
-| Read any "possible duplicate" warning. Tick it only if it is really a second event. | Lee cualquier aviso de "posible duplicado". Márcalo solo si de verdad es otro evento. |
-| ChatGPT is **not** a fallback for entries after cutover. | ChatGPT **no** es respaldo para registrar después del cambio. |
+| **Extra-kosher receive is refused. Found stock waits for Michael to approve from his phone.** Tell Arturo/Michael; never enter it another way. | **No se permite recibir extra-kosher. El inventario encontrado espera la aprobación de Michael desde su teléfono.** Avisa a Arturo/Michael; no lo registres de otra forma. |
+| Pre-cutover extra-kosher stock goes into the count under **283/284 batches and 285–290 finished goods**. Keep it separate from regular stock. | El inventario extra-kosher anterior al cambio va en el conteo bajo **283/284 producción y 285–290 producto terminado**. Sepáralo del inventario regular. |
+| Production runs during the count. Keep times and movements with the sheets. Michael signs the list that evening. Each area pauses **15–30 minutes at reset**. | La producción sigue durante el conteo. Guarda horas y movimientos con las hojas. Michael firma la lista esa tarde. Cada área pausa **15–30 minutos al ajustar**. |
+| Sunshine bulk uses the **paper bin log until after changeover**. | Para Sunshine a granel, usa el **registro de contenedores en papel hasta después del cambio**. |
 
-## 8. Problems · Problemas
+## Finish and get help · Terminar y pedir ayuda
 
 | English | Español |
 |---|---|
-| Don't fix it by entering something else. | No lo arregles registrando otra cosa. |
-| Screenshot (never with a key showing) + time + receipt number or "NOT recorded" → Michael. | Captura de pantalla (nunca con una clave visible) + hora + número de recibo o "NO registrado" → Michael. |
+| Check your receipts and paper against the shift summary. Report anything missing, then sign out. | Compara tus recibos y papeles con el resumen del turno. Reporta lo que falte y cierra sesión. |
+| Assistant down but FL works? Luz uses the approved entry forms for **office work only**. Arturo/Michael handles floor work under their own names. | ¿El asistente falla pero FL funciona? Luz usa los formularios aprobados **solo para trabajo de oficina**. Arturo/Michael hace el trabajo del piso con su propio nombre. |
+| FL down? Write the event, original time, product, lot, amount and your name on paper. Add supplier/BOL/reason as needed. Enter once and write the receipt number beside it. | ¿FL no funciona? Anota el evento, hora real, producto, lote, cantidad y tu nombre en papel. Agrega proveedor/BOL/razón según haga falta. Registra una vez y escribe el recibo al lado. |
+| **Stuck? Call Michael.** Give time, what happened and receipt number or **NOT recorded**. A screen photo helps; keep your key out of it. GPTs only answer questions after changeover. | **¿No puedes seguir? Llama a Michael.** Da hora, qué pasó y número de recibo o **NO registrado**. Una foto ayuda; no muestres tu clave. Los GPT solo contestan preguntas después del cambio. |
