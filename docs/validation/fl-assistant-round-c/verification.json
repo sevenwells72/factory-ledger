@@ -1,0 +1,85 @@
+{
+  "base": "c04274e",
+  "source_commit": "36f698cd66f22fbd7c3ac68c46c4702e9617ffc5",
+  "python": {
+    "off": {
+      "passed": 6317,
+      "failed": 0,
+      "skipped": 0,
+      "fresh_schema_groups": 22
+    },
+    "on": {
+      "passed": 6317,
+      "failed": 0,
+      "skipped": 0,
+      "fresh_schema_groups": 22
+    }
+  },
+  "node": {
+    "passed": 369,
+    "failed": 0,
+    "skipped": 0
+  },
+  "browsers": {
+    "phone": {
+      "passed": 288,
+      "failed": 0,
+      "record_calls": 0
+    },
+    "transcripts": {
+      "passed": 72,
+      "failed": 0,
+      "record_calls": 0
+    },
+    "real-model": {
+      "passed": 36,
+      "failed": 0,
+      "record_calls": 0
+    },
+    "round_a": {
+      "passed": 60,
+      "modes": [
+        "off",
+        "on"
+      ]
+    },
+    "round_b_contract": {
+      "passed": 18,
+      "modes": [
+        "off",
+        "on"
+      ],
+      "preview_only": true
+    },
+    "round_b_actual_page": {
+      "passed": 68,
+      "modes": [
+        "off",
+        "on"
+      ],
+      "preview_only": true
+    },
+    "existing_assistant_customer": {
+      "passed_modes": 2,
+      "fixture_responses": true
+    }
+  },
+  "runtime_sha256": {
+    "assistant_voice.py": "d7cd266d4115f5912e8f56ceb0845a3b05eb3ef369cd100526cd0fdc19d383e2",
+    "assistant_replies.py": "ad56386a24518bf2e20c07be7ce914865e544a16078949a476e322490aad97d7",
+    "assistant_tools.py": "7dae900466c49e03e66571154bd0e5fcb79210606ead7e88606c620cada7eee6",
+    "fl_assistant.py": "356c5961e693af31ded63873e70f2dab452b05b96dc914b800411dd3843c3f8d",
+    "dashboard/fl-assistant.html": "66e994fbf778b23e9bacd8c732131b9cbf6e00b5cb055f9b1965b50c70884fed",
+    "dashboard/fl-assistant.js": "d86bb7bd15171d72920b7d8b6c7d0abc02ba25b6f35ad1142eb548d738e6d90a",
+    "dashboard/fl-assistant.css": "00e3533fc4cfe4c25ad82fdff2017d2873babe59786e0b12ba8fc5b9d3d6ad2d",
+    "dashboard/assistant-display.js": "9d7e2c74e39ee026ffb63da50b32a0795522cd66dbfa20f70a8ede6cd1ecbe2f",
+    "dashboard/receipt-shell.js": "689a2d2a4c494b311d5ccd39fcb69a57f13f6f03a1d5739571d15216ca1be099"
+  },
+  "physical_traceability_files_unchanged": true,
+  "hosted_writes": false,
+  "staging_customer_audit_read_only": true,
+  "physical_iphone_and_microphone_exercised": false,
+  "database_cleanup": {
+    "remaining_fl_fixC_databases": []
+  }
+}

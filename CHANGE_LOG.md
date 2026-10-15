@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-10-15 14:26 — Complete round C validation and main rebase
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md, docs/validation/fl-assistant-round-c/`
+- **What changed:** Rebased onto merged B/main c04274e. Final Python 6317 per mode, Node369, phone288, transcript72, real-model36, A60/B18/Bpage68 and legacy both modes pass. All fl_fixC_ DBs dropped; core traceability unchanged; self-contained screenshots and source-hashed evidence saved.
+- **Why:** Round C natural phone voice and layout regression protection.
+
+---
+
+## 2026-10-15 14:23 — Save approved actual-model and customer-source evidence
+- **File(s) changed:** `docs/validation/fl-assistant-round-c/real-model/, docs/validation/fl-assistant-round-c/staging-customer-audit.json`
+- **What changed:** 36 real-model page checks and 60 completed OpenAI calls pass with no Record; staging read-only audit confirms both queried bakery names are active customers and have no supplier-name rows.
+- **Why:** Round C natural phone voice and layout regression protection.
+
+---
+
 ## 2026-10-15 14:21 — Add round C regression guard row 212
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md, dashboard/fl-assistant.css, tests/visual/run-fl-assistant-round-c-phone.mjs, docs/validation/fl-assistant-round-c/phone/`
 - **What changed:** Document the complete voice/phone change and unchanged B physical traceability; enforce readable focused receipt/tag controls at all four phone widths.
