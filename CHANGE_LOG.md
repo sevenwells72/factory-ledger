@@ -1,5 +1,68 @@
 # Change Log
 
+## 2026-10-15 15:03 — Record round C staging-copy acceptance and full regression results
+- **File(s) changed:** FACTORY_LEDGER_CHANGELOG.md, docs/validation/fl-assistant-fix-cd/c/verification.json
+- **What changed:** Record round C staging-copy acceptance and full regression results.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 14:59 — Keep exact product IDs and SKUs outside Classic-family ambiguity rules
+- **File(s) changed:** resolution.py, tests/test_assistant_resolution_round_b.py, tests/test_assistant_fact_binding_round_b.py
+- **What changed:** Keep exact product IDs and SKUs outside Classic-family ambiguity rules.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 14:58 — Make unknown-name regression deterministic while retaining human-only candidate approval
+- **File(s) changed:** tests/test_assistant_fact_binding_round_b.py
+- **What changed:** Make unknown-name regression deterministic while retaining human-only candidate approval.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 14:56 — Decode internal ASGI paths so literal lot tags containing spaces resolve exactly
+- **File(s) changed:** fl_assistant.py
+- **What changed:** Decode internal ASGI paths so literal lot tags containing spaces resolve exactly.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 14:55 — Preserve finished case counts and unresolved-lot warnings in concise stock answers
+- **File(s) changed:** assistant_replies.py, fl_assistant.py, dashboard/assistant-display.js, tests/test_assistant_stock_fix_c.py, tests/test_assistant_display.js
+- **What changed:** Preserve finished case counts and unresolved-lot warnings in concise stock answers.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 14:52 — Use valid stored lot tags in new catalog-precedence regression fixtures
+- **File(s) changed:** tests/test_assistant_voice_recovery_round_c.py, tests/test_assistant_stock_fix_c.py
+- **What changed:** Use valid stored lot tags in new catalog-precedence regression fixtures.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 14:50 — Add one-sentence stock-family display and real-alias regression coverage
+- **File(s) changed:** assistant_replies.py, dashboard/assistant-display.js, tests/test_assistant_display.js, tests/test_assistant_stock_fix_c.py, fl_assistant.py
+- **What changed:** Add one-sentence stock-family display and real-alias regression coverage.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 14:47 — Check literal catalog tags before applying spoken-digit normalization
+- **File(s) changed:** fl_assistant.py, tests/test_assistant_voice_recovery_round_c.py
+- **What changed:** Check literal catalog tags before applying spoken-digit normalization.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 14:47 — Preserve real lot codes and repair catalog stock, packing lot choices, and phone Menu
+- **File(s) changed:** assistant_voice.py, fl_assistant.py, resolution.py, assistant_replies.py, dashboard/fl-assistant.js, tests/test_assistant_voice_round_c.py, tests/test_assistant_pack_review_c.py, tests/visual/run-fl-assistant-round-c-phone.mjs
+- **What changed:** Preserve real lot codes and repair catalog stock, packing lot choices, and phone Menu.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
 ## 2026-10-15 14:26 — Normalize saved validation log endings
 - **File(s) changed:** `docs/validation/fl-assistant-round-c/python-off/collect.log, docs/validation/fl-assistant-round-c/python-on/collect.log`
 - **What changed:** Remove two trailing empty lines from saved collection logs; results, code and counts unchanged.

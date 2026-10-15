@@ -134,7 +134,13 @@ def test_product_number_after_spanish_unknown_name_keeps_spanish_and_real_identi
     model(monkeypatch, ('resolve', {'kind': 'product', 'query': 'NO-EXISTE-ROUNDB'}))
     first = turn(client, chat, 'Recibimos un ingrediente desconocido')
     assert first.status_code == 200, first.text
-    assert first.json()['cards'][0]['kind'] == 'clarify'
+    # A random fixture suffix ending DB shares one trigram with ROUNDB;
+    # returning that near miss as a button is valid, but never approves it.
+    first_card = first.json()['cards'][0]
+    assert first_card['kind'] in ('clarify', 'choices')
+    assert first_card['language'] == 'es'
+    db_cursor.execute('SELECT state FROM assistant_sessions WHERE id=%s', (chat[0],))
+    assert db_cursor.fetchone()['state'].get('resolved', {}).get('product', []) == []
     db_cursor.execute("UPDATE products SET odoo_code='70013' WHERE id=%s", (payload['product_id'],))
     query = str(payload['product_id']) if query_by_id else '70013'
     args = dict(product_id=payload['product_id'], supplier_id=None, cases=None,
@@ -147,3 +153,17 @@ def test_product_number_after_spanish_unknown_name_keeps_spanish_and_real_identi
     assert card['language'] == 'es'
     assert card['kind'] == 'missing_facts'
     assert card['known_facts']['product_id'] == payload['product_id']
+
+
+def test_tiny_random_suffix_near_miss_is_only_a_button_before_exact_number(client, chat, payload, db_cursor, monkeypatch):
+    # Make the old intermittent UUID ending deterministic: the shared DB word
+    # ending produces a 0.025 pg_trgm near miss, well below a plausible match.
+    db_cursor.execute("UPDATE products SET name='Ticket test 0123456789DB' WHERE id=%s", (payload['product_id'],))
+    model(monkeypatch, ('resolve', {'kind': 'product', 'query': 'NO-EXISTE-ROUNDB'}))
+    response = turn(client, chat, 'Recibimos un ingrediente desconocido')
+    card = response.json()['cards'][0]
+    assert card['kind'] == 'choices' and card['language'] == 'es'
+    candidate = next(row for row in card['result']['candidates'] if row['id'] == payload['product_id'])
+    assert candidate['tier'] == 'trigram' and candidate['score'] < 0.25
+    db_cursor.execute('SELECT state FROM assistant_sessions WHERE id=%s', (chat[0],))
+    assert db_cursor.fetchone()['state'].get('resolved', {}).get('product', []) == []

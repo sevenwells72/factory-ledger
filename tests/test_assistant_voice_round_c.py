@@ -118,3 +118,18 @@ def test_unrelated_prose_names_and_existing_codes_do_not_gain_facts(text):
 def test_normalization_is_idempotent(text):
     normalized = normalize_voice_text(text)
     assert normalize_voice_text(normalized) == normalized
+
+
+@pytest.mark.parametrize('code', [
+    '26-10-15-GRAI-003', 'OPEN261014-P1585', 'B26-1015-004',
+    'UNVERIFIED-1234', 'LOT-0012', '26 10 15-GRAI-003', 'B 261015 004',
+])
+def test_typed_and_near_typed_identifiers_are_opaque(code):
+    from fl_assistant import voice_lot_code
+    assert voice_lot_code(code) == code
+    for label in ('lot', 'lote'):
+        assert normalize_voice_text(f'{label} {code}') == f'{label} {code}'
+
+
+def test_literal_catalog_code_beats_spoken_normalization():
+    assert normalize_voice_text('lot one two three four', protected_codes=['one two three four']) == 'lot one two three four'

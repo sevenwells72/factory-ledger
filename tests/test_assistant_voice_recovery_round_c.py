@@ -90,3 +90,18 @@ def test_model_lot_argument_with_or_without_spoken_label(given, expected):
 @pytest.mark.parametrize('text', ['¿Está todo ahí correcto?', '¿Está todo correcto?'])
 def test_spanish_review_followup_is_direct_read(text):
     assert replies.is_today_query(text)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize('spanish', [False, True])
+def test_literal_existing_word_tag_is_never_normalized(client, chat, db_cursor, monkeypatch, spanish):
+    db_cursor.execute("INSERT INTO products(name,type) VALUES ('Literal tag oats','ingredient') RETURNING id")
+    product = db_cursor.fetchone()['id']
+    code = 'UNO DOS TRES CUATRO' if spanish else 'ONE TWO THREE FOUR'
+    db_cursor.execute('INSERT INTO lots(product_id,lot_code) VALUES (%s,%s)', (product, code))
+    requests = model(monkeypatch, ('lot_lookup', {'lot_code': code}))
+    text = ('¿Cuánto hay en el lote ' if spanish else 'How much is in lot ') + code + '?'
+    result = turn(client, chat, text)
+    assert result.status_code == 200, result.text
+    assert result.json()['cards'][0]['rows'][0]['lot_code'] == code
+    assert code in str(requests[0]['input'])

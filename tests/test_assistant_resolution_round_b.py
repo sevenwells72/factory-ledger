@@ -140,3 +140,22 @@ def test_customer_punctuation_keeps_short_word_boundaries(round_b_catalog):
     setton, _ = [row['id'] for row in cur.fetchall()]
     result = resolved(round_b_catalog, 'customer', 'Setton')
     assert result['match']['id'] == setton
+
+
+@pytest.mark.parametrize('identity', ['id', 'sku', 'full_name'])
+def test_literal_nine_identity_precedes_classic_nine_family(round_b_catalog, identity):
+    cur, product = round_b_catalog
+    if identity == 'id':
+        cur.execute("INSERT INTO products(id,name,type,active) VALUES (9,'Unrelated literal ninth batch','batch',true)")
+        expected, query = 9, '9'
+    elif identity == 'sku':
+        expected = product('Unrelated literal SKU nine batch', 'batch', odoo_code='9')
+        query = '9'
+    else:
+        expected = product('Batch Classic Granola #9', 'batch')
+        query = 'Batch Classic Granola #9'
+    product('Batch SS Classic Granola #9', 'batch', kosher_tier='extra_kosher')
+    result = resolved(round_b_catalog, 'product', query, action='pack')
+    assert result['outcome'] == 'match'
+    assert result['match']['id'] == expected and result['match']['tier'] == 'exact'
+    assert result['ask'] is None

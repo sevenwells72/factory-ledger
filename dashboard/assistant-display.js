@@ -227,7 +227,14 @@
         table(choose(language, `${product}: ${quantity} in ${lots.length} ${lots.length === 1 ? 'lot' : 'lots'}.`, `${product}: ${quantity} en ${lots.length} ${lots.length === 1 ? 'lote' : 'lotes'}.`), columns, rows,
           unresolved.length ? [choose(language, `${unresolved.length} physical ${unresolved.length === 1 ? 'lot is' : 'lots are'} unverified, awaiting follow-up.`, `${unresolved.length} ${unresolved.length === 1 ? 'lote físico sin verificar, pendiente' : 'lotes físicos sin verificar, pendientes'} de seguimiento.`)] : []);
       }
-      if (!sections.length) table(choose(language, 'No inventory matches.', 'No hay coincidencias de inventario.'));
+      if (!sections.length) table(data['summary_' + language] || (data.product_names?.length ? choose(language,
+        `There is no stock of “${data.query || data.product_names[0]}”.`, `No hay existencias de «${data.query || data.product_names[0]}».`) :
+        choose(language, 'No inventory matches.', 'No hay coincidencias de inventario.')));
+      if (data.stock_summary_only && sections.length) {
+        const sentence = data['summary_' + language] || sections.map(section => section.sentence.replace(/\.$/, '')).join('; ') + '.';
+        const notes = sections.flatMap(section => section.notes || []);
+        sections.splice(0, sections.length, { sentence, columns: [], rows: [], notes });
+      }
     } else if (Array.isArray(data.receipts)) {
       const receipts = [...data.receipts].sort((a, b) => new Date(b.entered_at || b.happened_at || 0) - new Date(a.entered_at || a.happened_at || 0) || scalar(b.receipt_number).localeCompare(scalar(a.receipt_number)));
       const counts = data.entry_counts || (data.own_count !== undefined ? { own: data.own_count, team: data.team_count } : null);

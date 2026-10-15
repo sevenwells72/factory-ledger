@@ -174,13 +174,24 @@ _CODE_RE = re.compile(
 _LETTER_CODE_RE = re.compile(rf'\b(?P<prefix>[a-z])\s+(?P<number>{_CODE_PHRASE})\b', re.I)
 
 
-def normalize_voice_text(text: str) -> str:
+def normalize_voice_text(text: str, *, protected_codes=()) -> str:
     """Return the same utterance with explicit voice spellings canonicalized.
 
     The original text should still be retained for the visible transcript/audit
     history. This value is intended for parsing and tool queries, not permission
     or traceability decisions.
     """
+    # Typed identifiers are opaque: separators and leading zeroes are identity.
+    # Protect even near-code spellings before quantity/product normalization.
+    protected = []
+    def protect(match):
+        protected.append(match[0])
+        return f"\ue000{chr(0xe100 + len(protected) - 1)}\ue001"
+    for literal in sorted(set(protected_codes), key=len, reverse=True):
+        if literal:
+            text = re.sub(re.escape(literal), protect, text, flags=re.I)
+    text = re.sub(r'(?<!\w)(?=[\w/-]*\d)[A-Za-z0-9]+(?:[-_/][A-Za-z0-9]+)+(?!\w)', protect, text)
+
     def product(match: re.Match) -> str:
         family = _fold(match['family']).replace('.', '').replace(' ', '')
         number = _cardinal(_tokens(match['number']))
@@ -207,6 +218,8 @@ def normalize_voice_text(text: str) -> str:
         if 'label' not in match.re.groupindex and prefix in {'A', 'I', 'Y', 'O', 'E'}:
             return match[0]
         spoken = match['number']
+        if not any(token in _NUMBER_WORDS or token == 'oh' for token in _tokens(spoken)):
+            return match[0]
         suffix = ''
         # A following clause is not part of the tag: retain its conjunction.
         trailing = re.search(r'\s+(?:and|y)$', spoken, re.I)
@@ -238,4 +251,6 @@ def normalize_voice_text(text: str) -> str:
         start = len(text) - len(text.lstrip())
         text = text[:start] + code(isolated_code) + text[start + len(isolated_code[0]):]
     text = _QUANTITY_RE.sub(quantity, text)
+    for index, literal in enumerate(protected):
+        text = text.replace(f"\ue000{chr(0xe100 + index)}\ue001", literal)
     return text

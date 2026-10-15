@@ -67,7 +67,9 @@ try {
         };
         const send = async (text, cards) => {
           reply = cards; const before = await page.locator('.assistant-message').count();
+          if (await page.locator('#header-menu').getAttribute('open') === null) await page.locator('#header-menu summary').click();
           await page.locator('#message').fill(text); await page.locator('#send').click();
+          assert.equal(await page.locator('#header-menu').getAttribute('open'), null, 'Sending a message closes the phone Menu');
           await page.waitForFunction(() => !document.getElementById('send').disabled);
           assert.ok(await page.locator('.assistant-message').count() > before);
           return page.locator('.assistant-message .card').last();

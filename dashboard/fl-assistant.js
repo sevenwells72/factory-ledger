@@ -503,8 +503,12 @@
       node.append(link);
     }
   }
+  function closePhoneMenu() {
+    if (menu && !desktopMenu?.matches) menu.open = false;
+  }
   async function todayEntries(requestText) {
     if (busy || !session) return;
+    closePhoneMenu();
     if (typeof requestText === 'string') {
       language = /[¿]|\bhoy\b|entradas|registr[ée]/i.test(requestText) ? 'es' : 'en';
       localStorage.setItem('fl-assistant-language', language); applyLanguage();
@@ -543,6 +547,7 @@
   }
   async function sendTurn(values, original) {
     if (busy) return;
+    closePhoneMenu();
     const body = original || { session_id: session, turn_id: crypto.randomUUID(), attachment_ids: attachments.map(a => a.id), ...values };
     setBusy(true); notice('');
     if (!original) userMessage(body.text);
