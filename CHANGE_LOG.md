@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-15 14:05 — Complete approved real-model round-B repeat in both session modes
+- **File(s) changed:** docs/validation/fl-assistant-round-b/README.md, final-b3/README.md, verification.json, real-model-results.json, real-model.log, three screenshots, database-cleanup.txt, FACTORY_LEDGER_CHANGELOG.md
+- **What changed:** Save 68/68 real gpt-6.1-sol page checks under Pydantic 2.14.1, EN/ES at 1440/390 with sessions off/on; every model request completed. Verify unchanged source hashes, original suggested stock/physical-tag trace evidence, exact explicit transaction counts and independent zero-DB cleanup.
+- **Why:** User explicitly approved the additional protected-key OpenAI requests; close the remaining validation item without runtime changes.
+
+---
+
 ## 2026-10-15 13:51 — Normalize saved validation log whitespace before final push
 - **File(s) changed:** docs/validation/fl-assistant-round-b/final-b3/*.log, README.md
 - **What changed:** Strip trailing whitespace and extra terminal blank lines from saved output; document normalization.

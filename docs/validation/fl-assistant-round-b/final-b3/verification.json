@@ -76,6 +76,26 @@
         "es"
       ],
       "model_tool_selection": "queued; real local FL handlers/PostgreSQL"
+    },
+    "b_page_real_model": {
+      "passed": 68,
+      "failed": 0,
+      "sessions": "both",
+      "widths": [
+        1440,
+        390
+      ],
+      "languages": [
+        "en",
+        "es"
+      ],
+      "model": "gpt-6.1-sol",
+      "completed_model_requests": 111,
+      "pydantic": "2.14.1",
+      "model_tool_selection_stubbed": false,
+      "exit_code": 0,
+      "approved_by_user": true,
+      "remaining_databases": []
     }
   },
   "source_hashes": {
@@ -98,7 +118,8 @@
     "tests/test_fl_assistant_ui.js": "1a6551f4ddaa2cc96cc13164e3138fc82ae6669636a1f44dace5bd9d9234ed96",
     "tests/test_assistant_display.js": "4e728c1bef17812537c5be1b7618f2774f98b8a22261c1a7ac83923588eac32a",
     "tests/test_assistant_request_compatibility.py": "4b2b82d94274816201f7300b41084ab280bce3b88e0a26c0a3d2333be56ce825",
-    "tests/visual/run-fl-assistant-round-b-page.mjs": "ea77aeca66b306fabf0f3ae2f79411955d1ceed0b705d846a433a8befc4a6bc3"
+    "tests/visual/run-fl-assistant-round-b-page.mjs": "ea77aeca66b306fabf0f3ae2f79411955d1ceed0b705d846a433a8befc4a6bc3",
+    "tests/visual/assistant_round_b_page_bridge.py": "45f4091258a65cd49f457e059bbea612d83bbf4dd0fafa15d81d938a4c874e85"
   },
   "screenshots": [
     "different-lot-desktop-en.png",
@@ -107,7 +128,10 @@
     "scope-desktop-en.png",
     "scope-mobile-es-sessions-on.png",
     "customer-continue-desktop-en.png",
-    "customer-duplicate-mobile-es.png"
+    "customer-duplicate-mobile-es.png",
+    "real-model-different-lot-mobile-es.png",
+    "real-model-scope-desktop-en.png",
+    "real-model-different-lot-mobile-es-sessions-on.png"
   ],
   "final_database_cleanup": {
     "host": "127.0.0.1",
@@ -118,5 +142,6 @@
   "guards": {
     "diff_check": "passed",
     "key_literal_findings": 0
-  }
+  },
+  "real_model_validation_at": "2026-10-15T14:05:32.499656-04:00"
 }

@@ -31,7 +31,8 @@ Traceability remains as reviewed. Every ingredient needs a physical tag, includi
 | Existing Assistant + #130 new-customer browser flow | Both modes pass; Add, CUS → Continue → ORD, duplicate recovery, mobile ES |
 | Round A browser | 30 per mode |
 | B backend contract browser | 9 groups per mode |
-| B actual dashboard page | 68 total, both modes, EN/ES, 1440/390 |
+| B actual dashboard page, queued tool selection | 68 total, both modes, EN/ES, 1440/390 |
+| B actual dashboard page, real gpt-6.1-sol | 68 total, both modes, EN/ES, 1440/390 |
 
 Python used a fresh venv from requirements.txt plus tests/requirements-test.txt: Python 3.12.14, Pydantic 2.14.1, pydantic-core 2.50.1, jsonschema 4.26.0; pip check passed. Modes ran sequentially. The saved single-database runner allocates a fresh DB per each of 22 schema/race groups and preserves original migration/fixture SQL; every collected test ran exactly once per mode. Its temporary allocation layer permits the requested mixed-case `fl_fixB3_` database names while retaining main’s lowercase-prefix helper in source.
 
@@ -46,3 +47,11 @@ Selected inspected screenshots:
 - [CUS Continue with an order](customer-continue-desktop-en.png), [Spanish duplicate recovery](customer-duplicate-mobile-es.png)
 
 Saved terminal logs have trailing whitespace normalized; result text and counts are unchanged.
+
+## Approved real-model repeat
+
+After explicit user approval, the complete page runner repeated all **68 checks** with **gpt-6.1-sol**, Pydantic **2.14.1**, and actual OpenAI Responses tool selection. All 111 model requests completed; zero page-check failures and no JavaScript errors. Both session modes and 1440/390 widths passed in EN/ES. The source hashes match the previously validated code; only evidence/log files changed.
+
+Every Different-lot trace check verified that the suggested Sunflower stock stayed **100 lb**, the typed physical tag remained on the follow-up exception, and all other ingredients required tags. Each fresh mode DB had exactly two explicit committed makes (5 → 7 transactions), 66 suppliers unchanged, and was dropped. Independent local PG inventory confirms **zero fl_fixB3_ databases remain**. No hosted database was used.
+
+See [real-model results](real-model-results.json) and [log](real-model.log). Inspected [mobile ES Different lot](real-model-different-lot-mobile-es.png), [desktop EN scope wording](real-model-scope-desktop-en.png), and [mobile ES sessions-on Different lot](real-model-different-lot-mobile-es-sessions-on.png). This completes the live-model check that was awaiting permission in the first B3 PR comment.

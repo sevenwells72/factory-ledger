@@ -1,3 +1,5 @@
+**Approved real-model repeat:** all 68 checks pass with gpt-6.1-sol/Pydantic 2.14.1 in both modes; see the [B3 real-model evidence](final-b3/README.md#approved-real-model-repeat). All task DBs dropped.
+
 **Latest: [final round B3](final-b3/README.md)** — rebased onto #130/main, Pydantic 2.14.1, 6,103 Python per mode, 353 Node and all requested browser runners pass. Earlier B2 evidence below is historical.
 
 # PR #132 round B fix recheck
