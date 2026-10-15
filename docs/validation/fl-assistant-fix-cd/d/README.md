@@ -1,6 +1,6 @@
 # FL Assistant C/D completion report — 2026-10-15
 
-Round C is pushed to PR #133 at `cef6be9`, with a fix/test comment and `review:merge-ready-for-recheck`. Round D is built directly on that head in `fix/assistant-orders-speed`. C is still open, so D uses C as its PR base. Rebase onto main remains conditional on C merging.
+Round C was pushed to PR #133 at `cef6be9`, with a fix/test comment and `review:merge-ready-for-recheck`, then merged into main as `440b8c6` on 2026-10-15. Round D is rebased onto that main commit in `fix/assistant-orders-speed`; draft PR #134 now targets main. The rebase completed without conflicts and preserved the entire tested repository tree byte-for-byte before this documentation update.
 
 No Railway, Supabase, OpenAI settings or AI model were changed. The real-model runs used the existing `gpt-6.1-sol` configuration. Product/supplier lookup remains separate from prepare.
 
@@ -69,4 +69,10 @@ Hosted staging changes were limited to these supported order closures:
 - SO-261012-001, SO-261012-003, SO-261012-004, SO-261012-005
 - SO-261013-001, SO-261014-001, SO-261014-002
 
-No real-customer order was changed. SO-261015-001/002/003 are unchanged. No migration, deployment or merge was performed. The only pending code maintenance is rebasing D onto main after C merges; physical iPhone microphone testing remains outside automated transcript/browser coverage.
+No real-customer order was changed. SO-261015-001/002/003 are unchanged. This task performed no migration, deployment or PR merge. D's rebase after C merged is complete; physical iPhone microphone testing remains outside automated transcript/browser coverage.
+
+## Rebase verification after C merged
+
+C merged as `440b8c652db3e520cf21468aed2f473f6b0ef186`. Replaying the single D commit produced `67a7fd5925870bd8d97577ebe6e828e3f9c56798` with no conflicts. Its complete tree hash, `5f7c84d7f674ca1f95926a8eaff92599f335a5f7`, equals the original tested `317d7db` tree. All 14 saved runtime hashes match; main ancestry and `git diff --check` pass. Only this status report, rebase evidence and append-only change logs were then updated.
+
+No source, test, schema or configuration bytes changed, so the existing 6,443 Python tests in each session mode, 379 Node tests and full real-model/browser acceptance results remain applicable. No tests or model calls were repeated, no fresh staging dump was made and no test database was recreated. See `rebase-verification.json`.

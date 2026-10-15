@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-15 16:00 — Rebase round D onto merged C/main 440b8c6 with no conflicts; verify identical tested tree and all 14 runtime hashes; retain both-mode validation and update draft PR status evidence
+- **File(s) changed:** docs/validation/fl-assistant-fix-cd/d/README.md, docs/validation/fl-assistant-fix-cd/d/rebase-verification.json
+- **What changed:** Rebase round D onto merged C/main 440b8c6 with no conflicts; verify identical tested tree and all 14 runtime hashes; retain both-mode validation and update draft PR status evidence.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
 ## 2026-10-15 15:26 — Document per-item C/D outcomes, exact counts, speed comparison and prompt-cache limitation for reviewer handoff
 - **File(s) changed:** docs/validation/fl-assistant-fix-cd/d/README.md
 - **What changed:** Document per-item C/D outcomes, exact counts, speed comparison and prompt-cache limitation for reviewer handoff.
