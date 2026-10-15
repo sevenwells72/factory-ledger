@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-10-15 16:58 — Verify server keep-alive fix in both session modes and clean disposable databases
+- **File(s) changed:** CHANGE_LOG.md; local validation logs and PR draft under /private/tmp/fl_keepalive_validation; local test environment only.
+- **What changed:** Real TCP regression fails for both launch paths on origin/main 05b069b and passes with 75 seconds. Full Python: 6,447 passed per session mode, zero failed/skipped; Node: 383 passed. Assistant/customer and round A/B/C browser runners pass both modes, including 72 Chromium/WebKit transcripts and 288 phone checks. All fl_keepalive_ databases dropped. Installed missing declared test-only jsonschema and aligned local Pydantic to its existing 2.14.1 pin; uvicorn 0.24.0, FastAPI 0.104.1 and anyio 3.7.1 unchanged.
+- **Why:** Requested complete fresh-database validation for the keep-alive and shipping wording draft PR. No hosted settings changed or deployment performed.
+
+---
+
+## 2026-10-15 16:49 — Raise web-server keep-alive timeout and show shipping quantities in cases
+- **File(s) changed:** Procfile, railway.json, scripts/staging_start_command.py, docs/staging.md, assistant_replies.py, fl_assistant.py, dashboard/assistant-display.js, dashboard/fl-assistant.js, dashboard/fl-assistant.html, tests/test_server_keepalive.py, tests/test_assistant_orders_round_d.py, tests/test_fl_assistant_ui.js; temporary local validation harnesses/logs under /private/tmp/fl_keepalive_validation.
+- **What changed:** Set production and generated guarded staging web commands to a 75-second uvicorn keep-alive timeout; preserve scheduled-job start commands. Add a real-socket regression for a slow second request on one connection. Carry saved case sizes and effective line balances into the shipping question and reuse open-order case/pounds formatting in English and Spanish.
+- **Why:** PR #134 review comment 6201070095 reproduced a stale five-second keep-alive timer cutting off long requests and requested clearer shipping quantities. Dependency pins stay unchanged. Hosted staging retains a separate embedded proxy adapter and needs the timeout added to its current command when deployed.
+
+---
+
 ## 2026-10-15 16:00 — Rebase round D onto merged C/main 440b8c6 with no conflicts; verify identical tested tree and all 14 runtime hashes; retain both-mode validation and update draft PR status evidence
 - **File(s) changed:** docs/validation/fl-assistant-fix-cd/d/README.md, docs/validation/fl-assistant-fix-cd/d/rebase-verification.json
 - **What changed:** Rebase round D onto merged C/main 440b8c6 with no conflicts; verify identical tested tree and all 14 runtime hashes; retain both-mode validation and update draft PR status evidence.

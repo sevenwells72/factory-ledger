@@ -45,6 +45,15 @@ Set the resulting command on **FastAPI-staging only**. Do not put it in the shar
 `railway.json` or update production settings. Regenerate this embedded command
 when changing the guard. The service listens on `PORT=8000` and checks `/health`.
 
+Both web launch paths use a 75-second uvicorn keep-alive timeout: production's
+autodetected command is in `Procfile`; the staging command generator passes
+`timeout_keep_alive=75`. Keep start commands service-specific: a shared
+`railway.json` start command would also override the scheduled jobs. When applying
+this change to FastAPI-staging, add `timeout_keep_alive=75` to the **current**
+embedded `uvicorn.Config` call, preserving its database guard and Railway proxy
+adapter. The hosted command includes that adapter ahead of this branch; do not
+replace it with an older generated command. This PR does not deploy either service.
+
 All variables were set independently: DATABASE_URL, API_KEY, a separate random
 DASHBOARD_API_KEY, ENVIRONMENT, the three database identity settings above,
 PORT, RAILPACK_PYTHON_VERSION, and PYTHONUNBUFFERED. No production variables were
