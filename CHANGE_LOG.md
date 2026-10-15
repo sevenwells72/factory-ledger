@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-10-14 23:26 — PR #122 current-main verification complete; ready for reviewer re-check
+- **File(s) changed:** CHANGE_LOG.md, FACTORY_LEDGER_CHANGELOG.md, docs/validation/o7-fix2-tests.json, ignored local PR comment/evidence helpers
+- **What changed:** Final e0f4dd2-based sweep passes 5,764 Python tests on fresh fl_pr122fx_full2, 219 Node, 48 refusal/recovery browser cases and all 15 legacy browser executions. Current-main rebase checks pass; historical log lines preserved except prior required redactions. Renumber only this unpublished fix-round row to207 after main205/206 and clarify the historical duplicate204. Drop the final DB; no task databases remain.
+- **Why:** Record results from the actual final integration before the authorized same-branch leased push, draft PR comment and re-check label. No production/staging settings changed.
+
+---
+
+## 2026-10-14 23:23 — PR #122: integrate newly merged main PR #124 before push
+- **File(s) changed:** CHANGE_LOG.md, FACTORY_LEDGER_CHANGELOG.md; rebased upstream Assistant implementation and tests; ignored local verification logs
+- **What changed:** Main advanced to e0f4dd2 while the first validation sweep finished. Rebase all O-7 commits onto it, retain both log histories and list-actions v4, install the new jsonschema test dependency, then rerun full fresh-DB Python/Node and all requested browser checks before pushing.
+- **Why:** User requires current main and green validation; do not publish a result tested only against the previous main. Other sessions worktrees remain untouched.
+
+---
+
 ## 2026-10-14 23:22 — PR #122 fix round 2: all checks pass and disposable databases removed
 - **File(s) changed:** dashboard consumers, tests/test_dashboard_access_errors.js, tests/visual/run-dashboard-key-failure.mjs, FACTORY_LEDGER_CHANGELOG.md, docs/validation/o7-fix2-tests.json
 - **What changed:** Finish nested-read access messages and recoverable placeholders. Record 5,739 fresh-DB Python tests, 214 Node tests, 48 new browser refusal/recovery cases and 15 existing browser executions, all passing; final affected Python subset 107 passed. New regressions fail on 7370f99 (4 preflight CLI, 4 Node, 48 browser, 11 guard and 3 rebase checks). Drop all ten task databases, including the auth-prefix exception; retain only ignored local evidence.

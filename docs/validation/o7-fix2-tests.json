@@ -1,15 +1,15 @@
 {
   "pr": 122,
   "review_comment": 6183537320,
-  "date": "2026-10-14T23:22:34-04:00",
+  "date": "2026-10-14T23:26:53-04:00",
   "reviewed_head": "7370f996bd68829eab6c8212f01a960fcb336ad4",
-  "rebased_onto": "5592cdc011b38d068d0792ed3af1e8a75b2b0c91",
+  "rebased_onto": "e0f4dd28bf6a8a8c083acc0f7f932213cbc13113",
   "python": {
-    "passed": 5739,
+    "passed": 5764,
     "failed": 0,
     "skipped": 0,
-    "seconds": 228.05,
-    "fresh_db": "fl_pr122fx_full",
+    "seconds": 167.54,
+    "fresh_db": "fl_pr122fx_full2",
     "runner": "scripts/run_tests.sh",
     "interpreter": "Python 3.12.14"
   },
@@ -20,7 +20,7 @@
   },
   "node": {
     "command": "node --test tests/*.js",
-    "passed": 214,
+    "passed": 219,
     "failed": 0,
     "skipped": 0
   },
@@ -50,72 +50,72 @@
     {
       "name": "key-sessions",
       "exit": 0,
-      "seconds": 5.4
+      "seconds": 4.7
     },
     {
       "name": "session-shift-fix",
       "exit": 0,
-      "seconds": 6.2
+      "seconds": 5.4
     },
     {
       "name": "run-types",
       "exit": 0,
-      "seconds": 7.9
+      "seconds": 9.0
     },
     {
       "name": "runs-interactions",
       "exit": 0,
-      "seconds": 21.5
+      "seconds": 17.5
     },
     {
       "name": "production-trace",
       "exit": 0,
-      "seconds": 7.9
+      "seconds": 3.9
     },
     {
       "name": "fl-assistant-off",
       "exit": 0,
-      "seconds": 5.4
+      "seconds": 4.2
     },
     {
       "name": "fl-assistant-on",
       "exit": 0,
-      "seconds": 4.8
+      "seconds": 4.3
     },
     {
       "name": "d12-auth-on",
       "exit": 0,
-      "seconds": 2.4
+      "seconds": 1.4
     },
     {
       "name": "d12-auth-off",
       "exit": 0,
-      "seconds": 2.3
+      "seconds": 1.9
     },
     {
       "name": "d12-gating-on",
       "exit": 0,
-      "seconds": 2.0
+      "seconds": 1.7
     },
     {
       "name": "d12-fixes-on",
       "exit": 0,
-      "seconds": 25.7
+      "seconds": 24.5
     },
     {
       "name": "office-on",
       "exit": 0,
-      "seconds": 30.1
+      "seconds": 8.7
     },
     {
       "name": "office-off",
       "exit": 0,
-      "seconds": 4.9
+      "seconds": 2.9
     },
     {
       "name": "void-on",
       "exit": 0,
-      "seconds": 3.6
+      "seconds": 2.7
     },
     {
       "name": "void-off",
@@ -172,7 +172,8 @@
       "fl_pr122fx_browser_4",
       "fl_pr122fx_browser_5",
       "fl_pr122fx_browser_6",
-      "fl_pr122fx_browser_7"
+      "fl_pr122fx_browser_7",
+      "fl_pr122fx_full2"
     ],
     "fixture_note": "The untracked driver adapts only d12_fixture.py name validation to fl_pr122fx_; run-d12-auth uses its required fl_d12_browser prefix. Fresh DB per real browser run."
   },
@@ -214,6 +215,34 @@
     "tests/test_dashboard_key_preflight.py": "1d99df79f2fdf159fad44e58bdc009f2f96daf3eb60bcee67f9559547d644b16",
     "tests/test_key_literal_guard.py": "9472ae0656f6dfc828100749060a593fac6489ecd23cae0ae33fc044d61c842f",
     "tests/test_dashboard_access_errors.js": "ad46f571f6c144b8cb0aca96200e9edaedc3b00035282c9d277b83bdec8a905e",
-    "tests/visual/run-dashboard-key-failure.mjs": "ca065bec169d09370a776baafc62a7d93d716f830181c9716204fa45e9f96767"
+    "tests/visual/run-dashboard-key-failure.mjs": "ca065bec169d09370a776baafc62a7d93d716f830181c9716204fa45e9f96767",
+    "assistant_tools.py": "2924e9619d49e116ade08b8d105f3a6ab839b53ffac409603315b7979cb984bc",
+    "fl_assistant.py": "4d64cd7325b1352378e55b17eee049415eac14e69d3f539ae9aeb195225abdaa",
+    "dashboard/fl-assistant.js": "c578e7d2ad4683e0b756e5e03875184fd604f92e37f3b76d8389a99ef14642ea",
+    "tests/test_assistant_tools_schema.py": "a5c4ed0847670a658d6972597ad4dc6218cf4e9c2811d8210658039ebff55db8",
+    "tests/test_fl_assistant.py": "a7530341b7e82e34c336516a6c9bd4945d1ea9a2b5d50aa7817ca15072523c4c",
+    "tests/test_fl_assistant_ui.js": "2bdc57c4a030815400e2139cd0d3c3628e66942c47d44c1257e6bfd0e5939cf0",
+    "tests/visual/run-fl-assistant.mjs": "2811033668945f1f2509dfbf9ea53a8869430c6a4157aba20b433ae4189774bd",
+    "tests/requirements-test.txt": "c6d64e7d8ccbfba156ec4e82077ba721017ae86143db7a50b63014ab10ff668e"
+  },
+  "previous_sweep": {
+    "base": "5592cdc011b38d068d0792ed3af1e8a75b2b0c91",
+    "python": {
+      "passed": 5739,
+      "failed": 0,
+      "skipped": 0,
+      "seconds": 228.05,
+      "fresh_db": "fl_pr122fx_full",
+      "runner": "scripts/run_tests.sh",
+      "interpreter": "Python 3.12.14"
+    },
+    "node": {
+      "command": "node --test tests/*.js",
+      "passed": 214,
+      "failed": 0,
+      "skipped": 0
+    },
+    "browser_runs_passed": 15,
+    "key_failure_cases_passed": 48
   }
 }
