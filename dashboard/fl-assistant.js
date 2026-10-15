@@ -17,18 +17,22 @@
     const data = value?.result || value;
     const detail = data?.detail || data?.error_detail || data;
     if (Array.isArray(detail) || data?.error_detail?.code === 'VALIDATION_ERROR') return neutralMessages.misunderstood.join(' / ');
-    if (typeof detail === 'string') return detail;
-    if (detail && typeof detail === 'object') return [detail.error_code || detail.code, detail.message, detail.action, detail.role].filter(Boolean).join(' · ') || JSON.stringify(detail);
+    if (typeof detail === 'string') return display ? display.plainMessage(detail) : detail;
+    if (detail && typeof detail === 'object') return detail.message || 'FL could not complete this request. Please check the details.';
     return String(detail || 'Request failed / Solicitud fallida');
   }
   const awaitingApproval = value => !!(value && value.held === true && value.status === 'awaiting_approval');
-  const exports = { validReceipt, canRecord, validAttachment, evidenceKinds, errorText, awaitingApproval, neutralMessages };
+  const display = root.FLAssistantDisplay || (typeof require === 'function' ? require('./assistant-display.js') : null);
+  const isTodayQuery = text => /^(?:(?:show|list)(?: me)?(?: all)?(?: of)? (?:today[’']?s entries|entries (?:for |from )?today)|what (?:did|have) (?:i|we) (?:enter(?:ed)?|record(?:ed)?) today|today[’']?s entries|entradas de hoy|(?:mostrar|muestra|ver|lista)(?: todas)?(?: las)? entradas de hoy|[¿]?qu[eé] registr(?:[eé]|amos) hoy)[?.!¿]*$/i.test(String(text || '').trim());
+  const voidTarget = text => /\b(void|anular|anula)\b/i.test(text || '') ? (String(text).match(/\b(?:RCV|MK|PK|ADJ|FND|SHP)-\d{6}-\d{3,}\b/i)?.[0]?.toUpperCase() || null) : null;
+  const refusalDraft = prepared => !!prepared?.blockers?.some(b => !['LOT_NOT_CONFIRMED', 'SKU_CONFIRMATION_REQUIRED', 'BOL_REQUIRED'].includes(b.code));
+  const exports = { isTodayQuery, voidTarget, refusalDraft, validReceipt, canRecord, validAttachment, evidenceKinds, errorText, awaitingApproval, neutralMessages };
   if (typeof module !== 'undefined') module.exports = exports;
   if (!root.document) return;
   const $ = id => document.getElementById(id);
   let language = localStorage.getItem('fl-assistant-language') || 'en';
   let credential = '', session = '', actor = null, sessionStore = '', busy = false, attachments = [], retryTurn = null;
-  let held = false, recorder = null, stream = null, recordingTimer = null, micStarting = false;
+  let lastIntent = '', held = false, recorder = null, stream = null, recordingTimer = null, micStarting = false;
   const drafts = new Map();
   const labels = new Map();
   function t(en, es) { labels.set(en, [en, es]); labels.set(es, [en, es]); return language === 'es' ? es : en; }
@@ -41,7 +45,15 @@
   }
   function button(label, handler, className) {
     const node = el('button', label, className); node.type = 'button';
-    node.addEventListener('click', handler); return node;
+    node.addEventListener('click', event => {
+      const result = handler(event);
+      if (result?.then) {
+        const previous = node.textContent;
+        node.className += ' is-working'; node.setAttribute('aria-busy', 'true');
+        node.textContent = t('Working…', 'Trabajando…');
+        result.finally(() => { node.className = node.className.replace(/\bis-working\b/g, '').trim(); node.setAttribute('aria-busy', 'false'); node.textContent = node.dataset[language] || previous; });
+      }
+    }); return node;
   }
   function applyLanguage() {
     document.documentElement.lang = language;
@@ -49,6 +61,7 @@
     $('language').textContent = language === 'en' ? 'ES' : 'EN';
     $('language').setAttribute('aria-label', language === 'en' ? 'Cambiar a español' : 'Switch to English');
     $('actor-key').placeholder = t('Enter your personal key', 'Escribe tu clave personal');
+    if (actor) { delete $('identity').dataset.en; delete $('identity').dataset.es; }
     if (actor) $('identity').textContent = `${t('Signed in as', 'Sesión de')} ${actor.name} · ${actor.role}`;
     renderAttachments();
   }
@@ -81,7 +94,9 @@
     node.append(list);
   }
   async function api(path, { body, form, method = 'POST', binary = false, timeout = 95000, background = false } = {}) {
-    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeout);
+    const controller = new AbortController();
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeout);
     try {
       const response = await fetch(new URL(path, root.FLDashboard?.base||location.origin), {
         method, headers: { 'X-API-Key': credential, ...(background ? { 'X-FL-Background': '1' } : {}), ...(form || !body ? {} : { 'Content-Type': 'application/json' }) },
@@ -103,31 +118,57 @@
       }
       return data;
     } catch (error) {
-      if (error instanceof Error) throw { detail: t('Connection failed or timed out. Retry the same draft.', 'La conexión falló. Reintenta el mismo borrador.') };
+      if (timedOut) throw { timedOut: true, detail: t('Connection timed out. Please try again.', 'La conexión tardó demasiado. Inténtalo de nuevo.') };
+      if (error instanceof SyntaxError) throw { detail: t('FL returned an unreadable response. Please try again.', 'FL devolvió una respuesta que no se pudo leer. Inténtalo de nuevo.') };
+      if (error instanceof Error) throw { detail: t('Connection failed. Please try again.', 'La conexión falló. Inténtalo de nuevo.') };
       throw error;
     } finally { clearTimeout(timer); }
   }
   function setBusy(value) {
     busy = value;
-    ['send', 'photo-button', 'photo-kind', 'new-chat'].forEach(id => $(id).disabled = value || !session);
+    if ($('working-status')) $('working-status').hidden = !value;
+    $('send').setAttribute('aria-busy', String(value));
+    $('send').className = value ? 'primary is-working' : 'primary';
+    $('send').textContent = value ? t('Working…', 'Trabajando…') : t('Send ↑', 'Enviar ↑');
+    ['send', 'photo-button', 'photo-kind', 'new-chat', 'today-entries', 'today-entries-mobile'].forEach(id => $(id).disabled = value || !session);
     $('dictate').disabled = value || !session || !navigator.mediaDevices?.getUserMedia || !root.MediaRecorder;
     $('sign-out').disabled = value;
     drafts.forEach(node => node.refreshRecord?.());
   }
-  function userMessage(text) { if (text) $('messages').append(el('div', text, 'message user-message')); }
+  function userMessage(text) { if (text) $('messages').append(el('div', display.plainMessage(text, language), 'message user-message')); }
   function shell() {
     $('welcome').hidden = true;
     const wrap = el('div', undefined, 'message assistant-message');
     const glyph = el('span', '✧', 'assistant-glyph'); glyph.setAttribute('aria-hidden', 'true');
     const card = el('article', undefined, 'card'); wrap.append(glyph, card); $('messages').append(wrap); return card;
   }
-  function details(node, result) {
-    const disclosure = el('details'); disclosure.append(el('summary', t('FL details', 'Detalles de FL')), el('pre', JSON.stringify(result, null, 2))); node.append(disclosure);
+  function readResult(node, card) {
+    const english = display.readSections(card, { language: 'en' }), spanish = display.readSections(card, { language: 'es' });
+    for (const [index, section] of english.entries()) {
+      const translated = spanish[index] || section;
+      node.append(el('p', t(section.sentence, translated.sentence), 'read-summary'));
+      for (const [i, note] of (section.notes || []).entries()) node.append(el('p', t(note, translated.notes?.[i] || note), 'muted'));
+      if (!section.rows?.length) continue;
+      if (Array.isArray(card.result?.receipts)) {
+        for (const [i, row] of section.rows.entries()) {
+          const line = el('div', undefined, 'today-entry');
+          line.append(el('p', t(row.join(' — '), (translated.rows[i] || row).join(' — ')))); node.append(line);
+        }
+        continue;
+      }
+      const scroll = el('div', undefined, 'read-table-scroll'), table = el('table'), head = el('thead'), tr = el('tr');
+      for (const [i, label] of section.columns.entries()) { const th = el('th', t(label, translated.columns[i] || label)); th.setAttribute('scope', 'col'); tr.append(th); }
+      head.append(tr); table.append(head);
+      const body = el('tbody');
+      for (const [i, values] of section.rows.entries()) { const row = el('tr'); for (const [j, value] of values.entries()) row.append(el('td', t(String(value ?? ''), String(translated.rows[i]?.[j] ?? value ?? '')))); body.append(row); }
+      table.append(body); scroll.append(table); node.append(scroll);
+    }
   }
+  function details() { /* Staff cards contain only reviewed, plain fields. */ }
   function fields(node, pairs) {
     const list = el('dl', undefined, 'field-list');
     pairs.filter(([, value]) => value !== undefined && value !== null && value !== '').forEach(([name, value]) => {
-      list.append(el('dt', name), el('dd', typeof value === 'object' ? JSON.stringify(value) : String(value)));
+      list.append(el('dt', name), el('dd', typeof value === 'object' ? (value.name || value.label_en || t('See the entry details', 'Consulta los detalles')) : String(value)));
     }); node.append(list);
   }
   function autoSubstitutions(node, result) {
@@ -143,15 +184,15 @@
     node.append(el('span', t('✓ RECORDED IN FACTORY LEDGER', '✓ REGISTRADO EN FACTORY LEDGER'), 'eyebrow'), el('h3', result.receipt_number, 'receipt-number'));
     node.append(el('p', result.replayed ? t('Same entry, same receipt. Your retry did not create another entry.', 'Misma entrada, mismo recibo. El reintento no creó otra entrada.') : t('FL confirmed this entry.', 'FL confirmó esta entrada.')));
     autoSubstitutions(node, result);
-    fields(node, [[t('Transaction', 'Transacción'), result.transaction_id], [t('Product', 'Producto'), result.product_name || result.target_product_name], [t('Lot', 'Lote'), result.lot_code || result.output_lot_code],
+    fields(node, [[t('Product', 'Producto'), result.product_name || result.target_product_name], [t('Lot', 'Lote'), result.lot_code || result.output_lot_code],
       [t('Customer', 'Cliente'), result.customer_name || result.customer], [t('Shipment', 'Envío'), result.shipment_id],
-      [t('BOL', 'BOL'), result.bol_reference], [t('Photo status', 'Estado de foto'), result.proof_status === 'complete' ? t('Attached', 'Adjunta') : result.proof_status === 'photo_pending' ? t('Pending', 'Pendiente') : result.proof_status]]);
+      [t('BOL', 'BOL'), result.bol_reference], [t('Photo status', 'Estado de foto'), result.proof_status === 'complete' ? t('Attached', 'Adjunta') : result.proof_status === 'photo_pending' ? t('Pending', 'Pendiente') : display.plainLabel(result.proof_status, language)]]);
     for (const shortage of result.shortages || []) {
       const warning = el('div', undefined, 'warning'); warning.setAttribute('role', 'status');
       warning.append(el('strong', t('Shortage recorded', 'Faltante registrado')),
         el('p', t(`${shortage.product_name} · ${shortage.lot_code}: short ${shortage.short_lb} lb. The floor must resolve this shortage.`,
           `${shortage.product_name} · ${shortage.lot_code}: faltan ${shortage.short_lb} lb. El piso debe resolver este faltante.`)));
-      fields(warning, [[t('Due', 'Vence'), shortage.due_at], [t('Exception', 'Excepción'), shortage.exception_id]]);
+      fields(warning, [[t('Due', 'Vence'), display.formatTime(shortage.due_at, { language })], [t('Exception', 'Excepción'), shortage.exception_id]]);
       node.append(warning);
     }
     details(node, result);
@@ -178,23 +219,27 @@
     });
     node.append(check, errorArea); details(node, result);
   }
-  function renderDraft(card, existing) {
-    const node = existing || shell(), prepared = card.prepared, draft = prepared.draft;
+  function renderDraft(card, existing, fallback) {
+    const prepared = card.prepared, draft = prepared.draft || {};
+    if (refusalDraft(prepared)) {
+      const node = existing || shell(); node.className = 'card refusal';
+      node.append(el('span', t('CANNOT RECORD', 'NO SE PUEDE REGISTRAR'), 'draft-badge'), el('h3', t('This entry was refused', 'Esta entrada fue rechazada')));
+      for (const blocker of prepared.blockers || []) node.append(el('p', t(display.errorMessage(blocker, 'en'), display.errorMessage(blocker, 'es'))));
+      node.append(el('p', t('Nothing was recorded. Update the details or ask the office for help.', 'No se registró nada. Corrige los datos o pide ayuda a la oficina.')));
+      return;
+    }
+    const node = existing || shell();
     drafts.set(card.id, node); node.dataset.draftId = card.id;
     node.append(el('span', t('DRAFT · NOT RECORDED', 'BORRADOR · NO REGISTRADO'), 'draft-badge'));
     const actionNames = { receive: ['Receive', 'Recibir'], make: ['Make', 'Producir'], pack: ['Pack', 'Empacar'], adjust: ['Adjust', 'Ajustar'], found: ['Found inventory', 'Inventario encontrado'],
       ship_order: ['Ship order', 'Enviar pedido'], ship_standalone: ['Ship', 'Enviar'], ship_bulk: ['Ship multiple products', 'Enviar varios productos'] };
     node.append(el('h3', t(...(actionNames[prepared.action] || [prepared.action, prepared.action]))));
     node.append(el('p', t(`Recording as ${prepared.actor?.name || actor.name}`, `Registrando como ${prepared.actor?.name || actor.name}`), 'muted'));
-    fields(node, [[t('Product', 'Producto'), draft.product_name || draft.target_product_name], [t('Source', 'Origen'), draft.source_product_name],
-      [t('Supplier', 'Proveedor'), draft.supplier_name], [t('Customer', 'Cliente'), draft.customer || draft.customer_name],
-      [t('Order', 'Pedido'), draft.order || draft.order_id], [t('Cases', 'Cajas'), draft.cases ?? draft.total_cases], [t('Batches', 'Lotes de producción'), draft.batches],
-      [t('Pounds', 'Libras'), draft.total_lb ?? draft.total_output_lb ?? draft.total_weight_lb ?? draft.quantity],
-      [t('Adjustment (lb)', 'Ajuste (lb)'), draft.delta_lb], [t('Lot', 'Lote'), draft.lot_code || draft.output_lot_code],
-      [t('Supplier lot', 'Lote del proveedor'), draft.supplier_lot_code], [t('BOL', 'BOL'), draft.bol_reference],
-      [t('Photo status', 'Estado de foto'), draft.photo === 'attached' ? t('Attached', 'Adjunta') : draft.photo === 'pending' ? t('Pending', 'Pendiente') : draft.photo],
-      [t('Reason', 'Motivo'), language === 'es' ? draft.reason_es || draft.reason_code : draft.reason_code],
-      [t('Happened at', 'Ocurrió el'), draft.happened_at], [t('Expires', 'Vence'), prepared.expires_at]]);
+    const enFields = display.draftFields(prepared, { language: 'en', fallback }), esFields = display.draftFields(prepared, { language: 'es', fallback });
+    // Ship line headings already identify every product, including service charges.
+    const showLineProducts = /^ship_/.test(prepared.action || '') && draft.lines?.length;
+    fields(node, enFields.flatMap(([label, value], i) => showLineProducts && label === 'Product' ? [] :
+      [[t(label, esFields[i]?.[0] || label), t(String(value), String(esFields[i]?.[1] ?? value))]]));
     autoSubstitutions(node, draft);
     for (const line of draft.lines || []) {
       const row = el('div', undefined, 'ship-line');
@@ -238,14 +283,17 @@
       node.append(row);
     }
     for (const warning of prepared.warnings || []) {
-      const row = el('div', undefined, 'warning'), message = t(warning.message || warning.code, warning.message_es || warning.message || warning.code);
+      const row = el('div', undefined, 'warning'), message = t(display.plainMessage(warning.message || display.plainLabel(warning.code, 'en'), 'en'), display.plainMessage(warning.message_es || warning.message || display.plainLabel(warning.code, 'es'), 'es'));
       if (warning.requires_ack) {
-        const label = el('label'), checkbox = el('input'); checkbox.type = 'checkbox'; label.append(checkbox, el('span', message || warning.code)); row.append(label); warningChecks.push({ warning, checkbox });
+        const label = el('label'), checkbox = el('input'); checkbox.type = 'checkbox';
+        const duplicate = /duplicate/i.test(warning.code || '');
+        if (duplicate) row.append(el('p', message));
+        label.append(checkbox, el('span', duplicate ? t('Yes, this is a separate entry, record it anyway.', 'Sí, esta es una entrada diferente; regístrala de todos modos.') : t(display.plainLabel(warning.message || warning.code, 'en'), display.plainLabel(warning.message_es || warning.message || warning.code, 'es')))); row.append(label); warningChecks.push({ warning, checkbox });
       } else row.append(el('span', message));
       node.append(row);
     }
     for (const blocker of prepared.blockers || []) {
-      node.append(el('div', (language === 'es' ? blocker.message_es : null) || blocker.message || blocker.code, blocker.code === 'LOT_NOT_CONFIRMED' ? 'warning' : 'error-box'));
+      node.append(el('div', t(display.errorMessage(blocker, 'en'), display.errorMessage(blocker, 'es')), blocker.code === 'LOT_NOT_CONFIRMED' ? 'warning' : 'error-box'));
     }
     for (const aid of card.attachment_ids || []) node.append(button(t('View attached photo', 'Ver foto adjunta'), () => viewPhoto(aid)));
     details(node, draft);
@@ -282,8 +330,8 @@
     node.refreshRecord = refreshRecord;
     refreshRecord(); actions.append(recordButton, cancelButton); node.append(errorArea, actions);
   }
-  function renderCard(card) {
-    if (card.kind === 'draft') { renderDraft(card); return; }
+  function renderCard(card, sourceText) {
+    if (card.kind === 'draft') { renderDraft(card, null, sourceText); return; }
     const node = shell();
     if (card.kind === 'choices') {
       node.append(el('span', t('CHOOSE FROM FL', 'ELIGE EN FL'), 'eyebrow'), el('h3', t('Which one?', '¿Cuál?')));
@@ -292,7 +340,7 @@
       function select(selectedId, nextPage = false) {
         if (busy) return;
         choices.forEach(b => b.disabled = true);
-        sendTurn({ text: '', choice_id: card.id, selected_id: selectedId, next_page: nextPage }).finally(() => choices.forEach(b => b.disabled = false));
+        return sendTurn({ text: '', choice_id: card.id, selected_id: selectedId, next_page: nextPage }).finally(() => choices.forEach(b => b.disabled = false));
       }
       for (const candidate of card.result.candidates || []) {
         const b = button(candidate.label || candidate.name, () => select(candidate.id), 'choice-button'); choices.push(b); node.append(b);
@@ -301,22 +349,7 @@
       if (card.result.has_more) { const more = button(t('More choices →', 'Más opciones →'), () => select(null, true), 'choice-button'); choices.push(more); node.append(more); }
     } else if (card.kind === 'read') {
       node.append(el('span', t('FROM FACTORY LEDGER', 'DE FACTORY LEDGER'), 'eyebrow'), el('h3', t('Here’s what FL shows', 'Esto muestra FL')));
-      const directMakes = card.result.direct_make_substitutions;
-      if (directMakes?.rows?.length) {
-        node.append(el('h4', t(directMakes.label_en, directMakes.label_es)));
-        for (const row of directMakes.rows) node.append(el('p', t(row.line_en, row.line_es)));
-      }
-      const receipts = card.result.receipts;
-      if (receipts) {
-        if (!receipts.length) node.append(el('p', t('No receipts for you today.', 'No hay recibos tuyos hoy.')));
-        receipts.forEach(r => {
-          const line = el('div'); line.append(el('p', `${r.receipt_number} · ${r.action || ''}`)); details(line, r); node.append(line);
-        });
-      } else if (card.tool === 'inventory_lookup') {
-        const results = card.result.results || [];
-        if (!results.length) node.append(el('p', t('No inventory matches.', 'No hay coincidencias de inventario.')));
-        for (const item of results) { const section = el('div'); section.append(el('p', item.product_name || item.name || item.product?.name || t('Inventory', 'Inventario'))); details(section, item); node.append(section); }
-      } else details(node, card.result);
+      readResult(node, card);
     } else if (card.kind === 'missing_facts') {
       missingFacts(node, card.fields);
     } else if (neutralMessages[card.kind]) {
@@ -331,16 +364,56 @@
       }
       if (missingReason) node.append(el('p', t('Choose a correction reason.', 'Elige un motivo de la corrección.')));
       else {
-        neutral(node, 'request_failed');
-        node.append(el('p', errorText(card.result)));
+        node.className = 'card refusal';
+        node.append(el('span', t('CANNOT RECORD', 'NO SE PUEDE REGISTRAR'), 'draft-badge'), el('h3', t('This request was refused', 'Esta solicitud fue rechazada')));
+        node.append(el('p', t(display.errorMessage(card.result, 'en'), display.errorMessage(card.result, 'es'))));
         node.append(el('p', t('Update the message with the requested details. FL has not recorded this request.', 'Completa el mensaje con los datos solicitados. FL no ha registrado esta solicitud.'), 'muted'));
       }
       if (JSON.stringify(card.result).includes('reason_code')) {
-        for (const reason of card.reasons || []) node.append(button(language === 'es' ? reason.label_es : reason.label_en, () => {
-          $('message').value = `${t('The correction reason is', 'El motivo de corrección es')} ${reason.code}. `; $('message').focus();
-        }, 'choice-button'));
+        for (const reason of card.reasons || []) node.append(button(t(reason.label_en, reason.label_es || reason.label_en), () => sendTurn({ text: `${t('The correction reason is', 'El motivo de corrección es')} ${reason.code}.` }), 'choice-button'));
       }
     } else node.append(el('p', card.message || t('Please give more details.', 'Agrega más detalles.')));
+  }
+  function renderCards(cards, sourceText) {
+    if (sourceText && !/correction reason|motivo de correcci/i.test(sourceText)) lastIntent = sourceText;
+    for (const card of display.dedupeCards(cards || [])) renderCard(card, sourceText || lastIntent);
+    const receipt = voidTarget(sourceText);
+    if (receipt) {
+      const node = shell(); node.className = 'card void-handoff';
+      node.append(el('p', t('To void this receipt, open its receipt screen and choose Prepare void.', 'Para anular este recibo, abre su pantalla y elige Preparar anulación.')));
+      const link = el('a', t(`Open ${receipt} to void`, `Abrir ${receipt} para anular`), 'button-link');
+      link.href = root.FLReceipts?.link(receipt) || '/dashboard/receipt.html?number=' + encodeURIComponent(receipt);
+      node.append(link);
+    }
+  }
+  async function todayEntries(requestText) {
+    if (busy || !session) return;
+    setBusy(true); notice('');
+    userMessage(typeof requestText === 'string' ? requestText : t('Show all today’s entries', 'Mostrar todas las entradas de hoy'));
+    const node = shell(); node.append(el('p', t('Loading today’s entries…', 'Cargando las entradas de hoy…'), 'busy-note'));
+    const deadline = Date.now() + 15000, receipts = [];
+    try {
+      const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+      let offset = 0;
+      while (true) {
+        const remaining = deadline - Date.now();
+        if (remaining <= 0) throw { timedOut: true };
+        const result = await api(`/receipts?date=${day}&summary=true&limit=500&offset=${offset}`, { method: 'GET', timeout: remaining });
+        receipts.push(...(result.receipts || []));
+        if (!result.has_more) break;
+        const next = result.next_offset;
+        if (!Number.isSafeInteger(next) || next <= offset) throw { detail: t('FL could not load the next page of today’s entries. Please try again.', 'FL no pudo cargar la siguiente página de las entradas de hoy. Inténtalo de nuevo.') };
+        offset = next;
+      }
+      receipts.sort((a, b) => new Date(b.entered_at || b.happened_at) - new Date(a.entered_at || a.happened_at));
+      node.replaceChildren();
+      readResult(node, { kind: 'read', tool: 'today_entries_all', result: { receipts } });
+    } catch (error) {
+      node.replaceChildren(el('p', error.timedOut
+        ? t('Today’s entries could not load within 15 seconds. Please try again.', 'Las entradas de hoy no se cargaron en 15 segundos. Inténtalo de nuevo.')
+        : errorText(error)));
+      node.append(button(t('Try again', 'Intentar de nuevo'), todayEntries));
+    } finally { setBusy(false); }
   }
   async function sendTurn(values, original) {
     if (busy) return;
@@ -350,7 +423,7 @@
     const waiting = el('p', t('Checking with FL…', 'Consultando FL…'), 'busy-note'); $('messages').append(waiting);
     try {
       const result = await api('/assistant/turn', { body, timeout: 570000 });
-      result.cards.forEach(renderCard);
+      renderCards(result.cards, body.text);
       retryTurn = null;
       if (result.cards.some(c => c.kind === 'draft')) { attachments = []; renderAttachments(); }
     } catch (error) {
@@ -366,11 +439,12 @@
       catch (error) { if (error.httpStatus !== 404) throw error; }
     }
     if (!session) { result = await api('/assistant/session', { background }); session = result.session_id; localStorage.setItem(sessionStore, session); }
-    for (const turn of result.turns || []) { userMessage(turn.text); turn.cards.forEach(renderCard); }
+    for (const turn of result.turns || []) { userMessage(turn.text); renderCards(turn.cards, turn.text); }
     // A saved receipt is a real commit result; no text/receipt lookup can call this renderer.
     for (const draft of result.drafts || []) {
       let node = drafts.get(draft.id);
-      if (!node) { renderDraft(draft.card); node = drafts.get(draft.id); }
+      if (!node) { renderDraft(draft.card, null, lastIntent); node = drafts.get(draft.id); }
+      if (!node) continue;
       if (draft.status === 'committed' && validReceipt(draft.result)) renderReceipt(node, draft.result);
       else if (awaitingApproval(draft.result)) renderHeld(node, draft.id, draft.result);
       if (draft.status === 'cancelled') node.replaceChildren(el('p', t('Cancelled · NOT recorded', 'Cancelado · NO registrado')));
@@ -386,14 +460,14 @@
     }
     return enabled;
   });
-  authReady.catch(() => notice(t('Sign-in unavailable. Please reload and try again.', 'No se puede iniciar sesión. Recarga e intenta otra vez.')));
+  authReady.catch(() => {});
   async function enterChat(who, { background = false } = {}) {
     actor = who; sessionStore = 'fl-assistant-chat:' + (actor.id || actor.name);
     await loadChat({ background }); $('sign-in-panel').hidden = true; $('chat-panel').hidden = false; $('sign-out').hidden = false;
     applyLanguage(); setBusy(false); $('message').focus();
   }
   $('sign-in-form').addEventListener('submit', async event => {
-    event.preventDefault(); notice(''); const submit = event.target.querySelector('button'); submit.disabled = true;
+    event.preventDefault(); notice(''); const submit = event.target.querySelector('button'); setBusy(true); submit.disabled = true; submit.setAttribute('aria-busy', 'true');
     try {
       const enabled = await authReady;
       if (enabled) {
@@ -406,30 +480,34 @@
         await enterChat(who.actor);
       }
     } catch (error) { credential = ''; notice(error instanceof Error ? error.message : errorText(error)); }
-    finally { $('actor-key').value = ''; submit.disabled = false; }
+    finally { $('actor-key').value = ''; submit.disabled = false; submit.setAttribute('aria-busy', 'false'); setBusy(false); }
   });
   $('sign-out').addEventListener('click', async () => {
-    if (busy) return; $('sign-out').disabled = true;
+    if (busy) return; setBusy(true); $('sign-out').disabled = true;
     try {
       if (pilot.enabled) await pilot.signOut();
       stopMic(); credential = ''; session = ''; actor = null; location.reload();
     } catch (error) { notice(t('Sign out failed. Try again before handing over this device.', 'No se cerró la sesión. Intenta otra vez antes de entregar este dispositivo.')); }
-    finally { $('sign-out').disabled = false; }
+    finally { setBusy(false); }
   });
   authReady.then(async enabled => {
     if (enabled && pilot.actor) { credential = pilot.token; await enterChat(pilot.actor, { background: true }); }
-  }).catch(error => notice(error instanceof Error ? error.message : errorText(error)));
+    else $('sign-in-panel').hidden = false;
+  }).catch(error => { $('sign-in-panel').hidden = false; notice(error instanceof Error ? error.message : errorText(error)); })
+    .finally(() => { if ($('auth-loading')) $('auth-loading').hidden = true; if (!actor) $('identity').textContent = t('Sign in to your workspace', 'Inicia sesión en tu espacio'); });
   $('new-chat').addEventListener('click', async () => {
     if (busy) return; setBusy(true);
     try { const result = await api('/assistant/session'); localStorage.setItem(sessionStore, result.session_id); location.reload(); }
     catch (error) { notice(errorText(error)); setBusy(false); }
   });
   $('language').addEventListener('click', () => { language = language === 'en' ? 'es' : 'en'; localStorage.setItem('fl-assistant-language', language); applyLanguage(); });
-  $('today-entries').addEventListener('click', () => { if (session) sendTurn({ text: t('What did I enter today?', '¿Qué registré hoy?') }); else $('actor-key').focus(); });
-  $('composer').addEventListener('submit', event => { event.preventDefault(); const text = $('message').value.trim(); if (text && !busy) { $('message').value = ''; sendTurn({ text }); } });
+  $('today-entries').addEventListener('click', todayEntries);
+  $('today-entries-mobile').addEventListener('click', todayEntries);
+  $('composer').addEventListener('submit', event => { event.preventDefault(); const text = $('message').value.trim(); if (text && !busy) { $('message').value = ''; if (isTodayQuery(text)) todayEntries(text); else sendTurn({ text }); } });
   $('message').addEventListener('keydown', event => { if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); $('composer').requestSubmit(); } });
   document.querySelectorAll('[data-prompt]').forEach(b => b.addEventListener('click', () => {
-    $('message').value = language === 'es' ? (b.dataset.prompt.startsWith('What') ? '¿Qué registré hoy?' : 'Consulta el inventario de ') : b.dataset.prompt; $('message').focus();
+    if (b.dataset.prompt.startsWith('What')) { todayEntries(); return; }
+    $('message').value = language === 'es' ? 'Consulta el inventario de ' : b.dataset.prompt; $('message').focus();
   }));
   function evidenceLabel(kind) {
     return ({ bol: t('BOL', 'BOL'), truck_photo: t('Truck photo', 'Foto de camión'), correction_photo: t('Correction photo', 'Foto de corrección'),

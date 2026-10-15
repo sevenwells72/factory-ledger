@@ -25,7 +25,8 @@ const neutralCases = [
 const missingReason = { kind: 'refusal', status: 422,
   result: { detail: [{ loc: ['body', 'reason_code'], type: 'missing', msg: 'Field required' }] },
   reasons: [{ code: 'damaged', label_en: 'Damaged', label_es: 'Dañado' }] };
-let exchanges = 0, logouts = 0, expireNext = false, failDictation = false;
+let exchanges = 0, logouts = 0, expireNext = '', failDictation = false;
+const expiredRequests = [], todayReads = [];
 const sessionToken = 'fls_browser-fixture';
 const sid = '0c101ab1-8c56-42a2-8f29-c048330030c3', did = '616eac35-0b6e-4288-b40f-920639a83525';
 const autoPreview = { automatic: true, quantity_lb: 28, message_en: 'No oat bran in stock — will use 28 lb extra oats instead.', message_es: 'No hay salvado de avena — se usarán 28 lb de avena extra.' };
@@ -72,10 +73,26 @@ try {
   });
   await page.route('**/auth/session/logout', route => { logouts++; assert.equal(route.request().headers()['x-api-key'], sessionToken); return route.fulfill({ json: { signed_out: true } }); });
   await page.route('**/auth/whoami', route => route.fulfill({ json: { key_kind: pilotMode ? 'session' : 'actor', actor: { id: 4, name: 'Arturo', role: 'floor' } } }));
+  await page.route('**/receipts**', route => {
+    const request = route.request(), url = new URL(request.url());
+    assert.equal(url.pathname, '/receipts'); assert.equal(request.method(), 'GET');
+    assert.equal(request.headers()['x-api-key'], pilotMode ? sessionToken : 'fixture-key');
+    assert.equal(url.searchParams.get('summary'), 'true');
+    assert.equal(url.searchParams.get('limit'), '500'); assert.equal(url.searchParams.get('offset'), '0');
+    todayReads.push(url.pathname);
+    if (expireNext === 'today') {
+      expireNext = ''; expiredRequests.push(url.pathname);
+      return route.fulfill({ status: 401, json: { detail: { error_code: 'SESSION_EXPIRED', message: 'Sign in again.' } } });
+    }
+    return route.fulfill({ json: { receipts: [], has_more: false, next_offset: null } });
+  });
   await page.route('**/assistant/**', async route => {
     assert.equal(route.request().headers()['x-api-key'], pilotMode ? sessionToken : 'fixture-key');
-    if (expireNext) { expireNext = false; return route.fulfill({ status: 401, json: { detail: { error_code: 'SESSION_EXPIRED', message: 'Sign in again.' } } }); }
     const url = new URL(route.request().url()), data = route.request().postDataJSON?.bind(route.request());
+    if (expireNext === 'assistant') {
+      expireNext = ''; expiredRequests.push(url.pathname);
+      return route.fulfill({ status: 401, json: { detail: { error_code: 'SESSION_EXPIRED', message: 'Sign in again.' } } });
+    }
     if (url.pathname.endsWith('/session')) return route.fulfill({ json: { session_id: sid } });
     if (url.pathname.endsWith('/resume')) return route.fulfill({ json: { turns: [{ text: 'Made two batches', cards: [draft] }], drafts: [{ id: did, card: draft, status: 'committed', result: receipt },
       ...(heldRequested ? [{ id: heldId, card: heldDraft, status: 'pending', result: heldResult }] : [])] } });
@@ -83,6 +100,7 @@ try {
       const body = data(); turns.push(body);
       const neutral = neutralCases.find(([text]) => text === body.text);
       if (neutral) return neutral[1] ? route.fulfill({ json: { cards: [neutral[1]] } }) : route.abort('failed');
+      if (/^(The correction reason is|El motivo de corrección es) /.test(body.text)) return route.fulfill({ json: { cards: [{ kind: 'missing_facts', fields: ['lot_id'] }] } });
       if (body.text === 'adjust without a reason') return route.fulfill({ json: { cards: [missingReason] } });
       const cards = body.text === 'ambiguous' ? [{ kind: 'choices', id: '811eac35-0b6e-4288-b40f-920639a83525', result: { ask: 'Which product?', candidates: [{ id: 1, label: '<img src=x onerror=alert(1)> Classic' }, { id: 2, label: 'Classic Chocolate Chip' }] } }] : [draft];
       return route.fulfill({ json: { cards: body.text === 'held' ? [{ ...heldDraft, attachment_ids: body.attachment_ids }] :
@@ -143,7 +161,9 @@ try {
   await page.locator('#message').fill('adjust without a reason'); await page.locator('#send').click();
   const reasonCard = page.locator('.assistant-message .card').last();
   await reasonCard.getByRole('button', { name: 'Damaged', exact: true }).click();
-  assert.equal(await page.locator('#message').inputValue(), 'The correction reason is damaged. ');
+  await page.getByText('Please add the missing details:', { exact: true }).last().waitFor();
+  assert.equal(await page.locator('#message').inputValue(), '');
+  assert.equal(turns.at(-1).text, 'The correction reason is damaged.');
   assert.equal(await reasonCard.locator('.error-box, .receipt-number').count(), 0);
   assert.ok(!/Field required|reason_code|didn’t understand/.test(await reasonCard.innerText()));
   assert.equal(records.length, 0);
@@ -251,7 +271,10 @@ try {
   const shipment = page.locator(`[data-draft-id="${shipId}"]`);
   await shipment.getByRole('heading', { name: 'Ship order', exact: true }).waitFor();
   await shipment.getByText('Staging Customer', { exact: true }).waitFor();
-  await shipment.getByText('Packed Test Product', { exact: true }).waitFor();
+  const shipProduct = shipment.locator('.ship-line strong');
+  await shipProduct.waitFor();
+  assert.equal(await shipProduct.count(), 1);
+  assert.equal(await shipProduct.innerText(), 'Packed Test Product');
   await shipment.getByText('BOL-261013-001', { exact: true }).waitFor();
   await shipment.getByText('Attached', { exact: true }).waitFor();
   assert.deepEqual(turns.at(-1).attachment_ids, [103, 104]);
@@ -282,16 +305,27 @@ try {
     assert.equal(await page.locator('#actor-key').inputValue(), '');
     assert.equal(await page.evaluate(() => JSON.stringify(sessionStorage).includes('fixture-key')), false);
     assert.equal(await page.evaluate(() => sessionStorage.getItem('fl-key-session-token')), sessionToken);
-    expireNext = true;
+    // Today reads use /receipts; both that path and ordinary Assistant reads expire the session.
+    expireNext = 'today';
     await page.locator('#message').fill('What did I enter today?'); await page.locator('#send').click();
     await page.locator('#sign-in-panel').waitFor({ state: 'visible' });
+    assert.deepEqual(todayReads, ['/receipts']); assert.deepEqual(expiredRequests, ['/receipts']);
+    assert.equal(expireNext, '');
     assert.equal(await page.evaluate(() => sessionStorage.getItem('fl-key-session-token')), null);
     assert.equal(await page.locator('[data-draft-id]').count(), 0);
     await page.locator('#actor-key').fill('fixture-key'); await page.locator('#sign-in-form button').click();
     await page.locator('#chat-panel').waitFor({ state: 'visible' }); assert.equal(exchanges, 2);
+    expireNext = 'assistant';
+    await page.locator('#message').fill('check expired assistant session'); await page.locator('#send').click();
+    await page.locator('#sign-in-panel').waitFor({ state: 'visible' });
+    assert.deepEqual(expiredRequests, ['/receipts', '/assistant/turn']); assert.equal(expireNext, '');
+    assert.equal(await page.evaluate(() => sessionStorage.getItem('fl-key-session-token')), null);
+    assert.equal(await page.locator('[data-draft-id]').count(), 0);
+    await page.locator('#actor-key').fill('fixture-key'); await page.locator('#sign-in-form button').click();
+    await page.locator('#chat-panel').waitFor({ state: 'visible' }); assert.equal(exchanges, 3);
     await page.locator('#sign-out').click(); await page.locator('#sign-in-panel').waitFor({ state: 'visible' });
     assert.equal(logouts, 1); assert.equal(await page.evaluate(() => sessionStorage.getItem('fl-key-session-token')), null);
   }
   assert.deepEqual(errors, []);
-  console.log('F1 browser: draft/receipt, lost-response retry, lot inputs, warnings, editable dictation, A6 typed private integer attachments, BOL blocking, SHP retry, choices/XSS, reload recovery, ES, 390px light/dark passed.');
+  console.log(`F1 browser: draft/receipt, lost-response retry, lot inputs, warnings, editable dictation, A6 typed private integer attachments, BOL blocking, SHP retry, choices/XSS, reload recovery${pilotMode ? ', Today/Assistant session expiry' : ''}, ES, 390px light/dark passed.`);
 } finally { await browser.close(); await server.close(); }

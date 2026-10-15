@@ -7,7 +7,7 @@ const ui = require('../dashboard/fl-assistant.js');
 
 function descendants(node) { return [node, ...node.children.flatMap(descendants)]; }
 async function resumedCard(card, language = 'en', savedDrafts = []) {
-  const elements = new Map(), calls = [];
+  const elements = new Map(), calls = [], bodies = [];
   const element = tag => ({ tag, children: [], dataset: {}, listeners: {}, value: '', textContent: '', className: '',
     append(...children) { this.children.push(...children); }, replaceChildren(...children) { this.children = children; },
     setAttribute(name, value) { this[name] = value; }, addEventListener(name, callback) { this.listeners[name] = callback; },
@@ -15,7 +15,7 @@ async function resumedCard(card, language = 'en', savedDrafts = []) {
   const get = id => { if (!elements.has(id)) elements.set(id, element(id)); return elements.get(id); };
   const storage = new Map([['fl-assistant-language', language], ['fl-assistant-chat:7', 'saved-chat']]);
   const store = { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) };
-  const context = vm.createContext({ URL, AbortController, setTimeout, clearTimeout, console, navigator: {},
+  const context = vm.createContext({ URL, crypto: require('node:crypto').webcrypto, AbortController, setTimeout, clearTimeout, console, navigator: {},
     localStorage: store, sessionStorage: store, location: { origin: 'https://fl.local' },
     document: { getElementById: get, createElement: element, documentElement: {}, addEventListener() {},
       querySelectorAll: selector => selector === '[data-en]'
@@ -24,15 +24,17 @@ async function resumedCard(card, language = 'en', savedDrafts = []) {
       token: 'fixture-session', init: async () => true }) },
     fetch: async (url, options) => {
       calls.push(new URL(url).pathname);
+      if (new URL(url).pathname === '/assistant/turn') { bodies.push(JSON.parse(options.body)); return { ok: true, json: async () => ({ cards: [{ kind: 'missing_facts', fields: ['cases'] }] }) }; }
       assert.equal(new URL(url).pathname, '/assistant/resume');
       return { ok: true, json: async () => ({ turns: [{ cards: [card] }], drafts: savedDrafts }) };
     }, addEventListener() {} });
   context.window = context;
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../dashboard/assistant-display.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(path.join(__dirname, '../dashboard/fl-assistant.js'), 'utf8'), context);
   for (let i = 0; i < 6; i++) await new Promise(resolve => setImmediate(resolve));
   const rendered = descendants(get('messages')).find(node => node.tag === 'article');
   assert.ok(rendered, get('notice').textContent);
-  return { get, card: rendered, calls };
+  return { get, card: rendered, calls, bodies };
 }
 
 for (const language of ['en', 'es']) test(`missing facts card lists plain missing details neutrally in ${language}`, async () => {
@@ -61,8 +63,11 @@ for (const language of ['en', 'es']) test(`missing correction reason keeps reaso
   assert.equal(nodes.some(node => /error-box|receipt/.test(node.className)), false);
   assert.doesNotMatch(nodes.map(node => node.textContent).join(' '), /Field required|reason_code|didn’t understand|No entendí/);
   await choices[0].listeners.click();
-  assert.equal(h.get('message').value, language === 'en' ? 'The correction reason is damaged. ' : 'El motivo de corrección es damaged. ');
-  assert.deepEqual(h.calls, ['/assistant/resume']);
+  for (let i = 0; i < 6; i++) await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.get('message').value, '');
+  assert.equal(h.bodies.length, 1);
+  assert.equal(h.bodies[0].text, language === 'en' ? 'The correction reason is damaged.' : 'El motivo de corrección es damaged.');
+  assert.deepEqual(h.calls, ['/assistant/resume', '/assistant/turn']);
 });
 test('only a complete real receipt shape may become green', () => {
   for (const value of [null, {}, { receipt_number: 'recorded' }, { receipt_number: 'MK-261008-001', success: false }, { text: 'RCV-261008-001' }]) assert.equal(ui.validReceipt(value), false);
@@ -74,8 +79,8 @@ test('A5 recoverable lot confirmation blockers allow manual evidence; other bloc
   assert.equal(ui.canRecord({ can_commit: false, blockers: [{ code: 'LOT_NOT_CONFIRMED' }, { code: 'INSUFFICIENT_STOCK' }] }), false);
   assert.equal(ui.canRecord({ can_commit: false, blockers: [] }), false);
 });
-test('permission refusals retain FL error code, action and role', () => {
-  assert.equal(ui.errorText({ result: { detail: { error_code: 'ROLE_NOT_ALLOWED', action: 'make', role: 'office', message: 'Not allowed' } } }), 'ROLE_NOT_ALLOWED · Not allowed · make · office');
+test('permission refusals show the plain FL explanation', () => {
+  assert.equal(ui.errorText({ result: { detail: { error_code: 'ROLE_NOT_ALLOWED', action: 'make', role: 'office', message: 'Not allowed' } } }), 'Not allowed');
   const validation = ui.errorText({ detail: [{ loc: ['body', 'cases'], msg: 'Field required' }] });
   assert.equal(validation, ui.neutralMessages.misunderstood.join(' / '));
   assert.ok(!validation.includes('Field required') && !validation.includes('cases:'));
@@ -136,3 +141,23 @@ for (const language of ['en', 'es']) for (const partial of [false, true]) for (c
     assert.deepEqual(h.calls, ['/assistant/resume']);
   });
 }
+
+for (const language of ['en', 'es']) test(`blocked receive becomes a clear refusal with no draft controls in ${language}`, async () => {
+  const h = await resumedCard({kind:'draft',id:'refused',prepared:{action:'receive',can_commit:false,draft:{happened_at:'2026-10-15T15:19:00Z'},blockers:[{code:'EXTRA_KOSHER_RECEIVE_BLOCKED',message:'Extra-kosher batches are made, never received.',message_es:'Los lotes extra kosher se producen; no se reciben.'}]}},language);
+  const nodes=descendants(h.card), text=nodes.map(n=>n.textContent).join(' ');
+  assert.match(h.card.className,/refusal/);
+  assert.match(text,language==='es'?/rechazada/:/refused/);
+  assert.equal(nodes.some(n=>n.tag==='button'),false);
+  assert.doesNotMatch(text,/DRAFT|BORRADOR|EXTRA_KOSHER_RECEIVE_BLOCKED/);
+});
+test('void hand-off only recognizes explicit void requests with a receipt', () => {
+  assert.equal(ui.voidTarget('Void receipt ADJ-261015-242, data-entry error'),'ADJ-261015-242');
+  assert.equal(ui.voidTarget('Anular RCV-261015-001'),'RCV-261015-001');
+  assert.equal(ui.voidTarget('Look up ADJ-261015-242'),null);
+  assert.equal(ui.voidTarget('Void all entries'),null);
+});
+
+test('plain Today questions go directly to ledger reads without interpreting write messages', () => {
+  for (const text of ['What did I enter today?', 'Show all today’s entries', "today's entries", 'List entries for today', '¿Qué registré hoy?', 'Mostrar todas las entradas de hoy']) assert.equal(ui.isTodayQuery(text), true, text);
+  for (const text of ['Received 50 lb today', 'What inventory do we have today?', 'Adjust today’s entries by 5 lb', 'Void ADJ-261015-001']) assert.equal(ui.isTodayQuery(text), false, text);
+});

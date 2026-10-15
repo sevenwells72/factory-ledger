@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-15",
+  "branch": "fix/assistant-page-ux",
+  "base": "de8c1f2",
+  "scope": "Assistant page/display and GET /receipts summary read only",
+  "python": {
+    "passed": 5818,
+    "failed": 0,
+    "skipped": 0,
+    "fresh_database_groups": 21,
+    "database": "fl_fixA2_suite_20261015",
+    "dropped": true
+  },
+  "node": {
+    "passed": 295,
+    "failed": 0,
+    "skipped": 0
+  },
+  "browser": {
+    "round_a_cases": 60,
+    "widths": [
+      1440,
+      390
+    ],
+    "session_modes": [
+      "on",
+      "off"
+    ],
+    "screenshots": 104,
+    "existing_assistant_suites": 2,
+    "existing_assistant_status": "both passed after runner fixes"
+  },
+  "source_sha256": {
+    "dashboard/fl-assistant.html": "4d5ed6a3d6836ad77e7d6a67ee552ede9a68fdcd75b4e7cdb973b3e9b87ae9d4",
+    "dashboard/fl-assistant.css": "6929986a3d0fa179be2d3a0fa5130378365dbfc11c306b85d628bf8e3a2f1b24",
+    "dashboard/fl-assistant.js": "086703008997dff061032d07ffbf498f18da8e51eb5baf97332fce73fe543598",
+    "dashboard/assistant-display.js": "e0d269e93dca2d9595e0a6dbb2db990daafa9d0de6a3d76d3f088ffc66e59f19",
+    "dashboard/ledger-ui.js": "3c0357a65b7540ab47c5aa8d3a2612b0fe87530276fb8c45caf31289ec878dc3",
+    "write_tickets.py": "35313b39f303d753ea92bc3478b5082c67601b0dd92d5a02a609c955e20c22a7"
+  },
+  "hosted_staging_recheck": "Not deployed in this task; local API and deterministic real-browser checks passed.",
+  "revision": "Fix A2 after review of 8385c5d",
+  "initial_validation_correction": "At 8385c5d the existing Assistant browser runner FAILED in both modes. The original committed failure logs remain in the parent directory. The earlier passed claim was incorrect; only fix-a2 reruns pass.",
+  "evidence": "fix-a2/"
+}

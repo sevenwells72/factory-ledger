@@ -63,12 +63,24 @@
   function autoSubstitutionsHtml(items){
     return (items||[]).filter(item=>item.message_en&&item.message_es).map(item=>'<p class="auto-substitution" role="status" data-en="'+esc(item.message_en)+'" data-es="'+esc(item.message_es)+'">'+esc(api.lang==='es'?item.message_es:item.message_en)+'</p>').join('');
   }
-  function draftHtml(value){
-    if(Array.isArray(value))return '<ul>'+value.map(v=>'<li>'+draftHtml(v)+'</li>').join('')+'</ul>';
-    if(value&&typeof value==='object')return autoSubstitutionsHtml(value.auto_substitutions)+'<dl>'+Object.entries(value).filter(([k,v])=>labels[k]&&k!=='summary_es'&&v!==null&&v!==undefined&&!(Array.isArray(v)&&!v.length)).map(([k,v])=>'<dt data-en="'+esc(labels[k][0])+'" data-es="'+esc(labels[k][1])+'">'+esc(labels[k][api.lang==='es'?1:0])+'</dt><dd>'+(k==='summary'&&value.summary_es?'<span data-en="'+esc(v)+'" data-es="'+esc(value.summary_es)+'">'+esc(api.lang==='es'?value.summary_es:v)+'</span>':['happened_at','entered_at','proof_due_at'].includes(k)?esc(plantTime(v,api.lang)):draftHtml(v))+'</dd>').join('')+'</dl>';
-    return esc(value);
+  const codeFields=new Set(['reason','reason_code','identity_status','status','effective_status','proof_status','role','method','action','resolution_kind','type','photo','state','customer_po_status']);
+  const codeLabels={physical_count:['Physical count','Conteo físico'],missing_receipt:['Missing receipt','Falta recibo'],missing_production:['Missing production','Falta producción'],wrong_lot_used:['Wrong lot used','Se usó el lote equivocado'],damage_disposal:['Damage or disposal','Daño o desecho'],unrecorded_usage:['Unrecorded usage','Uso sin registrar'],data_entry_error:['Data-entry error','Error de captura'],unidentified:['Lot identity needs to be checked','Hay que verificar la identidad del lote'],unidentified_lot:['Lot identity needs to be checked','Hay que verificar la identidad del lote'],unknown:['Unknown','Desconocido'],photo_pending:['Photo pending','Foto pendiente'],awaiting_approval:['Waiting for owner approval','En espera de aprobación del dueño'],ship_order:['Ship order','Enviar pedido'],ship_standalone:['Ship','Enviar'],ship_bulk:['Ship multiple products','Enviar varios productos']};
+  Object.assign(codeLabels,{committed:['Recorded','Registrado'],prepared:['Draft','Borrador'],posted:['Counts in stock','Cuenta en el inventario'],voided:['Voided','Anulado'],partially_voided:['Partly voided','Anulado en parte'],active:['Active','Activo'],identified:['Lot identity checked','Identidad del lote verificada'],receive:['Receive','Recibir'],make:['Make','Producir'],pack:['Pack','Empacar'],adjust:['Adjust','Ajustar'],found:['Found inventory','Inventario encontrado']});
+  function codeText(value,lang='en'){
+    const raw=String(value??''),pair=codeLabels[raw.toLowerCase()];if(pair)return pair[lang==='es'?1:0];
+    if(/^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$/i.test(raw)){const words=raw.replaceAll('_',' ').toLowerCase();return words.charAt(0).toUpperCase()+words.slice(1);}
+    return raw;
   }
-  const api={esc,text,errorText,recorded,decisionOutcome,resolutionChoices,decisionRequest,noteRequired,voidChoices,voidRequest,receiptState,transportText,groups,dataHtml,draftHtml,autoSubstitutionsHtml,plantTime};
+  function draftHtml(value,field){
+    if((field==='reason'||field==='reason_code')&&value&&typeof value==='object'&&!Array.isArray(value)){
+      const label=value[api.lang==='es'?'label_es':'label_en']||value.label_en||value.label||codeText(value.code,api.lang);
+      return esc(label)+(value.note?'<p>'+esc(value.note)+'</p>':'');
+    }
+    if(Array.isArray(value))return '<ul>'+value.map(v=>'<li>'+draftHtml(v)+'</li>').join('')+'</ul>';
+    if(value&&typeof value==='object')return autoSubstitutionsHtml(value.auto_substitutions)+'<dl>'+Object.entries(value).filter(([k,v])=>labels[k]&&k!=='summary_es'&&v!==null&&v!==undefined&&!(Array.isArray(v)&&!v.length)).map(([k,v])=>'<dt data-en="'+esc(labels[k][0])+'" data-es="'+esc(labels[k][1])+'">'+esc(labels[k][api.lang==='es'?1:0])+'</dt><dd>'+(k==='summary'&&value.summary_es?'<span data-en="'+esc(v)+'" data-es="'+esc(value.summary_es)+'">'+esc(api.lang==='es'?value.summary_es:v)+'</span>':['happened_at','entered_at','proof_due_at'].includes(k)?esc(plantTime(v,api.lang)):draftHtml(v,k))+'</dd>').join('')+'</dl>';
+    return esc(codeFields.has(field)?codeText(value,api.lang):value);
+  }
+  const api={esc,text,errorText,recorded,decisionOutcome,resolutionChoices,decisionRequest,noteRequired,voidChoices,voidRequest,receiptState,transportText,groups,dataHtml,draftHtml,autoSubstitutionsHtml,plantTime,codeText};
   if(typeof module!=='undefined')module.exports=api;
   root.FLLedger=api;
   if(!root.document)return;
