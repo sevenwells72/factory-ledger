@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-10-15 13:06 — Bind saved harness header through its placeholder variable
+- **File(s) changed:** `docs/validation/customer-ticket/rebase-round-a/real-page/browser.mjs.txt`
+- **What changed:** Use the named local-office placeholder variable in the saved HTTP header example.
+- **Why:** The guard treats even angle-bracket strings in quoted headers as literals; keep saved evidence explicit without weakening the guard.
+
+---
+
+## 2026-10-15 13:05 — Replace synthetic credentials in saved browser harness evidence
+- **File(s) changed:** `docs/validation/customer-ticket/rebase-round-a/real-page/*.txt`, `README.md`, `summary.json`
+- **What changed:** Replace local-only fake credentials with explicit placeholders in saved harness text and document the evidence sanitization.
+- **Why:** The pushed key-literal CI guard correctly rejected two synthetic credentials outside tests; preserve the guard and passing app behavior.
+
+---
+
 ## 2026-10-15 13:03 — Save rebased customer validation and cleanup evidence
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/customer-ticket/rebase-round-a/`
 - **What changed:** Record current row 210 after preserved main 209/208, manual display port and cache versions, 5,947 Python / 327 Node passes, both office/Assistant modes, 60 round A cases and four real local Sunrise Bakery page cases. Save logs, hashes, screenshots and model-stub limitation; verify zero remaining task DBs.

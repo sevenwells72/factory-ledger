@@ -54,7 +54,7 @@ for index, (width, sessions) in enumerate([(1440, '0'), (390, '0'), (1440, '1'),
                 seed = (ROOT / 'migrations/061_exceptions_tables.sql').read_text()
                 cur.execute(seed[seed.index('CREATE TABLE IF NOT EXISTS correction_reasons'):seed.index('-- 3. transactions.reason_code')])
                 cur.execute("INSERT INTO actors(name,role,key_hash,active) VALUES('Office Real Page','office',%s,true)",
-                            (hashlib.sha256(b'fl-cust-rb-local-office').hexdigest(),))
+                            (hashlib.sha256(b'<local-office-key>').hexdigest(),))
                 cur.execute("INSERT INTO customers(name) VALUES('Sunshine Bakery')")
             server = subprocess.Popen([str(ROOT / '.venv-test/bin/python'), str(OUT / 'serve.py')],
                                       cwd=ROOT, env=env, stdout=server_log, stderr=subprocess.STDOUT)

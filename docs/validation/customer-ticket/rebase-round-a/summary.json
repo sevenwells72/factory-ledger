@@ -61,5 +61,6 @@
     "dashboard/entry.html": "851c06fc3de7e6e33e8671a85d58e5a95a73ecabc08e8a656824bdbe76a8c29c",
     "dashboard/exceptions.html": "cdb0aec13507dbedc83dd84efc1e22c0416d1bddfdec8f5f2c2e93b00ef209ed",
     "dashboard/receipt.html": "6a76dcdde1c566d427305d921260181b3e161af5b6a5d07a06fe2f2dc5c63f00"
-  }
+  },
+  "harness_local_credentials_replaced_with_placeholders": true
 }

@@ -23,8 +23,9 @@ await page.route('**/*', route => {
   }
   return route.continue();
 });
+const localOfficeKey = '<local-office-key>';
 async function api(path) {
-  const response = await fetch(base + path, { headers: { 'X-API-Key': 'fl-cust-rb-local-office' } });
+  const response = await fetch(base + path, { headers: { 'X-API-Key': localOfficeKey } });
   assert.ok(response.ok, path + ' returned ' + response.status);
   return response.json();
 }
@@ -38,7 +39,7 @@ async function send(text) {
 }
 try {
   await page.goto(base + '/dash/fl-assistant');
-  await page.locator('#actor-key').fill('fl-cust-rb-local-office');
+  await page.locator('#actor-key').fill('<local-office-key>');
   await page.locator('#sign-in-form button').click();
   await page.locator('#chat-panel').waitFor({ state: 'visible' });
   await send('New order for Sunrise Bakery');
