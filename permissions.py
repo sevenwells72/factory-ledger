@@ -47,6 +47,7 @@ ROLE_PERMISSIONS = {
     'ship_standalone': _NAMED_AND_MASTER - {FLOOR},
     'ship_bulk': _NAMED_AND_MASTER,
     # Orders (A7 tickets; today's direct routes are unchanged)
+    'create_customer': frozenset({OWNER, OFFICE}),
     'create_order': _NAMED_AND_MASTER - {FLOOR},
     'add_order_lines': _NAMED_AND_MASTER - {FLOOR},
     'update_order_line': _NAMED_AND_MASTER - {FLOOR},
@@ -86,6 +87,7 @@ _LABELS = {
     'void': ('void a posting', 'anular un registro'),
     'move_lot': ('move a lot', 'mover un lote'),
     # A7 order tickets
+    'create_customer': ('create a customer', 'crear un cliente'),
     'create_order': ('create a sales order', 'crear un pedido de venta'),
     'add_order_lines': ('add order lines', 'agregar líneas al pedido'),
     'update_order_line': ('update an order line', 'modificar una línea del pedido'),

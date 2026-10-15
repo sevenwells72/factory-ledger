@@ -6,8 +6,8 @@ const vm = require('node:vm');
 const ui = require('../dashboard/fl-assistant.js');
 
 function descendants(node) { return [node, ...node.children.flatMap(descendants)]; }
-async function resumedCard(card, language = 'en') {
-  const elements = new Map(), calls = [];
+async function resumedCard(card, language = 'en', options = {}) {
+  const elements = new Map(), calls = [], requests = [];
   const element = tag => ({ tag, children: [], dataset: {}, listeners: {}, value: '', textContent: '', className: '',
     append(...children) { this.children.push(...children); }, replaceChildren(...children) { this.children = children; },
     setAttribute(name, value) { this[name] = value; }, addEventListener(name, callback) { this.listeners[name] = callback; },
@@ -15,24 +15,28 @@ async function resumedCard(card, language = 'en') {
   const get = id => { if (!elements.has(id)) elements.set(id, element(id)); return elements.get(id); };
   const storage = new Map([['fl-assistant-language', language], ['fl-assistant-chat:7', 'saved-chat']]);
   const store = { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) };
-  const context = vm.createContext({ URL, AbortController, setTimeout, clearTimeout, console, navigator: {},
+  const context = vm.createContext({ URL, AbortController, setTimeout, clearTimeout, console, navigator: {}, crypto: require('node:crypto').webcrypto,
     localStorage: store, sessionStorage: store, location: { origin: 'https://fl.local' },
     document: { getElementById: get, createElement: element, documentElement: {}, addEventListener() {},
       querySelectorAll: selector => selector === '[data-en]'
         ? [...elements.values()].flatMap(descendants).filter(node => node.dataset.en) : [] },
-    FLKeySessions: { create: () => ({ enabled: true, actor: { id: 7, name: 'Arturo', role: 'floor' },
+    FLKeySessions: { create: () => ({ enabled: true, actor: { id: 7, name: 'Arturo', role: options.role || 'floor' },
       token: 'fixture-session', init: async () => true }) },
-    fetch: async (url, options) => {
+    fetch: async (url, fetchOptions) => {
       calls.push(new URL(url).pathname);
-      assert.equal(new URL(url).pathname, '/assistant/resume');
-      return { ok: true, json: async () => ({ turns: [{ cards: [card] }], drafts: [] }) };
+      requests.push({ path: new URL(url).pathname, body: JSON.parse(fetchOptions.body || '{}') });
+      const response = new URL(url).pathname === '/assistant/resume'
+        ? { turns: [{ cards: [card] }], drafts: [] }
+        : await options.onRequest?.(new URL(url).pathname, requests.at(-1).body);
+      assert.ok(response, `Unexpected request: ${url}`);
+      return { ok: true, json: async () => response };
     }, addEventListener() {} });
   context.window = context;
   vm.runInContext(fs.readFileSync(path.join(__dirname, '../dashboard/fl-assistant.js'), 'utf8'), context);
   for (let i = 0; i < 6; i++) await new Promise(resolve => setImmediate(resolve));
   const rendered = descendants(get('messages')).find(node => node.tag === 'article');
   assert.ok(rendered, get('notice').textContent);
-  return { get, card: rendered, calls };
+  return { get, card: rendered, calls, requests };
 }
 
 for (const language of ['en', 'es']) test(`missing facts card lists plain missing details neutrally in ${language}`, async () => {
@@ -110,4 +114,83 @@ test('A6 private evidence needs a positive integer ID and an explicit evidence k
   for (const kind of ui.evidenceKinds) assert.equal(ui.validAttachment({ id: 7, kind }), true);
   for (const value of [null, {}, { id: '7', kind: 'bol' }, { id: '7e3381ea-acfb-4cd7-92c0-4ceda5d7c2e3', kind: 'bol' },
     { id: 0, kind: 'bol' }, { id: 7.5, kind: 'bol' }, { id: 7 }, { id: 7, kind: 'public_photo' }]) assert.equal(ui.validAttachment(value), false);
+});
+
+for (const language of ['en', 'es']) test(`customer draft waits for Record and CUS receipt continues only on click in ${language}`, async () => {
+  const prepared = { action: 'create_customer', can_commit: true, blockers: [], actor: { name: 'Office' },
+    draft: { summary: 'Create customer New Market', summary_es: 'Crear cliente New Market',
+      customer: { name: 'New Market', contact_name: 'A Person', email: 'orders@example.test', phone: '555-1234', address: '10 Main St' } } };
+  const receipt = { success: true, receipt_number: 'CUS-261015-001', customer_id: 42, customer: { id: 42, name: 'New Market' } };
+  const h = await resumedCard({ kind: 'draft', id: 'customer-draft', prepared }, language, { role: 'office',
+    onRequest: async (path, body) => {
+      if (path === '/assistant/record') { assert.equal(body.draft_id, 'customer-draft'); return { kind: 'receipt', result: receipt }; }
+      assert.equal(path, '/assistant/turn');
+      assert.match(body.text, /CUS-261015-001/);
+      return { cards: [{ kind: 'missing_facts', fields: ['lines'] }] };
+    } });
+  let nodes = descendants(h.card), text = nodes.map(node => node.textContent).join(' ');
+  for (const phrase of ['New Market', 'A Person', 'orders@example.test', '555-1234', '10 Main St']) assert.ok(text.includes(phrase), phrase);
+  assert.ok(text.includes(language === 'en' ? 'Create customer' : 'Crear cliente'));
+  assert.deepEqual(h.calls, ['/assistant/resume']);
+  assert.equal(h.card.className, 'card');
+  const record = nodes.find(node => node.tag === 'button' && node.textContent === (language === 'en' ? 'Record' : 'Registrar'));
+  assert.equal(record.disabled, false);
+  await record.listeners.click();
+  assert.deepEqual(h.calls, ['/assistant/resume', '/assistant/record']);
+  assert.equal(h.card.className, 'card receipt');
+  nodes = descendants(h.card);
+  assert.ok(nodes.some(node => node.textContent === 'CUS-261015-001'));
+  const next = nodes.find(node => node.tag === 'button' && node.textContent === (language === 'en' ? 'Continue with an order' : 'Continuar con un pedido'));
+  assert.ok(next);
+  await next.listeners.click();
+  for (let i = 0; i < 6; i++) await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(h.calls, ['/assistant/resume', '/assistant/record', '/assistant/turn']);
+  assert.ok(h.calls.every(path => path.startsWith('/assistant/')));
+});
+
+for (const role of ['office', 'owner', 'floor']) test(`no-match customer offers New customer only for office/owner: ${role}`, async () => {
+  const h = await resumedCard({ kind: 'choices', id: 'choice', resolution_kind: 'customer', query: 'New Market LLC',
+    result: { outcome: 'none', candidates: [] } }, 'en', { role,
+    onRequest: async (path, body) => {
+      assert.equal(path, '/assistant/turn');
+      assert.equal(body.text, 'Create a new customer named New Market LLC first, then continue the order.');
+      return { cards: [{ kind: 'missing_facts', fields: ['name'] }] };
+    } });
+  const create = descendants(h.card).find(node => node.tag === 'button' && node.textContent === 'New customer');
+  assert.equal(Boolean(create), role !== 'floor');
+  if (create) {
+    await create.listeners.click();
+    for (let i = 0; i < 6; i++) await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(h.calls, ['/assistant/resume', '/assistant/turn']);
+  }
+});
+
+test('customer duplicate prevents Record and offers the existing active customer', async () => {
+  const h = await resumedCard({ kind: 'draft', id: 'duplicate', prepared: { action: 'create_customer', can_commit: false,
+    blockers: [{ code: 'CUSTOMER_ALREADY_EXISTS', message: 'Use existing customer New Market', existing_customer: { id: 42, name: 'New Market', active: true } }],
+    draft: { customer: { name: 'new market' } } } }, 'en', { role: 'office' });
+  const buttons = descendants(h.card).filter(node => node.tag === 'button');
+  assert.equal(buttons.find(node => node.textContent === 'Record').disabled, true);
+  assert.ok(buttons.some(node => node.textContent === 'Use existing customer: New Market'));
+  assert.deepEqual(h.calls, ['/assistant/resume']);
+});
+
+test('CUS and ORD receipt numbers are accepted; a failed customer result never is', () => {
+  for (const prefix of ['CUS', 'ORD']) {
+    assert.equal(ui.validReceipt({ success: true, receipt_number: `${prefix}-261015-001` }), true);
+    assert.equal(ui.validReceipt({ success: false, receipt_number: `${prefix}-261015-001` }), false);
+  }
+});
+
+
+test('order draft shows physical quantity, pounds, PO and service charge details before Record', async () => {
+  const h = await resumedCard({ kind: 'draft', id: 'order', prepared: { action: 'create_order', can_commit: true, blockers: [],
+    draft: { summary: 'Create order for New Market: 2 lines, 50 lb, PO ABC-42', customer: 'New Market', customer_po: 'ABC-42',
+      requested_ship_date: '2026-10-20', lines: [
+        { product: 'Classic Granola', quantity: 2, unit: 'cases', quantity_lb: 50, unit_price: 30, amount: 60 },
+        { product: 'Pallet Charge', quantity: 3, unit: 'each', quantity_lb: 0, unit_price: 12.5, amount: 37.5, is_service: true }] } } }, 'en', { role: 'office' });
+  const nodes = descendants(h.card), text = nodes.map(node => node.textContent).join(' ');
+  for (const phrase of ['Create order', 'New Market', 'ABC-42', '2026-10-20', 'Classic Granola', '2 cases', '50', 'Pallet Charge', '3 each', '12.5', '37.5']) assert.ok(text.includes(phrase), phrase);
+  assert.equal(nodes.find(node => node.tag === 'button' && node.textContent === 'Record').disabled, false);
+  assert.deepEqual(h.calls, ['/assistant/resume']);
 });

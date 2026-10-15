@@ -15,7 +15,7 @@
     new:['New','Nuevo'],confirmed:['Confirmed','Confirmado'],in_production:['In production','En producción'],ready:['Ready to ship','Listo para enviar'],cancelled:['Cancelled','Cancelado'],invoiced:['Invoiced','Facturado'],closed:['Closed','Cerrado']
   };
   function invalidate(){revision++;controller?.invalidate();controller=null;draft.replaceChildren();document.getElementById('notice').hidden=true;}
-  function picker(host,name,en,es,kind,changed=()=>{}){
+  function picker(host,name,en,es,kind,changed=()=>{},missing=null){
     const box=ui.el('fieldset',undefined,host);box.dataset.picker=name;ui.el('legend',ui.t(en,es),box);
     const label=ui.el('label',ui.t('Search name or code','Buscar nombre o código'),box),input=ui.el('input',undefined,label);input.autocomplete='off';
     const button=ui.el('button',ui.t('Search','Buscar'),box);button.type='button';
@@ -29,10 +29,11 @@
       if(version!==generation||!box.isConnected)return;list.replaceChildren();
       const rows=result.outcome==='match'?[result.match]:result.candidates||[];status.textContent=result.ask||result.note||ui.t('Choose the exact record.','Elige el registro exacto.');
       for(const item of rows.filter(Boolean)){const b=ui.el('button',item.label||item.name,list);b.type='button';b.onclick=()=>select(item);}
+      if(result.outcome==='none'&&offset===0&&!rows.filter(Boolean).length&&missing)missing({query:input.value.trim(),host:list});
       if(rows.length===8){const more=ui.el('button',ui.t('More matches','Más resultados'),list);more.type='button';more.onclick=()=>find(offset+8);}
     }catch(error){if(version===generation)ui.failure(error);}finally{button.disabled=false;}}
     button.onclick=()=>find();input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();find();}};
-    return {input,select,clear,get value(){return value;},id(){if(!value)throw Error(ui.t('Choose ','Elige ')+ui.t(en,es));return value.id;}};
+    return {input,select,clear,setDisabled(flag){input.disabled=flag;button.disabled=flag;for(const option of list.children)option.disabled=flag;},get value(){return value;},id(){if(!value)throw Error(ui.t('Choose ','Elige ')+ui.t(en,es));return value.id;}};
   }
   function render({background=false}={}){
     invalidate();content.replaceChildren();
@@ -44,7 +45,7 @@
     for(const [key,en,es] of available){ui.el('option',ui.t(en,es),selector).value=key;}
     selector.value=action;selector.onchange=()=>{action=selector.value;render();};
     const form=ui.el('form',undefined,content);form.id='office-form';form.className='panel';
-    const fields=ui.el('div',undefined,form);fields.className='fields';let controls={},choices={},rows=[],orderGeneration=0,documentLoaded=null,expectedLoaded=null,readyLoaded=null;
+    const fields=ui.el('div',undefined,form);fields.className='fields';let controls={},choices={},rows=[],orderGeneration=0,documentLoaded=null,expectedLoaded=null,readyLoaded=null,customerHost,customerController=null,customerGeneration=0,customerOpen=false,customerClose=null;
     const initialRead={background};
     function field(name,en,es,type='text',required=false,parent=fields,registry=controls){
       const label=ui.el('label',ui.t(en,es),parent),el=ui.el(type==='textarea'?'textarea':'input',undefined,label);el.name=name;if(type!=='textarea')el.type=type;el.required=required;if(type==='number')el.step='any';if(type==='checkbox')label.className='check';registry[name]=el;return el;
@@ -104,7 +105,8 @@
       });
     }
     if(['create_order','approve_so','update_order_header'].includes(action)){
-      choices.customer=picker(fields,'customer',action==='update_order_header'?'New customer (optional)':'Customer',action==='update_order_header'?'Cliente nuevo (opcional)':'Cliente','customer');
+      choices.customer=picker(fields,'customer',action==='update_order_header'?'New customer (optional)':'Customer',action==='update_order_header'?'Cliente nuevo (opcional)':'Cliente','customer',()=>{if(customerOpen)customerClose?.();},action==='create_order'&&grants.create_customer===true?offerCustomer:null);
+      if(action==='create_order'&&grants.create_customer===true){customerHost=ui.el('section',undefined,fields);customerHost.className='wide';}
       field('customer_po','Customer PO','PO del cliente','text',action==='approve_so');if(action!=='approve_so')noPO();
       field('requested_ship_date','Ship by','Enviar antes de','date');if(action!=='update_order_header')field('order_date','Order date','Fecha del pedido','date');notes();
     }
@@ -151,11 +153,57 @@
       }else addLine();
       const add=ui.el('button',ui.t('Add line','Agregar línea'),fields);add.type='button';add.onclick=()=>addLine();
     }
+    function offerCustomer({query,host}){
+      if(!query)return;
+      const create=ui.el('button',ui.t('New customer','Cliente nuevo'),host);create.type='button';create.dataset.newCustomer='';
+      create.onclick=()=>openCustomer(query);
+    }
+    function openCustomer(name){
+      invalidate();customerController?.invalidate();customerGeneration++;customerHost.replaceChildren();customerOpen=true;prepare.disabled=true;
+      const editor=ui.el('div',undefined,customerHost);editor.dataset.customerEditor='';
+      ui.el('h2',ui.t('New customer','Cliente nuevo'),editor);
+      ui.el('p',ui.t('Review the customer first. After you press Record, we will select this customer and keep your order details.','Revisa el cliente primero. Después de presionar Registrar, seleccionaremos este cliente y conservaremos los detalles del pedido.'),editor);
+      const customerInputs={};
+      field('name','Customer name','Nombre del cliente','text',true,editor,customerInputs).value=name;
+      field('contact_name','Contact name (optional)','Contacto (opcional)','text',false,editor,customerInputs);
+      field('email','Email (optional)','Correo (opcional)','email',false,editor,customerInputs);
+      field('phone','Phone (optional)','Teléfono (opcional)','tel',false,editor,customerInputs);
+      field('address','Address (optional)','Dirección (opcional)','textarea',false,editor,customerInputs);
+      field('notes','Customer notes — English (optional)','Notas del cliente — inglés (opcional)','textarea',false,editor,customerInputs);
+      field('notes_es','Customer notes — Spanish (optional)','Notas del cliente — español (opcional)','textarea',false,editor,customerInputs);
+      const review=ui.el('button',ui.t('Prepare customer','Preparar cliente'),editor);review.type='button';
+      const cancel=ui.el('button',ui.t('Cancel new customer','Cancelar cliente nuevo'),editor);cancel.type='button';
+      const customerDraft=ui.el('div',undefined,customerHost),suggestion=ui.el('div',undefined,customerHost);customerDraft.dataset.customerDraft='';
+      function close(){customerGeneration++;customerController?.invalidate();customerController=null;customerOpen=false;customerClose=null;choices.customer.setDisabled(false);customerHost.replaceChildren();prepare.disabled=false;}
+      customerClose=close;cancel.onclick=close;
+      function showExisting(result){
+        suggestion.replaceChildren();const existing=logic.existingCustomer(result);if(!existing)return;
+        if(existing.active===false){ui.el('p',ui.t('This customer is inactive. Ask an owner to review it before placing an order.','Este cliente está inactivo. Pide al propietario que lo revise antes de hacer un pedido.'),suggestion);return;}
+        const use=ui.el('button',ui.t('Use existing customer: ','Usar cliente existente: ')+existing.name,suggestion);use.type='button';use.onclick=()=>{close();choices.customer.select(existing);};
+      }
+      function edit(){customerGeneration++;customerController?.invalidate();customerController=null;customerDraft.replaceChildren();suggestion.replaceChildren();editor.hidden=false;choices.customer.setDisabled(false);}
+      review.onclick=()=>{
+        if(!Object.values(customerInputs).every(input=>input.reportValidity()))return;
+        const request=logic.build('create_customer',values(customerInputs)),version=++customerGeneration;
+        customerController?.invalidate();customerDraft.replaceChildren();suggestion.replaceChildren();editor.hidden=true;choices.customer.setDisabled(true);
+        customerController=ui.ticketCard(customerDraft,request.path,request.body,{receiptPrefix:request.prefix,allowPhoto:false,
+          onEdit:edit,onBusy:flag=>{busy(flag);prepare.disabled=flag||customerOpen;},
+          onPrepared:result=>{if(version===customerGeneration&&form.isConnected)showExisting(result);},
+          onFailure:error=>{if(version===customerGeneration&&form.isConnected)showExisting(error.result);},
+          onRecorded:result=>{
+            if(version!==customerGeneration||!form.isConnected)return;
+            const customer=logic.customerChoice(result);if(!customer){ui.notice(ui.t('Customer recorded. Open the receipt to check the customer, then search for it above.','Cliente registrado. Abre el recibo para verificar el cliente y búscalo arriba.'));choices.customer.setDisabled(false);customerOpen=false;prepare.disabled=false;return;}
+            customerController=null;customerOpen=false;choices.customer.setDisabled(false);choices.customer.select(customer);prepare.disabled=false;suggestion.replaceChildren();editor.remove();
+            ui.el('p',ui.t('Customer selected. Continue preparing your order below.','Cliente seleccionado. Continúa preparando el pedido abajo.'),customerHost);
+          }
+        });
+      };
+    }
     const prepare=ui.el('button',ui.t('Prepare draft','Preparar borrador'),form);prepare.type='submit';prepare.className='primary';
     form.addEventListener('input',invalidate);
-    const busy=flag=>{selector.disabled=flag;document.getElementById('language').disabled=flag;document.getElementById('sign-out').disabled=flag;prepare.disabled=flag;};
+    const busy=flag=>{selector.disabled=flag;document.getElementById('language').disabled=flag;document.getElementById('sign-out').disabled=flag;prepare.disabled=flag||customerOpen;};
     form.onsubmit=async e=>{
-      e.preventDefault();invalidate();const version=revision;busy(true);
+      e.preventDefault();if(customerOpen){ui.notice(ui.t('Finish or cancel the new customer first.','Termina o cancela el cliente nuevo primero.'));return;}invalidate();const version=revision;busy(true);
       try{
         const v=values(),conversions=[];
         for(const name of ['customer','supplier','product','order'])if(choices[name]?.value)v[name+'_id']=choices[name].id();

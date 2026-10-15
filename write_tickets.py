@@ -36,7 +36,7 @@ EXPECTED_RECEIPT_PREPARE_ROUTES = frozenset({
     ('POST', '/expected-receipts/extract/approve/prepare'),
 })
 SHIP_ACTIONS = ('ship_order', 'ship_standalone', 'ship_bulk')
-PREFIXES = {'resolve_exception': 'XR', 'void': 'VD', **{action: 'SHP' for action in SHIP_ACTIONS}, 'receive': 'RCV', 'make': 'MK', 'pack': 'PK', 'adjust': 'ADJ', 'found': 'FND', 'move_lot': 'LOT', 'update_supplier_lot': 'LOT',
+PREFIXES = {'create_customer': 'CUS', 'resolve_exception': 'XR', 'void': 'VD', **{action: 'SHP' for action in SHIP_ACTIONS}, 'receive': 'RCV', 'make': 'MK', 'pack': 'PK', 'adjust': 'ADJ', 'found': 'FND', 'move_lot': 'LOT', 'update_supplier_lot': 'LOT',
             **{action: 'ORD' for action in ORDER_ACTIONS},
             **{action: 'ER' for action in EXPECTED_RECEIPT_ACTIONS}}
 ORDER_PREPARE_ROUTES = frozenset({
@@ -61,6 +61,7 @@ DASHBOARD_ROUTES = frozenset({
     ('GET', '/receipts/by-transaction/{transaction_id}'),
 })
 ACTOR_ROUTES = DASHBOARD_ROUTES | frozenset({
+    ('POST', '/customers/prepare'),
     ('GET', '/sales/orders/{order_id}/office-options'),
     ('GET', '/purchase-documents/{document_id}'),
     ('POST', '/void/{transaction_id}/prepare'),
@@ -458,6 +459,8 @@ def receipt_detail(api, cur, number, actor=None):
     late = entered is not None and happened.astimezone(api.PLANT_TIMEZONE).date() != entered.astimezone(api.PLANT_TIMEZONE).date()
     import order_tickets   # A7 hook: the order an order receipt created or edited (None otherwise)
     order = order_tickets.receipt_order(cur, ticket)
+    import customer_tickets
+    customer = customer_tickets.receipt_customer(cur, ticket)
     import expected_receipt_tickets
     expected = expected_receipt_tickets.receipt_records(api, cur, ticket)
     shipment = None
@@ -465,7 +468,7 @@ def receipt_detail(api, cur, number, actor=None):
         cur.execute('SELECT id,sales_order_id,bol_reference,proof_status,proof_due_at,entered_by_actor_id FROM shipments WHERE ticket_id=%s', (ticket['id'],))
         shipment = cur.fetchone()
     receipt = {'shipment': shipment, 'receipt_number': number, 'action': ticket['action'], 'status': ticket['status'],
-            'order': order, 'expected_receipts': expected,
+            'order': order, 'customer': customer, 'expected_receipts': expected,
             'actor': ticket['draft']['actor'], 'operator_id': ticket['operator_id'],
             'client_source': ticket['client_source'], 'happened_at': happened,
             'entered_at': ticket['committed_at'], 'late_entry': late,
@@ -843,6 +846,9 @@ def register_routes(app, api):
                 fail(422, 'UNUSED_ATTACHMENT', 'Use attachment_id for a correction, attachment_ids for shipments.')
             # A7 hook: order tickets post through their own module (metadata
             # writes, no ledger lines); every lifecycle check above is shared.
+            if row['action'] == 'create_customer':
+                import customer_tickets
+                return customer_tickets.commit(api, cur, row, body, actor, request, entry_timing)
             if row['action'] in ORDER_ACTIONS + EXPECTED_RECEIPT_ACTIONS:
                 import order_tickets
                 return order_tickets.commit(api, cur, row, body, actor, request, entry_timing)
@@ -887,5 +893,7 @@ def register_routes(app, api):
     # A7 hook: the ten order prepares (ORDER_PREPARE_ROUTES) live in order_tickets.
     import order_tickets
     order_tickets.register_routes(app, api)
+    import customer_tickets
+    customer_tickets.register_routes(app, api)
     import resolution_receipts
     resolution_receipts.register_routes(app, api)

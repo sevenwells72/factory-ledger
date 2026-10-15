@@ -72,8 +72,9 @@ HASH_FIELDS = ('receipt_number', 'action', 'status', 'effective_status', 'happen
                'kosher_attested_at', 'transaction_kosher_downgrade')
 # Metadata tickets (A7 orders, A7 expected receipts, A5 lot moves): receipts, not ledger postings.
 OTHER_KIND = {**{a: 'order' for a in wt.ORDER_ACTIONS}, **{a: 'expected_receipt' for a in wt.EXPECTED_RECEIPT_ACTIONS},
-              'move_lot': 'lot_move'}
+              'move_lot': 'lot_move', 'create_customer': 'customer'}
 _OTHER_LABELS = {
+    'create_customer': ('customer created', 'cliente creado'),
     'create_order': ('order created', 'pedido creado'), 'add_order_lines': ('order lines added', 'líneas añadidas al pedido'),
     'update_order_line': ('order line updated', 'línea del pedido actualizada'),
     'cancel_order_line': ('order line cancelled', 'línea del pedido cancelada'),
@@ -578,6 +579,13 @@ def other_receipt_row(api, cur, catalog, number, *, receipt=None):
         order = receipt['order']
         refs.update(order_id=order.get('id'), order_number=order.get('order_number'))
         subject_en = subject_es = ' '.join(str(x) for x in (order.get('order_number'), order.get('customer')) if x)
+    elif kind == 'customer':
+        # Persisted response/draft names describe what the person recorded; a
+        # later catalog rename must not rewrite this receipt's subject.
+        response = receipt.get('response') or {}
+        customer = response.get('customer') or (receipt.get('draft') or {}).get('customer') or {}
+        refs['customer_id'] = response.get('customer_id') or customer.get('id')
+        subject_en = subject_es = customer.get('name') or response.get('name') or ''
     elif kind == 'expected_receipt':
         refs['expected_receipt_ids'] = [e['id'] for e in receipt.get('expected_receipts') or [] if e.get('id') is not None]
         subject_en = ', '.join(f'ER #{i}' for i in refs['expected_receipt_ids'])

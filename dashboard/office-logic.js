@@ -25,6 +25,7 @@
     const body={client_source:'dashboard'},copy=names=>names.forEach(k=>{if(v[k]!==undefined&&v[k]!=='')body[k]=v[k];});
     let path,prefix='ORD',order;
     if(['add_order_lines','update_order_line','cancel_order_line','update_order_header','update_order_status','mark_order_ready','close_order','cancel_order','reopen_order'].includes(action))order='/sales/orders/'+id(v.order_id);
+    if(action==='create_customer'){path='/customers/prepare';prefix='CUS';body.name=v.name;copy(['contact_name','email','phone','address','notes','notes_es']);}
     if(action==='create_order'){path='/sales/orders/prepare';body.customer_id=id(v.customer_id);body.customer_po=v.no_po?null:(v.customer_po||null);copy(['requested_ship_date','order_date','notes','notes_es']);body.lines=v.lines;}
     if(action==='add_order_lines'){path=order+'/lines/prepare';body.lines=v.lines;}
     if(action==='update_order_line'){path=order+'/lines/'+id(v.line_id)+'/update/prepare';copy(['quantity_lb','unit_price']);}
@@ -49,6 +50,16 @@
     if(unit!=='pouches'&&(d.quantity!==quantity||d.unit!==unit))throw Error('FL returned a different quantity / FL devolvió otra cantidad');
     return {...d,...extras};
   }
-  const api={actions,permission,permitted,build,resolvedLine};
+  function customerChoice(value){
+    const customer=value?.customer||value;
+    const customerId=customer?.id??customer?.customer_id;
+    if(!Number.isSafeInteger(customerId)||customerId<=0||typeof customer?.name!=='string'||!customer.name.trim())return null;
+    return {id:customerId,name:customer.name,label:customer.name,...(typeof customer.active==='boolean'?{active:customer.active}:{})};
+  }
+  function existingCustomer(result){
+    const detail=result?.detail||result;
+    return customerChoice(detail?.existing_customer||(detail?.blockers||[]).find(b=>b.code==='CUSTOMER_ALREADY_EXISTS')?.existing_customer);
+  }
+  const api={actions,permission,permitted,build,resolvedLine,customerChoice,existingCustomer};
   if(typeof module!=='undefined')module.exports=api;root.FLOffice=api;
 })(typeof window==='undefined'?globalThis:window);

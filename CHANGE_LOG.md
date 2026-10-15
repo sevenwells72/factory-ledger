@@ -1,5 +1,96 @@
 # Change Log
 
+## 2026-10-15 10:55 — Complete customer ticket validation and clean local test databases
+- **File(s) changed:** FACTORY_LEDGER_CHANGELOG.md, docs/validation/customer-ticket/validation.json, docs/validation/customer-ticket/new-customer-draft-390.png, docs/validation/customer-ticket/new-customer-receipt-390.png
+- **What changed:** Added row209 after PR128 reservation208 and saved final local validation evidence. Full fresh suite:5837 Python,235 Node, zero failures/errors/skips; Office and Assistant browser modes pass. Actual mobile CUS receipt includes all contact fields. Independent review clean. Dropped all task databases and stopped local servers/cluster; main.py/direct routes unchanged.
+- **Why:** Deliver the requested cutover blocker as a tested, reviewable draft PR without deploying or touching other sessions.
+
+---
+
+## 2026-10-15 10:54 — Refresh customer contact labels on the receipt page
+- **File(s) changed:** dashboard/receipt.html
+- **What changed:** Bumped the shared ledger UI asset version on the receipt page so cached clients load the newly added customer contact/address labels when opening CUS receipts.
+- **Why:** Customer receipt details need the same current labels used in the prepared draft.
+
+---
+
+## 2026-10-15 10:52 — Make Assistant customer tests independent of pre-applied migrations
+- **File(s) changed:** tests/test_fl_assistant.py
+- **What changed:** Apply083 transactionally only in the new customer-ticket Assistant cases. The fresh production-dump schema suite now passes all 111 focused Assistant tests and rolls the migration back completely. Explicit existing role/route contract checks also pass all289 cases.
+- **Why:** Full-suite validation must start from a fresh local dump without relying on a developer database precondition.
+
+---
+
+## 2026-10-15 10:52 — Align role and route regression guards with customer tickets
+- **File(s) changed:** tests/test_roles_a2.py, tests/test_named_actor_writes.py, tests/test_customer_tickets.py, shift_summary.py
+- **What changed:** Added explicit owner/office customer permission and exact customer prepare route to the existing security contracts. All 58 customer backend tests pass, including concurrent same-ticket commits, two-ticket duplicates and an in-flight direct INSERT race; immutable customer names appear in the bilingual shift summary.
+- **Why:** New ticket routes must remain explicitly accounted for without weakening direct-route security guards.
+
+---
+
+## 2026-10-15 10:50 — Harden duplicate normalization and reviewed customer controls
+- **File(s) changed:** customer_tickets.py, shift_summary.py, dashboard/office.js, tests/test_customer_tickets.py, tests/test_office_customer_ui.js, tests/visual/run-office.mjs
+- **What changed:** Use identical Python trim/collapse/lower normalization on proposed and legacy names for Unicode whitespace parity. Shift summary labels the customer receipt using its stored name. Disable customer search option buttons during the reviewed customer draft so reopening cannot discard an in-flight Record; corrected two new test fixtures and added whitespace cases.
+- **Why:** Preserve duplicate prevention across database locales and retain the Record outcome while the browser waits.
+
+---
+
+## 2026-10-15 10:49 — Verify Assistant customer-to-order receipt custody
+- **File(s) changed:** tests/test_fl_assistant.py, tests/test_assistant_tools_schema.py, tests/test_fl_assistant_ui.js
+- **What changed:** Added owner/office CUS prepare, human Record, receipt replay and separate order-draft/ORD coverage; floor and unrecorded customer ID refusals; exact missing-customer lookup name and EN/ES UI review. Focused suites pass 111 Python and 19 Node tests on an independent local fl_cust_ database.
+- **Why:** The Assistant must stop for a person at each Record and trust only resolved IDs or its real customer receipts.
+
+---
+
+## 2026-10-15 10:48 — Show full customer contact details in ticket review
+- **File(s) changed:** dashboard/ledger-ui.js, dashboard/office.html, tests/test_office_customer_ui.js
+- **What changed:** Added plain EN/ES labels for contact name, email, phone and address in reviewed customer drafts; bumped the Office asset version and verified the review includes the contact fields. Focused Office Node tests pass 35/35.
+- **Why:** The person must see every supplied customer field before pressing Record.
+
+---
+
+## 2026-10-15 10:48 — Add customer API lifecycle and Office browser coverage
+- **File(s) changed:** tests/test_customer_tickets.py, tests/test_office_customer_ui.js, tests/visual/run-office.mjs
+- **What changed:** Added unit/API lifecycle, duplicate, permission, idempotency, expiry, audit rollback, concurrency and migration regressions. Extended real Office browser coverage for CUS then ORD, duplicate suggestions, preserved order fields, language and mobile layout. Focused Office Node tests pass 34/34; API/browser runs follow.
+- **Why:** Verify the cutover customer path with actual ticket receipts and guard its failure cases.
+
+---
+
+## 2026-10-15 10:47 — Cover inline customer form and duplicate choices in Node tests
+- **File(s) changed:** tests/test_office_customer_ui.js, dashboard/office.js, dashboard/office-logic.js
+- **What changed:** Added six form regressions for request fields, duplicate selection, inactive refusal, role/session gating, preserved order fields and stale receipts. Focused Office Node checks pass 33/33. Empty later pages cannot offer New customer, and changing the search cancels its draft.
+- **Why:** Keep the inline order continuation honest through duplicate and stale-response cases.
+
+---
+
+## 2026-10-15 10:46 — Add Assistant customer and order drafts with human Record
+- **File(s) changed:** assistant_tools.py, fl_assistant.py, dashboard/fl-assistant.js, dashboard/fl-assistant.html
+- **What changed:** Assistant can draft customer and order tickets, offer New customer after a missing lookup, and continue with an order after a real CUS receipt. Committed receipt provenance supplies the customer ID on the next turn; no model tool commits.
+- **Why:** Support new order for a new customer without restoring direct GPT writes.
+
+---
+
+## 2026-10-15 10:45 — Add create-customer ticket backend and migration 083
+- **File(s) changed:** customer_tickets.py, write_tickets.py, permissions.py, migrations/083_customer_tickets.sql, migrations/down/083_customer_tickets_down.sql
+- **What changed:** Added named owner/office customer prepares and commits through the shared A1/A7 lifecycle, CUS receipts and customer attribution, dry-run validation and normalized duplicate checks serialized against direct inserts. Existing direct routes remain byte-identical; API and race verification follows.
+- **Why:** Resolve the new-customer cutover blocker from PR #125 comment 6192271341 item 2.
+
+---
+
+## 2026-10-15 10:45 — Add inline Office customer prepare and Record flow
+- **File(s) changed:** dashboard/office.js, dashboard/office-logic.js, dashboard/office.html, dashboard/ledger-ticket.js
+- **What changed:** Added an inline customer editor with all direct-route fields, shared ticket review and Record, CUS receipt, existing-customer choices, and automatic selection while preserving order details. The shared card exposes optional prepare/failure hooks. Form tests and integration verification follow.
+- **Why:** Allow an Office order for a new customer after GPT write cutover, using person-reviewed tickets.
+
+---
+
+## 2026-10-15 10:44 — Build create-customer ticket cutover path in isolated worktree
+- **File(s) changed:** customer_tickets.py, write_tickets.py, permissions.py, main.py, migrations/083_customer_tickets.sql, dashboard/office*, dashboard/ledger-ticket.js, assistant_tools.py, fl_assistant.py, dashboard/fl-assistant.js, tests; ignored local Python venv and browser fixture runtime
+- **What changed:** Set up the requested feat/customer-ticket worktree, Python 3.12 venv, and dedicated UTF-8 PostgreSQL 17 cluster. Extend local browser DB guard for fl_cust_browser. Implement customer prepare/Record receipts, inline Office order continuation, and Assistant drafts with human Record; validation results follow.
+- **Why:** PR #125 review comment 6192271341 item 2 identifies new customers as a cutover blocker when Office GPT writes become read-only.
+
+---
+
 ## 2026-10-14 23:26 — PR #122 current-main verification complete; ready for reviewer re-check
 - **File(s) changed:** CHANGE_LOG.md, FACTORY_LEDGER_CHANGELOG.md, docs/validation/o7-fix2-tests.json, ignored local PR comment/evidence helpers
 - **What changed:** Final e0f4dd2-based sweep passes 5,764 Python tests on fresh fl_pr122fx_full2, 219 Node, 48 refusal/recovery browser cases and all 15 legacy browser executions. Current-main rebase checks pass; historical log lines preserved except prior required redactions. Renumber only this unpublished fix-round row to207 after main205/206 and clarify the historical duplicate204. Drop the final DB; no task databases remain.
