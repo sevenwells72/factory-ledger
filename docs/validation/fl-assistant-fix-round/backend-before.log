@@ -1,0 +1,36 @@
+FFFF..                                                                   [100%]
+=================================== FAILURES ===================================
+______ test_missing_correction_reason_keeps_picker_without_retry[adjust] _______
+tests/test_fl_assistant.py:314: in test_missing_correction_reason_keeps_picker_without_retry
+    assert card['kind'] == 'refusal'
+E   AssertionError: assert 'misunderstood' == 'refusal'
+E     
+E     - refusal
+E     + misunderstood
+_______ test_missing_correction_reason_keeps_picker_without_retry[found] _______
+tests/test_fl_assistant.py:314: in test_missing_correction_reason_keeps_picker_without_retry
+    assert card['kind'] == 'refusal'
+E   AssertionError: assert 'misunderstood' == 'refusal'
+E     
+E     - refusal
+E     + misunderstood
+_ test_missing_receive_facts_are_neutral_even_after_resolve_format_retry[False] _
+tests/test_fl_assistant.py:340: in test_missing_receive_facts_are_neutral_even_after_resolve_format_retry
+    assert response.json()['cards'] == expected
+E   AssertionError: assert [{'kind': 'misunderstood'}] == [{'kind': 'mi..._reference']}]
+E     
+E     At index 0 diff: {'kind': 'misunderstood'} != {'kind': 'missing_facts', 'fields': ['cases', 'case_size_lb', 'bol_reference']}
+E     Use -v to get more diff
+_ test_missing_receive_facts_are_neutral_even_after_resolve_format_retry[True] _
+tests/test_fl_assistant.py:340: in test_missing_receive_facts_are_neutral_even_after_resolve_format_retry
+    assert response.json()['cards'] == expected
+E   AssertionError: assert [{'kind': 'misunderstood'}] == [{'kind': 'mi..._reference']}]
+E     
+E     At index 0 diff: {'kind': 'misunderstood'} != {'kind': 'missing_facts', 'fields': ['cases', 'case_size_lb', 'bol_reference']}
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/test_fl_assistant.py::test_missing_correction_reason_keeps_picker_without_retry[adjust]
+FAILED tests/test_fl_assistant.py::test_missing_correction_reason_keeps_picker_without_retry[found]
+FAILED tests/test_fl_assistant.py::test_missing_receive_facts_are_neutral_even_after_resolve_format_retry[False]
+FAILED tests/test_fl_assistant.py::test_missing_receive_facts_are_neutral_even_after_resolve_format_retry[True]
+4 failed, 2 passed, 93 deselected, 119 warnings in 1.92s

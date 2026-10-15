@@ -1,5 +1,26 @@
 # Change Log
 
+## [2026-10-14 23:03] — Finalize PR 124 staging recheck evidence
+- **File(s) changed:** `docs/validation/fl-assistant-fix-round/*, FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Saved passing hosted complete/incomplete receive results and inspected EN/ES screenshots. Complete draft cancelled; 589 transactions / 645 committed tickets unchanged; zero Record/commit requests. Verified all runtime/test hashes still match tested candidate 47c2e06.
+- **Why:** Finish every requested recheck before pushing the same draft PR and applying the recheck label.
+
+---
+
+## [2026-10-14 23:02] — Record isolated staging deployment of PR 124 fixes
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added regression-guard row 206 for staging deployment 6f4b3516 SUCCESS from tested 47c2e06; no migration or configuration changes.
+- **Why:** Run the explicitly requested review rechecks on the tested candidate; production remains untouched.
+
+---
+
+## [2026-10-14 23:00] — Preserve PR 124 full-suite and before-after proof
+- **File(s) changed:** `docs/validation/fl-assistant-fix-round/*`
+- **What changed:** Saved 12 expected pre-fix failures; 104 focused Python, 5693 fresh-DB Python, 211 Node and both browser-mode passes, source hashes, independent review and test-database cleanup. Staging upload 6f4b3516 is building.
+- **Why:** Supply reproducible evidence for the requested fix-round recheck.
+
+---
+
 ## [2026-10-14 22:58] — Prepare bounded staging recheck and preserve local regression evidence
 - **File(s) changed:** `.venv-test/pr124-fix-round/staging_readonly.py, .venv-test/pr124-fix-round/staging_recheck.mjs, local test logs/screenshots` (ignored verification artifacts)
 - **What changed:** Prepared exact complete/incomplete receive browser probes with guarded staging reads, session/turn/cancel-only HTTP allowlist, draft cancellation, plain EN/ES assertions and zero Record/commit verification. Saved before/after regression and local browser evidence.

@@ -1,0 +1,83 @@
+✖ missing facts card lists plain missing details neutrally in en (8.1125ms)
+✖ missing facts card lists plain missing details neutrally in es (2.3495ms)
+✖ missing correction reason keeps reason buttons in en (2.041875ms)
+✖ missing correction reason keeps reason buttons in es (1.076ms)
+✔ only a complete real receipt shape may become green (0.368917ms)
+✔ A5 recoverable lot confirmation blockers allow manual evidence; other blockers stay blocked (0.077041ms)
+✔ permission refusals retain FL error code, action and role (0.094916ms)
+✔ neutral outcomes have fixed English and Spanish text with no receipt assertion (0.202458ms)
+✔ A3b hold is an explicit pending outcome and cannot become a receipt (0.076541ms)
+✔ A6 SHP receipts are real receipts while BOL blockers always prevent Record (0.127875ms)
+✔ A6 private evidence needs a positive integer ID and an explicit evidence kind (0.079959ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 7
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 123.171166
+
+✖ failing tests:
+
+test at tests/test_fl_assistant_ui.js:38:38
+✖ missing facts card lists plain missing details neutrally in en (8.1125ms)
+  AssertionError [ERR_ASSERTION]: Please add the missing details:  Please give more details.
+      at TestContext.<anonymous> (/Users/michaelgross/dev/fl-f1chat-wt/tests/test_fl_assistant_ui.js:44:41)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/test_fl_assistant_ui.js:38:38
+✖ missing facts card lists plain missing details neutrally in es (2.3495ms)
+  AssertionError [ERR_ASSERTION]: Agrega los datos que faltan:  Agrega más detalles.
+      at TestContext.<anonymous> (/Users/michaelgross/dev/fl-f1chat-wt/tests/test_fl_assistant_ui.js:44:41)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/test_fl_assistant_ui.js:54:38
+✖ missing correction reason keeps reason buttons in en (2.041875ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (/Users/michaelgross/dev/fl-f1chat-wt/tests/test_fl_assistant_ui.js:59:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/test_fl_assistant_ui.js:54:38
+✖ missing correction reason keeps reason buttons in es (1.076ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (/Users/michaelgross/dev/fl-f1chat-wt/tests/test_fl_assistant_ui.js:59:10)
+      at async Test.run (node:internal/test_runner/test:1208:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
