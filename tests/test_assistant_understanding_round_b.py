@@ -60,7 +60,7 @@ def test_open_orders_plain_answer_items_filters_and_no_write(client, chat, items
     found=next(o for o in c['rows'] if o['order_id']==oid)
     assert found['items'][0]['product']==items['finished']['name']
     assert found['customer']=='Sunshine '+token and found['ship_date'] and found['status']
-    assert ('pedidos abiertos' if spanish else 'open orders') in c['summary']
+    assert ('pedido abierto' if spanish else 'open order') in c['summary']
     db_cursor.execute('SELECT count(*) AS n FROM transactions')
     assert db_cursor.fetchone()['n']==before
 

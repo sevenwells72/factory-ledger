@@ -1,5 +1,306 @@
 # Change Log
 
+## 2026-10-15 13:09 — Complete round B review evidence and regression guard
+- **File(s) changed:** FACTORY_LEDGER_CHANGELOG.md, docs/validation/fl-assistant-round-b/verification.json, run logs
+- **What changed:** Record all passing checks, source hashes, 1440/390 English/Spanish screenshot coverage and zero remaining task databases; preserve rows210above209.
+- **Why:** Finish the requested recheck package before the authorized push.
+
+---
+
+## 2026-10-15 13:08 — Finalized bilingual actual-page and real-model review evidence
+- **File(s) changed:** docs/validation/fl-assistant-round-b/real-model/, docs/validation/fl-assistant-round-b/real-page.log, docs/validation/fl-assistant-round-b/real-model.log, docs/validation/fl-assistant-round-b/reviewed-queries-real-model.log, docs/validation/fl-assistant-round-b/screenshot-manifest.json
+- **What changed:** Recorded 64 passing actual-model core cases plus four reviewed query cases, 68 deterministic page cases, safe logs and a final screenshot manifest; removed obsolete trial images and verified all walkthrough databases dropped.
+- **Why:** Complete reviewable proof for every requested worker display behavior, English/Spanish corrections and explicit physical lot traceability.
+
+---
+
+## 2026-10-15 13:08 — Use exact regression test name in round B evidence index
+- **File(s) changed:** docs/validation/fl-assistant-round-b/README.md
+- **What changed:** Link the exact same-chat receive mismatch test function name.
+- **Why:** Keep the reviewer map accurate against final source.
+
+---
+
+## 2026-10-15 13:07 — Map round B review fixes to tests and screenshots
+- **File(s) changed:** docs/validation/fl-assistant-round-b/README.md
+- **What changed:** Document each worker-visible fix, exact reviewed bug regressions, traceability protections and the staging-version discrepancy.
+- **Why:** Give the reviewer concrete page and test evidence for recheck.
+
+---
+
+## 2026-10-15 13:06 — Kept only final review screenshot evidence
+- **File(s) changed:** docs/validation/fl-assistant-round-b/real-page/, docs/validation/fl-assistant-round-b/focused-controls/, docs/validation/fl-assistant-round-b/order-details/
+- **What changed:** Removed stale failed-trial PNGs absent from passing results and archived duplicate focused/order captures to a local temporary evidence folder.
+- **Why:** Final PR evidence should match passing results and avoid redundant or misleading trial images.
+
+---
+
+## 2026-10-15 13:06 — Recorded successful real-page and reviewed-query acceptance
+- **File(s) changed:** docs/validation/fl-assistant-round-b/real-page/, docs/validation/fl-assistant-round-b/focused-controls/, docs/validation/fl-assistant-round-b/order-details/, docs/validation/fl-assistant-round-b/reviewed-queries-real-model/
+- **What changed:** Saved 68 passing deterministic real-page cases, 32 focused-control and 8 order-detail screenshots, and four approved actual-model exact-query cases with disposable database cleanup.
+- **Why:** Provide visible bilingual worker proof for every requested display item and the exact reviewed Kookies/Classic questions.
+
+---
+
+## 2026-10-15 13:05 — Record final fresh database suite with sessions enabled
+- **File(s) changed:** docs/validation/fl-assistant-round-b/python-sessions-on.log
+- **What changed:** 5950 Python tests pass with sessions enabled, zero failures/errors/skips; includes exact bilingual receive mismatch corrections.
+- **Why:** Finish both session configurations on isolated fresh databases with pinned dependencies.
+
+---
+
+## 2026-10-15 13:05 — Matched exact inventory assertion to recorded fixture stock
+- **File(s) changed:** tests/visual/run-fl-assistant-round-b-page.mjs
+- **What changed:** Derived Classic #9 expected stock from its 100 lb seed plus the explicitly recorded 10 lb trace walkthrough.
+- **Why:** The application correctly returned 110 lb after the test make; the earlier constant expected seed-only stock.
+
+---
+
+## 2026-10-15 13:05 — Capture round B recheck run evidence
+- **File(s) changed:** docs/validation/fl-assistant-round-b/*.log, openai-request-validation.json
+- **What changed:** Save passing fresh Python, Node, A and existing browser, B contract and real OpenAI request checks; note actual staging version2.14.1 versus required compatible2.11.9 pin.
+- **Why:** Make every requested check reviewable without exposing keys or hosted database credentials.
+
+---
+
+## 2026-10-15 13:04 — Preserved viewport scroll position in review screenshots
+- **File(s) changed:** tests/visual/run-fl-assistant-round-b-page.mjs
+- **What changed:** Captured fixed 1440x1000 and 390x844 viewports and centered supplier search and last-ingredient controls above the sticky composer.
+- **Why:** Full-page screenshot resizing had obscured the specific scrolled controls despite correct worker scroll behavior.
+
+---
+
+## 2026-10-15 13:04 — Captured each open order above the page composer
+- **File(s) changed:** tests/visual/run-fl-assistant-round-b-page.mjs
+- **What changed:** Added item-filtered evidence runs and centered per-order screenshots showing every customer, SO number and product in both languages and widths.
+- **Why:** Ensure SO-261015-002 and SO-261015-003 are readable despite the sticky composer in full-page captures.
+
+---
+
+## 2026-10-15 13:03 — Covered reviewed product query failures on actual page
+- **File(s) changed:** tests/visual/run-fl-assistant-round-b-page.mjs
+- **What changed:** Added English/Spanish Kookies order filter and exact Classic #9 inventory assertions with focused bug-query-only execution mode.
+- **Why:** Prove the reviewed natural-language queries work through real page/model/backend data rather than only backend unit tests.
+
+---
+
+## 2026-10-15 13:03 — Refresh assistant assets after round B display changes
+- **File(s) changed:** dashboard/fl-assistant.html
+- **What changed:** Bump CSS, display helper and page script cache versions.
+- **Why:** Ensure workers load the new rendered answers and controls after deployment.
+
+---
+
+## 2026-10-15 13:02 — Localize supplier search chat history for workers
+- **File(s) changed:** dashboard/fl-assistant.js, tests/test_fl_assistant_ui.js
+- **What changed:** Render supplier/proveedor search prefixes as Supplier search or Buscar proveedor in sent and restored user bubbles while preserving request text; verify both prefix forms and English/Spanish automatic language.
+- **Why:** Transport search prefixes should not appear as worker-facing chat instructions.
+
+---
+
+## 2026-10-15 13:02 — Cover the reviewed three-case receive mismatch correction
+- **File(s) changed:** tests/test_assistant_fix_b2.py
+- **What changed:** Verify ten-pound intake, real supplier choice, three five-pound cases mismatch and same-chat correction to fifteen pounds in English and Spanish, retaining approved IDs and zero ledger writes.
+- **Why:** Peer review requested the exact reported receive correction loop.
+
+---
+
+## 2026-10-15 13:02 — Focused correction quantity screenshot evidence
+- **File(s) changed:** tests/visual/run-fl-assistant-round-b-page.mjs
+- **What changed:** Captured the corrected 15 lb field centered above the sticky composer in English and Spanish at both widths.
+- **Why:** Keep the same-chat wrong-weight fix readable in review screenshots.
+
+---
+
+## 2026-10-15 13:02 — Acknowledged intentional repeated local make in browser proof
+- **File(s) changed:** tests/visual/run-fl-assistant-round-b-page.mjs
+- **What changed:** Explicitly checked required duplicate-entry acknowledgements before the second viewport trace recording.
+- **Why:** The second viewport correctly detects the earlier desktop fixture recording and must require worker acknowledgement.
+
+---
+
+## 2026-10-15 13:01 — Preserve mixed-case task database names in race fixtures
+- **File(s) changed:** tests/test_write_tickets.py, tests/test_exceptions_tables_061.py
+- **What changed:** Quote database identifiers on create/drop so fl_fixB2_ retains its capital B.
+- **Why:** The first full run found fixture-only setup errors from PostgreSQL unquoted-name folding; application cases passed.
+
+---
+
+## 2026-10-15 13:01 — Recorded real-model tool proof and visible supplier search
+- **File(s) changed:** tests/visual/run-fl-assistant-round-b-page.mjs, tests/visual/assistant_round_b_page_bridge.py
+- **What changed:** Added safe model/tool/status timing metadata and bottom-scrolled supplier search screenshots without exporting request data or credentials.
+- **Why:** Make actual-model acceptance auditable and show controls beyond the sticky composer.
+
+---
+
+## 2026-10-15 13:01 — Require a new explicit weight before replacing a receive
+- **File(s) changed:** fl_assistant.py, tests/test_assistant_fix_b2.py
+- **What changed:** Do not treat an unrelated total question as a receive correction; tolerate malformed model context long enough for existing bounded schema repair; cover both cases.
+- **Why:** Final review found correction markers without numeric weight and malformed context edge cases.
+
+---
+
+## 2026-10-15 13:00 — Stabilized actual-page acceptance state reset
+- **File(s) changed:** tests/visual/run-fl-assistant-round-b-page.mjs
+- **What changed:** Reset conversation-only browser storage before genuine page reload/login at all widths and bind correction assertions to the original draft ID.
+- **Why:** Avoid hidden desktop New chat controls on mobile and live-last locator drift after corrected cards render.
+
+---
+
+## 2026-10-15 13:00 — Verify supplier history ranking and automatic Spanish questions
+- **File(s) changed:** assistant_replies.py, tests/test_assistant_fix_b2.py
+- **What changed:** Recognize Spanish question punctuation and common request words; verify actual product receive vendors and catalog supplier aliases rank before unrelated alphabetical choices.
+- **Why:** Round B requires best supplier choices and Spanish replies without pressing ES.
+
+---
+
+## 2026-10-15 13:00 — Keep failed receive correction wording truthful
+- **File(s) changed:** dashboard/fl-assistant.js, tests/test_fl_assistant_ui.js
+- **What changed:** Retire superseded wrong-weight controls for every replacement outcome and distinguish a new corrected draft from a cancelled old draft needing more details, with English and Spanish tests.
+- **Why:** The race-safe backend can cancel the original before a replacement fails, so the page must not promise an unavailable draft.
+
+---
+
+## 2026-10-15 12:59 — Expanded actual-page worker regression evidence
+- **File(s) changed:** tests/visual/run-fl-assistant-round-b-page.mjs
+- **What changed:** Asserted supplier search finds a hidden supplier, same-chat English/Spanish weight corrections replace stale draft controls, and captured make instruction plus final ingredient controls separately.
+- **Why:** Exercise requested worker behavior and keep sticky-composer screenshots readable.
+
+---
+
+## 2026-10-15 12:59 — Fence receive replacement against Record races and preserve attachments
+- **File(s) changed:** fl_assistant.py, tests/test_assistant_fix_b2.py
+- **What changed:** Atomically retire the prior untouched draft before replacement; refuse if Record started; retain prior authenticated receive attachment IDs across missing supplier and total corrections; exercise race and photo regressions.
+- **Why:** Peer review found a possible Record race and dropped prior attachments on same-receive correction.
+
+---
+
+## 2026-10-15 12:57 — Prefer literal supplier search results before fuzzy matches
+- **File(s) changed:** fl_assistant.py
+- **What changed:** Use exact normalized supplier display groups, then literal substring matches, before fuzzy results, retaining six choices maximum.
+- **Why:** Search tests found unrelated fuzzy supplier choices alongside an exact match.
+
+---
+
+## 2026-10-15 12:57 — Group near-duplicate supplier names in saved Assistant choice lists
+- **File(s) changed:** dashboard/fl-assistant.js, tests/test_fl_assistant_ui.js
+- **What changed:** Match backend display-only grouping for legal suffixes, Supply/Supplies, and Baker/Bakery while retaining the highest-ranked original supplier ID; test A1 Baker/A1 Bakery/A1 Bakery Supply.
+- **Why:** Older saved cards also need a short, distinct supplier choice list without modifying ledger data.
+
+---
+
+## 2026-10-15 12:57 — Covered real-page Different lot trace behavior
+- **File(s) changed:** tests/visual/run-fl-assistant-round-b-page.mjs, tests/visual/assistant_round_b_page_bridge.py
+- **What changed:** Added UI Different lot selection and physical tag entry, outgoing confirmation assertions, explicit Record receipt and database exception/original-stock proof.
+- **Why:** Prove the actual page retains every ingredient tag and never substitutes suggested lot stock.
+
+---
+
+## 2026-10-15 12:57 — Replace superseded receive controls after a weight correction
+- **File(s) changed:** dashboard/fl-assistant.js, tests/test_fl_assistant_ui.js
+- **What changed:** Honor supersedes_draft_id by replacing the old quantity card and removing its Record controls; verify English and Spanish restoration never records either draft.
+- **Why:** The corrected draft must be the only visible active receive instead of leaving the cancelled wrong-weight draft actionable.
+
+---
+
+## 2026-10-15 12:57 — Scope receive corrections and refine supplier display matches
+- **File(s) changed:** fl_assistant.py, assistant_replies.py, resolution.py, tests/test_assistant_fix_b2.py
+- **What changed:** Use raw supplier metadata beside effective posted history; preserve exact identity tier; fold A1 Baker/Bakery/Supply display duplicates; fence corrections to current unrecorded receive and expose replaced draft ID; add workflow and committed-receive regressions.
+- **Why:** Focused tests and peer review found metadata and correction lifecycle edge cases.
+
+---
+
+## 2026-10-15 12:56 — Keep round B browser contract aligned with correct singular copy
+- **File(s) changed:** tests/visual/run-assistant-round-b.mjs
+- **What changed:** Accept There is 1 open order and plural There are forms.
+- **Why:** The requested grammar correction changes the previous plural-only assertion.
+
+---
+
+## 2026-10-15 12:56 — Kept real-page fresh-chat authentication realistic
+- **File(s) changed:** tests/visual/run-fl-assistant-round-b-page.mjs
+- **What changed:** Reauthenticated after New chat reload in personal-key mode while preserving session-mode resume.
+- **Why:** The real page deliberately keeps personal keys only in memory.
+
+---
+
+## 2026-10-15 12:55 — Corrected local supplier fixture codes
+- **File(s) changed:** tests/visual/assistant_round_b_page_bridge.py
+- **What changed:** Generated valid four-letter supplier short codes for the 66-supplier fixture.
+- **Why:** Respect existing database constraints in actual-page acceptance setup.
+
+---
+
+## 2026-10-15 12:55 — Cover round B review bugs with bilingual behavioral tests
+- **File(s) changed:** fl_assistant.py, tests/test_assistant_fix_b2.py, tests/test_assistant_understanding_round_b.py
+- **What changed:** Exercise ampersand orders, unknown filters, corrected receive totals, exact inventory, effective void state, missing lots, searchable six-supplier lists, unresolved trace inventory and printed labels; align singular-order assertion.
+- **Why:** Require a real handler regression for every reviewed worker bug.
+
+---
+
+## 2026-10-15 12:55 — Test real Round B display contracts in English and Spanish
+- **File(s) changed:** dashboard/assistant-display.js, dashboard/fl-assistant.js, tests/test_fl_assistant_ui.js, tests/test_assistant_display.js
+- **What changed:** Add bilingual coverage for readable orders, lot answers, unknown-lot and scope copy, automatic reply language, bounded searchable suppliers, unresolved inventory, effective void status, receipt lot follow-up, and per-input physical evidence after Different lot. Restore safe fallback for unknown result shapes.
+- **Why:** Each reviewed worker-facing Round B behavior needs a regression test while all Round A display semantics stay intact.
+
+---
+
+## 2026-10-15 12:55 — Aligned page acceptance with semantic order list
+- **File(s) changed:** tests/visual/run-fl-assistant-round-b-page.mjs
+- **What changed:** Accepted the real renderer order-list/order-entry structure as readable order rows.
+- **Why:** The renderer uses a semantic list for narrow-screen legibility.
+
+---
+
+## 2026-10-15 12:55 — Added actual-page bilingual round B walkthrough
+- **File(s) changed:** tests/visual/run-fl-assistant-round-b-page.mjs
+- **What changed:** Added 1440px/390px browser assertions and screenshot evidence for open orders, lot stock, supplier choices, make lot confirmation, scope refusals, missing lots and automatic Spanish, in both session modes.
+- **Why:** Validate round B through actual dashboard assets and real local handlers rather than only its JSON contract.
+
+---
+
+## 2026-10-15 12:54 — Repair Assistant receive followups and supplier search contracts
+- **File(s) changed:** fl_assistant.py, assistant_replies.py
+- **What changed:** Remember receive context so explicit total corrections reprepare the current draft; rank and deduplicate six supplier display choices with search; clarify unknown product filters and lot codes; separate unresolved trace lots from physical inventory totals.
+- **Why:** PR132 worker review fixes without changing ledger traceability.
+
+---
+
+## 2026-10-15 12:54 — Render Round B answers and physical lot controls on the real Assistant page
+- **File(s) changed:** dashboard/assistant-display.js, dashboard/fl-assistant.js, dashboard/fl-assistant.css, tests/test_fl_assistant_ui.js
+- **What changed:** Show readable open-order lists and lot quantities, follow each response language, render supplier search and six distinct choices, group make confirmations with Different lot controls, and display unresolved lot exceptions without negative available stock.
+- **Why:** PR #132 review found the page ignored reviewed Round B fields and exposed confusing worker controls.
+
+---
+
+## 2026-10-15 12:54 — Namespace suite-created databases for round B
+- **File(s) changed:** four migration and ticket test fixtures
+- **What changed:** Honor TEST_DB_PREFIX while preserving existing default database naming.
+- **Why:** Every database created in this fix round must start with fl_fixB2_.
+
+---
+
+## 2026-10-15 12:54 — Lock assistant request compatibility and isolated DB names
+- **File(s) changed:** requirements.txt, test_assistant_request_compatibility.py, browser contract runner, four DB fixtures
+- **What changed:** Pin pydantic 2.11.9, validate strict tool schemas and allow task-specific scratch DB prefixes.
+- **Why:** Prevent the reviewed OpenAI schema rejection and isolate all round B test databases.
+
+---
+
+## 2026-10-15 12:53 — Added real-page round B acceptance bridge
+- **File(s) changed:** tests/visual/assistant_round_b_page_bridge.py
+- **What changed:** Added actual dashboard/HTTP/TestClient/PostgreSQL browser bridge with both deterministic and real-model selection against disposable local databases.
+- **Why:** Review found the previous browser contract did not exercise the real page.
+
+---
+
+## 2026-10-15 12:53 — Prioritize exact catalog matches and worker read wording
+- **File(s) changed:** resolution.py, assistant_replies.py, assistant_tools.py
+- **What changed:** Fix ampersand matching and exact Classic 9 identities; use effective receipt void state and singular order wording; preserve printed catalog labels; describe unresolved trace lots plainly.
+- **Why:** PR132 fix round B review and worker clarity.
+
+---
+
 ## 2026-10-15 13:06 — Bind saved harness header through its placeholder variable
 - **File(s) changed:** `docs/validation/customer-ticket/rebase-round-a/real-page/browser.mjs.txt`
 - **What changed:** Use the named local-office placeholder variable in the saved HTTP header example.

@@ -6,8 +6,8 @@
   const evidenceKinds = ['bol', 'truck_photo', 'correction_photo', 'lot_tag', 'count_sheet', 'signed_packing_slip', 'other'];
   const validAttachment = value => !!(value && Number.isSafeInteger(value.id) && value.id > 0 && evidenceKinds.includes(value.kind));
   const neutralMessages = {
-    unsupported_request: ['I can only record or look up Factory Ledger items (customers, orders, receive, make, pack, ship, adjust, found, inventory, receipts, today’s entries). For other questions, use ChatGPT.',
-      'Solo puedo registrar o consultar elementos de Factory Ledger (clientes, pedidos, recibir, producir, empacar, enviar, ajustar, encontrado, inventario, recibos y entradas de hoy). Para otras preguntas, usa ChatGPT.'],
+    unsupported_request: ['I can only record or look up Factory Ledger items.',
+      'Solo puedo registrar o consultar elementos de Factory Ledger.'],
     misunderstood: ['I didn’t understand that — please rephrase (e.g. “we packed 60 cases of Classic”).',
       'No entendí eso — reformula el mensaje (por ejemplo, “empacamos 60 cajas de Classic”).'],
     lookup_failed: ['Couldn’t look that up. Please try again.', 'No pude consultar eso. Inténtalo de nuevo.'],
@@ -27,7 +27,18 @@
   const voidTarget = text => /\b(void|anular|anula)\b/i.test(text || '') ? (String(text).match(/\b(?:RCV|MK|PK|ADJ|FND|SHP)-\d{6}-\d{3,}\b/i)?.[0]?.toUpperCase() || null) : null;
   const refusalDraft = prepared => !!prepared?.blockers?.some(b => !['LOT_NOT_CONFIRMED', 'SKU_CONFIRMATION_REQUIRED', 'BOL_REQUIRED'].includes(b.code)
     && !(prepared.action === 'create_customer' && display.existingCustomerChoice(b)));
-  const exports = { isTodayQuery, voidTarget, refusalDraft, validReceipt, canRecord, validAttachment, evidenceKinds, errorText, awaitingApproval, neutralMessages };
+  function supplierChoices(candidates = []) {
+    const seen = new Set();
+    return candidates.filter(candidate => {
+      const key = String(candidate.name || candidate.label || '').normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+        .replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim()
+        .replace(/(?:\s+(?:incorporated|corporation|company|limited|inc|corp|llc|ltd|co))+$/, '')
+        .replace(/\s+(?:supply|supplies)$/, '').replace(/\bbakery\b/g, 'baker');
+      if (!key || seen.has(key)) return false;
+      seen.add(key); return true;
+    }).slice(0, 6);
+  }
+  const exports = { supplierChoices, isTodayQuery, voidTarget, refusalDraft, validReceipt, canRecord, validAttachment, evidenceKinds, errorText, awaitingApproval, neutralMessages };
   if (typeof module !== 'undefined') module.exports = exports;
   if (!root.document) return;
   const $ = id => document.getElementById(id);
@@ -77,7 +88,7 @@
   }
   function missingFacts(node, missing) {
     const names = {
-      product_id: ['product', 'producto'], supplier_lot_code: ['supplier lot number', 'número de lote del proveedor'],
+      product_id: ['product', 'producto'], supplier_id: ['supplier', 'proveedor'], supplier_lot_code: ['supplier lot number', 'número de lote del proveedor'],
       cases: ['number of cases', 'número de cajas'], case_size_lb: ['case size (lb)', 'peso por caja (lb)'],
       bol_reference: ['BOL number', 'número de BOL'], batches: ['number of batches', 'número de lotes de producción'],
       ingredient_product_id: ['ingredient', 'ingrediente'], substitute_product_id: ['substitute ingredient', 'ingrediente sustituto'],
@@ -136,7 +147,12 @@
     $('sign-out').disabled = value;
     drafts.forEach(node => node.refreshRecord?.());
   }
-  function userMessage(text) { if (text) $('messages').append(el('div', display.plainMessage(text, language), 'message user-message')); }
+  function userMessage(text) {
+    if (!text) return;
+    const search = String(text).match(/^\s*(?:supplier|proveedor)\s*:\s*(.*)$/i);
+    const shown = search ? t('Supplier search: ' + search[1], 'Buscar proveedor: ' + search[1]) : text;
+    $('messages').append(el('div', display.plainMessage(shown, language), 'message user-message'));
+  }
   function shell() {
     $('welcome').hidden = true;
     const wrap = el('div', undefined, 'message assistant-message');
@@ -150,6 +166,16 @@
       node.append(el('p', t(section.sentence, translated.sentence), 'read-summary'));
       for (const [i, note] of (section.notes || []).entries()) node.append(el('p', t(note, translated.notes?.[i] || note), 'muted'));
       if (!section.rows?.length) continue;
+      if (section.layout === 'orders') {
+        const list = el('ul', undefined, 'order-list');
+        for (const [i, row] of section.rows.entries()) {
+          const translatedRow = translated.rows[i] || row, item = el('li', undefined, 'order-entry');
+          item.append(el('strong', String(row[0])));
+          for (let j = 1; j < row.length; j++) if (row[j]) item.append(el('p', t(`${section.columns[j]}: ${row[j]}`, `${translated.columns[j]}: ${translatedRow[j]}`)));
+          list.append(item);
+        }
+        node.append(list); continue;
+      }
       if (Array.isArray(card.result?.receipts)) {
         for (const [i, row] of section.rows.entries()) {
           const line = el('div', undefined, 'today-entry');
@@ -201,6 +227,14 @@
       node.append(button(t('Continue with an order', 'Continuar con un pedido'), () => {
         sendTurn({ text: t(`Continue the order using the customer from receipt ${result.receipt_number}.`, `Continúa el pedido usando el cliente del recibo ${result.receipt_number}.`) });
       }, 'primary'));
+    }
+    for (const exception of result.lot_exceptions || []) {
+      const warning = el('div', undefined, 'warning lot-exception'); warning.setAttribute('role', 'status');
+      warning.append(el('strong', t('Physical lot awaiting follow-up', 'Lote físico pendiente de seguimiento')),
+        el('p', t(`${exception.product_name}: physical tag ${exception.physical_tag}. The suggested lot was not confirmed or used.`,
+          `${exception.product_name}: etiqueta física ${exception.physical_tag}. El lote sugerido no se confirmó ni se usó.`)));
+      fields(warning, [[t('Quantity', 'Cantidad'), display.quantityLabel(exception.quantity_lb, 'lb', language)], [t('Exception', 'Excepción'), exception.exception_id]]);
+      node.append(warning);
     }
     details(node, result);
   }
@@ -256,12 +290,31 @@
         value == null ? value : t(String(value), String(esLine[i][1] ?? value))]));
       node.append(row);
     }
-    const confirmations = [], warningChecks = [];
+    const confirmations = [], warningChecks = [], lotGroups = new Map();
+    const group = draft.lot_confirmation_group;
+    if (group) {
+      node.append(el('p', t(group.instruction_en || 'Type the last 4 characters from the tag on each bag you used.', group.instruction_es || 'Escriba los últimos 4 caracteres de la etiqueta de cada bolsa que usó.'), 'lot-instruction'));
+      for (const ingredient of group.ingredients || []) {
+        const section = el('section', undefined, 'ingredient-confirmation');
+        section.append(el('strong', ingredient.product_name + ' · ' + display.quantityLabel(ingredient.needed_lb)));
+        const different = button(t('Different lot', 'Otro lote'), () => {
+          const entries = confirmations.filter(c => c.lot.product_id === ingredient.product_id);
+          const useDifferent = !entries.every(c => c.different);
+          for (const entry of entries) { entry.different = useDifferent; entry.input.value = ''; entry.input.placeholder = useDifferent ? t('Code from the bag actually used', 'Código de la bolsa que usaste') : t('Read the physical tag', 'Lee la etiqueta física'); }
+          different.setAttribute('aria-pressed', String(useDifferent));
+          status.textContent = useDifferent ? t('Enter the actual tag for every bag below. Its lot will remain unverified, awaiting follow-up.', 'Escribe la etiqueta real de cada bolsa abajo. Su lote quedará sin verificar, pendiente de seguimiento.') : '';
+          node.refreshRecord?.();
+        }, 'different-lot');
+        different.setAttribute('aria-pressed', 'false');
+        const status = el('p', '', 'muted'); status.setAttribute('role', 'status');
+        section.append(different, status); node.append(section); lotGroups.set(ingredient.product_id, section);
+      }
+    }
     for (const lot of draft.input_plan || []) {
       const row = el('div', undefined, 'lot-confirmation');
       const lotLabel = `${lot.product_name || t('Input', 'Insumo')} · ${lot.lot_code} · ${lot.quantity_lb} lb`;
       const title = el('label', lotLabel); row.append(title);
-      if (lot.confirmed === false) {
+      if (!lot.confirmed) {
         const controls = el('div', undefined, 'lot-controls'), method = el('select'), input = el('input');
         [['last4', t('Last 4, including hyphen', 'Últimos 4, incluido el guion')],
           ['full_code', t('Full lot code', 'Código de lote completo')],
@@ -269,6 +322,7 @@
           ['pallet', t('Pallet — full lot code', 'Palé — código de lote completo')]].forEach(([value, label]) => {
           const option = el('option', label); option.value = value; method.append(option);
         });
+        method.value = 'last4';
         method.setAttribute('aria-label', t('Confirmation method', 'Método de confirmación'));
         input.type = 'text'; input.autocomplete = 'off'; input.maxLength = 200;
         input.id = 'lot-' + card.id + '-' + lot.lot_id; title.htmlFor = input.id;
@@ -276,6 +330,7 @@
         const hint = el('small', undefined, 'muted'); hint.id = input.id + '-hint';
         input.setAttribute('aria-describedby', hint.id);
         function updateHint() {
+          if (group && (!method.value || method.value === 'last4')) { hint.replaceChildren(); return; }
           hint.replaceChildren(el('span', method.value === 'last4'
             ? t('Type the last 4 characters from the physical tag, including the hyphen (for example, "-004").',
               'Escribe los últimos 4 caracteres de la etiqueta física, incluido el guion (por ejemplo, "-004").')
@@ -288,7 +343,7 @@
         controls.append(method, input); row.append(controls, hint);
         confirmations.push({ lot, method, input });
       } else row.append(el('small', lot.confirmed ? t('Confirmed by FL', 'Confirmado por FL') : t('Suggested by FL', 'Sugerido por FL'), 'muted'));
-      node.append(row);
+      (lotGroups.get(lot.product_id) || node).append(row);
     }
     for (const warning of prepared.warnings || []) {
       const row = el('div', undefined, 'warning'), message = t(display.plainMessage(warning.message || display.plainLabel(warning.code, 'en'), 'en'), display.plainMessage(warning.message_es || warning.message || display.plainLabel(warning.code, 'es'), 'es'));
@@ -301,6 +356,7 @@
       node.append(row);
     }
     for (const blocker of prepared.blockers || []) {
+      if (group && blocker.code === 'LOT_NOT_CONFIRMED') continue;
       node.append(el('div', t(display.errorMessage(blocker, 'en'), display.errorMessage(blocker, 'es')), blocker.code === 'LOT_NOT_CONFIRMED' ? 'warning' : 'error-box'));
       const enChoice = display.existingCustomerChoice(blocker, 'en'), esChoice = display.existingCustomerChoice(blocker, 'es');
       if (enChoice) node.append(button(t(enChoice.label, esChoice.label), () => {
@@ -324,7 +380,7 @@
       if (busy) return;
       errorArea.replaceChildren(); setBusy(true); recordButton.disabled = cancelButton.disabled = true;
       const recordBody = { draft_id: card.id, acknowledged_warnings: warningChecks.filter(w => w.checkbox.checked).map(w => w.warning.code),
-        lot_confirmations: confirmations.map(c => ({ lot_id: c.lot.lot_id, method: c.method.value, value: c.input.value.trim() })) };
+        lot_confirmations: confirmations.map(c => ({ lot_id: c.lot.lot_id, method: c.different ? 'different_lot' : c.method.value, value: c.input.value.trim() })) };
       try {
         const response = await api('/assistant/record', { body: recordBody });
         renderRecordOutcome(node, response);
@@ -342,12 +398,40 @@
     node.refreshRecord = refreshRecord;
     refreshRecord(); actions.append(recordButton, cancelButton); node.append(errorArea, actions);
   }
+  function supplierPicker(node, card, candidates) {
+    const choices = [], list = el('div', undefined, 'supplier-choices');
+    function select(id) {
+      if (busy) return;
+      return sendTurn({ text: '', choice_id: card.choice_id || card.id, selected_id: id }).finally(() => choices.forEach(b => b.disabled = false));
+    }
+    for (const candidate of supplierChoices(candidates)) {
+      const choice = button(candidate.label || candidate.name, () => { choices.forEach(b => b.disabled = true); return select(candidate.id); }, 'choice-button');
+      choices.push(choice); list.append(choice);
+    }
+    const form = el('form', undefined, 'supplier-search'), input = el('input');
+    const label = el('label', t('Search suppliers', 'Buscar proveedores')); input.id = 'supplier-search-' + (card.choice_id || card.id || crypto.randomUUID()); label.htmlFor = input.id;
+    input.type = 'search'; input.placeholder = t('Supplier name', 'Nombre del proveedor'); input.autocomplete = 'off'; input.maxLength = 200;
+    const search = el('button', t('Search', 'Buscar')); search.type = 'submit';
+    form.addEventListener('submit', event => { event.preventDefault(); if (!busy && input.value.trim()) sendTurn({ text: 'supplier: ' + input.value.trim() }); });
+    form.append(label, input, search); node.append(list, form);
+  }
   function renderCard(card, sourceText) {
+    if (card.language === 'en' || card.language === 'es') { language = card.language; localStorage.setItem('fl-assistant-language', language); applyLanguage(); }
+    if (card.supersedes_draft_id) {
+      const previous = drafts.get(card.supersedes_draft_id);
+      if (previous) {
+        previous.replaceChildren(el('p', card.kind === 'draft'
+          ? t('Replaced by the corrected draft below · NOT recorded', 'Reemplazado por el borrador corregido abajo · NO registrado')
+          : t('Previous draft cancelled after your correction · NOT recorded', 'Borrador anterior cancelado después de tu corrección · NO registrado')));
+        previous.refreshRecord = null;
+      }
+    }
     if (card.kind === 'draft') { renderDraft(card, null, sourceText); return; }
     const node = shell();
     if (card.kind === 'choices') {
       node.append(el('span', t('CHOOSE FROM FL', 'ELIGE EN FL'), 'eyebrow'), el('h3', t('Which one?', '¿Cuál?')));
       node.append(el('p', card.result.ask || t('Choose the matching record.', 'Elige el registro correcto.')));
+      if (card.resolution_kind === 'supplier' || card.result.kind === 'supplier' || card.result.resolution_kind === 'supplier' || card.supplier_search) { supplierPicker(node, card, card.result.candidates || []); return; }
       const choices = [];
       function select(selectedId, nextPage = false) {
         if (busy) return;
@@ -369,9 +453,12 @@
       node.append(el('span', t('FROM FACTORY LEDGER', 'DE FACTORY LEDGER'), 'eyebrow'), el('h3', t('Here’s what FL shows', 'Esto muestra FL')));
       readResult(node, card);
     } else if (card.kind === 'missing_facts') {
+      if (card.summary) node.append(el('p', card.summary, 'read-summary'));
       missingFacts(node, card.fields);
+      if (card.supplier_choices || card.supplier_search) supplierPicker(node, card, card.supplier_choices || []);
     } else if (neutralMessages[card.kind]) {
-      neutral(node, card.kind);
+      if (card.message && card.kind !== 'unsupported_request') node.append(el('p', card.message));
+      else neutral(node, card.kind);
     } else if (card.kind === 'refusal') {
       const missingReason = card.status === 422 && card.reasons?.length && Array.isArray(card.result?.detail)
         && card.result.detail.length && card.result.detail.every(error => error.type === 'missing'
@@ -384,7 +471,7 @@
       else {
         node.className = 'card refusal';
         node.append(el('span', t('CANNOT RECORD', 'NO SE PUEDE REGISTRAR'), 'draft-badge'), el('h3', t('This request was refused', 'Esta solicitud fue rechazada')));
-        node.append(el('p', t(display.errorMessage(card.result, 'en'), display.errorMessage(card.result, 'es'))));
+        node.append(el('p', card.message || t(display.errorMessage(card.result, 'en'), display.errorMessage(card.result, 'es'))));
         node.append(el('p', t('Update the message with the requested details. FL has not recorded this request.', 'Completa el mensaje con los datos solicitados. FL no ha registrado esta solicitud.'), 'muted'));
       }
       if (JSON.stringify(card.result).includes('reason_code')) {

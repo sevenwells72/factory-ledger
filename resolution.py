@@ -272,7 +272,12 @@ def _patterns(query, aliases=()):
         if all(terms):
             escaped = r'\s+'.join(re.escape(term) for term in terms)
             if hits or any(len(term) <= 2 or term.isdigit() for term in terms):
-                escaped = r'\m' + escaped + r'\M'
+                # Punctuation such as the ampersand in Kookies & Kreme is
+                # not a word: surrounding it with word boundaries never matches.
+                if re.match(r'\w', terms[0]):
+                    escaped = r'\m' + escaped
+                if re.search(r'\w$', terms[-1]):
+                    escaped += r'\M'
             patterns.append(escaped)
         i += len(span)
     return patterns
@@ -500,6 +505,15 @@ def _products(cur, req, variants, aliases):
     c = req.context
     ids = _target_ids(aliases, 'product', req.query)
     nine, sunshine, bare = classic_nine(req.query)
+    # A full catalog identity wins before the broad Classic #9 family shortcut.
+    cur.execute('''SELECT id FROM products WHERE active IS DISTINCT FROM false
+        AND (lower(btrim(name))=%s OR lower(btrim(odoo_code))=%s OR id::text=%s)''',
+        (normalize(req.query),) * 3)
+    literal_ids = [r['id'] for r in cur.fetchall()]
+    if literal_ids:
+        nine = sunshine = bare = False
+        ids = literal_ids
+        variants = [Variant(normalize(req.query))]
     source = PRODUCT_SOURCE
     if nine and sunshine:
         source += " AND p.kosher_tier='extra_kosher'"
@@ -523,7 +537,7 @@ def _products(cur, req, variants, aliases):
         params += (ids,)
     rows = _search(cur, source, params, variants, aliases, limit=req.limit, offset=req.offset)
     for row in rows:
-        if row['score'] == 1 and (row['id'] in ids or row['_variant'].text not in
+        if row['score'] == 1 and ((row['id'] in ids and not literal_ids) or row['_variant'].text not in
                                   (normalize(row['name']), normalize(row['odoo_code']), str(row['id']))):
             row['tier'], row['why'] = 'alias', 'Exact product alias'
     return rows

@@ -312,3 +312,28 @@ for (const language of ['en', 'es']) test(`Add customer stays available for offi
   assert.deepEqual(display.newCustomerChoice({ resolution_kind: 'customer', query: 'Sunrise Bakery', result: {} }, 'office', language), expected,
     'legacy first-page cards without offset retain the Add choice');
 });
+
+for (const language of ['en', 'es']) {
+  test(`Round B open orders are readable rows with correct singular in ${language}`, () => {
+    const [section] = display.readSections({tool: 'open_orders', result: {product: 'Kookies & Kreme', orders: [{order_number: 'SO-261015-002', customer: 'Sunshine', items: [{product: 'Kookies & Kreme'}, {product: 'Freight', is_service: true}], ship_date: '2026-10-16', remaining_lb: 15}]}}, {language});
+    assert.match(section.sentence, language === 'en' ? /There is 1 open order containing Kookies & Kreme/ : /Hay 1 pedido abierto con Kookies & Kreme/);
+    assert.equal(section.layout, 'orders');
+    assert.deepEqual(section.rows[0], ['SO-261015-002', 'Sunshine', 'Kookies & Kreme', '2026-10-16', '15 lb']);
+  });
+  test(`Round B lot questions answer with product and quantity in ${language}`, () => {
+    const [section] = display.readSections({tool: 'lot_lookup', result: {lot_code: 'SUN-ABCD', product_name: 'Sunflower Seeds', quantity_on_hand: 50}}, {language});
+    assert.equal(section.sentence, language === 'en' ? 'Lot SUN-ABCD: 50 lb of Sunflower Seeds.' : 'Lote SUN-ABCD: 50 lb de Sunflower Seeds.');
+    assert.doesNotMatch(section.sentence, /FL returned|FL devolvió/);
+  });
+  test(`Round B unresolved Different lot inputs cannot become negative available stock in ${language}`, () => {
+    const [section] = display.readSections({tool: 'inventory_lookup', result: {results: [{product: 'Seeds', total_on_hand: 96, lots: [{lot: 'SEED-ABCD', qty_on_hand: 100}, {lot: 'UNVERIFIED-999', qty_on_hand: -4}]}]}}, {language});
+    assert.match(section.sentence, /Seeds: 100 lb/);
+    assert.deepEqual(section.rows, [['SEED-ABCD', '100', 'lb']]);
+    assert.match(section.notes[0], language === 'en' ? /unverified, awaiting follow-up/ : /sin verificar, pendiente de seguimiento/);
+    assert.doesNotMatch(JSON.stringify(section), /-4/);
+  });
+  test(`Round B receipt effective void status is visible in ${language}`, () => {
+    const [section] = display.readSections({tool: 'receipt_lookup', result: {receipt_number: 'ADJ-261015-240', effective_status: 'voided', action: 'adjust', draft: {product_name: 'Seeds', delta_lb: -5}}}, {language});
+    assert.ok(section.notes.includes(language === 'en' ? 'VOIDED' : 'ANULADO'));
+  });
+}

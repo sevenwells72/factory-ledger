@@ -29,7 +29,7 @@ async function resumedCard(card, language = 'en', options = {}) {
       requests.push({ path: requestPath, body });
       if (requestPath === '/assistant/turn') bodies.push(body);
       const response = requestPath === '/assistant/resume'
-        ? { turns: [{ cards: [card] }], drafts: options.savedDrafts || [] }
+        ? { turns: [{ text: options.turnText || '', cards: Array.isArray(card) ? card : [card] }], drafts: options.savedDrafts || [] }
         : options.onRequest
           ? await options.onRequest(requestPath, body)
           : requestPath === '/assistant/turn'
@@ -103,7 +103,8 @@ test('neutral outcomes have fixed English and Spanish text with no receipt asser
     assert.ok(messages.every(text => !/NOT recorded|NO registrado|Field required|VALIDATION_ERROR/.test(text)), kind);
     assert.equal(ui.validReceipt({ kind }), false);
   }
-  assert.ok(ui.neutralMessages.unsupported_request.every(text => text.includes('ChatGPT')));
+  assert.equal(ui.neutralMessages.unsupported_request[0], 'I can only record or look up Factory Ledger items.');
+  assert.ok(ui.neutralMessages.unsupported_request.every(text => !text.includes('ChatGPT')));
 });
 
 test('A3b hold is an explicit pending outcome and cannot become a receipt', () => {
@@ -281,4 +282,131 @@ test('customer add-new choice appears only on the first result page', async () =
   const h = await resumedCard({ kind: 'choices', id: 'later-choice', resolution_kind: 'customer', query: 'Sunrise Bakery',
     result: { outcome: 'none', offset: 8, candidates: [] } }, 'en', { role: 'office' });
   assert.equal(descendants(h.card).some(node => node.tag === 'button' && /new customer/i.test(node.textContent)), false);
+});
+
+test('supplier display merges only near-duplicate labels and keeps the best six original records', () => {
+  const rows = [{id: 1, name: 'Grain Supply, LLC'}, {id: 2, name: 'Grain Supply'}, {id: 3, name: 'A & B Co.'}, {id: 4, name: 'A and B'},
+    ...Array.from({length: 64}, (_, i) => ({id: i + 10, name: 'Supplier ' + i}))];
+  const selected = ui.supplierChoices(rows);
+  assert.equal(selected.length, 6);
+  assert.deepEqual(selected.map(row => row.id), [1, 3, 10, 11, 12, 13]);
+  assert.equal(rows.length, 68, 'display grouping never mutates the source records');
+});
+
+for (const language of ['en', 'es']) {
+  test(`Round B missing receive retains weight and shows six searchable suppliers in ${language}`, async () => {
+    const h = await resumedCard({kind: 'missing_facts', language, fields: ['supplier_id', 'cases'], choice_id: 'supplier-choice', supplier_search: true,
+      summary: language === 'en' ? 'I kept the quantity: 10 lb. Please add the missing details.' : 'Conservo la cantidad: 10 lb. Agrega los datos que faltan.',
+      supplier_choices: Array.from({length: 66}, (_, i) => ({id: i + 1, name: 'Supplier ' + i}))}, 'en');
+    const nodes = descendants(h.card), copy = nodes.map(node => node.textContent).join(' ');
+    assert.match(copy, /10 lb/);
+    assert.match(copy, language === 'en' ? /supplier/ : /proveedor/);
+    assert.equal(nodes.filter(node => node.className === 'choice-button').length, 6);
+    assert.equal(h.get('language').textContent, language === 'es' ? 'EN' : 'ES', 'reply language applies without pressing ES');
+    const form = nodes.find(node => node.className === 'supplier-search');
+    const input = descendants(form).find(node => node.tag === 'input');
+    input.value = 'Grain'; form.listeners.submit({preventDefault() {}});
+    for (let i = 0; i < 6; i++) await new Promise(resolve => setImmediate(resolve));
+    assert.equal(h.bodies[0].text, 'supplier: Grain');
+    const bubble = descendants(h.get('messages')).find(node => node.className === 'message user-message');
+    assert.equal(bubble.textContent, language === 'es' ? 'Buscar proveedor: Grain' : 'Supplier search: Grain');
+    assert.equal(h.bodies[0].choice_id, undefined, 'search narrows names without selecting a supplier');
+  });
+
+  test(`Round B lot misses and scope responses stay plain in ${language}`, async () => {
+    const missing = language === 'en' ? 'No lot called MISSING-123.' : 'No hay un lote llamado MISSING-123.';
+    const h = await resumedCard({kind: 'lookup_failed', language, error_code: 'LOT_NOT_FOUND', message: missing}, 'en');
+    assert.equal(descendants(h.card).filter(node => node.tag === 'p')[0].textContent, missing);
+    assert.doesNotMatch(descendants(h.card).map(node => node.textContent).join(' '), /try again|Inténtalo|ChatGPT/);
+    const scope = await resumedCard({kind: 'unsupported_request', language}, 'en');
+    assert.equal(descendants(scope.card).find(node => node.tag === 'p').textContent, ui.neutralMessages.unsupported_request[language === 'es' ? 1 : 0]);
+  });
+
+  test(`Round B make has one instruction and one Different lot button per ingredient in ${language}`, async () => {
+    const lots = [{product_id: 1, product_name: 'Seeds', lot_id: 11, lot_code: 'SEED-ABCD', quantity_lb: 2, confirmed: false},
+      {product_id: 1, product_name: 'Seeds', lot_id: 12, lot_code: 'SEED-EFGH', quantity_lb: 2, confirmed: false},
+      {product_id: 2, product_name: 'Oats', lot_id: 21, lot_code: 'OAT-IJKL', quantity_lb: 6, confirmed: false}];
+    let recorded;
+    const h = await resumedCard({kind: 'draft', id: 'make', language, prepared: {action: 'make', actor: {name: 'Arturo'}, can_commit: false,
+      blockers: [{code: 'LOT_NOT_CONFIRMED', message: 'Type the last 4 characters from the tag on each bag you used.'}],
+      draft: {product_name: 'Classic', total_lb: 10, input_plan: lots, lot_confirmation_group: {
+        instruction_en: 'Type the last 4 characters from the tag on each bag you used.', instruction_es: 'Escriba los últimos 4 caracteres de la etiqueta de cada bolsa que usó.',
+        ingredients: [{product_id: 1, product_name: 'Seeds', needed_lb: 4}, {product_id: 2, product_name: 'Oats', needed_lb: 6}]}}}}, 'en', {onRequest: async (path, body) => {
+          assert.equal(path, '/assistant/record'); recorded = body;
+          return {kind: 'receipt', result: {success: true, receipt_number: 'MK-261015-999'}};
+        }});
+    const nodes = descendants(h.card), instruction = nodes.filter(node => node.className === 'lot-instruction');
+    assert.equal(instruction.length, 1);
+    assert.equal(nodes.filter(node => node.textContent === instruction[0].textContent).length, 1, 'no repeated blocker or per-lot instruction');
+    const different = nodes.filter(node => node.className === 'different-lot');
+    assert.equal(different.length, 2);
+    assert.ok(different.every(node => node.textContent === (language === 'en' ? 'Different lot' : 'Otro lote')));
+    const inputs = nodes.filter(node => node.tag === 'input' && node.type === 'text');
+    assert.equal(inputs.length, 3);
+    const record = nodes.find(node => node.tag === 'button' && node.textContent === (language === 'en' ? 'Record' : 'Registrar'));
+    assert.equal(record.disabled, true);
+    inputs[0].value = 'ABCD'; inputs[0].listeners.input(); assert.equal(record.disabled, true);
+    different[0].listeners.click();
+    assert.equal(inputs[0].value, '', 'choosing Different lot clears prior evidence');
+    assert.equal(record.disabled, true, 'Different lot never skips physical evidence');
+    for (const [i, input] of inputs.entries()) { input.value = ['REAL-0001', 'REAL-0002', 'IJKL'][i]; input.listeners.input(); }
+    assert.equal(record.disabled, false);
+    record.listeners.click();
+    for (let i = 0; i < 6; i++) await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(recorded.lot_confirmations.map(c => [c.lot_id, c.method, c.value]), [[11, 'different_lot', 'REAL-0001'], [12, 'different_lot', 'REAL-0002'], [21, 'last4', 'IJKL']]);
+  });
+
+  test(`Round B receipt preserves visible physical lot follow-up in ${language}`, async () => {
+    const card = {kind: 'draft', id: 'receipt-lots', prepared: {action: 'make', actor: {name: 'Arturo'}, can_commit: true, draft: {product_name: 'Classic'}}};
+    const result = {success: true, receipt_number: 'MK-261015-888', lot_exceptions: [{product_name: 'Seeds', physical_tag: 'BAG-4321', quantity_lb: 4, exception_id: 45}]};
+    const h = await resumedCard(card, language, {savedDrafts: [{id: card.id, card, status: 'committed', result}]});
+    const warning = descendants(h.card).find(node => node.className === 'warning lot-exception');
+    assert.ok(warning);
+    const copy = descendants(warning).map(node => node.textContent).join(' ');
+    assert.match(copy, /BAG-4321/);
+    assert.match(copy, language === 'en' ? /awaiting follow-up/ : /pendiente de seguimiento/);
+    assert.match(copy, language === 'en' ? /not confirmed or used/ : /no se confirmó ni se usó/);
+  });
+}
+
+
+for (const language of ['en', 'es']) test(`a corrected receive replaces the stale visible draft and its Record control in ${language}`, async () => {
+  const prepared = total => ({action: 'receive', actor: {name: 'Arturo'}, can_commit: true, draft: {product_name: 'Seeds', total_lb: total}});
+  const h = await resumedCard([{kind: 'draft', id: 'old-weight', language, prepared: prepared(10)},
+    {kind: 'draft', id: 'new-weight', language, supersedes_draft_id: 'old-weight', prepared: prepared(15)}], 'en');
+  const cards = descendants(h.get('messages')).filter(node => node.tag === 'article');
+  assert.equal(cards.length, 2);
+  const oldNodes = descendants(cards[0]), newNodes = descendants(cards[1]);
+  assert.match(oldNodes.map(node => node.textContent).join(' '), language === 'en' ? /Replaced by the corrected draft below/ : /Reemplazado por el borrador corregido abajo/);
+  assert.equal(oldNodes.some(node => node.tag === 'button'), false, 'the old quantity cannot still offer Record');
+  assert.match(newNodes.map(node => node.textContent).join(' '), /15 lb/);
+  assert.equal(newNodes.filter(node => node.tag === 'button' && node.textContent === (language === 'en' ? 'Record' : 'Registrar')).length, 1);
+  assert.deepEqual(h.calls, ['/assistant/resume'], 'restoring corrected drafts never records either entry');
+});
+
+
+test('legacy supplier cards merge Baker, Bakery and Bakery Supply display names without changing IDs', () => {
+  const candidates = [{id: 8, name: 'A1 Baker'}, {id: 9, name: 'A1 Bakery, LLC'}, {id: 10, name: 'A1 Bakery Supply'}, {id: 11, name: 'Other Grain Supply'}];
+  assert.deepEqual(ui.supplierChoices(candidates), [candidates[0], candidates[3]]);
+  assert.deepEqual(candidates.map(row => row.id), [8, 9, 10, 11]);
+});
+
+
+for (const language of ['en', 'es']) test(`an unsuccessful corrected receive retires the wrong draft without claiming success in ${language}`, async () => {
+  const h = await resumedCard([{kind: 'draft', id: 'wrong', language, prepared: {action: 'receive', actor: {name: 'Arturo'}, can_commit: true, draft: {product_name: 'Seeds', total_lb: 10}}},
+    {kind: 'missing_facts', language, supersedes_draft_id: 'wrong', fields: ['case_size_lb']}], 'en');
+  const cards = descendants(h.get('messages')).filter(node => node.tag === 'article');
+  const previous = descendants(cards[0]);
+  assert.match(previous.map(node => node.textContent).join(' '), language === 'en' ? /Previous draft cancelled after your correction/ : /Borrador anterior cancelado después de tu corrección/);
+  assert.doesNotMatch(previous.map(node => node.textContent).join(' '), /corrected draft below|borrador corregido abajo/);
+  assert.equal(previous.some(node => node.tag === 'button'), false);
+  assert.equal(cards.some(node => node.className === 'card receipt'), false);
+});
+
+
+for (const language of ['en', 'es']) for (const prefix of ['supplier', 'proveedor']) test(`saved ${prefix} searches show worker copy in ${language}`, async () => {
+  const h = await resumedCard({kind: 'choices', id: 'suppliers', language, supplier_search: true, result: {candidates: []}}, 'en', {turnText: prefix + ': Supplier 57'});
+  const bubble = descendants(h.get('messages')).find(node => node.className === 'message user-message');
+  assert.equal(bubble.textContent, language === 'es' ? 'Buscar proveedor: Supplier 57' : 'Supplier search: Supplier 57');
+  assert.deepEqual(h.calls, ['/assistant/resume']);
 });

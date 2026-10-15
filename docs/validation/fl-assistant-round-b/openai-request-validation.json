@@ -1,0 +1,14 @@
+{
+  "pydantic": "2.11.9",
+  "model": "gpt-6.1-sol",
+  "http_status": 200,
+  "function_names": [
+    "unsupported_request"
+  ],
+  "status": "completed",
+  "error_code": null,
+  "staging_observed_version": "2.14.1",
+  "staging_observation": "Read-only Railway SSH: import pydantic; print(pydantic.__version__)",
+  "pin_reason": "User required below2.12; review demonstrated2.11.9 works while2.12.3 rejects Decimal regex lookaround. Pin compatible reviewed version, not observed staging version.",
+  "official_schema_reference": "https://developers.openai.com/api/docs/guides/structured-outputs"
+}

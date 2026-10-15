@@ -11,7 +11,7 @@ const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const python = process.env.FIXB_PYTHON || path.join(root, '.venv-test/bin/python');
 const pg = process.env.FIXB_PG_BIN || '/opt/homebrew/opt/postgresql@17/bin';
-const output = process.env.FIXB_BROWSER_OUT || '/private/tmp/fl_fixB_browser_contract.json';
+const output = process.env.FIXB_BROWSER_OUT || '/private/tmp/fl_fixB2_browser_contract.json';
 const localEnv = { ...process.env };
 for (const name of ['PGHOSTADDR', 'PGSERVICE', 'PGSERVICEFILE', 'PGOPTIONS']) delete localEnv[name];
 const bridgeSource = String.raw`
@@ -25,7 +25,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 ROOT=Path.cwd();sys.path.insert(0,str(ROOT))
 url=os.environ['TEST_DATABASE_URL'];parsed=urlsplit(url)
-assert parsed.hostname=='127.0.0.1' and parsed.path.startswith('/fl_fixB_browser_')
+assert parsed.hostname=='127.0.0.1' and parsed.path.startswith('/fl_fixB2_browser_')
 os.environ.update(DATABASE_URL=url,API_KEY='fixb-local-master',DASHBOARD_API_KEY='fixb-local-read',ASSISTANT_ENABLED='1')
 os.environ.pop('OPENAI_API_KEY',None)
 logging.disable(logging.CRITICAL)
@@ -97,7 +97,7 @@ const evidence = { runner: 'tests/visual/run-assistant-round-b.mjs', local_only:
 const browser = await chromium.launch({ headless: true, ...(process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) });
 try {
   for (const mode of [0, 1]) {
-    const db = `fl_fixB_browser_${process.pid}_${mode}`;
+    const db = `fl_fixB2_browser_${process.pid}_${mode}`;
     let child;
     const run = (command, args) => execFileSync(path.join(pg, command), args, { cwd: root, env: localEnv, stdio: 'pipe' });
     run('createdb', ['-h', '127.0.0.1', db]);
@@ -142,7 +142,7 @@ try {
         const card = (await turn(text, [['open_orders', { customer: filter, product: null }]])).cards[0];
         assert.equal(card.kind, 'read'); assert.equal(card.language, lang); assert.equal(card.rows.length, count);
         for (const row of card.rows) for (const field of ['customer', 'order_number', 'items', 'ship_date', 'status']) assert.ok(Object.hasOwn(row, field));
-        assert.match(card.summary, lang === 'es' ? /^Hay / : /^There are /);
+        assert.match(card.summary, lang === 'es' ? /^Hay / : /^There (?:is|are) /);
       }
       const productFiltered = (await turn('Show open orders for product 70013', [['open_orders', { customer: null, product: '70013' }]])).cards[0];
       assert.equal(productFiltered.rows.length, 3);

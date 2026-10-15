@@ -143,6 +143,7 @@ Use only supplied quantities and times; null for missing fields. Never guess cas
 Use prepare with null fields to request missing facts. Use the fixed reason catalog for adjust/found;
 if reason is missing pass null, so the person can select it. Preserve Spanish/English notes.
 Missing context for an action: ask through the real resolve or prepare endpoint, not invented prose.
+When a worker corrects a receive total, retain the resolved product/supplier and supplied case count; use the corrected total to calculate case weight.
 For open-order questions use open_orders directly, customer/product filters in the user's words; 'Sunshine', 'Setton' and 'UNIPRO' are customer names.
 Spanish 'pedidos abiertos' means open orders. 'semillas de girasol' means Sunflower Seeds; preserve other exact catalog wording.
 For questions about pounds in a lot use lot_lookup with the exact lot code, never inventory_lookup on a lot code.

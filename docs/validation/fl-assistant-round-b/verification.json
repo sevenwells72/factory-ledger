@@ -1,0 +1,90 @@
+{
+  "checked_at_utc": "2026-10-15T17:09:03.911139+00:00",
+  "review_comment": 6197406449,
+  "rebased_onto": "c2b57e95a43ef222760149f64b67bead4db0d10b",
+  "round_a_merged_as": "9b978b82de0a8da53ac215c24c4c8297f2de02db",
+  "python": {
+    "sessions_off": {
+      "passed": 5948,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "fresh_database": true
+    },
+    "sessions_on": {
+      "passed": 5950,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "fresh_database": true
+    },
+    "note": "Final two exact mismatch-loop regressions were added after off-mode collection; both passed separately and in full on-mode run."
+  },
+  "node": {
+    "passed": 321,
+    "failed": 0,
+    "skipped": 0
+  },
+  "browser": {
+    "round_a": {
+      "sessions_off": 30,
+      "sessions_on": 30,
+      "failed": 0
+    },
+    "existing_assistant": {
+      "sessions_off": "passed",
+      "sessions_on": "passed"
+    },
+    "original_round_b_contract": {
+      "sessions_off": 9,
+      "sessions_on": 9,
+      "failed": 0
+    },
+    "real-page": {
+      "passed": 68,
+      "failed": 0,
+      "databases_dropped": true,
+      "screenshots": 132
+    },
+    "real-model": {
+      "passed": 64,
+      "failed": 0,
+      "databases_dropped": true,
+      "screenshots": 104
+    },
+    "reviewed-queries-real-model": {
+      "passed": 4,
+      "failed": 0,
+      "databases_dropped": true,
+      "screenshots": 4
+    }
+  },
+  "model": "gpt-6.1-sol",
+  "data": "local synthetic fixtures; real handlers/PostgreSQL; no hosted deployment claim",
+  "pydantic": {
+    "pinned": "2.11.9",
+    "observed_staging": "2.14.1",
+    "actual_OpenAI_request_status": 200
+  },
+  "traceability": "All physical confirmations remain required; wrong/missing tags refused; Different lot explicitly typed and recorded to unresolved trace lots; suggested lots unchanged; kosher holds intact.",
+  "database_cleanup": {
+    "prefix": "fl_fixB2_",
+    "remaining": [],
+    "verified_using": "local PostgreSQL pg_database after all runners completed"
+  },
+  "source_sha256": {
+    "assistant_tools.py": "52168f5b091423f989ab1b9c7112211cfee229cd05f8ecf0e22611a3d57cd4e6",
+    "assistant_replies.py": "f2c7a740e25e5f807fd7d72e08b179da520745981104e0c0605576ae1dc33b5a",
+    "fl_assistant.py": "b3541e14dd1f58e20dbeaa717e44bd530363840fb5c6c094c90d99e6606f4010",
+    "resolution.py": "1756273cad793bd5ecbe7428850c3ab354a78566c1a6c762c74542ca5a2ad9c8",
+    "requirements.txt": "34bb38cedb6a21f9be95040f663291583b73f342b2577811051f33aa1f589553",
+    "dashboard/fl-assistant.html": "d89b6833f6328a4a488fa8cec3177591cb6307ca678d6b4f86fd8ac8d1361330",
+    "dashboard/fl-assistant.js": "78dd6512b909f3709c2ed2139b1634895c6ea1b75b0c2915daa07e87eaf91da1",
+    "dashboard/assistant-display.js": "c400859a90a2c3c3d17b10bff7d06523ee68b684874664c86139774a15bf2e0d",
+    "dashboard/fl-assistant.css": "7273979055fd9a0ceb7f49d97eb69d73d54d1b97f939f513e529b8e5d5adf47b",
+    "tests/test_assistant_fix_b2.py": "c4bb086f90ffe8db9e0ed3533584c7b04070567f3555fac3b8388e8c59561160",
+    "tests/test_assistant_request_compatibility.py": "70af7ac2488339d051d8f793d9d83cb9042d821cbffe776a19c9782858ccd772",
+    "tests/visual/run-fl-assistant-round-b-page.mjs": "e713388a027363820c5876c950c14d4ccacf9d43f92515ddb37b2b2c9cf5d290",
+    "tests/visual/assistant_round_b_page_bridge.py": "b141082d736f3b7552cb4a931b8330ecfb4c0d5f7a568acf66d1b42ffa816ee7"
+  }
+}

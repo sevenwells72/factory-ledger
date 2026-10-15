@@ -4,9 +4,11 @@ import unicodedata
 
 
 def language(text, previous='en'):
+    if re.search(r'[¿¡]', text):
+        return 'es'
     words = unicodedata.normalize('NFKD', text.lower())
     words = ''.join(c for c in words if not unicodedata.combining(c))
-    if re.search(r"\b(solo una prueba|calcula|registres|guardes|ordenes|abiertas|fabricamos|existencias|avena|miel|recibimos|recibi|recibir|hicimos|hice|empacamos|empacado|empaque|enviamos|enviar|cuanto|cuanta|cuantos|cuales|que pedidos|pedidos abiertos|muestra|mostrar|semillas|girasol|libras|cajas|lote|inventario|tenemos|hay|ajusta|ajustar|ninguno|otro)\b", words):
+    if re.search(r"\b(hola|puedes|puede|donde|quien|cual|cantidad|recibio|recibieron|totalmente|solo una prueba|calcula|registres|guardes|ordenes|abiertas|fabricamos|existencias|avena|miel|recibimos|recibi|recibir|hicimos|hice|empacamos|empacado|empaque|enviamos|enviar|cuanto|cuanta|cuantos|cuales|que pedidos|pedidos abiertos|muestra|mostrar|semillas|girasol|libras|cajas|lote|inventario|tenemos|hay|ajusta|ajustar|ninguno|otro)\b", words):
         return 'es'
     if re.search(r"\b(what|which|how|received|receive|made|make|packed|pack|ship|orders|inventory|lot|show|adjust)\b", words):
         return 'en'
@@ -27,14 +29,22 @@ def read_card(tool, result, lang):
         summary = '; '.join(answers) + '.' if answers else (
             f"No encontré inventario para «{result.get('query', '')}»." if es else
             f"I found no inventory for “{result.get('query', '')}”.")
+        if any(r.get('unverified_lots') for r in rows):
+            summary += (' Hay lotes sin verificar, pendientes de seguimiento.' if es else
+                        ' Some lots are unverified, awaiting follow-up.')
     elif tool == 'lot_lookup':
         rows = [result]
-        summary = (f"Lote {result['lot_code']}: {number(result.get('quantity_on_hand'))} lb de {result['product_name']}." if es else
+        if result.get('unverified'):
+            summary = (f"Lote {result['lot_code']}: sin verificar, pendiente de seguimiento." if es else
+                       f"Lot {result['lot_code']}: unverified, awaiting follow-up.")
+        else:
+            summary = (f"Lote {result['lot_code']}: {number(result.get('quantity_on_hand'))} lb de {result['product_name']}." if es else
                    f"Lot {result['lot_code']}: {number(result.get('quantity_on_hand'))} lb of {result['product_name']}.")
     elif tool == 'open_orders':
         rows = result.get('orders', [])
         n = len(rows)
-        summary = (f"Hay {n} pedidos abiertos" if es else f"There are {n} open orders")
+        summary = (("Hay 1 pedido abierto" if n == 1 else f"Hay {n} pedidos abiertos") if es else
+                   ("There is 1 open order" if n == 1 else f"There are {n} open orders"))
         if result.get('customer'):
             summary += (" para " if es else " for ") + result['customer']
         if result.get('product'):
@@ -46,8 +56,10 @@ def read_card(tool, result, lang):
     elif tool == 'receipt_lookup':
         rows = [result]
         receipt = result.get('receipt_number', '')
-        status = result.get('status', '')
-        state = ('anulado' if es else 'voided') if result.get('voided') or status == 'voided' else ('registrado' if es else 'recorded')
+        status = result.get('effective_status') or result.get('status', '')
+        state = (('ANULADO' if es else 'VOIDED') if result.get('voided') or status == 'voided' else
+                 ('PARCIALMENTE ANULADO' if es else 'PARTIALLY VOIDED') if status == 'partially_voided' else
+                 ('registrado' if es else 'recorded'))
         summary = f"{'Recibo' if es else 'Receipt'} {receipt}: {state}."
     elif tool == 'shift_summary':
         rows = result.get('sections', result.get('receipts', result.get('entries', [])))
@@ -68,6 +80,7 @@ ERRORS = {
     'ORDER_NOT_FOUND': ('I could not find that order. Give its order number.', 'No encontré ese pedido. Escriba su número de pedido.'),
     'LOT_NOT_FOUND': ('I could not find that lot. Give the code on its tag.', 'No encontré ese lote. Escriba el código de su etiqueta.'),
     'PRODUCT_NOT_FOUND': ('I could not find that product. Give its name, product number or SKU.', 'No encontré ese producto. Escriba su nombre, número de producto o SKU.'),
+    'RECEIVE_CORRECTION_UNAVAILABLE': ('This draft can no longer be changed. Look up its receipt to request a correction.', 'Este borrador ya no se puede cambiar. Consulte su recibo para solicitar una corrección.'),
     'SUPPLIER_REQUIRED': ('Choose the supplier that delivered this ingredient.', 'Elija el proveedor que entregó este ingrediente.'),
     'LOT_CONFIRMATION_MISMATCH': ('That tag does not match the suggested lot. Check the tag or choose Different lot.', 'Esa etiqueta no coincide con el lote sugerido. Revise la etiqueta o elija Otro lote.'),
     'LOT_NOT_CONFIRMED': ('Type the last 4 characters from the tag on each bag you used.', 'Escriba los últimos 4 caracteres de la etiqueta de cada bolsa que usó.'),
@@ -98,13 +111,13 @@ def decorate(card, lang):
     elif kind == 'clarify':
         card['message'] = ('No reconocí «' + card.get('query', '') + '». Escriba el nombre, número de producto o SKU.' if es else
                            'I did not recognize “' + card.get('query', '') + '”. Give the name, product number or SKU.')
+        if card.get('resolution_kind') == 'lot':
+            card['message'] = (f"No hay un lote llamado {card.get('query', '')}." if es else f"No lot called {card.get('query', '')}.")
     elif kind == 'choices':
         card['message'] = 'Elija una de estas opciones de Factory Ledger.' if es else 'Choose one of these Factory Ledger matches.'
         result = dict(card['result'])
         result['ask'] = card['message']
         # Catalog names remain the identities printed on physical labels.
-        if es:
-            result['candidates'] = [dict(c, label=c.get('label', c.get('name', '')).replace('EXTRA-KOSHER', 'KOSHER EXTRA')) for c in result.get('candidates', [])]
         card['result'] = result
     elif kind == 'missing_facts':
         card['message'] = 'Agrega los datos que faltan.' if es else 'Please add the missing details.'
@@ -124,6 +137,8 @@ def decorate(card, lang):
             detail = {}
         code = detail.get('error_code') or detail.get('code') or (result.get('error_detail') or {}).get('code')
         card['message'] = ERRORS.get(code, ('I could not complete that Factory Ledger request. Check the item and details.', 'No pude completar esa solicitud de Factory Ledger. Revise el artículo y los datos.'))[es]
+        if code == 'LOT_NOT_FOUND' and card.get('query'):
+            card['message'] = (f"No hay un lote llamado {card['query']}." if es else f"No lot called {card['query']}.")
         card['error_code'] = code
     elif kind == 'misunderstood':
         card['message'] = 'No entendí eso. Escriba el artículo y lo que necesita hacer.' if es else 'I did not understand that. Give the item and what you need to do.'

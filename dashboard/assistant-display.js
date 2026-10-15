@@ -174,14 +174,32 @@
   function readSections(card = {}, { language = 'en', now = new Date() } = {}) {
     const data = card.result || {}, opts = { language, now }, sections = [];
     const table = (sentence, columns = [], rows = [], notes = []) => sections.push({ sentence: plainMessage(sentence, language), columns, rows, notes: notes.filter(Boolean).map(note => plainMessage(note, language)) });
-    if (card.tool === 'inventory_lookup' || Array.isArray(data.results)) {
+    if (card.tool === 'open_orders' || Array.isArray(data.orders)) {
+      const orders = data.orders || card.rows || [], count = orders.length;
+      let sentence = choose(language, `There ${count === 1 ? 'is' : 'are'} ${count} open ${count === 1 ? 'order' : 'orders'}`, `Hay ${count} ${count === 1 ? 'pedido abierto' : 'pedidos abiertos'}`);
+      if (data.customer) sentence += choose(language, ' for ', ' para ') + data.customer;
+      if (data.product) sentence += choose(language, ' containing ', ' con ') + data.product;
+      sentence += data.truncated ? choose(language, ' (first 200).', ' (primeros 200).') : '.';
+      table(sentence, [choose(language, 'Order', 'Pedido'), choose(language, 'Customer', 'Cliente'), choose(language, 'Items', 'Productos'), choose(language, 'Ship date', 'Fecha de envío'), choose(language, 'Remaining', 'Pendiente')],
+        orders.map(order => [scalar(order.order_number || order.order_id), name(order.customer || order.customer_name),
+          (order.items || []).filter(item => !item.is_service && item.line_type !== 'service').map(item => name(item.product || item.product_name) || scalar(item.sku)).filter(Boolean).join(', '),
+          scalar(order.ship_date || order.requested_ship_date) || choose(language, 'Not set', 'Sin fecha'), quantityLabel(order.remaining_lb, 'lb', language)]));
+      sections[sections.length - 1].layout = 'orders';
+    } else if (card.tool === 'lot_lookup' || data.lot_code && data.product_name && data.quantity_on_hand !== undefined) {
+      const unverified = /^UNVERIFIED-/i.test(data.lot_code || '') || data.unverified === true;
+      table(unverified ? choose(language, `Lot ${data.lot_code}: unverified, awaiting follow-up.`, `Lote ${data.lot_code}: sin verificar, pendiente de seguimiento.`) :
+        choose(language, `Lot ${data.lot_code}: ${quantityLabel(data.quantity_on_hand, 'lb', language)} of ${data.product_name}.`, `Lote ${data.lot_code}: ${quantityLabel(data.quantity_on_hand, 'lb', language)} de ${data.product_name}.`));
+    } else if (card.tool === 'inventory_lookup' || Array.isArray(data.results)) {
       for (const item of data.results || []) {
-        const lots = item.lots || [], product = name(item.product || item.product_name || item.name) || choose(language, 'Inventory', 'Inventario');
+        const isUnverified = lot => /^UNVERIFIED-/i.test(lot.lot || lot.lot_code || '') || lot.unverified === true || /unverified/i.test(lot.identity_status || lot.status || '');
+        const originalLots = item.lots || [], unresolved = [...originalLots.filter(isUnverified), ...(item.unverified_lots || [])];
+        const lots = originalLots.filter(lot => !isUnverified(lot)), product = name(item.product || item.product_name || item.name) || choose(language, 'Inventory', 'Inventario');
         const lotQuantity = lot => number(first(lot.qty_on_hand, lot.quantity_lb, lot.on_hand_lb, lot.quantity));
         const lotUnits = [...new Set(lots.map(inventoryUnit))];
         const completeWeights = lots.length && lots.every(lot => inventoryUnit(lot) === 'lb' && lotQuantity(lot) !== null);
         const lotWeight = completeWeights ? lots.reduce((sum, lot) => sum + lotQuantity(lot), 0) : null;
-        const total = number(first(item.total_on_hand, item.total_lb, item.quantity));
+        // Unresolved physical inputs are follow-up evidence, not negative available stock.
+        const total = originalLots.some(isUnverified) ? (completeWeights ? lotWeight : null) : number(first(item.total_on_hand, item.total_lb, item.quantity));
         const totalUnit = item.total_on_hand !== undefined || item.total_lb !== undefined ? 'lb' : lotUnits.length === 1 && !item.unit && !item.uom ? lotUnits[0] : inventoryUnit(item);
         let quantity;
         if (total !== null) quantity = quantityLabel(total, totalUnit, language);
@@ -203,7 +221,8 @@
           if (showLotCases) row.push(inventoryUnit(lot) === 'lb' && number(lot.unit_count) !== null ? fmt(lot.unit_count) : '—');
           return row;
         });
-        table(choose(language, `${product}: ${quantity} in ${lots.length} ${lots.length === 1 ? 'lot' : 'lots'}.`, `${product}: ${quantity} en ${lots.length} ${lots.length === 1 ? 'lote' : 'lotes'}.`), columns, rows);
+        table(choose(language, `${product}: ${quantity} in ${lots.length} ${lots.length === 1 ? 'lot' : 'lots'}.`, `${product}: ${quantity} en ${lots.length} ${lots.length === 1 ? 'lote' : 'lotes'}.`), columns, rows,
+          unresolved.length ? [choose(language, `${unresolved.length} physical ${unresolved.length === 1 ? 'lot is' : 'lots are'} unverified, awaiting follow-up.`, `${unresolved.length} ${unresolved.length === 1 ? 'lote físico sin verificar, pendiente' : 'lotes físicos sin verificar, pendientes'} de seguimiento.`)] : []);
       }
       if (!sections.length) table(choose(language, 'No inventory matches.', 'No hay coincidencias de inventario.'));
     } else if (Array.isArray(data.receipts)) {
@@ -221,14 +240,14 @@
           rows.length ? [choose(language, 'Details', 'Detalles')] : [], rows.map(row => [plainMessage(row['line_' + language] || row.line || receiptSummary(row, language), language)]));
       }
     } else if (data.receipt_number) {
-      const voided = data.effective_status === 'voided';
+      const voided = data.effective_status === 'voided' || data.voided === true || data.status === 'voided';
       const lines = (data.transactions || []).flatMap(txn => txn.lines || []);
       table(receiptSummary(data, language) + '.', [choose(language, 'Product', 'Producto'), choose(language, 'Lot', 'Lote'), choose(language, 'Quantity', 'Cantidad'), choose(language, 'Unit', 'Unidad')],
         lines.map(line => [name(line.product_name || line.product), scalar(line.lot_code), fmt(line.quantity_lb), 'lb']),
-        [voided ? plainLabel('voided', language) : '', data.receipt_number, formatTime(data.happened_at, opts), name(data.actor) || data.operator_id]);
+        [voided ? choose(language, 'VOIDED', 'ANULADO') : '', voided ? plainLabel('voided', language) : '', data.receipt_number, formatTime(data.happened_at, opts), name(data.actor) || data.operator_id]);
     } else {
-      const message = data['message_' + language] || data.message || data['summary_' + language] || data.summary;
-      table(typeof message === 'string' ? message : choose(language, 'FL returned this information.', 'FL devolvió esta información.'));
+      const message = data['message_' + language] || data.message || data['summary_' + language] || data.summary || (card.language === language ? card.summary || card.message : '');
+      table(typeof message === 'string' && message.trim() ? message : choose(language, 'FL returned this information.', 'FL devolvió esta información.'));
     }
     const direct = data.direct_make_substitutions;
     if (direct?.rows?.length) table(scalar(direct['label_' + language] || direct.label || choose(language, 'Ingredient substitutions', 'Sustituciones de ingredientes')),
