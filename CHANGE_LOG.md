@@ -49,6 +49,265 @@
 
 ---
 
+## 2026-10-15 12:51 — Rebase round B onto completed round A
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Preserve both complete histories; keep row 210 above row 209.
+- **Why:** Integrate PR #131 before the PR #132 review fixes.
+
+---
+
+## 2026-10-15 12:11 — Record final Round B validation and complete database cleanup
+- **File(s) changed:** docs/validation/assistant-round-b/validation.json, python-suite-summary.json, verification-node-browser-staging.json, FACTORY_LEDGER_CHANGELOG.md
+- **What changed:** Record5893 Python/234 Node, both renderer modes and18 new backend browser checks; source hashes, main failure proofs, row210 and zero remaining fl_fixB databases.
+- **Why:** Complete requested review evidence before the draft PR; keep staging orders ready for Michael.
+
+---
+
+## 2026-10-15 12:07 — Keep regular physical-lot exceptions available for approved extra-kosher output
+- **File(s) changed:** `lot_confirmation.py`, `ticket_actions.py`, `tests/test_assistant_make_round_b.py`
+- **What changed:** Apply unknown-lot provenance checks to each input product and frozen lot; extra-kosher output retains its normal owner hold/approval before any posting. Added held-then-approved physical-tag trace coverage and separate catalog/lot input refusal checks.
+- **Why:** A regular input exception must not block the existing A12 output approval flow or acquire extra-kosher identity.
+
+---
+
+## 2026-10-15 12:07 — Document customer-ticket and kosher approval integration
+- **File(s) changed:** docs/validation/assistant-round-b/contract-for-session-a.md
+- **What changed:** Explain PR130 New customer action on nonempty-choice-safe clarify cards and preserve extra output approval with unknown regular inputs.
+- **Why:** Keep parallel UI/customer work compatible without weakening physical provenance.
+
+---
+
+## 2026-10-15 12:05 — Reserve Round B regression guard row 210
+- **File(s) changed:** FACTORY_LEDGER_CHANGELOG.md
+- **What changed:** Add next row after Session A reserved209, retaining all earlier history and physical evidence safeguards.
+- **Why:** Make the understanding changes and integration boundary reviewable.
+
+---
+
+## 2026-10-15 12:04 — Saved passing Node, both browser modes and staging order verification
+- **File(s) changed:** `docs/validation/assistant-round-b/browser-contract.json`, `docs/validation/assistant-round-b/verification-node-browser-staging.json`
+- **What changed:** Recorded 234 passing Node tests, existing renderer browser success with sessions off/on, 9 real-backend contract groups per mode, hashes and the three open staging order receipts.
+- **Why:** Preserve reviewable acceptance evidence; all browser databases were dropped and 14 GiB remains free.
+
+---
+
+## 2026-10-15 12:03 — Scrub libpq routing overrides from disposable browser databases
+- **File(s) changed:** `tests/visual/run-assistant-round-b.mjs`
+- **What changed:** Remove libpq host/service/session routing overrides from the local setup and fixture process environments.
+- **Why:** Keep database creation, connections and cleanup pinned to the explicit loopback host regardless of inherited shell settings.
+
+---
+
+## 2026-10-15 12:03 — Test exact customer filters and trusted pack weights
+- **File(s) changed:** tests/test_assistant_understanding_round_b.py
+- **What changed:** Add six adversarial order-family, customer-prefix and model-weight cases.
+- **Why:** Keep the final independent-review findings covered by behavioral regressions.
+
+---
+
+## 2026-10-15 12:03 — Verify same-session numeric recovery and real supplier selection in browser
+- **File(s) changed:** `tests/visual/run-assistant-round-b.mjs`
+- **What changed:** Keep unknown-name numeric recovery in the original chat, and select each EN/ES supplier choice to verify a filled 10 lb receive draft.
+- **Why:** Exercise follow-up continuity and supplier provenance in the browser contract test.
+
+---
+
+## 2026-10-15 12:02 — Keep order filters and pack weights tied to real catalog facts
+- **File(s) changed:** fl_assistant.py, assistant_replies.py
+- **What changed:** Filter canonical customers exactly; resolve product/SKU/parent families for open orders; pin pack case weight to catalog or explicit user wording; make shift answer informative.
+- **Why:** Avoid including another customer, losing finished-product family matches or guessing pack weight.
+
+---
+
+## 2026-10-15 12:02 — Use exact make SKU for the Spanish grouped-lot assertion
+- **File(s) changed:** `tests/visual/run-assistant-round-b.mjs`
+- **What changed:** Use product SKU 90002 for the independent Spanish make-card check after already exercising Classic #9 tier selection in English.
+- **Why:** The Spanish assertion targets localized card text and exact SKU understanding while preserving the real tier-choice behavior.
+
+---
+
+## 2026-10-15 12:01 — Documented Session A response contracts and Round B validation map
+- **File(s) changed:** `docs/validation/assistant-round-b/contract-for-session-a.md`, `docs/validation/assistant-round-b/validation-map.json`
+- **What changed:** Documented localized summaries/rows, supplier choices/known facts, unified lot confirmation evidence and explicit exception receipts; mapped all requested fixes to tests and staging evidence.
+- **Why:** Give Session A a concrete rendering contract without overlapping dashboard edits and make completion reviewable.
+
+---
+
+## 2026-10-15 12:01 — Kept adversarial lot fixtures within audit timestamp rules
+- **File(s) changed:** `tests/test_assistant_fact_binding_round_b.py`
+- **What changed:** Used natural fixture insertion order for FIFO instead of attempting to update immutable lot creation timestamps.
+- **Why:** Traceability tests must obey the same immutable audit-clock guard as application writes.
+
+---
+
+## 2026-10-15 12:00 — Retain accented Spanish receive weight
+- **File(s) changed:** fl_assistant.py
+- **What changed:** Recognize Recibí as the start of a receive and keep its supplied total pounds.
+- **Why:** Spanish dictation uses accented past-tense forms.
+
+---
+
+## 2026-10-15 12:00 — Added adversarial assistant fact-binding regressions
+- **File(s) changed:** `tests/test_assistant_fact_binding_round_b.py`
+- **What changed:** Tested omitted/wrong packing allocations against the worker's explicit lot, receive-total changes across supplier followups, new-delivery resets, per-case weights, canonical customer names, Spanish order vocabulary, and numeric followups.
+- **Why:** User facts and physical traceability must remain authoritative when model tool calls omit or change details.
+
+---
+
+## 2026-10-15 12:00 — Preserve malformed read validation
+- **File(s) changed:** fl_assistant.py
+- **What changed:** Keep missing product wording in the one-repair schema path and preserve read failure status.
+- **Why:** New catalog reads must retain existing malformed-tool and neutral-error safeguards.
+
+---
+
+## 2026-10-15 12:00 — Exercise inventory read failures after real product resolution
+- **File(s) changed:** `tests/test_fl_assistant.py`
+- **What changed:** Seed an exact real catalog product for read-failure injection so the inventory endpoint is reached after alias-aware product resolution.
+- **Why:** The failure regression must continue testing endpoint errors rather than a successful empty catalog lookup.
+
+---
+
+## 2026-10-15 12:00 — Match strict model null fields in the local browser fixture
+- **File(s) changed:** `tests/visual/run-assistant-round-b.mjs`
+- **What changed:** Populate omitted model-tool fields with null as required by the strict schema, and forward local fixture diagnostics to the test log.
+- **Why:** Exercise the actual missing-facts contract after normal FL validation rather than relying on malformed fake tool arguments.
+
+---
+
+## 2026-10-15 12:00 — Polish Spanish floor prompts and receive quantities
+- **File(s) changed:** assistant_replies.py, fl_assistant.py, tests/test_assistant_understanding_round_b.py
+- **What changed:** Localize missing field labels and Different lot; recognize more Spanish requests; distinguish total received pounds from per-case weights.
+- **Why:** Ordinary floor phrasing must retain its meaning and language.
+
+---
+
+## 2026-10-15 12:00 — Assert additive assistant copy without weakening validation safeguards
+- **File(s) changed:** `tests/test_fl_assistant.py`
+- **What changed:** Updated exact neutral-card expectations for language and plain messages, empty-match clarification, preserved receive quantity/facts, and structured read failures; Spanish out-of-scope now explicitly requires Spanish wording.
+- **Why:** New server presentation data must coexist with exact retry, no-write and replay regressions.
+
+---
+
+## 2026-10-15 11:59 — Exercise the real product-choice step before the filled make draft
+- **File(s) changed:** `tests/visual/run-assistant-round-b.mjs`
+- **What changed:** Assert Classic #9 choices contain only real matching products, select the real candidate through the assistant choice contract, and verify the Spanish lot-card instruction.
+- **Why:** A keyword match requires worker identity selection before preparing; the follow-up must reach a filled draft without another SKU confirmation.
+
+---
+
+## 2026-10-15 11:58 — Bind packing lots and preserve receive facts
+- **File(s) changed:** fl_assistant.py, assistant_replies.py
+- **What changed:** Pin explicit pack lots server-side, reject receive weight contradictions, retain real schema validation, canonicalize customer reads and restrict inventory results to resolved catalog matches.
+- **Why:** Model formatting must never lose physical-lot or quantity facts.
+
+---
+
+## 2026-10-15 11:58 — Block unknown physical lots from inheriting extra-kosher catalog identity
+- **File(s) changed:** `ticket_actions.py`, `tests/test_assistant_make_round_b.py`
+- **What changed:** Require regular catalog products as well as regular frozen lots for explicit unknown-lot posting; test catalog ingredients whose historical lot remains regular.
+- **Why:** New lot insertion inherits catalog tiers, so an unknown physical bag must never gain extra-kosher provenance.
+
+---
+
+## 2026-10-15 11:58 — Added real backend browser contracts for assistant round B
+- **File(s) changed:** `tests/visual/run-assistant-round-b.mjs`
+- **What changed:** Added browser HTTP checks of actual TestClient handlers and disposable local PostgreSQL for B contracts, with sessions off/on and only model tool selection stubbed.
+- **Why:** Verify structured answers, name resolution, packing, receive facts, and physical-lot traceability without editing Session A display files.
+
+---
+
+## 2026-10-15 11:56 — Keep shift summaries tied to actual physical exception lots
+- **File(s) changed:** `shift_summary.py`, `lot_confirmation.py`, `tests/test_assistant_make_round_b.py`
+- **What changed:** Make summary ingredients prefer the posted response input plan; added English and Spanish checks proving the ledger, ingredient consumption, trace event and summary all identify the unresolved physical lot. Tidied helper spacing.
+- **Why:** The reviewed draft must retain its FIFO suggestion without a later report claiming that unverified suggestion was used.
+
+---
+
+## 2026-10-15 11:56 — Cover Round B real assistant flows
+- **File(s) changed:** tests/test_assistant_understanding_round_b.py, fl_assistant.py
+- **What changed:** Add bilingual reads/orders/receive/pack/make/scope regressions using real handlers and preserve draft language through Record.
+- **Why:** Verify the staging failures at the server contract before review.
+
+---
+
+## 2026-10-15 11:56 — Matched party shorthand at whole-word boundaries
+- **File(s) changed:** `resolution.py`
+- **What changed:** Applied whole-word keyword boundaries for customer and supplier names while preserving their fuzzy near-match suggestions.
+- **Why:** Setton must match Setton-Foods without treating Upsetton as an equally confident customer.
+
+---
+
+## 2026-10-15 11:56 — Kept numeric identities and party word boundaries precise
+- **File(s) changed:** `resolution.py`, `tests/test_assistant_resolution_round_b.py`
+- **What changed:** Simplified party-name SQL, preserved exact identifier labels, retained word boundaries across punctuation, and covered colliding product-number/SKU identities plus inactive products.
+- **Why:** A shorthand fix must preserve ambiguity and never suggest the wrong catalog identity.
+
+---
+
+## 2026-10-15 11:55 — Connect assistant understanding tools and reply data
+- **File(s) changed:** assistant_tools.py, fl_assistant.py
+- **What changed:** Add read-only orders/lots and packing context; preserve receive quantity and supplier choices; resolve make identity once and localize structured replies.
+- **Why:** Support a full floor day in plain English and Spanish without dead ends.
+
+---
+
+## 2026-10-15 11:55 — Recorded three guarded staging A7 test orders for Michael
+- **File(s) changed:** `docs/validation/assistant-round-b/staging-orders.json`
+- **What changed:** Saved A7 receipts and durable verification for SO-261015-001, SO-261015-002, SO-261015-003; all are confirmed/open, unshipped, one case of a real stocked finished SKU.
+- **Why:** Provide end-to-end staging shipping data with reason TEST ORDER FOR MICHAEL and named Michael actor attribution.
+
+---
+
+## 2026-10-15 11:55 — Fixed assistant catalog names and Spanish resolution
+- **File(s) changed:** `resolution.py`
+- **What changed:** Kept product shorthand separate from customer identities, accepted numeric product IDs and punctuation in party names, limited explicit Classic #9 make matches to the plain recipe, generated Spanish search aliases from active catalog names, and named unknown text in localized replies.
+- **Why:** Floor staff need to resolve real names and product numbers without unrelated choices or English dead ends.
+
+---
+
+## 2026-10-15 11:54 — Group make lot tags and preserve explicit unknown-lot traceability
+- **File(s) changed:** `lot_confirmation.py`, `ticket_actions.py`, `tests/test_assistant_make_round_b.py`
+- **What changed:** Added one ingredient confirmation group with FIFO candidates and bilingual instructions; explicit different-lot evidence posts a distinct unresolved trace lot and discrepancy exception without debiting suggested stock or claiming confirmation; extra-kosher unknown sources remain blocked. Corrected the regression fixture tier value.
+- **Why:** Floor staff need a filled make draft with one physical-tag step and safe follow-up for unrecognized bags.
+
+---
+
+## 2026-10-15 11:54 — Keep staging order requests attributed to the named Michael actor
+- **File(s) changed:** `scripts/check_assistant_round_b_staging.py`
+- **What changed:** Use ephemeral unrelated legacy keys so the existing Michael staging actor key resolves as a named actor.
+- **Why:** Preserve actor attribution through normal A7 permission checks.
+
+---
+
+## 2026-10-15 11:54 — Add bilingual server reply contract
+- **File(s) changed:** assistant_replies.py
+- **What changed:** Add deterministic plain answers, structured rows and localized missing/error/choice copy.
+- **Why:** Floor workers need readable answers before data cards.
+
+---
+
+## 2026-10-15 11:53 — Added guarded staging A7 test-order creator for Michael
+- **File(s) changed:** `scripts/check_assistant_round_b_staging.py`
+- **What changed:** Added read-only planning and idempotent three-order creation through A7, with staging host/project guards and durable receipt verification.
+- **Why:** Provide real stocked finished-product orders for the authorized staging shipping test.
+
+---
+
+## 2026-10-15 11:53 — Added round-B catalog resolution regressions
+- **File(s) changed:** `tests/test_assistant_resolution_round_b.py`
+- **What changed:** Added regressions for customer shorthand, product numbers and SKUs, precise Classic #9 make choices, Spanish catalog names, and useful unknown-name replies.
+- **Why:** Michael's staging floor-language tests exposed unresolved names and unrelated product choices.
+
+---
+
+## 2026-10-15 11:53 — Round B physical lot-tag regression coverage
+- **File(s) changed:** `tests/test_assistant_make_round_b.py`
+- **What changed:** Added single-card physical-tag, wrong-tag, explicit different-lot exception, atomicity and kosher-provenance regressions.
+- **Why:** Michael needs one make draft with physical ingredient traceability.
+
+---
+
 ## 2026-10-15 12:33 — PR #131 fix A2: normalize captured test-log endings
 - **File(s) changed:** `docs/validation/fl-assistant-round-a/fix-a2/python/collect.log`
 - **What changed:** Remove trailing empty lines in captured output without changing test results.

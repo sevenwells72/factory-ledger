@@ -297,9 +297,18 @@ def validate(api, cur, action, payload, lock=False):
     # A5 hook: validate actual lot evidence without changing stock policy.
     if action in ('make', 'pack'):
         input_plan, draft['blockers'] = a5.validate_plan(
-            api, cur, input_plan or [], states, payload.get('lot_confirmations'), commit=lock)
+            api, cur, input_plan or [], states, payload.get('lot_confirmations'), commit=lock,
+            allow_different_lot=action == 'make',
+            # Output A12 approval still happens before post. Unknown regular
+            # inputs stay regular; only extra-kosher input identity is refused.
+            different_lot_product_ids={current['id'] for current in products
+                if current['id'] in requirements and a12.tier(current) != a12.EXTRA
+                and not any(state['product_id'] == current['id'] and a12.tier(state) == a12.EXTRA
+                            for state in states)})
         draft['input_plan'] = input_plan
         options['input_plan'] = input_plan
+        if action == 'make':
+            draft['lot_confirmation_group'] = a5.confirmation_group(api, cur, input_plan)
     if action == 'found':
         a5.identity_draft(api, cur, payload, draft)
     if output_product:
@@ -317,6 +326,13 @@ def post(api, cur, action, validated, payload, request, ticket_id, receipt_numbe
     if action == 'move_lot':
         return a5.post_move(api, cur, payload, request, ticket_id, receipt_number)
     draft, _, req, options, occurred_at, source, _, _ = validated
+    if action == 'make' and any(i.get('lot_exception') for i in draft['input_plan']):
+        draft['input_plan'] = a5.materialize_exception_inputs(api, cur, draft['input_plan'], ticket_id)
+        options['input_plan'] = draft['input_plan']
+        # Unmatched physical lots start at zero; ordinary shortage policy applies
+        # to the actual unresolved trace lot, never to the FIFO suggestion.
+        states = [lot(api, cur, i['lot_id'], i['product_id'], True) for i in draft['input_plan']]
+        draft['shortages'] = a3b.shortfalls(draft['input_plan'], states)
     if action == 'found':
         req.performed_by = api._operator_id(request)
     if action in ('make', 'pack', 'found'):
@@ -329,6 +345,9 @@ def post(api, cur, action, validated, payload, request, ticket_id, receipt_numbe
         a5.record_confirmations(cur, response['transaction_id'], draft['input_plan'], actor['id'] if actor else None)
         response['input_plan'] = draft['input_plan']
         if action == 'make':
+            response['lot_exceptions'] = a5.record_lot_exceptions(
+                cur, response['transaction_id'], draft['input_plan'], ticket_id=ticket_id,
+                receipt_number=receipt_number, actor_id=actor['id'] if actor else None)
             a5.record_substitutions(cur, response['transaction_id'], payload, actor['id'] if actor else None)
             response['substitutions'] = draft['substitutions']
             response['exclusion_reason_code'] = draft['exclusion_reason_code']

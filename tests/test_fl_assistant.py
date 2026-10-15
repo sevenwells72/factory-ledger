@@ -95,6 +95,20 @@ def record(client, chat, card, **extra):
     return client.post('/assistant/record', headers=chat[1], json={'draft_id': card['id'], **extra})
 
 
+
+def message_cards(kind='misunderstood', language='en'):
+    messages = {
+        'misunderstood': {
+            'en': 'I did not understand that. Give the item and what you need to do.',
+            'es': 'No entendí eso. Escriba el artículo y lo que necesita hacer.',
+        },
+        'unsupported_request': {
+            'en': 'I can only record or look up Factory Ledger items.',
+            'es': 'Solo puedo registrar o consultar elementos de Factory Ledger.',
+        },
+    }
+    return [{'kind': kind, 'language': language, 'message': messages[kind][language]}]
+
 def test_forced_tools_real_prepare_exact_record_replay_and_resume(client, chat, payload, db_cursor, monkeypatch):
     card, reqs = make_draft(client, chat, payload, db_cursor, monkeypatch)
     assert 'ticket' not in card['prepared'] and 'payload_hash' not in card['prepared']
@@ -250,7 +264,10 @@ def test_turn_replay_does_not_prepare_twice(client, chat, payload, db_cursor, mo
 def test_unmatched_words_logged_no_alias_learning(client, chat, monkeypatch, db_cursor):
     model(monkeypatch, ('resolve', {'kind': 'product', 'query': 'zzzxxyunmatched'}))
     r = turn(client, chat)
-    assert r.json()['cards'][0]['kind'] == 'choices'
+    card = r.json()['cards'][0]
+    assert card['kind'] == 'clarify' and card['query'] == 'zzzxxyunmatched'
+    assert card['language'] == 'en' and 'zzzxxyunmatched' in card['message']
+    assert all(c.get('kind') != 'choices' or c['result'].get('candidates') for c in r.json()['cards'])
     db_cursor.execute('SELECT query FROM assistant_unmatched_words WHERE session_id=%s', (chat[0],))
     assert db_cursor.fetchone()['query'] == 'zzzxxyunmatched'
 
@@ -287,7 +304,7 @@ def test_model_ids_need_resolution(client, chat, monkeypatch, payload):
     requests = model(monkeypatch, *calls)
     r = turn(client, chat)
     assert r.status_code == 200
-    assert r.json()['cards'] == [{'kind': 'misunderstood'}]
+    assert r.json()['cards'] == message_cards()
     assert len(requests) == 2
 
 
@@ -295,7 +312,7 @@ def test_malformed_prepare_retries_once_then_hides_validation(client, chat, monk
     requests = model(monkeypatch, ('prepare_receive', {}), ('prepare_receive', {}))
     r = turn(client, chat)
     assert r.status_code == 200, r.text
-    assert r.json()['cards'] == [{'kind': 'misunderstood'}]
+    assert r.json()['cards'] == message_cards()
     assert len(requests) == 2
     assert 'Field required' not in r.text
 
@@ -336,7 +353,13 @@ def test_missing_receive_facts_are_neutral_even_after_resolve_format_retry(
     requests = model(monkeypatch, *calls, ('prepare_receive', args))
     response = turn(client, chat, 'We received 10 lb of this product from this supplier, supplier lot SMOKE-124-REVIEW.')
     assert response.status_code == 200, response.text
-    expected = [{'kind': 'missing_facts', 'fields': ['cases', 'case_size_lb', 'bol_reference']}]
+    expected = [{'kind': 'missing_facts', 'fields': ['cases', 'case_size_lb', 'bol_reference'],
+                 'known_facts': {'quantity_lb': 10.0, **{k: v for k, v in args.items() if v is not None}},
+                 'language': 'en', 'message': 'Please add the missing details.',
+                 'missing_details': [{'field': 'cases', 'label': 'number of cases'},
+                                     {'field': 'case_size_lb', 'label': 'case size (lb)'},
+                                     {'field': 'bol_reference', 'label': 'BOL number'}],
+                 'summary': 'I kept the quantity: 10 lb. Please add the missing details.'}]
     assert response.json()['cards'] == expected
     assert len(requests) == len(calls)
     if earlier_format_retry:
@@ -361,15 +384,15 @@ def test_prepare_missing_facts_does_not_hide_model_argument_errors(client, chat,
                      ('prepare_receive', {**args, 'supplier_id': None}))
     response = turn(client, chat)
     assert response.status_code == 200, response.text
-    assert response.json()['cards'] == [{'kind': 'misunderstood'}]
+    assert response.json()['cards'] == message_cards()
     assert len(requests) == 3
 
 
-@pytest.mark.parametrize('text', [
-    "Smoke test only. Please reply 'Staging chat OK' and calculate 7 + 5. Do not create, save, update, or record anything",
-    'Solo una prueba. Calcula 7 + 5. No crees, guardes, actualices ni registres nada.',
+@pytest.mark.parametrize('text,language', [
+    ("Smoke test only. Please reply 'Staging chat OK' and calculate 7 + 5. Do not create, save, update, or record anything", 'en'),
+    ('Solo una prueba. Calcula 7 + 5. No crees, guardes, actualices ni registres nada.', 'es'),
 ])
-def test_out_of_scope_has_fixed_neutral_outcome_and_no_fl_write(client, chat, monkeypatch, db_cursor, text):
+def test_out_of_scope_has_fixed_neutral_outcome_and_no_fl_write(client, chat, monkeypatch, db_cursor, text, language):
     requests = model(monkeypatch, ('unsupported_request', {}))
     original = fl_assistant.relay
     paths = []
@@ -381,7 +404,7 @@ def test_out_of_scope_has_fixed_neutral_outcome_and_no_fl_write(client, chat, mo
     monkeypatch.setattr(fl_assistant, 'relay', observe)
     response = turn(client, chat, text)
     assert response.status_code == 200, response.text
-    assert response.json()['cards'] == [{'kind': 'unsupported_request'}]
+    assert response.json()['cards'] == message_cards('unsupported_request', language)
     assert paths == [('GET', '/correction-reasons')]
     assert len(requests) == 1
     assert 'RECORDED!' not in response.text
@@ -397,14 +420,14 @@ def test_malformed_lookup_retries_once_then_plain_message_and_resume(client, cha
     requests = model(monkeypatch, call, call)
     response = turn(client, chat, 'look up inventory')
     assert response.status_code == 200, response.text
-    assert response.json()['cards'] == [{'kind': 'misunderstood'}]
+    assert response.json()['cards'] == message_cards()
     assert len(requests) == 2
     error = requests[1]['input'][-1]
     assert error['type'] == 'function_call_output'
     assert 'detail' in json.loads(error['output'])
     assert all(s not in response.text for s in ['Field required', 'VALIDATION_ERROR', 'not_recorded'])
     resumed = client.post('/assistant/resume', headers=chat[1], json={'session_id': chat[0]})
-    assert resumed.json()['turns'][-1]['cards'] == [{'kind': 'misunderstood'}]
+    assert resumed.json()['turns'][-1]['cards'] == message_cards()
 
 
 def test_validation_retry_can_recover_real_lookup(client, chat, monkeypatch):
@@ -422,7 +445,7 @@ def test_invalid_json_gets_one_repair_attempt(client, chat, monkeypatch):
     requests = model(monkeypatch, malformed, ('inventory_lookup', {}))
     response = turn(client, chat)
     assert response.status_code == 200, response.text
-    assert response.json()['cards'] == [{'kind': 'misunderstood'}]
+    assert response.json()['cards'] == message_cards()
     assert len(requests) == 2
 
 
@@ -435,13 +458,15 @@ def test_failed_repair_always_returns_plain_rephrase(client, chat, monkeypatch, 
     requests = model(monkeypatch, ('inventory_lookup', {}), repair)
     response = turn(client, chat)
     assert response.status_code == 200, response.text
-    assert response.json()['cards'] == [{'kind': 'misunderstood'}]
+    assert response.json()['cards'] == message_cards()
     assert len(requests) == 2
 
 
 @pytest.mark.parametrize('status', [403, 404, 422, 500])
-def test_lookup_business_failure_is_neutral_without_model_retry(client, chat, monkeypatch, status):
-    requests = model(monkeypatch, ('inventory_lookup', {'q': 'Classic'}))
+def test_lookup_business_failure_is_neutral_without_model_retry(client, chat, db_cursor, monkeypatch, status):
+    name = 'F1 read failure ' + uuid4().hex[:10]
+    db_cursor.execute("INSERT INTO products(name,type,uom) VALUES (%s,'ingredient','lb')", (name,))
+    requests = model(monkeypatch, ('inventory_lookup', {'q': name}))
     original = fl_assistant.relay
 
     async def refuse(app, request, method, path, **kwargs):
@@ -452,7 +477,12 @@ def test_lookup_business_failure_is_neutral_without_model_retry(client, chat, mo
     monkeypatch.setattr(fl_assistant, 'relay', refuse)
     response = turn(client, chat)
     assert response.status_code == 200, response.text
-    assert response.json()['cards'] == [{'kind': 'lookup_failed'}]
+    assert response.json()['cards'] == [{
+        'kind': 'lookup_failed', 'status': status,
+        'result': {'detail': {'error_code': 'BUSINESS_REFUSAL', 'message': 'FL refused'}},
+        'language': 'en', 'error_code': 'BUSINESS_REFUSAL',
+        'message': 'I could not complete that Factory Ledger request. Check the item and details.',
+    }]
     assert len(requests) == 1
 
 
@@ -1056,7 +1086,7 @@ def test_partial_ship_order_rejects_real_line_id_until_actual_detail_obtained(cl
     requests = model(monkeypatch, *([('prepare_ship_order', args)] * 2))
     response = turn(client, chat)
     assert response.status_code == 200
-    assert response.json()['cards'] == [{'kind': 'misunderstood'}]
+    assert response.json()['cards'] == message_cards()
     assert len(requests) == 2
     outputs = [item for item in requests[1]['input'] if item.get('type') == 'function_call_output']
     assert json.loads(outputs[-1]['output'])['detail'] == {'error_code': 'RESOLVE_REQUIRED', 'fields': ['line_id']}
@@ -1074,7 +1104,7 @@ def test_partial_ship_order_rejects_invented_or_ineligible_detail_line_ids(clien
     requests = model(monkeypatch, resolve, *([('prepare_ship_order', args)] * 2))
     response = turn(client, chat)
     assert response.status_code == 200
-    assert response.json()['cards'] == [{'kind': 'misunderstood'}]
+    assert response.json()['cards'] == message_cards()
     assert len(requests) == 3
     outputs = [item for item in requests[2]['input'] if item.get('type') == 'function_call_output']
     assert json.loads(outputs[-1]['output'])['detail']['fields'] == ['line_id']

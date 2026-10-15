@@ -8,6 +8,7 @@ import json
 import logging
 import os
 import re
+from urllib.parse import quote
 from pathlib import Path
 from typing import Literal
 from uuid import UUID, uuid4
@@ -21,6 +22,8 @@ from psycopg2.extras import Json
 
 import assistant_tools as catalog
 import write_tickets
+import resolution
+import assistant_replies as replies
 
 ROUTES = ('session', 'resume', 'turn', 'record', 'cancel', 'confirm-sku', 'attachment', 'attachment/read', 'transcribe')
 ACTOR_ROUTES = frozenset({('POST', '/assistant/' + p) for p in ROUTES} |
@@ -90,6 +93,7 @@ class SessionBody(Body):
 class TurnBody(SessionBody):
     turn_id: UUID
     text: str = Field('', max_length=4000)
+    language: Literal['en', 'es'] | None = None
     choice_id: UUID | None = None
     selected_id: StrictInt | StrictStr | None = None
     next_page: bool = False
@@ -358,8 +362,17 @@ def register_routes(app, api):
                     return selected_status, detail, {'kind': 'lookup_failed'}
                 if detail is not None:
                     result = {**result, 'order_detail': detail}
+                if args['kind'] == 'product' and (args.get('context') or {}).get('action') == 'make':
+                    state.setdefault('make_products', []).append(result['match']['id'])
                 return status, result, None
             if status == 200:
+                if not result.get('candidates'):
+                    state.pop('pending', None)
+                    with api.get_transaction() as cur:
+                        cur.execute('INSERT INTO assistant_unmatched_words(session_id,actor_id,kind,query,context) VALUES (%s,%s,%s,%s,%s)',
+                                    (str(body.session_id), actor['id'], args['kind'], args.get('query', ''), Json(args.get('context', {}))))
+                    return status, result, {'kind': 'clarify', 'query': args.get('query', ''),
+                        'resolution_kind': args['kind'], 'candidates': result.get('near_misses', [])}
                 choice_id = str(uuid4())
                 card = {'kind': 'choices', 'id': choice_id, 'resolution_kind': args['kind'], 'query': args.get('query', ''), 'result': result}
                 state['pending'] = {'id': choice_id, 'args': args, 'result': result}
@@ -377,6 +390,28 @@ def register_routes(app, api):
                 return 422, {'detail': {'error_code': 'RESOLVE_REQUIRED', 'fields': unknown}}, None
             path, _ = catalog.PREPARES[name]
             prepared_args = {**args, 'client_source': 'fl_assistant'}
+            if name == 'prepare_make' and args.get('product_id') in state.get('make_products', []):
+                # Only a human's product wording resolved with make context, or
+                # an actual selected FL candidate, establishes output identity.
+                prepared_args['confirmed_sku'] = True
+            if name == 'prepare_pack' and state.get('packing_context'):
+                context = state['packing_context']
+                if args.get('target_product_id') == context['target_product_id']:
+                    prepared_args['source_product_id'] = context['source_product_id']
+                    # Catalog case weight is authoritative unless the worker supplied an override.
+                    prepared_args['case_weight_lb'] = state.get('packing_case_weight_lb') or context.get('case_size_lb')
+                    if context.get('lot_id') and args.get('cases'):
+                        weight = state.get('packing_case_weight_lb') or context.get('case_size_lb')
+                        if weight:
+                            prepared_args['lot_allocations'] = [{'lot_id': context['lot_id'],
+                                'quantity_lb': float(weight) * args['cases']}]
+            if name == 'prepare_receive' and state.get('receive_facts', {}).get('quantity_lb') is not None:
+                given = state['receive_facts']['quantity_lb']
+                cases, size = args.get('cases'), args.get('case_size_lb')
+                if isinstance(cases, int) and isinstance(size, (int, float)) and abs(cases * size - given) > api.BALANCE_EPSILON:
+                    return 422, {'missing_fields': ['cases', 'case_size_lb']}, {
+                        'kind': 'missing_facts', 'fields': ['cases', 'case_size_lb'],
+                        'known_facts': {**args, 'quantity_lb': given}, 'quantity_mismatch_lb': cases * size}
             if name == 'prepare_ship_order' and 'order_id' in prepared_args:
                 path = path.format(order_id=prepared_args.pop('order_id'))
             elif name == 'prepare_ship_order':
@@ -387,12 +422,103 @@ def register_routes(app, api):
             status, result = await relay(app, request, 'POST', path, body=prepared_args)
             if status != 200 or not result.get('ticket') or not result.get('payload_hash') or not isinstance(result.get('draft'), dict):
                 return status, result, {'kind': 'refusal', 'status': status, 'result': catalog.safe_result(result)}
-            card = store_draft(result, args, body.session_id, actor['id'], body.attachment_ids)
+            state.pop('packing_context', None)
+            state.pop('packing_case_weight_lb', None)
+            state.pop('receive_facts', None)
+            card = store_draft(result, args, body.session_id, actor['id'], body.attachment_ids, state.get('language', 'en'))
             return status, result, card
-        if name == 'today_entries':
+        if name == 'packing_context':
+            target_id = args.get('target_product_id')
+            if target_id not in state.get('resolved', {}).get('product', []):
+                return 422, {'detail': {'error_code': 'RESOLVE_REQUIRED', 'fields': ['target_product_id']}}, None
+            with api.get_transaction() as cur:
+                cur.execute('SELECT id,name,case_size_lb,parent_batch_product_id FROM products WHERE id=%s AND active IS DISTINCT FROM false', (target_id,))
+                target = cur.fetchone()
+                if not target:
+                    return 404, {}, {'kind': 'lookup_failed'}
+                source_id = target['parent_batch_product_id']
+            lot_code = args.get('lot_code')
+            lot_data = None
+            if lot_code:
+                params = {'product_id': source_id} if source_id else {}
+                status, lot_data = await relay(app, request, 'GET', '/lots/by-code/' + quote(lot_code, safe=''), params=params)
+                if status != 200:
+                    return status, lot_data, {'kind': 'refusal', 'status': status, 'result': lot_data}
+                if lot_data.get('product_type') != 'batch':
+                    return 422, {}, {'kind': 'clarify', 'query': lot_code}
+                source_id = lot_data['product_id']
+            if not source_id:
+                return 200, {}, {'kind': 'missing_facts', 'fields': ['source_product_id']}
+            status, source = await relay(app, request, 'POST', '/resolve', body={
+                'kind': 'product', 'query': str(source_id), 'context': {'action': 'pack'}})
+            if status != 200 or source.get('outcome') != 'match':
+                return status, source, {'kind': 'lookup_failed'}
+            approve_id(state, 'product', source['match'])
+            if lot_data:
+                approve_id(state, 'lot', {'id': lot_data['id']})
+            result = {'target_product_id': target_id, 'source_product_id': source_id,
+                      'source_product_name': source['match']['name'], 'case_size_lb': target['case_size_lb']}
+            if lot_data:
+                result.update(lot_id=lot_data['id'], lot_code=lot_data['lot_code'])
+            state['packing_context'] = result
+            return 200, result, None
+        if name == 'open_orders':
+            params = {'state': 'open', 'limit': 200}
+            if args.get('customer'):
+                # Party names use their literal wording, without product aliases.
+                resolved_status, party = await relay(app, request, 'POST', '/resolve', body={'kind': 'customer', 'query': args['customer']})
+                if resolved_status != 200 or party.get('outcome') != 'match':
+                    return await execute_tool(request, body, actor, state, 'resolve', {'kind': 'customer', 'query': args['customer']})
+                params['customer'] = party['match']['name']
+            status, result = await relay(app, request, 'GET', '/sales/orders', params=params)
+            if status != 200:
+                return status, result, {'kind': 'refusal', 'status': status, 'result': result}
+            orders = result.get('orders', [])
+            if args.get('customer'):
+                canonical = resolution.normalize(params['customer'])
+                orders = [r for r in orders if resolution.normalize(r['customer']) == canonical]
+            if args.get('product'):
+                query = resolution.catalog_query(args['product'])
+                product_status, products = await relay(app, request, 'POST', '/resolve', body={
+                    'kind': 'product', 'query': query, 'context': {'action': 'order'}, 'limit': 25})
+                if product_status != 200:
+                    return product_status, products, {'kind': 'lookup_failed', 'status': product_status, 'result': products}
+                matches = [products['match']] if products.get('match') else products.get('candidates', [])
+                product_ids = [r['id'] for r in matches]
+                with api.get_transaction() as cur:
+                    cur.execute('SELECT name,odoo_code FROM products WHERE active IS DISTINCT FROM false AND (id=ANY(%s) OR parent_batch_product_id=ANY(%s))', (product_ids, product_ids))
+                    identities = [dict(r) for r in cur.fetchall()]
+                names = {resolution.normalize(r['name']) for r in identities}
+                skus = {str(r['odoo_code']) for r in identities if r.get('odoo_code')}
+                orders = [r for r in orders if any(resolution.normalize(i.get('product')) in names or str(i.get('sku')) in skus
+                                                 for i in r.get('pallet_lines', []))]
+            rows = [dict(order_id=r['order_id'], order_number=r['order_number'], customer=r['customer'],
+                         items=r.get('pallet_lines', []), ship_date=r.get('requested_ship_date'),
+                         status=r.get('fulfillment', r.get('status')), state=r.get('state'),
+                         remaining_lb=r.get('remaining_effective_lb', r.get('remaining_lb'))) for r in orders]
+            result = {'orders': rows, 'count': len(rows), 'customer': args.get('customer'),
+                      'product': args.get('product'), 'truncated': len(result.get('orders', [])) == 200}
+            return 200, result, replies.read_card(name, result, state.get('language', 'en'))
+        if name == 'lot_lookup':
+            path, params = '/lots/by-code/' + quote(args.get('lot_code', ''), safe=''), {}
+        elif name == 'today_entries':
             path, params = '/receipts', {'date': api.get_plant_now().date().isoformat(), 'actor': str(actor['id'])}
         elif name == 'inventory_lookup':
-            path, params = '/inventory/lookup', args
+            if not isinstance(args.get('q'), str) or not args['q'].strip():
+                return 422, {'detail': [{'loc': ['query', 'q'], 'type': 'missing', 'msg': 'Supply product wording.'}]}, None
+            query = resolution.catalog_query(args.get('q', ''))
+            resolved_status, products = await relay(app, request, 'POST', '/resolve', body={'kind': 'product', 'query': query})
+            if resolved_status != 200:
+                return resolved_status, products, {'kind': 'lookup_failed', 'status': resolved_status, 'result': products}
+            matches = [products['match']] if products.get('match') else products.get('candidates', [])
+            rows = []
+            for product in matches:
+                lookup_status, inventory = await relay(app, request, 'GET', '/inventory/lookup', params={'q': product.get('odoo_code') or product['name'], 'limit': 50})
+                if lookup_status != 200:
+                    return lookup_status, inventory, {'kind': 'lookup_failed', 'status': lookup_status, 'result': inventory}
+                rows.extend(r for r in inventory.get('results', []) if r['product'] == product['name'])
+            result = {'query': args.get('q', ''), 'results': rows}
+            return 200, result, replies.read_card(name, result, state.get('language', 'en'))
         elif name == 'receipt_lookup':
             number = args.get('receipt_number', '')
             if not isinstance(number, str) or not re.fullmatch(r'[A-Z]{2,3}-\d{6}-\d{3,}', number):
@@ -403,13 +529,14 @@ def register_routes(app, api):
         else:
             fail(502, 'TOOL_NOT_ALLOWED', 'No permitted FL tool completed / Ninguna herramienta FL completó.')
         status, result = await relay(app, request, 'GET', path, params=params)
-        card = {'kind': 'read', 'tool': name, 'status': status, 'result': result} if status == 200 else {'kind': 'lookup_failed'}
+        card = replies.read_card(name, result, state.get('language', 'en')) if status == 200 else {'kind': 'lookup_failed', 'status': status, 'result': result}
         return status, result, card
 
-    def store_draft(result, args, sid, actor_id, attachments):
+    def store_draft(result, args, sid, actor_id, attachments, language='en'):
         draft_id = str(uuid4())
         card = {'kind': 'draft', 'id': draft_id, 'prepared': catalog.safe_result(result),
-                'attachment_ids': list(attachments)}
+                'attachment_ids': list(attachments), 'language': language}
+        card = replies.decorate(card, language)
         original = {**args, 'occurred_at': result['draft']['happened_at']}
         with api.get_transaction() as cur:
             cur.execute('INSERT INTO assistant_drafts(id,session_id,actor_id,ticket,payload_hash,card,prepare_body) VALUES (%s,%s,%s,%s,%s,%s,%s)',
@@ -427,7 +554,7 @@ def register_routes(app, api):
         status, result = await relay(app, request, 'POST', '/make/prepare', body=args)
         if status != 200 or not result.get('ticket'):
             return JSONResponse(status_code=status, content=catalog.safe_result(result))
-        card = store_draft(result, args, row['session_id'], actor['id'], row['card'].get('attachment_ids', []))
+        card = store_draft(result, args, row['session_id'], actor['id'], row['card'].get('attachment_ids', []), row['card'].get('language', 'en'))
         with api.get_transaction() as cur:
             cur.execute("UPDATE assistant_drafts SET status='cancelled' WHERE id=%s AND status='pending' AND record_started_at IS NULL", (str(body.draft_id),))
         return {'card': card}
@@ -460,6 +587,24 @@ def register_routes(app, api):
             if not claimed:
                 fail(409, 'CHAT_BUSY', 'Wait for the current message / Espera el mensaje actual.')
         state = claimed['state']
+        state['language'] = replies.language(body.text, body.language or state.get('language', 'en'))
+        if re.search(r'\b(?:pack(?:ed)?|empacamos|empacado|empaque)\b', body.text, re.I):
+            state.pop('packing_case_weight_lb', None)
+            weight = re.search(r'(\d+(?:\.\d+)?)\s*(?:lb|pounds?|libras?)\s*(?:per|por|/)\s*(?:case|caja)', body.text, re.I)
+            if weight:
+                state['packing_case_weight_lb'] = float(weight.group(1))
+        # Preserve an explicit receive weight even while cases/vendor/BOL are missing.
+        if re.search(r'\b(?:receive(?:d)?|recibimos|recibi|recibí|recibir)\b', body.text, re.I):
+            state.pop('receive_facts', None)
+            for qty in re.finditer(r'(?<![\w.])(\d+(?:\.\d+)?)\s*(?:lb\b|lbs\b|pounds?\b|libras?\b)', body.text, re.I):
+                before, after = body.text[:qty.start()], body.text[qty.end():]
+                if re.match(r'\s*(?:(?:per|por|/)\s*(?:case|caja)|each|cada)', after, re.I):
+                    continue
+                is_total = re.search(r'\btotal\s*[:=]?\s*$', before, re.I)
+                if not is_total and (re.search(r'\b\d+\s*(?:cases?|cajas?)\b', before, re.I) or re.search(r'[x×@]\s*$', before)):
+                    continue
+                state['receive_facts'] = {'quantity_lb': float(qty.group(1))}
+                break
         try:
             # Names/bytes stay outside model context; A6 stores every photo.
             linked_attachments(api, sid, actor['id'], body.attachment_ids)
@@ -509,13 +654,15 @@ def register_routes(app, api):
                     if body.selected_id is not None:
                         fail(422, 'CHOICE_INVALID', 'Choose a displayed option / Elige una opción mostrada.')
                     state.pop('pending', None)
-                    cards = [{'kind': 'clarify', 'message': 'Give a fuller name or exact code / Escribe el nombre completo o código exacto.'}]
+                    cards = [{'kind': 'clarify', 'query': pending['args'].get('query', '')}]
                     history.append({'role': 'user', 'content': 'None of these candidates; ask me for a fuller name.'})
                     return save_turn(state, cards, body, actor, digest, lease)
                 selected_status, detail = await approve_candidate(request, state, pending['args']['kind'], selected)
                 if selected_status != 200:
                     return save_turn(state, [{'kind': 'lookup_failed'}],
                                      body, actor, digest, lease)
+                if pending['args']['kind'] == 'product' and (pending['args'].get('context') or {}).get('action') == 'make':
+                    state.setdefault('make_products', []).append(selected['id'])
                 state.pop('pending', None)
                 selection = {'candidate': selected, 'order_detail': detail} if detail is not None else selected
                 history.append({'role': 'user', 'content': 'I selected this FL candidate: ' + json.dumps(selection, ensure_ascii=False)})
@@ -539,6 +686,7 @@ def register_routes(app, api):
                     response = await openai('responses', body={
                         'model': os.getenv('ASSISTANT_MODEL', MODEL), 'store': False,
                         'instructions': catalog.INSTRUCTIONS + '\nCurrent FL plant time (America/New_York): ' + api.get_plant_now().isoformat()
+                            + '\nReply language: ' + state['language'] + '. User Spanish always takes precedence.'
                             + '\nFL reason catalog: ' + json.dumps(reasons['reasons'], ensure_ascii=False),
                         'input': history, 'tools': functions, 'tool_choice': 'required',
                         'parallel_tool_calls': False, 'max_output_tokens': 4000,
@@ -571,6 +719,24 @@ def register_routes(app, api):
                     status, result, card = await execute_tool(request, body, actor, state, call['name'], catalog.clean_arguments(args))
                     missing_card = missing_prepare_card(call['name'], status, result, args)
                 history.append(catalog.output_item(call['call_id'], result))
+                if call['name'] == 'prepare_receive':
+                    detail = result.get('detail', {}) if isinstance(result, dict) else {}
+                    if isinstance(detail, dict) and detail.get('error_code') == 'SUPPLIER_REQUIRED':
+                        missing_card = {'kind': 'missing_facts', 'fields': ['supplier_id']}
+                    if missing_card:
+                        if args.get('supplier_id') is None and 'supplier_id' not in missing_card['fields']:
+                            missing_card['fields'].insert(0, 'supplier_id')
+                        missing_card['known_facts'] = {**state.get('receive_facts', {}), **catalog.clean_arguments(args)}
+                        if 'supplier_id' in missing_card['fields']:
+                            supplier_status, suppliers = await relay(app, request, 'GET', '/suppliers')
+                            if supplier_status == 200:
+                                candidates = [dict(id=r['id'], name=r['name'], label=r['name']) for r in suppliers.get('suppliers', [])
+                                              if resolution.normalize(r['name']) not in resolution.SENTINEL_SUPPLIERS]
+                                if candidates:
+                                    choice_id = str(uuid4())
+                                    missing_card.update(choice_id=choice_id, supplier_choices=candidates)
+                                    state['pending'] = {'id': choice_id, 'args': {'kind': 'supplier', 'query': ''},
+                                        'result': {'candidates': candidates}}
                 if missing_card:
                     card = missing_card
                 elif argument_validation_error(status, result):
@@ -598,7 +764,8 @@ def register_routes(app, api):
                 cur.execute('UPDATE assistant_sessions SET lease_id=NULL,lease_until=NULL WHERE id=%s AND lease_id=%s', (sid, lease))
 
     def save_turn(state, cards, body, actor, digest, lease):
-        result = {'turn_id': str(body.turn_id), 'text': body.text, 'cards': cards}
+        cards = [replies.decorate(card, state.get('language', 'en')) for card in cards]
+        result = {'turn_id': str(body.turn_id), 'text': body.text, 'language': state.get('language', 'en'), 'cards': cards}
         with api.get_transaction() as cur:
             cur.execute('UPDATE assistant_sessions SET state=%s,updated_at=clock_timestamp() WHERE id=%s AND actor_id=%s AND lease_id=%s',
                         (Json(state), str(body.session_id), actor['id'], lease))
@@ -649,7 +816,7 @@ def register_routes(app, api):
                             WHERE ticket_hash=%s AND status='committed')""",
                         (str(body.draft_id), attempt, write_tickets.token_hash(row['ticket'])))
             return JSONResponse(status_code=status if status >= 400 else 502,
-                                content=jsonable_encoder({'kind': 'not_recorded', 'result': catalog.safe_result(result)}))
+                                content=jsonable_encoder(replies.decorate({'kind': 'not_recorded', 'result': catalog.safe_result(result)}, row['card'].get('language', 'en'))))
         with api.get_transaction() as cur:
             cur.execute("UPDATE assistant_drafts SET status='committed',result=%s WHERE id=%s", (Json(result), str(body.draft_id)))
         return {'kind': 'receipt', 'draft_id': str(body.draft_id), 'result': catalog.safe_result(result)}

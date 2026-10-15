@@ -1,0 +1,140 @@
+{
+  "staging_only": true,
+  "database_identity_verified": true,
+  "mode": "local branch A7 HTTP routes against guarded staging; no hosted deployment",
+  "created_at": "2026-10-15T11:54:43.900594-04:00",
+  "reason": "TEST ORDER FOR MICHAEL",
+  "orders": [
+    {
+      "customer_id": 217,
+      "customer": "Sunshine Granola",
+      "external_order_reference": "FL-FIXB-MICHAEL-20261015-1",
+      "product": {
+        "id": 190,
+        "name": "Desiccated Flake 50 LB",
+        "odoo_code": "10047",
+        "case_size_lb": "50.0000",
+        "on_hand_lb": "100700.0000",
+        "lots": [
+          "OPEN261014-P453"
+        ]
+      },
+      "quantity": 1,
+      "unit": "cases",
+      "reason": "TEST ORDER FOR MICHAEL",
+      "existing": null,
+      "order_number": "SO-261015-001",
+      "order_id": 1000000027,
+      "receipt_number": "ORD-261015-007",
+      "ticket_id": 1502,
+      "created_this_run": true,
+      "verification": {
+        "id": 1000000027,
+        "order_number": "SO-261015-001",
+        "status": "confirmed",
+        "state": "open",
+        "notes": "TEST ORDER FOR MICHAEL",
+        "external_order_reference": "FL-FIXB-MICHAEL-20261015-1",
+        "customer_id": 217,
+        "ticket_action": "create_order",
+        "ticket_status": "committed",
+        "receipt_number": "ORD-261015-007",
+        "product_id": 190,
+        "quantity_lb": "50.0000",
+        "quantity_shipped_lb": "0.0000",
+        "product_name": "Desiccated Flake 50 LB",
+        "case_size_lb": "50.0000"
+      }
+    },
+    {
+      "customer_id": 5,
+      "customer": "Setton Farms",
+      "external_order_reference": "FL-FIXB-MICHAEL-20261015-2",
+      "product": {
+        "id": 173,
+        "name": "Kookies & Kreme – 25 LB",
+        "odoo_code": "10304",
+        "case_size_lb": "25.0000",
+        "on_hand_lb": "46625.0000",
+        "lots": [
+          "OPEN261014-P1482",
+          "OPEN261014-P725"
+        ]
+      },
+      "quantity": 1,
+      "unit": "cases",
+      "reason": "TEST ORDER FOR MICHAEL",
+      "existing": null,
+      "order_number": "SO-261015-002",
+      "order_id": 1000000029,
+      "receipt_number": "ORD-261015-008",
+      "ticket_id": 1503,
+      "created_this_run": true,
+      "verification": {
+        "id": 1000000029,
+        "order_number": "SO-261015-002",
+        "status": "confirmed",
+        "state": "open",
+        "notes": "TEST ORDER FOR MICHAEL",
+        "external_order_reference": "FL-FIXB-MICHAEL-20261015-2",
+        "customer_id": 5,
+        "ticket_action": "create_order",
+        "ticket_status": "committed",
+        "receipt_number": "ORD-261015-008",
+        "product_id": 173,
+        "quantity_lb": "25.0000",
+        "quantity_shipped_lb": "0.0000",
+        "product_name": "Kookies & Kreme – 25 LB",
+        "case_size_lb": "25.0000"
+      }
+    },
+    {
+      "customer_id": 4,
+      "customer": "UNIPRO",
+      "external_order_reference": "FL-FIXB-MICHAEL-20261015-3",
+      "product": {
+        "id": 175,
+        "name": "Sprinkles Rainbow 10 LB",
+        "odoo_code": "10302",
+        "case_size_lb": "10.0000",
+        "on_hand_lb": "36070.0000",
+        "lots": [
+          "OPEN261014-P1494",
+          "OPEN261014-P795"
+        ]
+      },
+      "quantity": 1,
+      "unit": "cases",
+      "reason": "TEST ORDER FOR MICHAEL",
+      "existing": null,
+      "order_number": "SO-261015-003",
+      "order_id": 1000000031,
+      "receipt_number": "ORD-261015-009",
+      "ticket_id": 1504,
+      "created_this_run": true,
+      "verification": {
+        "id": 1000000031,
+        "order_number": "SO-261015-003",
+        "status": "confirmed",
+        "state": "open",
+        "notes": "TEST ORDER FOR MICHAEL",
+        "external_order_reference": "FL-FIXB-MICHAEL-20261015-3",
+        "customer_id": 4,
+        "ticket_action": "create_order",
+        "ticket_status": "committed",
+        "receipt_number": "ORD-261015-009",
+        "product_id": 175,
+        "quantity_lb": "10.0000",
+        "quantity_shipped_lb": "0.0000",
+        "product_name": "Sprinkles Rainbow 10 LB",
+        "case_size_lb": "10.0000"
+      }
+    }
+  ],
+  "actor": {
+    "id": 1000000116,
+    "name": "Michael (staging)",
+    "role": "owner"
+  },
+  "verified_open_orders": 3
+}

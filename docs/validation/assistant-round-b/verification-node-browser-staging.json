@@ -1,0 +1,61 @@
+{
+  "captured_at": "2026-10-15T12:04:46.664906-04:00",
+  "scope": "Node/browser/staging acceptance; full Python counts are recorded separately by the parent task",
+  "disk": {
+    "free_before": "14 GiB",
+    "free_after": "14 GiB"
+  },
+  "node": {
+    "command": "node --test tests/*.js",
+    "tests": 234,
+    "passed": 234,
+    "failed": 0,
+    "skipped": 0,
+    "log": "/private/tmp/fl_fixB_node.log"
+  },
+  "existing_renderer_browser": {
+    "runner": "tests/visual/run-fl-assistant.mjs",
+    "sessions_off": "passed",
+    "sessions_on": "passed",
+    "coverage": "EN/ES, draft/receipt, retry, tag controls, warnings, dictation, A6 private attachments, BOL/shipping, choices/XSS, reload, mobile light/dark, session expiry/logout",
+    "screenshots": [
+      "/private/tmp/fl_fixB_browser_off",
+      "/private/tmp/fl_fixB_browser_on"
+    ]
+  },
+  "new_backend_browser": {
+    "runner": "tests/visual/run-assistant-round-b.mjs",
+    "sessions_off_contract_groups_passed": 9,
+    "sessions_on_contract_groups_passed": 9,
+    "only_model_tool_selection_stubbed": true,
+    "fresh_databases_created_and_dropped": true,
+    "remaining_browser_databases": [],
+    "evidence": "browser-contract.json"
+  },
+  "staging": {
+    "normal_A7_prepare_commit": true,
+    "guarded_host_and_project": true,
+    "existing_actor": "Michael (staging)",
+    "order_numbers": [
+      "SO-261015-001",
+      "SO-261015-002",
+      "SO-261015-003"
+    ],
+    "reason": "TEST ORDER FOR MICHAEL",
+    "orders_verified_open_and_unshipped": 3,
+    "deployments": 0,
+    "inventory_posts": 0,
+    "customer_or_product_writes": 0,
+    "actor_writes": 0,
+    "evidence": "staging-orders.json"
+  },
+  "file_sha256": {
+    "tests/visual/run-assistant-round-b.mjs": "b3de7e0f09a0b76dbb3b40e7dae1c4a942c2115898e3a79bcd712505d33f8d27",
+    "tests/visual/run-fl-assistant.mjs": "e544a8c3636eaa44e89ab2304a8131b96ca4969f34b7d563f2b45c8b897fcc45",
+    "scripts/check_assistant_round_b_staging.py": "7ff315035c92d0ee9e886fad14adb8c1c19b48b96730f2b496a228e44be71c84",
+    "docs/validation/assistant-round-b/contract-for-session-a.md": "26541be4d5ef75084fe83613179fe009cb0f4a97feccb6cbc11bb3825a0be19b",
+    "docs/validation/assistant-round-b/validation-map.json": "e018ee57d30d265ee605f57f448d115dc63c49e9d76604a64bab6f38cea9f718",
+    "docs/validation/assistant-round-b/staging-orders.json": "c7b79c2da24169f6ace8ea4ea64ae9fd76c31a52a750adc30497b189f92482d9"
+  },
+  "file_sha256_after_contract_handoff": true
+}

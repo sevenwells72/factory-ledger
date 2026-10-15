@@ -12,7 +12,7 @@ from pydantic import BaseModel, conint, constr
 
 class LotConfirmation(BaseModel):
     lot_id: conint(strict=True, gt=0)
-    method: Literal['last4', 'full_code', 'scan', 'pallet']
+    method: Literal['last4', 'full_code', 'scan', 'pallet', 'different_lot']
     value: constr(strict=True, strip_whitespace=True, min_length=1, max_length=200)
 
     class Config:
@@ -53,7 +53,8 @@ def verify(api, cur, lot, evidence):
     return dict(evidence)
 
 
-def validate_plan(api, cur, plan, states, confirmations, *, commit=False):
+def validate_plan(api, cur, plan, states, confirmations, *, commit=False, allow_different_lot=False,
+                  different_lot_product_ids=None):
     """Return annotated plan/blockers; prepare never pre-confirms a suggestion."""
     selected = {item['lot_id'] for item in plan}
     evidence = {}
@@ -67,10 +68,23 @@ def validate_plan(api, cur, plan, states, confirmations, *, commit=False):
     result, blockers = [], []
     for item in plan:
         lot = lots[item['lot_id']]
-        confirmed = verify(api, cur, lot, evidence[lot['id']]) if lot['id'] in evidence else None
-        row = dict(item, lot_code=lot['lot_code'], confirmed=confirmed is not None,
+        entry = evidence.get(lot['id'])
+        exception = None
+        if entry and entry['method'] == 'different_lot':
+            if not allow_different_lot or (different_lot_product_ids is not None
+                                           and lot['product_id'] not in different_lot_product_ids):
+                fail('PHYSICAL_LOT_KOSHER_REVIEW_REQUIRED',
+                     'This physical lot needs review before it can be used for this product. / Este lote físico necesita revisión antes de usarse para este producto.')
+            exception = {'physical_tag': entry['value'].strip(), 'suggested_lot_id': lot['id'],
+                         'suggested_lot_code': lot['lot_code'], 'kind': 'SHIFT_DISCREPANCY'}
+        confirmed = verify(api, cur, lot, entry) if entry and not exception else None
+        row = dict(item, product_name=lot['product_name'], lot_code=lot['lot_code'], confirmed=confirmed is not None,
                    suggested_lot={'lot_id': lot['id'], 'lot_code': lot['lot_code'], 'confirmed': False})
-        if confirmed:
+        row.pop('lot_exception', None)
+        if exception:
+            row.pop('confirmation', None)
+            row['lot_exception'] = exception
+        elif confirmed:
             row['confirmation'] = confirmed
         else:
             row.pop('confirmation', None)
@@ -96,11 +110,80 @@ def merge_confirmations(payload, additions):
 
 def record_confirmations(cur, transaction_id, plan, actor_id):
     for item in plan:
+        if item.get('lot_exception'):
+            continue  # An explicitly unknown physical lot is never a normal confirmation.
         evidence = item['confirmation']
         cur.execute('''INSERT INTO transaction_lot_confirmations
             (transaction_id,lot_id,method,value,actor_id,move_id)
             VALUES (%s,%s,%s,%s,%s,%s)''',
             (transaction_id,item['lot_id'],evidence['method'],evidence['value'],actor_id,evidence.get('move_id')))
+
+
+def confirmation_group(api, cur, plan):
+    """One additive, renderer-neutral card; FIFO suggestions never imply evidence."""
+    grouped = {}
+    for item in plan:
+        ingredient = grouped.setdefault(item['product_id'], {
+            'product_id': item['product_id'], 'product_name': item['product_name'],
+            'needed_lb': 0.0, 'suggested_lots': [], 'candidates': [],
+            'different_lot': {'method': 'different_lot', 'label_en': 'Different lot', 'label_es': 'Otro lote'}})
+        ingredient['needed_lb'] += float(item['quantity_lb'])
+        ingredient['suggested_lots'].append({key: item[key] for key in
+            ('lot_id', 'lot_code', 'quantity_lb', 'confirmed')})
+    for ingredient in grouped.values():
+        cur.execute(f'''SELECT l.id AS lot_id,l.lot_code,COALESCE(sum(tl.quantity_lb),0) AS available_lb
+            FROM lots l LEFT JOIN {api.POSTED_LINES} tl ON tl.lot_id=l.id
+            WHERE l.product_id=%s AND l.status IS DISTINCT FROM 'merged'
+            GROUP BY l.id HAVING COALESCE(sum(tl.quantity_lb),0)>0
+            ORDER BY COALESCE(l.received_at,l.created_at),l.id''', (ingredient['product_id'],))
+        ingredient['candidates'] = [dict(row) for row in cur.fetchall()]
+    return {'kind': 'lot_confirmation',
+            'instruction_en': 'Type the last 4 characters from the tag on each bag you used.',
+            'instruction_es': 'Escriba los últimos 4 caracteres de la etiqueta de cada bolsa que usó.',
+            'ingredients': list(grouped.values())}
+
+
+def materialize_exception_inputs(api, cur, plan, ticket_id):
+    """Debit a separate unresolved trace lot, never the unverified FIFO suggestion.
+
+    The worker explicitly declared a different physical lot. Its identity is not
+    invented or represented as confirmed. The actual tag and reviewed suggestion
+    remain attached to the ledger input and an ordinary follow-up exception.
+    This happens only in the caller's posting transaction, so failures undo it.
+    """
+    result = []
+    for index, item in enumerate(plan):
+        if not item.get('lot_exception'):
+            result.append(item)
+            continue
+        detail = dict(item['lot_exception'])
+        code = f'UNVERIFIED-{ticket_id}-P{item["product_id"]}-{index + 1}'
+        lot_id, _, _ = api.find_or_create_lot(cur, item['product_id'], code, 'unverified_make_input',
+            entry_source_notes=f'Physical tag: {detail["physical_tag"]}; suggested lot {detail["suggested_lot_code"]} was NOT used.',
+            entry_source_notes_es=f'Etiqueta física: {detail["physical_tag"]}; NO se usó el lote sugerido {detail["suggested_lot_code"]}.')
+        detail.update(lot_id=lot_id, lot_code=code)
+        result.append(dict(item, lot_id=lot_id, lot_code=code, confirmed=False, lot_exception=detail))
+    return result
+
+
+def record_lot_exceptions(cur, transaction_id, plan, *, ticket_id, receipt_number, actor_id):
+    """Use the existing discrepancy queue, with raw physical evidence retained."""
+    from psycopg2.extras import Json
+    import exceptions_enforcement as exceptions
+    rows = []
+    for item in plan:
+        if not item.get('lot_exception'):
+            continue
+        detail = dict(item['lot_exception'], action='make', quantity_lb=float(item['quantity_lb']),
+                      entered_by_actor_id=actor_id, follow_up='Identify the physical ingredient lot; do not assume the suggested FIFO lot.')
+        cur.execute('''INSERT INTO exceptions(kind,severity,product_id,lot_id,transaction_id,receipt_number,
+                ticket_id,detail,owner_actor_id)
+            VALUES ('SHIFT_DISCREPANCY','warn',%s,%s,%s,%s,%s,%s,%s) RETURNING id''',
+            (item['product_id'],item['lot_id'],transaction_id,receipt_number,ticket_id,Json(detail),
+             exceptions.floor_owner_id(cur)))
+        rows.append(dict(detail, product_id=item['product_id'], product_name=item['product_name'],
+                         exception_id=cur.fetchone()['id']))
+    return rows
 
 
 def validate_move(api, cur, payload, lock):

@@ -93,6 +93,14 @@ def tools(reasons, *, shift_summary=False):
         function('today_entries', 'Read the authenticated person’s real FL receipts for today.', object_schema({})),
         function('inventory_lookup', 'Read inventory from FL for the user’s product wording.',
                  object_schema({'q': {'type': 'string', 'minLength': 1, 'maxLength': 500}})),
+        function('open_orders', 'List open FL orders, optionally filtered by customer name or product name/SKU. Read only; never resolve an unspecified order.',
+                 object_schema({'customer': {'anyOf': [{'type': 'string'}, {'type': 'null'}]},
+                                'product': {'anyOf': [{'type': 'string'}, {'type': 'null'}]}})),
+        function('lot_lookup', 'Read the remaining pounds in an exact FL lot code.',
+                 object_schema({'lot_code': {'type': 'string', 'minLength': 1, 'maxLength': 200}})),
+        function('packing_context', 'Find the source batch from the finished product parent or supplied batch lot. Resolve target product first; use returned real IDs in prepare_pack. No physical lot confirmation is inferred.',
+                 object_schema({'target_product_id': {'type': 'integer', 'minimum': 1},
+                                'lot_code': {'anyOf': [{'type': 'string'}, {'type': 'null'}]}})),
         function('receipt_lookup', 'Read an existing FL receipt by its exact receipt number.',
                  object_schema({'receipt_number': {'type': 'string', 'pattern': '^[A-Z]{2,3}-[0-9]{6}-[0-9]{3,}$'}})),
     ])
@@ -102,7 +110,7 @@ def tools(reasons, *, shift_summary=False):
 
 
 INSTRUCTIONS = '''You are the FL Assistant language interface. Every turn must call an available FUNCTION.
-For anything outside FL customers/orders/receive/make/pack/ship/adjust/found/inventory/receipts/today's entries/shift summary,
+For anything outside FL customers/orders/receive/make/pack/ship/adjust/found/inventory/lots/receipts/today's entries/shift summary,
 call unsupported_request. General chat, arithmetic and smoke-test requests for prose are outside FL.
 Never force an unsupported message into an empty resolve, lookup or prepare call.
 If a tool returns an argument validation error, correct the call using only supplied facts.
@@ -119,7 +127,13 @@ Prepare the new customer first, then STOP for the person's Record and real CUS r
 After that receipt, prepare_create_order for that recorded customer using the original requested items.
 If order items or quantities are missing, prepare with nulls to ask for them. Never create an empty order.
 A CUS receipt records only a customer; an order still needs its own draft, human Record and ORD receipt.
-For pack resolve the source batch and target finished product separately, using source product context.
+For packing resolve the finished product first, then call packing_context with its ID and the supplied batch lot code (null if absent).
+Use its source_product_id, target_product_id and lot_id, and the finished product's case_size_lb to prepare_pack.
+When the user gives only a finished product, its catalog parent is the source batch; do not ask the worker to know that batch name.
+If a batch lot is given, use that lot's actual product, never search for a product named after the lot code.
+A resolved real product selection is sufficient output identity for make; do not request a second SKU confirmation.
+Do not infer physical lot confirmation; every input bag tag still needs human evidence.
+For pack resolve the source batch and target finished product separately only if packing_context asks for missing facts.
 For shipments resolve the customer, products/lots or order as appropriate, using ship context.
 Use prepare_ship_order for a resolved order; ship_all only when explicitly requested.
 For a partial shipment use only line_id values from that selected order's FL order_detail.
@@ -129,6 +143,10 @@ Use only supplied quantities and times; null for missing fields. Never guess cas
 Use prepare with null fields to request missing facts. Use the fixed reason catalog for adjust/found;
 if reason is missing pass null, so the person can select it. Preserve Spanish/English notes.
 Missing context for an action: ask through the real resolve or prepare endpoint, not invented prose.
+For open-order questions use open_orders directly, customer/product filters in the user's words; 'Sunshine', 'Setton' and 'UNIPRO' are customer names.
+Spanish 'pedidos abiertos' means open orders. 'semillas de girasol' means Sunflower Seeds; preserve other exact catalog wording.
+For questions about pounds in a lot use lot_lookup with the exact lot code, never inventory_lookup on a lot code.
+A new number or SKU after unresolved product choices is a product identifier; resolve it.
 For today's entries use today_entries. For inventory use inventory_lookup. Receipt numbers use receipt_lookup.
 Photos are stored attachments only, never interpreted. Dictation is user-reviewed text.
 Calls may follow an unambiguous resolution. Stop after a prepare/read, missing fields, choice or refusal.
