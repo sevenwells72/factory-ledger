@@ -57,6 +57,13 @@
       "failed": 0,
       "databases_dropped": true,
       "screenshots": 4
+    },
+    "display_edge_cases": {
+      "passed": 8,
+      "failed": 0,
+      "fixture_renderer_only": true,
+      "database_used": false,
+      "model_used": false
     }
   },
   "model": "gpt-6.1-sol",
@@ -86,5 +93,6 @@
     "tests/test_assistant_request_compatibility.py": "70af7ac2488339d051d8f793d9d83cb9042d821cbffe776a19c9782858ccd772",
     "tests/visual/run-fl-assistant-round-b-page.mjs": "e713388a027363820c5876c950c14d4ccacf9d43f92515ddb37b2b2c9cf5d290",
     "tests/visual/assistant_round_b_page_bridge.py": "b141082d736f3b7552cb4a931b8330ecfb4c0d5f7a568acf66d1b42ffa816ee7"
-  }
+  },
+  "total_screenshots": 248
 }

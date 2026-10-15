@@ -23,6 +23,15 @@
       "model_tool_selection_stubbed": false,
       "screenshots": 4,
       "results": "docs/validation/fl-assistant-round-b/reviewed-queries-real-model/results.json"
+    },
+    {
+      "name": "display-edge-cases",
+      "cases_passed": 8,
+      "fixture_renderer_only": true,
+      "database_used": false,
+      "model_used": false,
+      "screenshots": 8,
+      "results": "docs/validation/fl-assistant-round-b/display-edge-cases/results.json"
     }
   ],
   "screenshots": [
@@ -1225,9 +1234,65 @@
       "path": "docs/validation/fl-assistant-round-b/reviewed-queries-real-model/sessions-off/1440-11-exact-classic-inventory-es.png",
       "width": 1440,
       "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/display-edge-cases/1440-unverified-en.png",
+      "width": 1440,
+      "height": 1000,
+      "run": "display-edge-cases",
+      "fixture_renderer_only": true
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/display-edge-cases/1440-unverified-es.png",
+      "width": 1440,
+      "height": 1000,
+      "run": "display-edge-cases",
+      "fixture_renderer_only": true
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/display-edge-cases/1440-voided-en.png",
+      "width": 1440,
+      "height": 1000,
+      "run": "display-edge-cases",
+      "fixture_renderer_only": true
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/display-edge-cases/1440-voided-es.png",
+      "width": 1440,
+      "height": 1000,
+      "run": "display-edge-cases",
+      "fixture_renderer_only": true
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/display-edge-cases/390-unverified-en.png",
+      "width": 390,
+      "height": 844,
+      "run": "display-edge-cases",
+      "fixture_renderer_only": true
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/display-edge-cases/390-unverified-es.png",
+      "width": 390,
+      "height": 844,
+      "run": "display-edge-cases",
+      "fixture_renderer_only": true
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/display-edge-cases/390-voided-en.png",
+      "width": 390,
+      "height": 844,
+      "run": "display-edge-cases",
+      "fixture_renderer_only": true
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/display-edge-cases/390-voided-es.png",
+      "width": 390,
+      "height": 844,
+      "run": "display-edge-cases",
+      "fixture_renderer_only": true
     }
   ],
-  "total_cases_passed": 136,
-  "total_pngs": 240,
+  "total_cases_passed": 144,
+  "total_pngs": 248,
   "credential_pattern_scan": "passed; JSON and logs contain no OpenAI key-like strings"
 }
