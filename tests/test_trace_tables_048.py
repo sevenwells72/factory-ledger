@@ -30,6 +30,8 @@ from uuid import uuid4
 
 import pytest
 
+from tests.conftest import scratch_database_prefix
+
 import psycopg2
 from psycopg2 import errors as pg_errors
 from psycopg2.extras import RealDictCursor
@@ -79,7 +81,7 @@ def _scratch_setup():
         )
 
     def build():
-        db_name = f"factory_ledger_test_048_{uuid4().hex[:8]}"
+        db_name = scratch_database_prefix("factory_ledger_test_048_") + uuid4().hex[:8]
         proc = _run(admin_url, "-c", f'CREATE DATABASE "{db_name}"')
         assert proc.returncode == 0, proc.stderr
         url = urlunparse(parsed._replace(path=f"/{db_name}"))

@@ -111,6 +111,16 @@ def _connection_url():
     return _TEST_URL or None
 
 
+def scratch_database_prefix(default):
+    """Allow a run-specific prefix for every disposable test database."""
+    import re
+
+    prefix = os.environ.get("TEST_DB_PREFIX", default)
+    if not re.fullmatch(r"[a-z][a-z0-9_]{0,29}", prefix):
+        raise ValueError("TEST_DB_PREFIX must be a lowercase SQL identifier of at most 30 characters")
+    return prefix
+
+
 # ─────────────────────────────────────────────────────────────────
 # DB fixtures
 # ─────────────────────────────────────────────────────────────────

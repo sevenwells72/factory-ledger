@@ -114,7 +114,7 @@ Resolve every ID before prepare, except customer IDs supplied by a real recorded
 Ambiguous outcomes require a human button; never select a candidate.
 For an explicitly new customer use prepare_create_customer with the exact supplied name and contact details.
 The create-customer prepare checks duplicates. Never invent an ID, contact detail, email, phone or address.
-For a new order resolve the customer; if none is found the person can choose New customer.
+For a new order resolve the customer; the person can choose an existing suggestion or add a new customer.
 Prepare the new customer first, then STOP for the person's Record and real CUS receipt.
 After that receipt, prepare_create_order for that recorded customer using the original requested items.
 If order items or quantities are missing, prepare with nulls to ask for them. Never create an empty order.

@@ -5,6 +5,7 @@ owns identity, permission rechecks, supersession, expiry, hashes and replay.
 The legacy customer routes remain unchanged.
 """
 import json
+import unicodedata
 from datetime import datetime
 from typing import Optional
 
@@ -44,17 +45,39 @@ class CreateCustomerRequest(wt.IdInput):
         return values
 
 
+COMPANY_SUFFIXES = frozenset(('inc', 'llc', 'co', 'corp', 'ltd'))
+
+
+def duplicate_key(name):
+    # Normalize spelling variants only; Sunrise and Sunshine remain different.
+    # Drop abbreviation dots/apostrophes and separate other punctuation so
+    # Bakery,Inc., Bakery (Inc.) and dotted L.L.C. share the same identity.
+    normalized = ''.join('' if char in ".'’" else ' ' if unicodedata.category(char).startswith('P')
+                         else char for char in name.casefold())
+    words = normalized.split()
+    while len(words) > 1 and words[-1] in COMPANY_SUFFIXES:
+        words.pop()
+    return ' '.join(words)
+
+
 def duplicate(cur, name):
-    # Use one Python normalization for input and legacy catalog rows. Database
-    # regex whitespace/case semantics differ by locale (notably NBSP); catalog
-    # matching must not depend on which Postgres host serves this ticket.
-    # Include inactive names: creating a second identity cannot reactivate one.
-    normalized = ' '.join(name.split()).lower()
-    cur.execute('SELECT id,name,active FROM customers ORDER BY active DESC NULLS LAST,id')
-    row = next((row for row in cur.fetchall() if ' '.join(row['name'].split()).lower() == normalized), None)
+    # Use one Python normalization for input, legacy names and both alias
+    # catalogs. Database regex whitespace/case semantics differ by locale.
+    # Include inactive customers: a second identity cannot reactivate one.
+    normalized = duplicate_key(name)
+    cur.execute("""SELECT id,name,active,name AS match_name FROM customers
+                   UNION ALL
+                   SELECT c.id,c.name,c.active,ca.alias FROM customers c
+                   JOIN customer_aliases ca ON ca.customer_id=c.id
+                   UNION ALL
+                   SELECT c.id,c.name,c.active,sa.alias FROM customers c
+                   JOIN search_aliases sa ON sa.customer_id=c.id
+                   WHERE sa.kind='customer' AND sa.active
+                   ORDER BY active DESC NULLS LAST,id""")
+    row = next((row for row in cur.fetchall() if duplicate_key(row['match_name']) == normalized), None)
     if not row:
         return None
-    existing = dict(row)
+    existing = {field: row[field] for field in ('id', 'name', 'active')}
     advice = ('Use this customer instead.' if row['active'] else
               'Ask the owner to reactivate this customer instead.')
     return {'code': 'CUSTOMER_ALREADY_EXISTS',

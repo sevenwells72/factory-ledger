@@ -58,6 +58,142 @@ const draft = { kind: 'draft', id: did, attachment_ids: [], prepared: {
   draft: { auto_substitutions: [autoPreview], product_name: 'Classic Test Batch', batches: 2, total_output_lb: 800, happened_at: '2026-10-08T18:20:00-04:00',
     input_plan: [{ lot_id: 19, lot_code: '26-10-08-OATS-004', quantity_lb: 800, product_name: 'Rolled Oats', confirmed: false }] }
 } };
+async function checkOfficeCustomerFlow() {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+  try {
+    const page = await context.newPage(), errors = [], officeTurns = [], officeRecords = [];
+    const officeKey = 'fixture-office-key', officeToken = 'fls_browser-office-fixture';
+    const officeActor = { id: 5, name: 'Office Person', role: 'office' };
+    const officeSid = 'ca2c5163-a272-49f4-a39b-c53ba8151234';
+    const customerDraftId = '4ca85908-13fe-4191-832a-1f9bcdf5c6ca';
+    const orderDraftId = 'ccbe5150-e2a1-4a8c-8f39-90ab363c9b7f';
+    const duplicateDraftId = 'a28d192e-2651-4b1d-a9a1-31a5d5bab457';
+    const customerResult = { success: true, receipt_number: 'CUS-261015-001', customer_id: 43,
+      customer: { id: 43, name: 'Sunrise Bakery' } };
+    const orderResult = { success: true, receipt_number: 'ORD-261015-001', order_number: 'SO-261015-001',
+      customer: 'Sunrise Bakery', customer_id: 43 };
+    const customerDraft = { kind: 'draft', id: customerDraftId, prepared: { action: 'create_customer',
+      can_commit: true, actor: officeActor, blockers: [], warnings: [], draft: { customer: { name: 'Sunrise Bakery' } } } };
+    const orderDraft = { kind: 'draft', id: orderDraftId, prepared: { action: 'create_order',
+      can_commit: true, actor: officeActor, blockers: [], warnings: [], draft: { customer: 'Sunrise Bakery',
+        customer_po: 'SUNRISE-PO-1', lines: [{ product: 'Classic Granola', quantity: 2, unit: 'cases', quantity_lb: 50 }] } } };
+    const duplicateDraft = { kind: 'draft', id: duplicateDraftId, prepared: { action: 'create_customer',
+      can_commit: false, actor: officeActor, warnings: [], blockers: [{ code: 'CUSTOMER_ALREADY_EXISTS',
+        message: "Customer 'Sunshine Bakery' already exists. Use this customer instead.",
+        message_es: "El cliente 'Sunshine Bakery' ya existe. Use este cliente.",
+        existing_customer: { id: 42, name: 'Sunshine Bakery', active: true } }], draft: { customer: { name: 'SS' } } } };
+    page.on('pageerror', error => errors.push(error.message));
+    await page.route('**/auth/session/config', route => route.fulfill({ json: { key_sessions_enabled: pilotMode } }));
+    await page.route('**/auth/session', route => {
+      assert.equal(route.request().postDataJSON().actor_key, officeKey);
+      return route.fulfill({ json: { session_token: officeToken, key_kind: 'session', actor: officeActor } });
+    });
+    await page.route('**/auth/whoami', route => route.fulfill({ json: { key_kind: pilotMode ? 'session' : 'actor', actor: officeActor } }));
+    await page.route('**/assistant/**', async route => {
+      assert.equal(route.request().headers()['x-api-key'], pilotMode ? officeToken : officeKey);
+      const url = new URL(route.request().url());
+      if (url.pathname.endsWith('/session')) return route.fulfill({ json: { session_id: officeSid } });
+      if (url.pathname.endsWith('/resume')) return route.fulfill({ json: { turns: [], drafts: [] } });
+      const body = route.request().postDataJSON();
+      if (url.pathname.endsWith('/turn')) {
+        officeTurns.push(body);
+        if (body.text === 'Create an order for Sunrise Bakery') return route.fulfill({ json: { cards: [
+          { kind: 'choices', id: 'sunrise-choice', resolution_kind: 'customer', query: 'Sunrise Bakery',
+            result: { outcome: 'ambiguous', offset: 0, candidates: [{ id: 42, name: 'Sunshine Bakery' }] } }] } });
+        if (body.text === 'Create a new customer named Sunrise Bakery first, then continue the order.') {
+          return route.fulfill({ json: { cards: [customerDraft] } });
+        }
+        if (body.text === `Continue the order using the customer from receipt ${customerResult.receipt_number}.`) {
+          assert.equal(officeRecords.length, 1, 'The customer must be recorded before continuing the order');
+          return route.fulfill({ json: { cards: [orderDraft] } });
+        }
+        if (body.text === 'Create a new customer named SS') return route.fulfill({ json: { cards: [duplicateDraft] } });
+        if (body.text === 'Usa el cliente existente Sunshine Bakery para el pedido.') {
+          return route.fulfill({ json: { cards: [{ ...orderDraft, id: 'existing-customer-order', prepared: {
+            ...orderDraft.prepared, draft: { ...orderDraft.prepared.draft, customer: 'Sunshine Bakery' } } }] } });
+        }
+        if (body.text === 'Create an order for Whole Foods') return route.fulfill({ json: { cards: [
+          { kind: 'choices', id: 'whole-foods-choice', resolution_kind: 'customer', query: 'Whole Foods',
+            result: { outcome: 'match', offset: 0, candidates: [{ id: 44, name: 'Whole Foods Market Northeast' }] } }] } });
+        assert.fail(`Unexpected office turn: ${JSON.stringify(body)}`);
+      }
+      if (url.pathname.endsWith('/record')) {
+        officeRecords.push(body);
+        assert.deepEqual(body, { draft_id: officeRecords.length === 1 ? customerDraftId : orderDraftId,
+          acknowledged_warnings: [], lot_confirmations: [] });
+        assert.ok(officeRecords.length <= 2, 'Only explicit customer and order Record clicks may write');
+        return route.fulfill({ json: { kind: 'receipt', result: officeRecords.length === 1 ? customerResult : orderResult } });
+      }
+      assert.fail(`Unexpected office request: ${url.pathname}`);
+    });
+    await page.goto(server.origin + '/dashboard/fl-assistant.html');
+    await page.locator('#actor-key').fill(officeKey); await page.locator('#sign-in-form button').click();
+    await page.locator('#chat-panel').waitFor({ state: 'visible' });
+    const send = async text => { await page.locator('#message').fill(text); await page.locator('#send').click(); };
+    await send('Create an order for Sunrise Bakery');
+    const similarChoice = page.locator('.assistant-message .card').last();
+    await similarChoice.getByRole('button', { name: 'Sunshine Bakery', exact: true }).waitFor();
+    const addCustomer = similarChoice.getByRole('button', { name: "Add 'Sunrise Bakery' as a new customer", exact: true });
+    await addCustomer.waitFor();
+    assert.equal(officeRecords.length, 0);
+    await addCustomer.click();
+    const customer = page.locator(`[data-draft-id="${customerDraftId}"]`);
+    await customer.getByRole('heading', { name: 'Create customer', exact: true }).waitFor();
+    await customer.getByText('Sunrise Bakery', { exact: true }).waitFor();
+    const customerRecord = customer.getByRole('button', { name: 'Record', exact: true });
+    assert.equal(await customerRecord.isEnabled(), true);
+    assert.equal(officeRecords.length, 0, 'Add customer must prepare a draft without recording');
+    await customerRecord.click();
+    await customer.getByRole('heading', { name: customerResult.receipt_number, exact: true }).waitFor();
+    assert.equal(officeRecords.length, 1);
+    assert.equal(officeTurns.length, 2, 'A CUS receipt must wait for Continue before drafting the order');
+    await customer.getByRole('button', { name: 'Continue with an order', exact: true }).click();
+    const order = page.locator(`[data-draft-id="${orderDraftId}"]`);
+    await order.getByRole('heading', { name: 'Create order', exact: true }).waitFor();
+    await order.getByText('Sunrise Bakery', { exact: true }).waitFor();
+    await order.getByText('2 cases', { exact: true }).waitFor();
+    assert.equal(officeRecords.length, 1, 'Continue must prepare an order without recording');
+    await order.getByRole('button', { name: 'Record', exact: true }).click();
+    await order.getByRole('heading', { name: orderResult.receipt_number, exact: true }).waitFor();
+    assert.equal(officeRecords.length, 2);
+    await page.screenshot({ path: path.join(out, 'customer-order-receipts-desktop.png'), fullPage: true });
+    await send('Create a new customer named SS');
+    const duplicate = page.locator(`[data-draft-id="${duplicateDraftId}"]`);
+    await duplicate.getByText("Customer 'Sunshine Bakery' already exists. Use this customer instead.", { exact: true }).waitFor();
+    assert.equal(await duplicate.getByRole('button', { name: 'Record', exact: true }).isDisabled(), true);
+    await duplicate.getByRole('button', { name: 'Use existing customer: Sunshine Bakery', exact: true }).waitFor();
+    assert.equal(officeRecords.length, 2, 'An alias blocker must never record a duplicate customer');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.locator('#language').click();
+    await duplicate.getByRole('heading', { name: 'Crear cliente', exact: true }).waitFor();
+    await duplicate.getByText("El cliente 'Sunshine Bakery' ya existe. Use este cliente.", { exact: true }).waitFor();
+    assert.equal(await duplicate.getByRole('button', { name: 'Registrar', exact: true }).isDisabled(), true);
+    await duplicate.scrollIntoViewIfNeeded();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: path.join(out, 'customer-alias-duplicate-mobile-es.png'), fullPage: true });
+    await duplicate.getByRole('button', { name: 'Usar cliente existente: Sunshine Bakery', exact: true }).click();
+    const existingOrder = page.locator('[data-draft-id="existing-customer-order"]');
+    await existingOrder.getByRole('heading', { name: 'Crear pedido', exact: true }).waitFor();
+    await existingOrder.getByText('Sunshine Bakery', { exact: true }).waitFor();
+    assert.equal(officeRecords.length, 2, 'Use existing customer must wait for the order Record click');
+    await send('Create an order for Sunrise Bakery');
+    const mobileChoice = page.locator('.assistant-message .card').last();
+    await mobileChoice.getByRole('button', { name: 'Sunshine Bakery', exact: true }).waitFor();
+    await mobileChoice.getByRole('button', { name: "Agregar 'Sunrise Bakery' como cliente nuevo", exact: true }).waitFor();
+    await mobileChoice.scrollIntoViewIfNeeded();
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: path.join(out, 'customer-similar-choice-mobile-es.png'), fullPage: true });
+    await page.locator('#language').click();
+    await send('Create an order for Whole Foods');
+    const matchChoice = page.locator('.assistant-message .card').last();
+    await matchChoice.getByRole('button', { name: 'Whole Foods Market Northeast', exact: true }).waitFor();
+    await matchChoice.getByRole('button', { name: "Add 'Whole Foods' as a new customer", exact: true }).waitFor();
+    assert.equal(officeRecords.length, 2);
+    assert.deepEqual(errors, []);
+    console.log(`Customer browser (sessions ${pilotMode ? 'on' : 'off'}): similar and single-match suggestions retain Add, draft waits for Record, CUS → Continue → order draft → ORD, alias blocker offers existing customer, mobile ES passed.`);
+  } finally { await context.close(); }
+}
+
 try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   await context.addInitScript(() => {
@@ -328,4 +464,5 @@ try {
   }
   assert.deepEqual(errors, []);
   console.log(`F1 browser: draft/receipt, lost-response retry, lot inputs, warnings, editable dictation, A6 typed private integer attachments, BOL blocking, SHP retry, choices/XSS, reload recovery${pilotMode ? ', Today/Assistant session expiry' : ''}, ES, 390px light/dark passed.`);
+  await checkOfficeCustomerFlow();
 } finally { await browser.close(); await server.close(); }

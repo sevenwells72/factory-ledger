@@ -27,18 +27,18 @@ async function newOrder(po,duplicate=false){await action('create_order');await c
  return record(duplicate?'duplicate':'order');
 }
 
-async function missingCustomer(name){
- const picker=page.locator('[data-picker=customer]');await picker.locator('input').fill(name);await picker.getByRole('button',{name:'Search',exact:true}).click();await picker.getByRole('button',{name:'New customer',exact:true}).click();
+async function missingCustomer(name,similar=''){
+ const picker=page.locator('[data-picker=customer]');await picker.locator('input').fill(name);await picker.getByRole('button',{name:'Search',exact:true}).click();if(similar)await picker.getByRole('button',{name:similar,exact:true}).waitFor();await picker.getByRole('button',{name:"Add '"+name+"' as a new customer",exact:true}).click();
  return page.locator('[data-customer-editor]');
 }
-async function newCustomerThenOrder(){
- await action('create_order');const name='QZVNX 284619 New Account',po='000NEW-CUSTOMER';
+async function similarCustomerThenOrder(){
+ await action('create_order');const name='Sunrise Bakery',po='000NEW-CUSTOMER';
  await page.locator('[name=customer_po]').fill(po);await page.locator('[name=requested_ship_date]').fill('2026-10-30');await page.locator('[name=notes]').fill('Keep this order note');await line('D1270','2','cases','20');
- const editor=await missingCustomer(name);await editor.locator('[name=contact_name]').fill('Pat New');await editor.locator('[name=email]').fill('pat@example.test');await editor.locator('[name=phone]').fill('555-0123');await editor.locator('[name=address]').fill('1 Example Road');await editor.locator('[name=notes]').fill('Call before delivery');
+ const editor=await missingCustomer(name,'Sunshine Bakery');await editor.locator('[name=contact_name]').fill('Pat New');await editor.locator('[name=email]').fill('pat@example.test');await editor.locator('[name=phone]').fill('555-0123');await editor.locator('[name=address]').fill('1 Example Road');await editor.locator('[name=notes]').fill('Call before delivery');
  await page.getByRole('button',{name:'ES',exact:true}).click();assert.equal(await editor.locator('[name=name]').inputValue(),name);await page.getByRole('button',{name:'EN',exact:true}).click();
  const before=calls.filter(c=>c.path.endsWith('/commit')).length;await editor.getByRole('button',{name:'Prepare customer',exact:true}).click();
  const customerDraft=page.locator('[data-customer-draft]');await customerDraft.getByRole('heading',{name:'Draft — review before recording',exact:true}).waitFor();assert.equal(calls.filter(c=>c.path.endsWith('/commit')).length,before);
- assert.equal(await page.locator('#office-form').getByRole('button',{name:'Prepare draft',exact:true}).isDisabled(),true);assert.equal(await page.locator('[data-picker=customer] input').isDisabled(),true);assert.equal(await page.locator('[data-picker=customer]').getByRole('button',{name:'New customer',exact:true}).isDisabled(),true);
+ assert.equal(await page.locator('#office-form').getByRole('button',{name:'Prepare draft',exact:true}).isDisabled(),true);assert.equal(await page.locator('[data-picker=customer] input').isDisabled(),true);assert.equal(await page.locator('[data-picker=customer] [data-new-customer]').isDisabled(),true);
  await page.screenshot({path:out+'/new-customer-draft-390.png',fullPage:true});
  await customerDraft.getByRole('button',{name:'Record',exact:true}).click();await customerDraft.locator('.good a').waitFor();const number=await customerDraft.locator('.good a').textContent();assert.match(number,/^CUS-/);receipts.newCustomer=number;
  const customerReceipt=await api('/receipts/'+number);assert.equal(customerReceipt.action,'create_customer');assert.equal(customerReceipt.response.customer.name,name);
@@ -82,7 +82,7 @@ try{
    await readyChanges(fixture.order);assert.equal(calls.filter(c=>c.method==='POST').length,3);assert.ok(calls.filter(c=>c.method==='POST').every(c=>/^\/sales-orders\/[^/]+\/ready$/.test(c.path)));
  }else{
    await signIn('office');
-   await newCustomerThenOrder();await duplicateCustomer();
+   await similarCustomerThenOrder();await duplicateCustomer();
    const created=await newOrder('000D2-PO');const id=created.order.id;
    assert.equal(created.response.customer_po,'000D2-PO');assert.equal(created.response.total_lb,15);
    assert.equal(created.response.lines.find(l=>l.product_id===fixture.pallet).quantity_lb,0);
@@ -116,5 +116,5 @@ try{
  await page.evaluate(()=>sessionStorage.setItem('fl-ledger-language','en'));
  await page.goto(base+'/dashboard/receipt.html?number=RCV-000000-999');await page.locator('#notice.neutral').waitFor();assert.equal(await page.locator('#notice').textContent(),'No receipt with this number');assert.equal(await page.locator('#notice.bad').count(),0);
  await page.locator('#language').click();assert.equal(await page.locator('#notice').textContent(),'No hay recibo con este número');
- assert.deepEqual(errors,[]);await fs.writeFile(out+'/receipts.json',JSON.stringify(receipts,null,2));console.log('Office '+(on?'all 15 forms, inline new customer then order with CUS/ORD receipts, normalized duplicate choice, ready checkbox/note/detail tickets, floor permission, duplicate/No PO, pouch rules, service line, document tickets, EN/ES and 390px':'all ticket forms hidden, legacy ready checkbox/note/detail writes')+'; neutral missing receipt passed.');
+ assert.deepEqual(errors,[]);await fs.writeFile(out+'/receipts.json',JSON.stringify(receipts,null,2));console.log('Office '+(on?'all 15 forms, Sunrise Bakery added beside Sunshine suggestion then order with CUS/ORD receipts, normalized duplicate choice, ready checkbox/note/detail tickets, floor permission, duplicate/No PO, pouch rules, service line, document tickets, EN/ES and 390px':'all ticket forms hidden, legacy ready checkbox/note/detail writes')+'; neutral missing receipt passed.');
 }catch(error){await page.screenshot({path:out+'/failure.png',fullPage:true});if(await page.locator('#notice').count())console.error('Visible notice:',await page.locator('#notice').textContent());throw error;}finally{await browser.close();}

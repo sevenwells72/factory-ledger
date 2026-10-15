@@ -29,7 +29,7 @@
       if(version!==generation||!box.isConnected)return;list.replaceChildren();
       const rows=result.outcome==='match'?[result.match]:result.candidates||[];status.textContent=result.ask||result.note||ui.t('Choose the exact record.','Elige el registro exacto.');
       for(const item of rows.filter(Boolean)){const b=ui.el('button',item.label||item.name,list);b.type='button';b.onclick=()=>select(item);}
-      if(result.outcome==='none'&&offset===0&&!rows.filter(Boolean).length&&missing)missing({query:input.value.trim(),host:list});
+      if(offset===0&&missing)missing({query:input.value.trim(),host:list});
       if(rows.length===8){const more=ui.el('button',ui.t('More matches','Más resultados'),list);more.type='button';more.onclick=()=>find(offset+8);}
     }catch(error){if(version===generation)ui.failure(error);}finally{button.disabled=false;}}
     button.onclick=()=>find();input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();find();}};
@@ -155,7 +155,7 @@
     }
     function offerCustomer({query,host}){
       if(!query)return;
-      const create=ui.el('button',ui.t('New customer','Cliente nuevo'),host);create.type='button';create.dataset.newCustomer='';
+      const create=ui.el('button',ui.t("Add '"+query+"' as a new customer","Agregar '"+query+"' como cliente nuevo"),host);create.type='button';create.dataset.newCustomer='';
       create.onclick=()=>openCustomer(query);
     }
     function openCustomer(name){

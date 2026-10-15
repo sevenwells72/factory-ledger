@@ -346,7 +346,13 @@ def register_routes(app, api):
             return 200, {'outcome': 'unsupported_request'}, {'kind': 'unsupported_request'}
         if name == 'resolve':
             status, result = await relay(app, request, 'POST', '/resolve', body=args)
-            if status == 200 and result.get('outcome') == 'match' and not result.get('needs_clarification'):
+            # A similar customer can be a different business. Let office staff
+            # choose the suggestion or add their exact wording before approving
+            # that customer ID for an order. Exact names and aliases still resolve.
+            similar_customer = (status == 200 and args.get('kind') == 'customer' and actor['role'] in ('office', 'owner')
+                                and (result.get('match') or {}).get('tier') not in ('exact', 'alias'))
+            if (status == 200 and result.get('outcome') == 'match'
+                    and not result.get('needs_clarification') and not similar_customer):
                 selected_status, detail = await approve_candidate(request, state, args['kind'], result['match'])
                 if selected_status != 200:
                     return selected_status, detail, {'kind': 'lookup_failed'}

@@ -363,8 +363,9 @@
       for (const candidate of card.result.candidates || []) {
         const b = button(candidate.label || candidate.name, () => select(candidate.id), 'choice-button'); choices.push(b); node.append(b);
       }
-      if (card.resolution_kind === 'customer' && card.result.outcome === 'none' && ['office', 'owner'].includes(actor?.role) && card.query) {
-        const create = button(t('New customer', 'Nuevo cliente'), () => {
+      if (card.resolution_kind === 'customer' && (card.result.offset || 0) === 0 && ['office', 'owner'].includes(actor?.role) && card.query) {
+        const create = button(t(`Add '${card.query}' as a new customer`, `Agregar '${card.query}' como cliente nuevo`), () => {
+          if (busy) return;
           sendTurn({ text: t(`Create a new customer named ${card.query} first, then continue the order.`,
             `Crea primero un cliente nuevo llamado ${card.query} y luego continúa el pedido.`) });
         }, 'choice-button'); choices.push(create); node.append(create);

@@ -172,6 +172,62 @@
 - **File(s) changed:** `shift_summary.py`, `dashboard/shift-summary.js`
 - **What changed:** Show bilingual ticket swap notices and persisted direct-make substitution evidence with real oats lots; include direct evidence in confirmation hashes without inventing receipt numbers.
 - **Why:** Michael requires automatic oat substitution to remain visible in audit and shift summary for every make path.
+## 2026-10-15 12:17 — PR #130 fix-round verification complete
+- **File(s) changed:** Customer ticket backend, Office/Assistant UI and instructions, associated Python/Node/browser regressions and disposable database fixtures listed above.
+- **What changed:** Verified final production code with 5,893 fresh-DB Python tests and 242 Node tests, zero failures/skips; Office real-API and Assistant fixture browsers pass with sessions on/off, including customer flow, English/Spanish and 390px. New regressions reproduced the old-head gaps.
+- **Why:** Ready for review comment 6196505693 recheck. All task databases use fl_cust_fx_; no rebase, merge, hosted migration or deployment. Round A/B worktrees untouched.
+
+---
+
+## 2026-10-15 12:16 — PR #130 strengthen customer identity custody assertion
+- **File(s) changed:** tests/test_fl_assistant.py
+- **What changed:** Assert the integer customer ID is absent from approved IDs before the person chooses a suggestion.
+- **Why:** Independent review caught a string-versus-integer assertion that could miss an accidental ID grant.
+
+---
+
+## 2026-10-15 12:14 — PR #130 normalize punctuation before suffix matching
+- **File(s) changed:** customer_tickets.py, tests/test_customer_tickets.py
+- **What changed:** Normalize punctuation throughout customer names before stripping final company suffix tokens; handle adjacent commas, parentheses, dotted abbreviations and aliases with comma-adjacent suffixes.
+- **Why:** Four additional regression cases reproduced missed duplicates. Similar names with different letters and Co-op endings remain distinct.
+
+---
+
+## 2026-10-15 12:14 — PR #130 validation follow-up
+- **File(s) changed:** fl_assistant.py, dashboard/fl-assistant.js, tests/test_fl_assistant_ui.js, tests/visual/run-fl-assistant.mjs
+- **What changed:** Preserve malformed-lookup recovery when checking customer suggestions, and translate duplicate guidance with Assistant language toggles. Added a failing language-toggle regression; retained full browser language-transition checks.
+- **Why:** Full Python exposed a missing-kind input case and the expanded customer browser checks exposed untranslated duplicate guidance.
+
+---
+
+## 2026-10-15 12:13 — PR #130 punctuation edge cases and Assistant browser coverage
+- **File(s) changed:** tests/test_customer_tickets.py, tests/visual/run-fl-assistant.mjs
+- **What changed:** Added comma-adjacent company suffix and internal-punctuation duplicate regressions. Expanded the Assistant browser runner with office customer choices, separate CUS/ORD Record steps, alias refusal and Spanish mobile cases in both session modes.
+- **Why:** Cover review punctuation variants and the customer path missing from the prior Assistant browser runner.
+
+---
+
+## 2026-10-15 12:10 — PR #130 customer identity and Assistant choices
+- **File(s) changed:** customer_tickets.py, fl_assistant.py, assistant_tools.py, dashboard/fl-assistant.js, dashboard/fl-assistant.html, tests/test_fl_assistant_ui.js, tests/visual/d12_fixture.py
+- **What changed:** Compare canonical names and aliases with punctuation/company-suffix normalization; keep existing-customer refusal details. Offer named new-customer choices beside Assistant suggestions and stop similar auto-matches for office selection. Accept the requested browser database prefix.
+- **Why:** Review comment 6196505693; new regression cases failed on 7e92e46, while distinct customer names remain allowed.
+
+---
+
+## 2026-10-15 12:10 — PR #130 office choices and duplicate regressions
+- **File(s) changed:** dashboard/office.js, dashboard/office.html, tests/test_office_customer_ui.js, tests/visual/run-office.mjs, tests/visual/office_seed.py, tests/test_customer_tickets.py, tests/conftest.py, tests/test_write_tickets.py, tests/test_exceptions_tables_061.py, tests/test_lot_identity_047.py, tests/test_trace_tables_048.py
+- **What changed:** Keep an explicit named new-customer option beside office suggestions; add real-browser Sunrise/Sunshine flow and alias/suffix refusal tests. Allow validated test database prefixes across disposable-DB fixtures.
+- **Why:** Review comment 6196505693; all task databases must use fl_cust_fx_. Office regressions failed before the fix and 37 office Node tests now pass.
+
+---
+
+## 2026-10-15 12:10 — PR #130 fix-round regression cases
+- **File(s) changed:** tests/test_fl_assistant_ui.js, tests/test_fl_assistant.py, tests/test_office_customer_ui.js
+- **What changed:** Added tests for keeping new-customer choices beside similar matches and refusing automatic acceptance of a similar Assistant customer.
+- **Why:** Review comment 6196505693; prove the reported gaps on 7e92e46 before fixes.
+
+---
+
 ## 2026-10-15 10:55 — Complete customer ticket validation and clean local test databases
 - **File(s) changed:** FACTORY_LEDGER_CHANGELOG.md, docs/validation/customer-ticket/validation.json, docs/validation/customer-ticket/new-customer-draft-390.png, docs/validation/customer-ticket/new-customer-receipt-390.png
 - **What changed:** Added row209 after PR128 reservation208 and saved final local validation evidence. Full fresh suite:5837 Python,235 Node, zero failures/errors/skips; Office and Assistant browser modes pass. Actual mobile CUS receipt includes all contact fields. Independent review clean. Dropped all task databases and stopped local servers/cluster; main.py/direct routes unchanged.

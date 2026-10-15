@@ -32,7 +32,7 @@ async function harness({on=true,create=true}={}){
  vm.runInNewContext(source,context);await flush();await flush();
  const find=(test,root=documentRoot)=>descendants(root).find(test),button=(text,root)=>find(node=>node.tag==='button'&&node.textContent===text,root);
  async function search(kind,query){const box=find(node=>node.dataset.picker===kind);find(node=>node.tag==='input',box).value=query;await button('Search',box).onclick();return box;}
- async function open(){await search('customer','New Account');button('New customer').onclick();}
+ async function open(){await search('customer','New Account');button("Add 'New Account' as a new customer").onclick();}
  return {ui,nodes,find,button,byId,tickets,requests,failures,events,search,open,setResolver(fn){resolveRequest=fn;}};
 }
 test('customer prepare sends exactly direct-route fields through its own CUS ticket',()=>{
@@ -47,12 +47,22 @@ test('existing customer suggestions accept both prepare blockers and commit refu
 });
 test('new customer is hidden when sessions are off or create-customer permission is absent',async()=>{
  const off=await harness({on:false});assert.equal(off.byId('office-form'),undefined);assert.equal(off.requests.length,0);
- const denied=await harness({create:false});await denied.search('customer','Unknown');assert.equal(denied.button('New customer'),undefined);
+ const denied=await harness({create:false});await denied.search('customer','Unknown');assert.equal(denied.find(n=>n.dataset.newCustomer!==undefined),undefined);
+});
+for(const outcome of ['match','ambiguous'])test('office offers a new customer beside similar '+outcome+' suggestions',async()=>{
+ const h=await harness(),existing={id:88,name:'Sunshine Bakery'};
+ h.setResolver(()=>outcome==='match'?{outcome,match:existing}:{outcome,candidates:[existing]});
+ const picker=await h.search('customer','Sunrise Bakery');
+ assert.ok(h.button('Sunshine Bakery',picker),'The existing customer remains an option');
+ const add=h.button("Add 'Sunrise Bakery' as a new customer",picker);
+ assert.ok(add,'The first search page offers the typed name as a new customer');
+ add.onclick();assert.equal(h.find(n=>n.name==='name').value,'Sunrise Bakery');
+ assert.equal(h.tickets.length,0,'Choosing Add only opens the customer form');
 });
 test('inline customer prepares separately, keeps order fields and selects only after Record',async()=>{
  const h=await harness();h.find(n=>n.name==='customer_po').value='000NEW';h.find(n=>n.name==='quantity').value='2';h.find(n=>n.name==='unit').value='cases';
  await h.open();h.find(n=>n.name==='contact_name').value='Pat';h.button('Prepare customer').onclick();
- const customer=h.tickets[0];assert.equal(customer.path,'/customers/prepare');assert.equal(customer.body.contact_name,'Pat');assert.equal(customer.options.receiptPrefix,'CUS');assert.equal(h.button('New customer').disabled,true);
+ const customer=h.tickets[0];assert.equal(customer.path,'/customers/prepare');assert.equal(customer.body.contact_name,'Pat');assert.equal(customer.options.receiptPrefix,'CUS');assert.equal(h.button("Add 'New Account' as a new customer").disabled,true);
  assert.equal(h.requests.some(request=>request.path.endsWith('/commit')),false);assert.ok(!h.find(n=>n.dataset.picker==='customer').children.at(-1).textContent.startsWith('Selected:'));
  customer.options.onRecorded({customer_id:77,name:'New Account',customer:{id:77,name:'New Account'},receipt_number:'CUS-261015-001'});
  assert.equal(h.find(n=>n.dataset.picker==='customer').children.at(-1).textContent,'Selected: New Account');
@@ -75,7 +85,7 @@ test('changing customer search cancels a pending draft and ignores its late rece
 
 test('signing out removes inline controls and ignores the previous draft receipt',async()=>{
  const h=await harness();await h.open();h.button('Prepare customer').onclick();const ticket=h.tickets[0];h.ui.session.token=null;await h.events['ledger-signout']();
- ticket.options.onRecorded({customer:{id:99,name:'Old choice'}});assert.equal(h.byId('office-form'),undefined);assert.equal(h.button('New customer'),undefined);
+ ticket.options.onRecorded({customer:{id:99,name:'Old choice'}});assert.equal(h.byId('office-form'),undefined);assert.equal(h.find(n=>n.dataset.newCustomer!==undefined),undefined);
 });
 
 test('customer review displays contact details before Record',()=>{

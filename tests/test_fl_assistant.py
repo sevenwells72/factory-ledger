@@ -1201,3 +1201,27 @@ def test_customer_no_match_keeps_exact_name_for_human_new_customer_choice(client
     card = response.json()['cards'][0]
     assert card['kind'] == 'choices' and card['result']['outcome'] == 'none'
     assert card['query'] == name
+
+
+@pytest.mark.parametrize('role', ['office', 'owner'])
+def test_assistant_similar_customer_match_offers_choice_before_order(
+        client, actors, db_cursor, monkeypatch, role):
+    db_cursor.execute("INSERT INTO customers(name) VALUES('Whole Foods Market') RETURNING id")
+    existing_id = db_cursor.fetchone()['id']
+    name = 'Whole Foods Market Northeast'
+    h = headers(actors[role]['key'])
+    office_chat = (client.post('/assistant/session', headers=h).json()['session_id'], h)
+    resolved = client.post('/resolve', headers=h, json={'kind': 'customer', 'query': name}).json()
+    assert resolved['outcome'] == 'match', resolved
+    assert resolved['match']['id'] == existing_id
+    assert resolved['match']['tier'] not in ('exact', 'alias')
+    model(monkeypatch, ('resolve', {'kind': 'customer', 'query': name}), ('today_entries', {}))
+    response = turn(client, office_chat, 'New order for ' + name)
+    assert response.status_code == 200, response.text
+    card = response.json()['cards'][0]
+    assert card['kind'] == 'choices', card
+    assert card['resolution_kind'] == 'customer' and card['query'] == name
+    assert any(c['id'] == existing_id for c in card['result']['candidates'])
+    db_cursor.execute('SELECT state FROM assistant_sessions WHERE id=%s', (office_chat[0],))
+    state = db_cursor.fetchone()['state']
+    assert existing_id not in state.get('resolved', {}).get('customer', [])

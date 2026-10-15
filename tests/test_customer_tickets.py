@@ -156,6 +156,107 @@ def test_normalized_duplicate_offers_existing_customer(client, db_cursor, actors
 
 
 @pytest.mark.db
+@pytest.mark.parametrize('existing,new', [
+    ('Sunshine Bakery {token}', 'Sunshine Bakery {token}.'),
+    ('Sunshine Bakery {token}.', 'Sunshine Bakery {token}'),
+    ('Sunshine Bakery {token}', 'Sunshine Bakery {token},Inc.'),
+    ('Sunshine Bakery {token},LLC', 'Sunshine Bakery {token}'),
+    ('Sunshine, Bakery {token}', 'Sunshine Bakery {token}'),
+    ('Sunshine-Bakery {token}', 'Sunshine Bakery {token}'),
+    *[(f'Sunshine Bakery {{token}}{suffix}', 'Sunshine Bakery {token}')
+      for suffix in (' Inc', ', Inc.', ',Inc.', ' (Inc.)', ' LLC', ',LLC', ' L.L.C.', ' Co.', ',Co.', ' Corp', ',Corp.', ' Ltd.', ',Ltd.')],
+    *[('Sunshine Bakery {token}', f'Sunshine Bakery {{token}}{suffix}')
+      for suffix in (' Inc', ', Inc.', ',Inc.', ' (Inc.)', ' LLC', ',LLC', ' L.L.C.', ' Co.', ',Co.', ' Corp', ',Corp.', ' Ltd.', ',Ltd.')],
+    ('Sunshine Bakery {token}, Inc. LLC.', 'Sunshine Bakery {token}'),
+])
+def test_punctuation_and_company_suffix_duplicate_offers_existing_customer(
+        client, db_cursor, actors, customer_schema, existing, new):
+    token = uuid4().hex
+    existing, new = existing.format(token=token), new.format(token=token)
+    db_cursor.execute('INSERT INTO customers(name) VALUES (%s) RETURNING id', (existing,))
+    customer_id = db_cursor.fetchone()['id']
+    before = customer_count(db_cursor)
+    prepared = prepare(client, actors, body(name=new))
+    assert prepared['can_commit'] is False
+    [blocker] = prepared['blockers']
+    assert blocker['code'] == 'CUSTOMER_ALREADY_EXISTS'
+    assert blocker['existing_customer'] == {'id': customer_id, 'name': existing, 'active': True}
+    assert existing in blocker['message'] and 'Use this customer' in blocker['message']
+    response = commit(client, prepared, actors['office']['key'])
+    error(response, 409, 'TICKET_STALE')
+    assert response.json()['detail']['blockers'][0] == blocker
+    assert customer_count(db_cursor) == before
+
+
+@pytest.mark.db
+@pytest.mark.parametrize('alias_source', ['customer_aliases', 'search_aliases'])
+@pytest.mark.parametrize('active', [True, False])
+@pytest.mark.parametrize('variant', ['', '.', ', Inc.', ',Inc.'])
+def test_alias_duplicate_offers_canonical_customer(
+        client, db_cursor, actors, customer_schema, alias_source, active, variant):
+    token = uuid4().hex
+    existing, alias = 'Sunshine Bakery ' + token, 'SS ' + token
+    db_cursor.execute('INSERT INTO customers(name,active) VALUES (%s,%s) RETURNING id', (existing, active))
+    customer_id = db_cursor.fetchone()['id']
+    if alias_source == 'customer_aliases':
+        db_cursor.execute('INSERT INTO customer_aliases(customer_id,alias) VALUES (%s,%s)', (customer_id, alias))
+    else:
+        db_cursor.execute("INSERT INTO search_aliases(kind,customer_id,alias) VALUES ('customer',%s,%s)", (customer_id, alias))
+    before = customer_count(db_cursor)
+    prepared = prepare(client, actors, body(name=alias.lower() + variant))
+    assert prepared['can_commit'] is False
+    [blocker] = prepared['blockers']
+    assert blocker['code'] == 'CUSTOMER_ALREADY_EXISTS'
+    assert blocker['existing_customer'] == {'id': customer_id, 'name': existing, 'active': active}
+    assert existing in blocker['message']
+    assert ('Use this customer' if active else 'reactivate this customer') in blocker['message']
+    response = commit(client, prepared, actors['office']['key'])
+    error(response, 409, 'TICKET_STALE')
+    assert response.json()['detail']['blockers'][0] == blocker
+    assert customer_count(db_cursor) == before
+
+
+@pytest.mark.db
+@pytest.mark.parametrize('alias_source', ['customer_aliases', 'search_aliases'])
+def test_alias_added_after_prepare_is_refused_with_canonical_customer(
+        client, db_cursor, actors, customer_schema, alias_source):
+    token = uuid4().hex
+    existing, alias = 'Sunshine Bakery ' + token, 'SS ' + token
+    db_cursor.execute('INSERT INTO customers(name) VALUES (%s) RETURNING id', (existing,))
+    customer_id = db_cursor.fetchone()['id']
+    prepared = prepare(client, actors, body(name=alias + '.'))
+    assert prepared['can_commit'] is True
+    if alias_source == 'customer_aliases':
+        db_cursor.execute('INSERT INTO customer_aliases(customer_id,alias) VALUES (%s,%s)', (customer_id, alias))
+    else:
+        db_cursor.execute("INSERT INTO search_aliases(kind,customer_id,alias) VALUES ('customer',%s,%s)", (customer_id, alias))
+    before = customer_count(db_cursor)
+    response = commit(client, prepared, actors['office']['key'])
+    error(response, 409, 'TICKET_STALE')
+    [blocker] = response.json()['detail']['blockers']
+    assert blocker['code'] == 'CUSTOMER_ALREADY_EXISTS'
+    assert blocker['existing_customer'] == {'id': customer_id, 'name': existing, 'active': True}
+    assert existing in blocker['message'] and 'Use this customer' in blocker['message']
+    assert customer_count(db_cursor) == before
+
+
+@pytest.mark.db
+@pytest.mark.parametrize('new', ['Sunrise Bakery {token}', 'Sunshine Bakery {token} East', 'Sunshine Bakery {token} Co-op'])
+def test_similar_but_different_customer_names_can_be_created(client, db_cursor, actors, customer_schema, new):
+    token = uuid4().hex
+    existing, new = 'Sunshine Bakery ' + token, new.format(token=token)
+    db_cursor.execute('INSERT INTO customers(name) VALUES (%s) RETURNING id', (existing,))
+    existing_id = db_cursor.fetchone()['id']
+    before = customer_count(db_cursor)
+    prepared = prepare(client, actors, body(name=new))
+    assert prepared['can_commit'] is True and prepared['blockers'] == []
+    response = commit(client, prepared, actors['office']['key'])
+    assert response.status_code == 200, response.text
+    assert response.json()['name'] == new and response.json()['customer_id'] != existing_id
+    assert customer_count(db_cursor) == before + 1
+
+
+@pytest.mark.db
 def test_direct_customer_appearing_after_prepare_is_refused_with_existing_choice(client, db_cursor, actors, customer_schema):
     payload = body()
     prepared = prepare(client, actors, payload)

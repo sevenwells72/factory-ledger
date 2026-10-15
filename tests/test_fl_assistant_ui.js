@@ -212,7 +212,7 @@ for (const role of ['office', 'owner', 'floor']) test(`no-match customer offers 
       assert.equal(body.text, 'Create a new customer named New Market LLC first, then continue the order.');
       return { cards: [{ kind: 'missing_facts', fields: ['name'] }] };
     } });
-  const create = descendants(h.card).find(node => node.tag === 'button' && node.textContent === 'New customer');
+  const create = descendants(h.card).find(node => node.tag === 'button' && node.textContent === "Add 'New Market LLC' as a new customer");
   assert.equal(Boolean(create), role !== 'floor');
   if (create) {
     await create.listeners.click();
@@ -223,11 +223,13 @@ for (const role of ['office', 'owner', 'floor']) test(`no-match customer offers 
 
 test('customer duplicate prevents Record and offers the existing active customer', async () => {
   const h = await resumedCard({ kind: 'draft', id: 'duplicate', prepared: { action: 'create_customer', can_commit: false,
-    blockers: [{ code: 'CUSTOMER_ALREADY_EXISTS', message: 'Use existing customer New Market', existing_customer: { id: 42, name: 'New Market', active: true } }],
+    blockers: [{ code: 'CUSTOMER_ALREADY_EXISTS', message: 'Use existing customer New Market', message_es: 'Use el cliente existente New Market', existing_customer: { id: 42, name: 'New Market', active: true } }],
     draft: { customer: { name: 'new market' } } } }, 'en', { role: 'office' });
   const buttons = descendants(h.card).filter(node => node.tag === 'button');
   assert.equal(buttons.find(node => node.textContent === 'Record').disabled, true);
   assert.ok(buttons.some(node => node.textContent === 'Use existing customer: New Market'));
+  await h.get('language').listeners.click();
+  assert.ok(descendants(h.card).some(node => node.textContent === 'Use el cliente existente New Market'));
   assert.deepEqual(h.calls, ['/assistant/resume']);
 });
 
@@ -249,4 +251,33 @@ test('order draft shows physical quantity, pounds, PO and service charge details
   for (const phrase of ['Create order', 'New Market', 'ABC-42', '2026-10-20', 'Classic Granola', '2 cases', '50', 'Pallet Charge', '3 each', '12.5', '37.5']) assert.ok(text.includes(phrase), phrase);
   assert.equal(nodes.find(node => node.tag === 'button' && node.textContent === 'Record').disabled, false);
   assert.deepEqual(h.calls, ['/assistant/resume']);
+});
+
+for (const outcome of ['ambiguous', 'match']) for (const language of ['en', 'es']) {
+  test(`customer suggestions retain explicit add-new choice: ${outcome} ${language}`, async () => {
+    const name = 'Sunrise Bakery';
+    const h = await resumedCard({ kind: 'choices', id: 'similar-choice', resolution_kind: 'customer', query: name,
+      result: { outcome, offset: 0, candidates: [{ id: 42, name: 'Sunshine Bakery' }] } }, language, { role: 'office',
+      onRequest: async (path, body) => {
+        assert.equal(path, '/assistant/turn');
+        assert.equal(body.text, language === 'en' ? `Create a new customer named ${name} first, then continue the order.`
+          : `Crea primero un cliente nuevo llamado ${name} y luego continúa el pedido.`);
+        return { cards: [{ kind: 'missing_facts', fields: ['name'] }] };
+      } });
+    const buttons = descendants(h.card).filter(node => node.tag === 'button');
+    assert.ok(buttons.some(node => node.textContent === 'Sunshine Bakery'));
+    const add = buttons.find(node => node.textContent === (language === 'en'
+      ? `Add '${name}' as a new customer` : `Agregar '${name}' como cliente nuevo`));
+    assert.ok(add, 'The typed name must remain available alongside the similar customer');
+    assert.deepEqual(h.calls, ['/assistant/resume']);
+    await add.listeners.click();
+    for (let i = 0; i < 6; i++) await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(h.calls, ['/assistant/resume', '/assistant/turn']);
+  });
+}
+
+test('customer add-new choice appears only on the first result page', async () => {
+  const h = await resumedCard({ kind: 'choices', id: 'later-choice', resolution_kind: 'customer', query: 'Sunrise Bakery',
+    result: { outcome: 'none', offset: 8, candidates: [] } }, 'en', { role: 'office' });
+  assert.equal(descendants(h.card).some(node => node.tag === 'button' && /new customer/i.test(node.textContent)), false);
 });
