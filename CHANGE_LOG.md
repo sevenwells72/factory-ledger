@@ -1,5 +1,33 @@
 # Change Log
 
+## 2026-10-15 10:53 — Halt cleanup on post-commit concurrency changes
+- **File(s) changed:** `scripts/staging_pilot_cleanup.py`, `tests/test_staging_pilot_cleanup.py`, `docs/audits/staging-cleanup-plan-2026-10-15.md`, `~/dev/staging-cleanup-plan-2026-10-15.md`
+- **What changed:** Stop on API state_changed responses, verify receipt customer identity, and document that concurrency detection occurs after the affected commit; refresh dry-run plan only.
+- **Why:** Prevent a future cleanup from continuing across concurrent Michael testing without reconciliation.
+
+---
+
+## 2026-10-15 10:52 — Record completed staging-only cleanup dry run
+- **File(s) changed:** `docs/audits/staging-cleanup-plan-2026-10-15.md`
+- **What changed:** Preserve the requested ~/dev plan in the PR: 266 STG lots (239 supported, 4 blocked, 23 zero), 212/9 blocked catalog deactivations, 6 cancels, 6 unsupported shortage waivers, 8 supported exception waivers; protect 205 opening lots and 56 copied exceptions.
+- **Why:** Make every before/after item, unsupported path and exact future apply command reviewable; no staging mutations were executed.
+
+---
+
+## 2026-10-15 10:52 — Validate cleanup scope and read-only safety
+- **File(s) changed:** `scripts/staging_pilot_cleanup.py`, `tests/test_staging_pilot_cleanup.py`, `~/dev/staging-cleanup-plan-2026-10-15.md`
+- **What changed:** Add offline safety tests, fixed protected exception IDs, unit-aware approval checks, atomic journaling, derived order reads, and complete itemized staging dry-run report.
+- **Why:** Reconcile all STG lots and live counts, preserve copied stock/exceptions, and expose unsupported ticket paths before any future apply.
+
+---
+
+## 2026-10-15 10:47 — Add guarded staging pilot cleanup dry run
+- **File(s) changed:** `scripts/staging_pilot_cleanup.py`
+- **What changed:** Add read-only full cleanup planning, fixed staging identity guards, reviewed-hash apply via tickets and receipt verification; list unsupported paths without bypassing them.
+- **Why:** Clear pilot test clutter safely for Michael while preserving real opening lots and copied production exceptions; only dry run authorized today.
+
+---
+
 ## 2026-10-14 23:26 — PR #122 current-main verification complete; ready for reviewer re-check
 - **File(s) changed:** CHANGE_LOG.md, FACTORY_LEDGER_CHANGELOG.md, docs/validation/o7-fix2-tests.json, ignored local PR comment/evidence helpers
 - **What changed:** Final e0f4dd2-based sweep passes 5,764 Python tests on fresh fl_pr122fx_full2, 219 Node, 48 refusal/recovery browser cases and all 15 legacy browser executions. Current-main rebase checks pass; historical log lines preserved except prior required redactions. Renumber only this unpublished fix-round row to207 after main205/206 and clarify the historical duplicate204. Drop the final DB; no task databases remain.
