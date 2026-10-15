@@ -192,6 +192,7 @@ for (const language of ['en', 'es']) test(`customer draft waits for Record and C
   const record = nodes.find(node => node.tag === 'button' && node.textContent === (language === 'en' ? 'Record' : 'Registrar'));
   assert.equal(record.disabled, false);
   await record.listeners.click();
+  for (let i = 0; i < 6; i++) await new Promise(resolve => setImmediate(resolve));
   assert.deepEqual(h.calls, ['/assistant/resume', '/assistant/record']);
   assert.equal(h.card.className, 'card receipt');
   nodes = descendants(h.card);

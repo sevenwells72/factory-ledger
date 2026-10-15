@@ -1,0 +1,33 @@
+{
+  "customers": [
+    {
+      "name": "Sunrise Bakery",
+      "contact_name": "Pat Sunrise",
+      "email": "pat@example.test",
+      "phone": "555-0123",
+      "address": "1 Sunrise Road",
+      "notes": "Call before delivery",
+      "notes_es": "Llame antes de entregar",
+      "ticket_id": 1
+    }
+  ],
+  "tickets": [
+    {
+      "action": "create_customer",
+      "status": "committed",
+      "receipt_number": "CUS-261015-001",
+      "result_ref": {
+        "lot_ids": [],
+        "customer_id": 3,
+        "transaction_ids": []
+      }
+    }
+  ],
+  "audit": [
+    {
+      "target_table": "customers",
+      "route": "/tickets/{ticket}/commit"
+    }
+  ],
+  "orders_created": 0
+}

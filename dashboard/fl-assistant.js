@@ -25,7 +25,8 @@
   const display = root.FLAssistantDisplay || (typeof require === 'function' ? require('./assistant-display.js') : null);
   const isTodayQuery = text => /^(?:(?:show|list)(?: me)?(?: all)?(?: of)? (?:today[’']?s entries|entries (?:for |from )?today)|what (?:did|have) (?:i|we) (?:enter(?:ed)?|record(?:ed)?) today|today[’']?s entries|entradas de hoy|(?:mostrar|muestra|ver|lista)(?: todas)?(?: las)? entradas de hoy|[¿]?qu[eé] registr(?:[eé]|amos) hoy)[?.!¿]*$/i.test(String(text || '').trim());
   const voidTarget = text => /\b(void|anular|anula)\b/i.test(text || '') ? (String(text).match(/\b(?:RCV|MK|PK|ADJ|FND|SHP)-\d{6}-\d{3,}\b/i)?.[0]?.toUpperCase() || null) : null;
-  const refusalDraft = prepared => !!prepared?.blockers?.some(b => !['LOT_NOT_CONFIRMED', 'SKU_CONFIRMATION_REQUIRED', 'BOL_REQUIRED'].includes(b.code));
+  const refusalDraft = prepared => !!prepared?.blockers?.some(b => !['LOT_NOT_CONFIRMED', 'SKU_CONFIRMATION_REQUIRED', 'BOL_REQUIRED'].includes(b.code)
+    && !(prepared.action === 'create_customer' && display.existingCustomerChoice(b)));
   const exports = { isTodayQuery, voidTarget, refusalDraft, validReceipt, canRecord, validAttachment, evidenceKinds, errorText, awaitingApproval, neutralMessages };
   if (typeof module !== 'undefined') module.exports = exports;
   if (!root.document) return;
@@ -250,14 +251,9 @@
     for (const line of draft.lines || []) {
       const row = el('div', undefined, 'ship-line');
       row.append(el('strong', line.product || line.product_name));
-      const quantity = line.quantity ?? line.original_quantity;
-      const unit = line.unit || line.original_unit;
-      const unitName = { cases: t('cases', 'cajas'), bags: t('bags', 'bolsas'), boxes: t('boxes', 'cajas'), each: t('each', 'cada uno'), lb: t('lb', 'lb') }[unit] || unit;
-      fields(row, [[t('Type', 'Tipo'), line.is_service ? t('Service charge', 'Cargo por servicio') : undefined],
-        [t('Quantity', 'Cantidad'), quantity == null ? undefined : `${quantity} ${unitName || ''}`.trim()],
-        [t('Pounds', 'Libras'), line.is_service ? undefined : line.quantity_lb], [t('Cases', 'Cajas'), line.cases],
-        [t('Unit price', 'Precio unitario'), line.unit_price], [t('Amount', 'Importe'), line.amount],
-        [t('Lots', 'Lotes'), (line.lots || []).map(lot => lot.lot_code).join(', ')]]);
+      const enLine = display.lineFields(line, 'en'), esLine = display.lineFields(line, 'es');
+      fields(row, enLine.map(([label, value], i) => [t(label, esLine[i][0]),
+        value == null ? value : t(String(value), String(esLine[i][1] ?? value))]));
       node.append(row);
     }
     const confirmations = [], warningChecks = [];
@@ -306,12 +302,10 @@
     }
     for (const blocker of prepared.blockers || []) {
       node.append(el('div', t(display.errorMessage(blocker, 'en'), display.errorMessage(blocker, 'es')), blocker.code === 'LOT_NOT_CONFIRMED' ? 'warning' : 'error-box'));
-      const existing = blocker.existing_customer;
-      if (blocker.code === 'CUSTOMER_ALREADY_EXISTS' && existing?.active !== false && existing?.name) {
-        node.append(button(t(`Use existing customer: ${existing.name}`, `Usar cliente existente: ${existing.name}`), () => {
-          sendTurn({ text: t(`Use the existing customer ${existing.name} for the order.`, `Usa el cliente existente ${existing.name} para el pedido.`) });
-        }, 'choice-button'));
-      }
+      const enChoice = display.existingCustomerChoice(blocker, 'en'), esChoice = display.existingCustomerChoice(blocker, 'es');
+      if (enChoice) node.append(button(t(enChoice.label, esChoice.label), () => {
+        sendTurn({ text: t(enChoice.text, esChoice.text) });
+      }, 'choice-button'));
     }
     for (const aid of card.attachment_ids || []) node.append(button(t('View attached photo', 'Ver foto adjunta'), () => viewPhoto(aid)));
     details(node, draft);
@@ -363,11 +357,10 @@
       for (const candidate of card.result.candidates || []) {
         const b = button(candidate.label || candidate.name, () => select(candidate.id), 'choice-button'); choices.push(b); node.append(b);
       }
-      if (card.resolution_kind === 'customer' && (card.result.offset || 0) === 0 && ['office', 'owner'].includes(actor?.role) && card.query) {
-        const create = button(t(`Add '${card.query}' as a new customer`, `Agregar '${card.query}' como cliente nuevo`), () => {
-          if (busy) return;
-          sendTurn({ text: t(`Create a new customer named ${card.query} first, then continue the order.`,
-            `Crea primero un cliente nuevo llamado ${card.query} y luego continúa el pedido.`) });
+      const enChoice = display.newCustomerChoice(card, actor?.role, 'en'), esChoice = display.newCustomerChoice(card, actor?.role, 'es');
+      if (enChoice) {
+        const create = button(t(enChoice.label, esChoice.label), () => {
+          sendTurn({ text: t(enChoice.text, esChoice.text) });
         }, 'choice-button'); choices.push(create); node.append(create);
       }
       const none = button(t('None of these', 'Ninguno de estos'), () => select(null), 'choice-button'); choices.push(none); node.append(none);

@@ -1,5 +1,33 @@
 # Change Log
 
+## 2026-10-15 13:03 — Save rebased customer validation and cleanup evidence
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/customer-ticket/rebase-round-a/`
+- **What changed:** Record current row 210 after preserved main 209/208, manual display port and cache versions, 5,947 Python / 327 Node passes, both office/Assistant modes, 60 round A cases and four real local Sunrise Bakery page cases. Save logs, hashes, screenshots and model-stub limitation; verify zero remaining task DBs.
+- **Why:** Make the requested rebase and complete fresh-DB validation reviewable before the force-with-lease push and recheck comment.
+
+---
+
+## 2026-10-15 13:02 — Refresh shared ledger display cache after rebase
+- **File(s) changed:** `dashboard/entry.html`, `dashboard/exceptions.html`, `dashboard/office.html`, `dashboard/receipt.html`
+- **What changed:** Advance the shared ledger-ui URL from v11 to v12 in its four consumers.
+- **Why:** Main and the customer PR both used v11; cached main code omits customer contact fields from Office drafts and receipts.
+
+---
+
+## 2026-10-15 13:01 — Verify shared customer display and duplicate recovery
+- **File(s) changed:** `dashboard/fl-assistant.js`, `tests/test_assistant_display.js`, `tests/test_fl_assistant_ui.js`
+- **What changed:** Keep active customer duplicates actionable with Record disabled under round A refusal rendering. Add nine shared-display cases for bilingual contacts, order fields, line units/prices and role/page-limited choices; wait for asynchronous Record in the combined harness.
+- **Why:** The semantic rebase must preserve both duplicate recovery and round A pending-button behavior. All 327 Node tests pass.
+
+---
+
+## 2026-10-15 12:59 — Port customer and order display into shared Assistant helpers
+- **File(s) changed:** `dashboard/assistant-display.js`, `dashboard/fl-assistant.js`, `dashboard/fl-assistant.html`, `tests/visual/run-fl-assistant.mjs`
+- **What changed:** Display customer contact fields and order PO/date/line details through shared bilingual helpers; shared helpers supply the existing-customer and named add-new choices. Keep round A browser/session fixes and use display v3 with Assistant v8.
+- **Why:** Customer creation must use the display module introduced by merged PR #131 and preserve first-page staff choices.
+
+---
+
 ## 2026-10-15 12:56 — Rebase customer tickets onto merged Assistant round A
 - **File(s) changed:** `dashboard/fl-assistant.js`, `dashboard/fl-assistant.html`, `dashboard/office.html`, `tests/test_fl_assistant_ui.js`, `tests/visual/d12_fixture.py`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Preserve both log histories and round A display/session behavior, reserve customer row 210 after main row 209, refresh Assistant v8, and allow isolated fl_cust_rb_ browser databases. Combine customer and saved-draft test harnesses.

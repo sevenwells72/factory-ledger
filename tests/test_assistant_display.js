@@ -239,3 +239,76 @@ test('mixed inventory units remain separate instead of being added as pounds', (
   assert.equal(display.readSections(card, { language: 'es' })[0].sentence, 'Mixed: 100 lb y 12 cajas en 2 lotes.');
   assert.deepEqual(display.readSections(card)[0].rows, [['BULK', '100', 'lb', '5'], ['CASES', '12', 'cases', '—']]);
 });
+
+
+for (const language of ['en', 'es']) test(`customer draft displays contact details without stock placeholders in ${language}`, () => {
+  const labels = language === 'en'
+    ? ['Customer', 'Contact', 'Email', 'Phone', 'Address', 'Note']
+    : ['Cliente', 'Contacto', 'Correo', 'Teléfono', 'Dirección', 'Nota'];
+  const values = ['Sunrise Bakery', 'A Person', 'orders@example.test', '555-1234', '10 Main St', language === 'en' ? 'Call before delivery' : 'Llamar antes de entregar'];
+  const pairs = display.draftFields({ action: 'create_customer', draft: { customer: {
+    name: values[0], contact_name: values[1], email: values[2], phone: values[3], address: values[4],
+    notes: 'Call before delivery', notes_es: 'Llamar antes de entregar'
+  } } }, { language });
+  assert.deepEqual(pairs, labels.map((label, i) => [label, values[i]]));
+  assert.doesNotMatch(JSON.stringify(pairs), /Product|Producto|Quantity|Cantidad|not supplied|no indicad/);
+});
+
+for (const language of ['en', 'es']) test(`order draft preserves PO, requested date, physical quantities and service prices in ${language}`, () => {
+  const stock = { product: 'Classic Granola', quantity: 2, unit: 'cases', quantity_lb: 50, unit_price: 30, amount: 60 };
+  const service = { product: 'Pallet Charge', quantity: 3, unit: 'each', quantity_lb: 999, unit_price: 12.5, amount: 37.5, is_service: true };
+  const fields = Object.fromEntries(display.draftFields({ action: 'create_order', draft: {
+    customer: 'Sunrise Bakery', customer_po: 'SUNRISE-PO-1', requested_ship_date: '2026-10-20', lines: [stock, service]
+  } }, { language }));
+  assert.equal(fields[language === 'en' ? 'Product' : 'Producto'], 'Classic Granola');
+  assert.equal(fields[language === 'en' ? 'Quantity' : 'Cantidad'], '50 lb', 'service charges never inflate the order weight');
+  assert.equal(fields[language === 'en' ? 'Customer' : 'Cliente'], 'Sunrise Bakery');
+  assert.equal(fields[language === 'en' ? 'Customer PO' : 'Orden de compra del cliente'], 'SUNRISE-PO-1');
+  assert.equal(fields[language === 'en' ? 'Requested ship date' : 'Fecha solicitada de envío'], '2026-10-20');
+  const stockFields = Object.fromEntries(display.lineFields(stock, language));
+  assert.equal(stockFields[language === 'en' ? 'Quantity' : 'Cantidad'], language === 'en' ? '2 cases' : '2 cajas');
+  assert.equal(stockFields[language === 'en' ? 'Pounds' : 'Libras'], 50);
+  const serviceFields = Object.fromEntries(display.lineFields(service, language));
+  assert.equal(serviceFields[language === 'en' ? 'Type' : 'Tipo'], language === 'en' ? 'Service charge' : 'Cargo por servicio');
+  assert.equal(serviceFields[language === 'en' ? 'Quantity' : 'Cantidad'], language === 'en' ? '3 each' : '3 cada uno');
+  assert.equal(serviceFields[language === 'en' ? 'Pounds' : 'Libras'], undefined);
+  assert.equal(serviceFields[language === 'en' ? 'Unit price' : 'Precio unitario'], 12.5);
+  assert.equal(serviceFields[language === 'en' ? 'Amount' : 'Importe'], 37.5);
+  assert.equal(Object.fromEntries(display.lineFields({ ...service, is_service: false, line_type: 'service' }, language))[language === 'en' ? 'Pounds' : 'Libras'], undefined);
+});
+
+test('line fields retain legacy physical quantities and zero service prices', () => {
+  const physical = Object.fromEntries(display.lineFields({ original_quantity: 2, original_unit: 'bags', quantity_lb: 50 }));
+  assert.equal(physical.Quantity, '2 bags');
+  assert.equal(physical.Pounds, 50);
+  const service = Object.fromEntries(display.lineFields({ quantity: 1, unit: 'each', is_service: true, unit_price: 0, amount: 0 }));
+  assert.equal(service['Unit price'], 0);
+  assert.equal(service.Amount, 0);
+});
+
+for (const language of ['en', 'es']) test(`customer duplicate offers only a usable existing customer in ${language}`, () => {
+  const blocker = { code: 'CUSTOMER_ALREADY_EXISTS', existing_customer: { id: 42, name: 'Sunshine Bakery', active: true } };
+  assert.deepEqual(display.existingCustomerChoice(blocker, language), language === 'en' ? {
+    label: 'Use existing customer: Sunshine Bakery', text: 'Use the existing customer Sunshine Bakery for the order.'
+  } : { label: 'Usar cliente existente: Sunshine Bakery', text: 'Usa el cliente existente Sunshine Bakery para el pedido.' });
+  for (const unusable of [{}, { ...blocker, code: 'OTHER_BLOCKER' }, { ...blocker, existing_customer: { id: 42 } },
+    { ...blocker, existing_customer: { ...blocker.existing_customer, active: false } }]) {
+    assert.equal(display.existingCustomerChoice(unusable, language), null);
+  }
+});
+
+for (const language of ['en', 'es']) test(`Add customer stays available for office and owner only on the first choices page in ${language}`, () => {
+  const expected = language === 'en' ? {
+    label: "Add 'Sunrise Bakery' as a new customer", text: 'Create a new customer named Sunrise Bakery first, then continue the order.'
+  } : { label: "Agregar 'Sunrise Bakery' como cliente nuevo", text: 'Crea primero un cliente nuevo llamado Sunrise Bakery y luego continúa el pedido.' };
+  for (const outcome of ['none', 'ambiguous', 'match']) for (const offset of [undefined, null, 0]) {
+    const card = { kind: 'choices', resolution_kind: 'customer', query: 'Sunrise Bakery', result: { outcome, offset } };
+    for (const role of ['office', 'owner']) assert.deepEqual(display.newCustomerChoice(card, role, language), expected);
+    for (const role of ['floor', 'readonly', undefined]) assert.equal(display.newCustomerChoice(card, role, language), null);
+    assert.equal(display.newCustomerChoice({ ...card, result: { ...card.result, offset: 10 } }, 'office', language), null);
+    assert.equal(display.newCustomerChoice({ ...card, resolution_kind: 'product' }, 'office', language), null);
+    assert.equal(display.newCustomerChoice({ ...card, query: '' }, 'office', language), null);
+  }
+  assert.deepEqual(display.newCustomerChoice({ resolution_kind: 'customer', query: 'Sunrise Bakery', result: {} }, 'office', language), expected,
+    'legacy first-page cards without offset retain the Add choice');
+});

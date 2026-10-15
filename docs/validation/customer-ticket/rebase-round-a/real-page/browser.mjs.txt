@@ -1,0 +1,108 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import { chromium } from '/Users/cns/dev/fl-cust-wt/node_modules/playwright/index.mjs';
+
+const base = process.env.REAL_BASE;
+const width = Number(process.env.REAL_WIDTH);
+const mode = process.env.KEY_SESSIONS_ENABLED;
+const out = '/private/tmp/fl-cust-rb-real/' + width + '-sessions-' + mode;
+await fs.mkdir(out, { recursive: true });
+assert.equal(new URL(base).hostname, '127.0.0.1');
+const browser = await chromium.launch({ channel: 'chrome', headless: true });
+const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : 1000 },
+                                          hasTouch: width === 390, colorScheme: 'light' });
+const page = await context.newPage();
+page.setDefaultTimeout(20000);
+const errors = [], requests = [], blocked = [];
+let recorded;
+page.on('pageerror', error => errors.push(error.message));
+page.on('request', request => requests.push({ method: request.method(), path: new URL(request.url()).pathname }));
+await page.route('**/*', route => {
+  if (new URL(route.request().url()).origin !== base) {
+    blocked.push(route.request().url()); return route.abort();
+  }
+  return route.continue();
+});
+async function api(path) {
+  const response = await fetch(base + path, { headers: { 'X-API-Key': 'fl-cust-rb-local-office' } });
+  assert.ok(response.ok, path + ' returned ' + response.status);
+  return response.json();
+}
+async function assertNotCreated() {
+  assert.equal((await api('/customers')).customers.filter(customer => customer.name === 'Sunrise Bakery').length, 0);
+  assert.equal(requests.filter(request => request.path === '/assistant/record').length, 0);
+}
+async function send(text) {
+  await page.locator('#message').fill(text);
+  await page.locator('#send').click();
+}
+try {
+  await page.goto(base + '/dash/fl-assistant');
+  await page.locator('#actor-key').fill('fl-cust-rb-local-office');
+  await page.locator('#sign-in-form button').click();
+  await page.locator('#chat-panel').waitFor({ state: 'visible' });
+  await send('New order for Sunrise Bakery');
+  let choice = page.locator('.assistant-message .card').last();
+  await choice.getByRole('button', { name: 'Sunshine Bakery', exact: true }).waitFor();
+  await choice.getByRole('button', { name: "Add 'Sunrise Bakery' as a new customer", exact: true }).waitFor();
+  await assertNotCreated();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.screenshot({ path: out + '/sunrise-choice.png', fullPage: true });
+
+  // Supply actual test contact facts before the model stub may prepare them.
+  await send(process.env.CONTACT_MESSAGE);
+  choice = page.locator('.assistant-message .card').last();
+  await choice.getByRole('button', { name: 'Sunshine Bakery', exact: true }).waitFor();
+  await choice.getByRole('button', { name: "Add 'Sunrise Bakery' as a new customer", exact: true }).click();
+  const customer = page.locator('[data-draft-id]').last();
+  await customer.getByRole('heading', { name: 'Create customer', exact: true }).waitFor();
+  for (const value of ['Sunrise Bakery', 'Pat Sunrise', 'pat@example.test', '555-0123', '1 Sunrise Road', 'Call before delivery']) {
+    await customer.getByText(value, { exact: true }).waitFor();
+  }
+  await assertNotCreated();
+  const record = customer.getByRole('button', { name: 'Record', exact: true });
+  assert.equal(await record.isEnabled(), true);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.screenshot({ path: out + '/customer-draft.png', fullPage: true });
+  const recordedResponse = page.waitForResponse(response => new URL(response.url()).pathname === '/assistant/record');
+  await record.click();
+  const response = await recordedResponse;
+  assert.equal(response.status(), 200);
+  recorded = await response.json();
+  assert.equal(recorded.kind, 'receipt');
+  assert.match(recorded.result.receipt_number, /^CUS-\d{6}-\d{3,}$/);
+  await customer.getByRole('heading', { name: recorded.result.receipt_number, exact: true }).waitFor();
+  await customer.getByRole('button', { name: 'Continue with an order', exact: true }).waitFor();
+  assert.equal(requests.filter(request => request.path === '/assistant/record').length, 1);
+  const created = (await api('/customers')).customers.filter(customer => customer.name === 'Sunrise Bakery');
+  assert.equal(created.length, 1);
+  assert.equal(created[0].contact_name, 'Pat Sunrise');
+  const receipt = await api('/receipts/' + recorded.result.receipt_number);
+  assert.equal(receipt.action, 'create_customer');
+  assert.equal(receipt.response.customer.name, 'Sunrise Bakery');
+  assert.equal(receipt.response.customer.contact_name, 'Pat Sunrise');
+  assert.equal(receipt.response.customer.email, 'pat@example.test');
+  assert.equal(receipt.response.customer.phone, '555-0123');
+  assert.equal(receipt.response.customer.address, '1 Sunrise Road');
+  assert.equal(receipt.response.customer.notes, 'Call before delivery');
+  assert.equal(receipt.response.customer.notes_es, 'Llame antes de entregar');
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.screenshot({ path: out + '/customer-receipt.png', fullPage: true });
+  assert.deepEqual(errors, []);
+  assert.deepEqual(blocked, []);
+  const summary = { width, sessions: mode === '1', real_http_api: true, real_postgresql: true,
+    model: 'deterministic transport stub; no configured OPENAI_API_KEY',
+    initial_prompt: 'New order for Sunrise Bakery', initial_candidate: 'Sunshine Bakery',
+    add_button: "Add 'Sunrise Bakery' as a new customer", receipt: recorded.result.receipt_number,
+    contact_fields: true, no_customer_before_record: true, no_horizontal_overflow: true,
+    page_errors: errors, external_requests: blocked, requests };
+  await fs.writeFile(out + '/summary.json', JSON.stringify(summary, null, 2));
+  console.log(JSON.stringify(summary));
+} catch (error) {
+  await page.screenshot({ path: out + '/failure.png', fullPage: true });
+  await fs.writeFile(out + '/failure.json', JSON.stringify({ error: String(error), errors, requests,
+    body: await page.locator('body').innerText() }, null, 2));
+  throw error;
+} finally {
+  await browser.close();
+}

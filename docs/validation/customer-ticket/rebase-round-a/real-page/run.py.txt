@@ -1,0 +1,112 @@
+"""Own fresh prefixed local DBs, run real-page checks, verify rows, then drop DBs."""
+import hashlib
+import json
+import os
+from pathlib import Path
+import signal
+import subprocess
+import sys
+import time
+import urllib.request
+
+ROOT = Path('/Users/cns/dev/fl-cust-wt')
+OUT = Path('/private/tmp/fl-cust-rb-real')
+PG = Path('/opt/homebrew/opt/postgresql@17/bin')
+sys.path.insert(0, str(ROOT))
+import psycopg2
+from psycopg2.extras import RealDictCursor
+
+CONTACT_MESSAGE = ('For Sunrise Bakery use contact Pat Sunrise, email pat@example.test, phone 555-0123, '
+                   'address 1 Sunrise Road, notes Call before delivery, Spanish notes Llame antes de entregar. '
+                   'Show the customer choices again.')
+summary = {'model': 'Only fl_assistant.openai is stubbed; all HTTP, auth, resolution, prepare, commit, receipt and DB work is real.',
+           'cases': [], 'dropped_databases': []}
+
+for index, (width, sessions) in enumerate([(1440, '0'), (390, '0'), (1440, '1'), (390, '1')]):
+    db = f'fl_cust_rb_real_{width}_{sessions}'
+    url = 'postgresql://localhost:5432/' + db
+    port = 8172 + index
+    base = 'http://127.0.0.1:' + str(port)
+    env = dict(os.environ, DATABASE_URL=url, TEST_DATABASE_URL=url,
+               KEY_SESSIONS_ENABLED=sessions, REAL_PORT=str(port), REAL_BASE=base,
+               REAL_WIDTH=str(width), PYTHONDONTWRITEBYTECODE='1', CONTACT_MESSAGE=CONTACT_MESSAGE,
+               MODEL_LOG=str(OUT / f'{width}-sessions-{sessions}-model.jsonl'))
+    env.pop('OPENAI_API_KEY', None)
+    owned = False
+    server = None
+    variant = OUT / f'{width}-sessions-{sessions}'
+    variant.mkdir(parents=True, exist_ok=True)
+    with (variant / 'server.log').open('w') as server_log:
+        try:
+            # Refuse to reuse or delete any pre-existing database.
+            with psycopg2.connect('postgresql://localhost:5432/postgres') as conn, conn.cursor() as cur:
+                cur.execute('SELECT 1 FROM pg_database WHERE datname=%s', (db,))
+                assert cur.fetchone() is None, 'Refusing to reuse existing ' + db
+            subprocess.run([str(PG / 'createdb'), '-h', 'localhost', '--encoding=UTF8', '--template=template0', db], check=True)
+            owned = True
+            with (variant / 'schema.log').open('w') as stream:
+                subprocess.run([str(PG / 'psql'), url, '-v', 'ON_ERROR_STOP=1', '-c', 'CREATE EXTENSION pg_trgm'],
+                               stdout=stream, stderr=subprocess.STDOUT, check=True)
+                subprocess.run([str(PG / 'psql'), url, '-v', 'ON_ERROR_STOP=1', '-f', str(ROOT / 'tests/schema/schema.sql')],
+                               stdout=stream, stderr=subprocess.STDOUT, check=True)
+            with psycopg2.connect(url) as conn, conn.cursor() as cur:
+                cur.execute((ROOT / 'migrations/083_customer_tickets.sql').read_text())
+                seed = (ROOT / 'migrations/061_exceptions_tables.sql').read_text()
+                cur.execute(seed[seed.index('CREATE TABLE IF NOT EXISTS correction_reasons'):seed.index('-- 3. transactions.reason_code')])
+                cur.execute("INSERT INTO actors(name,role,key_hash,active) VALUES('Office Real Page','office',%s,true)",
+                            (hashlib.sha256(b'fl-cust-rb-local-office').hexdigest(),))
+                cur.execute("INSERT INTO customers(name) VALUES('Sunshine Bakery')")
+            server = subprocess.Popen([str(ROOT / '.venv-test/bin/python'), str(OUT / 'serve.py')],
+                                      cwd=ROOT, env=env, stdout=server_log, stderr=subprocess.STDOUT)
+            for attempt in range(80):
+                if server.poll() is not None:
+                    raise RuntimeError('Local server stopped; see ' + str(variant / 'server.log'))
+                try:
+                    with urllib.request.urlopen(base + '/auth/session/config', timeout=1) as response:
+                        config = json.load(response)
+                    assert config['key_sessions_enabled'] == (sessions == '1')
+                    break
+                except OSError:
+                    time.sleep(0.2)
+            else:
+                raise RuntimeError('Local server startup timed out')
+            with (variant / 'browser.log').open('w') as stream:
+                result = subprocess.run(['node', str(OUT / 'browser.mjs')], cwd=ROOT, env=env,
+                                        stdout=stream, stderr=subprocess.STDOUT)
+            assert result.returncode == 0, 'Browser failed; see ' + str(variant / 'browser.log')
+            with psycopg2.connect(url) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+                cur.execute("SELECT name,contact_name,email,phone,address,notes,notes_es,ticket_id FROM customers WHERE name='Sunrise Bakery'")
+                customers = [dict(row) for row in cur.fetchall()]
+                assert len(customers) == 1 and customers[0]['contact_name'] == 'Pat Sunrise'
+                cur.execute("SELECT action,status,receipt_number,result_ref FROM write_tickets WHERE action='create_customer'")
+                tickets = [dict(row) for row in cur.fetchall()]
+                assert len(tickets) == 1 and tickets[0]['status'] == 'committed'
+                assert tickets[0]['receipt_number'].startswith('CUS-')
+                cur.execute("SELECT target_table,route FROM actor_write_audit WHERE target_table='customers'")
+                audits = [dict(row) for row in cur.fetchall()]
+                assert audits == [{'target_table': 'customers', 'route': '/tickets/{ticket}/commit'}]
+                cur.execute('SELECT count(*) AS n FROM sales_orders')
+                assert cur.fetchone()['n'] == 0
+                db_proof = {'customers': customers, 'tickets': tickets, 'audit': audits, 'orders_created': 0}
+                (variant / 'db-proof.json').write_text(json.dumps(db_proof, indent=2, default=str))
+            summary['cases'].append(json.loads((variant / 'summary.json').read_text()))
+            print(f'{width}px sessions {sessions}: real customer Record and CUS receipt passed', flush=True)
+        finally:
+            if server is not None:
+                server.send_signal(signal.SIGTERM)
+                try:
+                    server.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    server.kill()
+                    server.wait()
+            if owned:
+                subprocess.run([str(PG / 'dropdb'), '-h', 'localhost', '--force', db], check=True)
+                summary['dropped_databases'].append(db)
+                (OUT / 'summary.json').write_text(json.dumps(summary, indent=2))
+
+with psycopg2.connect('postgresql://localhost:5432/postgres') as conn, conn.cursor() as cur:
+    cur.execute("SELECT datname FROM pg_database WHERE datname LIKE 'fl_cust_rb_real_%'")
+    summary['remaining_real_databases'] = [row[0] for row in cur.fetchall()]
+assert summary['remaining_real_databases'] == []
+(OUT / 'summary.json').write_text(json.dumps(summary, indent=2))
+print('All four real-page variants passed; all owned fl_cust_rb_real_* DBs dropped.', flush=True)
