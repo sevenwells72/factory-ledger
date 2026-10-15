@@ -1,13 +1,13 @@
 /* F1: DOM cards come from FL responses. Model prose is never a UI input. */
 (function (root) {
   'use strict';
-  const validReceipt = value => !!(value && value.success !== false && typeof value.receipt_number === 'string' && /^(RCV|MK|PK|ADJ|FND|SHP)-\d{6}-\d{3,}$/.test(value.receipt_number));
+  const validReceipt = value => !!(value && value.success !== false && typeof value.receipt_number === 'string' && /^(RCV|MK|PK|ADJ|FND|SHP|CUS|ORD)-\d{6}-\d{3,}$/.test(value.receipt_number));
   const canRecord = prepared => !!(prepared && (prepared.blockers?.length ? prepared.blockers.every(b => b.code === 'LOT_NOT_CONFIRMED') : prepared.can_commit === true));
   const evidenceKinds = ['bol', 'truck_photo', 'correction_photo', 'lot_tag', 'count_sheet', 'signed_packing_slip', 'other'];
   const validAttachment = value => !!(value && Number.isSafeInteger(value.id) && value.id > 0 && evidenceKinds.includes(value.kind));
   const neutralMessages = {
-    unsupported_request: ['I can only record or look up Factory Ledger items (receive, make, pack, ship, adjust, found, inventory, receipts, today’s entries). For other questions, use ChatGPT.',
-      'Solo puedo registrar o consultar elementos de Factory Ledger (recibir, producir, empacar, enviar, ajustar, encontrado, inventario, recibos y entradas de hoy). Para otras preguntas, usa ChatGPT.'],
+    unsupported_request: ['I can only record or look up Factory Ledger items (customers, orders, receive, make, pack, ship, adjust, found, inventory, receipts, today’s entries). For other questions, use ChatGPT.',
+      'Solo puedo registrar o consultar elementos de Factory Ledger (clientes, pedidos, recibir, producir, empacar, enviar, ajustar, encontrado, inventario, recibos y entradas de hoy). Para otras preguntas, usa ChatGPT.'],
     misunderstood: ['I didn’t understand that — please rephrase (e.g. “we packed 60 cases of Classic”).',
       'No entendí eso — reformula el mensaje (por ejemplo, “empacamos 60 cajas de Classic”).'],
     lookup_failed: ['Couldn’t look that up. Please try again.', 'No pude consultar eso. Inténtalo de nuevo.'],
@@ -25,7 +25,8 @@
   const display = root.FLAssistantDisplay || (typeof require === 'function' ? require('./assistant-display.js') : null);
   const isTodayQuery = text => /^(?:(?:show|list)(?: me)?(?: all)?(?: of)? (?:today[’']?s entries|entries (?:for |from )?today)|what (?:did|have) (?:i|we) (?:enter(?:ed)?|record(?:ed)?) today|today[’']?s entries|entradas de hoy|(?:mostrar|muestra|ver|lista)(?: todas)?(?: las)? entradas de hoy|[¿]?qu[eé] registr(?:[eé]|amos) hoy)[?.!¿]*$/i.test(String(text || '').trim());
   const voidTarget = text => /\b(void|anular|anula)\b/i.test(text || '') ? (String(text).match(/\b(?:RCV|MK|PK|ADJ|FND|SHP)-\d{6}-\d{3,}\b/i)?.[0]?.toUpperCase() || null) : null;
-  const refusalDraft = prepared => !!prepared?.blockers?.some(b => !['LOT_NOT_CONFIRMED', 'SKU_CONFIRMATION_REQUIRED', 'BOL_REQUIRED'].includes(b.code));
+  const refusalDraft = prepared => !!prepared?.blockers?.some(b => !['LOT_NOT_CONFIRMED', 'SKU_CONFIRMATION_REQUIRED', 'BOL_REQUIRED'].includes(b.code)
+    && !(prepared.action === 'create_customer' && display.existingCustomerChoice(b)));
   const exports = { isTodayQuery, voidTarget, refusalDraft, validReceipt, canRecord, validAttachment, evidenceKinds, errorText, awaitingApproval, neutralMessages };
   if (typeof module !== 'undefined') module.exports = exports;
   if (!root.document) return;
@@ -85,8 +86,8 @@
       delta_lb: ['weight change (lb)', 'cambio de peso (lb)'], reason_code: ['correction reason', 'motivo de la corrección'],
       quantity: ['quantity (lb)', 'cantidad (lb)'], order_id: ['order', 'pedido'],
       line_id: ['order item', 'producto del pedido'], quantity_lb: ['quantity (lb)', 'cantidad (lb)'],
-      customer_id: ['customer', 'cliente'], order_reference: ['order reference', 'referencia del pedido'],
-      lines: ['items to ship', 'productos que se van a enviar']
+      name: ['customer name', 'nombre del cliente'], customer_id: ['customer', 'cliente'], order_reference: ['order reference', 'referencia del pedido'],
+      lines: ['order items and quantities', 'productos y cantidades del pedido']
     };
     node.append(el('p', t('Please add the missing details:', 'Agrega los datos que faltan:')));
     const list = el('ul');
@@ -185,7 +186,7 @@
     node.append(el('p', result.replayed ? t('Same entry, same receipt. Your retry did not create another entry.', 'Misma entrada, mismo recibo. El reintento no creó otra entrada.') : t('FL confirmed this entry.', 'FL confirmó esta entrada.')));
     autoSubstitutions(node, result);
     fields(node, [[t('Product', 'Producto'), result.product_name || result.target_product_name], [t('Lot', 'Lote'), result.lot_code || result.output_lot_code],
-      [t('Customer', 'Cliente'), result.customer_name || result.customer], [t('Shipment', 'Envío'), result.shipment_id],
+      [t('Customer', 'Cliente'), result.customer_name || result.customer], [t('Order', 'Pedido'), result.order_number], [t('Shipment', 'Envío'), result.shipment_id],
       [t('BOL', 'BOL'), result.bol_reference], [t('Photo status', 'Estado de foto'), result.proof_status === 'complete' ? t('Attached', 'Adjunta') : result.proof_status === 'photo_pending' ? t('Pending', 'Pendiente') : display.plainLabel(result.proof_status, language)]]);
     for (const shortage of result.shortages || []) {
       const warning = el('div', undefined, 'warning'); warning.setAttribute('role', 'status');
@@ -194,6 +195,12 @@
           `${shortage.product_name} · ${shortage.lot_code}: faltan ${shortage.short_lb} lb. El piso debe resolver este faltante.`)));
       fields(warning, [[t('Due', 'Vence'), display.formatTime(shortage.due_at, { language })], [t('Exception', 'Excepción'), shortage.exception_id]]);
       node.append(warning);
+    }
+    if (result.receipt_number.startsWith('CUS-')) {
+      node.append(el('p', t('Customer created. Continue with the order when you are ready.', 'Cliente creado. Continúa con el pedido cuando estés listo.')));
+      node.append(button(t('Continue with an order', 'Continuar con un pedido'), () => {
+        sendTurn({ text: t(`Continue the order using the customer from receipt ${result.receipt_number}.`, `Continúa el pedido usando el cliente del recibo ${result.receipt_number}.`) });
+      }, 'primary'));
     }
     details(node, result);
   }
@@ -231,7 +238,7 @@
     const node = existing || shell();
     drafts.set(card.id, node); node.dataset.draftId = card.id;
     node.append(el('span', t('DRAFT · NOT RECORDED', 'BORRADOR · NO REGISTRADO'), 'draft-badge'));
-    const actionNames = { receive: ['Receive', 'Recibir'], make: ['Make', 'Producir'], pack: ['Pack', 'Empacar'], adjust: ['Adjust', 'Ajustar'], found: ['Found inventory', 'Inventario encontrado'],
+    const actionNames = { create_customer: ['Create customer', 'Crear cliente'], create_order: ['Create order', 'Crear pedido'], receive: ['Receive', 'Recibir'], make: ['Make', 'Producir'], pack: ['Pack', 'Empacar'], adjust: ['Adjust', 'Ajustar'], found: ['Found inventory', 'Inventario encontrado'],
       ship_order: ['Ship order', 'Enviar pedido'], ship_standalone: ['Ship', 'Enviar'], ship_bulk: ['Ship multiple products', 'Enviar varios productos'] };
     node.append(el('h3', t(...(actionNames[prepared.action] || [prepared.action, prepared.action]))));
     node.append(el('p', t(`Recording as ${prepared.actor?.name || actor.name}`, `Registrando como ${prepared.actor?.name || actor.name}`), 'muted'));
@@ -244,8 +251,9 @@
     for (const line of draft.lines || []) {
       const row = el('div', undefined, 'ship-line');
       row.append(el('strong', line.product || line.product_name));
-      fields(row, line.is_service ? [[t('Type', 'Tipo'), t('Service charge', 'Cargo por servicio')]] :
-        [[t('Pounds', 'Libras'), line.quantity_lb], [t('Cases', 'Cajas'), line.cases], [t('Lots', 'Lotes'), (line.lots || []).map(lot => lot.lot_code).join(', ')]]);
+      const enLine = display.lineFields(line, 'en'), esLine = display.lineFields(line, 'es');
+      fields(row, enLine.map(([label, value], i) => [t(label, esLine[i][0]),
+        value == null ? value : t(String(value), String(esLine[i][1] ?? value))]));
       node.append(row);
     }
     const confirmations = [], warningChecks = [];
@@ -294,6 +302,10 @@
     }
     for (const blocker of prepared.blockers || []) {
       node.append(el('div', t(display.errorMessage(blocker, 'en'), display.errorMessage(blocker, 'es')), blocker.code === 'LOT_NOT_CONFIRMED' ? 'warning' : 'error-box'));
+      const enChoice = display.existingCustomerChoice(blocker, 'en'), esChoice = display.existingCustomerChoice(blocker, 'es');
+      if (enChoice) node.append(button(t(enChoice.label, esChoice.label), () => {
+        sendTurn({ text: t(enChoice.text, esChoice.text) });
+      }, 'choice-button'));
     }
     for (const aid of card.attachment_ids || []) node.append(button(t('View attached photo', 'Ver foto adjunta'), () => viewPhoto(aid)));
     details(node, draft);
@@ -344,6 +356,12 @@
       }
       for (const candidate of card.result.candidates || []) {
         const b = button(candidate.label || candidate.name, () => select(candidate.id), 'choice-button'); choices.push(b); node.append(b);
+      }
+      const enChoice = display.newCustomerChoice(card, actor?.role, 'en'), esChoice = display.newCustomerChoice(card, actor?.role, 'es');
+      if (enChoice) {
+        const create = button(t(enChoice.label, esChoice.label), () => {
+          sendTurn({ text: t(enChoice.text, esChoice.text) });
+        }, 'choice-button'); choices.push(create); node.append(create);
       }
       const none = button(t('None of these', 'Ninguno de estos'), () => select(null), 'choice-button'); choices.push(none); node.append(none);
       if (card.result.has_more) { const more = button(t('More choices →', 'Más opciones →'), () => select(null, true), 'choice-button'); choices.push(more); node.append(more); }

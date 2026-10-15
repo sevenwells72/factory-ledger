@@ -13,6 +13,8 @@ from psycopg2.extras import RealDictCursor
 from fastapi.testclient import TestClient
 import pytest
 
+from tests.conftest import scratch_database_prefix
+
 import main
 import write_tickets as tickets
 from scripts.expire_tickets import expire
@@ -398,7 +400,7 @@ def isolated_database(_db_connection):
     """Dedicated local database for committed races and reversible DDL."""
     parts = urlsplit(main.DATABASE_URL)
     assert parts.hostname in ('localhost', '127.0.0.1', '::1')
-    name = 'a1_race_' + uuid4().hex
+    name = scratch_database_prefix('a1_race_') + uuid4().hex
     url = urlunsplit(parts._replace(path='/' + name))
     admin = psycopg2.connect(main.DATABASE_URL)
     admin.autocommit = True

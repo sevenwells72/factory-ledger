@@ -1,15 +1,15 @@
 /* The draft is FL's response; the browser never calculates permission or stock rules. */
 (function(root){
   const ui=root.FLLedger;
-  ui.ticketCard=function(host,path,payload,{onRecorded=()=>{},onBusy=()=>{},onEdit=null,photoKind='correction_photo',receiptPrefix=null,allowPhoto=true}={}){
+  ui.ticketCard=function(host,path,payload,{onRecorded=()=>{},onPrepared=()=>{},onFailure=()=>{},onBusy=()=>{},onEdit=null,photoKind='correction_photo',receiptPrefix=null,allowPhoto=true}={}){
     let prepared=null,busy=false,finished=false,attachment=null,confirmations=[],lastLots=[];
     const card=ui.el('section',undefined,host);card.className='panel';
     function editButton(){if(onEdit){const edit=ui.el('button',ui.t('Edit entry','Editar entrada'),card);edit.type='button';edit.onclick=()=>{if(!busy)onEdit();};}}
-    function failure(error){ui.failure(error);}
+    function failure(error){ui.failure(error);onFailure(error);}
     function invalidate(){finished=true;card.replaceChildren();ui.el('p',ui.t('Draft cleared. Prepare again after signing in.','Borrador borrado. Prepara de nuevo tras iniciar sesión.'),card);}
     window.addEventListener('ledger-signout',invalidate,{once:true});
     async function prepare(){if(busy||finished)return;busy=true;card.replaceChildren();ui.el('p',ui.t('Preparing…','Preparando…'),card);
-      try{prepared=await ui.request(path,{...payload,...(confirmations.length?{lot_confirmations:confirmations}:{})});if(finished)return;if(!prepared.ticket||!prepared.payload_hash||!prepared.draft)throw Error('FL did not return a draft / FL no devolvió un borrador');document.getElementById('notice').hidden=true;render();}
+      try{prepared=await ui.request(path,{...payload,...(confirmations.length?{lot_confirmations:confirmations}:{})});if(finished)return;if(!prepared.ticket||!prepared.payload_hash||!prepared.draft)throw Error('FL did not return a draft / FL no devolvió un borrador');document.getElementById('notice').hidden=true;render();onPrepared(prepared);}
       catch(error){failure(error);card.replaceChildren();const retry=ui.el('button',ui.t('Try prepare again','Preparar de nuevo'),card);retry.type='button';retry.onclick=prepare;editButton();}finally{busy=false;}}
     function render(){card.replaceChildren();editButton();ui.el('h2',ui.t('Draft — review before recording','Borrador — revisa antes de registrar'),card);ui.el('p',ui.t('Recording as ','Registrando como ')+(prepared.actor?.name||prepared.draft.actor?.name||'—'),card);ui.el('p',ui.t('Expires: ','Vence: ')+ui.plantTime(prepared.expires_at,ui.lang),card);
       const view=ui.el('div',undefined,card);view.className='draft-data';view.innerHTML=ui.draftHtml(prepared.draft);

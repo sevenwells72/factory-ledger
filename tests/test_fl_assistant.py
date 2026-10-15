@@ -1107,3 +1107,121 @@ def test_order_choice_fetches_selected_detail_before_partial_prepare(client, act
     chosen = json.loads(selection.removeprefix('I selected this FL candidate: '))
     assert chosen['order_detail']['order_id'] == detail['order_id']
     assert chosen['order_detail']['lines'] == detail['lines']
+
+
+@pytest.fixture
+def customer_ticket_schema(db_cursor):
+    # The production snapshot deliberately predates this branch's additive
+    # migration. Apply it only inside customer-ticket cases' rolled-back DB.
+    db_cursor.execute((Path(__file__).resolve().parents[1] / 'migrations/083_customer_tickets.sql').read_text())
+
+
+@pytest.mark.parametrize('role', ['office', 'owner'])
+def test_assistant_customer_record_receipt_then_order_draft(client, actors, db_cursor, monkeypatch, role, customer_ticket_schema):
+    from tests.test_order_tickets import seed as seed_orders
+    data = seed_orders(db_cursor)
+    h = headers(actors[role]['key'])
+    sid = client.post('/assistant/session', headers=h).json()['session_id']
+    office_chat = (sid, h)
+    name = 'Assistant New Customer ' + uuid4().hex[:10]
+    customer_args = {'name': name, 'email': 'orders@example.test', 'contact_name': 'New Contact'}
+    model(monkeypatch, ('prepare_create_customer', customer_args))
+    response = turn(client, office_chat, f'New order for new customer {name}, 2 cases of granola')
+    assert response.status_code == 200, response.text
+    card = response.json()['cards'][0]
+    assert card['kind'] == 'draft' and card['prepared']['action'] == 'create_customer'
+    assert card['prepared']['can_commit']
+    db_cursor.execute('SELECT count(*) AS n FROM customers WHERE name=%s', (name,))
+    assert db_cursor.fetchone()['n'] == 0
+    assert 'ticket' not in card['prepared'] and 'payload_hash' not in card['prepared']
+    created = record(client, office_chat, card)
+    assert created.status_code == 200, created.text
+    receipt = created.json()['result']
+    assert receipt['receipt_number'].startswith('CUS-')
+    customer_id = receipt['customer_id']
+    assert record(client, office_chat, card).json()['result'] == receipt | {'replayed': True}
+    product_id = data['products']['food']
+    requests = model(monkeypatch, resolve_product(db_cursor, product_id), ('prepare_create_order', {
+        'customer_id': customer_id, 'customer_po': 'ASSISTANT-' + data['suffix'],
+        'lines': [{'product_id': product_id, 'quantity': 2, 'unit': 'cases'}]}))
+    response = turn(client, office_chat, 'Continue the order using the customer from receipt ' + receipt['receipt_number'])
+    assert response.status_code == 200, response.text
+    order_card = response.json()['cards'][0]
+    assert order_card['kind'] == 'draft' and order_card['prepared']['action'] == 'create_order'
+    assert order_card['prepared']['can_commit'], order_card
+    assert receipt['receipt_number'] in json.dumps(requests[0]['input'])
+    assert name in json.dumps(requests[0]['input'])
+    assert 'wt_' not in json.dumps(requests)
+    db_cursor.execute('SELECT count(*) AS n FROM sales_orders WHERE customer_id=%s', (customer_id,))
+    assert db_cursor.fetchone()['n'] == 0
+    result = record(client, office_chat, order_card)
+    assert result.status_code == 200, result.text
+    assert result.json()['result']['receipt_number'].startswith('ORD-')
+    resumed = client.post('/assistant/resume', headers=h, json={'session_id': sid})
+    assert resumed.status_code == 200
+    assert {draft['status'] for draft in resumed.json()['drafts']} == {'committed'}
+
+
+def test_assistant_floor_customer_prepare_is_refused(client, chat, db_cursor, monkeypatch):
+    name = 'Floor must not create ' + uuid4().hex[:10]
+    model(monkeypatch, ('prepare_create_customer', {'name': name}))
+    response = turn(client, chat, 'Create customer ' + name)
+    assert response.status_code == 200, response.text
+    card = response.json()['cards'][0]
+    assert card['kind'] == 'refusal' and card['status'] == 403
+    assert card['result']['detail']['error_code'] == 'ROLE_NOT_ALLOWED'
+    db_cursor.execute('SELECT count(*) AS n FROM customers WHERE name=%s', (name,))
+    assert db_cursor.fetchone()['n'] == 0
+
+
+def test_unrecorded_customer_draft_cannot_supply_order_customer_id(client, actors, db_cursor, monkeypatch, customer_ticket_schema):
+    from tests.test_order_tickets import seed as seed_orders
+    data = seed_orders(db_cursor)
+    h = headers(actors['office']['key'])
+    office_chat = (client.post('/assistant/session', headers=h).json()['session_id'], h)
+    model(monkeypatch, ('prepare_create_customer', {'name': 'Pending Customer ' + uuid4().hex[:10]}))
+    response = turn(client, office_chat)
+    assert response.json()['cards'][0]['kind'] == 'draft'
+    args = {'customer_id': data['customer'], 'lines': [{'product_id': data['products']['food'], 'quantity_lb': 10}]}
+    model(monkeypatch, *([('prepare_create_order', args)] * 2))
+    response = turn(client, office_chat, 'yes record and make order')
+    assert response.status_code == 200
+    assert response.json()['cards'] == [{'kind': 'misunderstood'}]
+    db_cursor.execute('SELECT count(*) AS n FROM sales_orders WHERE customer_id=%s', (data['customer'],))
+    assert db_cursor.fetchone()['n'] == 0
+
+
+def test_customer_no_match_keeps_exact_name_for_human_new_customer_choice(client, actors, monkeypatch):
+    h = headers(actors['office']['key'])
+    office_chat = (client.post('/assistant/session', headers=h).json()['session_id'], h)
+    name = 'New Unmatched Market ' + uuid4().hex
+    model(monkeypatch, ('resolve', {'kind': 'customer', 'query': name}))
+    response = turn(client, office_chat, 'New order for ' + name)
+    assert response.status_code == 200, response.text
+    card = response.json()['cards'][0]
+    assert card['kind'] == 'choices' and card['result']['outcome'] == 'none'
+    assert card['query'] == name
+
+
+@pytest.mark.parametrize('role', ['office', 'owner'])
+def test_assistant_similar_customer_match_offers_choice_before_order(
+        client, actors, db_cursor, monkeypatch, role):
+    db_cursor.execute("INSERT INTO customers(name) VALUES('Whole Foods Market') RETURNING id")
+    existing_id = db_cursor.fetchone()['id']
+    name = 'Whole Foods Market Northeast'
+    h = headers(actors[role]['key'])
+    office_chat = (client.post('/assistant/session', headers=h).json()['session_id'], h)
+    resolved = client.post('/resolve', headers=h, json={'kind': 'customer', 'query': name}).json()
+    assert resolved['outcome'] == 'match', resolved
+    assert resolved['match']['id'] == existing_id
+    assert resolved['match']['tier'] not in ('exact', 'alias')
+    model(monkeypatch, ('resolve', {'kind': 'customer', 'query': name}), ('today_entries', {}))
+    response = turn(client, office_chat, 'New order for ' + name)
+    assert response.status_code == 200, response.text
+    card = response.json()['cards'][0]
+    assert card['kind'] == 'choices', card
+    assert card['resolution_kind'] == 'customer' and card['query'] == name
+    assert any(c['id'] == existing_id for c in card['result']['candidates'])
+    db_cursor.execute('SELECT state FROM assistant_sessions WHERE id=%s', (office_chat[0],))
+    state = db_cursor.fetchone()['state']
+    assert existing_id not in state.get('resolved', {}).get('customer', [])

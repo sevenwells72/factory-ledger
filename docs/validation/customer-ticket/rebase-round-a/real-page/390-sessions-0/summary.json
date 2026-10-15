@@ -1,0 +1,82 @@
+{
+  "width": 390,
+  "sessions": false,
+  "real_http_api": true,
+  "real_postgresql": true,
+  "model": "deterministic transport stub; no configured OPENAI_API_KEY",
+  "initial_prompt": "New order for Sunrise Bakery",
+  "initial_candidate": "Sunshine Bakery",
+  "add_button": "Add 'Sunrise Bakery' as a new customer",
+  "receipt": "CUS-261015-001",
+  "contact_fields": true,
+  "no_customer_before_record": true,
+  "no_horizontal_overflow": true,
+  "page_errors": [],
+  "external_requests": [],
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/dash/fl-assistant"
+    },
+    {
+      "method": "GET",
+      "path": "/dashboard/dashboard-runtime.js"
+    },
+    {
+      "method": "GET",
+      "path": "/dashboard/ledger-forms.css"
+    },
+    {
+      "method": "GET",
+      "path": "/dashboard/fl-assistant.css"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/session/config"
+    },
+    {
+      "method": "GET",
+      "path": "/dashboard/key-session.js"
+    },
+    {
+      "method": "GET",
+      "path": "/dashboard/assistant-display.js"
+    },
+    {
+      "method": "GET",
+      "path": "/dashboard/fl-assistant.js"
+    },
+    {
+      "method": "GET",
+      "path": "/dashboard/receipt-shell.js"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/session/config"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/whoami"
+    },
+    {
+      "method": "POST",
+      "path": "/assistant/session"
+    },
+    {
+      "method": "POST",
+      "path": "/assistant/turn"
+    },
+    {
+      "method": "POST",
+      "path": "/assistant/turn"
+    },
+    {
+      "method": "POST",
+      "path": "/assistant/turn"
+    },
+    {
+      "method": "POST",
+      "path": "/assistant/record"
+    }
+  ]
+}

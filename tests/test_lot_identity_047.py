@@ -30,6 +30,8 @@ from uuid import uuid4
 
 import pytest
 
+from tests.conftest import scratch_database_prefix
+
 try:
     from fastapi.testclient import TestClient
 except ImportError:  # pragma: no cover
@@ -198,7 +200,7 @@ def scratch_db_factory():
         return proc
 
     def build():
-        db_name = f"factory_ledger_test_047_{uuid4().hex[:8]}"
+        db_name = scratch_database_prefix("factory_ledger_test_047_") + uuid4().hex[:8]
         proc = _run(admin_url, "-c", f'CREATE DATABASE "{db_name}"')
         assert proc.returncode == 0, proc.stderr
         created.append(db_name)

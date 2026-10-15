@@ -1,0 +1,44 @@
+"""Temporary real-app server: deterministic model transport, actual FL APIs/DB."""
+import json
+import os
+from pathlib import Path
+import sys
+from uuid import uuid4
+
+ROOT = Path('/Users/cns/dev/fl-cust-wt')
+sys.path.insert(0, str(ROOT))
+assert os.environ['DATABASE_URL'].startswith('postgresql://localhost:5432/fl_cust_rb_real_')
+os.environ.update(API_KEY='<local-master-key>', DASHBOARD_API_KEY='<local-dashboard-key>',
+                  READONLY_API_KEY='', ASSISTANT_ENABLED='1', PIN_LOGIN_ENABLED='0',
+                  EVIDENCE_STORAGE_DIR='/private/tmp/fl-cust-rb-real/evidence',
+                  PACKING_SLIP_SIGNING_KEY='<local-signing-key>')
+import fl_assistant
+import main
+import uvicorn
+
+contacts = {'name': 'Sunrise Bakery', 'contact_name': 'Pat Sunrise', 'email': 'pat@example.test',
+            'phone': '555-0123', 'address': '1 Sunrise Road',
+            'notes': 'Call before delivery', 'notes_es': 'Llame antes de entregar'}
+model_log = Path(os.environ['MODEL_LOG'])
+
+async def fake_model(path, *, body=None, file=None):
+    assert path == 'responses'
+    assert body['tool_choice'] == 'required' and body['parallel_tool_calls'] is False
+    assert body['store'] is False
+    users = [item.get('content', '') for item in body['input'] if item.get('role') == 'user']
+    latest = users[-1]
+    if latest in ('New order for Sunrise Bakery', os.environ['CONTACT_MESSAGE']):
+        tool, args = 'resolve', {'kind': 'customer', 'query': 'Sunrise Bakery'}
+    elif latest == 'Create a new customer named Sunrise Bakery first, then continue the order.':
+        assert os.environ['CONTACT_MESSAGE'] in users, 'Contact details must first be supplied by the person'
+        tool, args = 'prepare_create_customer', contacts
+    else:
+        raise AssertionError('Unexpected model prompt: ' + latest)
+    with model_log.open('a') as stream:
+        stream.write(json.dumps({'transport': 'deterministic model stub', 'tool': tool, 'arguments': args}) + '\n')
+    return {'status': 'completed', 'output': [{'type': 'function_call', 'call_id': 'call_' + uuid4().hex,
+            'name': tool, 'arguments': json.dumps(args)}]}
+
+fl_assistant.openai = fake_model
+uvicorn.run(main.app, host='127.0.0.1', port=int(os.environ['REAL_PORT']),
+            log_level='warning', access_log=False)

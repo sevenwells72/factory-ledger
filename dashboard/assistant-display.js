@@ -19,6 +19,7 @@
     committed: ['Recorded', 'Registrado'], prepared: ['Draft', 'Borrador'], posted: ['Counts in stock', 'Cuenta en el inventario'],
     voided: ['Voided — no longer counts in stock', 'Anulado — ya no cuenta en el inventario'],
     partially_voided: ['Partly voided', 'Anulado en parte'],
+    create_customer: ['Create customer', 'Crear cliente'], create_order: ['Create order', 'Crear pedido'],
     receive: ['Receive', 'Recibir'], make: ['Make', 'Producir'], pack: ['Pack', 'Empacar'], adjust: ['Adjust', 'Ajustar'],
     found: ['Found inventory', 'Inventario encontrado'], ship_order: ['Ship order', 'Enviar pedido'],
     ship_standalone: ['Ship', 'Enviar'], ship_bulk: ['Ship multiple products', 'Enviar varios productos'],
@@ -92,7 +93,8 @@
       quantity = fmt(requested[1].replaceAll(',', '')) + ' ' + unit + choose(language, ' requested — confirm the draft', ' solicitados — confirma el borrador');
     }
     quantity ||= choose(language, 'Quantity not supplied — check the draft', 'Cantidad no indicada — revisa el borrador');
-    const pairs = [[choose(language, 'Product', 'Producto'), product], [choose(language, 'Quantity', 'Cantidad'), quantity]];
+    const customer = draft.customer && typeof draft.customer === 'object' ? draft.customer : {};
+    const pairs = prepared.action === 'create_customer' ? [] : [[choose(language, 'Product', 'Producto'), product], [choose(language, 'Quantity', 'Cantidad'), quantity]];
     const add = (en, es, value) => { if (value !== undefined && value !== null && value !== '') pairs.push([choose(language, en, es), scalar(value)]); };
     if (number(before) !== null && number(after) !== null) add('Stock before → after', 'Inventario antes → después', fmt(before) + ' → ' + fmt(after) + ' lb');
     if (number(cases) !== null && lb !== undefined) add('Cases', 'Cajas', fmt(cases));
@@ -100,17 +102,46 @@
     add('Source', 'Origen', name(draft.source_product_name || draft.source_product));
     add('Supplier', 'Proveedor', name(draft.supplier_name || draft.supplier));
     add('Customer', 'Cliente', name(draft.customer || draft.customer_name));
+    add('Contact', 'Contacto', customer.contact_name);
+    add('Email', 'Correo', customer.email);
+    add('Phone', 'Teléfono', customer.phone);
+    add('Address', 'Dirección', customer.address);
+    add('Customer PO', 'Orden de compra del cliente', draft.customer_po);
+    add('Requested ship date', 'Fecha solicitada de envío', draft.requested_ship_date);
     add('Order', 'Pedido', scalar(draft.order || draft.order_id));
     add('Lot', 'Lote', draft.lot_code || draft.output_lot_code);
     add('Supplier lot', 'Lote del proveedor', draft.supplier_lot_code);
     add('BOL', 'BOL', draft.bol_reference);
     add('Photo status', 'Estado de foto', plainLabel(draft.photo || draft.proof_status, language));
     add('Reason', 'Motivo', plainLabel(draft.reason || (language === 'es' && draft.reason_es) || draft.reason_code, language));
-    add('Note', 'Nota', plainMessage((language === 'es' && (draft.notes_es || draft.note_es)) || draft.notes || draft.note, language));
+    add('Note', 'Nota', plainMessage((language === 'es' && (customer.notes_es || draft.notes_es || draft.note_es)) || customer.notes || draft.notes || draft.note, language));
     if (/unidentified/i.test(draft.identity_status || '')) add('Lot note', 'Nota del lote', plainLabel('unidentified', language));
     add('Happened at', 'Ocurrió el', formatTime(draft.happened_at, { language, now }));
     add('Expires', 'Vence', formatTime(prepared.expires_at, { language, now }));
     return pairs;
+  }
+  function lineFields(line = {}, language = 'en') {
+    const quantity = line.quantity ?? line.original_quantity, unit = line.unit || line.original_unit;
+    const units = { cases: ['cases', 'cajas'], bags: ['bags', 'bolsas'], boxes: ['boxes', 'cajas'], each: ['each', 'cada uno'], lb: ['lb', 'lb'] };
+    const unitName = units[unit]?.[language === 'es' ? 1 : 0] || unit || '';
+    const service = line.is_service || line.line_type === 'service';
+    return [[choose(language, 'Type', 'Tipo'), service ? choose(language, 'Service charge', 'Cargo por servicio') : undefined],
+      [choose(language, 'Quantity', 'Cantidad'), quantity == null ? undefined : `${quantity} ${unitName}`.trim()],
+      [choose(language, 'Pounds', 'Libras'), service ? undefined : line.quantity_lb], [choose(language, 'Cases', 'Cajas'), line.cases],
+      [choose(language, 'Unit price', 'Precio unitario'), line.unit_price], [choose(language, 'Amount', 'Importe'), line.amount],
+      [choose(language, 'Lots', 'Lotes'), (line.lots || []).map(lot => lot.lot_code).join(', ')]];
+  }
+  function existingCustomerChoice(blocker = {}, language = 'en') {
+    const existing = blocker.existing_customer;
+    if (blocker.code !== 'CUSTOMER_ALREADY_EXISTS' || existing?.active === false || !existing?.name) return null;
+    return { label: choose(language, `Use existing customer: ${existing.name}`, `Usar cliente existente: ${existing.name}`),
+      text: choose(language, `Use the existing customer ${existing.name} for the order.`, `Usa el cliente existente ${existing.name} para el pedido.`) };
+  }
+  function newCustomerChoice(card = {}, role, language = 'en') {
+    if (card.resolution_kind !== 'customer' || !['office', 'owner'].includes(role) || !card.query || (card.result?.offset || 0) !== 0) return null;
+    return { label: choose(language, `Add '${card.query}' as a new customer`, `Agregar '${card.query}' como cliente nuevo`),
+      text: choose(language, `Create a new customer named ${card.query} first, then continue the order.`,
+        `Crea primero un cliente nuevo llamado ${card.query} y luego continúa el pedido.`) };
   }
   const actionVerbs = {
     receive: ['Received', 'Recibido'], make: ['Made', 'Producido'], pack: ['Packed', 'Empacado'],
@@ -216,7 +247,7 @@
     const text = typeof value === 'string' ? value : scalar(value?.receipt_number || value?.source_receipt_number || value?.result?.receipt_number);
     return text.match(/\b(?:RCV|MK|PK|ADJ|FND|SHP)-\d{6}-\d{3,}\b/i)?.[0]?.toUpperCase() || null;
   }
-  const api = { plainLabel, plainMessage, formatTime, errorMessage, inventoryUnit, quantityLabel, draftFields, receiptSummary, readSections, dedupeCards, voidReceipt };
+  const api = { plainLabel, plainMessage, formatTime, errorMessage, inventoryUnit, quantityLabel, draftFields, lineFields, existingCustomerChoice, newCustomerChoice, receiptSummary, readSections, dedupeCards, voidReceipt };
   if (typeof module !== 'undefined') module.exports = api;
   root.FLAssistantDisplay = api;
 })(typeof window === 'undefined' ? globalThis : window);

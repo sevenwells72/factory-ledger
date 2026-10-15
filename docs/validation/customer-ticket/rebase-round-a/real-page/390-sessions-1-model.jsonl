@@ -1,0 +1,3 @@
+{"transport": "deterministic model stub", "tool": "resolve", "arguments": {"kind": "customer", "query": "Sunrise Bakery"}}
+{"transport": "deterministic model stub", "tool": "resolve", "arguments": {"kind": "customer", "query": "Sunrise Bakery"}}
+{"transport": "deterministic model stub", "tool": "prepare_create_customer", "arguments": {"name": "Sunrise Bakery", "contact_name": "Pat Sunrise", "email": "pat@example.test", "phone": "555-0123", "address": "1 Sunrise Road", "notes": "Call before delivery", "notes_es": "Llame antes de entregar"}}

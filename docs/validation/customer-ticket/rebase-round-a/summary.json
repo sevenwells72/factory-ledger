@@ -1,0 +1,66 @@
+{
+  "base": "9b978b82de0a8da53ac215c24c4c8297f2de02db",
+  "original_head": "6eb46e7bcd6ac1ad305f3014072609324f66f7b5",
+  "python": {
+    "passed": 5947,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 144.22,
+    "database": "fl_cust_rb_py",
+    "child_database_prefix": "fl_cust_rb_"
+  },
+  "node": {
+    "passed": 327,
+    "failed": 0,
+    "skipped": 0
+  },
+  "office_browser": {
+    "sessions_off": "pass",
+    "sessions_on": "pass",
+    "real_http_and_database": true,
+    "migration_083_applied": true
+  },
+  "assistant_browser": {
+    "sessions_off": "pass",
+    "sessions_on": "pass",
+    "deterministic_api_fixtures": true
+  },
+  "round_a_browser": {
+    "sessions_off_passed": 30,
+    "sessions_on_passed": 30
+  },
+  "real_page": {
+    "widths": [
+      1440,
+      390
+    ],
+    "sessions": [
+      false,
+      true
+    ],
+    "passed": 4,
+    "initial_prompt": "New order for Sunrise Bakery",
+    "add_button": "Add 'Sunrise Bakery' as a new customer",
+    "receipt": "CUS-261015-001",
+    "real_http_auth_resolution_prepare_record_receipt_and_postgresql": true,
+    "model_transport": "deterministic local stub; no OPENAI_API_KEY configured",
+    "screenshots": 12
+  },
+  "remaining_task_databases": [],
+  "assistant_tools_unchanged_from_original_pr": true,
+  "source_sha256": {
+    "assistant_tools.py": "8c43ab0b08c5bd53f7c4d85a86ca54cf984d357b9bb2c6884bbaf63d2f08fd78",
+    "fl_assistant.py": "6e7e323ecb9d0305a64cb4d9b6fc9e4219530ba018fb8fe2b37a394ab0c6cd00",
+    "customer_tickets.py": "c6995adaf054a216c01e136a8341a1670c165c2388afa71de170bd5d60416f5b",
+    "write_tickets.py": "6e7f563a81d0a5bc16cca3d2bdaa78c6a05725570fb32734e093df61f13a8fb1",
+    "dashboard/assistant-display.js": "6afb84a817c3400516a6e1c3b388fa8faef91d89997f354d36aac9baade38561",
+    "dashboard/fl-assistant.js": "79957db98ca7a33f74c17d5a9bb65a9bb368445938a8953a27687d0c81d8df55",
+    "dashboard/fl-assistant.html": "8b2763561d892c6d08dcb5dbe0eadc8bfb7bad71dfa4c3245e173f9f66f15918",
+    "dashboard/ledger-ui.js": "bacae5bbe1549aeea1efeff008c11d5395fe487fb8ad75c311f8e86d24bcb464",
+    "dashboard/office.html": "dd76bbef105d2a55410f75a041bd6256160ab3d5720e8faad4d00242d77eafd1",
+    "dashboard/entry.html": "851c06fc3de7e6e33e8671a85d58e5a95a73ecabc08e8a656824bdbe76a8c29c",
+    "dashboard/exceptions.html": "cdb0aec13507dbedc83dd84efc1e22c0416d1bddfdec8f5f2c2e93b00ef209ed",
+    "dashboard/receipt.html": "6a76dcdde1c566d427305d921260181b3e161af5b6a5d07a06fe2f2dc5c63f00"
+  },
+  "harness_local_credentials_replaced_with_placeholders": true
+}

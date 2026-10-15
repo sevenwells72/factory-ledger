@@ -1,0 +1,19 @@
+/Users/cns/dev/fl-cust-wt/main.py:2212: SyntaxWarning: invalid escape sequence '\d'
+  (substring(name FROM '(\d+)\s*x\s*\d+'))::numeric
+/Users/cns/dev/fl-cust-wt/.venv-test/lib/python3.12/site-packages/pydantic/_internal/_config.py:408: UserWarning: Valid config keys have changed in V2:
+* 'underscore_attrs_are_private' has been removed
+  warnings.warn(message, UserWarning)
+INFO:main:Database connection pool created
+INFO:main:SKU protection: label_type column up to date
+INFO:main:Migration 004: exclude_from_inventory column up to date
+INFO:main:Migration 005: yield_multiplier column up to date
+INFO:main:Migration 006: case_size_lb column up to date
+INFO:main:Migration 007: No legacy 'new' orders to migrate
+INFO:main:Migration 051-reconcile: no legacy cancelled orders to reconcile
+INFO:main:Migration 008: lot merge columns up to date
+INFO:main:Migration 009: skipped; append-only ledger is installed
+INFO:main:Migration 009: no internal packaging transactions to reclassify
+INFO:main:Migration 010: customer_aliases table up to date
+INFO:main:Migration 011: supplier lot columns and lot_supplier_codes table up to date
+INFO:main:Migration 012: parent_batch_product_id column and FG→batch mappings up to date
+INFO:main:Database connection pool closed

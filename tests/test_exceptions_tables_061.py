@@ -11,6 +11,8 @@ from psycopg2 import errors
 from psycopg2.extras import RealDictCursor
 import pytest
 
+from tests.conftest import scratch_database_prefix
+
 import main
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -272,7 +274,7 @@ def guard_state(cur):
 def isolated_database():
     parts = urlsplit(main.DATABASE_URL)
     assert parts.hostname in ('localhost', '127.0.0.1', '::1')
-    name = 'a3a_mig_' + uuid4().hex
+    name = scratch_database_prefix('a3a_mig_') + uuid4().hex
     url = urlunsplit(parts._replace(path='/' + name))
     admin = psycopg2.connect(main.DATABASE_URL)
     admin.autocommit = True
