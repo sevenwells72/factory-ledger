@@ -1,4 +1,6 @@
 fastapi==0.104.1
+# 2.12–2.13 Decimal schemas use unsupported lookarounds; 2.14.1 matches staging/prod.
+pydantic==2.14.1
 uvicorn==0.24.0
 psycopg2-binary==2.9.9
 python-multipart==0.0.6

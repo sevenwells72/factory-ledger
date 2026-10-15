@@ -1,0 +1,1298 @@
+{
+  "created_at": "2026-10-15T17:08:50.558530+00:00",
+  "all_cases_passed": true,
+  "walkthrough_databases_dropped": true,
+  "runs": [
+    {
+      "name": "real-page",
+      "cases_passed": 68,
+      "model_tool_selection_stubbed": true,
+      "screenshots": 132,
+      "results": "docs/validation/fl-assistant-round-b/real-page/results.json"
+    },
+    {
+      "name": "real-model",
+      "cases_passed": 64,
+      "model_tool_selection_stubbed": false,
+      "screenshots": 104,
+      "results": "docs/validation/fl-assistant-round-b/real-model/results.json"
+    },
+    {
+      "name": "reviewed-queries-real-model",
+      "cases_passed": 4,
+      "model_tool_selection_stubbed": false,
+      "screenshots": 4,
+      "results": "docs/validation/fl-assistant-round-b/reviewed-queries-real-model/results.json"
+    },
+    {
+      "name": "display-edge-cases",
+      "cases_passed": 8,
+      "fixture_renderer_only": true,
+      "database_used": false,
+      "model_used": false,
+      "screenshots": 8,
+      "results": "docs/validation/fl-assistant-round-b/display-edge-cases/results.json"
+    }
+  ],
+  "screenshots": [
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-01-open-order-1-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-01-open-order-1-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-01-open-order-2-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-01-open-order-2-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-01-open-order-3-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-01-open-order-3-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-01-open-orders-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-01-open-orders-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-02-lot-quantity-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-02-lot-quantity-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-03-receive-supplier-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-03-receive-supplier-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-03-receive-supplier-initial-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-03-receive-supplier-initial-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-03-receive-supplier-search-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-03-receive-supplier-search-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-04-make-final-ingredient-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-04-make-final-ingredient-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-04-make-instruction-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-04-make-instruction-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-04-make-lot-confirmation-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-04-make-lot-confirmation-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-05-out-of-scope-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-05-out-of-scope-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-06-unknown-lot-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-06-unknown-lot-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-07-automatic-spanish-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-08-different-lot-trace-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-09-correct-receive-weight-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-09-correct-receive-weight-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-09-corrected-receive-quantity-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-09-corrected-receive-quantity-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-10-kookies-order-filter-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-10-kookies-order-filter-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-11-exact-classic-inventory-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/1440-11-exact-classic-inventory-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-01-open-order-1-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-01-open-order-1-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-01-open-order-2-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-01-open-order-2-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-01-open-order-3-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-01-open-order-3-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-01-open-orders-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-01-open-orders-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-02-lot-quantity-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-02-lot-quantity-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-03-receive-supplier-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-03-receive-supplier-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-03-receive-supplier-initial-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-03-receive-supplier-initial-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-03-receive-supplier-search-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-03-receive-supplier-search-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-04-make-final-ingredient-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-04-make-final-ingredient-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-04-make-instruction-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-04-make-instruction-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-04-make-lot-confirmation-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-04-make-lot-confirmation-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-05-out-of-scope-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-05-out-of-scope-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-06-unknown-lot-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-06-unknown-lot-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-07-automatic-spanish-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-08-different-lot-trace-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-09-correct-receive-weight-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-09-correct-receive-weight-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-09-corrected-receive-quantity-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-off/390-09-corrected-receive-quantity-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-01-open-order-1-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-01-open-order-1-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-01-open-order-2-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-01-open-order-2-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-01-open-order-3-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-01-open-order-3-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-01-open-orders-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-01-open-orders-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-02-lot-quantity-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-02-lot-quantity-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-03-receive-supplier-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-03-receive-supplier-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-03-receive-supplier-initial-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-03-receive-supplier-initial-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-03-receive-supplier-search-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-03-receive-supplier-search-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-04-make-final-ingredient-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-04-make-final-ingredient-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-04-make-instruction-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-04-make-instruction-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-04-make-lot-confirmation-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-04-make-lot-confirmation-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-05-out-of-scope-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-05-out-of-scope-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-06-unknown-lot-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-06-unknown-lot-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-07-automatic-spanish-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-08-different-lot-trace-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-09-correct-receive-weight-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-09-correct-receive-weight-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-09-corrected-receive-quantity-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/1440-09-corrected-receive-quantity-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-01-open-order-1-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-01-open-order-1-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-01-open-order-2-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-01-open-order-2-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-01-open-order-3-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-01-open-order-3-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-01-open-orders-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-01-open-orders-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-02-lot-quantity-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-02-lot-quantity-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-03-receive-supplier-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-03-receive-supplier-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-03-receive-supplier-initial-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-03-receive-supplier-initial-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-03-receive-supplier-search-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-03-receive-supplier-search-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-04-make-final-ingredient-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-04-make-final-ingredient-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-04-make-instruction-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-04-make-instruction-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-04-make-lot-confirmation-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-04-make-lot-confirmation-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-05-out-of-scope-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-05-out-of-scope-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-06-unknown-lot-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-06-unknown-lot-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-07-automatic-spanish-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-08-different-lot-trace-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-09-correct-receive-weight-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-09-correct-receive-weight-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-09-corrected-receive-quantity-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-page/sessions-on/390-09-corrected-receive-quantity-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-01-open-orders-en.png",
+      "width": 1440,
+      "height": 1155
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-01-open-orders-es.png",
+      "width": 1440,
+      "height": 1155
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-02-lot-quantity-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-02-lot-quantity-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-03-receive-supplier-en.png",
+      "width": 1440,
+      "height": 1480
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-03-receive-supplier-es.png",
+      "width": 1440,
+      "height": 1480
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-03-receive-supplier-initial-en.png",
+      "width": 1440,
+      "height": 1129
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-03-receive-supplier-initial-es.png",
+      "width": 1440,
+      "height": 1129
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-03-receive-supplier-search-en.png",
+      "width": 1440,
+      "height": 1129
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-03-receive-supplier-search-es.png",
+      "width": 1440,
+      "height": 1129
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-04-make-final-ingredient-en.png",
+      "width": 1440,
+      "height": 1351
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-04-make-final-ingredient-es.png",
+      "width": 1440,
+      "height": 1351
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-04-make-instruction-en.png",
+      "width": 1440,
+      "height": 1351
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-04-make-instruction-es.png",
+      "width": 1440,
+      "height": 1351
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-04-make-lot-confirmation-en.png",
+      "width": 1440,
+      "height": 1351
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-04-make-lot-confirmation-es.png",
+      "width": 1440,
+      "height": 1351
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-05-out-of-scope-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-05-out-of-scope-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-06-unknown-lot-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-06-unknown-lot-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-07-automatic-spanish-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-08-different-lot-trace-en.png",
+      "width": 1440,
+      "height": 1025
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-09-correct-receive-weight-en.png",
+      "width": 1440,
+      "height": 1131
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-09-correct-receive-weight-es.png",
+      "width": 1440,
+      "height": 1131
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-09-corrected-receive-quantity-en.png",
+      "width": 1440,
+      "height": 1131
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-09-corrected-receive-quantity-es.png",
+      "width": 1440,
+      "height": 1131
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-01-open-orders-en.png",
+      "width": 390,
+      "height": 1151
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-01-open-orders-es.png",
+      "width": 390,
+      "height": 1151
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-02-lot-quantity-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-02-lot-quantity-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-03-receive-supplier-en.png",
+      "width": 390,
+      "height": 1489
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-03-receive-supplier-es.png",
+      "width": 390,
+      "height": 1489
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-03-receive-supplier-initial-en.png",
+      "width": 390,
+      "height": 1147
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-03-receive-supplier-initial-es.png",
+      "width": 390,
+      "height": 1147
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-03-receive-supplier-search-en.png",
+      "width": 390,
+      "height": 1147
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-03-receive-supplier-search-es.png",
+      "width": 390,
+      "height": 1147
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-04-make-final-ingredient-en.png",
+      "width": 390,
+      "height": 1648
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-04-make-final-ingredient-es.png",
+      "width": 390,
+      "height": 1662
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-04-make-instruction-en.png",
+      "width": 390,
+      "height": 1648
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-04-make-instruction-es.png",
+      "width": 390,
+      "height": 1662
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-04-make-lot-confirmation-en.png",
+      "width": 390,
+      "height": 1648
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-04-make-lot-confirmation-es.png",
+      "width": 390,
+      "height": 1662
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-05-out-of-scope-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-05-out-of-scope-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-06-unknown-lot-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-06-unknown-lot-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-07-automatic-spanish-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-08-different-lot-trace-en.png",
+      "width": 390,
+      "height": 1107
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-09-correct-receive-weight-en.png",
+      "width": 390,
+      "height": 1162
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-09-correct-receive-weight-es.png",
+      "width": 390,
+      "height": 1162
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-09-corrected-receive-quantity-en.png",
+      "width": 390,
+      "height": 1162
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-09-corrected-receive-quantity-es.png",
+      "width": 390,
+      "height": 1162
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-01-open-orders-en.png",
+      "width": 1440,
+      "height": 1155
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-01-open-orders-es.png",
+      "width": 1440,
+      "height": 1155
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-02-lot-quantity-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-02-lot-quantity-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-03-receive-supplier-en.png",
+      "width": 1440,
+      "height": 1480
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-03-receive-supplier-es.png",
+      "width": 1440,
+      "height": 1480
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-03-receive-supplier-initial-en.png",
+      "width": 1440,
+      "height": 1129
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-03-receive-supplier-initial-es.png",
+      "width": 1440,
+      "height": 1129
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-03-receive-supplier-search-en.png",
+      "width": 1440,
+      "height": 1129
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-03-receive-supplier-search-es.png",
+      "width": 1440,
+      "height": 1129
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-04-make-final-ingredient-en.png",
+      "width": 1440,
+      "height": 1351
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-04-make-final-ingredient-es.png",
+      "width": 1440,
+      "height": 1351
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-04-make-instruction-en.png",
+      "width": 1440,
+      "height": 1351
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-04-make-instruction-es.png",
+      "width": 1440,
+      "height": 1351
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-04-make-lot-confirmation-en.png",
+      "width": 1440,
+      "height": 1351
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-04-make-lot-confirmation-es.png",
+      "width": 1440,
+      "height": 1351
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-05-out-of-scope-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-05-out-of-scope-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-06-unknown-lot-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-06-unknown-lot-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-07-automatic-spanish-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-08-different-lot-trace-en.png",
+      "width": 1440,
+      "height": 1025
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-09-correct-receive-weight-en.png",
+      "width": 1440,
+      "height": 1131
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-09-correct-receive-weight-es.png",
+      "width": 1440,
+      "height": 1131
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-09-corrected-receive-quantity-en.png",
+      "width": 1440,
+      "height": 1131
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-09-corrected-receive-quantity-es.png",
+      "width": 1440,
+      "height": 1131
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-01-open-orders-en.png",
+      "width": 390,
+      "height": 1229
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-01-open-orders-es.png",
+      "width": 390,
+      "height": 1229
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-02-lot-quantity-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-02-lot-quantity-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-03-receive-supplier-en.png",
+      "width": 390,
+      "height": 1567
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-03-receive-supplier-es.png",
+      "width": 390,
+      "height": 1567
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-03-receive-supplier-initial-en.png",
+      "width": 390,
+      "height": 1225
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-03-receive-supplier-initial-es.png",
+      "width": 390,
+      "height": 1225
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-03-receive-supplier-search-en.png",
+      "width": 390,
+      "height": 1225
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-03-receive-supplier-search-es.png",
+      "width": 390,
+      "height": 1225
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-04-make-final-ingredient-en.png",
+      "width": 390,
+      "height": 1726
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-04-make-final-ingredient-es.png",
+      "width": 390,
+      "height": 1740
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-04-make-instruction-en.png",
+      "width": 390,
+      "height": 1726
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-04-make-instruction-es.png",
+      "width": 390,
+      "height": 1740
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-04-make-lot-confirmation-en.png",
+      "width": 390,
+      "height": 1726
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-04-make-lot-confirmation-es.png",
+      "width": 390,
+      "height": 1740
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-05-out-of-scope-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-05-out-of-scope-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-06-unknown-lot-en.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-06-unknown-lot-es.png",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-07-automatic-spanish-es.png",
+      "width": 390,
+      "height": 907
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-08-different-lot-trace-en.png",
+      "width": 390,
+      "height": 1185
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-09-correct-receive-weight-en.png",
+      "width": 390,
+      "height": 1240
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-09-correct-receive-weight-es.png",
+      "width": 390,
+      "height": 1240
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-09-corrected-receive-quantity-en.png",
+      "width": 390,
+      "height": 1240
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-09-corrected-receive-quantity-es.png",
+      "width": 390,
+      "height": 1240
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/reviewed-queries-real-model/sessions-off/1440-10-kookies-order-filter-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/reviewed-queries-real-model/sessions-off/1440-10-kookies-order-filter-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/reviewed-queries-real-model/sessions-off/1440-11-exact-classic-inventory-en.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/reviewed-queries-real-model/sessions-off/1440-11-exact-classic-inventory-es.png",
+      "width": 1440,
+      "height": 1000
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/display-edge-cases/1440-unverified-en.png",
+      "width": 1440,
+      "height": 1000,
+      "run": "display-edge-cases",
+      "fixture_renderer_only": true
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/display-edge-cases/1440-unverified-es.png",
+      "width": 1440,
+      "height": 1000,
+      "run": "display-edge-cases",
+      "fixture_renderer_only": true
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/display-edge-cases/1440-voided-en.png",
+      "width": 1440,
+      "height": 1000,
+      "run": "display-edge-cases",
+      "fixture_renderer_only": true
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/display-edge-cases/1440-voided-es.png",
+      "width": 1440,
+      "height": 1000,
+      "run": "display-edge-cases",
+      "fixture_renderer_only": true
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/display-edge-cases/390-unverified-en.png",
+      "width": 390,
+      "height": 844,
+      "run": "display-edge-cases",
+      "fixture_renderer_only": true
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/display-edge-cases/390-unverified-es.png",
+      "width": 390,
+      "height": 844,
+      "run": "display-edge-cases",
+      "fixture_renderer_only": true
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/display-edge-cases/390-voided-en.png",
+      "width": 390,
+      "height": 844,
+      "run": "display-edge-cases",
+      "fixture_renderer_only": true
+    },
+    {
+      "path": "docs/validation/fl-assistant-round-b/display-edge-cases/390-voided-es.png",
+      "width": 390,
+      "height": 844,
+      "run": "display-edge-cases",
+      "fixture_renderer_only": true
+    }
+  ],
+  "total_cases_passed": 144,
+  "total_pngs": 248,
+  "credential_pattern_scan": "passed; JSON and logs contain no OpenAI key-like strings"
+}

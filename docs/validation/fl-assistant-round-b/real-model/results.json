@@ -1,0 +1,3714 @@
+{
+  "runner": "tests/visual/run-fl-assistant-round-b-page.mjs",
+  "local_only": true,
+  "actual_page": true,
+  "model_tool_selection_stubbed": false,
+  "created_at": "2026-10-15T17:02:40.893Z",
+  "results": [
+    {
+      "item": 1,
+      "language": "en",
+      "label": "open-orders",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2540,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-01-open-orders-en.png",
+      "visible_text": "What orders are open?\n✧\nFROM FACTORY LEDGER\nHere’s what FL shows\n\nThere are 3 open orders.\n\nSO-261015-001\n\nCustomer: Sunshine Granola\n\nItems: Granola Classic 25 LB\n\nShip date: 2026-10-16\n\nRemaining: 10 lb\n\nSO-261015-002\n\nCustomer: Setton Farms\n\nItems: Granola Kookies & Kreme 25 LB\n\nShip date: 2026-10-16\n\nRemaining: 10 lb\n\nSO-261015-003\n\nCustomer: UNIPRO\n\nItems: Granola Classic 25 LB\n\nShip date: 2026-10-16\n\nRemaining: 10 lb"
+    },
+    {
+      "item": 2,
+      "language": "en",
+      "label": "lot-quantity",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2172,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-02-lot-quantity-en.png",
+      "visible_text": "How much is in lot SUNFLOWER-ABCD?\n✧\nFROM FACTORY LEDGER\nHere’s what FL shows\n\nLot SUNFLOWER-ABCD: 100 lb of Sunflower Seeds."
+    },
+    {
+      "item": 3,
+      "language": "en",
+      "label": "receive-supplier",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 8556,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-03-receive-supplier-en.png",
+      "visible_text": "Received 10 lb of Sunflower Seeds\n✧\n\nI kept the quantity: 10 lb. Please add the missing details.\n\nPlease add the missing details:\n\nsupplier\nnumber of cases\ncase size (lb)\nBOL number\nFarm Direct\nGrain Supply\nOrganic Growers\nPremium Foods\nSeed Source\nSupplier 01\nSearch suppliers\nSearch\nsupplier: Supplier 57\n✧\nCHOOSE FROM FL\nWhich one?\n\nChoose one of these Factory Ledger matches.\n\nSupplier 57\nSearch suppliers\nSearch"
+    },
+    {
+      "item": 4,
+      "language": "en",
+      "label": "make-lot-confirmation",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 6572,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-04-make-lot-confirmation-en.png",
+      "visible_text": "Made 1 batch of product 90002\n✧\nDRAFT · NOT RECORDED\nMake\n\nRecording as Round B Worker\n\nProduct\nBatch Classic Granola #9\nQuantity\n10 lb\nBatches\n1\nLot\nB26-1015-001\nHappened at\nToday 1:03 PM\nExpires\nToday 1:13 PM\n\nType the last 4 characters from the tag on each bag you used.\n\nSunflower Seeds · 4 lb\nDifferent lot\n\nSunflower Seeds · SUNFLOWER-ABCD · 4 lb\nLast 4, including hyphen\nFull lot code\nScan full lot code\nPallet — full lot code\nRolled Oats · 6 lb\nDifferent lot\n\nRolled Oats · OATS-EFGH · 6 lb\nLast 4, including hyphen\nFull lot code\nScan full lot code\nPallet — full lot code\nRecord\nCancel"
+    },
+    {
+      "item": 5,
+      "language": "en",
+      "label": "out-of-scope",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2102,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-05-out-of-scope-en.png",
+      "visible_text": "Tell me a joke\n✧\n\nI can only record or look up Factory Ledger items."
+    },
+    {
+      "item": 6,
+      "language": "en",
+      "label": "unknown-lot",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2406,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-06-unknown-lot-en.png",
+      "visible_text": "How much is in lot NO-SUCH-LOT?\n✧\n\nNo lot called NO-SUCH-LOT."
+    },
+    {
+      "item": 1,
+      "language": "es",
+      "label": "open-orders",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2048,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-01-open-orders-es.png",
+      "visible_text": "¿Qué pedidos abiertos hay?\n✧\nDE FACTORY LEDGER\nEsto muestra FL\n\nHay 3 pedidos abiertos.\n\nSO-261015-001\n\nCliente: Sunshine Granola\n\nProductos: Granola Classic 25 LB\n\nFecha de envío: 2026-10-16\n\nPendiente: 10 lb\n\nSO-261015-002\n\nCliente: Setton Farms\n\nProductos: Granola Kookies & Kreme 25 LB\n\nFecha de envío: 2026-10-16\n\nPendiente: 10 lb\n\nSO-261015-003\n\nCliente: UNIPRO\n\nProductos: Granola Classic 25 LB\n\nFecha de envío: 2026-10-16\n\nPendiente: 10 lb"
+    },
+    {
+      "item": 2,
+      "language": "es",
+      "label": "lot-quantity",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 1886,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-02-lot-quantity-es.png",
+      "visible_text": "¿Cuánto hay en el lote SUNFLOWER-ABCD?\n✧\nDE FACTORY LEDGER\nEsto muestra FL\n\nLote SUNFLOWER-ABCD: 100 lb de Sunflower Seeds."
+    },
+    {
+      "item": 3,
+      "language": "es",
+      "label": "receive-supplier",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 10051,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-03-receive-supplier-es.png",
+      "visible_text": "Recibí 10 lb de semillas de girasol\n✧\n\nConservo la cantidad: 10 lb. Agrega los datos que faltan.\n\nAgrega los datos que faltan:\n\nproveedor\nnúmero de cajas\npeso por caja (lb)\nnúmero de BOL\nFarm Direct\nGrain Supply\nOrganic Growers\nPremium Foods\nSeed Source\nSupplier 01\nBuscar proveedores\nBuscar\nBuscar proveedor: Supplier 57\n✧\nELIGE EN FL\n¿Cuál?\n\nElija una de estas opciones de Factory Ledger.\n\nSupplier 57\nBuscar proveedores\nBuscar"
+    },
+    {
+      "item": 4,
+      "language": "es",
+      "label": "make-lot-confirmation",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 6055,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-04-make-lot-confirmation-es.png",
+      "visible_text": "Hicimos 1 tanda del producto 90002\n✧\nBORRADOR · NO REGISTRADO\nProducir\n\nRegistrando como Round B Worker\n\nProducto\nBatch Classic Granola #9\nCantidad\n10 lb\nLotes de producción\n1\nLote\nB26-1015-001\nOcurrió el\nHoy 1:03 PM\nVence\nHoy 1:13 PM\n\nEscriba los últimos 4 caracteres de la etiqueta de cada bolsa que usó.\n\nSunflower Seeds · 4 lb\nOtro lote\n\nSunflower Seeds · SUNFLOWER-ABCD · 4 lb\nÚltimos 4, incluido el guion\nCódigo de lote completo\nEscanear código completo\nPalé — código de lote completo\nRolled Oats · 6 lb\nOtro lote\n\nRolled Oats · OATS-EFGH · 6 lb\nÚltimos 4, incluido el guion\nCódigo de lote completo\nEscanear código completo\nPalé — código de lote completo\nRegistrar\nCancelar"
+    },
+    {
+      "item": 5,
+      "language": "es",
+      "label": "out-of-scope",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 1969,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-05-out-of-scope-es.png",
+      "visible_text": "¿Cuánto es siete más cinco?\n✧\n\nSolo puedo registrar o consultar elementos de Factory Ledger."
+    },
+    {
+      "item": 6,
+      "language": "es",
+      "label": "unknown-lot",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2488,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-06-unknown-lot-es.png",
+      "visible_text": "¿Cuánto hay en el lote NO-SUCH-LOT?\n✧\n\nNo hay un lote llamado NO-SUCH-LOT."
+    },
+    {
+      "item": 7,
+      "language": "es",
+      "label": "automatic-spanish",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2308,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-07-automatic-spanish-es.png",
+      "visible_text": "¿Qué pedidos abiertos hay para Sunshine?\n✧\nDE FACTORY LEDGER\nEsto muestra FL\n\nHay 1 pedido abierto para Sunshine.\n\nSO-261015-001\n\nCliente: Sunshine Granola\n\nProductos: Granola Classic 25 LB\n\nFecha de envío: 2026-10-16\n\nPendiente: 10 lb"
+    },
+    {
+      "item": 8,
+      "language": "en",
+      "label": "different-lot-trace",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 6255,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-08-different-lot-trace-en.png",
+      "visible_text": "Made 1 batch of product 90002\n✧\n✓ RECORDED IN FACTORY LEDGER\nMK-261015-001\n\nFL confirmed this entry.\n\nLot\nB26-1015-001\nShortage recorded\n\nSunflower Seeds · UNVERIFIED-3-P283-1: short 4 lb. The floor must resolve this shortage.\n\nDue\nOct 19, 2026 11:59 PM\nException\n2\nPhysical lot awaiting follow-up\n\nSunflower Seeds: physical tag PHYSICAL-TAG-7654. The suggested lot was not confirmed or used.\n\nQuantity\n4 lb\nException\n1"
+    },
+    {
+      "item": 9,
+      "language": "en",
+      "label": "correct-receive-weight",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 12156,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-09-correct-receive-weight-en.png",
+      "visible_text": "Received 1 case of Sunflower Seeds, 10 lb total, from Farm Direct, supplier lot SUP-CORR, BOL BOL-CORR-EN\n✧\n\nReplaced by the corrected draft below · NOT recorded\n\nit was 15 lb total\n✧\nDRAFT · NOT RECORDED\nReceive\n\nRecording as Round B Worker\n\nProduct\nSunflower Seeds\nQuantity\n15 lb\nCases\n1\nSupplier\nFarm Direct\nLot\n26-10-15-SBAD-001\nBOL\nBOL-CORR-EN\nHappened at\nToday 1:03 PM\nExpires\nToday 1:13 PM\nRecord\nCancel"
+    },
+    {
+      "item": 9,
+      "language": "es",
+      "label": "correct-receive-weight",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 9382,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-09-correct-receive-weight-es.png",
+      "visible_text": "Recibí 1 caja de semillas de girasol, 10 lb total, de Farm Direct, lote del proveedor SUP-CORR, BOL BOL-CORR-ES\n✧\n\nReemplazado por el borrador corregido abajo · NO registrado\n\neran 15 lb total\n✧\nBORRADOR · NO REGISTRADO\nRecibir\n\nRegistrando como Round B Worker\n\nProducto\nSunflower Seeds\nCantidad\n15 lb\nCajas\n1\nProveedor\nFarm Direct\nLote\n26-10-15-SBAD-001\nBOL\nBOL-CORR-ES\nOcurrió el\nHoy 1:04 PM\nVence\nHoy 1:14 PM\nRegistrar\nCancelar"
+    },
+    {
+      "item": 1,
+      "language": "en",
+      "label": "open-orders",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 1761,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-01-open-orders-en.png",
+      "visible_text": "What orders are open?\n✧\nFROM FACTORY LEDGER\nHere’s what FL shows\n\nThere are 3 open orders.\n\nSO-261015-001\n\nCustomer: Sunshine Granola\n\nItems: Granola Classic 25 LB\n\nShip date: 2026-10-16\n\nRemaining: 10 lb\n\nSO-261015-002\n\nCustomer: Setton Farms\n\nItems: Granola Kookies & Kreme 25 LB\n\nShip date: 2026-10-16\n\nRemaining: 10 lb\n\nSO-261015-003\n\nCustomer: UNIPRO\n\nItems: Granola Classic 25 LB\n\nShip date: 2026-10-16\n\nRemaining: 10 lb"
+    },
+    {
+      "item": 2,
+      "language": "en",
+      "label": "lot-quantity",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 1769,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-02-lot-quantity-en.png",
+      "visible_text": "How much is in lot SUNFLOWER-ABCD?\n✧\nFROM FACTORY LEDGER\nHere’s what FL shows\n\nLot SUNFLOWER-ABCD: 100 lb of Sunflower Seeds."
+    },
+    {
+      "item": 3,
+      "language": "en",
+      "label": "receive-supplier",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 8371,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-03-receive-supplier-en.png",
+      "visible_text": "Received 10 lb of Sunflower Seeds\n✧\n\nI kept the quantity: 10 lb. Please add the missing details.\n\nPlease add the missing details:\n\nsupplier\nnumber of cases\ncase size (lb)\nBOL number\nFarm Direct\nGrain Supply\nOrganic Growers\nPremium Foods\nSeed Source\nSupplier 01\nSearch suppliers\nSearch\nSupplier search: Supplier 57\n✧\nCHOOSE FROM FL\nWhich one?\n\nChoose one of these Factory Ledger matches.\n\nSupplier 57\nSearch suppliers\nSearch"
+    },
+    {
+      "item": 4,
+      "language": "en",
+      "label": "make-lot-confirmation",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 6549,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-04-make-lot-confirmation-en.png",
+      "visible_text": "Made 1 batch of product 90002\n✧\nDRAFT · NOT RECORDED\nMake\n\nRecording as Round B Worker\n\nProduct\nBatch Classic Granola #9\nQuantity\n10 lb\nBatches\n1\nLot\nB26-1015-002\nHappened at\nToday 1:04 PM\nExpires\nToday 1:14 PM\n\nType the last 4 characters from the tag on each bag you used.\n\nSunflower Seeds · 4 lb\nDifferent lot\n\nSunflower Seeds · SUNFLOWER-ABCD · 4 lb\nLast 4, including hyphen\nFull lot code\nScan full lot code\nPallet — full lot code\nRolled Oats · 6 lb\nDifferent lot\n\nRolled Oats · OATS-EFGH · 6 lb\nLast 4, including hyphen\nFull lot code\nScan full lot code\nPallet — full lot code\n\nA matching make for Batch Classic Granola #9 (lots B26-1015-001) was posted 0 minutes ago as MK-261015-001 by Round B Worker.\n\nYes, this is a separate entry, record it anyway.\nRecord\nCancel"
+    },
+    {
+      "item": 5,
+      "language": "en",
+      "label": "out-of-scope",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 1688,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-05-out-of-scope-en.png",
+      "visible_text": "Tell me a joke\n✧\n\nI can only record or look up Factory Ledger items."
+    },
+    {
+      "item": 6,
+      "language": "en",
+      "label": "unknown-lot",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 1854,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-06-unknown-lot-en.png",
+      "visible_text": "How much is in lot NO-SUCH-LOT?\n✧\n\nNo lot called NO-SUCH-LOT."
+    },
+    {
+      "item": 1,
+      "language": "es",
+      "label": "open-orders",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2405,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-01-open-orders-es.png",
+      "visible_text": "¿Qué pedidos abiertos hay?\n✧\nDE FACTORY LEDGER\nEsto muestra FL\n\nHay 3 pedidos abiertos.\n\nSO-261015-001\n\nCliente: Sunshine Granola\n\nProductos: Granola Classic 25 LB\n\nFecha de envío: 2026-10-16\n\nPendiente: 10 lb\n\nSO-261015-002\n\nCliente: Setton Farms\n\nProductos: Granola Kookies & Kreme 25 LB\n\nFecha de envío: 2026-10-16\n\nPendiente: 10 lb\n\nSO-261015-003\n\nCliente: UNIPRO\n\nProductos: Granola Classic 25 LB\n\nFecha de envío: 2026-10-16\n\nPendiente: 10 lb"
+    },
+    {
+      "item": 2,
+      "language": "es",
+      "label": "lot-quantity",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2608,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-02-lot-quantity-es.png",
+      "visible_text": "¿Cuánto hay en el lote SUNFLOWER-ABCD?\n✧\nDE FACTORY LEDGER\nEsto muestra FL\n\nLote SUNFLOWER-ABCD: 100 lb de Sunflower Seeds."
+    },
+    {
+      "item": 3,
+      "language": "es",
+      "label": "receive-supplier",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 9672,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-03-receive-supplier-es.png",
+      "visible_text": "Recibí 10 lb de semillas de girasol\n✧\n\nConservo la cantidad: 10 lb. Agrega los datos que faltan.\n\nAgrega los datos que faltan:\n\nproveedor\nnúmero de cajas\npeso por caja (lb)\nnúmero de BOL\nFarm Direct\nGrain Supply\nOrganic Growers\nPremium Foods\nSeed Source\nSupplier 01\nBuscar proveedores\nBuscar\nBuscar proveedor: Supplier 57\n✧\nELIGE EN FL\n¿Cuál?\n\nElija una de estas opciones de Factory Ledger.\n\nSupplier 57\nBuscar proveedores\nBuscar"
+    },
+    {
+      "item": 4,
+      "language": "es",
+      "label": "make-lot-confirmation",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 5367,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-04-make-lot-confirmation-es.png",
+      "visible_text": "Hicimos 1 tanda del producto 90002\n✧\nBORRADOR · NO REGISTRADO\nProducir\n\nRegistrando como Round B Worker\n\nProducto\nBatch Classic Granola #9\nCantidad\n10 lb\nLotes de producción\n1\nLote\nB26-1015-002\nOcurrió el\nHoy 1:04 PM\nVence\nHoy 1:14 PM\n\nEscriba los últimos 4 caracteres de la etiqueta de cada bolsa que usó.\n\nSunflower Seeds · 4 lb\nOtro lote\n\nSunflower Seeds · SUNFLOWER-ABCD · 4 lb\nÚltimos 4, incluido el guion\nCódigo de lote completo\nEscanear código completo\nPalé — código de lote completo\nRolled Oats · 6 lb\nOtro lote\n\nRolled Oats · OATS-EFGH · 6 lb\nÚltimos 4, incluido el guion\nCódigo de lote completo\nEscanear código completo\nPalé — código de lote completo\n\nUna operación similar para Batch Classic Granola #9 (lots B26-1015-001) se registró hace 1 minutos como MK-261015-001 por Round B Worker.\n\nSí, esta es una entrada diferente; regístrala de todos modos.\nRegistrar\nCancelar"
+    },
+    {
+      "item": 5,
+      "language": "es",
+      "label": "out-of-scope",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2255,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-05-out-of-scope-es.png",
+      "visible_text": "¿Cuánto es siete más cinco?\n✧\n\nSolo puedo registrar o consultar elementos de Factory Ledger."
+    },
+    {
+      "item": 6,
+      "language": "es",
+      "label": "unknown-lot",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2237,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-06-unknown-lot-es.png",
+      "visible_text": "¿Cuánto hay en el lote NO-SUCH-LOT?\n✧\n\nNo hay un lote llamado NO-SUCH-LOT."
+    },
+    {
+      "item": 7,
+      "language": "es",
+      "label": "automatic-spanish",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2202,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-07-automatic-spanish-es.png",
+      "visible_text": "¿Qué pedidos abiertos hay para Sunshine?\n✧\nDE FACTORY LEDGER\nEsto muestra FL\n\nHay 1 pedido abierto para Sunshine.\n\nSO-261015-001\n\nCliente: Sunshine Granola\n\nProductos: Granola Classic 25 LB\n\nFecha de envío: 2026-10-16\n\nPendiente: 10 lb"
+    },
+    {
+      "item": 8,
+      "language": "en",
+      "label": "different-lot-trace",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 6258,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-08-different-lot-trace-en.png",
+      "visible_text": "Made 1 batch of product 90002\n✧\n✓ RECORDED IN FACTORY LEDGER\nMK-261015-002\n\nFL confirmed this entry.\n\nLot\nB26-1015-002\nShortage recorded\n\nSunflower Seeds · UNVERIFIED-10-P283-1: short 4 lb. The floor must resolve this shortage.\n\nDue\nOct 19, 2026 11:59 PM\nException\n4\nPhysical lot awaiting follow-up\n\nSunflower Seeds: physical tag PHYSICAL-TAG-7654. The suggested lot was not confirmed or used.\n\nQuantity\n4 lb\nException\n3"
+    },
+    {
+      "item": 9,
+      "language": "en",
+      "label": "correct-receive-weight",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 9329,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-09-correct-receive-weight-en.png",
+      "visible_text": "Received 1 case of Sunflower Seeds, 10 lb total, from Farm Direct, supplier lot SUP-CORR, BOL BOL-CORR-EN\n✧\n\nReplaced by the corrected draft below · NOT recorded\n\nit was 15 lb total\n✧\nDRAFT · NOT RECORDED\nReceive\n\nRecording as Round B Worker\n\nProduct\nSunflower Seeds\nQuantity\n15 lb\nCases\n1\nSupplier\nFarm Direct\nLot\n26-10-15-SBAD-001\nBOL\nBOL-CORR-EN\nHappened at\nToday 1:05 PM\nExpires\nToday 1:15 PM\nRecord\nCancel"
+    },
+    {
+      "item": 9,
+      "language": "es",
+      "label": "correct-receive-weight",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 10496,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-09-correct-receive-weight-es.png",
+      "visible_text": "Recibí 1 caja de semillas de girasol, 10 lb total, de Farm Direct, lote del proveedor SUP-CORR, BOL BOL-CORR-ES\n✧\n\nReemplazado por el borrador corregido abajo · NO registrado\n\neran 15 lb total\n✧\nBORRADOR · NO REGISTRADO\nRecibir\n\nRegistrando como Round B Worker\n\nProducto\nSunflower Seeds\nCantidad\n15 lb\nCajas\n1\nProveedor\nFarm Direct\nLote\n26-10-15-SBAD-001\nBOL\nBOL-CORR-ES\nOcurrió el\nHoy 1:05 PM\nVence\nHoy 1:15 PM\nRegistrar\nCancelar"
+    },
+    {
+      "item": 1,
+      "language": "en",
+      "label": "open-orders",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 3933,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-01-open-orders-en.png",
+      "visible_text": "What orders are open?\n✧\nFROM FACTORY LEDGER\nHere’s what FL shows\n\nThere are 3 open orders.\n\nSO-261015-001\n\nCustomer: Sunshine Granola\n\nItems: Granola Classic 25 LB\n\nShip date: 2026-10-16\n\nRemaining: 10 lb\n\nSO-261015-002\n\nCustomer: Setton Farms\n\nItems: Granola Kookies & Kreme 25 LB\n\nShip date: 2026-10-16\n\nRemaining: 10 lb\n\nSO-261015-003\n\nCustomer: UNIPRO\n\nItems: Granola Classic 25 LB\n\nShip date: 2026-10-16\n\nRemaining: 10 lb"
+    },
+    {
+      "item": 2,
+      "language": "en",
+      "label": "lot-quantity",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 1945,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-02-lot-quantity-en.png",
+      "visible_text": "How much is in lot SUNFLOWER-ABCD?\n✧\nFROM FACTORY LEDGER\nHere’s what FL shows\n\nLot SUNFLOWER-ABCD: 100 lb of Sunflower Seeds."
+    },
+    {
+      "item": 3,
+      "language": "en",
+      "label": "receive-supplier",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 9650,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-03-receive-supplier-en.png",
+      "visible_text": "Received 10 lb of Sunflower Seeds\n✧\n\nI kept the quantity: 10 lb. Please add the missing details.\n\nPlease add the missing details:\n\nsupplier\nnumber of cases\ncase size (lb)\nBOL number\nFarm Direct\nGrain Supply\nOrganic Growers\nPremium Foods\nSeed Source\nSupplier 01\nSearch suppliers\nSearch\nSupplier search: Supplier 57\n✧\nCHOOSE FROM FL\nWhich one?\n\nChoose one of these Factory Ledger matches.\n\nSupplier 57\nSearch suppliers\nSearch"
+    },
+    {
+      "item": 4,
+      "language": "en",
+      "label": "make-lot-confirmation",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 6805,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-04-make-lot-confirmation-en.png",
+      "visible_text": "Made 1 batch of product 90002\n✧\nDRAFT · NOT RECORDED\nMake\n\nRecording as Round B Worker\n\nProduct\nBatch Classic Granola #9\nQuantity\n10 lb\nBatches\n1\nLot\nB26-1015-001\nHappened at\nToday 1:05 PM\nExpires\nToday 1:15 PM\n\nType the last 4 characters from the tag on each bag you used.\n\nSunflower Seeds · 4 lb\nDifferent lot\n\nSunflower Seeds · SUNFLOWER-ABCD · 4 lb\nLast 4, including hyphen\nFull lot code\nScan full lot code\nPallet — full lot code\nRolled Oats · 6 lb\nDifferent lot\n\nRolled Oats · OATS-EFGH · 6 lb\nLast 4, including hyphen\nFull lot code\nScan full lot code\nPallet — full lot code\nRecord\nCancel"
+    },
+    {
+      "item": 5,
+      "language": "en",
+      "label": "out-of-scope",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 1971,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-05-out-of-scope-en.png",
+      "visible_text": "Tell me a joke\n✧\n\nI can only record or look up Factory Ledger items."
+    },
+    {
+      "item": 6,
+      "language": "en",
+      "label": "unknown-lot",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 3008,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-06-unknown-lot-en.png",
+      "visible_text": "How much is in lot NO-SUCH-LOT?\n✧\n\nNo lot called NO-SUCH-LOT."
+    },
+    {
+      "item": 1,
+      "language": "es",
+      "label": "open-orders",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2032,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-01-open-orders-es.png",
+      "visible_text": "¿Qué pedidos abiertos hay?\n✧\nDE FACTORY LEDGER\nEsto muestra FL\n\nHay 3 pedidos abiertos.\n\nSO-261015-001\n\nCliente: Sunshine Granola\n\nProductos: Granola Classic 25 LB\n\nFecha de envío: 2026-10-16\n\nPendiente: 10 lb\n\nSO-261015-002\n\nCliente: Setton Farms\n\nProductos: Granola Kookies & Kreme 25 LB\n\nFecha de envío: 2026-10-16\n\nPendiente: 10 lb\n\nSO-261015-003\n\nCliente: UNIPRO\n\nProductos: Granola Classic 25 LB\n\nFecha de envío: 2026-10-16\n\nPendiente: 10 lb"
+    },
+    {
+      "item": 2,
+      "language": "es",
+      "label": "lot-quantity",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 1992,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-02-lot-quantity-es.png",
+      "visible_text": "¿Cuánto hay en el lote SUNFLOWER-ABCD?\n✧\nDE FACTORY LEDGER\nEsto muestra FL\n\nLote SUNFLOWER-ABCD: 100 lb de Sunflower Seeds."
+    },
+    {
+      "item": 3,
+      "language": "es",
+      "label": "receive-supplier",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 8355,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-03-receive-supplier-es.png",
+      "visible_text": "Recibí 10 lb de semillas de girasol\n✧\n\nConservo la cantidad: 10 lb. Agrega los datos que faltan.\n\nAgrega los datos que faltan:\n\nproveedor\nnúmero de cajas\npeso por caja (lb)\nnúmero de BOL\nFarm Direct\nGrain Supply\nOrganic Growers\nPremium Foods\nSeed Source\nSupplier 01\nBuscar proveedores\nBuscar\nBuscar proveedor: Supplier 57\n✧\nELIGE EN FL\n¿Cuál?\n\nElija una de estas opciones de Factory Ledger.\n\nSupplier 57\nBuscar proveedores\nBuscar"
+    },
+    {
+      "item": 4,
+      "language": "es",
+      "label": "make-lot-confirmation",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 5609,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-04-make-lot-confirmation-es.png",
+      "visible_text": "Hicimos 1 tanda del producto 90002\n✧\nBORRADOR · NO REGISTRADO\nProducir\n\nRegistrando como Round B Worker\n\nProducto\nBatch Classic Granola #9\nCantidad\n10 lb\nLotes de producción\n1\nLote\nB26-1015-001\nOcurrió el\nHoy 1:06 PM\nVence\nHoy 1:16 PM\n\nEscriba los últimos 4 caracteres de la etiqueta de cada bolsa que usó.\n\nSunflower Seeds · 4 lb\nOtro lote\n\nSunflower Seeds · SUNFLOWER-ABCD · 4 lb\nÚltimos 4, incluido el guion\nCódigo de lote completo\nEscanear código completo\nPalé — código de lote completo\nRolled Oats · 6 lb\nOtro lote\n\nRolled Oats · OATS-EFGH · 6 lb\nÚltimos 4, incluido el guion\nCódigo de lote completo\nEscanear código completo\nPalé — código de lote completo\nRegistrar\nCancelar"
+    },
+    {
+      "item": 5,
+      "language": "es",
+      "label": "out-of-scope",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2495,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-05-out-of-scope-es.png",
+      "visible_text": "¿Cuánto es siete más cinco?\n✧\n\nSolo puedo registrar o consultar elementos de Factory Ledger."
+    },
+    {
+      "item": 6,
+      "language": "es",
+      "label": "unknown-lot",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2213,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-06-unknown-lot-es.png",
+      "visible_text": "¿Cuánto hay en el lote NO-SUCH-LOT?\n✧\n\nNo hay un lote llamado NO-SUCH-LOT."
+    },
+    {
+      "item": 7,
+      "language": "es",
+      "label": "automatic-spanish",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2236,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-07-automatic-spanish-es.png",
+      "visible_text": "¿Qué pedidos abiertos hay para Sunshine?\n✧\nDE FACTORY LEDGER\nEsto muestra FL\n\nHay 1 pedido abierto para Sunshine.\n\nSO-261015-001\n\nCliente: Sunshine Granola\n\nProductos: Granola Classic 25 LB\n\nFecha de envío: 2026-10-16\n\nPendiente: 10 lb"
+    },
+    {
+      "item": 8,
+      "language": "en",
+      "label": "different-lot-trace",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 5875,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-08-different-lot-trace-en.png",
+      "visible_text": "Made 1 batch of product 90002\n✧\n✓ RECORDED IN FACTORY LEDGER\nMK-261015-001\n\nFL confirmed this entry.\n\nLot\nB26-1015-001\nShortage recorded\n\nSunflower Seeds · UNVERIFIED-3-P283-1: short 4 lb. The floor must resolve this shortage.\n\nDue\nOct 19, 2026 11:59 PM\nException\n2\nPhysical lot awaiting follow-up\n\nSunflower Seeds: physical tag PHYSICAL-TAG-7654. The suggested lot was not confirmed or used.\n\nQuantity\n4 lb\nException\n1"
+    },
+    {
+      "item": 9,
+      "language": "en",
+      "label": "correct-receive-weight",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 8811,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-09-correct-receive-weight-en.png",
+      "visible_text": "Received 1 case of Sunflower Seeds, 10 lb total, from Farm Direct, supplier lot SUP-CORR, BOL BOL-CORR-EN\n✧\n\nReplaced by the corrected draft below · NOT recorded\n\nit was 15 lb total\n✧\nDRAFT · NOT RECORDED\nReceive\n\nRecording as Round B Worker\n\nProduct\nSunflower Seeds\nQuantity\n15 lb\nCases\n1\nSupplier\nFarm Direct\nLot\n26-10-15-SBAD-001\nBOL\nBOL-CORR-EN\nHappened at\nToday 1:06 PM\nExpires\nToday 1:16 PM\nRecord\nCancel"
+    },
+    {
+      "item": 9,
+      "language": "es",
+      "label": "correct-receive-weight",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 9614,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-09-correct-receive-weight-es.png",
+      "visible_text": "Recibí 1 caja de semillas de girasol, 10 lb total, de Farm Direct, lote del proveedor SUP-CORR, BOL BOL-CORR-ES\n✧\n\nReemplazado por el borrador corregido abajo · NO registrado\n\neran 15 lb total\n✧\nBORRADOR · NO REGISTRADO\nRecibir\n\nRegistrando como Round B Worker\n\nProducto\nSunflower Seeds\nCantidad\n15 lb\nCajas\n1\nProveedor\nFarm Direct\nLote\n26-10-15-SBAD-001\nBOL\nBOL-CORR-ES\nOcurrió el\nHoy 1:06 PM\nVence\nHoy 1:16 PM\nRegistrar\nCancelar"
+    },
+    {
+      "item": 1,
+      "language": "en",
+      "label": "open-orders",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2997,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-01-open-orders-en.png",
+      "visible_text": "What orders are open?\n✧\nFROM FACTORY LEDGER\nHere’s what FL shows\n\nThere are 3 open orders.\n\nSO-261015-001\n\nCustomer: Sunshine Granola\n\nItems: Granola Classic 25 LB\n\nShip date: 2026-10-16\n\nRemaining: 10 lb\n\nSO-261015-002\n\nCustomer: Setton Farms\n\nItems: Granola Kookies & Kreme 25 LB\n\nShip date: 2026-10-16\n\nRemaining: 10 lb\n\nSO-261015-003\n\nCustomer: UNIPRO\n\nItems: Granola Classic 25 LB\n\nShip date: 2026-10-16\n\nRemaining: 10 lb"
+    },
+    {
+      "item": 2,
+      "language": "en",
+      "label": "lot-quantity",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 1691,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-02-lot-quantity-en.png",
+      "visible_text": "How much is in lot SUNFLOWER-ABCD?\n✧\nFROM FACTORY LEDGER\nHere’s what FL shows\n\nLot SUNFLOWER-ABCD: 100 lb of Sunflower Seeds."
+    },
+    {
+      "item": 3,
+      "language": "en",
+      "label": "receive-supplier",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 8533,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-03-receive-supplier-en.png",
+      "visible_text": "Received 10 lb of Sunflower Seeds\n✧\n\nI kept the quantity: 10 lb. Please add the missing details.\n\nPlease add the missing details:\n\nsupplier\nnumber of cases\ncase size (lb)\nBOL number\nFarm Direct\nGrain Supply\nOrganic Growers\nPremium Foods\nSeed Source\nSupplier 01\nSearch suppliers\nSearch\nSupplier search: Supplier 57\n✧\nCHOOSE FROM FL\nWhich one?\n\nChoose one of these Factory Ledger matches.\n\nSupplier 57\nSearch suppliers\nSearch"
+    },
+    {
+      "item": 4,
+      "language": "en",
+      "label": "make-lot-confirmation",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 6016,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-04-make-lot-confirmation-en.png",
+      "visible_text": "Made 1 batch of product 90002\n✧\nDRAFT · NOT RECORDED\nMake\n\nRecording as Round B Worker\n\nProduct\nBatch Classic Granola #9\nQuantity\n10 lb\nBatches\n1\nLot\nB26-1015-002\nHappened at\nToday 1:06 PM\nExpires\nToday 1:16 PM\n\nType the last 4 characters from the tag on each bag you used.\n\nSunflower Seeds · 4 lb\nDifferent lot\n\nSunflower Seeds · SUNFLOWER-ABCD · 4 lb\nLast 4, including hyphen\nFull lot code\nScan full lot code\nPallet — full lot code\nRolled Oats · 6 lb\nDifferent lot\n\nRolled Oats · OATS-EFGH · 6 lb\nLast 4, including hyphen\nFull lot code\nScan full lot code\nPallet — full lot code\n\nA matching make for Batch Classic Granola #9 (lots B26-1015-001) was posted 0 minutes ago as MK-261015-001 by Round B Worker.\n\nYes, this is a separate entry, record it anyway.\nRecord\nCancel"
+    },
+    {
+      "item": 5,
+      "language": "en",
+      "label": "out-of-scope",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 1819,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-05-out-of-scope-en.png",
+      "visible_text": "Tell me a joke\n✧\n\nI can only record or look up Factory Ledger items."
+    },
+    {
+      "item": 6,
+      "language": "en",
+      "label": "unknown-lot",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2055,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-06-unknown-lot-en.png",
+      "visible_text": "How much is in lot NO-SUCH-LOT?\n✧\n\nNo lot called NO-SUCH-LOT."
+    },
+    {
+      "item": 1,
+      "language": "es",
+      "label": "open-orders",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2344,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-01-open-orders-es.png",
+      "visible_text": "¿Qué pedidos abiertos hay?\n✧\nDE FACTORY LEDGER\nEsto muestra FL\n\nHay 3 pedidos abiertos.\n\nSO-261015-001\n\nCliente: Sunshine Granola\n\nProductos: Granola Classic 25 LB\n\nFecha de envío: 2026-10-16\n\nPendiente: 10 lb\n\nSO-261015-002\n\nCliente: Setton Farms\n\nProductos: Granola Kookies & Kreme 25 LB\n\nFecha de envío: 2026-10-16\n\nPendiente: 10 lb\n\nSO-261015-003\n\nCliente: UNIPRO\n\nProductos: Granola Classic 25 LB\n\nFecha de envío: 2026-10-16\n\nPendiente: 10 lb"
+    },
+    {
+      "item": 2,
+      "language": "es",
+      "label": "lot-quantity",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2186,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-02-lot-quantity-es.png",
+      "visible_text": "¿Cuánto hay en el lote SUNFLOWER-ABCD?\n✧\nDE FACTORY LEDGER\nEsto muestra FL\n\nLote SUNFLOWER-ABCD: 100 lb de Sunflower Seeds."
+    },
+    {
+      "item": 3,
+      "language": "es",
+      "label": "receive-supplier",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 10366,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-03-receive-supplier-es.png",
+      "visible_text": "Recibí 10 lb de semillas de girasol\n✧\n\nConservo la cantidad: 10 lb. Agrega los datos que faltan.\n\nAgrega los datos que faltan:\n\nproveedor\nnúmero de cajas\npeso por caja (lb)\nnúmero de BOL\nFarm Direct\nGrain Supply\nOrganic Growers\nPremium Foods\nSeed Source\nSupplier 01\nBuscar proveedores\nBuscar\nBuscar proveedor: Supplier 57\n✧\nELIGE EN FL\n¿Cuál?\n\nElija una de estas opciones de Factory Ledger.\n\nSupplier 57\nBuscar proveedores\nBuscar"
+    },
+    {
+      "item": 4,
+      "language": "es",
+      "label": "make-lot-confirmation",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 6617,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-04-make-lot-confirmation-es.png",
+      "visible_text": "Hicimos 1 tanda del producto 90002\n✧\nBORRADOR · NO REGISTRADO\nProducir\n\nRegistrando como Round B Worker\n\nProducto\nBatch Classic Granola #9\nCantidad\n10 lb\nLotes de producción\n1\nLote\nB26-1015-002\nOcurrió el\nHoy 1:07 PM\nVence\nHoy 1:17 PM\n\nEscriba los últimos 4 caracteres de la etiqueta de cada bolsa que usó.\n\nSunflower Seeds · 4 lb\nOtro lote\n\nSunflower Seeds · SUNFLOWER-ABCD · 4 lb\nÚltimos 4, incluido el guion\nCódigo de lote completo\nEscanear código completo\nPalé — código de lote completo\nRolled Oats · 6 lb\nOtro lote\n\nRolled Oats · OATS-EFGH · 6 lb\nÚltimos 4, incluido el guion\nCódigo de lote completo\nEscanear código completo\nPalé — código de lote completo\n\nUna operación similar para Batch Classic Granola #9 (lots B26-1015-001) se registró hace 1 minutos como MK-261015-001 por Round B Worker.\n\nSí, esta es una entrada diferente; regístrala de todos modos.\nRegistrar\nCancelar"
+    },
+    {
+      "item": 5,
+      "language": "es",
+      "label": "out-of-scope",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 4951,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-05-out-of-scope-es.png",
+      "visible_text": "¿Cuánto es siete más cinco?\n✧\n\nSolo puedo registrar o consultar elementos de Factory Ledger."
+    },
+    {
+      "item": 6,
+      "language": "es",
+      "label": "unknown-lot",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2179,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-06-unknown-lot-es.png",
+      "visible_text": "¿Cuánto hay en el lote NO-SUCH-LOT?\n✧\n\nNo hay un lote llamado NO-SUCH-LOT."
+    },
+    {
+      "item": 7,
+      "language": "es",
+      "label": "automatic-spanish",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 2225,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-07-automatic-spanish-es.png",
+      "visible_text": "¿Qué pedidos abiertos hay para Sunshine?\n✧\nDE FACTORY LEDGER\nEsto muestra FL\n\nHay 1 pedido abierto para Sunshine.\n\nSO-261015-001\n\nCliente: Sunshine Granola\n\nProductos: Granola Classic 25 LB\n\nFecha de envío: 2026-10-16\n\nPendiente: 10 lb"
+    },
+    {
+      "item": 8,
+      "language": "en",
+      "label": "different-lot-trace",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 5978,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-08-different-lot-trace-en.png",
+      "visible_text": "Made 1 batch of product 90002\n✧\n✓ RECORDED IN FACTORY LEDGER\nMK-261015-002\n\nFL confirmed this entry.\n\nLot\nB26-1015-002\nShortage recorded\n\nSunflower Seeds · UNVERIFIED-10-P283-1: short 4 lb. The floor must resolve this shortage.\n\nDue\nOct 19, 2026 11:59 PM\nException\n4\nPhysical lot awaiting follow-up\n\nSunflower Seeds: physical tag PHYSICAL-TAG-7654. The suggested lot was not confirmed or used.\n\nQuantity\n4 lb\nException\n3"
+    },
+    {
+      "item": 9,
+      "language": "en",
+      "label": "correct-receive-weight",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 13026,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-09-correct-receive-weight-en.png",
+      "visible_text": "Received 1 case of Sunflower Seeds, 10 lb total, from Farm Direct, supplier lot SUP-CORR, BOL BOL-CORR-EN\n✧\n\nReplaced by the corrected draft below · NOT recorded\n\nit was 15 lb total\n✧\nDRAFT · NOT RECORDED\nReceive\n\nRecording as Round B Worker\n\nProduct\nSunflower Seeds\nQuantity\n15 lb\nCases\n1\nSupplier\nFarm Direct\nLot\n26-10-15-SBAD-001\nBOL\nBOL-CORR-EN\nHappened at\nToday 1:07 PM\nExpires\nToday 1:17 PM\nRecord\nCancel"
+    },
+    {
+      "item": 9,
+      "language": "es",
+      "label": "correct-receive-weight",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": true,
+      "status": "passed",
+      "elapsed_ms": 8776,
+      "api_failures": [],
+      "screenshot": "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-09-correct-receive-weight-es.png",
+      "visible_text": "Recibí 1 caja de semillas de girasol, 10 lb total, de Farm Direct, lote del proveedor SUP-CORR, BOL BOL-CORR-ES\n✧\n\nReemplazado por el borrador corregido abajo · NO registrado\n\neran 15 lb total\n✧\nBORRADOR · NO REGISTRADO\nRecibir\n\nRegistrando como Round B Worker\n\nProducto\nSunflower Seeds\nCantidad\n15 lb\nCajas\n1\nProveedor\nFarm Direct\nLote\n26-10-15-SBAD-001\nBOL\nBOL-CORR-ES\nOcurrió el\nHoy 1:08 PM\nVence\nHoy 1:18 PM\nRegistrar\nCancelar"
+    }
+  ],
+  "supplemental_screenshots": [
+    "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-03-receive-supplier-initial-en.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-03-receive-supplier-search-en.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-04-make-instruction-en.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-04-make-final-ingredient-en.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-03-receive-supplier-initial-es.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-03-receive-supplier-search-es.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-04-make-instruction-es.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-04-make-final-ingredient-es.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-09-corrected-receive-quantity-en.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-off/1440-09-corrected-receive-quantity-es.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-03-receive-supplier-initial-en.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-03-receive-supplier-search-en.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-04-make-instruction-en.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-04-make-final-ingredient-en.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-03-receive-supplier-initial-es.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-03-receive-supplier-search-es.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-04-make-instruction-es.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-04-make-final-ingredient-es.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-09-corrected-receive-quantity-en.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-off/390-09-corrected-receive-quantity-es.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-03-receive-supplier-initial-en.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-03-receive-supplier-search-en.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-04-make-instruction-en.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-04-make-final-ingredient-en.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-03-receive-supplier-initial-es.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-03-receive-supplier-search-es.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-04-make-instruction-es.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-04-make-final-ingredient-es.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-09-corrected-receive-quantity-en.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-on/1440-09-corrected-receive-quantity-es.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-03-receive-supplier-initial-en.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-03-receive-supplier-search-en.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-04-make-instruction-en.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-04-make-final-ingredient-en.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-03-receive-supplier-initial-es.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-03-receive-supplier-search-es.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-04-make-instruction-es.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-04-make-final-ingredient-es.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-09-corrected-receive-quantity-en.png",
+    "docs/validation/fl-assistant-round-b/real-model/sessions-on/390-09-corrected-receive-quantity-es.png"
+  ],
+  "modes": [
+    {
+      "sessions_enabled": false,
+      "width": 1440,
+      "javascript_errors": [],
+      "assets": [
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        }
+      ],
+      "turns": 20,
+      "records": 1
+    },
+    {
+      "sessions_enabled": false,
+      "width": 390,
+      "javascript_errors": [],
+      "assets": [
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        }
+      ],
+      "turns": 20,
+      "records": 1
+    },
+    {
+      "sessions_enabled": false,
+      "database": {
+        "initial_transactions": 5,
+        "final_transactions": 7,
+        "committed_drafts": 2,
+        "suppliers": 66
+      },
+      "model_requests": [
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "open_orders"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2438
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "lot_lookup"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2085
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2537
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2550
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_receive"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3092
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3300
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_make"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3021
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "unsupported_request"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2013
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "lot_lookup"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2305
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "open_orders"
+          ],
+          "status": "completed",
+          "elapsed_ms": 1972
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "lot_lookup"
+          ],
+          "status": "completed",
+          "elapsed_ms": 1810
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2767
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3073
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_receive"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3854
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3208
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_make"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2593
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "unsupported_request"
+          ],
+          "status": "completed",
+          "elapsed_ms": 1900
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "lot_lookup"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2396
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "open_orders"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2208
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3007
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_make"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2916
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 5242
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3604
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_receive"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2957
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3323
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2950
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_receive"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2832
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "open_orders"
+          ],
+          "status": "completed",
+          "elapsed_ms": 1669
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "lot_lookup"
+          ],
+          "status": "completed",
+          "elapsed_ms": 1677
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2743
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2376
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_receive"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2909
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3510
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_make"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2809
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "unsupported_request"
+          ],
+          "status": "completed",
+          "elapsed_ms": 1611
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "lot_lookup"
+          ],
+          "status": "completed",
+          "elapsed_ms": 1768
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "open_orders"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2298
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "lot_lookup"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2507
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3355
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3337
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_receive"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2619
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3181
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_make"
+          ],
+          "status": "completed",
+          "elapsed_ms": 1950
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "unsupported_request"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2176
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "lot_lookup"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2151
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "open_orders"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2077
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2958
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_make"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2957
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3062
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3114
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_receive"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2929
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 4209
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2866
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_receive"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3164
+        }
+      ]
+    },
+    {
+      "sessions_enabled": true,
+      "width": 1440,
+      "javascript_errors": [],
+      "assets": [
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        }
+      ],
+      "turns": 20,
+      "records": 1
+    },
+    {
+      "sessions_enabled": true,
+      "width": 390,
+      "javascript_errors": [],
+      "assets": [
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        }
+      ],
+      "turns": 20,
+      "records": 1
+    },
+    {
+      "sessions_enabled": true,
+      "database": {
+        "initial_transactions": 5,
+        "final_transactions": 7,
+        "committed_drafts": 2,
+        "suppliers": 66
+      },
+      "model_requests": [
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "open_orders"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3823
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "lot_lookup"
+          ],
+          "status": "completed",
+          "elapsed_ms": 1847
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2578
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3352
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_receive"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3231
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3587
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_make"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2876
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "unsupported_request"
+          ],
+          "status": "completed",
+          "elapsed_ms": 1848
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "lot_lookup"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2879
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "open_orders"
+          ],
+          "status": "completed",
+          "elapsed_ms": 1901
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "lot_lookup"
+          ],
+          "status": "completed",
+          "elapsed_ms": 1855
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2846
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2634
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_receive"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2359
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2471
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_make"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2770
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "unsupported_request"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2376
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "lot_lookup"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2062
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "open_orders"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2081
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2924
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_make"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2573
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2649
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3044
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_receive"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2738
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3385
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3117
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_receive"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2748
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "open_orders"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2834
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "lot_lookup"
+          ],
+          "status": "completed",
+          "elapsed_ms": 1536
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2753
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2463
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_receive"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2867
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2883
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_make"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2793
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "unsupported_request"
+          ],
+          "status": "completed",
+          "elapsed_ms": 1719
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "lot_lookup"
+          ],
+          "status": "completed",
+          "elapsed_ms": 1919
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "open_orders"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2182
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "lot_lookup"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2068
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3006
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 4042
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_receive"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2884
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3594
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_make"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2677
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "unsupported_request"
+          ],
+          "status": "completed",
+          "elapsed_ms": 4842
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "lot_lookup"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2029
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "open_orders"
+          ],
+          "status": "completed",
+          "elapsed_ms": 1991
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2814
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_make"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2652
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2601
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3016
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_receive"
+          ],
+          "status": "completed",
+          "elapsed_ms": 7039
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2522
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed",
+          "elapsed_ms": 2635
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_receive"
+          ],
+          "status": "completed",
+          "elapsed_ms": 3273
+        }
+      ]
+    }
+  ],
+  "databases_dropped": true,
+  "passed": 64,
+  "failed": 0
+}

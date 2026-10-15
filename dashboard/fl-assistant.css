@@ -62,3 +62,18 @@ button.is-working{opacity:.8;cursor:wait}
 
 #today-entries-mobile{display:none}
 @media(max-width:600px){#today-entries-mobile{display:inline-block}.read-table-scroll th:nth-child(2),.read-table-scroll td:nth-child(2){white-space:normal;min-width:120px}}
+
+/* Round B: readable orders and bounded catalog choices at floor widths. */
+.order-list{list-style:none;margin:14px 0 0;padding:0}
+.order-entry{padding:13px 0;border-top:1px solid var(--line);line-height:1.55}
+.order-entry strong{font-size:14px;color:var(--accent)}
+.order-entry p{margin:5px 0;overflow-wrap:anywhere}
+.supplier-search{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;margin-top:16px}
+.supplier-search label{grid-column:1/-1;font-size:12px;font-weight:600}
+.supplier-search input{width:100%;min-width:0;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:11px;color:var(--text)}
+.ingredient-confirmation{margin:16px 0;border:1px solid var(--line);border-radius:10px;padding:13px;min-width:0}
+.ingredient-confirmation>strong{display:block;margin-bottom:10px;font-size:13px}
+.ingredient-confirmation .lot-confirmation{margin-bottom:0}
+.different-lot{min-height:44px;font-size:12px}
+.different-lot[aria-pressed=true]{background:var(--tint);border-color:var(--accent)}
+.lot-instruction{line-height:1.6;font-weight:600}

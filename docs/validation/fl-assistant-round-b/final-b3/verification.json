@@ -1,0 +1,147 @@
+{
+  "created_at": "2026-10-15T13:50:21.423335-04:00",
+  "review_comment": 6198313762,
+  "base": "f0ae3c2368b8aa94ddd864b2f99d2d5b8ad17937",
+  "python": {
+    "python": "3.12.14",
+    "pydantic": "2.14.1",
+    "pydantic_core": "2.50.1",
+    "jsonschema": "4.26.0",
+    "modes": {
+      "off": {
+        "collected": 6103,
+        "fresh_schema_groups": 22,
+        "passed": 6103,
+        "failed": 0,
+        "error": 0,
+        "skipped": 0,
+        "xfailed": 0,
+        "xpassed": 0,
+        "runner": "/private/tmp/fl_fixB3_full_suite_off.py",
+        "log": "/private/tmp/fl_fixB3_python_off.log"
+      },
+      "on": {
+        "collected": 6103,
+        "fresh_schema_groups": 22,
+        "passed": 6103,
+        "failed": 0,
+        "error": 0,
+        "skipped": 0,
+        "xfailed": 0,
+        "xpassed": 0,
+        "runner": "/private/tmp/fl_fixB3_full_suite_on.py",
+        "log": "/private/tmp/fl_fixB3_python_on.log"
+      }
+    },
+    "remaining_task_databases": [],
+    "source_hashes": {
+      "requirements.txt": "4c91b68ab9d19cb665f787ebcf3e506f10f4a0453a99d85d538704ed0da1f531",
+      "tests/requirements-test.txt": "c6d64e7d8ccbfba156ec4e82077ba721017ae86143db7a50b63014ab10ff668e",
+      "fl_assistant.py": "c15198e8be4f2555714026296f17c124a7f24e1909aee2016cbafd66a97d57cc",
+      "assistant_replies.py": "f2c7a740e25e5f807fd7d72e08b179da520745981104e0c0605576ae1dc33b5a",
+      "assistant_tools.py": "6e37c283ff522ee3beced5355d67f7f18137024505077b5a36f85909dc25a52e",
+      "tests/test_fl_assistant.py": "b15ca85459500dc7c8228510b2682fee3adb10b934a30b1df2345267df205cfc",
+      "tests/test_duplicate_warning_spanish.py": "99e1e8fc440f7b96c41e4695a918697380f26f1de8caeb513a52e723fde16561",
+      "tests/test_assistant_request_compatibility.py": "4b2b82d94274816201f7300b41084ab280bce3b88e0a26c0a3d2333be56ce825"
+    }
+  },
+  "node": {
+    "passed": 353,
+    "failed": 0,
+    "skipped": 0
+  },
+  "browser": {
+    "existing_and_customer": {
+      "off": "passed",
+      "on": "passed"
+    },
+    "round_a": {
+      "off": 30,
+      "on": 30
+    },
+    "b_contract": {
+      "off": 9,
+      "on": 9
+    },
+    "b_page": {
+      "passed": 68,
+      "failed": 0,
+      "sessions": "both",
+      "widths": [
+        1440,
+        390
+      ],
+      "languages": [
+        "en",
+        "es"
+      ],
+      "model_tool_selection": "queued; real local FL handlers/PostgreSQL"
+    },
+    "b_page_real_model": {
+      "passed": 68,
+      "failed": 0,
+      "sessions": "both",
+      "widths": [
+        1440,
+        390
+      ],
+      "languages": [
+        "en",
+        "es"
+      ],
+      "model": "gpt-6.1-sol",
+      "completed_model_requests": 111,
+      "pydantic": "2.14.1",
+      "model_tool_selection_stubbed": false,
+      "exit_code": 0,
+      "approved_by_user": true,
+      "remaining_databases": []
+    }
+  },
+  "source_hashes": {
+    "requirements.txt": "4c91b68ab9d19cb665f787ebcf3e506f10f4a0453a99d85d538704ed0da1f531",
+    "tests/requirements-test.txt": "c6d64e7d8ccbfba156ec4e82077ba721017ae86143db7a50b63014ab10ff668e",
+    "assistant_tools.py": "6e37c283ff522ee3beced5355d67f7f18137024505077b5a36f85909dc25a52e",
+    "assistant_replies.py": "f2c7a740e25e5f807fd7d72e08b179da520745981104e0c0605576ae1dc33b5a",
+    "fl_assistant.py": "c15198e8be4f2555714026296f17c124a7f24e1909aee2016cbafd66a97d57cc",
+    "dashboard/assistant-display.js": "ce3947b9828fc55940d70d7c4c8af09c1dbaf6dec224911c8fb14165f4870eb1",
+    "dashboard/fl-assistant.js": "55b3c96e5eb9214dddff66959fb39c4d129b5207ff13db9ae10925432cd14c16",
+    "dashboard/fl-assistant.html": "11c0c48b10b307f0f64c16cb868ff88a46f1c1f3e8f123444c52a00c940d4052",
+    "lot_confirmation.py": "50ea103b26e18b1144c64e90e820beb807f9188db08343515c88a9d67368fdd9",
+    "resolution.py": "1756273cad793bd5ecbe7428850c3ab354a78566c1a6c762c74542ca5a2ad9c8",
+    "ticket_actions.py": "89bd6797862137784b707273609ccad763628229769700402fcccbd4efc47157",
+    "order_tickets.py": "5f82e6e168999f5bc77816059b619da6d2167a9994d2df7be220d914a39df5bb",
+    "ship_tickets.py": "caeae2f2cd3df796c22e88ecdbf590b026bcd10821d866dc90476a63b3540b85",
+    "write_tickets.py": "89424476f30b77ca12193f29689a43a075082068648dbac79a2be78999e97a95",
+    "tests/test_duplicate_warning_spanish.py": "99e1e8fc440f7b96c41e4695a918697380f26f1de8caeb513a52e723fde16561",
+    "tests/test_fl_assistant.py": "b15ca85459500dc7c8228510b2682fee3adb10b934a30b1df2345267df205cfc",
+    "tests/test_fl_assistant_ui.js": "1a6551f4ddaa2cc96cc13164e3138fc82ae6669636a1f44dace5bd9d9234ed96",
+    "tests/test_assistant_display.js": "4e728c1bef17812537c5be1b7618f2774f98b8a22261c1a7ac83923588eac32a",
+    "tests/test_assistant_request_compatibility.py": "4b2b82d94274816201f7300b41084ab280bce3b88e0a26c0a3d2333be56ce825",
+    "tests/visual/run-fl-assistant-round-b-page.mjs": "ea77aeca66b306fabf0f3ae2f79411955d1ceed0b705d846a433a8befc4a6bc3",
+    "tests/visual/assistant_round_b_page_bridge.py": "45f4091258a65cd49f457e059bbea612d83bbf4dd0fafa15d81d938a4c874e85"
+  },
+  "screenshots": [
+    "different-lot-desktop-en.png",
+    "different-lot-mobile-es.png",
+    "different-lot-mobile-es-sessions-on.png",
+    "scope-desktop-en.png",
+    "scope-mobile-es-sessions-on.png",
+    "customer-continue-desktop-en.png",
+    "customer-duplicate-mobile-es.png",
+    "real-model-different-lot-mobile-es.png",
+    "real-model-scope-desktop-en.png",
+    "real-model-different-lot-mobile-es-sessions-on.png"
+  ],
+  "final_database_cleanup": {
+    "host": "127.0.0.1",
+    "postgresql": 17,
+    "prefix": "fl_fixB3_",
+    "remaining_databases": []
+  },
+  "guards": {
+    "diff_check": "passed",
+    "key_literal_findings": 0
+  },
+  "real_model_validation_at": "2026-10-15T14:05:32.499656-04:00"
+}

@@ -1,0 +1,39 @@
+{
+  "runner": "tests/visual/run-assistant-round-b.mjs",
+  "local_only": true,
+  "model_tool_selection_stubbed": true,
+  "renderer_test": false,
+  "modes": [
+    {
+      "sessions_enabled": false,
+      "checks_passed": 9,
+      "checks": [
+        "EN/ES inventory answers start with source-backed summary and structured rows",
+        "EN/ES open orders with customer and SKU filters use real read routes",
+        "Real customers, Spanish ingredient alias, product number and SKU resolve",
+        "Unknown wording never produces an empty choice card; a numeric follow-up can resolve",
+        "Receive keeps 10 lb and offers real supplier choices with EN/ES labels",
+        "EN/ES lot questions return plain quantities from lot lookup",
+        "Packing reaches filled drafts from explicit batch lot and finished product parent",
+        "One filled make draft groups all ingredients; single-lot tags required; wrong tag rejected; Different lot posts traceable exception without substituting FIFO",
+        "EN/ES out-of-scope answers use Factory Ledger wording"
+      ]
+    },
+    {
+      "sessions_enabled": true,
+      "checks_passed": 9,
+      "checks": [
+        "EN/ES inventory answers start with source-backed summary and structured rows",
+        "EN/ES open orders with customer and SKU filters use real read routes",
+        "Real customers, Spanish ingredient alias, product number and SKU resolve",
+        "Unknown wording never produces an empty choice card; a numeric follow-up can resolve",
+        "Receive keeps 10 lb and offers real supplier choices with EN/ES labels",
+        "EN/ES lot questions return plain quantities from lot lookup",
+        "Packing reaches filled drafts from explicit batch lot and finished product parent",
+        "One filled make draft groups all ingredients; single-lot tags required; wrong tag rejected; Different lot posts traceable exception without substituting FIFO",
+        "EN/ES out-of-scope answers use Factory Ledger wording"
+      ]
+    }
+  ],
+  "databases_dropped": true
+}

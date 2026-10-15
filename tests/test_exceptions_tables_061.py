@@ -1,12 +1,15 @@
 """A3a: migration 061 — exceptions, shortage_flags, the fixed correction-reason
 list (design §5.1 / §7.1 / R3) and the history-only transactions.reason_code
 backfill. Tables and seeds only: nothing here goes through a route."""
+import os
+
 from contextlib import contextmanager
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 from uuid import uuid4
 
 import psycopg2
+from psycopg2 import sql
 from psycopg2 import errors
 from psycopg2.extras import RealDictCursor
 import pytest
@@ -279,7 +282,7 @@ def isolated_database():
     admin = psycopg2.connect(main.DATABASE_URL)
     admin.autocommit = True
     with admin.cursor() as cur:
-        cur.execute('CREATE DATABASE ' + name)
+        cur.execute(sql.SQL('CREATE DATABASE {}').format(sql.Identifier(name)))
     try:
         schema = '\n'.join(line for line in (ROOT / 'tests/schema/schema.sql').read_text().splitlines()
                            if not line.startswith('\\'))
@@ -292,7 +295,7 @@ def isolated_database():
         yield url
     finally:
         with admin.cursor() as cur:
-            cur.execute('DROP DATABASE ' + name + ' WITH (FORCE)')
+            cur.execute(sql.SQL('DROP DATABASE {} WITH (FORCE)').format(sql.Identifier(name)))
         admin.close()
 
 

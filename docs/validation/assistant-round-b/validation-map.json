@@ -1,0 +1,85 @@
+{
+  "scope": "Server-side assistant Round B; Session A owns dashboard display files",
+  "reference_reports": [
+    "/Users/cns/dev/fl-test-runs/2026-10-15T15-23-46",
+    "/Users/cns/dev/fl-test-runs/2026-10-15T15-34-22"
+  ],
+  "screenshots_inspected": [
+    "004-t2-reply-desktop.png (open orders and UNIPRO empty choices)",
+    "015-t7-reply-desktop.png (packing empty choices)"
+  ],
+  "items": [
+    {
+      "item": 1,
+      "behavior": "Plain read answers before structured rows",
+      "regressions": "test_inventory_answer_precedes_structured_rows; test_every_other_read_contract_starts_with_a_sentence",
+      "acceptance": "Real backend browser EN/ES inventory, lot and open-order summaries"
+    },
+    {
+      "item": 2,
+      "behavior": "Open orders, customer and product filters",
+      "regressions": "test_open_orders_plain_answer_items_filters_and_no_write",
+      "acceptance": "Real backend browser EN/ES all/customer orders and SKU product filter"
+    },
+    {
+      "item": 3,
+      "behavior": "Real customer short names",
+      "regressions": "test_real_customer_short_names; test_sunshine_customer_is_not_the_product_ss_alias",
+      "acceptance": "Real backend browser Sunshine, Setton and UNIPRO"
+    },
+    {
+      "item": 4,
+      "behavior": "Packing from lot or product parent",
+      "regressions": "test_packing_uses_real_parent_or_batch_lot_then_filled_draft",
+      "acceptance": "Real backend browser explicit lot and implicit catalog parent"
+    },
+    {
+      "item": 5,
+      "behavior": "No empty choices; product numbers/SKUs",
+      "regressions": "test_unknown_product_never_gives_empty_choice_card; test_numeric_product_number_and_sku_are_exact",
+      "acceptance": "Real backend browser unknown Spanish wording plus 283/70013"
+    },
+    {
+      "item": 6,
+      "behavior": "Spanish catalog aliases and responses",
+      "regressions": "test_catalog_spanish_names; test_spanish_alias_is_bound_to_live_catalog",
+      "acceptance": "Real backend browser semillas de girasol and language contracts"
+    },
+    {
+      "item": 7,
+      "behavior": "Receive supplier choices and retained pounds",
+      "regressions": "test_missing_receive_keeps_weight_and_offers_real_suppliers",
+      "acceptance": "Real backend browser EN/ES missing supplier and retained 10 lb"
+    },
+    {
+      "item": "8a",
+      "behavior": "Only real make matches and filled draft",
+      "regressions": "test_make_classic_nine_offers_only_unflavored_batches; test_resolved_make_goes_straight_to_filled_draft_still_needs_tags",
+      "acceptance": "Real backend browser excludes Fruit Nut/Chocolate Chip and selects candidate once"
+    },
+    {
+      "item": "8b",
+      "behavior": "One complete physical-tag card and explicit exceptions",
+      "regressions": "test_single_lot_requires_tag_on_one_complete_card; test_all_ingredients_share_one_group_and_keep_fifo_candidates; test_wrong_tag_rejected_and_matching_tag_records; test_different_lot_posts_exception_without_debiting_fifo; test_unmatched_lot_exception_is_atomic",
+      "acceptance": "Real backend browser two ingredients, single-lot tags still required, wrong tag rejected, Different lot exception and original FIFO stock unchanged"
+    },
+    {
+      "item": 9,
+      "behavior": "Plain lot quantity questions",
+      "regressions": "test_exact_lot_question_reads_quantity",
+      "acceptance": "Real backend browser EN/ES lot quantities"
+    },
+    {
+      "item": 10,
+      "behavior": "Permanent error/scope wording",
+      "regressions": "test_scope_copy_and_permanent_refusal_never_suggest_retry",
+      "acceptance": "Real backend browser EN/ES Factory Ledger scope wording"
+    },
+    {
+      "item": 11,
+      "behavior": "Three normal A7 staging shipping orders",
+      "regressions": "scripts/check_assistant_round_b_staging.py; staging-orders.json",
+      "acceptance": "SO-261015-001, SO-261015-002, SO-261015-003; confirmed/open, real customers/SKUs, zero shipped; exact reason TEST ORDER FOR MICHAEL"
+    }
+  ]
+}

@@ -375,7 +375,7 @@ def receipt_row(api, cur, catalog, number, day, *, receipt=None, ticket=None):
                 row['exceptions_opened'].append(s['exception_id'])
         if action == 'make':
             ingredients = []
-            for item in draft.get('input_plan') or []:
+            for item in response.get('input_plan', draft.get('input_plan')) or []:
                 c = confirmations.get(item['lot_id'])
                 ingredients.append({'product': catalog.product_ref(item['product_id']), 'lot': catalog.lot_ref(item['lot_id']),
                                     'quantity_lb': item['quantity_lb'],

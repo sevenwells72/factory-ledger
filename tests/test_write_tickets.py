@@ -1,4 +1,6 @@
 """A1 part 1: receive lifecycle on real PostgreSQL, including real HTTP races."""
+import os
+
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import timedelta
@@ -9,6 +11,7 @@ from urllib.parse import urlsplit, urlunsplit
 from uuid import uuid4
 
 import psycopg2
+from psycopg2 import sql
 from psycopg2.extras import RealDictCursor
 from fastapi.testclient import TestClient
 import pytest
@@ -405,7 +408,7 @@ def isolated_database(_db_connection):
     admin = psycopg2.connect(main.DATABASE_URL)
     admin.autocommit = True
     with admin.cursor() as cur:
-        cur.execute('CREATE DATABASE ' + name)
+        cur.execute(sql.SQL('CREATE DATABASE {}').format(sql.Identifier(name)))
     try:
         # Schema dump has only psql restrict/include meta-commands; execute
         # its SQL on the guarded local connection, then the pending migration.
@@ -439,7 +442,7 @@ def isolated_database(_db_connection):
         yield url
     finally:
         with admin.cursor() as cur:
-            cur.execute('DROP DATABASE ' + name + ' WITH (FORCE)')
+            cur.execute(sql.SQL('DROP DATABASE {} WITH (FORCE)').format(sql.Identifier(name)))
         admin.close()
 
 

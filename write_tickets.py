@@ -395,7 +395,7 @@ def receive_duplicates(cur, payload):
     ref = row['receipt_number'] or f"transaction {row['id']} (legacy; no receipt number)"
     return [{'code': 'POSSIBLE_DUPLICATE', 'requires_ack': True,
              'message': f"A matching receive was posted {minutes} minutes ago as {ref} by {row['operator_id']}.",
-             'message_es': f"Una recepción similar se registró hace {minutes} minutos como {ref} por {row['operator_id']}.",
+             'message_es': f"Una recepción similar se registró hace {minutes} {'minuto' if minutes == 1 else 'minutos'} como {ref} por {row['operator_id']}.",
              'refs': {'transaction_id': row['id'], 'receipt_number': row['receipt_number'],
                       'operator_id': row['operator_id'], 'minutes_ago': minutes}}]
 

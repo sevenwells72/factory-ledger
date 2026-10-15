@@ -1,0 +1,75 @@
+{
+  "runner": "run-display-edge-cases.mjs",
+  "fixture_renderer_only": true,
+  "cards_from": "assistant_replies.read_card",
+  "database_used": false,
+  "model_used": false,
+  "passed": 8,
+  "failed": 0,
+  "results": [
+    {
+      "kind": "voided",
+      "language": "en",
+      "width": 1440,
+      "status": "passed",
+      "screenshot": "1440-voided-en.png",
+      "visible_text": "FROM FACTORY LEDGER\nHere’s what FL shows\n\nAdjusted Sunflower Seeds 5 lb.\n\nVOIDED\n\nVoided — no longer counts in stock\n\nADJ-261015-240\n\nToday 12:00 PM\n\nRound B Worker\n\nProduct\tLot\tQuantity\tUnit\nSunflower Seeds\tSUNFLOWER-VERIFIED\t5\tlb"
+    },
+    {
+      "kind": "unverified",
+      "language": "en",
+      "width": 1440,
+      "status": "passed",
+      "screenshot": "1440-unverified-en.png",
+      "visible_text": "FROM FACTORY LEDGER\nHere’s what FL shows\n\nSunflower Seeds: 100 lb in 1 lot.\n\n1 physical lot is unverified, awaiting follow-up.\n\nLot\tQuantity\tUnit\nSUNFLOWER-VERIFIED\t100\tlb"
+    },
+    {
+      "kind": "voided",
+      "language": "es",
+      "width": 1440,
+      "status": "passed",
+      "screenshot": "1440-voided-es.png",
+      "visible_text": "DE FACTORY LEDGER\nEsto muestra FL\n\nAjustado Sunflower Seeds 5 lb.\n\nANULADO\n\nAnulado — ya no cuenta en el inventario\n\nADJ-261015-240\n\nHoy 12:00 PM\n\nRound B Worker\n\nProducto\tLote\tCantidad\tUnidad\nSunflower Seeds\tSUNFLOWER-VERIFIED\t5\tlb"
+    },
+    {
+      "kind": "unverified",
+      "language": "es",
+      "width": 1440,
+      "status": "passed",
+      "screenshot": "1440-unverified-es.png",
+      "visible_text": "DE FACTORY LEDGER\nEsto muestra FL\n\nSunflower Seeds: 100 lb en 1 lote.\n\n1 lote físico sin verificar, pendiente de seguimiento.\n\nLote\tCantidad\tUnidad\nSUNFLOWER-VERIFIED\t100\tlb"
+    },
+    {
+      "kind": "voided",
+      "language": "en",
+      "width": 390,
+      "status": "passed",
+      "screenshot": "390-voided-en.png",
+      "visible_text": "FROM FACTORY LEDGER\nHere’s what FL shows\n\nAdjusted Sunflower Seeds 5 lb.\n\nVOIDED\n\nVoided — no longer counts in stock\n\nADJ-261015-240\n\nToday 12:00 PM\n\nRound B Worker\n\nProduct\tLot\tQuantity\tUnit\nSunflower Seeds\tSUNFLOWER-VERIFIED\t5\tlb"
+    },
+    {
+      "kind": "unverified",
+      "language": "en",
+      "width": 390,
+      "status": "passed",
+      "screenshot": "390-unverified-en.png",
+      "visible_text": "FROM FACTORY LEDGER\nHere’s what FL shows\n\nSunflower Seeds: 100 lb in 1 lot.\n\n1 physical lot is unverified, awaiting follow-up.\n\nLot\tQuantity\tUnit\nSUNFLOWER-VERIFIED\t100\tlb"
+    },
+    {
+      "kind": "voided",
+      "language": "es",
+      "width": 390,
+      "status": "passed",
+      "screenshot": "390-voided-es.png",
+      "visible_text": "DE FACTORY LEDGER\nEsto muestra FL\n\nAjustado Sunflower Seeds 5 lb.\n\nANULADO\n\nAnulado — ya no cuenta en el inventario\n\nADJ-261015-240\n\nHoy 12:00 PM\n\nRound B Worker\n\nProducto\tLote\tCantidad\tUnidad\nSunflower Seeds\tSUNFLOWER-VERIFIED\t5\tlb"
+    },
+    {
+      "kind": "unverified",
+      "language": "es",
+      "width": 390,
+      "status": "passed",
+      "screenshot": "390-unverified-es.png",
+      "visible_text": "DE FACTORY LEDGER\nEsto muestra FL\n\nSunflower Seeds: 100 lb en 1 lote.\n\n1 lote físico sin verificar, pendiente de seguimiento.\n\nLote\tCantidad\tUnidad\nSUNFLOWER-VERIFIED\t100\tlb"
+    }
+  ]
+}

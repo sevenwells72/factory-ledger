@@ -1,0 +1,8 @@
+/private/tmp/fl_fixB2_venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:373: UserWarning: Valid config keys have changed in V2:
+* 'underscore_attrs_are_private' has been removed
+  warnings.warn(message, UserWarning)
+Round B real backend browser: sessions off, 9 contract groups passed.
+/private/tmp/fl_fixB2_venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:373: UserWarning: Valid config keys have changed in V2:
+* 'underscore_attrs_are_private' has been removed
+  warnings.warn(message, UserWarning)
+Round B real backend browser: sessions on, 9 contract groups passed.

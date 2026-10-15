@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from functools import partial
 import re
+import unicodedata
 from typing import Literal, Optional
 
 from fastapi import APIRouter, Depends
@@ -31,6 +32,88 @@ def normalize(text):
 
 def normalize_lot(text):
     return re.sub(r'\s+lot$', '', normalize(text))
+
+
+# Floor vocabulary maps to catalog wording; these are search spellings, never
+# product identities. _catalog_spanish_aliases binds only terms present in live
+# active product names, so a translation cannot invent a product or bypass an
+# inactive catalog row. Long phrases precede words to preserve the intended food.
+CATALOG_SPANISH_ALIASES = {
+    'semillas de girasol': 'sunflower seeds',
+    'semilla de girasol': 'sunflower seeds',
+    'semillas de calabaza': 'pumpkin seeds',
+    'semilla de calabaza': 'pumpkin seeds',
+    'semillas de sesamo': 'sesame seeds',
+    'semillas de ajonjoli': 'sesame seeds',
+    'semillas de chia': 'chia seeds',
+    'semillas de lino': 'flax seeds',
+    'harina de arroz': 'rice flour',
+    'harina de avena': 'oat flour',
+    'aceite de girasol': 'sunflower oil',
+    'aceite de coco': 'coconut oil',
+    'aceite de canola': 'canola oil',
+    'jarabe de arce': 'maple syrup',
+    'jarabe de agave': 'agave syrup',
+    'azucar morena': 'brown sugar',
+    'chispas de chocolate': 'chocolate chips',
+    'trocitos de chocolate': 'chocolate chips',
+    'granola clasica': 'classic granola',
+    'nueces de nogal': 'walnuts',
+    'nueces de pecan': 'pecans',
+    'nueces pecanas': 'pecans',
+    'nueces de la india': 'cashews',
+    'anacardos': 'cashews',
+    'almendras': 'almonds',
+    'avellanas': 'hazelnuts',
+    'pistachos': 'pistachios',
+    'cacahuates': 'peanuts',
+    'mani': 'peanuts',
+    'arandanos rojos': 'cranberries',
+    'arandanos azules': 'blueberries',
+    'pasas': 'raisins',
+    'coco': 'coconut',
+    'avena': 'oats',
+    'miel': 'honey',
+    'canela': 'cinnamon',
+    'vainilla': 'vanilla',
+    'azucar': 'sugar',
+    'sal': 'salt',
+}
+
+
+def _unaccent(text):
+    return ''.join(c for c in unicodedata.normalize('NFKD', normalize(text))
+                   if not unicodedata.combining(c))
+
+
+def catalog_query(query):
+    """Pure shared translation for catalog searches in assistant read tools."""
+    text = _unaccent(query)
+    terms = sorted(CATALOG_SPANISH_ALIASES, key=len, reverse=True)
+    pattern = r'(?<![a-z0-9])(?:' + '|'.join(re.escape(term) for term in terms) + r')(?![a-z0-9])'
+    return re.sub(pattern, lambda match: CATALOG_SPANISH_ALIASES[match[0]], text)
+
+
+def _spanish_query(query):
+    q = _unaccent(query)
+    return catalog_query(query) != q or bool(re.search(
+        r'\b(?:ingrediente|producto|desconocido|desconocida|cual|cuanto|cuanta|proveedor|cliente|semillas)\b', q))
+
+
+def _catalog_spanish_aliases(cur, query):
+    q = _unaccent(query)
+    requested = [(es, en) for es, en in CATALOG_SPANISH_ALIASES.items()
+                 if re.search(r'(?<![a-z0-9])' + re.escape(es) + r'(?![a-z0-9])', q)]
+    if not requested:
+        return []
+    patterns = [r'\m' + r'\s+'.join(re.escape(part) for part in en.split()) + r'\M'
+                for _, en in requested]
+    cur.execute("""SELECT name FROM products WHERE active IS DISTINCT FROM false
+                   AND lower(name) ~ ANY(%s::text[])""", (patterns,))
+    names = [normalize(row['name']) for row in cur.fetchall()]
+    return [dict(kind='token', alias=es, expansion=en, language='es', active=True)
+            for es, en in requested if any(re.search(
+                r'(?<![a-z0-9])' + re.escape(en) + r'(?![a-z0-9])', name) for name in names)]
 
 
 class ResolutionContext(BaseModel):
@@ -189,7 +272,12 @@ def _patterns(query, aliases=()):
         if all(terms):
             escaped = r'\s+'.join(re.escape(term) for term in terms)
             if hits or any(len(term) <= 2 or term.isdigit() for term in terms):
-                escaped = r'\m' + escaped + r'\M'
+                # Punctuation such as the ampersand in Kookies & Kreme is
+                # not a word: surrounding it with word boundaries never matches.
+                if re.match(r'\w', terms[0]):
+                    escaped = r'\m' + escaped
+                if re.search(r'\w$', terms[-1]):
+                    escaped += r'\M'
             patterns.append(escaped)
         i += len(span)
     return patterns
@@ -230,7 +318,7 @@ def _ranked_rows(cur, scored_sql, params, *, limit=MAX_CANDIDATES, offset=0):
 
 
 def _search(cur, source, params, variants, aliases, *, keywords=True, exact_only=False,
-            limit=MAX_CANDIDATES, offset=0):
+            limit=MAX_CANDIDATES, offset=0, name_sql='s.name', whole_words=False):
     '''Rank the deduplicated union of spellings, then count and page in SQL.'''
     variants = [variant for variant in variants if variant.text]
     if not variants:
@@ -238,14 +326,16 @@ def _search(cur, source, params, variants, aliases, *, keywords=True, exact_only
     values, variant_params = [], []
     for index, variant in enumerate(variants):
         patterns = _patterns(variant.text, aliases) if keywords else []
+        if whole_words:
+            patterns = [r'\m(?:' + pattern + r')\M' for pattern in patterns]
         values.append('(%s::text, %s::text[], %s::boolean, %s::int, %s::int)')
         variant_params.extend((variant.text, patterns,
                                _fuzzy_allowed(variant.text, aliases) and not exact_only,
                                index, len(variant.expansions)))
     for exact in (True, False):
-        score = '1.0::float' if exact else '''CASE
-            WHEN cardinality(v.patterns) > 0 AND lower(s.name) ~ ALL(v.patterns) THEN 0.8
-            WHEN v.fuzzy THEN similarity(lower(s.name), v.query) ELSE 0.0 END'''
+        score = '1.0::float' if exact else f'''CASE
+            WHEN cardinality(v.patterns) > 0 AND lower({name_sql}) ~ ALL(v.patterns) THEN 0.8
+            WHEN v.fuzzy THEN similarity(lower({name_sql}), v.query) ELSE 0.0 END'''
         where = r'''WHERE EXISTS (SELECT 1 FROM unnest(s.exact_terms) term
                     WHERE lower(btrim(regexp_replace(term, '\s+', ' ', 'g'))) = v.query)''' if exact else ''
         scored_sql = f'''
@@ -272,7 +362,7 @@ def _search(cur, source, params, variants, aliases, *, keywords=True, exact_only
     return []
 
 
-def _candidate(row):
+def _candidate(row, language='en'):
     result = {k: row[k] for k in (
         'id', 'name', 'odoo_code', 'type', 'label_type', 'case_size_lb', 'pack_format', 'kosher_tier',
         'default_batch_lb', 'parent_batch_product_id', 'on_hand_lb', 'product_id',
@@ -286,14 +376,26 @@ def _candidate(row):
                       'suffix': 'Exact last four characters within this product',
                       'context': 'Open order for the specified customer'
                   }[row['tier']], context_boost=row.get('context_boost'))
+    if language == 'es':
+        result['why'] = {
+            'exact': 'Identificador o nombre completo coincidente',
+            'alias': 'Nombre alternativo coincidente',
+            'keyword': 'Todos los términos aparecen en el nombre',
+            'trigram': 'Nombre parecido; confirme cuál es',
+            'suffix': 'Últimos cuatro caracteres coincidentes para este producto',
+            'context': 'Pedido abierto del cliente indicado',
+        }[row['tier']]
+        result['context_boost'] = None
     if 'kosher_tier' in result:
-        result['kosher_label'] = 'EXTRA-KOSHER (SS)' if result['kosher_tier']=='extra_kosher' else 'Regular'
+        result['kosher_label'] = 'EXTRA-KOSHER (SS)' if result['kosher_tier']=='extra_kosher' else ('Regular' if language == 'en' else 'Estándar')
         if 'EXTRA-KOSHER' not in result['label']:
             result['label'] += ' — ' + result['kosher_label']
     return result
 
 
 def decide(query, rows, *, truncated=False, note=None, limit=MAX_CANDIDATES, offset=0):
+    spanish = _spanish_query(query)
+    candidate = partial(_candidate, language='es' if spanish else 'en')
     if rows and '_position' in rows[0]:
         rows = sorted(rows, key=lambda row: row['_position'])
     else:
@@ -306,7 +408,7 @@ def decide(query, rows, *, truncated=False, note=None, limit=MAX_CANDIDATES, off
     outcome = 'none' if not candidates else 'ambiguous'
     if plausible_count == 1 and not truncated:
         outcome = 'match'
-    displayed = [_candidate(row) for i, row in enumerate(candidates, 1)
+    displayed = [candidate(row) for i, row in enumerate(candidates, 1)
                  if offset < row.get('_position', i) <= offset + limit]
     best = candidates[0] if candidates else None
     expansions = []
@@ -322,20 +424,23 @@ def decide(query, rows, *, truncated=False, note=None, limit=MAX_CANDIDATES, off
                   confidence=confidence[best['tier']] if best else 'none',
                   needs_clarification=outcome != 'match', ask=None)
     if outcome == 'match':
-        result['match'] = _candidate(plausible[0])
+        result['match'] = candidate(plausible[0])
     elif outcome == 'ambiguous':
-        prefix = 'Which one?' if plausible_count > 1 else 'No confident match. Please clarify:'
+        if spanish:
+            prefix = '¿Cuál de estos?' if plausible_count > 1 else 'No reconocí el nombre con certeza. Elija:'
+        else:
+            prefix = 'Which one?' if plausible_count > 1 else 'No confident match. Please clarify:'
         result['ask'] = prefix + ' ' + '; '.join(f"{i}) {r['label']}" for i, r in enumerate(displayed, offset + 1))
         if not displayed:
-            result['ask'] = 'No candidates on this page. Use a smaller offset.'
+            result['ask'] = ('No hay resultados en esta página. Vuelva a los resultados anteriores o escriba un código exacto.' if spanish else 'No candidates on this page. Use a smaller offset.')
         elif result['has_more']:
-            result['ask'] += '; more matches exist — request the next page or give an exact code.'
+            result['ask'] += ('; hay más coincidencias: vea la siguiente página o escriba el código exacto.' if spanish else '; more matches exist — request the next page or give an exact code.')
     else:
-        result['ask'] = 'No confident match. Please give a fuller name or exact code.'
-        result['near_misses'] = [_candidate(row) for row in rows[:3] if row['score'] > 0]
+        result['ask'] = (f'No reconocí «{query}». Escriba el nombre completo o el número del producto.' if spanish else f'I did not recognize “{query}”. Give the full name, product number, or SKU.')
+        result['near_misses'] = [candidate(row) for row in rows[:3] if row['score'] > 0]
     if truncated:
         result['needs_clarification'] = True
-        result['ask'] = 'Too many alias expansions. Please give an exact identifier.'
+        result['ask'] = ('Hay demasiados nombres alternativos. Escriba un identificador exacto.' if spanish else 'Too many alias expansions. Please give an exact identifier.')
     if note:
         result['note'] = note
     return result
@@ -345,7 +450,7 @@ PRODUCT_SOURCE = '''SELECT p.id, p.name, p.odoo_code, p.type, p.label_type,
     p.case_size_lb, p.pack_format, p.default_batch_lb, p.parent_batch_product_id, p.kosher_tier,
     p.bags_per_case, p.units_per_case, p.retail_bag_oz,
     p.name || COALESCE(' (' || p.odoo_code || ')', '') AS label,
-    ARRAY[p.name, p.odoo_code] ||
+    ARRAY[p.name, p.odoo_code, p.id::text] ||
        ARRAY(SELECT unnest(ARRAY[customer_item_code, customer_description])
              FROM customer_product_aliases WHERE customer_id = %s AND product_id = p.id) ||
        ARRAY(SELECT vendor_description FROM supplier_product_aliases
@@ -400,9 +505,20 @@ def _products(cur, req, variants, aliases):
     c = req.context
     ids = _target_ids(aliases, 'product', req.query)
     nine, sunshine, bare = classic_nine(req.query)
+    # A full catalog identity wins before the broad Classic #9 family shortcut.
+    cur.execute('''SELECT id FROM products WHERE active IS DISTINCT FROM false
+        AND (lower(btrim(name))=%s OR lower(btrim(odoo_code))=%s OR id::text=%s)''',
+        (normalize(req.query),) * 3)
+    literal_ids = [r['id'] for r in cur.fetchall()]
+    if literal_ids:
+        nine = sunshine = bare = False
+        ids = literal_ids
+        variants = [Variant(normalize(req.query))]
     source = PRODUCT_SOURCE
     if nine and sunshine:
         source += " AND p.kosher_tier='extra_kosher'"
+    if bare and c.action == 'make' and re.search(r'\bclassic\b', normalize(req.query)):
+        source += r" AND p.name ~* '\mclassic\M\s+(granola\s+)?#?9([^0-9]|$)'"
     if bare:
         # Identity comes from tier metadata even when an obsolete alias names a
         # regular product; catalog IDs cover finished labels without '#9'.
@@ -421,8 +537,8 @@ def _products(cur, req, variants, aliases):
         params += (ids,)
     rows = _search(cur, source, params, variants, aliases, limit=req.limit, offset=req.offset)
     for row in rows:
-        if row['score'] == 1 and (row['id'] in ids or row['_variant'].text not in
-                                  (normalize(row['name']), normalize(row['odoo_code']))):
+        if row['score'] == 1 and ((row['id'] in ids and not literal_ids) or row['_variant'].text not in
+                                  (normalize(row['name']), normalize(row['odoo_code']), str(row['id']))):
             row['tier'], row['why'] = 'alias', 'Exact product alias'
     return rows
 
@@ -436,7 +552,10 @@ def _parties(cur, req, variants, aliases):
     rank = "CASE WHEN %s <> '' AND lower(COALESCE(p.address, '')) LIKE %s THEN 1 ELSE 0 END" if customer else '0'
     address = normalize(c.customer_address)
     params = (ids, normalize(req.query)) + ((address, '%' + address + '%') if customer else ())
-    source = f'''SELECT p.id, p.name, ARRAY[p.name] || {old_aliases} ||
+    # Remove acronym periods but keep other punctuation as word boundaries.
+    party_name = "regexp_replace(replace(p.name, '.', ''), '[^a-zA-Z0-9 ]', ' ', 'g')"
+    source = f'''SELECT p.id, p.name, {party_name} AS search_name,
+                  ARRAY[p.name, {party_name}] || {old_aliases} ||
                   CASE WHEN p.id = ANY(%s::int[]) THEN ARRAY[%s::text] ELSE ARRAY[]::text[] END AS exact_terms,
                   {rank} AS context_rank, 0::float AS recent_activity
                   FROM {'customers' if customer else 'suppliers'} p
@@ -446,7 +565,13 @@ def _parties(cur, req, variants, aliases):
         # even if an old catalog import accidentally reactivates it (§5.2).
         source += ' AND btrim(supplier_name_norm(p.name)) <> ALL(%s::text[])'
         params += (list(SENTINEL_SUPPLIERS),)
-    rows = _search(cur, source, params, variants, aliases, limit=req.limit, offset=req.offset)
+    # Product shorthand (SS/Sunshine, choc/chocolate) must never rewrite a
+    # party's name. Party aliases have their own exact identity tables.
+    variants = [Variant(normalize(req.query))]
+    party_aliases = [row for row in aliases if row['kind'] != 'token']
+    # _search accepts a private search_name override for punctuation-only folds.
+    rows = _search(cur, source, params, variants, party_aliases, limit=req.limit, offset=req.offset,
+                   name_sql='s.search_name', whole_words=True)
     for row in rows:
         if row['context_rank']:
             row['context_boost'] = 'Customer address agrees; ranking only'
@@ -657,10 +782,20 @@ def resolve(cur, req, *, aliases=None):
     else:
         available = True
     aliases = [row for row in aliases if row.get('active', True)]
+    if req.kind == 'product':
+        spanish_aliases = _catalog_spanish_aliases(cur, req.query)
+        if spanish_aliases:
+            # Accent normalization changes search text only; replies keep the user's wording.
+            variants_query = _unaccent(req.query)
+            aliases += spanish_aliases
+        else:
+            variants_query = req.query
+    else:
+        variants_query = req.query
     if req.kind == 'order':
         result = _orders(cur, req, aliases)
     else:
-        variants, truncated = query_variants(req.query, aliases)
+        variants, truncated = query_variants(variants_query, aliases)
         rows = (_products if req.kind == 'product' else _parties)(cur, req, variants, aliases)
         result = decide(req.query, rows, truncated=truncated, limit=req.limit, offset=req.offset)
     if req.kind=='product':
