@@ -1,5 +1,82 @@
 # Change Log
 
+## 2026-10-15 12:33 — PR #131 fix A2: normalize captured test-log endings
+- **File(s) changed:** `docs/validation/fl-assistant-round-a/fix-a2/python/collect.log`
+- **What changed:** Remove trailing empty lines in captured output without changing test results.
+- **Why:** Git whitespace checks also reject newly added blank lines at the end of evidence logs.
+
+---
+
+## 2026-10-15 12:33 — PR #131 fix A2: clean captured psql whitespace
+- **File(s) changed:** `docs/validation/fl-assistant-round-a/fix-a2/python/schema.log`
+- **What changed:** Trim trailing spaces in psql table output, preserving every validation value.
+- **Why:** Keep committed validation evidence clean under git diff --check.
+
+---
+
+## 2026-10-15 12:32 — PR #131 fix A2: correct validation claims and save full passing evidence
+- **File(s) changed:** `docs/validation/fl-assistant-round-a/README.md`, `summary.json`, `fix-a2/`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Explicitly correct original failed-browser pass claims while retaining original failure logs; save final full Python, Node and both-mode new/existing browser results, screenshots, source hashes and zero-database cleanup evidence.
+- **Why:** Review requires truthful validation notes and all requested tests passing before recheck.
+
+---
+
+## 2026-10-15 12:30 — PR #131 fix A2: keep browser receipt and actor fixtures faithful
+- **File(s) changed:** `tests/visual/run-fl-assistant-round-a.mjs`
+- **What changed:** Return a receive receipt for the receive draft and attribute the six team entries to another staff member when the signed-in person has zero entries.
+- **Why:** Browser regression scenarios should mirror the real staff data and action being tested.
+
+---
+
+## 2026-10-15 12:30 — PR #131 fix A2: retain case-only result units
+- **File(s) changed:** `dashboard/assistant-display.js`
+- **What changed:** Preserve the unit of homogeneous lot-only case results while adding optional case equivalents to pound stock.
+- **Why:** Focused display regression verified an existing case-only response without an item-level unit.
+
+---
+
+## 2026-10-15 12:30 — PR #131 fix A2: bind browser assertions to the original own-entry card
+- **File(s) changed:** `tests/visual/run-fl-assistant-round-a.mjs`
+- **What changed:** Use a stable first-card locator when the team card is added, and expect the final plain network error wording.
+- **Why:** Initial new browser runs exposed a live last-card locator and an outdated expected network sentence in the new test setup.
+
+---
+
+## 2026-10-15 12:29 — PR #131 fix A2: refresh Assistant asset versions
+- **File(s) changed:** `dashboard/fl-assistant.html`
+- **What changed:** Bump display and page script versions so browsers fetch the reviewed fixes.
+- **Why:** Cached script URLs must change when the Assistant display behavior changes.
+
+---
+
+## 2026-10-15 12:29 — PR #131 fix A2: browser regressions for all review display fixes
+- **File(s) changed:** `tests/visual/run-fl-assistant-round-a.mjs`
+- **What changed:** Add desktop/phone checks in both session modes for own-versus-team Today counts, finished stock lb plus cases, immediate permission/server/network errors and receipt-number recorded cards; retain the real 15-second timeout case.
+- **Why:** Each requested display fix needs browser evidence, including the six-team/zero-own confusing case.
+
+---
+
+## 2026-10-15 12:29 — PR #131 fix A2: personal Today scope and finished stock cases
+- **File(s) changed:** `dashboard/assistant-display.js`, `tests/test_assistant_display.js`
+- **What changed:** Label legacy Today answers as the signed-in person’s entries in EN/ES, preserve team wording for direct Today reads, and show known case counts alongside pounds without inventing incomplete totals. Add scope and unit regressions.
+- **Why:** Staff could mistake a personal zero for missing team entries, and count finished stock by cases.
+
+---
+
+## 2026-10-15 12:29 — PR #131 fix A2: truthful Today errors, receipt identity and shipment fields
+- **File(s) changed:** `dashboard/fl-assistant.js`, `tests/test_assistant_page_round_a.js`
+- **What changed:** Restrict the 15-second message to actual timeouts, keep plain non-timeout errors, mark direct team Today reads separately, identify recorded cards by their confirmed receipt and avoid duplicate shipment product names while preserving line detail. Add focused regressions.
+- **Why:** Review found misleading error timing and internal transaction jargon; ship display repeated the product name.
+
+---
+
+## 2026-10-15 12:28 — PR #131 fix A2: repair existing Assistant browser fixtures
+- **File(s) changed:** `tests/visual/run-fl-assistant.mjs`
+- **What changed:** Scope the shipment product assertion and exercise expiry on both the direct receipts read and Assistant turn, including cleared session state and sign-in recovery.
+- **Why:** PR #131 review reproduced failures in both previously reported browser runs.
+
+---
+
 ## 2026-10-15 12:02 — Recorded round A validation and regression row 209
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/fl-assistant-round-a/`, `dashboard/ledger-ui.js`, consumer HTML cache versions, page regression tests.
 - **What changed:** Documented 5,818 full Python, 282 Node and 44 browser cases plus both existing Assistant browser modes, screenshots and database cleanup. Recorded Session B summary-tool hand-off and local/hosted test limits; refreshed shared receipt renderer cache version.

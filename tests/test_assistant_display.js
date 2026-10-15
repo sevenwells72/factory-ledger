@@ -62,7 +62,7 @@ test('voided receipt clearly says its stock no longer counts', () => {
 test('all Today rows use newest recording first and plain time/what/receipt/who', () => {
   const receipt = (id, entered_at, happened_at) => ({ receipt_number: 'RCV-261015-' + id, action: 'receive', entered_at, happened_at,
     actor: { name: 'Michael' }, draft: { product_name: 'Sunflower Seeds', total_lb: 50 } });
-  const [section] = display.readSections({ tool: 'today_entries', result: { receipts: [
+  const [section] = display.readSections({ tool: 'today_entries_all', result: { receipts: [
     receipt('001', '2026-10-15T15:19:00Z', '2026-10-15T15:19:00Z'),
     receipt('002', '2026-10-15T15:20:00Z', '2026-10-14T11:00:00Z')
   ] } }, { now: today });
@@ -189,4 +189,53 @@ test('receipt status codes are plain and translated without changing product nam
   ledger.lang='en'; const html=ledger.draftHtml({status:'committed',effective_status:'posted',product_name:'active'});
   assert.match(html,/>Recorded</); assert.match(html,/>Counts in stock</); assert.match(html,/>active</);
   ledger.lang='es'; assert.match(ledger.draftHtml({status:'committed'}),/>Registrado</); ledger.lang='en';
+});
+
+
+test('legacy Today cards explicitly count only the signed-in person in both languages', () => {
+  const card = { tool: 'today_entries', result: { receipts: [] } };
+  assert.equal(display.readSections(card)[0].sentence, "You've recorded 0 entries today. Team total: see Today's entries.");
+  assert.equal(display.readSections(card, { language: 'es' })[0].sentence, 'Has registrado 0 entradas hoy. Total del equipo: consulta las entradas de hoy.');
+  card.result.receipts.push({ receipt_number: 'RCV-261015-001' });
+  assert.equal(display.readSections(card)[0].sentence, "You've recorded 1 entry today. Team total: see Today's entries.");
+  assert.equal(display.readSections(card, { language: 'es' })[0].sentence, 'Has registrado 1 entrada hoy. Total del equipo: consulta las entradas de hoy.');
+});
+test('direct all-staff Today cards keep the team count clear in both languages', () => {
+  const card = { tool: 'today_entries_all', result: { receipts: Array.from({ length: 6 }, () => ({})) } };
+  assert.equal(display.readSections(card)[0].sentence, '6 entries today.');
+  assert.equal(display.readSections(card, { language: 'es' })[0].sentence, '6 entradas hoy.');
+});
+test('finished inventory displays supplied pounds and cases together in both languages', () => {
+  const card = { tool: 'inventory_lookup', result: { results: [{ product: 'Classic 20 lb case', total_on_hand: 1600, unit_count: 80,
+    lots: [{ lot: 'FIN-1', qty_on_hand: 1600, unit: '20 lb case' }] }] } };
+  assert.equal(display.readSections(card)[0].sentence, 'Classic 20 lb case: 1,600 lb (80 cases) in 1 lot.');
+  assert.equal(display.readSections(card, { language: 'es' })[0].sentence, 'Classic 20 lb case: 1,600 lb (80 cajas) en 1 lote.');
+  assert.deepEqual(display.readSections(card)[0].rows, [['FIN-1', '1,600', 'lb']], 'never derive per-lot counts from a product total');
+  card.result.results[0].unit_count = 0;
+  assert.match(display.readSections(card)[0].sentence, /1,600 lb \(0 cases\)/, 'zero is a supplied count');
+  delete card.result.results[0].unit_count;
+  assert.equal(display.readSections(card)[0].sentence, 'Classic 20 lb case: 1,600 lb in 1 lot.', 'a packaging name does not establish a case count');
+});
+test('inventory case totals require complete counts covering the whole pound total', () => {
+  const item = { product: 'Finished', total_on_hand: 1600, lots: [
+    { lot: 'FIN-1', qty_on_hand: 1000, unit_count: 50 }, { lot: 'FIN-2', qty_on_hand: 600, unit_count: 30 }
+  ] };
+  const card = { tool: 'inventory_lookup', result: { results: [item] } };
+  assert.equal(display.readSections(card)[0].sentence, 'Finished: 1,600 lb (80 cases) in 2 lots.');
+  assert.deepEqual(display.readSections(card)[0].columns, ['Lot', 'Quantity', 'Unit', 'Cases']);
+  assert.deepEqual(display.readSections(card)[0].rows, [['FIN-1', '1,000', 'lb', '50'], ['FIN-2', '600', 'lb', '30']]);
+  delete item.lots[1].unit_count;
+  assert.equal(display.readSections(card)[0].sentence, 'Finished: 1,600 lb in 2 lots.');
+  assert.deepEqual(display.readSections(card)[0].rows[1], ['FIN-2', '600', 'lb', '—']);
+  item.lots[1].unit_count = 30;
+  item.total_on_hand = 1800;
+  assert.equal(display.readSections(card)[0].sentence, 'Finished: 1,800 lb in 2 lots.', 'partial lot counts cannot become the result total');
+});
+test('mixed inventory units remain separate instead of being added as pounds', () => {
+  const card = { tool: 'inventory_lookup', result: { results: [{ product: 'Mixed', lots: [
+    { lot: 'BULK', quantity_lb: 100, unit_count: 5 }, { lot: 'CASES', quantity: 12, unit: 'cases' }
+  ] }] } };
+  assert.equal(display.readSections(card)[0].sentence, 'Mixed: 100 lb and 12 cases in 2 lots.');
+  assert.equal(display.readSections(card, { language: 'es' })[0].sentence, 'Mixed: 100 lb y 12 cajas en 2 lotes.');
+  assert.deepEqual(display.readSections(card)[0].rows, [['BULK', '100', 'lb', '5'], ['CASES', '12', 'cases', '—']]);
 });

@@ -24,6 +24,7 @@ const adjusted = { product_name: 'Sunflower Seeds', delta_lb: -5, current_quanti
 const inventory = { kind: 'read', tool: 'inventory_lookup', result: { results: [{ product: { name: 'Batch Classic Granola #9' }, total_on_hand: 17678,
   lots: [3000, 3000, 3000, 3000, 3000, 2678].map((quantity, index) => ({ lot: `26-10-15-CLAS-${String(index + 1).padStart(3, '0')}`, qty_on_hand: quantity, uom: '10 lb case' })) }] } };
 const casesInventory = { kind: 'read', tool: 'inventory_lookup', result: { results: [{ product_name: 'Classic Granola retail', unit: 'cases', quantity: 12, lots: [{ lot_code: '26-10-15-RETL-001', quantity: 12, unit: 'cases' }] }] } };
+const finishedInventory = { kind: 'read', tool: 'inventory_lookup', result: { results: [{ product: 'Granola Classic 20 LB', total_on_hand: 1600, unit_count: 80, lots: [{ lot: 'FIN-001', qty_on_hand: 1600, unit: 'case' }] }] } };
 const correctionReason = { kind: 'refusal', status: 422, result: { detail: [{ loc: ['body', 'reason_code'], type: 'missing', msg: 'Field required' }] },
   reasons: [{ code: 'physical_count', label_en: 'Physical count', label_es: 'Conteo físico' }, { code: 'data_entry_error', label_en: 'Data-entry error', label_es: 'Error de captura' }] };
 const entries = Array.from({ length: 610 }, (_, index) => ({ receipt_number: `RCV-261015-${String(index + 1).padStart(3, '0')}`, action: 'receive', actor,
@@ -38,7 +39,7 @@ function deferred() { let resolve; const promise = new Promise(done => { resolve
 try {
   for (const width of [1440, 390]) {
     const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : 1000 }, timezoneId: 'America/New_York', colorScheme: 'light' });
-    const state = { turns: [], records: [], pages: [], gates: new Map(), authGate: null, receiptMode: 'normal', heldRoutes: [], assets: [], unknown: [], errors: [] };
+    const state = { turns: [], records: [], pages: [], gates: new Map(), authGate: null, receiptMode: 'normal', receiptRows: null, heldRoutes: [], assets: [], unknown: [], errors: [] };
     await context.addInitScript(({ pilot, token, sid }) => {
       localStorage.setItem('fl-assistant-language', 'en');
       localStorage.setItem('fl-assistant-chat:4', sid);
@@ -75,6 +76,8 @@ try {
         const body = request.postDataJSON(); state.turns.push(body);
         let cards;
         if (body.text === 'inventory') cards = [inventory, structuredClone(inventory), casesInventory];
+        else if (body.text === 'finished inventory') cards = [finishedInventory];
+        else if (body.text === 'Show my entries please') cards = [{ kind: 'read', tool: 'today_entries', result: { receipts: [] } }];
         else if (body.text === 'draft details') cards = [card(1, 'adjust', adjusted), card(2, 'found', { product_name: 'Cocoa Powder', quantity: 25, reason_code: 'missing_receipt', identity_status: 'UNIDENTIFIED' }), card(3, 'pack', { product_name: 'Classic Granola retail', cases: 12 }), card(4, 'receive', {}, { request: { product_id: 11007, quantity: 50 } })];
         else if (body.text === 'extra kosher receive') cards = [card(5, 'receive', received, { can_commit: false, blockers: [{ code: 'EXTRA_KOSHER_RECEIVE_BLOCKED', message: 'Extra-kosher receiving is not allowed.', message_es: 'No se permite recibir este producto extra kosher.' }] })];
         else if (body.text === 'choose reason') cards = [correctionReason];
@@ -86,14 +89,18 @@ try {
         return route.fulfill({ json: { cards } });
       }
       if (pathname === '/assistant/confirm-sku') return route.fulfill({ json: { card: card(10, 'make', { product_name: 'Batch Classic Granola #9', total_output_lb: 400 }) } });
-      if (pathname === '/assistant/record') { state.records.push(request.postDataJSON()); return route.fulfill({ json: { kind: 'receipt', result: { success: true, receipt_number: 'MK-261015-001', product_name: 'Batch Classic Granola #9', transaction_id: 17 } } }); }
+      if (pathname === '/assistant/record') { const body = request.postDataJSON(); state.records.push(body); const receive = body.draft_id === id(9); return route.fulfill({ json: { kind: 'receipt', result: { success: true, receipt_number: receive ? 'RCV-261015-001' : 'MK-261015-001', product_name: receive ? 'Sunflower Seeds' : 'Batch Classic Granola #9', transaction_id: 17 } } }); }
       if (pathname === '/assistant/cancel') return route.fulfill({ json: { cancelled: true } });
       if (pathname === '/receipts') {
         const offset = Number(url.searchParams.get('offset') || 0), limit = Number(url.searchParams.get('limit'));
         state.pages.push({ offset, limit, summary: url.searchParams.get('summary'), date: url.searchParams.get('date') });
         if (state.receiptMode === 'timeout') { state.heldRoutes.push(route); return; }
-        const rows = entries.slice(offset, offset + limit);
-        return route.fulfill({ json: { receipts: rows, has_more: offset + rows.length < entries.length, next_offset: offset + rows.length < entries.length ? offset + rows.length : null } });
+        if (state.receiptMode === 'permission') return route.fulfill({ status: 403, json: { detail: { message: 'You do not have permission to view these entries.' } } });
+        if (state.receiptMode === 'server') return route.fulfill({ status: 503, json: { detail: 'Today entries are unavailable. Please try again.' } });
+        if (state.receiptMode === 'network') return route.abort('failed');
+        const visible = state.receiptRows === null ? entries : entries.slice(0, state.receiptRows);
+        const rows = visible.slice(offset, offset + limit).map(row => state.receiptRows === 6 ? { ...row, actor: { id: 8, name: 'Rosa Perez', role: 'floor' } } : row);
+        return route.fulfill({ json: { receipts: rows, has_more: offset + rows.length < visible.length, next_offset: offset + rows.length < visible.length ? offset + rows.length : null } });
       }
       if (pathname === '/receipts/' + receiptNumber) return route.fulfill({ json: receipt });
       if (pathname === '/favicon.ico') return route.fulfill({ status: 204 });
@@ -114,7 +121,7 @@ try {
       await page.waitForFunction(() => !document.getElementById('send').disabled);
     };
     const reset = async (url = '/dashboard/fl-assistant.html') => {
-      state.receiptMode = 'normal'; state.authGate = null; state.assets = []; state.pages = []; state.turns = []; state.records = [];
+      state.receiptMode = 'normal'; state.receiptRows = null; state.authGate = null; state.assets = []; state.pages = []; state.turns = []; state.records = [];
       await page.goto(server.origin + url, { waitUntil: 'domcontentloaded' }); await login();
     };
     const send = async text => {
@@ -249,6 +256,67 @@ try {
         await prepareVoid.waitFor(); await prepareVoid.evaluate(node => node.scrollIntoView({ block: 'center' }));
       }
       await take('11-receipt-void-screen'); assert.equal(state.records.length, 0);
+    });
+    await test(12, 'Legacy own-entry tool stays distinct from six team entries in EN and ES', async () => {
+      state.receiptRows = 6;
+      await send('Show my entries please');
+      const own = page.locator('.assistant-message .card').first();
+      assert.equal(await own.locator('.read-summary').textContent(), "You've recorded 0 entries today. Team total: see Today's entries.");
+      assert.equal(state.turns.at(-1).text, 'Show my entries please');
+      await page.locator(width === 390 ? '#today-entries-mobile' : '#today-entries').click();
+      await page.waitForFunction(() => !document.getElementById('send').disabled);
+      const team = page.locator('.assistant-message .card').last();
+      assert.equal(await team.locator('.read-summary').textContent(), '6 entries today.');
+      assert.equal(await team.locator('.today-entry').count(), 6);
+      assert.equal(await own.locator('.read-summary').textContent(), "You've recorded 0 entries today. Team total: see Today's entries.");
+      await take('12-own-and-team-entries', team);
+      await page.locator('#language').click();
+      assert.equal(await own.locator('.read-summary').textContent(), 'Has registrado 0 entradas hoy. Total del equipo: consulta las entradas de hoy.');
+      assert.equal(await team.locator('.read-summary').textContent(), '6 entradas hoy.');
+      await take('12-own-and-team-entries-es', team);
+    });
+    await test(13, 'Finished inventory shows pounds alongside cases without changing weight units', async () => {
+      await send('finished inventory');
+      const stock = page.locator('.assistant-message .card').last();
+      assert.equal(await stock.locator('.read-summary').textContent(), 'Granola Classic 20 LB: 1,600 lb (80 cases) in 1 lot.');
+      assert.deepEqual(await stock.locator('tbody tr').first().locator('td').allTextContents(), ['FIN-001', '1,600', 'lb']);
+      await take('13-finished-lb-cases', stock);
+      await page.locator('#language').click();
+      assert.equal(await stock.locator('.read-summary').textContent(), 'Granola Classic 20 LB: 1,600 lb (80 cajas) en 1 lote.');
+    });
+    await test(14, 'Immediate Today permission, server and network failures keep their own message', async () => {
+      for (const [kind, message] of [
+        ['permission', 'You do not have permission to view these entries.'],
+        ['server', 'Today entries are unavailable. Please try again.'],
+        ['network', 'Connection failed. Please try again.']
+      ]) {
+        state.receiptMode = kind;
+        await page.locator(width === 390 ? '#today-entries-mobile' : '#today-entries').click();
+        await page.waitForFunction(() => !document.getElementById('send').disabled);
+        const error = page.locator('.assistant-message .card').last();
+        assert.ok((await error.innerText()).includes(message));
+        assert.doesNotMatch(await error.innerText(), /15 seconds|15 segundos/);
+        assert.equal(await error.getByRole('button', { name: 'Try again', exact: true }).count(), 1);
+        await take(`14-today-${kind}`, error);
+      }
+      state.receiptMode = 'normal';
+      await page.getByRole('button', { name: 'Try again', exact: true }).last().click();
+      await page.waitForFunction(() => !document.getElementById('send').disabled);
+      assert.equal(await page.locator('.assistant-message .card').last().locator('.today-entry').count(), 610);
+    });
+    await test(15, 'Recorded card uses the confirmed receipt number as its identifier in EN and ES', async () => {
+      await send('receive seeds');
+      await page.getByRole('button', { name: 'Record', exact: true }).click();
+      const recorded = page.locator('.card.receipt');
+      await recorded.locator('.receipt-number').waitFor();
+      assert.equal(await recorded.locator('.receipt-number').textContent(), 'RCV-261015-001');
+      assert.doesNotMatch(await recorded.innerText(), /Transaction|Transacción/);
+      assert.equal(await recorded.locator('dd').allTextContents().then(values => values.includes('17')), false);
+      assert.equal(state.records.length, 1);
+      await take('15-recorded-receipt-number', recorded);
+      await page.locator('#language').click();
+      assert.equal(await recorded.locator('.receipt-number').textContent(), 'RCV-261015-001');
+      assert.doesNotMatch(await recorded.innerText(), /Transaction|Transacción/);
     });
     assert.deepEqual(state.unknown, [], 'Unstubbed network requests'); assert.deepEqual(state.errors, [], 'Browser JavaScript errors');
     await context.close();

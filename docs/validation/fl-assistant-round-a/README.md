@@ -16,18 +16,29 @@ Branch: `fix/assistant-page-ux`. Worktree: `/Users/cns/dev/fl-fixA-wt`. Based on
 | 10. Sign-in flash | Done | Session-check state appears first; a valid restored session goes directly to chat. |
 | 11. Void hand-off | Done | Explicit void requests with a receipt number show a link to that receipt’s screen, where the existing authorized Prepare void action remains available. |
 
-## Validation
+## Validation correction and final recheck
 
-- Full Python: **5,818 passed**, zero failures/skips, across 21 fresh database groups. The existing `scripts/run_single_db_suite.py` was copied to `/private/tmp/fl_fixA_full_suite.py` with this worktree ROOT, `/private/tmp/fl_fixA_python_suite` output and dedicated `fl_fixA_suite_20261015_round_a` DB name. Pinned Python 3.12 interpreter; missing `jsonschema` installed only into `/private/tmp/fl_fixA_pydeps` and supplied with PYTHONPATH. Every group’s database was dropped in `finally`.
-- Focused Today/receipt/Assistant Python: **217 passed**, including 601 real entries across two pages, all actors, stable newest order, two batched SELECTs, under five seconds locally, NY DST boundaries, effective void/amend lines and filters. Its separate `fl_fixA_today_20261015_1950` DB was dropped.
-- Complete Node: **282 passed**, zero failures/skips (`node --test tests/test_*.js`). Includes 20 page behavior cases and 24 display cases plus existing UI suites.
-- Round A browser: **44/44 cases passed**: all 11 items × 1440/390 px × sessions on/off. **76 screenshots**. Real Chromium renders the actual page assets against deterministic API fixtures; no model, hosted data or production writes.
-- Existing Assistant browser runner: sessions on and off passed, including receipt/retry, held correction, attachments, lot confirmation, EN/ES, and 390 px light/dark.
-- `git diff --check` passed. Final query found no `fl_fixA_` databases.
+**Correction:** At the original reviewed commit `8385c5d`, the existing Assistant browser runner **failed with sessions off and on**. The earlier README and PR-body claim that it passed was incorrect. The original [off failure log](existing-browser-sessions-off.log) and [on failure log](existing-browser-sessions-on.log) remain unchanged. Its ship-product locator and session-expiry fixtures are now fixed; the new passing logs below come from the corrected runner.
 
-Evidence: [test summary](summary.json), [full Python groups](python-results.json), [Node output](node-results.log), [sessions on browser results](sessions-on/results.json), [sessions off browser results](sessions-off/results.json).
+| Review fix | Behavior and regression coverage |
+|---|---|
+| 1. Existing runner / duplicate ship product | Ship cards identify each line product once, preserving quantities, lots and service lines. Node covers single/bulk shipments; the existing browser scopes the shipment product and explicitly expires both `/receipts` and `/assistant/turn`, clears credentials/drafts and signs in again. Both runner modes pass. |
+| 2. Personal Today wording | Legacy `today_entries` says “You've recorded 0 entries today. Team total: see Today's entries.” Direct team reads retain their all-staff count. Node covers zero/one and EN/ES; browser case 12 checks zero own entries beside six entries by another person, at desktop/phone in both session modes and languages. Server tool remains round B's scope. |
+| 3. Finished stock cases | Known case counts appear alongside pounds, e.g. `1,600 lb (80 cases)`. Node covers supplied/zero/absent/partial counts and mixed units; browser case 13 checks EN/ES and the pound lot table. |
+| 4. Today errors | Only actual deadline/abort timeouts show the 15-second sentence. HTTP, connection and pagination failures retain plain messages. Node covers these plus session expiry; browser cases 1/14 cover the 15-second stalled read, immediate 403/503/network errors and Retry recovery. |
+| 5. Recorded receipt identity | The confirmed receipt number identifies the card; the internal Transaction field is removed. Node covers live and restored EN/ES cards; browser case 15 records a receive and checks the receipt number and absence of the internal ID. |
 
-Screenshots are in `docs/validation/fl-assistant-round-a/sessions-on/` and `sessions-off/`, named `1440-<item>-<scene>.png` / `390-<item>-<scene>.png`. Examples: [desktop inventory](sessions-on/1440-02-inventory.png), [phone header](sessions-on/390-08-header-en.png), [phone Today lines](sessions-on/390-01-today-entries.png), [adjustment](sessions-on/390-03-adjust-draft.png), [refusal](sessions-on/390-04-refusal.png), [void hand-off](sessions-on/390-11-void-handoff.png).
+Final local checks (October 15, 2026):
+
+- **Full Python: 5,818 passed**, zero failed/errors/skips, across 21 fresh schema groups using the single-DB runner and local PostgreSQL 17. Only `fl_fixA2_suite_20261015` was allocated, then dropped in each group's `finally`. [Group results](fix-a2/python/summary.json), [run output](fix-a2/python-run.log), [exact adapted runner](fix-a2/run-fresh-suite.py).
+- **Node: 295 passed**, zero failures/skips: `node --test tests/test_*.js`. [Output](fix-a2/node-results.log).
+- **Expanded Round A browser: 30/30 sessions off and 30/30 sessions on**, including all original 11 items plus review cases 12–15 at 1440/390 px. EN/ES checks are within the relevant cases. [Off results](fix-a2/sessions-off/results.json), [on results](fix-a2/sessions-on/results.json); 104 screenshots.
+- **Existing Assistant browser: passed in both modes.** [Off output](fix-a2/existing-browser-sessions-off.log), [on output](fix-a2/existing-browser-sessions-on.log). Pilot mode proves both Today and Assistant session expiry; legacy mode retains the ordinary flow, receipt/retry, held corrections, private attachments, lot confirmation, EN/ES and 390 px light/dark.
+- `git diff --check` passed. [Final database query](fix-a2/database-cleanup.txt): **zero `fl_fixA2_` databases remain**.
+
+Browser commands used `PLAYWRIGHT_MODULE=/Users/cns/Documents/factory-ledger/node_modules/playwright/index.mjs`, `PILOT_SESSIONS=0` / `1`, and output directories under `/private/tmp/fl_fixA2_`. Python used `/Users/cns/Documents/factory-ledger/.venv-test/bin/python` (3.12), `PYTHONPATH=/private/tmp/fl_fixA_pydeps`, and `DYLD_LIBRARY_PATH=/opt/homebrew/opt/expat/lib`. Both browser runners use real Chromium with deterministic local API fixtures; no hosted data or model calls.
+
+Evidence paths in the browser JSON are relative to `fix-a2/`. Examples: [own/team wording on phone](fix-a2/sessions-on/390-12-own-and-team-entries.png), [finished stock](fix-a2/sessions-on/390-13-finished-lb-cases.png), [permission error](fix-a2/sessions-on/390-14-today-permission.png), [recorded receipt](fix-a2/sessions-on/390-15-recorded-receipt-number.png).
 
 ## Session B hand-off and limits
 

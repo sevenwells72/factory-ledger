@@ -146,16 +146,42 @@
     if (card.tool === 'inventory_lookup' || Array.isArray(data.results)) {
       for (const item of data.results || []) {
         const lots = item.lots || [], product = name(item.product || item.product_name || item.name) || choose(language, 'Inventory', 'Inventario');
-        const rows = lots.map(lot => [scalar(lot.lot || lot.lot_code), fmt(first(lot.qty_on_hand, lot.quantity_lb, lot.on_hand_lb, lot.quantity)), inventoryUnit(lot) === 'cases' ? choose(language, 'cases', 'cajas') : 'lb']);
-        const totalUnit = item.total_on_hand !== undefined || item.total_lb !== undefined || lots.some(lot => inventoryUnit(lot) === 'lb') ? 'lb' : lots.length ? inventoryUnit(lots[0]) : inventoryUnit(item);
-        const total = first(item.total_on_hand, item.total_lb, item.quantity, lots.length ? lots.reduce((sum, lot) => sum + Number(first(lot.qty_on_hand, lot.quantity_lb, lot.on_hand_lb, lot.quantity, 0)), 0) : 0);
-        table(choose(language, `${product}: ${quantityLabel(total, totalUnit, language)} in ${lots.length} ${lots.length === 1 ? 'lot' : 'lots'}.`, `${product}: ${quantityLabel(total, totalUnit, language)} en ${lots.length} ${lots.length === 1 ? 'lote' : 'lotes'}.`),
-          [choose(language, 'Lot', 'Lote'), choose(language, 'Quantity', 'Cantidad'), choose(language, 'Unit', 'Unidad')], rows);
+        const lotQuantity = lot => number(first(lot.qty_on_hand, lot.quantity_lb, lot.on_hand_lb, lot.quantity));
+        const lotUnits = [...new Set(lots.map(inventoryUnit))];
+        const completeWeights = lots.length && lots.every(lot => inventoryUnit(lot) === 'lb' && lotQuantity(lot) !== null);
+        const lotWeight = completeWeights ? lots.reduce((sum, lot) => sum + lotQuantity(lot), 0) : null;
+        const total = number(first(item.total_on_hand, item.total_lb, item.quantity));
+        const totalUnit = item.total_on_hand !== undefined || item.total_lb !== undefined ? 'lb' : lotUnits.length === 1 && !item.unit && !item.uom ? lotUnits[0] : inventoryUnit(item);
+        let quantity;
+        if (total !== null) quantity = quantityLabel(total, totalUnit, language);
+        else if (!lots.length) quantity = quantityLabel(0, totalUnit, language);
+        else quantity = lotUnits.map(unit => {
+          const sameUnit = lots.filter(lot => inventoryUnit(lot) === unit);
+          return sameUnit.every(lot => lotQuantity(lot) !== null) ? quantityLabel(sameUnit.reduce((sum, lot) => sum + lotQuantity(lot), 0), unit, language) : choose(language, 'Quantity unavailable', 'Cantidad no disponible');
+        }).join(choose(language, ' and ', ' y '));
+        // A case count is an equivalent total only when supplied for the whole
+        // result, or when every pound lot supplies a count and covers that total.
+        const completeCases = completeWeights && lots.every(lot => number(lot.unit_count) !== null);
+        const caseTotal = first(number(item.unit_count), completeCases && (total === null || Math.abs(total - lotWeight) < 0.000001) ? lots.reduce((sum, lot) => sum + Number(lot.unit_count), 0) : undefined);
+        if ((total !== null ? totalUnit === 'lb' : lotUnits.length === 1 && lotUnits[0] === 'lb') && number(caseTotal) !== null) quantity += ' (' + quantityLabel(caseTotal, 'cases', language) + ')';
+        const showLotCases = lots.some(lot => inventoryUnit(lot) === 'lb' && number(lot.unit_count) !== null);
+        const columns = [choose(language, 'Lot', 'Lote'), choose(language, 'Quantity', 'Cantidad'), choose(language, 'Unit', 'Unidad')];
+        if (showLotCases) columns.push(choose(language, 'Cases', 'Cajas'));
+        const rows = lots.map(lot => {
+          const row = [scalar(lot.lot || lot.lot_code), fmt(lotQuantity(lot)), inventoryUnit(lot) === 'cases' ? choose(language, 'cases', 'cajas') : 'lb'];
+          if (showLotCases) row.push(inventoryUnit(lot) === 'lb' && number(lot.unit_count) !== null ? fmt(lot.unit_count) : '—');
+          return row;
+        });
+        table(choose(language, `${product}: ${quantity} in ${lots.length} ${lots.length === 1 ? 'lot' : 'lots'}.`, `${product}: ${quantity} en ${lots.length} ${lots.length === 1 ? 'lote' : 'lotes'}.`), columns, rows);
       }
       if (!sections.length) table(choose(language, 'No inventory matches.', 'No hay coincidencias de inventario.'));
     } else if (Array.isArray(data.receipts)) {
       const receipts = [...data.receipts].sort((a, b) => new Date(b.entered_at || b.happened_at || 0) - new Date(a.entered_at || a.happened_at || 0) || scalar(b.receipt_number).localeCompare(scalar(a.receipt_number)));
-      table(choose(language, `${receipts.length} ${receipts.length === 1 ? 'entry' : 'entries'} today.`, `${receipts.length} ${receipts.length === 1 ? 'entrada' : 'entradas'} hoy.`),
+      const sentence = card.tool === 'today_entries' ? choose(language,
+        `You've recorded ${receipts.length} ${receipts.length === 1 ? 'entry' : 'entries'} today. Team total: see Today's entries.`,
+        `Has registrado ${receipts.length} ${receipts.length === 1 ? 'entrada' : 'entradas'} hoy. Total del equipo: consulta las entradas de hoy.`) :
+        choose(language, `${receipts.length} ${receipts.length === 1 ? 'entry' : 'entries'} today.`, `${receipts.length} ${receipts.length === 1 ? 'entrada' : 'entradas'} hoy.`);
+      table(sentence,
         [choose(language, 'Time', 'Hora'), choose(language, 'What', 'Qué'), choose(language, 'Receipt', 'Recibo'), choose(language, 'Who', 'Quién')], receipts.map(receipt => entryRow(receipt, opts)));
     } else if (Array.isArray(data.sections)) {
       for (const section of data.sections) {

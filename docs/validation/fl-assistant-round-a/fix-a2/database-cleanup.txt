@@ -1,0 +1,4 @@
+Local PostgreSQL 17 query after suite completion:
+SELECT datname FROM pg_database WHERE starts_with(datname, 'fl_fixA2_') ORDER BY datname;
+Result: 0 rows.
+All 21 fresh schema groups used fl_fixA2_suite_20261015; each database was dropped in finally.

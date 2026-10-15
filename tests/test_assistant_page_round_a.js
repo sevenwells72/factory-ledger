@@ -34,7 +34,8 @@ function page({ cards = [], drafts = [], language = 'en', request, init, enabled
   const storage = new Map([['fl-assistant-language', language], ['fl-assistant-chat:7', 'saved-chat']]);
   const store = { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) };
   const actor = { id: 7, name: 'Arturo', role: 'floor' };
-  const pilot = { enabled, actor: enabled ? actor : null, token: 'fixture-session', init: () => init || Promise.resolve(enabled) };
+  const pilot = { enabled, actor: enabled ? actor : null, token: 'fixture-session', init: () => init || Promise.resolve(enabled),
+    clear() { this.actor = null; this.token = ''; this.cleared = true; } };
   const context = vm.createContext({ URL, crypto: require('node:crypto').webcrypto, AbortController, Error, Date: ClockDate, console, navigator: {},
     setTimeout(callback, delay) { const id = ++nextTimer; const timer = { id, callback, delay }; timers.set(id, timer); scheduled.push(timer); return id; },
     clearTimeout(id) { timers.delete(id); }, localStorage: store, sessionStorage: store,
@@ -125,7 +126,39 @@ test('invalid Today pagination cannot loop forever', async () => {
   const h = page({ request: async () => response({ receipts: [], has_more: true, next_offset: 0 }) });
   await h.ready(); h.click(h.get('today-entries')); await flush();
   assert.equal(h.calls.filter(call => call.url.pathname === '/receipts').length, 1);
-  assert.match(h.text(), /15 seconds/);
+  assert.match(h.text(), /FL could not load the next page of today’s entries\. Please try again\./);
+  assert.doesNotMatch(h.text(), /15 seconds/);
+});
+
+for (const language of ['en', 'es']) test(`Today HTTP and connection failures retain their own plain messages in ${language}`, async () => {
+  for (const [status, message] of [[403, 'You do not have permission to view these entries.'], [503, 'FL is temporarily unavailable. Please try again.']]) {
+    const h = page({ language, request: async () => ({ ok: false, status, json: async () => ({ detail: { message } }) }) });
+    await h.ready(); h.click(h.get('today-entries')); await flush();
+    assert.ok(h.text().includes(message), h.text());
+    assert.doesNotMatch(h.text(), /15 seconds|15 segundos/);
+    assert.equal(h.get('send').disabled, false);
+  }
+  const h = page({ language, request: async () => { throw new Error('Failed to fetch'); } });
+  await h.ready(); h.click(h.get('today-entries')); await flush();
+  assert.match(h.text(), language === 'en' ? /Connection failed\. Please try again\./ : /La conexión falló\. Inténtalo de nuevo\./);
+  assert.doesNotMatch(h.text(), /15 seconds|15 segundos|Failed to fetch/);
+});
+
+test('Today session expiry returns to sign-in with the session message', async () => {
+  const h = page({ request: async () => ({ ok: false, status: 401, json: async () => ({ detail: { error_code: 'SESSION_EXPIRED', message: 'Your session expired.' } }) }) });
+  await h.ready(); h.click(h.get('today-entries')); await flush();
+  assert.equal(h.pilot.cleared, true);
+  assert.equal(h.get('sign-in-panel').hidden, false);
+  assert.equal(h.get('chat-panel').hidden, true);
+  assert.match(h.get('notice').textContent, /Your session ended\. Sign in again/);
+  assert.doesNotMatch(h.text(), /15 seconds|15 segundos/);
+});
+
+test('Today deadline exhaustion between pages uses the slowness message', async () => {
+  const h = page({ request: async (_call, clock) => { clock.advance(15000); return response({ receipts: [], has_more: true, next_offset: 500 }); } });
+  await h.ready(); h.click(h.get('today-entries')); await flush();
+  assert.equal(h.calls.filter(call => call.url.pathname === '/receipts').length, 1);
+  assert.match(h.text(), /Today’s entries could not load within 15 seconds\./);
 });
 
 test('Review my day suggestion takes the direct Today read path', async () => {
@@ -185,10 +218,45 @@ test('Record shows working feedback until a real numbered receipt arrives', asyn
   const h = page({ cards: [draft()], request: ({ url, body }) => { assert.equal(url.pathname, '/assistant/record'); assert.equal(body.draft_id, 'draft-1'); return pending.promise; } });
   await h.ready(); const record = descendants(h.cards()[0]).find(node => node.tag === 'button' && node.textContent === 'Record');
   h.click(record); assertWorking(h, record); assert.equal(record.disabled, true);
-  pending.resolve(response({ kind: 'receipt', result: { success: true, receipt_number: 'RCV-261015-001', product_name: 'Sunflower Seeds', total_lb: 50 } })); await flush();
+  pending.resolve(response({ kind: 'receipt', result: { success: true, receipt_number: 'RCV-261015-001', transaction_id: 7, product_name: 'Sunflower Seeds', total_lb: 50 } })); await flush();
   assert.equal(h.get('working-status').hidden, true);
   assert.match(h.cards()[0].className, /receipt/);
   assert.match(h.text(), /RCV-261015-001/);
+  assert.doesNotMatch(h.text(), /Transaction|Transacción/);
+  assert.equal(descendants(h.cards()[0]).some(node => node.tag === 'dd' && node.textContent === '7'), false);
+});
+
+for (const language of ['en', 'es']) test(`restored recorded card identifies the receipt instead of an internal transaction in ${language}`, async () => {
+  const card = draft();
+  const h = page({ language, cards: [card], drafts: [{ id: card.id, card, status: 'committed', result: { success: true,
+    receipt_number: 'RCV-261015-007', transaction_id: 7, product_name: 'Sunflower Seeds', total_lb: 50 } }] });
+  await h.ready();
+  assert.equal(h.cards()[0].children.find(node => node.tag === 'h3').textContent, 'RCV-261015-007');
+  assert.doesNotMatch(h.text(), /Transaction|Transacción/);
+  assert.equal(descendants(h.cards()[0]).some(node => node.tag === 'dd' && node.textContent === '7'), false);
+});
+
+for (const [action, lines] of [
+  ['ship_order', [{ product_name: 'Classic Granola', quantity_lb: 50, cases: 2, lots: [{ lot_code: 'LOT-CLASSIC' }] }]],
+  ['ship_bulk', [{ product_name: 'Classic Granola', quantity_lb: 50, cases: 2, lots: [{ lot_code: 'LOT-CLASSIC' }] },
+    { product: 'Chocolate Granola', quantity_lb: 25, cases: 1, lots: [{ lot_code: 'LOT-CHOCOLATE' }] },
+    { product: 'Freight', is_service: true }]]
+]) test(`${action} identifies each product once and preserves individual line details`, async () => {
+  const h = page({ cards: [draft({ action, draft: { lines } })] });
+  await h.ready();
+  const rows = descendants(h.cards()[0]).filter(node => node.className === 'ship-line');
+  assert.equal(rows.length, lines.length);
+  for (const [i, line] of lines.entries()) {
+    const name = line.product_name || line.product;
+    assert.equal(h.text().split(name).length - 1, 1, name);
+    assert.equal(rows[i].children[0].textContent, name);
+    if (line.is_service) assert.match(text(rows[i]), /Service charge/);
+    else {
+      assert.ok(text(rows[i]).includes(String(line.quantity_lb)));
+      assert.ok(text(rows[i]).includes(String(line.cases)));
+      assert.ok(text(rows[i]).includes(line.lots[0].lot_code));
+    }
+  }
 });
 
 test('session restoration keeps sign-in hidden until the signed-in chat is ready', async () => {

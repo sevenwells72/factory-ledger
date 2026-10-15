@@ -94,7 +94,9 @@
     node.append(list);
   }
   async function api(path, { body, form, method = 'POST', binary = false, timeout = 95000, background = false } = {}) {
-    const controller = new AbortController(), timer = setTimeout(() => controller.abort(), timeout);
+    const controller = new AbortController();
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeout);
     try {
       const response = await fetch(new URL(path, root.FLDashboard?.base||location.origin), {
         method, headers: { 'X-API-Key': credential, ...(background ? { 'X-FL-Background': '1' } : {}), ...(form || !body ? {} : { 'Content-Type': 'application/json' }) },
@@ -116,7 +118,9 @@
       }
       return data;
     } catch (error) {
-      if (error instanceof Error) throw { detail: t('Connection failed or timed out. Retry the same draft.', 'La conexión falló. Reintenta el mismo borrador.') };
+      if (timedOut) throw { timedOut: true, detail: t('Connection timed out. Please try again.', 'La conexión tardó demasiado. Inténtalo de nuevo.') };
+      if (error instanceof SyntaxError) throw { detail: t('FL returned an unreadable response. Please try again.', 'FL devolvió una respuesta que no se pudo leer. Inténtalo de nuevo.') };
+      if (error instanceof Error) throw { detail: t('Connection failed. Please try again.', 'La conexión falló. Inténtalo de nuevo.') };
       throw error;
     } finally { clearTimeout(timer); }
   }
@@ -180,7 +184,7 @@
     node.append(el('span', t('✓ RECORDED IN FACTORY LEDGER', '✓ REGISTRADO EN FACTORY LEDGER'), 'eyebrow'), el('h3', result.receipt_number, 'receipt-number'));
     node.append(el('p', result.replayed ? t('Same entry, same receipt. Your retry did not create another entry.', 'Misma entrada, mismo recibo. El reintento no creó otra entrada.') : t('FL confirmed this entry.', 'FL confirmó esta entrada.')));
     autoSubstitutions(node, result);
-    fields(node, [[t('Transaction', 'Transacción'), result.transaction_id], [t('Product', 'Producto'), result.product_name || result.target_product_name], [t('Lot', 'Lote'), result.lot_code || result.output_lot_code],
+    fields(node, [[t('Product', 'Producto'), result.product_name || result.target_product_name], [t('Lot', 'Lote'), result.lot_code || result.output_lot_code],
       [t('Customer', 'Cliente'), result.customer_name || result.customer], [t('Shipment', 'Envío'), result.shipment_id],
       [t('BOL', 'BOL'), result.bol_reference], [t('Photo status', 'Estado de foto'), result.proof_status === 'complete' ? t('Attached', 'Adjunta') : result.proof_status === 'photo_pending' ? t('Pending', 'Pendiente') : display.plainLabel(result.proof_status, language)]]);
     for (const shortage of result.shortages || []) {
@@ -232,7 +236,10 @@
     node.append(el('h3', t(...(actionNames[prepared.action] || [prepared.action, prepared.action]))));
     node.append(el('p', t(`Recording as ${prepared.actor?.name || actor.name}`, `Registrando como ${prepared.actor?.name || actor.name}`), 'muted'));
     const enFields = display.draftFields(prepared, { language: 'en', fallback }), esFields = display.draftFields(prepared, { language: 'es', fallback });
-    fields(node, enFields.map(([label, value], i) => [t(label, esFields[i]?.[0] || label), t(String(value), String(esFields[i]?.[1] ?? value))]));
+    // Ship line headings already identify every product, including service charges.
+    const showLineProducts = /^ship_/.test(prepared.action || '') && draft.lines?.length;
+    fields(node, enFields.flatMap(([label, value], i) => showLineProducts && label === 'Product' ? [] :
+      [[t(label, esFields[i]?.[0] || label), t(String(value), String(esFields[i]?.[1] ?? value))]]));
     autoSubstitutions(node, draft);
     for (const line of draft.lines || []) {
       const row = el('div', undefined, 'ship-line');
@@ -390,19 +397,21 @@
       let offset = 0;
       while (true) {
         const remaining = deadline - Date.now();
-        if (remaining <= 0) throw new Error('timeout');
+        if (remaining <= 0) throw { timedOut: true };
         const result = await api(`/receipts?date=${day}&summary=true&limit=500&offset=${offset}`, { method: 'GET', timeout: remaining });
         receipts.push(...(result.receipts || []));
         if (!result.has_more) break;
         const next = result.next_offset;
-        if (!Number.isSafeInteger(next) || next <= offset) throw new Error('invalid pagination');
+        if (!Number.isSafeInteger(next) || next <= offset) throw { detail: t('FL could not load the next page of today’s entries. Please try again.', 'FL no pudo cargar la siguiente página de las entradas de hoy. Inténtalo de nuevo.') };
         offset = next;
       }
       receipts.sort((a, b) => new Date(b.entered_at || b.happened_at) - new Date(a.entered_at || a.happened_at));
       node.replaceChildren();
-      readResult(node, { kind: 'read', tool: 'today_entries', result: { receipts } });
+      readResult(node, { kind: 'read', tool: 'today_entries_all', result: { receipts } });
     } catch (error) {
-      node.replaceChildren(el('p', t('Today’s entries could not load within 15 seconds. Please try again.', 'Las entradas de hoy no se cargaron en 15 segundos. Inténtalo de nuevo.')));
+      node.replaceChildren(el('p', error.timedOut
+        ? t('Today’s entries could not load within 15 seconds. Please try again.', 'Las entradas de hoy no se cargaron en 15 segundos. Inténtalo de nuevo.')
+        : errorText(error)));
       node.append(button(t('Try again', 'Intentar de nuevo'), todayEntries));
     } finally { setBusy(false); }
   }

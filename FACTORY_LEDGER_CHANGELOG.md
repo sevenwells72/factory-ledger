@@ -1,5 +1,7 @@
 # Factory Ledger Changelog — Regression Guard
 
+**PR #131 row 209 validation correction and fix A2 (2026-10-15; unmerged):** The reviewed `8385c5d` existing Assistant browser runs **failed in both modes**; row 209 and the initial validation text incorrectly claimed they passed. Original failure logs are retained. The corrected runner now passes both modes, explicitly covering direct Today `/receipts` expiry and Assistant expiry. Ship drafts show each product once; legacy Today cards clearly count your entries; finished stock adds supplied cases beside lb; only true timeouts show the 15-second sentence; recorded cards use receipt numbers. Final recheck: 5,818 Python / 295 Node / 60 Round A browser cases / both existing browser modes pass, zero failures/skips. All `fl_fixA2_` databases dropped. Server tools and other worktrees unchanged. Preserve own/team scope, weight semantics and receipt-only success. Evidence: `docs/validation/fl-assistant-round-a/fix-a2/`.
+
 **PR #122 numbering after the current-main rebase (2026-10-14):** This fix round uses row 207, after main's Assistant rows 205–206. The earlier O-7 row labelled 204 and main's distinct O-4 row 204 are preserved as historical entries; their area labels distinguish them.
 
 **Row 204 fix round 1 (2026-10-14; PR #122 unmerged, staging only; Codex 6175101774):**
