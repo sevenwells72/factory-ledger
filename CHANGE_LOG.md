@@ -1,5 +1,110 @@
 # Change Log
 
+## 2026-10-15 15:26 — Document per-item C/D outcomes, exact counts, speed comparison and prompt-cache limitation for reviewer handoff
+- **File(s) changed:** docs/validation/fl-assistant-fix-cd/d/README.md
+- **What changed:** Document per-item C/D outcomes, exact counts, speed comparison and prompt-cache limitation for reviewer handoff.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 15:25 — Record final round D validation: 6443 Python per mode, 379 Node, real staging-copy and browser evidence, 61.39% fewer SQL queries, seven STG closures and disposable DB/dump cleanup; add regression row 214
+- **File(s) changed:** FACTORY_LEDGER_CHANGELOG.md, docs/validation/fl-assistant-fix-cd/d/*.json
+- **What changed:** Record final round D validation: 6443 Python per mode, 379 Node, real staging-copy and browser evidence, 61.39% fewer SQL queries, seven STG closures and disposable DB/dump cleanup; add regression row 214.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 15:20 — Assert the added effective remaining and ordered-unit fields in compact order lines
+- **File(s) changed:** tests/test_sales_order_line_fields.py
+- **What changed:** Assert the added effective remaining and ordered-unit fields in compact order lines.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 15:17 — Strengthen core regressions for required batch selection, positive remaining orders and cached reasons
+- **File(s) changed:** fl_assistant.py, assistant_voice.py, tests/test_assistant_orders_round_d.py, tests/test_fl_assistant.py
+- **What changed:** Strengthen core regressions for required batch selection, positive remaining orders and cached reasons.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 15:16 — Require worker batch identity even when model skips context and preserve order/quantity boundaries
+- **File(s) changed:** fl_assistant.py, assistant_voice.py, tests/test_assistant_orders_round_d.py
+- **What changed:** Require worker batch identity even when model skips context and preserve order/quantity boundaries.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 15:14 — Ask shipment quantity explicitly and recover customer orders from original voice text
+- **File(s) changed:** fl_assistant.py, assistant_tools.py, assistant_replies.py, dashboard/fl-assistant.js, tests/test_assistant_orders_round_d.py, tests/test_fl_assistant_ui.js
+- **What changed:** Ask shipment quantity explicitly and recover customer orders from original voice text.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 15:14 — Require explicit batch choices in the browser regression runner
+- **File(s) changed:** tests/visual/run-assistant-round-b.mjs
+- **What changed:** Require explicit batch choices in the browser regression runner.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 15:11 — Bound persisted Today chat previews while preserving full fast Today view and own/team counts
+- **File(s) changed:** assistant_runtime.py, fl_assistant.py, dashboard/fl-assistant.js, tests/test_assistant_runtime_round_d.py, tests/test_assistant_voice_recovery_round_c.py, tests/test_fl_assistant.py
+- **What changed:** Bound persisted Today chat previews while preserving full fast Today view and own/team counts.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 15:09 — Cover explicit packing lot choices and remove internal source-product wording from staff screens
+- **File(s) changed:** tests/test_assistant_understanding_round_b.py, tests/test_fl_assistant_ui.js, tests/test_assistant_display.js, dashboard/ledger-ui.js, resolution.py
+- **What changed:** Cover explicit packing lot choices and remove internal source-product wording from staff screens.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 15:09 — Preserve leases after catalog failures and verify internal authorization trust boundaries
+- **File(s) changed:** fl_assistant.py, tests/test_assistant_runtime_round_d.py
+- **What changed:** Preserve leases after catalog failures and verify internal authorization trust boundaries.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 15:09 — Test bilingual streamed progress, safe failure and completion after a reader disconnects
+- **File(s) changed:** tests/test_assistant_progress_round_d.py
+- **What changed:** Test bilingual streamed progress, safe failure and completion after a reader disconnects.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 15:06 — Repair remaining-order reporting, batch selection and spoken/customer order shipping
+- **File(s) changed:** assistant_voice.py, assistant_tools.py, main.py, fl_assistant.py, assistant_replies.py, dashboard/fl-assistant.js, dashboard/assistant-display.js, tests/test_assistant_orders_round_d.py
+- **What changed:** Repair remaining-order reporting, batch selection and spoken/customer order shipping.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 15:06 — Validate repeated-request authentication with complete receive identity and a denied role action
+- **File(s) changed:** tests/test_assistant_runtime_round_d.py
+- **What changed:** Validate repeated-request authentication with complete receive identity and a denied role action.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 15:05 — Batch all candidate lot metadata and posted balances without changing allocation or traceability
+- **File(s) changed:** ticket_actions.py, tests/test_batch_lot_balances_round_d.py
+- **What changed:** Batch all candidate lot metadata and posted balances without changing allocation or traceability.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
+## 2026-10-15 15:04 — Run chat waits in workers, reuse request-verified actors, cache reasons, bound Today history and stream progress
+- **File(s) changed:** assistant_runtime.py, fl_assistant.py, main.py, dashboard/fl-assistant.js, tests/test_assistant_runtime_round_d.py
+- **What changed:** Run chat waits in workers, reuse request-verified actors, cache reasons, bound Today history and stream progress.
+- **Why:** Requested staging-data regression fixes and verification for Assistant rounds C/D.
+
+---
+
 ## 2026-10-15 15:03 — Record round C staging-copy acceptance and full regression results
 - **File(s) changed:** FACTORY_LEDGER_CHANGELOG.md, docs/validation/fl-assistant-fix-cd/c/verification.json
 - **What changed:** Record round C staging-copy acceptance and full regression results.

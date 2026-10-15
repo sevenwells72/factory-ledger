@@ -170,10 +170,22 @@ try {
       checks.push('EN/ES lot questions return plain quantities from lot lookup');
       for (const explicit of [true, false]) {
         const args = { source_product_id: 285, target_product_id: 286, cases: 10, ...(explicit ? { lot_allocations: [{ lot_id: fixture.lots['285'].id, quantity_lb: 50 }] } : {}) };
-        const response = await turn(`Packed 10 cases of Granola Classic 25 LB${explicit ? ' from batch BATCH-B001' : ''}`, [resolve('product', 'Granola Classic 25 LB', { action: 'pack' }), ['packing_context', { target_product_id: 286, lot_code: explicit ? 'BATCH-B001' : null }], ['prepare_pack', args]]);
+        const calls = [resolve('product', 'Granola Classic 25 LB', { action: 'pack' }), ['packing_context', { target_product_id: 286, lot_code: explicit ? 'BATCH-B001' : null }]];
+        if (explicit) calls.push(['prepare_pack', args]);
+        let response = await turn(`Packed 10 cases of Granola Classic 25 LB${explicit ? ' from batch BATCH-B001' : ''}`, calls);
+        if (!explicit) {
+          const batchChoices = response.cards[0];
+          assert.equal(batchChoices.kind, 'choices'); assert.equal(batchChoices.packing_lots, true);
+          assert.equal(batchChoices.resolution_kind, 'lot');
+          assert.deepEqual(batchChoices.result.candidates.map(candidate => candidate.id), [fixture.lots['285'].id], 'Missing batch must offer the product parent’s real FIFO lot before preparing');
+          response = await turn('', [['prepare_pack', args]], { choice_id: batchChoices.id, selected_id: fixture.lots['285'].id }, response.sid);
+        }
         assert.equal(response.cards[0].kind, 'draft'); assert.equal(response.cards[0].prepared.action, 'pack'); assert.equal(response.cards[0].prepared.draft.source_product_id, 285);
+        const suggested = response.cards[0].prepared.draft.input_plan;
+        assert.ok(suggested.length > 0); assert.ok(suggested.every(lot => lot.confirmed === false), 'Choosing batch identity must not confirm a physical tag');
+        assert.ok(response.cards[0].prepared.blockers.some(blocker => blocker.code === 'LOT_NOT_CONFIRMED'));
       }
-      checks.push('Packing reaches filled drafts from explicit batch lot and finished product parent');
+      checks.push('Packing prepares from an explicit batch lot or a human FIFO batch button; every physical tag remains unconfirmed');
       const matching = await turn('Made 1 batch of Classic #9', [resolve('product', 'Classic #9', { action: 'make' })]);
       const choices = matching.cards[0]; assert.equal(choices.kind, 'choices');
       assert.ok(choices.result.candidates.length > 0); assert.ok(choices.result.candidates.every(c => c.id === 285));

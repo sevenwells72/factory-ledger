@@ -451,3 +451,39 @@ for (const language of ['en', 'es']) test(`fuzzy catalog fallback identifies the
   await h.get('language').listeners.click();
   assert.match(descendants(h.card).filter(node => node.tag === 'p').map(node => node.textContent).join(' '), language === 'en' ? /No encontré.*¿Quiso decir una de estas opciones/ : /I couldn’t find.*Did you mean one of these/);
 });
+
+for (const language of ['en', 'es']) test(`Round D batch choices use plain prompt and Different batch in ${language}`, async () => {
+  const h = await resumedCard({ kind: 'choices', id: 'bulk-batch-choice', packing_lots: true, resolution_kind: 'lot',
+    result: { candidates: [{ id: 123, name: 'B26-1015-004', label: 'Batch Coconut Sweetened Flake · B26-1015-004 · 1,000 lb' }] } }, language);
+  const nodes = descendants(h.card), text = nodes.map(node => node.textContent).join(' ');
+  assert.match(text, language === 'en' ? /Which batch did these come from/ : /¿De qué lote a granel salieron/);
+  assert.doesNotMatch(text, /source product|producto de origen|SKU/);
+  const different = nodes.find(node => node.tag === 'button' && node.textContent === (language === 'en' ? 'Different batch' : 'Otro lote a granel'));
+  assert.ok(different);
+  await different.listeners.click();
+  for (let i = 0; i < 6; i++) await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.bodies[0].selected_id, 'different_batch');
+});
+for (const language of ['en', 'es']) test(`Round D missing batch and missing order never request a product identifier in ${language}`, async () => {
+  const h = await resumedCard({ kind: 'missing_facts', fields: ['source_product_id'], packing_batch_needed: true }, language);
+  const text = descendants(h.card).map(node => node.textContent).join(' ');
+  assert.match(text, language === 'en' ? /Which batch/ : /¿De qué lote/);
+  assert.doesNotMatch(text, /source product|producto de origen|SKU/);
+  const order = await resumedCard({ kind: 'choices', id: 'order-choice', resolution_kind: 'order', order_not_found: true, query: 'SO-261015-999',
+    result: { candidates: [{ id: 123, name: 'SO-261015-002', label: 'SO-261015-002 · Setton Farms' }] } }, language);
+  const copy = descendants(order.card).map(node => node.textContent).join(' ');
+  assert.match(copy, language === 'en' ? /I couldn't find order SO-261015-999/ : /No encontré el pedido SO-261015-999/);
+  assert.doesNotMatch(copy, /SKU|product number|número de producto/);
+});
+
+for (const language of ['en', 'es']) test(`Round D missing shipping quantity offers an explicit all-remaining choice in ${language}`, async () => {
+  const h = await resumedCard({kind:'missing_facts', fields:['lines'], shipping_quantity_needed:true,
+    order:{order_number:'SO-261015-001', remaining_lb:50}}, language);
+  const nodes=descendants(h.card), text=nodes.map(node=>node.textContent).join(' ');
+  assert.match(text, language==='en' ? /How much of order SO-261015-001 should we ship/ : /¿Cuánto del pedido SO-261015-001 vamos a enviar/);
+  assert.doesNotMatch(text, /already fully shipped|completamente enviado|SKU/);
+  const all=nodes.find(node=>node.tag==='button' && node.textContent===(language==='en'?'Ship all remaining':'Enviar todo lo pendiente'));
+  assert.ok(all); await all.listeners.click();
+  for (let i=0;i<6;i++) await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(h.bodies[0].text, language==='en'?'Ship all remaining on order SO-261015-001.':'Envía todo lo pendiente del pedido SO-261015-001.');
+});

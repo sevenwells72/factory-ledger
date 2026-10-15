@@ -6,6 +6,7 @@ renderer, hosted MCP, browser OpenAI key, or model-accessible commit tool.
 import asyncio
 import json
 import logging
+import threading
 import os
 import re
 from urllib.parse import quote
@@ -20,11 +21,12 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel, Field, StrictInt, StrictStr
 from psycopg2.extras import Json
 
+import assistant_runtime as runtime
 import assistant_tools as catalog
 import write_tickets
 import resolution
 import assistant_replies as replies
-from assistant_voice import normalize_voice_text
+from assistant_voice import normalize_voice_text, normalize_order_code
 
 ROUTES = ('session', 'resume', 'turn', 'record', 'cancel', 'confirm-sku', 'attachment', 'attachment/read', 'transcribe')
 ACTOR_ROUTES = frozenset({('POST', '/assistant/' + p) for p in ROUTES} |
@@ -166,6 +168,8 @@ async def relay(app, request, method, path, *, body=None, params=None, file=None
              'method': method, 'scheme': 'http', 'path': unquote(path), 'raw_path': path.encode(),
              'query_string': urlencode(params or {}).encode(), 'root_path': '',
              'headers': headers, 'server': ('fl-internal', 80), 'client': ('127.0.0.1', 0)}
+    if '_fl_verified_identity' in request.scope:
+        scope['_fl_verified_identity'] = request.scope['_fl_verified_identity']
     messages, sent = [], False
     finished = asyncio.Event()
 
@@ -307,12 +311,24 @@ def register_routes(app, api):
             fail(403, 'PERSONAL_IDENTITY_REQUIRED', 'Sign in with your personal key / Usa tu clave personal.')
         return actor
 
+    reason_cache = {'source': None, 'data': None}
+    reason_lock = threading.Lock()
+
+    def cached_reasons():
+        # The reason catalog is fixed reference data. Separate test/database
+        # connections never share a cached catalog with another source.
+        source = (api.get_db_connection, os.getenv('DATABASE_URL'))
+        with reason_lock:
+            if reason_cache['source'] != source or reason_cache['data'] is None:
+                with api.get_transaction() as cur:
+                    cur.execute('SELECT code,label_en,label_es,applies_to,adjust_sign,note_required FROM correction_reasons ORDER BY sort_order,code')
+                    data = {'reasons': [dict(r) for r in cur.fetchall()]}
+                reason_cache.update(source=source, data=data)
+            return reason_cache['data']
+
     @app.get('/correction-reasons')
     def correction_reasons(_: bool = Depends(api.verify_api_key)):
-        # An interface-neutral FL read, from the A3a fixed catalog.
-        with api.get_transaction() as cur:
-            cur.execute('SELECT code,label_en,label_es,applies_to,adjust_sign,note_required FROM correction_reasons ORDER BY sort_order,code')
-            return {'reasons': [dict(r) for r in cur.fetchall()]}
+        return cached_reasons()
 
     @app.get('/dash/fl-assistant', include_in_schema=False)
     def page():
@@ -352,6 +368,9 @@ def register_routes(app, api):
         if not isinstance(detail, dict) or detail.get('order_id') != candidate['id'] or not isinstance(detail.get('lines'), list):
             fail(502, 'FL_RESPONSE_INVALID', 'FL returned no usable order detail / Detalle de pedido no disponible.')
         approve_id(state, kind, candidate)
+        state.setdefault('order_summaries', {})[str(candidate['id'])] = {
+            'order_id': candidate['id'], 'order_number': detail['order_number'],
+            'remaining_lb': float(detail.get('remaining_effective_lb') or 0)}
         state['resolved'].setdefault('order_line', {})[str(candidate['id'])] = [
             line['line_id'] for line in detail['lines']
             if line.get('line_status') not in ('cancelled', 'fulfilled')]
@@ -420,8 +439,114 @@ def register_routes(app, api):
                 return exact['lot_code']
         return normalized
 
+    def packing_output_choices(state, context):
+        with api.get_transaction() as cur:
+            cur.execute("SELECT id,name,case_size_lb FROM products WHERE parent_batch_product_id=%s AND type='finished' AND active IS DISTINCT FROM false ORDER BY name,id", (context['source_product_id'],))
+            outputs = [dict(row, case_size_lb=float(row['case_size_lb']) if row['case_size_lb'] is not None else None) for row in cur.fetchall()]
+        if not outputs:
+            return {'kind': 'missing_facts', 'fields': ['target_product_id']}
+        choice_id = str(uuid4())
+        result = {'candidates': outputs, 'has_more': False}
+        state['pending'] = {'id': choice_id, 'args': {'kind': 'product', 'query': '', 'context': {'action': 'pack'}},
+                            'result': result, 'packing_output_context': context}
+        return {'kind': 'choices', 'id': choice_id, 'resolution_kind': 'product', 'packing_outputs': True, 'result': result}
+
+    def packing_lot_choices(state, target, query=''):
+        source_id = target['parent_batch_product_id']
+        def core(name):
+            return sorted(word for word in re.findall(r'[a-z0-9]+', resolution.catalog_query(name).lower())
+                          if word not in {'batch', 'granola', 'and'})
+        with api.get_transaction() as cur:
+            if source_id:
+                cur.execute('SELECT id,name FROM products WHERE id=%s AND active IS DISTINCT FROM false', (source_id,))
+                sources = [dict(row) for row in cur.fetchall()]
+            else:
+                cur.execute("SELECT id,name FROM products WHERE type='batch' AND active IS DISTINCT FROM false ORDER BY name,id")
+                sources = [dict(row) for row in cur.fetchall() if core(row['name']) == core(target['name'])]
+            candidates = []
+            for source in sources:
+                for row in api.fifo_lot_balances(cur, source['id']):
+                    candidates.append({'id': row['id'], 'name': row['lot_code'], 'lot_code': row['lot_code'],
+                        'product_id': source['id'], 'source_product_name': source['name'],
+                        'lot_date': str(row['lot_date']),
+                        'label': f"{source['name']} · {row['lot_code']} · {replies.number(row['available'])} lb"})
+        candidates.sort(key=lambda row: (row['lot_date'], row['id']))
+        if not candidates and not sources:
+            return None
+        choice_id = str(uuid4())
+        result = {'candidates': candidates, 'has_more': False, 'query': query}
+        state['pending'] = {'id': choice_id, 'args': {'kind': 'lot', 'query': query}, 'result': result,
+            'packing_context': {'target_product_id': target['id'],
+                'case_size_lb': float(target['case_size_lb']) if target['case_size_lb'] is not None else None},
+            'packing_target_invalid': target['type'] != 'finished'}
+        return {'kind': 'choices', 'id': choice_id, 'resolution_kind': 'lot', 'query': query,
+                'packing_lots': True, 'result': result}
+
+    async def shipping_order(request, body, actor, state, args):
+        query = normalize_order_code(args.get('query', ''))
+        code = re.search(r'\bSO-\d{6}-\d{3,}\b', query, re.I)
+        typed = re.search(r'\b(?:s\s*o|ese\s+o)[ -]*\d[\d -]*', query, re.I)
+        identifier = code[0] if code else typed[0].strip() if typed else None
+        status, data = await relay(app, request, 'GET', '/sales/orders', params={'state': 'open', 'limit': 200})
+        if status != 200:
+            return status, data, {'kind': 'lookup_failed', 'status': status, 'result': data}
+        active = [row for row in data.get('orders', [])
+                  if float(row.get('remaining_effective_lb', row.get('remaining_lb', 0)) or 0) > api.BALANCE_EPSILON]
+        matches = [row for row in active if identifier and row['order_number'].upper() == identifier.upper()]
+        customer = None
+        if not matches:
+            context = args.get('context') or {}
+            customer_ids = [context['customer_id']] if context.get('customer_id') else state.get('resolved', {}).get('customer', [])[-1:]
+            party_query = query if not identifier else re.sub(r'.*\b(?:for|para)\s+', '', query, flags=re.I) if re.search(r'\b(?:for|para)\s+', query, re.I) else ''
+            if identifier and not party_query:
+                # The model may supply only the order code while the worker's
+                # original transcript also names its customer.
+                party_query = re.sub(re.escape(identifier), '', normalize_order_code(body.text), flags=re.I)
+            party_query = re.sub(r'^(?:(?:please|por favor)\s+)?(?:ship|send|env[ií]a|enviar|enviamos)\s+', '', party_query, flags=re.I)
+            party_query = re.sub(r'^(?:the|el|la)\s+|\b(?:open|abiertos?|orders?|pedidos?|all|remaining|todo|restante)\b|\b(?:for|para|de|of)\b', ' ', party_query, flags=re.I).strip(' .?!¿¡')
+            if party_query:
+                party_status, party = await relay(app, request, 'POST', '/resolve', body={'kind': 'customer', 'query': party_query})
+                if party_status == 200 and party.get('outcome') == 'match':
+                    customer = party['match']['name']
+                    customer_ids = [party['match']['id']]
+                elif not identifier:
+                    return await execute_tool(request, body, actor, state, 'resolve', {'kind': 'customer', 'query': party_query, 'context': {'action': 'ship'}})
+            if not customer and customer_ids:
+                with api.get_transaction() as cur:
+                    cur.execute('SELECT name FROM customers WHERE id=%s AND active IS DISTINCT FROM false', (customer_ids[-1],))
+                    person = cur.fetchone()
+                    customer = person['name'] if person else None
+            if not customer and identifier:
+                previous = next((row for row in data.get('orders', []) if row['order_number'].upper() == identifier.upper()), None)
+                customer = previous['customer'] if previous else None
+            choices = [row for row in active if customer and resolution.normalize(row['customer']) == resolution.normalize(customer)]
+            if not identifier:
+                matches = choices
+        else:
+            choices = matches
+        if len(matches) == 1:
+            candidate = {'id': matches[0]['order_id'], 'name': matches[0]['order_number'], 'order_number': matches[0]['order_number']}
+            selected_status, detail = await approve_candidate(request, state, 'order', candidate)
+            result = {'outcome': 'match', 'match': candidate, 'order_detail': detail}
+            return selected_status, result, None if selected_status == 200 else {'kind': 'lookup_failed'}
+        candidates = [{'id': row['order_id'], 'name': row['order_number'], 'order_number': row['order_number'],
+                       'label': row['order_number'] + ' · ' + row['customer']} for row in (matches or choices)]
+        if not candidates:
+            return 200, {}, {'kind': 'clarify', 'resolution_kind': 'order', 'query': identifier or query}
+        choice_id = str(uuid4())
+        result = {'outcome': 'ambiguous' if len(matches) > 1 else 'none', 'candidates': candidates, 'has_more': False}
+        state['pending'] = {'id': choice_id, 'args': {'kind': 'order', 'query': query, 'context': {'action': 'ship'}}, 'result': result}
+        return 200, result, {'kind': 'choices', 'id': choice_id, 'resolution_kind': 'order',
+            'query': identifier or query, 'order_not_found': bool(identifier), 'result': result}
+
     async def execute_tool(request, body, actor, state, name, args):
         args = dict(args)
+        if name in catalog.PREPARES or name == 'packing_context':
+            runtime.progress(request, 'lots', language=state.get('language', 'en'))
+        elif name == 'today_entries':
+            runtime.progress(request, 'today', language=state.get('language', 'en'))
+        elif name in ('resolve', 'inventory_lookup', 'lot_lookup', 'open_orders', 'receipt_lookup'):
+            runtime.progress(request, 'lookup', args.get('q') or args.get('query') or args.get('lot_code') or args.get('customer') or '', state.get('language', 'en'))
         if name == 'resolve' and args.get('kind') == 'product' and isinstance(args.get('query'), str):
             args['query'] = normalize_voice_text(args.get('query', ''))
         elif name == 'resolve' and args.get('kind') == 'lot' and isinstance(args.get('query'), str):
@@ -438,6 +563,12 @@ def register_routes(app, api):
         if name == 'unsupported_request':
             return 200, {'outcome': 'unsupported_request'}, {'kind': 'unsupported_request'}
         if name == 'resolve':
+            explicit_order = (re.search(r'\b(?:order|pedido|orden)\b', body.text, re.I)
+                              and not re.search(r'\boff[ -]order\b|\bwithout\b.*\border\b|\bsin\b.*\b(?:pedido|orden)\b', body.text, re.I))
+            if (action == 'ship' or re.match(r'\s*(?:(?:please|por favor)\s+)?(?:ship|send|env[ií]a|enviar|enviamos)\b', body.text, re.I)) and (args.get('kind') == 'order' or
+                    (args.get('kind') == 'product' and (explicit_order or re.search(r'\b(?:s\s*o|ese\s+o)[ -]*\d', normalize_order_code(args.get('query', '')), re.I)))):
+                order_args = {**args, 'query': body.text} if args.get('kind') == 'product' and explicit_order else args
+                return await shipping_order(request, body, actor, state, order_args)
             if args.get('kind') == 'supplier':
                 args = {**args, 'limit': 6}
             status, result = await relay(app, request, 'POST', '/resolve', body=args)
@@ -486,6 +617,30 @@ def register_routes(app, api):
             unknown = untrusted_ids(args, state)
             if unknown:
                 return 422, {'detail': {'error_code': 'RESOLVE_REQUIRED', 'fields': unknown}}, None
+            if name == 'prepare_pack' and args.get('target_product_id'):
+                context = state.get('packing_context') or {}
+                bound = context.get('target_product_id') == args['target_product_id'] and context.get('lot_id')
+                if not bound:
+                    # A model can skip packing_context. Its chosen IDs are not
+                    # evidence of which physical batch the worker actually used.
+                    allocations = args.get('lot_allocations') or []
+                    selected_ids = [row['lot_id'] for row in allocations] if allocations else state.get('resolved', {}).get('lot', [])
+                    human_text = catalog_voice_text(body.text) if body.text.strip() else next(
+                        (row.get('content', '') for row in reversed(state.get('history', [])) if row.get('role') == 'user'), '')
+                    explicit = []
+                    if selected_ids:
+                        with api.get_transaction() as cur:
+                            cur.execute("SELECT l.id,l.lot_code,l.product_id FROM lots l JOIN products p ON p.id=l.product_id WHERE l.id=ANY(%s) AND p.type='batch'", (selected_ids,))
+                            explicit = [dict(row) for row in cur.fetchall() if re.search(r'(?<!\w)' + re.escape(row['lot_code']) + r'(?!\w)', human_text, re.I)]
+                    if len(explicit) == 1 and (not allocations or len(allocations) == 1):
+                        status, result, card = await execute_tool(request, body, actor, state, 'packing_context',
+                            {'target_product_id': args['target_product_id'], 'lot_code': explicit[0]['lot_code']})
+                        if card or status != 200:
+                            return status, result, card
+                    elif (not allocations or len(explicit) != len(allocations)
+                          or any(row['product_id'] != args.get('source_product_id') for row in explicit)):
+                        return await execute_tool(request, body, actor, state, 'packing_context',
+                            {'target_product_id': args['target_product_id']})
             path, _ = catalog.PREPARES[name]
             prepared_args = {**args, 'client_source': 'fl_assistant'}
             if name == 'prepare_make' and args.get('product_id') in state.get('make_products', []):
@@ -511,6 +666,11 @@ def register_routes(app, api):
                         'kind': 'missing_facts', 'fields': ['cases', 'case_size_lb'],
                         'known_facts': {**args, 'quantity_lb': given}, 'quantity_mismatch_lb': cases * size}
             if name == 'prepare_ship_order' and 'order_id' in prepared_args:
+                order = state.get('order_summaries', {}).get(str(prepared_args['order_id']))
+                if (order and order['remaining_lb'] > api.BALANCE_EPSILON
+                        and not prepared_args.get('ship_all') and not prepared_args.get('lines')):
+                    return 200, {'missing_fields': ['lines'], 'order': order}, {
+                        'kind': 'missing_facts', 'fields': ['lines'], 'shipping_quantity_needed': True, 'order': order}
                 path = path.format(order_id=prepared_args.pop('order_id'))
             elif name == 'prepare_ship_order':
                 return 422, {'detail': {'error_code': 'ORDER_REQUIRED', 'message': 'Resolve the order first.'}}, None
@@ -527,6 +687,7 @@ def register_routes(app, api):
                 return status, result, {'kind': 'refusal', 'status': status, 'result': catalog.safe_result(result)}
             state.pop('packing_context', None)
             state.pop('packing_case_weight_lb', None)
+            runtime.progress(request, 'draft', language=state.get('language', 'en'))
             card = store_draft(result, args, body.session_id, actor['id'], prepare_attachments, state.get('language', 'en'))
             if name == 'prepare_receive':
                 state['receive_context'] = {'args': args, 'draft_id': card['id'], 'attachment_ids': prepare_attachments}
@@ -535,8 +696,9 @@ def register_routes(app, api):
             target_id = args.get('target_product_id')
             if target_id not in state.get('resolved', {}).get('product', []):
                 return 422, {'detail': {'error_code': 'RESOLVE_REQUIRED', 'fields': ['target_product_id']}}, None
+            state.pop('packing_context', None)
             with api.get_transaction() as cur:
-                cur.execute('SELECT id,name,case_size_lb,parent_batch_product_id FROM products WHERE id=%s AND active IS DISTINCT FROM false', (target_id,))
+                cur.execute('SELECT id,name,type,case_size_lb,parent_batch_product_id FROM products WHERE id=%s AND active IS DISTINCT FROM false', (target_id,))
                 target = cur.fetchone()
                 if not target:
                     return 404, {}, {'kind': 'lookup_failed'}
@@ -547,47 +709,50 @@ def register_routes(app, api):
                 params = {'product_id': source_id} if source_id else {}
                 status, lot_data = await relay(app, request, 'GET', '/lots/by-code/' + quote(lot_code, safe=''), params=params)
                 if status != 200:
-                    if status == 404 and source_id:
-                        # Choices come from this finished product's parent only,
-                        # in the same FIFO order used by allocation. Choosing a
-                        # lot establishes identity, never physical-tag evidence.
-                        with api.get_transaction() as cur:
-                            lots = api.fifo_lot_balances(cur, source_id)
-                        if lots:
-                            source_status, source = await relay(app, request, 'POST', '/resolve', body={
-                                'kind': 'product', 'query': str(source_id), 'context': {'action': 'pack'}})
-                            if source_status != 200 or source.get('outcome') != 'match':
-                                return source_status, source, {'kind': 'lookup_failed'}
-                            approve_id(state, 'product', source['match'])
-                            candidates = [{'id': row['id'], 'name': row['lot_code'], 'lot_code': row['lot_code'],
-                                'product_id': source_id, 'label': f"{row['lot_code']} · {replies.number(row['available'])} lb"}
-                                for row in lots]
-                            choice_id = str(uuid4())
-                            result = {'candidates': candidates, 'has_more': False, 'query': lot_code}
-                            state['pending'] = {'id': choice_id, 'args': {'kind': 'lot', 'query': lot_code},
-                                'result': result, 'packing_context': {'target_product_id': target_id,
-                                    'source_product_id': source_id, 'source_product_name': source['match']['name'],
-                                    'case_size_lb': float(target['case_size_lb']) if target['case_size_lb'] is not None else None}}
-                            return 200, result, {'kind': 'choices', 'id': choice_id, 'resolution_kind': 'lot',
-                                'query': lot_code, 'packing_lots': True, 'result': result}
+                    if status == 404:
+                        choice = packing_lot_choices(state, target, lot_code)
+                        if choice:
+                            return 200, choice['result'], choice
                     return status, lot_data, {'kind': 'refusal', 'query': lot_code, 'status': status,
                         'result': {'detail': {'error_code': 'LOT_NOT_FOUND'}} if status == 404 else lot_data}
                 if lot_data.get('product_type') != 'batch':
-                    return 422, {}, {'kind': 'clarify', 'query': lot_code}
+                    return 422, {}, {'kind': 'clarify', 'resolution_kind': 'lot', 'query': lot_code}
                 source_id = lot_data['product_id']
             if not source_id:
-                return 200, {}, {'kind': 'missing_facts', 'fields': ['source_product_id']}
+                if target['type'] != 'finished':
+                    def core(name):
+                        return sorted(word for word in re.findall(r'[a-z0-9]+', resolution.catalog_query(name).lower())
+                                      if word not in {'batch', 'granola', 'and'})
+                    with api.get_transaction() as cur:
+                        cur.execute("SELECT id,name FROM products WHERE type='batch' AND active IS DISTINCT FROM false ORDER BY name,id")
+                        roots = [dict(row) for row in cur.fetchall() if core(row['name']) == core(target['name'])]
+                    if len(roots) == 1:
+                        choice = packing_output_choices(state, {'source_product_id': roots[0]['id'],
+                            'source_product_name': roots[0]['name'], 'target_product_id': target_id, 'case_size_lb': None})
+                        return 200, choice.get('result', {}), choice
+                choice = packing_lot_choices(state, target)
+                if choice:
+                    return 200, choice['result'], choice
+                return 200, {}, {'kind': 'missing_facts', 'fields': ['source_product_id'], 'packing_batch_needed': True}
+            if not lot_data:
+                choice = packing_lot_choices(state, target)
+                if choice:
+                    return 200, choice['result'], choice
+                return 200, {}, {'kind': 'missing_facts', 'fields': ['source_product_id'], 'packing_batch_needed': True}
             status, source = await relay(app, request, 'POST', '/resolve', body={
                 'kind': 'product', 'query': str(source_id), 'context': {'action': 'pack'}})
             if status != 200 or source.get('outcome') != 'match':
                 return status, source, {'kind': 'lookup_failed'}
             approve_id(state, 'product', source['match'])
+            result = {'target_product_id': target_id, 'source_product_id': source_id,
+                      'source_product_name': source['match']['name'],
+                      'case_size_lb': float(target['case_size_lb']) if target['case_size_lb'] is not None else None}
             if lot_data:
                 approve_id(state, 'lot', {'id': lot_data['id']})
-            result = {'target_product_id': target_id, 'source_product_id': source_id,
-                      'source_product_name': source['match']['name'], 'case_size_lb': target['case_size_lb']}
-            if lot_data:
                 result.update(lot_id=lot_data['id'], lot_code=lot_data['lot_code'])
+            if target['type'] != 'finished':
+                choice = packing_output_choices(state, result)
+                return 200, choice.get('result', {}), choice
             state['packing_context'] = result
             return 200, result, None
         if name == 'open_orders':
@@ -601,7 +766,9 @@ def register_routes(app, api):
             status, result = await relay(app, request, 'GET', '/sales/orders', params=params)
             if status != 200:
                 return status, result, {'kind': 'refusal', 'status': status, 'result': result}
-            orders = result.get('orders', [])
+            all_orders = result.get('orders', [])
+            exhausted = [row for row in all_orders if float(row.get('remaining_effective_lb', row.get('remaining_lb', 0)) or 0) <= api.BALANCE_EPSILON]
+            orders = [row for row in all_orders if row not in exhausted]
             if args.get('customer'):
                 canonical = resolution.normalize(params['customer'])
                 orders = [r for r in orders if resolution.normalize(r['customer']) == canonical]
@@ -627,7 +794,8 @@ def register_routes(app, api):
                          status=r.get('fulfillment', r.get('status')), state=r.get('state'),
                          remaining_lb=r.get('remaining_effective_lb', r.get('remaining_lb'))) for r in orders]
             result = {'orders': rows, 'count': len(rows), 'customer': args.get('customer'),
-                      'product': args.get('product'), 'truncated': len(result.get('orders', [])) == 200}
+                      'product': args.get('product'), 'truncated': len(result.get('orders', [])) == 200,
+                      'nothing_left_to_ship': [{'order_number': row['order_number'], 'customer': row['customer']} for row in exhausted]}
             return 200, result, replies.read_card(name, result, state.get('language', 'en'))
         if name == 'lot_lookup':
             path, params = '/lots/by-code/' + quote(args.get('lot_code', ''), safe=''), {}
@@ -647,7 +815,7 @@ def register_routes(app, api):
                     fail(502, 'FL_RESPONSE_INVALID', 'Factory Ledger is temporarily unavailable — try again in a minute.')
                 offset = next_offset
             own = sum(1 for row in rows if str((row.get('actor') or {}).get('id')) == str(actor['id']))
-            result = {'date': day, 'receipts': rows, 'own_count': own, 'team_count': len(rows)}
+            result = {'date': day, 'receipts': runtime.day_preview(rows), 'own_count': own, 'team_count': len(rows), 'view_all': True, 'preview_limit': 20}
             return 200, result, replies.read_card(name, result, state.get('language', 'en'))
         elif name == 'inventory_lookup':
             if not isinstance(args.get('q'), str) or not args['q'].strip():
@@ -767,6 +935,10 @@ def register_routes(app, api):
 
     @app.post('/assistant/turn')
     async def turn(body: TurnBody, request: Request, actor=Depends(authenticate)):
+        return await runtime.run_turn(lambda: turn_impl(body, request, actor), request)
+
+    async def turn_impl(body, request, actor):
+        runtime.progress(request, 'read', language=replies.language(body.text, body.language or 'en'))
         sid, tid, lease = str(body.session_id), str(body.turn_id), str(uuid4())
         digest = write_tickets.canonical_hash(jsonable_encoder(body))
         session_row(api, sid, actor['id'])
@@ -783,37 +955,38 @@ def register_routes(app, api):
             claimed = cur.fetchone()
             if not claimed:
                 fail(409, 'CHAT_BUSY', 'Wait for the current message / Espera el mensaje actual.')
-        state = claimed['state']
-        state['language'] = replies.language(body.text, body.language or state.get('language', 'en'))
-        text = catalog_voice_text(body.text)
-        if re.search(r'\b(?:pack(?:ed)?|empacamos|empacado|empaque)\b', text, re.I):
-            state.pop('packing_case_weight_lb', None)
-            weight = re.search(r'(\d+(?:\.\d+)?)\s*(?:lb|pounds?|libras?)\s*(?:per|por|/)\s*(?:case|caja)', text, re.I)
-            if weight:
-                state['packing_case_weight_lb'] = float(weight.group(1))
-        # A correction belongs to the current receive, even without repeating "received".
-        receive_start = bool(re.search(r'\b(?:receive(?:d)?|recibimos|recibi|recibí|recibir)\b', text, re.I))
-        receive_correction = not receive_start and bool(state.get('receive_context') or state.get('receive_facts')) and bool(
-            re.search(r'\b(?:total|actually|correction|correct|it was|were|era|eran|fue|fueron|corrijo|correccion|corrección)\b', text, re.I))
-        if receive_start:
-            state.pop('receive_facts', None)
-            state.pop('receive_context', None)
-        new_receive_total = None
-        if receive_start or receive_correction:
-            for qty in re.finditer(r'(?<![\w.])(\d+(?:\.\d+)?)\s*(?:lb\b|lbs\b|pounds?\b|libras?\b)', text, re.I):
-                before, after = text[:qty.start()], text[qty.end():]
-                if re.match(r'\s*(?:(?:per|por|/)\s*(?:case|caja)|each|cada)', after, re.I):
-                    continue
-                is_total = re.search(r'\btotal\s*[:=]?\s*$', before, re.I) or re.match(r'\s*(?:in\s+|en\s+)?total\b', after, re.I)
-                if not is_total and (re.search(r'\b\d+\s*(?:cases?|cajas?)\b', before, re.I) or re.search(r'[x×@]\s*$', before)):
-                    continue
-                new_receive_total = float(qty.group(1))
-                state['receive_facts'] = {'quantity_lb': new_receive_total}
-                break
         try:
+            state = claimed['state']
+            state['language'] = replies.language(body.text, body.language or state.get('language', 'en'))
+            text = catalog_voice_text(body.text)
+            if re.search(r'\b(?:pack(?:ed)?|empacamos|empacado|empaque)\b', text, re.I):
+                state.pop('packing_case_weight_lb', None)
+                weight = re.search(r'(\d+(?:\.\d+)?)\s*(?:lb|pounds?|libras?)\s*(?:per|por|/)\s*(?:case|caja)', text, re.I)
+                if weight:
+                    state['packing_case_weight_lb'] = float(weight.group(1))
+            # A correction belongs to the current receive, even without repeating "received".
+            receive_start = bool(re.search(r'\b(?:receive(?:d)?|recibimos|recibi|recibí|recibir)\b', text, re.I))
+            receive_correction = not receive_start and bool(state.get('receive_context') or state.get('receive_facts')) and bool(
+                re.search(r'\b(?:total|actually|correction|correct|it was|were|era|eran|fue|fueron|corrijo|correccion|corrección)\b', text, re.I))
+            if receive_start:
+                state.pop('receive_facts', None)
+                state.pop('receive_context', None)
+            new_receive_total = None
+            if receive_start or receive_correction:
+                for qty in re.finditer(r'(?<![\w.])(\d+(?:\.\d+)?)\s*(?:lb\b|lbs\b|pounds?\b|libras?\b)', text, re.I):
+                    before, after = text[:qty.start()], text[qty.end():]
+                    if re.match(r'\s*(?:(?:per|por|/)\s*(?:case|caja)|each|cada)', after, re.I):
+                        continue
+                    is_total = re.search(r'\btotal\s*[:=]?\s*$', before, re.I) or re.match(r'\s*(?:in\s+|en\s+)?total\b', after, re.I)
+                    if not is_total and (re.search(r'\b\d+\s*(?:cases?|cajas?)\b', before, re.I) or re.search(r'[x×@]\s*$', before)):
+                        continue
+                    new_receive_total = float(qty.group(1))
+                    state['receive_facts'] = {'quantity_lb': new_receive_total}
+                    break
             # Names/bytes stay outside model context; A6 stores every photo.
             linked_attachments(api, sid, actor['id'], body.attachment_ids)
             history = state.setdefault('history', [])
+            runtime.compact_history(history)
             # Only a customer actually recorded in this person's chat grants an
             # ID. Read the saved receipt at turn start so Record never races a
             # running turn's state/lease. Pending/cancelled drafts grant nothing.
@@ -887,6 +1060,10 @@ def register_routes(app, api):
                     status, result, card = await execute_tool(request, body, actor, state, 'resolve', args)
                     cards = [card] if card else [{'kind': 'read', 'tool': 'resolve', 'result': result}]
                     return save_turn(state, cards, body, actor, digest, lease)
+                if body.selected_id == 'different_batch' and pending.get('packing_context'):
+                    state.pop('pending', None)
+                    return save_turn(state, [{'kind': 'missing_facts', 'fields': ['source_product_id'],
+                        'packing_batch_needed': True}], body, actor, digest, lease)
                 candidates = pending['result'].get('candidates', [])
                 selected = next((c for c in candidates if c['id'] == body.selected_id), None)
                 if not selected:
@@ -902,8 +1079,23 @@ def register_routes(app, api):
                     return save_turn(state, [{'kind': 'lookup_failed'}],
                                      body, actor, digest, lease)
                 if pending.get('packing_context'):
-                    state['packing_context'] = {**pending['packing_context'],
-                        'lot_id': selected['id'], 'lot_code': selected['lot_code']}
+                    context = {**pending['packing_context'], 'source_product_id': selected['product_id'],
+                        'source_product_name': selected['source_product_name'], 'lot_id': selected['id'], 'lot_code': selected['lot_code']}
+                    approve_id(state, 'product', {'id': selected['product_id']})
+                    if pending.get('packing_target_invalid'):
+                        history.append({'role': 'user', 'content': 'I selected this FL candidate: ' + json.dumps(selected, ensure_ascii=False)})
+                        card = packing_output_choices(state, context)
+                        return save_turn(state, [card], body, actor, digest, lease)
+                    state['packing_context'] = context
+                if pending.get('packing_output_context'):
+                    state['packing_context'] = {**pending['packing_output_context'],
+                        'target_product_id': selected['id'], 'case_size_lb': selected['case_size_lb']}
+                    approve_id(state, 'product', {'id': state['packing_context']['source_product_id']})
+                    if not state['packing_context'].get('lot_id'):
+                        history.append({'role': 'user', 'content': 'I selected this FL candidate: ' + json.dumps(selected, ensure_ascii=False)})
+                        status, result, card = await execute_tool(request, body, actor, state, 'packing_context',
+                            {'target_product_id': selected['id']})
+                        return save_turn(state, [card], body, actor, digest, lease)
                 if pending['args']['kind'] == 'product' and (pending['args'].get('context') or {}).get('action') == 'make':
                     state.setdefault('make_products', []).append(selected['id'])
                 state.pop('pending', None)
@@ -917,9 +1109,7 @@ def register_routes(app, api):
             if not body.choice_id and replies.is_today_query(body.text):
                 _, _, card = await execute_tool(request, body, actor, state, 'today_entries', {})
                 return save_turn(state, [card], body, actor, digest, lease)
-            reasons_status, reasons = await relay(app, request, 'GET', '/correction-reasons')
-            if reasons_status != 200:
-                return save_turn(state, [{'kind': 'lookup_failed'}], body, actor, digest, lease)
+            reasons = cached_reasons()
             functions = catalog.tools(reasons['reasons'], shift_summary=any(getattr(r, 'path', '') == '/reports/shift-summary' for r in app.routes))
             allowed = {f['name'] for f in functions}
             cards = []
@@ -931,9 +1121,10 @@ def register_routes(app, api):
                 try:
                     response = await openai('responses', body={
                         'model': os.getenv('ASSISTANT_MODEL', MODEL), 'store': False,
-                        'instructions': catalog.INSTRUCTIONS + '\nCurrent FL plant time (America/New_York): ' + api.get_plant_now().isoformat()
+                        'instructions': catalog.INSTRUCTIONS
                             + '\nReply language: ' + state['language'] + '. User Spanish always takes precedence.'
-                            + '\nFL reason catalog: ' + json.dumps(reasons['reasons'], ensure_ascii=False),
+                            + '\nFL reason catalog: ' + json.dumps(reasons['reasons'], ensure_ascii=False)
+                            + '\nCurrent FL plant time (America/New_York): ' + api.get_plant_now().isoformat(),
                         'input': history, 'tools': functions, 'tool_choice': 'required',
                         'parallel_tool_calls': False, 'max_output_tokens': 4000,
                         'reasoning': {'effort': 'low'},
@@ -966,7 +1157,7 @@ def register_routes(app, api):
                     missing_card = missing_prepare_card(call['name'], status, result, args)
                     if card and card.get('kind') == 'missing_facts':
                         missing_card = card
-                history.append(catalog.output_item(call['call_id'], result))
+                history.append(catalog.output_item(call['call_id'], runtime.history_result(call['name'], result)))
                 if call['name'] == 'prepare_receive':
                     detail = result.get('detail', {}) if isinstance(result, dict) else {}
                     if isinstance(detail, dict) and detail.get('error_code') == 'SUPPLIER_REQUIRED':

@@ -1,0 +1,27 @@
+{
+  "python": {
+    "0": {
+      "passed": 6443,
+      "fresh_database_groups": 23,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "1": {
+      "passed": 6443,
+      "fresh_database_groups": 23,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  },
+  "node": {
+    "passed": 379,
+    "failed": 0,
+    "skipped": 0
+  },
+  "real_model": "gpt-6.1-sol (existing, unchanged)",
+  "real_browser_evidence": "real-browser-verification.json",
+  "cleanup": "local-cleanup.json",
+  "independent_frozen_source_review": "No blockers: live session verification, internal route/role enforcement, allocation equality and physical-tag evidence retained."
+}

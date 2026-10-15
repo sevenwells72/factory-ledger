@@ -94,7 +94,7 @@
       bol_reference: ['BOL number', 'número de BOL'], batches: ['number of batches', 'número de lotes de producción'],
       ingredient_product_id: ['ingredient', 'ingrediente'], substitute_product_id: ['substitute ingredient', 'ingrediente sustituto'],
       lot_id: ['lot', 'lote'],
-      source_product_id: ['source product', 'producto de origen'], target_product_id: ['finished product', 'producto terminado'],
+      source_product_id: ['bulk batch', 'lote a granel'], target_product_id: ['finished product', 'producto terminado'],
       delta_lb: ['weight change (lb)', 'cambio de peso (lb)'], reason_code: ['correction reason', 'motivo de la corrección'],
       quantity: ['quantity (lb)', 'cantidad (lb)'], order_id: ['order', 'pedido'],
       line_id: ['order item', 'producto del pedido'], quantity_lb: ['quantity (lb)', 'cantidad (lb)'],
@@ -106,17 +106,38 @@
     for (const field of new Set(missing || [])) list.append(el('li', t(...(names[field] || ['additional details', 'datos adicionales']))));
     node.append(list);
   }
-  async function api(path, { body, form, method = 'POST', binary = false, timeout = 95000, background = false } = {}) {
+  async function api(path, { body, form, method = 'POST', binary = false, timeout = 95000, background = false, onProgress } = {}) {
     const controller = new AbortController();
     let timedOut = false;
     const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeout);
     try {
       const response = await fetch(new URL(path, root.FLDashboard?.base||location.origin), {
-        method, headers: { 'X-API-Key': credential, ...(background ? { 'X-FL-Background': '1' } : {}), ...(form || !body ? {} : { 'Content-Type': 'application/json' }) },
+        method, headers: { 'X-API-Key': credential, ...(onProgress ? { Accept: 'application/x-ndjson' } : {}), ...(background ? { 'X-FL-Background': '1' } : {}), ...(form || !body ? {} : { 'Content-Type': 'application/json' }) },
         body: form || (body ? JSON.stringify(body) : undefined), signal: controller.signal, credentials: 'same-origin', cache: 'no-store'
       });
       if (binary && response.ok) return response.blob();
-      const data = await response.json();
+      let data;
+      if (response.ok && onProgress && response.headers.get('content-type')?.includes('application/x-ndjson')) {
+        const reader = response.body.getReader(), decoder = new TextDecoder();
+        let pending = '', finalResult;
+        const consume = line => {
+          if (!line.trim()) return;
+          const event = JSON.parse(line);
+          if (event.type === 'progress' && typeof event.message === 'string') onProgress(event.message);
+          else if (event.type === 'error') throw { detail: event.detail, httpStatus: event.status };
+          else if (event.type === 'result') finalResult = event.result;
+        };
+        while (true) {
+          const chunk = await reader.read();
+          pending += decoder.decode(chunk.value || new Uint8Array(), { stream: !chunk.done });
+          const lines = pending.split('\n'); pending = lines.pop();
+          for (const line of lines) consume(line);
+          if (chunk.done) break;
+        }
+        consume(pending);
+        if (!finalResult) throw new SyntaxError('Missing FL result');
+        data = finalResult;
+      } else data = await response.json();
       if (!response.ok) {
         if (data.detail?.error_code === 'SESSION_EXPIRED') {
           pilot.clear(); credential = ''; actor = null; session = '';
@@ -191,6 +212,7 @@
       for (const [i, values] of section.rows.entries()) { const row = el('tr'); for (const [j, value] of values.entries()) row.append(el('td', t(String(value ?? ''), String(translated.rows[i]?.[j] ?? value ?? '')))); body.append(row); }
       table.append(body); scroll.append(table); node.append(scroll);
     }
+    if (card.result?.view_all) node.append(button(t('View all today’s entries', 'Ver todas las entradas de hoy'), () => todayEntries()));
   }
   function details() { /* Staff cards contain only reviewed, plain fields. */ }
   function fields(node, pairs) {
@@ -436,7 +458,13 @@
     if (card.kind === 'choices') {
       const result = card.result || {}, candidates = result.candidates || [], query = card.query || result.query;
       const supplier = card.resolution_kind === 'supplier' || result.kind === 'supplier' || result.resolution_kind === 'supplier' || card.supplier_search;
-      if (!candidates.length) {
+      if (card.packing_lots) {
+        node.append(el('p', query ? t(`I couldn't find lot ${query}. Which batch did these come from?`, `No encontré el lote ${query}. ¿De qué lote a granel salieron?`) : t('Which batch did these come from?', '¿De qué lote a granel salieron?')));
+      } else if (card.packing_outputs) {
+        node.append(el('p', t('Which finished product did you pack?', '¿Qué producto terminado empacaron?')));
+      } else if (card.resolution_kind === 'order' && card.order_not_found) {
+        node.append(el('p', t(`I couldn't find order ${query}. Choose that customer's open order.`, `No encontré el pedido ${query}. Elija un pedido abierto de ese cliente.`)));
+      } else if (!candidates.length) {
         const followup = supplier ? ['Search for the supplier below.', 'Busca el proveedor abajo.'] : ['Check the name or add more details.', 'Revisa el nombre o agrega más detalles.'];
         node.append(el('p', query ? t(`I couldn’t find “${query}”. ${followup[0]}`, `No encontré “${query}”. ${followup[1]}`) : t(...followup)));
       } else {
@@ -459,14 +487,20 @@
           sendTurn({ text: t(enChoice.text, esChoice.text) });
         }, 'choice-button'); choices.push(create); node.append(create);
       }
-      if (candidates.length) { const none = button(t('None of these', 'Ninguno de estos'), () => select(null), 'choice-button'); choices.push(none); node.append(none); }
+      if (card.packing_lots) { const different = button(t('Different batch', 'Otro lote a granel'), () => select('different_batch'), 'choice-button'); choices.push(different); node.append(different); }
+      else if (candidates.length) { const none = button(t('None of these', 'Ninguno de estos'), () => select(null), 'choice-button'); choices.push(none); node.append(none); }
       if (result.has_more) { const more = button(t('More choices →', 'Más opciones →'), () => select(null, true), 'choice-button'); choices.push(more); node.append(more); }
     } else if (card.kind === 'read') {
       node.append(el('span', t('FROM FACTORY LEDGER', 'DE FACTORY LEDGER'), 'eyebrow'), el('h3', t('Here’s what FL shows', 'Esto muestra FL')));
       readResult(node, card);
     } else if (card.kind === 'missing_facts') {
       if (card.summary) node.append(el('p', card.summary, 'read-summary'));
-      missingFacts(node, card.fields);
+      if (card.packing_batch_needed) node.append(el('p', t('Which batch did these come from? Give the code on its tag.', '¿De qué lote a granel salieron? Escriba el código de la etiqueta.')));
+      else if (card.shipping_quantity_needed) {
+        const order = card.order;
+        node.append(el('p', t(`How much of order ${order.order_number} should we ship? ${order.remaining_lb} lb remains.`, `¿Cuánto del pedido ${order.order_number} vamos a enviar? Quedan ${order.remaining_lb} lb.`)));
+        node.append(button(t('Ship all remaining', 'Enviar todo lo pendiente'), () => sendTurn({text: t(`Ship all remaining on order ${order.order_number}.`, `Envía todo lo pendiente del pedido ${order.order_number}.`)}), 'choice-button'));
+      } else missingFacts(node, card.fields);
       if (card.supplier_choices || card.supplier_search) supplierPicker(node, card, card.supplier_choices || []);
     } else if (neutralMessages[card.kind]) {
       if (card.message && card.kind !== 'unsupported_request') node.append(el('p', display.plainMessage(card.message, language)));
@@ -553,7 +587,7 @@
     if (!original) userMessage(body.text);
     const waiting = el('p', t('Checking with FL…', 'Consultando FL…'), 'busy-note'); $('messages').append(waiting);
     try {
-      const result = await api('/assistant/turn', { body, timeout: 570000 });
+      const result = await api('/assistant/turn', { body, timeout: 570000, onProgress: message => { delete waiting.dataset.en; delete waiting.dataset.es; waiting.textContent = message; } });
       renderCards(result.cards, body.text);
       retryTurn = null;
       if (result.cards.some(c => c.kind === 'draft')) { attachments = []; renderAttachments(); }

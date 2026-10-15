@@ -188,6 +188,8 @@ def test_order_list_exposes_compact_case_line_data_for_pallet_display(client, _d
         "sku": "70997",
         "uom": "25 lb case",
         "case_size_lb": 25.0,
+        "ordered_unit": None,
+        "remaining_lb": 600.0,
         "unit_count": 24,
         "shipped_units": 0,
         "remaining_units": 24,

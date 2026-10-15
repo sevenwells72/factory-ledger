@@ -174,6 +174,16 @@
   function entryRow(receipt, opts) {
     return [formatTime(receipt.entered_at || receipt.happened_at, { ...opts, timeOnly: true }), receiptSummary(receipt, opts.language), scalar(receipt.receipt_number), name(receipt.actor) || receipt.actor_name || receipt.operator_id || choose(opts.language, 'Unknown person', 'Persona desconocida')];
   }
+  function orderRemaining(order, language) {
+    const items = (order.items || []).filter(item => !item.is_service && !item.is_non_weight && item.line_type !== 'service' && number(item.remaining_lb) > 0);
+    if (!items.length) return quantityLabel(order.remaining_lb, 'lb', language);
+    return items.map(item => {
+      const pounds = number(item.remaining_lb), size = number(item.case_size_lb);
+      if (!(size > 0)) return quantityLabel(pounds, 'lb', language);
+      const cases = pounds / size, unit = choose(language, cases === 1 ? 'case' : 'cases', cases === 1 ? 'caja' : 'cajas');
+      return `${fmt(cases)} ${unit} (${fmt(pounds)} lb)`;
+    }).join('; ');
+  }
   function readSections(card = {}, { language = 'en', now = new Date() } = {}) {
     const data = card.result || {}, opts = { language, now }, sections = [];
     const table = (sentence, columns = [], rows = [], notes = []) => sections.push({ sentence: plainMessage(sentence, language), columns, rows, notes: notes.filter(Boolean).map(note => plainMessage(note, language)) });
@@ -186,7 +196,7 @@
       table(sentence, [choose(language, 'Order', 'Pedido'), choose(language, 'Customer', 'Cliente'), choose(language, 'Items', 'Productos'), choose(language, 'Ship date', 'Fecha de envío'), choose(language, 'Remaining', 'Pendiente')],
         orders.map(order => [scalar(order.order_number || order.order_id), name(order.customer || order.customer_name),
           (order.items || []).filter(item => !item.is_service && item.line_type !== 'service').map(item => name(item.product || item.product_name) || scalar(item.sku)).filter(Boolean).join(', '),
-          scalar(order.ship_date || order.requested_ship_date) || choose(language, 'Not set', 'Sin fecha'), quantityLabel(order.remaining_lb, 'lb', language)]));
+          scalar(order.ship_date || order.requested_ship_date) || choose(language, 'Not set', 'Sin fecha'), orderRemaining(order, language)]));
       sections[sections.length - 1].layout = 'orders';
     } else if (card.tool === 'lot_lookup' || data.lot_code && data.product_name && data.quantity_on_hand !== undefined) {
       const unverified = /^UNVERIFIED-/i.test(data.lot_code || '') || data.unverified === true;

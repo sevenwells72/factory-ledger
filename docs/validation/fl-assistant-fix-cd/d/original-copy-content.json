@@ -1,0 +1,105 @@
+{
+  "same_original_staging_data_full_table_hashes": true,
+  "tables": {
+    "fl_fixCD_c_real": {
+      "transactions": {
+        "rows": 841,
+        "content_md5": "3c3908d2fc2951923bca5d08bafb7ef9"
+      },
+      "transaction_lines": {
+        "rows": 1019,
+        "content_md5": "095eb3dd16485e8f9a2a8b3493dd3444"
+      },
+      "lots": {
+        "rows": 536,
+        "content_md5": "4826492a7ff4844cb86a5e4ec9e7255f"
+      },
+      "products": {
+        "rows": 422,
+        "content_md5": "99b57921ac2ba3bc44c2f04104d33af7"
+      },
+      "suppliers": {
+        "rows": 78,
+        "content_md5": "e76409c0a3b9a28b90103387d3abe1e5"
+      },
+      "customers": {
+        "rows": 92,
+        "content_md5": "7c99c3a9f6d8243b93908130a0f9ed7b"
+      },
+      "sales_orders": {
+        "rows": 16,
+        "content_md5": "4978b7220f3b3b40f5cf6aa053feabd7"
+      },
+      "sales_order_lines": {
+        "rows": 21,
+        "content_md5": "c9f0fbb5957d995846a56fb483075291"
+      },
+      "sales_order_allocations": {
+        "rows": 0,
+        "content_md5": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "shipments": {
+        "rows": 10,
+        "content_md5": "1f3e90c23da013a335576d30be76048b"
+      },
+      "shipment_lines": {
+        "rows": 10,
+        "content_md5": "71760e4ada62b9b7ec1a4fba25f43f0a"
+      },
+      "exceptions": {
+        "rows": 290,
+        "content_md5": "e4cc0da10b2ed62dcd5dcb52f5bd0bb6"
+      }
+    },
+    "fl_fixCD_d_real": {
+      "transactions": {
+        "rows": 841,
+        "content_md5": "3c3908d2fc2951923bca5d08bafb7ef9"
+      },
+      "transaction_lines": {
+        "rows": 1019,
+        "content_md5": "095eb3dd16485e8f9a2a8b3493dd3444"
+      },
+      "lots": {
+        "rows": 536,
+        "content_md5": "4826492a7ff4844cb86a5e4ec9e7255f"
+      },
+      "products": {
+        "rows": 422,
+        "content_md5": "99b57921ac2ba3bc44c2f04104d33af7"
+      },
+      "suppliers": {
+        "rows": 78,
+        "content_md5": "e76409c0a3b9a28b90103387d3abe1e5"
+      },
+      "customers": {
+        "rows": 92,
+        "content_md5": "7c99c3a9f6d8243b93908130a0f9ed7b"
+      },
+      "sales_orders": {
+        "rows": 16,
+        "content_md5": "4978b7220f3b3b40f5cf6aa053feabd7"
+      },
+      "sales_order_lines": {
+        "rows": 21,
+        "content_md5": "c9f0fbb5957d995846a56fb483075291"
+      },
+      "sales_order_allocations": {
+        "rows": 0,
+        "content_md5": "d41d8cd98f00b204e9800998ecf8427e"
+      },
+      "shipments": {
+        "rows": 10,
+        "content_md5": "1f3e90c23da013a335576d30be76048b"
+      },
+      "shipment_lines": {
+        "rows": 10,
+        "content_md5": "71760e4ada62b9b7ec1a4fba25f43f0a"
+      },
+      "exceptions": {
+        "rows": 290,
+        "content_md5": "e4cc0da10b2ed62dcd5dcb52f5bd0bb6"
+      }
+    }
+  }
+}

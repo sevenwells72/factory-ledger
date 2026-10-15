@@ -22,7 +22,7 @@ def test_day_review_never_swallows_writes_or_stock_questions(text):
 
 @pytest.mark.db
 @pytest.mark.parametrize('spanish', [False, True])
-def test_direct_day_review_works_without_model_and_keeps_all_pages(client, chat, actors, db_cursor, monkeypatch, spanish):
+def test_direct_day_review_works_without_model_and_keeps_counts_with_bounded_preview(client, chat, actors, db_cursor, monkeypatch, spanish):
     expected = seed_day(db_cursor, actors, 601)
     import fl_assistant
     async def unavailable(*args, **kwargs):
@@ -32,7 +32,9 @@ def test_direct_day_review_works_without_model_and_keeps_all_pages(client, chat,
     assert result.status_code == 200, result.text
     card = result.json()['cards'][0]
     assert card['result']['own_count'] == 301 and card['result']['team_count'] == 601
-    assert [row['receipt_number'] for row in card['rows']] == expected[::-1]
+    assert [row['receipt_number'] for row in card['rows']] == expected[::-1][:20]
+    assert card['result']['view_all'] is True
+    assert len(result.content) < 50000
 
 
 @pytest.mark.db

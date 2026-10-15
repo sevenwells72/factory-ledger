@@ -1,0 +1,16 @@
+{
+  "assistant_replies.py": "5185f43858215c77cd2ed673fe196f4c61697eb57a3171b174e428816125580a",
+  "assistant_voice.py": "6f7425c161f24539ca4573d74d90dd152558b7dd5ba515209445d0b9fb59174e",
+  "assistant_tools.py": "22c95b4c104f2a3ad94697f3d23146464d6e4f2a978852aa16c83a2c26f660f7",
+  "assistant_runtime.py": "7b1d4a8bbd13f5b0cfce605169eaa09272d69d155d0ddf7966606fec44c5b549",
+  "fl_assistant.py": "df47b7f359d48fe86265bc496b350e79d932a65324e5e4615912c36946cbc4a3",
+  "resolution.py": "8d71919024d2d0c2341eb7673f8602ceac139204f4fdc20840cdc6750e96e8c1",
+  "main.py": "52989c1d9be75e6ac3651dab0a8d4277c879227a19e2d906162731050fd41d43",
+  "ticket_actions.py": "6aaea6490fffe0d42ccf6e8b2d47fb9c8bfaaeabbc11ffe5fe098e94d6543de0",
+  "write_tickets.py": "89424476f30b77ca12193f29689a43a075082068648dbac79a2be78999e97a95",
+  "lot_confirmation.py": "50ea103b26e18b1144c64e90e820beb807f9188db08343515c88a9d67368fdd9",
+  "dashboard/assistant-display.js": "b5d239dba5fad44267ba083d73aa504d7e4286b0038155aa116042a8ec6a9118",
+  "dashboard/fl-assistant.js": "dd1fea023513cbf29d950ed20289445234b509a9bb6328d0348ddbbf83cee3dc",
+  "dashboard/fl-assistant.html": "66e994fbf778b23e9bacd8c732131b9cbf6e00b5cb055f9b1965b50c70884fed",
+  "dashboard/fl-assistant.css": "00e3533fc4cfe4c25ad82fdff2017d2873babe59786e0b12ba8fc5b9d3d6ad2d"
+}

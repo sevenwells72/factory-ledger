@@ -368,3 +368,14 @@ test('empty physical stock still displays the unverified follow-up notice in bot
     assert.deepEqual(section.rows, []);
   }
 });
+
+for (const language of ['en', 'es']) test(`Round D open order remaining uses exact effective case pounds in ${language}`, () => {
+  const sections = display.readSections({tool: 'open_orders', result: {orders: [
+    {order_number: 'SO-261015-001', customer: 'Sunshine Granola', remaining_lb: 50,
+      items: [{product: 'Classic 50 LB', case_size_lb: 50, remaining_lb: 50, ordered_unit: 'cases'}]},
+    {order_number: 'SO-261015-002', customer: 'Setton Farms', remaining_lb: 37.5,
+      items: [{product: 'Classic 25 LB', case_size_lb: 25, remaining_lb: 37.5}]}
+  ]}}, {language});
+  assert.equal(sections[0].rows[0][4], language === 'en' ? '1 case (50 lb)' : '1 caja (50 lb)');
+  assert.equal(sections[0].rows[1][4], language === 'en' ? '1.5 cases (37.5 lb)' : '1.5 cajas (37.5 lb)');
+});

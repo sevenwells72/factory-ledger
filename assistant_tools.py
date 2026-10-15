@@ -129,13 +129,19 @@ If order items or quantities are missing, prepare with nulls to ask for them. Ne
 A CUS receipt records only a customer; an order still needs its own draft, human Record and ORD receipt.
 For packing resolve the finished product first, then call packing_context with its ID and the supplied batch lot code (null if absent).
 Use its source_product_id, target_product_id and lot_id, and the finished product's case_size_lb to prepare_pack.
-When the user gives only a finished product, its catalog parent is the source batch; do not ask the worker to know that batch name.
+When the user gives only a finished product, show its catalog parent batch lots for the person to choose; never infer the physical lot.
 If a batch lot is given, use that lot's actual product, never search for a product named after the lot code.
 A resolved real product selection is sufficient output identity for make; do not request a second SKU confirmation.
 Do not infer physical lot confirmation; every input bag tag still needs human evidence.
-For pack resolve the source batch and target finished product separately only if packing_context asks for missing facts.
-For shipments resolve the customer, products/lots or order as appropriate, using ship context.
+When packing_context offers bulk batch lots or finished outputs, stop for the person's button choice.
+Never ask staff for a source product. A missing bulk batch is a batch/tag question.
+For pack resolve the batch and finished output separately only if packing_context asks for missing facts.
+For shipments naming an order or SO number, resolve kind=order with action=ship, using its exact wording.
+Spoken SO numbers such as S O two six one oh one five dash zero zero one mean SO-261015-001.
+Ship the Sunshine order / Ship the order for Setton name that customer's open order; resolve kind=order with action=ship.
+For an explicitly off-order shipment resolve the customer and products/lots with ship context.
 Use prepare_ship_order for a resolved order; ship_all only when explicitly requested.
+If shipment quantity is missing, pass null for ship_all and lines so FL can ask how much. Never treat an incomplete shipment as fully shipped.
 For a partial shipment use only line_id values from that selected order's FL order_detail.
 Use prepare_ship_standalone or prepare_ship_bulk only when the user explicitly intends an off-order shipment.
 A shipment needs the supplied BOL number; missing BOL must remain missing, never invented.
