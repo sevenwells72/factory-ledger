@@ -337,3 +337,34 @@ for (const language of ['en', 'es']) {
     assert.ok(section.notes.includes(language === 'en' ? 'VOIDED' : 'ANULADO'));
   });
 }
+
+for (const language of ['en', 'es']) test(`round C errors and server Today counts are readable in ${language}`, () => {
+  for (const value of ['Internal server error', {detail: {message: 'Internal server error'}}, {detail: 'FL returned an unreadable response. Please try again.'}]) {
+    const shown = display.errorMessage(value, language);
+    assert.equal(shown, display.unavailable(language));
+    assert.doesNotMatch(shown, /Internal server error|unreadable response/);
+  }
+  const [section] = display.readSections({tool: 'today_entries', result: {receipts: [], own_count: 5, team_count: 23}}, {language});
+  assert.equal(section.sentence, language === 'en' ? 'You recorded 5 entries today; the team recorded 23.' : 'Registraste 5 entradas hoy; el equipo registró 23.');
+});
+
+
+test('stock questions render one plain bulk and finished answer without lot tables', () => {
+  const card = {tool: 'inventory_lookup', result: {stock_summary_only: true, summary_en: 'Classic #9: 100 lb in bulk and 50 lb in finished products.', summary_es: 'Classic #9: 100 lb a granel y 50 lb en productos terminados.', results: [{product: 'Batch Classic Granola #9', total_on_hand: 100, lots: [{lot: 'B-1', qty_on_hand: 100}]}, {product: 'Granola Classic 25 LB', total_on_hand: 50, lots: [{lot: 'F-1', qty_on_hand: 50}]}]}};
+  for (const language of ['en', 'es']) {
+    const sections = display.readSections(card, {language});
+    assert.equal(sections.length, 1);
+    assert.equal(sections[0].sentence, card.result['summary_' + language]);
+    assert.deepEqual(sections[0].rows, []);
+  }
+});
+
+
+test('empty physical stock still displays the unverified follow-up notice in both languages', () => {
+  const result = {stock_summary_only: true, results: [], product_names: ['Oats'], summary_en: 'There is no stock of “Oats”. Some lots are unverified, awaiting follow-up.', summary_es: 'No hay existencias de «Oats». Hay lotes sin verificar, pendientes de seguimiento.'};
+  for (const language of ['en', 'es']) {
+    const [section] = display.readSections({tool: 'inventory_lookup', result}, {language});
+    assert.equal(section.sentence, result['summary_' + language]);
+    assert.deepEqual(section.rows, []);
+  }
+});

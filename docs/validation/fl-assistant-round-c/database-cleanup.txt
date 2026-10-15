@@ -1,0 +1,3 @@
+Independent PostgreSQL 17 inventory after every runner finished: zero fl_fixC_ databases remain.
+Filesystem      Size    Used   Avail Capacity iused ifree %iused  Mounted on
+/dev/disk3s5   228Gi   187Gi    12Gi    94%    1.8M  126M    1%   /System/Volumes/Data

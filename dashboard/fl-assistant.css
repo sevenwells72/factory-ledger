@@ -77,3 +77,36 @@ button.is-working{opacity:.8;cursor:wait}
 .different-lot{min-height:44px;font-size:12px}
 .different-lot[aria-pressed=true]{background:var(--tint);border-color:var(--accent)}
 .lot-instruction{line-height:1.6;font-weight:600}
+
+/* Round C: shrink flex children before long table cells can widen Safari. */
+html,body{width:100%;max-width:100%;min-width:0}
+.chat-panel,.composer-wrap,.messages,.composer,.card,.read-table-scroll,.tools-menu,[data-receipt-tools-host]{min-width:0;max-width:100%}
+.assistant-message>.card{flex:1;width:auto}
+.tools-menu{grid-column:1/-1}
+.tools-menu>summary{display:none}
+.tools-menu .receipt-tools{display:flex;flex-wrap:wrap}
+@media(max-width:600px){
+  .topbar{grid-template-columns:minmax(0,1fr) auto auto;padding:10px 12px;min-height:64px;gap:6px}
+  .header-actions{gap:0}
+  .header-actions button{padding:7px;min-height:40px;font-size:11px}
+  #sign-out{max-width:74px;white-space:normal;line-height:1.2}
+  .tools-menu{grid-column:auto;position:relative;align-self:center}
+  .tools-menu>summary{display:block;list-style:none;cursor:pointer;border:1px solid var(--line);border-radius:8px;padding:10px;font-size:11px;min-height:40px}
+  .tools-menu>summary::-webkit-details-marker{display:none}
+  .tools-menu[open]>[data-receipt-tools-host]{position:absolute;right:0;top:calc(100% + 8px);width:min(360px,calc(100vw - 24px));max-width:none;padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow);z-index:6}
+  .tools-menu .receipt-tools{margin-top:8px;padding-top:10px;gap:5px 18px}
+  .tools-menu .receipt-lookup{min-width:0;max-width:100%}
+  .tools-menu .receipt-lookup label{min-width:0}
+  .topbar .receipt-tools>a{font-size:12px;min-height:40px}
+  .messages{padding:20px 12px 185px}
+  .read-table-scroll table{table-layout:fixed}
+  .read-table-scroll th:nth-child(n),.read-table-scroll td:nth-child(n){min-width:0;white-space:normal;overflow-wrap:anywhere}
+  .field-list{grid-template-columns:minmax(0,95px) minmax(0,1fr)}
+  .composer-tools select{width:145px}
+  .composer-tools>div{gap:3px}
+  .composer-tools{gap:4px}
+  textarea,input,select{font-size:16px}
+  .topbar .receipt-lookup input,.lot-controls select,.lot-controls input{font-size:16px}
+  .composer-tools select{font-size:16px;padding:7px 5px}
+  .composer-hint{line-height:1.5}
+}

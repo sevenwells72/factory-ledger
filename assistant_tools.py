@@ -90,7 +90,7 @@ def tools(reasons, *, shift_summary=False):
         result.append(function(name, 'Prepare only; never records. Use IDs from FL resolution. Null for missing facts.', schema))
     result.extend([
         function('unsupported_request', 'Use for messages outside Factory Ledger recording and lookup, including general chat, arithmetic and requests for free-text answers. Returns a fixed scope notice; never calls a ledger route.', object_schema({})),
-        function('today_entries', 'Read the authenticated person’s real FL receipts for today.', object_schema({})),
+        function('today_entries', 'Read today’s real FL entries, newest first, with separate person and team counts.', object_schema({})),
         function('inventory_lookup', 'Read inventory from FL for the user’s product wording.',
                  object_schema({'q': {'type': 'string', 'minLength': 1, 'maxLength': 500}})),
         function('open_orders', 'List open FL orders, optionally filtered by customer name or product name/SKU. Read only; never resolve an unspecified order.',
@@ -148,6 +148,8 @@ For open-order questions use open_orders directly, customer/product filters in t
 Spanish 'pedidos abiertos' means open orders. 'semillas de girasol' means Sunflower Seeds; preserve other exact catalog wording.
 For questions about pounds in a lot use lot_lookup with the exact lot code, never inventory_lookup on a lot code.
 A new number or SKU after unresolved product choices is a product identifier; resolve it.
+For today's entries, 'Open today’s entries', 'Is everything there correct?', 'What did I record today?' and '¿Qué registré hoy?' use today_entries. Read the entries; never certify their correctness.
+Voice text may contain FL-normalized number words and codes. Treat those as the supplied wording.
 For today's entries use today_entries. For inventory use inventory_lookup. Receipt numbers use receipt_lookup.
 Photos are stored attachments only, never interpreted. Dictation is user-reviewed text.
 Calls may follow an unambiguous resolution. Stop after a prepare/read, missing fields, choice or refusal.

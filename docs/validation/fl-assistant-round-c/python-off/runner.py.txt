@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+"""Run the complete suite with at most ONE disposable PostgreSQL database.
+
+Ordinary tests share one fresh schema. Each module of committed-race tests and
+each destructive migration test receives a fresh sole database. The pytest hook
+retains original seed/up/down SQL and fixture scope, replacing only nested
+database allocation. Never point this runner at a hosted or existing database.
+"""
+import importlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+from urllib.parse import urlsplit
+
+ROOT=Path('/Users/cns/dev/fl-fixC-wt')
+sys.path.insert(0,str(ROOT))
+PG=Path('/opt/homebrew/opt/postgresql@17/bin')
+OUT=Path('/private/tmp/fl_fixC_python_off')
+DB='fl_fixC_suite_off'
+URL='postgresql://127.0.0.1:5432/'+DB
+A1='tests.test_write_tickets'
+M61='tests.test_exceptions_tables_061'
+M47='tests.test_lot_identity_047'
+M48='tests.test_trace_tables_048'
+CREATORS={A1,M61,M47,M48}
+
+
+class SuitePlugin:
+    def __init__(self, shard=None):
+        self.shard=shard
+        self.groups={}
+
+    def pytest_collection_modifyitems(self, session, config, items):
+        selected=[]
+        for item in items:
+            origins={(d.func.__module__,d.argname) for defs in item._fixtureinfo.name2fixturedefs.values()
+                     for d in defs}
+            if (M61,'isolated_database') in origins or (M47,'scratch_db_factory') in origins or (M48,'scratch_db_factory') in origins:
+                group='migration:'+item.nodeid
+            elif (M48,'db048_url') in origins:
+                group='trace048'
+            elif (A1,'isolated_database') in origins or (A1,'a1_isolated_database') in origins:
+                group='race:'+item.nodeid.split('::')[0]
+            else:
+                group='ordinary'
+            self.groups.setdefault(group,[]).append(item.nodeid)
+            if self.shard==group:
+                selected.append(item)
+        (OUT/'collection.json').write_text(json.dumps(self.groups,indent=2))
+        if self.shard is not None:
+            deselected=[i for i in items if i not in selected]
+            config.hook.pytest_deselected(items=deselected)
+            items[:]=selected
+
+    def pytest_fixture_setup(self, fixturedef, request):
+        import psycopg2
+        origin=fixturedef.func.__module__
+        name=fixturedef.func.__name__
+        if origin not in CREATORS:
+            return None
+        module=importlib.import_module(origin)
+        value=None
+        if origin==A1 and name=='isolated_database':
+            with psycopg2.connect(URL) as conn,conn.cursor() as cur:
+                cur.execute('SET LOCAL search_path TO public')
+                for number in ['058_write_tickets','064_unidentified_lots','065_entered_by']:
+                    cur.execute((ROOT/'migrations'/f'{number}.sql').read_text())
+                from tests.conftest import reference_seed_sql
+                cur.execute(reference_seed_sql())
+                for number in ['069_exceptions_enforcement','070_pre_make_adjust','071_shortage_evidence_claims',
+                               '067_order_tickets','072_order_ticket_review_fixes','074_ship_gate_attachments',
+                               '075_kosher_tiers','076_shift_confirmations','080_resolution_receipts','082_order_plant_date']:
+                    cur.execute((ROOT/'migrations'/f'{number}.sql').read_text())
+            value=URL
+        elif origin==M61 and name=='isolated_database':
+            for sql in module.LATER_DOWNS+module.A3B_DOWNS:
+                module.apply(URL,sql)
+            module.apply(URL,module.DOWN)
+            value=URL
+        elif origin in (M47,M48) and name in ('scratch_db_factory','db048_url'):
+            number='047' if origin==M47 else '048'
+            used=False
+            def build():
+                nonlocal used
+                assert not used,'Each builder must use its sole fresh DB once'
+                used=True
+                with psycopg2.connect(URL) as conn,conn.cursor() as cur:
+                    cur.execute(getattr(module,'REVERT_'+number+'_SQL'))
+                return URL
+            def apply(url):
+                assert url==URL
+                return subprocess.run([str(PG/'psql'),url,'-q','-v','ON_ERROR_STOP=1',
+                                       '-f',str(getattr(module,'MIGRATION_'+number))],capture_output=True,text=True)
+            if name=='db048_url':
+                build(); result=apply(URL);assert result.returncode==0,result.stderr
+                value=URL
+            else:
+                value=(build,apply)
+        else:
+            return None
+        fixturedef.cached_result=(value,fixturedef.cache_key(request),None)
+        return value
+
+    def pytest_terminal_summary(self, terminalreporter):
+        if self.shard is not None:
+            stats={key:len(terminalreporter.stats.get(key,[])) for key in ['passed','failed','error','skipped','xfailed','xpassed']}
+            (OUT/'result.json').write_text(json.dumps(stats))
+
+
+def child(shard):
+    import pytest
+    # The replacement applies only in these guarded local child processes.
+    assert os.environ.get('TEST_DATABASE_URL')==URL
+    assert urlsplit(URL).hostname=='127.0.0.1'
+    plugin=SuitePlugin(shard)
+    plugin.pytest_fixture_setup.__func__.pytest_impl={'tryfirst':True,'trylast':False,'wrapper':False,'hookwrapper':False,'optionalhook':False}
+    args=['tests','-q','--disable-warnings','--tb=short','-p','no:cacheprovider']
+    if shard is None:args+=['--collect-only']
+    return pytest.main(args,plugins=[plugin])
+
+
+def main():
+    OUT.mkdir(parents=True,exist_ok=True)
+    env=dict(os.environ,TEST_DATABASE_URL=URL,PGHOST='127.0.0.1',PGPORT='5432',KEY_SESSIONS_ENABLED='0',PYTHONDONTWRITEBYTECODE='1')
+    for name in ('PGHOSTADDR','PGSERVICE','PGSERVICEFILE','PGOPTIONS','DATABASE_URL','TEST_DB_PREFIX'):
+        env.pop(name,None)
+    env.pop('DATABASE_URL',None)
+    env['DYLD_LIBRARY_PATH']='/opt/homebrew/opt/expat/lib'+(':'+env['DYLD_LIBRARY_PATH'] if env.get('DYLD_LIBRARY_PATH') else '')
+    def run(args,log,check=True):
+        with log.open('w') as stream:
+            return subprocess.run(args,cwd=ROOT,env=env,stdout=stream,stderr=subprocess.STDOUT,check=check)
+    run([sys.executable,__file__,'--collect'],OUT/'collect.log')
+    groups=json.loads((OUT/'collection.json').read_text())
+    ids=[i for items in groups.values() for i in items]
+    assert len(ids)==len(set(ids))
+    plan={'collected':len(ids),'groups':{},'one_disposable_database':True}
+    # Refuse to delete or reuse a pre-existing database.
+    exists=subprocess.check_output([str(PG/'psql'),'-d','postgres','-Atc',
+                                    f"SELECT 1 FROM pg_database WHERE datname='{DB}'"],env=env,text=True).strip()
+    assert not exists,'Dedicated suite DB already exists; inspect ownership before cleaning it'
+    for index,(group,nodes) in enumerate(groups.items()):
+        owned=False
+        try:
+            subprocess.run(['df','-h','/'],check=True,stdout=subprocess.DEVNULL)
+            subprocess.run([str(PG/'createdb'),'--encoding=UTF8','--template=template0',DB],check=True,env=env)
+            owned=True
+            run([str(PG/'psql'),'-d',DB,'-v','ON_ERROR_STOP=1','-c','CREATE EXTENSION pg_trgm'],OUT/'extension.log')
+            run([str(PG/'psql'),'-d',DB,'-v','ON_ERROR_STOP=1','-f','tests/schema/schema.sql'],OUT/'schema.log')
+            result=run([sys.executable,__file__,'--shard',group],OUT/f'{index:02d}.log',check=False)
+            stats=json.loads((OUT/'result.json').read_text())
+            plan['groups'][group]={'collected':len(nodes),**stats,'returncode':result.returncode,'log':f'{index:02d}.log'}
+            (OUT/'summary.json').write_text(json.dumps(plan,indent=2))
+            print(f"{index+1}/{len(groups)} {group}: {stats}",flush=True)
+            if result.returncode or any(stats[k] for k in ['failed','error','skipped','xfailed','xpassed']):
+                return 1
+            assert stats['passed']==len(nodes),(group,stats,len(nodes))
+        finally:
+            if owned:subprocess.run([str(PG/'dropdb'),'--force',DB],check=True,env=env)
+    assert sum(g['passed'] for g in plan['groups'].values())==plan['collected']
+    print(f"Complete: {plan['collected']} passed; no skipped tests; sole database dropped.",flush=True)
+    return 0
+
+
+if __name__=='__main__':
+    if '--collect' in sys.argv:raise SystemExit(child(None))
+    if '--shard' in sys.argv:raise SystemExit(child(sys.argv[sys.argv.index('--shard')+1]))
+    raise SystemExit(main())

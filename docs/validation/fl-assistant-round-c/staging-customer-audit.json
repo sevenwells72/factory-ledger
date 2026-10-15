@@ -1,0 +1,22 @@
+{
+  "checked_at": "2026-10-15",
+  "environment": "staging",
+  "read_only": true,
+  "transaction": "SET TRANSACTION READ ONLY on guarded port 5432",
+  "matches": [
+    {
+      "source": "customer",
+      "id": 36,
+      "name": "A-1 Bakery Supply",
+      "active": true
+    },
+    {
+      "source": "customer",
+      "id": 69,
+      "name": "Bakers Depot",
+      "active": true
+    }
+  ],
+  "supplier_matches": [],
+  "conclusion": "Both names are real active customers; customer resolution already reads only the customers table. Round C preserves human selection and typed Add new."
+}

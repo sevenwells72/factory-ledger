@@ -96,7 +96,7 @@ test('Today button reads every actor across 500/101 pages, directly, newest firs
   assert.equal(rows.length, 601);
   assert.equal(rows[0].children[0].textContent, '11:10 AM — Received 50 lb Sunflower Seeds — RCV-261015-601 — Arturo');
   assert.equal(descendants(card).some(node => node.tag === 'table'), false, 'Today entries remain plain lines');
-  assert.match(text(card), /601 entries today\./);
+  assert.match(text(card), /You recorded 301 entries today; the team recorded 601\./);
   assert.match(text(card), /Michael/);
   assert.equal(h.get('send').getAttribute('aria-busy'), 'false');
 });
@@ -108,7 +108,7 @@ test('Today pagination shares one 15 second deadline instead of restarting it on
   } });
   await h.ready(); h.click(h.get('today-entries')); await flush();
   assert.deepEqual(h.scheduled.filter(timer => timer.delay <= 15000).map(timer => timer.delay), [15000, 5000]);
-  assert.match(h.text(), /0 entries today\./);
+  assert.match(h.text(), /You recorded 0 entries today; the team recorded 0\./);
   assert.equal(h.timers.size, 0);
 });
 
@@ -332,4 +332,36 @@ test('header controls and receipt tools retain responsive containment rules', ()
   assert.match(css, /\.header-actions button\{[^}]*white-space:nowrap/);
   assert.match(css, /\.topbar \.receipt-tools\{[^}]*grid-column:1\/-1;[^}]*min-width:0/);
   assert.match(css, /@media\(max-width:600px\)\{[\s\S]*\.topbar \.receipt-lookup input\{width:100%/);
+});
+
+for (const language of ['en', 'es']) test(`voice Today phrases read a truthful own/team summary and newest first in ${language}`, async () => {
+  const prompts = language === 'en' ? ["Open today's entries", 'Is everything there correct?', 'What did I record today?', "Show today's entries", "Open today's entries. Is everything there correct?"] : ['¿Qué registré hoy?', 'Muestra las entradas de hoy', 'Abre las entradas de hoy', '¿Está todo correcto?'];
+  for (const prompt of prompts) {
+    const h = page({ language, request: async ({ url }) => {
+      assert.equal(url.pathname, '/receipts');
+      return response({ receipts: [
+        {receipt_number: 'RCV-261015-001', actor: {id: 7, name: 'Arturo'}, action: 'receive', entered_at: '2026-10-15T15:00:00Z'},
+        {receipt_number: 'RCV-261015-002', actor: {id: 8, name: 'Michael'}, action: 'receive', entered_at: '2026-10-15T16:00:00Z'}], has_more: false });
+    } });
+    await h.ready(); h.submit(prompt); await flush();
+    assert.match(h.text(), language === 'en' ? /You recorded 1 entry today; the team recorded 2\./ : /Registraste 1 entrada hoy; el equipo registró 2\./);
+    const rows = descendants(h.cards()[0]).filter(node => node.className === 'today-entry');
+    assert.match(text(rows[0]), /RCV-261015-002/);
+    assert.equal(h.calls.some(call => call.url.pathname === '/assistant/turn'), false);
+    assert.doesNotMatch(text(h.cards()[0]), /try again|todo.*correcto|everything.*correct/i);
+  }
+});
+
+for (const language of ['en', 'es']) test(`unreadable and internal HTTP errors stay plain in ${language}`, async () => {
+  for (const request of [async () => ({ok: false, status: 500, json: async () => { throw new SyntaxError('Unexpected token I'); }}), async () => ({ok: false, status: 500, json: async () => ({detail: 'Internal server error'})})]) {
+    const h = page({language, request}); await h.ready(); h.click(h.get('today-entries')); await flush();
+    assert.match(h.text(), language === 'en' ? /Factory Ledger is temporarily unavailable — try again in a minute/ : /Factory Ledger no está disponible temporalmente — inténtalo de nuevo en un minuto/);
+    assert.doesNotMatch(h.text(), /Internal server error|unreadable response|Unexpected token/);
+  }
+});
+
+for (const language of ['en', 'es']) test(`spoken Today language follows the message when the UI started in ${language}`, async () => {
+  const h = page({language, request: async () => response({receipts: [], has_more: false})});
+  await h.ready(); h.submit(language === 'en' ? '¿Qué registré hoy?' : 'What did I record today?'); await flush();
+  assert.match(text(h.cards()[0]), language === 'en' ? /Registraste 0 entradas hoy; el equipo registró 0/ : /You recorded 0 entries today; the team recorded 0/);
 });

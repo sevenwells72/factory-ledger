@@ -218,11 +218,25 @@ try {
         if (language === 'es') await page.locator('#language').click();
         const boxes = await page.evaluate(() => {
           const header = document.querySelector('.topbar').getBoundingClientRect(), tools = document.querySelector('.receipt-tools').getBoundingClientRect(), chat = document.querySelector('#chat-panel').getBoundingClientRect();
-          return { width: innerWidth, scrollWidth: document.documentElement.scrollWidth, headerBottom: header.bottom, toolsBottom: tools.bottom, chatTop: chat.top,
-            controls: [...document.querySelectorAll('.header-actions button,.receipt-tools input,.receipt-tools button,.receipt-tools>a')].filter(node => getComputedStyle(node).display !== 'none').map(node => { const b = node.getBoundingClientRect(), range = document.createRange(); range.selectNodeContents(node); return { text: node.textContent, left: b.left, right: b.right, bottom: b.bottom, width: b.width, lines: node.matches('.header-actions button') ? range.getClientRects().length : 1 }; }) };
+          return { width: innerWidth, scrollWidth: document.documentElement.scrollWidth, headerBottom: header.bottom, toolsBottom: tools.bottom, chatTop: chat.top, menuClosed: !document.querySelector('#header-menu').open,
+            controls: [...document.querySelectorAll('.header-actions button,.tools-menu>summary,.receipt-tools input,.receipt-tools button,.receipt-tools>a')].filter(node => getComputedStyle(node).display !== 'none' && (!node.closest('details:not([open])') || node.matches('.tools-menu>summary'))).map(node => { const b = node.getBoundingClientRect(), range = document.createRange(); range.selectNodeContents(node); return { text: node.textContent, left: b.left, right: b.right, bottom: b.bottom, width: b.width, lines: node.matches('.header-actions button') ? range.getClientRects().length : 1 }; }) };
         });
-        assert.equal(boxes.width, boxes.scrollWidth); assert.ok(boxes.toolsBottom <= boxes.headerBottom); assert.ok(boxes.chatTop >= boxes.toolsBottom);
-        assert.ok(boxes.controls.every(c => c.width > 0 && c.left >= 0 && c.right <= width && c.bottom <= boxes.headerBottom && c.lines === 1), JSON.stringify(boxes));
+        assert.equal(boxes.width, boxes.scrollWidth);
+        assert.ok(boxes.controls.every(c => c.width > 0 && c.left >= 0 && c.right <= width && c.bottom <= boxes.headerBottom && c.lines <= (width <= 600 ? 2 : 1)), JSON.stringify(boxes));
+        if (width <= 600) {
+          assert.equal(boxes.menuClosed, true); assert.ok(boxes.chatTop >= boxes.headerBottom);
+          assert.equal(await page.locator('.receipt-lookup').isVisible(), false);
+          await page.locator('#header-menu summary').click();
+          assert.equal(await page.locator('.receipt-lookup').isVisible(), true);
+          const dropdown = await page.locator('[data-receipt-tools-host]').boundingBox();
+          assert.ok(dropdown.x >= 0 && dropdown.x + dropdown.width <= width, JSON.stringify(dropdown));
+          for (const control of await page.locator('.receipt-tools input,.receipt-tools button,.receipt-tools>a').all()) {
+            if (!await control.isVisible()) continue;
+            const box = await control.boundingBox(); assert.ok(box.width > 0 && box.x >= dropdown.x && box.x + box.width <= dropdown.x + dropdown.width, JSON.stringify(box));
+          }
+          assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), width);
+          await take(`08-menu-${language}`); await page.locator('#header-menu summary').click();
+        } else {assert.ok(boxes.toolsBottom <= boxes.headerBottom); assert.ok(boxes.chatTop >= boxes.toolsBottom);}
         await take(`08-header-${language}`);
       }
     });
@@ -266,13 +280,13 @@ try {
       await page.locator(width === 390 ? '#today-entries-mobile' : '#today-entries').click();
       await page.waitForFunction(() => !document.getElementById('send').disabled);
       const team = page.locator('.assistant-message .card').last();
-      assert.equal(await team.locator('.read-summary').textContent(), '6 entries today.');
+      assert.equal(await team.locator('.read-summary').textContent(), 'You recorded 0 entries today; the team recorded 6.');
       assert.equal(await team.locator('.today-entry').count(), 6);
       assert.equal(await own.locator('.read-summary').textContent(), "You've recorded 0 entries today. Team total: see Today's entries.");
       await take('12-own-and-team-entries', team);
       await page.locator('#language').click();
       assert.equal(await own.locator('.read-summary').textContent(), 'Has registrado 0 entradas hoy. Total del equipo: consulta las entradas de hoy.');
-      assert.equal(await team.locator('.read-summary').textContent(), '6 entradas hoy.');
+      assert.equal(await team.locator('.read-summary').textContent(), 'Registraste 0 entradas hoy; el equipo registró 6.');
       await take('12-own-and-team-entries-es', team);
     });
     await test(13, 'Finished inventory shows pounds alongside cases without changing weight units', async () => {

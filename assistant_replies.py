@@ -8,15 +8,38 @@ def language(text, previous='en'):
         return 'es'
     words = unicodedata.normalize('NFKD', text.lower())
     words = ''.join(c for c in words if not unicodedata.combining(c))
-    if re.search(r"\b(hola|puedes|puede|donde|quien|cual|cantidad|recibio|recibieron|totalmente|solo una prueba|calcula|registres|guardes|ordenes|abiertas|fabricamos|existencias|avena|miel|recibimos|recibi|recibir|hicimos|hice|empacamos|empacado|empaque|enviamos|enviar|cuanto|cuanta|cuantos|cuales|que pedidos|pedidos abiertos|muestra|mostrar|semillas|girasol|libras|cajas|lote|inventario|tenemos|hay|ajusta|ajustar|ninguno|otro)\b", words):
+    if re.search(r"\b(hola|registre|registramos|entradas|hoy|puedes|puede|donde|quien|cual|cantidad|recibio|recibieron|totalmente|solo una prueba|calcula|registres|guardes|ordenes|abiertas|fabricamos|existencias|avena|miel|recibimos|recibi|recibir|hicimos|hice|empacamos|empacado|empaque|enviamos|enviar|cuanto|cuanta|cuantos|cuales|que pedidos|pedidos abiertos|muestra|mostrar|semillas|girasol|libras|cajas|lote|inventario|tenemos|hay|ajusta|ajustar|ninguno|otro)\b", words):
         return 'es'
     if re.search(r"\b(what|which|how|received|receive|made|make|packed|pack|ship|orders|inventory|lot|show|adjust)\b", words):
         return 'en'
     return previous
 
 
+def is_today_query(text):
+    """Read-only day review intents, including the immediate voice follow-up."""
+    words = unicodedata.normalize('NFKD', text.lower().replace('’', "'"))
+    words = ''.join(c for c in words if not unicodedata.combining(c))
+    words = ' '.join(re.sub(r"[^a-z0-9' ]+", ' ', words).split())
+    english = (r"(?:(?:open|show|list)(?: me)?(?: all)?(?: of)? (?:today'?s entries|entries (?:for |from )?today)"
+               r"|what (?:did|have) (?:i|we) (?:enter(?:ed)?|record(?:ed)?) today|today'?s entries)"
+               r"(?: is everything there correct)?")
+    spanish = (r"(?:(?:abre|abrir|mostrar|muestra|ver|lista)(?: todas)?(?: las)? (?:entradas|registros) de hoy"
+               r"|(?:entradas|registros) de hoy|que (?:registre|registramos|he registrado) hoy)"
+               r"(?: esta todo correcto)?")
+    return bool(re.fullmatch(english + '|' + spanish + '|is everything there correct|esta todo(?: ahi)? correcto', words))
+
+
+
 def number(value):
     return format(float(value or 0), ',.4f').rstrip('0').rstrip('.')
+
+
+
+def include_zero_stock(text):
+    """An explicit empty-stock request may include catalog rows at zero."""
+    words = unicodedata.normalize('NFKD', text.lower())
+    words = ''.join(c for c in words if not unicodedata.combining(c))
+    return bool(re.search(r'\b(?:zero|0|empty|out of stock|cero|agotad[oa]s?|sin existencias|sin inventario)\b', words))
 
 
 def read_card(tool, result, lang):
@@ -24,12 +47,32 @@ def read_card(tool, result, lang):
     rows = []
     if tool == 'inventory_lookup':
         rows = result.get('results', [])
-        answers = [f"{r['product']}: {number(r.get('total_on_hand'))} lb " +
-                   (f"en {len(r.get('lots', []))} " + ('lote' if len(r.get('lots', [])) == 1 else 'lotes') if es else f"in {len(r.get('lots', []))} " + ('lot' if len(r.get('lots', [])) == 1 else 'lots')) for r in rows]
+        answers = []
+        for row in rows:
+            quantity = f"{number(row.get('total_on_hand'))} lb"
+            if row.get('unit_count') is not None:
+                count = row['unit_count']
+                unit = ('caja' if count == 1 else 'cajas') if es else ('case' if count == 1 else 'cases')
+                quantity += f" ({number(count)} {unit})"
+            lots = len(row.get('lots', []))
+            unit = ('lote' if lots == 1 else 'lotes') if es else ('lot' if lots == 1 else 'lots')
+            answers.append(f"{row['product']}: {quantity} " + ('en' if es else 'in') + f" {lots} {unit}")
         summary = '; '.join(answers) + '.' if answers else (
-            f"No encontré inventario para «{result.get('query', '')}»." if es else
-            f"I found no inventory for “{result.get('query', '')}”.")
-        if any(r.get('unverified_lots') for r in rows):
+            (f"No hay existencias de «{result.get('query', '')}»." if es else
+             f"There is no stock of “{result.get('query', '')}”.") if result.get('product_names') else
+            (f"No encontré inventario para «{result.get('query', '')}»." if es else
+             f"I found no inventory for “{result.get('query', '')}”."))
+        family = result.get('stock_family')
+        if family and rows:
+            bulk = sum(float(r.get('total_on_hand') or 0) for r in rows if r['product'] == family['bulk_product'])
+            finished = sum(float(r.get('total_on_hand') or 0) for r in rows if r['product'] != family['bulk_product'])
+            parts = []
+            if bulk or result.get('include_zero'):
+                parts.append(f"{number(bulk)} lb " + ('a granel' if es else 'in bulk'))
+            if finished or result.get('include_zero'):
+                parts.append(f"{number(finished)} lb " + ('en productos terminados' if es else 'in finished products'))
+            summary = family['bulk_product'] + ': ' + (' y ' if es else ' and ').join(parts) + '.'
+        if result.get('unverified_evidence') or any(r.get('unverified_lots') for r in rows):
             summary += (' Hay lotes sin verificar, pendientes de seguimiento.' if es else
                         ' Some lots are unverified, awaiting follow-up.')
     elif tool == 'lot_lookup':
@@ -52,7 +95,14 @@ def read_card(tool, result, lang):
         summary += (" (primeros 200)." if es else " (first 200).") if result.get('truncated') else '.'
     elif tool == 'today_entries':
         rows = result.get('receipts', result.get('entries', []))
-        summary = (f"Hoy registró {len(rows)} entradas." if es else f"You recorded {len(rows)} entries today.")
+        own, team = result.get('own_count', len(rows)), result.get('team_count')
+        if team is None:
+            summary = (f"Hoy registró {own} entradas." if es else f"You recorded {own} entries today.")
+        elif es:
+            summary = f"Hoy registró {own} " + ('entrada' if own == 1 else 'entradas') + f"; el equipo registró {team}."
+        else:
+            summary = f"You recorded {own} " + ('entry' if own == 1 else 'entries') + f" today; the team recorded {team}."
+
     elif tool == 'receipt_lookup':
         rows = [result]
         receipt = result.get('receipt_number', '')
@@ -114,7 +164,13 @@ def decorate(card, lang):
         if card.get('resolution_kind') == 'lot':
             card['message'] = (f"No hay un lote llamado {card.get('query', '')}." if es else f"No lot called {card.get('query', '')}.")
     elif kind == 'choices':
-        card['message'] = 'Elija una de estas opciones de Factory Ledger.' if es else 'Choose one of these Factory Ledger matches.'
+        card['message'] = '¿Quiso decir una de estas opciones?' if es else 'Did you mean one of these?'
+        if card.get('result', {}).get('outcome') == 'none' and card.get('query'):
+            card['message'] = (f'No reconocí «{card["query"]}». ' if es else f'I did not recognize “{card["query"]}”. ') + card['message']
+        if card.get('packing_lots'):
+            query = card.get('query', '')
+            card['message'] = ((f'No encontré el lote {query}. ' if query else '') + '¿De qué lote a granel salieron?' if es else
+                               (f"I couldn't find lot {query}. " if query else '') + 'Which batch did these come from?')
         result = dict(card['result'])
         result['ask'] = card['message']
         # Catalog names remain the identities printed on physical labels.
@@ -136,6 +192,11 @@ def decorate(card, lang):
         if not isinstance(detail, dict):
             detail = {}
         code = detail.get('error_code') or detail.get('code') or (result.get('error_detail') or {}).get('code')
+        if card.get('status', 0) >= 500:
+            card['message'] = ('Factory Ledger no está disponible temporalmente — inténtelo de nuevo en un minuto.' if es else
+                               'Factory Ledger is temporarily unavailable — try again in a minute.')
+            card['error_code'] = code
+            return card
         card['message'] = ERRORS.get(code, ('I could not complete that Factory Ledger request. Check the item and details.', 'No pude completar esa solicitud de Factory Ledger. Revise el artículo y los datos.'))[es]
         if code == 'LOT_NOT_FOUND' and card.get('query'):
             card['message'] = (f"No hay un lote llamado {card['query']}." if es else f"No lot called {card['query']}.")

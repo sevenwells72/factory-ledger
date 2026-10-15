@@ -1,0 +1,106 @@
+{
+  "python": {
+    "0": {
+      "passed": 6354,
+      "fresh_database_groups": 22,
+      "failed": 0,
+      "skipped": 0
+    },
+    "1": {
+      "passed": 6354,
+      "fresh_database_groups": 22,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "node": {
+    "passed": 371,
+    "failed": 0,
+    "skipped": 0
+  },
+  "browsers": {
+    "all_runners_passed": true,
+    "existing_assistant_and_customer": {
+      "passed_modes": 2
+    },
+    "round_a": {
+      "passed": 60,
+      "modes": 2
+    },
+    "round_b_contract": {
+      "passed": 18,
+      "modes": 2,
+      "preview_only": true
+    },
+    "round_b_page": {
+      "passed": 68,
+      "modes": 2,
+      "preview_only": true
+    },
+    "round_c_transcripts": {
+      "passed": 72,
+      "engines": [
+        "chromium",
+        "webkit"
+      ],
+      "modes": 2,
+      "record_requests": 0
+    },
+    "phone": {
+      "passed": 288,
+      "failed": 0,
+      "engines": [
+        "chromium",
+        "webkit"
+      ],
+      "session_modes": [
+        0,
+        1
+      ]
+    },
+    "final_runtime_sha256": {
+      "assistant_replies.py": "0c70c3142d889de8cf960c1380497b8c0c7994b7d3a937a01721d96e41297eb4",
+      "assistant_voice.py": "689a0a711ab22045d95e8b4e576f9c7640dd3cf3b0298dec71eadb8958e9576c",
+      "assistant_tools.py": "7dae900466c49e03e66571154bd0e5fcb79210606ead7e88606c620cada7eee6",
+      "fl_assistant.py": "cf0631c7e7ba903699929f4a849b20eed3eb36880b779152d2e0dd7fa2532a7c",
+      "resolution.py": "8caff7031d2973a9c7cce4ec062ec79b04fb0bc192fe4f15df621a8223da5967",
+      "main.py": "79b260d3d8a954401b92ac7ac9cc139f046435e50e6b428d5975f9746bb0a750",
+      "write_tickets.py": "89424476f30b77ca12193f29689a43a075082068648dbac79a2be78999e97a95",
+      "dashboard/assistant-display.js": "f6d3f4d092a6d6ba0bbebf9b82e19af855b8e14ac8e70d5b21f76ae9a4441d22",
+      "dashboard/fl-assistant.js": "e90d3bdf6be30b2db87c44b0c6b1a2ca769fe66ddd06d511f74e4f908907d640",
+      "dashboard/fl-assistant.html": "66e994fbf778b23e9bacd8c732131b9cbf6e00b5cb055f9b1965b50c70884fed",
+      "dashboard/fl-assistant.css": "00e3533fc4cfe4c25ad82fdff2017d2873babe59786e0b12ba8fc5b9d3d6ad2d"
+    }
+  },
+  "real_staging_copy": {
+    "lots": 536,
+    "normalization_variants_per_lot_per_mode": 4,
+    "exact_lookups_per_mode": 536,
+    "session_modes": [
+      0,
+      1
+    ],
+    "exact_transcripts_passed": 28,
+    "final_source_affected_transcripts_passed": 12,
+    "actual_phone_page_checks": 4,
+    "record_calls": 0,
+    "ledger_or_catalog_changes": 0
+  },
+  "runtime_sha256": {
+    "assistant_replies.py": "0c70c3142d889de8cf960c1380497b8c0c7994b7d3a937a01721d96e41297eb4",
+    "assistant_voice.py": "689a0a711ab22045d95e8b4e576f9c7640dd3cf3b0298dec71eadb8958e9576c",
+    "assistant_tools.py": "7dae900466c49e03e66571154bd0e5fcb79210606ead7e88606c620cada7eee6",
+    "fl_assistant.py": "cf0631c7e7ba903699929f4a849b20eed3eb36880b779152d2e0dd7fa2532a7c",
+    "resolution.py": "8caff7031d2973a9c7cce4ec062ec79b04fb0bc192fe4f15df621a8223da5967",
+    "main.py": "79b260d3d8a954401b92ac7ac9cc139f046435e50e6b428d5975f9746bb0a750",
+    "write_tickets.py": "89424476f30b77ca12193f29689a43a075082068648dbac79a2be78999e97a95",
+    "dashboard/assistant-display.js": "f6d3f4d092a6d6ba0bbebf9b82e19af855b8e14ac8e70d5b21f76ae9a4441d22",
+    "dashboard/fl-assistant.js": "e90d3bdf6be30b2db87c44b0c6b1a2ca769fe66ddd06d511f74e4f908907d640",
+    "dashboard/fl-assistant.html": "66e994fbf778b23e9bacd8c732131b9cbf6e00b5cb055f9b1965b50c70884fed",
+    "dashboard/fl-assistant.css": "00e3533fc4cfe4c25ad82fdff2017d2873babe59786e0b12ba8fc5b9d3d6ad2d"
+  },
+  "settings_or_model_changed": false,
+  "read_only_staging_dump": true,
+  "physical_lot_confirmation_required": true,
+  "cleanup": "Fresh suite and focused DBs dropped. Shared staging snapshot and dump retained only through round D; final D receipt records removal."
+}

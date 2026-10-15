@@ -57,6 +57,8 @@ CATALOG_SPANISH_ALIASES = {
     'azucar morena': 'brown sugar',
     'chispas de chocolate': 'chocolate chips',
     'trocitos de chocolate': 'chocolate chips',
+    'granola de frutas y nueces': 'granola fruit nut',
+    'frutas y nueces': 'fruit nut',
     'granola clasica': 'classic granola',
     'nueces de nogal': 'walnuts',
     'nueces de pecan': 'pecans',
@@ -106,14 +108,18 @@ def _catalog_spanish_aliases(cur, query):
                  if re.search(r'(?<![a-z0-9])' + re.escape(es) + r'(?![a-z0-9])', q)]
     if not requested:
         return []
-    patterns = [r'\m' + r'\s+'.join(re.escape(part) for part in en.split()) + r'\M'
-                for _, en in requested]
+    # Food words must all exist on one active catalog item; ordering and
+    # conjunction punctuation differ between "Granola Fruit Nut" and
+    # "Fruit & Nut Granola". Neither spelling creates a product identity.
+    words = {en: re.findall(r'[a-z0-9]+', en) for _, en in requested}
+    patterns = [r'\m' + re.escape(word) + r'\M' for terms in words.values() for word in terms]
     cur.execute("""SELECT name FROM products WHERE active IS DISTINCT FROM false
                    AND lower(name) ~ ANY(%s::text[])""", (patterns,))
     names = [normalize(row['name']) for row in cur.fetchall()]
     return [dict(kind='token', alias=es, expansion=en, language='es', active=True)
-            for es, en in requested if any(re.search(
-                r'(?<![a-z0-9])' + re.escape(en) + r'(?![a-z0-9])', name) for name in names)]
+            for es, en in requested if any(all(re.search(
+                r'(?<![a-z0-9])' + re.escape(word) + r'(?![a-z0-9])', name)
+                for word in words[en]) for name in names)]
 
 
 class ResolutionContext(BaseModel):
@@ -543,6 +549,45 @@ def _products(cur, req, variants, aliases):
     return rows
 
 
+
+def _inventory_core(query):
+    """Remove catalog scaffolding, retaining recipe/tier/number identity."""
+    words = re.findall(r'[a-z0-9]+', _unaccent(catalog_query(query)))
+    return tuple(word for word in words if word not in {'batch', 'granola', 'and'})
+
+
+def inventory_products(cur, query, resolved):
+    """Assistant stock identity: exact item or one bulk recipe and its children.
+
+    This does not change /resolve's write-action choices. A broad keyword match
+    is not evidence that differently flavored recipes are interchangeable.
+    """
+    match = resolved.get('match')
+    if match and match.get('tier') == 'exact':
+        return [match]
+    cur.execute("""SELECT id,name,odoo_code,type,parent_batch_product_id,kosher_tier,
+        case_size_lb,pack_format,default_batch_lb
+        FROM products WHERE active IS DISTINCT FROM false ORDER BY name,id""")
+    catalog = [dict(row) for row in cur.fetchall()]
+    literal = [row for row in catalog if normalize(query) in
+               (normalize(row['name']), normalize(row['odoo_code']), str(row['id']))]
+    if literal:
+        # Preserve ID/SKU collisions as choices just as /resolve does.
+        return literal if len(literal) == 1 else None
+    core = _inventory_core(query)
+    roots = [row for row in catalog if row['type'] == 'batch' and _inventory_core(row['name']) == core]
+    if len(roots) == 1:
+        root = roots[0]
+        children = [row for row in catalog if row['type'] == 'finished'
+                    and row.get('parent_batch_product_id') == root['id']]
+        return [root, *children]
+    if len(roots) > 1:
+        return None
+    if match and match.get('tier') != 'trigram':
+        return [match]
+    return None
+
+
 def _parties(cur, req, variants, aliases):
     kind, c = req.kind, req.context
     ids = _target_ids(aliases, kind, req.query)
@@ -800,7 +845,7 @@ def resolve(cur, req, *, aliases=None):
         result = decide(req.query, rows, truncated=truncated, limit=req.limit, offset=req.offset)
     if req.kind=='product':
         nine,sunshine,bare = classic_nine(req.query)
-        if bare and not sunshine and result['outcome']=='match':
+        if bare and not sunshine and result['outcome']=='match' and result['match'].get('tier') != 'exact':
             result.update(outcome='ambiguous',match=None,needs_clarification=True,
                 ask='Choose the Classic #9 kosher tier: ' + '; '.join(c['label'] for c in result['candidates']))
     result['alias_table_available'] = available

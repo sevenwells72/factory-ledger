@@ -23,7 +23,7 @@ ROOT = Path.cwd()
 sys.path.insert(0, str(ROOT))
 URL = os.environ['TEST_DATABASE_URL']
 parsed = urlsplit(URL)
-assert parsed.hostname == '127.0.0.1' and parsed.path.startswith('/fl_fixB3_')
+assert parsed.hostname == '127.0.0.1' and parsed.path.startswith('/' + os.environ.get('TEST_DB_PREFIX', 'fl_fixB3_'))
 REAL_MODEL = os.environ.get('FIXB_REAL_MODEL') == '1'
 os.environ.update(DATABASE_URL=URL, API_KEY='fixb-page-master',
                   DASHBOARD_API_KEY='fixb-page-read', ASSISTANT_ENABLED='1')

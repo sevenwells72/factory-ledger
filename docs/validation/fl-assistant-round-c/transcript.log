@@ -1,0 +1,85 @@
+/private/tmp/fl_fixB3_venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:408: UserWarning: Valid config keys have changed in V2:
+* 'underscore_attrs_are_private' has been removed
+  warnings.warn(message, UserWarning)
+chromium sessions=0 390px en classic-inventory: passed
+chromium sessions=0 390px en classic-make: passed
+chromium sessions=0 390px en ss-make: passed
+chromium sessions=0 390px en receive-green-supply: passed
+chromium sessions=0 390px en pack-spoken-lot: passed
+chromium sessions=0 390px en customer-only-order: passed
+chromium sessions=0 390px en today-exact-transcript: passed
+chromium sessions=0 390px en today-short-query: passed
+chromium sessions=0 390px en spoken-letter-code: passed
+chromium sessions=0 390px es classic-inventory: passed
+chromium sessions=0 390px es classic-make: passed
+chromium sessions=0 390px es ss-make: passed
+chromium sessions=0 390px es receive-green-supply: passed
+chromium sessions=0 390px es pack-spoken-lot: passed
+chromium sessions=0 390px es customer-only-order: passed
+chromium sessions=0 390px es today-exact-transcript: passed
+chromium sessions=0 390px es today-short-query: passed
+chromium sessions=0 390px es spoken-letter-code: passed
+/private/tmp/fl_fixB3_venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:408: UserWarning: Valid config keys have changed in V2:
+* 'underscore_attrs_are_private' has been removed
+  warnings.warn(message, UserWarning)
+chromium sessions=1 390px en classic-inventory: passed
+chromium sessions=1 390px en classic-make: passed
+chromium sessions=1 390px en ss-make: passed
+chromium sessions=1 390px en receive-green-supply: passed
+chromium sessions=1 390px en pack-spoken-lot: passed
+chromium sessions=1 390px en customer-only-order: passed
+chromium sessions=1 390px en today-exact-transcript: passed
+chromium sessions=1 390px en today-short-query: passed
+chromium sessions=1 390px en spoken-letter-code: passed
+chromium sessions=1 390px es classic-inventory: passed
+chromium sessions=1 390px es classic-make: passed
+chromium sessions=1 390px es ss-make: passed
+chromium sessions=1 390px es receive-green-supply: passed
+chromium sessions=1 390px es pack-spoken-lot: passed
+chromium sessions=1 390px es customer-only-order: passed
+chromium sessions=1 390px es today-exact-transcript: passed
+chromium sessions=1 390px es today-short-query: passed
+chromium sessions=1 390px es spoken-letter-code: passed
+/private/tmp/fl_fixB3_venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:408: UserWarning: Valid config keys have changed in V2:
+* 'underscore_attrs_are_private' has been removed
+  warnings.warn(message, UserWarning)
+webkit sessions=0 390px en classic-inventory: passed
+webkit sessions=0 390px en classic-make: passed
+webkit sessions=0 390px en ss-make: passed
+webkit sessions=0 390px en receive-green-supply: passed
+webkit sessions=0 390px en pack-spoken-lot: passed
+webkit sessions=0 390px en customer-only-order: passed
+webkit sessions=0 390px en today-exact-transcript: passed
+webkit sessions=0 390px en today-short-query: passed
+webkit sessions=0 390px en spoken-letter-code: passed
+webkit sessions=0 390px es classic-inventory: passed
+webkit sessions=0 390px es classic-make: passed
+webkit sessions=0 390px es ss-make: passed
+webkit sessions=0 390px es receive-green-supply: passed
+webkit sessions=0 390px es pack-spoken-lot: passed
+webkit sessions=0 390px es customer-only-order: passed
+webkit sessions=0 390px es today-exact-transcript: passed
+webkit sessions=0 390px es today-short-query: passed
+webkit sessions=0 390px es spoken-letter-code: passed
+/private/tmp/fl_fixB3_venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:408: UserWarning: Valid config keys have changed in V2:
+* 'underscore_attrs_are_private' has been removed
+  warnings.warn(message, UserWarning)
+webkit sessions=1 390px en classic-inventory: passed
+webkit sessions=1 390px en classic-make: passed
+webkit sessions=1 390px en ss-make: passed
+webkit sessions=1 390px en receive-green-supply: passed
+webkit sessions=1 390px en pack-spoken-lot: passed
+webkit sessions=1 390px en customer-only-order: passed
+webkit sessions=1 390px en today-exact-transcript: passed
+webkit sessions=1 390px en today-short-query: passed
+webkit sessions=1 390px en spoken-letter-code: passed
+webkit sessions=1 390px es classic-inventory: passed
+webkit sessions=1 390px es classic-make: passed
+webkit sessions=1 390px es ss-make: passed
+webkit sessions=1 390px es receive-green-supply: passed
+webkit sessions=1 390px es pack-spoken-lot: passed
+webkit sessions=1 390px es customer-only-order: passed
+webkit sessions=1 390px es today-exact-transcript: passed
+webkit sessions=1 390px es today-short-query: passed
+webkit sessions=1 390px es spoken-letter-code: passed
+Round C transcripts: 72 checks passed; zero Record calls; disposable databases dropped.

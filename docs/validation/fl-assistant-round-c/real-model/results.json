@@ -1,0 +1,832 @@
+{
+  "runner": "tests/visual/run-fl-assistant-round-c.mjs",
+  "actual_page": true,
+  "actual_api": true,
+  "local_only": true,
+  "model_tool_selection_stubbed": false,
+  "actual_microphone_or_iphone": false,
+  "browser_record_calls": 0,
+  "coverage_limit": "Text transcripts use real page/API/DB. Default model tool selection is queued; speech recognition and physical iPhone Safari are not exercised.",
+  "results": [
+    {
+      "label": "classic-inventory",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-0-chromium/390-classic-inventory-en.png",
+      "visible_text": "How much classic number nine do we have?\n\u2727\nFROM FACTORY LEDGER\nHere\u2019s what FL shows\n\nBatch Classic Granola #9: 1,000 lb (200 cases) in 1 lot.\n\nLot\tQuantity\tUnit\nCLASSIC-9012\t1,000\tlb"
+    },
+    {
+      "label": "classic-make",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-0-chromium/390-classic-make-en.png",
+      "visible_text": "Made two batches of classic number nine.\n\u2727\n\nDid you mean one of these?\n\nBatch Classic Granola #9 \u2014 Regular\nNone of these\n\u2727\nDRAFT \u00b7 NOT RECORDED\nMake\n\nRecording as Round C Worker\n\nProduct\nBatch Classic Granola #9\nQuantity\n20 lb\nBatches\n2\nLot\nB26-1015-001\nHappened at\nToday 2:19 PM\nExpires\nToday 2:29 PM\n\nType the last 4 characters from the tag on each bag you used.\n\nSunflower Seeds \u00b7 20 lb\nDifferent lot\n\nSunflower Seeds \u00b7 SUNFLOWER-ABCD \u00b7 20 lb\nLast 4, including hyphen\nFull lot code\nScan full lot code\nPallet \u2014 full lot code\nRecord\nCancel"
+    },
+    {
+      "label": "ss-make",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-0-chromium/390-ss-make-en.png",
+      "visible_text": "Made one batch of SS number one.\n\u2727\nDRAFT \u00b7 NOT RECORDED\nMake\n\nRecording as Round C Worker\n\nProduct\nBatch SS #1\nQuantity\n10 lb\nBatches\n1\nLot\nB26-1015-001\nHappened at\nToday 2:19 PM\nExpires\nToday 2:29 PM\n\nType the last 4 characters from the tag on each bag you used.\n\nSunflower Seeds \u00b7 10 lb\nDifferent lot\n\nSunflower Seeds \u00b7 SUNFLOWER-ABCD \u00b7 10 lb\nLast 4, including hyphen\nFull lot code\nScan full lot code\nPallet \u2014 full lot code\nRecord\nCancel"
+    },
+    {
+      "label": "receive-green-supply",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-0-chromium/390-receive-green-supply-en.png",
+      "visible_text": "We received four bags of sunflower seeds, 50 pounds each, from Green Supply, POL 5521.\n\u2727\n\nDid you mean one of these?\n\nGrain Supply\nA-1 Bakery Supply\nSearch suppliers\nSearch\n\u2727\nDRAFT \u00b7 NOT RECORDED\nReceive\n\nRecording as Round C Worker\n\nProduct\nSunflower Seeds\nQuantity\n200 lb\nCases\n4\nSupplier\nGrain Supply\nLot\n26-10-15-GRAI-001\nBOL\n5521\nLot note\nLot identity needs to be checked\nHappened at\nToday 2:19 PM\nExpires\nToday 2:29 PM\nRecord\nCancel"
+    },
+    {
+      "label": "pack-spoken-lot",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-0-chromium/390-pack-spoken-lot-en.png",
+      "visible_text": "Packed 40 cases of fruit and nut granola from batch lot one two three four.\n\u2727\nDRAFT \u00b7 NOT RECORDED\nPack\n\nRecording as Round C Worker\n\nProduct\nFruit and Nut Granola\nQuantity\n200 lb\nCases\n40\nSource\nFruit and Nut Granola Batch\nLot\n1234\nHappened at\nToday 2:19 PM\nExpires\nToday 2:29 PM\nFruit and Nut Granola Batch \u00b7 1234 \u00b7 200 lb\nLast 4, including hyphen\nFull lot code\nScan full lot code\nPallet \u2014 full lot code\nType the last 4 characters from the physical tag, including the hyphen (for example, \"-004\").\nType the last 4 characters from the tag on each bag you used.\nRecord\nCancel"
+    },
+    {
+      "label": "customer-only-order",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-0-chromium/390-customer-only-order-en.png",
+      "visible_text": "New order from fake bakery. Five cases of rainbow sprinkles.\n\u2727\n\nDid you mean one of these?\n\nLake Bakery\nRainbow Bakery\nAdd 'fake bakery' as a new customer\nNone of these\n\u2727\nDRAFT \u00b7 NOT RECORDED\nCreate order\n\nRecording as Round C Worker\n\nProduct\nRainbow Sprinkles\nQuantity\n25 lb\nCustomer\nLake Bakery\nExpires\nToday 2:29 PM\nRainbow Sprinkles\nQuantity\n5 cases\nPounds\n25\nThis order has no customer PO; it will be flagged 'No PO'.\nRecord\nCancel"
+    },
+    {
+      "label": "today-exact-transcript",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-0-chromium/390-today-exact-transcript-en.png",
+      "visible_text": "Open today's entries. Is everything there correct?\n\u2727\n\nYou recorded 0 entries today; the team recorded 0."
+    },
+    {
+      "label": "today-short-query",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-0-chromium/390-today-short-query-en.png",
+      "visible_text": "What did I record today?\n\u2727\n\nYou recorded 0 entries today; the team recorded 0."
+    },
+    {
+      "label": "spoken-letter-code",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-0-chromium/390-spoken-letter-code-en.png",
+      "visible_text": "How much is in lot P fifteen eighty-five?\n\u2727\nFROM FACTORY LEDGER\nHere\u2019s what FL shows\n\nLot P1585: 1,000 lb of Batch SS #1."
+    },
+    {
+      "label": "classic-inventory",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-0-chromium/390-classic-inventory-es.png",
+      "visible_text": "\u00bfCu\u00e1nto tenemos de classic n\u00famero nueve?\n\u2727\nDE FACTORY LEDGER\nEsto muestra FL\n\nBatch Classic Granola #9: 1,000 lb (200 cajas) en 1 lote.\n\nLote\tCantidad\tUnidad\nCLASSIC-9012\t1,000\tlb"
+    },
+    {
+      "label": "classic-make",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-0-chromium/390-classic-make-es.png",
+      "visible_text": "Hicimos dos tandas de classic n\u00famero nueve.\n\u2727\n\n\u00bfQuiso decir una de estas opciones?\n\nBatch Classic Granola #9 \u2014 Regular\nNinguno de estos\n\u2727\nBORRADOR \u00b7 NO REGISTRADO\nProducir\n\nRegistrando como Round C Worker\n\nProducto\nBatch Classic Granola #9\nCantidad\n20 lb\nLotes de producci\u00f3n\n2\nLote\nB26-1015-001\nOcurri\u00f3 el\nHoy 2:19 PM\nVence\nHoy 2:29 PM\n\nEscriba los \u00faltimos 4 caracteres de la etiqueta de cada bolsa que us\u00f3.\n\nSunflower Seeds \u00b7 20 lb\nOtro lote\n\nSunflower Seeds \u00b7 SUNFLOWER-ABCD \u00b7 20 lb\n\u00daltimos 4, incluido el guion\nC\u00f3digo de lote completo\nEscanear c\u00f3digo completo\nPal\u00e9 \u2014 c\u00f3digo de lote completo\nRegistrar\nCancelar"
+    },
+    {
+      "label": "ss-make",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-0-chromium/390-ss-make-es.png",
+      "visible_text": "Hicimos una tanda de SS n\u00famero uno.\n\u2727\nBORRADOR \u00b7 NO REGISTRADO\nProducir\n\nRegistrando como Round C Worker\n\nProducto\nBatch SS #1\nCantidad\n10 lb\nLotes de producci\u00f3n\n1\nLote\nB26-1015-001\nOcurri\u00f3 el\nHoy 2:19 PM\nVence\nHoy 2:29 PM\n\nEscriba los \u00faltimos 4 caracteres de la etiqueta de cada bolsa que us\u00f3.\n\nSunflower Seeds \u00b7 10 lb\nOtro lote\n\nSunflower Seeds \u00b7 SUNFLOWER-ABCD \u00b7 10 lb\n\u00daltimos 4, incluido el guion\nC\u00f3digo de lote completo\nEscanear c\u00f3digo completo\nPal\u00e9 \u2014 c\u00f3digo de lote completo\nRegistrar\nCancelar"
+    },
+    {
+      "label": "receive-green-supply",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-0-chromium/390-receive-green-supply-es.png",
+      "visible_text": "Recibimos cuatro bolsas de semillas de girasol, cincuenta libras cada una, de Green Supply, POL 5521.\n\u2727\n\n\u00bfQuiso decir una de estas opciones?\n\nGrain Supply\nA-1 Bakery Supply\nBuscar proveedores\nBuscar\n\u2727\nBORRADOR \u00b7 NO REGISTRADO\nRecibir\n\nRegistrando como Round C Worker\n\nProducto\nSunflower Seeds\nCantidad\n200 lb\nCajas\n4\nProveedor\nGrain Supply\nLote\n26-10-15-GRAI-001\nBOL\n5521\nNota del lote\nHay que verificar la identidad del lote\nOcurri\u00f3 el\nHoy 2:20 PM\nVence\nHoy 2:30 PM\nRegistrar\nCancelar"
+    },
+    {
+      "label": "pack-spoken-lot",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-0-chromium/390-pack-spoken-lot-es.png",
+      "visible_text": "Empacamos cuarenta cajas de fruit and nut granola del lote uno dos tres cuatro.\n\u2727\nBORRADOR \u00b7 NO REGISTRADO\nEmpacar\n\nRegistrando como Round C Worker\n\nProducto\nFruit and Nut Granola\nCantidad\n200 lb\nCajas\n40\nOrigen\nFruit and Nut Granola Batch\nLote\n1234\nOcurri\u00f3 el\nHoy 2:20 PM\nVence\nHoy 2:30 PM\nFruit and Nut Granola Batch \u00b7 1234 \u00b7 200 lb\n\u00daltimos 4, incluido el guion\nC\u00f3digo de lote completo\nEscanear c\u00f3digo completo\nPal\u00e9 \u2014 c\u00f3digo de lote completo\nEscribe los \u00faltimos 4 caracteres de la etiqueta f\u00edsica, incluido el guion (por ejemplo, \"-004\").\nEscriba los \u00faltimos 4 caracteres de la etiqueta de cada bolsa que us\u00f3.\nRegistrar\nCancelar"
+    },
+    {
+      "label": "customer-only-order",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-0-chromium/390-customer-only-order-es.png",
+      "visible_text": "Nuevo pedido de fake bakery. Cinco cajas de rainbow sprinkles.\n\u2727\n\n\u00bfQuiso decir una de estas opciones?\n\nLake Bakery\nRainbow Bakery\nAgregar 'fake bakery' como cliente nuevo\nNinguno de estos\n\u2727\nBORRADOR \u00b7 NO REGISTRADO\nCrear pedido\n\nRegistrando como Round C Worker\n\nProducto\nRainbow Sprinkles\nCantidad\n25 lb\nCliente\nLake Bakery\nVence\nHoy 2:30 PM\nRainbow Sprinkles\nCantidad\n5 cajas\nLibras\n25\nEste pedido no tiene PO del cliente; quedar\u00e1 marcado 'No PO'.\nRegistrar\nCancelar"
+    },
+    {
+      "label": "today-exact-transcript",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-0-chromium/390-today-exact-transcript-es.png",
+      "visible_text": "Abre las entradas de hoy. \u00bfEst\u00e1 todo correcto?\n\u2727\nDE FACTORY LEDGER\nEsto muestra FL\n\nRegistraste 0 entradas hoy; el equipo registr\u00f3 0."
+    },
+    {
+      "label": "today-short-query",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-0-chromium/390-today-short-query-es.png",
+      "visible_text": "\u00bfQu\u00e9 registr\u00e9 hoy?\n\u2727\n\nRegistraste 0 entradas hoy; el equipo registr\u00f3 0."
+    },
+    {
+      "label": "spoken-letter-code",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-0-chromium/390-spoken-letter-code-es.png",
+      "visible_text": "\u00bfCu\u00e1nto hay en el lote P quince ochenta y cinco?\n\u2727\nDE FACTORY LEDGER\nEsto muestra FL\n\nLote P1585: 1,000 lb de Batch SS #1."
+    },
+    {
+      "label": "classic-inventory",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-1-chromium/390-classic-inventory-en.png",
+      "visible_text": "How much classic number nine do we have?\n\u2727\nFROM FACTORY LEDGER\nHere\u2019s what FL shows\n\nBatch Classic Granola #9: 1,000 lb (200 cases) in 1 lot.\n\nLot\tQuantity\tUnit\nCLASSIC-9012\t1,000\tlb"
+    },
+    {
+      "label": "classic-make",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-1-chromium/390-classic-make-en.png",
+      "visible_text": "Made two batches of classic number nine.\n\u2727\n\nDid you mean one of these?\n\nBatch Classic Granola #9 \u2014 Regular\nNone of these\n\u2727\nDRAFT \u00b7 NOT RECORDED\nMake\n\nRecording as Round C Worker\n\nProduct\nBatch Classic Granola #9\nQuantity\n20 lb\nBatches\n2\nLot\nB26-1015-001\nHappened at\nToday 2:20 PM\nExpires\nToday 2:30 PM\n\nType the last 4 characters from the tag on each bag you used.\n\nSunflower Seeds \u00b7 20 lb\nDifferent lot\n\nSunflower Seeds \u00b7 SUNFLOWER-ABCD \u00b7 20 lb\nLast 4, including hyphen\nFull lot code\nScan full lot code\nPallet \u2014 full lot code\nRecord\nCancel"
+    },
+    {
+      "label": "ss-make",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-1-chromium/390-ss-make-en.png",
+      "visible_text": "Made one batch of SS number one.\n\u2727\nDRAFT \u00b7 NOT RECORDED\nMake\n\nRecording as Round C Worker\n\nProduct\nBatch SS #1\nQuantity\n10 lb\nBatches\n1\nLot\nB26-1015-001\nHappened at\nToday 2:20 PM\nExpires\nToday 2:30 PM\n\nType the last 4 characters from the tag on each bag you used.\n\nSunflower Seeds \u00b7 10 lb\nDifferent lot\n\nSunflower Seeds \u00b7 SUNFLOWER-ABCD \u00b7 10 lb\nLast 4, including hyphen\nFull lot code\nScan full lot code\nPallet \u2014 full lot code\nRecord\nCancel"
+    },
+    {
+      "label": "receive-green-supply",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-1-chromium/390-receive-green-supply-en.png",
+      "visible_text": "We received four bags of sunflower seeds, 50 pounds each, from Green Supply, POL 5521.\n\u2727\n\nDid you mean one of these?\n\nGrain Supply\nA-1 Bakery Supply\nSearch suppliers\nSearch\n\u2727\nDRAFT \u00b7 NOT RECORDED\nReceive\n\nRecording as Round C Worker\n\nProduct\nSunflower Seeds\nQuantity\n200 lb\nCases\n4\nSupplier\nGrain Supply\nLot\n26-10-15-GRAI-001\nBOL\n5521\nLot note\nLot identity needs to be checked\nHappened at\nToday 2:20 PM\nExpires\nToday 2:30 PM\nRecord\nCancel"
+    },
+    {
+      "label": "pack-spoken-lot",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-1-chromium/390-pack-spoken-lot-en.png",
+      "visible_text": "Packed 40 cases of fruit and nut granola from batch lot one two three four.\n\u2727\nDRAFT \u00b7 NOT RECORDED\nPack\n\nRecording as Round C Worker\n\nProduct\nFruit and Nut Granola\nQuantity\n200 lb\nCases\n40\nSource\nFruit and Nut Granola Batch\nLot\n1234\nHappened at\nToday 2:21 PM\nExpires\nToday 2:31 PM\nFruit and Nut Granola Batch \u00b7 1234 \u00b7 200 lb\nLast 4, including hyphen\nFull lot code\nScan full lot code\nPallet \u2014 full lot code\nType the last 4 characters from the physical tag, including the hyphen (for example, \"-004\").\nType the last 4 characters from the tag on each bag you used.\nRecord\nCancel"
+    },
+    {
+      "label": "customer-only-order",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-1-chromium/390-customer-only-order-en.png",
+      "visible_text": "New order from fake bakery. Five cases of rainbow sprinkles.\n\u2727\n\nDid you mean one of these?\n\nLake Bakery\nRainbow Bakery\nAdd 'fake bakery' as a new customer\nNone of these\n\u2727\nDRAFT \u00b7 NOT RECORDED\nCreate order\n\nRecording as Round C Worker\n\nProduct\nRainbow Sprinkles\nQuantity\n25 lb\nCustomer\nLake Bakery\nExpires\nToday 2:31 PM\nRainbow Sprinkles\nQuantity\n5 cases\nPounds\n25\nThis order has no customer PO; it will be flagged 'No PO'.\nRecord\nCancel"
+    },
+    {
+      "label": "today-exact-transcript",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-1-chromium/390-today-exact-transcript-en.png",
+      "visible_text": "Open today's entries. Is everything there correct?\n\u2727\n\nYou recorded 0 entries today; the team recorded 0."
+    },
+    {
+      "label": "today-short-query",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-1-chromium/390-today-short-query-en.png",
+      "visible_text": "What did I record today?\n\u2727\n\nYou recorded 0 entries today; the team recorded 0."
+    },
+    {
+      "label": "spoken-letter-code",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-1-chromium/390-spoken-letter-code-en.png",
+      "visible_text": "How much is in lot P fifteen eighty-five?\n\u2727\nFROM FACTORY LEDGER\nHere\u2019s what FL shows\n\nLot P1585: 1,000 lb of Batch SS #1."
+    },
+    {
+      "label": "classic-inventory",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-1-chromium/390-classic-inventory-es.png",
+      "visible_text": "\u00bfCu\u00e1nto tenemos de classic n\u00famero nueve?\n\u2727\nDE FACTORY LEDGER\nEsto muestra FL\n\nBatch Classic Granola #9: 1,000 lb (200 cajas) en 1 lote.\n\nLote\tCantidad\tUnidad\nCLASSIC-9012\t1,000\tlb"
+    },
+    {
+      "label": "classic-make",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-1-chromium/390-classic-make-es.png",
+      "visible_text": "Hicimos dos tandas de classic n\u00famero nueve.\n\u2727\n\n\u00bfQuiso decir una de estas opciones?\n\nBatch Classic Granola #9 \u2014 Regular\nNinguno de estos\n\u2727\nBORRADOR \u00b7 NO REGISTRADO\nProducir\n\nRegistrando como Round C Worker\n\nProducto\nBatch Classic Granola #9\nCantidad\n20 lb\nLotes de producci\u00f3n\n2\nLote\nB26-1015-001\nOcurri\u00f3 el\nHoy 2:21 PM\nVence\nHoy 2:31 PM\n\nEscriba los \u00faltimos 4 caracteres de la etiqueta de cada bolsa que us\u00f3.\n\nSunflower Seeds \u00b7 20 lb\nOtro lote\n\nSunflower Seeds \u00b7 SUNFLOWER-ABCD \u00b7 20 lb\n\u00daltimos 4, incluido el guion\nC\u00f3digo de lote completo\nEscanear c\u00f3digo completo\nPal\u00e9 \u2014 c\u00f3digo de lote completo\nRegistrar\nCancelar"
+    },
+    {
+      "label": "ss-make",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-1-chromium/390-ss-make-es.png",
+      "visible_text": "Hicimos una tanda de SS n\u00famero uno.\n\u2727\nBORRADOR \u00b7 NO REGISTRADO\nProducir\n\nRegistrando como Round C Worker\n\nProducto\nBatch SS #1\nCantidad\n10 lb\nLotes de producci\u00f3n\n1\nLote\nB26-1015-001\nOcurri\u00f3 el\nHoy 2:21 PM\nVence\nHoy 2:31 PM\n\nEscriba los \u00faltimos 4 caracteres de la etiqueta de cada bolsa que us\u00f3.\n\nSunflower Seeds \u00b7 10 lb\nOtro lote\n\nSunflower Seeds \u00b7 SUNFLOWER-ABCD \u00b7 10 lb\n\u00daltimos 4, incluido el guion\nC\u00f3digo de lote completo\nEscanear c\u00f3digo completo\nPal\u00e9 \u2014 c\u00f3digo de lote completo\nRegistrar\nCancelar"
+    },
+    {
+      "label": "receive-green-supply",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-1-chromium/390-receive-green-supply-es.png",
+      "visible_text": "Recibimos cuatro bolsas de semillas de girasol, cincuenta libras cada una, de Green Supply, POL 5521.\n\u2727\n\n\u00bfQuiso decir una de estas opciones?\n\nGrain Supply\nA-1 Bakery Supply\nBuscar proveedores\nBuscar\n\u2727\nBORRADOR \u00b7 NO REGISTRADO\nRecibir\n\nRegistrando como Round C Worker\n\nProducto\nSunflower Seeds\nCantidad\n200 lb\nCajas\n4\nProveedor\nGrain Supply\nLote\n26-10-15-GRAI-001\nBOL\n5521\nNota del lote\nHay que verificar la identidad del lote\nOcurri\u00f3 el\nHoy 2:21 PM\nVence\nHoy 2:31 PM\nRegistrar\nCancelar"
+    },
+    {
+      "label": "pack-spoken-lot",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-1-chromium/390-pack-spoken-lot-es.png",
+      "visible_text": "Empacamos cuarenta cajas de fruit and nut granola del lote uno dos tres cuatro.\n\u2727\nBORRADOR \u00b7 NO REGISTRADO\nEmpacar\n\nRegistrando como Round C Worker\n\nProducto\nFruit and Nut Granola\nCantidad\n200 lb\nCajas\n40\nOrigen\nFruit and Nut Granola Batch\nLote\n1234\nOcurri\u00f3 el\nHoy 2:22 PM\nVence\nHoy 2:32 PM\nFruit and Nut Granola Batch \u00b7 1234 \u00b7 200 lb\n\u00daltimos 4, incluido el guion\nC\u00f3digo de lote completo\nEscanear c\u00f3digo completo\nPal\u00e9 \u2014 c\u00f3digo de lote completo\nEscribe los \u00faltimos 4 caracteres de la etiqueta f\u00edsica, incluido el guion (por ejemplo, \"-004\").\nEscriba los \u00faltimos 4 caracteres de la etiqueta de cada bolsa que us\u00f3.\nRegistrar\nCancelar"
+    },
+    {
+      "label": "customer-only-order",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-1-chromium/390-customer-only-order-es.png",
+      "visible_text": "Nuevo pedido de fake bakery. Cinco cajas de rainbow sprinkles.\n\u2727\n\n\u00bfQuiso decir una de estas opciones?\n\nLake Bakery\nRainbow Bakery\nAgregar 'fake bakery' como cliente nuevo\nNinguno de estos\n\u2727\nBORRADOR \u00b7 NO REGISTRADO\nCrear pedido\n\nRegistrando como Round C Worker\n\nProducto\nRainbow Sprinkles\nCantidad\n25 lb\nCliente\nLake Bakery\nVence\nHoy 2:32 PM\nRainbow Sprinkles\nCantidad\n5 cajas\nLibras\n25\nEste pedido no tiene PO del cliente; quedar\u00e1 marcado 'No PO'.\nRegistrar\nCancelar"
+    },
+    {
+      "label": "today-exact-transcript",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-1-chromium/390-today-exact-transcript-es.png",
+      "visible_text": "Abre las entradas de hoy. \u00bfEst\u00e1 todo correcto?\n\u2727\nDE FACTORY LEDGER\nEsto muestra FL\n\nRegistraste 0 entradas hoy; el equipo registr\u00f3 0."
+    },
+    {
+      "label": "today-short-query",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-1-chromium/390-today-short-query-es.png",
+      "visible_text": "\u00bfQu\u00e9 registr\u00e9 hoy?\n\u2727\n\nRegistraste 0 entradas hoy; el equipo registr\u00f3 0."
+    },
+    {
+      "label": "spoken-letter-code",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed",
+      "screenshot": "docs/validation/fl-assistant-round-c/real-model/sessions-1-chromium/390-spoken-letter-code-es.png",
+      "visible_text": "\u00bfCu\u00e1nto hay en el lote P quince ochenta y cinco?\n\u2727\nDE FACTORY LEDGER\nEsto muestra FL\n\nLote P1585: 1,000 lb de Batch SS #1."
+    }
+  ],
+  "modes": [
+    {
+      "sessions_enabled": false,
+      "engine": "chromium",
+      "width": 390,
+      "javascript_errors": []
+    },
+    {
+      "sessions_enabled": false,
+      "engine": "chromium",
+      "database": {
+        "initial_transactions": 4,
+        "final_transactions": 4,
+        "committed": 0
+      },
+      "model_requests": [
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "inventory_lookup"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_make"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_make"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_receive"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "packing_context"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_pack"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_create_order"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "lot_lookup"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "inventory_lookup"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_make"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_make"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_receive"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "packing_context"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_pack"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_create_order"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "lot_lookup"
+          ],
+          "status": "completed"
+        }
+      ]
+    },
+    {
+      "sessions_enabled": true,
+      "engine": "chromium",
+      "width": 390,
+      "javascript_errors": []
+    },
+    {
+      "sessions_enabled": true,
+      "engine": "chromium",
+      "database": {
+        "initial_transactions": 4,
+        "final_transactions": 4,
+        "committed": 0
+      },
+      "model_requests": [
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "inventory_lookup"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_make"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_make"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_receive"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "packing_context"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_pack"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_create_order"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "lot_lookup"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "inventory_lookup"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_make"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_make"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_receive"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "packing_context"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_pack"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "resolve"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "prepare_create_order"
+          ],
+          "status": "completed"
+        },
+        {
+          "model": "gpt-6.1-sol",
+          "tools": [
+            "lot_lookup"
+          ],
+          "status": "completed"
+        }
+      ]
+    }
+  ],
+  "created_at": "2026-10-15T18:18:48.200Z",
+  "databases_dropped": true,
+  "passed": 36,
+  "failed": 0
+}
