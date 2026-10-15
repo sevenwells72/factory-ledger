@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const ui = require('../dashboard/fl-assistant.js');
 
 function descendants(node) { return [node, ...node.children.flatMap(descendants)]; }
-async function resumedCard(card, language = 'en') {
+async function resumedCard(card, language = 'en', savedDrafts = []) {
   const elements = new Map(), calls = [];
   const element = tag => ({ tag, children: [], dataset: {}, listeners: {}, value: '', textContent: '', className: '',
     append(...children) { this.children.push(...children); }, replaceChildren(...children) { this.children = children; },
@@ -25,7 +25,7 @@ async function resumedCard(card, language = 'en') {
     fetch: async (url, options) => {
       calls.push(new URL(url).pathname);
       assert.equal(new URL(url).pathname, '/assistant/resume');
-      return { ok: true, json: async () => ({ turns: [{ cards: [card] }], drafts: [] }) };
+      return { ok: true, json: async () => ({ turns: [{ cards: [card] }], drafts: savedDrafts }) };
     }, addEventListener() {} });
   context.window = context;
   vm.runInContext(fs.readFileSync(path.join(__dirname, '../dashboard/fl-assistant.js'), 'utf8'), context);
@@ -111,3 +111,28 @@ test('A6 private evidence needs a positive integer ID and an explicit evidence k
   for (const value of [null, {}, { id: '7', kind: 'bol' }, { id: '7e3381ea-acfb-4cd7-92c0-4ceda5d7c2e3', kind: 'bol' },
     { id: 0, kind: 'bol' }, { id: 7.5, kind: 'bol' }, { id: 7 }, { id: 7, kind: 'public_photo' }]) assert.equal(ui.validAttachment(value), false);
 });
+
+for (const language of ['en', 'es']) for (const partial of [false, true]) for (const recorded of [false, true]) {
+  test(`automatic oat replacement is plain ${language} in Assistant ${recorded ? 'receipt' : 'draft'}, ${partial ? 'partial' : 'no'} bran`, async () => {
+    const substitution = {
+      automatic: true, quantity_lb: partial ? 18 : 28,
+      message_en: partial ? `Only 10 lb oat bran in stock — ${recorded ? 'used' : 'will use'} 18 lb extra oats instead.`
+        : `No oat bran in stock — ${recorded ? 'used' : 'will use'} 28 lb extra oats instead.`,
+      message_es: partial ? `Solo hay 10 lb de salvado de avena — ${recorded ? 'se usaron' : 'se usarán'} 18 lb de avena extra.`
+        : `No hay salvado de avena — ${recorded ? 'se usaron' : 'se usarán'} 28 lb de avena extra.`
+    };
+    const card = { kind: 'draft', id: 'oatbran-test', prepared: { action: 'make', actor: { name: 'Arturo' },
+      can_commit: true, blockers: [], warnings: [], draft: { product_name: 'SS #1', auto_substitutions: [substitution] } } };
+    const saved = recorded ? [{ id: card.id, status: 'committed', card,
+      result: { success: true, receipt_number: 'MK-261015-001', auto_substitutions: [substitution] } }] : [];
+    const h = await resumedCard(card, language, saved);
+    const notices = descendants(h.card).filter(node => node.className === 'auto-substitution');
+    assert.equal(notices.length, 1, 'a visible notice is required outside FL details');
+    assert.equal(notices[0].textContent, substitution[`message_${language}`]);
+    assert.equal(notices[0].role, 'status');
+    await h.get('language').listeners.click();
+    assert.equal(notices[0].textContent, substitution[language === 'en' ? 'message_es' : 'message_en']);
+    assert.equal(descendants(notices[0]).some(node => node.tag === 'input'), false, 'no approval checkbox');
+    assert.deepEqual(h.calls, ['/assistant/resume']);
+  });
+}

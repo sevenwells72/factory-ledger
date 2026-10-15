@@ -74,3 +74,21 @@ test('fix 0: supplier-lot resolve uses the ticketed A5 route and reports resolve
  const src=require('node:fs').readFileSync(require('node:path').join(__dirname,'../dashboard/exceptions.js'),'utf8');
  assert.match(src,/'\/lots\/'\+item\.lot\.id\+'\/supplier-lot\/prepare'/);assert.match(src,/resolved_exception_ids/);assert.ok(!/PATCH/.test(src));
 });
+
+for(const language of ['en','es'])for(const recorded of [false,true])test(`automatic oat replacement is visible in dashboard ${recorded?'receipt':'preview'} in ${language}`,()=>{
+ const substitution={automatic:true,quantity_lb:28,message_en:`No oat bran in stock — ${recorded?'used':'will use'} 28 lb extra oats instead.`,message_es:`No hay salvado de avena — ${recorded?'se usaron':'se usarán'} 28 lb de avena extra.`};
+ ui.lang=language;
+ const html=ui.draftHtml(recorded?{response:{auto_substitutions:[substitution]}}:{auto_substitutions:[substitution]});
+ assert.ok(html.includes('role="status"'));
+ assert.ok(html.includes('>'+substitution['message_'+language]+'</p>'));
+ assert.ok(html.includes('data-en="'+substitution.message_en+'"'));
+ assert.ok(html.includes('data-es="'+substitution.message_es+'"'));
+ assert.ok(!html.includes('checkbox'),'auto substitution needs no approval');
+ ui.lang='en';
+});
+test('automatic substitution notices escape backend strings as text',()=>{
+ const html=ui.autoSubstitutionsHtml([{message_en:'<img src=x onerror=alert(1)>',message_es:'"<script>bad</script>'}]);
+ assert.ok(!html.includes('<img')&&!html.includes('<script>'));
+ assert.ok(html.includes('&lt;img')&&html.includes('&quot;&lt;script&gt;'));
+ assert.equal(ui.autoSubstitutionsHtml([]),'');
+});
