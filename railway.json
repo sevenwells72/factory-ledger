@@ -3,6 +3,7 @@
   "build": {
     "watchPatterns": [
       "/*.py",
+      "/Procfile",
       "/requirements.txt",
       "/runtime.txt",
       "/railway.json",

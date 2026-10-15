@@ -34,6 +34,22 @@ def number(value):
     return format(float(value or 0), ',.4f').rstrip('0').rstrip('.')
 
 
+def order_remaining(order, es=False):
+    quantities = []
+    for item in order.get('items', []):
+        pounds = float(item.get('remaining_lb') or 0)
+        if item.get('is_service') or item.get('is_non_weight') or item.get('line_type') == 'service' or pounds <= 0:
+            continue
+        size = float(item.get('case_size_lb') or 0)
+        quantity = f'{number(pounds)} lb'
+        if size > 0:
+            count = pounds / size
+            unit = ('caja' if count == 1 else 'cajas') if es else ('case' if count == 1 else 'cases')
+            quantity = f'{number(count)} {unit} ({quantity})'
+        quantities.append(quantity)
+    return '; '.join(quantities) or f"{number(order['remaining_lb'])} lb"
+
+
 
 def include_zero_stock(text):
     """An explicit empty-stock request may include catalog rows at zero."""
@@ -189,8 +205,9 @@ def decorate(card, lang):
             card['message'] = '¿De qué lote a granel salieron? Escriba el código de la etiqueta.' if es else 'Which batch did these come from? Give the code on its tag.'
         if card.get('shipping_quantity_needed'):
             order = card['order']
-            card['message'] = (f"¿Cuánto del pedido {order['order_number']} vamos a enviar? Quedan {number(order['remaining_lb'])} lb." if es else
-                               f"How much of order {order['order_number']} should we ship? {number(order['remaining_lb'])} lb remains.")
+            remaining = order_remaining(order, es)
+            card['message'] = (f"¿Cuánto del pedido {order['order_number']} vamos a enviar? Pendiente: {remaining}." if es else
+                               f"How much of order {order['order_number']} should we ship? Remaining: {remaining}.")
         card['missing_details'] = [{'field': f, 'label': FIELD_LABELS.get(f, (f.replace('_', ' '), f.replace('_', ' ')))[es]} for f in card['fields']]
         if card.get('known_facts', {}).get('quantity_lb') is not None:
             qty = number(card['known_facts']['quantity_lb'])

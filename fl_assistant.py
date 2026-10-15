@@ -370,7 +370,12 @@ def register_routes(app, api):
         approve_id(state, kind, candidate)
         state.setdefault('order_summaries', {})[str(candidate['id'])] = {
             'order_id': candidate['id'], 'order_number': detail['order_number'],
-            'remaining_lb': float(detail.get('remaining_effective_lb') or 0)}
+            'remaining_lb': float(detail.get('remaining_effective_lb') or 0),
+            'items': [{'remaining_lb': line.get('readiness', {}).get('remaining_lb', line.get('remaining_lb', 0)),
+                       'case_size_lb': line.get('case_size_lb')}
+                      for line in detail['lines']
+                      if not line.get('is_service') and not line.get('is_non_weight')
+                      and line.get('line_status') != 'cancelled']}
         state['resolved'].setdefault('order_line', {})[str(candidate['id'])] = [
             line['line_id'] for line in detail['lines']
             if line.get('line_status') not in ('cancelled', 'fulfilled')]

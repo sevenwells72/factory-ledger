@@ -476,12 +476,24 @@ for (const language of ['en', 'es']) test(`Round D missing batch and missing ord
   assert.doesNotMatch(copy, /SKU|product number|número de producto/);
 });
 
-for (const language of ['en', 'es']) test(`Round D missing shipping quantity offers an explicit all-remaining choice in ${language}`, async () => {
+for (const language of ['en', 'es']) for (const [pounds, size, quantity] of [
+  [50, 50, ['1 case (50 lb)', '1 caja (50 lb)']],
+  [37.5, 25, ['1.5 cases (37.5 lb)', '1.5 cajas (37.5 lb)']],
+  [12.5, null, ['12.5 lb', '12.5 lb']]
+]) test(`Round D missing shipping quantity shows ${quantity[0]} and offers all remaining in ${language}`, async () => {
   const h = await resumedCard({kind:'missing_facts', fields:['lines'], shipping_quantity_needed:true,
-    order:{order_number:'SO-261015-001', remaining_lb:50}}, language);
+    order:{order_number:'SO-261015-001', remaining_lb:pounds, items:[
+      {remaining_lb:pounds, case_size_lb:size}, {remaining_lb:500, case_size_lb:5, is_service:true}
+    ]}}, language);
   const nodes=descendants(h.card), text=nodes.map(node=>node.textContent).join(' ');
   assert.match(text, language==='en' ? /How much of order SO-261015-001 should we ship/ : /¿Cuánto del pedido SO-261015-001 vamos a enviar/);
+  assert.ok(text.includes(quantity[language==='en'?0:1]), text);
+  assert.doesNotMatch(text, /100 cases|100 cajas|500 lb/);
   assert.doesNotMatch(text, /already fully shipped|completamente enviado|SKU/);
+  await h.get('language').listeners.click();
+  const switched=nodes.map(node=>node.textContent).join(' ');
+  assert.ok(switched.includes(quantity[language==='en'?1:0]), switched);
+  await h.get('language').listeners.click();
   const all=nodes.find(node=>node.tag==='button' && node.textContent===(language==='en'?'Ship all remaining':'Enviar todo lo pendiente'));
   assert.ok(all); await all.listeners.click();
   for (let i=0;i<6;i++) await new Promise(resolve=>setImmediate(resolve));

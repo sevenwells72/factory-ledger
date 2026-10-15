@@ -289,7 +289,7 @@
     const text = typeof value === 'string' ? value : scalar(value?.receipt_number || value?.source_receipt_number || value?.result?.receipt_number);
     return text.match(/\b(?:RCV|MK|PK|ADJ|FND|SHP)-\d{6}-\d{3,}\b/i)?.[0]?.toUpperCase() || null;
   }
-  const api = { unavailable, plainLabel, plainMessage, formatTime, errorMessage, inventoryUnit, quantityLabel, draftFields, lineFields, existingCustomerChoice, newCustomerChoice, receiptSummary, readSections, dedupeCards, voidReceipt };
+  const api = { unavailable, plainLabel, plainMessage, formatTime, errorMessage, inventoryUnit, quantityLabel, draftFields, lineFields, existingCustomerChoice, newCustomerChoice, receiptSummary, orderRemaining, readSections, dedupeCards, voidReceipt };
   if (typeof module !== 'undefined') module.exports = api;
   root.FLAssistantDisplay = api;
 })(typeof window === 'undefined' ? globalThis : window);

@@ -498,7 +498,7 @@
       if (card.packing_batch_needed) node.append(el('p', t('Which batch did these come from? Give the code on its tag.', '¿De qué lote a granel salieron? Escriba el código de la etiqueta.')));
       else if (card.shipping_quantity_needed) {
         const order = card.order;
-        node.append(el('p', t(`How much of order ${order.order_number} should we ship? ${order.remaining_lb} lb remains.`, `¿Cuánto del pedido ${order.order_number} vamos a enviar? Quedan ${order.remaining_lb} lb.`)));
+        node.append(el('p', t(`How much of order ${order.order_number} should we ship? Remaining: ${display.orderRemaining(order, 'en')}.`, `¿Cuánto del pedido ${order.order_number} vamos a enviar? Pendiente: ${display.orderRemaining(order, 'es')}.`)));
         node.append(button(t('Ship all remaining', 'Enviar todo lo pendiente'), () => sendTurn({text: t(`Ship all remaining on order ${order.order_number}.`, `Envía todo lo pendiente del pedido ${order.order_number}.`)}), 'choice-button'));
       } else missingFacts(node, card.fields);
       if (card.supplier_choices || card.supplier_search) supplierPicker(node, card, card.supplier_choices || []);

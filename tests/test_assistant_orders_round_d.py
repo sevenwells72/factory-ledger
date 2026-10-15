@@ -76,9 +76,32 @@ def test_ship_voice_or_customer_resolves_order_and_never_asks_for_sku(client, ch
     result = card(turn(client, chat, text), 'missing_facts')
     assert result['shipping_quantity_needed'] is True
     assert result['order']['order_number'] == target['number']
+    quantity = ('0.5 cases (25 lb)' if 'Setton' in text else '1 case (50 lb)')
+    if text.startswith('Envía'):
+        quantity = quantity.replace('cases', 'cajas').replace('case', 'caja')
+    assert quantity in result['message']
     assert 'already fully shipped' not in result['message'] and 'completamente enviado' not in result['message']
     assert 'SKU' not in result['message'] if result.get('message') else True
     assert any('order_detail' in row.get('output','') for req in requests for row in req['input'])
+
+
+@pytest.mark.parametrize('spanish', [False, True])
+def test_shipping_question_uses_effective_physical_remaining_and_keeps_bulk_in_pounds(client, chat, orders, items, db_cursor, monkeypatch, spanish):
+    target = orders['Sunshine Granola']
+    # A stale recorded count must not hide pounds restored by a voided shipment.
+    db_cursor.execute('UPDATE sales_order_lines SET quantity_shipped_lb=25 WHERE id=%s', (target['line'],))
+    db_cursor.execute('UPDATE products SET case_size_lb=NULL WHERE id=%s', (items['batch']['id'],))
+    db_cursor.execute('INSERT INTO sales_order_lines(sales_order_id,product_id,quantity_lb) VALUES (%s,%s,12.5)', (target['id'], items['batch']['id']))
+    db_cursor.execute("INSERT INTO products(name,type,uom,case_size_lb,is_service,active) VALUES ('Keepalive freight','finished','each',5,true,true) RETURNING id")
+    service_id = db_cursor.fetchone()['id']
+    db_cursor.execute('INSERT INTO sales_order_lines(sales_order_id,product_id,quantity_lb) VALUES (%s,%s,500)', (target['id'], service_id))
+    db_cursor.execute("INSERT INTO sales_order_lines(sales_order_id,product_id,quantity_lb,line_status) VALUES (%s,%s,100,'cancelled')", (target['id'], items['finished']['id']))
+    model(monkeypatch, ('resolve', {'kind':'order', 'query':target['number'], 'context':{'action':'ship'}}),
+        ('prepare_ship_order', {'order_id':target['id'], 'ship_all':None, 'lines':None, 'bol_reference':None}))
+    result = card(turn(client, chat, ('Envía el pedido ' if spanish else 'Ship order ') + target['number']), 'missing_facts')
+    assert result['order']['remaining_lb'] == 62.5
+    assert result['order']['items'] == [{'remaining_lb': 50, 'case_size_lb': 50}, {'remaining_lb': 12.5, 'case_size_lb': None}]
+    assert ('1 caja (50 lb); 12.5 lb' if spanish else '1 case (50 lb); 12.5 lb') in result['message']
 
 
 @pytest.mark.parametrize('spanish', [False, True])
