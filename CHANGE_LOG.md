@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-15 14:26 — Normalize saved validation log endings
+- **File(s) changed:** `docs/validation/fl-assistant-round-c/python-off/collect.log, docs/validation/fl-assistant-round-c/python-on/collect.log`
+- **What changed:** Remove two trailing empty lines from saved collection logs; results, code and counts unchanged.
+- **Why:** Round C natural phone voice and layout regression protection.
+
+---
+
 ## 2026-10-15 14:26 — Complete round C validation and main rebase
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md, docs/validation/fl-assistant-round-c/`
 - **What changed:** Rebased onto merged B/main c04274e. Final Python 6317 per mode, Node369, phone288, transcript72, real-model36, A60/B18/Bpage68 and legacy both modes pass. All fl_fixC_ DBs dropped; core traceability unchanged; self-contained screenshots and source-hashed evidence saved.

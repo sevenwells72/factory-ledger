@@ -97,4 +97,3 @@ tests/test_void_semantics.py: 4
 tests/test_write_response_contract.py: 25
 tests/test_write_tickets.py: 107
 tests/test_write_tickets_part2.py: 98
-
