@@ -17,6 +17,7 @@
 
   /** The error text a person reads: `error_detail.message_es` when Spanish and present, else the message. */
   function errorText(error, lang) {
+    if(error?.accessUnavailable)return root.FLDashboard.accessMessage(lang);
     const data = error && (error.result || error);
     const detail = data && (data.error_detail || data.detail || data);
     if (Array.isArray(detail)) return detail.map(e => `${(e.loc || []).slice(1).join('.')}: ${e.msg}`).join('\n');
@@ -198,20 +199,22 @@
   async function api(path, { body, method = 'GET', params, withKey, background = false } = {}) {
     const url = new URL(path, API);
     const credential = withKey === undefined ? key : withKey;
-    const requestKey = credential === READ_ONLY ? await root.FLDashboard.key(API) : credential;
+    const requestKey = credential === READ_ONLY ? await root.FLDashboard.key(API,language) : credential;
     Object.entries(params || {}).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v); });
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 60000);
     try {
       const response = await fetch(url, { method, headers: { 'X-API-Key': requestKey, ...(background ? { 'X-FL-Background': '1' } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}) },
         body: body ? JSON.stringify(body) : undefined, signal: controller.signal, cache: 'no-store' });
-      const data = await response.json();
+      const data = await Promise.resolve().then(()=>response.json()).catch(error=>{if([401,403].includes(response.status))return {};throw error;});
       if (response.status === 401 && data.detail?.error_code === 'SESSION_EXPIRED' && session?.token && requestKey === session.token) {
         session.clear();
         notice(errorText(data, language));
       }
+      root.FLDashboard.checkReadAccess(response,{method,headers:{'X-API-Key':requestKey}},language,API);
       if (!response.ok) throw { ...data, httpStatus: response.status };
       return data;
     } catch (error) {
+      if (error?.accessUnavailable) throw error;
       if (error instanceof Error) throw { detail: { error_code: 'NETWORK', message: 'Connection failed or timed out.', message_es: 'La conexión falló o tardó demasiado.' } };
       throw error;
     } finally { clearTimeout(timer); }

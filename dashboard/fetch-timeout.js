@@ -48,10 +48,10 @@
       // staging origin; no requests are sent to another environment.
       if (/\.up\.railway\.app$/.test(destination.hostname)) destination = new URL(destination.pathname + destination.search, pilotBase);
       return pilotSessions.prepare(destination.href, options || {}).then(function (prepared) {
-        return timedFetch(destination.href, prepared).then(pilotSessions.observe);
+        return timedFetch(destination.href, prepared).then(pilotSessions.observe).then(function(response){return global.FLDashboard ? global.FLDashboard.checkReadAccess(response,prepared) : response;});
       });
     }
-    return timedFetch(url, options);
+    return timedFetch(url, options).then(function(response){return global.FLDashboard ? global.FLDashboard.checkReadAccess(response,options) : response;});
   }
   function timedFetch(url, options) {
     var opts = options || {};

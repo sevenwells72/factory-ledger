@@ -5,6 +5,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const ROOT = path.resolve(__dirname, '..');
+const dashboardRuntime = require('../dashboard/dashboard-runtime.js');
 const TOKEN = 'fls_fixture-restored';
 const PERSON = { id: 7, name: 'Arturo', role: 'floor' };
 const settle = async () => { for (let i = 0; i < 10; i++) await new Promise(resolve => setImmediate(resolve)); };
@@ -40,7 +41,7 @@ function harness({ enabled = true, saved = TOKEN, whoDeferred = false } = {}) {
       else if (pathname === '/auth/session/config') call.resolve({ key_sessions_enabled: enabled });
     }) });
   context.window = context;
-  context.FLDashboard = { base: 'https://fl.local', apiBase: () => 'https://fl.local', config: Promise.resolve({ key_sessions_enabled: enabled }), ready: Promise.resolve(enabled), writesEnabled: enabled, key: async base => { assert.equal(base, 'https://fl.local'); return 'shared-fixture'; } };
+  context.FLDashboard = { ...dashboardRuntime, base: 'https://fl.local', apiBase: () => 'https://fl.local', config: Promise.resolve({ key_sessions_enabled: enabled }), ready: Promise.resolve(enabled), writesEnabled: enabled, key: async base => { assert.equal(base, 'https://fl.local'); return 'shared-fixture'; } };
   function run(name) { vm.runInContext(fs.readFileSync(path.join(ROOT, 'dashboard', name), 'utf8'), context, { filename: name }); }
   run('key-session.js');
   return { context, run, calls, timers, data, get, summary, deferSummary: () => { summaryDeferred = true; }, deferExchange: () => { exchangeDeferred = true; }, exchangeAs: (token, person) => { exchangeToken = token; exchangePerson = person; } };

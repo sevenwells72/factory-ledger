@@ -1,0 +1,219 @@
+{
+  "pr": 122,
+  "review_comment": 6183537320,
+  "date": "2026-10-14T23:22:34-04:00",
+  "reviewed_head": "7370f996bd68829eab6c8212f01a960fcb336ad4",
+  "rebased_onto": "5592cdc011b38d068d0792ed3af1e8a75b2b0c91",
+  "python": {
+    "passed": 5739,
+    "failed": 0,
+    "skipped": 0,
+    "seconds": 228.05,
+    "fresh_db": "fl_pr122fx_full",
+    "runner": "scripts/run_tests.sh",
+    "interpreter": "Python 3.12.14"
+  },
+  "final_python_dashboard_preflight_guard_subset": {
+    "passed": 107,
+    "failed": 0,
+    "skipped": 0
+  },
+  "node": {
+    "command": "node --test tests/*.js",
+    "passed": 214,
+    "failed": 0,
+    "skipped": 0
+  },
+  "key_failure_browser": {
+    "command": "node tests/visual/run-dashboard-key-failure.mjs",
+    "passed": 48,
+    "failed": 0,
+    "surfaces": 16,
+    "modes": [
+      "key503",
+      "wrong403",
+      "wrong401"
+    ],
+    "assertions": [
+      "visible shared message",
+      "no raw HTTP/JSON/server detail",
+      "zero pageerrors",
+      "real Retry succeeds with fresh key"
+    ],
+    "languages": [
+      "en",
+      "es"
+    ],
+    "hosted_requests": 0
+  },
+  "legacy_browser_runs": [
+    {
+      "name": "key-sessions",
+      "exit": 0,
+      "seconds": 5.4
+    },
+    {
+      "name": "session-shift-fix",
+      "exit": 0,
+      "seconds": 6.2
+    },
+    {
+      "name": "run-types",
+      "exit": 0,
+      "seconds": 7.9
+    },
+    {
+      "name": "runs-interactions",
+      "exit": 0,
+      "seconds": 21.5
+    },
+    {
+      "name": "production-trace",
+      "exit": 0,
+      "seconds": 7.9
+    },
+    {
+      "name": "fl-assistant-off",
+      "exit": 0,
+      "seconds": 5.4
+    },
+    {
+      "name": "fl-assistant-on",
+      "exit": 0,
+      "seconds": 4.8
+    },
+    {
+      "name": "d12-auth-on",
+      "exit": 0,
+      "seconds": 2.4
+    },
+    {
+      "name": "d12-auth-off",
+      "exit": 0,
+      "seconds": 2.3
+    },
+    {
+      "name": "d12-gating-on",
+      "exit": 0,
+      "seconds": 2.0
+    },
+    {
+      "name": "d12-fixes-on",
+      "exit": 0,
+      "seconds": 25.7
+    },
+    {
+      "name": "office-on",
+      "exit": 0,
+      "seconds": 30.1
+    },
+    {
+      "name": "office-off",
+      "exit": 0,
+      "seconds": 4.9
+    },
+    {
+      "name": "void-on",
+      "exit": 0,
+      "seconds": 3.6
+    },
+    {
+      "name": "void-off",
+      "exit": 0,
+      "seconds": 1.0
+    }
+  ],
+  "before_after": {
+    "boot_preflight": {
+      "test": "tests/test_dashboard_key_preflight.py::test_preflight_cli_exit_and_redaction",
+      "before_7370f99_failed": 4,
+      "after_passed": 4,
+      "total_preflight_tests_passed": 18,
+      "real_readonly_db_checks_passed": 3
+    },
+    "access_messages": {
+      "test": "tests/test_dashboard_access_errors.js + tests/visual/run-dashboard-key-failure.mjs",
+      "before_node_failed": 4,
+      "after_node_passed": 4,
+      "before_browser_failed": 48,
+      "after_browser_passed": 48
+    },
+    "literal_guard": {
+      "test": "tests/test_key_literal_guard.py",
+      "before_failed": 11,
+      "before_control_passed": 5,
+      "after_passed": 16,
+      "combined_guard_tests_passed": 33
+    },
+    "rebase": [
+      {
+        "ref": "7370f99",
+        "rebase_contains_current_main": false,
+        "rebase_keeps_so_list_actions_v4": false,
+        "rebase_preserves_upstream_changelog_additions": false
+      },
+      {
+        "ref": "HEAD",
+        "rebase_contains_current_main": true,
+        "rebase_keeps_so_list_actions_v4": true,
+        "rebase_preserves_upstream_changelog_additions": true
+      }
+    ]
+  },
+  "database_cleanup": {
+    "remaining_task_databases": 0,
+    "dropped": [
+      "fl_pr122fx_full",
+      "fl_pr122fx_preflight",
+      "fl_d12_browser_pr122fx_auth",
+      "fl_pr122fx_browser_1",
+      "fl_pr122fx_browser_2",
+      "fl_pr122fx_browser_3",
+      "fl_pr122fx_browser_4",
+      "fl_pr122fx_browser_5",
+      "fl_pr122fx_browser_6",
+      "fl_pr122fx_browser_7"
+    ],
+    "fixture_note": "The untracked driver adapts only d12_fixture.py name validation to fl_pr122fx_; run-d12-auth uses its required fl_d12_browser prefix. Fresh DB per real browser run."
+  },
+  "key_guard_values_format": "Plain text: one raw current dashboard key per line; production and staging on separate lines. No variable names, quotes, commas, JSON or shell syntax. Blank lines ignored; trailing newline allowed.",
+  "owner_premerge_actions": [
+    "Run documented status-only preflight against both Railway services; require OK and exit 0 for each.",
+    "Set repository secret FL_KEY_GUARD_VALUES with both current dashboard keys and confirm 2 live value(s) checked."
+  ],
+  "scope": "Local fixes/tests only. Railway project metadata inspected read-only for exact runbook commands. No production/staging key fetch, setting change, deployment or merge.",
+  "source_sha256": {
+    ".github/workflows/key-literal-guard.yml": "14ae394fb4c3754fac498ecea87a03dc5edcc7d93d4b75cf1b849fcaeec7b3af",
+    "dashboard/dashboard-runtime.js": "c89c34c06b80ed50ba88ffde50e6fe1e7690323ec999b38a3b5bd45c531f4bf5",
+    "dashboard/dashboard.js": "a614f8c1348e16d774ee19be5795aca52a3f89732213c20051647017ba7a6a6b",
+    "dashboard/entry.html": "85c3a74506820c6d8ce557cbb1eee0f4de10f113f4228c7bb30ab70d25f0f835",
+    "dashboard/exceptions.html": "bd40c22078a24d77f7197807ec8b0a47edec38f7902877ddbe4c5ed9dad10698",
+    "dashboard/fetch-timeout.js": "dc0611d376fe25e1c256488fe700990d8967be3145d595bfd0cbd09c29e71bdc",
+    "dashboard/fl-assistant.html": "1317d2dcbf66625a5a2c2724cadad96ee0dfffa07b27f03586803caa53d02a92",
+    "dashboard/history.html": "c104d031149d3f31bb2a5ae4dfb2e376225ba613361b53382f72250a160bf513",
+    "dashboard/history.js": "1065aa4254bddaeca739001e2b6e0ca97626d5808f7a2dc920666590e63073af",
+    "dashboard/index.html": "60893f1cf481190655923492f6f766057e43cd05b91f2eb3427780a43bafa64b",
+    "dashboard/ledger-ui.js": "ba363fea8f26f0240d235a97580261e213698a85c510c660fb36866d4c305cf1",
+    "dashboard/mini-calendar.js": "657f7d67382a4f8eef9a4cb995216571585c51a0b3b1733c00515500da360ed2",
+    "dashboard/office.html": "e3f713cde9d7ea3079e077de4b6efef6657a14abb98b80c44ec4703d2c6b7172",
+    "dashboard/process-flow.html": "33a609b36d1e81a7ecebf6403573bb92b9c0b9f252d2786f9f4620fa07f36e83",
+    "dashboard/receipt.html": "aa4bff1d723b4379a0e3997e74d1153e3172652192c715661de3fa3675da351f",
+    "dashboard/receipt.js": "b692276661e93553d3c13921c6357db36015827af7c838ffa004094a7959d9c5",
+    "dashboard/runs.html": "7d4b49d45acc35081ad5dc901dfb08327e66142d2a12ded2aabb5a4d9b8199e7",
+    "dashboard/runs.js": "472ade7ef9cae12abe485525c75a410ae83a1321d3eb4d9cfd8d428c5c83bddb",
+    "dashboard/sankey.html": "8578164a4002e77e119eadced373f54c74155c76706d8c66d61b1d3193d4b9e7",
+    "dashboard/scheduler/seven-wells-production-board.html": "8e7012b71a1a997e532cc69cda2c5198265360c3c0dd860a1793d500ca5f0de3",
+    "dashboard/shift-summary.html": "3803cac36518865629d38cb36921defd3845dd0d010a378618f598f988d7ff11",
+    "dashboard/shift-summary.js": "e58f76b89bd7c98af7798509b3e7e635289429485c31a05f82b78481de999158",
+    "dashboard/traceability.html": "d7defc2d9b32100f52ea3322c94b98218a4d4979d3d800c36fb2c9fd3b2600be",
+    "scripts/check_no_key_literals.py": "84fe958bed346f735923e9999e9e8fbdb3291966319ad4dffac1a35ee1d9bb75",
+    "tests/test_background_session_ui.js": "11223430f3a1f246c99d37f9e20d6ea4b5203b63cca4333e51bc958b9ace5ac4",
+    "tests/test_session_shift_fix_ui.js": "1ad82e22e978ad15bb41987557536ed40784603095a94f5a5d0515142c72b9b1",
+    "tests/test_shift_summary_ui.js": "e5371dd85200f1753f4fa8cf23ed85d7e8cfb98a6c3cb90615797323c347e3f1",
+    "scripts/check_dashboard_key_preflight.py": "4193d0fe0264cd925e73f57cdb3882677a00bfb7b903430ad5b980dc6d0dbd07",
+    "tests/test_dashboard_key_preflight.py": "1d99df79f2fdf159fad44e58bdc009f2f96daf3eb60bcee67f9559547d644b16",
+    "tests/test_key_literal_guard.py": "9472ae0656f6dfc828100749060a593fac6489ecd23cae0ae33fc044d61c842f",
+    "tests/test_dashboard_access_errors.js": "ad46f571f6c144b8cb0aca96200e9edaedc3b00035282c9d277b83bdec8a905e",
+    "tests/visual/run-dashboard-key-failure.mjs": "ca065bec169d09370a776baafc62a7d93d716f830181c9716204fa45e9f96767"
+  }
+}

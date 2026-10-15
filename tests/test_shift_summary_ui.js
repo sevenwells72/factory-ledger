@@ -201,6 +201,7 @@ test('stored kosher labels, preparer, owner evidence and flags are escaped as te
 // fetch stub whose responses the test releases in any order.
 // ---------------------------------------------------------------------------
 const path = require('node:path');
+const dashboardRuntime = require('../dashboard/dashboard-runtime.js');
 const MODULE = process.env.SHIFT_SUMMARY_JS || path.resolve(__dirname, '../dashboard/shift-summary.js');
 const IDS = ['language', 'sign-out', 'identity', 'sign-in-panel', 'sign-in-form', 'actor-key', 'read-only', 'summary-panel', 'date', 'yesterday',
   'today', 'refresh', 'load-status', 'status-banner', 'title', 'receipts-count', 'sections', 'confirm-bar', 'confirm-question', 'confirm-reason',
@@ -214,6 +215,7 @@ function element(id) {
 }
 
 function mount() {
+  global.FLDashboard = { ...dashboardRuntime };
   const els = Object.fromEntries(IDS.map(id => [id, element(id)]));
   els['confirm-bar'].offsetHeight = 225;
   for (const id of ['sign-out', 'summary-panel', 'status-banner', 'confirm-bar', 'confirm-reason', 'notes-form', 'notice']) els[id].hidden = true;   // as in the HTML

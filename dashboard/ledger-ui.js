@@ -78,7 +78,7 @@
   api.relabel=()=>{for(const node of labelled){if(!node.isConnected){labelled.delete(node);continue;}node.nodeValue=node.labels[api.lang==='es'?1:0];}};
   api.translate=()=>{document.documentElement.lang=api.lang;document.querySelectorAll('[data-en]').forEach(e=>e.textContent=e.dataset[api.lang]||e.dataset.en);const b=document.getElementById('language');if(b)b.textContent=api.lang==='en'?'ES':'EN';};
   api.notice=(message,kind='bad')=>{const box=document.getElementById('notice');box.hidden=false;box.className=kind;box.textContent=message;};
-  api.failure=error=>api.notice(error?.transport?error.message:api.t('NOT recorded — ','NO registrado — ')+(error?.result?errorText(error.result,api.lang):error.message||String(error)));
+  api.failure=error=>api.notice(error?.accessUnavailable?root.FLDashboard.accessMessage(api.lang):error?.transport?error.message:api.t('NOT recorded — ','NO registrado — ')+(error?.result?errorText(error.result,api.lang):error.message||String(error)));
   api.base=root.FLDashboard.base;
   let actor=null;
   api.session=FLKeySessions.create({base:api.base,fetch:root.fetch.bind(root),storage:root.sessionStorage,config:root.FLDashboard.config,changed:()=>paintIdentity()});
@@ -93,11 +93,13 @@
     if(!read&&!root.FLDashboard.writesEnabled)throw Error('Recording is unavailable / El registro no está disponible');
     const key=api.session.token;
     if(!key&&!read)throw Error(api.t('Sign in before recording.','Inicia sesión antes de registrar.'));
-    const headers={'X-API-Key':key||await root.FLDashboard.key(api.base),...(background?{'X-FL-Background':'1'}:{})};if(body!==undefined&&!form)headers['Content-Type']='application/json';
+    const headers={'X-API-Key':key||await root.FLDashboard.key(api.base,api.lang),...(background?{'X-FL-Background':'1'}:{})};if(body!==undefined&&!form)headers['Content-Type']='application/json';
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);let response,result;
-    try{response=await fetch(api.base+path,{method:body===undefined?'GET':'POST',headers,body:body===undefined?undefined:form?body:JSON.stringify(body),signal:controller.signal,cache:'no-store'});result=await response.json();}
+    try{response=await fetch(api.base+path,{method:body===undefined?'GET':'POST',headers,body:body===undefined?undefined:form?body:JSON.stringify(body),signal:controller.signal,cache:'no-store'});result=await Promise.resolve().then(()=>response.json()).catch(error=>{if([401,403].includes(response.status))return {};throw error;});}
     catch(error){const plain=transportText(error,api.lang);if(!plain)throw error;const wrapped=Error(plain);wrapped.transport=true;throw wrapped;}finally{clearTimeout(timer);}
-    if(!response.ok){if(response.status===401&&result.detail?.error_code==='SESSION_EXPIRED'){api.session.clear();actor=null;paintIdentity();}const error=Error(errorText(result,api.lang));error.result=result;error.status=response.status;throw error;}return result;
+    if(response.status===401&&result.detail?.error_code==='SESSION_EXPIRED'){api.session.clear();actor=null;paintIdentity();}
+    root.FLDashboard.checkReadAccess(response,{method:body===undefined?'GET':'POST',headers},api.lang,api.base);
+    if(!response.ok){const error=Error(errorText(result,api.lang));error.result=result;error.status=response.status;throw error;}return result;
   };
   api.upload=async(file,kind)=>{const body=new FormData();body.append('file',file);body.append('kind',kind);return api.request('/attachments',body,{form:true});};
   api.bind=()=>{

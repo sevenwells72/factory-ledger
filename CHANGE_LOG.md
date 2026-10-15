@@ -1,5 +1,40 @@
 # Change Log
 
+## 2026-10-14 23:22 — PR #122 fix round 2: all checks pass and disposable databases removed
+- **File(s) changed:** dashboard consumers, tests/test_dashboard_access_errors.js, tests/visual/run-dashboard-key-failure.mjs, FACTORY_LEDGER_CHANGELOG.md, docs/validation/o7-fix2-tests.json
+- **What changed:** Finish nested-read access messages and recoverable placeholders. Record 5,739 fresh-DB Python tests, 214 Node tests, 48 new browser refusal/recovery cases and 15 existing browser executions, all passing; final affected Python subset 107 passed. New regressions fail on 7370f99 (4 preflight CLI, 4 Node, 48 browser, 11 guard and 3 rebase checks). Drop all ten task databases, including the auth-prefix exception; retain only ignored local evidence.
+- **Why:** Complete review 6183537320 before authorized leased push/comment/label. Draft remains unmerged; Michael must run both live preflights and populate the two-line CI secret before merge.
+
+---
+
+## 2026-10-14 23:17 — PR #122: Railway pre-merge instructions and retry regression coverage
+- **File(s) changed:** docs/cutover/O-7-dashboard-key-rotation.md, tests/test_dashboard_access_errors.js, tests/test_background_session_ui.js, tests/test_session_shift_fix_ui.js, tests/test_shift_summary_ui.js, preflight script/tests, local rebase evidence
+- **What changed:** Document exact project/environment/service commands for production and staging plus newline-only live-secret format. Preflight failures now exit2 silently so only OK or clashing kinds can print. Cover rejected-cache invalidation including custom API bases and adapt existing UI mocks to real shared runtime helpers. Three rebase checks fail on 7370f99 and pass after preserving current main ancestry, v4 list actions and upstream log additions.
+- **Why:** Complete strict status-only review requirements and preserve existing session behavior. Preflight 18 unit/CLI and three real read-only DB smoke checks pass; guard 33 focused checks pass. Final full suites ongoing.
+
+---
+
+## 2026-10-14 23:16 — PR #122: boot preflight and header-literal guard regressions
+- **File(s) changed:** scripts/check_dashboard_key_preflight.py, scripts/check_no_key_literals.py, tests/test_dashboard_key_preflight.py, tests/test_key_literal_guard.py, .github/workflows/key-literal-guard.yml, local log helper
+- **What changed:** Add status-only read-only boot collision preflight with missing-input/lookup refusal; cover master/read-only and active/inactive personal-key clashes. Detect literal header setters, appenders, tuples and simple variable/alias flows; emit explicit CI warning if live-value list is empty. Add subprocess regression tests proving redacted output.
+- **Why:** Required fixes from review 6183537320. Validation pending; no hosted settings or database changes.
+
+---
+
+## 2026-10-14 23:16 — PR #122: plain access errors and isolated browser regression driver
+- **File(s) changed:** dashboard runtime/fetch/consumers and asset references; ignored .venv-test/browser-suite.py and chrome-launch.mjs
+- **What changed:** Centralize bilingual access-unavailable errors for failed key delivery and rejected keyed reads; invalidate rejected cached keys for immediate Retry. Add visible recoverable errors to calendar, traceability and receipt paths. Prepare local browser driver with a fresh named DB per real-HTTP runner and installed Chrome; adapt only the untracked fixture invocation's DB-name guard for fl_pr122fx_ names.
+- **Why:** Address re-check 6183537320 while preserving session expiry behavior and avoiding raw HTTP/JSON or write-permission text on read failures. No hosted writes or setting changes.
+
+---
+
+## 2026-10-14 23:14 — PR #122 second fix round: rebase and regression preparation
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `dashboard/index.html`; ignored local `.venv-test/` and `node_modules/`
+- **What changed:** Rebased the seven O-7 commits from reviewed 7370f99 onto current main 5592cdc. Preserved both changelog histories and main's so-list-actions.js v4 alongside O-7 dashboard.js v75. Prepare isolated Python 3.12 and browser tooling for preflight, literal guard and access-message regression fixes.
+- **Why:** Address re-check 6183537320 with failing-before/passing-after tests, then fresh local suites and sign-in/key browser checks. Only this worktree; no production/staging settings, merge or deployment.
+
+---
+
 ## 2026-10-14 14:48 — O-7 Codex fix round 1 (6175101774): actor-key refusal, Shift Summary rotation, literal redaction + stronger guard, CI workflow
 - **File(s) changed:** `main.py`, `dashboard/shift-summary.js`, `dashboard/shift-summary.html` (v=9), `scripts/check_no_key_literals.py`, `.github/workflows/key-literal-guard.yml` (moved from `docs/cutover/key-literal-guard.workflow.yml`), `docs/cutover/O-7-dashboard-key-rotation.md`, `docs/deployments/o7-dashboard-key-staging.md`, `tests/test_dashboard_key_delivery.py`, `tests/test_session_shift_fix_ui.js`; values redacted in `DEPLOYMENT.md`, `gpt-instructions-v3.md`, `gpt-configs/sources/floor-specific.md`, `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`, `archive/superseded-instructions/GPT_INSTRUCTIONS.md`, `audits/reports/DASHBOARD_ACTIONABILITY_AUDIT.md`, 7 `docs/design*` files, `docs/manual-tests/044-so-allocations-pr6-dashboard.md`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:**

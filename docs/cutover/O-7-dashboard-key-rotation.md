@@ -71,6 +71,17 @@ It prints only `path:line` and never the value. It runs in pytest
 (`test_repository_has_no_key_literals`) and in GitHub Actions on every push and
 pull request (`.github/workflows/key-literal-guard.yml`).
 
+**Set the live-value CI secret before merge.** Michael adds the repository
+Actions secret **`FL_KEY_GUARD_VALUES`** as plain text: **one raw current
+dashboard key per line**, production on one line and staging on another. Do not
+include variable names, quotes, commas, JSON, or shell syntax. A trailing newline
+is fine; blank lines are ignored. Re-run the key-literal guard workflow and
+confirm `2 live value(s) checked`. If the secret is empty, CI emits a clear
+`::warning::`; the structural and retired-fingerprint checks still run, but an
+otherwise unrecognizable key stored under an innocent variable name depends on
+this live-value list. Never put the actual values in a PR, command argument, or
+tracked file.
+
 **The dashboard key never doubles as another credential.** Startup refuses a
 `DASHBOARD_API_KEY` equal to `API_KEY`, `READONLY_API_KEY` or any actor's key
 (active or not). The route returns 503 in the same cases, and also when the
@@ -81,6 +92,41 @@ actor lookup fails (fail closed; a result is cached for 60 s).
 The pages need the new route before they can read. **Railway must be live before
 Netlify publishes.** Until then the old key is unchanged, so the order below is
 safe.
+
+0. **Check boot safety in staging and production, before merging.** From a
+   private terminal on Michael's computer, use the reviewed PR checkout with its
+   Python 3.12 `.venv-test` dependencies installed and Railway CLI signed in:
+
+   ```sh
+   cd ~/dev/fl-o7-wt
+   railway run --project 2206e070-d160-4528-a4f1-86a587ad88c3 --environment production --service FastAPI-staging --no-local .venv-test/bin/python scripts/check_dashboard_key_preflight.py
+   railway run --project 2206e070-d160-4528-a4f1-86a587ad88c3 --environment production --service FastAPI --no-local .venv-test/bin/python scripts/check_dashboard_key_preflight.py
+   ```
+
+   Both services are in the Railway project's **`production` environment**:
+   staging is the separate **`FastAPI-staging` service**, not a Railway
+   environment named `staging`. The explicit project is `gleaming-solace`; these
+   commands also work when this worktree has no local Railway link. `railway run`
+   injects the selected service's variables into the **local** script, so it
+   works before the script exists in any deployed build. `--no-local` prevents
+   local development overrides. Do not add `--verbose` or print the variables.
+
+   Require **`OK` and exit 0 from each** before merge. The script compares
+   `DASHBOARD_API_KEY` with `API_KEY`, optional `READONLY_API_KEY`, and every
+   `actors.key_hash` (active and inactive) using a transaction-scoped read-only
+   lookup. It imports no application code, runs no migrations, changes no
+   settings/data, and bounds connection and query time to five seconds each.
+   It prints only `OK` (exit 0), or `COLLISION` followed by the clashing kinds
+   `master`, `readonly`, and/or `personal` (exit 1). Missing required
+   configuration, a missing driver, or a failed/timed-out database lookup exits
+   **2 with no output on either stream**. Check the previous command's exit
+   status with `echo $?`; silence is never a pass. Exit 2 means the check could
+   not complete and blocks merge. It never
+   prints keys, hashes, actor identities, connection details, or exception
+   text. Stop on any nonzero exit, resolve the configuration or
+   connectivity problem through the normal approved process, and rerun both
+   commands. These are pre-merge checks, not authorization to rotate or change
+   production variables.
 
 1. Netlify → cns-factory-ledger → Deploys → **Lock to stop auto publishing** on
    the current published deploy. Record its deploy ID.

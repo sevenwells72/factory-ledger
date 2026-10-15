@@ -39,7 +39,7 @@
       const data = await response.json().catch(()=>({}));
       if (!response.ok) { const detail=data.detail||{}; const e=new Error(errors[detail.error_code] || (response.status===401||response.status===403?'Access is unavailable. Contact the dashboard administrator.':'Could not reach the ledger. Please try again.')); e.detail=detail; throw e; }
       return data;
-    } catch(e) { if(e.detail) throw e; throw new Error('Could not reach the ledger. Please try again.'); }
+    } catch(e) { if(e.detail||e.accessUnavailable) throw e; throw new Error('Could not reach the ledger. Please try again.'); }
   }
   let start=monday(today()), selected='', runs=[], loadGeneration=0, dialogGeneration=0, busy=false, saveAction=null;
   function bind(root) { SOList.bindExplanations(root); }

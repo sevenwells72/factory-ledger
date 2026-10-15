@@ -19,7 +19,7 @@
         if(tx.notes)text('p',tx.notes,details);if(tx.correction_chain?.length){text('h3','Corrections',details);tx.correction_chain.forEach(c=>text('p',(c.event_type||'Correction')+' · '+FLDesign.time(c.created_at)+(c.reason?' · '+c.reason:''),details));}article.append(details);results.append(article);
       });
       if(selected){const target=document.getElementById('transaction-'+selected);if(target){target.tabIndex=-1;target.focus();target.scrollIntoView({block:'start'});}else status.textContent+=' Requested TX-'+selected+' was not found in this date/type scope. Change the date or type to locate it.';}
-    }catch(e){if(request===generation)status.textContent='History unavailable. Select Load history to retry. '+e.message;}
+    }catch(e){if(request===generation)status.textContent=e.accessUnavailable?e.message:'History unavailable. Select Load history to retry. '+e.message;}
   }
   document.getElementById('history-form').addEventListener('submit',e=>{e.preventDefault();const u=new URL(location.href);u.searchParams.delete('transaction');history.replaceState({},'',u);load();});load({background:true});
 })();

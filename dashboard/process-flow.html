@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><script src="dashboard-runtime.js?v=2"></script>
+<head><script src="dashboard-runtime.js?v=3"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Factory Ledger — Production Process Flow</title>
@@ -279,7 +279,7 @@
   }
 </style>
 <link rel="stylesheet" href="interaction.css?v=2">
-<script src="fetch-timeout.js?v=3"></script>
+<script src="fetch-timeout.js?v=4"></script>
   <link rel="stylesheet" href="shell-layout.css?v=6">
 <script src="design-controls.js?v=3"></script>
 <link rel="stylesheet" href="ledger-forms.css?v=4"><script defer src="receipt-shell.js?v=4"></script></head>
@@ -420,6 +420,7 @@
         return detail;
       }
     } catch (e) {
+      if(e.accessUnavailable)showError(e.message,'',refresh);
       console.warn('Product lookup failed for:', productName, e);
     }
     return null;
@@ -455,6 +456,7 @@
       console.error('API fetch error:', e);
       lastError = e;
       consecutiveFailures++;
+      if(e.accessUnavailable){showError(e.message,'',refresh);isFetching=false;return null;}
       if (window.FL && FL.isStall(e)) {
         // A hang is not "offline" and should not wait for three rounds to be
         // named: explain it now and offer a next step (IMP-005). Only when a
@@ -824,7 +826,7 @@
   }
 
   // No prior successful load: draw nothing rather than something invented.
-  function renderDataSourceFailure(detail) {
+  function renderDataSourceFailure(detail,accessUnavailable=false) {
     const grid = document.getElementById('lines-grid');
     grid.replaceChildren();
 
@@ -839,9 +841,9 @@
     body.className = 'data-failure-body';
     body.textContent = 'The ledger API did not answer, so this page has no data to show. '
       + 'Nothing below is a real number \u2014 no production figures have been loaded.';
-    box.append(title, body);
+    if(accessUnavailable){title.textContent='No data has been loaded.';box.append(title);}else box.append(title, body);
 
-    if (detail) {
+    if (detail&&!accessUnavailable) {
       const pre = document.createElement('pre');
       pre.className = 'banner-detail';
       pre.textContent = detail;
@@ -895,9 +897,9 @@
       // lastError is what distinguishes an actual failure from that.)
       const stalled = !!(window.FL && FL.isStall(lastError));
       showError(
-        stalled ? 'Server not responding.' : 'Could not load production data.',
-        errorDetail(lastError), refresh);
-      renderDataSourceFailure(errorDetail(lastError));
+        lastError.accessUnavailable?lastError.message:stalled ? 'Server not responding.' : 'Could not load production data.',
+        lastError.accessUnavailable?'':errorDetail(lastError), refresh);
+      renderDataSourceFailure(errorDetail(lastError),lastError.accessUnavailable);
       return;
     } else {
       return; // Keep showing the last good data; the stale banner names its age.
@@ -922,7 +924,7 @@
 
 })();
 </script>
-<script src="mini-calendar.js?v=9"></script>
+<script src="mini-calendar.js?v=10"></script>
 <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
   <script src="shell.js?v=2"></script>
 </body>

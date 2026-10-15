@@ -1,6 +1,8 @@
 # O-7: fail if an API key literal is committed. Output is path:line only —
 # scripts/check_no_key_literals.py never prints a value. Add live values to
-# check via the FL_KEY_GUARD_VALUES repository secret (newline-separated).
+# check via the FL_KEY_GUARD_VALUES repository secret: one raw production or
+# staging dashboard key per line, without names, quotes, commas or JSON.
+# The script emits a GitHub Actions ::warning:: when the secret is empty.
 name: key-literal-guard
 on:
   push:

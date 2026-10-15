@@ -400,7 +400,7 @@
     } catch (e) {
       setRefreshFailed('today-tile', true);
       dateLabel.textContent = 'Plant date unavailable';
-      container.innerHTML = `<div class="today-tile-state today-tile-error"><strong>Today’s production could not be loaded.</strong><span>${escHtml(e.message)}</span><button type="button" class="btn-sm today-tile-retry">Retry</button></div>`;
+      container.innerHTML = `<div class="today-tile-state today-tile-error">${e.accessUnavailable?'':'<strong>Today’s production could not be loaded.</strong>'}<span>${escHtml(e.message)}</span><button type="button" class="btn-sm today-tile-retry">Retry</button></div>`;
       container.querySelector('.today-tile-retry').addEventListener('click', refreshTodayTile);
     }
   }
@@ -572,7 +572,7 @@
   function showError(elementId, msg) {
     const el = document.getElementById(elementId);
     if (el) {
-      el.textContent = msg || 'Failed to load data.';
+      el.textContent = String(msg||'').includes(FLDashboard.accessMessage())?FLDashboard.accessMessage():msg || 'Failed to load data.';
       el.classList.remove('hidden');
     }
   }
@@ -637,6 +637,9 @@
     if (!el) return;
     setRefreshFailed(elementId, true);
     const stalled = Boolean(window.FL && window.FL.isStall(error));
+    if(error?.accessUnavailable){
+      el.classList.remove('hidden');FLDashboard.renderAccess(el,retry);return;
+    }
     if (!stalled) {
       showError(elementId, prefix + ': ' + ((error && error.message) || 'Failed to load data.'));
       return;
@@ -832,7 +835,7 @@
       renderRecentEntries(events);
     } catch (e) {
       status.textContent = 'Recent entries could not be loaded.';
-      feed.innerHTML = `<div class="recent-entries-error"><strong>Unable to load recent entries.</strong><span>${escHtml(e.message)}</span><button class="btn-refresh recent-entries-retry" type="button">Try again</button></div>`;
+      feed.innerHTML = `<div class="recent-entries-error">${e.accessUnavailable?'':'<strong>Unable to load recent entries.</strong>'}<span>${escHtml(e.message)}</span><button class="btn-refresh recent-entries-retry" type="button">Try again</button></div>`;
       feed.querySelector('.recent-entries-retry').addEventListener('click', refreshRecentEntries);
     } finally {
       button.classList.remove('loading');
@@ -1108,7 +1111,7 @@
         loaded = true;
       } catch (error) {
         panel.replaceChildren();
-        traceText(panel, 'p', 'Could not load consumed lots. Try again.');
+        traceText(panel, 'p', error.accessUnavailable?error.message:'Could not load consumed lots. Try again.');
         const retry = traceText(panel, 'button', 'Retry');
         retry.type = 'button';
         retry.addEventListener('click', load);
@@ -2059,7 +2062,7 @@
           (data.customers||[]).map(c=>({value:c.name,label:c.name}));
         options.forEach(o=>{const b=document.createElement('button');b.type='button';b.className='reference-choice';b.textContent=o.label;b.addEventListener('click',()=>{input.value=o.value;noteReference={type:kind,value:o.value};noteReferenceGeneration++;results.replaceChildren();status.textContent='Selected: '+o.label;input.focus();});results.append(b);});
         status.textContent=options.length?'Choose one of '+options.length+' matching records.':'No matching records. Change the search or choose None.';
-      }catch(e){if(generation===noteReferenceGeneration)status.textContent='Search unavailable. Edit the search to retry; no reference selected.';}},250);
+      }catch(e){if(generation===noteReferenceGeneration)status.textContent=e.accessUnavailable?e.message:'Search unavailable. Edit the search to retry; no reference selected.';}},250);
     });
     document.querySelectorAll('input[name="note-cat"]').forEach(r=>r.addEventListener('change',()=>{const label={note:'Note',todo:'To-Do',reminder:'Reminder'}[r.value];document.getElementById('note-modal-title').textContent=(state.editingNoteId?'Edit ':'New ')+label;document.getElementById('note-save-btn').textContent=state.editingNoteId?'Save Changes':'Create '+label;}));
   }
@@ -2175,7 +2178,7 @@
     const res = await FL.fetchWithTimeout(SALES_API_BASE + path, { ...options, headers });
     if (!res.ok) {
       const body = await res.text();
-      const error = new Error(res.status >= 500 ? "Couldn’t reach the ledger. Please try again." : res.status === 403 ? "You don’t have permission to make this change." : res.status === 404 ? "This record could not be found. Refresh and try again." : "This change could not be saved. Check the details and try again.");
+      const error = new Error(res.status >= 500 ? "Couldn’t reach the ledger. Please try again." : res.status === 403 ? (['GET','HEAD'].includes((options.method||'GET').toUpperCase())?FLDashboard.accessMessage():"You don’t have permission to make this change.") : res.status === 404 ? "This record could not be found. Refresh and try again." : "This change could not be saved. Check the details and try again.");
       error.status = res.status;
       try { error.payload = JSON.parse(body); } catch (_) { error.payload = null; }
       error.detail = error.payload?.detail || error.payload;
@@ -2325,7 +2328,7 @@
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 0);
     } catch (e) {
-      showError('orders-error', 'Couldn’t export sales orders. Please try again.');
+      showError('orders-error', e.accessUnavailable?e.message:'Couldn’t export sales orders. Please try again.');
     } finally {
       button.textContent = originalText;
       button.classList.remove('loading');
@@ -2364,7 +2367,7 @@
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 0);
     } catch (e) {
-      showError('orders-error', 'Couldn’t export the orders matrix. Please try again.');
+      showError('orders-error', e.accessUnavailable?e.message:'Couldn’t export the orders matrix. Please try again.');
     } finally {
       button.textContent = originalText;
       button.classList.remove('loading');
@@ -2406,7 +2409,7 @@
       container.innerHTML = '';
       state.ordersData = [];
       state.ordersLoaded = false;
-      showError('orders-error', 'Couldn’t load sales orders. Please try Refresh.');
+      if(e.accessUnavailable)showLoadError('orders-error','',e,refreshOrders);else showError('orders-error', 'Couldn’t load sales orders. Please try Refresh.');
     } finally {
       if (generation === state.ordersGeneration) container.removeAttribute('aria-busy');
     }
@@ -2496,7 +2499,7 @@
       try {
         const data = await fetchSalesAPI('/purchase-documents/' + button.dataset.docId + '/url');
         window.open(data.url, '_blank', 'noopener');
-      } catch (_) { showError('orders-error', 'Couldn’t open the customer PO. Please try again.'); }
+      } catch (error) { showError('orders-error', error.accessUnavailable?error.message:'Couldn’t open the customer PO. Please try again.'); }
       finally { button.disabled = false; }
     }));
   }
@@ -2621,7 +2624,7 @@
           detailRow.dataset.loaded = 'true';
         } catch (e) {
           const summary = state.ordersData.find(o => String(o.order_id) === orderId);
-          contentCell.innerHTML = renderOrderLinesContent({ ...summary, lines: [] }) + '<p class="order-lines-error">Couldn’t load line items. Collapse and reopen to try again.</p>';
+          contentCell.innerHTML = renderOrderLinesContent({ ...summary, lines: [] }) + '<p class="order-lines-error">'+escHtml(e.accessUnavailable?e.message:'Couldn’t load line items. Collapse and reopen to try again.')+'</p>';
           bindOrderRowActions(contentCell);
           bindOrderReadyNoteControls(contentCell);
         }
@@ -2763,6 +2766,7 @@
   }
 
   function parseApiErrorMessage(error) {
+    if(error?.accessUnavailable)return error.message;
     const detail = apiErrorDetail(error) || {};
     const messages = {
       ORDER_HEADER_LOCKED: 'The ledger has locked this order’s header. Close this edit and ask the office to update the ship-by date or notes.',
@@ -3612,8 +3616,13 @@
     try {
       const data = await fetchSalesAPI('/suppliers');
       state.erSuppliers = data.suppliers || [];
+      hideError('er-modal-error');
     } catch (e) {
       state.erSuppliers = [];
+      if(e.accessUnavailable){
+        document.getElementById('er-supplier').replaceChildren();document.getElementById('er-supplier-count').textContent='';
+        const el=document.getElementById('er-modal-error');el.classList.remove('hidden');FLDashboard.renderAccess(el,loadErSuppliers);return;
+      }
     }
     document.getElementById('er-supplier-filter').value = '';
     document.getElementById('er-supplier-count').textContent = state.erSuppliers.length + ' suppliers shown. Select the exact name and ID.';
@@ -4403,8 +4412,10 @@
     try {
       const data = await fetchSalesAPI('/customers');
       state.soCustomers = data.customers || [];
+      if(!state.soIntake)hideError('so-extract-status');
     } catch (e) {
       state.soCustomers = [];
+      if(e.accessUnavailable){const el=document.getElementById('so-extract-status');el.classList.remove('hidden');FLDashboard.renderAccess(el,loadSoCustomers);}
     }
   }
 
@@ -4988,7 +4999,7 @@
       renderSuppliesInventory();
     } catch (e) {
       container.innerHTML = '';
-      if (window.FL && window.FL.isStall(e)) showLoadError('supplies-inventory-error', '', e, refreshSuppliesInventory);
+      if (e.accessUnavailable || (window.FL && window.FL.isStall(e))) showLoadError('supplies-inventory-error', '', e, refreshSuppliesInventory);
       else {
         showError('supplies-inventory-error', 'Failed to load supplies: ' + supplyApiErrorMessage(e));
         setRefreshFailed('supplies-inventory-error', true);
@@ -5190,7 +5201,7 @@
       renderSupplyRequests();
     } catch (e) {
       container.innerHTML = '';
-      if (window.FL && window.FL.isStall(e)) showLoadError('supply-requests-error', '', e, refreshSupplyRequests);
+      if (e.accessUnavailable || (window.FL && window.FL.isStall(e))) showLoadError('supply-requests-error', '', e, refreshSupplyRequests);
       else {
         showError('supply-requests-error', 'Failed to load supply requests: ' + supplyApiErrorMessage(e));
         setRefreshFailed('supply-requests-error', true);

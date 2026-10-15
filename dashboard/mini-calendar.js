@@ -234,8 +234,14 @@
       if (!res.ok) return;
       const data = await res.json();
       setShipDateCounts(buildShipDateCounts(data.orders || []));
-    } catch {
-      // Calendar indicators are informational; leave the calendar usable if the API is unavailable.
+      document.querySelectorAll('.mini-calendar-access').forEach(el=>el.remove());
+    } catch (error) {
+      if(error.accessUnavailable)document.querySelectorAll('[data-mini-calendar]').forEach(root=>{
+        let notice=root.parentNode.querySelector('.mini-calendar-access');
+        if(!notice){notice=document.createElement('p');notice.className='mini-calendar-access';notice.setAttribute('role','status');root.after(notice);}
+        FLDashboard.renderAccess(notice,fetchShipDateCounts);
+      });
+      // Calendar dates stay usable when the ship-date indicators are unavailable.
     }
   }
 
