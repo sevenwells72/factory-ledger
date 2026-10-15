@@ -1,5 +1,173 @@
 # Change Log
 
+## [2026-10-14 23:03] — Normalize whitespace in captured regression logs
+- **File(s) changed:** `docs/validation/fl-assistant-fix-round/backend-before.log, docs/validation/fl-assistant-fix-round/ui-before.log`
+- **What changed:** Removed test-runner trailing spaces from saved logs; assertions, results and source hashes are unchanged.
+- **Why:** Keep final diff validation clean.
+
+---
+
+## [2026-10-14 23:03] — Finalize PR 124 staging recheck evidence
+- **File(s) changed:** `docs/validation/fl-assistant-fix-round/*, FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Saved passing hosted complete/incomplete receive results and inspected EN/ES screenshots. Complete draft cancelled; 589 transactions / 645 committed tickets unchanged; zero Record/commit requests. Verified all runtime/test hashes still match tested candidate 47c2e06.
+- **Why:** Finish every requested recheck before pushing the same draft PR and applying the recheck label.
+
+---
+
+## [2026-10-14 23:02] — Record isolated staging deployment of PR 124 fixes
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added regression-guard row 206 for staging deployment 6f4b3516 SUCCESS from tested 47c2e06; no migration or configuration changes.
+- **Why:** Run the explicitly requested review rechecks on the tested candidate; production remains untouched.
+
+---
+
+## [2026-10-14 23:00] — Preserve PR 124 full-suite and before-after proof
+- **File(s) changed:** `docs/validation/fl-assistant-fix-round/*`
+- **What changed:** Saved 12 expected pre-fix failures; 104 focused Python, 5693 fresh-DB Python, 211 Node and both browser-mode passes, source hashes, independent review and test-database cleanup. Staging upload 6f4b3516 is building.
+- **Why:** Supply reproducible evidence for the requested fix-round recheck.
+
+---
+
+## [2026-10-14 22:58] — Prepare bounded staging recheck and preserve local regression evidence
+- **File(s) changed:** `.venv-test/pr124-fix-round/staging_readonly.py, .venv-test/pr124-fix-round/staging_recheck.mjs, local test logs/screenshots` (ignored verification artifacts)
+- **What changed:** Prepared exact complete/incomplete receive browser probes with guarded staging reads, session/turn/cancel-only HTTP allowlist, draft cancellation, plain EN/ES assertions and zero Record/commit verification. Saved before/after regression and local browser evidence.
+- **Why:** Complete the review re-check list without recording staging stock.
+
+---
+
+## [2026-10-14 22:57] — Restore missing-reason picker and neutral missing-facts flow
+- **File(s) changed:** `fl_assistant.py, dashboard/fl-assistant.js`
+- **What changed:** Preserve reason-only prepare refusals and buttons without retry. Classify all-missing explicit-null prepare arguments before retry; render fixed plain EN/ES missing-fact labels neutrally.
+- **Why:** Fix A/B in review 6183130934 while retaining formatting retries and receipt/Record safeguards.
+
+---
+
+## [2026-10-14 22:56] — Constrain resolve identity and add bilingual UI regression coverage
+- **File(s) changed:** `assistant_tools.py, tests/test_fl_assistant_ui.js, tests/visual/run-fl-assistant.mjs`
+- **What changed:** Made resolve kind/query required and non-null with nonempty query; aligned missing-facts instruction. Added EN/ES missing-details and reason-button UI/browser regressions.
+- **Why:** Review comment 6183130934; pre-fix proof is 4 backend, 4 schema and 4 UI failures, with existing guard cases passing.
+
+---
+
+## [2026-10-14 22:56] — Add resolve identity schema regression tests
+- **File(s) changed:** `tests/test_assistant_tools_schema.py, tests/requirements-test.txt`
+- **What changed:** Added JSON Schema validation for all-null, individually null, missing and empty resolve identity; nullable optional fields remain valid. Added test-only validator dependency.
+- **Why:** Prove review fix C rejects the original all-null call.
+
+---
+
+## [2026-10-14 22:55] — Add PR 124 reason and missing-facts regression tests
+- **File(s) changed:** `tests/test_fl_assistant.py`
+- **What changed:** Added tests before implementation for reason-null refusal, missing receive facts before/after formatting retry, and retained model-error retries.
+- **Why:** Reproduce review comment 6183130934 on c5578f0.
+
+---
+
+## [2026-10-14 19:51] — Prepare draft PR evidence and Claude Code review handoff
+- **File(s) changed:** `CHANGE_LOG.md`; temporary PR body/review-request text
+- **What changed:** Prepared final PR validation summary and explicit Claude Code review request, including baseline P1.27, successful staging smoke and runtime hash agreement. Verified all prior project/regression changelog lines remain in order.
+- **Why:** Complete the authorized builder handoff without merging or touching production.
+
+---
+
+## [2026-10-14 19:50] — Preserve final F1 validation and hosted staging acceptance
+- **File(s) changed:** `docs/validation/fl-assistant-request-errors.json`, `docs/validation/fl-assistant-request-errors/*`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Saved local suite manifest, hosted API/browser results, four inspected screenshots, runtime hash agreement, cleanup proof, and row-205 acceptance note. 5682 Python / 207 Node pass; 20 of 21 local browser runners pass, with only baseline P1.27 failing; both final F1 modes pass. Hosted original chat EN/ES, inventory, entries, neutral missing receipt, legacy sanitization and editable unsent dictation pass without drafts or Record requests.
+- **Why:** Provide concrete staging-only evidence for Claude Code review of draft PR #124; preserve all earlier changelog entries.
+
+---
+
+## [2026-10-14 19:48] — Correct hosted smoke static-asset preflight path
+- **File(s) changed:** `scripts/check_assistant_requests_staging.py`
+- **What changed:** Check deployed Assistant JS/CSS through the existing `/dashboard/` static mount.
+- **Why:** Initial staging preflight requested `/dash/` and stopped at its 404 before scenarios; application code is unchanged.
+
+---
+
+## [2026-10-14 19:46] — Deploy validated F1 request fix to staging only
+- **File(s) changed:** FACTORY_LEDGER_CHANGELOG.md, docs/validation/fl-assistant-request-errors.json
+- **What changed:** Recorded FastAPI-staging deployment 0e2f676f SUCCESS from c60649d and appended regression guard row 205; no migration, production access or merge.
+- **Why:** Preserve rollout evidence and the forced-tool/receipt safety invariants.
+
+---
+
+## [2026-10-14 19:45] — Record full F1 verification and staging upload
+- **File(s) changed:** docs/validation/fl-assistant-request-errors.json
+- **What changed:** Saved 5682 clean fresh-DB Python / 207 Node / both Assistant browser passes and source hashes; uploaded c60649d only to FastAPI-staging (deployment 0e2f676f, building).
+- **Why:** Track validated code and staging rollout without production or merge.
+
+---
+
+## [2026-10-14 19:41] — Accept equivalent numeral spelling in real dictation smoke
+- **File(s) changed:** scripts/check_assistant_requests_staging.py; /tmp/fl-f1chat-staging-ui.mjs
+- **What changed:** Accept either two or 2 in the synthetic speech transcript; prepared real hosted browser checks for sanitized old turns, new EN/ES cards and editable unsent microphone dictation.
+- **Why:** Transcript formatting may vary while preserving the requested quantity.
+
+---
+
+## [2026-10-14 19:38] — Use active pointer in dictation failure browser regression
+- **File(s) changed:** tests/visual/run-fl-assistant.mjs
+- **What changed:** Reused the browser mouse pointer ID for the second synthetic hold-to-talk attempt so setPointerCapture accepts the test input.
+- **Why:** The new regression had timed out before starting dictation; application behavior was unchanged.
+
+---
+
+## [2026-10-14 19:37] — Record read-only F1 staging failure diagnosis
+- **File(s) changed:** docs/validation/fl-assistant-request-errors.json
+- **What changed:** Saved exact turn/tool/null arguments, empty relay body, route/status, deployed model configuration and cause; final verification remains explicitly pending.
+- **Why:** Preserve the requested read-only diagnosis without credentials.
+
+---
+
+## [2026-10-14 19:36] — Remove record-failure wording from non-record transport errors
+- **File(s) changed:** fl_assistant.py, dashboard/fl-assistant.js, tests/visual/run-fl-assistant.mjs
+- **What changed:** Removed NOT-recorded wording from provider/tool transport errors and photo/dictation notices; browser checks prove failed dictation stays unsent without a record claim.
+- **Why:** Reserve the red NOT-recorded outcome for an actual Record attempt.
+
+---
+
+## [2026-10-14 19:34] — Keep failed model repairs on the plain rephrase outcome
+- **File(s) changed:** fl_assistant.py, tests/test_fl_assistant.py
+- **What changed:** Return the fixed rephrase card if the single repair call times out, returns prose/forbidden tool, or exhausts the bounded tool loop; added three regression cases.
+- **Why:** Every unsuccessful repair must have the same staff-safe outcome.
+
+---
+
+## [2026-10-14 19:33] — Add staging-only F1 request smoke runner
+- **File(s) changed:** scripts/check_assistant_requests_staging.py
+- **What changed:** Added guarded hosted-model checks for exact original/observed chat, Spanish scope refusal, inventory, receipts, missing receipt and editable unsent dictation; privately authenticates Michael staging and verifies no draft.
+- **Why:** Make the requested staging regression smoke reproducible without recording ledger data.
+
+---
+
+## [2026-10-14 19:31] — F1 validation retry includes FL argument validators
+- **File(s) changed:** fl_assistant.py, tests/test_fl_assistant.py
+- **What changed:** Included missing-ID and ambiguous-time request validators; updated provenance regressions to expect bounded recovery while asserting no ticket is created.
+- **Why:** FL uses both Pydantic and explicit request validators for malformed model arguments.
+
+---
+
+## [2026-10-14 19:31] — F1 bilingual browser regressions and failure contract
+- **File(s) changed:** tests/visual/run-fl-assistant.mjs, docs/contracts/fl-assistant-part1.md
+- **What changed:** Added neutral-card, legacy validation, network-failure, red-record and green-receipt checks in both languages; documented one repair attempt.
+- **Why:** Verify staff-facing classification and retain real-receipt-only success.
+
+---
+
+## [2026-10-14 19:30] — F1 regression tests and fixed-tool contract
+- **File(s) changed:** tests/test_fl_assistant.py, tests/test_fl_assistant_ui.js, docs/contracts/fl-assistant-part1.md
+- **What changed:** Covered EN/ES out-of-scope no-write outcomes, malformed resolve/lookup/prepare retry, successful repair, safe resume and neutral business failures.
+- **Why:** Pin the staging regression and preserve forced-tool, receipt-only behavior.
+
+---
+
+## [2026-10-14 19:29] — F1 unsupported requests and validation recovery
+- **File(s) changed:** assistant_tools.py, fl_assistant.py, dashboard/fl-assistant.js
+- **What changed:** Added fixed unsupported-request tool/card, one model validation retry with plain fallback, and neutral lookup/request failures; kept human Record and receipt checks.
+- **Why:** Staging general chat was forced into an empty resolve and displayed raw validation fields as a red record failure.
+
+---
+
 ## 2026-10-14 15:14 — O-2 decided (Sunshine paper bin log, A8 deferred), bin log sheet, #121 rollout row
 - **File(s) changed:** `FOLLOWUPS.md`, `docs/design/phase1-safe-operating-system.md`, `docs/pilot/sunshine-bin-log.pdf` (new), `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Design rev 3.9 + §11 item 45 and FOLLOWUPS P1.29 record Michael's Oct 14 O-2 decision: Sunshine bulk bins use a paper bin log until after cutover; A8 weighed bins deferred (A8 row and §8.3 marked). Temporary procedure: one paper line per bin (date, bin ID, product + lot, gross/tare/net lb, Sunshine order, who weighed), entered in FL the same day as a normal shipment; billing per §8.5 unchanged, invoicing trigger still undecided. New one-page bilingual EN/ES landscape bin log sheet (20 rows, extra FL receipt # column) generated with reportlab 4.2.5 (generator kept outside the repo). FL changelog row 204 = PR #121 production rollout (merge 9bd30be, Railway 571de5c0, Netlify 6acfcb43, no migration, cutoff unset).

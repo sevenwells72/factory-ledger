@@ -20,7 +20,9 @@ when the assistant is disabled; GET /dash/fl-assistant returns 404 while disable
   the same FastAPI application through ASGI, including FL authentication.
   There is no alternate ledger implementation, privileged relay key or MCP.
 - OpenAI Responses uses function tools, `tool_choice=required`, sequential
-  calls and no text escape tool. Model prose is not rendered. Resolved IDs
+  calls and no free-text answer tool. Out-of-scope messages must use
+  `unsupported_request`, which returns a fixed bilingual neutral scope card
+  without invoking an FL write route. Model prose is not rendered. Resolved IDs
   come from FL matches or explicit candidate selections, never model guesses.
 - Only the separate Record endpoint can commit. Durable, actor-bound draft
   IDs refer to the original server-held ticket and payload hash. Neither
@@ -32,8 +34,12 @@ when the assistant is disabled; GET /dash/fl-assistant returns 404 while disable
   a fresh prepare result and still requires Record. The model cannot supply
   either SKU confirmation or lot-confirmation evidence.
 - Choice, draft, blocker and read cards use FL JSON. Green receipts require
-  an actual successful commit response with a receipt number. Failures retain
-  a red NOT recorded state and the retryable draft.
+  an actual successful commit response with a receipt number. Only attempted
+  Record failures retain a red NOT recorded state and the retryable draft.
+  Lookup failures are neutral. Model argument validation errors receive one
+  repair attempt with the FL error; a second malformed call returns a fixed
+  bilingual rephrase message without raw field names. Business refusals are
+  not automatically retried. Saved pre-fix validation cards are also sanitized.
 - A5 annotations on `draft.input_plan` drive last-four/full-code inputs.
   Evidence passes unchanged to commit; FL validates it. Before A5 merges,
   suggested lots remain visible without pretending confirmation is enforced.

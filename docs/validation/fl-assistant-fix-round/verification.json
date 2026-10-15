@@ -1,0 +1,90 @@
+{
+  "verified_at": "2026-10-14T23:03:23.444650-04:00",
+  "review_comment": "https://github.com/sevenwells72/factory-ledger/pull/124#issuecomment-6183130934",
+  "reviewed_head": "c5578f054ecf5d130e1f97f6fe938bb977c3c88a",
+  "application_commit": "47c2e06e211a875c74d9121dd0b84435730e1e69",
+  "source_sha256": {
+    "assistant_tools.py": "2924e9619d49e116ade08b8d105f3a6ab839b53ffac409603315b7979cb984bc",
+    "fl_assistant.py": "4d64cd7325b1352378e55b17eee049415eac14e69d3f539ae9aeb195225abdaa",
+    "dashboard/fl-assistant.js": "c578e7d2ad4683e0b756e5e03875184fd604f92e37f3b76d8389a99ef14642ea",
+    "tests/test_fl_assistant.py": "a7530341b7e82e34c336516a6c9bd4945d1ea9a2b5d50aa7817ca15072523c4c",
+    "tests/test_assistant_tools_schema.py": "a5c4ed0847670a658d6972597ad4dc6218cf4e9c2811d8210658039ebff55db8",
+    "tests/test_fl_assistant_ui.js": "2bdc57c4a030815400e2139cd0d3c3628e66942c47d44c1257e6bfd0e5939cf0",
+    "tests/visual/run-fl-assistant.mjs": "2811033668945f1f2509dfbf9ea53a8869430c6a4157aba20b433ae4189774bd"
+  },
+  "before_fix": {
+    "backend": {
+      "failed": 4,
+      "passed": 2
+    },
+    "schema": {
+      "failed": 4,
+      "passed": 1
+    },
+    "node_ui": {
+      "failed": 4,
+      "passed": 7
+    },
+    "application_sources_unchanged_from_reviewed_head_during_red_runs": true
+  },
+  "after_fix": {
+    "assistant_and_schema_python": {
+      "passed": 104,
+      "failed": 0,
+      "skipped": 0
+    },
+    "full_python": {
+      "passed": 5693,
+      "failed": 0,
+      "skipped": 0,
+      "fresh_database": "fl_pr124_fix_full",
+      "postgresql_major": 17,
+      "encoding": "UTF8",
+      "schema": "tests/schema/schema.sql + pg_trgm",
+      "seconds": 137.72
+    },
+    "full_node": {
+      "passed": 211,
+      "failed": 0,
+      "skipped": 0
+    },
+    "browser": {
+      "runner": "tests/visual/run-fl-assistant.mjs",
+      "PILOT_SESSIONS_0": "pass",
+      "PILOT_SESSIONS_1": "pass",
+      "network": "local fixture interception",
+      "new_assertions": [
+        "EN/ES neutral missing facts in plain words",
+        "working reason-picker button before record fixture"
+      ]
+    },
+    "independent_diff_review": "no actionable findings; nine additional null-path and reason classification assertions passed"
+  },
+  "database_cleanup": {
+    "fl_pr124_fix_red": "dropped",
+    "fl_pr124_fix_full": "dropped",
+    "fixture_created_databases": "dropped by fixture finalizers"
+  },
+  "disk_before": "63 GiB free on /System/Volumes/Data",
+  "staging": {
+    "deployment_id": "6f4b3516-40e6-4cbb-ae93-5243c3823aaa",
+    "status": "SUCCESS",
+    "application_commit": "47c2e06e211a875c74d9121dd0b84435730e1e69",
+    "complete_receive": "draft, can_commit true, no blockers, cancelled",
+    "incomplete_receive": "missing_facts with neutral plain EN/ES labels",
+    "counts_before": {
+      "transactions": 589,
+      "committed_write_tickets": 645
+    },
+    "counts_after": {
+      "transactions": 589,
+      "committed_write_tickets": 645
+    },
+    "record_or_commit_requests_sent": 0,
+    "javascript_matches_tested_source": true,
+    "screenshots_visually_inspected": true,
+    "authentication": "real staging actor key; session-config test response false; both session modes verified locally",
+    "evidence": "staging-recheck.json"
+  },
+  "scope": "Exactly the three review fixes; nonblocking nits unchanged; no production access or merge."
+}

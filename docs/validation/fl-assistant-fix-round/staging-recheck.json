@@ -1,0 +1,308 @@
+{
+  "base_url": "https://fastapi-staging-production-dd7b.up.railway.app",
+  "started_at": "2026-10-15T03:02:01.698Z",
+  "production_accessed": false,
+  "authentication_mode": "Real staging actor key; browser session-config response explicitly set false to avoid auth-session writes.",
+  "scenarios": {
+    "complete_receive": {
+      "text": "We received 2 cases of Chia Seeds, 25 lb per case, from Acme Foods. Supplier lot SMOKE-124-REVIEW, BOL SMOKE-124-BOL.",
+      "session_id": "79d04b94-4062-4a84-87c1-6c25e98049e4",
+      "kind": "draft",
+      "status": "pass",
+      "draft_id": "1a1fbe5c-fd91-480f-a0b7-bd08bb2731c1",
+      "can_commit": true,
+      "blockers": [],
+      "cancelled": true
+    },
+    "incomplete_receive": {
+      "text": "We received 10 lb of Chia Seeds from Acme Foods, supplier lot SMOKE-124-REVIEW.",
+      "session_id": "4891da14-a24a-4637-8123-3cb88303a428",
+      "kind": "missing_facts",
+      "status": "pass",
+      "missing_fields": [
+        "cases",
+        "case_size_lb",
+        "bol_reference"
+      ],
+      "en_plain_neutral_labels": true,
+      "es_plain_neutral_labels": true
+    }
+  },
+  "session_mode_note": "Both session modes are separately tested by the local fixture harness.",
+  "before": {
+    "counts": {
+      "transactions": 589,
+      "committed_write_tickets": 645
+    },
+    "sessions": []
+  },
+  "actor": "Michael (staging)",
+  "javascript_sha256": "c578e7d2ad4683e0b756e5e03875184fd604f92e37f3b76d8389a99ef14642ea",
+  "local_commit": "47c2e06e211a875c74d9121dd0b84435730e1e69",
+  "after": {
+    "counts": {
+      "transactions": 589,
+      "committed_write_tickets": 645
+    },
+    "sessions": [
+      {
+        "id": "79d04b94-4062-4a84-87c1-6c25e98049e4",
+        "name": "complete_receive",
+        "model_calls": [
+          {
+            "name": "resolve",
+            "argument_fields": [
+              "context",
+              "kind",
+              "limit",
+              "offset",
+              "quantity",
+              "query"
+            ],
+            "null_fields": [
+              "limit",
+              "offset",
+              "quantity"
+            ]
+          },
+          {
+            "name": "resolve",
+            "argument_fields": [
+              "context",
+              "kind",
+              "limit",
+              "offset",
+              "quantity",
+              "query"
+            ],
+            "null_fields": [
+              "limit",
+              "offset",
+              "quantity"
+            ]
+          },
+          {
+            "name": "prepare_receive",
+            "argument_fields": [
+              "backfill",
+              "bol_reference",
+              "case_size_lb",
+              "cases",
+              "lot_code",
+              "lot_type",
+              "occurred_at",
+              "product_id",
+              "shipper_code_override",
+              "supplier_id",
+              "supplier_lot_code",
+              "supplier_lot_entries"
+            ],
+            "null_fields": [
+              "backfill",
+              "lot_code",
+              "lot_type",
+              "occurred_at",
+              "shipper_code_override",
+              "supplier_lot_entries"
+            ]
+          }
+        ],
+        "drafts": [
+          {
+            "id": "1a1fbe5c-fd91-480f-a0b7-bd08bb2731c1",
+            "status": "cancelled",
+            "record_attempted": false
+          }
+        ]
+      },
+      {
+        "id": "4891da14-a24a-4637-8123-3cb88303a428",
+        "name": "incomplete_receive",
+        "model_calls": [
+          {
+            "name": "resolve",
+            "argument_fields": [
+              "context",
+              "kind",
+              "limit",
+              "offset",
+              "quantity",
+              "query"
+            ],
+            "null_fields": [
+              "limit",
+              "offset"
+            ]
+          },
+          {
+            "name": "resolve",
+            "argument_fields": [
+              "context",
+              "kind",
+              "limit",
+              "offset",
+              "quantity",
+              "query"
+            ],
+            "null_fields": [
+              "limit",
+              "offset"
+            ]
+          },
+          {
+            "name": "resolve",
+            "argument_fields": [
+              "context",
+              "kind",
+              "limit",
+              "offset",
+              "quantity",
+              "query"
+            ],
+            "null_fields": [
+              "limit",
+              "offset",
+              "quantity"
+            ]
+          },
+          {
+            "name": "prepare_receive",
+            "argument_fields": [
+              "backfill",
+              "bol_reference",
+              "case_size_lb",
+              "cases",
+              "lot_code",
+              "lot_type",
+              "occurred_at",
+              "product_id",
+              "shipper_code_override",
+              "supplier_id",
+              "supplier_lot_code",
+              "supplier_lot_entries"
+            ],
+            "null_fields": [
+              "backfill",
+              "bol_reference",
+              "case_size_lb",
+              "cases",
+              "lot_code",
+              "lot_type",
+              "occurred_at",
+              "shipper_code_override",
+              "supplier_lot_entries"
+            ]
+          }
+        ],
+        "drafts": []
+      }
+    ]
+  },
+  "passed": true,
+  "cleanup": [],
+  "finished_at": "2026-10-15T03:02:42.970Z",
+  "requests": [
+    {
+      "method": "GET",
+      "path": "/auth/whoami"
+    },
+    {
+      "method": "GET",
+      "path": "/dashboard/fl-assistant.js"
+    },
+    {
+      "method": "GET",
+      "path": "/dash/fl-assistant"
+    },
+    {
+      "method": "GET",
+      "path": "/dash/dashboard-runtime.js"
+    },
+    {
+      "method": "GET",
+      "path": "/dashboard/fl-assistant.css"
+    },
+    {
+      "method": "GET",
+      "path": "/dash/ledger-forms.css"
+    },
+    {
+      "method": "GET",
+      "path": "/dashboard/key-session.js"
+    },
+    {
+      "method": "GET",
+      "path": "/dashboard/fl-assistant.js"
+    },
+    {
+      "method": "GET",
+      "path": "/dash/receipt-shell.js"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/session/config"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/whoami"
+    },
+    {
+      "method": "POST",
+      "path": "/assistant/session"
+    },
+    {
+      "method": "POST",
+      "path": "/assistant/turn"
+    },
+    {
+      "method": "POST",
+      "path": "/assistant/cancel"
+    },
+    {
+      "method": "GET",
+      "path": "/dash/fl-assistant"
+    },
+    {
+      "method": "GET",
+      "path": "/dash/dashboard-runtime.js"
+    },
+    {
+      "method": "GET",
+      "path": "/dashboard/fl-assistant.css"
+    },
+    {
+      "method": "GET",
+      "path": "/dash/ledger-forms.css"
+    },
+    {
+      "method": "GET",
+      "path": "/dashboard/key-session.js"
+    },
+    {
+      "method": "GET",
+      "path": "/dashboard/fl-assistant.js"
+    },
+    {
+      "method": "GET",
+      "path": "/dash/receipt-shell.js"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/session/config"
+    },
+    {
+      "method": "GET",
+      "path": "/auth/whoami"
+    },
+    {
+      "method": "POST",
+      "path": "/assistant/session"
+    },
+    {
+      "method": "POST",
+      "path": "/assistant/turn"
+    }
+  ],
+  "blocked_requests": [],
+  "record_or_commit_requests_sent": 0
+}

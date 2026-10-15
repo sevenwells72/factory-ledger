@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "actor": "Michael (staging)",
+  "legacy_turn_sanitized": true,
+  "original_chat_neutral_en_es": true,
+  "inventory_pass": true,
+  "missing_receipt_neutral": true,
+  "dictation": {
+    "text": "I received two cases. I received two cases. I.",
+    "editable": true,
+    "sent": false
+  },
+  "turns": 3,
+  "record_or_prepare_requests": 0,
+  "base_url": "https://fastapi-staging-production-dd7b.up.railway.app",
+  "deployment_id": "0e2f676f-da97-41d0-a6c2-e1903be46bb1",
+  "validated_at": "2026-10-14T19:50:26.313204-04:00",
+  "audio_source": "Synthetic speech through Chromium fake microphone, looping during the hold; real MediaRecorder/transcription API.",
+  "screenshots_visually_inspected": true,
+  "production_accessed": false
+}
