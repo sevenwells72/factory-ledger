@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-10-15 12:02 — Recorded round A validation and regression row 209
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/fl-assistant-round-a/`, `dashboard/ledger-ui.js`, consumer HTML cache versions, page regression tests.
+- **What changed:** Documented 5,818 full Python, 282 Node and 44 browser cases plus both existing Assistant browser modes, screenshots and database cleanup. Recorded Session B summary-tool hand-off and local/hosted test limits; refreshed shared receipt renderer cache version.
+- **Why:** Make the requested page fixes and their evidence reviewable in a draft PR.
+
+---
+
+## 2026-10-15 11:58 — Added round A display and browser regression coverage
+- **File(s) changed:** `dashboard/assistant-display.js`, `dashboard/ledger-ui.js`, `tests/test_assistant_display.js`, `tests/test_assistant_today_entries.py`, `tests/test_fl_assistant_ui.js`, `tests/test_dashboard_runtime.js`, `tests/visual/run-fl-assistant*.mjs`, Assistant page assets.
+- **What changed:** Covered all-day pagination and timeout, plain quantities and amended receipts, draft/refusal wording, immediate reasons, acknowledgment and pending feedback, desktop/mobile layout, absolute assets, restored authentication and void links. Added phone Today access and plain wrapping day entries.
+- **Why:** Verify every requested round A fix and preserve existing receipt, session and recording behavior.
+
+---
+
+## 2026-10-15 11:53 — FL Assistant round A page, display and today-entry fixes
+- **File(s) changed:** `dashboard/fl-assistant.html`, `dashboard/fl-assistant.css`, `dashboard/fl-assistant.js`, `write_tickets.py`, display helpers and regression tests
+- **What changed:** Added responsive header and absolute asset paths, session loading state, plain staff cards, refusal/void hand-off, immediate reason actions, busy feedback, and paged batch receipt summaries. Added focused regression coverage.
+- **Why:** Michael’s October 15 staging tests found truncated and slow Today entries, raw data cards and page interaction/layout issues.
+
+---
+
 ## 2026-10-15 10:13 — Verify final SS oat fallback and remove all disposable test databases
 - **File(s) changed:** docs/validation/oat-bran-auto-substitute.json
 - **What changed:** Final-source fresh PG17 run passes 5,805 Python tests (zero failures/skips); full Node 234 and 12 browser runs pass. Record runtime hashes and verify all created fl_oatbran databases and suite-created databases are removed.

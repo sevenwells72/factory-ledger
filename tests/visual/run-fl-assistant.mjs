@@ -83,6 +83,7 @@ try {
       const body = data(); turns.push(body);
       const neutral = neutralCases.find(([text]) => text === body.text);
       if (neutral) return neutral[1] ? route.fulfill({ json: { cards: [neutral[1]] } }) : route.abort('failed');
+      if (/^(The correction reason is|El motivo de corrección es) /.test(body.text)) return route.fulfill({ json: { cards: [{ kind: 'missing_facts', fields: ['lot_id'] }] } });
       if (body.text === 'adjust without a reason') return route.fulfill({ json: { cards: [missingReason] } });
       const cards = body.text === 'ambiguous' ? [{ kind: 'choices', id: '811eac35-0b6e-4288-b40f-920639a83525', result: { ask: 'Which product?', candidates: [{ id: 1, label: '<img src=x onerror=alert(1)> Classic' }, { id: 2, label: 'Classic Chocolate Chip' }] } }] : [draft];
       return route.fulfill({ json: { cards: body.text === 'held' ? [{ ...heldDraft, attachment_ids: body.attachment_ids }] :
@@ -143,7 +144,9 @@ try {
   await page.locator('#message').fill('adjust without a reason'); await page.locator('#send').click();
   const reasonCard = page.locator('.assistant-message .card').last();
   await reasonCard.getByRole('button', { name: 'Damaged', exact: true }).click();
-  assert.equal(await page.locator('#message').inputValue(), 'The correction reason is damaged. ');
+  await page.getByText('Please add the missing details:', { exact: true }).last().waitFor();
+  assert.equal(await page.locator('#message').inputValue(), '');
+  assert.equal(turns.at(-1).text, 'The correction reason is damaged.');
   assert.equal(await reasonCard.locator('.error-box, .receipt-number').count(), 0);
   assert.ok(!/Field required|reason_code|didn’t understand/.test(await reasonCard.innerText()));
   assert.equal(records.length, 0);

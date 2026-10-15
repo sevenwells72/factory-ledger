@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-15",
+  "branch": "fix/assistant-page-ux",
+  "base": "de8c1f2",
+  "scope": "Assistant page/display and GET /receipts summary read only",
+  "python": {
+    "passed": 5818,
+    "failed": 0,
+    "skipped": 0,
+    "fresh_database_groups": 21,
+    "database": "fl_fixA_suite_20261015_round_a",
+    "dropped": true
+  },
+  "node": {
+    "passed": 282,
+    "failed": 0,
+    "skipped": 0
+  },
+  "browser": {
+    "round_a_cases": 44,
+    "widths": [
+      1440,
+      390
+    ],
+    "session_modes": [
+      "on",
+      "off"
+    ],
+    "screenshots": 76,
+    "existing_assistant_suites": 2
+  },
+  "source_sha256": {
+    "dashboard/fl-assistant.html": "e9837ff62d5648051451beb2ba7b7ee82b2d4a398ceacf09fa95575eb7681eef",
+    "dashboard/fl-assistant.css": "6929986a3d0fa179be2d3a0fa5130378365dbfc11c306b85d628bf8e3a2f1b24",
+    "dashboard/fl-assistant.js": "8e8d9974495cee2e614afb104929abcab1d411df665dbfa67f37843f2172cd54",
+    "dashboard/assistant-display.js": "c05e7ecea21681b79a9cc7e03d5dc80da6cb1fb648c997d847a1555240890665",
+    "dashboard/ledger-ui.js": "3c0357a65b7540ab47c5aa8d3a2612b0fe87530276fb8c45caf31289ec878dc3",
+    "write_tickets.py": "35313b39f303d753ea92bc3478b5082c67601b0dd92d5a02a609c955e20c22a7"
+  },
+  "hosted_staging_recheck": "Not deployed in this task; local API and deterministic real-browser checks passed."
+}

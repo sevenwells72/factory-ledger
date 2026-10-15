@@ -502,6 +502,68 @@ def receipt_numbers(cur, day, *, actor_terms=None, action=None, status=None, cli
     return [row['receipt_number'] for row in cur.fetchall()]
 
 
+def receipt_summaries(api, cur, day, *, actor_terms=None, action=None, status=None,
+                      client_source=None, policy_code=None, limit=500, offset=0):
+    """A bounded day list without loading each receipt's live inventory/evidence.
+
+    The full receipt remains the source of live void permissions and lot balances.
+    Today's list needs only the stored entry plus effective transaction lines, so
+    it takes two batched queries even when a shift has hundreds of entries.
+    """
+    cur.execute('''SELECT id, receipt_number, action, status, operator_id, draft, response,
+                   (payload->>'occurred_at')::timestamptz AS happened_at, committed_at AS entered_at
+        FROM write_tickets
+        WHERE receipt_number IS NOT NULL
+          AND (((payload->>'occurred_at')::timestamptz AT TIME ZONE 'America/New_York')::date=%s
+               OR (committed_at AT TIME ZONE 'America/New_York')::date=%s)
+          AND (%s::text[] IS NULL OR operator_id=ANY(%s) OR actor_id::text=ANY(%s))
+          AND (%s IS NULL OR action=%s) AND (%s IS NULL OR status=%s)
+          AND (%s IS NULL OR client_source=%s)
+          AND (%s IS NULL OR EXISTS (SELECT 1 FROM jsonb_array_elements(
+              COALESCE(response->'policy_acknowledgements','[]'::jsonb)) p WHERE p->>'code'=%s))
+        ORDER BY COALESCE(committed_at,prepared_at) DESC, id DESC
+        LIMIT %s OFFSET %s''',
+        (day, day, actor_terms, actor_terms, actor_terms, action, action, status, status,
+         client_source, client_source, policy_code, policy_code, limit + 1, offset))
+    rows = [dict(row) for row in cur.fetchall()]
+    has_more = len(rows) > limit
+    rows = rows[:limit]
+    by_ticket = {row['id']: row for row in rows}
+    for row in rows:
+        row['actor'] = (row['draft'] or {}).get('actor')
+        row['transactions'] = []
+        row['late_entry'] = bool(row['entered_at'] and row['happened_at'].astimezone(api.PLANT_TIMEZONE).date()
+                                 != row['entered_at'].astimezone(api.PLANT_TIMEZONE).date())
+    if rows:
+        cur.execute('''SELECT raw.ticket_id, t.id, t.type, t.effective_status,
+                       l.product_id, p.name AS product_name, p.uom,
+                       l.lot_id, lot.lot_code, l.quantity_lb
+            FROM transactions raw JOIN ledger_current_transactions t ON t.id=raw.id
+            LEFT JOIN ledger_current_transaction_lines l ON l.transaction_id=t.id
+            LEFT JOIN products p ON p.id=l.product_id
+            LEFT JOIN lots lot ON lot.id=l.lot_id
+            WHERE raw.ticket_id=ANY(%s) ORDER BY t.id, l.id''', (list(by_ticket),))
+        transactions = {}
+        for line in cur.fetchall():
+            transaction = transactions.get(line['id'])
+            if transaction is None:
+                transaction = {key: line[key] for key in ('id', 'type', 'effective_status')}
+                transaction['lines'] = []
+                transactions[line['id']] = transaction
+                by_ticket[line['ticket_id']]['transactions'].append(transaction)
+            if line['product_id'] is not None:
+                transaction['lines'].append({key: line[key] for key in
+                    ('product_id', 'product_name', 'uom', 'lot_id', 'lot_code', 'quantity_lb')})
+    for row in rows:
+        row.pop('id')
+        statuses = {txn['effective_status'] for txn in row['transactions']}
+        row['effective_status'] = ('voided' if statuses == {'voided'} else
+                                   'partially_voided' if 'voided' in statuses else
+                                   'posted' if statuses else row['status'])
+    return {'date': day, 'receipts': rows, 'has_more': has_more,
+            'next_offset': offset + len(rows) if has_more else None}
+
+
 def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowledged, attachment_ref=None,
                    approval=None, preparer_inactive=False):
     """Re-validate under lock and post the stored payload; the one commit path.
@@ -863,9 +925,15 @@ def register_routes(app, api):
                       action: Optional[str] = None, status: Optional[str] = None,
                       client_source: Optional[ClientSource] = None,
                       policy_code: Optional[str] = None,
+                      summary: bool = False, limit: int = Query(500, ge=1, le=500),
+                      offset: int = Query(0, ge=0),
                       _: bool = Depends(api.verify_api_key)):
         day = date or api.get_plant_now().date()
         with api.get_transaction() as cur:
+            if summary:
+                return receipt_summaries(api, cur, day, actor_terms=[actor] if actor else None,
+                                         action=action, status=status, client_source=client_source,
+                                         policy_code=policy_code, limit=limit, offset=offset)
             numbers = receipt_numbers(cur, day, actor_terms=[actor] if actor else None, action=action, status=status,
                                       client_source=client_source, policy_code=policy_code)
             return {'date': day, 'receipts': [receipt_detail(api, cur, number, identity(api, request)) for number in numbers]}

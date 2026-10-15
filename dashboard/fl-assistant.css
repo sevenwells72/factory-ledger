@@ -3,3 +3,62 @@
 @media(max-width:850px){.rail{width:200px;padding:25px 15px}main{margin-left:200px;width:calc(100% - 200px)}.topbar{padding:22px}.messages{padding-left:22px;padding-right:22px}.composer-wrap{padding-left:22px;padding-right:22px}.brand{font-size:14px}}
 @media(max-width:600px){.rail{display:none}main{margin-left:0;width:100%}.topbar{height:76px;padding:17px 19px}h1{font-size:16px}.part-label{font-size:8px}.sign-in-panel{padding:42px 0;width:calc(100% - 42px)}h2{font-size:27px}.welcome{padding-top:5vh}.messages{padding:28px 17px 185px}.composer-wrap{padding:12px 12px max(14px,env(safe-area-inset-bottom));margin-top:-157px}.composer{padding:14px 11px 10px}.composer-tools button{font-size:11px;padding:9px 7px}.composer-hint{font-size:9px}.assistant-message{gap:6px}.assistant-glyph{flex-basis:20px}.card{padding:15px}.field-list{grid-template-columns:105px minmax(0,1fr);gap:10px}.suggestions{gap:8px}.suggestions button{padding:14px}.notice{bottom:12px;right:12px}.card-actions button{min-height:43px}.choice-button{min-height:44px}.lot-controls{flex-wrap:wrap}.lot-controls input,.lot-controls select{width:100%}}
 @media(prefers-color-scheme:dark){:root{--bg:#191f1c;--surface:#222a25;--rail:#151b17;--text:#e5ebe5;--muted:#9aa99e;--line:#364239;--accent:#85bea0;--tint:#2a3c31;--red:#ffb4b8;--red-bg:#40252a;--green:#a5ddbb;--green-bg:#213e2c}.primary{background:#356b4f;border-color:#356b4f;color:#fff}.receipt{border-color:#447353}.error-box,.notice{border-color:#78434b}}
+
+/* Keep shared receipt tools inside the header at every screen width. */
+main,.header-title,.assistant-message{min-width:0}
+.topbar{height:auto;min-height:90px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px 20px;align-items:center}
+.header-title h1{line-height:1.35}
+#identity{overflow-wrap:anywhere}
+.header-actions{flex-shrink:0;align-items:center;gap:6px}
+.header-actions button{white-space:nowrap;min-height:44px;padding:9px 10px}
+.topbar .receipt-tools{grid-column:1/-1;min-width:0;padding:12px 0 0;margin:0;border-top:1px solid var(--line);gap:10px 16px;align-items:end;color:var(--muted);font:12px/1.4 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.topbar .receipt-lookup{min-width:0;flex-wrap:nowrap;gap:8px;align-items:end}
+.topbar .receipt-lookup label{font-size:11px;gap:5px;min-width:0}
+.topbar .receipt-lookup input{width:185px;min-width:0;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:10px 11px;color:var(--text)}
+.topbar .receipt-lookup button{white-space:nowrap;font-size:12px;padding:10px 12px;flex-shrink:0}
+.topbar .receipt-tools>a{white-space:nowrap;padding:8px 0;font-size:12px}
+.topbar .receipt-tools>a:hover{text-decoration:underline;color:var(--accent)}
+.auth-loading{display:flex;align-items:center;justify-content:center;gap:10px;margin:auto;padding:56px 20px;color:var(--muted);font-size:14px}
+.loading-spinner,.is-working::before{display:inline-block;content:"";width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;flex:none;vertical-align:-2px;animation:fl-spin .8s linear infinite}
+.is-working::before{margin-right:7px}
+button.is-working{opacity:.8;cursor:wait}
+.working-status{display:flex;align-items:center;gap:8px;position:fixed;bottom:18px;left:268px;z-index:4;margin:0;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--muted);box-shadow:var(--shadow);font-size:12px}
+@keyframes fl-spin{to{transform:rotate(360deg)}}
+.card.refusal{border-color:#dfafb4;background:var(--red-bg)}
+.card.refusal .eyebrow,.card.refusal h3{color:var(--red)}
+.card.refusal h3{margin-bottom:8px}
+.card .button-link{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--accent);border-radius:9px;min-height:43px;padding:10px 14px;background:var(--accent);color:#fff;font-size:13px;text-align:center}
+.read-summary{font-size:14px!important;line-height:1.6}
+.read-table-scroll{width:100%;max-width:100%;overflow-x:auto;margin:16px 0 4px;border:1px solid var(--line);border-radius:8px}
+.read-table-scroll table{width:100%;border-collapse:collapse;font-size:13px;line-height:1.5;text-align:left}
+.read-table-scroll th,.read-table-scroll td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}
+.read-table-scroll th{font-size:11px;font-weight:600;background:var(--rail);color:var(--muted)}
+.read-table-scroll tr:last-child td{border-bottom:0}
+.read-table-scroll th:nth-child(n+2),.read-table-scroll td:nth-child(n+2){white-space:nowrap}
+.today-entry{display:block;padding:12px 0;border-top:1px solid var(--line);font-size:13px;line-height:1.65;overflow-wrap:anywhere}
+.today-entry p{margin:0}
+.today-entry:first-child{border-top:0}
+.card-actions a{overflow-wrap:anywhere}
+@media(max-width:850px){.working-status{left:222px}}
+@media(max-width:600px){
+  .topbar{min-height:76px;padding:14px 17px;gap:10px 8px}
+  .header-actions{gap:1px}
+  .header-actions button{padding:8px;font-size:12px}
+  #identity{line-height:1.45;margin-top:4px}
+  .topbar .receipt-tools{padding-top:10px;gap:3px 15px}
+  .topbar .receipt-lookup{width:100%;margin-bottom:4px}
+  .topbar .receipt-lookup label{flex:1}
+  .topbar .receipt-lookup input{width:100%;font-size:13px}
+  .topbar .receipt-lookup button{max-width:none;padding:10px 12px;font-size:12px}
+  .topbar .receipt-tools>a{font-size:11px;min-height:36px;padding:7px 0}
+  .working-status{left:12px;bottom:12px}
+  .read-table-scroll th,.read-table-scroll td{padding:9px 8px;font-size:12px}
+  .read-table-scroll th{font-size:10px}
+  .warning label{align-items:flex-start}
+  .warning input{flex:none}
+}
+@media(prefers-color-scheme:dark){.card.refusal{border-color:#78434b}.card .button-link{background:#356b4f;border-color:#356b4f}}
+@media(prefers-reduced-motion:reduce){.loading-spinner,.is-working::before{animation-duration:1.6s}}
+
+#today-entries-mobile{display:none}
+@media(max-width:600px){#today-entries-mobile{display:inline-block}.read-table-scroll th:nth-child(2),.read-table-scroll td:nth-child(2){white-space:normal;min-width:120px}}

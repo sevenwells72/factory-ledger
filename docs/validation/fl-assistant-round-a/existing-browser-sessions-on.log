@@ -1,0 +1,18 @@
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+locator.waitFor: Error: strict mode violation: locator('[data-draft-id="8dba4c89-a6e7-4da2-a9a8-4d697ea58dbc"]').getByText('Packed Test Product', { exact: true }) resolved to 2 elements:
+    1) <dd data-en="Packed Test Product" data-es="Packed Test Product">Packed Test Product</dd> aka getByText('Packed Test Product').nth(2)
+    2) <strong data-en="Packed Test Product" data-es="Packed Test Product">Packed Test Product</strong> aka getByText('Packed Test Product').nth(3)
+
+Call log:
+[2m  - waiting for locator('[data-draft-id="8dba4c89-a6e7-4da2-a9a8-4d697ea58dbc"]').getByText('Packed Test Product', { exact: true }) to be visible[22m
+
+    at /Users/cns/dev/fl-fixA-wt/tests/visual/run-fl-assistant.mjs:257:68 {
+  log: [
+    `  - waiting for locator('[data-draft-id="8dba4c89-a6e7-4da2-a9a8-4d697ea58dbc"]').getByText('Packed Test Product', { exact: true }) to be visible`
+  ]
+}
+
+Node.js v24.16.0
