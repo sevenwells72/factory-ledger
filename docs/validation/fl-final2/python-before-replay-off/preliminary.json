@@ -1,0 +1,5 @@
+{
+  "final_validation": false,
+  "reason": "Completed initial 6857-test collection before the legacy committed-receipt replay fix and its ten added tests; complete final rerun follows.",
+  "ordinary_group_completed_before_replay_change": true
+}

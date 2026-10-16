@@ -5,20 +5,25 @@
   const labels={counted:['Counted adjustment','Ajuste contado'],missing_movement:['Link missing movement receipt','Vincular recibo de movimiento faltante'],voided:['Posting was voided','Registro anulado'],identified:['Identify supplier lot','Identificar lote de proveedor'],written_off:['Owner write-off','Baja por propietario'],approved:['Owner approve','Aprobar como propietario'],declined:['Owner reject','Rechazar como propietario'],photo_attached:['Attach BOL photo','Adjuntar foto BOL'],waived:['Owner waive','Eximir como propietario'],acknowledged:['Acknowledge','Reconocer'],resolved:['Resolve','Resolver']};
   function render(){content.replaceChildren();const refresh=ui.el('button',ui.t('Refresh exceptions','Actualizar excepciones'),content);refresh.onclick=load;
     if(!rows.length)ui.el('p',ui.t('No open exceptions.','No hay excepciones abiertas.'),content);
-    for(const [kind,items] of ui.groups(rows)){const section=ui.el('section',undefined,content);section.className='panel';ui.el('h2',kind+' · '+items.length,section);
-      for(const item of items){const row=ui.el('article',undefined,section);row.dataset.exceptionId=item.id;row.className='exception-row'+(item.overdue?' overdue':'');
-        const desc=ui.el('div',undefined,row),number=item.receipt_number||item.ticket_receipt_number;
-        const a=ui.el('a',number||ui.t('Receipt unavailable','Recibo no disponible'),desc);if(number)a.href=FLReceipts.link(number);a.className='record-id';ui.el('p',[item.product?.name,item.lot?.lot_code].filter(Boolean).join(' · '),desc);
-        ui.el('div',ui.t('Owner: ','Responsable: ')+(item.owner?.name||ui.t('Unassigned','Sin asignar')),row);
-        ui.el('div',(item.overdue?ui.t('Overdue · ','Vencido · '):'')+(item.due_at?new Date(item.due_at).toLocaleString(ui.lang==='es'?'es-US':'en-US',{timeZone:'America/New_York'}):ui.t('No deadline','Sin fecha límite')),row);
-        if(ui.resolutionChoices(item).length){const button=ui.el('button',ui.t('Resolve','Resolver'),row);button.onclick=()=>open(item.id);}
-      }
-    }
+    // An overdue opening-stock item needs attention now; never hide it in the collapsed group.
+    const ordered=ui.exceptionQueue(rows),recent=ordered.filter(item=>item.overdue||!ui.openingStock(item)),opening=ordered.filter(item=>!item.overdue&&ui.openingStock(item));
+    function renderRows(items,host){for(const item of items){const row=ui.el('article',undefined,host);row.dataset.exceptionId=item.id;row.className='exception-row'+(item.overdue?' overdue':'');
+      const desc=ui.el('div',undefined,row),number=item.receipt_number||item.ticket_receipt_number;
+      ui.el('h3',ui.exceptionLabel(item.kind,ui.lang),desc);
+      if(number){const a=ui.el('a',number,desc);a.href=FLReceipts.link(number);a.className='record-id';}
+      ui.el('p',[item.product?.name,item.lot?.lot_code].filter(Boolean).join(' · '),desc);
+      const note=ui.lang==='es'?item.detail?.message_es:item.detail?.message;if(note)ui.el('p',note,desc);
+      ui.el('div',ui.t('Owner: ','Responsable: ')+(item.owner?.name||ui.t('Unassigned','Sin asignar')),row);
+      ui.el('div',(item.overdue?ui.t('Overdue · ','Vencido · '):'')+(item.due_at?new Date(item.due_at).toLocaleString(ui.lang==='es'?'es-US':'en-US',{timeZone:'America/New_York'}):ui.t('No deadline','Sin fecha límite')),row);
+      if(ui.resolutionChoices(item).length){const button=ui.el('button',ui.t('Resolve','Resolver'),row);button.onclick=()=>open(item.id);}
+    }}
+    if(recent.length){const section=ui.el('section',undefined,content);section.className='panel';ui.el('h2',ui.t('Needs follow-up','Necesita seguimiento')+' · '+recent.length,section);renderRows(recent,section);}
+    if(opening.length){const group=ui.el('details',undefined,content);group.className='panel opening-stock';ui.el('summary',ui.t('Opening-stock items','Elementos del inventario inicial')+' · '+opening.length,group);renderRows(opening,group);}
   }
   async function load({background=false}={}){try{const result=await ui.request('/exceptions?status=open&limit=1000',undefined,{background});rows=result.exceptions||[];const number=new URLSearchParams(location.search).get('receipt');if(number)rows=rows.filter(r=>(r.receipt_number||r.ticket_receipt_number)===number);render();if(result.count>=1000)ui.notice(ui.t('First 1,000 items shown.','Se muestran los primeros 1.000 elementos.'),'notice');}catch(error){ui.failure(error);}}
   async function open(id){try{selected=await ui.request('/exceptions/'+id);renderForm();resolution.scrollIntoView({block:'start'});}catch(error){ui.failure(error);}}
   function renderForm(){resolution.replaceChildren();const item=selected;if(!item)return;
-    const panel=ui.el('section',undefined,resolution);panel.className='panel';ui.el('h2',ui.t('Resolve ','Resolver ')+item.kind+' #'+item.id,panel);const detail=ui.el('div',undefined,panel);detail.innerHTML=ui.draftHtml(item.detail);
+    const panel=ui.el('section',undefined,resolution);panel.className='panel';ui.el('h2',ui.t('Resolve ','Resolver ')+ui.exceptionLabel(item.kind,ui.lang)+' #'+item.id,panel);const detail=ui.el('div',undefined,panel);detail.innerHTML=ui.draftHtml(item.detail);
     const form=ui.el('form',undefined,panel);form.className='fields';
     const choices=ui.resolutionChoices(item);
     if(!choices.length){const p=ui.el('p',ui.t('You cannot resolve this one. The owner decides it.','No puedes resolver esta. La decide el propietario.'),panel);p.className='neutral';form.remove();return;}

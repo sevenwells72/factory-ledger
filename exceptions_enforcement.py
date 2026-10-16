@@ -69,7 +69,7 @@ ACTOR_ROUTES = frozenset({
 })
 # §4.3: large-correction approval, late-entry acceptance, proof waiver and the
 # pre-make-adjust tag are the owner's to close.
-OWNER_KINDS = frozenset({'KOSHER_ATTESTATION', 'LARGE_CORRECTION', 'LATE_ENTRY', 'SHIPMENT_PROOF_MISSING', 'BOL_PHOTO_MISSING', 'PRE_MAKE_ADJUST'})
+OWNER_KINDS = frozenset({'KOSHER_ATTESTATION', 'LARGE_CORRECTION', 'LATE_ENTRY', 'SHIPMENT_PROOF_MISSING', 'BOL_PHOTO_MISSING', 'PRE_MAKE_ADJUST', 'ASSISTANT_OFFLINE'})
 RESOLUTION_KINDS = {
     'SHORTAGE': ('counted', 'missing_movement', 'voided'),
     'NEGATIVE_BALANCE': ('counted', 'missing_movement', 'voided'),
@@ -78,6 +78,7 @@ RESOLUTION_KINDS = {
     'SHIPMENT_PROOF_MISSING': ('photo_attached', 'waived'),
     'BOL_PHOTO_MISSING': ('photo_attached', 'waived'),
     'PRE_MAKE_ADJUST': ('acknowledged',),
+    'ASSISTANT_OFFLINE': ('acknowledged',),
 }
 DEFAULT_RESOLUTIONS = ('resolved', 'waived')
 WAIVE_KINDS = frozenset({'waived', 'written_off'})
@@ -437,12 +438,13 @@ def shortfalls(input_plan, states):
 
 def shortage_warnings(draft):
     """Prepare: "will create shortage" — a warning, never a blocker (R3)."""
+    quantity = lambda value: f'{float(value):.2f}'.rstrip('0').rstrip('.')
     return [{'code': 'WILL_CREATE_SHORTAGE', 'requires_ack': False,
-             'message': (f'{s["product_name"]} lot {s["lot_code"]} has {s["on_hand_lb"]} lb; posting {s["needed_lb"]} lb '
-                         f'leaves it short {s["short_lb"]} lb. A shortage flag opens for the floor to resolve '
+             'message': (f'{s["product_name"]} lot {s["lot_code"]} has {quantity(s["on_hand_lb"])} lb; posting {quantity(s["needed_lb"])} lb '
+                         f'leaves it short {quantity(s["short_lb"])} lb. A shortage flag opens for the floor to resolve '
                          f'within {BUSINESS_DAYS["SHORTAGE"]} business days.'),
-             'message_es': (f'{s["product_name"]} lote {s["lot_code"]} tiene {s["on_hand_lb"]} lb; quedará con un '
-                            f'faltante de {s["short_lb"]} lb que el piso debe resolver en {BUSINESS_DAYS["SHORTAGE"]} días hábiles.'),
+             'message_es': (f'{s["product_name"]} lote {s["lot_code"]} tiene {quantity(s["on_hand_lb"])} lb; quedará con un '
+                            f'faltante de {quantity(s["short_lb"])} lb que el piso debe resolver en {BUSINESS_DAYS["SHORTAGE"]} días hábiles.'),
              'refs': {'lot_id': s['lot_id'], 'short_lb': s['short_lb'], 'on_hand_lb': s['on_hand_lb']}}
             for s in draft.get('shortages') or []]
 
@@ -864,6 +866,9 @@ def allowed_actions(row, actor):
 
 def _view(cur, row, actor=None):
     item = dict(row)
+    # Only the recorded opening-balance source marks a historical stock item.
+    item['is_opening_stock'] = (item.get('kind') == 'UNIDENTIFIED_LOT' and
+                                (item.get('lot_entry_source_notes') or '').upper().startswith(('OPENING BALANCE ', 'STAGING OPENING STOCK ')))
     item['allowed_actions'] = allowed_actions(row, actor) if actor else []
     item['overdue'] = bool(item['due_at'] and item['status'] in ('open', 'escalated')
                            and item['due_at'] < datetime.now(PLANT_TIMEZONE))
@@ -884,7 +889,7 @@ def _view(cur, row, actor=None):
     return item
 
 
-_SELECT = '''SELECT e.*, p.name AS product_name, l.lot_code, o.name AS owner_name, r.name AS resolved_by_name,
+_SELECT = '''SELECT e.*, p.name AS product_name, l.lot_code, l.entry_source AS lot_entry_source, l.entry_source_notes AS lot_entry_source_notes, o.name AS owner_name, r.name AS resolved_by_name,
                     wt.status AS ticket_status, wt.receipt_number AS ticket_receipt_number,
                     fixing.receipt_number AS resolution_posting_receipt_number
              FROM exceptions e
@@ -1015,8 +1020,14 @@ def register_routes(app, api):
                        OR (NOT %s AND NOT (e.status IN ('open','escalated') AND e.due_at < clock_timestamp())))
                   AND (%s::int IS NULL OR e.owner_actor_id=%s) AND (%s::int IS NULL OR e.product_id=%s)
                   AND (%s::int IS NULL OR e.lot_id=%s)
-                ORDER BY (e.status IN ('open','escalated') AND e.due_at < clock_timestamp()) DESC,
-                         e.due_at NULLS LAST, e.opened_at, e.id LIMIT %s''',
+                ORDER BY (e.status IN ('open','escalated')) DESC,
+                  COALESCE(e.status IN ('open','escalated') AND e.due_at < clock_timestamp(), false) DESC,
+                  CASE WHEN e.status IN ('open','escalated') AND e.due_at < clock_timestamp()
+                       THEN e.due_at END ASC NULLS LAST,
+                  (e.kind='UNIDENTIFIED_LOT' AND
+                    (upper(COALESCE(l.entry_source_notes,'')) LIKE 'OPENING BALANCE %%'
+                     OR upper(COALESCE(l.entry_source_notes,'')) LIKE 'STAGING OPENING STOCK %%')) ASC,
+                  e.opened_at DESC, e.id DESC LIMIT %s''',
                 (kinds, kinds, statuses, statuses, overdue, overdue, overdue, owner_actor_id, owner_actor_id,
                  product_id, product_id, lot_id, lot_id, limit))
             rows = cur.fetchall()

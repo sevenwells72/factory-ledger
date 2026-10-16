@@ -1,0 +1,601 @@
+{
+  "sessions": 1,
+  "real_provider": true,
+  "local_copy_only": true,
+  "repeats": 3,
+  "source_sha256": {
+    "sales_document_tickets.py": "df939b8205311b31dbc723cb12a30cee712307b205c2cff99027f5b0e43cf32d",
+    "assistant_voice.py": "5d97b10765871884a268814e834b7b29e83d99aaaf5546f8aa67cac513035b90",
+    "staging_safety.py": "656059fe338d1d9edcf72ed41d77cfcaab464c7ef9e516aad7a17bbb803bb6df",
+    "build_gpt_instructions.py": "037ba968904e7d2bc90924e3e7addbdace17973618a746bb7a5562e9ab4ba028",
+    "ticket_actions.py": "74756b6245ad57be45b87afbdd382a1eeade1eea580d0aeebf338e18cb9ededd",
+    "expected_receipt_tickets.py": "0cb5ef1da80c6f50e6173db303a3d030f3c4d467f5112f6a729340aa06f13173",
+    "resolution_receipts.py": "b828bc2e38db1705dfc9c9b9466e88828ba2b90b49c2ebac3bb943b1c680b715",
+    "order_tickets.py": "5f82e6e168999f5bc77816059b619da6d2167a9994d2df7be220d914a39df5bb",
+    "supplier_lot_tickets.py": "f23215ec0d428888bcae31c6ef3639190a1658df4f0b518821ca31666e3da500",
+    "shift_receipts.py": "20a0f073989ee7d17209b22e449fd72f38e40feaec887956521edde4c3bd7b71",
+    "shift_summary.py": "b9f63c0ff8b6c7aca15d6b245a1b65e02c78f619c65e78885409fbff80e9ffce",
+    "kosher_tiers.py": "5c520e95c55df8e415aa43c92fa01504d666f68a2eab9c1995150cc563ae09e1",
+    "attachments.py": "4ce4cf95146dc75dc6504dee1fa91c229f8c35f5bf25f7043203e192bb337c6c",
+    "customer_tickets.py": "c6995adaf054a216c01e136a8341a1670c165c2388afa71de170bd5d60416f5b",
+    "extraction.py": "bee7e93ad685095991660c7947a20f1dd6c47cc26213639d7b4dc92aa7eb31d9",
+    "oat_bran_substitution.py": "f7875b7f3faef170d0bb96c481a894fcfd2fb924baa21f7d80718955afed26f3",
+    "assistant_runtime.py": "7b1d4a8bbd13f5b0cfce605169eaa09272d69d155d0ddf7966606fec44c5b549",
+    "permissions.py": "7b6e33b6211142eba52066223b4fac32c4eaf9d55d35fa35082410ae167a98db",
+    "key_sessions.py": "f420a1d61aa34708d2c3d1653385bd64db9d59fcaa57b073299b24e950170196",
+    "assistant_service.py": "30002fcfbe4eedd3a6db49031b837d609e3489b15f20f2a8b02f6573ec2b7f70",
+    "lot_confirmation.py": "c8fb70d37e80e33ea958f24116e241c2460d2cf82f9f9ecfe8c7a1c8a7a66185",
+    "ship_tickets.py": "92f573781c19f35c870643bd0b4a9e270f8620d1d8a00cf68d155675ca5d2c34",
+    "exceptions_enforcement.py": "4fc7c020f81ed8c32bedb4efcf33d68d6d42c62cc0e678402cd629ebe421fcfc",
+    "assistant_tools.py": "6a3d83666f46046779e2a4e4c460b69b075d05668e73a865646346373d4a9d54",
+    "main.py": "e50ad035c0fa65a851e016de92daae8558758ac12b66c7928c5bba543b8cc507",
+    "fl_assistant.py": "7caf2bb2683bef6e4418f0d14751056b50e3f2971d39e552458a2915cb0106fc",
+    "resolution.py": "6f434cc7ddbd87b178e7d58b28c54acfaa1caec5a574bebd6aeb309d43079784",
+    "assistant_replies.py": "9f1f252fea883fe0043fa54409286125976890a6ea3a17042b485797c52ea08c",
+    "assistant_receive.py": "d2b111b1681e7948b01de73885c239ff7d908a5a6582cb73a3897b2420adb020",
+    "write_tickets.py": "bc54b06c752b874f06368860021e8465343d658f48e94aa401ed3149c1839f9c",
+    "assistant_intents.py": "3413f85f14a04d7891afb435722efce41bb2df06f488f261313e6fc2c37ee366"
+  },
+  "results": [
+    {
+      "case": "multi_short_en",
+      "language": "en",
+      "text": "5 cases of Sunflower Seeds and 3 cases of Oats",
+      "run": 1,
+      "first_reply_retains_queue": true,
+      "first_reply_posts_nothing": true,
+      "first_receipt": "RCV-261016-093",
+      "second_product_id": 32,
+      "status": "passed",
+      "seconds": 23.241,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06318f83f834665b016ad23b9b6dbc87d29ca6eb13a2599d60",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06318f83f834665b016ad23b9e754c87d2965e02635a9c8a32",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06318f83f834665b016ad23ba1fb4487d2b3ee3b2033870018",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06318f83f834665b016ad23ba6222487d28c7f739fe28c7dae",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06318f83f834665b016ad23ba9906087d28a772b6d9aa31a72",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06318f83f834665b016ad23bac63f487d2ab9208ed1a1f1ac8",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06318f83f834665b016ad23baf649887d2a0a9f782958c97d8",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "multi_short_en",
+      "language": "en",
+      "text": "5 cases of Sunflower Seeds and 3 cases of Oats",
+      "run": 2,
+      "first_reply_retains_queue": true,
+      "first_reply_posts_nothing": true,
+      "first_receipt": "RCV-261016-094",
+      "second_product_id": 32,
+      "status": "passed",
+      "seconds": 21.866,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06a4d9756baa8814016ad23bb2b22087d2bcdeeac89ff33734",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06a4d9756baa8814016ad23bb6956c87d2970cf13039c28458",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06a4d9756baa8814016ad23bb90ec087d290e5b6bd814d48d4",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06a4d9756baa8814016ad23bbc6be887d2b597e76916523849",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06a4d9756baa8814016ad23bbf813487d29b57242f4af647e9",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06a4d9756baa8814016ad23bc2b82087d2ad991c20837baf61",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06a4d9756baa8814016ad23bc5a1f087d293791a6b989539fa",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "multi_short_en",
+      "language": "en",
+      "text": "5 cases of Sunflower Seeds and 3 cases of Oats",
+      "run": 3,
+      "first_reply_retains_queue": true,
+      "first_reply_posts_nothing": true,
+      "first_receipt": "RCV-261016-095",
+      "second_product_id": 32,
+      "status": "passed",
+      "seconds": 24.196,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06f5b002c22b8bc0016ad23bc885c487d2a13e8d0e4670d864",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06f5b002c22b8bc0016ad23bcb72f087d2b6c5a41446885cbb",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06f5b002c22b8bc0016ad23bce758487d287365454a2492f39",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06f5b002c22b8bc0016ad23bd1c1f887d28456a6932fed2a77",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06f5b002c22b8bc0016ad23bd5117087d29cccb9b34cab7772",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06f5b002c22b8bc0016ad23bda2e8487d2bb2115599071a81f",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06f5b002c22b8bc0016ad23bddb1d887d2ade2f347b1a2bce2",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "multi_short_es",
+      "language": "es",
+      "text": "5 cajas de semillas de girasol y 3 cajas de avena",
+      "run": 1,
+      "first_reply_retains_queue": true,
+      "first_reply_posts_nothing": true,
+      "first_receipt": "RCV-261016-096",
+      "second_product_id": 32,
+      "status": "passed",
+      "seconds": 22.292,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0ed94ddae6d0c8e4016ad23be0c47887d28c37bd6db279896a",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0ed94ddae6d0c8e4016ad23be4764887d2af18db1773cec80e",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0ed94ddae6d0c8e4016ad23be7862487d2a8e82f86d4274fa7",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0ed94ddae6d0c8e4016ad23beada5487d2b742eafb68e7b8b8",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0ed94ddae6d0c8e4016ad23bee598487d28b0dd65757235d4e",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0ed94ddae6d0c8e4016ad23bf132c087d2b503f7a83c3854f0",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0ed94ddae6d0c8e4016ad23bf3c59c87d2917137d443548ea9",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "multi_short_es",
+      "language": "es",
+      "text": "5 cajas de semillas de girasol y 3 cajas de avena",
+      "run": 2,
+      "first_reply_retains_queue": true,
+      "first_reply_posts_nothing": true,
+      "first_receipt": "RCV-261016-097",
+      "second_product_id": 32,
+      "status": "passed",
+      "seconds": 20.028,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0a3d924808d197dc016ad23bf7033487d2a5d896efed906d92",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0a3d924808d197dc016ad23bf9bbc487d28b0b7344d75533b8",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0a3d924808d197dc016ad23bfc530c87d2adf85a7e98bf7ef0",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0a3d924808d197dc016ad23bffb1ac87d2a18895622a7b96c8",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0a3d924808d197dc016ad23c026a4487d2b6d448c5b451f9bc",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0a3d924808d197dc016ad23c051e6087d2b8a46131a7f5c175",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0a3d924808d197dc016ad23c08592887d2b72397a078f423df",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "multi_short_es",
+      "language": "es",
+      "text": "5 cajas de semillas de girasol y 3 cajas de avena",
+      "run": 3,
+      "first_reply_retains_queue": true,
+      "first_reply_posts_nothing": true,
+      "first_receipt": "RCV-261016-098",
+      "second_product_id": 32,
+      "status": "passed",
+      "seconds": 25.741,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0e6accb7309b65a5016ad23c0b0a3487d2912e684c162d8e15",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0e6accb7309b65a5016ad23c0eb2a087d2985ea9e578ecb3c1",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0e6accb7309b65a5016ad23c1197cc87d2ba98bed56a5f9213",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0e6accb7309b65a5016ad23c14d2f087d2a3399b748f96c01e",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0e6accb7309b65a5016ad23c17a32487d2bb1d6b529375c7c6",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0e6accb7309b65a5016ad23c1b7f8887d2a04b4f8e2a3f5644",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0e6accb7309b65a5016ad23c1eab4487d28526a4430cfba5cf",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0e6accb7309b65a5016ad23c21ac8c87d29a2a8f5dfd57bef4",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "incomplete_details": null,
+          "tools": [
+            "prepare_receive"
+          ]
+        }
+      ]
+    }
+  ],
+  "passed": 6,
+  "failed": 0,
+  "source_unchanged": true
+}

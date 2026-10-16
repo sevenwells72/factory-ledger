@@ -1,0 +1,9 @@
+{
+  "read_only_staging_dump": true,
+  "restore_complete": true,
+  "transaction_triggers": 3,
+  "local_migration_up_down_up": true,
+  "original_constraint_exactly_restored": true,
+  "initial_restore_problem": "pg_trgm operator class schema mismatch stopped post-data restore; recreated owned copy with extension in public and verified full pg_restore exit 0 before final proof",
+  "hosted_writes": false
+}

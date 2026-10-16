@@ -6,7 +6,7 @@
   const name = value => typeof value === 'string' ? value : scalar(value?.name || value?.product_name || value?.label);
   const first = (...values) => values.find(value => value !== undefined && value !== null && value !== '');
   const number = value => value !== null && value !== '' && value !== undefined && Number.isFinite(Number(value)) ? Number(value) : null;
-  const fmt = value => number(value) === null ? '' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 3 }).format(Number(value));
+  const fmt = value => number(value) === null ? '' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(Number(value));
   const codeNames = {
     physical_count: ['Physical count', 'Conteo físico'], missing_receipt: ['Missing receipt', 'Falta recibo'],
     missing_production: ['Missing production', 'Falta producción'], wrong_lot_used: ['Wrong lot used', 'Se usó el lote equivocado'],
@@ -40,6 +40,11 @@
   function plainMessage(value, language = 'en') {
     return scalar(value).replace(/(?:internal server error|FL returned an unreadable response(?:\. Please try again\.)?)/gi, unavailable(language)).replace(/\bUNIDENTIFIED(?:_LOT)?\b/g, plainLabel('unidentified', language))
       .replace(/\b(?:physical_count|missing_receipt|missing_production|wrong_lot_used|damage_disposal|unrecorded_usage|data_entry_error)\b/g, code => plainLabel(code, language));
+  }
+  function receiptEvidence(receipt = {}, language = 'en') {
+    const values = [receipt, receipt.response || {}, receipt.draft || {}, receipt.shipment || {}, ...(receipt.lots || []), ...(receipt.transactions || [])];
+    const unique = key => [...new Set(values.map(value => scalar(value[key])).filter(Boolean))].join(', ');
+    return [[choose(language, 'Supplier lot', 'Lote del proveedor'), unique('supplier_lot_code')], ['BOL', unique('bol_reference')]].filter(([, value]) => value);
   }
   function formatTime(value, { language = 'en', now = new Date(), timeOnly = false } = {}) {
     if (!value) return '';
@@ -117,7 +122,12 @@
     add('Reason', 'Motivo', plainLabel(draft.reason || (language === 'es' && draft.reason_es) || draft.reason_code, language));
     const note = (language === 'es' && (customer.notes_es || draft.notes_es || draft.note_es)) || customer.notes || draft.notes || draft.note;
     if (!(/order/.test(prepared.action || '') && /^(?:order_id, line ids and the order number|line ids) are assigned at commit\.?$/i.test(note || ''))) add('Note', 'Nota', plainMessage(note, language));
-    if (/unidentified/i.test(draft.identity_status || '')) add('Lot note', 'Nota del lote', plainLabel('unidentified', language));
+    if (/unidentified/i.test(draft.identity_status || '')) {
+      if (prepared.action === 'receive') add('Supplier lot note', 'Nota del lote del proveedor', choose(language,
+        'No supplier lot number given — add it if the bag has one',
+        'No se indicó el número de lote del proveedor — agrégalo si aparece en la bolsa'));
+      else add('Lot note', 'Nota del lote', plainLabel('unidentified', language));
+    }
     const happened = formatTime(draft.happened_at, { language, now });
     if (!/12:00 AM$/.test(happened)) add('Happened at', 'Ocurrió el', happened);
     add('Expires', 'Vence', formatTime(prepared.expires_at, { language, now }));
@@ -129,9 +139,9 @@
     const unitName = units[unit]?.[language === 'es' ? 1 : 0] || unit || '';
     const service = line.is_service || line.line_type === 'service';
     return [[choose(language, 'Type', 'Tipo'), service ? choose(language, 'Service charge', 'Cargo por servicio') : undefined],
-      [choose(language, 'Quantity', 'Cantidad'), quantity == null ? undefined : `${quantity} ${unitName}`.trim()],
-      [choose(language, 'Pounds', 'Libras'), service ? undefined : line.quantity_lb], [choose(language, 'Cases', 'Cajas'), line.cases],
-      [choose(language, 'Unit price', 'Precio unitario'), line.unit_price], [choose(language, 'Amount', 'Importe'), line.amount],
+      [choose(language, 'Quantity', 'Cantidad'), quantity == null ? undefined : `${fmt(quantity)} ${unitName}`.trim()],
+      [choose(language, 'Pounds', 'Libras'), service || line.quantity_lb == null ? undefined : Number(fmt(line.quantity_lb).replaceAll(',', ''))], [choose(language, 'Cases', 'Cajas'), line.cases == null ? undefined : Number(fmt(line.cases).replaceAll(',', ''))],
+      [choose(language, 'Unit price', 'Precio unitario'), line.unit_price == null ? undefined : Number(fmt(line.unit_price).replaceAll(',', ''))], [choose(language, 'Amount', 'Importe'), line.amount == null ? undefined : Number(fmt(line.amount).replaceAll(',', ''))],
       [choose(language, 'Lots', 'Lotes'), (line.lots || []).map(lot => lot.lot_code).join(', ')]];
   }
   function existingCustomerChoice(blocker = {}, language = 'en') {
@@ -141,7 +151,7 @@
       text: choose(language, `Use the existing customer ${existing.name} for the order.`, `Usa el cliente existente ${existing.name} para el pedido.`) };
   }
   function newCustomerChoice(card = {}, role, language = 'en') {
-    if (card.resolution_kind !== 'customer' || !['office', 'owner'].includes(role) || !card.query || (card.result?.offset || 0) !== 0) return null;
+    if (card.existing_customer_only || card.resolution_kind !== 'customer' || !['office', 'owner'].includes(role) || !card.query || (card.result?.offset || 0) !== 0) return null;
     return { label: choose(language, `Add '${card.query}' as a new customer`, `Agregar '${card.query}' como cliente nuevo`),
       text: choose(language, `Create a new customer named ${card.query} first, then continue the order.`,
         `Crea primero un cliente nuevo llamado ${card.query} y luego continúa el pedido.`) };
@@ -267,7 +277,7 @@
       const lines = (data.transactions || []).flatMap(txn => txn.lines || []);
       table(receiptSummary(data, language) + '.', [choose(language, 'Product', 'Producto'), choose(language, 'Lot', 'Lote'), choose(language, 'Quantity', 'Cantidad'), choose(language, 'Unit', 'Unidad')],
         lines.map(line => [name(line.product_name || line.product), scalar(line.lot_code), fmt(line.quantity_lb), 'lb']),
-        [voided ? choose(language, 'VOIDED', 'ANULADO') : '', voided ? plainLabel('voided', language) : '', data.receipt_number, formatTime(data.happened_at, opts), name(data.actor) || data.operator_id]);
+        [voided ? choose(language, 'VOIDED', 'ANULADO') : '', voided ? plainLabel('voided', language) : '', data.receipt_number, formatTime(data.happened_at, opts), name(data.actor) || data.operator_id, ...receiptEvidence(data, language).map(([label, value]) => `${label}: ${value}`)]);
     } else {
       const message = data['message_' + language] || data.message || data['summary_' + language] || data.summary || (card.language === language ? card.summary || card.message : '');
       table(typeof message === 'string' && message.trim() ? message : choose(language, 'FL returned this information.', 'FL devolvió esta información.'));
@@ -289,7 +299,7 @@
     const text = typeof value === 'string' ? value : scalar(value?.receipt_number || value?.source_receipt_number || value?.result?.receipt_number);
     return text.match(/\b(?:RCV|MK|PK|ADJ|FND|SHP)-\d{6}-\d{3,}\b/i)?.[0]?.toUpperCase() || null;
   }
-  const api = { unavailable, plainLabel, plainMessage, formatTime, errorMessage, inventoryUnit, quantityLabel, draftFields, lineFields, existingCustomerChoice, newCustomerChoice, receiptSummary, orderRemaining, readSections, dedupeCards, voidReceipt };
+  const api = { formatQuantity: fmt, receiptEvidence, unavailable, plainLabel, plainMessage, formatTime, errorMessage, inventoryUnit, quantityLabel, draftFields, lineFields, existingCustomerChoice, newCustomerChoice, receiptSummary, orderRemaining, readSections, dedupeCards, voidReceipt };
   if (typeof module !== 'undefined') module.exports = api;
   root.FLAssistantDisplay = api;
 })(typeof window === 'undefined' ? globalThis : window);

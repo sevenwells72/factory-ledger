@@ -1,0 +1,66 @@
+{
+  "created_at": "2026-10-15T19:23:48.824012-04:00",
+  "scope": {
+    "4": "Written/spoken order number detection in FL before model tool selection; shipping-only tool and current-order binding.",
+    "5": "FL parent bulk-batch FIFO choices on exact or selected packing product; Different batch; physical tags remain required.",
+    "6": "Actionable receive supplier-lot note and labels in English/Spanish; display cache v7."
+  },
+  "status": "implemented_and_validated_locally",
+  "python": {
+    "off": {
+      "passed": 6474,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "fresh_database_groups": 23
+    },
+    "on": {
+      "passed": 6474,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "fresh_database_groups": 23
+    }
+  },
+  "node": {
+    "passed": 387,
+    "failed": 0,
+    "skipped": 0
+  },
+  "focused_round_e_and_d": {
+    "passed": 86,
+    "round_e_cases": 27
+  },
+  "real_model": {
+    "model": "gpt-6.1-sol",
+    "requests": 15,
+    "passed": 15,
+    "spoken_order": "5/5",
+    "written_order": "5/5",
+    "packing": "5/5",
+    "core_ledger_and_catalog_unchanged": true,
+    "record_requests": 0,
+    "explicit_egress_approval_received": true
+  },
+  "hosted_database_writes": 0,
+  "deployed": false,
+  "source_sha256": {
+    "fl_assistant.py": "eab0a3c6f05d64f30c47c287987c7192116682753a2a09424907f8f846c99770",
+    "dashboard/assistant-display.js": "82ed981595632f8a1fe216895b9fd8a00889524c03bd7e968dd0640fee4e49e5",
+    "dashboard/fl-assistant.html": "b0a5fdfa49b3f544e59e652aeff7e672b9e9e8f7bef4e7b6b6d2bb1251c9574d",
+    "tests/test_assistant_round_e.py": "7a4e5bb7163b3267a79837035cd406803cdf0df0cc25b6a4e5b25aa1b184a509",
+    "tests/test_assistant_orders_round_d.py": "6dc688e7dffaa4ef6daf460fbabbcc65e36e760c05c684c69f36d6a09b693081",
+    "tests/test_assistant_understanding_round_b.py": "e3cb9de0afc1ff1c33f2a9b6270ca36a1b80a358eb799fbb8da0529d9fcfefb4",
+    "tests/test_assistant_display.js": "ee250f509d5481f6ceea6f37e2f866aac5794915bcaa20278000028a29c8b685",
+    "tests/test_assistant_page_round_a.js": "4df797f938c2055dc2d82bad0cc96257fd1d9ffb9729abf02ba59a6cf15d95c8",
+    "scripts/check_assistant_round_e_real_model.py": "47eda130f7976b242e298bb4dc7bd901500d6c0bde3107fef721ba4b3de40b56"
+  },
+  "temporary_data_cleanup": {
+    "completed": true,
+    "all_task_databases_removed": true,
+    "staging_dump_removed": true,
+    "task_pg17_cluster_stopped_and_removed": true,
+    "private_full_trace_retained_mode": "600",
+    "receipt": "cleanup.json"
+  }
+}

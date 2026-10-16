@@ -1,0 +1,3327 @@
+{
+  "runner": "tests/visual/run-fl-assistant-round-b-page.mjs",
+  "local_only": true,
+  "actual_page": true,
+  "model_tool_selection_stubbed": true,
+  "created_at": "2026-10-16T14:37:40.407Z",
+  "results": [
+    {
+      "item": 1,
+      "language": "en",
+      "label": "open-orders",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 279,
+      "api_failures": []
+    },
+    {
+      "item": 2,
+      "language": "en",
+      "label": "lot-quantity",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 101,
+      "api_failures": []
+    },
+    {
+      "item": 3,
+      "language": "en",
+      "label": "receive-supplier",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 286,
+      "api_failures": []
+    },
+    {
+      "item": 4,
+      "language": "en",
+      "label": "make-lot-confirmation",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 334,
+      "api_failures": []
+    },
+    {
+      "item": 5,
+      "language": "en",
+      "label": "out-of-scope",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 105,
+      "api_failures": []
+    },
+    {
+      "item": 6,
+      "language": "en",
+      "label": "unknown-lot",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 99,
+      "api_failures": []
+    },
+    {
+      "item": 1,
+      "language": "es",
+      "label": "open-orders",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 206,
+      "api_failures": []
+    },
+    {
+      "item": 2,
+      "language": "es",
+      "label": "lot-quantity",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 100,
+      "api_failures": []
+    },
+    {
+      "item": 3,
+      "language": "es",
+      "label": "receive-supplier",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 286,
+      "api_failures": []
+    },
+    {
+      "item": 4,
+      "language": "es",
+      "label": "make-lot-confirmation",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 303,
+      "api_failures": []
+    },
+    {
+      "item": 5,
+      "language": "es",
+      "label": "out-of-scope",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 87,
+      "api_failures": []
+    },
+    {
+      "item": 6,
+      "language": "es",
+      "label": "unknown-lot",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 87,
+      "api_failures": []
+    },
+    {
+      "item": 7,
+      "language": "es",
+      "label": "automatic-spanish",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 97,
+      "api_failures": []
+    },
+    {
+      "item": 8,
+      "language": "en",
+      "label": "different-lot-trace",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 305,
+      "api_failures": []
+    },
+    {
+      "item": 9,
+      "language": "en",
+      "label": "correct-receive-weight",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 257,
+      "api_failures": []
+    },
+    {
+      "item": 9,
+      "language": "es",
+      "label": "correct-receive-weight",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 258,
+      "api_failures": []
+    },
+    {
+      "item": 10,
+      "language": "en",
+      "label": "kookies-order-filter",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 134,
+      "api_failures": []
+    },
+    {
+      "item": 11,
+      "language": "en",
+      "label": "exact-classic-inventory",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 137,
+      "api_failures": []
+    },
+    {
+      "item": 10,
+      "language": "es",
+      "label": "kookies-order-filter",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 135,
+      "api_failures": []
+    },
+    {
+      "item": 11,
+      "language": "es",
+      "label": "exact-classic-inventory",
+      "width": 1440,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 118,
+      "api_failures": []
+    },
+    {
+      "item": 1,
+      "language": "en",
+      "label": "open-orders",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 209,
+      "api_failures": []
+    },
+    {
+      "item": 2,
+      "language": "en",
+      "label": "lot-quantity",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 101,
+      "api_failures": []
+    },
+    {
+      "item": 3,
+      "language": "en",
+      "label": "receive-supplier",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 269,
+      "api_failures": []
+    },
+    {
+      "item": 4,
+      "language": "en",
+      "label": "make-lot-confirmation",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 267,
+      "api_failures": []
+    },
+    {
+      "item": 5,
+      "language": "en",
+      "label": "out-of-scope",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 101,
+      "api_failures": []
+    },
+    {
+      "item": 6,
+      "language": "en",
+      "label": "unknown-lot",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 103,
+      "api_failures": []
+    },
+    {
+      "item": 1,
+      "language": "es",
+      "label": "open-orders",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 190,
+      "api_failures": []
+    },
+    {
+      "item": 2,
+      "language": "es",
+      "label": "lot-quantity",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 99,
+      "api_failures": []
+    },
+    {
+      "item": 3,
+      "language": "es",
+      "label": "receive-supplier",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 286,
+      "api_failures": []
+    },
+    {
+      "item": 4,
+      "language": "es",
+      "label": "make-lot-confirmation",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 267,
+      "api_failures": []
+    },
+    {
+      "item": 5,
+      "language": "es",
+      "label": "out-of-scope",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 102,
+      "api_failures": []
+    },
+    {
+      "item": 6,
+      "language": "es",
+      "label": "unknown-lot",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 102,
+      "api_failures": []
+    },
+    {
+      "item": 7,
+      "language": "es",
+      "label": "automatic-spanish",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 120,
+      "api_failures": []
+    },
+    {
+      "item": 8,
+      "language": "en",
+      "label": "different-lot-trace",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 308,
+      "api_failures": []
+    },
+    {
+      "item": 9,
+      "language": "en",
+      "label": "correct-receive-weight",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 243,
+      "api_failures": []
+    },
+    {
+      "item": 9,
+      "language": "es",
+      "label": "correct-receive-weight",
+      "width": 390,
+      "sessions_enabled": false,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 246,
+      "api_failures": []
+    },
+    {
+      "item": 1,
+      "language": "en",
+      "label": "open-orders",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 245,
+      "api_failures": []
+    },
+    {
+      "item": 2,
+      "language": "en",
+      "label": "lot-quantity",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 123,
+      "api_failures": []
+    },
+    {
+      "item": 3,
+      "language": "en",
+      "label": "receive-supplier",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 323,
+      "api_failures": []
+    },
+    {
+      "item": 4,
+      "language": "en",
+      "label": "make-lot-confirmation",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 388,
+      "api_failures": []
+    },
+    {
+      "item": 5,
+      "language": "en",
+      "label": "out-of-scope",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 91,
+      "api_failures": []
+    },
+    {
+      "item": 6,
+      "language": "en",
+      "label": "unknown-lot",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 108,
+      "api_failures": []
+    },
+    {
+      "item": 1,
+      "language": "es",
+      "label": "open-orders",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 221,
+      "api_failures": []
+    },
+    {
+      "item": 2,
+      "language": "es",
+      "label": "lot-quantity",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 120,
+      "api_failures": []
+    },
+    {
+      "item": 3,
+      "language": "es",
+      "label": "receive-supplier",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 303,
+      "api_failures": []
+    },
+    {
+      "item": 4,
+      "language": "es",
+      "label": "make-lot-confirmation",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 306,
+      "api_failures": []
+    },
+    {
+      "item": 5,
+      "language": "es",
+      "label": "out-of-scope",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 123,
+      "api_failures": []
+    },
+    {
+      "item": 6,
+      "language": "es",
+      "label": "unknown-lot",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 107,
+      "api_failures": []
+    },
+    {
+      "item": 7,
+      "language": "es",
+      "label": "automatic-spanish",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 121,
+      "api_failures": []
+    },
+    {
+      "item": 8,
+      "language": "en",
+      "label": "different-lot-trace",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 285,
+      "api_failures": []
+    },
+    {
+      "item": 9,
+      "language": "en",
+      "label": "correct-receive-weight",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 277,
+      "api_failures": []
+    },
+    {
+      "item": 9,
+      "language": "es",
+      "label": "correct-receive-weight",
+      "width": 1440,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 291,
+      "api_failures": []
+    },
+    {
+      "item": 1,
+      "language": "en",
+      "label": "open-orders",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 239,
+      "api_failures": []
+    },
+    {
+      "item": 2,
+      "language": "en",
+      "label": "lot-quantity",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 143,
+      "api_failures": []
+    },
+    {
+      "item": 3,
+      "language": "en",
+      "label": "receive-supplier",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 268,
+      "api_failures": []
+    },
+    {
+      "item": 4,
+      "language": "en",
+      "label": "make-lot-confirmation",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 272,
+      "api_failures": []
+    },
+    {
+      "item": 5,
+      "language": "en",
+      "label": "out-of-scope",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 106,
+      "api_failures": []
+    },
+    {
+      "item": 6,
+      "language": "en",
+      "label": "unknown-lot",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 102,
+      "api_failures": []
+    },
+    {
+      "item": 1,
+      "language": "es",
+      "label": "open-orders",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 213,
+      "api_failures": []
+    },
+    {
+      "item": 2,
+      "language": "es",
+      "label": "lot-quantity",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 106,
+      "api_failures": []
+    },
+    {
+      "item": 3,
+      "language": "es",
+      "label": "receive-supplier",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 256,
+      "api_failures": []
+    },
+    {
+      "item": 4,
+      "language": "es",
+      "label": "make-lot-confirmation",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 279,
+      "api_failures": []
+    },
+    {
+      "item": 5,
+      "language": "es",
+      "label": "out-of-scope",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 108,
+      "api_failures": []
+    },
+    {
+      "item": 6,
+      "language": "es",
+      "label": "unknown-lot",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 108,
+      "api_failures": []
+    },
+    {
+      "item": 7,
+      "language": "es",
+      "label": "automatic-spanish",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 124,
+      "api_failures": []
+    },
+    {
+      "item": 8,
+      "language": "en",
+      "label": "different-lot-trace",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 314,
+      "api_failures": []
+    },
+    {
+      "item": 9,
+      "language": "en",
+      "label": "correct-receive-weight",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 265,
+      "api_failures": []
+    },
+    {
+      "item": 9,
+      "language": "es",
+      "label": "correct-receive-weight",
+      "width": 390,
+      "sessions_enabled": true,
+      "real_model": false,
+      "status": "passed",
+      "elapsed_ms": 262,
+      "api_failures": []
+    }
+  ],
+  "supplemental_screenshots": [
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/1440-01-open-order-1-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/1440-01-open-order-2-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/1440-01-open-order-3-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/1440-03-receive-supplier-initial-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/1440-03-receive-supplier-search-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/1440-04-make-instruction-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/1440-04-make-final-ingredient-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/1440-04-different-lot-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/1440-01-open-order-1-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/1440-01-open-order-2-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/1440-01-open-order-3-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/1440-03-receive-supplier-initial-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/1440-03-receive-supplier-search-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/1440-04-make-instruction-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/1440-04-make-final-ingredient-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/1440-04-different-lot-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/1440-09-corrected-receive-quantity-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/1440-09-corrected-receive-quantity-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/390-01-open-order-1-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/390-01-open-order-2-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/390-01-open-order-3-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/390-03-receive-supplier-initial-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/390-03-receive-supplier-search-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/390-04-make-instruction-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/390-04-make-final-ingredient-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/390-04-different-lot-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/390-01-open-order-1-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/390-01-open-order-2-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/390-01-open-order-3-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/390-03-receive-supplier-initial-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/390-03-receive-supplier-search-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/390-04-make-instruction-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/390-04-make-final-ingredient-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/390-04-different-lot-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/390-09-corrected-receive-quantity-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-off/390-09-corrected-receive-quantity-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/1440-01-open-order-1-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/1440-01-open-order-2-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/1440-01-open-order-3-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/1440-03-receive-supplier-initial-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/1440-03-receive-supplier-search-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/1440-04-make-instruction-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/1440-04-make-final-ingredient-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/1440-04-different-lot-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/1440-01-open-order-1-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/1440-01-open-order-2-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/1440-01-open-order-3-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/1440-03-receive-supplier-initial-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/1440-03-receive-supplier-search-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/1440-04-make-instruction-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/1440-04-make-final-ingredient-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/1440-04-different-lot-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/1440-09-corrected-receive-quantity-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/1440-09-corrected-receive-quantity-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/390-01-open-order-1-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/390-01-open-order-2-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/390-01-open-order-3-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/390-03-receive-supplier-initial-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/390-03-receive-supplier-search-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/390-04-make-instruction-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/390-04-make-final-ingredient-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/390-04-different-lot-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/390-01-open-order-1-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/390-01-open-order-2-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/390-01-open-order-3-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/390-03-receive-supplier-initial-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/390-03-receive-supplier-search-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/390-04-make-instruction-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/390-04-make-final-ingredient-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/390-04-different-lot-es.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/390-09-corrected-receive-quantity-en.png",
+    "../../../../private/tmp/fl_final/browser/round-b-page/sessions-on/390-09-corrected-receive-quantity-es.png"
+  ],
+  "modes": [
+    {
+      "sessions_enabled": false,
+      "width": 1440,
+      "javascript_errors": [],
+      "assets": [
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        }
+      ],
+      "turns": 24,
+      "records": 1
+    },
+    {
+      "sessions_enabled": false,
+      "width": 390,
+      "javascript_errors": [],
+      "assets": [
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        }
+      ],
+      "turns": 20,
+      "records": 1
+    },
+    {
+      "sessions_enabled": false,
+      "database": {
+        "initial_transactions": 5,
+        "final_transactions": 7,
+        "committed_drafts": 2,
+        "suppliers": 66
+      },
+      "model_requests": [
+        {
+          "tool": "open_orders",
+          "validated_request": true
+        },
+        {
+          "tool": "lot_lookup",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_receive",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_make",
+          "validated_request": true
+        },
+        {
+          "tool": "unsupported_request",
+          "validated_request": true
+        },
+        {
+          "tool": "lot_lookup",
+          "validated_request": true
+        },
+        {
+          "tool": "open_orders",
+          "validated_request": true
+        },
+        {
+          "tool": "lot_lookup",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_receive",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_make",
+          "validated_request": true
+        },
+        {
+          "tool": "unsupported_request",
+          "validated_request": true
+        },
+        {
+          "tool": "lot_lookup",
+          "validated_request": true
+        },
+        {
+          "tool": "open_orders",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_make",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_receive",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_receive",
+          "validated_request": true
+        },
+        {
+          "tool": "open_orders",
+          "validated_request": true
+        },
+        {
+          "tool": "inventory_lookup",
+          "validated_request": true
+        },
+        {
+          "tool": "open_orders",
+          "validated_request": true
+        },
+        {
+          "tool": "inventory_lookup",
+          "validated_request": true
+        },
+        {
+          "tool": "open_orders",
+          "validated_request": true
+        },
+        {
+          "tool": "lot_lookup",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_receive",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_make",
+          "validated_request": true
+        },
+        {
+          "tool": "unsupported_request",
+          "validated_request": true
+        },
+        {
+          "tool": "lot_lookup",
+          "validated_request": true
+        },
+        {
+          "tool": "open_orders",
+          "validated_request": true
+        },
+        {
+          "tool": "lot_lookup",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_receive",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_make",
+          "validated_request": true
+        },
+        {
+          "tool": "unsupported_request",
+          "validated_request": true
+        },
+        {
+          "tool": "lot_lookup",
+          "validated_request": true
+        },
+        {
+          "tool": "open_orders",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_make",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_receive",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_receive",
+          "validated_request": true
+        }
+      ]
+    },
+    {
+      "sessions_enabled": true,
+      "width": 1440,
+      "javascript_errors": [],
+      "assets": [
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        }
+      ],
+      "turns": 20,
+      "records": 1
+    },
+    {
+      "sessions_enabled": true,
+      "width": 390,
+      "javascript_errors": [],
+      "assets": [
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/ledger-forms.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.css",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/dashboard-runtime.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/assistant-display.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/receipt-shell.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/key-session.js",
+          "status": 200
+        },
+        {
+          "path": "/dashboard/fl-assistant.js",
+          "status": 200
+        }
+      ],
+      "turns": 20,
+      "records": 1
+    },
+    {
+      "sessions_enabled": true,
+      "database": {
+        "initial_transactions": 5,
+        "final_transactions": 7,
+        "committed_drafts": 2,
+        "suppliers": 66
+      },
+      "model_requests": [
+        {
+          "tool": "open_orders",
+          "validated_request": true
+        },
+        {
+          "tool": "lot_lookup",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_receive",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_make",
+          "validated_request": true
+        },
+        {
+          "tool": "unsupported_request",
+          "validated_request": true
+        },
+        {
+          "tool": "lot_lookup",
+          "validated_request": true
+        },
+        {
+          "tool": "open_orders",
+          "validated_request": true
+        },
+        {
+          "tool": "lot_lookup",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_receive",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_make",
+          "validated_request": true
+        },
+        {
+          "tool": "unsupported_request",
+          "validated_request": true
+        },
+        {
+          "tool": "lot_lookup",
+          "validated_request": true
+        },
+        {
+          "tool": "open_orders",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_make",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_receive",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_receive",
+          "validated_request": true
+        },
+        {
+          "tool": "open_orders",
+          "validated_request": true
+        },
+        {
+          "tool": "lot_lookup",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_receive",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_make",
+          "validated_request": true
+        },
+        {
+          "tool": "unsupported_request",
+          "validated_request": true
+        },
+        {
+          "tool": "lot_lookup",
+          "validated_request": true
+        },
+        {
+          "tool": "open_orders",
+          "validated_request": true
+        },
+        {
+          "tool": "lot_lookup",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_receive",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_make",
+          "validated_request": true
+        },
+        {
+          "tool": "unsupported_request",
+          "validated_request": true
+        },
+        {
+          "tool": "lot_lookup",
+          "validated_request": true
+        },
+        {
+          "tool": "open_orders",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_make",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_receive",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "resolve",
+          "validated_request": true
+        },
+        {
+          "tool": "prepare_receive",
+          "validated_request": true
+        }
+      ]
+    }
+  ],
+  "databases_dropped": true,
+  "passed": 68,
+  "failed": 0,
+  "screenshot_storage": "Screenshots retained outside repository under /private/tmp/fl_final/browser; representative final-floor screenshots in ../ui."
+}

@@ -1,0 +1,1938 @@
+{
+  "local_only": true,
+  "api_fixtures": true,
+  "real_model": false,
+  "results": [
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "glove-targets",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "receive-draft-bol-and-tag",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "receive-receipt-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "receipt-lookup-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "unsupported-photo-refused-before-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "tag-input-unobscured",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "spanish-lot-recovery",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "physical-tags-manually-supplied",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "order-office-link",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "multi-item-queue-visible",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "quota-no-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "temporary-outage-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "photo-only-neutral",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "receipt-page-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "exceptions-cutover-gated",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "glove-targets",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "receive-draft-bol-and-tag",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "receive-receipt-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "receipt-lookup-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "unsupported-photo-refused-before-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "tag-input-unobscured",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "spanish-lot-recovery",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "physical-tags-manually-supplied",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "order-office-link",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "multi-item-queue-visible",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "quota-no-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "temporary-outage-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "photo-only-neutral",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "receipt-page-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "exceptions-cutover-gated",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "glove-targets",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "receive-draft-bol-and-tag",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "receive-receipt-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "receipt-lookup-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "unsupported-photo-refused-before-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "tag-input-unobscured",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "spanish-lot-recovery",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "physical-tags-manually-supplied",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "order-office-link",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "multi-item-queue-visible",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "quota-no-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "temporary-outage-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "photo-only-neutral",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "receipt-page-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "exceptions-cutover-gated",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "glove-targets",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "receive-draft-bol-and-tag",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "receive-receipt-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "receipt-lookup-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "unsupported-photo-refused-before-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "tag-input-unobscured",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "spanish-lot-recovery",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "physical-tags-manually-supplied",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "order-office-link",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "multi-item-queue-visible",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "quota-no-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "temporary-outage-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "photo-only-neutral",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "receipt-page-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "exceptions-cutover-gated",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "glove-targets",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "receive-draft-bol-and-tag",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "receive-receipt-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "receipt-lookup-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "unsupported-photo-refused-before-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "tag-input-unobscured",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "spanish-lot-recovery",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "physical-tags-manually-supplied",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "order-office-link",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "multi-item-queue-visible",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "quota-no-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "temporary-outage-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "photo-only-neutral",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "receipt-page-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "exceptions-cutover-gated",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "glove-targets",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "receive-draft-bol-and-tag",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "receive-receipt-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "receipt-lookup-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "unsupported-photo-refused-before-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "tag-input-unobscured",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "spanish-lot-recovery",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "physical-tags-manually-supplied",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "order-office-link",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "multi-item-queue-visible",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "quota-no-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "temporary-outage-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "photo-only-neutral",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "receipt-page-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "exceptions-cutover-gated",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "glove-targets",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "receive-draft-bol-and-tag",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "receive-receipt-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "receipt-lookup-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "unsupported-photo-refused-before-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "tag-input-unobscured",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "spanish-lot-recovery",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "physical-tags-manually-supplied",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "order-office-link",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "multi-item-queue-visible",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "quota-no-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "temporary-outage-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "photo-only-neutral",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "receipt-page-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "exceptions-cutover-gated",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "glove-targets",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "receive-draft-bol-and-tag",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "receive-receipt-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "receipt-lookup-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "unsupported-photo-refused-before-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "tag-input-unobscured",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "spanish-lot-recovery",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "physical-tags-manually-supplied",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "order-office-link",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "multi-item-queue-visible",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "quota-no-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "temporary-outage-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "photo-only-neutral",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "receipt-page-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "exceptions-cutover-gated",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "glove-targets",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "receive-draft-bol-and-tag",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "receive-receipt-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "receipt-lookup-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "unsupported-photo-refused-before-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "tag-input-unobscured",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "spanish-lot-recovery",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "physical-tags-manually-supplied",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "order-office-link",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "multi-item-queue-visible",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "quota-no-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "temporary-outage-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "photo-only-neutral",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "receipt-page-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "exceptions-overdue-first",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "glove-targets",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "receive-draft-bol-and-tag",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "receive-receipt-evidence",
+      "status": "passed",
+      "screenshot": "1-en-390-receive-receipt-evidence.png"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "receipt-lookup-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "unsupported-photo-refused-before-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "tag-input-unobscured",
+      "status": "passed",
+      "screenshot": "1-en-390-tag-input-unobscured.png"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "spanish-lot-recovery",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "physical-tags-manually-supplied",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "order-office-link",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "multi-item-queue-visible",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "quota-no-retry",
+      "status": "passed",
+      "screenshot": "1-en-390-quota-no-retry.png"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "temporary-outage-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "photo-only-neutral",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "receipt-page-evidence",
+      "status": "passed",
+      "screenshot": "1-en-390-receipt-page-evidence.png"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "exceptions-overdue-first",
+      "status": "passed",
+      "screenshot": "1-en-390-exceptions-overdue-first.png"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "glove-targets",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "receive-draft-bol-and-tag",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "receive-receipt-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "receipt-lookup-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "unsupported-photo-refused-before-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "tag-input-unobscured",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "spanish-lot-recovery",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "physical-tags-manually-supplied",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "order-office-link",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "multi-item-queue-visible",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "quota-no-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "temporary-outage-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "photo-only-neutral",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "receipt-page-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "exceptions-overdue-first",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "glove-targets",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "receive-draft-bol-and-tag",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "receive-receipt-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "receipt-lookup-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "unsupported-photo-refused-before-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "tag-input-unobscured",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "spanish-lot-recovery",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "physical-tags-manually-supplied",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "order-office-link",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "multi-item-queue-visible",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "quota-no-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "temporary-outage-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "photo-only-neutral",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "receipt-page-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "exceptions-overdue-first",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "glove-targets",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "receive-draft-bol-and-tag",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "receive-receipt-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "receipt-lookup-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "unsupported-photo-refused-before-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "tag-input-unobscured",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "spanish-lot-recovery",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "physical-tags-manually-supplied",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "order-office-link",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "multi-item-queue-visible",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "quota-no-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "temporary-outage-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "photo-only-neutral",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "receipt-page-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "exceptions-overdue-first",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "glove-targets",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "receive-draft-bol-and-tag",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "receive-receipt-evidence",
+      "status": "passed",
+      "screenshot": "1-es-390-receive-receipt-evidence.png"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "receipt-lookup-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "unsupported-photo-refused-before-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "tag-input-unobscured",
+      "status": "passed",
+      "screenshot": "1-es-390-tag-input-unobscured.png"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "spanish-lot-recovery",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "physical-tags-manually-supplied",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "order-office-link",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "multi-item-queue-visible",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "quota-no-retry",
+      "status": "passed",
+      "screenshot": "1-es-390-quota-no-retry.png"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "temporary-outage-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "photo-only-neutral",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "receipt-page-evidence",
+      "status": "passed",
+      "screenshot": "1-es-390-receipt-page-evidence.png"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "exceptions-overdue-first",
+      "status": "passed",
+      "screenshot": "1-es-390-exceptions-overdue-first.png"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "glove-targets",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "receive-draft-bol-and-tag",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "receive-receipt-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "receipt-lookup-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "unsupported-photo-refused-before-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "tag-input-unobscured",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "spanish-lot-recovery",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "physical-tags-manually-supplied",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "order-office-link",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "multi-item-queue-visible",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "quota-no-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "temporary-outage-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "photo-only-neutral",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "receipt-page-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "exceptions-overdue-first",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "glove-targets",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "receive-draft-bol-and-tag",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "receive-receipt-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "receipt-lookup-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "unsupported-photo-refused-before-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "tag-input-unobscured",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "spanish-lot-recovery",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "physical-tags-manually-supplied",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "order-office-link",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "multi-item-queue-visible",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "quota-no-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "temporary-outage-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "photo-only-neutral",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "receipt-page-evidence",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "exceptions-overdue-first",
+      "status": "passed"
+    }
+  ],
+  "record_requests": 48
+}

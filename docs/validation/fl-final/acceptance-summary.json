@@ -1,0 +1,60 @@
+{
+  "accepted_checks": 312,
+  "provider_backed_checks": 240,
+  "deterministic_checks": 72,
+  "unique_completed_provider_responses": 679,
+  "sentences": 52,
+  "repeats_per_sentence_per_mode": 3,
+  "session_modes": [
+    0,
+    1
+  ],
+  "python_off": 6709,
+  "python_on": 6709,
+  "node": 411,
+  "source_checks": [
+    {
+      "evidence": "real-model-off.json",
+      "different_from_final": [
+        "assistant_receive.py"
+      ]
+    },
+    {
+      "evidence": "trace-real-model-off.json",
+      "different_from_final": [
+        "assistant_receive.py"
+      ]
+    },
+    {
+      "evidence": "main-multi-final-off.json",
+      "different_from_final": []
+    },
+    {
+      "evidence": "real-model-on.json",
+      "different_from_final": [
+        "assistant_receive.py"
+      ]
+    },
+    {
+      "evidence": "trace-real-model-on.json",
+      "different_from_final": [
+        "assistant_receive.py"
+      ]
+    },
+    {
+      "evidence": "main-multi-final-on.json",
+      "different_from_final": []
+    }
+  ],
+  "source_impact": {
+    "file": "assistant_receive.py",
+    "prior_sha256": "2d9df91f663eea4cb91e5c319f4320b7200db62ee7b44b8743649bb9210a1d01",
+    "final_sha256": "d2b111b1681e7948b01de73885c239ff7d908a5a6582cb73a3897b2420adb020",
+    "change": "Add the already-selected Received prefix to the first item when a multiple-item package list has no leading action. Other paths return the same text as before.",
+    "unaffected_proof_equivalence": "The 96 other supplemental checks passed before this last one-line change. None enters the bare multiple-item branch: found, single-item bags, Setton, SS make, Office handoffs, and missing-ingredient make. Every other runtime source hash is identical. The 12 short-multi final checks and 12 full-sentence main-multi rechecks ran with all final runtime hashes unchanged."
+  },
+  "trace_source_equivalence": "The last one-line change only prefixes the first item of an actionless multi-item receive list. Trace receive and make sentences are single-item and return before that branch; all other runtime file hashes match. Affected short and full multi-item sentences were rerun three times in both modes.",
+  "hosted_writes": false,
+  "migration_pending_deployment": "084_assistant_service_alert.sql",
+  "cleanup": "fresh-db-cleanup.json"
+}

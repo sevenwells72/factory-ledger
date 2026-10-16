@@ -83,7 +83,9 @@
     if (code === 'PHOTO_INVALID' || error?.httpStatus === 413) return sentBytes > MAX_PHOTO || error?.httpStatus === 413 ? 'too_large' : 'wrong_type';
     return 'failed';
   }
-  const exports = { supplierChoices, isTodayQuery, voidTarget, refusalDraft, validReceipt, canRecord, validAttachment, evidenceKinds, errorText, awaitingApproval, neutralMessages,
+  const assistantOffline = value => { const data = value?.result || value, detail = data?.detail || data; return (detail?.error_code || detail?.code) === 'ASSISTANT_QUOTA_EXHAUSTED'; };
+  const safeOfficeLink = href => /^\/dashboard\/(?:entry|office|receipt|exceptions)\.html(?:[?#]|$)/.test(String(href || '')) ? href : null;
+  const exports = { assistantOffline, safeOfficeLink, supplierChoices, isTodayQuery, voidTarget, refusalDraft, validReceipt, canRecord, validAttachment, evidenceKinds, errorText, awaitingApproval, neutralMessages,
     dayLabel, dividerLabel, showJump, photoKinds, photoStatus, photoProblem, MAX_PHOTO };
   if (typeof module !== 'undefined') module.exports = exports;
   if (!root.document) return;
@@ -91,7 +93,7 @@
   let language = localStorage.getItem('fl-assistant-language') || 'en';
   let credential = '', session = '', actor = null, sessionStore = '', busy = false, attachments = [], retryTurn = null;
   let lastIntent = '', held = false, recorder = null, stream = null, recordingTimer = null, micStarting = false;
-  let lastTurnAt = null, photoSeq = 0;
+  let lastTurnAt = null;
   const photoUrls = new Map();
   const drafts = new Map();
   const labels = new Map();
@@ -125,7 +127,22 @@
     if (actor) $('identity').textContent = `${t('Signed in as', 'Sesión de')} ${actor.name} · ${actor.role}`;
     renderAttachments();
   }
-  function notice(message) { $('notice').textContent = message; $('notice').hidden = !message; }
+  function notice(message, tone = 'error') { if (tone === 'neutral') $('composer').after($('notice')); $('notice').textContent = message; $('notice').hidden = !message; $('notice').className = tone === 'neutral' ? 'notice neutral-notice' : 'notice'; $('notice').setAttribute('role', tone === 'neutral' ? 'status' : 'alert'); }
+  function handoffActions(node, actions) {
+    const row = el('div', undefined, 'card-actions');
+    for (const action of actions || []) { const href = safeOfficeLink(action.href); if (!href) continue; const link = el('a', action.label, 'button-link'); link.href = href; row.append(link); }
+    node.append(row);
+  }
+  function handoff(node, card) {
+    node.className = 'card handoff';
+    node.append(el('p', card.message || errorText(card, language)));
+    handoffActions(node, card.actions);
+  }
+  function offline(node, error) {
+    handoff(node, { message: errorText(error, language), actions: [
+      { href: '/dashboard/entry.html', label: t('Record entry', 'Registrar entrada') }, { href: '/dashboard/office.html', label: t('Office', 'Oficina') }
+    ] });
+  }
   function failed(node, error) {
     const box = el('div', undefined, 'error-box');
     box.append(el('p', t('NOT recorded — no receipt confirmed.', 'NO registrado — no se confirmó un recibo.')), el('p', errorText(error, language)));
@@ -152,6 +169,11 @@
     const list = el('ul');
     for (const field of new Set(missing || [])) list.append(el('li', t(...(names[field] || ['additional details', 'datos adicionales']))));
     node.append(list);
+  }
+  function reasonPicker(node, reasons) {
+    node.append(el('p', t('Choose a correction reason.', 'Elige un motivo de la corrección.')));
+    for (const reason of reasons || []) node.append(button(t(reason.label_en, reason.label_es || reason.label_en),
+      () => sendTurn({ text: `${t('The correction reason is', 'El motivo de corrección es')} ${reason.code}.` }), 'choice-button'));
   }
   async function api(path, { body, form, method = 'POST', binary = false, timeout = 95000, background = false, onProgress } = {}) {
     const controller = new AbortController();
@@ -219,7 +241,7 @@
   }
   function updateJump() {
     const jump = $('jump-latest'); if (!jump) return;
-    jump.hidden = $('chat-panel').hidden || !showJump({ scrollTop: scroller().scrollTop, scrollHeight: scroller().scrollHeight, clientHeight: root.innerHeight });
+    jump.hidden = $('chat-panel').hidden || !!document.activeElement?.closest?.('.ingredient-confirmation,.lot-confirmation') || !showJump({ scrollTop: scroller().scrollTop, scrollHeight: scroller().scrollHeight, clientHeight: root.innerHeight });
   }
   function divider(when) {
     const label = dividerLabel(when, lastTurnAt, new Date(), 'en');
@@ -284,13 +306,14 @@
       for (const [i, values] of section.rows.entries()) { const row = el('tr'); for (const [j, value] of values.entries()) row.append(el('td', t(String(value ?? ''), String(translated.rows[i]?.[j] ?? value ?? '')))); body.append(row); }
       table.append(body); scroll.append(table); node.append(scroll);
     }
+    if (card.result?.receipt_number) receiptPhotos(node, card.result);
     if (card.result?.view_all) node.append(button(t('View all today’s entries', 'Ver todas las entradas de hoy'), () => todayEntries()));
   }
   function details() { /* Staff cards contain only reviewed, plain fields. */ }
   function fields(node, pairs) {
     const list = el('dl', undefined, 'field-list');
     pairs.filter(([, value]) => value !== undefined && value !== null && value !== '').forEach(([name, value]) => {
-      list.append(el('dt', name), el('dd', typeof value === 'object' ? (value.name || value.label_en || t('See the entry details', 'Consulta los detalles')) : String(value)));
+      list.append(el('dt', name), el('dd', typeof value === 'object' ? (value.name || value.label_en || t('See the entry details', 'Consulta los detalles')) : typeof value === 'number' ? display.formatQuantity(value) : String(value)));
     }); node.append(list);
   }
   function autoSubstitutions(node, result) {
@@ -298,6 +321,13 @@
       if (!item.message_en || !item.message_es) continue;
       const message = el('p', t(item.message_en, item.message_es), 'auto-substitution');
       message.setAttribute('role', 'status'); node.append(message);
+    }
+  }
+  function receiptPhotos(node, result) {
+    const seen = new Set();
+    for (const item of result.attachments || result.response?.attachments || []) {
+      const id = item.id || item.attachment_id; if (!Number.isSafeInteger(id) || seen.has(id)) continue; seen.add(id);
+      node.append(button(t(`View ${photoKinds[item.kind]?.[0] || 'attached'} photo`, `Ver foto: ${photoKinds[item.kind]?.[1] || 'adjunta'}`), () => viewPhoto(id), 'receipt-photo'));
     }
   }
   function renderReceipt(node, result) {
@@ -308,12 +338,13 @@
     autoSubstitutions(node, result);
     fields(node, [[t('Product', 'Producto'), result.product_name || result.target_product_name], [t('Lot', 'Lote'), result.lot_code || result.output_lot_code],
       [t('Customer', 'Cliente'), result.customer_name || result.customer], [t('Order', 'Pedido'), result.order_number], [t('Shipment', 'Envío'), result.shipment_id],
-      [t('BOL', 'BOL'), result.bol_reference], [t('Photo status', 'Estado de foto'), result.proof_status === 'complete' ? t('Attached', 'Adjunta') : result.proof_status === 'photo_pending' ? t('Pending', 'Pendiente') : display.plainLabel(result.proof_status, language)]]);
+      ...display.receiptEvidence(result, 'en').map(([label, value], index) => [t(label, display.receiptEvidence(result, 'es')[index][0]), value]), [t('Photo status', 'Estado de foto'), result.proof_status === 'complete' ? t('Attached', 'Adjunta') : result.proof_status === 'photo_pending' ? t('Pending', 'Pendiente') : display.plainLabel(result.proof_status, language)]]);
+    receiptPhotos(node, result);
     for (const shortage of result.shortages || []) {
       const warning = el('div', undefined, 'warning'); warning.setAttribute('role', 'status');
       warning.append(el('strong', t('Shortage recorded', 'Faltante registrado')),
-        el('p', t(`${shortage.product_name} · ${shortage.lot_code}: short ${shortage.short_lb} lb. The floor must resolve this shortage.`,
-          `${shortage.product_name} · ${shortage.lot_code}: faltan ${shortage.short_lb} lb. El piso debe resolver este faltante.`)));
+        el('p', t(`${shortage.product_name} · ${shortage.lot_code}: short ${display.formatQuantity(shortage.short_lb)} lb. The floor must resolve this shortage.`,
+          `${shortage.product_name} · ${shortage.lot_code}: faltan ${display.formatQuantity(shortage.short_lb)} lb. El piso debe resolver este faltante.`)));
       fields(warning, [[t('Due', 'Vence'), display.formatTime(shortage.due_at, { language })], [t('Exception', 'Excepción'), shortage.exception_id]]);
       node.append(warning);
     }
@@ -412,7 +443,7 @@
     for (const lot of draft.input_plan || []) {
       const row = el('div', undefined, 'lot-confirmation');
       const title = el('label'), suggested = el('span', ` · ${lot.lot_code}`, 'suggested-lot-code');
-      title.append(el('span', lot.product_name || t('Input', 'Insumo')), suggested, el('span', ` · ${lot.quantity_lb} lb`)); row.append(title);
+      title.append(el('span', lot.product_name || t('Input', 'Insumo')), suggested, el('span', ` · ${display.formatQuantity(lot.quantity_lb)} lb`)); row.append(title);
       if (!lot.confirmed) {
         const controls = el('div', undefined, 'lot-controls'), method = el('select'), input = el('input');
         [['last4', t('Last 4, including hyphen', 'Últimos 4, incluido el guion')],
@@ -572,6 +603,12 @@
       if (card.packing_lots) { const different = button(t('Different batch', 'Otro lote a granel'), () => select('different_batch'), 'choice-button'); choices.push(different); node.append(different); }
       else if (candidates.length) { const none = button(t('None of these', 'Ninguno de estos'), () => select(null), 'choice-button'); choices.push(none); node.append(none); }
       if (result.has_more) { const more = button(t('More choices →', 'Más opciones →'), () => select(null, true), 'choice-button'); choices.push(more); node.append(more); }
+    } else if (card.kind === 'handoff') {
+      handoff(node, card);
+    } else if (card.kind === 'receive_queue') {
+      node.append(el('p', card.message));
+      const list = el('ul'); for (const text of card.queued_text || []) list.append(el('li', text)); node.append(list);
+      if (card.continue_text) node.append(button(card.continue_text, () => sendTurn({ text: card.continue_text }), 'choice-button'));
     } else if (card.kind === 'read') {
       node.append(el('span', t('FROM FACTORY LEDGER', 'DE FACTORY LEDGER'), 'eyebrow'), el('h3', t('Here’s what FL shows', 'Esto muestra FL')));
       readResult(node, card);
@@ -582,27 +619,37 @@
         const order = card.order;
         node.append(el('p', t(`How much of order ${order.order_number} should we ship? Remaining: ${display.orderRemaining(order, 'en')}.`, `¿Cuánto del pedido ${order.order_number} vamos a enviar? Pendiente: ${display.orderRemaining(order, 'es')}.`)));
         node.append(button(t('Ship all remaining', 'Enviar todo lo pendiente'), () => sendTurn({text: t(`Ship all remaining on order ${order.order_number}.`, `Envía todo lo pendiente del pedido ${order.order_number}.`)}), 'choice-button'));
+      } else if (card.reason_required && card.reasons?.length) {
+        reasonPicker(node, card.reasons);
+        const otherFields = (card.fields || []).filter(field => field !== 'reason_code');
+        if (otherFields.length) missingFacts(node, otherFields);
       } else missingFacts(node, card.fields);
       if (card.supplier_choices || card.supplier_search) supplierPicker(node, card, card.supplier_choices || []);
     } else if (neutralMessages[card.kind]) {
       if (card.message && card.kind !== 'unsupported_request') node.append(el('p', display.plainMessage(card.message, language)));
       else neutral(node, card.kind);
     } else if (card.kind === 'refusal') {
-      const missingReason = card.status === 422 && card.reasons?.length && Array.isArray(card.result?.detail)
-        && card.result.detail.length && card.result.detail.every(error => error.type === 'missing'
-          && error.loc?.length === 2 && error.loc[0] === 'body' && error.loc[1] === 'reason_code');
+      const missingReason = card.reasons?.length && (card.reason_required || card.status === 422
+        && Array.isArray(card.result?.detail) && card.result.detail.some(error => ['missing', 'string_too_short'].includes(error.type)
+          && error.loc?.length === 2 && error.loc[0] === 'body' && error.loc[1] === 'reason_code'));
       // Also sanitize saved pre-fix validation failures when resuming a chat.
       if (!missingReason && card.status === 422 && (Array.isArray(card.result?.detail) || card.result?.error_detail?.code === 'VALIDATION_ERROR')) {
         neutral(node, 'misunderstood'); return;
       }
-      if (missingReason) node.append(el('p', t('Choose a correction reason.', 'Elige un motivo de la corrección.')));
+      if (missingReason) {
+        reasonPicker(node, card.reasons);
+        const otherFields = (Array.isArray(card.result?.detail) ? card.result.detail : []).filter(error => error.type === 'missing'
+          && error.loc?.length === 2 && error.loc[0] === 'body' && error.loc[1] !== 'reason_code').map(error => error.loc[1]);
+        if (otherFields.length) missingFacts(node, otherFields);
+      }
       else {
         node.className = 'card refusal';
         node.append(el('span', t('CANNOT RECORD', 'NO SE PUEDE REGISTRAR'), 'draft-badge'), el('h3', t('This request was refused', 'Esta solicitud fue rechazada')));
         node.append(el('p', card.message ? display.plainMessage(card.message, language) : t(display.errorMessage(card.result, 'en'), display.errorMessage(card.result, 'es'))));
         node.append(el('p', t('Update the message with the requested details. FL has not recorded this request.', 'Completa el mensaje con los datos solicitados. FL no ha registrado esta solicitud.'), 'muted'));
       }
-      if (JSON.stringify(card.result).includes('reason_code')) {
+      if (card.actions?.length) handoffActions(node, card.actions);
+      if (!missingReason && JSON.stringify(card.result).includes('reason_code')) {
         for (const reason of card.reasons || []) node.append(button(t(reason.label_en, reason.label_es || reason.label_en), () => sendTurn({ text: `${t('The correction reason is', 'El motivo de corrección es')} ${reason.code}.` }), 'choice-button'));
       }
     } else node.append(el('p', card.message ? display.plainMessage(card.message, language) : t('Please give more details.', 'Agrega más detalles.')));
@@ -683,8 +730,9 @@
           'Tu foto sigue adjunta y se enviará con tu próximo mensaje. Cuéntame qué pasó — por ejemplo, “recibimos 6 cajas de avena de Grain Supply”.'), 'photo-hint'));
       }
     } catch (error) {
-      retryTurn = body; const card = shell(); neutral(card, 'lookup_failed');
-      card.append(button(t('Retry this message', 'Reintentar este mensaje'), () => sendTurn({}, body)));
+      const card = shell();
+      if (assistantOffline(error)) { retryTurn = null; offline(card, error); }
+      else { retryTurn = body; neutral(card, 'lookup_failed'); card.append(button(t('Retry this message', 'Reintentar este mensaje'), () => sendTurn({}, body))); }
     } finally { waiting.remove(); setBusy(false); $('message').focus({ preventScroll: true }); revealLatest(); }
   }
   async function loadChat({ background = false } = {}) {
@@ -766,13 +814,14 @@
   }
   $('today-entries').addEventListener('click', todayEntries);
   $('jump-latest').addEventListener('click', () => { scrollToLatest(); $('jump-latest').hidden = true; });
+  document.addEventListener('focusin', updateJump); document.addEventListener('focusout', () => root.requestAnimationFrame?.(updateJump));
   root.addEventListener?.('scroll', updateJump, { passive: true }); root.addEventListener?.('resize', updateJump);
   $('today-entries-mobile').addEventListener('click', todayEntries);
   $('composer').addEventListener('submit', event => {
     event.preventDefault(); if (busy) return;
     const text = $('message').value.trim(), pending = attachments.find(a => a.state === 'choose' || a.state === 'uploading');
     if (pending) { notice(pending.state === 'choose' ? t('First choose what the photo shows.', 'Primero elige qué muestra la foto.') : t('Wait until the photo says Attached ✓.', 'Espera hasta que la foto diga Adjunta ✓.')); return; }
-    if (!text) { if (attachedIds().length) notice(t('Tell me what the photo is for, then press Send.', 'Dime para qué es la foto y después pulsa Enviar.')); return; }
+    if (!text) { if (attachedIds().length) notice(t('Tell me what the photo is for, then press Send.', 'Dime para qué es la foto y después pulsa Enviar.'), 'neutral'); return; }
     $('message').value = ''; if (isTodayQuery(text)) todayEntries(text); else sendTurn({ text });
   });
   $('message').addEventListener('keydown', event => { if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); $('composer').requestSubmit(); } });
@@ -898,7 +947,7 @@
           const result = await api('/assistant/transcribe', { form });
           $('message').value = [$('message').value.trim(), result.text].filter(Boolean).join(' ');
           $('composer-hint').textContent = t('Review and edit your transcript, then press Send. Nothing has been sent.', 'Revisa y edita el dictado. Después pulsa Enviar. No se ha enviado nada.');
-        } catch (error) { notice(t('Dictation failed. Please try again or type your message.', 'Falló el dictado. Inténtalo de nuevo o escribe tu mensaje.')); }
+        } catch (error) { if (assistantOffline(error)) offline(shell(), error); else notice(t('Dictation failed. Please try again or type your message.', 'Falló el dictado. Inténtalo de nuevo o escribe tu mensaje.')); }
         finally { setBusy(false); $('message').focus(); }
       };
       recorder.start(); recordingTimer = setTimeout(stopMic, 90000);

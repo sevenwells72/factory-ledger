@@ -358,8 +358,10 @@ def test_missing_receive_facts_are_neutral_even_after_resolve_format_retry(
     requests = model(monkeypatch, *calls, ('prepare_receive', args))
     response = turn(client, chat, 'We received 10 lb of this product from this supplier, supplier lot SMOKE-124-REVIEW.')
     assert response.status_code == 200, response.text
+    expected_facts = {k: v for k, v in args.items() if v is not None and k != 'lot_code'}
+    expected_facts['supplier_lot_code'] = 'SMOKE-124-REVIEW'
     expected = [{'kind': 'missing_facts', 'fields': ['cases', 'case_size_lb', 'bol_reference'],
-                 'known_facts': {'quantity_lb': 10.0, **{k: v for k, v in args.items() if v is not None}},
+                 'known_facts': {'quantity_lb': 10.0, **expected_facts},
                  'language': 'en', 'message': 'Please add the missing details.',
                  'missing_details': [{'field': 'cases', 'label': 'number of cases'},
                                      {'field': 'case_size_lb', 'label': 'case size (lb)'},
@@ -471,7 +473,7 @@ def test_failed_repair_always_returns_plain_rephrase(client, chat, monkeypatch, 
 
 
 @pytest.mark.parametrize('status', [403, 404, 422, 500])
-def test_lookup_business_failure_is_neutral_without_model_retry(client, chat, db_cursor, monkeypatch, status):
+def test_lookup_business_failure_keeps_plain_reason_without_model_retry(client, chat, db_cursor, monkeypatch, status):
     name = 'F1 read failure ' + uuid4().hex[:10]
     db_cursor.execute("INSERT INTO products(name,type,uom) VALUES (%s,'ingredient','lb')", (name,))
     requests = model(monkeypatch, ('inventory_lookup', {'q': name}))
@@ -490,7 +492,7 @@ def test_lookup_business_failure_is_neutral_without_model_retry(client, chat, db
         'result': {'detail': {'error_code': 'BUSINESS_REFUSAL', 'message': 'FL refused'}},
         'language': 'en', 'error_code': 'BUSINESS_REFUSAL',
         'message': ('Factory Ledger is temporarily unavailable — try again in a minute.' if status >= 500 else
-                    'I could not complete that Factory Ledger request. Check the item and details.'),
+                    'FL refused'),
     }]
     assert len(requests) == 1
 
@@ -1037,15 +1039,27 @@ def test_068_rerun_adds_private_a6_links_and_preserves_legacy_bytes(client, chat
     assert dict(db_cursor.fetchone()) == marker
 
 
-def test_legacy_uuid_photo_metadata_does_not_break_existing_draft_replay(client, chat, payload, db_cursor, monkeypatch):
+@pytest.mark.parametrize('state', ['pending', 'committed', 'lost_response'])
+def test_legacy_uuid_photo_requires_reupload_but_preserves_recorded_replay(client, chat, payload, db_cursor, monkeypatch, state):
     from psycopg2.extras import Json
     card, _ = make_draft(client, chat, payload, db_cursor, monkeypatch)
+    if state != 'pending':
+        assert record(client, chat, card).status_code == 200
+    if state == 'lost_response':
+        db_cursor.execute("UPDATE assistant_drafts SET status='pending',result=NULL WHERE id=%s", (card['id'],))
     old_id = str(uuid4())
     card['attachment_ids'] = [old_id]
     db_cursor.execute('UPDATE assistant_drafts SET card=%s WHERE id=%s', (Json(card), card['id']))
     response = record(client, chat, card)
-    assert response.status_code == 200 and response.json()['kind'] == 'receipt', response.text
-    assert record(client, chat, card).status_code == 200
+    if state == 'pending':
+        assert response.status_code == 409, response.text
+        assert response.json()['detail']['error_code'] == 'ATTACHMENT_REUPLOAD_REQUIRED'
+        db_cursor.execute('SELECT count(*) AS n FROM transactions WHERE ticket_id=%s', (card['prepared']['ticket_id'],))
+        assert db_cursor.fetchone()['n'] == 0
+    else:
+        assert response.status_code == 200 and response.json()['kind'] == 'receipt', response.text
+        assert response.json()['result']['replayed'] is True
+        assert record(client, chat, card).status_code == 200
     restored = client.post('/assistant/resume', headers=chat[1], json={'session_id': chat[0]}).json()['drafts'][0]
     assert restored['card']['attachment_ids'] == [old_id]
 

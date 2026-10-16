@@ -1,0 +1,54 @@
+{
+  "scope": "Final receive, found, physical-tag and connection handling regression checks",
+  "python": "3.12",
+  "pydantic": "2.14.1",
+  "database": "fl_final_backend",
+  "local_only": true,
+  "hosted_writes": false,
+  "runs": [
+    {
+      "sessions": 0,
+      "passed": 623,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 20.44
+    },
+    {
+      "sessions": 1,
+      "passed": 623,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 24.87
+    }
+  ],
+  "suites": [
+    "test_final_receive_receipts.py",
+    "test_final_db_recovery.py",
+    "test_lot_confirmation.py",
+    "test_attachments.py",
+    "test_write_tickets.py",
+    "test_write_tickets_part2.py",
+    "test_readonly_tripwire.py",
+    "test_a6_review_fixes.py",
+    "test_a12_review_fixes.py",
+    "test_kosher_tiers.py",
+    "test_a12_shift_integration.py",
+    "test_kosher_summary_evidence.py",
+    "test_supplier_lot_tickets.py",
+    "test_ship_tickets.py"
+  ],
+  "source_sha256": {
+    "main.py": "2569dfaa10b811f67585d45586f31cbb0b9c9264ad5c6df7164f043e6fa20483",
+    "ticket_actions.py": "74756b6245ad57be45b87afbdd382a1eeade1eea580d0aeebf338e18cb9ededd",
+    "lot_confirmation.py": "c8fb70d37e80e33ea958f24116e241c2460d2cf82f9f9ecfe8c7a1c8a7a66185",
+    "write_tickets.py": "bc54b06c752b874f06368860021e8465343d658f48e94aa401ed3149c1839f9c",
+    "attachments.py": "4ce4cf95146dc75dc6504dee1fa91c229f8c35f5bf25f7043203e192bb337c6c",
+    "tests/test_final_receive_receipts.py": "3328f89de6f6523d4889e32fa190ce331d59fe828de9bd2716095ab3cfc724ce",
+    "tests/test_final_db_recovery.py": "efde1d3222b52dd47072e05af865b0de26c1d1592690e8dc39fe0956d75c5f9f"
+  },
+  "connection_finding": "Existing full_run.log records EMAXCONNSESSION max clients reached in session mode on sales/orders and products/search. App pool capped at 1 idle/10 total per process; dead sockets discarded; these audited read handlers plus inventory lookup retry once after 100ms; write handlers are never replayed. No hosted setting changes.",
+  "cleanup_pending": false,
+  "database_dropped": true
+}

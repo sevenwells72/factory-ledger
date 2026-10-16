@@ -29,7 +29,7 @@ for (const engine of engines) {
   const browser = await ({ chromium, webkit }[engine]).launch({ headless: true, ...(engine === 'chromium' && process.env.PLAYWRIGHT_CHANNEL ? { channel: process.env.PLAYWRIGHT_CHANNEL } : {}) });
   try {
     for (const mode of modes) {
-      const db = `fl_fixC_page_${process.pid}_${mode}_${engine}`;
+      const db = `${process.env.TEST_DB_PREFIX || 'fl_fixC_'}page_${process.pid}_${mode}_${engine}`;
       const run = (command, args) => execFileSync(path.join(pg, command), args, { cwd: root, env: localEnv, stdio: 'pipe' });
       let child;
       const existing = run('psql', ['-h', '127.0.0.1', '-d', 'postgres', '-tAc', `SELECT datname FROM pg_database WHERE datname='${db}'`]).toString().trim();

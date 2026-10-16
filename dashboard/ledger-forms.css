@@ -50,3 +50,6 @@
 
 /* Hidden before config loads as well as when cutover is off or unavailable. */
 :root:not([data-fl-write-ui="on"]) [data-fl-write-ui]{display:none!important}
+
+.ledger-page .opening-stock>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:650}
+.ledger-page .receipt-photos{display:flex;flex-wrap:wrap;gap:12px}.ledger-page .receipt-photos h3{flex-basis:100%}

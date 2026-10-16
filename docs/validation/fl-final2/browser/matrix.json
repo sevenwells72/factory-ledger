@@ -1,0 +1,72 @@
+[
+  {
+    "name": "existing-0",
+    "runner": "run-fl-assistant.mjs",
+    "returncode": 0,
+    "seconds": 7.05,
+    "log": "existing-0.log"
+  },
+  {
+    "name": "round-a-0",
+    "runner": "run-fl-assistant-round-a.mjs",
+    "returncode": 0,
+    "seconds": 16.24,
+    "log": "round-a-0.log"
+  },
+  {
+    "name": "existing-1",
+    "runner": "run-fl-assistant.mjs",
+    "returncode": 0,
+    "seconds": 5.41,
+    "log": "existing-1.log"
+  },
+  {
+    "name": "round-a-1",
+    "runner": "run-fl-assistant-round-a.mjs",
+    "returncode": 0,
+    "seconds": 14.82,
+    "log": "round-a-1.log"
+  },
+  {
+    "name": "round-b-contract",
+    "runner": "run-assistant-round-b.mjs",
+    "returncode": 0,
+    "seconds": 6.91,
+    "log": "round-b-contract.log"
+  },
+  {
+    "name": "round-b-page",
+    "runner": "run-fl-assistant-round-b-page.mjs",
+    "returncode": 0,
+    "seconds": 26.89,
+    "log": "round-b-page.log"
+  },
+  {
+    "name": "round-c-transcripts",
+    "runner": "run-fl-assistant-round-c.mjs",
+    "returncode": 0,
+    "seconds": 30.2,
+    "log": "round-c-transcripts.log"
+  },
+  {
+    "name": "round-c-phone",
+    "runner": "run-fl-assistant-round-c-phone.mjs",
+    "returncode": 0,
+    "seconds": 32.79,
+    "log": "round-c-phone.log"
+  },
+  {
+    "name": "mobile-ux",
+    "runner": "run-fl-assistant-mobile-ux.mjs",
+    "returncode": 0,
+    "seconds": 16.17,
+    "log": "mobile-ux.log"
+  },
+  {
+    "name": "final-floor",
+    "runner": "run-fl-assistant-final-floor.mjs",
+    "returncode": 0,
+    "seconds": 24.21,
+    "log": "final-floor.log"
+  }
+]

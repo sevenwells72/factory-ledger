@@ -97,6 +97,21 @@ def same_day(api,payload,actor):
              'message_es':'Este envío es de otro día de planta; confirme antes de registrarlo.',
              'refs':{'happened_on':happened.isoformat(),'entered_on':entered.isoformat()}}]
 
+def stock_shortage(product, available_lb, needed_lb, *, order=False):
+    """Return safe case/lb specifics from the same allocation plan that refused."""
+    from assistant_replies import number
+    size = float(product.get('case_size_lb') or 0)
+    available = number(available_lb / size if size else available_lb)
+    needed = number(needed_lb / size if size else needed_lb)
+    unit, unit_es = ('cases', 'cajas') if size else ('lb', 'lb')
+    subject, subject_es = ('the order', 'el pedido') if order else ('this shipment', 'este envío')
+    wt.fail(409, 'INSUFFICIENT_STOCK',
+        f"Only {available} {unit} of {product['name']} available; {subject} needs {needed}.",
+        message_es=f"Solo hay {available} {unit_es} de {product['name']}; {subject_es} necesita {needed}.",
+        product=product['name'], available_lb=float(available_lb), needed_lb=float(needed_lb),
+        case_size_lb=size or None)
+
+
 def validate(api,cur,action,payload,actor,*,lock=False,ticket_id=None):
     day_warnings=same_day(api,payload,actor)
     occurred,source=api.validate_inventory_occurred_at(datetime.fromisoformat(payload['occurred_at']),payload['backfill'])
@@ -135,20 +150,22 @@ def validate(api,cur,action,payload,actor,*,lock=False,ticket_id=None):
                 allocation=api._sales_order_ship_plan(cur,p['id'],row['line_id'],qty,lock=lock,persist_expired=False)
                 allocated=allocation['lots']
                 if float(allocation['actual_ship_lb'])+api.BALANCE_EPSILON<qty:
-                    wt.fail(409,'INSUFFICIENT_STOCK','The selected order quantity is not available.')
+                    stock_shortage(p, float(allocation['actual_ship_lb']), qty, order=True)
             else:
                 lots=api.available_lots_for_product(cur,p['id'],lock=lock,persist_expired=False)
                 lots=kosher_tiers.sale_lots(cur,p['id'],lots)
                 if row.get('lot_id') is not None: lots=[l for l in lots if l['lot_id']==row['lot_id']]
                 allocation=api._takeable_deduction_plan(lots,qty)
-                if allocation['short_lb']>api.BALANCE_EPSILON: wt.fail(409,'INSUFFICIENT_STOCK','The selected quantity is not available from the selected lots.')
+                if allocation['short_lb']>api.BALANCE_EPSILON:
+                    stock_shortage(p, qty-float(allocation['short_lb']), qty)
                 allocated=[{'lot_id':r['lot']['lot_id'],'lot_code':r['lot']['lot_code'],'quantity_lb':r['quantity_lb']} for r in allocation['lots']]
             kosher_tiers.require_sources(cur,p,[take['lot_id'] for take in allocated])
             for take in allocated:
                 lot=ticket_actions.lot(api,cur,take['lot_id'],p['id'],False)
                 states[lot['id']]=lot
                 totals[lot['id']]=totals.get(lot['id'],0)+float(take['quantity_lb'])
-                if totals[lot['id']]>float(lot['on_hand_lb'])+api.BALANCE_EPSILON: wt.fail(409,'INSUFFICIENT_STOCK','Bulk lines exceed the available lot balance.')
+                if totals[lot['id']]>float(lot['on_hand_lb'])+api.BALANCE_EPSILON:
+                    stock_shortage(p, float(lot['on_hand_lb']), totals[lot['id']])
                 plan.append(dict(take,product_id=p['id'],line_id=row.get('line_id')))
             requirements.extend(allocated)
         display.append({'line_id':row.get('line_id'),'product_id':p['id'],'product':p['name'],'quantity_lb':qty,
@@ -268,6 +285,7 @@ def commit(api,cur,row,body,actor,request,entry_timing):
             consumed={r['lot_id'] for r in cur.fetchall()}
             a5.record_confirmations(cur,txn,[r for r in ctx['evidence'] if r['lot_id'] in consumed],actor['id'])
         for att in payload['attachment_ids']: attachments.attach_shipment(api,cur,sid,att,actor)
+        result['attachments'] = attachments.for_receipt(cur, row['id'])
         cur.execute('SELECT proof_status,created_at FROM shipments WHERE id=%s',(sid,));shipment=cur.fetchone()
         result.update(receipt_number=receipt,ticket_id=row['id'],bol_reference=payload['bol_reference'],proof_status=shipment['proof_status'],proof_due_at=due,
                       replayed=False,state_changed=wt.canonical_hash(wt.json_value(api,ctx['state']))!=row['state_hash'],success=True,

@@ -1,0 +1,24 @@
+{
+  "checked_at": "2026-10-16T13:00:55.463847-04:00",
+  "all_owned_database_names_prefix": "fl_final2_",
+  "local_port_5432_remaining_fl_final2_databases": [],
+  "isolated_test_cluster_port_status": {
+    "5452": "no response; stopped",
+    "5453": "no response; stopped"
+  },
+  "isolated_clusters_empty_before_stop": true,
+  "isolated_cluster_data_directories_deleted": true,
+  "staging_dump_deleted": true,
+  "private_model_traces_and_local_photo_copies_deleted": true,
+  "hosted_database_writes": false,
+  "hosted_app_model_settings_changes": false,
+  "production_database_accessed": false,
+  "evidence": [
+    "model-data-cleanup.json",
+    "customer-paths-cleanup.json",
+    "python-verification.json",
+    "evidence-photo-checks.json",
+    "items-4-5.json",
+    "staging-copy-validation.json"
+  ]
+}

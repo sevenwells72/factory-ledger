@@ -1,0 +1,162 @@
+{
+  "created_at": "2026-10-15T21:20:58.301140-04:00",
+  "git_head": "4f2931d8560dc3c02f524b150d4aa6b6465c30d6",
+  "source_hashes_before": {
+    "assistant_receive.py": "0d7bfc686f50362eaeb52d3d6e7c7e7ccf028ff2cfb6fc8f7daa127d156f4674",
+    "assistant_replies.py": "a6e18d2cd323f06f6350a03e230561fed72b0676e50e71ea4becb0b36994b5bc",
+    "assistant_runtime.py": "7b1d4a8bbd13f5b0cfce605169eaa09272d69d155d0ddf7966606fec44c5b549",
+    "assistant_tools.py": "d450dfca5bf6c3ce2d8c9ed7807bff051058eeace11d2d7c13b2db436315ee6c",
+    "assistant_voice.py": "6f7425c161f24539ca4573d74d90dd152558b7dd5ba515209445d0b9fb59174e",
+    "dashboard/assistant-display.js": "c0ac054bd5811ae84db5560898e6dd7d00a4d1d1c937cb994504360ca7fbe9ad",
+    "dashboard/fl-assistant.css": "00e3533fc4cfe4c25ad82fdff2017d2873babe59786e0b12ba8fc5b9d3d6ad2d",
+    "dashboard/fl-assistant.html": "e2e2c8dbf07dc9af6eea98f25c37de5ce485825f4d8b5a36e460f0e64b8fd7f9",
+    "dashboard/fl-assistant.js": "29ae100ba69bd9f2cb7f5b5ac35bdb58939b2aae507080bfd64a8bdd52041421",
+    "fl_assistant.py": "2f8ecab2615d54c4b5dc0c5365a8683e2bf9108e6eb46d6d50570ca8ed6c75bd",
+    "main.py": "52989c1d9be75e6ac3651dab0a8d4277c879227a19e2d906162731050fd41d43",
+    "requirements.txt": "4c91b68ab9d19cb665f787ebcf3e506f10f4a0453a99d85d538704ed0da1f531",
+    "tests/schema/schema.sql": "cb962f5a85c8dbf1d531fb5deab993667da1deb9da7b792d8983d1542eef224f",
+    "tests/visual/assistant_round_b_page_bridge.py": "35a74e33c7b8cfd0caedd93d50e451989edb66b34e771732871b8df57b86af91",
+    "tests/visual/assistant_round_c_page_bridge.py": "8ee133ce8926f66c49862bae926b87d42d7c4ab33bf57d36604f201b42329843",
+    "tests/visual/run-assistant-round-b.mjs": "6922d8765a7bbfdc37cfb6f89cdee34c1f63011d01537b8a9571ebc846fdf4e4",
+    "tests/visual/run-fl-assistant-round-a.mjs": "7ba13c5671354f48001ea747b522a33644e3b422d128740a04ba33115a11230d",
+    "tests/visual/run-fl-assistant-round-b-page.mjs": "389656f9df045b651daf77600a594b05289300b61cdfc5fcf42ab0aa88c7c807",
+    "tests/visual/run-fl-assistant-round-c-phone.mjs": "ae6972c5df0fa8302bf3852750213c80d0ac42a02e5782b33bdc8af482bf387d",
+    "tests/visual/run-fl-assistant-round-c.mjs": "7f16ffca4e1d103ade77b6c4b492fe5e3f61b46ebafeacb2b1617ee87e91eaeb",
+    "tests/visual/run-fl-assistant.mjs": "0d4c753f5f3e489afcc813670b5b21897632ef2e602fb3b48160ef1b6633c69b"
+  },
+  "database_prefix": "fl_round_e_browser_14405000_",
+  "unmodified_tracked_runners": true,
+  "model_tool_selection_stubbed": true,
+  "no_preview_or_item_filters": true,
+  "local_only": true,
+  "versions": {
+    "fastapi": "0.104.1",
+    "uvicorn": "0.24.0",
+    "pydantic": "2.14.1",
+    "anyio": "3.7.1",
+    "pytest": "9.1.1"
+  },
+  "databases_before": [],
+  "runs": [
+    {
+      "label": "existing-0",
+      "runner": "tests/visual/run-fl-assistant.mjs",
+      "returncode": 0,
+      "seconds": 5.177,
+      "log": "/private/tmp/fl_round_e_browser_validation/existing-0.log",
+      "session_modes": [
+        0
+      ]
+    },
+    {
+      "label": "existing-1",
+      "runner": "tests/visual/run-fl-assistant.mjs",
+      "returncode": 0,
+      "seconds": 4.919,
+      "log": "/private/tmp/fl_round_e_browser_validation/existing-1.log",
+      "session_modes": [
+        1
+      ]
+    },
+    {
+      "label": "round-a-0",
+      "runner": "tests/visual/run-fl-assistant-round-a.mjs",
+      "returncode": 0,
+      "seconds": 15.51,
+      "log": "/private/tmp/fl_round_e_browser_validation/round-a-0.log",
+      "session_modes": [
+        0
+      ]
+    },
+    {
+      "label": "round-a-1",
+      "runner": "tests/visual/run-fl-assistant-round-a.mjs",
+      "returncode": 0,
+      "seconds": 14.261,
+      "log": "/private/tmp/fl_round_e_browser_validation/round-a-1.log",
+      "session_modes": [
+        1
+      ]
+    },
+    {
+      "label": "round-b-contract",
+      "runner": "tests/visual/run-assistant-round-b.mjs",
+      "returncode": 0,
+      "seconds": 4.625,
+      "log": "/private/tmp/fl_round_e_browser_validation/round-b-contract.log",
+      "session_modes": [
+        0,
+        1
+      ]
+    },
+    {
+      "label": "round-b-page",
+      "runner": "tests/visual/run-fl-assistant-round-b-page.mjs",
+      "returncode": 0,
+      "seconds": 24.348,
+      "log": "/private/tmp/fl_round_e_browser_validation/round-b-page.log",
+      "session_modes": [
+        0,
+        1
+      ]
+    },
+    {
+      "label": "round-c-transcripts",
+      "runner": "tests/visual/run-fl-assistant-round-c.mjs",
+      "returncode": 0,
+      "seconds": 26.432,
+      "log": "/private/tmp/fl_round_e_browser_validation/round-c-transcripts.log",
+      "session_modes": [
+        0,
+        1
+      ]
+    },
+    {
+      "label": "round-c-phone",
+      "runner": "tests/visual/run-fl-assistant-round-c-phone.mjs",
+      "returncode": 0,
+      "seconds": 37.938,
+      "log": "/private/tmp/fl_round_e_browser_validation/round-c-phone.log",
+      "session_modes": [
+        0,
+        1
+      ]
+    }
+  ],
+  "source_hashes_after": {
+    "assistant_receive.py": "0d7bfc686f50362eaeb52d3d6e7c7e7ccf028ff2cfb6fc8f7daa127d156f4674",
+    "assistant_replies.py": "a6e18d2cd323f06f6350a03e230561fed72b0676e50e71ea4becb0b36994b5bc",
+    "assistant_runtime.py": "7b1d4a8bbd13f5b0cfce605169eaa09272d69d155d0ddf7966606fec44c5b549",
+    "assistant_tools.py": "d450dfca5bf6c3ce2d8c9ed7807bff051058eeace11d2d7c13b2db436315ee6c",
+    "assistant_voice.py": "6f7425c161f24539ca4573d74d90dd152558b7dd5ba515209445d0b9fb59174e",
+    "dashboard/assistant-display.js": "c0ac054bd5811ae84db5560898e6dd7d00a4d1d1c937cb994504360ca7fbe9ad",
+    "dashboard/fl-assistant.css": "00e3533fc4cfe4c25ad82fdff2017d2873babe59786e0b12ba8fc5b9d3d6ad2d",
+    "dashboard/fl-assistant.html": "e2e2c8dbf07dc9af6eea98f25c37de5ce485825f4d8b5a36e460f0e64b8fd7f9",
+    "dashboard/fl-assistant.js": "29ae100ba69bd9f2cb7f5b5ac35bdb58939b2aae507080bfd64a8bdd52041421",
+    "fl_assistant.py": "2f8ecab2615d54c4b5dc0c5365a8683e2bf9108e6eb46d6d50570ca8ed6c75bd",
+    "main.py": "52989c1d9be75e6ac3651dab0a8d4277c879227a19e2d906162731050fd41d43",
+    "requirements.txt": "4c91b68ab9d19cb665f787ebcf3e506f10f4a0453a99d85d538704ed0da1f531",
+    "tests/schema/schema.sql": "cb962f5a85c8dbf1d531fb5deab993667da1deb9da7b792d8983d1542eef224f",
+    "tests/visual/assistant_round_b_page_bridge.py": "35a74e33c7b8cfd0caedd93d50e451989edb66b34e771732871b8df57b86af91",
+    "tests/visual/assistant_round_c_page_bridge.py": "8ee133ce8926f66c49862bae926b87d42d7c4ab33bf57d36604f201b42329843",
+    "tests/visual/run-assistant-round-b.mjs": "6922d8765a7bbfdc37cfb6f89cdee34c1f63011d01537b8a9571ebc846fdf4e4",
+    "tests/visual/run-fl-assistant-round-a.mjs": "7ba13c5671354f48001ea747b522a33644e3b422d128740a04ba33115a11230d",
+    "tests/visual/run-fl-assistant-round-b-page.mjs": "389656f9df045b651daf77600a594b05289300b61cdfc5fcf42ab0aa88c7c807",
+    "tests/visual/run-fl-assistant-round-c-phone.mjs": "ae6972c5df0fa8302bf3852750213c80d0ac42a02e5782b33bdc8af482bf387d",
+    "tests/visual/run-fl-assistant-round-c.mjs": "7f16ffca4e1d103ade77b6c4b492fe5e3f61b46ebafeacb2b1617ee87e91eaeb",
+    "tests/visual/run-fl-assistant.mjs": "0d4c753f5f3e489afcc813670b5b21897632ef2e602fb3b48160ef1b6633c69b"
+  },
+  "sources_unchanged": true,
+  "databases_after": [],
+  "new_databases_remaining": [],
+  "interrupted": false,
+  "passed": true,
+  "artifact_sha256": {
+    "round-b-contract.json": "7c616ffcf898a474f4e9dcc3dae4b45e5c908333902247147e9aa1c5870f74f4",
+    "round-c-transcripts/results.json": "70614d6896f07ac15ddcfdf96c502270b6161104fa03d71fecabdcb4f19fcd8e",
+    "round-b-page/results.json": "3f7f69a04a338ffb12e0a4cbebde461413f8eb3f8009e34c782b08cfc86582a7",
+    "round-c-phone/results.json": "5bfec24eb1495ed2ef38c771e9518c7b7f7c602312ed2c235021fac721a4e10b",
+    "round-a-1/results.json": "25b9a44b22f8d3755de2250de77b534b6fa9ef8e5275328a434323f2d307ab6d",
+    "round-a-0/results.json": "e8d62f1f048a6bb53a4f5170fe6575859f466b51ba52dddb47cdcc57c03382ab"
+  }
+}

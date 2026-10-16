@@ -1,0 +1,27 @@
+{
+  "checked_at": "2026-10-16T12:56:24.733516-04:00",
+  "host": "127.0.0.1",
+  "port": 5432,
+  "dropped_databases": [
+    "fl_final2_model_off",
+    "fl_final2_model_on",
+    "fl_final2_model"
+  ],
+  "remaining_fl_final2_databases": [],
+  "staging_dump_deleted": true,
+  "private_model_traces_and_photo_copies_deleted": true,
+  "deleted_files": [
+    "/private/tmp/fl_final2/initial-incomplete-copy-on.private.json",
+    "/private/tmp/fl_final2/customer-baseline.private.json",
+    "/private/tmp/fl_final2/before-replay-model-on.private.json",
+    "/private/tmp/fl_final2/initial-incomplete-copy-off.private.json",
+    "/private/tmp/fl_final2/real-model-on.private.json",
+    "/private/tmp/fl_final2/before-replay-model-off.private.json",
+    "/private/tmp/fl_final2/real-model-off.private.json",
+    "/private/tmp/fl_final2/staging.dump",
+    "/private/tmp/fl_final2/photos",
+    "/private/tmp/fl_final2/initial-incomplete-copy-on.json",
+    "/private/tmp/fl_final2/initial-incomplete-copy-off.json"
+  ],
+  "hosted_writes": false
+}

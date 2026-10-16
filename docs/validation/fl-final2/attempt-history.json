@@ -1,0 +1,88 @@
+[
+  {
+    "stage": "pre-customer-fix real provider baseline",
+    "result": "3/3 failed",
+    "cause": "exact customer resolve followed by incomplete provider response",
+    "retained": "customer-baseline.json"
+  },
+  {
+    "stage": "initial local staging restore",
+    "result": "failed before full post-data restore",
+    "cause": "pg_trgm created in pg_catalog instead of public; final restore completed with correct extension schema and3 transaction triggers"
+  },
+  {
+    "stage": "initial model receipt attempts",
+    "result": "failed; not acceptance evidence",
+    "cause": "incomplete local restore omitted ledger timestamp trigger; final runs repeat all cases on complete copies"
+  },
+  {
+    "stage": "first clone retry",
+    "result": "failed before any model calls",
+    "cause": "local source connection still open during template copy; cloned successfully after closing it"
+  },
+  {
+    "stage": "initial browser matrix",
+    "result": "Chromium passed; WebKit did not launch",
+    "cause": "old Playwright module expected uninstalled WebKit revision; rerun uses installed1.63 runtime"
+  },
+  {
+    "stage": "initial full Python runs",
+    "result": "interrupted and repeated",
+    "cause": "semantic customer selection test exposed helper issue fixed before final run; parallel databases on one cluster also triggered global pg_locks preflight skip; final modes use separate clusters"
+  },
+  {
+    "stage": "initial model off",
+    "completed_case_count": 36,
+    "passed": 24,
+    "failed": 12,
+    "failed_cases": [
+      "bol_en",
+      "bol_en",
+      "bol_en",
+      "bol_es",
+      "bol_es",
+      "bol_es",
+      "both_en",
+      "both_en",
+      "both_en",
+      "both_es",
+      "both_es",
+      "both_es"
+    ]
+  },
+  {
+    "stage": "initial model on",
+    "completed_case_count": 36,
+    "passed": 24,
+    "failed": 12,
+    "failed_cases": [
+      "bol_en",
+      "bol_en",
+      "bol_en",
+      "bol_es",
+      "bol_es",
+      "bol_es",
+      "both_en",
+      "both_en",
+      "both_en",
+      "both_es",
+      "both_es",
+      "both_es"
+    ]
+  },
+  {
+    "stage": "final historical receipt recovery guard",
+    "result": "passed after full repeat",
+    "cause": "Audit found old committed cards could carry unsupported photos the prior code had dropped; bypass evidence processing only for canonical committed tickets while preserving actor/hash verification. Added ten replay/lost-response tests.",
+    "repeated_acceptance": {
+      "python_each_mode": 6867,
+      "main_acceptance_cases": 84
+    },
+    "prior_passing_evidence_retained": [
+      "python-before-replay-off",
+      "python-before-replay-on",
+      "before-replay-model-off.json",
+      "before-replay-model-on.json"
+    ]
+  }
+]

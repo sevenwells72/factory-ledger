@@ -1,0 +1,2602 @@
+{
+  "runner": "tests/visual/run-fl-assistant-round-c-phone.mjs",
+  "layout_only": true,
+  "api_fixtures": true,
+  "local_only": true,
+  "records": 0,
+  "results": [
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 375
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 390
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 393
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "sign-in",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "welcome",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "menu",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "inventory",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "choices",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "trace-draft",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "order-draft",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "today",
+      "status": "passed",
+      "scroll_width": 430
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "service-unavailable",
+      "status": "passed",
+      "scroll_width": 430
+    }
+  ],
+  "screenshot_storage": "Screenshots retained outside repository under /private/tmp/fl_final/browser; representative final-floor screenshots in ../ui."
+}

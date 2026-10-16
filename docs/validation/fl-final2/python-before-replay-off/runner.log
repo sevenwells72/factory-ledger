@@ -1,0 +1,24 @@
+1/23 ordinary: {'passed': 6771, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+2/23 race:tests/test_a7_review_fixes.py: {'passed': 3, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+3/23 race:tests/test_assistant_runtime_round_d.py: {'passed': 1, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+4/23 race:tests/test_customer_tickets.py: {'passed': 4, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+5/23 race:tests/test_exceptions_enforcement.py: {'passed': 8, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+6/23 migration:tests/test_exceptions_tables_061.py::test_backfill_maps_history_restores_guard_and_is_rerunnable: {'passed': 1, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+7/23 migration:tests/test_exceptions_tables_061.py::test_backfill_skips_guard_dance_when_no_guard_exists: {'passed': 1, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+8/23 migration:tests/test_exceptions_tables_061.py::test_down_refuses_populated_queue_then_drops_cleanly_and_up_reseeds: {'passed': 1, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+9/23 race:tests/test_fl_assistant.py: {'passed': 1, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+10/23 race:tests/test_kosher_tiers.py: {'passed': 1, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+11/23 migration:tests/test_lot_identity_047.py::test_047_applies_cleanly_on_fresh_db_and_reruns_as_noop: {'passed': 1, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+12/23 migration:tests/test_lot_identity_047.py::test_047_applies_cleanly_on_historical_shapes_with_merged_twins: {'passed': 1, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+13/23 race:tests/test_order_tickets.py: {'passed': 1, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+14/23 race:tests/test_reset_shortage_close.py: {'passed': 1, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+15/23 race:tests/test_resolution_receipts.py: {'passed': 2, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+16/23 race:tests/test_roles_a2.py: {'passed': 2, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+17/23 race:tests/test_shift_summary.py: {'passed': 2, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+18/23 race:tests/test_ship_tickets.py: {'passed': 4, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+19/23 race:tests/test_supplier_lot_tickets.py: {'passed': 2, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+20/23 migration:tests/test_trace_tables_048.py::test_048_applies_on_fresh_db_and_reruns_as_noop: {'passed': 1, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+21/23 trace048: {'passed': 39, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+22/23 race:tests/test_write_tickets.py: {'passed': 2, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+23/23 race:tests/test_write_tickets_part2.py: {'passed': 7, 'failed': 0, 'error': 0, 'skipped': 0, 'xfailed': 0, 'xpassed': 0}
+Complete: 6857 passed; no skipped tests; sole database dropped.

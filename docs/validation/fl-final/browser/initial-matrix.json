@@ -1,0 +1,65 @@
+[
+  {
+    "name": "existing-off",
+    "runner": "run-fl-assistant.mjs",
+    "exit_code": 0,
+    "seconds": 8.98,
+    "log": "existing-off.log"
+  },
+  {
+    "name": "existing-on",
+    "runner": "run-fl-assistant.mjs",
+    "exit_code": 0,
+    "seconds": 5.78,
+    "log": "existing-on.log"
+  },
+  {
+    "name": "round-a-off",
+    "runner": "run-fl-assistant-round-a.mjs",
+    "exit_code": 0,
+    "seconds": 15.95,
+    "log": "round-a-off.log"
+  },
+  {
+    "name": "round-a-on",
+    "runner": "run-fl-assistant-round-a.mjs",
+    "exit_code": 0,
+    "seconds": 14.75,
+    "log": "round-a-on.log"
+  },
+  {
+    "name": "round-b-contract",
+    "runner": "run-assistant-round-b.mjs",
+    "exit_code": 0,
+    "seconds": 6.55,
+    "log": "round-b-contract.log"
+  },
+  {
+    "name": "round-b-page",
+    "runner": "run-fl-assistant-round-b-page.mjs",
+    "exit_code": 0,
+    "seconds": 26.62,
+    "log": "round-b-page.log"
+  },
+  {
+    "name": "round-c-transcripts",
+    "runner": "run-fl-assistant-round-c.mjs",
+    "exit_code": 0,
+    "seconds": 32.94,
+    "log": "round-c-transcripts.log"
+  },
+  {
+    "name": "round-c-phone",
+    "runner": "run-fl-assistant-round-c-phone.mjs",
+    "exit_code": 0,
+    "seconds": 33.14,
+    "log": "round-c-phone.log"
+  },
+  {
+    "name": "mobile-ux",
+    "runner": "run-fl-assistant-mobile-ux.mjs",
+    "exit_code": 1,
+    "seconds": 46.61,
+    "log": "mobile-ux.log"
+  }
+]

@@ -1,0 +1,161 @@
+{
+  "verified_at": "2026-10-16T13:00:55.463847-04:00",
+  "pull_request": "https://github.com/sevenwells72/factory-ledger/pull/136",
+  "review_comment": "https://github.com/sevenwells72/factory-ledger/pull/136#issuecomment-6219900781",
+  "base_head": "28438ddbf8b739284ad4fbda0497d3898ab3dde7",
+  "result": "All five requested fixes verified locally; ready for re-check. No main merge, Railway deployment or hosted migration performed.",
+  "environment": "environment.json",
+  "items": [
+    {
+      "item": 1,
+      "fix": "Preserve RECEIVE BOL plus lot-tag attachments through Record, receipt card, receipt page and Assistant lookup. Include shipment/correction photos in Record responses. Explicitly refuse unsupported photo types before draft; historical receipt retries remain idempotent.",
+      "evidence": [
+        "evidence-photo-checks.json",
+        "real-model-off.json",
+        "real-model-on.json",
+        "browser/final-floor.log"
+      ],
+      "assistant_photo_matrix": {
+        "total": 70,
+        "accepted_and_recorded": 13,
+        "explicitly_refused": 57
+      },
+      "focused_python_each_mode": 309
+    },
+    {
+      "item": 2,
+      "fix": "Resolve-to-choice customer routing ends exact/alias create requests locally; guarded prepare fallback also returns existing matches for indirect wording. Customer selection finishes locally while orders continue.",
+      "cause": "Exact customer resolution was followed by an incomplete model response, presented as a service outage.",
+      "baseline_failed_repetitions": 3,
+      "new_customer_delivery_regression_tests": 65,
+      "evidence": [
+        "customer-baseline.json",
+        "real-model-off.json",
+        "real-model-on.json",
+        "customer-paths-off.json",
+        "customer-paths-on.json"
+      ]
+    },
+    {
+      "item": 3,
+      "fix": "Normalize accents and recognize va a mandar / mandara and accented Spanish create verbs; reply in plain Spanish with the Office create-expected-delivery link.",
+      "actual_endpoint_repetitions_per_language_per_mode": 3,
+      "model_calls_required": 0,
+      "evidence": [
+        "real-model-off.json",
+        "real-model-on.json"
+      ]
+    },
+    {
+      "item": 4,
+      "fix": "Add reviewer-tested exact rollback SQL for migration084.",
+      "fresh_database_sequence": "up -> up -> down -> down -> up",
+      "staging_data_copy_sequence": "up -> down -> up",
+      "original_constraint_restored_exactly": true,
+      "evidence": [
+        "items-4-5.json",
+        "staging-copy-validation.json"
+      ]
+    },
+    {
+      "item": 5,
+      "fix": "Overdue first, newest unresolved next, collapsed non-overdue opening stock last; overdue opening stock stays visible. Apply ordering before server LIMIT and in browser.",
+      "evidence": [
+        "items-4-5.json",
+        "exceptions-results.json",
+        "exceptions-1-es-390-exceptions-overdue-first.png"
+      ]
+    }
+  ],
+  "validation": {
+    "python": {
+      "off": {
+        "collected": 6867,
+        "passed": 6867,
+        "groups": 23,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xfailed": 0,
+        "xpassed": 0,
+        "exit_code": 0,
+        "port": 5452,
+        "database": "fl_final2_suite_0",
+        "database_dropped": true,
+        "remaining_user_databases": [],
+        "cluster_stopped": true,
+        "cluster_data_directory_deleted": true
+      },
+      "on": {
+        "collected": 6867,
+        "passed": 6867,
+        "groups": 23,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "xfailed": 0,
+        "xpassed": 0,
+        "exit_code": 0,
+        "port": 5453,
+        "database": "fl_final2_suite_1",
+        "database_dropped": true,
+        "remaining_user_databases": [],
+        "cluster_stopped": true,
+        "cluster_data_directory_deleted": true
+      }
+    },
+    "python_source_files_fingerprinted": 326,
+    "python_source_unchanged": true,
+    "node": {
+      "command": "node --test tests/*.js",
+      "passed": 411,
+      "failed": 0,
+      "skipped": 0,
+      "log": "node.log"
+    },
+    "browser": {
+      "distinct_scripts": 8,
+      "invocations": 10,
+      "all_exit_zero": true,
+      "session_modes": [
+        "off",
+        "on"
+      ],
+      "iphone_width_webkit_pixels": [
+        375,
+        390,
+        393,
+        430
+      ],
+      "model_boundary": "Fixture or queued-model browser checks; actual provider proof is separate.",
+      "limitation": "WebKit emulation, not a physical iPhone microphone.",
+      "evidence": "browser/matrix.json"
+    },
+    "acceptance": {
+      "main_cases": 84,
+      "main_actual_model_cases": 72,
+      "main_deterministic_office_handoffs": 12,
+      "supplemental_actual_model_customer_cases": 24,
+      "total_cases_passed": 108,
+      "failed": 0,
+      "repeats_per_case_per_language_per_mode": 3,
+      "actual_provider": "gpt-6.1-sol",
+      "unique_completed_provider_responses": 216,
+      "store": false,
+      "main_proof_source_matches_final": true,
+      "supplemental_scope": "Existing-customer order and genuinely new-customer creation, with zero Record calls and unchanged core data. It predates only the isolated historical-receipt replay guard in fl_assistant.py; customer routing source is unchanged.",
+      "evidence": [
+        "real-model-off.json",
+        "real-model-on.json",
+        "customer-paths-off.json",
+        "customer-paths-on.json"
+      ]
+    }
+  },
+  "source_fingerprints": [
+    "source-sha256.json",
+    "python-source-sha256.json"
+  ],
+  "attempt_history": "attempt-history.json",
+  "cleanup": "cleanup.json"
+}

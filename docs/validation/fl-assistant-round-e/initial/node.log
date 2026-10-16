@@ -1,0 +1,1945 @@
+TAP version 13
+# Subtest: a panel whose SKUs are all archived is not rendered
+ok 1 - a panel whose SKUs are all archived is not rendered
+  ---
+  duration_ms: 6.686208
+  ...
+# Subtest: a panel with a missing SKU still renders even if the rest are archived
+ok 2 - a panel with a missing SKU still renders even if the rest are archived
+  ---
+  duration_ms: 0.908541
+  ...
+# Subtest: an empty panel with nothing archived keeps its legacy empty rendering
+ok 3 - an empty panel with nothing archived keeps its legacy empty rendering
+  ---
+  duration_ms: 0.887125
+  ...
+# Subtest: inventory answer begins with a plain accurate sentence and a lot/quantity/unit table
+ok 4 - inventory answer begins with a plain accurate sentence and a lot/quantity/unit table
+  ---
+  duration_ms: 40.558667
+  ...
+# Subtest: inventory packaging descriptions never turn pounds into cases
+ok 5 - inventory packaging descriptions never turn pounds into cases
+  ---
+  duration_ms: 1.7105
+  ...
+# Subtest: an explicitly counted case result stays in cases in the sentence and rows
+ok 6 - an explicitly counted case result stays in cases in the sentence and rows
+  ---
+  duration_ms: 0.631
+  ...
+# Subtest: empty inventory answers stay plain and useful
+ok 7 - empty inventory answers stay plain and useful
+  ---
+  duration_ms: 0.136042
+  ...
+# Subtest: identical result cards in one reply collapse despite property order
+ok 8 - identical result cards in one reply collapse despite property order
+  ---
+  duration_ms: 0.460875
+  ...
+# Subtest: receipt answer summarizes actual output and retains lot weights with no internal fields
+ok 9 - receipt answer summarizes actual output and retains lot weights with no internal fields
+  ---
+  duration_ms: 5.912125
+  ...
+# Subtest: voided receipt clearly says its stock no longer counts
+ok 10 - voided receipt clearly says its stock no longer counts
+  ---
+  duration_ms: 0.755667
+  ...
+# Subtest: all Today rows use newest recording first and plain time/what/receipt/who
+ok 11 - all Today rows use newest recording first and plain time/what/receipt/who
+  ---
+  duration_ms: 0.763709
+  ...
+# Subtest: 300 Today entries are never truncated by the display helper
+ok 12 - 300 Today entries are never truncated by the display helper
+  ---
+  duration_ms: 27.329334
+  ...
+# Subtest: draft shows product, quantity, plain reason, stock before and after, and readable plant times
+ok 13 - draft shows product, quantity, plain reason, stock before and after, and readable plant times
+  ---
+  duration_ms: 0.856333
+  ...
+# Subtest: draft reason objects use FL catalog labels in the selected language
+ok 14 - draft reason objects use FL catalog labels in the selected language
+  ---
+  duration_ms: 0.225209
+  ...
+# Subtest: receive draft explains how to add a missing supplier lot number in en
+ok 15 - receive draft explains how to add a missing supplier lot number in en
+  ---
+  duration_ms: 0.144583
+  ...
+# Subtest: receive draft explains how to add a missing supplier lot number in es
+ok 16 - receive draft explains how to add a missing supplier lot number in es
+  ---
+  duration_ms: 0.159166
+  ...
+# Subtest: an incomplete SKU draft shows exact blocker product plus requested batches
+ok 17 - an incomplete SKU draft shows exact blocker product plus requested batches
+  ---
+  duration_ms: 0.479875
+  ...
+# Subtest: unknown draft fields stay explicit and never imply a made-up weight
+ok 18 - unknown draft fields stay explicit and never imply a made-up weight
+  ---
+  duration_ms: 0.27425
+  ...
+# Subtest: pack draft preserves both pounds and cases
+ok 19 - pack draft preserves both pounds and cases
+  ---
+  duration_ms: 0.372417
+  ...
+# Subtest: plant dates handle UTC midnight and Today uses the New York day
+ok 20 - plant dates handle UTC midnight and Today uses the New York day
+  ---
+  duration_ms: 0.772
+  ...
+# Subtest: read answers localize plain tables and include direct-make substitutions
+ok 21 - read answers localize plain tables and include direct-make substitutions
+  ---
+  duration_ms: 0.838542
+  ...
+# Subtest: unknown result fields and error objects never become raw JSON
+ok 22 - unknown result fields and error objects never become raw JSON
+  ---
+  duration_ms: 0.284791
+  ...
+# Subtest: void navigation accepts posting receipt numbers without arbitrary URLs
+ok 23 - void navigation accepts posting receipt numbers without arbitrary URLs
+  ---
+  duration_ms: 0.440375
+  ...
+# Subtest: receipt renderer translates status and reason fields without changing product or lot names
+ok 24 - receipt renderer translates status and reason fields without changing product or lot names
+  ---
+  duration_ms: 0.524333
+  ...
+# Subtest: receipt reasons render catalog labels and safe escaped notes
+ok 25 - receipt reasons render catalog labels and safe escaped notes
+  ---
+  duration_ms: 0.208292
+  ...
+# Subtest: shipment drafts show line products and sums while excluding service charges
+ok 26 - shipment drafts show line products and sums while excluding service charges
+  ---
+  duration_ms: 0.626041
+  ...
+# Subtest: receipt sentences use effective amended line weights before the stored draft
+ok 27 - receipt sentences use effective amended line weights before the stored draft
+  ---
+  duration_ms: 0.623084
+  ...
+# Subtest: shipment receipt totals are positive and describe all shipped products
+ok 28 - shipment receipt totals are positive and describe all shipped products
+  ---
+  duration_ms: 0.853667
+  ...
+# Subtest: receipt status codes are plain and translated without changing product names
+ok 29 - receipt status codes are plain and translated without changing product names
+  ---
+  duration_ms: 0.428083
+  ...
+# Subtest: legacy Today cards explicitly count only the signed-in person in both languages
+ok 30 - legacy Today cards explicitly count only the signed-in person in both languages
+  ---
+  duration_ms: 0.258167
+  ...
+# Subtest: direct all-staff Today cards keep the team count clear in both languages
+ok 31 - direct all-staff Today cards keep the team count clear in both languages
+  ---
+  duration_ms: 0.758167
+  ...
+# Subtest: finished inventory displays supplied pounds and cases together in both languages
+ok 32 - finished inventory displays supplied pounds and cases together in both languages
+  ---
+  duration_ms: 0.426
+  ...
+# Subtest: inventory case totals require complete counts covering the whole pound total
+ok 33 - inventory case totals require complete counts covering the whole pound total
+  ---
+  duration_ms: 0.548959
+  ...
+# Subtest: mixed inventory units remain separate instead of being added as pounds
+ok 34 - mixed inventory units remain separate instead of being added as pounds
+  ---
+  duration_ms: 0.316125
+  ...
+# Subtest: customer draft displays contact details without stock placeholders in en
+ok 35 - customer draft displays contact details without stock placeholders in en
+  ---
+  duration_ms: 0.180625
+  ...
+# Subtest: customer draft displays contact details without stock placeholders in es
+ok 36 - customer draft displays contact details without stock placeholders in es
+  ---
+  duration_ms: 0.267459
+  ...
+# Subtest: order draft preserves PO, requested date, physical quantities and service prices in en
+ok 37 - order draft preserves PO, requested date, physical quantities and service prices in en
+  ---
+  duration_ms: 0.218833
+  ...
+# Subtest: order draft preserves PO, requested date, physical quantities and service prices in es
+ok 38 - order draft preserves PO, requested date, physical quantities and service prices in es
+  ---
+  duration_ms: 0.35575
+  ...
+# Subtest: line fields retain legacy physical quantities and zero service prices
+ok 39 - line fields retain legacy physical quantities and zero service prices
+  ---
+  duration_ms: 0.049416
+  ...
+# Subtest: customer duplicate offers only a usable existing customer in en
+ok 40 - customer duplicate offers only a usable existing customer in en
+  ---
+  duration_ms: 0.125083
+  ...
+# Subtest: customer duplicate offers only a usable existing customer in es
+ok 41 - customer duplicate offers only a usable existing customer in es
+  ---
+  duration_ms: 0.050209
+  ...
+# Subtest: Add customer stays available for office and owner only on the first choices page in en
+ok 42 - Add customer stays available for office and owner only on the first choices page in en
+  ---
+  duration_ms: 1.44
+  ...
+# Subtest: Add customer stays available for office and owner only on the first choices page in es
+ok 43 - Add customer stays available for office and owner only on the first choices page in es
+  ---
+  duration_ms: 0.077292
+  ...
+# Subtest: Round B open orders are readable rows with correct singular in en
+ok 44 - Round B open orders are readable rows with correct singular in en
+  ---
+  duration_ms: 0.285209
+  ...
+# Subtest: Round B lot questions answer with product and quantity in en
+ok 45 - Round B lot questions answer with product and quantity in en
+  ---
+  duration_ms: 0.116292
+  ...
+# Subtest: Round B unresolved Different lot inputs cannot become negative available stock in en
+ok 46 - Round B unresolved Different lot inputs cannot become negative available stock in en
+  ---
+  duration_ms: 0.111291
+  ...
+# Subtest: Round B receipt effective void status is visible in en
+ok 47 - Round B receipt effective void status is visible in en
+  ---
+  duration_ms: 0.077666
+  ...
+# Subtest: Round B open orders are readable rows with correct singular in es
+ok 48 - Round B open orders are readable rows with correct singular in es
+  ---
+  duration_ms: 0.049291
+  ...
+# Subtest: Round B lot questions answer with product and quantity in es
+ok 49 - Round B lot questions answer with product and quantity in es
+  ---
+  duration_ms: 0.07125
+  ...
+# Subtest: Round B unresolved Different lot inputs cannot become negative available stock in es
+ok 50 - Round B unresolved Different lot inputs cannot become negative available stock in es
+  ---
+  duration_ms: 0.068541
+  ...
+# Subtest: Round B receipt effective void status is visible in es
+ok 51 - Round B receipt effective void status is visible in es
+  ---
+  duration_ms: 0.047458
+  ...
+# Subtest: round C errors and server Today counts are readable in en
+ok 52 - round C errors and server Today counts are readable in en
+  ---
+  duration_ms: 0.09125
+  ...
+# Subtest: round C errors and server Today counts are readable in es
+ok 53 - round C errors and server Today counts are readable in es
+  ---
+  duration_ms: 0.032375
+  ...
+# Subtest: stock questions render one plain bulk and finished answer without lot tables
+ok 54 - stock questions render one plain bulk and finished answer without lot tables
+  ---
+  duration_ms: 0.213708
+  ...
+# Subtest: empty physical stock still displays the unverified follow-up notice in both languages
+ok 55 - empty physical stock still displays the unverified follow-up notice in both languages
+  ---
+  duration_ms: 0.093291
+  ...
+# Subtest: Round D open order remaining uses exact effective case pounds in en
+ok 56 - Round D open order remaining uses exact effective case pounds in en
+  ---
+  duration_ms: 0.423209
+  ...
+# Subtest: Round D open order remaining uses exact effective case pounds in es
+ok 57 - Round D open order remaining uses exact effective case pounds in es
+  ---
+  duration_ms: 0.121291
+  ...
+# Subtest: Today button reads every actor across 500/101 pages, directly, newest first on the plant date
+ok 58 - Today button reads every actor across 500/101 pages, directly, newest first on the plant date
+  ---
+  duration_ms: 158.609708
+  ...
+# Subtest: Today pagination shares one 15 second deadline instead of restarting it on every page
+ok 59 - Today pagination shares one 15 second deadline instead of restarting it on every page
+  ---
+  duration_ms: 10.33175
+  ...
+# Subtest: Today aborts at 15 seconds, restores controls and shows a retry action
+ok 60 - Today aborts at 15 seconds, restores controls and shows a retry action
+  ---
+  duration_ms: 3.817542
+  ...
+# Subtest: invalid Today pagination cannot loop forever
+ok 61 - invalid Today pagination cannot loop forever
+  ---
+  duration_ms: 3.961375
+  ...
+# Subtest: Today HTTP and connection failures retain their own plain messages in en
+ok 62 - Today HTTP and connection failures retain their own plain messages in en
+  ---
+  duration_ms: 10.112541
+  ...
+# Subtest: Today HTTP and connection failures retain their own plain messages in es
+ok 63 - Today HTTP and connection failures retain their own plain messages in es
+  ---
+  duration_ms: 7.247792
+  ...
+# Subtest: Today session expiry returns to sign-in with the session message
+ok 64 - Today session expiry returns to sign-in with the session message
+  ---
+  duration_ms: 2.189125
+  ...
+# Subtest: Today deadline exhaustion between pages uses the slowness message
+ok 65 - Today deadline exhaustion between pages uses the slowness message
+  ---
+  duration_ms: 3.04925
+  ...
+# Subtest: Review my day suggestion takes the direct Today read path
+ok 66 - Review my day suggestion takes the direct Today read path
+  ---
+  duration_ms: 18.591917
+  ...
+# Subtest: exact Today questions in English and Spanish use the direct reader
+ok 67 - exact Today questions in English and Spanish use the direct reader
+  ---
+  duration_ms: 1.199167
+  ...
+# Subtest: composer Today query reads directly without spending an assistant turn
+ok 68 - composer Today query reads directly without spending an assistant turn
+  ---
+  duration_ms: 2.411209
+  ...
+# Subtest: Send displays working feedback for the whole pending request
+ok 69 - Send displays working feedback for the whole pending request
+  ---
+  duration_ms: 1.678791
+  ...
+# Subtest: Confirm shows working feedback while FL prepares the new SKU draft
+ok 70 - Confirm shows working feedback while FL prepares the new SKU draft
+  ---
+  duration_ms: 3.75775
+  ...
+# Subtest: duplicate acknowledgment has a plain label and gates Record in en
+ok 71 - duplicate acknowledgment has a plain label and gates Record in en
+  ---
+  duration_ms: 1.624417
+  ...
+# Subtest: duplicate acknowledgment has a plain label and gates Record in es
+ok 72 - duplicate acknowledgment has a plain label and gates Record in es
+  ---
+  duration_ms: 1.86425
+  ...
+# Subtest: Record shows working feedback until a real numbered receipt arrives
+ok 73 - Record shows working feedback until a real numbered receipt arrives
+  ---
+  duration_ms: 1.884375
+  ...
+# Subtest: restored recorded card identifies the receipt instead of an internal transaction in en
+ok 74 - restored recorded card identifies the receipt instead of an internal transaction in en
+  ---
+  duration_ms: 1.352292
+  ...
+# Subtest: restored recorded card identifies the receipt instead of an internal transaction in es
+ok 75 - restored recorded card identifies the receipt instead of an internal transaction in es
+  ---
+  duration_ms: 1.361666
+  ...
+# Subtest: ship_order identifies each product once and preserves individual line details
+ok 76 - ship_order identifies each product once and preserves individual line details
+  ---
+  duration_ms: 2.522167
+  ...
+# Subtest: ship_bulk identifies each product once and preserves individual line details
+ok 77 - ship_bulk identifies each product once and preserves individual line details
+  ---
+  duration_ms: 1.768084
+  ...
+# Subtest: session restoration keeps sign-in hidden until the signed-in chat is ready
+ok 78 - session restoration keeps sign-in hidden until the signed-in chat is ready
+  ---
+  duration_ms: 1.023833
+  ...
+# Subtest: with sessions off the loading state resolves to the personal-key form
+ok 79 - with sessions off the loading state resolves to the personal-key form
+  ---
+  duration_ms: 0.930625
+  ...
+# Subtest: read cards start with a sentence and table, dedupe identical results, and expose no JSON
+ok 80 - read cards start with a sentence and table, dedupe identical results, and expose no JSON
+  ---
+  duration_ms: 2.288208
+  ...
+# Subtest: adjust draft renders product, quantity, before/after and plain reason without JSON
+ok 81 - adjust draft renders product, quantity, before/after and plain reason without JSON
+  ---
+  duration_ms: 1.754125
+  ...
+# Subtest: receive page shows actionable supplier lot guidance in en
+ok 82 - receive page shows actionable supplier lot guidance in en
+  ---
+  duration_ms: 2.028625
+  ...
+# Subtest: receive page shows actionable supplier lot guidance in es
+ok 83 - receive page shows actionable supplier lot guidance in es
+  ---
+  duration_ms: 1.360625
+  ...
+# Subtest: extra-kosher receive refusal has a refusal card and no disabled Record control
+ok 84 - extra-kosher receive refusal has a refusal card and no disabled Record control
+  ---
+  duration_ms: 2.933833
+  ...
+# Subtest: void refusal provides a direct handoff to that receipt screen
+ok 85 - void refusal provides a direct handoff to that receipt screen
+  ---
+  duration_ms: 1.107458
+  ...
+# Subtest: every Assistant asset resolves to a real absolute dashboard file from either page URL
+ok 86 - every Assistant asset resolves to a real absolute dashboard file from either page URL
+  ---
+  duration_ms: 0.304208
+  ...
+# Subtest: header controls and receipt tools retain responsive containment rules
+ok 87 - header controls and receipt tools retain responsive containment rules
+  ---
+  duration_ms: 0.175041
+  ...
+# Subtest: voice Today phrases read a truthful own/team summary and newest first in en
+ok 88 - voice Today phrases read a truthful own/team summary and newest first in en
+  ---
+  duration_ms: 6.270209
+  ...
+# Subtest: voice Today phrases read a truthful own/team summary and newest first in es
+ok 89 - voice Today phrases read a truthful own/team summary and newest first in es
+  ---
+  duration_ms: 4.459417
+  ...
+# Subtest: unreadable and internal HTTP errors stay plain in en
+ok 90 - unreadable and internal HTTP errors stay plain in en
+  ---
+  duration_ms: 3.90625
+  ...
+# Subtest: unreadable and internal HTTP errors stay plain in es
+ok 91 - unreadable and internal HTTP errors stay plain in es
+  ---
+  duration_ms: 2.40675
+  ...
+# Subtest: spoken Today language follows the message when the UI started in en
+ok 92 - spoken Today language follows the message when the UI started in en
+  ---
+  duration_ms: 1.094
+  ...
+# Subtest: spoken Today language follows the message when the UI started in es
+ok 93 - spoken Today language follows the message when the UI started in es
+  ---
+  duration_ms: 0.90525
+  ...
+# Subtest: restoration and every minute of polling preserve expiry; the 180-minute poll expires and clears sign-in
+ok 94 - restoration and every minute of polling preserve expiry; the 180-minute poll expires and clears sign-in
+  ---
+  duration_ms: 207.808083
+  ...
+# Subtest: manual Refresh and a user write slide the personal idle expiry, unlike the following poll
+ok 95 - manual Refresh and a user write slide the personal idle expiry, unlike the following poll
+  ---
+  duration_ms: 3.307916
+  ...
+# Subtest: flag-off polling and manual Refresh retain the shared read credential and distinct activity markers
+ok 96 - flag-off polling and manual Refresh retain the shared read credential and distinct activity markers
+  ---
+  duration_ms: 1.967875
+  ...
+# Subtest: initial Refresh All passes the background marker to every loader while a manual Refresh passes none
+ok 97 - initial Refresh All passes the background marker to every loader while a manual Refresh passes none
+  ---
+  duration_ms: 10.033625
+  ...
+# Subtest: receipt initial restoration is background; explicit sign-in reload is user activity
+ok 98 - receipt initial restoration is background; explicit sign-in reload is user activity
+  ---
+  duration_ms: 10.410916
+  ...
+# Subtest: exceptions restore in background while Refresh and sign-in remain user activity
+ok 99 - exceptions restore in background while Refresh and sign-in remain user activity
+  ---
+  duration_ms: 3.0865
+  ...
+# Subtest: shipping preload and chained detail are background; selecting another order is user activity
+ok 100 - shipping preload and chained detail are background; selecting another order is user activity
+  ---
+  duration_ms: 3.359375
+  ...
+# Subtest: Assistant automatic resume is background; New chat is user activity
+ok 101 - Assistant automatic resume is background; New chat is user activity
+  ---
+  duration_ms: 5.525708
+  ...
+# Subtest: Assistant automatic chat creation is background; New chat is user activity
+ok 102 - Assistant automatic chat creation is background; New chat is user activity
+  ---
+  duration_ms: 2.598
+  ...
+# Subtest: receipt gate requires explicit product, supplier, finite positive pounds; edit and in-flight stay distinct
+ok 103 - receipt gate requires explicit product, supplier, finite positive pounds; edit and in-flight stay distinct
+  ---
+  duration_ms: 4.197583
+  ...
+# Subtest: dispatch attention counts the full response independently of order-list filters and fails honestly
+ok 104 - dispatch attention counts the full response independently of order-list filters and fails honestly
+  ---
+  duration_ms: 1.738583
+  ...
+# Subtest: idle production is zero, missing run input is unavailable, known input computes yield
+ok 105 - idle production is zero, missing run input is unavailable, known input computes yield
+  ---
+  duration_ms: 36.768708
+  ...
+# Subtest: rolling-deploy unit labels normalize weight packages and retain count-based supplies
+ok 106 - rolling-deploy unit labels normalize weight packages and retain count-based supplies
+  ---
+  duration_ms: 1.157208
+  ...
+# Subtest: sales order edit gates use administrative state and effective fulfillment independently
+ok 107 - sales order edit gates use administrative state and effective fulfillment independently
+  ---
+  duration_ms: 1.2525
+  ...
+# Subtest: order line quantities use effective pounds and do not invent effective service shipments
+ok 108 - order line quantities use effective pounds and do not invent effective service shipments
+  ---
+  duration_ms: 0.845792
+  ...
+# Subtest: shipping preview formats structured warning quantities and does not repeat raw backend decimals
+ok 109 - shipping preview formats structured warning quantities and does not repeat raw backend decimals
+  ---
+  duration_ms: 1.270291
+  ...
+# Subtest: business dates do not shift zones; timestamp instants use the plant day across UTC midnight and DST
+ok 110 - business dates do not shift zones; timestamp instants use the plant day across UTC midnight and DST
+  ---
+  duration_ms: 43.065333
+  ...
+# Subtest: trace and product URLs preserve literal date-shaped codes and product identity
+ok 111 - trace and product URLs preserve literal date-shaped codes and product identity
+  ---
+  duration_ms: 1.803666
+  ...
+# Subtest: Other flow contributors reconcile to their displayed relationship values, without mixing stages
+ok 112 - Other flow contributors reconcile to their displayed relationship values, without mixing stages
+  ---
+  duration_ms: 2.218583
+  ...
+# Subtest: unconfirmed or edited note references cannot pass the save gate; unchanged legacy references remain editable
+ok 113 - unconfirmed or edited note references cannot pass the save gate; unchanged legacy references remain editable
+  ---
+  duration_ms: 1.26975
+  ...
+# Subtest: production run day accepts explicit offsets and legacy UTC without appending a second timezone
+ok 114 - production run day accepts explicit offsets and legacy UTC without appending a second timezone
+  ---
+  duration_ms: 0.865083
+  ...
+# Subtest: activity sort keys compare noon and midnight in chronological order
+ok 115 - activity sort keys compare noon and midnight in chronological order
+  ---
+  duration_ms: 0.585375
+  ...
+# Subtest: a hold with a reserved receipt is not a recorded entry
+ok 116 - a hold with a reserved receipt is not a recorded entry
+  ---
+  duration_ms: 1.507042
+  ...
+# Subtest: FL messages remain verbatim and unsafe labels remain text
+ok 117 - FL messages remain verbatim and unsafe labels remain text
+  ---
+  duration_ms: 0.439833
+  ...
+# Subtest: open queue groups follow server overdue flags and due dates
+ok 118 - open queue groups follow server overdue flags and due dates
+  ---
+  duration_ms: 30.038791
+  ...
+# Subtest: receipt times display the New York plant day across UTC midnight
+ok 119 - receipt times display the New York plant day across UTC midnight
+  ---
+  duration_ms: 13.510125
+  ...
+# Subtest: commit failure retains nested FL blockers verbatim
+ok 120 - commit failure retains nested FL blockers verbatim
+  ---
+  duration_ms: 0.162875
+  ...
+# Subtest: resolve and reject use their XR receipt, never the source posting
+ok 121 - resolve and reject use their XR receipt, never the source posting
+  ---
+  duration_ms: 0.336208
+  ...
+# Subtest: decision receipts fail closed on missing or malformed XR and failed actions
+ok 122 - decision receipts fail closed on missing or malformed XR and failed actions
+  ---
+  duration_ms: 0.325
+  ...
+# Subtest: approve and counted decisions distinguish XR from the posting receipt
+ok 123 - approve and counted decisions distinguish XR from the posting receipt
+  ---
+  duration_ms: 0.146875
+  ...
+# Subtest: only server allowed_actions are offered, with held-decision mappings
+ok 124 - only server allowed_actions are offered, with held-decision mappings
+  ---
+  duration_ms: 0.206833
+  ...
+# Subtest: fix 3: owner approve note is optional; reject and write-off require one
+ok 125 - fix 3: owner approve note is optional; reject and write-off require one
+  ---
+  duration_ms: 0.179
+  ...
+# Subtest: fix 4: a voided receipt is VOIDED, never recorded-green
+ok 126 - fix 4: a voided receipt is VOIDED, never recorded-green
+  ---
+  duration_ms: 0.293791
+  ...
+# Subtest: fix 5: a timeout or lost connection reads as plain language, never browser text
+ok 127 - fix 5: a timeout or lost connection reads as plain language, never browser text
+  ---
+  duration_ms: 0.401375
+  ...
+# Subtest: fix 6: draft labels carry both languages so a switch relabels without rebuilding
+ok 128 - fix 6: draft labels carry both languages so a switch relabels without rebuilding
+  ---
+  duration_ms: 0.287917
+  ...
+# Subtest: fix 0: supplier-lot resolve uses the ticketed A5 route and reports resolved exceptions
+ok 129 - fix 0: supplier-lot resolve uses the ticketed A5 route and reports resolved exceptions
+  ---
+  duration_ms: 0.15925
+  ...
+# Subtest: automatic oat replacement is visible in dashboard preview in en
+ok 130 - automatic oat replacement is visible in dashboard preview in en
+  ---
+  duration_ms: 0.108542
+  ...
+# Subtest: automatic oat replacement is visible in dashboard receipt in en
+ok 131 - automatic oat replacement is visible in dashboard receipt in en
+  ---
+  duration_ms: 0.093584
+  ...
+# Subtest: automatic oat replacement is visible in dashboard preview in es
+ok 132 - automatic oat replacement is visible in dashboard preview in es
+  ---
+  duration_ms: 0.044083
+  ...
+# Subtest: automatic oat replacement is visible in dashboard receipt in es
+ok 133 - automatic oat replacement is visible in dashboard receipt in es
+  ---
+  duration_ms: 0.12125
+  ...
+# Subtest: automatic substitution notices escape backend strings as text
+ok 134 - automatic substitution notices escape backend strings as text
+  ---
+  duration_ms: 0.0635
+  ...
+# Subtest: O-7 access message: every failed first key read is plain and a successful retry is usable
+ok 135 - O-7 access message: every failed first key read is plain and a successful retry is usable
+  ---
+  duration_ms: 5.581792
+  ...
+# Subtest: O-7 read refusals: keyed GET and HEAD 401/403 use one message without consuming server details; writes stay unchanged
+ok 136 - O-7 read refusals: keyed GET and HEAD 401/403 use one message without consuming server details; writes stay unchanged
+  ---
+  duration_ms: 28.518417
+  ...
+# Subtest: O-7 access recovery: invalidate the refused cached key so Retry fetches the rotated value immediately
+ok 137 - O-7 access recovery: invalidate the refused cached key so Retry fetches the rotated value immediately
+  ---
+  duration_ms: 0.2675
+  ...
+# Subtest: O-7 custom API recovery: a refusal invalidates the matching base rather than the default environment
+ok 138 - O-7 custom API recovery: a refusal invalidates the matching base rather than the default environment
+  ---
+  duration_ms: 0.201583
+  ...
+# Subtest: only the canonical Netlify site can select production; previews override unsafe configuration
+ok 139 - only the canonical Netlify site can select production; previews override unsafe configuration
+  ---
+  duration_ms: 1.335042
+  ...
+# Subtest: write UI requires the exact existing boolean, never a local fallback
+ok 140 - write UI requires the exact existing boolean, never a local fallback
+  ---
+  duration_ms: 0.14275
+  ...
+# Subtest: delayed, failed and malformed config cannot expose write UI; true enables it
+ok 141 - delayed, failed and malformed config cannot expose write UI; true enables it
+  ---
+  duration_ms: 3.929625
+  ...
+# Subtest: every receipt-enabled page loads routing before other scripts and hides new UI initially
+ok 142 - every receipt-enabled page loads routing before other scripts and hides new UI initially
+  ---
+  duration_ms: 3.931666
+  ...
+# Subtest: shift-summary preview routing also refuses its production query override
+ok 143 - shift-summary preview routing also refuses its production query override
+  ---
+  duration_ms: 0.933292
+  ...
+# Subtest: O-7 key client: one no-store read per base, refreshed after the TTL, last good value survives a failed refresh
+ok 144 - O-7 key client: one no-store read per base, refreshed after the TTL, last good value survives a failed refresh
+  ---
+  duration_ms: 0.298458
+  ...
+# Subtest: O-7 key client: a failed or malformed first read rejects and is retried, never cached
+ok 145 - O-7 key client: a failed or malformed first read rejects and is retried, never cached
+  ---
+  duration_ms: 2.373084
+  ...
+# Subtest: O-7 pages read the scoped key at runtime; no served file carries a key literal
+ok 146 - O-7 pages read the scoped key at runtime; no served file carries a key literal
+  ---
+  duration_ms: 2.3615
+  ...
+# Subtest: alias match arrives chosen with computed lb
+ok 147 - alias match arrives chosen with computed lb
+  ---
+  duration_ms: 1.146084
+  ...
+# Subtest: exact match arrives chosen
+ok 148 - exact match arrives chosen
+  ---
+  duration_ms: 0.182625
+  ...
+# Subtest: fuzzy match is a suggestion, not a selection
+ok 149 - fuzzy match is a suggestion, not a selection
+  ---
+  duration_ms: 0.500792
+  ...
+# Subtest: quantity change never computes lb for an unconfirmed (fuzzy) line
+ok 150 - quantity change never computes lb for an unconfirmed (fuzzy) line
+  ---
+  duration_ms: 0.249625
+  ...
+# Subtest: typing pounds directly does not make a product-less line approvable
+ok 151 - typing pounds directly does not make a product-less line approvable
+  ---
+  duration_ms: 0.164792
+  ...
+# Subtest: explicit pick confirms the product and computes text-derived lb
+ok 152 - explicit pick confirms the product and computes text-derived lb
+  ---
+  duration_ms: 0.587
+  ...
+# Subtest: live case: fuzzy 43% honey line cannot enable Approve untouched
+ok 153 - live case: fuzzy 43% honey line cannot enable Approve untouched
+  ---
+  duration_ms: 0.374125
+  ...
+# Subtest: Change restores the server badge; re-picking sets chosen again
+ok 154 - Change restores the server badge; re-picking sets chosen again
+  ---
+  duration_ms: 0.192416
+  ...
+# Subtest: Change on an exact line restores Exact, not Chosen
+ok 155 - Change on an exact line restores Exact, not Chosen
+  ---
+  duration_ms: 0.316583
+  ...
+# Subtest: editing lb/unit never marks the untouched expected-lb field manual
+ok 156 - editing lb/unit never marks the untouched expected-lb field manual
+  ---
+  duration_ms: 1.526667
+  ...
+# Subtest: qty/unit source starts as document and flips to edited on a real change
+ok 157 - qty/unit source starts as document and flips to edited on a real change
+  ---
+  duration_ms: 0.262042
+  ...
+# Subtest: a failed re-match never leaves a Chosen badge on a product-less line
+ok 158 - a failed re-match never leaves a Chosen badge on a product-less line
+  ---
+  duration_ms: 0.2295
+  ...
+# Subtest: clearing the chosen product de-confirms the line
+ok 159 - clearing the chosen product de-confirms the line
+  ---
+  duration_ms: 0.249167
+  ...
+# Subtest: unit change invalidates lb_per_unit and expected lb
+ok 160 - unit change invalidates lb_per_unit and expected lb
+  ---
+  duration_ms: 0.22525
+  ...
+# Subtest: cosmetic unit edit (same normalized unit) keeps the conversion
+ok 161 - cosmetic unit edit (same normalized unit) keeps the conversion
+  ---
+  duration_ms: 0.130625
+  ...
+# Subtest: product change drops product-derived conversions and stale pounds
+ok 162 - product change drops product-derived conversions and stale pounds
+  ---
+  duration_ms: 0.3535
+  ...
+# Subtest: product change keeps text-derived conversion and recomputes pounds
+ok 163 - product change keeps text-derived conversion and recomputes pounds
+  ---
+  duration_ms: 0.138833
+  ...
+# Subtest: save_alias defaults on; overriding expected lb flips it off
+ok 164 - save_alias defaults on; overriding expected lb flips it off
+  ---
+  duration_ms: 0.324542
+  ...
+# Subtest: an explicit save_alias choice survives a later lb override
+ok 165 - an explicit save_alias choice survives a later lb override
+  ---
+  duration_ms: 0.208042
+  ...
+# Subtest: approve payload sends the conversion only when it explains the pounds
+ok 166 - approve payload sends the conversion only when it explains the pounds
+  ---
+  duration_ms: 0.437583
+  ...
+# Subtest: save_alias false sends no conversion
+ok 167 - save_alias false sends no conversion
+  ---
+  duration_ms: 0.1485
+  ...
+# Subtest: manual lb-per-unit correction stays teachable and consistent
+ok 168 - manual lb-per-unit correction stays teachable and consistent
+  ---
+  duration_ms: 0.119292
+  ...
+# Subtest: no-match line starts fully unconfirmed
+ok 169 - no-match line starts fully unconfirmed
+  ---
+  duration_ms: 0.093833
+  ...
+# Subtest: mergeRematch preserves exclusions
+ok 170 - mergeRematch preserves exclusions
+  ---
+  duration_ms: 0.175625
+  ...
+# Subtest: mergeRematch keeps a user pick the new alias/exact result agrees with
+ok 171 - mergeRematch keeps a user pick the new alias/exact result agrees with
+  ---
+  duration_ms: 0.127917
+  ...
+# Subtest: mergeRematch resets a pick the new result does not confirm
+ok 172 - mergeRematch resets a pick the new result does not confirm
+  ---
+  duration_ms: 0.117584
+  ...
+# Subtest: mergeRematch resets a pick when the new result names a different product
+ok 173 - mergeRematch resets a pick when the new result names a different product
+  ---
+  duration_ms: 0.174708
+  ...
+# Subtest: mergeRematch keeps an explicit save_alias choice, resets defaults
+ok 174 - mergeRematch keeps an explicit save_alias choice, resets defaults
+  ---
+  duration_ms: 0.193208
+  ...
+# Subtest: applyRematchFailure: old product and 200 lb are not approvable after a failed rematch
+ok 175 - applyRematchFailure: old product and 200 lb are not approvable after a failed rematch
+  ---
+  duration_ms: 0.147167
+  ...
+# Subtest: applyRematchFailure keeps exclusions and explicit save_alias choices
+ok 176 - applyRematchFailure keeps exclusions and explicit save_alias choices
+  ---
+  duration_ms: 0.124917
+  ...
+# Subtest: edits are rejected while matching=true
+ok 177 - edits are rejected while matching=true
+  ---
+  duration_ms: 0.175875
+  ...
+# Subtest: unlockLines re-enables edits; applyRematchFailure also unlocks
+ok 178 - unlockLines re-enables edits; applyRematchFailure also unlocks
+  ---
+  duration_ms: 0.289334
+  ...
+# Subtest: clipboardImageFile picks the first PNG/JPEG and ignores everything else
+ok 179 - clipboardImageFile picks the first PNG/JPEG and ignores everything else
+  ---
+  duration_ms: 0.351583
+  ...
+# Subtest: clipboardFilename stamps clipboard-YYYYMMDD-HHMMSS with the right extension
+ok 180 - clipboardFilename stamps clipboard-YYYYMMDD-HHMMSS with the right extension
+  ---
+  duration_ms: 1.559833
+  ...
+# Subtest: forceKey binds the override to the normalized (supplier, reference) pair
+ok 181 - forceKey binds the override to the normalized (supplier, reference) pair
+  ---
+  duration_ms: 0.235834
+  ...
+# Subtest: soNormalizeMatchLine maps sales fields onto the shared shape
+ok 182 - soNormalizeMatchLine maps sales fields onto the shared shape
+  ---
+  duration_ms: 0.118625
+  ...
+# Subtest: so alias/exact match arrives chosen with computed lb; fuzzy stays a suggestion
+ok 183 - so alias/exact match arrives chosen with computed lb; fuzzy stays a suggestion
+  ---
+  duration_ms: 0.1175
+  ...
+# Subtest: so lb-unit line converts at 1 lb/unit; a pick computes and a re-pick restores
+ok 184 - so lb-unit line converts at 1 lb/unit; a pick computes and a re-pick restores
+  ---
+  duration_ms: 0.103042
+  ...
+# Subtest: soMergeRematch preserves exclusions and agreeing picks like the ER merge
+ok 185 - soMergeRematch preserves exclusions and agreeing picks like the ER merge
+  ---
+  duration_ms: 1.406875
+  ...
+# Subtest: soMergeRematch preserveResolved: a PO-number re-match keeps human picks, re-matches only unresolved lines
+ok 186 - soMergeRematch preserveResolved: a PO-number re-match keeps human picks, re-matches only unresolved lines
+  ---
+  duration_ms: 0.476209
+  ...
+# Subtest: applyProductPick pulls the product-master case size so cases→lb converts without typing
+ok 187 - applyProductPick pulls the product-master case size so cases→lb converts without typing
+  ---
+  duration_ms: 0.318833
+  ...
+# Subtest: applyProductPick never applies a master case size to a line whose unit is now LB (Codex review of PR \#36)
+ok 188 - applyProductPick never applies a master case size to a line whose unit is now LB (Codex review of PR \#36)
+  ---
+  duration_ms: 0.6485
+  ...
+# Subtest: soPriceBasis: per-case on cases, per-lb on lb, unclear otherwise (ruling 5)
+ok 189 - soPriceBasis: per-case on cases, per-lb on lb, unclear otherwise (ruling 5)
+  ---
+  duration_ms: 0.105042
+  ...
+# Subtest: soApproveLinePayload sends the price only when the basis is unambiguous
+ok 190 - soApproveLinePayload sends the price only when the basis is unambiguous
+  ---
+  duration_ms: 0.16675
+  ...
+# Subtest: soApproveLinePayload teaches the conversion only when it explains the pounds
+ok 191 - soApproveLinePayload teaches the conversion only when it explains the pounds
+  ---
+  duration_ms: 0.120333
+  ...
+# Subtest: applyUnitPriceChange edits and clears the price, locked while matching
+ok 192 - applyUnitPriceChange edits and clears the price, locked while matching
+  ---
+  duration_ms: 0.176959
+  ...
+# Subtest: soPrivateLabelWarning: warn only on a known first sale (rulings 2/3)
+ok 193 - soPrivateLabelWarning: warn only on a known first sale (rulings 2/3)
+  ---
+  duration_ms: 0.156209
+  ...
+# Subtest: missing facts card lists plain missing details neutrally in en
+ok 194 - missing facts card lists plain missing details neutrally in en
+  ---
+  duration_ms: 23.758125
+  ...
+# Subtest: missing facts card lists plain missing details neutrally in es
+ok 195 - missing facts card lists plain missing details neutrally in es
+  ---
+  duration_ms: 2.483875
+  ...
+# Subtest: missing correction reason keeps reason buttons in en
+ok 196 - missing correction reason keeps reason buttons in en
+  ---
+  duration_ms: 5.386791
+  ...
+# Subtest: missing correction reason keeps reason buttons in es
+ok 197 - missing correction reason keeps reason buttons in es
+  ---
+  duration_ms: 2.932042
+  ...
+# Subtest: only a complete real receipt shape may become green
+ok 198 - only a complete real receipt shape may become green
+  ---
+  duration_ms: 0.363333
+  ...
+# Subtest: A5 recoverable lot confirmation blockers allow manual evidence; other blockers stay blocked
+ok 199 - A5 recoverable lot confirmation blockers allow manual evidence; other blockers stay blocked
+  ---
+  duration_ms: 0.166667
+  ...
+# Subtest: permission refusals show the plain FL explanation
+ok 200 - permission refusals show the plain FL explanation
+  ---
+  duration_ms: 0.336792
+  ...
+# Subtest: neutral outcomes have fixed English and Spanish text with no receipt assertion
+ok 201 - neutral outcomes have fixed English and Spanish text with no receipt assertion
+  ---
+  duration_ms: 0.33875
+  ...
+# Subtest: A3b hold is an explicit pending outcome and cannot become a receipt
+ok 202 - A3b hold is an explicit pending outcome and cannot become a receipt
+  ---
+  duration_ms: 0.332125
+  ...
+# Subtest: A6 SHP receipts are real receipts while BOL blockers always prevent Record
+ok 203 - A6 SHP receipts are real receipts while BOL blockers always prevent Record
+  ---
+  duration_ms: 0.271917
+  ...
+# Subtest: A6 private evidence needs a positive integer ID and an explicit evidence kind
+ok 204 - A6 private evidence needs a positive integer ID and an explicit evidence kind
+  ---
+  duration_ms: 0.169375
+  ...
+# Subtest: automatic oat replacement is plain en in Assistant draft, no bran
+ok 205 - automatic oat replacement is plain en in Assistant draft, no bran
+  ---
+  duration_ms: 4.618875
+  ...
+# Subtest: automatic oat replacement is plain en in Assistant receipt, no bran
+ok 206 - automatic oat replacement is plain en in Assistant receipt, no bran
+  ---
+  duration_ms: 3.709292
+  ...
+# Subtest: automatic oat replacement is plain en in Assistant draft, partial bran
+ok 207 - automatic oat replacement is plain en in Assistant draft, partial bran
+  ---
+  duration_ms: 2.5775
+  ...
+# Subtest: automatic oat replacement is plain en in Assistant receipt, partial bran
+ok 208 - automatic oat replacement is plain en in Assistant receipt, partial bran
+  ---
+  duration_ms: 2.870292
+  ...
+# Subtest: automatic oat replacement is plain es in Assistant draft, no bran
+ok 209 - automatic oat replacement is plain es in Assistant draft, no bran
+  ---
+  duration_ms: 1.779166
+  ...
+# Subtest: automatic oat replacement is plain es in Assistant receipt, no bran
+ok 210 - automatic oat replacement is plain es in Assistant receipt, no bran
+  ---
+  duration_ms: 3.532083
+  ...
+# Subtest: automatic oat replacement is plain es in Assistant draft, partial bran
+ok 211 - automatic oat replacement is plain es in Assistant draft, partial bran
+  ---
+  duration_ms: 1.703125
+  ...
+# Subtest: automatic oat replacement is plain es in Assistant receipt, partial bran
+ok 212 - automatic oat replacement is plain es in Assistant receipt, partial bran
+  ---
+  duration_ms: 2.81425
+  ...
+# Subtest: blocked receive becomes a clear refusal with no draft controls in en
+ok 213 - blocked receive becomes a clear refusal with no draft controls in en
+  ---
+  duration_ms: 4.555125
+  ...
+# Subtest: blocked receive becomes a clear refusal with no draft controls in es
+ok 214 - blocked receive becomes a clear refusal with no draft controls in es
+  ---
+  duration_ms: 1.910959
+  ...
+# Subtest: void hand-off only recognizes explicit void requests with a receipt
+ok 215 - void hand-off only recognizes explicit void requests with a receipt
+  ---
+  duration_ms: 0.184459
+  ...
+# Subtest: plain Today questions go directly to ledger reads without interpreting write messages
+ok 216 - plain Today questions go directly to ledger reads without interpreting write messages
+  ---
+  duration_ms: 0.849667
+  ...
+# Subtest: customer draft waits for Record and CUS receipt continues only on click in en
+ok 217 - customer draft waits for Record and CUS receipt continues only on click in en
+  ---
+  duration_ms: 2.764209
+  ...
+# Subtest: customer draft waits for Record and CUS receipt continues only on click in es
+ok 218 - customer draft waits for Record and CUS receipt continues only on click in es
+  ---
+  duration_ms: 2.829917
+  ...
+# Subtest: no-match customer offers New customer only for office/owner: office
+ok 219 - no-match customer offers New customer only for office/owner: office
+  ---
+  duration_ms: 2.03525
+  ...
+# Subtest: no-match customer offers New customer only for office/owner: owner
+ok 220 - no-match customer offers New customer only for office/owner: owner
+  ---
+  duration_ms: 2.601292
+  ...
+# Subtest: no-match customer offers New customer only for office/owner: floor
+ok 221 - no-match customer offers New customer only for office/owner: floor
+  ---
+  duration_ms: 2.650709
+  ...
+# Subtest: customer duplicate prevents Record and offers the existing active customer
+ok 222 - customer duplicate prevents Record and offers the existing active customer
+  ---
+  duration_ms: 2.244333
+  ...
+# Subtest: CUS and ORD receipt numbers are accepted; a failed customer result never is
+ok 223 - CUS and ORD receipt numbers are accepted; a failed customer result never is
+  ---
+  duration_ms: 0.1945
+  ...
+# Subtest: order draft shows physical quantity, pounds, PO and service charge details before Record
+ok 224 - order draft shows physical quantity, pounds, PO and service charge details before Record
+  ---
+  duration_ms: 12.490834
+  ...
+# Subtest: customer suggestions retain explicit add-new choice: ambiguous en
+ok 225 - customer suggestions retain explicit add-new choice: ambiguous en
+  ---
+  duration_ms: 3.7095
+  ...
+# Subtest: customer suggestions retain explicit add-new choice: ambiguous es
+ok 226 - customer suggestions retain explicit add-new choice: ambiguous es
+  ---
+  duration_ms: 2.02225
+  ...
+# Subtest: customer suggestions retain explicit add-new choice: match en
+ok 227 - customer suggestions retain explicit add-new choice: match en
+  ---
+  duration_ms: 1.685041
+  ...
+# Subtest: customer suggestions retain explicit add-new choice: match es
+ok 228 - customer suggestions retain explicit add-new choice: match es
+  ---
+  duration_ms: 4.200958
+  ...
+# Subtest: customer add-new choice appears only on the first result page
+ok 229 - customer add-new choice appears only on the first result page
+  ---
+  duration_ms: 1.300666
+  ...
+# Subtest: supplier display merges only near-duplicate labels and keeps the best six original records
+ok 230 - supplier display merges only near-duplicate labels and keeps the best six original records
+  ---
+  duration_ms: 1.069083
+  ...
+# Subtest: Round B missing receive retains weight and shows six searchable suppliers in en
+ok 231 - Round B missing receive retains weight and shows six searchable suppliers in en
+  ---
+  duration_ms: 2.229834
+  ...
+# Subtest: Round B lot misses and scope responses stay plain in en
+ok 232 - Round B lot misses and scope responses stay plain in en
+  ---
+  duration_ms: 2.382666
+  ...
+# Subtest: Round B make has one instruction and one Different lot button per ingredient in en
+ok 233 - Round B make has one instruction and one Different lot button per ingredient in en
+  ---
+  duration_ms: 3.009917
+  ...
+# Subtest: Round B receipt preserves visible physical lot follow-up in en
+ok 234 - Round B receipt preserves visible physical lot follow-up in en
+  ---
+  duration_ms: 1.112083
+  ...
+# Subtest: Round B missing receive retains weight and shows six searchable suppliers in es
+ok 235 - Round B missing receive retains weight and shows six searchable suppliers in es
+  ---
+  duration_ms: 1.823417
+  ...
+# Subtest: Round B lot misses and scope responses stay plain in es
+ok 236 - Round B lot misses and scope responses stay plain in es
+  ---
+  duration_ms: 2.807542
+  ...
+# Subtest: Round B make has one instruction and one Different lot button per ingredient in es
+ok 237 - Round B make has one instruction and one Different lot button per ingredient in es
+  ---
+  duration_ms: 6.400584
+  ...
+# Subtest: Round B receipt preserves visible physical lot follow-up in es
+ok 238 - Round B receipt preserves visible physical lot follow-up in es
+  ---
+  duration_ms: 1.191833
+  ...
+# Subtest: a corrected receive replaces the stale visible draft and its Record control in en
+ok 239 - a corrected receive replaces the stale visible draft and its Record control in en
+  ---
+  duration_ms: 1.312708
+  ...
+# Subtest: a corrected receive replaces the stale visible draft and its Record control in es
+ok 240 - a corrected receive replaces the stale visible draft and its Record control in es
+  ---
+  duration_ms: 1.318708
+  ...
+# Subtest: legacy supplier cards merge Baker, Bakery and Bakery Supply display names without changing IDs
+ok 241 - legacy supplier cards merge Baker, Bakery and Bakery Supply display names without changing IDs
+  ---
+  duration_ms: 0.144208
+  ...
+# Subtest: an unsuccessful corrected receive retires the wrong draft without claiming success in en
+ok 242 - an unsuccessful corrected receive retires the wrong draft without claiming success in en
+  ---
+  duration_ms: 1.31375
+  ...
+# Subtest: an unsuccessful corrected receive retires the wrong draft without claiming success in es
+ok 243 - an unsuccessful corrected receive retires the wrong draft without claiming success in es
+  ---
+  duration_ms: 1.080875
+  ...
+# Subtest: saved supplier searches show worker copy in en
+ok 244 - saved supplier searches show worker copy in en
+  ---
+  duration_ms: 2.531458
+  ...
+# Subtest: saved proveedor searches show worker copy in en
+ok 245 - saved proveedor searches show worker copy in en
+  ---
+  duration_ms: 1.50775
+  ...
+# Subtest: saved supplier searches show worker copy in es
+ok 246 - saved supplier searches show worker copy in es
+  ---
+  duration_ms: 1.480917
+  ...
+# Subtest: saved proveedor searches show worker copy in es
+ok 247 - saved proveedor searches show worker copy in es
+  ---
+  duration_ms: 1.344625
+  ...
+# Subtest: catalog choices appear once as buttons with no model enumeration in en
+ok 248 - catalog choices appear once as buttons with no model enumeration in en
+  ---
+  duration_ms: 0.933292
+  ...
+# Subtest: catalog choices appear once as buttons with no model enumeration in es
+ok 249 - catalog choices appear once as buttons with no model enumeration in es
+  ---
+  duration_ms: 0.80825
+  ...
+# Subtest: zero catalog candidates have a useful named response in en
+ok 250 - zero catalog candidates have a useful named response in en
+  ---
+  duration_ms: 0.833417
+  ...
+# Subtest: zero catalog candidates have a useful named response in es
+ok 251 - zero catalog candidates have a useful named response in es
+  ---
+  duration_ms: 0.925125
+  ...
+# Subtest: order draft omits assignment notes and unspecified midnight in en
+ok 252 - order draft omits assignment notes and unspecified midnight in en
+  ---
+  duration_ms: 5.57075
+  ...
+# Subtest: order draft omits assignment notes and unspecified midnight in es
+ok 253 - order draft omits assignment notes and unspecified midnight in es
+  ---
+  duration_ms: 1.806292
+  ...
+# Subtest: fuzzy catalog fallback identifies the unmatched name without listing button names in en
+ok 254 - fuzzy catalog fallback identifies the unmatched name without listing button names in en
+  ---
+  duration_ms: 1.124583
+  ...
+# Subtest: fuzzy catalog fallback identifies the unmatched name without listing button names in es
+ok 255 - fuzzy catalog fallback identifies the unmatched name without listing button names in es
+  ---
+  duration_ms: 1.755833
+  ...
+# Subtest: Round D batch choices use plain prompt and Different batch in en
+ok 256 - Round D batch choices use plain prompt and Different batch in en
+  ---
+  duration_ms: 1.325667
+  ...
+# Subtest: Round D batch choices use plain prompt and Different batch in es
+ok 257 - Round D batch choices use plain prompt and Different batch in es
+  ---
+  duration_ms: 1.03225
+  ...
+# Subtest: Round D missing batch and missing order never request a product identifier in en
+ok 258 - Round D missing batch and missing order never request a product identifier in en
+  ---
+  duration_ms: 1.193
+  ...
+# Subtest: Round D missing batch and missing order never request a product identifier in es
+ok 259 - Round D missing batch and missing order never request a product identifier in es
+  ---
+  duration_ms: 0.9935
+  ...
+# Subtest: Round D missing shipping quantity shows 1 case (50 lb) and offers all remaining in en
+ok 260 - Round D missing shipping quantity shows 1 case (50 lb) and offers all remaining in en
+  ---
+  duration_ms: 1.129042
+  ...
+# Subtest: Round D missing shipping quantity shows 1.5 cases (37.5 lb) and offers all remaining in en
+ok 261 - Round D missing shipping quantity shows 1.5 cases (37.5 lb) and offers all remaining in en
+  ---
+  duration_ms: 1.038667
+  ...
+# Subtest: Round D missing shipping quantity shows 12.5 lb and offers all remaining in en
+ok 262 - Round D missing shipping quantity shows 12.5 lb and offers all remaining in en
+  ---
+  duration_ms: 0.900375
+  ...
+# Subtest: Round D missing shipping quantity shows 1 case (50 lb) and offers all remaining in es
+ok 263 - Round D missing shipping quantity shows 1 case (50 lb) and offers all remaining in es
+  ---
+  duration_ms: 1.098834
+  ...
+# Subtest: Round D missing shipping quantity shows 1.5 cases (37.5 lb) and offers all remaining in es
+ok 264 - Round D missing shipping quantity shows 1.5 cases (37.5 lb) and offers all remaining in es
+  ---
+  duration_ms: 1.32175
+  ...
+# Subtest: Round D missing shipping quantity shows 12.5 lb and offers all remaining in es
+ok 265 - Round D missing shipping quantity shows 12.5 lb and offers all remaining in es
+  ---
+  duration_ms: 1.222584
+  ...
+# Subtest: exchange sends personal key only once and persists only token
+ok 266 - exchange sends personal key only once and persists only token
+  ---
+  duration_ms: 13.883958
+  ...
+# Subtest: reload restores the token and resolves the person
+ok 267 - reload restores the token and resolves the person
+  ---
+  duration_ms: 0.1445
+  ...
+# Subtest: logout reaches FL before forgetting token
+ok 268 - logout reaches FL before forgetting token
+  ---
+  duration_ms: 0.165
+  ...
+# Subtest: failed logout keeps identity so hand-over cannot look complete
+ok 269 - failed logout keeps identity so hand-over cannot look complete
+  ---
+  duration_ms: 1.669041
+  ...
+# Subtest: expired token clears custody and requires fresh personal sign-in
+ok 270 - expired token clears custody and requires fresh personal sign-in
+  ---
+  duration_ms: 0.24975
+  ...
+# Subtest: flag off retains no token and performs no exchange
+ok 271 - flag off retains no token and performs no exchange
+  ---
+  duration_ms: 0.094041
+  ...
+# Subtest: configuration failure is surfaced without raw-key fallback
+ok 272 - configuration failure is surfaced without raw-key fallback
+  ---
+  duration_ms: 0.097584
+  ...
+# Subtest: out-of-order personal key exchanges never replace the newer shared identity
+ok 273 - out-of-order personal key exchanges never replace the newer shared identity
+  ---
+  duration_ms: 0.276583
+  ...
+# Subtest: clearing sign-in invalidates an exchange still waiting for FL
+ok 274 - clearing sign-in invalidates an exchange still waiting for FL
+  ---
+  duration_ms: 0.162
+  ...
+# Subtest: customer prepare sends exactly direct-route fields through its own CUS ticket
+ok 275 - customer prepare sends exactly direct-route fields through its own CUS ticket
+  ---
+  duration_ms: 0.799083
+  ...
+# Subtest: existing customer suggestions accept both prepare blockers and commit refusals
+ok 276 - existing customer suggestions accept both prepare blockers and commit refusals
+  ---
+  duration_ms: 0.110917
+  ...
+# Subtest: new customer is hidden when sessions are off or create-customer permission is absent
+ok 277 - new customer is hidden when sessions are off or create-customer permission is absent
+  ---
+  duration_ms: 10.9335
+  ...
+# Subtest: office offers a new customer beside similar match suggestions
+ok 278 - office offers a new customer beside similar match suggestions
+  ---
+  duration_ms: 5.066125
+  ...
+# Subtest: office offers a new customer beside similar ambiguous suggestions
+ok 279 - office offers a new customer beside similar ambiguous suggestions
+  ---
+  duration_ms: 1.7965
+  ...
+# Subtest: inline customer prepares separately, keeps order fields and selects only after Record
+ok 280 - inline customer prepares separately, keeps order fields and selects only after Record
+  ---
+  duration_ms: 9.307292
+  ...
+# Subtest: duplicate suggests existing customer and inactive customers stay unavailable
+ok 281 - duplicate suggests existing customer and inactive customers stay unavailable
+  ---
+  duration_ms: 2.204292
+  ...
+# Subtest: changing customer search cancels a pending draft and ignores its late receipt
+ok 282 - changing customer search cancels a pending draft and ignores its late receipt
+  ---
+  duration_ms: 2.385042
+  ...
+# Subtest: signing out removes inline controls and ignores the previous draft receipt
+ok 283 - signing out removes inline controls and ignores the previous draft receipt
+  ---
+  duration_ms: 1.999292
+  ...
+# Subtest: customer review displays contact details before Record
+ok 284 - customer review displays contact details before Record
+  ---
+  duration_ms: 1.208292
+  ...
+# Subtest: office visibility fails closed with flag off or missing FL permission
+ok 285 - office visibility fails closed with flag off or missing FL permission
+  ---
+  duration_ms: 2.712666
+  ...
+# Subtest: A7 route and no direct write: create_order
+ok 286 - A7 route and no direct write: create_order
+  ---
+  duration_ms: 0.1825
+  ...
+# Subtest: A7 route and no direct write: add_order_lines
+ok 287 - A7 route and no direct write: add_order_lines
+  ---
+  duration_ms: 0.054125
+  ...
+# Subtest: A7 route and no direct write: update_order_line
+ok 288 - A7 route and no direct write: update_order_line
+  ---
+  duration_ms: 0.043666
+  ...
+# Subtest: A7 route and no direct write: cancel_order_line
+ok 289 - A7 route and no direct write: cancel_order_line
+  ---
+  duration_ms: 0.044833
+  ...
+# Subtest: A7 route and no direct write: update_order_header
+ok 290 - A7 route and no direct write: update_order_header
+  ---
+  duration_ms: 0.038334
+  ...
+# Subtest: A7 route and no direct write: update_order_status
+ok 291 - A7 route and no direct write: update_order_status
+  ---
+  duration_ms: 0.047084
+  ...
+# Subtest: A7 route and no direct write: mark_order_ready
+ok 292 - A7 route and no direct write: mark_order_ready
+  ---
+  duration_ms: 0.040625
+  ...
+# Subtest: A7 route and no direct write: close_order
+ok 293 - A7 route and no direct write: close_order
+  ---
+  duration_ms: 0.094667
+  ...
+# Subtest: A7 route and no direct write: cancel_order
+ok 294 - A7 route and no direct write: cancel_order
+  ---
+  duration_ms: 0.109333
+  ...
+# Subtest: A7 route and no direct write: reopen_order
+ok 295 - A7 route and no direct write: reopen_order
+  ---
+  duration_ms: 0.047875
+  ...
+# Subtest: A7 route and no direct write: create_expected_receipt
+ok 296 - A7 route and no direct write: create_expected_receipt
+  ---
+  duration_ms: 0.043583
+  ...
+# Subtest: A7 route and no direct write: update_expected_receipt
+ok 297 - A7 route and no direct write: update_expected_receipt
+  ---
+  duration_ms: 0.036583
+  ...
+# Subtest: A7 route and no direct write: cancel_expected_receipt
+ok 298 - A7 route and no direct write: cancel_expected_receipt
+  ---
+  duration_ms: 0.08125
+  ...
+# Subtest: A7 route and no direct write: approve_so
+ok 299 - A7 route and no direct write: approve_so
+  ---
+  duration_ms: 0.046
+  ...
+# Subtest: A7 route and no direct write: approve_er
+ok 300 - A7 route and no direct write: approve_er
+  ---
+  duration_ms: 0.191459
+  ...
+# Subtest: PO keeps leading zeroes and No PO is explicit null
+ok 301 - PO keeps leading zeroes and No PO is explicit null
+  ---
+  duration_ms: 0.067875
+  ...
+# Subtest: header and ER updates preserve explicit clear intent; zero price survives
+ok 302 - header and ER updates preserve explicit clear intent; zero price survives
+  ---
+  duration_ms: 0.166166
+  ...
+# Subtest: pouches use FL returned cases and reject ambiguous or foreign product drafts
+ok 303 - pouches use FL returned cases and reject ambiguous or foreign product drafts
+  ---
+  duration_ms: 1.066542
+  ...
+# Subtest: missing receipt is neutral and ticket outcomes remain fail closed
+ok 304 - missing receipt is neutral and ticket outcomes remain fail closed
+  ---
+  duration_ms: 0.790166
+  ...
+# Subtest: flag-on legacy saveOrderHeader opens the office ticket screen without a direct write
+ok 305 - flag-on legacy saveOrderHeader opens the office ticket screen without a direct write
+  ---
+  duration_ms: 0.642667
+  ...
+# Subtest: flag-on legacy saveOrderLines opens the office ticket screen without a direct write
+ok 306 - flag-on legacy saveOrderLines opens the office ticket screen without a direct write
+  ---
+  duration_ms: 0.3705
+  ...
+# Subtest: flag-on legacy erSetStatus opens the office ticket screen without a direct write
+ok 307 - flag-on legacy erSetStatus opens the office ticket screen without a direct write
+  ---
+  duration_ms: 0.31225
+  ...
+# Subtest: flag-on legacy openErModal opens the office ticket screen without a direct write
+ok 308 - flag-on legacy openErModal opens the office ticket screen without a direct write
+  ---
+  duration_ms: 0.30025
+  ...
+# Subtest: flag-on legacy saveEr opens the office ticket screen without a direct write
+ok 309 - flag-on legacy saveEr opens the office ticket screen without a direct write
+  ---
+  duration_ms: 0.319083
+  ...
+# Subtest: flag-on legacy erApprove opens the office ticket screen without a direct write
+ok 310 - flag-on legacy erApprove opens the office ticket screen without a direct write
+  ---
+  duration_ms: 0.308125
+  ...
+# Subtest: flag-on legacy soApprove opens the office ticket screen without a direct write
+ok 311 - flag-on legacy soApprove opens the office ticket screen without a direct write
+  ---
+  duration_ms: 0.736209
+  ...
+# Subtest: edit mode renders service counts read-only and physical pounds editable
+ok 312 - edit mode renders service counts read-only and physical pounds editable
+  ---
+  duration_ms: 1.528708
+  ...
+# Subtest: service price can still be saved without a quantity input
+ok 313 - service price can still be saved without a quantity input
+  ---
+  duration_ms: 0.682791
+  ...
+# Subtest: 3,640 cases of a 10-lb product is 26 pallets
+ok 314 - 3,640 cases of a 10-lb product is 26 pallets
+  ---
+  duration_ms: 9.660458
+  ...
+# Subtest: 24 cases of a 25-lb UOM is 0.4 pallet
+ok 315 - 24 cases of a 25-lb UOM is 0.4 pallet
+  ---
+  duration_ms: 0.163458
+  ...
+# Subtest: seven 25-lb lines total 2.8 calculated and 3 physical mixed pallets
+ok 316 - seven 25-lb lines total 2.8 calculated and 3 physical mixed pallets
+  ---
+  duration_ms: 0.317833
+  ...
+# Subtest: unknown product and UOM do not crash or invent a pallet value
+ok 317 - unknown product and UOM do not crash or invent a pallet value
+  ---
+  duration_ms: 0.280041
+  ...
+# Subtest: ready changes are offered from the server permission, including floor, and require an ORD ticket
+ok 318 - ready changes are offered from the server permission, including floor, and require an ORD ticket
+  ---
+  duration_ms: 0.8675
+  ...
+# Subtest: gated ready changes open a reviewed draft with the chosen mark and note, never the direct route
+ok 319 - gated ready changes open a reviewed draft with the chosen mark and note, never the direct route
+  ---
+  duration_ms: 0.669334
+  ...
+# Subtest: flag-off ready changes retain the legacy endpoint and payload
+ok 320 - flag-off ready changes retain the legacy endpoint and payload
+  ---
+  duration_ms: 0.411417
+  ...
+# Subtest: list checkbox opens a ticket without claiming or caching a recorded ready change
+ok 321 - list checkbox opens a ticket without claiming or caching a recorded ready change
+  ---
+  duration_ms: 0.574875
+  ...
+# Subtest: list note opens a ticket without claiming or caching a recorded ready change
+ok 322 - list note opens a ticket without claiming or caching a recorded ready change
+  ---
+  duration_ms: 0.855292
+  ...
+# Subtest: detail ready checkbox opens a ticket without reporting success or overwriting saved metadata
+ok 323 - detail ready checkbox opens a ticket without reporting success or overwriting saved metadata
+  ---
+  duration_ms: 0.527625
+  ...
+# Subtest: signed-in /sales-orders reads await and use the restored personal session
+ok 324 - signed-in /sales-orders reads await and use the restored personal session
+  ---
+  duration_ms: 24.590125
+  ...
+# Subtest: signed-in /expected-receipts reads await and use the restored personal session
+ok 325 - signed-in /expected-receipts reads await and use the restored personal session
+  ---
+  duration_ms: 2.882541
+  ...
+# Subtest: signed-in /suppliers reads await and use the restored personal session
+ok 326 - signed-in /suppliers reads await and use the restored personal session
+  ---
+  duration_ms: 2.574792
+  ...
+# Subtest: flag-off and signed-out reads remain available, and personal credentials stay on the API origin
+ok 327 - flag-off and signed-out reads remain available, and personal credentials stay on the API origin
+  ---
+  duration_ms: 2.206459
+  ...
+# Subtest: an expired signed-in read clears shared token custody
+ok 328 - an expired signed-in read clears shared token custody
+  ---
+  duration_ms: 1.878292
+  ...
+# Subtest: Shift Summary restores shared sign-in and confirms using its session without asking for a key
+ok 329 - Shift Summary restores shared sign-in and confirms using its session without asking for a key
+  ---
+  duration_ms: 17.899667
+  ...
+# Subtest: Shift Summary exchanges a new personal key once and signs out the shared session
+ok 330 - Shift Summary exchanges a new personal key once and signs out the shared session
+  ---
+  duration_ms: 4.094125
+  ...
+# Subtest: Shift Summary requests allow sixty seconds before aborting
+ok 331 - Shift Summary requests allow sixty seconds before aborting
+  ---
+  duration_ms: 3.217416
+  ...
+# Subtest: expired Shift Summary reads clear the person and cannot leave a confirmable stale shift
+ok 332 - expired Shift Summary reads clear the person and cannot leave a confirmable stale shift
+  ---
+  duration_ms: 2.779916
+  ...
+# Subtest: sign-out while a shared summary is loading never restores the old person or document
+ok 333 - sign-out while a shared summary is loading never restores the old person or document
+  ---
+  duration_ms: 3.116166
+  ...
+# Subtest: the real Shift Summary page loads the shared session library before its controller
+ok 334 - the real Shift Summary page loads the shared session library before its controller
+  ---
+  duration_ms: 0.210458
+  ...
+# Subtest: a delayed expired response for the previous person cannot clear the new shared sign-in
+ok 335 - a delayed expired response for the previous person cannot clear the new shared sign-in
+  ---
+  duration_ms: 3.584167
+  ...
+# Subtest: choosing read-only cancels custody of a personal exchange still in flight
+ok 336 - choosing read-only cancels custody of a personal exchange still in flight
+  ---
+  duration_ms: 3.086375
+  ...
+# Subtest: O-7 fix round: an open read-only view follows a dashboard-key rotation without a reload
+ok 337 - O-7 fix round: an open read-only view follows a dashboard-key rotation without a reload
+  ---
+  duration_ms: 5.611291
+  ...
+# Subtest: direct oat substitutions are visible in en without fake receipts
+ok 338 - direct oat substitutions are visible in en without fake receipts
+  ---
+  duration_ms: 2.417833
+  ...
+# Subtest: direct oat substitutions are visible in es without fake receipts
+ok 339 - direct oat substitutions are visible in es without fake receipts
+  ---
+  duration_ms: 0.215625
+  ...
+# Subtest: api base: explicit override, FL-served origin, netlify/file fall back to production
+ok 340 - api base: explicit override, FL-served origin, netlify/file fall back to production
+  ---
+  duration_ms: 0.711041
+  ...
+# Subtest: sections render in document order with labels, counts, empty text and escaped lines
+ok 341 - sections render in document order with labels, counts, empty text and escaped lines
+  ---
+  duration_ms: 1.367125
+  ...
+# Subtest: row meta carries actor, entry clock and lateness; voided rows are struck through
+ok 342 - row meta carries actor, entry clock and lateness; voided rows are struck through
+  ---
+  duration_ms: 0.236375
+  ...
+# Subtest: confirm body echoes the hash and the receipt count shown, in the page language
+ok 343 - confirm body echoes the hash and the receipt count shown, in the page language
+  ---
+  duration_ms: 0.223541
+  ...
+# Subtest: stale 409 hands back the fresh summary; other errors do not
+ok 344 - stale 409 hands back the fresh summary; other errors do not
+  ---
+  duration_ms: 0.216042
+  ...
+# Subtest: error text prefers the Spanish copy in Spanish and falls back to the English message
+ok 345 - error text prefers the Spanish copy in Spanish and falls back to the English message
+  ---
+  duration_ms: 0.285084
+  ...
+# Subtest: banner reflects the latest confirmation, with notes, in both languages
+ok 346 - banner reflects the latest confirmation, with notes, in both languages
+  ---
+  duration_ms: 0.413541
+  ...
+# Subtest: receive renders all five immutable kosher fields and the extra-kosher flag in EN/ES
+ok 347 - receive renders all five immutable kosher fields and the extra-kosher flag in EN/ES
+  ---
+  duration_ms: 0.779333
+  ...
+# Subtest: make renders all five immutable kosher fields and the extra-kosher flag in EN/ES
+ok 348 - make renders all five immutable kosher fields and the extra-kosher flag in EN/ES
+  ---
+  duration_ms: 0.123458
+  ...
+# Subtest: pack renders all five immutable kosher fields and the extra-kosher flag in EN/ES
+ok 349 - pack renders all five immutable kosher fields and the extra-kosher flag in EN/ES
+  ---
+  duration_ms: 0.097875
+  ...
+# Subtest: found renders all five immutable kosher fields and the extra-kosher flag in EN/ES
+ok 350 - found renders all five immutable kosher fields and the extra-kosher flag in EN/ES
+  ---
+  duration_ms: 0.14575
+  ...
+# Subtest: regular pack output retains stored downgrade truth and translates the warning
+ok 351 - regular pack output retains stored downgrade truth and translates the warning
+  ---
+  duration_ms: 0.149708
+  ...
+# Subtest: ship_standalone displays stored lot evidence when common tier is regular
+ok 352 - ship_standalone displays stored lot evidence when common tier is regular
+  ---
+  duration_ms: 0.155375
+  ...
+# Subtest: adjust displays stored lot evidence when common tier is regular
+ok 353 - adjust displays stored lot evidence when common tier is regular
+  ---
+  duration_ms: 0.114333
+  ...
+# Subtest: held make shows owner/expiry and moves to its posted section under the same number
+ok 354 - held make shows owner/expiry and moves to its posted section under the same number
+  ---
+  duration_ms: 0.192708
+  ...
+# Subtest: held found shows owner/expiry and moves to its posted section under the same number
+ok 355 - held found shows owner/expiry and moves to its posted section under the same number
+  ---
+  duration_ms: 0.226916
+  ...
+# Subtest: an expired kosher hold stays visible awaiting owner rejection, with its expiry
+ok 356 - an expired kosher hold stays visible awaiting owner rejection, with its expiry
+  ---
+  duration_ms: 0.104834
+  ...
+# Subtest: stored kosher labels, preparer, owner evidence and flags are escaped as text
+ok 357 - stored kosher labels, preparer, owner evidence and flags are escaped as text
+  ---
+  duration_ms: 0.539333
+  ...
+# Subtest: a response for a previous sign-in never renders under the next person
+ok 358 - a response for a previous sign-in never renders under the next person
+  ---
+  duration_ms: 37.167042
+  ...
+# Subtest: notes are bound to the person and the day they were opened for; text is sent verbatim
+ok 359 - notes are bound to the person and the day they were opened for; text is sent verbatim
+  ---
+  duration_ms: 8.305083
+  ...
+# Subtest: a failed date change leaves nothing to confirm until the selected day loads
+ok 360 - a failed date change leaves nothing to confirm until the selected day loads
+  ---
+  duration_ms: 9.465
+  ...
+# Subtest: the measured footer height drives the page padding so nothing hides under the bar
+ok 361 - the measured footer height drives the page padding so nothing hides under the bar
+  ---
+  duration_ms: 4.298458
+  ...
+# Subtest: other_receipts block renders only when FL lists any, with its own label
+ok 362 - other_receipts block renders only when FL lists any, with its own label
+  ---
+  duration_ms: 0.18475
+  ...
+# Subtest: page refresh replaces the held make after a stale confirmation with the same approved receipt
+ok 363 - page refresh replaces the held make after a stale confirmation with the same approved receipt
+  ---
+  duration_ms: 4.345167
+  ...
+# Subtest: page refresh replaces the held found after a stale confirmation with the same approved receipt
+ok 364 - page refresh replaces the held found after a stale confirmation with the same approved receipt
+  ---
+  duration_ms: 5.269958
+  ...
+# Subtest: close SHIPMENT_REQUIRED is specific and safe in en across current and legacy error envelopes
+ok 365 - close SHIPMENT_REQUIRED is specific and safe in en across current and legacy error envelopes
+  ---
+  duration_ms: 0.617833
+  ...
+# Subtest: close SHIPMENT_REQUIRED is specific and safe in es across current and legacy error envelopes
+ok 366 - close SHIPMENT_REQUIRED is specific and safe in es across current and legacy error envelopes
+  ---
+  duration_ms: 0.110833
+  ...
+# Subtest: reopen SHIPMENT_REQUIRED is specific and safe in en across current and legacy error envelopes
+ok 367 - reopen SHIPMENT_REQUIRED is specific and safe in en across current and legacy error envelopes
+  ---
+  duration_ms: 0.054458
+  ...
+# Subtest: reopen SHIPMENT_REQUIRED is specific and safe in es across current and legacy error envelopes
+ok 368 - reopen SHIPMENT_REQUIRED is specific and safe in es across current and legacy error envelopes
+  ---
+  duration_ms: 0.127292
+  ...
+# Subtest: close LEGACY_CLOSE_CUTOFF is specific and safe in en across current and legacy error envelopes
+ok 369 - close LEGACY_CLOSE_CUTOFF is specific and safe in en across current and legacy error envelopes
+  ---
+  duration_ms: 0.547375
+  ...
+# Subtest: close LEGACY_CLOSE_CUTOFF is specific and safe in es across current and legacy error envelopes
+ok 370 - close LEGACY_CLOSE_CUTOFF is specific and safe in es across current and legacy error envelopes
+  ---
+  duration_ms: 0.0575
+  ...
+# Subtest: reopen LEGACY_CLOSE_CUTOFF is specific and safe in en across current and legacy error envelopes
+ok 371 - reopen LEGACY_CLOSE_CUTOFF is specific and safe in en across current and legacy error envelopes
+  ---
+  duration_ms: 0.046083
+  ...
+# Subtest: reopen LEGACY_CLOSE_CUTOFF is specific and safe in es across current and legacy error envelopes
+ok 372 - reopen LEGACY_CLOSE_CUTOFF is specific and safe in es across current and legacy error envelopes
+  ---
+  duration_ms: 0.04725
+  ...
+# Subtest: close ROLE_NOT_ALLOWED is specific and safe in en across current and legacy error envelopes
+ok 373 - close ROLE_NOT_ALLOWED is specific and safe in en across current and legacy error envelopes
+  ---
+  duration_ms: 0.090667
+  ...
+# Subtest: close ROLE_NOT_ALLOWED is specific and safe in es across current and legacy error envelopes
+ok 374 - close ROLE_NOT_ALLOWED is specific and safe in es across current and legacy error envelopes
+  ---
+  duration_ms: 0.107125
+  ...
+# Subtest: reopen ROLE_NOT_ALLOWED is specific and safe in en across current and legacy error envelopes
+ok 375 - reopen ROLE_NOT_ALLOWED is specific and safe in en across current and legacy error envelopes
+  ---
+  duration_ms: 0.043875
+  ...
+# Subtest: reopen ROLE_NOT_ALLOWED is specific and safe in es across current and legacy error envelopes
+ok 376 - reopen ROLE_NOT_ALLOWED is specific and safe in es across current and legacy error envelopes
+  ---
+  duration_ms: 0.037208
+  ...
+# Subtest: close NOTE_REQUIRED is specific and safe in en across current and legacy error envelopes
+ok 377 - close NOTE_REQUIRED is specific and safe in en across current and legacy error envelopes
+  ---
+  duration_ms: 0.077458
+  ...
+# Subtest: close NOTE_REQUIRED is specific and safe in es across current and legacy error envelopes
+ok 378 - close NOTE_REQUIRED is specific and safe in es across current and legacy error envelopes
+  ---
+  duration_ms: 0.075959
+  ...
+# Subtest: reopen NOTE_REQUIRED is specific and safe in en across current and legacy error envelopes
+ok 379 - reopen NOTE_REQUIRED is specific and safe in en across current and legacy error envelopes
+  ---
+  duration_ms: 0.036208
+  ...
+# Subtest: reopen NOTE_REQUIRED is specific and safe in es across current and legacy error envelopes
+ok 380 - reopen NOTE_REQUIRED is specific and safe in es across current and legacy error envelopes
+  ---
+  duration_ms: 0.087291
+  ...
+# Subtest: unrecorded shipped close and exceptional reopen require notes; ordinary exits preserve their note policy
+ok 381 - unrecorded shipped close and exceptional reopen require notes; ordinary exits preserve their note policy
+  ---
+  duration_ms: 0.085417
+  ...
+# Subtest: unknown backend detail stays private while status fallback remains actionable in both languages
+ok 382 - unknown backend detail stays private while status fallback remains actionable in both languages
+  ---
+  duration_ms: 0.219292
+  ...
+# Subtest: ordinary role refusals identify the selected action in en
+ok 383 - ordinary role refusals identify the selected action in en
+  ---
+  duration_ms: 0.119875
+  ...
+# Subtest: ordinary role refusals identify the selected action in es
+ok 384 - ordinary role refusals identify the selected action in es
+  ---
+  duration_ms: 0.079958
+  ...
+# Subtest: void controls fail closed and rely on per-entry FL actions
+ok 385 - void controls fail closed and rely on per-entry FL actions
+  ---
+  duration_ms: 0.817792
+  ...
+# Subtest: void submits the fixed reason only through prepare
+ok 386 - void submits the fixed reason only through prepare
+  ---
+  duration_ms: 0.173875
+  ...
+# Subtest: voided original preserves exact VD backlink
+ok 387 - voided original preserves exact VD backlink
+  ---
+  duration_ms: 0.140084
+  ...
+1..387
+# tests 387
+# suites 0
+# pass 387
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 363.930666

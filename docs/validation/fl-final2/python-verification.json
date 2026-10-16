@@ -1,0 +1,55 @@
+{
+  "verified_at": "2026-10-16T12:58:13.275817-04:00",
+  "final_replay_guard_source": true,
+  "source_fingerprint_files": 326,
+  "source_unchanged_during_run": true,
+  "all_collected_tests_executed": true,
+  "fresh_database_per_group": true,
+  "local_only": true,
+  "hosted_writes": false,
+  "root_port_5432_untouched": true,
+  "results": {
+    "off": {
+      "collected": 6867,
+      "passed": 6867,
+      "groups": 23,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "exit_code": 0,
+      "port": 5452,
+      "database": "fl_final2_suite_0",
+      "database_dropped": true,
+      "remaining_user_databases": [],
+      "cluster_stopped": true,
+      "cluster_data_directory_deleted": true
+    },
+    "on": {
+      "collected": 6867,
+      "passed": 6867,
+      "groups": 23,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "exit_code": 0,
+      "port": 5453,
+      "database": "fl_final2_suite_1",
+      "database_dropped": true,
+      "remaining_user_databases": [],
+      "cluster_stopped": true,
+      "cluster_data_directory_deleted": true
+    }
+  },
+  "prior_results_preserved": [
+    "python-before-replay-off",
+    "python-before-replay-on"
+  ],
+  "interrupted_initial_runs_preserved_at": [
+    "/private/tmp/fl_final2/python_initial_0",
+    "/private/tmp/fl_final2/python_initial_1"
+  ]
+}
