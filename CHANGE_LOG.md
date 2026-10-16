@@ -1,5 +1,75 @@
 # Change Log
 
+## 2026-10-15 21:31 — Finalize Round E all-six-item validation and cleanup evidence
+- **File(s) changed:** `docs/validation/fl-assistant-round-e/verification.json`, `python-sessions-off.json`, `python-sessions-on.json`, `python-validation.json`, `cleanup.json`
+- **What changed:** Record 6,589 Python passes per session mode across 23 fresh schema groups, 395 Node passes, all six browser runners in both modes, and fifteen real gpt-6.1-sol responses (5/5 spoken order, written order and exact coconut transcript). Verify source/commit hashes, artifact hashes, null failures/skips, task DB/dump cleanup and retained private trace mode 600.
+- **Why:** Provide final reviewable proof for every Round E item before the requested draft PR; preserve initial evidence as explicitly historical.
+
+---
+
+## 2026-10-15 21:30 — Complete final Round E validation: 6589 Python per mode and 395 Node, no failures or skips
+- **File(s) changed:** `/private/tmp/fl_round_e_final_validation_summary.json`; final per-mode logs under `/private/tmp/fl_round_e_final_python_0/` and `/private/tmp/fl_round_e_final_python_1/`.
+- **What changed:** Both serial Python modes passed all 6,589 tests across 23 fresh local database groups (6,503 ordinary + 86 isolated); zero failures, errors or skips. Start/end app/test source SHA256s equal committed 4f2931d. Verified both owned databases absent, exact runner copy/SHA, and unchanged JS/HTML/MJS identity preserving the 395-pass Node result.
+- **Why:** Final complete regression proof after all six Round E fixes and concrete review findings; superseded intermediate results remain separately marked.
+
+---
+
+## 2026-10-15 21:25 — Preserve exact local full-suite validation runner for review
+- **File(s) changed:** `docs/validation/fl-assistant-round-e/full-suite-runner.py`
+- **What changed:** Copy the exact guarded runner used for the complete serial session-mode suites; retain unchanged test bodies/assertions and fresh local schema groups with cleanup in finally.
+- **Why:** Make the final verification method reviewable and repeatable with its macOS/Homebrew PostgreSQL 17 prerequisites.
+
+---
+
+## 2026-10-15 21:23 — Save complete final browser matrix evidence for every Assistant runner
+- **File(s) changed:** `docs/validation/fl-assistant-round-e/browser/` JSON results and logs
+- **What changed:** Replace prior intermediate browser evidence with all six tracked runners across both session modes: eight successful unfiltered invocations, A60, B18 backend groups/B68 page cases, C72 transcripts/C288 phone cases. Verify final-source digests unchanged and zero owned browser DBs remain. Preserve historical `initial/` evidence.
+- **Why:** Deliver the requested full final browser acceptance on committed source 4f2931d after all supplier-lot ambiguity fixes.
+
+---
+
+## 2026-10-15 21:23 — Start final serial Python validation on frozen Round E source 4f2931d
+- **File(s) changed:** `/private/tmp/fl_round_e_final_source_snapshot.json`; final Python logs under `/private/tmp/fl_round_e_final_python_0/` and `/private/tmp/fl_round_e_final_python_1/`.
+- **What changed:** Save start SHA256s for changed Python/JavaScript/HTML source and tests, verify exact equality to committed 4f2931d, then run all 23 fresh local database groups serially in each session mode after browser/model DB activity ends.
+- **Why:** Establish complete final regression evidence and stable application source after all concrete routing/receive review findings were fixed.
+
+---
+
+## 2026-10-15 21:22 — Remove only the owned publish-proof staging copy after final acceptance
+- **File(s) changed:** private `/private/tmp/fl_round_e_publish_cleanup.json`, removed owned publish-proof dump/runtime evidence
+- **What changed:** Drop only `fl_round_e_publish_model_20261015`, verify absence, remove the private staging dump/runtime evidence and retain final raw trace mode 600. Shared PG5432 and all other databases remain untouched.
+- **Why:** Complete copied-staging cleanup after final minimized proof was saved; browser validation continues on separate synthetic databases.
+
+---
+
+## 2026-10-15 21:22 — Save final committed-source fifteen-case real-model proof without raw staging payloads
+- **File(s) changed:** `docs/validation/fl-assistant-round-e/real-model-results.json`, private final raw provider trace
+- **What changed:** Record 15 actual completed provider responses on final committed source, five per exact transcript, unchanged before/after source and core-data hashes, FIFO/order-flow results and zero Record requests. Keep full raw staging context only in the mode-600 private trace.
+- **Why:** Deliver the required final real-model evidence after supplier-lot ambiguity/tombstone corrections while minimizing repository data.
+
+---
+
+## 2026-10-15 21:21 — Restore fresh staging data for committed final Round E acceptance
+- **File(s) changed:** private `/private/tmp/fl_round_e_publish_staging_copy.json`, owned local proof database
+- **What changed:** Restore the guarded private staging dump into only `fl_round_e_publish_model_20261015` on shared local PG17, verifying real order and coconut parent without catalog seeding.
+- **Why:** Run final actual-model acceptance on committed source 4f2931d against a fresh staging copy.
+
+---
+
+## 2026-10-15 21:20 — Preserve previous green validation as intermediate before final ambiguity proof
+- **File(s) changed:** private browser/model intermediate archive under `/private/tmp`, fresh private publish-proof staging dump
+- **What changed:** Preserve previous complete browser and fifteen-provider results with explicit intermediate metadata and owner-only raw trace; begin guarded read-only staging-copy preparation without starting new validation.
+- **Why:** Final supplier-lot ambiguity fixes change the source digest and require final-source acceptance evidence.
+
+---
+
+## 2026-10-15 21:20 — Verify and independently review final receiving tombstone safeguards
+- **File(s) changed:** Validation only; owned local `fl_round_e_parser_safety` database created, schema-loaded and dropped.
+- **What changed:** Final focused suites passed 178 tests with zero failures/skips: supplier lot 69, Round E 29, Round D 59 and fact binding 21. Independent review reproduced stale model/context args, explicit EN/ES absence, N/A, punctuation ambiguity, empty-button tombstone preservation and later exact code restoration successfully. Dropped only the owned test database and verified its absence.
+- **Why:** Freeze reviewed source before the final real-model/browser proofs and full-suite runs.
+
+---
+
 ## 2026-10-15 21:20 — Require unchanged proof/runtime source hashes throughout actual-model acceptance
 - **File(s) changed:** `scripts/check_assistant_round_e_real_model.py`
 - **What changed:** Save helper, route, ticket and proof source digests before and after the actual model run; require equality for overall acceptance alongside unchanged core-data hashes.

@@ -1,0 +1,98 @@
+{
+  "status": "FINAL_PASS",
+  "completed_at": "2026-10-15T21:30:12.055103-04:00",
+  "application_revision": "4f2931d8560dc3c02f524b150d4aa6b6465c30d6",
+  "python_modes": {
+    "0": {
+      "collected": 6589,
+      "passed": 6589,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "groups": 23,
+      "summary": "/private/tmp/fl_round_e_final_python_0/summary.json",
+      "ordinary_passed": 6503,
+      "isolated_passed": 86
+    },
+    "1": {
+      "collected": 6589,
+      "passed": 6589,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "groups": 23,
+      "summary": "/private/tmp/fl_round_e_final_python_1/summary.json",
+      "ordinary_passed": 6503,
+      "isolated_passed": 86
+    }
+  },
+  "modes_run_serially": true,
+  "source_snapshot": "/private/tmp/fl_round_e_final_source_snapshot.json",
+  "start_sha256": {
+    "assistant_receive.py": "0d7bfc686f50362eaeb52d3d6e7c7e7ccf028ff2cfb6fc8f7daa127d156f4674",
+    "assistant_replies.py": "a6e18d2cd323f06f6350a03e230561fed72b0676e50e71ea4becb0b36994b5bc",
+    "assistant_tools.py": "d450dfca5bf6c3ce2d8c9ed7807bff051058eeace11d2d7c13b2db436315ee6c",
+    "dashboard/assistant-display.js": "c0ac054bd5811ae84db5560898e6dd7d00a4d1d1c937cb994504360ca7fbe9ad",
+    "dashboard/fl-assistant.html": "e2e2c8dbf07dc9af6eea98f25c37de5ce485825f4d8b5a36e460f0e64b8fd7f9",
+    "dashboard/fl-assistant.js": "29ae100ba69bd9f2cb7f5b5ac35bdb58939b2aae507080bfd64a8bdd52041421",
+    "fl_assistant.py": "2f8ecab2615d54c4b5dc0c5365a8683e2bf9108e6eb46d6d50570ca8ed6c75bd",
+    "scripts/check_assistant_round_e_real_model.py": "54281a26e1456c97e197c3e8da1a7e8b7166ba3c60d9443b923b39db8e014ef4",
+    "tests/test_assistant_customer_round_e.py": "b435c918593a253c4e99d16d6176e9fd31c88ef22ceb1cb1b1ec768eabd09b23",
+    "tests/test_assistant_display.js": "953f1a8f028c87ab52e0c2c0b19e95cd204739f9abb0de21e7dca334c7240be0",
+    "tests/test_assistant_orders_round_d.py": "6dc688e7dffaa4ef6daf460fbabbcc65e36e760c05c684c69f36d6a09b693081",
+    "tests/test_assistant_page_round_a.js": "4df797f938c2055dc2d82bad0cc96257fd1d9ffb9729abf02ba59a6cf15d95c8",
+    "tests/test_assistant_reason_round_e.py": "649537dc18b01f8f6c99381ed37f1790bacb27fffb48860858c15b2d63998cf7",
+    "tests/test_assistant_receive_lot_round_e.py": "4a5cc8544ac77534f775b74cd9b649baba26a3c3dc14caec0bc595f03806b144",
+    "tests/test_assistant_round_e.py": "fc0aed720a2bf41ab22b7c33f85588454afdbaa30c31c02f640c75d2d83ccdfc",
+    "tests/test_assistant_understanding_round_b.py": "e3cb9de0afc1ff1c33f2a9b6270ca36a1b80a358eb799fbb8da0529d9fcfefb4",
+    "tests/test_fl_assistant.py": "096cf76895bcf0b804c962a9bbd1d7bedd7998387a1158b3693b7306b4e699f1",
+    "tests/test_fl_assistant_ui.js": "d87d1e13fb105701830e3dfb4bf2876b0bbf5dc31b3e71f28f7795a8fa449b04",
+    "write_tickets.py": "7e1de14bf73fe13dbf138ecc80831d72ecfcc3ffc4c9ae56bda4946b14388d8c"
+  },
+  "end_sha256": {
+    "assistant_receive.py": "0d7bfc686f50362eaeb52d3d6e7c7e7ccf028ff2cfb6fc8f7daa127d156f4674",
+    "assistant_replies.py": "a6e18d2cd323f06f6350a03e230561fed72b0676e50e71ea4becb0b36994b5bc",
+    "assistant_tools.py": "d450dfca5bf6c3ce2d8c9ed7807bff051058eeace11d2d7c13b2db436315ee6c",
+    "dashboard/assistant-display.js": "c0ac054bd5811ae84db5560898e6dd7d00a4d1d1c937cb994504360ca7fbe9ad",
+    "dashboard/fl-assistant.html": "e2e2c8dbf07dc9af6eea98f25c37de5ce485825f4d8b5a36e460f0e64b8fd7f9",
+    "dashboard/fl-assistant.js": "29ae100ba69bd9f2cb7f5b5ac35bdb58939b2aae507080bfd64a8bdd52041421",
+    "fl_assistant.py": "2f8ecab2615d54c4b5dc0c5365a8683e2bf9108e6eb46d6d50570ca8ed6c75bd",
+    "scripts/check_assistant_round_e_real_model.py": "54281a26e1456c97e197c3e8da1a7e8b7166ba3c60d9443b923b39db8e014ef4",
+    "tests/test_assistant_customer_round_e.py": "b435c918593a253c4e99d16d6176e9fd31c88ef22ceb1cb1b1ec768eabd09b23",
+    "tests/test_assistant_display.js": "953f1a8f028c87ab52e0c2c0b19e95cd204739f9abb0de21e7dca334c7240be0",
+    "tests/test_assistant_orders_round_d.py": "6dc688e7dffaa4ef6daf460fbabbcc65e36e760c05c684c69f36d6a09b693081",
+    "tests/test_assistant_page_round_a.js": "4df797f938c2055dc2d82bad0cc96257fd1d9ffb9729abf02ba59a6cf15d95c8",
+    "tests/test_assistant_reason_round_e.py": "649537dc18b01f8f6c99381ed37f1790bacb27fffb48860858c15b2d63998cf7",
+    "tests/test_assistant_receive_lot_round_e.py": "4a5cc8544ac77534f775b74cd9b649baba26a3c3dc14caec0bc595f03806b144",
+    "tests/test_assistant_round_e.py": "fc0aed720a2bf41ab22b7c33f85588454afdbaa30c31c02f640c75d2d83ccdfc",
+    "tests/test_assistant_understanding_round_b.py": "e3cb9de0afc1ff1c33f2a9b6270ca36a1b80a358eb799fbb8da0529d9fcfefb4",
+    "tests/test_fl_assistant.py": "096cf76895bcf0b804c962a9bbd1d7bedd7998387a1158b3693b7306b4e699f1",
+    "tests/test_fl_assistant_ui.js": "d87d1e13fb105701830e3dfb4bf2876b0bbf5dc31b3e71f28f7795a8fa449b04",
+    "write_tickets.py": "7e1de14bf73fe13dbf138ecc80831d72ecfcc3ffc4c9ae56bda4946b14388d8c"
+  },
+  "start_end_commit_match": true,
+  "owned_databases_absent": [
+    "fl_round_e_finish_suite_0",
+    "fl_round_e_finish_suite_1"
+  ],
+  "node": {
+    "command": "node --test tests/test_*.js (sorted absolute glob expansion by Python subprocess, cwd repository)",
+    "counts": {
+      "tests": 395,
+      "pass": 395,
+      "fail": 0,
+      "skipped": 0
+    },
+    "log": "/private/tmp/fl_round_e_final_node.log",
+    "js_html_mjs_identical_e00ffa6_4f2931d_working": true,
+    "tracked_files_compared": 101
+  },
+  "runner": {
+    "local_path": "/private/tmp/fl_round_e_final_full_suite.py",
+    "review_path": "/Users/cns/Documents/factory-ledger/docs/validation/fl-assistant-round-e/full-suite-runner.py",
+    "sha256": "d7d434eb8abcd8102bfb023df33faec77784d66eb394b12e6ed645ff951e04ab",
+    "review_copy_identical": true,
+    "method": "Collection partitions all tests into 23 ordinary/race/destructive-migration groups per mode. Only fixture database allocation is overridden; original test bodies/assertions and migration SQL remain intact. Each group receives one fresh schema database, dropped in finally. Rejects pre-existing owned names, hosted connections, failures and skips.",
+    "platform": "macOS Homebrew PostgreSQL17 at 127.0.0.1:5432; pinned .venv-test Python; FL_VALIDATION_ROOT selects checkout; create/drop privileges required."
+  }
+}

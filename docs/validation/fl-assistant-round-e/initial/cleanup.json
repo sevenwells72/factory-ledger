@@ -1,0 +1,13 @@
+{
+  "created_at": "2026-10-15T19:23:12.407716-04:00",
+  "owned_database_dropped": "fl_round_e_real_20261015",
+  "remaining_round_e_databases": [],
+  "private_staging_dump_removed": true,
+  "runtime_evidence_dir_removed": true,
+  "local_pg17_cluster_stopped": true,
+  "private_full_trace_retained": "/private/tmp/fl_round_e_real_model_sessions1.json",
+  "private_full_trace_exists": true,
+  "hosted_writes": false,
+  "private_full_trace_mode": "0o600",
+  "owned_cluster_directory_removed": true
+}

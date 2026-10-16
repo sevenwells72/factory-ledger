@@ -1,0 +1,28 @@
+{
+  "created_at": "2026-10-15T21:22:50.647827-04:00",
+  "owned_database_dropped": "fl_round_e_publish_model_20261015",
+  "owned_database_absent": true,
+  "other_round_e_databases_report_only": [],
+  "private_staging_dump_removed": true,
+  "owned_runtime_evidence_removed": true,
+  "shared_pg5432_running": true,
+  "shared_server_stopped": false,
+  "other_databases_modified": false,
+  "private_final_trace_retained": "/private/tmp/fl_round_e_final_real_model_sessions1.json",
+  "private_final_trace_mode": "0o600",
+  "hosted_writes": false,
+  "repo_minimized_proof_saved": true,
+  "final_verified_at": "2026-10-15T21:31:07.203516-04:00",
+  "all_owned_suite_databases_absent": true,
+  "all_task_database_activity_complete": true,
+  "remaining_round_e_databases": [],
+  "initial_cluster_cleanup_receipt": "initial/cleanup.json",
+  "python_suite_modes": [
+    0,
+    1
+  ],
+  "python_suite_databases": [
+    "fl_round_e_finish_suite_0",
+    "fl_round_e_finish_suite_1"
+  ]
+}

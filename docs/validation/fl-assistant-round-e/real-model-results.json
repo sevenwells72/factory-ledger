@@ -1,0 +1,656 @@
+{
+  "created_at": "2026-10-15T21:22:06.293872-04:00",
+  "passed": true,
+  "real_model": true,
+  "transport": "original fl_assistant.openai; observer only",
+  "sessions_enabled": true,
+  "repeats_per_exact_transcript": 5,
+  "synthetic_catalog_seeded": false,
+  "record_requests": 0,
+  "ledger_and_catalog_unchanged": true,
+  "before": {
+    "products": {
+      "rows": 422,
+      "sha256": "88a693b0928a9ce63d182b5248ee761559e36dfcb9baa2f0a9fbaa92d5d14cbb"
+    },
+    "suppliers": {
+      "rows": 78,
+      "sha256": "37d7264832cb87b98fe84f877efc838cf09c3319c54f69535f2ee40cf50424ed"
+    },
+    "customers": {
+      "rows": 92,
+      "sha256": "cc2fe296f1f1fd10237be32446a37ad905707891e7116db956ca85acf6d8f3a9"
+    },
+    "lots": {
+      "rows": 536,
+      "sha256": "70597647b69fa879528bca026745d0c775cfe04576667f94a6cd9a022d90c4eb"
+    },
+    "transactions": {
+      "rows": 890,
+      "sha256": "63aec45cf1fa08a34790a35ca3d68f7f192efce2de9c1ec801c3a06b0920f4cf"
+    },
+    "transaction_lines": {
+      "rows": 1068,
+      "sha256": "d2940bb6c46d427e44b5e84bcb2f3ca6b40144bbe5e369faec4b78d2cf80e9ed"
+    },
+    "sales_orders": {
+      "rows": 16,
+      "sha256": "4187dbaabe75df107959947f3b9c07e476d7d96744d43ba5fc17fe0083e68acc"
+    },
+    "sales_order_lines": {
+      "rows": 21,
+      "sha256": "36e6d9af15c925e51d84c6d00e24206c0ab0da88a7d4e1156d50208012368a64"
+    },
+    "sales_order_allocations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "batch_formulas": {
+      "rows": 214,
+      "sha256": "6eef4cc4452193db98f65a6ec5c185db1498e48c2190aa3ed214247338b6418f"
+    }
+  },
+  "after": {
+    "products": {
+      "rows": 422,
+      "sha256": "88a693b0928a9ce63d182b5248ee761559e36dfcb9baa2f0a9fbaa92d5d14cbb"
+    },
+    "suppliers": {
+      "rows": 78,
+      "sha256": "37d7264832cb87b98fe84f877efc838cf09c3319c54f69535f2ee40cf50424ed"
+    },
+    "customers": {
+      "rows": 92,
+      "sha256": "cc2fe296f1f1fd10237be32446a37ad905707891e7116db956ca85acf6d8f3a9"
+    },
+    "lots": {
+      "rows": 536,
+      "sha256": "70597647b69fa879528bca026745d0c775cfe04576667f94a6cd9a022d90c4eb"
+    },
+    "transactions": {
+      "rows": 890,
+      "sha256": "63aec45cf1fa08a34790a35ca3d68f7f192efce2de9c1ec801c3a06b0920f4cf"
+    },
+    "transaction_lines": {
+      "rows": 1068,
+      "sha256": "d2940bb6c46d427e44b5e84bcb2f3ca6b40144bbe5e369faec4b78d2cf80e9ed"
+    },
+    "sales_orders": {
+      "rows": 16,
+      "sha256": "4187dbaabe75df107959947f3b9c07e476d7d96744d43ba5fc17fe0083e68acc"
+    },
+    "sales_order_lines": {
+      "rows": 21,
+      "sha256": "36e6d9af15c925e51d84c6d00e24206c0ab0da88a7d4e1156d50208012368a64"
+    },
+    "sales_order_allocations": {
+      "rows": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "batch_formulas": {
+      "rows": 214,
+      "sha256": "6eef4cc4452193db98f65a6ec5c185db1498e48c2190aa3ed214247338b6418f"
+    }
+  },
+  "source_sha256": {
+    "fl_assistant.py": "2f8ecab2615d54c4b5dc0c5365a8683e2bf9108e6eb46d6d50570ca8ed6c75bd",
+    "assistant_voice.py": "6f7425c161f24539ca4573d74d90dd152558b7dd5ba515209445d0b9fb59174e",
+    "assistant_tools.py": "d450dfca5bf6c3ce2d8c9ed7807bff051058eeace11d2d7c13b2db436315ee6c",
+    "assistant_replies.py": "a6e18d2cd323f06f6350a03e230561fed72b0676e50e71ea4becb0b36994b5bc",
+    "assistant_receive.py": "0d7bfc686f50362eaeb52d3d6e7c7e7ccf028ff2cfb6fc8f7daa127d156f4674",
+    "write_tickets.py": "7e1de14bf73fe13dbf138ecc80831d72ecfcc3ffc4c9ae56bda4946b14388d8c",
+    "scripts/check_assistant_round_e_real_model.py": "54281a26e1456c97e197c3e8da1a7e8b7166ba3c60d9443b923b39db8e014ef4"
+  },
+  "staging_dump_sha256": "e18a62c26b9166327e6c4b0ca43c162a82e269cac1fab4ed4fc2e8fdd5271c51",
+  "source_sha256_before": {
+    "fl_assistant.py": "2f8ecab2615d54c4b5dc0c5365a8683e2bf9108e6eb46d6d50570ca8ed6c75bd",
+    "assistant_voice.py": "6f7425c161f24539ca4573d74d90dd152558b7dd5ba515209445d0b9fb59174e",
+    "assistant_tools.py": "d450dfca5bf6c3ce2d8c9ed7807bff051058eeace11d2d7c13b2db436315ee6c",
+    "assistant_replies.py": "a6e18d2cd323f06f6350a03e230561fed72b0676e50e71ea4becb0b36994b5bc",
+    "assistant_receive.py": "0d7bfc686f50362eaeb52d3d6e7c7e7ccf028ff2cfb6fc8f7daa127d156f4674",
+    "write_tickets.py": "7e1de14bf73fe13dbf138ecc80831d72ecfcc3ffc4c9ae56bda4946b14388d8c",
+    "scripts/check_assistant_round_e_real_model.py": "54281a26e1456c97e197c3e8da1a7e8b7166ba3c60d9443b923b39db8e014ef4"
+  },
+  "sources_unchanged": true,
+  "source_commit": "4f2931d8560dc3c02f524b150d4aa6b6465c30d6",
+  "completed_real_provider_requests": 15,
+  "proof_trace_sha256": "725357e29848442159ffc4fbf4f38be609aa8ced21160b3b42741a2000cdeb63",
+  "full_trace_private_path": "/private/tmp/fl_round_e_final_real_model_sessions1.json",
+  "cases": [
+    {
+      "case": "ship_spoken",
+      "repeat": 1,
+      "transcript": "Ship S O two six one oh one five dash zero zero one.",
+      "passed": true,
+      "model_responses": [
+        {
+          "id": "resp_0eb046798d6f1e3e016ad17c18f9cc87d28ee72470279a20e7",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "allowed_tools": [
+            "prepare_ship_order"
+          ],
+          "called_tools": [
+            "prepare_ship_order"
+          ]
+        }
+      ],
+      "result": [
+        {
+          "kind": "missing_facts",
+          "message": "How much of order SO-261015-001 should we ship? Remaining: 1 case (50 lb).",
+          "order_number": "SO-261015-001",
+          "packing_lots": false,
+          "fifo_lot_ids": []
+        }
+      ],
+      "order_read_before_model": true
+    },
+    {
+      "case": "ship_spoken",
+      "repeat": 2,
+      "transcript": "Ship S O two six one oh one five dash zero zero one.",
+      "passed": true,
+      "model_responses": [
+        {
+          "id": "resp_0078000e00b52d18016ad17c1b98a487d2ac640ad1c65c7013",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "allowed_tools": [
+            "prepare_ship_order"
+          ],
+          "called_tools": [
+            "prepare_ship_order"
+          ]
+        }
+      ],
+      "result": [
+        {
+          "kind": "missing_facts",
+          "message": "How much of order SO-261015-001 should we ship? Remaining: 1 case (50 lb).",
+          "order_number": "SO-261015-001",
+          "packing_lots": false,
+          "fifo_lot_ids": []
+        }
+      ],
+      "order_read_before_model": true
+    },
+    {
+      "case": "ship_spoken",
+      "repeat": 3,
+      "transcript": "Ship S O two six one oh one five dash zero zero one.",
+      "passed": true,
+      "model_responses": [
+        {
+          "id": "resp_0c2e92fe105306ee016ad17c1dd9e487d2a2d8a36ad4d2b846",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "allowed_tools": [
+            "prepare_ship_order"
+          ],
+          "called_tools": [
+            "prepare_ship_order"
+          ]
+        }
+      ],
+      "result": [
+        {
+          "kind": "missing_facts",
+          "message": "How much of order SO-261015-001 should we ship? Remaining: 1 case (50 lb).",
+          "order_number": "SO-261015-001",
+          "packing_lots": false,
+          "fifo_lot_ids": []
+        }
+      ],
+      "order_read_before_model": true
+    },
+    {
+      "case": "ship_spoken",
+      "repeat": 4,
+      "transcript": "Ship S O two six one oh one five dash zero zero one.",
+      "passed": true,
+      "model_responses": [
+        {
+          "id": "resp_02826e360e957ed7016ad17c1f95f087d2979c3b8d42af8938",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "allowed_tools": [
+            "prepare_ship_order"
+          ],
+          "called_tools": [
+            "prepare_ship_order"
+          ]
+        }
+      ],
+      "result": [
+        {
+          "kind": "missing_facts",
+          "message": "How much of order SO-261015-001 should we ship? Remaining: 1 case (50 lb).",
+          "order_number": "SO-261015-001",
+          "packing_lots": false,
+          "fifo_lot_ids": []
+        }
+      ],
+      "order_read_before_model": true
+    },
+    {
+      "case": "ship_spoken",
+      "repeat": 5,
+      "transcript": "Ship S O two six one oh one five dash zero zero one.",
+      "passed": true,
+      "model_responses": [
+        {
+          "id": "resp_05903c047ab20378016ad17c21c0ec87d2bf4850f79dd38c5e",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "allowed_tools": [
+            "prepare_ship_order"
+          ],
+          "called_tools": [
+            "prepare_ship_order"
+          ]
+        }
+      ],
+      "result": [
+        {
+          "kind": "missing_facts",
+          "message": "How much of order SO-261015-001 should we ship? Remaining: 1 case (50 lb).",
+          "order_number": "SO-261015-001",
+          "packing_lots": false,
+          "fifo_lot_ids": []
+        }
+      ],
+      "order_read_before_model": true
+    },
+    {
+      "case": "ship_spaced",
+      "repeat": 1,
+      "transcript": "SO 261015 001",
+      "passed": true,
+      "model_responses": [
+        {
+          "id": "resp_0c26023dbbbf3530016ad17c23f34087d28f913995184eaaf8",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "allowed_tools": [
+            "prepare_ship_order"
+          ],
+          "called_tools": [
+            "prepare_ship_order"
+          ]
+        }
+      ],
+      "result": [
+        {
+          "kind": "missing_facts",
+          "message": "How much of order SO-261015-001 should we ship? Remaining: 1 case (50 lb).",
+          "order_number": "SO-261015-001",
+          "packing_lots": false,
+          "fifo_lot_ids": []
+        }
+      ],
+      "order_read_before_model": true
+    },
+    {
+      "case": "ship_spaced",
+      "repeat": 2,
+      "transcript": "SO 261015 001",
+      "passed": true,
+      "model_responses": [
+        {
+          "id": "resp_013361ddc267634c016ad17c25c37887d2bb4a90d5e952964d",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "allowed_tools": [
+            "prepare_ship_order"
+          ],
+          "called_tools": [
+            "prepare_ship_order"
+          ]
+        }
+      ],
+      "result": [
+        {
+          "kind": "missing_facts",
+          "message": "How much of order SO-261015-001 should we ship? Remaining: 1 case (50 lb).",
+          "order_number": "SO-261015-001",
+          "packing_lots": false,
+          "fifo_lot_ids": []
+        }
+      ],
+      "order_read_before_model": true
+    },
+    {
+      "case": "ship_spaced",
+      "repeat": 3,
+      "transcript": "SO 261015 001",
+      "passed": true,
+      "model_responses": [
+        {
+          "id": "resp_058923a73a452245016ad17c2819c887d29bef74a1c796ce4b",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "allowed_tools": [
+            "prepare_ship_order"
+          ],
+          "called_tools": [
+            "prepare_ship_order"
+          ]
+        }
+      ],
+      "result": [
+        {
+          "kind": "missing_facts",
+          "message": "How much of order SO-261015-001 should we ship? Remaining: 1 case (50 lb).",
+          "order_number": "SO-261015-001",
+          "packing_lots": false,
+          "fifo_lot_ids": []
+        }
+      ],
+      "order_read_before_model": true
+    },
+    {
+      "case": "ship_spaced",
+      "repeat": 4,
+      "transcript": "SO 261015 001",
+      "passed": true,
+      "model_responses": [
+        {
+          "id": "resp_04deac8257f7e8ba016ad17c2a06ec87d28d511f21e4c34f1b",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "allowed_tools": [
+            "prepare_ship_order"
+          ],
+          "called_tools": [
+            "prepare_ship_order"
+          ]
+        }
+      ],
+      "result": [
+        {
+          "kind": "missing_facts",
+          "message": "How much of order SO-261015-001 should we ship? Remaining: 1 case (50 lb).",
+          "order_number": "SO-261015-001",
+          "packing_lots": false,
+          "fifo_lot_ids": []
+        }
+      ],
+      "order_read_before_model": true
+    },
+    {
+      "case": "ship_spaced",
+      "repeat": 5,
+      "transcript": "SO 261015 001",
+      "passed": true,
+      "model_responses": [
+        {
+          "id": "resp_0a086161465ecf42016ad17c2c19fc87d2abeb8b6226face3c",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "allowed_tools": [
+            "prepare_ship_order"
+          ],
+          "called_tools": [
+            "prepare_ship_order"
+          ]
+        }
+      ],
+      "result": [
+        {
+          "kind": "missing_facts",
+          "message": "How much of order SO-261015-001 should we ship? Remaining: 1 case (50 lb).",
+          "order_number": "SO-261015-001",
+          "packing_lots": false,
+          "fifo_lot_ids": []
+        }
+      ],
+      "order_read_before_model": true
+    },
+    {
+      "case": "pack_coconut",
+      "repeat": 1,
+      "transcript": "Packed 10 cases of sweetened flake coconut.",
+      "passed": true,
+      "model_responses": [
+        {
+          "id": "resp_0dc391daf64c4f2f016ad17c2e3f7c87d28ab9b96024508840",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "allowed_tools": [
+            "resolve",
+            "prepare_create_customer",
+            "prepare_create_order",
+            "prepare_receive",
+            "prepare_make",
+            "prepare_pack",
+            "prepare_adjust",
+            "prepare_found",
+            "prepare_ship_order",
+            "prepare_ship_standalone",
+            "prepare_ship_bulk",
+            "unsupported_request",
+            "today_entries",
+            "inventory_lookup",
+            "open_orders",
+            "lot_lookup",
+            "packing_context",
+            "receipt_lookup",
+            "shift_summary"
+          ],
+          "called_tools": [
+            "resolve"
+          ]
+        }
+      ],
+      "result": [
+        {
+          "kind": "choices",
+          "message": "Which batch did these come from?",
+          "order_number": null,
+          "packing_lots": true,
+          "fifo_lot_ids": [
+            1000000217
+          ]
+        }
+      ],
+      "order_read_before_model": null
+    },
+    {
+      "case": "pack_coconut",
+      "repeat": 2,
+      "transcript": "Packed 10 cases of sweetened flake coconut.",
+      "passed": true,
+      "model_responses": [
+        {
+          "id": "resp_085ec14396231c01016ad17c31826087d2906b0fecbea4fdf1",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "allowed_tools": [
+            "resolve",
+            "prepare_create_customer",
+            "prepare_create_order",
+            "prepare_receive",
+            "prepare_make",
+            "prepare_pack",
+            "prepare_adjust",
+            "prepare_found",
+            "prepare_ship_order",
+            "prepare_ship_standalone",
+            "prepare_ship_bulk",
+            "unsupported_request",
+            "today_entries",
+            "inventory_lookup",
+            "open_orders",
+            "lot_lookup",
+            "packing_context",
+            "receipt_lookup",
+            "shift_summary"
+          ],
+          "called_tools": [
+            "resolve"
+          ]
+        }
+      ],
+      "result": [
+        {
+          "kind": "choices",
+          "message": "Which batch did these come from?",
+          "order_number": null,
+          "packing_lots": true,
+          "fifo_lot_ids": [
+            1000000217
+          ]
+        }
+      ],
+      "order_read_before_model": null
+    },
+    {
+      "case": "pack_coconut",
+      "repeat": 3,
+      "transcript": "Packed 10 cases of sweetened flake coconut.",
+      "passed": true,
+      "model_responses": [
+        {
+          "id": "resp_017ef77864ea71ba016ad17c34c68887d2822508b54cb912a4",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "allowed_tools": [
+            "resolve",
+            "prepare_create_customer",
+            "prepare_create_order",
+            "prepare_receive",
+            "prepare_make",
+            "prepare_pack",
+            "prepare_adjust",
+            "prepare_found",
+            "prepare_ship_order",
+            "prepare_ship_standalone",
+            "prepare_ship_bulk",
+            "unsupported_request",
+            "today_entries",
+            "inventory_lookup",
+            "open_orders",
+            "lot_lookup",
+            "packing_context",
+            "receipt_lookup",
+            "shift_summary"
+          ],
+          "called_tools": [
+            "resolve"
+          ]
+        }
+      ],
+      "result": [
+        {
+          "kind": "choices",
+          "message": "Which batch did these come from?",
+          "order_number": null,
+          "packing_lots": true,
+          "fifo_lot_ids": [
+            1000000217
+          ]
+        }
+      ],
+      "order_read_before_model": null
+    },
+    {
+      "case": "pack_coconut",
+      "repeat": 4,
+      "transcript": "Packed 10 cases of sweetened flake coconut.",
+      "passed": true,
+      "model_responses": [
+        {
+          "id": "resp_02529c81c5fc8e6b016ad17c37e21887d2846e0ebd5e9dfc04",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "allowed_tools": [
+            "resolve",
+            "prepare_create_customer",
+            "prepare_create_order",
+            "prepare_receive",
+            "prepare_make",
+            "prepare_pack",
+            "prepare_adjust",
+            "prepare_found",
+            "prepare_ship_order",
+            "prepare_ship_standalone",
+            "prepare_ship_bulk",
+            "unsupported_request",
+            "today_entries",
+            "inventory_lookup",
+            "open_orders",
+            "lot_lookup",
+            "packing_context",
+            "receipt_lookup",
+            "shift_summary"
+          ],
+          "called_tools": [
+            "resolve"
+          ]
+        }
+      ],
+      "result": [
+        {
+          "kind": "choices",
+          "message": "Which batch did these come from?",
+          "order_number": null,
+          "packing_lots": true,
+          "fifo_lot_ids": [
+            1000000217
+          ]
+        }
+      ],
+      "order_read_before_model": null
+    },
+    {
+      "case": "pack_coconut",
+      "repeat": 5,
+      "transcript": "Packed 10 cases of sweetened flake coconut.",
+      "passed": true,
+      "model_responses": [
+        {
+          "id": "resp_0f8dd8cf00ee952a016ad17c3b304487d29bcd7042e9e052f1",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "allowed_tools": [
+            "resolve",
+            "prepare_create_customer",
+            "prepare_create_order",
+            "prepare_receive",
+            "prepare_make",
+            "prepare_pack",
+            "prepare_adjust",
+            "prepare_found",
+            "prepare_ship_order",
+            "prepare_ship_standalone",
+            "prepare_ship_bulk",
+            "unsupported_request",
+            "today_entries",
+            "inventory_lookup",
+            "open_orders",
+            "lot_lookup",
+            "packing_context",
+            "receipt_lookup",
+            "shift_summary"
+          ],
+          "called_tools": [
+            "resolve"
+          ]
+        }
+      ],
+      "result": [
+        {
+          "kind": "choices",
+          "message": "Which batch did these come from?",
+          "order_number": null,
+          "packing_lots": true,
+          "fifo_lot_ids": [
+            1000000217
+          ]
+        }
+      ],
+      "order_read_before_model": null
+    }
+  ]
+}
