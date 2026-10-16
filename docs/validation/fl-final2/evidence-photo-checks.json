@@ -1,0 +1,75 @@
+{
+  "scope": "PR136 item1: photo custody across all ten Assistant prepare flows",
+  "local_only": true,
+  "model_stubbed_only_in_unit_tests": true,
+  "runtime_frozen": true,
+  "photo_matrix": {
+    "actions": 10,
+    "kinds": 7,
+    "combinations": 70,
+    "accepted_combinations_with_record_replay_and_readback": 13,
+    "unsupported_combinations_refused_before_draft": 57
+  },
+  "extra_guards": [
+    "Mixed supported/unsupported photos refuse the whole draft",
+    "Old pending integer BOL cards gain actual ticket/transaction linkage on Record",
+    "Old pending unsupported photos refuse without a record attempt",
+    "Pending pre-A6 UUID photos require reupload; committed/lost-response historical receipts replay",
+    "Five unsupported integer photo kinds preserve committed and lost-response historical receipt recovery; canonical payload-hash tampering still refuses (10 cases)"
+  ],
+  "surfaces_verified_backend": [
+    "commit receipt card result",
+    "receipt detail page data",
+    "assistant receipt lookup",
+    "authorized bytes download"
+  ],
+  "python": {
+    "off": {
+      "key_sessions_enabled": "0",
+      "tests": 309,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 19.3
+    },
+    "on": {
+      "key_sessions_enabled": "1",
+      "tests": 309,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 20.087
+    }
+  },
+  "files": [
+    "tests/test_assistant_evidence_final2.py",
+    "tests/test_final_receive_receipts.py",
+    "tests/test_fl_assistant.py",
+    "tests/test_assistant_fix_b2.py",
+    "tests/test_ship_tickets.py",
+    "tests/test_attachments.py"
+  ],
+  "previous_focused_validation": {
+    "off": {
+      "key_sessions_enabled": "0",
+      "tests": 299,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 18.107
+    },
+    "on": {
+      "key_sessions_enabled": "1",
+      "tests": 299,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "seconds": 18.373
+    }
+  },
+  "cleanup": {
+    "database": "fl_final2_evidence",
+    "dropped": true,
+    "verified_remaining": 0
+  }
+}

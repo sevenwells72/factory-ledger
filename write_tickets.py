@@ -658,6 +658,7 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
                 row['id'], receipt, require_new_lot=not row['draft'].get('lot_exists'))
         if row['action'] in ('adjust', 'found') and photo:
             cur.execute('UPDATE attachments SET transaction_id=%s WHERE attachment_ref=%s', (response.get('transaction_id'), photo))
+            response['attachments'] = attachments.for_receipt(cur, row['id'])
         response.update(receipt_number=receipt, ticket_id=row['id'], replayed=False,
                         state_changed=state_changed)
         # A2: 48 h–14 d late entries open exceptions(LATE_ENTRY) for the
@@ -918,7 +919,7 @@ def register_routes(app, api):
                 import ship_tickets
                 return ship_tickets.commit(api, cur, row, body, actor, request, entry_timing)
             if body.attachment_ids and row['action'] != 'receive':
-                fail(422, 'UNUSED_ATTACHMENT', 'Use attachment_id for a correction, attachment_ids for shipments or receive lot tags.')
+                fail(422, 'UNUSED_ATTACHMENT', 'Use attachment_id for a correction, attachment_ids for shipments or receive photos.')
             # A7 hook: order tickets post through their own module (metadata
             # writes, no ledger lines); every lifecycle check above is shared.
             if row['action'] == 'create_customer':

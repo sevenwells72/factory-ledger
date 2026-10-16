@@ -5,7 +5,8 @@
   const labels={counted:['Counted adjustment','Ajuste contado'],missing_movement:['Link missing movement receipt','Vincular recibo de movimiento faltante'],voided:['Posting was voided','Registro anulado'],identified:['Identify supplier lot','Identificar lote de proveedor'],written_off:['Owner write-off','Baja por propietario'],approved:['Owner approve','Aprobar como propietario'],declined:['Owner reject','Rechazar como propietario'],photo_attached:['Attach BOL photo','Adjuntar foto BOL'],waived:['Owner waive','Eximir como propietario'],acknowledged:['Acknowledge','Reconocer'],resolved:['Resolve','Resolver']};
   function render(){content.replaceChildren();const refresh=ui.el('button',ui.t('Refresh exceptions','Actualizar excepciones'),content);refresh.onclick=load;
     if(!rows.length)ui.el('p',ui.t('No open exceptions.','No hay excepciones abiertas.'),content);
-    const ordered=ui.exceptionQueue(rows),recent=ordered.filter(item=>!ui.openingStock(item)),opening=ordered.filter(ui.openingStock);
+    // An overdue opening-stock item needs attention now; never hide it in the collapsed group.
+    const ordered=ui.exceptionQueue(rows),recent=ordered.filter(item=>item.overdue||!ui.openingStock(item)),opening=ordered.filter(item=>!item.overdue&&ui.openingStock(item));
     function renderRows(items,host){for(const item of items){const row=ui.el('article',undefined,host);row.dataset.exceptionId=item.id;row.className='exception-row'+(item.overdue?' overdue':'');
       const desc=ui.el('div',undefined,row),number=item.receipt_number||item.ticket_receipt_number;
       ui.el('h3',ui.exceptionLabel(item.kind,ui.lang),desc);

@@ -1039,15 +1039,27 @@ def test_068_rerun_adds_private_a6_links_and_preserves_legacy_bytes(client, chat
     assert dict(db_cursor.fetchone()) == marker
 
 
-def test_legacy_uuid_photo_metadata_does_not_break_existing_draft_replay(client, chat, payload, db_cursor, monkeypatch):
+@pytest.mark.parametrize('state', ['pending', 'committed', 'lost_response'])
+def test_legacy_uuid_photo_requires_reupload_but_preserves_recorded_replay(client, chat, payload, db_cursor, monkeypatch, state):
     from psycopg2.extras import Json
     card, _ = make_draft(client, chat, payload, db_cursor, monkeypatch)
+    if state != 'pending':
+        assert record(client, chat, card).status_code == 200
+    if state == 'lost_response':
+        db_cursor.execute("UPDATE assistant_drafts SET status='pending',result=NULL WHERE id=%s", (card['id'],))
     old_id = str(uuid4())
     card['attachment_ids'] = [old_id]
     db_cursor.execute('UPDATE assistant_drafts SET card=%s WHERE id=%s', (Json(card), card['id']))
     response = record(client, chat, card)
-    assert response.status_code == 200 and response.json()['kind'] == 'receipt', response.text
-    assert record(client, chat, card).status_code == 200
+    if state == 'pending':
+        assert response.status_code == 409, response.text
+        assert response.json()['detail']['error_code'] == 'ATTACHMENT_REUPLOAD_REQUIRED'
+        db_cursor.execute('SELECT count(*) AS n FROM transactions WHERE ticket_id=%s', (card['prepared']['ticket_id'],))
+        assert db_cursor.fetchone()['n'] == 0
+    else:
+        assert response.status_code == 200 and response.json()['kind'] == 'receipt', response.text
+        assert response.json()['result']['replayed'] is True
+        assert record(client, chat, card).status_code == 200
     restored = client.post('/assistant/resume', headers=chat[1], json={'session_id': chat[0]}).json()['drafts'][0]
     assert restored['card']['attachment_ids'] == [old_id]
 

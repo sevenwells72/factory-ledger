@@ -1020,7 +1020,14 @@ def register_routes(app, api):
                        OR (NOT %s AND NOT (e.status IN ('open','escalated') AND e.due_at < clock_timestamp())))
                   AND (%s::int IS NULL OR e.owner_actor_id=%s) AND (%s::int IS NULL OR e.product_id=%s)
                   AND (%s::int IS NULL OR e.lot_id=%s)
-                ORDER BY (e.status IN ('open','escalated')) DESC, e.opened_at DESC, e.id DESC LIMIT %s''',
+                ORDER BY (e.status IN ('open','escalated')) DESC,
+                  COALESCE(e.status IN ('open','escalated') AND e.due_at < clock_timestamp(), false) DESC,
+                  CASE WHEN e.status IN ('open','escalated') AND e.due_at < clock_timestamp()
+                       THEN e.due_at END ASC NULLS LAST,
+                  (e.kind='UNIDENTIFIED_LOT' AND
+                    (upper(COALESCE(l.entry_source_notes,'')) LIKE 'OPENING BALANCE %%'
+                     OR upper(COALESCE(l.entry_source_notes,'')) LIKE 'STAGING OPENING STOCK %%')) ASC,
+                  e.opened_at DESC, e.id DESC LIMIT %s''',
                 (kinds, kinds, statuses, statuses, overdue, overdue, overdue, owner_actor_id, owner_actor_id,
                  product_id, product_id, lot_id, lot_id, limit))
             rows = cur.fetchall()

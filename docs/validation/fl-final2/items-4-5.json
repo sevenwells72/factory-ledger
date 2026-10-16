@@ -1,0 +1,53 @@
+{
+  "items": [
+    4,
+    5
+  ],
+  "review_comment": "https://github.com/sevenwells72/factory-ledger/pull/136#issuecomment-6219900781",
+  "rollback_sql_exactly_matches_review": true,
+  "python": {
+    "venv": "/Users/michaelgross/dev/fl_final_venv",
+    "pydantic": "2.14.1",
+    "sessions_off": {
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0
+    },
+    "sessions_on": {
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0
+    },
+    "files": [
+      "tests/test_assistant_service_migration_084.py",
+      "tests/test_final_exception_queue.py",
+      "tests/test_final_exception_list.py"
+    ]
+  },
+  "node": {
+    "file": "tests/test_final_floor_ui.js",
+    "passed": 10,
+    "failed": 0
+  },
+  "migration_checks": [
+    "up \u2192 up \u2192 down \u2192 down \u2192 up",
+    "exact original pg_get_constraintdef restored",
+    "marker and unique index applied/removed",
+    "refuse rollback with open/escalated/resolved/waived ASSISTANT_OFFLINE rows without changing them"
+  ],
+  "queue_checks": [
+    "server limit=1 returns overdue first",
+    "earliest overdue deadline first, including opening stock",
+    "newest unresolved items precede nonoverdue opening stock",
+    "overdue opening-stock rows remain visible outside collapsed group",
+    "EN/ES WebKit 375/390/393/430 pixels, sessions off/on, 16 checks passed"
+  ],
+  "initial_fixture_repairs": [
+    "added required escalated_at for escalated rows",
+    "used distinct opening lots to respect one-open-unidentified exception rule"
+  ],
+  "local_database": "fl_final2_exceptions",
+  "local_database_dropped": true,
+  "hosted_writes": false,
+  "settings_changes": false
+}

@@ -1,0 +1,31 @@
+{
+  "sha256_of_original_collection": "ade12a79f56f8ddbd2ab3c28c913e379b3637bc8118c70e28e01716ac15b205f",
+  "collected": 6867,
+  "unique_nodeids": 6867,
+  "groups": {
+    "ordinary": 6781,
+    "race:tests/test_a7_review_fixes.py": 3,
+    "race:tests/test_assistant_runtime_round_d.py": 1,
+    "race:tests/test_customer_tickets.py": 4,
+    "race:tests/test_exceptions_enforcement.py": 8,
+    "migration:tests/test_exceptions_tables_061.py::test_backfill_maps_history_restores_guard_and_is_rerunnable": 1,
+    "migration:tests/test_exceptions_tables_061.py::test_backfill_skips_guard_dance_when_no_guard_exists": 1,
+    "migration:tests/test_exceptions_tables_061.py::test_down_refuses_populated_queue_then_drops_cleanly_and_up_reseeds": 1,
+    "race:tests/test_fl_assistant.py": 1,
+    "race:tests/test_kosher_tiers.py": 1,
+    "migration:tests/test_lot_identity_047.py::test_047_applies_cleanly_on_fresh_db_and_reruns_as_noop": 1,
+    "migration:tests/test_lot_identity_047.py::test_047_applies_cleanly_on_historical_shapes_with_merged_twins": 1,
+    "race:tests/test_order_tickets.py": 1,
+    "race:tests/test_reset_shortage_close.py": 1,
+    "race:tests/test_resolution_receipts.py": 2,
+    "race:tests/test_roles_a2.py": 2,
+    "race:tests/test_shift_summary.py": 2,
+    "race:tests/test_ship_tickets.py": 4,
+    "race:tests/test_supplier_lot_tickets.py": 2,
+    "migration:tests/test_trace_tables_048.py::test_048_applies_on_fresh_db_and_reruns_as_noop": 1,
+    "trace048": 39,
+    "race:tests/test_write_tickets.py": 2,
+    "race:tests/test_write_tickets_part2.py": 7
+  },
+  "full_collection_reproducible_with": "docs/validation/fl-final2/full-suite-runner.py --collect"
+}

@@ -30,8 +30,16 @@ test('Office handoffs allow only the intended local screens',()=>{
   assert.equal(assistant.safeOfficeLink('/dashboard/office.html?action=cancel_order&order=SO-261016-001'),'/dashboard/office.html?action=cancel_order&order=SO-261016-001');
   for(const href of ['https://example.com','javascript:alert(1)','//example.com','/dashboard/office.html.evil'])assert.equal(assistant.safeOfficeLink(href),null);
 });
-test('new unresolved exceptions sort before history; opening requires explicit marker',()=>{
-  assert.deepEqual(ledger.exceptionQueue([{id:1,status:'open',opened_at:'2026-10-14'},{id:2,status:'resolved',opened_at:'2026-10-17'},{id:3,status:'escalated',opened_at:'2026-10-16'}]).map(row=>row.id),[3,1,2]);
+test('overdue exceptions stay first, newest unresolved next, then opening stock and history',()=>{
+  const rows=[
+    {id:1,status:'open',opened_at:'2026-10-14',overdue:true,due_at:'2026-10-15'},
+    {id:2,status:'resolved',opened_at:'2026-10-18'},
+    {id:3,status:'open',opened_at:'2026-10-16'},
+    {id:4,status:'open',opened_at:'2026-10-17',is_opening_stock:true},
+    {id:5,status:'escalated',opened_at:'2026-10-12',overdue:true,due_at:'2026-10-13',is_opening_stock:true},
+    {id:6,status:'open',opened_at:'2026-10-15'},
+  ];
+  assert.deepEqual(ledger.exceptionQueue(rows).map(row=>row.id),[5,1,3,6,4,2]);
   assert.equal(ledger.openingStock({lot_entry_source:'found_inventory'}),false);
   assert.equal(ledger.openingStock({is_opening_stock:true}),true);
   assert.equal(ledger.exceptionLabel('PRE_MAKE_ADJUST'),'Adjustment before a make');

@@ -1,0 +1,1364 @@
+{
+  "sessions": 1,
+  "database_local_only": true,
+  "real_model": true,
+  "repeats": 3,
+  "source_sha256": {
+    "sales_document_tickets.py": "df939b8205311b31dbc723cb12a30cee712307b205c2cff99027f5b0e43cf32d",
+    "assistant_voice.py": "5d97b10765871884a268814e834b7b29e83d99aaaf5546f8aa67cac513035b90",
+    "staging_safety.py": "656059fe338d1d9edcf72ed41d77cfcaab464c7ef9e516aad7a17bbb803bb6df",
+    "build_gpt_instructions.py": "037ba968904e7d2bc90924e3e7addbdace17973618a746bb7a5562e9ab4ba028",
+    "ticket_actions.py": "74756b6245ad57be45b87afbdd382a1eeade1eea580d0aeebf338e18cb9ededd",
+    "expected_receipt_tickets.py": "0cb5ef1da80c6f50e6173db303a3d030f3c4d467f5112f6a729340aa06f13173",
+    "resolution_receipts.py": "b828bc2e38db1705dfc9c9b9466e88828ba2b90b49c2ebac3bb943b1c680b715",
+    "order_tickets.py": "5f82e6e168999f5bc77816059b619da6d2167a9994d2df7be220d914a39df5bb",
+    "supplier_lot_tickets.py": "f23215ec0d428888bcae31c6ef3639190a1658df4f0b518821ca31666e3da500",
+    "shift_receipts.py": "20a0f073989ee7d17209b22e449fd72f38e40feaec887956521edde4c3bd7b71",
+    "shift_summary.py": "b9f63c0ff8b6c7aca15d6b245a1b65e02c78f619c65e78885409fbff80e9ffce",
+    "kosher_tiers.py": "5c520e95c55df8e415aa43c92fa01504d666f68a2eab9c1995150cc563ae09e1",
+    "attachments.py": "efcebdef3b4e7e1f7827bafdb021fa5adcb1c8f46ad99b8cae0e3caedc50300a",
+    "customer_tickets.py": "c6995adaf054a216c01e136a8341a1670c165c2388afa71de170bd5d60416f5b",
+    "extraction.py": "bee7e93ad685095991660c7947a20f1dd6c47cc26213639d7b4dc92aa7eb31d9",
+    "oat_bran_substitution.py": "f7875b7f3faef170d0bb96c481a894fcfd2fb924baa21f7d80718955afed26f3",
+    "assistant_runtime.py": "7b1d4a8bbd13f5b0cfce605169eaa09272d69d155d0ddf7966606fec44c5b549",
+    "permissions.py": "7b6e33b6211142eba52066223b4fac32c4eaf9d55d35fa35082410ae167a98db",
+    "key_sessions.py": "f420a1d61aa34708d2c3d1653385bd64db9d59fcaa57b073299b24e950170196",
+    "assistant_service.py": "30002fcfbe4eedd3a6db49031b837d609e3489b15f20f2a8b02f6573ec2b7f70",
+    "lot_confirmation.py": "c8fb70d37e80e33ea958f24116e241c2460d2cf82f9f9ecfe8c7a1c8a7a66185",
+    "ship_tickets.py": "4532a70b1261d5e4edb50ec223d672dade9a471f1d07f1a7cd419197099ff37d",
+    "exceptions_enforcement.py": "e8c7628e30e5ad35af03255e81aeb888e4a3b60754604886ddfbeb22f4c571a3",
+    "assistant_tools.py": "65453bd11ac6c0b9c258c1d6f7b02ea1e295553ec682761d56852657b86eda10",
+    "main.py": "e50ad035c0fa65a851e016de92daae8558758ac12b66c7928c5bba543b8cc507",
+    "fl_assistant.py": "29ab17934456a5c6eab46be06c0f8012da6e144076d627bc5c1f2043b1860bdf",
+    "resolution.py": "6f434cc7ddbd87b178e7d58b28c54acfaa1caec5a574bebd6aeb309d43079784",
+    "assistant_replies.py": "9f1f252fea883fe0043fa54409286125976890a6ea3a17042b485797c52ea08c",
+    "assistant_receive.py": "d2b111b1681e7948b01de73885c239ff7d908a5a6582cb73a3897b2420adb020",
+    "write_tickets.py": "56cc20e1b0aa87a825a2d7730e5154c5c16106fd6728c849843286cfd30ee6ee",
+    "assistant_intents.py": "32167001b30ecc14db91b6d37c2345221ab12d38b7e7cecf5cc1addc37499a8e"
+  },
+  "results": [
+    {
+      "case": "sunshine_en",
+      "language": "en",
+      "text": "Add Sunshine Granola as a new customer",
+      "run": 1,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 3.037,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0d6a28c6c85f0b32016ad2562d457087d2ba17465be43f2e7b",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "sunshine_en",
+      "language": "en",
+      "text": "Add Sunshine Granola as a new customer",
+      "run": 2,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 2.952,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_00c41f3c0f24d402016ad256303c5887d28845840b1726fc0f",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "sunshine_en",
+      "language": "en",
+      "text": "Add Sunshine Granola as a new customer",
+      "run": 3,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 2.225,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_077d1609791edf7f016ad25633291887d2aec509f8cad3c926",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "sunshine_es",
+      "language": "es",
+      "text": "Agrega Sunshine Granola como cliente nuevo",
+      "run": 1,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 2.231,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0b7b104ef636dfee016ad256356e5487d29cc0f42c6c364b1b",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "sunshine_es",
+      "language": "es",
+      "text": "Agrega Sunshine Granola como cliente nuevo",
+      "run": 2,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 3.613,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0505cdc2f8fbce47016ad25637a5f087d2af4d7340099c846c",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "sunshine_es",
+      "language": "es",
+      "text": "Agrega Sunshine Granola como cliente nuevo",
+      "run": 3,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 2.728,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0cb7ef65fec9274d016ad2563b78d487d29b261af1c847e88f",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "semantic_en",
+      "language": "en",
+      "text": "We need Sunshine Granola in our customer list.",
+      "run": 1,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 4.118,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0674cc5eac80577e016ad2563dff6887d2abdcd0803eb0bfba",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0674cc5eac80577e016ad256400d4087d296b8579ef4c3b16a",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_create_customer"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "semantic_en",
+      "language": "en",
+      "text": "We need Sunshine Granola in our customer list.",
+      "run": 2,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 5.388,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_04e8816d2073835d016ad2564224c087d2abe1eba2b70de7b2",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_04e8816d2073835d016ad25644ab6887d292617921c2b1c425",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_create_customer"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "semantic_en",
+      "language": "en",
+      "text": "We need Sunshine Granola in our customer list.",
+      "run": 3,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 4.771,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0606f99c09e2ab39016ad256477cb487d29548c3c717fae6c9",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0606f99c09e2ab39016ad256498b0887d29b0ef7286588f7ef",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_create_customer"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "semantic_es",
+      "language": "es",
+      "text": "Necesitamos Sunshine Granola en nuestra lista de clientes.",
+      "run": 1,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 5.149,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_07408a161def4766016ad2564cdc0887d29a149d5689ae2d5d",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_07408a161def4766016ad2564f578087d28d641f7a55ea595a",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_create_customer"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "semantic_es",
+      "language": "es",
+      "text": "Necesitamos Sunshine Granola en nuestra lista de clientes.",
+      "run": 2,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 4.974,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_095163aa6f35b089016ad2565165b487d28fda642abdab7460",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_095163aa6f35b089016ad256541fa087d28ad3c0c97129012e",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_create_customer"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "semantic_es",
+      "language": "es",
+      "text": "Necesitamos Sunshine Granola en nuestra lista de clientes.",
+      "run": 3,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 5.211,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0cea8f106277364f016ad256566b6887d284f7e868709b05bc",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0cea8f106277364f016ad25658f26487d29480fb19ed13c300",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_create_customer"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "setton_en",
+      "language": "en",
+      "text": "Add Setton",
+      "run": 1,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 2.802,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0fb469eb52bdcfe1016ad2565ba2c087d2ad5fd0e865c0772b",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "setton_en",
+      "language": "en",
+      "text": "Add Setton",
+      "run": 2,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 2.269,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_04e9d430a20310d5016ad2565e70a887d2bda1874ac21f01c9",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "setton_en",
+      "language": "en",
+      "text": "Add Setton",
+      "run": 3,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 2.669,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_07deba127108fef4016ad25660b4c487d2892c765343209499",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "setton_es",
+      "language": "es",
+      "text": "Agrega Setton",
+      "run": 1,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 2.975,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0ea3319dc879da5c016ad25663677887d286081e08fc342af0",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "setton_es",
+      "language": "es",
+      "text": "Agrega Setton",
+      "run": 2,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 2.399,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06f89c9c21e87c29016ad256665e7887d2a5af375f8f32cb3a",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "setton_es",
+      "language": "es",
+      "text": "Agrega Setton",
+      "run": 3,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 1.846,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0e8a495389639be3016ad25668bb5c87d28eff6f1651b20126",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "setton_new_en",
+      "language": "en",
+      "text": "Add Setton as a new customer",
+      "run": 1,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 2.271,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_02e7352846f870d5016ad2566a942087d29419aef23bc3b3a9",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "setton_new_en",
+      "language": "en",
+      "text": "Add Setton as a new customer",
+      "run": 2,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 3.457,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0b7a4a90dee8068f016ad2566ce63487d2bf7e6a2360b71be7",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "setton_new_en",
+      "language": "en",
+      "text": "Add Setton as a new customer",
+      "run": 3,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 2.251,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_016415ec14728574016ad25670612087d29ca67382385e6aee",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "setton_new_es",
+      "language": "es",
+      "text": "Agrega Setton como cliente nuevo",
+      "run": 1,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 2.389,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_054b86e2026f85ac016ad25672958887d2b8c6feddb0ad5abc",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "setton_new_es",
+      "language": "es",
+      "text": "Agrega Setton como cliente nuevo",
+      "run": 2,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 2.628,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_01cdb018c4608557016ad25674f1b087d2b2da056d9e3a9cd0",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "setton_new_es",
+      "language": "es",
+      "text": "Agrega Setton como cliente nuevo",
+      "run": 3,
+      "selection_finished_without_model": true,
+      "status": "passed",
+      "seconds": 3.107,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0c5fb5e06cf32f81016ad256779fec87d2b298d01e63f4b32b",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "expected_en",
+      "language": "en",
+      "text": "Grain Supply is sending 20 cases of Oats next Tuesday, PO C4F14D. Add it as an expected delivery.",
+      "run": 1,
+      "status": "passed",
+      "seconds": 0.049,
+      "provider": []
+    },
+    {
+      "case": "expected_en",
+      "language": "en",
+      "text": "Grain Supply is sending 20 cases of Oats next Tuesday, PO C4F14D. Add it as an expected delivery.",
+      "run": 2,
+      "status": "passed",
+      "seconds": 0.031,
+      "provider": []
+    },
+    {
+      "case": "expected_en",
+      "language": "en",
+      "text": "Grain Supply is sending 20 cases of Oats next Tuesday, PO C4F14D. Add it as an expected delivery.",
+      "run": 3,
+      "status": "passed",
+      "seconds": 0.024,
+      "provider": []
+    },
+    {
+      "case": "expected_es",
+      "language": "es",
+      "text": "Grain Supply va a mandar 20 cajas de avena el próximo martes, PO C4F14D. Agrégalo como entrega esperada.",
+      "run": 1,
+      "status": "passed",
+      "seconds": 0.024,
+      "provider": []
+    },
+    {
+      "case": "expected_es",
+      "language": "es",
+      "text": "Grain Supply va a mandar 20 cajas de avena el próximo martes, PO C4F14D. Agrégalo como entrega esperada.",
+      "run": 2,
+      "status": "passed",
+      "seconds": 0.028,
+      "provider": []
+    },
+    {
+      "case": "expected_es",
+      "language": "es",
+      "text": "Grain Supply va a mandar 20 cajas de avena el próximo martes, PO C4F14D. Agrégalo como entrega esperada.",
+      "run": 3,
+      "status": "passed",
+      "seconds": 0.025,
+      "provider": []
+    },
+    {
+      "case": "bol_en",
+      "language": "en",
+      "text": "We received 2 cases of Oats from LaCrosse Milling, 50 lb per case, BOL PH1777, supplier lot LM-PH1777. Photo attached.",
+      "run": 1,
+      "draft_action": "receive",
+      "receipt": "RCV-261016-093",
+      "photo_kinds": [
+        "bol"
+      ],
+      "draft_and_receipt_and_lookup_match": true,
+      "attachment_ticket_transaction_linked": true,
+      "replay_same_receipt": true,
+      "status": "passed",
+      "seconds": 11.405,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0be88e89631d787f016ad2567ae68887d2a12db93e15ccade6",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0be88e89631d787f016ad2567dd0a487d2af6fae1750d32c5f",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0be88e89631d787f016ad256806af887d2bea8c0a1525ea06a",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0be88e89631d787f016ad25683856c87d2bf40ab53ea437a8a",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "receipt_lookup"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "bol_en",
+      "language": "en",
+      "text": "We received 2 cases of Oats from LaCrosse Milling, 50 lb per case, BOL PH1777, supplier lot LM-PH1777. Photo attached.",
+      "run": 2,
+      "draft_action": "receive",
+      "receipt": "RCV-261016-094",
+      "photo_kinds": [
+        "bol"
+      ],
+      "draft_and_receipt_and_lookup_match": true,
+      "attachment_ticket_transaction_linked": true,
+      "replay_same_receipt": true,
+      "status": "passed",
+      "seconds": 11.983,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0289eb788c28f067016ad256865f5887d28db97120830eed69",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0289eb788c28f067016ad25689e7f487d2acf5597c52d33c19",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0289eb788c28f067016ad2568cda9087d2a7fda246320f31ab",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0289eb788c28f067016ad2568ff94887d28935adf4f23dbecf",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "receipt_lookup"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "bol_en",
+      "language": "en",
+      "text": "We received 2 cases of Oats from LaCrosse Milling, 50 lb per case, BOL PH1777, supplier lot LM-PH1777. Photo attached.",
+      "run": 3,
+      "draft_action": "receive",
+      "receipt": "RCV-261016-095",
+      "photo_kinds": [
+        "bol"
+      ],
+      "draft_and_receipt_and_lookup_match": true,
+      "attachment_ticket_transaction_linked": true,
+      "replay_same_receipt": true,
+      "status": "passed",
+      "seconds": 13.081,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_00b4a73ec38a8256016ad25692606487d2a5cbff52ae53be79",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_00b4a73ec38a8256016ad25695b9bc87d28aa5c686c26d715f",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_00b4a73ec38a8256016ad25698d8e487d296af99ffe43aab8f",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_00b4a73ec38a8256016ad2569cc74487d2b29c604d645100c7",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "receipt_lookup"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "bol_es",
+      "language": "es",
+      "text": "Recibimos 2 cajas de avena de LaCrosse Milling, 50 lb por caja, BOL PH1777, lote del proveedor LM-PH1777. Foto adjunta.",
+      "run": 1,
+      "draft_action": "receive",
+      "receipt": "RCV-261016-096",
+      "photo_kinds": [
+        "bol"
+      ],
+      "draft_and_receipt_and_lookup_match": true,
+      "attachment_ticket_transaction_linked": true,
+      "replay_same_receipt": true,
+      "status": "passed",
+      "seconds": 11.181,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0f40ae51fd746a36016ad2569f6d6487d29392260554e64b71",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0f40ae51fd746a36016ad256a23e2c87d28a17790c63382862",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0f40ae51fd746a36016ad256a5477087d28064ba742374ca4a",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0f40ae51fd746a36016ad256a8412c87d298a2e9b5ac38fddc",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "receipt_lookup"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "bol_es",
+      "language": "es",
+      "text": "Recibimos 2 cajas de avena de LaCrosse Milling, 50 lb por caja, BOL PH1777, lote del proveedor LM-PH1777. Foto adjunta.",
+      "run": 2,
+      "draft_action": "receive",
+      "receipt": "RCV-261016-097",
+      "photo_kinds": [
+        "bol"
+      ],
+      "draft_and_receipt_and_lookup_match": true,
+      "attachment_ticket_transaction_linked": true,
+      "replay_same_receipt": true,
+      "status": "passed",
+      "seconds": 12.518,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_015937f9aa258c00016ad256aa9f8487d2bafbf4d1b0082d44",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_015937f9aa258c00016ad256adaefc87d2abe4d52e9e12b440",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_015937f9aa258c00016ad256b16f0c87d280d3b46de520e3f4",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_015937f9aa258c00016ad256b47d6487d2847cf96acba279e8",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "receipt_lookup"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "bol_es",
+      "language": "es",
+      "text": "Recibimos 2 cajas de avena de LaCrosse Milling, 50 lb por caja, BOL PH1777, lote del proveedor LM-PH1777. Foto adjunta.",
+      "run": 3,
+      "draft_action": "receive",
+      "receipt": "RCV-261016-098",
+      "photo_kinds": [
+        "bol"
+      ],
+      "draft_and_receipt_and_lookup_match": true,
+      "attachment_ticket_transaction_linked": true,
+      "replay_same_receipt": true,
+      "status": "passed",
+      "seconds": 12.797,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_01113cd430ee47e9016ad256b73c3c87d29ab6eca5ad40c4c6",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_01113cd430ee47e9016ad256bad1c487d292b2ac929b1f2173",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_01113cd430ee47e9016ad256be0bb887d28159e6bb558e4834",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_01113cd430ee47e9016ad256c1c3a887d281331e850fd4ede3",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "receipt_lookup"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "both_en",
+      "language": "en",
+      "text": "We received 2 cases of Oats from LaCrosse Milling, 50 lb per case, BOL PH1777, supplier lot LM-PH1777. Photos attached.",
+      "run": 1,
+      "draft_action": "receive",
+      "receipt": "RCV-261016-099",
+      "photo_kinds": [
+        "bol",
+        "lot_tag"
+      ],
+      "draft_and_receipt_and_lookup_match": true,
+      "attachment_ticket_transaction_linked": true,
+      "replay_same_receipt": true,
+      "status": "passed",
+      "seconds": 11.943,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_01056e821cb47776016ad256c3edc887d28a72065095e8e0dc",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_01056e821cb47776016ad256c70d6c87d295a87c9c1c10ebd0",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_01056e821cb47776016ad256ca2b6087d28aaa957336afa293",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_01056e821cb47776016ad256cd276487d2b702cec250ad1ead",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "receipt_lookup"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "both_en",
+      "language": "en",
+      "text": "We received 2 cases of Oats from LaCrosse Milling, 50 lb per case, BOL PH1777, supplier lot LM-PH1777. Photos attached.",
+      "run": 2,
+      "draft_action": "receive",
+      "receipt": "RCV-261016-100",
+      "photo_kinds": [
+        "bol",
+        "lot_tag"
+      ],
+      "draft_and_receipt_and_lookup_match": true,
+      "attachment_ticket_transaction_linked": true,
+      "replay_same_receipt": true,
+      "status": "passed",
+      "seconds": 11.533,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0d7ff6c237c5ed46016ad256cfeff887d29c122ba291756807",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0d7ff6c237c5ed46016ad256d3713c87d29b468f74ed19a751",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0d7ff6c237c5ed46016ad256d626e887d2ae52215427d64a27",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0d7ff6c237c5ed46016ad256d9203087d28c5cd21ae4e2344b",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "receipt_lookup"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "both_en",
+      "language": "en",
+      "text": "We received 2 cases of Oats from LaCrosse Milling, 50 lb per case, BOL PH1777, supplier lot LM-PH1777. Photos attached.",
+      "run": 3,
+      "draft_action": "receive",
+      "receipt": "RCV-261016-101",
+      "photo_kinds": [
+        "bol",
+        "lot_tag"
+      ],
+      "draft_and_receipt_and_lookup_match": true,
+      "attachment_ticket_transaction_linked": true,
+      "replay_same_receipt": true,
+      "status": "passed",
+      "seconds": 11.386,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_041f42ab502fdf24016ad256db7a0887d2812ae27d91bf184e",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_041f42ab502fdf24016ad256dee56c87d2b59e4c4f5376ec0a",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_041f42ab502fdf24016ad256e22d7487d2991ed59f75455003",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_041f42ab502fdf24016ad256e4e49087d28b55b4091c6dac22",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "receipt_lookup"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "both_es",
+      "language": "es",
+      "text": "Recibimos 2 cajas de avena de LaCrosse Milling, 50 lb por caja, BOL PH1777, lote del proveedor LM-PH1777. Fotos adjuntas.",
+      "run": 1,
+      "draft_action": "receive",
+      "receipt": "RCV-261016-102",
+      "photo_kinds": [
+        "bol",
+        "lot_tag"
+      ],
+      "draft_and_receipt_and_lookup_match": true,
+      "attachment_ticket_transaction_linked": true,
+      "replay_same_receipt": true,
+      "status": "passed",
+      "seconds": 11.957,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_078c304d6fceb88f016ad256e6d4b887d29795c2422286e22e",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_078c304d6fceb88f016ad256ea609087d29ee2c01f5c40c9e3",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_078c304d6fceb88f016ad256ed8a1c87d2b9ed87675b1d567a",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_078c304d6fceb88f016ad256effbdc87d29b092906cb41b255",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "receipt_lookup"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "both_es",
+      "language": "es",
+      "text": "Recibimos 2 cajas de avena de LaCrosse Milling, 50 lb por caja, BOL PH1777, lote del proveedor LM-PH1777. Fotos adjuntas.",
+      "run": 2,
+      "draft_action": "receive",
+      "receipt": "RCV-261016-103",
+      "photo_kinds": [
+        "bol",
+        "lot_tag"
+      ],
+      "draft_and_receipt_and_lookup_match": true,
+      "attachment_ticket_transaction_linked": true,
+      "replay_same_receipt": true,
+      "status": "passed",
+      "seconds": 11.934,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_05cbf3290be908a5016ad256f2cd5887d29db2aaa1ad5b252b",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_05cbf3290be908a5016ad256f6129887d2bf6e15c86731d13e",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_05cbf3290be908a5016ad256f8f1e087d299b5eeae93e72f8d",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_05cbf3290be908a5016ad256fc1ee087d283a9a45aeb829626",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "receipt_lookup"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "both_es",
+      "language": "es",
+      "text": "Recibimos 2 cajas de avena de LaCrosse Milling, 50 lb por caja, BOL PH1777, lote del proveedor LM-PH1777. Fotos adjuntas.",
+      "run": 3,
+      "draft_action": "receive",
+      "receipt": "RCV-261016-104",
+      "photo_kinds": [
+        "bol",
+        "lot_tag"
+      ],
+      "draft_and_receipt_and_lookup_match": true,
+      "attachment_ticket_transaction_linked": true,
+      "replay_same_receipt": true,
+      "status": "passed",
+      "seconds": 11.759,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_00002d816a4acf4a016ad256febc6487d2a1322b750531c096",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_00002d816a4acf4a016ad25701c72c87d288067db75749b22f",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_00002d816a4acf4a016ad257052b1c87d28b88db22c3a5254a",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_00002d816a4acf4a016ad25708153887d2a2dba75e55a75250",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "receipt_lookup"
+          ]
+        }
+      ]
+    }
+  ],
+  "source_unchanged": true,
+  "passed": 42,
+  "failed": 0
+}

@@ -1,0 +1,60 @@
+{
+  "python": "3.12.14 (main, Aug 12 2026, 13:57:54) [Clang 21.0.0 (clang-2100.1.1.101)]",
+  "venv": "/Users/michaelgross/dev/fl_final_venv",
+  "requirements": {
+    "fastapi": {
+      "required": "0.104.1",
+      "installed": "0.104.1"
+    },
+    "pydantic": {
+      "required": "2.14.1",
+      "installed": "2.14.1"
+    },
+    "uvicorn": {
+      "required": "0.24.0",
+      "installed": "0.24.0"
+    },
+    "psycopg2-binary": {
+      "required": "2.9.9",
+      "installed": "2.9.9"
+    },
+    "python-multipart": {
+      "required": "0.0.6",
+      "installed": "0.0.6"
+    },
+    "aiofiles": {
+      "required": "23.2.1",
+      "installed": "23.2.1"
+    },
+    "reportlab": {
+      "required": "4.1.0",
+      "installed": "4.1.0"
+    },
+    "openpyxl": {
+      "required": "3.1.5",
+      "installed": "3.1.5"
+    },
+    "anthropic": {
+      "required": "0.69.0",
+      "installed": "0.69.0"
+    },
+    "httpx": {
+      "required": "0.27.2",
+      "installed": "0.27.2"
+    },
+    "pypdf": {
+      "required": "5.1.0",
+      "installed": "5.1.0"
+    },
+    "PyYAML": {
+      "required": "6.0.3",
+      "installed": "6.0.3"
+    }
+  },
+  "all_requirements_exact": true,
+  "hosted_writes": false,
+  "settings_changed": false,
+  "node": "v26.0.0",
+  "playwright": "1.63.0",
+  "postgresql": "psql (PostgreSQL) 17.11 (Homebrew)"
+}

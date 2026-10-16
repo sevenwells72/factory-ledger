@@ -27,7 +27,7 @@ import write_tickets
 import resolution
 import assistant_replies as replies
 import assistant_service
-from assistant_intents import office_handoff, is_receive_continuation
+from assistant_intents import office_handoff, is_receive_continuation, customer_creation, customer_only
 from assistant_voice import normalize_voice_text, normalize_order_code
 from assistant_receive import merge_receive_lot_facts, normalize_receive_arguments, package_facts, split_receive_items
 
@@ -289,8 +289,23 @@ def linked_attachments(api, session_id, actor_id, attachment_ids):
 
 def evidence_fields(action, selected):
     # Evidence comes from the page's authenticated uploads, never model output.
+    allowed = (('bol', 'lot_tag') if action == 'receive' else
+               ('bol', 'truck_photo', 'signed_packing_slip') if action in write_tickets.SHIP_ACTIONS else
+               ('correction_photo',) if action in ('adjust', 'found') else ())
+    if any(photo['kind'] not in allowed for photo in selected):
+        help_en, help_es = (
+            ('Use a BOL or lot-tag photo for a receive.', 'Usa una foto del BOL o de la etiqueta del lote para una recepción.')
+            if action == 'receive' else
+            ('Use a BOL, truck or signed packing-slip photo for a shipment.', 'Usa una foto del BOL, del camión o de la nota de empaque firmada para un envío.')
+            if action in write_tickets.SHIP_ACTIONS else
+            ('Use a correction photo for this entry.', 'Usa una foto de corrección para esta entrada.')
+            if action in ('adjust', 'found') else
+            ('This entry does not accept photos.', 'Esta entrada no acepta fotos.'))
+        raise HTTPException(422, {'error_code': 'ATTACHMENT_KIND_UNSUPPORTED',
+            'message': 'This photo is not attached to an entry. Remove it or change its type before preparing the draft. ' + help_en,
+            'message_es': 'Esta foto no está adjunta a una entrada. Quítala o cambia su tipo antes de preparar el borrador. ' + help_es})
     if action == 'receive':
-        ids = [a['id'] for a in selected if a['kind'] == 'lot_tag']
+        ids = [a['id'] for a in selected]
         return {'attachment_ids': ids} if ids else {}
     if action in write_tickets.SHIP_ACTIONS:
         return {'attachment_ids': [a['id'] for a in selected
@@ -304,8 +319,8 @@ def evidence_fields(action, selected):
 
 
 def record_attachment_ids(card):
-    # Pre-A6 draft cards used UUID attachment-only photos. Keep their private
-    # metadata intact, but never treat those historical photos as A6 evidence.
+    # Pre-A6 UUID photos cannot silently disappear from a new receipt.
+    # Already committed receipt recovery skips evidence processing entirely.
     selected = []
     for aid in card.get('attachment_ids', []):
         if isinstance(aid, int) and not isinstance(aid, bool) and aid > 0:
@@ -315,6 +330,9 @@ def record_attachment_ids(card):
                 UUID(str(aid))
             except ValueError:
                 fail(409, 'ATTACHMENT_REUPLOAD_REQUIRED', 'Upload this photo again / Vuelve a subir esta foto.')
+            fail(409, 'ATTACHMENT_REUPLOAD_REQUIRED',
+                 'This older photo cannot be attached to a new receipt. Upload it again before recording / '
+                 'Esta foto anterior no se puede adjuntar a un recibo nuevo. Vuelve a subirla antes de registrar.')
     return selected
 
 
@@ -654,8 +672,13 @@ def register_routes(app, api):
                             and (result.get('match') or {}).get('tier') == 'trigram')
             similar_customer = (status == 200 and args.get('kind') == 'customer' and actor['role'] in ('office', 'owner')
                                 and (result.get('match') or {}).get('tier') not in ('exact', 'alias'))
+            # Creating an already-known customer is a complete FL answer. Sending
+            # that exact/alias match back to the model leaves it trying to offer
+            # an existing customer with no terminal tool, exhausting its budget.
+            creating_customer = args.get('kind') == 'customer' and customer_creation(body.text)
             if (status == 200 and result.get('outcome') == 'match'
-                    and not result.get('needs_clarification') and not similar_customer and not similar_name):
+                    and not result.get('needs_clarification') and not similar_customer and not similar_name
+                    and not creating_customer):
                 selected_status, detail = await approve_candidate(request, state, args['kind'], result['match'])
                 if selected_status != 200:
                     return selected_status, detail, {'kind': 'lookup_failed'}
@@ -691,8 +714,7 @@ def register_routes(app, api):
                     card['existing_customer_only'] = True
                 state['pending'] = {'id': choice_id, 'args': args, 'result': result, 'supplier_search': args['kind'] == 'supplier',
                                     'packing_batch_prompt': args['kind'] == 'product' and pack_without_batch(body.text)}
-                if (known_customer and re.search(r'^\s*(?:add|create|agrega|agregar|crea|crear)\b', body.text, re.I)
-                        and not re.search(r'\b(?:orders?|pedidos?|orden)\b', body.text, re.I)):
+                if creating_customer and customer_only(body.text):
                     state['pending']['existing_customer_only'] = True
                 if result.get('outcome') == 'none':
                     with api.get_transaction() as cur:
@@ -713,7 +735,7 @@ def register_routes(app, api):
                     choice_id = str(uuid4())
                     result = {**existing, 'candidates': known, 'has_more': False}
                     state['pending'] = {'id': choice_id, 'args': {'kind': 'customer', 'query': args['name']},
-                        'result': result, 'existing_customer_only': True}
+                        'result': result, 'existing_customer_only': customer_only(body.text)}
                     return 200, result, {'kind': 'choices', 'id': choice_id, 'resolution_kind': 'customer',
                         'query': args['name'], 'result': result, 'existing_customer_only': True}
             unknown = untrusted_ids(args, state)
@@ -782,8 +804,14 @@ def register_routes(app, api):
             if len(prepare_attachments) > 5:
                 fail(422, 'ATTACHMENT_LIMIT', 'Use at most 5 attachments / Use como máximo 5 adjuntos.')
             action = name.removeprefix('prepare_')
-            prepared_args.update(evidence_fields(action, linked_attachments(
-                api, body.session_id, actor['id'], prepare_attachments)))
+            try:
+                prepared_args.update(evidence_fields(action, linked_attachments(
+                    api, body.session_id, actor['id'], prepare_attachments)))
+            except HTTPException as exc:
+                if not isinstance(exc.detail, dict) or exc.detail.get('error_code') != 'ATTACHMENT_KIND_UNSUPPORTED':
+                    raise
+                result = {'detail': exc.detail}
+                return exc.status_code, result, {'kind': 'refusal', 'status': exc.status_code, 'result': result}
             status, result = await relay(app, request, 'POST', path, body=prepared_args)
             if status != 200 or not result.get('ticket') or not result.get('payload_hash') or not isinstance(result.get('draft'), dict):
                 return status, result, {'kind': 'refusal', 'status': status, 'result': catalog.safe_result(result)}
@@ -1402,7 +1430,15 @@ def register_routes(app, api):
             row = draft_row(api, body.draft_id, actor['id'], lock=True, cur=cur)
             if row['status'] == 'cancelled':
                 fail(409, 'DRAFT_CANCELLED', 'Draft cancelled. NOT recorded / Borrador cancelado. NO registrado.')
-            evidence = evidence_fields(row['card'].get('prepared', {}).get('action'),
+            # A lost response can leave the chat pending after FL committed.
+            # Historical cards may name photos the old code never bound. They
+            # cannot change an existing receipt or prevent its authenticated
+            # recovery; the commit route still checks the actor and payload hash.
+            cur.execute("SELECT status='committed' AS recorded FROM write_tickets WHERE ticket_hash=%s",
+                        (write_tickets.token_hash(row['ticket']),))
+            saved = cur.fetchone()
+            evidence = {} if saved and saved['recorded'] else evidence_fields(
+                row['card'].get('prepared', {}).get('action'),
                 linked_attachments(api, row['session_id'], actor['id'], record_attachment_ids(row['card'])))
             prior_attempt = row['record_started_at']
             cur.execute('UPDATE assistant_drafts SET record_started_at=clock_timestamp() WHERE id=%s RETURNING record_started_at', (str(body.draft_id),))

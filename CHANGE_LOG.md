@@ -1,5 +1,397 @@
 # Change Log
 
+## 2026-10-16 13:01 — Clean captured log whitespace before commit
+- **File(s) changed:** `docs/validation/fl-final2/python*/collect.log`, `schema.log`
+- **What changed:** Removed only trailing spaces and extra final blank lines from eight captured logs. Assertions, counts and output text unchanged. Key-literal guard reports zero structural/retired-key findings; live-value matching was not enabled.
+- **Why:** Keep the committed validation evidence clean under git diff --check.
+
+---
+
+## 2026-10-16 13:00 — Complete final acceptance and cleanup evidence
+- **File(s) changed:** `docs/validation/fl-final2/acceptance-summary.json`, `cleanup.json`, `attempt-history.json`, temporary PR comment
+- **What changed:** Recorded all five fixes, 6,867 Python passes per mode, 411 Node passes, all browser runs, 108 acceptance cases and 216 unique provider responses. Reverified final source hashes, no remaining owned databases, removed copies and stopped isolated clusters. Documented the supplemental proof boundary and historical-replay rerun.
+- **Why:** Provide a precise, reviewable fix and test report before authorized branch push and PR re-check.
+
+---
+
+## 2026-10-16 12:58 — Minimize published full-suite collection evidence
+- **File(s) changed:** `docs/validation/fl-final2/python-*/collection-proof.json`
+- **What changed:** Replaced four redundant21MB test-ID lists with original SHA256, unique collected counts and per-group counts; all actual logs, results and reproducible runner retained.
+- **Why:** Keep review evidence compact without changing any tests or pass/fail results.
+
+---
+
+## 2026-10-16 12:58 — Complete both final 6,867-test Python suites and remove isolated clusters
+- **File(s) changed:** `docs/validation/fl-final2/python-off`, `docs/validation/fl-final2/python-on`, `docs/validation/fl-final2/python-source-sha256.json`, `docs/validation/fl-final2/python-verification.json`, `/private/tmp/fl_final2/pg_0`, `/private/tmp/fl_final2/pg_1`
+- **What changed:** Saved complete final logs and 23-group summaries: 6,867 passed per mode, zero failures/errors/skips; verified all 326 source fingerprints unchanged, both suite DBs dropped, clusters stopped and data directories deleted.
+- **Why:** Provide final frozen-source regression proof after the replay guard fix and leave no owned test database or PostgreSQL cluster behind.
+
+---
+
+## 2026-10-16 12:56 — Remove raw failed-copy diagnostic payloads
+- **File(s) changed:** `docs/validation/fl-final2/model-data-cleanup.json`, private initial-incomplete-copy JSON outputs
+- **What changed:** Deleted initial failed-restore model outputs containing raw database error rows; retained only summarized attempt history.
+- **Why:** Avoid retaining staged-data diagnostics after local-copy cleanup.
+
+---
+
+## 2026-10-16 12:56 — Delete final2 staging data and private copies
+- **File(s) changed:** `docs/validation/fl-final2/model-data-cleanup.json`, owned fl_final2_model databases, private staging dump/traces/photos
+- **What changed:** Dropped all3 model snapshot databases and deleted staging dump, all private model traces and local test photos; verified no fl_final2 databases remain on5432.
+- **Why:** Honor requested data-copy deletion after proof while retaining minimized review evidence.
+
+---
+
+## 2026-10-16 12:56 — Record final real-provider and browser passes
+- **File(s) changed:** `docs/validation/fl-final2/real-model-off.json`, `real-model-on.json`, real-model logs, browser evidence
+- **What changed:** Final replay-safe runtime passed84/84 repeated real-provider/direct-handoff cases and all8 Assistant browser scripts in both modes; runtime hashes unchanged.
+- **Why:** Complete final-model and iPhone-width WebKit acceptance on the source to be pushed.
+
+---
+
+## 2026-10-16 12:54 — Prepare item-by-item PR136 re-check report
+- **File(s) changed:** `/tmp/fl_final2/pr-comment.md`
+- **What changed:** Prepared concrete fix/test details for all5 items, with final Python count left pending until full reruns complete.
+- **Why:** Publish a reviewable report only after all validation and cleanup gates pass.
+
+---
+
+## 2026-10-16 12:52 — Record final browser and database tool versions
+- **File(s) changed:** `docs/validation/fl-final2/environment.json`
+- **What changed:** Recorded Node26, Playwright1.63 and PostgreSQL17.11 used in final validation; inventory is8 distinct Assistant browser scripts run in10 invocations, correcting the earlier nine-script count.
+- **Why:** Make final environment and browser coverage counts precise.
+
+---
+
+## 2026-10-16 12:52 — Preserve complete pre-replay Python runs and fingerprint final replay-safe source
+- **File(s) changed:** `docs/validation/fl-final2/python-before-replay-off`, `docs/validation/fl-final2/python-before-replay-on`, `/private/tmp/fl_final2/python_before_replay_0`, `/private/tmp/fl_final2/python_before_replay_1`, `/private/tmp/fl_final2/python-final-source-hashes.json`
+- **What changed:** Both preliminary runs completed 6,857 tests without failures, errors or skips; retained all logs as before-replay evidence and fingerprinted final runtime, dashboard, migrations and tests for the full repeat.
+- **Why:** The legacy committed-receipt replay guard and ten new tests landed after the ordinary groups completed, so final validation must rerun the entire suite.
+
+---
+
+## 2026-10-16 12:52 — Record photo-test database cleanup and preserve earlier counts
+- **File(s) changed:** `docs/validation/fl-final2/evidence-photo-checks.json`
+- **What changed:** Keep prior299-test timing separate from final309-test results and record verified deletion of fl_final2_evidence.
+- **Why:** Accurate audit history and disposable-database cleanup.
+
+---
+
+## 2026-10-16 12:51 — Confirm final photo and historical receipt replay tests in both modes
+- **File(s) changed:** `docs/validation/fl-final2/evidence-photo-checks.json`
+- **What changed:** Update focused proof to309 passed per mode, retaining the earlier299-test run and documenting ten unsupported-integer historical replay cases.
+- **Why:** Final replay guard preserves old receipts without weakening pending-photo validation or canonical commit authentication.
+
+---
+
+## 2026-10-16 12:51 — Prepare final acceptance after historical receipt recovery fix
+- **File(s) changed:** `docs/validation/fl-final2/before-replay-model-off.json`, `before-replay-model-on.json`, `source-sha256.json`, owned local model copies
+- **What changed:** Preserved84 passing pre-replay cases; refreshed local copies and source hashes for final acceptance of canonical committed-ticket recovery.
+- **Why:** Verify added replay protection without weakening pending-photo custody.
+
+---
+
+## 2026-10-16 12:51 — Preserve historical receipt recovery for every old photo kind
+- **File(s) changed:** `fl_assistant.py`, `tests/test_assistant_evidence_final2.py`
+- **What changed:** Check canonical committed ticket state before evidence processing; replay existing receipts without applying old unused photos, retaining commit actor/hash checks and all pending-draft refusals. Add ten committed/lost-response cases for unsupported integer kinds plus hash-tamper refusals.
+- **Why:** The new unsupported-photo guard must not block recovery of receipts committed by older code.
+
+---
+
+## 2026-10-16 12:50 — Remove supplemental customer-proof copies and private traces
+- **File(s) changed:** `docs/validation/fl-final2/customer-paths-cleanup.json`, `/private/tmp/fl_final2/customer-paths-0.private.json`, `/private/tmp/fl_final2/customer-paths-1.private.json`
+- **What changed:** Dropped both owned local staging-copy databases, verified none remain, deleted private full response traces and saved the cleanup receipt.
+- **Why:** Honor required disposal of staging-derived validation data after acceptance proof.
+
+---
+
+## 2026-10-16 12:50 — Save passing real-model customer/order acceptance evidence
+- **File(s) changed:** `docs/validation/fl-final2/customer-paths-off.json`, `docs/validation/fl-final2/customer-paths-on.json`
+- **What changed:** Stored 24 passing real-model cases: ordinary existing-customer orders and truly new customer Add-new flows, English and Spanish three times per mode; 60 unique completed provider responses, zero Record calls and unchanged core data/source.
+- **Why:** Verify the duplicate fix preserves customer and order paths under the actual model.
+
+---
+
+## 2026-10-16 12:49 — Record complete passing Assistant browser matrix
+- **File(s) changed:** `docs/validation/fl-final2/browser/`
+- **What changed:** All browser runs pass both modes: existing/customer, A60, B contract+68page, C72transcripts+288phone,144mobile UX and240final-floor checks; saved final phone screenshots.
+- **Why:** Verify each supported Assistant interaction including iPhone-width WebKit and all receipt photo surfaces.
+
+---
+
+## 2026-10-16 12:48 — Validate customer proof against the actual draft response shape
+- **File(s) changed:** `scripts/check_assistant_final2_customer_paths.py`
+- **What changed:** Read the customer name from prepared.draft.customer.name in the supplemental proof.
+- **Why:** The real customer draft nests customer facts; avoid misclassifying a valid response as a harness failure.
+
+---
+
+## 2026-10-16 12:48 — Add real-provider existing-order and new-customer acceptance proof
+- **File(s) changed:** `scripts/check_assistant_final2_customer_paths.py`
+- **What changed:** Added local-only staging-copy harness with three English/Spanish repetitions per session mode, exact UI Add-new follow-up, provider IDs, draft checks and unchanged core-data fingerprints.
+- **Why:** Prove the duplicate-customer fix preserves ordinary orders and truly new customer drafts with the actual model.
+
+---
+
+## 2026-10-16 12:47 — Preserve baseline, Node and attempt evidence
+- **File(s) changed:** `docs/validation/fl-final2/customer-baseline.json`, `node.log`, `attempt-history.json`, `source-sha256.json`
+- **What changed:** Recorded3 reproducible customer outages before fix,411 passing Node tests, final runtime hashes and honest initial setup/test failures.
+- **Why:** Keep acceptance traceable without exposing private staged-data traces.
+
+---
+
+## 2026-10-16 12:47 — Record runtime source fingerprints for the final full Python runs
+- **File(s) changed:** `/private/tmp/fl_final2/python-final-source-hashes.json`
+- **What changed:** Saved SHA-256 fingerprints for requirements and every changed runtime module used by the running final suites.
+- **Why:** Verify source stays frozen while both complete 6,857-test modes run on isolated local clusters.
+
+---
+
+## 2026-10-16 12:46 — Create two isolated local PostgreSQL 17 clusters for the complete suites
+- **File(s) changed:** `/private/tmp/fl_final2/pg_0`, `/private/tmp/fl_final2/pg_1`, `/private/tmp/fl_final2/initdb_0.log`, `/private/tmp/fl_final2/initdb_1.log`, `/private/tmp/fl_final2/postgres_0.log`, `/private/tmp/fl_final2/postgres_1.log`
+- **What changed:** Verified ports 5452/5453 unused, initialized two new local UTF-8 PG17 data directories, and started them bound to loopback for sessions-off/on suite isolation.
+- **Why:** Exercise the unchanged suite without cross-mode advisory-lock interference; leave root browser/model server on port 5432 untouched.
+
+---
+
+## 2026-10-16 12:46 — Preserve interrupted initial Python run evidence before the isolated rerun
+- **File(s) changed:** `/private/tmp/fl_final2/python_initial_0`, `/private/tmp/fl_final2/python_initial_1`, `/private/tmp/fl_final2/python-initial-off.log`, `/private/tmp/fl_final2/python-initial-on.log`
+- **What changed:** Renamed the two prior run directories and top-level logs without altering their failure or interruption output.
+- **Why:** Retain honest initial pre-fix and interrupted results while the frozen-source final suites run separately.
+
+---
+
+## 2026-10-16 12:46 — Isolate final Python session modes in separate temporary PostgreSQL clusters
+- **File(s) changed:** `docs/validation/fl-final2/full-suite-runner.py`
+- **What changed:** Guarded sessions-off to local port 5452 and sessions-on to 5453, kept every scratch database prefixed fl_final2_, and recorded mode/port in result summaries.
+- **Why:** Database-wide advisory-lock tests inspect pg_locks across databases; separate local clusters prevent unrelated session modes from contaminating their preflight.
+
+---
+
+## 2026-10-16 12:46 — Extend real customer proof to semantic requests and choice completion
+- **File(s) changed:** `scripts/check_assistant_final2_real_model.py`
+- **What changed:** Added EN/ES customer-list wording and actual existing-customer choice clicks, requiring local handoff without a second provider request.
+- **Why:** Check the fixed terminal path beyond the exact reviewed sentence.
+
+---
+
+## 2026-10-16 12:45 — Align browser runtime and preserve initial validation attempts
+- **File(s) changed:** `docs/validation/fl-final2/run-browser-matrix.py`, private final2 attempt logs
+- **What changed:** Use installed Playwright1.63 with installed WebKit rather than an older runtime missing its WebKit binary; retained initial failures and cloned both complete model DBs after closing local connection.
+- **Why:** Repeat complete acceptance on final source and a verified local test environment.
+
+---
+
+## 2026-10-16 12:45 — Save the complete photo custody regression results
+- **File(s) changed:** `docs/validation/fl-final2/evidence-photo-checks.json`
+- **What changed:** Record299 passing focused tests in each session mode, all70 photo/action combinations,13 real local supported receipt paths, and old-draft recovery guards.
+- **Why:** Provide concise reproducible evidence for PR136 item1 beyond the real-model acceptance runs.
+
+---
+
+## 2026-10-16 12:44 — Validate complete staging-copy restore and migration round trip
+- **File(s) changed:** `docs/validation/fl-final2/staging-copy-validation.json`, local fl_final2 model databases and private restore logs
+- **What changed:** Corrected local pg_trgm restore setup, verified all3 transaction triggers, then applied084→down→084 with exact constraint restoration on copied data; preserved setup-failure evidence.
+- **Why:** Run acceptance against the complete staging schema with no hosted changes.
+
+---
+
+## 2026-10-16 12:44 — Keep customer-list wording out of order continuation
+- **File(s) changed:** `assistant_intents.py`
+- **What changed:** Customer-only routing now checks order and goods wording, without treating a bare need/want verb as an order.
+- **Why:** The semantic customer-list regression found an unnecessary provider call after selecting the existing customer.
+
+---
+
+## 2026-10-16 12:44 — Give every customer creation phrasing a terminal duplicate-check tool
+- **File(s) changed:** `assistant_tools.py`, `tests/test_assistant_customer_final2.py`
+- **What changed:** Clarified resolve-then-prepare customer instructions so an exact match without a rendered choice can finish through the guarded prepare tool; added semantic customer-list request regressions.
+- **Why:** Avoid the forced-tool dead end even when unusual creation wording bypasses deterministic intent recognition.
+
+---
+
+## 2026-10-16 12:44 — Require old unattached photos to be uploaded again before recording
+- **File(s) changed:** `fl_assistant.py`, `tests/test_fl_assistant.py`
+- **What changed:** Reject pre-A6 UUID photos on genuinely pending drafts; keep historical committed receipt replay and lost-response recovery unchanged.
+- **Why:** A draft must not claim a legacy photo that the next receipt silently drops.
+
+---
+
+## 2026-10-16 12:43 — Protect photos on drafts saved before this fix
+- **File(s) changed:** `tests/test_assistant_evidence_final2.py`
+- **What changed:** Simulate old draft cards whose signed ticket omitted their photo; verify BOL records atomically and unsupported photos explicitly refuse with zero posts.
+- **Why:** Existing pending drafts also need the no-silent-loss guarantee.
+
+---
+
+## 2026-10-16 12:43 — Cover customer duplicate fallback and order continuation
+- **File(s) changed:** `tests/test_assistant_customer_final2.py`
+- **What changed:** Added existing-customer choice continuation to requested orders, inactive and normalized duplicate blockers, and non-delivery handoff exclusions.
+- **Why:** Verify duplicate protection does not loop or turn ordinary receive messages into Office navigation.
+
+---
+
+## 2026-10-16 12:43 — Refresh shared ledger UI asset on every remaining page
+- **File(s) changed:** `dashboard/entry.html`, `dashboard/office.html`, `dashboard/receipt.html`
+- **What changed:** Bumped shared ledger-ui.js references from version 13 to 14 on entry, Office and receipt pages; Exceptions already uses version 14 and exceptions.js version 7.
+- **Why:** Keep every host of the shared changed asset on the same current cache version before final regression runs.
+
+---
+
+## 2026-10-16 12:43 — Keep ordinary customer order resolution automatic
+- **File(s) changed:** `assistant_intents.py`, `tests/test_assistant_customer_final2.py`
+- **What changed:** Limited duplicate-creation interception to customer creation wording or customer-only add requests; added English/Spanish Create-order and Add-cases order regressions plus indirect add wording.
+- **Why:** Prevent customer duplicate guard from adding unnecessary choices to normal order requests.
+
+---
+
+## 2026-10-16 12:42 — Exercise BOL and lot-tag receipts on iPhone-width WebKit
+- **File(s) changed:** `tests/visual/run-fl-assistant-final-floor.mjs`
+- **What changed:** Upload BOL plus lot-tag fixtures, check both draft claims and every photo viewer on card, lookup and receipt page; confirm unsupported photos stay pending with a plain refusal and no Record or Retry button.
+- **Why:** Case7.1 needs visible proof on the actual Assistant and receipt pages in both languages and session modes.
+
+---
+
+## 2026-10-16 12:42 — Save passing migration and overdue-queue evidence and remove focused database
+- **File(s) changed:** `docs/validation/fl-final2/items-4-5.json`, `docs/validation/fl-final2/exceptions-results.json`, `docs/validation/fl-final2/exceptions-1-en-390-exceptions-overdue-first.png`, `docs/validation/fl-final2/exceptions-1-es-390-exceptions-overdue-first.png`
+- **What changed:** Saved 18 Python tests per session mode, 10 Node and 16 phone WebKit checks with screenshots; verified rollback SQL exactly matches reviewer comment; dropped fl_final2_exceptions.
+- **Why:** Provide reviewable proof for fix-round items 4 and 5 with no hosted writes or settings changes.
+
+---
+
+## 2026-10-16 12:42 — Create final2 per-mode model copies
+- **File(s) changed:** `fl_final2_model_off`, `fl_final2_model_on` disposable databases
+- **What changed:** Cloned the read-only staging snapshot locally for independent real-provider acceptance in both session modes.
+- **Why:** Keep test receipts and state isolated; all copies will be dropped.
+
+---
+
+## 2026-10-16 12:42 — Capture focused Exceptions WebKit validation
+- **File(s) changed:** `/tmp/fl_final2_exceptions_ui/results.json`, `/tmp/fl_final2_exceptions_ui/1-en-390-exceptions-overdue-first.png`, `/tmp/fl_final2_exceptions_ui/1-es-390-exceptions-overdue-first.png`
+- **What changed:** Ran the actual local Exceptions page through 16 WebKit checks at 375/390/393/430 pixels, English/Spanish and sessions off/on; every check passed.
+- **Why:** Verify overdue ordinary and opening-stock work stays visible above new unresolved work with opening stock collapsed and cutover gates intact.
+
+---
+
+## 2026-10-16 12:42 — Explain unsupported photos before offering a draft
+- **File(s) changed:** `fl_assistant.py`, `tests/test_assistant_evidence_final2.py`
+- **What changed:** Return a normal bilingual refusal card with supported photo types, preserving pending uploads, instead of a transport error that the page would label an outage.
+- **Why:** Unsupported evidence needs an actionable explanation and must never be mistaken for a model outage.
+
+---
+
+## 2026-10-16 12:42 — Use floor credentials for final2 receive proof
+- **File(s) changed:** `scripts/check_assistant_final2_real_model.py`
+- **What changed:** Runs photos and receipt readback as a locally created floor worker; customer/Office checks use owner permissions in both session modes.
+- **Why:** Match the reviewed worker roles without hosted changes.
+
+---
+
+## 2026-10-16 12:42 — Finish existing customer choices and recognize Spanish expected deliveries
+- **File(s) changed:** `fl_assistant.py`, `assistant_intents.py`, `assistant_tools.py`
+- **What changed:** Exact and alias customer creation resolution now returns existing-customer choices immediately; selected customer-only requests finish locally while orders continue. Spanish future delivery intent handles mandar and accented command clitics. Removed contradictory customer instruction order.
+- **Why:** Prevent incomplete provider responses on Sunshine Granola and give the reviewed Spanish future delivery its Office link.
+
+---
+
+## 2026-10-16 12:41 — Prepare complete Assistant browser matrix
+- **File(s) changed:** `docs/validation/fl-final2/run-browser-matrix.py`
+- **What changed:** Preserved all cases in nine runners across both session modes, Chromium and iPhone-width WebKit with local fl_final2 databases.
+- **Why:** Satisfy full browser regression gate with reproducible commands and output.
+
+---
+
+## 2026-10-16 12:41 — Keep opening-stock queue fixtures distinct under the live uniqueness rule
+- **File(s) changed:** `tests/test_final_exception_list.py`
+- **What changed:** Used separate lots for overdue and future unidentified opening-stock exceptions.
+- **Why:** The database correctly prevents two open unidentified exceptions on one lot; queue coverage needs two physical lots.
+
+---
+
+## 2026-10-16 12:41 — Cover all seventy Assistant photo and action combinations
+- **File(s) changed:** `tests/test_assistant_evidence_final2.py`, `tests/test_final_receive_receipts.py`
+- **What changed:** Add actual upload, draft, Record, replay, receipt lookup and private download coverage for every supported kind; require explicit refusal without a draft for unsupported kinds; cover receive BOL before and after prepare.
+- **Why:** The receive-only regression missed silent losses on other photo/action combinations.
+
+---
+
+## 2026-10-16 12:41 — Supply required escalation timestamps in new exception test fixtures
+- **File(s) changed:** `tests/test_assistant_service_migration_084.py`, `tests/test_final_exception_list.py`
+- **What changed:** Corrected escalated test rows to include escalated_at under the existing database constraint.
+- **Why:** Initial focused run found fixture setup failures; preserve the real constraint while exercising escalated ordering and rollback refusal.
+
+---
+
+## 2026-10-16 12:41 — Add final2 real-model and fresh-schema validation runners
+- **File(s) changed:** `scripts/check_assistant_final2_real_model.py`, `docs/validation/fl-final2/full-suite-runner.py`
+- **What changed:** Added exact EN/ES customer and expected-delivery checks plus BOL/both-photo receipt, lookup, DB custody and replay proof; isolated full-suite runner uses fl_final2 names.
+- **Why:** Make each fix reviewable with real provider and full regression evidence.
+
+---
+
+## 2026-10-16 12:41 — Cover overdue exception visibility on iPhone WebKit and refresh assets
+- **File(s) changed:** `tests/visual/run-fl-assistant-final-floor.mjs`, `dashboard/exceptions.html`
+- **What changed:** Added overdue ordinary and opening-stock fixtures to the final floor browser runner, assert their visible ordering before newer unresolved work, and bumped Exceptions asset versions.
+- **Why:** Verify overdue work remains visible above the collapsed group in both languages and preserve cache freshness.
+
+---
+
+## 2026-10-16 12:41 — Restore overdue-first exception queues without hiding opening-stock deadlines
+- **File(s) changed:** `exceptions_enforcement.py`, `dashboard/ledger-ui.js`, `dashboard/exceptions.js`, `tests/test_final_floor_ui.js`, `tests/test_final_exception_list.py`
+- **What changed:** Prioritized unresolved overdue items by deadline, then newest unresolved work before opening stock; kept overdue opening-stock items visible and added database-limit plus JavaScript regression coverage.
+- **Why:** PR 136 item 5 requires overdue items to remain visible ahead of recent items and the collapsed opening-stock group.
+
+---
+
+## 2026-10-16 12:40 — Add customer and Spanish delivery regressions for PR136 recheck
+- **File(s) changed:** `tests/test_assistant_customer_final2.py`
+- **What changed:** Added duplicate customer name, alias, short-name, fuzzy selection, genuine-new/customer-order continuity and exact Spanish expected-delivery coverage.
+- **Why:** Catch reviewer cases 2 and 3, including the incomplete second provider response.
+
+---
+
+## 2026-10-16 12:40 — Prepare real-provider customer baseline
+- **File(s) changed:** `/tmp/fl_final2/baseline.py`
+- **What changed:** Adapted existing guarded real-model runner for exact reviewed Sunshine request against local fl_final2 data.
+- **Why:** Capture the regression before runtime changes.
+
+---
+
+## 2026-10-16 12:40 — Keep every claimed Assistant photo on its receipt
+- **File(s) changed:** `fl_assistant.py`, `attachments.py`, `write_tickets.py`, `ship_tickets.py`
+- **What changed:** Accept receive BOL evidence; reject unsupported photo kinds before a draft; return linked correction and shipping photos in their recorded receipt cards.
+- **Why:** PR136 re-check case7.1 silently lost BOL photos; the cross-flow audit also found missing correction/shipping card metadata.
+
+---
+
+## 2026-10-16 12:40 — Add reviewed migration 084 rollback and round-trip regression coverage
+- **File(s) changed:** `migrations/down/084_assistant_service_alert_down.sql`, `tests/test_assistant_service_migration_084.py`
+- **What changed:** Added the exact reviewed rollback SQL and database tests for apply/rollback/apply, repeat applications, exact constraint restoration and refusal for open or closed assistant alerts.
+- **Why:** PR 136 fix round item 4 requires a safe reversible migration before deployment.
+
+---
+
+## 2026-10-16 12:40 — Create disposable staging data copy
+- **File(s) changed:** `/tmp/fl_final2/staging.dump`, local fl_final2_model database
+- **What changed:** Read staging using pg_dump over session-pooler connection and restored its public data locally; no hosted writes or session settings.
+- **Why:** Run real-provider regressions against real catalog data with owned disposable storage.
+
+---
+
+## 2026-10-16 12:40 — Record final2 exact dependency verification
+- **File(s) changed:** `docs/validation/fl-final2/environment.json`, `/tmp/fl_final2`
+- **What changed:** Verified every requirements.txt pin in Python 3.12 venv, including pydantic 2.14.1; prepared private validation output.
+- **Why:** Match production dependencies for trustworthy fix-round validation.
+
+---
+
+## 2026-10-16 12:39 — Prepare isolated PR 136 re-check workspace
+- **File(s) changed:** `/tmp/fl_final2_log.py`, managed worktree
+- **What changed:** Created isolated checkout from 28438dd and a serialized append-only change-log helper.
+- **Why:** Implement requested final2 fixes without touching unrelated local work.
+
+---
+
 ## 2026-10-16 11:05 — Write the final 17-item PR acceptance report
 - **File(s) changed:** docs/validation/fl-final/VERIFICATION.md
 - **What changed:** Mapped every requested fix to implementation and proof; reported final Python/Node/browser/model counts, actual found/trace receipts, historical failures, the last narrow source-equivalence boundary, cleanup and migration 084 deployment requirement.

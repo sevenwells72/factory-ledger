@@ -1,0 +1,498 @@
+{
+  "sessions": 0,
+  "real_model": true,
+  "repeats": 3,
+  "database_local_only": true,
+  "record_calls": 0,
+  "source_sha256": {
+    "sales_document_tickets.py": "df939b8205311b31dbc723cb12a30cee712307b205c2cff99027f5b0e43cf32d",
+    "assistant_voice.py": "5d97b10765871884a268814e834b7b29e83d99aaaf5546f8aa67cac513035b90",
+    "staging_safety.py": "656059fe338d1d9edcf72ed41d77cfcaab464c7ef9e516aad7a17bbb803bb6df",
+    "build_gpt_instructions.py": "037ba968904e7d2bc90924e3e7addbdace17973618a746bb7a5562e9ab4ba028",
+    "ticket_actions.py": "74756b6245ad57be45b87afbdd382a1eeade1eea580d0aeebf338e18cb9ededd",
+    "expected_receipt_tickets.py": "0cb5ef1da80c6f50e6173db303a3d030f3c4d467f5112f6a729340aa06f13173",
+    "resolution_receipts.py": "b828bc2e38db1705dfc9c9b9466e88828ba2b90b49c2ebac3bb943b1c680b715",
+    "order_tickets.py": "5f82e6e168999f5bc77816059b619da6d2167a9994d2df7be220d914a39df5bb",
+    "supplier_lot_tickets.py": "f23215ec0d428888bcae31c6ef3639190a1658df4f0b518821ca31666e3da500",
+    "shift_receipts.py": "20a0f073989ee7d17209b22e449fd72f38e40feaec887956521edde4c3bd7b71",
+    "shift_summary.py": "b9f63c0ff8b6c7aca15d6b245a1b65e02c78f619c65e78885409fbff80e9ffce",
+    "kosher_tiers.py": "5c520e95c55df8e415aa43c92fa01504d666f68a2eab9c1995150cc563ae09e1",
+    "attachments.py": "efcebdef3b4e7e1f7827bafdb021fa5adcb1c8f46ad99b8cae0e3caedc50300a",
+    "customer_tickets.py": "c6995adaf054a216c01e136a8341a1670c165c2388afa71de170bd5d60416f5b",
+    "extraction.py": "bee7e93ad685095991660c7947a20f1dd6c47cc26213639d7b4dc92aa7eb31d9",
+    "oat_bran_substitution.py": "f7875b7f3faef170d0bb96c481a894fcfd2fb924baa21f7d80718955afed26f3",
+    "assistant_runtime.py": "7b1d4a8bbd13f5b0cfce605169eaa09272d69d155d0ddf7966606fec44c5b549",
+    "permissions.py": "7b6e33b6211142eba52066223b4fac32c4eaf9d55d35fa35082410ae167a98db",
+    "key_sessions.py": "f420a1d61aa34708d2c3d1653385bd64db9d59fcaa57b073299b24e950170196",
+    "assistant_service.py": "30002fcfbe4eedd3a6db49031b837d609e3489b15f20f2a8b02f6573ec2b7f70",
+    "lot_confirmation.py": "c8fb70d37e80e33ea958f24116e241c2460d2cf82f9f9ecfe8c7a1c8a7a66185",
+    "ship_tickets.py": "4532a70b1261d5e4edb50ec223d672dade9a471f1d07f1a7cd419197099ff37d",
+    "exceptions_enforcement.py": "e8c7628e30e5ad35af03255e81aeb888e4a3b60754604886ddfbeb22f4c571a3",
+    "assistant_tools.py": "65453bd11ac6c0b9c258c1d6f7b02ea1e295553ec682761d56852657b86eda10",
+    "main.py": "e50ad035c0fa65a851e016de92daae8558758ac12b66c7928c5bba543b8cc507",
+    "fl_assistant.py": "3ed6fe3e1c078c6393633785e38cfe373c9593118b5009011e622aa8c2d3d863",
+    "resolution.py": "6f434cc7ddbd87b178e7d58b28c54acfaa1caec5a574bebd6aeb309d43079784",
+    "assistant_replies.py": "9f1f252fea883fe0043fa54409286125976890a6ea3a17042b485797c52ea08c",
+    "assistant_receive.py": "d2b111b1681e7948b01de73885c239ff7d908a5a6582cb73a3897b2420adb020",
+    "write_tickets.py": "56cc20e1b0aa87a825a2d7730e5154c5c16106fd6728c849843286cfd30ee6ee",
+    "assistant_intents.py": "32167001b30ecc14db91b6d37c2345221ab12d38b7e7cecf5cc1addc37499a8e"
+  },
+  "results": [
+    {
+      "case": "existing_order",
+      "language": "en",
+      "run": 1,
+      "text": "Create an order for Sunshine Granola for 2 cases of Kookies & Kreme – 10 LB, PO FINAL2-PATH-0-en-1.",
+      "status": "passed",
+      "draft_action": "create_order",
+      "can_commit": true,
+      "seconds": 9.684,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0c1433750382f510016ad255725b4487d2b6e1c61979ee7772",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0c1433750382f510016ad2557579e887d292bd543d1f3ed3ef",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0c1433750382f510016ad25578cb0087d285f96f3e9f0aa320",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_create_order"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "existing_order",
+      "language": "en",
+      "run": 2,
+      "text": "Create an order for Sunshine Granola for 2 cases of Kookies & Kreme – 10 LB, PO FINAL2-PATH-0-en-2.",
+      "status": "passed",
+      "draft_action": "create_order",
+      "can_commit": true,
+      "seconds": 9.71,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_01c1b53726bfdebf016ad2557bf25087d2b760f1aa694decfd",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_01c1b53726bfdebf016ad2557f10a087d2899299a6081a384d",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_01c1b53726bfdebf016ad2558242b887d289b108563a623fd8",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_create_order"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "existing_order",
+      "language": "en",
+      "run": 3,
+      "text": "Create an order for Sunshine Granola for 2 cases of Kookies & Kreme – 10 LB, PO FINAL2-PATH-0-en-3.",
+      "status": "passed",
+      "draft_action": "create_order",
+      "can_commit": true,
+      "seconds": 9.739,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_02ff25c61f695813016ad255859c8c87d2999cc780930097ca",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_02ff25c61f695813016ad25588482487d28bdd7ce4740bfc2e",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_02ff25c61f695813016ad2558be90487d2a3214cba6b5f0319",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_create_order"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "existing_order",
+      "language": "es",
+      "run": 1,
+      "text": "Crea un pedido para Sunshine Granola de 2 cajas de Kookies & Kreme – 10 LB, PO FINAL2-PATH-0-es-1.",
+      "status": "passed",
+      "draft_action": "create_order",
+      "can_commit": true,
+      "seconds": 12.031,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0b7919fdf6a8141e016ad2558f66b087d298dfbd392a5603ad",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0b7919fdf6a8141e016ad25593150887d2b2dfc65d682a8bf0",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0b7919fdf6a8141e016ad25596681087d2a72e83676fefb469",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_create_order"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "existing_order",
+      "language": "es",
+      "run": 2,
+      "text": "Crea un pedido para Sunshine Granola de 2 cajas de Kookies & Kreme – 10 LB, PO FINAL2-PATH-0-es-2.",
+      "status": "passed",
+      "draft_action": "create_order",
+      "can_commit": true,
+      "seconds": 9.698,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0857a566a794ab74016ad2559b6d7887d2924b4518dabab96c",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0857a566a794ab74016ad2559e570887d2aa17455e52188aad",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0857a566a794ab74016ad255a192c087d2a7bbd47c1fcc91dd",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_create_order"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "existing_order",
+      "language": "es",
+      "run": 3,
+      "text": "Crea un pedido para Sunshine Granola de 2 cajas de Kookies & Kreme – 10 LB, PO FINAL2-PATH-0-es-3.",
+      "status": "passed",
+      "draft_action": "create_order",
+      "can_commit": true,
+      "seconds": 13.116,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_03bdc604d7bb8e43016ad255a52d3887d2acf866c7bb858e16",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_03bdc604d7bb8e43016ad255aa1c3087d2b7aa99c079484adf",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_03bdc604d7bb8e43016ad255ae299c87d2b576f79ebefeb333",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_create_order"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "new_customer",
+      "language": "en",
+      "run": 1,
+      "text": "Add Final2 Boreal Orchard f76c3fba as a new customer.",
+      "human_add_new_choice": true,
+      "status": "passed",
+      "draft_action": "create_customer",
+      "can_commit": true,
+      "seconds": 4.558,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_05e1deb0f42af83b016ad255b23f1087d2a2f1f324ca1fc3d2",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_05e1deb0f42af83b016ad255b45d5c87d2af3b95822526b654",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_create_customer"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "new_customer",
+      "language": "en",
+      "run": 2,
+      "text": "Add Final2 Boreal Orchard e91122f3 as a new customer.",
+      "human_add_new_choice": true,
+      "status": "passed",
+      "draft_action": "create_customer",
+      "can_commit": true,
+      "seconds": 6.168,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_046d1fa1c2ce4d60016ad255b6c77487d2a891c414da1faca2",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_046d1fa1c2ce4d60016ad255ba6e8487d287d16ecaf55d8f4c",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_create_customer"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "new_customer",
+      "language": "en",
+      "run": 3,
+      "text": "Add Final2 Boreal Orchard 3a7be440 as a new customer.",
+      "human_add_new_choice": true,
+      "status": "passed",
+      "draft_action": "create_customer",
+      "can_commit": true,
+      "seconds": 5.37,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0722773e42a700c7016ad255bced4c87d2acd27887a86428fc",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0722773e42a700c7016ad255bfb0c887d2ad2f0e5465866804",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_create_customer"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "new_customer",
+      "language": "es",
+      "run": 1,
+      "text": "Agrega Final2 Boreal Orchard def51ad6 como cliente nuevo.",
+      "human_add_new_choice": true,
+      "status": "passed",
+      "draft_action": "create_customer",
+      "can_commit": true,
+      "seconds": 10.327,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0cdc83371e35a92c016ad255c24e5c87d2a718a2a98f50f3bb",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0cdc83371e35a92c016ad255c9e92c87d29c52b535f14d71ba",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_create_customer"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "new_customer",
+      "language": "es",
+      "run": 2,
+      "text": "Agrega Final2 Boreal Orchard f658f54b como cliente nuevo.",
+      "human_add_new_choice": true,
+      "status": "passed",
+      "draft_action": "create_customer",
+      "can_commit": true,
+      "seconds": 5.395,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0164b5e827c8f41b016ad255cca5e487d28d5100b24891a17e",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0164b5e827c8f41b016ad255cf4ad087d2aa0a7bf9d3415592",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_create_customer"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "new_customer",
+      "language": "es",
+      "run": 3,
+      "text": "Agrega Final2 Boreal Orchard 6098adbc como cliente nuevo.",
+      "human_add_new_choice": true,
+      "status": "passed",
+      "draft_action": "create_customer",
+      "can_commit": true,
+      "seconds": 4.943,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_08d52c7abe4ece54016ad255d2092487d29fc2eddfec68a4a3",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_08d52c7abe4ece54016ad255d45eec87d2a4e22cd67cff1e59",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_create_customer"
+          ]
+        }
+      ]
+    }
+  ],
+  "passed": 12,
+  "failed": 0,
+  "unique_completed_provider_ids": 30,
+  "provider_ids_unique": true,
+  "core_data_unchanged": true,
+  "source_unchanged": true
+}

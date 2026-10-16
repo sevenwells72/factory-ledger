@@ -29,13 +29,14 @@ def test_found_accepts_note_in_either_original_language(client, db_cursor, items
 
 
 @pytest.mark.parametrize('late', [False, True])
-def test_receive_receipt_retains_supplier_lot_bol_and_real_private_tag(client, db_cursor, payload, actors, late):
+@pytest.mark.parametrize('kind', ['lot_tag', 'bol'])
+def test_receive_receipt_retains_supplier_lot_bol_and_real_private_tag(client, db_cursor, payload, actors, late, kind):
     key = actors['floor']['key']
-    photo = upload(client, key, kind='lot_tag')
+    photo = upload(client, key, kind=kind)
     prepared = prepare(client, payload | ({} if late else {'attachment_ids': [photo['id']]}), key)
     assert prepared['can_commit'], prepared
     if not late:
-        assert prepared['draft']['attachments'][0]['kind'] == 'lot_tag'
+        assert prepared['draft']['attachments'][0]['kind'] == kind
     result = commit(client, prepared, key, **({'attachment_ids': [photo['id']]} if late else {}))
     assert result.status_code == 200, result.text
     result = result.json()
@@ -63,7 +64,7 @@ def test_receive_receipt_retains_supplier_lot_bol_and_real_private_tag(client, d
 def test_receive_photo_refusals_never_post(client, db_cursor, payload, actors, failure, monkeypatch):
     key = actors['floor']['key']
     photo = upload(client, actors['office']['key'] if failure == 'actor' else key,
-                   kind='bol' if failure == 'kind' else 'lot_tag')
+                   kind='other' if failure == 'kind' else 'lot_tag')
     prepared = prepare(client, payload, key)
     if failure == 'context':
         other = prepare(client, payload | {'bol_reference': 'OTHER'}, key)

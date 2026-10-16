@@ -1,0 +1,10 @@
+{
+  "checked_at": "2026-10-16T12:50:53.698199-04:00",
+  "dropped_databases": [
+    "fl_final2_customer_paths_0",
+    "fl_final2_customer_paths_1"
+  ],
+  "remaining_owned_databases": 0,
+  "private_traces_deleted": true,
+  "staging_data_dump_created": false
+}

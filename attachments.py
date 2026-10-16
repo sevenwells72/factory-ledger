@@ -170,10 +170,10 @@ def attach_shipment(api, cur, shipment_id, ref, actor):
 
 
 def receive_evidence(api, cur, refs, actor, *, ticket_id=None, claim=False):
-    """Validate actual private lot-tag uploads; a model reference is never proof."""
+    """Validate actual private receive uploads; a model reference is never proof."""
     result = []
     for ref in dict.fromkeys(refs):
-        row = verified(cur, ref, actor, ticket_id=ticket_id, kinds=('lot_tag',), claim=claim)
+        row = verified(cur, ref, actor, ticket_id=ticket_id, kinds=('bol', 'lot_tag'), claim=claim)
         load(api, row)
         result.append(public(row))
     return result

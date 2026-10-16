@@ -285,6 +285,7 @@ def commit(api,cur,row,body,actor,request,entry_timing):
             consumed={r['lot_id'] for r in cur.fetchall()}
             a5.record_confirmations(cur,txn,[r for r in ctx['evidence'] if r['lot_id'] in consumed],actor['id'])
         for att in payload['attachment_ids']: attachments.attach_shipment(api,cur,sid,att,actor)
+        result['attachments'] = attachments.for_receipt(cur, row['id'])
         cur.execute('SELECT proof_status,created_at FROM shipments WHERE id=%s',(sid,));shipment=cur.fetchone()
         result.update(receipt_number=receipt,ticket_id=row['id'],bol_reference=payload['bol_reference'],proof_status=shipment['proof_status'],proof_due_at=due,
                       replayed=False,state_changed=wt.canonical_hash(wt.json_value(api,ctx['state']))!=row['state_hash'],success=True,

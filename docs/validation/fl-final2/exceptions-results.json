@@ -1,0 +1,138 @@
+{
+  "local_only": true,
+  "api_fixtures": true,
+  "real_model": false,
+  "results": [
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "exceptions-cutover-gated",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "exceptions-cutover-gated",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "exceptions-cutover-gated",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": false,
+      "scenario": "exceptions-cutover-gated",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "exceptions-cutover-gated",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "exceptions-cutover-gated",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "exceptions-cutover-gated",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": false,
+      "scenario": "exceptions-cutover-gated",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "exceptions-overdue-first",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "exceptions-overdue-first",
+      "status": "passed",
+      "screenshot": "1-en-390-exceptions-overdue-first.png"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "exceptions-overdue-first",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "en",
+      "sessions_enabled": true,
+      "scenario": "exceptions-overdue-first",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 375,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "exceptions-overdue-first",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 390,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "exceptions-overdue-first",
+      "status": "passed",
+      "screenshot": "1-es-390-exceptions-overdue-first.png"
+    },
+    {
+      "engine": "webkit",
+      "width": 393,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "exceptions-overdue-first",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "width": 430,
+      "language": "es",
+      "sessions_enabled": true,
+      "scenario": "exceptions-overdue-first",
+      "status": "passed"
+    }
+  ],
+  "record_requests": 0
+}

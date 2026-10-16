@@ -52,7 +52,15 @@
   const formatNumber=value=>Number.isFinite(Number(value))?new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(Number(value)):String(value??'');
   const exceptionNames={UNIDENTIFIED_LOT:['Unidentified lot','Lote sin identificar'],PRE_MAKE_ADJUST:['Adjustment before a make','Ajuste antes de una producción'],SHORTAGE:['Stock shortage','Faltante de inventario'],NEGATIVE_BALANCE:['Negative stock balance','Saldo de inventario negativo'],LARGE_CORRECTION:['Large correction — owner review','Corrección grande — revisión del dueño'],KOSHER_ATTESTATION:['Kosher approval','Aprobación kosher'],LATE_ENTRY:['Late entry','Registro tardío'],SHIPMENT_PROOF_MISSING:['Shipment photo missing','Falta foto del envío'],BOL_PHOTO_MISSING:['BOL photo missing','Falta foto BOL'],ASSISTANT_OFFLINE:['Assistant offline','Asistente sin conexión']};
   function exceptionLabel(kind,lang='en'){return exceptionNames[kind]?.[lang==='es'?1:0]||codeText(kind,lang);}
-  function exceptionQueue(rows){return [...rows].sort((a,b)=>Number(['open','escalated'].includes(b.status))-Number(['open','escalated'].includes(a.status))||Date.parse(b.opened_at||b.created_at||0)-Date.parse(a.opened_at||a.created_at||0)||b.id-a.id);}
+  function exceptionQueue(rows){
+    const unresolved=item=>['open','escalated'].includes(item.status),overdue=item=>unresolved(item)&&!!item.overdue;
+    const time=value=>Date.parse(value)||0;
+    return [...rows].sort((a,b)=>Number(unresolved(b))-Number(unresolved(a))
+      ||Number(overdue(b))-Number(overdue(a))
+      ||(overdue(a)&&overdue(b)?time(a.due_at)-time(b.due_at):0)
+      ||Number(openingStock(a))-Number(openingStock(b))
+      ||time(b.opened_at||b.created_at)-time(a.opened_at||a.created_at)||b.id-a.id);
+  }
   function openingStock(item){return item.is_opening_stock===true;}
   function dataHtml(value){
     if(value===null||value===undefined)return '—';
