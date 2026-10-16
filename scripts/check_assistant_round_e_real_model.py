@@ -82,11 +82,14 @@ def main():
     if args.repeats < 5:
         raise RuntimeError('Each exact transcript requires at least five repetitions')
     dump_hash = sha256(args.staging_dump.read_bytes()).hexdigest()
+    source_files = ('fl_assistant.py', 'assistant_voice.py', 'assistant_tools.py',
+                    'assistant_replies.py', 'assistant_receive.py', 'write_tickets.py',
+                    'scripts/check_assistant_round_e_real_model.py')
+    source_before = {name: sha256((ROOT / name).read_bytes()).hexdigest() for name in source_files}
     for name in ('PGOPTIONS', 'PGSERVICE', 'PGSERVICEFILE', 'PGHOSTADDR'):
         os.environ.pop(name, None)
     os.environ.update(DATABASE_URL=args.database_url, ASSISTANT_ENABLED='1',
-                      API_KEY='round-e-local-master-' + uuid4().hex,
-                      DASHBOARD_API_KEY='round-e-local-read-' + uuid4().hex,
+                      API_KEY=uuid4().hex, DASHBOARD_API_KEY=uuid4().hex,
                       KEY_SESSIONS_ENABLED=str(args.sessions),
                       EVIDENCE_STORAGE_DIR='/private/tmp/fl_round_e_evidence')
     if not os.environ.get('OPENAI_API_KEY'):
@@ -270,6 +273,7 @@ def main():
                 print(json.dumps({key: row[key] for key in ('label', 'repeat', 'passed', 'errors')}), flush=True)
     finally:
         after = fingerprint(connection)
+        source_after = {name: sha256((ROOT / name).read_bytes()).hexdigest() for name in source_files}
         result = {'created_at': datetime.now(ZoneInfo('America/New_York')).isoformat(),
                   'local_database': parsed.path.lstrip('/'), 'staging_dump_sha256': dump_hash,
                   'real_model': True, 'transport': 'original fl_assistant.openai; observer only',
@@ -277,12 +281,12 @@ def main():
                   'synthetic_catalog_seeded': False, 'record_requests': 0,
                   'verified_real_order': order, 'verified_real_coconut_parent': coconut_parent,
                   'ledger_and_catalog_unchanged': before == after, 'before': before, 'after': after,
-                  'source_sha256': {name: sha256((ROOT / name).read_bytes()).hexdigest()
-                                    for name in ('fl_assistant.py', 'assistant_voice.py', 'assistant_tools.py',
-                                                 'assistant_replies.py', 'assistant_receive.py', 'write_tickets.py',
-                                                 'scripts/check_assistant_round_e_real_model.py')},
+                  'source_sha256_before': source_before, 'source_sha256': source_after,
+                  'sources_unchanged': source_before == source_after,
                   'results': traces}
-        result['passed'] = before == after and len(traces) == len(TRANSCRIPTS) * args.repeats and all(row['passed'] for row in traces)
+        result['passed'] = (before == after and source_before == source_after
+                            and len(traces) == len(TRANSCRIPTS) * args.repeats
+                            and all(row['passed'] for row in traces))
         args.output.parent.mkdir(parents=True, exist_ok=True)
         descriptor = os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         with os.fdopen(descriptor, 'w') as stream:

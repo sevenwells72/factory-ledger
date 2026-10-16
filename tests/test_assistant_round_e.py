@@ -18,6 +18,22 @@ from tests.test_assistant_voice_e2e_round_c import voice_catalog, card  # noqa: 
 pytestmark = pytest.mark.db
 
 
+@pytest.mark.parametrize('text', [
+    'Received 2 cases of rice, so 10 lb total.',
+    'Packed 10 cases, so 50 lb total.',
+])
+def test_ordinary_so_quantity_does_not_preempt_the_model_with_an_order_lookup(
+        client, chat, monkeypatch, text):
+    requests = model(monkeypatch, ('unsupported_request', {}))
+
+    result = card(turn(client, chat, text), 'unsupported_request')
+
+    assert result['kind'] == 'unsupported_request'
+    assert len(requests) == 1
+    assert 'prepare_receive' in {tool['name'] for tool in requests[0]['tools']}
+    assert 'prepare_pack' in {tool['name'] for tool in requests[0]['tools']}
+
+
 @pytest.mark.parametrize('text,language', [
     ('Ship S O two six one oh one five dash zero zero one.', 'en'),
     ('Ship SO 261015 001.', 'en'),

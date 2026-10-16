@@ -1,5 +1,110 @@
 # Change Log
 
+## 2026-10-15 21:20 — Require unchanged proof/runtime source hashes throughout actual-model acceptance
+- **File(s) changed:** `scripts/check_assistant_round_e_real_model.py`
+- **What changed:** Save helper, route, ticket and proof source digests before and after the actual model run; require equality for overall acceptance alongside unchanged core-data hashes.
+- **Why:** Prevent a mid-run source edit from being presented as proof for code the loaded app did not execute.
+
+---
+
+## 2026-10-15 21:20 — Cover missing internal lot and supplier N/A tombstone transitions
+- **File(s) changed:** `tests/test_assistant_receive_lot_round_e.py`
+- **What changed:** Add EN/ES explicit internal-lot absence controls and supplier N/A/unknown-without-copula cases, preserving separate supplier facts and null tombstones across buttons.
+- **Why:** Verify every receiving scalar has the same absence protection before the final source freeze.
+
+---
+
+## 2026-10-15 21:19 — Persist unresolved receiving lot tombstones across every prepare path
+- **File(s) changed:** `assistant_receive.py`, `tests/test_assistant_receive_lot_round_e.py`
+- **What changed:** Ambiguity and explicit EN/ES absence now persist as null lot-field tombstones. Normalization removes stale model/saved-context supplier scalars and unconfirmed internal codes while preserving commingled entries, quantities, button turns and explicitly named internal lots. Added old-context quantity correction, stale model scalar, absence and later-resolution regressions; public known facts are sanitized by root integration.
+- **Why:** Removing a scalar from source facts alone still allowed an old model or saved receive argument to reintroduce the rejected identity.
+
+---
+
+## 2026-10-15 21:18 — Keep receive ambiguity tombstones in server state only
+- **File(s) changed:** `fl_assistant.py`
+- **What changed:** Clean receive facts before populating visible known_facts so null ambiguity tombstones remain private while model arguments are normalized separately.
+- **Why:** Persist ambiguity protection without presenting an absent lot as a known supplier value.
+
+---
+
+## 2026-10-15 21:18 — Keep ordinary so quantities out of order-number preflight
+- **File(s) changed:** `fl_assistant.py`, `tests/test_assistant_round_e.py`
+- **What changed:** Require at least nine identifier digits for malformed SO fallback detection; canonical and spoken orders still preflight before the model. Add receive/pack route tests using ordinary so plus a weight.
+- **Why:** Case-insensitive SO recognition must not turn ordinary English quantity explanations into order lookups.
+
+---
+
+## 2026-10-15 21:17 — Verify final supplier lot ambiguity and follow-up safeguards
+- **File(s) changed:** Validation only; temporary local database `fl_round_e_parser_safety` created, schema-loaded and dropped.
+- **What changed:** Final focused run passed 74 tests with zero failures/skips, including all 58 supplier-lot cases and relevant existing receiving/packing fact-binding regressions. Verified punctuation-separated bare IDs cannot bind a prefix, repeated generic labels cannot select one distinct supplier code, equivalent repeated codes remain valid, and EN/ES ambiguous follow-ups clear old scalar identity while preserving quantity and physical-tag controls.
+- **Why:** Close the final P1 source-binding review findings before final proof reruns. Only the task-owned local database was touched and cleanup was verified.
+
+---
+
+## 2026-10-15 21:16 — Merge receiving lot facts without retaining superseded ambiguous codes
+- **File(s) changed:** `fl_assistant.py`
+- **What changed:** Integrate merge_receive_lot_facts at turn start so ambiguous supplier/internal lot follow-ups clear the prior scalar while quantity and unrelated facts survive.
+- **Why:** Prevent a prior single lot from silently overriding a later multi-lot clarification.
+
+---
+
+## 2026-10-15 21:16 — Clear stale scalar supplier facts after ambiguous receiving follow-ups
+- **File(s) changed:** `assistant_receive.py`, `tests/test_assistant_receive_lot_round_e.py`
+- **What changed:** Add merge_receive_lot_facts to clear only an ambiguous supplier/internal field while retaining quantity and no-label button facts. Add EN/ES actual-route multi-lot follow-up and pure merge regressions; root integrates the helper at turn start.
+- **Why:** A plain dict update could keep a previous single supplier code and force it over a later commingled-lot input.
+
+---
+
+## 2026-10-15 21:15 — Retain receive lot ambiguity across punctuation and repeated labels
+- **File(s) changed:** `assistant_receive.py`, `tests/test_assistant_receive_lot_round_e.py`
+- **What changed:** Reject distinct bare identifiers after any punctuation, parse each explicit lot-label span separately, and retain an ambiguity flag per supplier/internal field so a later code cannot erase an earlier ambiguous list. Equivalent repeated codes remain valid; named BOL and separate internal/supplier clauses stay distinct. Added fourteen focused regressions.
+- **Why:** Final safety review found period-split prefixes and repeated generic lot labels could silently select one supplier identity from several.
+
+---
+
+## 2026-10-15 21:15 — Generate proof-only local API configuration entirely at runtime
+- **File(s) changed:** `scripts/check_assistant_round_e_real_model.py`
+- **What changed:** Use fresh runtime UUID values for the disposable local master/read configuration; preserve local actor fixture, model configuration and acceptance assertions.
+- **Why:** Satisfy the repository key-literal regression guard without changing or weakening it.
+
+---
+
+## 2026-10-15 21:14 — Preserve superseded Round E Python run and report proof-script literal guard failure
+- **File(s) changed:** `/private/tmp/fl_round_e_intermediate_python_0_20261015_guard_failure/`
+- **What changed:** Preserve the intermediate 6,555-test collection and ordinary-group result (6,468 passed, one repository key-literal guard failure, zero skips) separately from final outputs; record root’s startup source revision e00ffa6 and clearly qualified post-run hashes. Mode 1 never started; both owned final suite databases are absent.
+- **Why:** Root identified a supplier-lot ambiguity edge requiring another helper change; the proof-script literal guard also must pass before final serial validation.
+
+---
+
+## 2026-10-15 21:12 — Clean the final owned staging copy while preserving shared test databases
+- **File(s) changed:** `/private/tmp/fl_round_e_final_cleanup.json`, removed private final staging dump/runtime evidence
+- **What changed:** Drop only owned `fl_round_e_final_model_20261015` and verify absence; remove its private dump/runtime evidence, retain final/intermediate raw traces mode 600, and report other Round E DBs without changing them. Shared PG5432 remains running for final Python suites.
+- **Why:** Complete disposable staging-copy cleanup after minimized final browser/provider evidence was saved in the repository.
+
+---
+
+## 2026-10-15 21:12 — Save final Round E browser matrix and refreshed real-model proof for all six items
+- **File(s) changed:** `docs/validation/fl-assistant-round-e/real-model-results.json`, `browser/`, `node.log`, `initial/`
+- **What changed:** Preserve initial evidence; save final-source15/15 actual gpt-6.1-sol responses and unchanged staging-copy core hashes, plus all6browser runners/eight invocations/both modes: A60, B18+68, C72 and phone288. Save Node395 pass log. No browser coverage filters; all browser DBs cleaned.
+- **Why:** Requested complete Round E PR needs current-source proof including reason, supplier-lot, customer continuation and the three exact order/packing transcripts. Raw model trace stays private mode600; full Python rerun still in progress.
+
+---
+
+## 2026-10-15 21:11 — Pass every Assistant browser runner in both session modes on final source
+- **File(s) changed:** private `/private/tmp/fl_round_e_browser_validation/` logs, screenshots and JSON evidence
+- **What changed:** All eight invocations of all six tracked runners pass unfiltered: legacy both modes, Round A 60 cases, Round B 18 backend groups and 68 page cases, Round C 72 transcript and 288 phone cases. Chromium/WebKit where supported, source hashes unchanged and no owned browser DBs left.
+- **Why:** Complete the requested full browser regression matrix after all Round E fixes on current main #135.
+
+---
+
+## 2026-10-15 21:10 — Pass final fifteen real-model cases after the complete supplier-lot fix
+- **File(s) changed:** private `/private/tmp/fl_round_e_final_real_model_sessions1.json`
+- **What changed:** Save all fifteen successful actual `gpt-6.1-sol` provider responses after all Round E runtime fixes, including receive/ticket source digests; 5/5 exact spoken orders, 5/5 spaced orders and 5/5 coconut packing, unchanged core hashes and zero Record requests.
+- **Why:** Complete final-source acceptance after preserving the earlier run as intermediate and fixing spaced supplier-lot code parsing.
+
+---
+
 ## 2026-10-15 21:09 — Normalize the Round E customer regression file ending before commit
 - **File(s) changed:** `tests/test_assistant_customer_round_e.py`
 - **What changed:** Remove a trailing blank line detected by the staged-diff whitespace check; test behavior unchanged.

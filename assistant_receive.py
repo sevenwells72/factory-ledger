@@ -22,6 +22,12 @@ _CLAUSE = re.compile(
     r'(?:supplier|vendor|manufacturer|internal|system|FL)\s+lot\b|'
     r'lote\s+(?:del?\s+proveedor|interno|del\s+sistema|FL)\b)', re.I)
 _PUNCTUATION = re.compile(r'[,;\n!?]|\.(?=\s|$)')
+_AMBIGUOUS = object()
+_ABSENT_AFTER = re.compile(
+    r'^\s*(?:[:#=]\s*)?(?:(?:is|es)\s+)?(?:unknown|unidentified|missing|none|N/A|NA|'
+    r'not\s+(?:given|provided|available|known)|desconocid[oa]|ninguno|'
+    r'sin\s+(?:n[uú]mero|c[oó]digo)|no\s+(?:se\s+(?:indic[oó]|dio|proporcion[oó])|disponible))'
+    r'(?![A-Za-z0-9_/-])', re.I)
 
 
 def _complete_code(text):
@@ -50,33 +56,68 @@ def _code_after(text):
     span = _CLAUSE.split(span, maxsplit=1)[0]
     code = _complete_code(span)
     if not code:
-        return None
-    if punctuation and punctuation[0] in ',;':
-        # A comma before another bare identifier denotes multiple codes, not
-        # permission to silently bind the first one. Named following fields
-        # such as BOL or internal lot are separate, explicit clause boundaries.
-        following = normalized[punctuation.end():].strip()
-        next_span = _PUNCTUATION.split(following, maxsplit=1)[0]
-        if _complete_code(_CLAUSE.split(next_span, maxsplit=1)[0]):
+        choices = re.split(r'\s+(?:and|y|or|o|&)\s+', span, flags=re.I)
+        codes = [_complete_code(choice) for choice in choices]
+        if len(codes) < 2 or not all(codes):
             return None
+        if len(set(codes)) != 1:
+            return _AMBIGUOUS
+        code = codes[0]
+    if punctuation:
+        # Any punctuation followed by another bare identifier is ambiguous,
+        # including a period from voice transcription. A named BOL or other
+        # field starts a separate clause, whose values do not belong to this lot.
+        for following in _PUNCTUATION.split(normalized[punctuation.end():]):
+            following = following.strip()
+            if not following:
+                continue
+            clause = _CLAUSE.search(following)
+            if clause and clause.start() == 0:
+                break
+            next_code = _complete_code(_CLAUSE.split(following, maxsplit=1)[0])
+            if next_code and next_code != code:
+                return _AMBIGUOUS
     return code
 
 
-def lot_facts_from_text(text):
-    """Read human lot labels; an ordinary receiving lot is the supplier's lot.
-
-    Explicit FL/internal/system labels alone identify the internal lot field.
-    Several supplier codes are left to the existing commingled receiving flow;
-    this helper never chooses one of them or manufactures an internal code.
-    """
+def _parsed_lot_facts(text):
     values = {'supplier_lot_code': [], 'lot_code': []}
-    for label in _LABEL.finditer(text or ''):
-        code = _code_after(text[label.end():])
-        if code:
-            field = 'lot_code' if label.group('internal') else 'supplier_lot_code'
+    ambiguous = set()
+    labels = list(_LABEL.finditer(text or ''))
+    for index, label in enumerate(labels):
+        field = 'lot_code' if label.group('internal') else 'supplier_lot_code'
+        end = labels[index + 1].start() if index + 1 < len(labels) else len(text)
+        span = text[label.end():end]
+        if re.search(r'\b(?:no|sin)\s*$', text[:label.start()], re.I) or _ABSENT_AFTER.match(span):
+            ambiguous.add(field)
+            continue
+        if index + 1 < len(labels):
+            span = span.rstrip(' \t\r\n,;.!?')
+            span = re.sub(r'\s+(?:and|y)$', '', span, flags=re.I).rstrip(' \t\r\n,;.!?')
+        code = _code_after(span)
+        if code is _AMBIGUOUS:
+            ambiguous.add(field)
+        elif code:
             if code not in values[field]:
                 values[field].append(code)
-    return {field: codes[0] for field, codes in values.items() if len(codes) == 1}
+    ambiguous.update(field for field, codes in values.items() if len(codes) > 1)
+    return ({field: codes[0] for field, codes in values.items() if len(codes) == 1 and field not in ambiguous},
+            ambiguous)
+
+
+def lot_facts_from_text(text):
+    """Read unambiguous human lot labels without choosing among supplier codes."""
+    return _parsed_lot_facts(text)[0]
+
+
+def merge_receive_lot_facts(previous_facts, text):
+    """Persist unresolved-field tombstones; button turns preserve all facts."""
+    facts, ambiguous = _parsed_lot_facts(text)
+    result = dict(previous_facts)
+    for field in ambiguous:
+        result[field] = None
+    result.update(facts)
+    return result
 
 
 def normalize_receive_arguments(arguments, facts):
@@ -84,10 +125,13 @@ def normalize_receive_arguments(arguments, facts):
     result = dict(arguments)
     supplier = facts.get('supplier_lot_code')
     internal = facts.get('lot_code')
+    for field in ('supplier_lot_code', 'lot_code'):
+        if field in facts and facts[field] is None:
+            result.pop(field, None)
     if supplier:
         result['supplier_lot_code'] = supplier
-        if not internal:
-            result.pop('lot_code', None)
+    if 'supplier_lot_code' in facts and not internal:
+        result.pop('lot_code', None)
     if internal:
         result['lot_code'] = internal
     return result
