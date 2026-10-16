@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-16 08:22 — FL Assistant mobile UX: open at latest, Today button, photo status
+- **File(s) changed:** fl_assistant.py; dashboard/fl-assistant.js; dashboard/fl-assistant.css; dashboard/fl-assistant.html; tests/test_assistant_mobile_ux.js; tests/test_assistant_mobile_ux.py; tests/visual/run-fl-assistant-mobile-ux.mjs; tests/visual/run-fl-assistant.mjs; docs/validation/fl-assistant-mobile-ux/; FACTORY_LEDGER_CHANGELOG.md (row 215); CHANGE_LOG.md
+- **What changed:** Chat opens and stays at the latest message, with Jump to latest ↓ after scrolling up; plant-time Yesterday/Today dividers (resume returns each turn's created_at); sticky phone header; Today result shown on screen. Photo: thumbnail, type chosen after picking, Uploading %/Attached ✓/retry/too large/not a photo states, phone-side shrink only above 5 MB, photo shown on the draft, reminder when a reply is not a draft. EN/ES. Existing runner photo steps updated. Validation: Python 6,451 passed per session mode on fresh DBs (0 failed/skipped); Node 389; all Assistant browser runners pass both modes; new WebKit runner 144 checks. Item 4 (classic number nine) confirmed historical: 3/3 real-model runs correct on a staging copy; no change.
+- **Why:** Michael's iPhone testing: the chat opened at old failed messages, Today appeared to do nothing, and the photo chip had no state. Draft PR only; nothing deployed and no hosted setting changed. Local fl_mobile_* DBs and the staging dump were deleted.
+
+---
+
 ## 2026-10-15 16:58 — Verify server keep-alive fix in both session modes and clean disposable databases
 - **File(s) changed:** CHANGE_LOG.md; local validation logs and PR draft under /private/tmp/fl_keepalive_validation; local test environment only.
 - **What changed:** Real TCP regression fails for both launch paths on origin/main 05b069b and passes with 75 seconds. Full Python: 6,447 passed per session mode, zero failed/skipped; Node: 383 passed. Assistant/customer and round A/B/C browser runners pass both modes, including 72 Chromium/WebKit transcripts and 288 phone checks. All fl_keepalive_ databases dropped. Installed missing declared test-only jsonschema and aligned local Pydantic to its existing 2.14.1 pin; uvicorn 0.24.0, FastAPI 0.104.1 and anyio 3.7.1 unchanged.

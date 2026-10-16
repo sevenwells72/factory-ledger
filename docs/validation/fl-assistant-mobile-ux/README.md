@@ -27,3 +27,12 @@ photo's `ticket_id` stayed empty.
   375/390/393/430 px, **144 checks**; it fails on unchanged main. Screenshots for sessions-on are in `browser/`.
 - New tests: `tests/test_assistant_mobile_ux.js` (6), `tests/test_assistant_mobile_ux.py` (4).
 - `tests/visual/run-fl-assistant.mjs` photo steps now pick first, then choose the type.
+- Full Python on fresh PG17 databases from `tests/schema/schema.sql`: **6,451 passed per session mode**, with no
+  failures, errors or skips. Node: **389 passed**.
+- All Assistant browser runners pass in both session modes: existing Assistant/customer; round A 30+30; round B
+  actual page 68; round B contract 9+9; round C transcripts 36 Chromium + 36 WebKit; round C phone 288; mobile UX 144.
+- Merge check against `fix/assistant-round-e` (#136): only `dashboard/fl-assistant.html` lines 12–13 conflict
+  (both bump script versions; keep `assistant-display.js?v=8` and `fl-assistant.js?v=13`). With that resolved, Node
+  passes 401, the mobile UX runner passes 144 and the existing runner passes in both modes.
+- Cleanup: all `fl_mobile_*` databases (and the runners' `fl_fixC_*` ones) were dropped, and the staging dump was
+  deleted.
