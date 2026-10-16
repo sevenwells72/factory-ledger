@@ -1,0 +1,284 @@
+{
+  "created_at": "2026-10-15T21:31:07.204027-04:00",
+  "status": "FINAL_PASS",
+  "source_commit": "4f2931d8560dc3c02f524b150d4aa6b6465c30d6",
+  "branch": "fix/assistant-round-e",
+  "base_commit": "4be2c505ee92ad9bc217c2a7e6b2f36692be1541",
+  "base_includes_merged_pr": 135,
+  "scope": {
+    "1": {
+      "behavior": "Catalog reason buttons replace Field required for adjust/found, retaining other missing facts and bounded malformed-argument repair.",
+      "tests": [
+        "tests/test_assistant_reason_round_e.py",
+        "tests/test_fl_assistant_ui.js"
+      ],
+      "backend_cases": 36
+    },
+    "2": {
+      "behavior": "Human supplier lots bind to supplier_lot_code, separately from internal lot_code; draft label Supplier lot / Lote del proveedor. Full spaced/spoken codes, supplier choices, corrections and ambiguity/absence remain consistent.",
+      "tests": [
+        "tests/test_assistant_receive_lot_round_e.py",
+        "tests/test_assistant_display.js"
+      ],
+      "backend_cases": 69
+    },
+    "3": {
+      "behavior": "A committed same-person/chat customer receipt continues the original order to a separate order draft, with a separate human Record.",
+      "tests": [
+        "tests/test_assistant_customer_round_e.py",
+        "tests/test_fl_assistant_ui.js"
+      ],
+      "backend_cases": 8,
+      "matrix": "office/owner x English/Spanish x reload/no reload"
+    },
+    "4": {
+      "behavior": "FL resolves plausible written/spoken SO identities before model tool selection and exposes only prepare_ship_order; unknown/malformed orders cannot become product searches. Ordinary so plus a quantity retains normal routing.",
+      "tests": [
+        "tests/test_assistant_round_e.py",
+        "tests/test_assistant_orders_round_d.py"
+      ],
+      "real_model": "ship_spoken 5/5; ship_spaced 5/5"
+    },
+    "5": {
+      "behavior": "FL offers available parent bulk lots as FIFO batch buttons plus Different batch, including selected ambiguous products; physical tag confirmation and selected lot custody remain required.",
+      "tests": [
+        "tests/test_assistant_round_e.py",
+        "tests/test_assistant_understanding_round_b.py",
+        "tests/visual/run-assistant-round-b.mjs"
+      ],
+      "real_model": "exact pack_coconut 5/5"
+    },
+    "6": {
+      "behavior": "Receive draft missing supplier-lot note explains what to do in English and Spanish; no abstract lot-identity checking text.",
+      "tests": [
+        "tests/test_assistant_display.js",
+        "tests/test_assistant_page_round_a.js"
+      ]
+    }
+  },
+  "python": {
+    "off": {
+      "collected": 6589,
+      "passed": 6589,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "groups": 23,
+      "summary": "/private/tmp/fl_round_e_final_python_0/summary.json",
+      "ordinary_passed": 6503,
+      "isolated_passed": 86
+    },
+    "on": {
+      "collected": 6589,
+      "passed": 6589,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "groups": 23,
+      "summary": "/private/tmp/fl_round_e_final_python_1/summary.json",
+      "ordinary_passed": 6503,
+      "isolated_passed": 86
+    },
+    "modes_run_serially": true,
+    "test_assertions_unchanged": true,
+    "runner": "full-suite-runner.py",
+    "method": "All collected tests run across 23 fresh local schema groups; fixture database allocation alone is overridden to keep one disposable DB at a time. Original test bodies/assertions and seed/migration SQL run intact. Failures, skips and xpasses fail the runner.",
+    "prerequisites": "macOS/Homebrew PostgreSQL 17 on 127.0.0.1:5432; local create/drop privileges; project .venv-test; FL_VALIDATION_ROOT can select another checkout. Run both FL_VALIDATION_MODE values serially with other DB tests idle."
+  },
+  "round_e_module_cases": {
+    "reason": 36,
+    "receive_lot": 69,
+    "customer": 8,
+    "routing": 29
+  },
+  "additional_focused_receive_routing_and_round_d": {
+    "passed": 178,
+    "failed": 0,
+    "skipped": 0
+  },
+  "node": {
+    "command": "node --test tests/test_*.js",
+    "passed": 395,
+    "failed": 0,
+    "skipped": 0,
+    "all_js_html_mjs_byte_identical_between": [
+      "e00ffa6",
+      "4f2931d8560dc3c02f524b150d4aa6b6465c30d6",
+      "final working tree"
+    ],
+    "log": "node.log"
+  },
+  "browser": {
+    "passed": true,
+    "runners": 6,
+    "complete_invocations": 8,
+    "all_session_modes": [
+      0,
+      1
+    ],
+    "no_preview_or_item_filters": true,
+    "model_tool_selection_stubbed": true,
+    "runners_and_modes": [
+      {
+        "runner": "tests/visual/run-fl-assistant.mjs",
+        "session_modes": [
+          0
+        ],
+        "returncode": 0
+      },
+      {
+        "runner": "tests/visual/run-fl-assistant.mjs",
+        "session_modes": [
+          1
+        ],
+        "returncode": 0
+      },
+      {
+        "runner": "tests/visual/run-fl-assistant-round-a.mjs",
+        "session_modes": [
+          0
+        ],
+        "returncode": 0
+      },
+      {
+        "runner": "tests/visual/run-fl-assistant-round-a.mjs",
+        "session_modes": [
+          1
+        ],
+        "returncode": 0
+      },
+      {
+        "runner": "tests/visual/run-assistant-round-b.mjs",
+        "session_modes": [
+          0,
+          1
+        ],
+        "returncode": 0
+      },
+      {
+        "runner": "tests/visual/run-fl-assistant-round-b-page.mjs",
+        "session_modes": [
+          0,
+          1
+        ],
+        "returncode": 0
+      },
+      {
+        "runner": "tests/visual/run-fl-assistant-round-c.mjs",
+        "session_modes": [
+          0,
+          1
+        ],
+        "returncode": 0
+      },
+      {
+        "runner": "tests/visual/run-fl-assistant-round-c-phone.mjs",
+        "session_modes": [
+          0,
+          1
+        ],
+        "returncode": 0
+      }
+    ],
+    "round_a_checks": 60,
+    "round_b_contract_groups": 18,
+    "round_b_page_checks": 68,
+    "round_c_transcript_checks": 72,
+    "round_c_phone_checks": 288,
+    "round_c_engines": [
+      "chromium",
+      "webkit"
+    ],
+    "phone_widths": [
+      375,
+      390,
+      393,
+      430
+    ],
+    "evidence": "browser/summary.json"
+  },
+  "real_model": {
+    "model": "gpt-6.1-sol",
+    "completed_unique_provider_responses": 15,
+    "requests": 15,
+    "passed": 15,
+    "per_transcript": {
+      "ship_spoken": 5,
+      "ship_spaced": 5,
+      "pack_coconut": 5
+    },
+    "sessions_enabled": true,
+    "explicit_egress_approval_received": true,
+    "store": false,
+    "record_requests": 0,
+    "core_ledger_and_catalog_unchanged": true,
+    "sources_match_committed_revision": true,
+    "staging_dump_sha256": "e18a62c26b9166327e6c4b0ca43c162a82e269cac1fab4ed4fc2e8fdd5271c51",
+    "evidence": "real-model-results.json"
+  },
+  "dashboard_asset_versions": {
+    "assistant_display": 8,
+    "assistant_client": 12
+  },
+  "source_sha256": {
+    "assistant_receive.py": "0d7bfc686f50362eaeb52d3d6e7c7e7ccf028ff2cfb6fc8f7daa127d156f4674",
+    "assistant_replies.py": "a6e18d2cd323f06f6350a03e230561fed72b0676e50e71ea4becb0b36994b5bc",
+    "assistant_tools.py": "d450dfca5bf6c3ce2d8c9ed7807bff051058eeace11d2d7c13b2db436315ee6c",
+    "dashboard/assistant-display.js": "c0ac054bd5811ae84db5560898e6dd7d00a4d1d1c937cb994504360ca7fbe9ad",
+    "dashboard/fl-assistant.html": "e2e2c8dbf07dc9af6eea98f25c37de5ce485825f4d8b5a36e460f0e64b8fd7f9",
+    "dashboard/fl-assistant.js": "29ae100ba69bd9f2cb7f5b5ac35bdb58939b2aae507080bfd64a8bdd52041421",
+    "fl_assistant.py": "2f8ecab2615d54c4b5dc0c5365a8683e2bf9108e6eb46d6d50570ca8ed6c75bd",
+    "scripts/check_assistant_round_e_real_model.py": "54281a26e1456c97e197c3e8da1a7e8b7166ba3c60d9443b923b39db8e014ef4",
+    "tests/test_assistant_customer_round_e.py": "b435c918593a253c4e99d16d6176e9fd31c88ef22ceb1cb1b1ec768eabd09b23",
+    "tests/test_assistant_display.js": "953f1a8f028c87ab52e0c2c0b19e95cd204739f9abb0de21e7dca334c7240be0",
+    "tests/test_assistant_orders_round_d.py": "6dc688e7dffaa4ef6daf460fbabbcc65e36e760c05c684c69f36d6a09b693081",
+    "tests/test_assistant_page_round_a.js": "4df797f938c2055dc2d82bad0cc96257fd1d9ffb9729abf02ba59a6cf15d95c8",
+    "tests/test_assistant_reason_round_e.py": "649537dc18b01f8f6c99381ed37f1790bacb27fffb48860858c15b2d63998cf7",
+    "tests/test_assistant_receive_lot_round_e.py": "4a5cc8544ac77534f775b74cd9b649baba26a3c3dc14caec0bc595f03806b144",
+    "tests/test_assistant_round_e.py": "fc0aed720a2bf41ab22b7c33f85588454afdbaa30c31c02f640c75d2d83ccdfc",
+    "tests/test_assistant_understanding_round_b.py": "e3cb9de0afc1ff1c33f2a9b6270ca36a1b80a358eb799fbb8da0529d9fcfefb4",
+    "tests/test_fl_assistant.py": "096cf76895bcf0b804c962a9bbd1d7bedd7998387a1158b3693b7306b4e699f1",
+    "tests/test_fl_assistant_ui.js": "d87d1e13fb105701830e3dfb4bf2876b0bbf5dc31b3e71f28f7795a8fa449b04",
+    "write_tickets.py": "7e1de14bf73fe13dbf138ecc80831d72ecfcc3ffc4c9ae56bda4946b14388d8c"
+  },
+  "hosted_database_writes": 0,
+  "deployed": false,
+  "temporary_data_cleanup": {
+    "completed": true,
+    "all_owned_databases_absent": true,
+    "staging_dump_removed": true,
+    "shared_pg5432_preserved": true,
+    "private_full_trace_retained_mode": "600",
+    "receipt": "cleanup.json"
+  },
+  "historical_initial_evidence": "initial/ preserves the earlier items 4-6 validation before the final all-six-item changes; final acceptance is documented by this file and the root/browser results.",
+  "artifact_sha256": {
+    "browser/existing-0.log": "c282dca829bea9ca39a63eaaa26bcace6878a79524f1d46e5781e0c17289534e",
+    "browser/existing-1.log": "b689c643ac8756c8852078e6a41d1e65d6c69359c40e7c3bf316484ddc797f8d",
+    "browser/round-a-0/results.json": "e8d62f1f048a6bb53a4f5170fe6575859f466b51ba52dddb47cdcc57c03382ab",
+    "browser/round-a-0.log": "abca5de9d1d0432c0c4a072dcb5d2a31ad2427e5f95fcdbbca93911e3e14894d",
+    "browser/round-a-1/results.json": "25b9a44b22f8d3755de2250de77b534b6fa9ef8e5275328a434323f2d307ab6d",
+    "browser/round-a-1.log": "076ebdf671ec37ab4e2a3587b7a34384eafe3bcbf9fb72c81d3bd20da91ad7d0",
+    "browser/round-b-contract.json": "7c616ffcf898a474f4e9dcc3dae4b45e5c908333902247147e9aa1c5870f74f4",
+    "browser/round-b-contract.log": "8d0d041875410fb8ca0bab93d6b7f91439600f44f282f10cb8c7eb7f53ac8cfe",
+    "browser/round-b-page/results.json": "3f7f69a04a338ffb12e0a4cbebde461413f8eb3f8009e34c782b08cfc86582a7",
+    "browser/round-b-page.log": "e2b7abcee11b77978461747dc5e2e27f46bf7db4a263059e885174b21203e07a",
+    "browser/round-c-phone/results.json": "5bfec24eb1495ed2ef38c771e9518c7b7f7c602312ed2c235021fac721a4e10b",
+    "browser/round-c-phone.log": "22d67ae60954c4d70e09d031e80e5e778199de7be51e14c89d872d39165e9e7e",
+    "browser/round-c-transcripts/results.json": "70614d6896f07ac15ddcfdf96c502270b6161104fa03d71fecabdcb4f19fcd8e",
+    "browser/round-c-transcripts.log": "c8908ad41b5fb376bd8c97162b4080b5447b9ebbe364c43f0699d3ab06e97cad",
+    "browser/summary.json": "298d60c3027fab0f79d178cae5eea0fbb84cdb2fa400707e628b63a87c1a401a",
+    "cleanup.json": "53fc55cb29d25b401714493e27caae3a1f0d1a2b1fbf5b8255fe5e0233456cec",
+    "full-suite-runner.py": "d7d434eb8abcd8102bfb023df33faec77784d66eb394b12e6ed645ff951e04ab",
+    "initial/cleanup.json": "ee6ca9a9911f3883050347c1ba0feefe19782fd6c29c825098916fcf99c4acde",
+    "initial/node.log": "36cc62178eb68c0c29a4cefab2f5bc7418cf0ed4beef0e0bc5f3548762d3454d",
+    "initial/python-sessions-off.json": "402138788a8a3066f93c02d8d48f500b47f68af2afe215c87e26c4ef85c37f96",
+    "initial/python-sessions-on.json": "402138788a8a3066f93c02d8d48f500b47f68af2afe215c87e26c4ef85c37f96",
+    "initial/real-model-results.json": "b7645c8d7face98d7abb4d82543f7dacfb0afa96645f68d6dd4745033e50c876",
+    "node.log": "bf37024aa96fb9a6e6a9019e62622f2a348e109830fd1568f73fc3693fbe4ef2",
+    "python-sessions-off.json": "64126fd2b76a36b27aedd5a9f05ecd4b7a3884e9fc3596cfd96efb0ac931ef87",
+    "python-sessions-on.json": "64126fd2b76a36b27aedd5a9f05ecd4b7a3884e9fc3596cfd96efb0ac931ef87",
+    "python-validation.json": "83124606b4257b66f2c7ca64b0ef0bca2910d8a13d826253a43b19c8b3044d58",
+    "real-model-results.json": "b0c768fbbb1f06654fc80547e594351528fea71e79f59a5084cdd5087c82e419"
+  }
+}

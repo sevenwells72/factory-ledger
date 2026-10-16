@@ -1,0 +1,363 @@
+{
+  "mode": "sessions-on",
+  "passed": 30,
+  "failed": 0,
+  "cases": 30,
+  "screenshot_count": 54,
+  "results": [
+    {
+      "item": 1,
+      "name": "All today entries newest first, fast pagination, 15 second error",
+      "mode": "sessions-on",
+      "width": 1440,
+      "status": "passed",
+      "elapsed_ms": 501,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-01-today-entries.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-01-today-timeout.png"
+      ]
+    },
+    {
+      "item": 2,
+      "name": "Plain inventory sentence, readable table, correct units and result dedupe",
+      "mode": "sessions-on",
+      "width": 1440,
+      "status": "passed",
+      "elapsed_ms": 427,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-02-inventory.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-02-case-units.png"
+      ]
+    },
+    {
+      "item": 3,
+      "name": "Plain complete draft fields, current-day time, adjustment before and after",
+      "mode": "sessions-on",
+      "width": 1440,
+      "status": "passed",
+      "elapsed_ms": 416,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-03-adjust-draft.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-03-complete-fallback-draft.png"
+      ]
+    },
+    {
+      "item": 4,
+      "name": "Refused entry is a clear refusal with no Record control",
+      "mode": "sessions-on",
+      "width": 1440,
+      "status": "passed",
+      "elapsed_ms": 350,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-04-refusal.png"
+      ]
+    },
+    {
+      "item": 5,
+      "name": "Correction-reason button submits immediately",
+      "mode": "sessions-on",
+      "width": 1440,
+      "status": "passed",
+      "elapsed_ms": 422,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-05-reason-submitted.png"
+      ]
+    },
+    {
+      "item": 6,
+      "name": "Duplicate warning has the complete explicit checkbox label",
+      "mode": "sessions-on",
+      "width": 1440,
+      "status": "passed",
+      "elapsed_ms": 378,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-06-duplicate-label.png"
+      ]
+    },
+    {
+      "item": 7,
+      "name": "Send, Confirm and Record show a spinner and Working feedback",
+      "mode": "sessions-on",
+      "width": 1440,
+      "status": "passed",
+      "elapsed_ms": 541,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-07-send-working.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-07-confirm-working.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-07-record-working.png"
+      ]
+    },
+    {
+      "item": 8,
+      "name": "Header controls and receipt tools stay within desktop and iPhone widths",
+      "mode": "sessions-on",
+      "width": 1440,
+      "status": "passed",
+      "elapsed_ms": 310,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-08-header-en.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-08-header-es.png"
+      ]
+    },
+    {
+      "item": 9,
+      "name": "Short Assistant URL loads every absolute asset",
+      "mode": "sessions-on",
+      "width": 1440,
+      "status": "passed",
+      "elapsed_ms": 455,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-09-short-url-assets.png"
+      ]
+    },
+    {
+      "item": 10,
+      "name": "Session restoration does not flash the sign-in screen",
+      "mode": "sessions-on",
+      "width": 1440,
+      "status": "passed",
+      "elapsed_ms": 498,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-10-checking-session.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-10-restored-session.png"
+      ]
+    },
+    {
+      "item": 11,
+      "name": "Void hand-off opens the requested receipt screen",
+      "mode": "sessions-on",
+      "width": 1440,
+      "status": "passed",
+      "elapsed_ms": 557,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-11-void-handoff.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-11-receipt-void-screen.png"
+      ]
+    },
+    {
+      "item": 12,
+      "name": "Legacy own-entry tool stays distinct from six team entries in EN and ES",
+      "mode": "sessions-on",
+      "width": 1440,
+      "status": "passed",
+      "elapsed_ms": 531,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-12-own-and-team-entries.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-12-own-and-team-entries-es.png"
+      ]
+    },
+    {
+      "item": 13,
+      "name": "Finished inventory shows pounds alongside cases without changing weight units",
+      "mode": "sessions-on",
+      "width": 1440,
+      "status": "passed",
+      "elapsed_ms": 380,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-13-finished-lb-cases.png"
+      ]
+    },
+    {
+      "item": 14,
+      "name": "Immediate Today permission, server and network failures keep their own message",
+      "mode": "sessions-on",
+      "width": 1440,
+      "status": "passed",
+      "elapsed_ms": 695,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-14-today-permission.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-14-today-server.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-14-today-network.png"
+      ]
+    },
+    {
+      "item": 15,
+      "name": "Recorded card uses the confirmed receipt number as its identifier in EN and ES",
+      "mode": "sessions-on",
+      "width": 1440,
+      "status": "passed",
+      "elapsed_ms": 450,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/1440-15-recorded-receipt-number.png"
+      ]
+    },
+    {
+      "item": 1,
+      "name": "All today entries newest first, fast pagination, 15 second error",
+      "mode": "sessions-on",
+      "width": 390,
+      "status": "passed",
+      "elapsed_ms": 434,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-01-today-entries.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-01-today-timeout.png"
+      ]
+    },
+    {
+      "item": 2,
+      "name": "Plain inventory sentence, readable table, correct units and result dedupe",
+      "mode": "sessions-on",
+      "width": 390,
+      "status": "passed",
+      "elapsed_ms": 404,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-02-inventory.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-02-case-units.png"
+      ]
+    },
+    {
+      "item": 3,
+      "name": "Plain complete draft fields, current-day time, adjustment before and after",
+      "mode": "sessions-on",
+      "width": 390,
+      "status": "passed",
+      "elapsed_ms": 396,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-03-adjust-draft.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-03-complete-fallback-draft.png"
+      ]
+    },
+    {
+      "item": 4,
+      "name": "Refused entry is a clear refusal with no Record control",
+      "mode": "sessions-on",
+      "width": 390,
+      "status": "passed",
+      "elapsed_ms": 354,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-04-refusal.png"
+      ]
+    },
+    {
+      "item": 5,
+      "name": "Correction-reason button submits immediately",
+      "mode": "sessions-on",
+      "width": 390,
+      "status": "passed",
+      "elapsed_ms": 423,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-05-reason-submitted.png"
+      ]
+    },
+    {
+      "item": 6,
+      "name": "Duplicate warning has the complete explicit checkbox label",
+      "mode": "sessions-on",
+      "width": 390,
+      "status": "passed",
+      "elapsed_ms": 386,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-06-duplicate-label.png"
+      ]
+    },
+    {
+      "item": 7,
+      "name": "Send, Confirm and Record show a spinner and Working feedback",
+      "mode": "sessions-on",
+      "width": 390,
+      "status": "passed",
+      "elapsed_ms": 509,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-07-send-working.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-07-confirm-working.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-07-record-working.png"
+      ]
+    },
+    {
+      "item": 8,
+      "name": "Header controls and receipt tools stay within desktop and iPhone widths",
+      "mode": "sessions-on",
+      "width": 390,
+      "status": "passed",
+      "elapsed_ms": 502,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-08-menu-en.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-08-header-en.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-08-menu-es.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-08-header-es.png"
+      ]
+    },
+    {
+      "item": 9,
+      "name": "Short Assistant URL loads every absolute asset",
+      "mode": "sessions-on",
+      "width": 390,
+      "status": "passed",
+      "elapsed_ms": 471,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-09-short-url-assets.png"
+      ]
+    },
+    {
+      "item": 10,
+      "name": "Session restoration does not flash the sign-in screen",
+      "mode": "sessions-on",
+      "width": 390,
+      "status": "passed",
+      "elapsed_ms": 505,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-10-checking-session.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-10-restored-session.png"
+      ]
+    },
+    {
+      "item": 11,
+      "name": "Void hand-off opens the requested receipt screen",
+      "mode": "sessions-on",
+      "width": 390,
+      "status": "passed",
+      "elapsed_ms": 527,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-11-void-handoff.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-11-receipt-void-screen.png"
+      ]
+    },
+    {
+      "item": 12,
+      "name": "Legacy own-entry tool stays distinct from six team entries in EN and ES",
+      "mode": "sessions-on",
+      "width": 390,
+      "status": "passed",
+      "elapsed_ms": 487,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-12-own-and-team-entries.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-12-own-and-team-entries-es.png"
+      ]
+    },
+    {
+      "item": 13,
+      "name": "Finished inventory shows pounds alongside cases without changing weight units",
+      "mode": "sessions-on",
+      "width": 390,
+      "status": "passed",
+      "elapsed_ms": 381,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-13-finished-lb-cases.png"
+      ]
+    },
+    {
+      "item": 14,
+      "name": "Immediate Today permission, server and network failures keep their own message",
+      "mode": "sessions-on",
+      "width": 390,
+      "status": "passed",
+      "elapsed_ms": 719,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-14-today-permission.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-14-today-server.png",
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-14-today-network.png"
+      ]
+    },
+    {
+      "item": 15,
+      "name": "Recorded card uses the confirmed receipt number as its identifier in EN and ES",
+      "mode": "sessions-on",
+      "width": 390,
+      "status": "passed",
+      "elapsed_ms": 428,
+      "screenshots": [
+        "/private/tmp/fl_round_e_browser_validation/round-a-1/390-15-recorded-receipt-number.png"
+      ]
+    }
+  ]
+}
