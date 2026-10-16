@@ -36,7 +36,7 @@ async function resumedCard(card, language = 'en', options = {}) {
             ? { cards: [{ kind: 'missing_facts', fields: ['cases'] }] }
             : undefined;
       assert.ok(response, `Unexpected request: ${url}`);
-      return { ok: true, json: async () => response };
+      return { ok: true, headers: { get: () => 'application/json' }, json: async () => response };
     }, addEventListener() {} });
   context.window = context;
   vm.runInContext(fs.readFileSync(path.join(__dirname, '../dashboard/assistant-display.js'), 'utf8'), context);
@@ -79,6 +79,31 @@ for (const language of ['en', 'es']) test(`missing correction reason keeps reaso
   assert.equal(h.bodies[0].text, language === 'en' ? 'The correction reason is damaged.' : 'El motivo de corrección es damaged.');
   assert.deepEqual(h.calls, ['/assistant/resume', '/assistant/turn']);
 });
+for (const language of ['en', 'es']) for (const shape of ['combined', 'blank', 'business', 'legacy']) {
+  test(`Round E ${shape} reason request has bilingual buttons and retains other missing facts in ${language}`, async () => {
+    const reasons = [{ code: 'physical_count', label_en: 'Physical count', label_es: 'Conteo físico' }];
+    const card = shape === 'combined'
+      ? { kind: 'missing_facts', fields: ['quantity', 'reason_code'], reason_required: true, reasons }
+      : { kind: 'refusal', status: 422, reasons, reason_required: shape === 'business', result: {
+        detail: shape === 'business' ? { error_code: 'REASON_CODE_REQUIRED' } : [
+          { loc: ['body', 'reason_code'], msg: 'Field required', type: shape === 'blank' ? 'string_too_short' : 'missing' },
+          ...(shape === 'legacy' ? [{ loc: ['body', 'quantity'], msg: 'Field required', type: 'missing' }] : [])
+        ] } };
+    const h = await resumedCard(card, language);
+    const nodes = descendants(h.card), text = nodes.map(node => node.textContent).join(' ');
+    assert.ok(text.includes(language === 'en' ? 'Choose a correction reason.' : 'Elige un motivo de la corrección.'));
+    assert.doesNotMatch(text, /Field required|reason_code|VALIDATION_ERROR|didn’t understand|No entendí|CANNOT RECORD|NO SE PUEDE REGISTRAR/);
+    if (shape === 'combined' || shape === 'legacy') assert.ok(text.includes(language === 'en' ? 'quantity (lb)' : 'cantidad (lb)'));
+    const buttons = nodes.filter(node => node.tag === 'button');
+    assert.equal(buttons.length, 1);
+    assert.equal(buttons[0].textContent, language === 'en' ? 'Physical count' : 'Conteo físico');
+    await buttons[0].listeners.click();
+    for (let i = 0; i < 6; i++) await new Promise(resolve => setImmediate(resolve));
+    assert.equal(h.bodies.length, 1);
+    assert.equal(h.bodies[0].text, language === 'en' ? 'The correction reason is physical_count.' : 'El motivo de corrección es physical_count.');
+    assert.deepEqual(h.calls, ['/assistant/resume', '/assistant/turn']);
+  });
+}
 test('only a complete real receipt shape may become green', () => {
   for (const value of [null, {}, { receipt_number: 'recorded' }, { receipt_number: 'MK-261008-001', success: false }, { text: 'RCV-261008-001' }]) assert.equal(ui.validReceipt(value), false);
   assert.equal(ui.validReceipt({ receipt_number: 'RCV-261008-001', success: true }), true);
@@ -183,7 +208,11 @@ for (const language of ['en', 'es']) test(`customer draft waits for Record and C
       if (path === '/assistant/record') { assert.equal(body.draft_id, 'customer-draft'); return { kind: 'receipt', result: receipt }; }
       assert.equal(path, '/assistant/turn');
       assert.match(body.text, /CUS-261015-001/);
-      return { cards: [{ kind: 'missing_facts', fields: ['lines'] }] };
+      return { cards: [{ kind: 'draft', id: 'continued-order', prepared: {
+        action: 'create_order', can_commit: true, blockers: [], actor: { name: 'Office' },
+        draft: { customer: 'New Market', customer_po: 'ROUND-E-PO',
+          lines: [{ product: 'Granola', quantity: 2, unit: 'cases', quantity_lb: 50 }] }
+      } }] };
     } });
   let nodes = descendants(h.card), text = nodes.map(node => node.textContent).join(' ');
   for (const phrase of ['New Market', 'A Person', 'orders@example.test', '555-1234', '10 Main St']) assert.ok(text.includes(phrase), phrase);
@@ -204,6 +233,13 @@ for (const language of ['en', 'es']) test(`customer draft waits for Record and C
   for (let i = 0; i < 6; i++) await new Promise(resolve => setImmediate(resolve));
   assert.deepEqual(h.calls, ['/assistant/resume', '/assistant/record', '/assistant/turn']);
   assert.ok(h.calls.every(path => path.startsWith('/assistant/')));
+  const order = descendants(h.get('messages')).find(node => node.dataset.draftId === 'continued-order');
+  assert.ok(order);
+  const orderNodes = descendants(order), orderText = orderNodes.map(node => node.textContent).join(' ');
+  for (const phrase of ['New Market', 'ROUND-E-PO', 'Granola', '50 lb']) assert.ok(orderText.includes(phrase), phrase);
+  assert.ok(orderText.includes(language === 'en' ? 'Create order' : 'Crear pedido'));
+  assert.equal(orderNodes.find(node => node.tag === 'button' && node.textContent === (language === 'en' ? 'Record' : 'Registrar')).disabled, false);
+  assert.equal(h.requests.filter(request => request.path === '/assistant/record').length, 1);
 });
 
 for (const role of ['office', 'owner', 'floor']) test(`no-match customer offers New customer only for office/owner: ${role}`, async () => {

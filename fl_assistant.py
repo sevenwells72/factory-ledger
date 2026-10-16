@@ -27,6 +27,7 @@ import write_tickets
 import resolution
 import assistant_replies as replies
 from assistant_voice import normalize_voice_text, normalize_order_code
+from assistant_receive import lot_facts_from_text, normalize_receive_arguments
 
 ROUTES = ('session', 'resume', 'turn', 'record', 'cancel', 'confirm-sku', 'attachment', 'attachment/read', 'transcribe')
 ACTOR_ROUTES = frozenset({('POST', '/assistant/' + p) for p in ROUTES} |
@@ -50,6 +51,17 @@ def voice_lot_code(value):
     return normalize_voice_text('lot ' + value)[4:]
 
 
+def order_number_in_text(text):
+    """Recognize order identity before the language model selects any tool."""
+    normalized = normalize_order_code(text)
+    return re.search(r'\bSO-\d{6}-\d{3,}\b|\b(?:s\s*o|ese\s+o)[ -]*\d[\d -]*', normalized, re.I)
+
+
+def pack_without_batch(text):
+    return (bool(re.search(r'\b(?:pack(?:ed)?|empacamos|empacado|empaque)\b', text, re.I))
+            and not re.search(r'\b(?:lot|lote|batch|tanda)\b|\b(?:from|desde|del)\b', text, re.I))
+
+
 def fail(status, code, message):
     raise HTTPException(status, {'error_code': code, 'message': message})
 
@@ -71,17 +83,30 @@ def missing_prepare_card(name, status, result, arguments):
     if name not in catalog.PREPARES or status != 422 or not isinstance(result, dict):
         return None
     errors = result.get('detail')
+    correction = name in ('prepare_adjust', 'prepare_found')
+    if correction and isinstance(errors, dict) and errors.get('error_code') == 'REASON_CODE_REQUIRED':
+        return {'kind': 'refusal', 'status': status, 'result': catalog.safe_result(result), 'reason_required': True}
     if not isinstance(errors, list) or not errors:
         return None
-    if any(not isinstance(error, dict) or error.get('type') != 'missing' for error in errors):
+    def missing_reason(error):
+        return (correction and isinstance(error, dict) and error.get('loc') == ['body', 'reason_code']
+                and error.get('type') in ('missing', 'string_too_short')
+                and (arguments.get('reason_code') is None
+                     or isinstance(arguments.get('reason_code'), str) and not arguments['reason_code'].strip()))
+    reason_required = correction and (arguments.get('reason_code') is None
+        or isinstance(arguments.get('reason_code'), str) and not arguments['reason_code'].strip())
+    if any(not isinstance(error, dict) or error.get('type') != 'missing' and not missing_reason(error) for error in errors):
         return None
     locations = [error.get('loc') for error in errors]
     if any(not isinstance(loc, (list, tuple)) or len(loc) < 2 or loc[0] != 'body' for loc in locations):
         return None
-    if name in ('prepare_adjust', 'prepare_found') and all(list(loc) == ['body', 'reason_code'] for loc in locations):
-        return {'kind': 'refusal', 'status': status, 'result': catalog.safe_result(result)}
+    if reason_required and all(list(loc) == ['body', 'reason_code'] for loc in locations):
+        return {'kind': 'refusal', 'status': status, 'result': catalog.safe_result(result), 'reason_required': True}
     fields = []
     for loc in locations:
+        if reason_required and list(loc) == ['body', 'reason_code']:
+            fields.append('reason_code')
+            continue
         value = arguments
         try:
             for key in loc[1:]:
@@ -92,7 +117,14 @@ def missing_prepare_card(name, status, result, arguments):
             return None
         if loc[-1] not in fields:
             fields.append(loc[-1])
-    return {'kind': 'missing_facts', 'fields': fields}
+    card = {'kind': 'missing_facts', 'fields': fields}
+    if reason_required:
+        card['reason_required'] = True
+        if 'reason_code' not in fields:
+            fields.append('reason_code')
+    if name == 'prepare_pack' and 'source_product_id' in fields:
+        card['packing_batch_needed'] = True
+    return card
 
 
 class Body(BaseModel):
@@ -488,6 +520,15 @@ def register_routes(app, api):
         return {'kind': 'choices', 'id': choice_id, 'resolution_kind': 'lot', 'query': query,
                 'packing_lots': True, 'result': result}
 
+    def resolved_packing_lots(state, product_id):
+        with api.get_transaction() as cur:
+            cur.execute('SELECT id,name,type,case_size_lb,parent_batch_product_id FROM products WHERE id=%s',
+                        (product_id,))
+            target = cur.fetchone()
+        if target and target['type'] != 'batch':
+            return packing_lot_choices(state, target)
+        return None
+
     async def shipping_order(request, body, actor, state, args):
         query = normalize_order_code(args.get('query', ''))
         code = re.search(r'\bSO-\d{6}-\d{3,}\b', query, re.I)
@@ -547,6 +588,8 @@ def register_routes(app, api):
 
     async def execute_tool(request, body, actor, state, name, args):
         args = dict(args)
+        if name == 'prepare_receive':
+            args = normalize_receive_arguments(args, state.get('receive_facts', {}))
         if name in catalog.PREPARES or name == 'packing_context':
             runtime.progress(request, 'lots', language=state.get('language', 'en'))
         elif name == 'today_entries':
@@ -594,6 +637,13 @@ def register_routes(app, api):
                     result = {**result, 'order_detail': detail}
                 if args['kind'] == 'product' and (args.get('context') or {}).get('action') == 'make':
                     state.setdefault('make_products', []).append(result['match']['id'])
+                if args['kind'] == 'product' and pack_without_batch(body.text):
+                    # The model may resolve the raw product name or omit the
+                    # source/target fields entirely. FL owns parent lookup and
+                    # asks for the actual batch before another model decision.
+                    choice = resolved_packing_lots(state, result['match']['id'])
+                    if choice:
+                        return 200, choice['result'], choice
                 return status, result, None
             if status == 200:
                 if args.get('kind') in ('product', 'supplier', 'customer'):
@@ -610,7 +660,8 @@ def register_routes(app, api):
                 choice_id = str(uuid4())
                 card = {'kind': 'choices', 'id': choice_id, 'resolution_kind': args['kind'], 'query': args.get('query', ''), 'result': result,
                         'supplier_search': args['kind'] == 'supplier'}
-                state['pending'] = {'id': choice_id, 'args': args, 'result': result, 'supplier_search': args['kind'] == 'supplier'}
+                state['pending'] = {'id': choice_id, 'args': args, 'result': result, 'supplier_search': args['kind'] == 'supplier',
+                                    'packing_batch_prompt': args['kind'] == 'product' and pack_without_batch(body.text)}
                 if result.get('outcome') == 'none':
                     with api.get_transaction() as cur:
                         cur.execute('INSERT INTO assistant_unmatched_words(session_id,actor_id,kind,query,context) VALUES (%s,%s,%s,%s,%s)',
@@ -967,6 +1018,8 @@ def register_routes(app, api):
             text = catalog_voice_text(body.text)
             if re.search(r'\b(?:pack(?:ed)?|empacamos|empacado|empaque)\b', text, re.I):
                 state.pop('packing_case_weight_lb', None)
+                if not body.choice_id:
+                    state.pop('packing_context', None)
                 weight = re.search(r'(\d+(?:\.\d+)?)\s*(?:lb|pounds?|libras?)\s*(?:per|por|/)\s*(?:case|caja)', text, re.I)
                 if weight:
                     state['packing_case_weight_lb'] = float(weight.group(1))
@@ -977,6 +1030,8 @@ def register_routes(app, api):
             if receive_start:
                 state.pop('receive_facts', None)
                 state.pop('receive_context', None)
+            if receive_start or state.get('receive_context') or state.get('receive_facts'):
+                state.setdefault('receive_facts', {}).update(lot_facts_from_text(body.text))
             new_receive_total = None
             if receive_start or receive_correction:
                 for qty in re.finditer(r'(?<![\w.])(\d+(?:\.\d+)?)\s*(?:lb\b|lbs\b|pounds?\b|libras?\b)', text, re.I):
@@ -987,7 +1042,7 @@ def register_routes(app, api):
                     if not is_total and (re.search(r'\b\d+\s*(?:cases?|cajas?)\b', before, re.I) or re.search(r'[x×@]\s*$', before)):
                         continue
                     new_receive_total = float(qty.group(1))
-                    state['receive_facts'] = {'quantity_lb': new_receive_total}
+                    state.setdefault('receive_facts', {})['quantity_lb'] = new_receive_total
                     break
             # Names/bytes stay outside model context; A6 stores every photo.
             linked_attachments(api, sid, actor['id'], body.attachment_ids)
@@ -1084,6 +1139,11 @@ def register_routes(app, api):
                 if selected_status != 200:
                     return save_turn(state, [{'kind': 'lookup_failed'}],
                                      body, actor, digest, lease)
+                if pending.get('packing_batch_prompt'):
+                    history.append({'role': 'user', 'content': 'I selected this FL candidate: ' + json.dumps(selected, ensure_ascii=False)})
+                    card = resolved_packing_lots(state, selected['id'])
+                    if card:
+                        return save_turn(state, [card], body, actor, digest, lease)
                 if pending.get('packing_context'):
                     context = {**pending['packing_context'], 'source_product_id': selected['product_id'],
                         'source_product_name': selected['source_product_name'], 'lot_id': selected['id'], 'lot_code': selected['lot_code']}
@@ -1112,11 +1172,25 @@ def register_routes(app, api):
                     fail(422, 'TEXT_REQUIRED', 'Enter a message / Escribe un mensaje.')
                 state.pop('pending', None)
                 history.append({'role': 'user', 'content': text.strip()})
-            if not body.choice_id and replies.is_today_query(body.text):
+            if not body.choice_id and not order_number_in_text(body.text) and replies.is_today_query(body.text):
                 _, _, card = await execute_tool(request, body, actor, state, 'today_entries', {})
                 return save_turn(state, [card], body, actor, digest, lease)
+            explicit_order = None
+            if not body.choice_id and order_number_in_text(body.text):
+                # This runs before OpenAI can choose a product tool. Preserve
+                # the full transcript for customer recovery and supplied facts.
+                _, resolved_order, card = await shipping_order(request, body, actor, state,
+                    {'kind': 'order', 'query': body.text, 'context': {'action': 'ship'}})
+                if card:
+                    return save_turn(state, [card], body, actor, digest, lease)
+                explicit_order = resolved_order['match']['id']
+                history.append({'role': 'user', 'content': 'FL resolved this order number before tool selection. '
+                    'Continue its shipping flow using only the supplied shipment facts: ' +
+                    json.dumps(resolved_order, ensure_ascii=False)})
             reasons = cached_reasons()
             functions = catalog.tools(reasons['reasons'], shift_summary=any(getattr(r, 'path', '') == '/reports/shift-summary' for r in app.routes))
+            if explicit_order:
+                functions = [function for function in functions if function['name'] == 'prepare_ship_order']
             allowed = {f['name'] for f in functions}
             cards = []
             validation_retries = 0
@@ -1159,6 +1233,12 @@ def register_routes(app, api):
                 except (KeyError, ValueError, TypeError):
                     status, result, card = 422, {'detail': {'error_code': 'TOOL_ARGUMENTS_INVALID', 'message': 'Arguments must be a JSON object.'}}, None
                 else:
+                    if call['name'] == 'prepare_receive':
+                        args = normalize_receive_arguments(args, state.get('receive_facts', {}))
+                    if explicit_order and call['name'] == 'prepare_ship_order':
+                        # The person's explicit number outranks any earlier
+                        # order ID still present in this chat's model history.
+                        args['order_id'] = explicit_order
                     status, result, card = await execute_tool(request, body, actor, state, call['name'], catalog.clean_arguments(args))
                     missing_card = missing_prepare_card(call['name'], status, result, args)
                     if card and card.get('kind') == 'missing_facts':
@@ -1179,6 +1259,10 @@ def register_routes(app, api):
                                                 supplier_search=True, resolution_kind='supplier')
                         state['receive_context'] = {'args': catalog.clean_arguments(args),
                             'attachment_ids': list(dict.fromkeys(state.get('receive_context', {}).get('attachment_ids', []) + body.attachment_ids))}
+                if missing_card and missing_card.get('reason_required'):
+                    missing_card['reasons'] = reasons['reasons']
+                    missing_card['known_facts'] = {key: value for key, value in catalog.clean_arguments(args).items()
+                                                   if key != 'reason_code'}
                 if missing_card:
                     card = missing_card
                 elif argument_validation_error(status, result):

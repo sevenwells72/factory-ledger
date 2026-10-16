@@ -170,8 +170,10 @@ try {
       checks.push('EN/ES lot questions return plain quantities from lot lookup');
       for (const explicit of [true, false]) {
         const args = { source_product_id: 285, target_product_id: 286, cases: 10, ...(explicit ? { lot_allocations: [{ lot_id: fixture.lots['285'].id, quantity_lb: 50 }] } : {}) };
-        const calls = [resolve('product', 'Granola Classic 25 LB', { action: 'pack' }), ['packing_context', { target_product_id: 286, lot_code: explicit ? 'BATCH-B001' : null }]];
-        if (explicit) calls.push(['prepare_pack', args]);
+        const calls = [resolve('product', 'Granola Classic 25 LB', { action: 'pack' })];
+        // FL asks for an omitted parent batch immediately after product
+        // resolution; only an explicit batch needs model-selected context.
+        if (explicit) calls.push(['packing_context', { target_product_id: 286, lot_code: 'BATCH-B001' }], ['prepare_pack', args]);
         let response = await turn(`Packed 10 cases of Granola Classic 25 LB${explicit ? ' from batch BATCH-B001' : ''}`, calls);
         if (!explicit) {
           const batchChoices = response.cards[0];

@@ -7,6 +7,328 @@
 
 ---
 
+## 2026-10-15 21:09 — Normalize the Round E customer regression file ending before commit
+- **File(s) changed:** `tests/test_assistant_customer_round_e.py`
+- **What changed:** Remove a trailing blank line detected by the staged-diff whitespace check; test behavior unchanged.
+- **Why:** Keep the requested Round E commit free of whitespace errors.
+
+---
+
+## 2026-10-15 21:09 — Give repeated local model-proof actors unique fixture names
+- **File(s) changed:** `scripts/check_assistant_round_e_real_model.py`
+- **What changed:** Add a fresh random suffix to the disposable local owner actor name so a repeated proof on the unchanged staging copy does not violate the actor-name uniqueness constraint.
+- **Why:** A final rerun stopped before any provider request when the prior local-only fixture name already existed; core source/data and acceptance assertions are unchanged.
+
+---
+
+## 2026-10-15 21:07 — Recognize named lot fields immediately after punctuation
+- **File(s) changed:** `assistant_receive.py`
+- **What changed:** Treat a following BOL/internal/supplier lot field at the start of a comma-separated clause as a field boundary, retaining the previous complete supplier identity.
+- **Why:** Focused regression checks caught a named internal lot being mistaken for a second bare supplier code.
+
+---
+
+## 2026-10-15 21:07 — Preserve complete supplier lot identifiers and reject narrative source binding
+- **File(s) changed:** `assistant_receive.py`, `tests/test_assistant_receive_lot_round_e.py`
+- **What changed:** Parse whole typed lot-code spans, including ABC 123 and P 1585, up to explicit field/clause boundaries; reject narrative and multi-code lists rather than binding a first token. Add source/model preservation, EN/ES clause and actual ledger regressions.
+- **Why:** Final review found the helper could truncate a space-separated supplier lot and override even a correct model identity.
+
+---
+
+## 2026-10-15 21:07 — Archive intermediate validation and let stopped browser matrices clean up gracefully
+- **File(s) changed:** private browser orchestration/archive and intermediate real-model trace paths under `/private/tmp`
+- **What changed:** Preserve the 15-pass intermediate trace and partial browser results separately with explicit invalidation metadata; add signal handling so future matrix stops finish the current runner cleanup before stopping.
+- **Why:** A newly found supplier-lot parser issue requires all final validation to rerun after its fix; preserve diagnostic evidence without presenting it as final acceptance.
+
+---
+
+## 2026-10-15 21:06 — Align full Round B browser fixture with FL-owned missing-batch lookup
+- **File(s) changed:** `tests/visual/run-assistant-round-b.mjs`
+- **What changed:** Queue only product resolution for implicit packing batches; preserve explicit-batch context/prepare calls and every FIFO, human lot selection, physical-tag and blocker assertion.
+- **Why:** Round E now returns parent FIFO batch choices in FL before another model decision, so the old extra queued context call made the full browser contract fail with an unconsumed-fixture error.
+
+---
+
+## 2026-10-15 21:06 — Hash receive parsing and ticket code in the final real-model proof
+- **File(s) changed:** `scripts/check_assistant_round_e_real_model.py`
+- **What changed:** Add `assistant_receive.py` and `write_tickets.py` digests to saved provider proof source identities after the in-flight intermediate model run completed.
+- **Why:** Final source proof must cover the supplier-lot parser and ticket behavior being fixed before validation.
+
+---
+
+## 2026-10-15 21:06 — Reprove all fifteen exact Round E cases with the real model on final source
+- **File(s) changed:** private `/private/tmp/fl_round_e_final_real_model_sessions1.json`
+- **What changed:** All five spoken-order, five spaced-order and five coconut-packing cases pass through actual completed `gpt-6.1-sol` Responses calls on fresh staging-copy data; core hashes unchanged, Record count zero, full trace mode 600.
+- **Why:** Revalidate against completed items 1–6 on current main #135 after final runtime edits.
+
+---
+
+## 2026-10-15 21:05 — Verify final Round E dashboard against the complete Node regression suite
+- **File(s) changed:** `/private/tmp/fl_round_e_final_node.log`
+- **What changed:** Captured the complete final tests/test_*.js run after the v12 Assistant and v8 display assets: # tests 395; # pass 395; # fail 0; # skipped 0; process exit 0.
+- **Why:** Validate all six Round E changes and bilingual reason/customer/supplier-lot flows alongside existing dashboard behavior.
+
+---
+
+## 2026-10-15 21:04 — Prepare final Round E full-suite validation after all six fixes
+- **File(s) changed:** `/private/tmp/fl_round_e_final_full_suite.py`; final outputs under `/private/tmp/fl_round_e_final_python_0/` and `/private/tmp/fl_round_e_final_python_1/`.
+- **What changed:** Adapt the isolated 23-group runner to the shared local PostgreSQL port with distinct final databases and result directories; reserve serial session-mode execution after browser and real-model acceptance.
+- **Why:** Validate all six Round E items without cluster-wide advisory-lock checks interfering with concurrent browser work.
+
+---
+
+## 2026-10-15 21:04 — Correct receiving regression setup and pin human supplier lot facts
+- **File(s) changed:** `tests/test_assistant_receive_lot_round_e.py`, `tests/test_fl_assistant.py`
+- **What changed:** Read the supplier fixture row before product resolution reuses the cursor. Keep existing missing-case/weight/BOL assertions and require the actual SMOKE-124-REVIEW supplier lot from the human transcript, excluding an unrequested fixture internal lot.
+- **Why:** Repair the new test helper and align legacy known-fact evidence with source-bound receiving identity.
+
+---
+
+## 2026-10-15 21:04 — Refresh Assistant client cache for the complete Round E reason picker
+- **File(s) changed:** `dashboard/fl-assistant.html`
+- **What changed:** Load fl-assistant.js v12 alongside supplier display v8.
+- **Why:** Ensure staging browsers load the missing-reason and resumed-card buttons after Round E is deployed. Customer continuation is confirmed by eight real-handler EN/ES office/owner reload/replay cases and rendered order draft checks; no customer runtime change was needed.
+
+---
+
+## 2026-10-15 21:03 — Preserve ambiguous receiving lot lists and non-code instructions
+- **File(s) changed:** `assistant_receive.py`, `tests/test_assistant_receive_lot_round_e.py`
+- **What changed:** Do not turn phrases about a bag label or a multi-code supplier-lot list into a single supplier lot; add focused parser regressions.
+- **Why:** Keep the existing commingled/separate-receipt flow and avoid deriving lot identity from instruction words.
+
+---
+
+## 2026-10-15 21:03 — Make customer continuation tests verify rendered responses and replay semantics
+- **File(s) changed:** `tests/test_assistant_customer_round_e.py`, `tests/test_fl_assistant_ui.js`
+- **What changed:** Give the DOM fetch fixture real JSON response headers so streaming-aware sendTurn actually renders the returned order; retain explicit CUS replay and Spanish voice-normalization assertions.
+- **Why:** The former UI test stopped at the request and silently entered its error path, so it could not prove the order draft appeared.
+
+---
+
+## 2026-10-15 21:03 — Bind receive supplier lots to explicit human fields across model and button turns
+- **File(s) changed:** `fl_assistant.py`
+- **What changed:** Persist separately labelled supplier/internal lot facts with receive quantities; normalize model and direct correction prepare arguments before validation and saved context; keep lot facts across supplier buttons and quantity corrections.
+- **Why:** Round E item 2 requires supplier numbers in supplier_lot_code even when the model chooses the internal lot_code field.
+
+---
+
+## 2026-10-15 21:03 — Cover bilingual correction reason choices and preserve missing business facts
+- **File(s) changed:** `fl_assistant.py`, `dashboard/fl-assistant.js`, `tests/test_assistant_reason_round_e.py`, `tests/test_fl_assistant_ui.js`
+- **What changed:** Keep blank reasons missing when quantity validation runs first; retain only known non-reason facts; safely render business reason refusals. Add real route/resume/continuation coverage for omitted, null, empty and whitespace reasons with/without quantity; verify malformed argument repair and EN/ES reason buttons without Record.
+- **Why:** Completing Round E item 1 must preserve supplied product/lot and quantity without inventing missing facts or showing Field required.
+
+---
+
+## 2026-10-15 21:02 — Prepare fresh guarded staging copy for final Round E model proof
+- **File(s) changed:** private `/private/tmp/fl_round_e_final_staging_20261015.dump`, `/private/tmp/fl_round_e_final_staging_copy.json`
+- **What changed:** Read staging through guarded read-only port-5432 pg_dump and restore the public schema/data into owned local `fl_round_e_final_model_20261015`; verify the real order and coconut parent. No model requests yet.
+- **Why:** Reprove all fifteen exact cases after completed Round E changes and current-main rebase using a fresh staging copy.
+
+---
+
+## 2026-10-15 21:02 — Keep Spanish receiving lote labels whole during parsing
+- **File(s) changed:** `assistant_receive.py`
+- **What changed:** Require complete lot/lote label words so the English alternative cannot consume only the prefix of Spanish lote.
+- **Why:** Direct parser verification exposed a Spanish spoken-letter lot case before integration.
+
+---
+
+## 2026-10-15 21:02 — Verify Round E customer receipt continues the original order to a reviewable draft
+- **File(s) changed:** `tests/test_assistant_customer_round_e.py`, `tests/test_fl_assistant_ui.js`
+- **What changed:** Add real-handler EN/ES office/owner new-customer → CUS Record/replay → optional reload → original-order draft checks; require actual rendered order details and a separate Record button in the browser-DOM test instead of accepting a missing-lines card.
+- **Why:** Round E item 3 requires retained customer/product/case/PO context and an order draft, with no implicit order commit. Branch fix/assistant-round-e now starts at origin/main 4be2c50 containing #135.
+
+---
+
+## 2026-10-15 21:02 — Create full real-model proof traces with owner-only permissions
+- **File(s) changed:** `scripts/check_assistant_round_e_real_model.py`
+- **What changed:** Write the full private provider trace with mode 600 at file creation and enforce mode 600 when replacing a prior run.
+- **Why:** Preserve staging-derived proof context privately without a permission window before post-run cleanup.
+
+---
+
+## 2026-10-15 21:02 — Separate receiving supplier lot facts from explicit internal FL lots
+- **File(s) changed:** `assistant_receive.py`, `write_tickets.py`, `assistant_tools.py`, `dashboard/assistant-display.js`, `dashboard/fl-assistant.html`, `tests/test_assistant_display.js`, `tests/test_assistant_receive_lot_round_e.py`
+- **What changed:** Added an English/Spanish receiving lot-label helper to bind human supplier codes separately from explicit FL/internal/system lots, expose supplier_lot_code in receive drafts, clarify model routing instructions, use the exact Supplier lot / Lote del proveedor label and refresh display cache v8. Added voice, model-misrouting, supplier-button, persisted-ledger and bilingual display coverage.
+- **Why:** Complete Round E item 2 so supplier lot numbers cannot become internal lot codes or disappear from receive review. Root integrates the helper into shared Assistant routing separately.
+
+---
+
+## 2026-10-15 21:02 — Show correction reason buttons for omitted, blank and combined missing facts
+- **File(s) changed:** `fl_assistant.py`, `assistant_replies.py`, `dashboard/fl-assistant.js`
+- **What changed:** Classify absent/blank adjustment and found reasons as a fixed-list reason request, including other null facts; retain supplied facts and bounded repair for malformed arguments. Add plain bilingual picker copy and render buttons for fresh and resumed combined missing-detail cards.
+- **Why:** Round E item 1 must ask for a correction reason instead of exposing Field required or a bare reason field.
+
+---
+
+## 2026-10-15 21:01 — Prepare complete unmodified Assistant browser matrix for Round E
+- **File(s) changed:** `/private/tmp/fl_round_e_browser_validation/run.py`
+- **What changed:** Inventory and orchestrate all six tracked Assistant browser runners with both session modes, Chromium/WebKit where supported, full item/viewport coverage, fresh synthetic DBs, source hashes and owned DB cleanup verification.
+- **Why:** User requested every Assistant browser runner after all Round E work and current-main rebase; final execution waits for runtime completion.
+
+---
+
+## 2026-10-15 19:23 — Complete Round E cleanup and preserve final acceptance evidence
+- **File(s) changed:** `docs/validation/fl-assistant-round-e/cleanup.json`, `verification.json`
+- **What changed:** Saved cleanup receipt: no task databases remain; private staging dump, runtime evidence directory and owned PG17 cluster including WAL removed. Retained minimized repository proof and private full trace with mode 600.
+- **Why:** Finish the successful 15/15 real-model validation without leaving temporary staging-copy databases or data directories. No hosted writes or deployment.
+
+---
+
+## 2026-10-15 19:23 — Remove stopped task-owned Round E PostgreSQL data and WAL
+- **File(s) changed:** removed `/private/tmp/fl_round_e_pgdata_20261015`, updated `/private/tmp/fl_round_e_cleanup.json`
+- **What changed:** Verify the exact task-owned PG17 directory is stopped, remove its database files and WAL, and record removal in the cleanup receipt.
+- **Why:** Remove residual copied staging data after the disposable database and cluster stopped.
+
+---
+
+## 2026-10-15 19:23 — Restrict retained private Round E model trace to owner access
+- **File(s) changed:** `/private/tmp/fl_round_e_real_model_sessions1.json`, `/private/tmp/fl_round_e_cleanup.json`
+- **What changed:** Set the retained full private trace mode to 600 and record the verified permission in the cleanup receipt.
+- **Why:** Keep raw staging-derived proof context private after saving minimized repository evidence.
+
+---
+
+## 2026-10-15 19:23 — Clean disposable Round E staging-copy database and private dump
+- **File(s) changed:** `/private/tmp/fl_round_e_cleanup.json`, removed private staging dump/runtime evidence directory
+- **What changed:** Drop owned `fl_round_e_real_20261015`, verify zero remaining Round E databases, remove private staging dump/runtime evidence and stop the owned PG17 cluster. Retain the full private model trace after minimized repository evidence was saved.
+- **Why:** Finish requested proof without leaving a running local database or unnecessary copied staging data.
+
+---
+
+## 2026-10-15 19:22 — Save Round E acceptance: 15 real-model successes and complete local regressions
+- **File(s) changed:** `docs/validation/fl-assistant-round-e/verification.json`, `real-model-results.json`, `python-sessions-off.json`, `python-sessions-on.json`, `node.log`
+- **What changed:** Saved minimized evidence for 5/5 spoken orders, 5/5 written orders and 5/5 packing with actual gpt-6.1-sol responses; all core staging-copy fingerprints unchanged, zero Record. Complete Python 6,474 per session mode and Node 387 pass with zero failures/skips; includes 27 Round E regressions and EN/ES receive rendering.
+- **Why:** User requested real-model proof against copied staging data; explicit OpenAI context transfer approval received before any provider requests. Full traces remain private; no hosted writes, deployment or commit.
+
+---
+
+## 2026-10-15 19:22 — Pass all fifteen approved real-model Round E acceptance cases
+- **File(s) changed:** `/private/tmp/fl_round_e_real_model_sessions1.json`
+- **What changed:** Save real provider responses and traces for five exact spoken-order, five exact spaced-order and five exact coconut-packing successes against the fresh local staging copy; core catalog/ledger hashes unchanged and no Record requests.
+- **Why:** User explicitly approved copied staging context egress to the existing OpenAI Responses endpoint after automatic review requested confirmation.
+
+---
+
+## 2026-10-15 19:22 — Verify all 6474 Python tests in both Round E session modes with no failures or skips
+- **File(s) changed:** `/private/tmp/fl_round_e_python_0/`, `/private/tmp/fl_round_e_python_1/`, `/private/tmp/fl_round_e_python_summary.json`.
+- **What changed:** Complete serial Python runs passed 6,474 tests per mode across 23 fresh ordinary/race/migration database groups; zero failures, errors or skips. Saved per-group results and source hashes; verified all three subagent-owned test databases were dropped.
+- **Why:** Validate the final deterministic order prelookup, physical parent-batch choices and unchanged regression coverage after the real iPhone findings.
+
+---
+
+## 2026-10-15 19:19 — Require five real-model repeats of the exact spaced order number too
+- **File(s) changed:** `scripts/check_assistant_round_e_real_model.py`
+- **What changed:** Add the exact written `SO 261015 001` example and apply the pre-model order-routing and ship-flow assertions to both order transcripts; the default proof now requires 15 successful cases.
+- **Why:** Validate every exact order-number spelling Michael supplied alongside coconut packing. Real-model execution remains pending explicit egress approval.
+
+---
+
+## 2026-10-15 19:16 — Keep catalog and worker pack-weight regression after real batch selection
+- **File(s) changed:** `tests/test_assistant_understanding_round_b.py`
+- **What changed:** Select the offered physical bulk-batch button before the model prepares packing with a bogus 99 lb case weight; retain the catalog and explicit worker weight assertions.
+- **Why:** Round E now asks for the actual batch directly after product resolution instead of accepting a model-only batch selection.
+
+---
+
+## 2026-10-15 19:15 — Guard ambiguous packing product selections with real catalog regressions
+- **File(s) changed:** `tests/test_assistant_round_e.py`
+- **What changed:** Added eight EN/ES raw/finished coconut button cases with broad real product resolution, requiring server-built parent FIFO batch choices before another model request, plus an explicit-lot control that preserves the selected newer batch and physical-tag gate.
+- **Why:** Independent review found the new packing route could skip automatic batch lookup after an ambiguous product button.
+
+---
+
+## 2026-10-15 19:15 — Keep automatic batch choices after ambiguous packing product selection
+- **File(s) changed:** `fl_assistant.py`
+- **What changed:** Share the real parent-lot lookup between exact product resolution and a human product choice; retain pack-without-batch intent on pending choices so the empty button transcript cannot lose it.
+- **Why:** Independent review found model omission could still skip FIFO buttons after an ambiguous product name.
+
+---
+
+## 2026-10-15 19:14 — Bind Round E proof to the exact real sweetened-flake coconut family
+- **File(s) changed:** `scripts/check_assistant_round_e_real_model.py`
+- **What changed:** Resolve the copied canonical sweetened-flake coconut bulk parent by name, reject lots from another coconut family and retain its safe identity in the proof.
+- **Why:** A toasted-coconut or unrelated parent must not count as success for the exact user transcript.
+
+---
+
+## 2026-10-15 19:13 — Keep order patterns ahead of Today and make pack omissions actionable
+- **File(s) changed:** `fl_assistant.py`, `tests/test_assistant_orders_round_d.py`
+- **What changed:** Explicit SO identities outrank mixed Today wording; incomplete pack source fields use the batch/tag question. Updated existing detail-provenance assertion for pre-model server context.
+- **Why:** Honor every order-pattern transcript and prevent a bare missing bulk-batch line even for incomplete model arguments.
+
+---
+
+## 2026-10-15 19:13 — Prepare isolated complete Python validation for Round E in both session modes
+- **File(s) changed:** `/private/tmp/fl_round_e_full_suite.py`; validation outputs under `/private/tmp/fl_round_e_python_0/` and `/private/tmp/fl_round_e_python_1/`.
+- **What changed:** Adapt the existing sole-database full-suite harness to this checkout and the local Round E PostgreSQL port, preserving fresh ordinary/race/migration group isolation and cleanup.
+- **Why:** Verify all Python regressions after deterministic order and parent-batch routing changes in both personal-session modes.
+
+---
+
+## 2026-10-15 19:12 — Bind explicit shipping identity and preserve separate pack source resolution
+- **File(s) changed:** `fl_assistant.py`
+- **What changed:** Bind shipping prepares to the order number FL just resolved even if the model supplies a prior chat order; trigger early batch questions for finished/raw product identities after batch source lookups can complete.
+- **Why:** Adversarial review found stale model order IDs could override the current transcript; existing pack source resolution must still reach its selected finished product.
+
+---
+
+## 2026-10-15 19:12 — Verify real coconut parent families when batch choice precedes case size
+- **File(s) changed:** `scripts/check_assistant_round_e_real_model.py`
+- **What changed:** Verify a raw-name coconut match against the real shared parent of its active finished SKUs before comparing all available FIFO lot buttons; pass session ID explicitly into assertions.
+- **Why:** Real catalog case-size ambiguity can be resolved after the physical batch question.
+
+---
+
+## 2026-10-15 19:12 — Cover stale resolved order IDs after Round E order-number prelookup
+- **File(s) changed:** `tests/test_assistant_round_e.py`
+- **What changed:** Add a controlled model case that supplies a previously resolved order ID after the person names a different order. The first 17 Round E cases passed against a disposable local schema database.
+- **Why:** Prelookup must bind the current order identity even when older orders remain in chat provenance.
+
+---
+
+## 2026-10-15 19:12 — Update Round D regressions for deterministic Round E tool routing
+- **File(s) changed:** `tests/test_assistant_orders_round_d.py`
+- **What changed:** Use server-resolved order detail before the sole shipping model call and assert shipping-only tools; exercise coconut batch selection before finished size.
+- **Why:** Preserve existing quantity, FIFO and physical tag assertions under the new Round E flow.
+
+---
+
+## 2026-10-15 19:12 — Verify Round E dashboard changes against all Node regressions
+- **File(s) changed:** `/private/tmp/fl_round_e_node.log`
+- **What changed:** Captured the complete tests/test_*.js run: 387 passed, 0 failed, 0 skipped.
+- **Why:** Validate Round E receive guidance alongside the shared dashboard regression coverage.
+
+---
+
+## 2026-10-15 19:11 — Add Round E deterministic order and packing routing regressions
+- **File(s) changed:** `tests/test_assistant_round_e.py`
+- **What changed:** Add full-transcript SO prelookup, shipping-tool restriction, unknown-order no-model, FIFO parent batch, coconut batch/output choice, stale-context reset and physical-tag gate coverage using real FL handlers.
+- **Why:** Michael’s real iPhone staging test found that model tool selection could bypass the Round D order and batch flow.
+
+---
+
+## 2026-10-15 19:11 — Add real-model Round E repeat proof on a local staging copy
+- **File(s) changed:** `scripts/check_assistant_round_e_real_model.py`
+- **What changed:** Add exact spoken-order and coconut-packing transcript repetitions through the real OpenAI transport, route/model trace checks, parent FIFO lot assertions and unchanged core-data hashes.
+- **Why:** Michael reproduced failures on a real iPhone after D; five real-model successes per transcript are required.
+
+---
+
+## 2026-10-15 19:11 — Add deterministic Round E order routing and parent batch questions
+- **File(s) changed:** `fl_assistant.py`
+- **What changed:** Detect spoken/written SO identity before model tool selection, seed verified order detail and constrain shipping tools; ask parent FIFO batches directly after packing product resolution and clear abandoned batch context on new packs.
+- **Why:** Real iPhone staging tests bypassed the model-dependent Round D routes.
+
+---
+
+## 2026-10-15 19:10 — Explain missing receive supplier lot numbers in English and Spanish
+- **File(s) changed:** `dashboard/assistant-display.js`, `dashboard/fl-assistant.html`, `tests/test_assistant_display.js`, `tests/test_assistant_page_round_a.js`
+- **What changed:** Receive drafts show a plain instruction to add the supplier lot number from the bag when present; supplier lot labels explicitly say number. Refresh the display cache and add bilingual display/page regressions while retaining other identity notes.
+- **Why:** Michael’s real iPhone staging test found an unclear lot-identity note in Round E item 6.
+
+---
+
 ## 2026-10-15 16:58 — Verify server keep-alive fix in both session modes and clean disposable databases
 - **File(s) changed:** CHANGE_LOG.md; local validation logs and PR draft under /private/tmp/fl_keepalive_validation; local test environment only.
 - **What changed:** Real TCP regression fails for both launch paths on origin/main 05b069b and passes with 75 seconds. Full Python: 6,447 passed per session mode, zero failed/skipped; Node: 383 passed. Assistant/customer and round A/B/C browser runners pass both modes, including 72 Chromium/WebKit transcripts and 288 phone checks. All fl_keepalive_ databases dropped. Installed missing declared test-only jsonschema and aligned local Pydantic to its existing 2.14.1 pin; uvicorn 0.24.0, FastAPI 0.104.1 and anyio 3.7.1 unchanged.

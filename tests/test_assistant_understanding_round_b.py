@@ -197,10 +197,13 @@ def test_open_orders_exact_customer_does_not_include_another_customer_with_same_
 @pytest.mark.parametrize('explicit_weight',[False,True])
 def test_pack_case_weight_comes_from_catalog_or_worker_not_model(client,chat,items,db_cursor,monkeypatch,explicit_weight):
     p=items['finished'];b=items['batch']
-    model(monkeypatch,resolve_product(db_cursor,p['id']),
-          ('packing_context',{'target_product_id':p['id'],'lot_code':b['lot_code']}),
-          ('prepare_pack',{'target_product_id':p['id'],'source_product_id':b['id'],'cases':2,'case_weight_lb':99}))
+    model(monkeypatch,resolve_product(db_cursor,p['id']))
     r=turn(client,chat,'Packed 2 cases of '+p['name']+(' 7 lb per case' if explicit_weight else ''))
+    assert r.status_code==200,r.text
+    choices=r.json()['cards'][0]
+    assert choices['packing_lots'] is True
+    model(monkeypatch,('prepare_pack',{'target_product_id':p['id'],'source_product_id':b['id'],'cases':2,'case_weight_lb':99}))
+    r=turn(client,chat,text='',choice_id=choices['id'],selected_id=b['lot_id'])
     assert r.status_code==200,r.text
     d=r.json()['cards'][0]['prepared']['draft']
     assert d['total_lb']==(14 if explicit_weight else 10)

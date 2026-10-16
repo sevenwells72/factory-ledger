@@ -153,6 +153,11 @@
     for (const field of new Set(missing || [])) list.append(el('li', t(...(names[field] || ['additional details', 'datos adicionales']))));
     node.append(list);
   }
+  function reasonPicker(node, reasons) {
+    node.append(el('p', t('Choose a correction reason.', 'Elige un motivo de la corrección.')));
+    for (const reason of reasons || []) node.append(button(t(reason.label_en, reason.label_es || reason.label_en),
+      () => sendTurn({ text: `${t('The correction reason is', 'El motivo de corrección es')} ${reason.code}.` }), 'choice-button'));
+  }
   async function api(path, { body, form, method = 'POST', binary = false, timeout = 95000, background = false, onProgress } = {}) {
     const controller = new AbortController();
     let timedOut = false;
@@ -582,27 +587,36 @@
         const order = card.order;
         node.append(el('p', t(`How much of order ${order.order_number} should we ship? Remaining: ${display.orderRemaining(order, 'en')}.`, `¿Cuánto del pedido ${order.order_number} vamos a enviar? Pendiente: ${display.orderRemaining(order, 'es')}.`)));
         node.append(button(t('Ship all remaining', 'Enviar todo lo pendiente'), () => sendTurn({text: t(`Ship all remaining on order ${order.order_number}.`, `Envía todo lo pendiente del pedido ${order.order_number}.`)}), 'choice-button'));
+      } else if (card.reason_required && card.reasons?.length) {
+        reasonPicker(node, card.reasons);
+        const otherFields = (card.fields || []).filter(field => field !== 'reason_code');
+        if (otherFields.length) missingFacts(node, otherFields);
       } else missingFacts(node, card.fields);
       if (card.supplier_choices || card.supplier_search) supplierPicker(node, card, card.supplier_choices || []);
     } else if (neutralMessages[card.kind]) {
       if (card.message && card.kind !== 'unsupported_request') node.append(el('p', display.plainMessage(card.message, language)));
       else neutral(node, card.kind);
     } else if (card.kind === 'refusal') {
-      const missingReason = card.status === 422 && card.reasons?.length && Array.isArray(card.result?.detail)
-        && card.result.detail.length && card.result.detail.every(error => error.type === 'missing'
-          && error.loc?.length === 2 && error.loc[0] === 'body' && error.loc[1] === 'reason_code');
+      const missingReason = card.reasons?.length && (card.reason_required || card.status === 422
+        && Array.isArray(card.result?.detail) && card.result.detail.some(error => ['missing', 'string_too_short'].includes(error.type)
+          && error.loc?.length === 2 && error.loc[0] === 'body' && error.loc[1] === 'reason_code'));
       // Also sanitize saved pre-fix validation failures when resuming a chat.
       if (!missingReason && card.status === 422 && (Array.isArray(card.result?.detail) || card.result?.error_detail?.code === 'VALIDATION_ERROR')) {
         neutral(node, 'misunderstood'); return;
       }
-      if (missingReason) node.append(el('p', t('Choose a correction reason.', 'Elige un motivo de la corrección.')));
+      if (missingReason) {
+        reasonPicker(node, card.reasons);
+        const otherFields = (Array.isArray(card.result?.detail) ? card.result.detail : []).filter(error => error.type === 'missing'
+          && error.loc?.length === 2 && error.loc[0] === 'body' && error.loc[1] !== 'reason_code').map(error => error.loc[1]);
+        if (otherFields.length) missingFacts(node, otherFields);
+      }
       else {
         node.className = 'card refusal';
         node.append(el('span', t('CANNOT RECORD', 'NO SE PUEDE REGISTRAR'), 'draft-badge'), el('h3', t('This request was refused', 'Esta solicitud fue rechazada')));
         node.append(el('p', card.message ? display.plainMessage(card.message, language) : t(display.errorMessage(card.result, 'en'), display.errorMessage(card.result, 'es'))));
         node.append(el('p', t('Update the message with the requested details. FL has not recorded this request.', 'Completa el mensaje con los datos solicitados. FL no ha registrado esta solicitud.'), 'muted'));
       }
-      if (JSON.stringify(card.result).includes('reason_code')) {
+      if (!missingReason && JSON.stringify(card.result).includes('reason_code')) {
         for (const reason of card.reasons || []) node.append(button(t(reason.label_en, reason.label_es || reason.label_en), () => sendTurn({ text: `${t('The correction reason is', 'El motivo de corrección es')} ${reason.code}.` }), 'choice-button'));
       }
     } else node.append(el('p', card.message ? display.plainMessage(card.message, language) : t('Please give more details.', 'Agrega más detalles.')));
