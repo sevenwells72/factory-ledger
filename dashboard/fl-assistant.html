@@ -7,10 +7,10 @@
   <meta name="referrer" content="no-referrer">
   <title>FL Assistant · Factory Ledger</title>
   <link rel="stylesheet" href="/dashboard/ledger-forms.css?v=4">
-  <link rel="stylesheet" href="/dashboard/fl-assistant.css?v=5">
+  <link rel="stylesheet" href="/dashboard/fl-assistant.css?v=6">
   <script defer src="/dashboard/key-session.js?v=4"></script>
   <script defer src="/dashboard/assistant-display.js?v=6"></script>
-  <script defer src="/dashboard/fl-assistant.js?v=11"></script>
+  <script defer src="/dashboard/fl-assistant.js?v=13"></script>
   <script defer src="/dashboard/receipt-shell.js?v=5"></script>
 </head>
 <body>
@@ -41,9 +41,9 @@
           <div class="suggestions"><button data-prompt="What did I enter today?"><strong data-en="Review my day" data-es="Revisar mi día">Review my day</strong><span data-en="See today’s entries" data-es="Ver las entradas de hoy">See today’s entries</span></button><button data-prompt="Look up inventory for "><strong data-en="Check inventory" data-es="Consultar inventario">Check inventory</strong><span data-en="Find a product or lot" data-es="Buscar un producto o lote">Find a product or lot</span></button></div>
         </div>
       </section>
-      <div class="composer-wrap"><div id="attachments" class="attachments"></div>
-        <form id="composer" class="composer"><label for="message" class="sr-only">Message / Mensaje</label><textarea id="message" rows="2" maxlength="4000" placeholder="Tell me what happened… / Cuéntame qué pasó…"></textarea><div class="composer-tools"><div><label for="photo-kind" class="sr-only" data-en="Evidence type" data-es="Tipo de evidencia">Evidence type</label><select id="photo-kind" aria-label="Evidence type / Tipo de evidencia"><option value="lot_tag" data-en="Lot tag" data-es="Etiqueta de lote">Lot tag</option><option value="bol" data-en="BOL" data-es="BOL">BOL</option><option value="truck_photo" data-en="Truck photo" data-es="Foto de camión">Truck photo</option><option value="correction_photo" data-en="Correction photo" data-es="Foto de corrección">Correction photo</option><option value="count_sheet" data-en="Count sheet" data-es="Hoja de conteo">Count sheet</option><option value="signed_packing_slip" data-en="Signed packing slip" data-es="Nota de empaque firmada">Signed packing slip</option><option value="other" data-en="Other evidence" data-es="Otra evidencia">Other evidence</option></select><button type="button" id="photo-button" data-en="＋ Photo" data-es="＋ Foto">＋ Photo</button><input id="photo" type="file" accept="image/jpeg,image/png,image/webp" hidden><button type="button" id="dictate" aria-pressed="false" data-en="◉ Hold to talk" data-es="◉ Mantén para hablar">◉ Hold to talk</button></div><button id="send" class="primary" type="submit" data-en="Send ↑" data-es="Enviar ↑">Send ↑</button></div></form>
-        <p id="composer-hint" class="composer-hint" data-en="Dictation is editable before sending. Choose the evidence type for each private photo. Ships require a BOL number." data-es="Puedes editar el dictado antes de enviarlo. Elige el tipo de evidencia para cada foto privada. Los envíos requieren un número BOL.">Dictation is editable before sending. Choose the evidence type for each private photo. Ships require a BOL number.</p>
+      <div class="composer-wrap"><button id="jump-latest" class="jump-latest" type="button" hidden data-en="Jump to latest ↓" data-es="Ir a lo más reciente ↓">Jump to latest ↓</button><div id="attachments" class="attachments" aria-live="polite"></div>
+        <form id="composer" class="composer"><label for="message" class="sr-only">Message / Mensaje</label><textarea id="message" rows="2" maxlength="4000" placeholder="Tell me what happened… / Cuéntame qué pasó…"></textarea><div class="composer-tools"><div><button type="button" id="photo-button" data-en="＋ Photo" data-es="＋ Foto">＋ Photo</button><input id="photo" type="file" accept="image/jpeg,image/png,image/webp" hidden><button type="button" id="dictate" aria-pressed="false" data-en="◉ Hold to talk" data-es="◉ Mantén para hablar">◉ Hold to talk</button></div><button id="send" class="primary" type="submit" data-en="Send ↑" data-es="Enviar ↑">Send ↑</button></div></form>
+        <p id="composer-hint" class="composer-hint" data-en="Dictation is editable before sending. After adding a photo, choose what it shows. Ships require a BOL number." data-es="Puedes editar el dictado antes de enviarlo. Después de agregar una foto, elige qué muestra. Los envíos requieren un número BOL.">Dictation is editable before sending. After adding a photo, choose what it shows. Ships require a BOL number.</p>
       </div>
     </div>
     <div id="working-status" class="working-status" role="status" hidden><span class="loading-spinner" aria-hidden="true"></span><span data-en="Working…" data-es="Trabajando…">Working…</span></div>
