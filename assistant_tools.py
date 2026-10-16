@@ -129,6 +129,9 @@ If order items or quantities are missing, prepare with nulls to ask for them. Ne
 A CUS receipt records only a customer; an order still needs its own draft, human Record and ORD receipt.
 For receiving, a supplier/vendor lot or an ordinary lot on the delivered bag belongs in supplier_lot_code.
 Use lot_code only for an explicitly named FL/internal/system lot; never put a supplier lot in that field.
+For receiving, 10 bags of oats of 50 lb / 50 lb bags / 50 lb each and 10 bolsas de avena de 50 libras mean 10 packages at 50 lb each: 500 lb total.
+Do not silently ignore other products in a receive; FL queues separately enumerated items and prepares them one at a time.
+Before creating a customer, resolve the supplied name; offer any existing exact, alias or shorter-name match instead of creating a duplicate.
 For packing resolve the finished product first, then call packing_context with its ID and the supplied batch lot code (null if absent).
 Use its source_product_id, target_product_id and lot_id, and the finished product's case_size_lb to prepare_pack.
 When the user gives only a finished product, show its catalog parent batch lots for the person to choose; never infer the physical lot.

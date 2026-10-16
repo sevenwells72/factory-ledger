@@ -140,3 +140,13 @@ html,body{width:100%;max-width:100%;min-width:0}
   .message,.day-divider{scroll-margin-top:80px}
 }
 @media(prefers-color-scheme:dark){.attachment-chip.photo-failed,.attachment-chip.photo-too_large,.attachment-chip.photo-wrong_type{border-color:#78434b}.attachment-chip.photo-attached{border-color:#447353}}
+
+/* Final floor review: controls are usable with gloves and never obscure a tag input. */
+.neutral-notice{position:static;max-width:100%;margin:10px 0;background:var(--tint);border-color:var(--line);color:var(--text);box-shadow:none;pointer-events:auto}
+@media(max-width:600px){
+  button,.button-link,.tools-menu>summary,.topbar .receipt-tools>a,.header-actions button{min-height:44px;min-width:44px}
+  .composer-tools button,.composer-tools select,.card-actions button,.choice-button,.photo-kinds .photo-kind-choice{min-height:48px}
+  .attachment-chip .photo-remove{min-width:44px;width:44px;height:44px}
+  .attachment-chip .photo-retry,.jump-latest{min-height:44px}
+  .jump-latest{position:static;display:block;transform:none;margin:0 auto 8px;max-width:100%}
+}

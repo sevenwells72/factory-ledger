@@ -1,5 +1,6 @@
 """Keep explicitly supplied receiving lot identities in their separate fields."""
 import re
+from decimal import Decimal
 
 from assistant_voice import normalize_voice_text
 
@@ -134,4 +135,66 @@ def normalize_receive_arguments(arguments, facts):
         result.pop('lot_code', None)
     if internal:
         result['lot_code'] = internal
+    for field in ('cases', 'case_size_lb'):
+        if facts.get(field) is not None:
+            result[field] = facts[field]
     return result
+
+
+def package_facts(text):
+    """Multiply explicitly stated bag/case size, never mistake it for a total."""
+    text = normalize_voice_text(text)
+    count = re.search(r'(?<![\w.+-])(\d+)\s+(?:bags?|bolsas?|sacos?|cases?|cajas?)\b', text, re.I)
+    if not count:
+        return {}
+    for weight in re.finditer(r'(?<![\w.+-])(\d+(?:\.\d+)?)\s*(?:lb|lbs|pounds?|libras?)\b', text, re.I):
+        if weight.start() < count.end():
+            continue
+        before, after = text[count.end():weight.start()], text[weight.end():]
+        if re.search(r'\btotal\s*[:=]?\s*$', before, re.I) or re.match(r'\s*(?:(?:in|en)\s+)?total\b', after, re.I):
+            continue
+        per_package = (re.match(r'\s*(?:each|cada\b|(?:per|por|/)\s*(?:bag|bolsa|saco|case|caja)|bags?\b|bolsas?\b|cases?\b)', after, re.I)
+                       or re.search(r'\bde\s*$', before, re.I))
+        if per_package:
+            cases, size = int(count[1]), Decimal(weight[1])
+            totals = re.findall(r'(?<![\w.])(\d+(?:\.\d+)?)\s*(?:lb|lbs|pounds?|libras?)\s*(?:(?:in|en)\s+)?total\b', text, re.I)
+            return {'cases': cases, 'case_size_lb': float(size),
+                    'quantity_lb': float(totals[0]) if len(totals) == 1 else float(cases * size)}
+    return {}
+
+
+def split_receive_items(text):
+    """Retain every explicitly enumerated receive item, with shared delivery facts.
+
+    Only split conjunctions introducing a new quantity and package unit. Product
+    names such as Fruit and Nut remain intact; no catalog identity is inferred.
+    """
+    text = normalize_voice_text(text)
+    parts = re.split(r'\s+(?:and|y|plus|m[aá]s)\s+(?=\d+\s+(?:cases?|cajas?|bags?|bolsas?|sacos?)\b)', text, flags=re.I)
+    if len(parts) < 2:
+        return []
+    first = re.search(r'\d+\s+(?:cases?|cajas?|bags?|bolsas?|sacos?)\b', parts[0], re.I)
+    if not first:
+        return []
+    prefix = parts[0][:first.start()]
+    if not re.search(r'\b(?:receive[ds]?|recibimos|recib[ií]|recibir)\b', prefix, re.I):
+        if prefix.strip():
+            return []
+        prefix = 'Received '
+        parts[0] = prefix + parts[0].lstrip()
+    # The final item usually carries shared supplier/BOL/package-weight facts.
+    last = parts[-1]
+    shared = re.search(r'\s+(?:from|del?\s+proveedor)\s+|,\s*(?=\d+(?:\.\d+)?\s*(?:lb|libras?)\b|BOL\b|supplier\s+lot\b|lote\b)', last, re.I)
+    # Spanish supplier proper names following the product: "avena de Grain Supply".
+    spanish_supplier = re.search(r'\s+de\s+(?=[A-ZÁÉÍÓÚ][a-záéíóú]+\s+[A-ZÁÉÍÓÚ])', last)
+    if spanish_supplier and (not shared or spanish_supplier.start() < shared.start()):
+        shared = spanish_supplier
+    suffix = last[shared.start():] if shared else ''
+    parts[-1] = last[:shared.start()] if shared else last
+    # A lot stated after the final item belongs only to that item unless the
+    # worker explicitly supplies it for another item. Do not share trace IDs.
+    lot_label = _LABEL.search(suffix)
+    common = suffix[:lot_label.start()].rstrip(' ,;') if lot_label else suffix
+    return [parts[0].rstrip(' ,.') + common] + [
+        prefix + part.strip(' ,.') + (suffix if index == len(parts)-1 else common)
+        for index, part in enumerate(parts[1:], 1)]

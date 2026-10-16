@@ -292,8 +292,10 @@ def _patterns(query, aliases=()):
     return patterns
 
 
-def _fuzzy_allowed(query, aliases):
+def _fuzzy_allowed(query, aliases, *, party=False):
     tokens = query.split()
+    if party:
+        tokens = [token for token in tokens if token not in ('la', 'le', 'el', 'de', 'the', 'of', 'and', '&')]
     if not tokens or any(len(t.lstrip('#')) <= 2 or t.lstrip('#').isdigit() for t in tokens):
         return False
     # Alias spellings are exact-only even when long. Fuzzy compares real names.
@@ -327,7 +329,7 @@ def _ranked_rows(cur, scored_sql, params, *, limit=MAX_CANDIDATES, offset=0):
 
 
 def _search(cur, source, params, variants, aliases, *, keywords=True, exact_only=False,
-            limit=MAX_CANDIDATES, offset=0, name_sql='s.name', whole_words=False):
+            limit=MAX_CANDIDATES, offset=0, name_sql='s.name', whole_words=False, party=False):
     '''Rank the deduplicated union of spellings, then count and page in SQL.'''
     variants = [variant for variant in variants if variant.text]
     if not variants:
@@ -339,7 +341,7 @@ def _search(cur, source, params, variants, aliases, *, keywords=True, exact_only
             patterns = [r'\m(?:' + pattern + r')\M' for pattern in patterns]
         values.append('(%s::text, %s::text[], %s::boolean, %s::int, %s::int)')
         variant_params.extend((variant.text, patterns,
-                               _fuzzy_allowed(variant.text, aliases) and not exact_only,
+                               _fuzzy_allowed(variant.text, aliases, party=party) and not exact_only,
                                index, len(variant.expansions)))
     for exact in (True, False):
         score = '1.0::float' if exact else f'''CASE
@@ -619,7 +621,7 @@ def _parties(cur, req, variants, aliases):
     party_aliases = [row for row in aliases if row['kind'] != 'token']
     # _search accepts a private search_name override for punctuation-only folds.
     rows = _search(cur, source, params, variants, party_aliases, limit=req.limit, offset=req.offset,
-                   name_sql='s.search_name', whole_words=True)
+                   name_sql='s.search_name', whole_words=True, party=True)
     for row in rows:
         if row['context_rank']:
             row['context_boost'] = 'Customer address agrees; ranking only'

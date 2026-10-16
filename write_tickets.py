@@ -112,6 +112,7 @@ class ReceivePrepareRequest(IdInput):
     cases: conint(strict=True, gt=0)
     case_size_lb: confloat(gt=0)
     bol_reference: str
+    attachment_ids: List[PositiveId] = Field(default_factory=list, max_length=5)
     shipper_code_override: Optional[str] = None
     lot_code: Optional[str] = None
     supplier_lot_code: Optional[str] = None
@@ -285,7 +286,7 @@ def identity(api, request):
 def blocker(exc):
     detail = exc.detail
     if isinstance(detail, dict):
-        return {'code': detail.get('error_code', 'VALIDATION_FAILED'),
+        return {**detail, 'code': detail.get('error_code', 'VALIDATION_FAILED'),
                 'message': detail.get('message', str(detail))}
     return {'code': 'VALIDATION_FAILED', 'message': str(detail)}
 
@@ -322,7 +323,7 @@ def validate_receive(api, cur, payload, *, lock=False):
         entries.append({k: v for k, v in entry.items() if k != 'supplier_id'} |
                        {'supplier_name': party['name'], 'supplier_id': party['id']})
     fields = {k: v for k, v in payload.items()
-              if k not in ('product_id', 'supplier_id', 'expected_receipt_id')}
+              if k not in ('product_id', 'supplier_id', 'expected_receipt_id', 'attachment_ids')}
     fields.update(product_name=product['name'], shipper_name=shipper['name'] if shipper else '',
                   supplier_lot_entries=entries or None, mode='preview')
     # A5 hook: labels come from the resolved supplier; labels never select IDs.
@@ -468,7 +469,9 @@ def receipt_detail(api, cur, number, actor=None):
     if ticket['action'] in SHIP_ACTIONS:
         cur.execute('SELECT id,sales_order_id,bol_reference,proof_status,proof_due_at,entered_by_actor_id FROM shipments WHERE ticket_id=%s', (ticket['id'],))
         shipment = cur.fetchone()
-    receipt = {'shipment': shipment, 'receipt_number': number, 'action': ticket['action'], 'status': ticket['status'],
+    import attachments
+    photos = attachments.for_receipt(cur, ticket['id'])
+    receipt = {'attachments': photos, 'shipment': shipment, 'receipt_number': number, 'action': ticket['action'], 'status': ticket['status'],
             'order': order, 'customer': customer, 'expected_receipts': expected,
             'actor': ticket['draft']['actor'], 'operator_id': ticket['operator_id'],
             'client_source': ticket['client_source'], 'happened_at': happened,
@@ -646,6 +649,10 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
                 product=product, ticket_id=row['id'], receipt_number=receipt, expected_receipt_id=er_id, supplier_id=row['payload']['supplier_id'])
             a5.record_identity(cur, row['payload'], response, row['id'], receipt)
             a5.supplier_receipt(cur, response)
+            import attachments
+            response['attachments'] = attachments.attach_receive(api, cur,
+                effective_payload.get('attachment_ids', []), actor,
+                ticket_id=row['id'], transaction_id=response['transaction_id'])
         else:
             response = actions.post(api, cur, row['action'], validated, effective_payload, request,
                 row['id'], receipt, require_new_lot=not row['draft'].get('lot_exists'))
@@ -691,7 +698,7 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
             return api.JSONResponse(status_code=403, content={'detail': exc.detail})
         if exc.status_code == 422 and errors[0]['code'] in ('LOT_NOT_CONFIRMED', 'LOT_CONFIRMATION_MISMATCH', 'AMBIGUOUS_SUFFIX', 'PALLET_MOVE_REQUIRED', 'UNUSED_LOT_CONFIRMATION', 'DUPLICATE_LOT_CONFIRMATION', 'ATTACHMENT_NOT_FOUND', 'ATTACHMENT_WRONG_CONTEXT', 'ATTACHMENT_KIND_INVALID'):
             return api.JSONResponse(status_code=422, content={'detail': {
-                'error_code': errors[0]['code'], 'message': errors[0]['message'], 'blockers': errors}})
+                **errors[0], 'error_code': errors[0]['code'], 'message': errors[0]['message'], 'blockers': errors}})
         if not approval:
             # A3b: an approval that finds a stale draft leaves the hold for the owner
             # to reject explicitly; the plain commit path rejects as A1 always did.
@@ -768,6 +775,8 @@ def register_routes(app, api):
         for field in ('lot_code', 'target_lot_code'):
             if payload.get(field):
                 payload[field] = api.normalize_lot_code_input(payload[field])
+        if action == 'receive' and not payload.get('attachment_ids'):
+            payload.pop('attachment_ids', None)  # preserve hashes for existing unpictured receives
         if action == 'receive':
             payload['supplier_lot_code'] = (req.supplier_lot_code or '').strip() or 'N/A'
         with api.get_transaction() as cur:
@@ -779,6 +788,9 @@ def register_routes(app, api):
                     draft, state, _, _, _, _, er_id = validate_receive(api, cur, payload)
                     payload['expected_receipt_id'] = er_id
                     payload['lot_code'] = draft['lot_code']
+                    import attachments
+                    draft['attachments'] = attachments.receive_evidence(api, cur,
+                        payload.get('attachment_ids', []), actor)
                 else:
                     draft, state, _, _, _, _, specification, input_plan = actions.validate(api, cur, action, payload)
                     payload['specification'] = specification
@@ -905,8 +917,8 @@ def register_routes(app, api):
             if row['action'] in SHIP_ACTIONS:
                 import ship_tickets
                 return ship_tickets.commit(api, cur, row, body, actor, request, entry_timing)
-            if body.attachment_ids:
-                fail(422, 'UNUSED_ATTACHMENT', 'Use attachment_id for a correction, attachment_ids for shipments.')
+            if body.attachment_ids and row['action'] != 'receive':
+                fail(422, 'UNUSED_ATTACHMENT', 'Use attachment_id for a correction, attachment_ids for shipments or receive lot tags.')
             # A7 hook: order tickets post through their own module (metadata
             # writes, no ledger lines); every lifecycle check above is shared.
             if row['action'] == 'create_customer':
@@ -923,6 +935,9 @@ def register_routes(app, api):
             if body.attachment_ref and row['action'] not in ('adjust', 'found'):
                 fail(422, 'UNUSED_ATTACHMENT', 'Only corrections (adjust, found) take photo evidence.')
             effective_payload = a5.merge_confirmations(row['payload'], [e.dict() for e in body.lot_confirmations])
+            if row['action'] == 'receive':
+                effective_payload['attachment_ids'] = list(dict.fromkeys(
+                    row['payload'].get('attachment_ids', []) + body.attachment_ids))
             return execute_commit(api, cur, row, actor, request, effective_payload=effective_payload,
                                   acknowledged=body.acknowledged_warnings, attachment_ref=body.attachment_ref,
                                   preparer_inactive=actor['id'] is not None and not (current_actor and current_actor['active']))

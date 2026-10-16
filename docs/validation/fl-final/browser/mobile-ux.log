@@ -1,0 +1,62 @@
+webkit, sessions 0, en, 375px: 9 checks passed
+webkit, sessions 0, en, 390px: 9 checks passed
+webkit, sessions 0, en, 393px: 9 checks passed
+webkit, sessions 0, en, 430px: 9 checks passed
+webkit, sessions 0, es, 375px: 9 checks passed
+webkit, sessions 0, es, 390px: 9 checks passed
+webkit, sessions 0, es, 393px: 9 checks passed
+webkit, sessions 0, es, 430px: 9 checks passed
+webkit, sessions 1, en, 375px: 9 checks passed
+webkit, sessions 1, en, 390px: 9 checks passed
+webkit, sessions 1, en, 393px: 9 checks passed
+webkit, sessions 1, en, 430px: 9 checks passed
+webkit, sessions 1, es, 375px: 9 checks passed
+webkit, sessions 1, es, 390px: 9 checks passed
+webkit, sessions 1, es, 393px: 9 checks passed
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+locator.fill: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('#actor-key')[22m
+[2m    - locator resolved to <input required="" id="actor-key" type="password" autocomplete="off" placeholder="Escribe tu clave personal"/>[22m
+[2m    - fill("fixture-key")[22m
+[2m  - attempting fill action[22m
+[2m    2 × waiting for element to be visible, enabled and editable[22m
+[2m      - element is not visible[22m
+[2m    - retrying fill action[22m
+[2m    - waiting 20ms[22m
+[2m    2 × waiting for element to be visible, enabled and editable[22m
+[2m      - element is not visible[22m
+[2m    - retrying fill action[22m
+[2m      - waiting 100ms[22m
+[2m    60 × waiting for element to be visible, enabled and editable[22m
+[2m       - element is not visible[22m
+[2m     - retrying fill action[22m
+[2m       - waiting 500ms[22m
+
+    at signIn (/Users/michaelgross/dev/fl-fixE2-wt/tests/visual/run-fl-assistant-mobile-ux.mjs:83:46)
+    at async file:///Users/michaelgross/dev/fl-fixE2-wt/tests/visual/run-fl-assistant-mobile-ux.mjs:100:30 {
+  log: [
+    "  - waiting for locator('#actor-key')",
+    '    - locator resolved to <input required="" id="actor-key" type="password" autocomplete="off" placeholder="Escribe tu clave personal"/>',
+    '    - fill("fixture-key")',
+    '  - attempting fill action',
+    '    2 × waiting for element to be visible, enabled and editable',
+    '      - element is not visible',
+    '    - retrying fill action',
+    '    - waiting 20ms',
+    '    2 × waiting for element to be visible, enabled and editable',
+    '      - element is not visible',
+    '    - retrying fill action',
+    '      - waiting 100ms',
+    '    60 × waiting for element to be visible, enabled and editable',
+    '       - element is not visible',
+    '     - retrying fill action',
+    '       - waiting 500ms'
+  ],
+  name: 'TimeoutError'
+}
+
+Node.js v26.0.0

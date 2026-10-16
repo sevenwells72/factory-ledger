@@ -1,5 +1,684 @@
 # Change Log
 
+## 2026-10-16 11:05 — Write the final 17-item PR acceptance report
+- **File(s) changed:** docs/validation/fl-final/VERIFICATION.md
+- **What changed:** Mapped every requested fix to implementation and proof; reported final Python/Node/browser/model counts, actual found/trace receipts, historical failures, the last narrow source-equivalence boundary, cleanup and migration 084 deployment requirement.
+- **Why:** Give the PR reviewer a complete plain-language recheck record without claiming hosted or physical-device validation.
+
+---
+
+## 2026-10-16 11:04 — Complete final acceptance selection and verify all data-copy cleanup
+- **File(s) changed:** docs/validation/fl-final/python-off, docs/validation/fl-final/python-on, docs/validation/fl-final/fresh-db-cleanup.json, docs/validation/fl-final/acceptance-summary.json, docs/validation/fl-final/exact-sentences.md; owned local test clusters
+- **What changed:** Saved final 6709 tests per mode, preserved earlier passing runs, selected final 312 exact-sentence checks (240 provider-backed and 72 deterministic), documented the narrow source-equivalence boundary, stopped/deleted both owned clusters and verified zero fl_final_ DBs/dumps/private traces remain.
+- **Why:** Provide final auditable proof and complete the user-required deletion of every disposable staging data copy.
+
+---
+
+## 2026-10-16 11:03 — Delete supplemental staging copies and private proof data
+- **File(s) changed:** /private/tmp/fl_final/supplement.dump, /private/tmp/fl_final/supplement*.private.json, /private/tmp/fl_final/main-multi-final-*.private.json, /private/tmp/fl_final/supplement-photos
+- **What changed:** Dropped both fl_final_supplement databases and removed the local supplemental dump/private transcripts/photo directory after retaining shareable proof.
+- **Why:** Complete the requested disposable-copy cleanup without retaining staging data in validation artifacts.
+
+---
+
+## 2026-10-16 11:03 — Publish exact-sentence supplemental model evidence and retained failures
+- **File(s) changed:** docs/validation/fl-final/supplement-initial-off.json, docs/validation/fl-final/supplement-initial-on.json, docs/validation/fl-final/supplement-clarification-attempt-off.json, docs/validation/fl-final/supplement-multi-final-off.json, docs/validation/fl-final/supplement-multi-final-on.json, docs/validation/fl-final/main-multi-final-off.json, docs/validation/fl-final/main-multi-final-on.json, docs/validation/fl-final/supplement-final-summary.json
+- **What changed:** Published 108 selected passing supplemental checks, twelve passing main-multi rechecks, original failed attempts, provider IDs/statuses and precise source-equivalence notes; no private transcripts copied.
+- **Why:** Provide auditable three-repeat real-model proof including actual found Record/receipts and the final bare-list prefix repair.
+
+---
+
+## 2026-10-16 10:58 — Require useful first reply in supplemental multi-item proof
+- **File(s) changed:** scripts/check_assistant_final_supplement.py
+- **What changed:** Required an actual draft, catalog choice, or missing-facts card on the first short multi-item reply and captured provider incomplete reasons; all completed-response assertions remain strict.
+- **Why:** Do not count a generic misunderstanding as a successful fix or hide provider failures behind worker follow-up.
+
+---
+
+## 2026-10-16 10:58 — Prepare independent fresh database clusters for the final bare-list fix regression
+- **File(s) changed:** docs/validation/fl-final/full-suite-runner.py; /private/tmp/fl_final/full-suite-runner.py; /private/tmp/fl_final/pgdata-0; /private/tmp/fl_final/pgdata-1
+- **What changed:** Allowed only two explicit local validation ports and initialized independent owned clusters so full session-off/on suites can repeat concurrently without cross-suite locks; preserved earlier passing results.
+- **Why:** Validate the newly discovered first-item receive-prefix correction on final code without weakening any test.
+
+---
+
+## 2026-10-16 10:57 — Regress exact bare multi-item receiving sentences
+- **File(s) changed:** tests/test_assistant_final_behavior.py
+- **What changed:** Added exact English and Spanish assertions that both split items retain Received intent and their original products and counts.
+- **Why:** Prevent the first-item missing-action regression found by final actual-model supplementation.
+
+---
+
+## 2026-10-16 10:57 — Keep receiving intent on the first item of a bare multi-item list
+- **File(s) changed:** assistant_receive.py
+- **What changed:** Applied the already-selected Received prefix to the first bare-list item as well as queued items; explicit receive sentences remain unchanged.
+- **Why:** Exact short multi-item requests otherwise left the first model input without an action and triggered generic clarification or incomplete responses.
+
+---
+
+## 2026-10-16 10:55 — Complete both fresh-database Python modes and stop the owned test cluster
+- **File(s) changed:** docs/validation/fl-final/python-on, docs/validation/fl-final/fresh-db-cleanup.json, docs/validation/fl-final/environment.json; /private/tmp/fl_final/pgdata
+- **What changed:** Saved sessions-on 6707/6707 results, bringing full Python proof to 13414 with zero failures/errors/skips. Verified no fl_final_ DBs in the owned cluster, stopped it and deleted its data directory; verified all 41 venv dependencies compatible.
+- **Why:** Finish full-mode regression proof and remove the isolated fresh-test database storage.
+
+---
+
+## 2026-10-16 10:55 — Complete supplemental worker clarification flow
+- **File(s) changed:** scripts/check_assistant_final_supplement.py
+- **What changed:** Added the worker response to a bare multi-item clarification and assertions that the initial reply retains both items and posts nothing; original products, counts and sentences are unchanged.
+- **Why:** The prior harness expected a draft before answering the missing receiving action and delivery facts.
+
+---
+
+## 2026-10-16 10:55 — Preserve original supplemental harness for audit
+- **File(s) changed:** docs/validation/fl-final/supplement-harness-initial.py
+- **What changed:** Kept the initial supplemental runner before adding its omitted worker clarification response.
+- **Why:** Retain the original failed harness attempt without changing frozen runtime.
+
+---
+
+## 2026-10-16 10:53 — Remove the original staging data copy after successful main model proof
+- **File(s) changed:** docs/validation/fl-final/root-data-cleanup.json; /private/tmp/fl_final/staging.dump; local fl_final_staging DB; root private response copies
+- **What changed:** Dropped only the owned local staging-copy database, deleted the read-only source dump, restore list and root private model traces, and recorded verification metadata. Supplemental proof continues on independent owned copies.
+- **Why:** Honor the required staging-copy cleanup without touching the hosted staging database.
+
+---
+
+## 2026-10-16 10:52 — Save final main real-model acceptance matrix in both modes
+- **File(s) changed:** docs/validation/fl-final/real-model-off.json, docs/validation/fl-final/real-model-on.json
+- **What changed:** Recorded 180 of 180 passing exact-sentence checks, three repetitions per mode, with unchanged runtime hashes: 132 provider-backed checks plus 48 deterministic Office/already-shipped checks. Kept only shareable provider IDs and outcomes.
+- **Why:** Prove the assistant fixes against actual staging catalog data with the real model, without mislabelling deterministic routing as model calls.
+
+---
+
+## 2026-10-16 10:50 — Record complete final fresh-database Python session-off pass
+- **File(s) changed:** docs/validation/fl-final/python-off
+- **What changed:** Saved 23 fresh-database group results: all 6707 Python tests passed, with zero failures, errors, skips or expected failures; the disposable suite database was dropped.
+- **Why:** Provide final complete-suite proof after correcting the new resolved-exception fixture.
+
+---
+
+## 2026-10-16 10:50 — Finish frozen-source receipt trace rerun
+- **File(s) changed:** docs/validation/fl-final/trace-real-model-off.json
+- **What changed:** Replace final sessions-off trace proof with 12/12 actual-model passes, 36 unique completed responses, unchanged runtime hashes, verified DB/photo/private-response cleanup; retain initial off proof separately.
+- **Why:** Remove display-copy timing caveat and prove final receive supplier/BOL/photo and explicit physical-tag recovery on the final code.
+
+---
+
+## 2026-10-16 10:48 — Add supplemental real-model exact-sentence and found Record proof
+- **File(s) changed:** scripts/check_assistant_final_supplement.py
+- **What changed:** Added a separate guarded local-copy runner for missing exact staging phrases and actual found Record, receipt, and replay checks in both session modes.
+- **Why:** Complete user-required three-repeat proof without changing runtime or the active final model runner.
+
+---
+
+## 2026-10-16 10:47 — Save focused exception acceptance evidence
+- **File(s) changed:** docs/validation/fl-final/browser/SUMMARY.md; docs/validation/fl-final/browser/exceptions-cutover-off.*; docs/validation/fl-final/browser/exception-queue-*.log
+- **What changed:** Saved eight passing sessions-off WebKit cutover checks and 12 passing exception tests in each mode; documented why visible grouping applies only to sessions-on.
+- **Why:** Finish item13 evidence honestly while preserving existing dashboard availability rules and reporting the fixture correction.
+
+---
+
+## 2026-10-16 10:47 — Retain initial trace proof before frozen-source repeat
+- **File(s) changed:** docs/validation/fl-final/trace-real-model-off-initial.json
+- **What changed:** Preserve the initial12 passing session-off trace cases and their documented display-copy source deltas before replacing final evidence with a frozen-source run.
+- **Why:** Final review should receive unchanged-source proof for both modes without losing the initial validation history.
+
+---
+
+## 2026-10-16 10:47 — Verify intentional Exceptions cutover gate
+- **File(s) changed:** tests/visual/run-fl-assistant-final-floor.mjs
+- **What changed:** The focused sessions-off check now asserts the existing Exceptions page gate hides unavailable controls and renders no exception rows; sessions-on checks still prove grouping and ordering.
+- **Why:** Exceptions is intentionally available only after key-session cutover; do not misstate unavailable legacy UI as a tested grouping path.
+
+---
+
+## 2026-10-16 10:47 — Add regression guard row 216 for the final round E repair
+- **File(s) changed:** FACTORY_LEDGER_CHANGELOG.md
+- **What changed:** Added the next numbered row covering all final repair areas, explicit traceability and retry limits, receipt photo custody and migration 084; preserved every older row including merged mobile UX.
+- **Why:** Record the final change and what future edits must preserve before PR recheck; nothing is deployed.
+
+---
+
+## 2026-10-16 10:46 — Complete sessions-off exception UI coverage
+- **File(s) changed:** tests/visual/run-fl-assistant-final-floor.mjs
+- **What changed:** Factor exception rendering checks into a focused mode; sign in explicitly when session persistence is off, and cover exceptions in both modes for future full runs.
+- **Why:** The original 200-check floor proof covered grouping only with persisted sessions; this closes the browser evidence gap without runtime changes.
+
+---
+
+## 2026-10-16 10:46 — Save final validation environment and honest initial test evidence
+- **File(s) changed:** docs/validation/fl-final/environment.json, docs/validation/fl-final/full-suite-runner.py, docs/validation/fl-final/node-final.log, docs/validation/fl-final/initial-python-attempts.json
+- **What changed:** Recorded every requirements pin, exact local runner, final 411 Node pass output and both earlier Python failure summaries without overwriting their history.
+- **Why:** Make final verification reproducible and distinguish corrected attempts from passing final results.
+
+---
+
+## 2026-10-16 10:45 — Correct resolved exception test fixture
+- **File(s) changed:** tests/test_final_exception_list.py
+- **What changed:** Set resolved_at on the intentionally resolved queue-order fixture so it satisfies the real exceptions constraint; keep newest-unresolved ordering assertion unchanged.
+- **Why:** The full suite correctly rejected an invalid fixture before reaching the ordering check.
+
+---
+
+## 2026-10-16 10:43 — Finish real-model trace acceptance and cleanup
+- **File(s) changed:** docs/validation/fl-final/trace-real-model-off.json,docs/validation/fl-final/trace-real-model-on.json
+- **What changed:** Save24/24 final EN/ES trace cases across both session modes with72 unique completed gpt-6.1-sol responses, exact inputs and source provenance; drop all trace databases and remove private full traces/photos.
+- **Why:** Every receive receipt preserves supplier lot/BOL/private tag photo; every Different-lot make rejects wrong/ambiguous tags before full-code recovery, leaves suggested Salt unchanged and keeps an open physical-tag exception.
+
+---
+
+## 2026-10-16 10:43 — Begin final frozen-source Python and real-model matrices
+- **File(s) changed:** /private/tmp/fl_final/python_0; /private/tmp/fl_final/real-model-off.json; /private/tmp/fl_final/real-model-on.json
+- **What changed:** Independent code review found no remaining defects after final refusal/display fixes. Start complete Python fresh-schema mode0 and actual-provider30-scenario matrices3 repeats each off/on on final runtime hashes.
+- **Why:** Only this completed frozen-source run will be counted in final PR acceptance.
+
+---
+
+## 2026-10-16 10:42 — Save complete browser and Node proof
+- **File(s) changed:** docs/validation/fl-final/browser/*
+- **What changed:** Saved compact logs and results for every assistant browser runner in both modes plus 411 passing Node tests; preserved initial mobile auth test race separately and recorded the successful 144-check rerun as final.
+- **Why:** Make the full required regression matrix reviewable without bulk screenshot noise or misrepresenting fixture tests as real model proof.
+
+---
+
+## 2026-10-16 10:42 — Record real-model trace proof with sessions off
+- **File(s) changed:** docs/validation/fl-final/trace-real-model-off.json
+- **What changed:** Save12/12 exact EN/ES cases (3 repetitions each),36 unique completed gpt-6.1-sol responses with store:false, receive photo/supplier/BOL readback and Different-lot wrong/ambiguous refusals followed by full-code success.
+- **Why:** Evidence confirms local one-post receipts, private linked tags, unchanged suggested Salt and open physical-lot follow-up; source differences are documented display-only copy.
+
+---
+
+## 2026-10-16 10:42 — Verify complete mobile UX matrix
+- **File(s) changed:** tests/visual/run-fl-assistant-mobile-ux.mjs; /private/tmp/fl_final/browser/mobile-ux-final.log
+- **What changed:** WebKit mobile UX rerun passed all 144 checks across both modes, EN/ES, and four iPhone widths with zero Record requests after fixing the auth-restoration test race.
+- **Why:** Complete required browser regression proof without weakening app assertions.
+
+---
+
+## 2026-10-16 10:41 — Verify Spanish refusal coverage across everyday ledger validation families
+- **File(s) changed:** assistant_replies.py, tests/test_assistant_final_behavior.py
+- **What changed:** Covered ordinary reason families plus legacy missing-batch, case-weight, inactive-product and lot-identity text; preserved original structured evidence and English reason text.
+- **Why:** Finish the Spanish reason audit without invoking a model to translate errors or inventing inventory facts.
+
+---
+
+## 2026-10-16 10:41 — Keep remaining reservation and readiness quantities within two decimals
+- **File(s) changed:** main.py
+- **What changed:** Changed11 display-only four-decimal format slots in reservation/balance/readiness/order-reduction messages to two decimals; stored values, allocation math and guards unchanged.
+- **Why:** User requested at most two displayed decimals without float noise throughout worker-visible quantities.
+
+---
+
+## 2026-10-16 10:40 — Retain first full-suite failures for receive-state regression repair
+- **File(s) changed:** /private/tmp/fl_final/python_initial_0
+- **What changed:** Initial ordinary group6583 passed,2 receive-correction state-shape failures, zero errors/skips; complete raw results retained before rerunning all23 groups after correction.
+- **Why:** Do not hide initial failed validation or count it as final acceptance.
+
+---
+
+## 2026-10-16 10:40 — Translate normal assistant refusal families with their actual ledger reasons
+- **File(s) changed:** assistant_replies.py
+- **What changed:** Added Spanish reasons for lot identity, receive, recipe/pack, substitutions, permissions, dates, stock corrections, orders, evidence and ticket states; translated legacy missing-batch and case-weight messages while preserving actual fields and codes.
+- **Why:** Every ordinary refusal should explain the reason in Spanish rather than hiding it behind a generic draft warning.
+
+---
+
+## 2026-10-16 10:40 — Round shortage prose and make mobile resume test wait for authentication
+- **File(s) changed:** exceptions_enforcement.py, tests/test_final_exception_queue.py, tests/visual/run-fl-assistant-mobile-ux.mjs
+- **What changed:** Formatted only quantity slots to two decimals in bilingual shortage warnings while retaining exact ledger refs/lot codes; fixed test-helper race filling a hidden key during successful automatic session restore.
+- **Why:** Final no-float-noise requirement and reliable full mobile144-check acceptance without weakening resume assertions.
+
+---
+
+## 2026-10-16 10:39 — Record existing Assistant browser mobile-ux
+- **File(s) changed:** /private/tmp/fl_final/browser/mobile-ux.log
+- **What changed:** Saved the full unfiltered browser run result (exit 1) and local evidence.
+- **Why:** Final regression matrix on both session modes; no hosted writes.
+
+---
+
+## 2026-10-16 10:39 — Separate trace recording provenance from unrelated copy changes
+- **File(s) changed:** scripts/check_final_trace_receipts.py
+- **What changed:** Record before/after source hashes and exact changed files, plus a separate unchanged check for receipt, model-tool, physical-tag and record dependencies.
+- **Why:** Final refusal-copy work can happen beside long real-model runs; evidence must identify actual loaded source rather than claim a fully unchanged tree.
+
+---
+
+## 2026-10-16 10:39 — Complete Spanish refusal coverage before final provider proof
+- **File(s) changed:** /private/tmp/fl_final/before-spanish-copy
+- **What changed:** Archived interrupted preliminary model runs for final plain-Spanish refusal-code expansion; no incomplete run is counted as final acceptance.
+- **Why:** Review found ordinary refusal families still falling back to a generic Spanish sentence.
+
+---
+
+## 2026-10-16 10:39 — Record existing Assistant browser round-c-phone
+- **File(s) changed:** /private/tmp/fl_final/browser/round-c-phone.log
+- **What changed:** Saved the full unfiltered browser run result (exit 0) and local evidence.
+- **Why:** Final regression matrix on both session modes; no hosted writes.
+
+---
+
+## 2026-10-16 10:39 — Restart final3-of3 model matrix after signed-quantity review
+- **File(s) changed:** /private/tmp/fl_final/real-model-off.json; /private/tmp/fl_final/real-model-on.json
+- **What changed:** Started both actual-provider session-mode runs on frozen application source; earlier partial evidence retained separately.
+- **Why:** Final proof must match reviewed source and preserve negative/explicit quantity semantics.
+
+---
+
+## 2026-10-16 10:38 — Isolate repeated real-model trace cases
+- **File(s) changed:** scripts/check_final_trace_receipts.py
+- **What changed:** Clone the guarded local staging snapshot for each real-model case and drop it immediately afterward so three repetitions see identical physical stock and ambiguous suffixes.
+- **Why:** The first successful make legitimately exhausted an ambiguous FIFO lot and changed later test preconditions; independent copies make the repeated proof comparable.
+
+---
+
+## 2026-10-16 10:38 — Pin server-side newest exception selection before limits
+- **File(s) changed:** tests/test_final_exception_list.py
+- **What changed:** Added real handler/database regression proving a newer open item wins a limited result over older overdue and newer resolved rows.
+- **Why:** Client sorting cannot recover a new exception omitted by server limits.
+
+---
+
+## 2026-10-16 10:38 — Keep Office delivery routing specific to incoming goods
+- **File(s) changed:** assistant_intents.py, tests/test_assistant_final_behavior.py
+- **What changed:** Required material/package wording for inferred future-delivery handoffs and retained explicit expected-delivery requests.
+- **Why:** Ordinary future emails or customer payments must not be mistaken for expected warehouse deliveries.
+
+---
+
+## 2026-10-16 10:38 — Record existing Assistant browser round-c-transcripts
+- **File(s) changed:** /private/tmp/fl_final/browser/round-c-transcripts.log
+- **What changed:** Saved the full unfiltered browser run result (exit 0) and local evidence.
+- **Why:** Final regression matrix on both session modes; no hosted writes.
+
+---
+
+## 2026-10-16 10:38 — Keep old receive correction state compatible while updating bound package weights
+- **File(s) changed:** fl_assistant.py
+- **What changed:** Updated persisted case weight only when explicit package facts had bound it, retaining the original total-only state shape for older receive corrections.
+- **Why:** Existing round E commingled-lot correction tests require unchanged lot tombstones and total-only facts.
+
+---
+
+## 2026-10-16 10:38 — Record existing Assistant browser round-b-page
+- **File(s) changed:** /private/tmp/fl_final/browser/round-b-page.log
+- **What changed:** Saved the full unfiltered browser run result (exit 0) and local evidence.
+- **Why:** Final regression matrix on both session modes; no hosted writes.
+
+---
+
+## 2026-10-16 10:37 — Preserve interrupted validation before final parser hardening
+- **File(s) changed:** /private/tmp/fl_final/earlier-model
+- **What changed:** Stopped actual-model draft matrix and archived completed partial results after review found signed-package parsing and bare customer-name routing edge cases; these are preliminary, not final acceptance.
+- **Why:** Final3/3 evidence must match final runtime source exactly.
+
+---
+
+## 2026-10-16 10:37 — Clean up final backend regression database
+- **File(s) changed:** docs/validation/fl-final/backend-tests.json
+- **What changed:** Drop the owned fl_final_backend test database and mark its cleanup verified in the backend regression evidence.
+- **Why:** The user requires all disposable validation databases removed after use.
+
+---
+
+## 2026-10-16 10:37 — Keep invalid signed package counts invalid and complete bare customer choices
+- **File(s) changed:** assistant_receive.py, fl_assistant.py, tests/test_assistant_final_behavior.py
+- **What changed:** Prevented package arithmetic from stripping negative signs and made Add Setton with resolver-first output finish on the chosen existing customer without another creation loop.
+- **Why:** Quantity binding must not convert invalid receive quantities into positive stock, and existing customer choices must complete cleanly.
+
+---
+
+## 2026-10-16 10:37 — Record backend final regression evidence
+- **File(s) changed:** docs/validation/fl-final/backend-tests.json
+- **What changed:** Record623 passing backend checks in each session mode, exact test modules, source hashes and the observed EMAXCONNSESSION root cause with bounded read recovery.
+- **Why:** Keep reviewer-visible evidence for final staging fixes; isolated DB cleanup follows the running real-model trace proof.
+
+---
+
+## 2026-10-16 10:37 — Record existing Assistant browser round-b-contract
+- **File(s) changed:** /private/tmp/fl_final/browser/round-b-contract.log
+- **What changed:** Saved the full unfiltered browser run result (exit 0) and local evidence.
+- **Why:** Final regression matrix on both session modes; no hosted writes.
+
+---
+
+## 2026-10-16 10:37 — Record existing Assistant browser round-a-on
+- **File(s) changed:** /private/tmp/fl_final/browser/round-a-on.log
+- **What changed:** Saved the full unfiltered browser run result (exit 0) and local evidence.
+- **Why:** Final regression matrix on both session modes; no hosted writes.
+
+---
+
+## 2026-10-16 10:37 — Record existing Assistant browser round-a-off
+- **File(s) changed:** /private/tmp/fl_final/browser/round-a-off.log
+- **What changed:** Saved the full unfiltered browser run result (exit 0) and local evidence.
+- **Why:** Final regression matrix on both session modes; no hosted writes.
+
+---
+
+## 2026-10-16 10:37 — Start final actual-provider and full Python acceptance matrices
+- **File(s) changed:** /private/tmp/fl_final/real-model-off.json; /private/tmp/fl_final/real-model-on.json; /private/tmp/fl_final/python_0
+- **What changed:** Run30 exact EN/ES scenarios three times per session mode with actual gpt-6.1-sol; start complete fresh-schema Python suite on dedicated local PG17 port5440. Source hashes captured by model harness.
+- **Why:** User requires3/3 actual-model proof and complete Python validation both modes.
+
+---
+
+## 2026-10-16 10:37 — Record existing Assistant browser existing-on
+- **File(s) changed:** /private/tmp/fl_final/browser/existing-on.log
+- **What changed:** Saved the full unfiltered browser run result (exit 0) and local evidence.
+- **Why:** Final regression matrix on both session modes; no hosted writes.
+
+---
+
+## 2026-10-16 10:36 — Record existing Assistant browser existing-off
+- **File(s) changed:** /private/tmp/fl_final/browser/existing-off.log
+- **What changed:** Saved the full unfiltered browser run result (exit 0) and local evidence.
+- **Why:** Final regression matrix on both session modes; no hosted writes.
+
+---
+
+## 2026-10-16 10:36 — Isolate full-suite PostgreSQL from active browser and model tests
+- **File(s) changed:** /private/tmp/fl_final/pgdata; /private/tmp/fl_final/full-suite-runner.py
+- **What changed:** Created owned localhost-only PG17 cluster on5440 with fl_final_ databases; existing suite harness retains schema/fixture semantics, now avoids cluster-wide advisory-lock interference from browser/model tests on5432.
+- **Why:** Ensure full Python both-mode runs have zero concurrency-induced skips while other acceptance work continues.
+
+---
+
+## 2026-10-16 10:36 — Retain original multi-item transcripts and append-only shortage fixtures
+- **File(s) changed:** fl_assistant.py, tests/test_assistant_final_behavior.py
+- **What changed:** Saved the original human sentence for replay/reload while deriving separate model inputs; used a correction event to seed shortage tests without mutating immutable ledger rows.
+- **Why:** Queued receive parsing must retain the exact worker transcript and tests must respect append-only inventory.
+
+---
+
+## 2026-10-16 10:36 — Add real-model receipt and physical-tag acceptance runner
+- **File(s) changed:** scripts/check_final_trace_receipts.py
+- **What changed:** Add a guarded local-copy runner repeating exact EN/ES receive and Different-lot makes three times, with genuine provider IDs, explicit worker tags, wrong/ambiguous refusals, record/replay and private receipt-photo readback.
+- **Why:** Prove final staging fixes with actual model responses and unchanged physical traceability gates; no hosted writes.
+
+---
+
+## 2026-10-16 10:36 — Verify shipping shortage messages against actual allocation and no-write behavior
+- **File(s) changed:** tests/test_assistant_final_behavior.py
+- **What changed:** Added EN/ES chat tests using a real 20-case order with 12 cases available, asserting exact shortage details, next-step links and no ledger post.
+- **Why:** Stock guidance must be sourced from real allocation state rather than only a message formatter.
+
+---
+
+## 2026-10-16 10:36 — Keep new problems on opening lots in the active queue
+- **File(s) changed:** exceptions_enforcement.py, tests/test_final_exception_queue.py
+- **What changed:** Restricted collapsed opening-stock classification to original unidentified-lot follow-up, so later corrections and late entries on those lots stay visible; added regressions.
+- **Why:** Prevent grouping by lot origin from hiding new exceptions, the problem reported in the full staging test.
+
+---
+
+## 2026-10-16 10:36 — Preserve receive corrections and queue identity through later chat turns
+- **File(s) changed:** fl_assistant.py, assistant_service.py, tests/test_fl_assistant.py
+- **What changed:** Kept corrected package weight authoritative, retained active queue draft identity across unrelated lookups, omitted empty receive attachment mutations, broadened billing code detection and updated old refusal expectations to preserve the real reason.
+- **Why:** Final guards must preserve existing corrections, evidence relay and repeatable queue behavior.
+
+---
+
+## 2026-10-16 10:36 — Verify both queued products and specific real-stock shortage
+- **File(s) changed:** scripts/check_assistant_final_real_model.py
+- **What changed:** Add existing staging-copy shortage order EN/ES, correct quota code and canonical SKU assertion; require first receive finish gate, explicit test-worker Record, reload, and second Oats draft before cancelling.
+- **Why:** Prove no multi-item loss and real stock quantities with original model transport on local-only data.
+
+---
+
+## 2026-10-16 10:35 — Update UI harnesses for final asset and exception contracts
+- **File(s) changed:** tests/test_assistant_mobile_ux.js, tests/test_background_startup_ui.js
+- **What changed:** Updated pinned Assistant cache versions and used the real exception queue helpers in startup harness; first full Node run exposed these two stale expectations (409 passed/2 failed).
+- **Why:** Preserve the original cache-refresh and background-activity checks against final UI wiring.
+
+---
+
+## 2026-10-16 10:35 — Use authenticated actor shape in owner notice tests
+- **File(s) changed:** tests/test_final_exception_queue.py
+- **What changed:** Used actual key_kind=actor identity for exception permission tests.
+- **Why:** Match the authorization contract exercised in production.
+
+---
+
+## 2026-10-16 10:35 — Preserve fractional pounds in worker messages
+- **File(s) changed:** main.py,ticket_actions.py,tests/test_final_db_recovery.py
+- **What changed:** Use a dedicated Decimal quantity formatter with at most two decimals, leaving the pre-existing whole-pound order-health formatter unchanged; cover small, large and float-noise values.
+- **Why:** Worker correction and ingredient quantities must remain precise rather than rounding a half-pound shortage to a whole pound.
+
+---
+
+## 2026-10-16 10:35 — Retain focused phone evidence and protect owner outage notices
+- **File(s) changed:** exceptions_enforcement.py, tests/test_final_exception_queue.py, tests/visual/run-fl-assistant-final-floor.mjs, docs/validation/fl-final/ui/, /private/tmp/fl_final/ui/
+- **What changed:** Finished200/200 phone acceptance, retained ten representative390px screenshots plus full result counts, moved bulk captures outside repo; made assistant outage notices owner-acknowledged only with permission regressions.
+- **Why:** Keep PR evidence concise and ensure staff cannot clear the owner credit-outage alert.
+
+---
+
+## 2026-10-16 10:35 — Round backend worker quantity sentences
+- **File(s) changed:** main.py,ticket_actions.py
+- **What changed:** Format receive/make/pack/ship/found/adjust preview, receipt and refusal quantities with the shared two-decimal formatter; numeric stored quantities remain unchanged.
+- **Why:** Final staging screenshot showed binary float noise and UI formatting cannot repair numbers already embedded in backend sentences.
+
+---
+
+## 2026-10-16 10:34 — Prevent queued receives from skipping missing facts or sharing lot identities
+- **File(s) changed:** assistant_receive.py, fl_assistant.py, assistant_replies.py, tests/test_assistant_final_behavior.py
+- **What changed:** Blocked queue continuation until the active item is recorded or cancelled, including incomplete drafts; kept final-item lot codes out of earlier items and tested queue safety.
+- **Why:** The second receive must remain queued without discarding the first or copying an unconfirmed supplier lot onto another product.
+
+---
+
+## 2026-10-16 10:34 — Refresh shared entry/Office assets and prove full-code lot recovery
+- **File(s) changed:** dashboard/entry.html, dashboard/office.html, tests/visual/run-fl-assistant-final-floor.mjs
+- **What changed:** Updated Record-entry/Office cache keys for shared quantity formatting; browser recovery now explicitly switches every remaining physical tag from suffix to full-code before retry.
+- **Why:** Ensure deployed caches receive the fix and UI evidence follows real traceability semantics.
+
+---
+
+## 2026-10-16 10:34 — Add final assistant behavior regressions with real route and database checks
+- **File(s) changed:** tests/test_assistant_final_behavior.py
+- **What changed:** Covered bad-model bag arithmetic, two-item receive Record/reload/queue continuity, zero-provider Office routes, completed shipping, duplicate Setton protection, spoken names/numbers, quota classification and deduped owner notices, and bilingual shortage specifics.
+- **Why:** Verify all new backend staging fixes while retaining explicit human recording and catalog/lot evidence boundaries.
+
+---
+
+## 2026-10-16 10:34 — Record final floor iPhone acceptance evidence
+- **File(s) changed:** docs/validation/fl-final/ui/
+- **What changed:** Saved actual-page WebKit screenshots and results for all four iPhone widths, EN/ES and both key-session modes; all visible final-round scenarios passed.
+- **Why:** Retain reviewable browser proof alongside real-model and database test evidence.
+
+---
+
+## 2026-10-16 10:33 — Handle bounded local pool contention on safe reads
+- **File(s) changed:** main.py,tests/test_final_db_recovery.py
+- **What changed:** Treat local connection-pool exhaustion as a transient read failure and allow one 100ms pause before the sole retry; preserve no retry for writes.
+- **Why:** The smaller session budget must fail plainly during concurrency rather than leak a raw pool error or spin.
+
+---
+
+## 2026-10-16 10:33 — Complete four-width phone and customer-identity coverage
+- **File(s) changed:** dashboard/assistant-display.js, tests/test_final_floor_ui.js, tests/visual/run-fl-assistant-final-floor.mjs
+- **What changed:** Rounded line prices/amounts, pinned no-duplicate customer suggestions, and expanded WebKit acceptance to 375/390/393/430px.
+- **Why:** Match the merged mobile review width matrix and final customer requirement.
+
+---
+
+## 2026-10-16 10:33 — Install current isolated Playwright browser engines
+- **File(s) changed:** ~/Library/Caches/ms-playwright
+- **What changed:** Downloaded browser binaries matching checkout Playwright dependency for Chromium/WebKit validation.
+- **Why:** Run all browser runners with their actual matching runtime.
+
+---
+
+## 2026-10-16 10:33 — Finish stock-refusal next steps and existing-customer display
+- **File(s) changed:** dashboard/assistant-display.js, dashboard/fl-assistant.js
+- **What changed:** Rendered safe Office/Record-entry actions on refusals, hid add-new for known customer suggestions, and rounded remaining numeric line fields without changing lot names or codes.
+- **Why:** Connect backend final-round contracts to the worker UI.
+
+---
+
+## 2026-10-16 10:33 — Keep Spanish shared suppliers and explicit receive totals in queued requests
+- **File(s) changed:** assistant_receive.py
+- **What changed:** Preserved Spanish supplier suffixes across queued items, retained explicit total contradictions for review, and rejected order text from receive splitting.
+- **Why:** Queue parsing must not lose supplier facts, override a stated total or transform a multi-item order into a receive.
+
+---
+
+## 2026-10-16 10:32 — Bound session-pool capacity and recover product searches
+- **File(s) changed:** main.py,tests/test_final_receive_receipts.py,tests/test_final_db_recovery.py
+- **What changed:** Use a 1-idle/10-active per-process DB pool, log session-pool capacity failures explicitly, and include read-only product searches in single-retry recovery and fault tests.
+- **Why:** Full staging test log proves EMAXCONNSESSION session-pool saturation; reduce app pressure without changing hosted configuration or retrying writes.
+
+---
+
+## 2026-10-16 10:32 — Add final floor iPhone WebKit acceptance runner
+- **File(s) changed:** tests/visual/run-fl-assistant-final-floor.mjs
+- **What changed:** Added 375/390px EN/ES sessions-off/on actual-page tests for receipts and private photos, manual lot evidence, quota/temporary outage, Office handoff, retained receive queue, touch targets, neutral photo prompt and exception grouping.
+- **Why:** Prove every visible final-round change on iPhone-width WebKit with deterministic local-only fixtures.
+
+---
+
+## 2026-10-16 10:32 — Add exact-transcript actual-model final acceptance harness
+- **File(s) changed:** scripts/check_assistant_final_real_model.py
+- **What changed:** Guard localhost fl_final_ DBs, run exact EN/ES sentences three times with unmodified provider transport, record completed provider IDs and source hashes, keep full traces private and require human choices/tags.
+- **Why:** Provide reviewable real-model proof for all assistant behavior repairs rather than relying on stubbed model tests.
+
+---
+
+## 2026-10-16 10:32 — Explain shipping stock shortages with exact available quantities
+- **File(s) changed:** ship_tickets.py
+- **What changed:** Shipping allocation refusals now return product, available and required pounds, case weight and specific English/Spanish messages using the refusing allocation plan.
+- **Why:** Workers could not tell why a shipment was refused or how much stock was missing.
+
+---
+
+## 2026-10-16 10:31 — Show specific bilingual refusals and queued receive guidance
+- **File(s) changed:** assistant_replies.py, resolution.py
+- **What changed:** Preserved structured Spanish blocker reasons, translated stock/kosher/order refusals, named already-shipped orders, added stock next steps and localized queue continuation; rounded displayed quantities to two decimals.
+- **Why:** Spanish workers saw generic refusals and raw floating point values instead of usable guidance.
+
+---
+
+## 2026-10-16 10:31 — Cover final floor display and explicit opening-stock markers
+- **File(s) changed:** exceptions_enforcement.py, dashboard/fl-assistant.js, tests/test_final_floor_ui.js, tests/test_final_exception_queue.py
+- **What changed:** Recognized inspected staging opening-stock marker without grouping normal found stock; put photo-only guidance inline; retained bilingual receipt labels; added quantity/evidence/offline/handoff/exception regressions.
+- **Why:** Pin the full-test fixes and preserve lot-code identity while formatting quantities.
+
+---
+
+## 2026-10-16 10:31 — Repair receipt identity query and focused test selector
+- **File(s) changed:** lot_confirmation.py,tests/test_final_receive_receipts.py
+- **What changed:** Restore the transaction FROM clause in the supplier receipt query and select the actual lot confirmation group contract in the new regression.
+- **Why:** First focused integration run caught the SQL composition error before validation.
+
+---
+
+## 2026-10-16 10:31 — Recognize spoken product numbers and existing party names
+- **File(s) changed:** assistant_voice.py, resolution.py, fl_assistant.py, assistant_tools.py
+- **What changed:** Added grouped spoken product numbers, SS Original shorthand, conservative party fuzzy matching through short name particles, and existing-customer-only choices; documented explicit receive package multiplication.
+- **Why:** Voice La Crosse and product number wording failed and Add Setton offered a duplicate customer.
+
+---
+
+## 2026-10-16 10:31 — Add final receipt and disconnect regression checks
+- **File(s) changed:** tests/test_final_receive_receipts.py,tests/test_final_db_recovery.py
+- **What changed:** Add real PostgreSQL tests for bilingual found notes, receipt fields, private lot-tag linkage/refusals/replay, Different-lot traceability and suffix recovery; add bounded read retry and no-write-replay fault checks.
+- **Why:** Prove staging review fixes retain evidence, actor privacy and transaction safety.
+
+---
+
+## 2026-10-16 10:30 — Bind final assistant guards into chat and recording
+- **File(s) changed:** fl_assistant.py
+- **What changed:** Integrated queued multi-product receive state, explicit bag math, fast Office navigation, completed-order detection, existing-customer choices, quota outage notices, and receive lot-tag attachment selection.
+- **Why:** Prevent silent item loss, duplicate customers, misleading refusals and lost receipt traceability without allowing model recording or lot confirmation.
+
+---
+
+## 2026-10-16 10:30 — Make receipt evidence and exception follow-up readable
+- **File(s) changed:** dashboard/ledger-ui.js, dashboard/receipt.js, dashboard/exceptions.js, dashboard/ledger-forms.css, dashboard/fl-assistant.html, dashboard/receipt.html, dashboard/exceptions.html, exceptions_enforcement.py
+- **What changed:** Added private receipt photo viewer and shared two-decimal quantity display; plain bilingual exception titles, newest unresolved ordering, collapsed explicit opening-stock group, and refreshed affected asset versions.
+- **Why:** Final review requires receipt traceability, readable Spanish and new exceptions above historical opening stock.
+
+---
+
+## 2026-10-16 10:30 — Record successful actual-provider preflight safely
+- **File(s) changed:** /private/tmp/fl_final/provider-preflight.json
+- **What changed:** Handle null success error payload while saving actual Responses status/id/model, without credentials or provider text.
+- **Why:** Confirm current model availability; first preflight reached provider but its evidence serializer rejected error:null.
+
+---
+
+## 2026-10-16 10:30 — Restore staging snapshot into owned local final-test database
+- **File(s) changed:** /private/tmp/fl_final/restore.list; local fl_final_staging DB
+- **What changed:** Restored read-only snapshot with existing public schema TOC entry excluded; localhost-only schema/data copy.
+- **Why:** Run real assistant acceptance against staging data while preserving hosted state.
+
+---
+
+## 2026-10-16 10:30 — Recover transient read disconnects and complete receipt text
+- **File(s) changed:** main.py,write_tickets.py
+- **What changed:** Discard disconnected pooled sockets, enable bounded TCP keepalive/connect timeout, retry only audited inventory and order reads once, preserve Spanish found notes on direct endpoints, and include supplier lot/BOL in receive receipt text.
+- **Why:** Staging reads intermittently failed on dropped connections; workers need original-language notes and complete traceability evidence without replaying writes.
+
+---
+
+## 2026-10-16 10:30 — Check real-model availability before full acceptance
+- **File(s) changed:** /private/tmp/fl_final/provider-preflight.json
+- **What changed:** Sent a minimal real gpt-6.1-sol Responses request with store:false and recorded only provider status/id/model or error codes.
+- **Why:** Detect the reported credit outage early without changing account settings.
+
+---
+
+## 2026-10-16 10:30 — Preserve receive package arithmetic and queued items; classify assistant billing outages
+- **File(s) changed:** assistant_receive.py, assistant_intents.py, assistant_service.py, migrations/084_assistant_service_alert.sql
+- **What changed:** Added explicit bag/case multiplication, per-item receive splitting, deterministic Office handoffs and quota-only offline guidance with a durable owner exception migration.
+- **Why:** Final staging test exposed dropped receive items, bag totals, slow unsupported navigation and misleading credit-outage retries.
+
+---
+
+## 2026-10-16 10:30 — Install isolated browser validation dependencies
+- **File(s) changed:** node_modules; package-lock.json (ignored)
+- **What changed:** Installed project Playwright test dependency in final checkout.
+- **Why:** Run iPhone-width WebKit and all existing assistant browser runners.
+
+---
+
+## 2026-10-16 10:29 — Make final acceptance database names explicitly isolated
+- **File(s) changed:** tests/visual/run-fl-assistant-round-c.mjs; tests/visual/assistant_round_c_page_bridge.py; /private/tmp/fl_final/full-suite-runner.py
+- **What changed:** Round C browser accepts a guarded TEST_DB_PREFIX; copied existing one-database full-suite harness with fl_final_ DBs and distinct outputs. Assertions and migration SQL unchanged.
+- **Why:** Run every requested suite using exclusively fl_final_ disposable databases.
+
+---
+
+## 2026-10-16 10:29 — Show receipt trace evidence and floor-safe Assistant controls
+- **File(s) changed:** dashboard/assistant-display.js, dashboard/fl-assistant.js, dashboard/fl-assistant.css
+- **What changed:** Added supplier lot/BOL and private receipt photos; max-two-decimal quantity rendering; Office handoff/queued-receive/offline cards; no quota retry; mobile touch targets, unobscured jump button and neutral photo guidance; removed unused photoSeq.
+- **Why:** Final full-staging review items 2, 4, 5, 6, 7, 15, 16, 17.
+
+---
+
+## 2026-10-16 10:29 — Create private read-only staging snapshot for final acceptance
+- **File(s) changed:** /private/tmp/fl_final/staging.dump
+- **What changed:** pg_dump public schema/data using staging session-pooler port 5432, no hosted writes or session read-only settings; mode 600 snapshot.
+- **Why:** User requires real-model checks on a disposable local staging copy, deleted after testing.
+
+---
+
+## 2026-10-16 10:29 — Complete bilingual found notes and receive evidence
+- **File(s) changed:** ticket_actions.py,lot_confirmation.py,write_tickets.py,attachments.py
+- **What changed:** Accept Spanish found notes, preserve bilingual blockers, return supplier lot/BOL on receipts, round ingredient display totals and link authenticated receive lot-tag uploads to the receipt transaction.
+- **Why:** Final round E staging review items 1, 2, 7, 8 and 17; preserve physical-tag requirements and private attachment custody.
+
+---
+
+## 2026-10-16 10:29 — Rebase final repair round onto merged mobile UX and isolate validation
+- **File(s) changed:** dashboard/fl-assistant.html; CHANGE_LOG.md; /private/tmp/fl_final_log.py; ~/dev/fl_final_venv
+- **What changed:** Rebased Round E onto main 60be28a, kept both change histories and display v8/assistant v13. Fresh isolated checkout replaces failed iCloud worktree materialization; separate Python environment matches every requirements.txt pin including pydantic 2.14.1. Added serialized dual-log helper.
+- **Why:** User requested final full-test repair with no staging writes or shared environment drift.
+
+---
+
 ## 2026-10-16 08:22 — FL Assistant mobile UX: open at latest, Today button, photo status
 - **File(s) changed:** fl_assistant.py; dashboard/fl-assistant.js; dashboard/fl-assistant.css; dashboard/fl-assistant.html; tests/test_assistant_mobile_ux.js; tests/test_assistant_mobile_ux.py; tests/visual/run-fl-assistant-mobile-ux.mjs; tests/visual/run-fl-assistant.mjs; docs/validation/fl-assistant-mobile-ux/; FACTORY_LEDGER_CHANGELOG.md (row 215); CHANGE_LOG.md
 - **What changed:** Chat opens and stays at the latest message, with Jump to latest ↓ after scrolling up; plant-time Yesterday/Today dividers (resume returns each turn's created_at); sticky phone header; Today result shown on screen. Photo: thumbnail, type chosen after picking, Uploading %/Attached ✓/retry/too large/not a photo states, phone-side shrink only above 5 MB, photo shown on the draft, reminder when a reply is not a draft. EN/ES. Existing runner photo steps updated. Validation: Python 6,451 passed per session mode on fresh DBs (0 failed/skipped); Node 389; all Assistant browser runners pass both modes; new WebKit runner 144 checks. Item 4 (classic number nine) confirmed historical: 3/3 real-model runs correct on a staging copy; no change.

@@ -473,7 +473,7 @@ def test_failed_repair_always_returns_plain_rephrase(client, chat, monkeypatch, 
 
 
 @pytest.mark.parametrize('status', [403, 404, 422, 500])
-def test_lookup_business_failure_is_neutral_without_model_retry(client, chat, db_cursor, monkeypatch, status):
+def test_lookup_business_failure_keeps_plain_reason_without_model_retry(client, chat, db_cursor, monkeypatch, status):
     name = 'F1 read failure ' + uuid4().hex[:10]
     db_cursor.execute("INSERT INTO products(name,type,uom) VALUES (%s,'ingredient','lb')", (name,))
     requests = model(monkeypatch, ('inventory_lookup', {'q': name}))
@@ -492,7 +492,7 @@ def test_lookup_business_failure_is_neutral_without_model_retry(client, chat, db
         'result': {'detail': {'error_code': 'BUSINESS_REFUSAL', 'message': 'FL refused'}},
         'language': 'en', 'error_code': 'BUSINESS_REFUSAL',
         'message': ('Factory Ledger is temporarily unavailable — try again in a minute.' if status >= 500 else
-                    'I could not complete that Factory Ledger request. Check the item and details.'),
+                    'FL refused'),
     }]
     assert len(requests) == 1
 

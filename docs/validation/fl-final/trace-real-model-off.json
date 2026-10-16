@@ -1,0 +1,673 @@
+{
+  "sessions": 0,
+  "real_provider": true,
+  "local_copy_only": true,
+  "explicit_test_worker_tags": true,
+  "source_sha256": {
+    "sales_document_tickets.py": "df939b8205311b31dbc723cb12a30cee712307b205c2cff99027f5b0e43cf32d",
+    "assistant_voice.py": "5d97b10765871884a268814e834b7b29e83d99aaaf5546f8aa67cac513035b90",
+    "staging_safety.py": "656059fe338d1d9edcf72ed41d77cfcaab464c7ef9e516aad7a17bbb803bb6df",
+    "build_gpt_instructions.py": "037ba968904e7d2bc90924e3e7addbdace17973618a746bb7a5562e9ab4ba028",
+    "ticket_actions.py": "74756b6245ad57be45b87afbdd382a1eeade1eea580d0aeebf338e18cb9ededd",
+    "expected_receipt_tickets.py": "0cb5ef1da80c6f50e6173db303a3d030f3c4d467f5112f6a729340aa06f13173",
+    "resolution_receipts.py": "b828bc2e38db1705dfc9c9b9466e88828ba2b90b49c2ebac3bb943b1c680b715",
+    "order_tickets.py": "5f82e6e168999f5bc77816059b619da6d2167a9994d2df7be220d914a39df5bb",
+    "supplier_lot_tickets.py": "f23215ec0d428888bcae31c6ef3639190a1658df4f0b518821ca31666e3da500",
+    "shift_receipts.py": "20a0f073989ee7d17209b22e449fd72f38e40feaec887956521edde4c3bd7b71",
+    "shift_summary.py": "b9f63c0ff8b6c7aca15d6b245a1b65e02c78f619c65e78885409fbff80e9ffce",
+    "kosher_tiers.py": "5c520e95c55df8e415aa43c92fa01504d666f68a2eab9c1995150cc563ae09e1",
+    "attachments.py": "4ce4cf95146dc75dc6504dee1fa91c229f8c35f5bf25f7043203e192bb337c6c",
+    "customer_tickets.py": "c6995adaf054a216c01e136a8341a1670c165c2388afa71de170bd5d60416f5b",
+    "extraction.py": "bee7e93ad685095991660c7947a20f1dd6c47cc26213639d7b4dc92aa7eb31d9",
+    "oat_bran_substitution.py": "f7875b7f3faef170d0bb96c481a894fcfd2fb924baa21f7d80718955afed26f3",
+    "assistant_runtime.py": "7b1d4a8bbd13f5b0cfce605169eaa09272d69d155d0ddf7966606fec44c5b549",
+    "permissions.py": "7b6e33b6211142eba52066223b4fac32c4eaf9d55d35fa35082410ae167a98db",
+    "key_sessions.py": "f420a1d61aa34708d2c3d1653385bd64db9d59fcaa57b073299b24e950170196",
+    "assistant_service.py": "30002fcfbe4eedd3a6db49031b837d609e3489b15f20f2a8b02f6573ec2b7f70",
+    "lot_confirmation.py": "c8fb70d37e80e33ea958f24116e241c2460d2cf82f9f9ecfe8c7a1c8a7a66185",
+    "ship_tickets.py": "92f573781c19f35c870643bd0b4a9e270f8620d1d8a00cf68d155675ca5d2c34",
+    "exceptions_enforcement.py": "4fc7c020f81ed8c32bedb4efcf33d68d6d42c62cc0e678402cd629ebe421fcfc",
+    "assistant_tools.py": "6a3d83666f46046779e2a4e4c460b69b075d05668e73a865646346373d4a9d54",
+    "main.py": "e50ad035c0fa65a851e016de92daae8558758ac12b66c7928c5bba543b8cc507",
+    "fl_assistant.py": "7caf2bb2683bef6e4418f0d14751056b50e3f2971d39e552458a2915cb0106fc",
+    "resolution.py": "6f434cc7ddbd87b178e7d58b28c54acfaa1caec5a574bebd6aeb309d43079784",
+    "assistant_replies.py": "9f1f252fea883fe0043fa54409286125976890a6ea3a17042b485797c52ea08c",
+    "assistant_receive.py": "2d9df91f663eea4cb91e5c319f4320b7200db62ee7b44b8743649bb9210a1d01",
+    "write_tickets.py": "bc54b06c752b874f06368860021e8465343d658f48e94aa401ed3149c1839f9c",
+    "assistant_intents.py": "3413f85f14a04d7891afb435722efce41bb2df06f488f261313e6fc2c37ee366"
+  },
+  "results": [
+    {
+      "case": "receive_en",
+      "language": "en",
+      "text": "We received 6 cases of Sunflower Seeds from Grain Supply, 50 lb per case, BOL FS8996, supplier lot SL-64AED4",
+      "run": 1,
+      "photo_linked": true,
+      "supplier_lot": "SL-64AED4",
+      "bol": "FS8996",
+      "status": "passed",
+      "receipt_number": "RCV-261016-093",
+      "single_post": true,
+      "replay": true,
+      "seconds": 12.252,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_09886d5a94463ab4016ad2391b75a487d29857bd376b59ad8b",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_09886d5a94463ab4016ad2391ea15c87d2a67e401687412c26",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_09886d5a94463ab4016ad239216b0c87d285d957f0347aefd9",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_09886d5a94463ab4016ad2392457b487d280913ce6324dd676",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "receipt_lookup"
+          ]
+        }
+      ],
+      "case_database_dropped": true,
+      "case_database": "fl_final_trace_case_0_receive_en_1"
+    },
+    {
+      "case": "receive_en",
+      "language": "en",
+      "text": "We received 6 cases of Sunflower Seeds from Grain Supply, 50 lb per case, BOL FS8996, supplier lot SL-64AED4",
+      "run": 2,
+      "photo_linked": true,
+      "supplier_lot": "SL-64AED4",
+      "bol": "FS8996",
+      "status": "passed",
+      "receipt_number": "RCV-261016-093",
+      "single_post": true,
+      "replay": true,
+      "seconds": 11.565,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0bcee8c0a1f92dea016ad2392836e487d2b756bfdad636282b",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0bcee8c0a1f92dea016ad2392b25e087d2afb2dd7ba767fb57",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0bcee8c0a1f92dea016ad2392e3f1087d2a26e6813da057306",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0bcee8c0a1f92dea016ad2393138ec87d293945d8a24c24d37",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "receipt_lookup"
+          ]
+        }
+      ],
+      "case_database_dropped": true,
+      "case_database": "fl_final_trace_case_0_receive_en_2"
+    },
+    {
+      "case": "receive_en",
+      "language": "en",
+      "text": "We received 6 cases of Sunflower Seeds from Grain Supply, 50 lb per case, BOL FS8996, supplier lot SL-64AED4",
+      "run": 3,
+      "photo_linked": true,
+      "supplier_lot": "SL-64AED4",
+      "bol": "FS8996",
+      "status": "passed",
+      "receipt_number": "RCV-261016-093",
+      "single_post": true,
+      "replay": true,
+      "seconds": 11.766,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0f3cfb98f6e39e11016ad23934005c87d292f50b4a35175ca6",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0f3cfb98f6e39e11016ad23937243887d281e69343b9dbaeee",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0f3cfb98f6e39e11016ad2393a51c487d2b2efad9ccd2209e4",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0f3cfb98f6e39e11016ad2393d69c087d29cb82f559fab73b4",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "receipt_lookup"
+          ]
+        }
+      ],
+      "case_database_dropped": true,
+      "case_database": "fl_final_trace_case_0_receive_en_3"
+    },
+    {
+      "case": "receive_es",
+      "language": "es",
+      "text": "Recibimos 6 cajas de semillas de girasol de Grain Supply, 50 lb por caja, BOL FS8996, lote del proveedor SL-64AED4",
+      "run": 1,
+      "photo_linked": true,
+      "supplier_lot": "SL-64AED4",
+      "bol": "FS8996",
+      "status": "passed",
+      "receipt_number": "RCV-261016-093",
+      "single_post": true,
+      "replay": true,
+      "seconds": 11.442,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06d9098500bbced1016ad2393fd5bc87d2b171c83256f136f2",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06d9098500bbced1016ad23942e23c87d2a4d088602f51e6d0",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06d9098500bbced1016ad23945922487d2b9244eab4ef19641",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06d9098500bbced1016ad23948720c87d2925d23b554983fdd",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "receipt_lookup"
+          ]
+        }
+      ],
+      "case_database_dropped": true,
+      "case_database": "fl_final_trace_case_0_receive_es_1"
+    },
+    {
+      "case": "receive_es",
+      "language": "es",
+      "text": "Recibimos 6 cajas de semillas de girasol de Grain Supply, 50 lb por caja, BOL FS8996, lote del proveedor SL-64AED4",
+      "run": 2,
+      "photo_linked": true,
+      "supplier_lot": "SL-64AED4",
+      "bol": "FS8996",
+      "status": "passed",
+      "receipt_number": "RCV-261016-093",
+      "single_post": true,
+      "replay": true,
+      "seconds": 12.624,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0a39af774ec826a7016ad2394b3cc487d29b76b1c8d0f9ca3a",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0a39af774ec826a7016ad2394e3be087d2b981addd18075c2a",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0a39af774ec826a7016ad239517cf887d2be0a51f48a5f66c3",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0a39af774ec826a7016ad23954ce2087d28341067a07c09e6f",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "receipt_lookup"
+          ]
+        }
+      ],
+      "case_database_dropped": true,
+      "case_database": "fl_final_trace_case_0_receive_es_2"
+    },
+    {
+      "case": "receive_es",
+      "language": "es",
+      "text": "Recibimos 6 cajas de semillas de girasol de Grain Supply, 50 lb por caja, BOL FS8996, lote del proveedor SL-64AED4",
+      "run": 3,
+      "photo_linked": true,
+      "supplier_lot": "SL-64AED4",
+      "bol": "FS8996",
+      "status": "passed",
+      "receipt_number": "RCV-261016-093",
+      "single_post": true,
+      "replay": true,
+      "seconds": 12.592,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0b902511e51b4510016ad23957db1c87d2b7daa1fe62bcfa06",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0b902511e51b4510016ad2395ba07087d2a5b6f91cb84897c9",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0b902511e51b4510016ad2395e7db087d2997de1ae04d48c06",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0b902511e51b4510016ad239617a7487d29561a649d59d6da6",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "receipt_lookup"
+          ]
+        }
+      ],
+      "case_database_dropped": true,
+      "case_database": "fl_final_trace_case_0_receive_es_3"
+    },
+    {
+      "case": "different_en",
+      "language": "en",
+      "text": "We made 1 batch of Classic #9",
+      "run": 1,
+      "wrong_tag_zero_writes": true,
+      "ambiguous_suffix_zero_writes": true,
+      "full_code_recovery": true,
+      "suggested_salt_unchanged": true,
+      "physical_lot_unresolved": true,
+      "status": "passed",
+      "receipt_number": "MK-261016-060",
+      "single_post": true,
+      "replay": true,
+      "seconds": 7.19,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_008fbe2292e37ee3016ad23964acfc87d29548c333da4c7d00",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_008fbe2292e37ee3016ad23967c88887d294d2294c38121703",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_make"
+          ]
+        }
+      ],
+      "case_database_dropped": true,
+      "case_database": "fl_final_trace_case_0_different_en_1"
+    },
+    {
+      "case": "different_en",
+      "language": "en",
+      "text": "We made 1 batch of Classic #9",
+      "run": 2,
+      "wrong_tag_zero_writes": true,
+      "ambiguous_suffix_zero_writes": true,
+      "full_code_recovery": true,
+      "suggested_salt_unchanged": true,
+      "physical_lot_unresolved": true,
+      "status": "passed",
+      "receipt_number": "MK-261016-060",
+      "single_post": true,
+      "replay": true,
+      "seconds": 7.064,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_03732855a2e21ec7016ad2396bd81487d2abbc53f4bea3d6dc",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_03732855a2e21ec7016ad2396f246087d2b968f39f0b7d9cdf",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_make"
+          ]
+        }
+      ],
+      "case_database_dropped": true,
+      "case_database": "fl_final_trace_case_0_different_en_2"
+    },
+    {
+      "case": "different_en",
+      "language": "en",
+      "text": "We made 1 batch of Classic #9",
+      "run": 3,
+      "wrong_tag_zero_writes": true,
+      "ambiguous_suffix_zero_writes": true,
+      "full_code_recovery": true,
+      "suggested_salt_unchanged": true,
+      "physical_lot_unresolved": true,
+      "status": "passed",
+      "receipt_number": "MK-261016-060",
+      "single_post": true,
+      "replay": true,
+      "seconds": 6.761,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_015a207d5de96b3e016ad23972d0d087d29b4adc3538f90b4a",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_015a207d5de96b3e016ad2397612fc87d29e7b585fdf2ae5fd",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_make"
+          ]
+        }
+      ],
+      "case_database_dropped": true,
+      "case_database": "fl_final_trace_case_0_different_en_3"
+    },
+    {
+      "case": "different_es",
+      "language": "es",
+      "text": "Hicimos 1 lote de Classic #9",
+      "run": 1,
+      "wrong_tag_zero_writes": true,
+      "ambiguous_suffix_zero_writes": true,
+      "full_code_recovery": true,
+      "suggested_salt_unchanged": true,
+      "physical_lot_unresolved": true,
+      "status": "passed",
+      "receipt_number": "MK-261016-060",
+      "single_post": true,
+      "replay": true,
+      "seconds": 6.776,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_019ea345416fcd19016ad23979ee1c87d2b9375ba6d35b8c86",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_019ea345416fcd19016ad2397d129887d28c3c9cb54940d519",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_make"
+          ]
+        }
+      ],
+      "case_database_dropped": true,
+      "case_database": "fl_final_trace_case_0_different_es_1"
+    },
+    {
+      "case": "different_es",
+      "language": "es",
+      "text": "Hicimos 1 lote de Classic #9",
+      "run": 2,
+      "wrong_tag_zero_writes": true,
+      "ambiguous_suffix_zero_writes": true,
+      "full_code_recovery": true,
+      "suggested_salt_unchanged": true,
+      "physical_lot_unresolved": true,
+      "status": "passed",
+      "receipt_number": "MK-261016-060",
+      "single_post": true,
+      "replay": true,
+      "seconds": 6.943,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_069b70c2eecd3db5016ad239809c2487d2834fe017095f9e94",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_069b70c2eecd3db5016ad239839ab487d2a75b782a578ff0cc",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_make"
+          ]
+        }
+      ],
+      "case_database_dropped": true,
+      "case_database": "fl_final_trace_case_0_different_es_2"
+    },
+    {
+      "case": "different_es",
+      "language": "es",
+      "text": "Hicimos 1 lote de Classic #9",
+      "run": 3,
+      "wrong_tag_zero_writes": true,
+      "ambiguous_suffix_zero_writes": true,
+      "full_code_recovery": true,
+      "suggested_salt_unchanged": true,
+      "physical_lot_unresolved": true,
+      "status": "passed",
+      "receipt_number": "MK-261016-060",
+      "single_post": true,
+      "replay": true,
+      "seconds": 7.429,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_041c51fe3caecfbc016ad23987eab887d28f9c1694df2f2045",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_041c51fe3caecfbc016ad2398b1eec87d2aa068553ece42d0c",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_make"
+          ]
+        }
+      ],
+      "case_database_dropped": true,
+      "case_database": "fl_final_trace_case_0_different_es_3"
+    }
+  ],
+  "passed": 12,
+  "failed": 0,
+  "source_sha256_after": {
+    "sales_document_tickets.py": "df939b8205311b31dbc723cb12a30cee712307b205c2cff99027f5b0e43cf32d",
+    "assistant_voice.py": "5d97b10765871884a268814e834b7b29e83d99aaaf5546f8aa67cac513035b90",
+    "staging_safety.py": "656059fe338d1d9edcf72ed41d77cfcaab464c7ef9e516aad7a17bbb803bb6df",
+    "build_gpt_instructions.py": "037ba968904e7d2bc90924e3e7addbdace17973618a746bb7a5562e9ab4ba028",
+    "ticket_actions.py": "74756b6245ad57be45b87afbdd382a1eeade1eea580d0aeebf338e18cb9ededd",
+    "expected_receipt_tickets.py": "0cb5ef1da80c6f50e6173db303a3d030f3c4d467f5112f6a729340aa06f13173",
+    "resolution_receipts.py": "b828bc2e38db1705dfc9c9b9466e88828ba2b90b49c2ebac3bb943b1c680b715",
+    "order_tickets.py": "5f82e6e168999f5bc77816059b619da6d2167a9994d2df7be220d914a39df5bb",
+    "supplier_lot_tickets.py": "f23215ec0d428888bcae31c6ef3639190a1658df4f0b518821ca31666e3da500",
+    "shift_receipts.py": "20a0f073989ee7d17209b22e449fd72f38e40feaec887956521edde4c3bd7b71",
+    "shift_summary.py": "b9f63c0ff8b6c7aca15d6b245a1b65e02c78f619c65e78885409fbff80e9ffce",
+    "kosher_tiers.py": "5c520e95c55df8e415aa43c92fa01504d666f68a2eab9c1995150cc563ae09e1",
+    "attachments.py": "4ce4cf95146dc75dc6504dee1fa91c229f8c35f5bf25f7043203e192bb337c6c",
+    "customer_tickets.py": "c6995adaf054a216c01e136a8341a1670c165c2388afa71de170bd5d60416f5b",
+    "extraction.py": "bee7e93ad685095991660c7947a20f1dd6c47cc26213639d7b4dc92aa7eb31d9",
+    "oat_bran_substitution.py": "f7875b7f3faef170d0bb96c481a894fcfd2fb924baa21f7d80718955afed26f3",
+    "assistant_runtime.py": "7b1d4a8bbd13f5b0cfce605169eaa09272d69d155d0ddf7966606fec44c5b549",
+    "permissions.py": "7b6e33b6211142eba52066223b4fac32c4eaf9d55d35fa35082410ae167a98db",
+    "key_sessions.py": "f420a1d61aa34708d2c3d1653385bd64db9d59fcaa57b073299b24e950170196",
+    "assistant_service.py": "30002fcfbe4eedd3a6db49031b837d609e3489b15f20f2a8b02f6573ec2b7f70",
+    "lot_confirmation.py": "c8fb70d37e80e33ea958f24116e241c2460d2cf82f9f9ecfe8c7a1c8a7a66185",
+    "ship_tickets.py": "92f573781c19f35c870643bd0b4a9e270f8620d1d8a00cf68d155675ca5d2c34",
+    "exceptions_enforcement.py": "4fc7c020f81ed8c32bedb4efcf33d68d6d42c62cc0e678402cd629ebe421fcfc",
+    "assistant_tools.py": "6a3d83666f46046779e2a4e4c460b69b075d05668e73a865646346373d4a9d54",
+    "main.py": "e50ad035c0fa65a851e016de92daae8558758ac12b66c7928c5bba543b8cc507",
+    "fl_assistant.py": "7caf2bb2683bef6e4418f0d14751056b50e3f2971d39e552458a2915cb0106fc",
+    "resolution.py": "6f434cc7ddbd87b178e7d58b28c54acfaa1caec5a574bebd6aeb309d43079784",
+    "assistant_replies.py": "9f1f252fea883fe0043fa54409286125976890a6ea3a17042b485797c52ea08c",
+    "assistant_receive.py": "2d9df91f663eea4cb91e5c319f4320b7200db62ee7b44b8743649bb9210a1d01",
+    "write_tickets.py": "bc54b06c752b874f06368860021e8465343d658f48e94aa401ed3149c1839f9c",
+    "assistant_intents.py": "3413f85f14a04d7891afb435722efce41bb2df06f488f261313e6fc2c37ee366"
+  },
+  "changed_source_files": [],
+  "source_unchanged": true,
+  "trace_recording_source_unchanged": true,
+  "provider_response_count": 36,
+  "unique_provider_response_count": 36,
+  "all_provider_requests_store_false": true,
+  "staging_dump_sha256": "0b08071a57580430e557567057ee9545e0bebc00fe282785fc802b511bb3501c",
+  "local_trace_databases_dropped": true,
+  "private_trace_details_deleted": true
+}

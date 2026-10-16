@@ -1,0 +1,1415 @@
+{
+  "runner": "tests/visual/run-fl-assistant-round-c.mjs",
+  "actual_page": true,
+  "actual_api": true,
+  "local_only": true,
+  "model_tool_selection_stubbed": true,
+  "actual_microphone_or_iphone": false,
+  "browser_record_calls": 0,
+  "coverage_limit": "Text transcripts use real page/API/DB. Default model tool selection is queued; speech recognition and physical iPhone Safari are not exercised.",
+  "results": [
+    {
+      "label": "classic-inventory",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "classic-make",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "ss-make",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "receive-green-supply",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "pack-spoken-lot",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "customer-only-order",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "today-exact-transcript",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "today-short-query",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "spoken-letter-code",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "classic-inventory",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "classic-make",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "ss-make",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "receive-green-supply",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "pack-spoken-lot",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "customer-only-order",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "today-exact-transcript",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "today-short-query",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "spoken-letter-code",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "classic-inventory",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "classic-make",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "ss-make",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "receive-green-supply",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "pack-spoken-lot",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "customer-only-order",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "today-exact-transcript",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "today-short-query",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "spoken-letter-code",
+      "language": "en",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "classic-inventory",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "classic-make",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "ss-make",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "receive-green-supply",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "pack-spoken-lot",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "customer-only-order",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "today-exact-transcript",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "today-short-query",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "spoken-letter-code",
+      "language": "es",
+      "width": 390,
+      "engine": "chromium",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "classic-inventory",
+      "language": "en",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "classic-make",
+      "language": "en",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "ss-make",
+      "language": "en",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "receive-green-supply",
+      "language": "en",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "pack-spoken-lot",
+      "language": "en",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "customer-only-order",
+      "language": "en",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "today-exact-transcript",
+      "language": "en",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "today-short-query",
+      "language": "en",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "spoken-letter-code",
+      "language": "en",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "classic-inventory",
+      "language": "es",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "classic-make",
+      "language": "es",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "ss-make",
+      "language": "es",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "receive-green-supply",
+      "language": "es",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "pack-spoken-lot",
+      "language": "es",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "customer-only-order",
+      "language": "es",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "today-exact-transcript",
+      "language": "es",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "today-short-query",
+      "language": "es",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "spoken-letter-code",
+      "language": "es",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "status": "passed"
+    },
+    {
+      "label": "classic-inventory",
+      "language": "en",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "classic-make",
+      "language": "en",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "ss-make",
+      "language": "en",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "receive-green-supply",
+      "language": "en",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "pack-spoken-lot",
+      "language": "en",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "customer-only-order",
+      "language": "en",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "today-exact-transcript",
+      "language": "en",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "today-short-query",
+      "language": "en",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "spoken-letter-code",
+      "language": "en",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "classic-inventory",
+      "language": "es",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "classic-make",
+      "language": "es",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "ss-make",
+      "language": "es",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "receive-green-supply",
+      "language": "es",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "pack-spoken-lot",
+      "language": "es",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "customer-only-order",
+      "language": "es",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "today-exact-transcript",
+      "language": "es",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "today-short-query",
+      "language": "es",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "status": "passed"
+    },
+    {
+      "label": "spoken-letter-code",
+      "language": "es",
+      "width": 390,
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "status": "passed"
+    }
+  ],
+  "modes": [
+    {
+      "sessions_enabled": false,
+      "engine": "chromium",
+      "width": 390,
+      "javascript_errors": []
+    },
+    {
+      "sessions_enabled": false,
+      "engine": "chromium",
+      "database": {
+        "initial_transactions": 4,
+        "final_transactions": 4,
+        "committed": 0
+      },
+      "model_requests": [
+        {
+          "tool": "inventory_lookup",
+          "normalized_user_text": [
+            "How much Classic #9 do we have?"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Made 2 batches of Classic #9."
+          ]
+        },
+        {
+          "tool": "prepare_make",
+          "normalized_user_text": [
+            "Made 2 batches of Classic #9.",
+            "I selected this FL candidate: {\"id\": 2, \"why\": \"Exact product alias\", \"name\": \"Batch Classic Granola #9\", \"tier\": \"alias\", \"type\": \"batch\", \"label\": \"Batch Classic Granola #9 \u2014 Regular\", \"score\": 1.0, \"odoo_code\": null, \"label_type\": \"house\", \"kosher_tier\": \"regular\", \"pack_format\": null, \"case_size_lb\": 5.0, \"kosher_label\": \"Regular\", \"bags_per_case\": null, \"context_boost\": \"Batch for make\", \"retail_bag_oz\": null, \"units_per_case\": null, \"default_batch_lb\": 10.0, \"parent_batch_product_id\": null}"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Made 1 batch of SS #1."
+          ]
+        },
+        {
+          "tool": "prepare_make",
+          "normalized_user_text": [
+            "Made 1 batch of SS #1."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "We received 4 bags of sunflower seeds, 50 lb each, from Green Supply, BOL 5521."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "We received 4 bags of sunflower seeds, 50 lb each, from Green Supply, BOL 5521."
+          ]
+        },
+        {
+          "tool": "prepare_receive",
+          "normalized_user_text": [
+            "We received 4 bags of sunflower seeds, 50 lb each, from Green Supply, BOL 5521.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Grain Supply\", \"tier\": \"trigram\", \"label\": \"Grain Supply\", \"score\": 0.5294, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Packed 40 cases of fruit and nut granola from batch lot 1234."
+          ]
+        },
+        {
+          "tool": "packing_context",
+          "normalized_user_text": [
+            "Packed 40 cases of fruit and nut granola from batch lot 1234."
+          ]
+        },
+        {
+          "tool": "prepare_pack",
+          "normalized_user_text": [
+            "Packed 40 cases of fruit and nut granola from batch lot 1234."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "New order from fake bakery. 5 cases of rainbow sprinkles."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "New order from fake bakery. 5 cases of rainbow sprinkles.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Lake Bakery\", \"tier\": \"trigram\", \"label\": \"Lake Bakery\", \"score\": 0.5714, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "prepare_create_order",
+          "normalized_user_text": [
+            "New order from fake bakery. 5 cases of rainbow sprinkles.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Lake Bakery\", \"tier\": \"trigram\", \"label\": \"Lake Bakery\", \"score\": 0.5714, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "lot_lookup",
+          "normalized_user_text": [
+            "How much is in lot P1585?"
+          ]
+        },
+        {
+          "tool": "inventory_lookup",
+          "normalized_user_text": [
+            "\u00bfCu\u00e1nto tenemos de Classic #9?"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Hicimos 2 batches de Classic #9."
+          ]
+        },
+        {
+          "tool": "prepare_make",
+          "normalized_user_text": [
+            "Hicimos 2 batches de Classic #9.",
+            "I selected this FL candidate: {\"id\": 2, \"why\": \"Exact product alias\", \"name\": \"Batch Classic Granola #9\", \"tier\": \"alias\", \"type\": \"batch\", \"label\": \"Batch Classic Granola #9 \u2014 Regular\", \"score\": 1.0, \"odoo_code\": null, \"label_type\": \"house\", \"kosher_tier\": \"regular\", \"pack_format\": null, \"case_size_lb\": 5.0, \"kosher_label\": \"Regular\", \"bags_per_case\": null, \"context_boost\": \"Batch for make\", \"retail_bag_oz\": null, \"units_per_case\": null, \"default_batch_lb\": 10.0, \"parent_batch_product_id\": null}"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Hicimos 1 batch de SS #1."
+          ]
+        },
+        {
+          "tool": "prepare_make",
+          "normalized_user_text": [
+            "Hicimos 1 batch de SS #1."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Recibimos 4 bags de semillas de girasol, 50 lb cada una, de Green Supply, BOL 5521."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Recibimos 4 bags de semillas de girasol, 50 lb cada una, de Green Supply, BOL 5521."
+          ]
+        },
+        {
+          "tool": "prepare_receive",
+          "normalized_user_text": [
+            "Recibimos 4 bags de semillas de girasol, 50 lb cada una, de Green Supply, BOL 5521.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Grain Supply\", \"tier\": \"trigram\", \"label\": \"Grain Supply\", \"score\": 0.5294, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Empacamos 40 cases de fruit and nut granola del lote 1234."
+          ]
+        },
+        {
+          "tool": "packing_context",
+          "normalized_user_text": [
+            "Empacamos 40 cases de fruit and nut granola del lote 1234."
+          ]
+        },
+        {
+          "tool": "prepare_pack",
+          "normalized_user_text": [
+            "Empacamos 40 cases de fruit and nut granola del lote 1234."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Nuevo pedido de fake bakery. 5 cases de rainbow sprinkles."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Nuevo pedido de fake bakery. 5 cases de rainbow sprinkles.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Lake Bakery\", \"tier\": \"trigram\", \"label\": \"Lake Bakery\", \"score\": 0.5714, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "prepare_create_order",
+          "normalized_user_text": [
+            "Nuevo pedido de fake bakery. 5 cases de rainbow sprinkles.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Lake Bakery\", \"tier\": \"trigram\", \"label\": \"Lake Bakery\", \"score\": 0.5714, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "lot_lookup",
+          "normalized_user_text": [
+            "\u00bfCu\u00e1nto hay en el lote P1585?"
+          ]
+        }
+      ]
+    },
+    {
+      "sessions_enabled": true,
+      "engine": "chromium",
+      "width": 390,
+      "javascript_errors": []
+    },
+    {
+      "sessions_enabled": true,
+      "engine": "chromium",
+      "database": {
+        "initial_transactions": 4,
+        "final_transactions": 4,
+        "committed": 0
+      },
+      "model_requests": [
+        {
+          "tool": "inventory_lookup",
+          "normalized_user_text": [
+            "How much Classic #9 do we have?"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Made 2 batches of Classic #9."
+          ]
+        },
+        {
+          "tool": "prepare_make",
+          "normalized_user_text": [
+            "Made 2 batches of Classic #9.",
+            "I selected this FL candidate: {\"id\": 2, \"why\": \"Exact product alias\", \"name\": \"Batch Classic Granola #9\", \"tier\": \"alias\", \"type\": \"batch\", \"label\": \"Batch Classic Granola #9 \u2014 Regular\", \"score\": 1.0, \"odoo_code\": null, \"label_type\": \"house\", \"kosher_tier\": \"regular\", \"pack_format\": null, \"case_size_lb\": 5.0, \"kosher_label\": \"Regular\", \"bags_per_case\": null, \"context_boost\": \"Batch for make\", \"retail_bag_oz\": null, \"units_per_case\": null, \"default_batch_lb\": 10.0, \"parent_batch_product_id\": null}"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Made 1 batch of SS #1."
+          ]
+        },
+        {
+          "tool": "prepare_make",
+          "normalized_user_text": [
+            "Made 1 batch of SS #1."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "We received 4 bags of sunflower seeds, 50 lb each, from Green Supply, BOL 5521."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "We received 4 bags of sunflower seeds, 50 lb each, from Green Supply, BOL 5521."
+          ]
+        },
+        {
+          "tool": "prepare_receive",
+          "normalized_user_text": [
+            "We received 4 bags of sunflower seeds, 50 lb each, from Green Supply, BOL 5521.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Grain Supply\", \"tier\": \"trigram\", \"label\": \"Grain Supply\", \"score\": 0.5294, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Packed 40 cases of fruit and nut granola from batch lot 1234."
+          ]
+        },
+        {
+          "tool": "packing_context",
+          "normalized_user_text": [
+            "Packed 40 cases of fruit and nut granola from batch lot 1234."
+          ]
+        },
+        {
+          "tool": "prepare_pack",
+          "normalized_user_text": [
+            "Packed 40 cases of fruit and nut granola from batch lot 1234."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "New order from fake bakery. 5 cases of rainbow sprinkles."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "New order from fake bakery. 5 cases of rainbow sprinkles.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Lake Bakery\", \"tier\": \"trigram\", \"label\": \"Lake Bakery\", \"score\": 0.5714, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "prepare_create_order",
+          "normalized_user_text": [
+            "New order from fake bakery. 5 cases of rainbow sprinkles.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Lake Bakery\", \"tier\": \"trigram\", \"label\": \"Lake Bakery\", \"score\": 0.5714, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "lot_lookup",
+          "normalized_user_text": [
+            "How much is in lot P1585?"
+          ]
+        },
+        {
+          "tool": "inventory_lookup",
+          "normalized_user_text": [
+            "\u00bfCu\u00e1nto tenemos de Classic #9?"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Hicimos 2 batches de Classic #9."
+          ]
+        },
+        {
+          "tool": "prepare_make",
+          "normalized_user_text": [
+            "Hicimos 2 batches de Classic #9.",
+            "I selected this FL candidate: {\"id\": 2, \"why\": \"Exact product alias\", \"name\": \"Batch Classic Granola #9\", \"tier\": \"alias\", \"type\": \"batch\", \"label\": \"Batch Classic Granola #9 \u2014 Regular\", \"score\": 1.0, \"odoo_code\": null, \"label_type\": \"house\", \"kosher_tier\": \"regular\", \"pack_format\": null, \"case_size_lb\": 5.0, \"kosher_label\": \"Regular\", \"bags_per_case\": null, \"context_boost\": \"Batch for make\", \"retail_bag_oz\": null, \"units_per_case\": null, \"default_batch_lb\": 10.0, \"parent_batch_product_id\": null}"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Hicimos 1 batch de SS #1."
+          ]
+        },
+        {
+          "tool": "prepare_make",
+          "normalized_user_text": [
+            "Hicimos 1 batch de SS #1."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Recibimos 4 bags de semillas de girasol, 50 lb cada una, de Green Supply, BOL 5521."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Recibimos 4 bags de semillas de girasol, 50 lb cada una, de Green Supply, BOL 5521."
+          ]
+        },
+        {
+          "tool": "prepare_receive",
+          "normalized_user_text": [
+            "Recibimos 4 bags de semillas de girasol, 50 lb cada una, de Green Supply, BOL 5521.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Grain Supply\", \"tier\": \"trigram\", \"label\": \"Grain Supply\", \"score\": 0.5294, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Empacamos 40 cases de fruit and nut granola del lote 1234."
+          ]
+        },
+        {
+          "tool": "packing_context",
+          "normalized_user_text": [
+            "Empacamos 40 cases de fruit and nut granola del lote 1234."
+          ]
+        },
+        {
+          "tool": "prepare_pack",
+          "normalized_user_text": [
+            "Empacamos 40 cases de fruit and nut granola del lote 1234."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Nuevo pedido de fake bakery. 5 cases de rainbow sprinkles."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Nuevo pedido de fake bakery. 5 cases de rainbow sprinkles.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Lake Bakery\", \"tier\": \"trigram\", \"label\": \"Lake Bakery\", \"score\": 0.5714, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "prepare_create_order",
+          "normalized_user_text": [
+            "Nuevo pedido de fake bakery. 5 cases de rainbow sprinkles.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Lake Bakery\", \"tier\": \"trigram\", \"label\": \"Lake Bakery\", \"score\": 0.5714, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "lot_lookup",
+          "normalized_user_text": [
+            "\u00bfCu\u00e1nto hay en el lote P1585?"
+          ]
+        }
+      ]
+    },
+    {
+      "sessions_enabled": false,
+      "engine": "webkit",
+      "width": 390,
+      "javascript_errors": []
+    },
+    {
+      "sessions_enabled": false,
+      "engine": "webkit",
+      "database": {
+        "initial_transactions": 4,
+        "final_transactions": 4,
+        "committed": 0
+      },
+      "model_requests": [
+        {
+          "tool": "inventory_lookup",
+          "normalized_user_text": [
+            "How much Classic #9 do we have?"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Made 2 batches of Classic #9."
+          ]
+        },
+        {
+          "tool": "prepare_make",
+          "normalized_user_text": [
+            "Made 2 batches of Classic #9.",
+            "I selected this FL candidate: {\"id\": 2, \"why\": \"Exact product alias\", \"name\": \"Batch Classic Granola #9\", \"tier\": \"alias\", \"type\": \"batch\", \"label\": \"Batch Classic Granola #9 \u2014 Regular\", \"score\": 1.0, \"odoo_code\": null, \"label_type\": \"house\", \"kosher_tier\": \"regular\", \"pack_format\": null, \"case_size_lb\": 5.0, \"kosher_label\": \"Regular\", \"bags_per_case\": null, \"context_boost\": \"Batch for make\", \"retail_bag_oz\": null, \"units_per_case\": null, \"default_batch_lb\": 10.0, \"parent_batch_product_id\": null}"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Made 1 batch of SS #1."
+          ]
+        },
+        {
+          "tool": "prepare_make",
+          "normalized_user_text": [
+            "Made 1 batch of SS #1."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "We received 4 bags of sunflower seeds, 50 lb each, from Green Supply, BOL 5521."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "We received 4 bags of sunflower seeds, 50 lb each, from Green Supply, BOL 5521."
+          ]
+        },
+        {
+          "tool": "prepare_receive",
+          "normalized_user_text": [
+            "We received 4 bags of sunflower seeds, 50 lb each, from Green Supply, BOL 5521.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Grain Supply\", \"tier\": \"trigram\", \"label\": \"Grain Supply\", \"score\": 0.5294, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Packed 40 cases of fruit and nut granola from batch lot 1234."
+          ]
+        },
+        {
+          "tool": "packing_context",
+          "normalized_user_text": [
+            "Packed 40 cases of fruit and nut granola from batch lot 1234."
+          ]
+        },
+        {
+          "tool": "prepare_pack",
+          "normalized_user_text": [
+            "Packed 40 cases of fruit and nut granola from batch lot 1234."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "New order from fake bakery. 5 cases of rainbow sprinkles."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "New order from fake bakery. 5 cases of rainbow sprinkles.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Lake Bakery\", \"tier\": \"trigram\", \"label\": \"Lake Bakery\", \"score\": 0.5714, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "prepare_create_order",
+          "normalized_user_text": [
+            "New order from fake bakery. 5 cases of rainbow sprinkles.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Lake Bakery\", \"tier\": \"trigram\", \"label\": \"Lake Bakery\", \"score\": 0.5714, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "lot_lookup",
+          "normalized_user_text": [
+            "How much is in lot P1585?"
+          ]
+        },
+        {
+          "tool": "inventory_lookup",
+          "normalized_user_text": [
+            "\u00bfCu\u00e1nto tenemos de Classic #9?"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Hicimos 2 batches de Classic #9."
+          ]
+        },
+        {
+          "tool": "prepare_make",
+          "normalized_user_text": [
+            "Hicimos 2 batches de Classic #9.",
+            "I selected this FL candidate: {\"id\": 2, \"why\": \"Exact product alias\", \"name\": \"Batch Classic Granola #9\", \"tier\": \"alias\", \"type\": \"batch\", \"label\": \"Batch Classic Granola #9 \u2014 Regular\", \"score\": 1.0, \"odoo_code\": null, \"label_type\": \"house\", \"kosher_tier\": \"regular\", \"pack_format\": null, \"case_size_lb\": 5.0, \"kosher_label\": \"Regular\", \"bags_per_case\": null, \"context_boost\": \"Batch for make\", \"retail_bag_oz\": null, \"units_per_case\": null, \"default_batch_lb\": 10.0, \"parent_batch_product_id\": null}"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Hicimos 1 batch de SS #1."
+          ]
+        },
+        {
+          "tool": "prepare_make",
+          "normalized_user_text": [
+            "Hicimos 1 batch de SS #1."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Recibimos 4 bags de semillas de girasol, 50 lb cada una, de Green Supply, BOL 5521."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Recibimos 4 bags de semillas de girasol, 50 lb cada una, de Green Supply, BOL 5521."
+          ]
+        },
+        {
+          "tool": "prepare_receive",
+          "normalized_user_text": [
+            "Recibimos 4 bags de semillas de girasol, 50 lb cada una, de Green Supply, BOL 5521.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Grain Supply\", \"tier\": \"trigram\", \"label\": \"Grain Supply\", \"score\": 0.5294, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Empacamos 40 cases de fruit and nut granola del lote 1234."
+          ]
+        },
+        {
+          "tool": "packing_context",
+          "normalized_user_text": [
+            "Empacamos 40 cases de fruit and nut granola del lote 1234."
+          ]
+        },
+        {
+          "tool": "prepare_pack",
+          "normalized_user_text": [
+            "Empacamos 40 cases de fruit and nut granola del lote 1234."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Nuevo pedido de fake bakery. 5 cases de rainbow sprinkles."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Nuevo pedido de fake bakery. 5 cases de rainbow sprinkles.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Lake Bakery\", \"tier\": \"trigram\", \"label\": \"Lake Bakery\", \"score\": 0.5714, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "prepare_create_order",
+          "normalized_user_text": [
+            "Nuevo pedido de fake bakery. 5 cases de rainbow sprinkles.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Lake Bakery\", \"tier\": \"trigram\", \"label\": \"Lake Bakery\", \"score\": 0.5714, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "lot_lookup",
+          "normalized_user_text": [
+            "\u00bfCu\u00e1nto hay en el lote P1585?"
+          ]
+        }
+      ]
+    },
+    {
+      "sessions_enabled": true,
+      "engine": "webkit",
+      "width": 390,
+      "javascript_errors": []
+    },
+    {
+      "sessions_enabled": true,
+      "engine": "webkit",
+      "database": {
+        "initial_transactions": 4,
+        "final_transactions": 4,
+        "committed": 0
+      },
+      "model_requests": [
+        {
+          "tool": "inventory_lookup",
+          "normalized_user_text": [
+            "How much Classic #9 do we have?"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Made 2 batches of Classic #9."
+          ]
+        },
+        {
+          "tool": "prepare_make",
+          "normalized_user_text": [
+            "Made 2 batches of Classic #9.",
+            "I selected this FL candidate: {\"id\": 2, \"why\": \"Exact product alias\", \"name\": \"Batch Classic Granola #9\", \"tier\": \"alias\", \"type\": \"batch\", \"label\": \"Batch Classic Granola #9 \u2014 Regular\", \"score\": 1.0, \"odoo_code\": null, \"label_type\": \"house\", \"kosher_tier\": \"regular\", \"pack_format\": null, \"case_size_lb\": 5.0, \"kosher_label\": \"Regular\", \"bags_per_case\": null, \"context_boost\": \"Batch for make\", \"retail_bag_oz\": null, \"units_per_case\": null, \"default_batch_lb\": 10.0, \"parent_batch_product_id\": null}"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Made 1 batch of SS #1."
+          ]
+        },
+        {
+          "tool": "prepare_make",
+          "normalized_user_text": [
+            "Made 1 batch of SS #1."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "We received 4 bags of sunflower seeds, 50 lb each, from Green Supply, BOL 5521."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "We received 4 bags of sunflower seeds, 50 lb each, from Green Supply, BOL 5521."
+          ]
+        },
+        {
+          "tool": "prepare_receive",
+          "normalized_user_text": [
+            "We received 4 bags of sunflower seeds, 50 lb each, from Green Supply, BOL 5521.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Grain Supply\", \"tier\": \"trigram\", \"label\": \"Grain Supply\", \"score\": 0.5294, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Packed 40 cases of fruit and nut granola from batch lot 1234."
+          ]
+        },
+        {
+          "tool": "packing_context",
+          "normalized_user_text": [
+            "Packed 40 cases of fruit and nut granola from batch lot 1234."
+          ]
+        },
+        {
+          "tool": "prepare_pack",
+          "normalized_user_text": [
+            "Packed 40 cases of fruit and nut granola from batch lot 1234."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "New order from fake bakery. 5 cases of rainbow sprinkles."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "New order from fake bakery. 5 cases of rainbow sprinkles.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Lake Bakery\", \"tier\": \"trigram\", \"label\": \"Lake Bakery\", \"score\": 0.5714, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "prepare_create_order",
+          "normalized_user_text": [
+            "New order from fake bakery. 5 cases of rainbow sprinkles.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Lake Bakery\", \"tier\": \"trigram\", \"label\": \"Lake Bakery\", \"score\": 0.5714, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "lot_lookup",
+          "normalized_user_text": [
+            "How much is in lot P1585?"
+          ]
+        },
+        {
+          "tool": "inventory_lookup",
+          "normalized_user_text": [
+            "\u00bfCu\u00e1nto tenemos de Classic #9?"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Hicimos 2 batches de Classic #9."
+          ]
+        },
+        {
+          "tool": "prepare_make",
+          "normalized_user_text": [
+            "Hicimos 2 batches de Classic #9.",
+            "I selected this FL candidate: {\"id\": 2, \"why\": \"Exact product alias\", \"name\": \"Batch Classic Granola #9\", \"tier\": \"alias\", \"type\": \"batch\", \"label\": \"Batch Classic Granola #9 \u2014 Regular\", \"score\": 1.0, \"odoo_code\": null, \"label_type\": \"house\", \"kosher_tier\": \"regular\", \"pack_format\": null, \"case_size_lb\": 5.0, \"kosher_label\": \"Regular\", \"bags_per_case\": null, \"context_boost\": \"Batch for make\", \"retail_bag_oz\": null, \"units_per_case\": null, \"default_batch_lb\": 10.0, \"parent_batch_product_id\": null}"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Hicimos 1 batch de SS #1."
+          ]
+        },
+        {
+          "tool": "prepare_make",
+          "normalized_user_text": [
+            "Hicimos 1 batch de SS #1."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Recibimos 4 bags de semillas de girasol, 50 lb cada una, de Green Supply, BOL 5521."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Recibimos 4 bags de semillas de girasol, 50 lb cada una, de Green Supply, BOL 5521."
+          ]
+        },
+        {
+          "tool": "prepare_receive",
+          "normalized_user_text": [
+            "Recibimos 4 bags de semillas de girasol, 50 lb cada una, de Green Supply, BOL 5521.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Grain Supply\", \"tier\": \"trigram\", \"label\": \"Grain Supply\", \"score\": 0.5294, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Empacamos 40 cases de fruit and nut granola del lote 1234."
+          ]
+        },
+        {
+          "tool": "packing_context",
+          "normalized_user_text": [
+            "Empacamos 40 cases de fruit and nut granola del lote 1234."
+          ]
+        },
+        {
+          "tool": "prepare_pack",
+          "normalized_user_text": [
+            "Empacamos 40 cases de fruit and nut granola del lote 1234."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Nuevo pedido de fake bakery. 5 cases de rainbow sprinkles."
+          ]
+        },
+        {
+          "tool": "resolve",
+          "normalized_user_text": [
+            "Nuevo pedido de fake bakery. 5 cases de rainbow sprinkles.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Lake Bakery\", \"tier\": \"trigram\", \"label\": \"Lake Bakery\", \"score\": 0.5714, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "prepare_create_order",
+          "normalized_user_text": [
+            "Nuevo pedido de fake bakery. 5 cases de rainbow sprinkles.",
+            "I selected this FL candidate: {\"id\": 1, \"why\": \"Similar name; confirm identity\", \"name\": \"Lake Bakery\", \"tier\": \"trigram\", \"label\": \"Lake Bakery\", \"score\": 0.5714, \"context_boost\": null}"
+          ]
+        },
+        {
+          "tool": "lot_lookup",
+          "normalized_user_text": [
+            "\u00bfCu\u00e1nto hay en el lote P1585?"
+          ]
+        }
+      ]
+    }
+  ],
+  "created_at": "2026-10-16T14:38:07.162Z",
+  "databases_dropped": true,
+  "passed": 72,
+  "failed": 0,
+  "screenshot_storage": "Screenshots retained outside repository under /private/tmp/fl_final/browser; representative final-floor screenshots in ../ui."
+}

@@ -1,0 +1,476 @@
+{
+  "sessions": 1,
+  "database_local_only": true,
+  "real_model": true,
+  "repeats": 3,
+  "source_sha256": {
+    "sales_document_tickets.py": "df939b8205311b31dbc723cb12a30cee712307b205c2cff99027f5b0e43cf32d",
+    "assistant_voice.py": "5d97b10765871884a268814e834b7b29e83d99aaaf5546f8aa67cac513035b90",
+    "staging_safety.py": "656059fe338d1d9edcf72ed41d77cfcaab464c7ef9e516aad7a17bbb803bb6df",
+    "build_gpt_instructions.py": "037ba968904e7d2bc90924e3e7addbdace17973618a746bb7a5562e9ab4ba028",
+    "ticket_actions.py": "74756b6245ad57be45b87afbdd382a1eeade1eea580d0aeebf338e18cb9ededd",
+    "expected_receipt_tickets.py": "0cb5ef1da80c6f50e6173db303a3d030f3c4d467f5112f6a729340aa06f13173",
+    "resolution_receipts.py": "b828bc2e38db1705dfc9c9b9466e88828ba2b90b49c2ebac3bb943b1c680b715",
+    "order_tickets.py": "5f82e6e168999f5bc77816059b619da6d2167a9994d2df7be220d914a39df5bb",
+    "supplier_lot_tickets.py": "f23215ec0d428888bcae31c6ef3639190a1658df4f0b518821ca31666e3da500",
+    "shift_receipts.py": "20a0f073989ee7d17209b22e449fd72f38e40feaec887956521edde4c3bd7b71",
+    "shift_summary.py": "b9f63c0ff8b6c7aca15d6b245a1b65e02c78f619c65e78885409fbff80e9ffce",
+    "kosher_tiers.py": "5c520e95c55df8e415aa43c92fa01504d666f68a2eab9c1995150cc563ae09e1",
+    "attachments.py": "4ce4cf95146dc75dc6504dee1fa91c229f8c35f5bf25f7043203e192bb337c6c",
+    "customer_tickets.py": "c6995adaf054a216c01e136a8341a1670c165c2388afa71de170bd5d60416f5b",
+    "extraction.py": "bee7e93ad685095991660c7947a20f1dd6c47cc26213639d7b4dc92aa7eb31d9",
+    "oat_bran_substitution.py": "f7875b7f3faef170d0bb96c481a894fcfd2fb924baa21f7d80718955afed26f3",
+    "assistant_runtime.py": "7b1d4a8bbd13f5b0cfce605169eaa09272d69d155d0ddf7966606fec44c5b549",
+    "permissions.py": "7b6e33b6211142eba52066223b4fac32c4eaf9d55d35fa35082410ae167a98db",
+    "key_sessions.py": "f420a1d61aa34708d2c3d1653385bd64db9d59fcaa57b073299b24e950170196",
+    "assistant_service.py": "30002fcfbe4eedd3a6db49031b837d609e3489b15f20f2a8b02f6573ec2b7f70",
+    "lot_confirmation.py": "c8fb70d37e80e33ea958f24116e241c2460d2cf82f9f9ecfe8c7a1c8a7a66185",
+    "ship_tickets.py": "92f573781c19f35c870643bd0b4a9e270f8620d1d8a00cf68d155675ca5d2c34",
+    "exceptions_enforcement.py": "4fc7c020f81ed8c32bedb4efcf33d68d6d42c62cc0e678402cd629ebe421fcfc",
+    "assistant_tools.py": "6a3d83666f46046779e2a4e4c460b69b075d05668e73a865646346373d4a9d54",
+    "main.py": "e50ad035c0fa65a851e016de92daae8558758ac12b66c7928c5bba543b8cc507",
+    "fl_assistant.py": "7caf2bb2683bef6e4418f0d14751056b50e3f2971d39e552458a2915cb0106fc",
+    "resolution.py": "6f434cc7ddbd87b178e7d58b28c54acfaa1caec5a574bebd6aeb309d43079784",
+    "assistant_replies.py": "9f1f252fea883fe0043fa54409286125976890a6ea3a17042b485797c52ea08c",
+    "assistant_receive.py": "d2b111b1681e7948b01de73885c239ff7d908a5a6582cb73a3897b2420adb020",
+    "write_tickets.py": "bc54b06c752b874f06368860021e8465343d658f48e94aa401ed3149c1839f9c",
+    "assistant_intents.py": "3413f85f14a04d7891afb435722efce41bb2df06f488f261313e6fc2c37ee366"
+  },
+  "results": [
+    {
+      "case": "multi_en",
+      "language": "en",
+      "text": "We received 5 cases of Sunflower Seeds and 3 cases of Oats from Grain Supply, 50 lb per case, BOL MULTI-5521.",
+      "run": 1,
+      "draft_action": "receive",
+      "draft_facts": {
+        "product_id": 46,
+        "supplier_id": 25,
+        "cases": 5,
+        "case_size_lb": 50.0,
+        "total_lb": 250.0,
+        "supplier_lot_code": "N/A",
+        "bol_reference": "MULTI-5521"
+      },
+      "first_receipt": "RCV-261016-099",
+      "second_draft_product_id": 32,
+      "status": "passed",
+      "seconds": 18.294,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0c9a03d8177befc3016ad23c29c20487d2b125eabcc9a9745d",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0c9a03d8177befc3016ad23c2e10cc87d2bbc8d1bedbb58f46",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0c9a03d8177befc3016ad23c322ad887d2a1074b15eb60732b",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0c9a03d8177befc3016ad23c35823887d2845f52018b0e0ff4",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0c9a03d8177befc3016ad23c38b0c487d2ad9836b305bbd27a",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "multi_en",
+      "language": "en",
+      "text": "We received 5 cases of Sunflower Seeds and 3 cases of Oats from Grain Supply, 50 lb per case, BOL MULTI-5521.",
+      "run": 2,
+      "draft_action": "receive",
+      "draft_facts": {
+        "product_id": 46,
+        "supplier_id": 25,
+        "cases": 5,
+        "case_size_lb": 50.0,
+        "total_lb": 250.0,
+        "supplier_lot_code": "N/A",
+        "bol_reference": "MULTI-5521"
+      },
+      "first_receipt": "RCV-261016-100",
+      "second_draft_product_id": 32,
+      "status": "passed",
+      "seconds": 16.911,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_08cb91472c02bfcf016ad23c3c13a087d2bd77d34f452127d8",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_08cb91472c02bfcf016ad23c40470887d2a2103034dbfc3186",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_08cb91472c02bfcf016ad23c42dd9887d299c5bb1436ff9a88",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_08cb91472c02bfcf016ad23c46537487d2a8118ce86d80aff2",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_08cb91472c02bfcf016ad23c49af5c87d29a8f0bcd7a60a35a",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "multi_en",
+      "language": "en",
+      "text": "We received 5 cases of Sunflower Seeds and 3 cases of Oats from Grain Supply, 50 lb per case, BOL MULTI-5521.",
+      "run": 3,
+      "draft_action": "receive",
+      "draft_facts": {
+        "product_id": 46,
+        "supplier_id": 25,
+        "cases": 5,
+        "case_size_lb": 50.0,
+        "total_lb": 250.0,
+        "supplier_lot_code": "N/A",
+        "bol_reference": "MULTI-5521"
+      },
+      "first_receipt": "RCV-261016-101",
+      "second_draft_product_id": 32,
+      "status": "passed",
+      "seconds": 15.77,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_069fed447f1b05db016ad23c4cf18887d2a5ee1313ab892950",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_069fed447f1b05db016ad23c50187087d2bc4dd12393701117",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_069fed447f1b05db016ad23c53385087d2af0c5431b019c2c5",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_069fed447f1b05db016ad23c56397887d2873a3ecf5b6e3914",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_069fed447f1b05db016ad23c595ce487d281b6598036c2a579",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "multi_es",
+      "language": "es",
+      "text": "Recibimos 5 cajas de semillas de girasol y 3 cajas de avena de Grain Supply, 50 lb por caja, BOL MULTI-5521.",
+      "run": 1,
+      "draft_action": "receive",
+      "draft_facts": {
+        "product_id": 46,
+        "supplier_id": 25,
+        "cases": 5,
+        "case_size_lb": 50.0,
+        "total_lb": 250.0,
+        "supplier_lot_code": "N/A",
+        "bol_reference": "MULTI-5521"
+      },
+      "first_receipt": "RCV-261016-102",
+      "second_draft_product_id": 32,
+      "status": "passed",
+      "seconds": 18.01,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_032407ed297329c2016ad23c5cb77087d2ad8ca6597ee241a1",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_032407ed297329c2016ad23c602ef887d2821e449544db0531",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_032407ed297329c2016ad23c648a7487d280dd1cacb4211219",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_032407ed297329c2016ad23c68460c87d2867dfcb0784b0657",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_032407ed297329c2016ad23c6bdb3c87d2ab2b4d141238dff2",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "multi_es",
+      "language": "es",
+      "text": "Recibimos 5 cajas de semillas de girasol y 3 cajas de avena de Grain Supply, 50 lb por caja, BOL MULTI-5521.",
+      "run": 2,
+      "draft_action": "receive",
+      "draft_facts": {
+        "product_id": 46,
+        "supplier_id": 25,
+        "cases": 5,
+        "case_size_lb": 50.0,
+        "total_lb": 250.0,
+        "supplier_lot_code": "N/A",
+        "bol_reference": "MULTI-5521"
+      },
+      "first_receipt": "RCV-261016-103",
+      "second_draft_product_id": 32,
+      "status": "passed",
+      "seconds": 16.382,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_04c56e48cfb10efa016ad23c6ec3e087d29de2c8eed6353e54",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_04c56e48cfb10efa016ad23c721a5487d28b3bdc527db11432",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_04c56e48cfb10efa016ad23c74f59887d2b2ca627bdf2d91e4",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_04c56e48cfb10efa016ad23c78916087d2871285e8874d7658",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_04c56e48cfb10efa016ad23c7c315087d2a1b177c8ce33bc74",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "multi_es",
+      "language": "es",
+      "text": "Recibimos 5 cajas de semillas de girasol y 3 cajas de avena de Grain Supply, 50 lb por caja, BOL MULTI-5521.",
+      "run": 3,
+      "draft_action": "receive",
+      "draft_facts": {
+        "product_id": 46,
+        "supplier_id": 25,
+        "cases": 5,
+        "case_size_lb": 50.0,
+        "total_lb": 250.0,
+        "supplier_lot_code": "N/A",
+        "bol_reference": "MULTI-5521"
+      },
+      "first_receipt": "RCV-261016-104",
+      "second_draft_product_id": 32,
+      "status": "passed",
+      "seconds": 16.025,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_068d5ef3434a24d2016ad23c7f246087d2bf008fe7aed73abe",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_068d5ef3434a24d2016ad23c82252087d2a7d45f375e040daf",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_068d5ef3434a24d2016ad23c85714487d2bc46f487adc1be58",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_068d5ef3434a24d2016ad23c894cc487d2951658b88d89dae8",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_068d5ef3434a24d2016ad23c8c5eb087d2856099cf4c49508c",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        }
+      ]
+    }
+  ],
+  "source_unchanged": true,
+  "passed": 6,
+  "failed": 0
+}

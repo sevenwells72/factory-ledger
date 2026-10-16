@@ -19,8 +19,11 @@ class LotConfirmation(BaseModel):
         extra = 'forbid'
 
 
-def fail(code, message):
-    raise HTTPException(422, {'error_code': code, 'message': message})
+def fail(code, message, message_es=None):
+    detail = {'error_code': code, 'message': message}
+    if message_es:
+        detail['message_es'] = message_es
+    raise HTTPException(422, detail)
 
 
 def verify(api, cur, lot, evidence):
@@ -30,7 +33,8 @@ def verify(api, cur, lot, evidence):
     label = f"{lot['product_name']} lot {lot['lot_code']}"
     if method == 'last4':
         if len(value) != 4 or value != code[-4:]:
-            fail('LOT_CONFIRMATION_MISMATCH', f'Type the last four characters for {label}.')
+            fail('LOT_CONFIRMATION_MISMATCH', f'Type the last four characters for {label}.',
+                 f'Escriba los últimos cuatro caracteres del lote {lot["lot_code"]} de {lot["product_name"]}.')
         cur.execute(f'''SELECT l.id FROM lots l
             LEFT JOIN {api.POSTED_LINES} tl ON tl.lot_id=l.id
             WHERE l.product_id=%s AND l.status IS DISTINCT FROM 'merged'
@@ -38,10 +42,12 @@ def verify(api, cur, lot, evidence):
             GROUP BY l.id HAVING COALESCE(sum(tl.quantity_lb),0)>0''',
             (lot['product_id'], value))
         if len(cur.fetchall()) > 1:
-            fail('AMBIGUOUS_SUFFIX', f'The suffix matches multiple active lots of {lot["product_name"]}; type the full code or scan.')
+            fail('AMBIGUOUS_SUFFIX', f'The suffix matches multiple active lots of {lot["product_name"]}; type the full code or scan.',
+                 f'Esos cuatro caracteres coinciden con varios lotes de {lot["product_name"]}. Escriba el código completo de la etiqueta o escanéelo.')
     elif method in ('full_code', 'scan', 'pallet'):
         if value != code:
-            fail('LOT_CONFIRMATION_MISMATCH', f'The entered code does not match {label}.')
+            fail('LOT_CONFIRMATION_MISMATCH', f'The entered code does not match {label}.',
+                 f'El código no coincide con el lote {lot["lot_code"]} de {lot["product_name"]}. Revise la etiqueta.')
     if method == 'pallet':
         cur.execute('''SELECT id,to_location,lot_code,
                 moved_at <= clock_timestamp() AND moved_at >= clock_timestamp()-interval '24 hours' AS recent
@@ -131,6 +137,7 @@ def confirmation_group(api, cur, plan):
         ingredient['suggested_lots'].append({key: item[key] for key in
             ('lot_id', 'lot_code', 'quantity_lb', 'confirmed')})
     for ingredient in grouped.values():
+        ingredient['needed_lb'] = round(ingredient['needed_lb'], 2)
         cur.execute(f'''SELECT l.id AS lot_id,l.lot_code,COALESCE(sum(tl.quantity_lb),0) AS available_lb
             FROM lots l LEFT JOIN {api.POSTED_LINES} tl ON tl.lot_id=l.id
             WHERE l.product_id=%s AND l.status IS DISTINCT FROM 'merged'
@@ -419,15 +426,17 @@ def real_supplier(cur, supplier_id, *, lock=False):
 
 
 def supplier_receipt(cur, response):
-    cur.execute('''SELECT t.supplier_id,s.name AS supplier_name FROM transactions t
-        JOIN suppliers s ON s.id=t.supplier_id WHERE t.id=%s''', (response['transaction_id'],))
+    cur.execute('''SELECT t.supplier_id,s.name AS supplier_name,t.bol_reference,
+            (SELECT l.supplier_lot_code FROM transaction_lines tl JOIN lots l ON l.id=tl.lot_id
+             WHERE tl.transaction_id=t.id AND tl.quantity_lb>0 ORDER BY tl.id LIMIT 1) AS supplier_lot_code
+        FROM transactions t JOIN suppliers s ON s.id=t.supplier_id WHERE t.id=%s''', (response['transaction_id'],))
     response.update(dict(cur.fetchone()))
 
 
 def receipt_evidence(cur, transactions, lots):
     """Read identities from FK columns, never from a lot label prefix."""
     for transaction in transactions:
-        cur.execute('''SELECT t.supplier_id,s.name AS supplier_name FROM transactions t
+        cur.execute('''SELECT t.supplier_id,s.name AS supplier_name,t.bol_reference FROM transactions t
             LEFT JOIN suppliers s ON s.id=t.supplier_id WHERE t.id=%s''', (transaction['id'],))
         transaction.update(dict(cur.fetchone()))
         cur.execute('SELECT lot_id,method,value,actor_id,move_id,created_at FROM transaction_lot_confirmations WHERE transaction_id=%s ORDER BY lot_id', (transaction['id'],))
@@ -435,6 +444,6 @@ def receipt_evidence(cur, transactions, lots):
         cur.execute('SELECT ingredient_product_id,substitute_product_id,lot_id,reason_code,note,actor_id FROM transaction_substitutions WHERE transaction_id=%s ORDER BY ingredient_product_id', (transaction['id'],))
         transaction['substitutions'] = [dict(row) for row in cur.fetchall()]
     for lot in lots:
-        cur.execute('''SELECT l.supplier_id,s.name AS supplier_name,l.identity_status,l.identify_by
+        cur.execute('''SELECT l.supplier_id,s.name AS supplier_name,l.supplier_lot_code,l.identity_status,l.identify_by
             FROM lots l LEFT JOIN suppliers s ON s.id=l.supplier_id WHERE l.id=%s''', (lot['id'],))
         lot.update(dict(cur.fetchone()))

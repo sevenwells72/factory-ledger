@@ -168,6 +168,31 @@ def attach_shipment(api, cur, shipment_id, ref, actor):
                     (actor['id'],json.dumps({'attachment_id':row['id']}),shipment_id))
     return dict(public(row),shipment_id=shipment_id)
 
+
+def receive_evidence(api, cur, refs, actor, *, ticket_id=None, claim=False):
+    """Validate actual private lot-tag uploads; a model reference is never proof."""
+    result = []
+    for ref in dict.fromkeys(refs):
+        row = verified(cur, ref, actor, ticket_id=ticket_id, kinds=('lot_tag',), claim=claim)
+        load(api, row)
+        result.append(public(row))
+    return result
+
+
+def attach_receive(api, cur, refs, actor, *, ticket_id, transaction_id):
+    rows = receive_evidence(api, cur, refs, actor, ticket_id=ticket_id, claim=True)
+    for row in rows:
+        cur.execute('UPDATE attachments SET transaction_id=%s WHERE id=%s', (transaction_id, row['id']))
+        row.update(ticket_id=ticket_id, transaction_id=transaction_id)
+    return rows
+
+
+def for_receipt(cur, ticket_id):
+    """Return private metadata; file downloads still enforce evidence authorization."""
+    cur.execute('SELECT * FROM attachments WHERE ticket_id=%s ORDER BY created_at,id', (ticket_id,))
+    return [dict(public(row), transaction_id=row.get('transaction_id')) for row in cur.fetchall()]
+
+
 def register_routes(app, api):
     @app.post('/attachments')
     def upload(request: Request, file: UploadFile=File(...), kind: Literal['bol','truck_photo','correction_photo','lot_tag','count_sheet','signed_packing_slip','other']=Form(...),

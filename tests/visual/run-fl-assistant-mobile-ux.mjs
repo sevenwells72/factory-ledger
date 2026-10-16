@@ -79,6 +79,8 @@ try {
         page.on('pageerror', error => errors.push(error.message));
         sessionsCreated = 0; resumed = []; uploads = [];
         const signIn = async () => {
+          // Reload may be restoring a valid session; wait before deciding whether a key is needed.
+          await page.locator('#auth-loading').waitFor({ state: 'hidden' });
           if (!(await page.locator('#chat-panel').isVisible())) {
             await page.locator('#actor-key').fill('fixture-key'); await page.locator('#sign-in-form button').click();
           }

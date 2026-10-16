@@ -28,7 +28,7 @@ function harness(search = '') {
       if (pathname === '/resolve') return { outcome: 'match', match: { id: 22, label: 'Selected order' } };
       return { order_id: 17, order_number: 'SO-TEST', lines: [] };
     },
-    groups: () => [], receiptState: () => ({ state: 'recorded', tone: 'good' }), voidChoices: () => [], draftHtml: () => '',
+    exceptionQueue: require('../dashboard/ledger-ui.js').exceptionQueue, openingStock: require('../dashboard/ledger-ui.js').openingStock, groups: () => [], receiptState: () => ({ state: 'recorded', tone: 'good' }), voidChoices: () => [], draftHtml: () => '',
     notice() {}, failure(error) { throw error; }, relabel() {}, translate() {} };
   const context = vm.createContext({ URL, URLSearchParams, FLLedger: ui, FLReceipts: { page: name => name },
     FLDashboard: { writesEnabled: true }, location: { search, href: 'https://fl.local/entry.html' + search }, history: { replaceState() {} },

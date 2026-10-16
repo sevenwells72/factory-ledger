@@ -11,8 +11,8 @@ import oat_bran_substitution as oat_bran
 from fastapi import HTTPException
 
 
-def fail(code, message):
-    raise HTTPException(409, {'error_code': code, 'message': message})
+def fail(code, message, **context):
+    raise HTTPException(409, {'error_code': code, 'message': message, **context})
 
 
 def product(api, cur, product_id, lock=False):
@@ -98,7 +98,9 @@ def choose_inputs(api, cur, requirements, overrides):
             # product with no lot at all still blocks: nothing can go negative.
             if a3b.assign_shortfall(plan, pid, remaining, rows, overrides.get(pid)) is None:
                 name = product(api, cur, pid)['name']
-                fail('INSUFFICIENT_STOCK', f'{name} needs {float(needed)} lb and has no lot to record the shortage against; receive it first.')
+                fail('INSUFFICIENT_STOCK', f'{name} needs {api._fmt_quantity(needed)} lb and has no lot to record the shortage against; receive it first.',
+                     message_es=f'{name} necesita {api._fmt_quantity(needed)} lb y no tiene un lote para registrar el faltante. Registre primero la recepción.',
+                     product=name, needed_lb=round(float(needed), 2), available_lb=0)
     return plan
 
 def validate(api, cur, action, payload, lock=False):
@@ -190,7 +192,7 @@ def validate(api, cur, action, payload, lock=False):
             # out, or the newest lot) and flagged at commit.
             primary = a3b.pack_shortfall(cur, source, draft, bool(allocations), primary, kosher_tier=a12.tier(target) if a12.tier(target)==a12.EXTRA else None)
         if abs(sum(a['quantity_lb'] for a in primary) - draft['total_lb']) > api.BALANCE_EPSILON:
-            fail('INPUT_PLAN_CHANGED', f'{source["name"]} allocations do not add up to {draft["total_lb"]} lb; prepare again.')
+            fail('INPUT_PLAN_CHANGED', f'{source["name"]} allocations do not add up to {api._fmt_quantity(draft["total_lb"])} lb; prepare again.')
         for ingredient in draft.get('add_in_ingredients', []):
             requirements[ingredient['ingredient_id']] = ingredient['needed_lb']
         if input_plan is None:
@@ -238,7 +240,7 @@ def validate(api, cur, action, payload, lock=False):
                  'correction_review': a3b.correction_review(api, 'adjust', p, req.adjustment_lb,
                                                             book_balance_before=current['on_hand_lb'], reason_code=reason['code'])}
         if draft['new_balance_lb'] < 0:
-            draft['balance_warning'] = f'{p["name"]} lot {current["lot_code"]} will have negative inventory ({draft["new_balance_lb"]} lb).'
+            draft['balance_warning'] = f'{p["name"]} lot {current["lot_code"]} will have negative inventory ({api._fmt_quantity(draft["new_balance_lb"])} lb).'
         options = {'product': p, 'lot_id': payload['lot_id'], 'reason_code': reason['code'], 'note': reason['note']}
         specification = {'product_id': p['id'], 'lot_id': current['id'], 'delta_lb': req.adjustment_lb}
     elif action == 'found':
@@ -246,13 +248,14 @@ def validate(api, cur, action, payload, lock=False):
         products.append(p)
         # A3b hook (R2/R3): fixed-list reason (the note is `notes`), no found stock
         # for a product with an open shortage, 500 lb review.
-        reason = a3b.resolve_reason(cur, 'found', payload['reason_code'], note=payload.get('notes'), delta_lb=payload['quantity'])
+        reason = a3b.resolve_reason(cur, 'found', payload['reason_code'], note=payload.get('notes') or payload.get('notes_es'), delta_lb=payload['quantity'])
         a3b.refuse_cover_up(cur, 'found', p['id'], None, payload['quantity'])
         fields = {k: v for k, v in payload.items()
                   if k not in ('specification', 'input_plan', 'existing_output_lot_id', 'attachment_ref')}
         fields['reason_code'] = reason['code']
         req = api.AddFoundInventoryRequest(**fields)
-        api.validate_bilingual(req.notes, req.notes_es, 'notes')
+        # A worker's note is evidence in its original language; no translation
+        # is required to record a found count. Both fields remain unchanged.
         output_code = req.lot_code
         if not output_code:
             prefix = api.get_plant_now().strftime('%y-%m-%d') + '-FOUND-'

@@ -1,0 +1,14 @@
+{
+  "utc": "2026-10-16T14:55:39.987204+00:00",
+  "owned_cluster": "127.0.0.1:5440",
+  "remaining_fl_final_databases": [],
+  "cluster_stopped": true,
+  "owned_pgdata_deleted": true,
+  "suite_modes": {
+    "off": 6707,
+    "on": 6707
+  },
+  "failures": 0,
+  "errors": 0,
+  "skips": 0
+}

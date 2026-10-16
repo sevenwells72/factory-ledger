@@ -1,0 +1,40 @@
+{
+  "initial_before_frozen_fixes": {
+    "collected": 6671,
+    "groups": {
+      "ordinary": {
+        "collected": 6585,
+        "passed": 6583,
+        "failed": 2,
+        "error": 0,
+        "skipped": 0,
+        "xfailed": 0,
+        "xpassed": 0,
+        "returncode": 1,
+        "log": "00.log"
+      }
+    },
+    "one_disposable_database": true
+  },
+  "final_fixture_failure": {
+    "collected": 6707,
+    "groups": {
+      "ordinary": {
+        "collected": 6621,
+        "passed": 6620,
+        "failed": 1,
+        "error": 0,
+        "skipped": 0,
+        "xfailed": 0,
+        "xpassed": 0,
+        "returncode": 1,
+        "log": "00.log"
+      }
+    },
+    "one_disposable_database": true
+  },
+  "explanation": [
+    "Initial ordinary suite found two stale scalar state regressions; fixed and focused checks pass both modes.",
+    "Frozen-runtime ordinary suite found only a new test fixture missing resolved_at on a resolved exception. Test fixture correction and full rerun follow."
+  ]
+}

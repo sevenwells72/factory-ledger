@@ -26,8 +26,10 @@ import assistant_tools as catalog
 import write_tickets
 import resolution
 import assistant_replies as replies
+import assistant_service
+from assistant_intents import office_handoff, is_receive_continuation
 from assistant_voice import normalize_voice_text, normalize_order_code
-from assistant_receive import merge_receive_lot_facts, normalize_receive_arguments
+from assistant_receive import merge_receive_lot_facts, normalize_receive_arguments, package_facts, split_receive_items
 
 ROUTES = ('session', 'resume', 'turn', 'record', 'cancel', 'confirm-sku', 'attachment', 'attachment/read', 'transcribe')
 ACTOR_ROUTES = frozenset({('POST', '/assistant/' + p) for p in ROUTES} |
@@ -178,6 +180,14 @@ async def openai(path, *, body=None, file=None):
             response = await client.post('https://api.openai.com/v1/' + path,
                                          headers={'Authorization': 'Bearer ' + key}, **kwargs)
         if response.status_code != 200:
+            try:
+                problem = response.json()
+            except ValueError:
+                problem = {}
+            if assistant_service.quota_exhausted(response.status_code, problem):
+                logger.error('ASSISTANT_QUOTA_EXHAUSTED: provider billing/credit limit; status=%s', response.status_code)
+                raise HTTPException(503, {'error_code': assistant_service.CODE,
+                    'message': assistant_service.MESSAGE, 'message_es': assistant_service.MESSAGE_ES})
             logger.warning('OpenAI request failed: status=%s', response.status_code)
             fail(502, 'OPENAI_UNAVAILABLE', 'OpenAI request failed.')
         return response.json()
@@ -279,6 +289,9 @@ def linked_attachments(api, session_id, actor_id, attachment_ids):
 
 def evidence_fields(action, selected):
     # Evidence comes from the page's authenticated uploads, never model output.
+    if action == 'receive':
+        ids = [a['id'] for a in selected if a['kind'] == 'lot_tag']
+        return {'attachment_ids': ids} if ids else {}
     if action in write_tickets.SHIP_ACTIONS:
         return {'attachment_ids': [a['id'] for a in selected
                                   if a['kind'] in ('bol', 'truck_photo', 'signed_packing_slip')]}
@@ -546,6 +559,13 @@ def register_routes(app, api):
         active = [row for row in data.get('orders', [])
                   if float(row.get('remaining_effective_lb', row.get('remaining_lb', 0)) or 0) > api.BALANCE_EPSILON]
         matches = [row for row in active if identifier and row['order_number'].upper() == identifier.upper()]
+        if identifier and not matches:
+            exact_status, exact = await relay(app, request, 'GET', '/sales/orders/' + quote(identifier, safe=''))
+            if exact_status == 200 and isinstance(exact, dict):
+                remaining = float(exact.get('remaining_effective_lb', exact.get('remaining_lb', 0)) or 0)
+                if remaining <= api.BALANCE_EPSILON and exact.get('status') != 'cancelled':
+                    return 409, exact, {'kind': 'refusal', 'status': 409, 'result': {'detail': {
+                        'error_code': 'ORDER_ALREADY_FULFILLED', 'order_number': exact.get('order_number', identifier)}}}
         customer = None
         if not matches:
             context = args.get('context') or {}
@@ -666,8 +686,14 @@ def register_routes(app, api):
                 choice_id = str(uuid4())
                 card = {'kind': 'choices', 'id': choice_id, 'resolution_kind': args['kind'], 'query': args.get('query', ''), 'result': result,
                         'supplier_search': args['kind'] == 'supplier'}
+                known_customer = args['kind'] == 'customer' and any(row.get('tier') in ('exact', 'alias', 'keyword') for row in result.get('candidates', []))
+                if known_customer:
+                    card['existing_customer_only'] = True
                 state['pending'] = {'id': choice_id, 'args': args, 'result': result, 'supplier_search': args['kind'] == 'supplier',
                                     'packing_batch_prompt': args['kind'] == 'product' and pack_without_batch(body.text)}
+                if (known_customer and re.search(r'^\s*(?:add|create|agrega|agregar|crea|crear)\b', body.text, re.I)
+                        and not re.search(r'\b(?:orders?|pedidos?|orden)\b', body.text, re.I)):
+                    state['pending']['existing_customer_only'] = True
                 if result.get('outcome') == 'none':
                     with api.get_transaction() as cur:
                         cur.execute('INSERT INTO assistant_unmatched_words(session_id,actor_id,kind,query,context) VALUES (%s,%s,%s,%s,%s)',
@@ -677,6 +703,19 @@ def register_routes(app, api):
         if name in catalog.PREPARES:
             if catalog.has_ui_fields(args):
                 fail(502, 'MODEL_EVIDENCE_FORBIDDEN', 'Confirmation must come from the page / Confirma en la página.')
+            if name == 'prepare_create_customer' and args.get('name'):
+                status, existing = await relay(app, request, 'POST', '/resolve', body={'kind': 'customer', 'query': args['name']})
+                candidates = existing.get('candidates', []) if status == 200 else []
+                # A clear catalog name/alias/prefix must be offered, never silently
+                # used or duplicated by the model's direct create-customer tool.
+                known = [row for row in candidates if row.get('tier') in ('exact', 'alias', 'keyword')]
+                if known:
+                    choice_id = str(uuid4())
+                    result = {**existing, 'candidates': known, 'has_more': False}
+                    state['pending'] = {'id': choice_id, 'args': {'kind': 'customer', 'query': args['name']},
+                        'result': result, 'existing_customer_only': True}
+                    return 200, result, {'kind': 'choices', 'id': choice_id, 'resolution_kind': 'customer',
+                        'query': args['name'], 'result': result, 'existing_customer_only': True}
             unknown = untrusted_ids(args, state)
             if unknown:
                 return 422, {'detail': {'error_code': 'RESOLVE_REQUIRED', 'fields': unknown}}, None
@@ -754,6 +793,8 @@ def register_routes(app, api):
             card = store_draft(result, args, body.session_id, actor['id'], prepare_attachments, state.get('language', 'en'))
             if name == 'prepare_receive':
                 state['receive_context'] = {'args': args, 'draft_id': card['id'], 'attachment_ids': prepare_attachments}
+                if state.get('receive_queue_current'):
+                    state['receive_queue_draft_id'] = card['id']
             return status, result, card
         if name == 'packing_context':
             target_id = args.get('target_product_id')
@@ -1020,8 +1061,34 @@ def register_routes(app, api):
                 fail(409, 'CHAT_BUSY', 'Wait for the current message / Espera el mensaje actual.')
         try:
             state = claimed['state']
+            state['_submitted_text'] = body.text
             state['language'] = replies.language(body.text, body.language or state.get('language', 'en'))
+            handoff = office_handoff(body.text, state['language']) if not body.choice_id else None
+            if handoff:
+                return save_turn(state, [handoff], body, actor, digest, lease)
+            if not body.choice_id and is_receive_continuation(body.text):
+                queued = state.get('receive_queue', [])
+                current_id = state.get('receive_queue_draft_id') or state.get('receive_context', {}).get('draft_id')
+                if current_id and draft_row(api, current_id, actor['id'])['status'] == 'pending':
+                    return save_turn(state, [{'kind': 'receive_queue', 'finish_current': True}], body, actor, digest, lease)
+                if not current_id and state.get('receive_queue_current'):
+                    return save_turn(state, [{'kind': 'receive_queue', 'finish_current': True, 'missing_current': True}], body, actor, digest, lease)
+                if not queued:
+                    return save_turn(state, [{'kind': 'receive_queue', 'queue_empty': True}], body, actor, digest, lease)
+                body = body.model_copy(update={'text': queued.pop(0)})
+                state['receive_queue_current'] = body.text
+                state.pop('receive_queue_draft_id', None)
+                state.pop('receive_facts', None)
+                state.pop('receive_context', None)
             text = catalog_voice_text(body.text)
+            items = split_receive_items(text) if not body.choice_id else []
+            if items:
+                state.setdefault('receive_original_messages', []).append(body.text)
+                state.setdefault('receive_queue', []).extend(items[1:])
+                state['receive_queue_current'] = items[0]
+                state.pop('receive_queue_draft_id', None)
+                body = body.model_copy(update={'text': items[0]})
+                text = items[0]
             if re.search(r'\b(?:pack(?:ed)?|empacamos|empacado|empaque)\b', text, re.I):
                 state.pop('packing_case_weight_lb', None)
                 if not body.choice_id:
@@ -1030,7 +1097,7 @@ def register_routes(app, api):
                 if weight:
                     state['packing_case_weight_lb'] = float(weight.group(1))
             # A correction belongs to the current receive, even without repeating "received".
-            receive_start = bool(re.search(r'\b(?:receive(?:d)?|recibimos|recibi|recibí|recibir)\b', text, re.I))
+            receive_start = bool(items or re.search(r'\b(?:receive(?:d)?|recibimos|recibi|recibí|recibir)\b', text, re.I))
             receive_correction = not receive_start and bool(state.get('receive_context') or state.get('receive_facts')) and bool(
                 re.search(r'\b(?:total|actually|correction|correct|it was|were|era|eran|fue|fueron|corrijo|correccion|corrección)\b', text, re.I))
             if receive_start:
@@ -1038,14 +1105,15 @@ def register_routes(app, api):
                 state.pop('receive_context', None)
             if receive_start or state.get('receive_context') or state.get('receive_facts'):
                 state['receive_facts'] = merge_receive_lot_facts(state.get('receive_facts', {}), body.text)
+                state['receive_facts'].update(package_facts(body.text))
             new_receive_total = None
-            if receive_start or receive_correction:
+            if (receive_start or receive_correction) and not package_facts(body.text):
                 for qty in re.finditer(r'(?<![\w.])(\d+(?:\.\d+)?)\s*(?:lb\b|lbs\b|pounds?\b|libras?\b)', text, re.I):
                     before, after = text[:qty.start()], text[qty.end():]
-                    if re.match(r'\s*(?:(?:per|por|/)\s*(?:case|caja)|each|cada)', after, re.I):
+                    if re.match(r'\s*(?:(?:per|por|/)\s*(?:case|caja|bag|bolsa|saco)|each|cada|bags?\b)', after, re.I):
                         continue
                     is_total = re.search(r'\btotal\s*[:=]?\s*$', before, re.I) or re.match(r'\s*(?:in\s+|en\s+)?total\b', after, re.I)
-                    if not is_total and (re.search(r'\b\d+\s*(?:cases?|cajas?)\b', before, re.I) or re.search(r'[x×@]\s*$', before)):
+                    if not is_total and (re.search(r'\b\d+\s*(?:cases?|cajas?|bags?|bolsas?|sacos?)\b', before, re.I) or re.search(r'[x×@]\s*$', before)):
                         continue
                     new_receive_total = float(qty.group(1))
                     state.setdefault('receive_facts', {})['quantity_lb'] = new_receive_total
@@ -1100,6 +1168,8 @@ def register_routes(app, api):
                 if args.get('cases'):
                     # Explicit total / previously supplied case count is arithmetic, not a guessed fact.
                     args['case_size_lb'] = state['receive_facts']['quantity_lb'] / args['cases']
+                    if 'case_size_lb' in state['receive_facts']:
+                        state['receive_facts']['case_size_lb'] = args['case_size_lb']
                     history.append({'role': 'user', 'content': text.strip()})
                     if context.get('draft_id'):
                         # Claim the replacement before preparing. A concurrent Record
@@ -1145,6 +1215,14 @@ def register_routes(app, api):
                 if selected_status != 200:
                     return save_turn(state, [{'kind': 'lookup_failed'}],
                                      body, actor, digest, lease)
+                if pending.get('existing_customer_only'):
+                    state.pop('pending', None)
+                    es = state['language'] == 'es'
+                    return save_turn(state, [{'kind': 'handoff', 'message':
+                        (f"{selected['name']} ya existe. Use este cliente para el pedido." if es else
+                         f"{selected['name']} already exists. Use this customer for the order."),
+                        'actions': [{'href': '/dashboard/office.html?action=create_order',
+                                     'label': 'Crear pedido' if es else 'Create order'}]}], body, actor, digest, lease)
                 if pending.get('packing_batch_prompt'):
                     history.append({'role': 'user', 'content': 'I selected this FL candidate: ' + json.dumps(selected, ensure_ascii=False)})
                     card = resolved_packing_lots(state, selected['id'])
@@ -1215,7 +1293,12 @@ def register_routes(app, api):
                         'parallel_tool_calls': False, 'max_output_tokens': 4000,
                         'reasoning': {'effort': 'low'},
                     })
-                except HTTPException:
+                except HTTPException as exc:
+                    if isinstance(exc.detail, dict) and exc.detail.get('error_code') == assistant_service.CODE:
+                        notice_id = assistant_service.record_outage(api, actor)
+                        offline = assistant_service.offline_card(state['language'])
+                        offline['notice_id'] = notice_id
+                        return save_turn(state, [offline], body, actor, digest, lease)
                     if not validation_retries:
                         raise
                     cards.append({'kind': 'misunderstood'})
@@ -1297,8 +1380,11 @@ def register_routes(app, api):
                 cur.execute('UPDATE assistant_sessions SET lease_id=NULL,lease_until=NULL WHERE id=%s AND lease_id=%s', (sid, lease))
 
     def save_turn(state, cards, body, actor, digest, lease):
+        if state.get('receive_queue') and not any(card['kind'] == 'receive_queue' for card in cards):
+            cards = [*cards, {'kind': 'receive_queue'}]
+        cards = [dict(card, queued_text=list(state.get('receive_queue', []))) if card['kind'] == 'receive_queue' else card for card in cards]
         cards = [replies.decorate(card, state.get('language', 'en')) for card in cards]
-        result = {'turn_id': str(body.turn_id), 'text': body.text, 'language': state.get('language', 'en'), 'cards': cards}
+        result = {'turn_id': str(body.turn_id), 'text': state.pop('_submitted_text', body.text), 'language': state.get('language', 'en'), 'cards': cards}
         with api.get_transaction() as cur:
             cur.execute('UPDATE assistant_sessions SET state=%s,updated_at=clock_timestamp() WHERE id=%s AND actor_id=%s AND lease_id=%s',
                         (Json(state), str(body.session_id), actor['id'], lease))
@@ -1417,7 +1503,12 @@ def register_routes(app, api):
                       'audio/mpeg': 'mp3', 'audio/wav': 'wav', 'audio/ogg': 'ogg'}
         if mime not in extensions or not data or len(data) > MAX_AUDIO:
             fail(422, 'AUDIO_INVALID', 'Audio must be at most 20 MB / Audio de hasta 20 MB.')
-        result = await openai('audio/transcriptions', file=('dictation.' + extensions[mime], data, mime))
+        try:
+            result = await openai('audio/transcriptions', file=('dictation.' + extensions[mime], data, mime))
+        except HTTPException as exc:
+            if isinstance(exc.detail, dict) and exc.detail.get('error_code') == assistant_service.CODE:
+                assistant_service.record_outage(api, actor)
+            raise
         if not isinstance(result.get('text'), str) or len(result['text']) > 4000:
             fail(502, 'TRANSCRIPT_INVALID', 'Transcript unavailable; type instead / Escribe el mensaje.')
         return {'text': result['text'], 'editable': True, 'sent': False}

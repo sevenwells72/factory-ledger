@@ -10,6 +10,7 @@ import pathlib
 from datetime import datetime, date, timezone, timedelta
 from zoneinfo import ZoneInfo
 from contextlib import contextmanager
+from functools import wraps
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import calendar
@@ -846,12 +847,12 @@ def _allocation_observe_warning(
             return None
         if reserved_taken_lb > BALANCE_EPSILON:
             message = (
-                f"{action} would use {reserved_taken_lb:.4f} lb reserved for other "
+                f"{action} would use {reserved_taken_lb:.2f} lb reserved for other "
                 "sales orders. Allocation enforcement is on, so commit will be blocked."
             )
         else:
             message = (
-                f"{action} has {float(summary['reserved_others_lb']):.4f} lb reserved "
+                f"{action} has {float(summary['reserved_others_lb']):.2f} lb reserved "
                 "for other sales orders. This preview stays within takeable stock; "
                 "a larger commit may be blocked while allocation enforcement is on."
             )
@@ -869,7 +870,7 @@ def _allocation_observe_warning(
     return {
         "warning_code": "RESERVED_STOCK_OBSERVE_ONLY",
         "message": (
-            f"{action} uses {reserved_taken_lb:.4f} lb reserved for other sales "
+            f"{action} uses {reserved_taken_lb:.2f} lb reserved for other sales "
             "orders. Allocation enforcement is off, so the write proceeds."
         ),
         "requested_lb": float(requested_lb),
@@ -894,7 +895,7 @@ def _enforce_allocation_takeable(
     _allocation_error(
         "STOCK_ALLOCATED",
         (
-            f"{action} would use {reserved_taken_lb:.4f} lb reserved for other "
+            f"{action} would use {reserved_taken_lb:.2f} lb reserved for other "
             "sales orders. Allocation enforcement is on, so no stock was moved."
         ),
         requested_lb=float(requested_lb),
@@ -1839,7 +1840,7 @@ def validate_lot_deduction(cur, lot_id: int, lot_code: str, requested_lb: float)
 
     raise HTTPException(
         status_code=400,
-        detail=f"Insufficient balance on lot {lot_code}: available {balance:.4f} lb, requested {requested_lb:.4f} lb"
+        detail=f"Insufficient balance on lot {lot_code}: available {balance:.2f} lb, requested {requested_lb:.2f} lb"
     )
 
 
@@ -2455,7 +2456,12 @@ async def startup():
         # hand the GPTs master or dashboard (write) scope.
         raise RuntimeError("READONLY_API_KEY must differ from API_KEY and DASHBOARD_API_KEY")
     try:
-        db_pool = pool.ThreadedConnectionPool(minconn=2, maxconn=20, dsn=DATABASE_URL)
+        # The Supabase session pooler reserves a server session for every
+        # client. Bound this process below its former 20-client burst and
+        # return excess idle sessions immediately (psycopg2 minconn=1).
+        db_pool = pool.ThreadedConnectionPool(minconn=1, maxconn=10, dsn=DATABASE_URL,
+            connect_timeout=10, keepalives=1, keepalives_idle=30,
+            keepalives_interval=10, keepalives_count=3)
         logger.info("Database connection pool created")
     except Exception as e:
         logger.error(f"Failed to create connection pool: {e}")
@@ -2535,7 +2541,13 @@ async def shutdown():
 
 @contextmanager
 def get_db_connection():
-    conn = db_pool.getconn()
+    try:
+        conn = db_pool.getconn()
+    except (psycopg2.OperationalError, psycopg2.InterfaceError, pool.PoolError) as exc:
+        if ('EMAXCONNSESSION' in str(exc) or getattr(exc, 'pgcode', None) == '53300'
+                or 'connection pool exhausted' in str(exc)):
+            logger.error('DB_POOL_CAPACITY: session pooler client limit reached; this process is capped at 10 connections')
+        raise
     try:
         yield conn
         conn.commit()
@@ -2544,11 +2556,62 @@ def get_db_connection():
             _discard_readonly_connection(conn, "get_db_connection")
             conn = None
             raise
+        if _is_db_disconnect(exc):
+            # A broken socket must not be handed to the next request. Never
+            # replay this context: it may already have attempted a write.
+            _discard_disconnected_connection(conn)
+            conn = None
+            raise
         conn.rollback()
         raise
     finally:
         if conn is not None:
             db_pool.putconn(conn)
+
+
+def _is_db_disconnect(exc):
+    if isinstance(exc, pool.PoolError):
+        return 'connection pool exhausted' in str(exc)
+    if not isinstance(exc, (psycopg2.OperationalError, psycopg2.InterfaceError)):
+        return False
+    code = getattr(exc, 'pgcode', None)
+    return code is None or code.startswith('08') or code in ('57P01', '57P02', '57P03', '53300')
+
+
+def _discard_disconnected_connection(conn):
+    try:
+        db_pool.putconn(conn, close=True)
+    except Exception:
+        # Cleanup failure must not hide the original disconnect.
+        try:
+            conn.close()
+        except Exception:
+            pass
+    logger.warning('DB_CONNECTION_DISCARDED: disconnected pooled socket')
+
+
+def retry_database_read(function):
+    """Retry only explicitly audited read handlers, once on a fresh connection.
+
+    No write/prepare/commit handler may use this decorator. A transaction that
+    disconnects is discarded by get_db_connection before the retry starts.
+    """
+    @wraps(function)
+    def read(*args, **kwargs):
+        for attempt in range(2):
+            try:
+                return function(*args, **kwargs)
+            except (psycopg2.OperationalError, psycopg2.InterfaceError, pool.PoolError) as exc:
+                if not _is_db_disconnect(exc):
+                    raise
+                if attempt:
+                    raise HTTPException(503, {'error_code': 'DATABASE_TEMPORARILY_UNAVAILABLE',
+                        'message': 'The database connection was interrupted. Please retry this lookup.',
+                        'message_es': 'Se interrumpió la conexión. Vuelva a intentar esta consulta.',
+                        'retryable': True}) from exc
+                logger.warning('DB_READ_RETRY_ONCE: operation=%s', function.__name__)
+                time.sleep(0.1)  # one short pause lets a busy session return; never a retry loop
+    return read
 
 
 @contextmanager
@@ -4739,6 +4802,7 @@ def health_check():
 # ═══════════════════════════════════════════════════════════════
 
 @app.get("/products/search")
+@retry_database_read
 def search_products(
     q: str = Query(..., min_length=1),
     limit: int = Query(default=20, ge=1, le=100),
@@ -4766,6 +4830,8 @@ def search_products(
                     products.append(prod)
         return {"count": len(products), "products": products}
     except Exception as e:
+        if _is_db_disconnect(e):
+            raise
         logger.error(f"Product search failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -5003,6 +5069,7 @@ def _inventory_detail_for_products(cur, product_ids: list[int]) -> dict[int, dic
 
 
 @app.get("/inventory/lookup")
+@retry_database_read
 def inventory_lookup(
     q: str = Query(..., min_length=1),
     limit: int = Query(default=5, ge=1, le=50),
@@ -5024,6 +5091,8 @@ def inventory_lookup(
                     results.append(detail)
         return {"query": q, "results": results}
     except Exception as e:
+        if _is_db_disconnect(e):
+            raise
         logger.error(f"Inventory lookup failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -5680,6 +5749,14 @@ def generate_lot_code(cur, shipper_name: str, shipper_code_override: str = None)
     return lot_code, shipper_code, auto
 
 
+def _fmt_quantity(value) -> str:
+    """Worker entry quantities keep cents of a pound without binary float noise."""
+    rounded = Decimal(str(value)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+    if rounded == 0:
+        rounded = Decimal(0)
+    return format(rounded, ',f').rstrip('0').rstrip('.') if '.' in format(rounded, ',f') else format(rounded, ',f')
+
+
 def _receive_preview_core(cur, req: ReceiveRequest, *, product=None):
     """Read-only receive draft, shared by legacy preview and A1 prepare."""
     product = product if product is not None else resolve_product_full(cur, req.product_name)
@@ -5710,7 +5787,7 @@ def _receive_preview_core(cur, req: ReceiveRequest, *, product=None):
         "shipper_code_auto": auto,
         "lot_code": lot_code,
         "bol_reference": req.bol_reference,
-        "preview_message": f"Ready to receive {req.cases} cases ({total_lb} lb) of {product['name']} as lot {lot_code}"
+        "preview_message": f"Ready to receive {req.cases} cases ({_fmt_quantity(total_lb)} lb) of {product['name']} as lot {lot_code}"
     }
     if existing:
         response["lot_exists"] = True
@@ -5829,10 +5906,12 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
         )
 
     date_str, time_str = format_timestamp(now)
-    receipt = f"RECEIVED: {req.cases} cases ({total_lb} lb) {product['name']}\nLot: {lot_code}\nBOL: {req.bol_reference}\n{date_str} {time_str}"
+    supplier_codes = [entry.get('supplier_lot_code') for entry in (req.supplier_lot_entries or []) if entry.get('supplier_lot_code')]
+    supplier_label = ", ".join(supplier_codes) or req.supplier_lot_code or "N/A"
+    receipt = f"RECEIVED: {req.cases} cases ({_fmt_quantity(total_lb)} lb) {product['name']}\nLot: {lot_code}\nSupplier lot: {supplier_label}\nBOL: {req.bol_reference}\n{date_str} {time_str}"
 
     lot_verb = "created" if is_new_lot else "found existing"
-    logger.info(f"Receive committed: {lot_code} ({lot_verb}) - {total_lb} lb of {product['name']}")
+    logger.info(f"Receive committed: {lot_code} ({lot_verb}) - {_fmt_quantity(total_lb)} lb of {product['name']}")
 
     response = {
         "mode": "commit",
@@ -5844,9 +5923,12 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
         "lot_code": lot_code,
         "lot_is_new": is_new_lot,
         "lot_type": lot_type,
+        "supplier_lot_code": req.supplier_lot_code,
+        "supplier_lot_entries": req.supplier_lot_entries or [],
+        "bol_reference": req.bol_reference,
         "total_lb": total_lb,
         "receipt_text": receipt,
-        "message": f"Received {total_lb} lb as lot {lot_code}" + ("" if is_new_lot else " (existing lot)")
+        "message": f"Received {_fmt_quantity(total_lb)} lb as lot {lot_code}" + ("" if is_new_lot else " (existing lot)")
     }
     if code_similarity:
         response.setdefault("warnings", []).append(code_similarity)
@@ -8211,8 +8293,8 @@ def _ship_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
         raise HTTPException(
             status_code=400,
             detail=f"Insufficient total inventory for {product['name']}. "
-                   f"Have {plan['total_on_hand_lb']:.4f} lb across "
-                   f"{len(plan_lots)} lot(s), need {req.quantity_lb} lb",
+                   f"Have {_fmt_quantity(plan['total_on_hand_lb'])} lb across "
+                   f"{len(plan_lots)} lot(s), need {_fmt_quantity(req.quantity_lb)} lb",
         )
     allocation_warning = _allocation_observe_warning(
         "Standalone ship",
@@ -8265,13 +8347,13 @@ def _ship_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
         only_lot = plan["lots"][0]["lot"]
         remaining = float(only_lot["on_hand"]) - req.quantity_lb
         log_msg = (
-            f"Shipped {req.quantity_lb} lb from lot {only_lot['lot_code']}. "
-            f"{remaining} lb remaining in lot."
+            f"Shipped {_fmt_quantity(req.quantity_lb)} lb from lot {only_lot['lot_code']}. "
+            f"{_fmt_quantity(remaining)} lb remaining in lot."
         )
     else:
         remaining = None
         log_msg = (
-            f"Shipped {req.quantity_lb} lb from {len(shipped_lots)} lot(s) "
+            f"Shipped {_fmt_quantity(req.quantity_lb)} lb from {len(shipped_lots)} lot(s) "
             "(reservation-aware FIFO)."
         )
 
@@ -8314,7 +8396,7 @@ def _ship_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
     if standalone_warning:
         logger.warning(f"force_standalone ship for {canonical_customer} who has {len(oo_payload.get('open_orders', []))} open orders: txn {txn_id}")
 
-    logger.info(f"Ship committed: {req.quantity_lb} lb of {product['name']} to {canonical_customer} ({ship_mode})")
+    logger.info(f"Ship committed: {_fmt_quantity(req.quantity_lb)} lb of {product['name']} to {canonical_customer} ({ship_mode})")
 
     response = {
         "mode": "commit",
@@ -8399,7 +8481,7 @@ def _ship_order_commit_core(cur, request, order_id, req, occurred_at, created_at
             if (r['is_service'] and r['line_status'] == 'fulfilled') or (remaining <= 0 and not service_count):
                 raise HTTPException(status_code=409, detail={"error_code": "LINE_ALREADY_FULFILLED", "message": f"Line #{rl.line_id} ({r['name']}) is already fully shipped.", "line_id": rl.line_id, "product": r['name'], "ordered_lb": float(r['quantity_lb']), "shipped_lb": float(r['quantity_shipped_lb']), "remaining_lb": 0})
             if not service_count and rl.quantity_lb > remaining:
-                raise HTTPException(status_code=422, detail={"error_code": "QTY_EXCEEDS_REMAINING", "message": f"Line #{rl.line_id} ({r['name']}): requested {rl.quantity_lb} lb but only {remaining} lb remaining.", "line_id": rl.line_id, "product": r['name'], "requested_lb": rl.quantity_lb, "remaining_lb": remaining, "suggestion": f"Retry with quantity_lb={remaining}"})
+                raise HTTPException(status_code=422, detail={"error_code": "QTY_EXCEEDS_REMAINING", "message": f"Line #{rl.line_id} ({r['name']}): requested {_fmt_quantity(rl.quantity_lb)} lb but only {_fmt_quantity(remaining)} lb remaining.", "line_id": rl.line_id, "product": r['name'], "requested_lb": rl.quantity_lb, "remaining_lb": remaining, "suggestion": f"Retry with quantity_lb={_fmt_quantity(remaining)}"})
             lines_to_ship.append({"line_id": r['id'], "product_id": r['product_id'], "quantity_lb": 0 if service_count else rl.quantity_lb, "product_name": r['name'], "is_service": r['is_service']})
 
     if not lines_to_ship:
@@ -8687,7 +8769,7 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key), request: Request =
                 if total_available < req.quantity_lb:
                     raise HTTPException(status_code=400,
                         detail=f"Insufficient total inventory for {product['name']}. "
-                               f"Have {total_available} lb across {len(lots)} lot(s), need {req.quantity_lb} lb")
+                               f"Have {_fmt_quantity(total_available)} lb across {len(lots)} lot(s), need {_fmt_quantity(req.quantity_lb)} lb")
 
                 # Pin fidelity (owner ruling 2026-08-20): a pinned lot_code
                 # restricts the plan to that lot only — never spill to other
@@ -8703,8 +8785,8 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key), request: Request =
                 if plan["short_lb"] > BALANCE_EPSILON:
                     raise HTTPException(status_code=400,
                         detail=f"Insufficient total inventory for {product['name']}. "
-                               f"Have {plan['total_on_hand_lb']:.4f} lb across "
-                               f"{len(plan_lots)} lot(s), need {req.quantity_lb} lb")
+                               f"Have {_fmt_quantity(plan['total_on_hand_lb'])} lb across "
+                               f"{len(plan_lots)} lot(s), need {_fmt_quantity(req.quantity_lb)} lb")
                 allocations = [
                     {
                         "lot_code": item["lot"]["lot_code"],
@@ -8718,11 +8800,11 @@ def ship(req: ShipRequest, _: bool = Depends(verify_api_key), request: Request =
                 ship_mode = "single_lot" if len(allocations) == 1 else "multi_lot_fifo"
                 if ship_mode == "single_lot":
                     preview_msg = (
-                        f"Ready to ship {req.quantity_lb} lb of {product['name']} "
+                        f"Ready to ship {_fmt_quantity(req.quantity_lb)} lb of {product['name']} "
                         f"from lot {allocations[0]['lot_code']}"
                     )
                 else:
-                    preview_msg = (f"Will ship {req.quantity_lb} lb of {product['name']} "
+                    preview_msg = (f"Will ship {_fmt_quantity(req.quantity_lb)} lb of {product['name']} "
                                    f"from {len(allocations)} lot(s) (reservation-aware FIFO)")
                 allocation_warning = _allocation_observe_warning(
                     "Standalone ship",
@@ -8944,7 +9026,7 @@ def _make_preview_core(cur, req, *, product=None, auto_substitute=True):
         "estimated_yield_lb": total_output, "total_output_lb": total_output,
         "lot_code": lot_code, "ingredients": ingredients_needed,
         "all_ingredients_available": all_sufficient,
-        "preview_message": f"Ready to make {req.batches} batch(es) of {product['name']} ({total_output} lb){yield_note}"
+        "preview_message": f"Ready to make {req.batches} batch(es) of {product['name']} ({_fmt_quantity(total_output)} lb){yield_note}"
     }
     production_warning = build_production_warning(product)
     if production_warning:
@@ -9200,7 +9282,7 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
         for lot_entry in group["lots"]:
             consumed_flat.append({"ingredient_id": group["ingredient_id"], "ingredient_name": group["ingredient_name"], **lot_entry})
 
-    logger.info(f"Make committed: {lot_code} - {total_output} lb of {product['name']}")
+    logger.info(f"Make committed: {lot_code} - {_fmt_quantity(total_output)} lb of {product['name']}")
 
     response = {
         "mode": "commit",
@@ -9211,13 +9293,13 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
         "estimated_yield_lb": total_output, "output_lb": total_output,
         "ingredients_consumed": consumed_flat,
         "ingredients_consumed_grouped": list(consumed_by_ingredient.values()),
-        "message": f"Produced {total_output} lb as lot {lot_code}"
+        "message": f"Produced {_fmt_quantity(total_output)} lb as lot {lot_code}"
     }
     if oat_bran_substitution.eligible(product):
         response['auto_substitutions'] = posted_substitutions
     if posted_substitutions:
         response['message'] += ' ' + ' '.join(row['message_en'] for row in posted_substitutions)
-        response['message_es'] = f"Se produjeron {total_output} lb como lote {lot_code}. " + ' '.join(row['message_es'] for row in posted_substitutions)
+        response['message_es'] = f"Se produjeron {_fmt_quantity(total_output)} lb como lote {lot_code}. " + ' '.join(row['message_es'] for row in posted_substitutions)
     if code_similarity:
         response.setdefault("warnings", []).append(code_similarity)
     production_warning = build_production_warning(product)
@@ -9311,7 +9393,7 @@ def _pack_preview_core(cur, req, *, source=None, target=None):
             allocations.append({"lot_id": matched['lot_id'], "lot_code": matched['lot_code'], "available_lb": physical, "takeable_lb": takeable, "allocated_lb": alloc.quantity_lb, "sufficient": physical >= alloc.quantity_lb})
         alloc_total = sum(a['allocated_lb'] for a in allocations)
         if abs(alloc_total - total_lb) > 0.01:
-            return JSONResponse(status_code=400, content={"error": f"Lot allocations sum to {alloc_total} lb but {total_lb} lb needed ({req.cases} cases x {case_weight} lb)"})
+            return JSONResponse(status_code=400, content={"error": f"Lot allocations sum to {_fmt_quantity(alloc_total)} lb but {_fmt_quantity(total_lb)} lb needed ({req.cases} cases x {_fmt_quantity(case_weight)} lb)"})
     else:
         plan = _takeable_deduction_plan(available_lots, total_lb)
         can_pack = plan["can_take_lb"]
@@ -9357,7 +9439,7 @@ def _pack_preview_core(cur, req, *, source=None, target=None):
         "reserved_by_orders": reservation_summary["reserved_by_orders"],
         "source_lot_count": len(available_lots),
         "source_lots": [{"lot_code": lot['lot_code'], "available_lb": float(lot['on_hand']), "takeable_lb": float(lot['takeable'])} for lot in available_lots],
-        "preview_message": f"Ready to pack {req.cases} cases ({total_lb} lb) of {target['name']} from {source['name']} ({len(available_lots)} batch lot(s))"
+        "preview_message": f"Ready to pack {req.cases} cases ({_fmt_quantity(total_lb)} lb) of {target['name']} from {source['name']} ({len(available_lots)} batch lot(s))"
     }
     if allocation_warning:
         result["allocation_warning"] = allocation_warning
@@ -9430,11 +9512,11 @@ def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, sour
             alloc_plan.append((lot, alloc.quantity_lb))
         alloc_total = sum(qty for _, qty in alloc_plan)
         if abs(alloc_total - total_lb) > 0.01:
-            raise HTTPException(400, f"Allocations sum to {alloc_total} lb, need {total_lb} lb ({req.cases} cases x {case_weight} lb)")
+            raise HTTPException(400, f"Allocations sum to {_fmt_quantity(alloc_total)} lb, need {_fmt_quantity(total_lb)} lb ({req.cases} cases x {_fmt_quantity(case_weight)} lb)")
     else:
         plan = _takeable_deduction_plan(lots, total_lb)
         if plan["short_lb"] > BALANCE_EPSILON:
-            raise HTTPException(400, f"Insufficient batch inventory. Have {plan['total_on_hand_lb']:.4f} lb, need {total_lb} lb")
+            raise HTTPException(400, f"Insufficient batch inventory. Have {_fmt_quantity(plan['total_on_hand_lb'])} lb, need {_fmt_quantity(total_lb)} lb")
         can_pack = plan["can_take_lb"]
         reserved_taken = plan["reserved_taken_lb"]
         alloc_plan = [
@@ -9476,7 +9558,7 @@ def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, sour
         check_suspicious_code_similarity(cur, target['id'], output_lot_id, output_lot_code)
         if is_new_lot else None
     )
-    source_lot_summary = ", ".join(f"{lot['lot_code']} ({qty} lb)" for lot, qty in alloc_plan)
+    source_lot_summary = ", ".join(f"{lot['lot_code']} ({_fmt_quantity(qty)} lb)" for lot, qty in alloc_plan)
     cur.execute("""
         INSERT INTO transactions (
             type, timestamp, notes, occurred_at, created_at_source, operator_id, ticket_id, receipt_number,
@@ -9560,7 +9642,7 @@ def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, sour
                 add_in_consumed.append({"ingredient_name": ing_name, "lot_code": lot['lot_code'], "consumed_lb": round(take, 2)})
                 remaining -= take
             if remaining > BALANCE_EPSILON:
-                raise HTTPException(400, f"Insufficient inventory for add-in ingredient {ing_name}: need {needed} lb, could only allocate {needed - remaining:.2f} lb")
+                raise HTTPException(400, f"Insufficient inventory for add-in ingredient {ing_name}: need {_fmt_quantity(needed)} lb, could only allocate {needed - remaining:.2f} lb")
 
     # Trace emission (§4, §10): after the source + add-in ILC
     # writes and the allocation expiry that ran inside
@@ -9574,7 +9656,7 @@ def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, sour
             operator_id=actor_name(request),
         )
 
-    logger.info(f"Pack committed: {output_lot_code} - {total_lb} lb of {target['name']} from {source['name']}")
+    logger.info(f"Pack committed: {output_lot_code} - {_fmt_quantity(total_lb)} lb of {target['name']} from {source['name']}")
 
     response = {
         "mode": "commit",
@@ -9588,7 +9670,7 @@ def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, sour
         "reserved_others_lb": reservation_summary["reserved_others_lb"],
         "reserved_by_orders": reservation_summary["reserved_by_orders"],
         "batch_lots_consumed": consumed,
-        "message": f"Packed {req.cases} cases ({total_lb} lb) of {target['name']} as lot {output_lot_code}"
+        "message": f"Packed {req.cases} cases ({_fmt_quantity(total_lb)} lb) of {target['name']} as lot {output_lot_code}"
     }
     if code_similarity:
         response.setdefault("warnings", []).append(code_similarity)
@@ -9641,7 +9723,7 @@ def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, pr
         RETURNING id, occurred_at, business_date
     """, (
         now, req.reason, req.reason_es,
-        f"Adjustment: {req.adjustment_lb} lb" + (f" — {note}" if note else ""),
+        f"Adjustment: {_fmt_quantity(req.adjustment_lb)} lb" + (f" — {note}" if note else ""),
         occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number,
         _entered_by_actor_id(request), reason_code,
     ))
@@ -9659,7 +9741,7 @@ def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, pr
         )
 
     new_balance = lot_on_hand(cur, result['lot_id'])
-    logger.info(f"Adjust committed: {req.adjustment_lb} lb to lot {result['lot_code']} (balance: {new_balance} lb)")
+    logger.info(f"Adjust committed: {_fmt_quantity(req.adjustment_lb)} lb to lot {result['lot_code']} (balance: {_fmt_quantity(new_balance)} lb)")
 
     response = {
         "mode": "commit",
@@ -9668,7 +9750,7 @@ def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, pr
         "product_id": result['product_id'], "product_name": result['name'],
         "lot_code": result['lot_code'], "adjustment_lb": req.adjustment_lb,
         "new_balance_lb": new_balance, "reason": req.reason, "reason_code": reason_code,
-        "message": f"Adjusted lot {result['lot_code']} by {req.adjustment_lb} lb (new balance: {new_balance} lb)"
+        "message": f"Adjusted lot {result['lot_code']} by {_fmt_quantity(req.adjustment_lb)} lb (new balance: {_fmt_quantity(new_balance)} lb)"
     }
     if req.reason_es:
         response["reason_es"] = req.reason_es
@@ -9769,7 +9851,7 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
                 operator_id=actor_name(request) if ticket_id else None,
         )
 
-    logger.info(f"Added found inventory: {lot_code} - {req.quantity} {req.uom} of {product['name']}")
+    logger.info(f"Added found inventory: {lot_code} - {_fmt_quantity(req.quantity)} {req.uom} of {product['name']}")
 
     response = {
         "success": True,
@@ -9780,7 +9862,7 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
         "quantity": req.quantity,
         "uom": req.uom,
         "entry_source": "found_inventory",
-        "message": f"Added {req.quantity} {req.uom} of {product['name']} as lot {lot_code}"
+        "message": f"Added {_fmt_quantity(req.quantity)} {req.uom} of {product['name']} as lot {lot_code}"
     }
     if ticket_id is not None:
         response["transaction_id"] = txn_id
@@ -9998,12 +10080,12 @@ def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key), request: Reque
                     "lot_code": result['lot_code'], "current_quantity_lb": quantity_on_hand,
                     "adjustment_lb": req.adjustment_lb, "new_balance_lb": new_balance,
                     "reason": req.reason,
-                    "preview_message": f"Will adjust {result['name']} lot {result['lot_code']} by {req.adjustment_lb} lb ({quantity_on_hand} → {new_balance} lb)"
+                    "preview_message": f"Will adjust {result['name']} lot {result['lot_code']} by {_fmt_quantity(req.adjustment_lb)} lb ({_fmt_quantity(quantity_on_hand)} → {_fmt_quantity(new_balance)} lb)"
                 }
                 if req.reason_es:
                     response["reason_es"] = req.reason_es
                 if new_balance < 0:
-                    response["balance_warning"] = f"This will result in negative inventory ({new_balance} lb)"
+                    response["balance_warning"] = f"This will result in negative inventory ({_fmt_quantity(new_balance)} lb)"
                 return response
         except Exception as e:
             logger.error(f"Adjust preview failed: {e}")
@@ -11770,7 +11852,7 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at, req.backfill
     )
-    validate_bilingual(req.notes, req.notes_es, "notes")
+    # Keep the worker's original English or Spanish note; neither requires a translation.
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -11788,7 +11870,7 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at, req.backfill
     )
-    validate_bilingual(req.notes, req.notes_es, "notes")
+    # Keep the worker's original English or Spanish note; neither requires a translation.
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -11888,7 +11970,7 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                     "lot_uuid": str(lot_uuid),
                     "lot_code": lot_code,
                     "quantity": req.quantity,
-                    "message": f"Created '{product['name']}' and added {req.quantity} {req.uom} as lot {lot_code}"
+                    "message": f"Created '{product['name']}' and added {_fmt_quantity(req.quantity)} {req.uom} as lot {lot_code}"
                 }
                 if code_similarity:
                     response.setdefault("warnings", []).append(code_similarity)
@@ -13401,15 +13483,15 @@ def _line_readiness(row: dict) -> dict:
 
     blockers = []
     if shortage > BALANCE_EPSILON:
-        blockers.append(_blocker("shortage", "block", f"Short {shortage:.4f} lb of posted cover"))
+        blockers.append(_blocker("shortage", "block", f"Short {shortage:.2f} lb of posted cover"))
     if remaining > BALANCE_EPSILON and allocated <= BALANCE_EPSILON:
         # Allocation is a reservation, not a readiness or dispatch gate
         # (owner ruling, S2 fix pass): informational only, never flips
         # dispatch_ready.
-        blockers.append(_blocker("unallocated", "info", f"{remaining:.4f} lb remains with no allocation"))
+        blockers.append(_blocker("unallocated", "info", f"{remaining:.2f} lb remains with no allocation"))
     elif (allocated > BALANCE_EPSILON
           and allocated < remaining - BALANCE_EPSILON):
-        blockers.append(_blocker("partial_allocation", "info", f"{unallocated_need:.4f} lb remains unallocated"))
+        blockers.append(_blocker("partial_allocation", "info", f"{unallocated_need:.2f} lb remains unallocated"))
     if unstaged_lots:
         blockers.append(_blocker("unstaged", "block", "Incomplete FIFO stock must be lot-pinned: " + ", ".join(unstaged_lots)))
     if incomplete_pins:
@@ -13417,7 +13499,7 @@ def _line_readiness(row: dict) -> dict:
     if diverged:
         blockers.append(_blocker("fulfillment_diverged", "block", "Recorded and effective shipped pounds differ"))
     if remaining > BALANCE_EPSILON and inbound_open > BALANCE_EPSILON:
-        blockers.append(_blocker("inbound_cover", "warn", f"{inbound_open:.4f} lb is expected inbound and is not on-hand"))
+        blockers.append(_blocker("inbound_cover", "warn", f"{inbound_open:.2f} lb is expected inbound and is not on-hand"))
 
     # S2: inventory readiness is derived from availability only. The v2.1
     # `allocated >= remaining` gate is gone — allocations are optional
@@ -14060,6 +14142,7 @@ def _so_derived_fields(row, readiness: dict, line_readiness_by_line: dict) -> di
 
 
 @app.get("/sales/orders")
+@retry_database_read
 def list_sales_orders(
     status: Optional[str] = None,
     state: Optional[str] = None,
@@ -14229,6 +14312,8 @@ def list_sales_orders(
                     break
             return {"orders": orders, "count": len(orders)}
     except Exception as e:
+        if _is_db_disconnect(e):
+            raise
         logger.error(f"List sales orders failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -15096,6 +15181,7 @@ def reopen_sales_order(
 
 
 @app.get("/sales/orders/{order_id}")
+@retry_database_read
 def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends(verify_api_key)):
     try:
         with get_transaction() as cur:
@@ -15304,6 +15390,8 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
     except HTTPException:
         raise
     except Exception as e:
+        if _is_db_disconnect(e):
+            raise
         logger.error(f"Get sales order failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -16151,7 +16239,7 @@ def _update_order_line_core(cur, request, order_id: int, line_id: int,
         if quantity_lb + BALANCE_EPSILON < shipped_effective:
             _allocation_error(
                 "QTY_BELOW_SHIPPED_EFFECTIVE",
-                f"Line #{line_id} cannot be reduced below {shipped_effective:.4f} lb already shipped",
+                f"Line #{line_id} cannot be reduced below {shipped_effective:.2f} lb already shipped",
                 status_code=422,
                 line_id=line_id,
                 requested_lb=quantity_lb,

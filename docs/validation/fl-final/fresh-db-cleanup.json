@@ -1,0 +1,18 @@
+{
+  "utc": "2026-10-16T15:04:33.531853+00:00",
+  "local_ports_checked": [
+    5432,
+    5440,
+    5441
+  ],
+  "remaining_fl_final_databases": [],
+  "owned_clusters_stopped": true,
+  "owned_pgdata_deleted": true,
+  "staging_and_supplement_dumps_deleted": true,
+  "private_model_traces_deleted": true,
+  "python_off": 6709,
+  "python_on": 6709,
+  "failures": 0,
+  "errors": 0,
+  "skips": 0
+}

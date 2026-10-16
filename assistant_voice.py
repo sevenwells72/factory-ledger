@@ -159,7 +159,7 @@ _UNITS = {
 _QUANTITY_RE = re.compile(rf'(?<![\w.,])(?P<number>{_NUMBER_PHRASE})\s*(?P<unit>' + '|'.join(sorted(_UNITS, key=lambda w: -len(w))) + r')\b', re.I)
 _PRODUCT_RE = re.compile(
     r'\b(?P<family>classic|cl[aá]sic[oa]|s\.?\s*s\.?|sunshine)\s*'
-    r'(?:(?:number|n[uú]mero|no\.?|n[uú]m\.?)\s*)?(?:#\s*)?'
+    r'(?:(?:original)\s+)?(?:(?:number|n[uú]mero|no\.?|n[uú]m\.?)\s*)?(?:#\s*)?'
     r'(?P<number>one|two|three|nine|uno|un|dos|tres|nueve|[1239])\b'
     rf'(?![\s-]+(?:{_WORD}|point|punto|coma)\b)', re.I,
 )
@@ -301,6 +301,15 @@ def normalize_voice_text(text: str, *, protected_codes=()) -> str:
         start = len(text) - len(text.lstrip())
         text = text[:start] + code(isolated_code) + text[start + len(isolated_code[0]):]
     text = _QUANTITY_RE.sub(quantity, text)
+    # An isolated product-number answer may use grouped digits ("two eighty
+    # three" = 283), just as a labelled lot does. Never rewrite prose or names.
+    isolated_number = re.fullmatch(_CODE_PHRASE, text.strip(), re.I)
+    if isolated_number and any(word in _NUMBER_WORDS for word in _tokens(text)):
+        value = _code_number(_tokens(text))
+        if value:
+            text = value
+    text = re.sub(r'\b(product(?:\s+number)?|producto(?:\s+n[uú]mero)?|SKU)\s+(' + _CODE_PHRASE + r')\b',
+        lambda m: m[1] + ' ' + (_code_number(_tokens(m[2])) or m[2]), text, flags=re.I)
     for index, literal in enumerate(protected):
         text = text.replace(f"\ue000{chr(0xe100 + index)}\ue001", literal)
     return text

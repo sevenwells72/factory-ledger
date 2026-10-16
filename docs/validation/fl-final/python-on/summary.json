@@ -1,0 +1,259 @@
+{
+  "collected": 6709,
+  "groups": {
+    "ordinary": {
+      "collected": 6623,
+      "passed": 6623,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "00.log"
+    },
+    "race:tests/test_a7_review_fixes.py": {
+      "collected": 3,
+      "passed": 3,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "01.log"
+    },
+    "race:tests/test_assistant_runtime_round_d.py": {
+      "collected": 1,
+      "passed": 1,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "02.log"
+    },
+    "race:tests/test_customer_tickets.py": {
+      "collected": 4,
+      "passed": 4,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "03.log"
+    },
+    "race:tests/test_exceptions_enforcement.py": {
+      "collected": 8,
+      "passed": 8,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "04.log"
+    },
+    "migration:tests/test_exceptions_tables_061.py::test_backfill_maps_history_restores_guard_and_is_rerunnable": {
+      "collected": 1,
+      "passed": 1,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "05.log"
+    },
+    "migration:tests/test_exceptions_tables_061.py::test_backfill_skips_guard_dance_when_no_guard_exists": {
+      "collected": 1,
+      "passed": 1,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "06.log"
+    },
+    "migration:tests/test_exceptions_tables_061.py::test_down_refuses_populated_queue_then_drops_cleanly_and_up_reseeds": {
+      "collected": 1,
+      "passed": 1,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "07.log"
+    },
+    "race:tests/test_fl_assistant.py": {
+      "collected": 1,
+      "passed": 1,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "08.log"
+    },
+    "race:tests/test_kosher_tiers.py": {
+      "collected": 1,
+      "passed": 1,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "09.log"
+    },
+    "migration:tests/test_lot_identity_047.py::test_047_applies_cleanly_on_fresh_db_and_reruns_as_noop": {
+      "collected": 1,
+      "passed": 1,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "10.log"
+    },
+    "migration:tests/test_lot_identity_047.py::test_047_applies_cleanly_on_historical_shapes_with_merged_twins": {
+      "collected": 1,
+      "passed": 1,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "11.log"
+    },
+    "race:tests/test_order_tickets.py": {
+      "collected": 1,
+      "passed": 1,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "12.log"
+    },
+    "race:tests/test_reset_shortage_close.py": {
+      "collected": 1,
+      "passed": 1,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "13.log"
+    },
+    "race:tests/test_resolution_receipts.py": {
+      "collected": 2,
+      "passed": 2,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "14.log"
+    },
+    "race:tests/test_roles_a2.py": {
+      "collected": 2,
+      "passed": 2,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "15.log"
+    },
+    "race:tests/test_shift_summary.py": {
+      "collected": 2,
+      "passed": 2,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "16.log"
+    },
+    "race:tests/test_ship_tickets.py": {
+      "collected": 4,
+      "passed": 4,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "17.log"
+    },
+    "race:tests/test_supplier_lot_tickets.py": {
+      "collected": 2,
+      "passed": 2,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "18.log"
+    },
+    "migration:tests/test_trace_tables_048.py::test_048_applies_on_fresh_db_and_reruns_as_noop": {
+      "collected": 1,
+      "passed": 1,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "19.log"
+    },
+    "trace048": {
+      "collected": 39,
+      "passed": 39,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "20.log"
+    },
+    "race:tests/test_write_tickets.py": {
+      "collected": 2,
+      "passed": 2,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "21.log"
+    },
+    "race:tests/test_write_tickets_part2.py": {
+      "collected": 7,
+      "passed": 7,
+      "failed": 0,
+      "error": 0,
+      "skipped": 0,
+      "xfailed": 0,
+      "xpassed": 0,
+      "returncode": 0,
+      "log": "22.log"
+    }
+  },
+  "one_disposable_database": true
+}

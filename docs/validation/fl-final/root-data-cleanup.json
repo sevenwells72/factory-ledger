@@ -1,0 +1,22 @@
+{
+  "utc": "2026-10-16T14:53:02.042708+00:00",
+  "local_database_dropped": "fl_final_staging",
+  "host": "127.0.0.1:5432",
+  "read_only_source_dump": {
+    "bytes": 4693835,
+    "sha256": "0b08071a57580430e557567057ee9545e0bebc00fe282785fc802b511bb3501c"
+  },
+  "source_dump_deleted": true,
+  "removed_private_files": [
+    "staging.dump",
+    "restore.list",
+    "real-model-off.private.json",
+    "real-model-on.private.json",
+    "model-probe.private.json",
+    "earlier-model/real-model-on.private.json",
+    "earlier-model/real-model-off.private.json",
+    "before-spanish-copy/real-model-on.private.json",
+    "before-spanish-copy/real-model-off.private.json"
+  ],
+  "note": "Supplemental proof uses separately owned local copies, removed by its runner after completion. Fresh Python cluster remains until full mode-on pass."
+}

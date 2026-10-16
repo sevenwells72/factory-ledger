@@ -1,0 +1,1772 @@
+{
+  "sessions": 0,
+  "real_provider": true,
+  "local_copy_only": true,
+  "repeats": 3,
+  "source_sha256": {
+    "sales_document_tickets.py": "df939b8205311b31dbc723cb12a30cee712307b205c2cff99027f5b0e43cf32d",
+    "assistant_voice.py": "5d97b10765871884a268814e834b7b29e83d99aaaf5546f8aa67cac513035b90",
+    "staging_safety.py": "656059fe338d1d9edcf72ed41d77cfcaab464c7ef9e516aad7a17bbb803bb6df",
+    "build_gpt_instructions.py": "037ba968904e7d2bc90924e3e7addbdace17973618a746bb7a5562e9ab4ba028",
+    "ticket_actions.py": "74756b6245ad57be45b87afbdd382a1eeade1eea580d0aeebf338e18cb9ededd",
+    "expected_receipt_tickets.py": "0cb5ef1da80c6f50e6173db303a3d030f3c4d467f5112f6a729340aa06f13173",
+    "resolution_receipts.py": "b828bc2e38db1705dfc9c9b9466e88828ba2b90b49c2ebac3bb943b1c680b715",
+    "order_tickets.py": "5f82e6e168999f5bc77816059b619da6d2167a9994d2df7be220d914a39df5bb",
+    "supplier_lot_tickets.py": "f23215ec0d428888bcae31c6ef3639190a1658df4f0b518821ca31666e3da500",
+    "shift_receipts.py": "20a0f073989ee7d17209b22e449fd72f38e40feaec887956521edde4c3bd7b71",
+    "shift_summary.py": "b9f63c0ff8b6c7aca15d6b245a1b65e02c78f619c65e78885409fbff80e9ffce",
+    "kosher_tiers.py": "5c520e95c55df8e415aa43c92fa01504d666f68a2eab9c1995150cc563ae09e1",
+    "attachments.py": "4ce4cf95146dc75dc6504dee1fa91c229f8c35f5bf25f7043203e192bb337c6c",
+    "customer_tickets.py": "c6995adaf054a216c01e136a8341a1670c165c2388afa71de170bd5d60416f5b",
+    "extraction.py": "bee7e93ad685095991660c7947a20f1dd6c47cc26213639d7b4dc92aa7eb31d9",
+    "oat_bran_substitution.py": "f7875b7f3faef170d0bb96c481a894fcfd2fb924baa21f7d80718955afed26f3",
+    "assistant_runtime.py": "7b1d4a8bbd13f5b0cfce605169eaa09272d69d155d0ddf7966606fec44c5b549",
+    "permissions.py": "7b6e33b6211142eba52066223b4fac32c4eaf9d55d35fa35082410ae167a98db",
+    "key_sessions.py": "f420a1d61aa34708d2c3d1653385bd64db9d59fcaa57b073299b24e950170196",
+    "assistant_service.py": "30002fcfbe4eedd3a6db49031b837d609e3489b15f20f2a8b02f6573ec2b7f70",
+    "lot_confirmation.py": "c8fb70d37e80e33ea958f24116e241c2460d2cf82f9f9ecfe8c7a1c8a7a66185",
+    "ship_tickets.py": "92f573781c19f35c870643bd0b4a9e270f8620d1d8a00cf68d155675ca5d2c34",
+    "exceptions_enforcement.py": "4fc7c020f81ed8c32bedb4efcf33d68d6d42c62cc0e678402cd629ebe421fcfc",
+    "assistant_tools.py": "6a3d83666f46046779e2a4e4c460b69b075d05668e73a865646346373d4a9d54",
+    "main.py": "e50ad035c0fa65a851e016de92daae8558758ac12b66c7928c5bba543b8cc507",
+    "fl_assistant.py": "7caf2bb2683bef6e4418f0d14751056b50e3f2971d39e552458a2915cb0106fc",
+    "resolution.py": "6f434cc7ddbd87b178e7d58b28c54acfaa1caec5a574bebd6aeb309d43079784",
+    "assistant_replies.py": "9f1f252fea883fe0043fa54409286125976890a6ea3a17042b485797c52ea08c",
+    "assistant_receive.py": "2d9df91f663eea4cb91e5c319f4320b7200db62ee7b44b8743649bb9210a1d01",
+    "write_tickets.py": "bc54b06c752b874f06368860021e8465343d658f48e94aa401ed3149c1839f9c",
+    "assistant_intents.py": "3413f85f14a04d7891afb435722efce41bb2df06f488f261313e6fc2c37ee366"
+  },
+  "results": [
+    {
+      "case": "found_record_en",
+      "language": "en",
+      "text": "We found 2 cases of Honey, 5 lb each, during the physical count",
+      "run": 1,
+      "receipt_number": "FND-261016-002",
+      "single_post": true,
+      "replay": true,
+      "note_en_present": true,
+      "note_es_present": false,
+      "status": "passed",
+      "seconds": 6.856,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_02054ee6ccd604c4016ad2392805cc87d298f6529306d2be15",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_02054ee6ccd604c4016ad2392bc77c87d2a34dc72acbe7db78",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_found"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "found_record_en",
+      "language": "en",
+      "text": "We found 2 cases of Honey, 5 lb each, during the physical count",
+      "run": 2,
+      "receipt_number": "FND-261016-003",
+      "single_post": true,
+      "replay": true,
+      "note_en_present": true,
+      "note_es_present": false,
+      "status": "passed",
+      "seconds": 7.475,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_012ad6597526ecff016ad2392ec14087d28234b32e04da5395",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_012ad6597526ecff016ad23933008c87d2b3fb7b66c4e3aac5",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_found"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "found_record_en",
+      "language": "en",
+      "text": "We found 2 cases of Honey, 5 lb each, during the physical count",
+      "run": 3,
+      "receipt_number": "FND-261016-004",
+      "single_post": true,
+      "replay": true,
+      "note_en_present": true,
+      "note_es_present": false,
+      "status": "passed",
+      "seconds": 6.879,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_08520675df24dd40016ad239363fe887d28ba5a4c82ee6e2ce",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_08520675df24dd40016ad23939de4087d28255ad4e9eb5d13e",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_found"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "found_record_es",
+      "language": "es",
+      "text": "Encontramos 2 cajas de miel, 5 lb cada una, en el conteo físico",
+      "run": 1,
+      "receipt_number": "FND-261016-005",
+      "single_post": true,
+      "replay": true,
+      "note_en_present": false,
+      "note_es_present": true,
+      "status": "passed",
+      "seconds": 7.237,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_054286e37a3284ed016ad2393d1c0c87d2a740bdd81db056a4",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_054286e37a3284ed016ad23940569887d2a73980565270744f",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_found"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "found_record_es",
+      "language": "es",
+      "text": "Encontramos 2 cajas de miel, 5 lb cada una, en el conteo físico",
+      "run": 2,
+      "receipt_number": "FND-261016-006",
+      "single_post": true,
+      "replay": true,
+      "note_en_present": false,
+      "note_es_present": true,
+      "status": "passed",
+      "seconds": 8.953,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_07bb6f7e8ce4bb01016ad239445d3487d29ac5555f6de72c85",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_07bb6f7e8ce4bb01016ad2394794f487d2ac738c924c353348",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_07bb6f7e8ce4bb01016ad2394a332887d2a1941ce5d302bcb1",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_found"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "found_record_es",
+      "language": "es",
+      "text": "Encontramos 2 cajas de miel, 5 lb cada una, en el conteo físico",
+      "run": 3,
+      "receipt_number": "FND-261016-007",
+      "single_post": true,
+      "replay": true,
+      "note_en_present": false,
+      "note_es_present": true,
+      "status": "passed",
+      "seconds": 6.517,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0f0c1841d845f9bb016ad2394d534c87d288b52ff7cf553239",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0f0c1841d845f9bb016ad23950970c87d2a254de1a695b70c2",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_found"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "found_reason_record_en",
+      "language": "en",
+      "text": "We found 2 cases of Honey, 5 lb each",
+      "run": 1,
+      "reason_button_selected": true,
+      "receipt_number": "FND-261016-008",
+      "single_post": true,
+      "replay": true,
+      "note_en_present": true,
+      "note_es_present": false,
+      "status": "passed",
+      "seconds": 11.099,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0ef6ac0026e631c3016ad23953dc9887d293ed8c1d9be10e57",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0ef6ac0026e631c3016ad2395760ec87d2baf621a03535ab16",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_found"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0ef6ac0026e631c3016ad2395b24c487d294805fc647a815a7",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_found"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "found_reason_record_en",
+      "language": "en",
+      "text": "We found 2 cases of Honey, 5 lb each",
+      "run": 2,
+      "reason_button_selected": true,
+      "receipt_number": "FND-261016-009",
+      "single_post": true,
+      "replay": true,
+      "note_en_present": true,
+      "note_es_present": false,
+      "status": "passed",
+      "seconds": 9.116,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_08c130133aab5fe8016ad2395ef1ec87d2a52b92663fa17396",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_08c130133aab5fe8016ad239620fd087d2bb80cbe8ff17f360",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_found"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_08c130133aab5fe8016ad23965378887d2afcaa737183ac701",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_found"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "found_reason_record_en",
+      "language": "en",
+      "text": "We found 2 cases of Honey, 5 lb each",
+      "run": 3,
+      "reason_button_selected": true,
+      "receipt_number": "FND-261016-010",
+      "single_post": true,
+      "replay": true,
+      "note_en_present": true,
+      "note_es_present": false,
+      "status": "passed",
+      "seconds": 9.688,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0f67de03d363ff13016ad239680d5c87d29a2bb35c948ab701",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0f67de03d363ff13016ad2396adca087d2bec4357dc0e2262b",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_found"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0f67de03d363ff13016ad2396e200887d2a4e27552ce4e668a",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_found"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "found_reason_record_es",
+      "language": "es",
+      "text": "Encontramos 2 cajas de miel, 5 lb cada una",
+      "run": 1,
+      "reason_button_selected": true,
+      "receipt_number": "FND-261016-011",
+      "single_post": true,
+      "replay": true,
+      "note_en_present": false,
+      "note_es_present": true,
+      "status": "passed",
+      "seconds": 11.569,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0308f4de48fdb775016ad23971bc0887d2887b8c8b236b2d4f",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0308f4de48fdb775016ad239742b1087d28c42e9ff221d2d29",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0308f4de48fdb775016ad23976683087d2839d862f17cecf98",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_found"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0308f4de48fdb775016ad23979649487d2be2e4706989b68d2",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_found"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "found_reason_record_es",
+      "language": "es",
+      "text": "Encontramos 2 cajas de miel, 5 lb cada una",
+      "run": 2,
+      "reason_button_selected": true,
+      "receipt_number": "FND-261016-012",
+      "single_post": true,
+      "replay": true,
+      "note_en_present": false,
+      "note_es_present": true,
+      "status": "passed",
+      "seconds": 9.637,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06f4241c1ac8b054016ad2397d535487d284f0494d3a1082e7",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06f4241c1ac8b054016ad2397fa2b887d29d4944bf7879c552",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_found"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_06f4241c1ac8b054016ad23982ff0887d2aed6ef4b7f5581ab",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_found"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "found_reason_record_es",
+      "language": "es",
+      "text": "Encontramos 2 cajas de miel, 5 lb cada una",
+      "run": 3,
+      "reason_button_selected": true,
+      "receipt_number": "FND-261016-013",
+      "single_post": true,
+      "replay": true,
+      "note_en_present": false,
+      "note_es_present": true,
+      "status": "passed",
+      "seconds": 11.087,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0df3885a3790d9fe016ad23986ffc887d2b4648815bf01cda9",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0df3885a3790d9fe016ad23989fd1087d2ba0332975dbfcc74",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0df3885a3790d9fe016ad2398c130c87d28548687790e44d8d",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_found"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0df3885a3790d9fe016ad2398f2b1887d29d98a3e1203584dd",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_found"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "bags_exact_es",
+      "language": "es",
+      "text": "10 bolsas de avena de 50 libras",
+      "run": 1,
+      "draft_total_lb": 500.0,
+      "status": "passed",
+      "seconds": 16.628,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0c809ea286267d89016ad239921d6c87d2852a9682d0668384",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0c809ea286267d89016ad23996a0c487d287f9a57f0bb4ed94",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0c809ea286267d89016ad23999473087d296061cef147772fe",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0c809ea286267d89016ad2399c3a8887d2867d8aba16a9f9c6",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0c809ea286267d89016ad2399f60e887d2bebb7383385a48c2",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "bags_exact_es",
+      "language": "es",
+      "text": "10 bolsas de avena de 50 libras",
+      "run": 2,
+      "draft_total_lb": 500.0,
+      "status": "passed",
+      "seconds": 16.537,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_062a0d78e69ddb7a016ad239a2b8e487d2a059c805f3ab68a2",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_062a0d78e69ddb7a016ad239a627d887d2b5d39968786dd23e",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_062a0d78e69ddb7a016ad239a9188c87d2937c91add0ecffe1",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_062a0d78e69ddb7a016ad239abf4cc87d2a65431f668857093",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_062a0d78e69ddb7a016ad239afc7e087d2ac3f7618c48e0ff7",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "bags_exact_es",
+      "language": "es",
+      "text": "10 bolsas de avena de 50 libras",
+      "run": 3,
+      "draft_total_lb": 500.0,
+      "status": "passed",
+      "seconds": 15.526,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_044ffe315d69cfc6016ad239b335c487d2a942e1d94d6bb999",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_044ffe315d69cfc6016ad239b5f6c887d297e3014d5dacdfa6",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_044ffe315d69cfc6016ad239b8dc8887d2a08819b0744eac83",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_044ffe315d69cfc6016ad239bc122487d28abd08ba42b96a48",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_044ffe315d69cfc6016ad239befcc087d2bf01818b59850174",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "bags_each_exact_en",
+      "language": "en",
+      "text": "10 bags of oats, 50 lb each",
+      "run": 1,
+      "draft_total_lb": 500.0,
+      "status": "passed",
+      "seconds": 12.67,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_02ba23c533d70ebd016ad239c2b6e087d28b3b608bb60b62bf",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_02ba23c533d70ebd016ad239c5f9e087d2b94581b9d97a278f",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_02ba23c533d70ebd016ad239c91f4c87d28e14a22d2e0947fc",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_02ba23c533d70ebd016ad239cbfdd087d2bb3cc7849bdc7aef",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "bags_each_exact_en",
+      "language": "en",
+      "text": "10 bags of oats, 50 lb each",
+      "run": 2,
+      "draft_total_lb": 500.0,
+      "status": "passed",
+      "seconds": 13.732,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0d5afb43cecbabdd016ad239cf6c3c87d2a3b7751911433f37",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0d5afb43cecbabdd016ad239d2c71c87d2a37dff74d6808ee2",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0d5afb43cecbabdd016ad239d5cd8887d2b8223e3ae6f3c71e",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0d5afb43cecbabdd016ad239da312487d2a0f1ebb862bc688d",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "bags_each_exact_en",
+      "language": "en",
+      "text": "10 bags of oats, 50 lb each",
+      "run": 3,
+      "draft_total_lb": 500.0,
+      "status": "passed",
+      "seconds": 13.021,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0a7257dd52b89bd1016ad239dd2c8c87d29de85504301e8c66",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0a7257dd52b89bd1016ad239e0453087d28cdf1562add25c0c",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0a7257dd52b89bd1016ad239e344c087d2a170fea89b6cc73f",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0a7257dd52b89bd1016ad239e7522887d29e79ddc217692d01",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "bags_exact_en",
+      "language": "en",
+      "text": "10 bags of oats, 50 lb bags",
+      "run": 1,
+      "draft_total_lb": 500.0,
+      "status": "passed",
+      "seconds": 12.445,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_05d93053c140eb85016ad239ea354487d28ab9bdac11dccdb9",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_05d93053c140eb85016ad239ed73c887d2be707052d7a152b9",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_05d93053c140eb85016ad239f0306087d2ab78ab5cf78344c1",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_05d93053c140eb85016ad239f3743c87d2a0caf20b1f506658",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "bags_exact_en",
+      "language": "en",
+      "text": "10 bags of oats, 50 lb bags",
+      "run": 2,
+      "draft_total_lb": 500.0,
+      "status": "passed",
+      "seconds": 12.906,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_018b55e7370a9a01016ad239f6a92c87d2a30e8385871ff4e1",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_018b55e7370a9a01016ad239f9bd1887d2958838789c0ad8e1",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_018b55e7370a9a01016ad239fc9c4487d2a31dda505e084e1a",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_018b55e7370a9a01016ad23a00c7fc87d29f01779a2e6d3592",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "bags_exact_en",
+      "language": "en",
+      "text": "10 bags of oats, 50 lb bags",
+      "run": 3,
+      "draft_total_lb": 500.0,
+      "status": "passed",
+      "seconds": 12.057,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0ca7f07389802d3a016ad23a03a08c87d28efddfdf68e5edb0",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0ca7f07389802d3a016ad23a06b44087d2ab587f1952515592",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0ca7f07389802d3a016ad23a096b4c87d2a5b5e2de02348b68",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0ca7f07389802d3a016ad23a0cc31c87d2b337ad39198b3071",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_receive"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "setton_bare_en",
+      "language": "en",
+      "text": "Add Setton",
+      "run": 1,
+      "status": "passed",
+      "seconds": 2.212,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0741df68bd48fd3a016ad23a0fa4c087d287dab348d44da45e",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "setton_bare_en",
+      "language": "en",
+      "text": "Add Setton",
+      "run": 2,
+      "status": "passed",
+      "seconds": 1.939,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0e216f1df39f1fa6016ad23a11d38487d2a88def8eb810c398",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "setton_bare_en",
+      "language": "en",
+      "text": "Add Setton",
+      "run": 3,
+      "status": "passed",
+      "seconds": 2.053,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0f30c62e0caa929d016ad23a13cc9c87d29368d5bae76a5bdb",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "setton_bare_es",
+      "language": "es",
+      "text": "Agrega Setton",
+      "run": 1,
+      "status": "passed",
+      "seconds": 3.19,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0a2913e07a92c500016ad23a15e1d087d28c5420ddc90ce057",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "setton_bare_es",
+      "language": "es",
+      "text": "Agrega Setton",
+      "run": 2,
+      "status": "passed",
+      "seconds": 2.777,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0a230c372ccc80d4016ad23a19047887d28fd6830e7553d7cc",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "setton_bare_es",
+      "language": "es",
+      "text": "Agrega Setton",
+      "run": 3,
+      "status": "passed",
+      "seconds": 2.133,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0f7e15892133a85f016ad23a1bd1d887d2be4bf4e459fde35e",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "ss_original_voice",
+      "language": "en",
+      "text": "we made one batch of S S original number one",
+      "run": 1,
+      "draft_product_id": 116,
+      "status": "passed",
+      "seconds": 6.177,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0788362a5a8f3be5016ad23a1df18887d28ae83ecffa4b6072",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0788362a5a8f3be5016ad23a210b9487d28ee44dbaee47b4f4",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_make"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "ss_original_voice",
+      "language": "en",
+      "text": "we made one batch of S S original number one",
+      "run": 2,
+      "draft_product_id": 116,
+      "status": "passed",
+      "seconds": 8.054,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0803da7dd7c298e0016ad23a243d8c87d281c9e179ee73d919",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0803da7dd7c298e0016ad23a27af6487d2b8eb07e107512a68",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_make"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "ss_original_voice",
+      "language": "en",
+      "text": "we made one batch of S S original number one",
+      "run": 3,
+      "draft_product_id": 116,
+      "status": "passed",
+      "seconds": 7.615,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0e9450587c1682ba016ad23a2c382487d2b205be058e7b05ef",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0e9450587c1682ba016ad23a30603887d2a4e131902437f92a",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_make"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "multi_short_en",
+      "language": "en",
+      "text": "5 cases of Sunflower Seeds and 3 cases of Oats",
+      "run": 1,
+      "status": "failed",
+      "error": "list index out of range",
+      "seconds": 7.332,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_00883fe5a33e6de0016ad23a33e33c87d2b13603e194fb21e8",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_00883fe5a33e6de0016ad23a36c49087d28eff06b0413b8433",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "multi_short_en",
+      "language": "en",
+      "text": "5 cases of Sunflower Seeds and 3 cases of Oats",
+      "run": 2,
+      "status": "failed",
+      "error": "list index out of range",
+      "seconds": 11.354,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_033092477680e596016ad23a3b2c4c87d2822623a22cadcdc9",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_033092477680e596016ad23a3e37b087d29cf2043562d39d1a",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_033092477680e596016ad23a4126d087d292f353cbcfe5878a",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "multi_short_en",
+      "language": "en",
+      "text": "5 cases of Sunflower Seeds and 3 cases of Oats",
+      "run": 3,
+      "status": "failed",
+      "error": "list index out of range",
+      "seconds": 10.724,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0ee8c068b9e11e4c016ad23a469a9c87d2b3b35d97a45c24eb",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0ee8c068b9e11e4c016ad23a49c4ec87d28bfb9daf0dae9d93",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0ee8c068b9e11e4c016ad23a4cf86487d2979734349920ca90",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "multi_short_es",
+      "language": "es",
+      "text": "5 cajas de semillas de girasol y 3 cajas de avena",
+      "run": 1,
+      "status": "failed",
+      "error": "list index out of range",
+      "seconds": 23.125,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_02c78c4c620326e9016ad23a514fec87d2ace3937e069eb0bd",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_02c78c4c620326e9016ad23a540c8487d2a5ecfcc5175c4ba5",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_02c78c4c620326e9016ad23a56717887d2be5e96dc4123592f",
+          "model": "gpt-6.1-sol",
+          "status": "incomplete",
+          "tools": []
+        }
+      ]
+    },
+    {
+      "case": "multi_short_es",
+      "language": "es",
+      "text": "5 cajas de semillas de girasol y 3 cajas de avena",
+      "run": 2,
+      "status": "failed",
+      "error": "list index out of range",
+      "seconds": 26.905,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_07819ebe1afc5200016ad23a686d5c87d287d1532fa7c00e7f",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_07819ebe1afc5200016ad23a6b42b887d299142427a9be10ec",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_07819ebe1afc5200016ad23a6d894887d2acb8869b99378866",
+          "model": "gpt-6.1-sol",
+          "status": "incomplete",
+          "tools": []
+        }
+      ]
+    },
+    {
+      "case": "multi_short_es",
+      "language": "es",
+      "text": "5 cajas de semillas de girasol y 3 cajas de avena",
+      "run": 3,
+      "status": "failed",
+      "error": "list index out of range",
+      "seconds": 7.665,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0982415fbe2dca18016ad23a835f8487d2a82f294b5c81fe0d",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0982415fbe2dca18016ad23a85aba087d29f211fbd7a70ba54",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "change_report_en",
+      "language": "en",
+      "text": "Change order SO-261015-001: Kookies & Kreme should be 6 cases, not 4",
+      "run": 1,
+      "status": "passed",
+      "seconds": 0.025,
+      "provider": []
+    },
+    {
+      "case": "change_report_en",
+      "language": "en",
+      "text": "Change order SO-261015-001: Kookies & Kreme should be 6 cases, not 4",
+      "run": 2,
+      "status": "passed",
+      "seconds": 0.021,
+      "provider": []
+    },
+    {
+      "case": "change_report_en",
+      "language": "en",
+      "text": "Change order SO-261015-001: Kookies & Kreme should be 6 cases, not 4",
+      "run": 3,
+      "status": "passed",
+      "seconds": 0.024,
+      "provider": []
+    },
+    {
+      "case": "change_report_es",
+      "language": "es",
+      "text": "Cambia el pedido SO-261015-001: Kookies & Kreme debe ser 6 cajas, no 4",
+      "run": 1,
+      "status": "passed",
+      "seconds": 0.02,
+      "provider": []
+    },
+    {
+      "case": "change_report_es",
+      "language": "es",
+      "text": "Cambia el pedido SO-261015-001: Kookies & Kreme debe ser 6 cajas, no 4",
+      "run": 2,
+      "status": "passed",
+      "seconds": 0.022,
+      "provider": []
+    },
+    {
+      "case": "change_report_es",
+      "language": "es",
+      "text": "Cambia el pedido SO-261015-001: Kookies & Kreme debe ser 6 cajas, no 4",
+      "run": 3,
+      "status": "passed",
+      "seconds": 0.017,
+      "provider": []
+    },
+    {
+      "case": "expected_short_en",
+      "language": "en",
+      "text": "Grain Supply is sending 20 cases of Oats",
+      "run": 1,
+      "status": "passed",
+      "seconds": 0.023,
+      "provider": []
+    },
+    {
+      "case": "expected_short_en",
+      "language": "en",
+      "text": "Grain Supply is sending 20 cases of Oats",
+      "run": 2,
+      "status": "passed",
+      "seconds": 0.018,
+      "provider": []
+    },
+    {
+      "case": "expected_short_en",
+      "language": "en",
+      "text": "Grain Supply is sending 20 cases of Oats",
+      "run": 3,
+      "status": "passed",
+      "seconds": 0.017,
+      "provider": []
+    },
+    {
+      "case": "expected_short_es",
+      "language": "es",
+      "text": "Grain Supply está enviando 20 cajas de avena",
+      "run": 1,
+      "status": "passed",
+      "seconds": 0.018,
+      "provider": []
+    },
+    {
+      "case": "expected_short_es",
+      "language": "es",
+      "text": "Grain Supply está enviando 20 cajas de avena",
+      "run": 2,
+      "status": "passed",
+      "seconds": 0.017,
+      "provider": []
+    },
+    {
+      "case": "expected_short_es",
+      "language": "es",
+      "text": "Grain Supply está enviando 20 cajas de avena",
+      "run": 3,
+      "status": "passed",
+      "seconds": 0.021,
+      "provider": []
+    },
+    {
+      "case": "make_missing_en",
+      "language": "en",
+      "text": "We made 1 batch of Setton Coffee Granola #12",
+      "run": 1,
+      "status": "passed",
+      "seconds": 6.536,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_003c9dbd120a4327016ad23a8b6bf087d2be57ed6379115f79",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_003c9dbd120a4327016ad23a8ecf5887d2ab67f80c724089e3",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_make"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "make_missing_en",
+      "language": "en",
+      "text": "We made 1 batch of Setton Coffee Granola #12",
+      "run": 2,
+      "status": "passed",
+      "seconds": 7.666,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_074a3236c37a5484016ad23a91f52087d2b22732b95d460a9f",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_074a3236c37a5484016ad23a970f5887d29122cbd11f081ba4",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_make"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "make_missing_en",
+      "language": "en",
+      "text": "We made 1 batch of Setton Coffee Granola #12",
+      "run": 3,
+      "status": "passed",
+      "seconds": 6.514,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0e6ab8d71e729418016ad23a99973487d29477a77b3c2add0f",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0e6ab8d71e729418016ad23a9d73fc87d2a507e14792a42a26",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_make"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "make_missing_es",
+      "language": "es",
+      "text": "Hicimos 1 lote de Setton Coffee Granola #12",
+      "run": 1,
+      "status": "passed",
+      "seconds": 7.929,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_021711011f927bca016ad23aa0204487d2bb00e0562a7b9215",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_021711011f927bca016ad23aa49c9487d29f1dc2db3808a419",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_make"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "make_missing_es",
+      "language": "es",
+      "text": "Hicimos 1 lote de Setton Coffee Granola #12",
+      "run": 2,
+      "status": "passed",
+      "seconds": 6.205,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0dd4932353e454a1016ad23aa820a487d29e864515eb632c32",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_0dd4932353e454a1016ad23aab793487d280d50edfbf5879b4",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_make"
+          ]
+        }
+      ]
+    },
+    {
+      "case": "make_missing_es",
+      "language": "es",
+      "text": "Hicimos 1 lote de Setton Coffee Granola #12",
+      "run": 3,
+      "status": "passed",
+      "seconds": 6.008,
+      "provider": [
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_00793afc0c4f6936016ad23aae57ec87d2b80f8b4914e3f431",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "resolve"
+          ]
+        },
+        {
+          "request_model": "gpt-6.1-sol",
+          "store": false,
+          "response_id": "resp_00793afc0c4f6936016ad23ab1e04887d28ed3cbe892f7c82c",
+          "model": "gpt-6.1-sol",
+          "status": "completed",
+          "tools": [
+            "prepare_make"
+          ]
+        }
+      ]
+    }
+  ],
+  "passed": 48,
+  "failed": 6,
+  "source_unchanged": true
+}
