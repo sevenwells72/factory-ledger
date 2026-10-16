@@ -27,7 +27,7 @@ import write_tickets
 import resolution
 import assistant_replies as replies
 from assistant_voice import normalize_voice_text, normalize_order_code
-from assistant_receive import lot_facts_from_text, normalize_receive_arguments
+from assistant_receive import merge_receive_lot_facts, normalize_receive_arguments
 
 ROUTES = ('session', 'resume', 'turn', 'record', 'cancel', 'confirm-sku', 'attachment', 'attachment/read', 'transcribe')
 ACTOR_ROUTES = frozenset({('POST', '/assistant/' + p) for p in ROUTES} |
@@ -54,7 +54,13 @@ def voice_lot_code(value):
 def order_number_in_text(text):
     """Recognize order identity before the language model selects any tool."""
     normalized = normalize_order_code(text)
-    return re.search(r'\bSO-\d{6}-\d{3,}\b|\b(?:s\s*o|ese\s+o)[ -]*\d[\d -]*', normalized, re.I)
+    code = re.search(r'\bSO-\d{6}-\d{3,}\b', normalized, re.I)
+    if code:
+        return code
+    # Malformed separators still denote an order, but ordinary wording such
+    # as "received two cases, so 10 lb total" is not an order identifier.
+    return next((match for match in re.finditer(r'\b(?:s\s*o|ese\s+o)[ -]*\d[\d -]*', normalized, re.I)
+                 if sum(char.isdigit() for char in match[0]) >= 9), None)
 
 
 def pack_without_batch(text):
@@ -1031,7 +1037,7 @@ def register_routes(app, api):
                 state.pop('receive_facts', None)
                 state.pop('receive_context', None)
             if receive_start or state.get('receive_context') or state.get('receive_facts'):
-                state.setdefault('receive_facts', {}).update(lot_facts_from_text(body.text))
+                state['receive_facts'] = merge_receive_lot_facts(state.get('receive_facts', {}), body.text)
             new_receive_total = None
             if receive_start or receive_correction:
                 for qty in re.finditer(r'(?<![\w.])(\d+(?:\.\d+)?)\s*(?:lb\b|lbs\b|pounds?\b|libras?\b)', text, re.I):
@@ -1251,7 +1257,8 @@ def register_routes(app, api):
                     if missing_card:
                         if args.get('supplier_id') is None and 'supplier_id' not in missing_card['fields']:
                             missing_card['fields'].insert(0, 'supplier_id')
-                        missing_card['known_facts'] = {**state.get('receive_facts', {}), **catalog.clean_arguments(args)}
+                        missing_card['known_facts'] = {**catalog.clean_arguments(state.get('receive_facts', {})),
+                                                       **catalog.clean_arguments(args)}
                         if 'supplier_id' in missing_card['fields']:
                             candidates = await supplier_choices(request, state, product_id=args.get('product_id'))
                             choice = supplier_choice_card(state, candidates)
