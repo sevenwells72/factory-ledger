@@ -364,6 +364,7 @@ def validate_receive(api, cur, payload, *, lock=False):
         draft['expected_receipt_match'] = None
     # A5 hook: unresolved supplier lot identity is a flag, not a stock blocker.
     a5.identity_draft(api, cur, payload, draft)
+    draft['supplier_lot_code'] = payload.get('supplier_lot_code')
     state = {'supplier': dict(shipper), 'product': {'id': product['id'], 'active': product['active']},
              'lots': lots, 'expected_receipt': dict(expected) if expected else None}
     return draft, state, req, product, occurred_at, source, er_id

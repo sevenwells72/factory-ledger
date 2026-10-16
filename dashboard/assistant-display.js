@@ -117,7 +117,12 @@
     add('Reason', 'Motivo', plainLabel(draft.reason || (language === 'es' && draft.reason_es) || draft.reason_code, language));
     const note = (language === 'es' && (customer.notes_es || draft.notes_es || draft.note_es)) || customer.notes || draft.notes || draft.note;
     if (!(/order/.test(prepared.action || '') && /^(?:order_id, line ids and the order number|line ids) are assigned at commit\.?$/i.test(note || ''))) add('Note', 'Nota', plainMessage(note, language));
-    if (/unidentified/i.test(draft.identity_status || '')) add('Lot note', 'Nota del lote', plainLabel('unidentified', language));
+    if (/unidentified/i.test(draft.identity_status || '')) {
+      if (prepared.action === 'receive') add('Supplier lot note', 'Nota del lote del proveedor', choose(language,
+        'No supplier lot number given — add it if the bag has one',
+        'No se indicó el número de lote del proveedor — agrégalo si aparece en la bolsa'));
+      else add('Lot note', 'Nota del lote', plainLabel('unidentified', language));
+    }
     const happened = formatTime(draft.happened_at, { language, now });
     if (!/12:00 AM$/.test(happened)) add('Happened at', 'Ocurrió el', happened);
     add('Expires', 'Vence', formatTime(prepared.expires_at, { language, now }));

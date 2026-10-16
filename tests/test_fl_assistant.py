@@ -358,8 +358,10 @@ def test_missing_receive_facts_are_neutral_even_after_resolve_format_retry(
     requests = model(monkeypatch, *calls, ('prepare_receive', args))
     response = turn(client, chat, 'We received 10 lb of this product from this supplier, supplier lot SMOKE-124-REVIEW.')
     assert response.status_code == 200, response.text
+    expected_facts = {k: v for k, v in args.items() if v is not None and k != 'lot_code'}
+    expected_facts['supplier_lot_code'] = 'SMOKE-124-REVIEW'
     expected = [{'kind': 'missing_facts', 'fields': ['cases', 'case_size_lb', 'bol_reference'],
-                 'known_facts': {'quantity_lb': 10.0, **{k: v for k, v in args.items() if v is not None}},
+                 'known_facts': {'quantity_lb': 10.0, **expected_facts},
                  'language': 'en', 'message': 'Please add the missing details.',
                  'missing_details': [{'field': 'cases', 'label': 'number of cases'},
                                      {'field': 'case_size_lb', 'label': 'case size (lb)'},

@@ -300,6 +300,16 @@ test('adjust draft renders product, quantity, before/after and plain reason with
   assert.doesNotMatch(content, /physical_count|UNIDENTIFIED|T02:19/);
 });
 
+for (const language of ['en', 'es']) test(`receive page shows actionable supplier lot guidance in ${language}`, async () => {
+  const h = page({ language, cards: [draft({ draft: { product_name: 'Oats', total_lb: 50,
+    lot_code: '26-10-15-SUPP-001', identity_status: 'UNIDENTIFIED' } })] });
+  await h.ready();
+  assert.ok(h.text().includes(language === 'en' ? 'No supplier lot number given — add it if the bag has one' :
+    'No se indicó el número de lote del proveedor — agrégalo si aparece en la bolsa'));
+  assert.doesNotMatch(h.text(), /Lot identity needs to be checked|Hay que verificar la identidad del lote|UNIDENTIFIED/);
+  assert.equal(descendants(h.cards()[0]).filter(node => node.tag === 'button' && node.textContent === (language === 'en' ? 'Record' : 'Registrar')).length, 1);
+});
+
 test('extra-kosher receive refusal has a refusal card and no disabled Record control', async () => {
   const h = page({ cards: [draft({ can_commit: false, blockers: [{ code: 'EXTRA_KOSHER_RECEIVE_BLOCKED', message: 'Extra-kosher batches are made, never received.' }] })] });
   await h.ready(); assert.match(h.cards()[0].className, /refusal/);

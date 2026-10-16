@@ -98,6 +98,18 @@ test('draft reason objects use FL catalog labels in the selected language', () =
   assert.equal(fields.Motivo, 'Conteo físico');
   assert.equal(fields.Cantidad, '20 lb');
 });
+for (const language of ['en', 'es']) test(`receive draft explains how to add a missing supplier lot number in ${language}`, () => {
+  const prepared = { action: 'receive', draft: { product_name: 'Oats', total_lb: 50, lot_code: '26-10-15-SUPP-001', identity_status: 'UNIDENTIFIED' } };
+  const fields = Object.fromEntries(display.draftFields(prepared, { language }));
+  const note = language === 'en' ? 'Supplier lot note' : 'Nota del lote del proveedor';
+  assert.equal(fields[note], language === 'en' ? 'No supplier lot number given — add it if the bag has one' :
+    'No se indicó el número de lote del proveedor — agrégalo si aparece en la bolsa');
+  assert.doesNotMatch(Object.values(fields).join(' '), /Lot identity needs to be checked|Hay que verificar la identidad del lote|UNIDENTIFIED/);
+  const supplied = Object.fromEntries(display.draftFields({ ...prepared, draft: { ...prepared.draft, supplier_lot_code: 'SUP-5521', identity_status: 'identified' } }, { language }));
+  assert.equal(supplied[language === 'en' ? 'Supplier lot' : 'Lote del proveedor'], 'SUP-5521');
+  assert.equal(supplied[language === 'en' ? 'Lot' : 'Lote'], '26-10-15-SUPP-001');
+  assert.equal(supplied[note], undefined);
+});
 test('an incomplete SKU draft shows exact blocker product plus requested batches', () => {
   const prepared = { blockers: [{ code: 'SKU_CONFIRMATION_REQUIRED', message: 'Confirm Batch Classic Granola #9 as the output SKU and prepare again.' }], draft: {} };
   const fields = Object.fromEntries(display.draftFields(prepared, { fallback: { text: 'Made 1 batch of Classic #9' } }));

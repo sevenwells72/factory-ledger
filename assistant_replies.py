@@ -252,4 +252,6 @@ def decorate(card, lang):
             draft['lot_confirmation_group'] = group
         prepared['draft'] = draft
         card['prepared'] = prepared
+    if card.get('reason_required'):
+        card['message'] = 'Elige un motivo de la corrección.' if es else 'Choose a correction reason.'
     return card

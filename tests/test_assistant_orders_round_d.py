@@ -71,7 +71,8 @@ def test_open_orders_excludes_nothing_left_without_closing_and_exposes_effective
 ])
 def test_ship_voice_or_customer_resolves_order_and_never_asks_for_sku(client, chat, orders, monkeypatch, text, query):
     target = orders['Setton Farms' if 'Setton' in text else 'Sunshine Granola']
-    requests = model(monkeypatch, ('resolve', {'kind':'order', 'query':query, 'context':{'action':'ship'}}),
+    calls = [] if 'SO' in text or 'S O' in text or 'ese o' in text else [('resolve', {'kind':'order', 'query':query, 'context':{'action':'ship'}})]
+    requests = model(monkeypatch, *calls,
         ('prepare_ship_order', {'order_id':target['id'], 'ship_all':None, 'lines':None, 'bol_reference':None}))
     result = card(turn(client, chat, text), 'missing_facts')
     assert result['shipping_quantity_needed'] is True
@@ -82,7 +83,7 @@ def test_ship_voice_or_customer_resolves_order_and_never_asks_for_sku(client, ch
     assert quantity in result['message']
     assert 'already fully shipped' not in result['message'] and 'completamente enviado' not in result['message']
     assert 'SKU' not in result['message'] if result.get('message') else True
-    assert any('order_detail' in row.get('output','') for req in requests for row in req['input'])
+    assert any('order_detail' in (row.get('output','') + row.get('content','')) for req in requests for row in req['input'])
 
 
 @pytest.mark.parametrize('spanish', [False, True])
@@ -96,8 +97,7 @@ def test_shipping_question_uses_effective_physical_remaining_and_keeps_bulk_in_p
     service_id = db_cursor.fetchone()['id']
     db_cursor.execute('INSERT INTO sales_order_lines(sales_order_id,product_id,quantity_lb) VALUES (%s,%s,500)', (target['id'], service_id))
     db_cursor.execute("INSERT INTO sales_order_lines(sales_order_id,product_id,quantity_lb,line_status) VALUES (%s,%s,100,'cancelled')", (target['id'], items['finished']['id']))
-    model(monkeypatch, ('resolve', {'kind':'order', 'query':target['number'], 'context':{'action':'ship'}}),
-        ('prepare_ship_order', {'order_id':target['id'], 'ship_all':None, 'lines':None, 'bol_reference':None}))
+    model(monkeypatch, ('prepare_ship_order', {'order_id':target['id'], 'ship_all':None, 'lines':None, 'bol_reference':None}))
     result = card(turn(client, chat, ('Envía el pedido ' if spanish else 'Ship order ') + target['number']), 'missing_facts')
     assert result['order']['remaining_lb'] == 62.5
     assert result['order']['items'] == [{'remaining_lb': 50, 'case_size_lb': 50}, {'remaining_lb': 12.5, 'case_size_lb': None}]
@@ -174,13 +174,13 @@ def test_exact_coconut_transcript_chooses_actual_finished_output_then_parent_bat
     db_cursor.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES (%s,%s,%s,1000)',(tid,catalog['bulk'],lot))
     model(monkeypatch, ('resolve',{'kind':'product','query':'coco en hojuelas endulzado' if spanish else 'Sweetened Flake Coconut','context':{'action':'pack'}}),
           ('packing_context',{'target_product_id':catalog['raw'],'lot_code':None}))
-    outputs = card(turn(client, chat, 'Empacamos diez cajas de coco en hojuelas endulzado.' if spanish else 'Packed 10 cases of sweetened flake coconut.'), 'choices')
-    assert outputs['packing_outputs'] is True and {row['id'] for row in outputs['result']['candidates']} == {catalog['ten'],catalog['twentyfive']}
-    batches = card(turn(client, chat, choice_id=outputs['id'], selected_id=catalog['ten']), 'choices')
+    batches = card(turn(client, chat, 'Empacamos diez cajas de coco en hojuelas endulzado.' if spanish else 'Packed 10 cases of sweetened flake coconut.'), 'choices')
     assert batches['packing_lots'] is True and [row['id'] for row in batches['result']['candidates']] == [lot]
+    outputs = card(turn(client, chat, choice_id=batches['id'], selected_id=lot), 'choices')
+    assert outputs['packing_outputs'] is True and {row['id'] for row in outputs['result']['candidates']} == {catalog['ten'],catalog['twentyfive']}
     assert 'source product' not in str(outputs).lower() and 'source product' not in str(batches).lower()
     requests = model(monkeypatch, ('prepare_pack', {'source_product_id':catalog['bulk'], 'target_product_id':catalog['ten'], 'cases':10}))
-    draft = card(turn(client, chat, choice_id=batches['id'], selected_id=lot), 'draft')
+    draft = card(turn(client, chat, choice_id=outputs['id'], selected_id=catalog['ten']), 'draft')
     assert draft['prepared']['draft']['total_lb'] == 100
     assert draft['prepared']['draft']['input_plan'][0]['lot_id'] == lot
     assert all(not row.get('confirmed') for row in draft['prepared']['draft']['input_plan'])
@@ -189,10 +189,10 @@ def test_exact_coconut_transcript_chooses_actual_finished_output_then_parent_bat
 @pytest.mark.parametrize('spanish', [False, True])
 def test_spoken_so_mistaken_product_tool_still_resolves_order(client, chat, orders, monkeypatch, spanish):
     target = orders['Sunshine Granola']
-    model(monkeypatch, ('resolve', {'kind':'product','query':'S O two six one oh one five dash zero zero one','context':{'action':'ship'}}),
-          ('prepare_ship_order', {'order_id':target['id'],'ship_all':True,'bol_reference':None}))
+    requests = model(monkeypatch, ('prepare_ship_order', {'order_id':target['id'],'ship_all':True,'bol_reference':None}))
     result = card(turn(client, chat, 'Envía SO-261015-001' if spanish else 'Ship SO-261015-001'), 'draft')
     assert result['prepared']['draft']['order'] == target['number']
+    assert {tool['name'] for tool in requests[0]['tools']} == {'prepare_ship_order'}
 
 
 @pytest.mark.parametrize('spanish', [False, True])
@@ -220,8 +220,7 @@ def test_missing_order_recovers_customer_from_original_transcript_when_model_omi
 @pytest.mark.parametrize('spanish', [False, True])
 def test_explicit_ship_all_advances_to_bol_draft_with_no_record(client, chat, orders, monkeypatch, spanish):
     target = orders['Sunshine Granola']
-    model(monkeypatch, ('resolve', {'kind':'order','query':target['number'],'context':{'action':'ship'}}),
-          ('prepare_ship_order', {'order_id':target['id'],'ship_all':True,'bol_reference':None}))
+    model(monkeypatch, ('prepare_ship_order', {'order_id':target['id'],'ship_all':True,'bol_reference':None}))
     result = card(turn(client, chat, 'Envía todo lo pendiente del pedido SO-261015-001.' if spanish else 'Ship all remaining on order SO-261015-001.'), 'draft')
     assert result['prepared']['draft']['order'] == target['number']
     assert result['prepared']['can_commit'] is False

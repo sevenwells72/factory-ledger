@@ -127,6 +127,8 @@ Prepare the new customer first, then STOP for the person's Record and real CUS r
 After that receipt, prepare_create_order for that recorded customer using the original requested items.
 If order items or quantities are missing, prepare with nulls to ask for them. Never create an empty order.
 A CUS receipt records only a customer; an order still needs its own draft, human Record and ORD receipt.
+For receiving, a supplier/vendor lot or an ordinary lot on the delivered bag belongs in supplier_lot_code.
+Use lot_code only for an explicitly named FL/internal/system lot; never put a supplier lot in that field.
 For packing resolve the finished product first, then call packing_context with its ID and the supplied batch lot code (null if absent).
 Use its source_product_id, target_product_id and lot_id, and the finished product's case_size_lb to prepare_pack.
 When the user gives only a finished product, show its catalog parent batch lots for the person to choose; never infer the physical lot.
