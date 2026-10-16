@@ -348,8 +348,9 @@ def register_routes(app, api):
     def resume(body: SessionBody, actor=Depends(authenticate)):
         row = session_row(api, body.session_id, actor['id'])
         with api.get_transaction() as cur:
-            cur.execute('SELECT response FROM assistant_turns WHERE session_id=%s ORDER BY created_at,id', (str(body.session_id),))
-            turns = [r['response'] for r in cur.fetchall()]
+            cur.execute('SELECT response,created_at FROM assistant_turns WHERE session_id=%s ORDER BY created_at,id', (str(body.session_id),))
+            # The page dates its history so old replies never look current.
+            turns = [{**r['response'], 'created_at': r['created_at'].isoformat()} for r in cur.fetchall()]
             cur.execute('SELECT id,status,result,card,record_started_at FROM assistant_drafts WHERE session_id=%s ORDER BY created_at,id', (str(body.session_id),))
             drafts = [dict(r) for r in cur.fetchall()]
         return {'session_id': str(body.session_id), 'turns': turns, 'drafts': drafts,

@@ -39,13 +39,60 @@
       seen.add(key); return true;
     }).slice(0, 6);
   }
-  const exports = { supplierChoices, isTodayQuery, voidTarget, refusalDraft, validReceipt, canRecord, validAttachment, evidenceKinds, errorText, awaitingApproval, neutralMessages };
+  // Mobile UX: dated history, plain photo states and the jump-to-latest rule.
+  const PLANT_ZONE = 'America/New_York', MAX_PHOTO = 5 * 1024 * 1024;
+  const dayKey = when => new Intl.DateTimeFormat('en-CA', { timeZone: PLANT_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(when));
+  function dayLabel(when, now = new Date(), lang = 'en') {
+    const day = dayKey(when), today = dayKey(now), yesterday = dayKey(new Date(now) - 864e5);
+    if (day === today) return lang === 'es' ? 'Hoy' : 'Today';
+    if (day === yesterday) return lang === 'es' ? 'Ayer' : 'Yesterday';
+    return new Intl.DateTimeFormat(lang === 'es' ? 'es-US' : 'en-US', { timeZone: PLANT_ZONE, weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(when));
+  }
+  function timeLabel(when, lang = 'en') {
+    return new Intl.DateTimeFormat(lang === 'es' ? 'es-US' : 'en-US', { timeZone: PLANT_ZONE, hour: 'numeric', minute: '2-digit' }).format(new Date(when));
+  }
+  // A divider starts each plant day, and marks a same-day gap of an hour or more.
+  function dividerLabel(when, previous, now = new Date(), lang = 'en') {
+    if (!when || Number.isNaN(new Date(when).getTime())) return null;
+    if (previous && dayKey(previous) === dayKey(when)) {
+      return new Date(when) - new Date(previous) >= 36e5 ? `${dayLabel(when, now, lang)} · ${timeLabel(when, lang)}` : null;
+    }
+    return previous ? `${dayLabel(when, now, lang)} · ${timeLabel(when, lang)}` : dayLabel(when, now, lang);
+  }
+  const showJump = ({ scrollTop, scrollHeight, clientHeight }) => scrollHeight - scrollTop - clientHeight > 300;
+  const photoKinds = {
+    lot_tag: ['Lot tag', 'Etiqueta de lote'], bol: ['BOL (bill of lading)', 'BOL (conocimiento de embarque)'], truck_photo: ['Truck', 'Camión'],
+    signed_packing_slip: ['Signed packing slip', 'Nota de empaque firmada'], count_sheet: ['Count sheet', 'Hoja de conteo'],
+    correction_photo: ['Correction', 'Corrección'], other: ['Other', 'Otra']
+  };
+  function photoStatus(photo, lang = 'en') {
+    const es = lang === 'es';
+    return ({
+      choose: es ? '¿Qué muestra esta foto?' : 'What does this photo show?',
+      uploading: es ? `Subiendo ${photo.progress || 0}%…` : `Uploading ${photo.progress || 0}%…`,
+      attached: es ? 'Adjunta ✓ · se enviará con tu mensaje' : 'Attached ✓ · goes with your message',
+      failed: es ? 'Falló la carga — toca para reintentar' : 'Upload failed — tap to retry',
+      too_large: es ? 'Foto demasiado grande (máx. 5 MB). Quítala y toma otra.' : 'Photo too large (max 5 MB). Remove it and take another.',
+      wrong_type: es ? 'No es una foto. Usa una foto JPEG, PNG o WebP.' : 'Not a photo. Use a JPEG, PNG or WebP photo.'
+    })[photo.state] || '';
+  }
+  // Only a definite FL rejection is final; network and server failures can be retried.
+  function photoProblem(error, sentBytes) {
+    if (error?.photo) return error.photo;
+    const code = error?.detail?.error_code || error?.detail?.code || error?.error_code;
+    if (code === 'PHOTO_INVALID' || error?.httpStatus === 413) return sentBytes > MAX_PHOTO || error?.httpStatus === 413 ? 'too_large' : 'wrong_type';
+    return 'failed';
+  }
+  const exports = { supplierChoices, isTodayQuery, voidTarget, refusalDraft, validReceipt, canRecord, validAttachment, evidenceKinds, errorText, awaitingApproval, neutralMessages,
+    dayLabel, dividerLabel, showJump, photoKinds, photoStatus, photoProblem, MAX_PHOTO };
   if (typeof module !== 'undefined') module.exports = exports;
   if (!root.document) return;
   const $ = id => document.getElementById(id);
   let language = localStorage.getItem('fl-assistant-language') || 'en';
   let credential = '', session = '', actor = null, sessionStore = '', busy = false, attachments = [], retryTurn = null;
   let lastIntent = '', held = false, recorder = null, stream = null, recordingTimer = null, micStarting = false;
+  let lastTurnAt = null, photoSeq = 0;
+  const photoUrls = new Map();
   const drafts = new Map();
   const labels = new Map();
   function t(en, es) { labels.set(en, [en, es]); labels.set(es, [en, es]); return language === 'es' ? es : en; }
@@ -139,15 +186,7 @@
         data = finalResult;
       } else data = await response.json();
       if (!response.ok) {
-        if (data.detail?.error_code === 'SESSION_EXPIRED') {
-          pilot.clear(); credential = ''; actor = null; session = '';
-          drafts.clear(); attachments = []; retryTurn = null;
-          const welcome = $('welcome'); $('messages').replaceChildren(welcome); welcome.hidden = false;
-          renderAttachments();
-          $('sign-in-panel').hidden = false; $('chat-panel').hidden = true; $('sign-out').hidden = true;
-          $('identity').textContent = t('Sign in to your workspace', 'Inicia sesión en tu espacio');
-          notice(t('Your session ended. Sign in again; your saved drafts remain bound to you.', 'Tu sesión terminó. Inicia sesión otra vez; tus borradores siguen a tu nombre.'));
-        }
+        if (data.detail?.error_code === 'SESSION_EXPIRED') sessionEnded();
         throw { ...data, httpStatus: response.status };
       }
       return data;
@@ -158,13 +197,46 @@
       throw error;
     } finally { clearTimeout(timer); }
   }
+  function sessionEnded() {
+    pilot.clear(); credential = ''; actor = null; session = '';
+    drafts.clear(); attachments = []; retryTurn = null; lastTurnAt = null;
+    const welcome = $('welcome'); $('messages').replaceChildren(welcome); welcome.hidden = false;
+    renderAttachments();
+    $('sign-in-panel').hidden = false; $('chat-panel').hidden = true; $('sign-out').hidden = true;
+    $('identity').textContent = t('Sign in to your workspace', 'Inicia sesión en tu espacio');
+    notice(t('Your session ended. Sign in again; your saved drafts remain bound to you.', 'Tu sesión terminó. Inicia sesión otra vez; tus borradores siguen a tu nombre.'));
+  }
+  // The page itself scrolls; the composer is sticky at the bottom of it.
+  const scroller = () => document.scrollingElement || document.documentElement;
+  function scrollToLatest() { root.scrollTo?.(0, scroller().scrollHeight); updateJump(); }
+  function revealLatest() {
+    // A reply taller than the screen opens at its start; anything shorter shows the very end.
+    const last = [...$('messages').children].filter(node => !node.hidden).at(-1);
+    const room = root.innerHeight - (document.querySelector?.('.composer-wrap')?.offsetHeight || 0) - (document.querySelector?.('.topbar')?.offsetHeight || 0);
+    if (last && last.offsetHeight > room) last.scrollIntoView?.({ block: 'start' });
+    else scrollToLatest();
+    updateJump();
+  }
+  function updateJump() {
+    const jump = $('jump-latest'); if (!jump) return;
+    jump.hidden = $('chat-panel').hidden || !showJump({ scrollTop: scroller().scrollTop, scrollHeight: scroller().scrollHeight, clientHeight: root.innerHeight });
+  }
+  function divider(when) {
+    const label = dividerLabel(when, lastTurnAt, new Date(), 'en');
+    if (label) {
+      const line = el('div', undefined, 'day-divider'); line.setAttribute('role', 'separator');
+      line.append(el('span', t(label, dividerLabel(when, lastTurnAt, new Date(), 'es'))));
+      $('welcome').hidden = true; $('messages').append(line);
+    }
+    lastTurnAt = when;
+  }
   function setBusy(value) {
     busy = value;
     if ($('working-status')) $('working-status').hidden = !value;
     $('send').setAttribute('aria-busy', String(value));
     $('send').className = value ? 'primary is-working' : 'primary';
     $('send').textContent = value ? t('Working…', 'Trabajando…') : t('Send ↑', 'Enviar ↑');
-    ['send', 'photo-button', 'photo-kind', 'new-chat', 'today-entries', 'today-entries-mobile'].forEach(id => $(id).disabled = value || !session);
+    ['send', 'photo-button', 'new-chat', 'today-entries', 'today-entries-mobile'].forEach(id => $(id).disabled = value || !session);
     $('dictate').disabled = value || !session || !navigator.mediaDevices?.getUserMedia || !root.MediaRecorder;
     $('sign-out').disabled = value;
     drafts.forEach(node => node.refreshRecord?.());
@@ -390,7 +462,17 @@
         sendTurn({ text: t(enChoice.text, esChoice.text) });
       }, 'choice-button'));
     }
-    for (const aid of card.attachment_ids || []) node.append(button(t('View attached photo', 'Ver foto adjunta'), () => viewPhoto(aid)));
+    for (const aid of card.attachment_ids || []) {
+      const local = photoUrls.get(aid);
+      if (!local) { node.append(button(t('View attached photo', 'Ver foto adjunta'), () => viewPhoto(aid))); continue; }
+      // Photo sent from this page: show it on the draft before Record.
+      const figure = el('figure', undefined, 'draft-photo'), open = el('button', undefined, 'photo-open'), image = el('img');
+      open.type = 'button'; open.setAttribute('aria-label', t('View attached photo', 'Ver foto adjunta')); open.addEventListener('click', () => viewPhoto(aid));
+      image.src = local.url; image.alt = ''; open.append(image);
+      const [en, es] = photoKinds[local.kind] || photoKinds.other;
+      figure.append(open, el('figcaption', t(`${en} photo · attached to this draft`, `Foto: ${es} · adjunta a este borrador`)));
+      node.append(figure);
+    }
     details(node, draft);
     const errorArea = el('div'), actions = el('div', undefined, 'card-actions');
     if ((prepared.blockers || []).some(b => b.code === 'SKU_CONFIRMATION_REQUIRED')) {
@@ -548,8 +630,10 @@
       localStorage.setItem('fl-assistant-language', language); applyLanguage();
     }
     setBusy(true); notice('');
+    divider(new Date().toISOString());
     userMessage(typeof requestText === 'string' ? requestText : t('Show all today’s entries', 'Mostrar todas las entradas de hoy'));
     const node = shell(); node.append(el('p', t('Loading today’s entries…', 'Cargando las entradas de hoy…'), 'busy-note'));
+    scrollToLatest();
     const deadline = Date.now() + 15000, receipts = [];
     try {
       const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -577,24 +661,31 @@
         ? t('Today’s entries could not load within 15 seconds. Please try again.', 'Las entradas de hoy no se cargaron en 15 segundos. Inténtalo de nuevo.')
         : errorText(error, language)));
       node.append(button(t('Try again', 'Intentar de nuevo'), todayEntries));
-    } finally { setBusy(false); }
+    } finally { setBusy(false); node.closest?.('.message')?.scrollIntoView?.({ block: 'start' }); updateJump(); }
   }
   async function sendTurn(values, original) {
     if (busy) return;
     closePhoneMenu();
-    const body = original || { session_id: session, turn_id: crypto.randomUUID(), attachment_ids: attachments.map(a => a.id), ...values };
+    const body = original || { session_id: session, turn_id: crypto.randomUUID(), attachment_ids: attachedIds(), ...values };
     setBusy(true); notice('');
-    if (!original) userMessage(body.text);
+    if (!original) { divider(new Date().toISOString()); userMessage(body.text); }
     const waiting = el('p', t('Checking with FL…', 'Consultando FL…'), 'busy-note'); $('messages').append(waiting);
+    scrollToLatest();
     try {
       const result = await api('/assistant/turn', { body, timeout: 570000, onProgress: message => { delete waiting.dataset.en; delete waiting.dataset.es; waiting.textContent = message; } });
       renderCards(result.cards, body.text);
       retryTurn = null;
-      if (result.cards.some(c => c.kind === 'draft')) { attachments = []; renderAttachments(); }
+      if (result.cards.some(c => c.kind === 'draft')) { attachments = attachments.filter(a => !body.attachment_ids?.includes(a.id)); renderAttachments(); }
+      else if (body.attachment_ids?.length && attachedIds().length) {
+        // FL does not read photos; say plainly that it is still waiting for the words.
+        const replies = $('messages').querySelectorAll?.('.assistant-message .card') || [];
+        replies[replies.length - 1]?.append(el('p', t('Your photo is still attached and will go with your next message. Tell me what happened — for example, “we received 6 cases of oats from Grain Supply”.',
+          'Tu foto sigue adjunta y se enviará con tu próximo mensaje. Cuéntame qué pasó — por ejemplo, “recibimos 6 cajas de avena de Grain Supply”.'), 'photo-hint'));
+      }
     } catch (error) {
       retryTurn = body; const card = shell(); neutral(card, 'lookup_failed');
       card.append(button(t('Retry this message', 'Reintentar este mensaje'), () => sendTurn({}, body)));
-    } finally { waiting.remove(); setBusy(false); $('message').focus(); }
+    } finally { waiting.remove(); setBusy(false); $('message').focus({ preventScroll: true }); revealLatest(); }
   }
   async function loadChat({ background = false } = {}) {
     const saved = localStorage.getItem(sessionStore);
@@ -604,7 +695,7 @@
       catch (error) { if (error.httpStatus !== 404) throw error; }
     }
     if (!session) { result = await api('/assistant/session', { background }); session = result.session_id; localStorage.setItem(sessionStore, session); }
-    for (const turn of result.turns || []) { userMessage(turn.text); renderCards(turn.cards, turn.text); }
+    for (const turn of result.turns || []) { divider(turn.created_at); userMessage(turn.text); renderCards(turn.cards, turn.text); }
     // A saved receipt is a real commit result; no text/receipt lookup can call this renderer.
     for (const draft of result.drafts || []) {
       let node = drafts.get(draft.id);
@@ -629,7 +720,9 @@
   async function enterChat(who, { background = false } = {}) {
     actor = who; sessionStore = 'fl-assistant-chat:' + (actor.id || actor.name);
     await loadChat({ background }); $('sign-in-panel').hidden = true; $('chat-panel').hidden = false; $('sign-out').hidden = false;
-    applyLanguage(); setBusy(false); $('message').focus();
+    applyLanguage(); setBusy(false); $('message').focus({ preventScroll: true });
+    // Resume where the conversation is now: the latest message, never the oldest.
+    scrollToLatest(); root.requestAnimationFrame?.(scrollToLatest);
   }
   $('sign-in-form').addEventListener('submit', async event => {
     event.preventDefault(); notice(''); const submit = event.target.querySelector('button'); setBusy(true); submit.disabled = true; submit.setAttribute('aria-busy', 'true');
@@ -672,21 +765,106 @@
     fitMenu(); desktopMenu.addEventListener?.('change', fitMenu);
   }
   $('today-entries').addEventListener('click', todayEntries);
+  $('jump-latest').addEventListener('click', () => { scrollToLatest(); $('jump-latest').hidden = true; });
+  root.addEventListener?.('scroll', updateJump, { passive: true }); root.addEventListener?.('resize', updateJump);
   $('today-entries-mobile').addEventListener('click', todayEntries);
-  $('composer').addEventListener('submit', event => { event.preventDefault(); const text = $('message').value.trim(); if (text && !busy) { $('message').value = ''; if (isTodayQuery(text)) todayEntries(text); else sendTurn({ text }); } });
+  $('composer').addEventListener('submit', event => {
+    event.preventDefault(); if (busy) return;
+    const text = $('message').value.trim(), pending = attachments.find(a => a.state === 'choose' || a.state === 'uploading');
+    if (pending) { notice(pending.state === 'choose' ? t('First choose what the photo shows.', 'Primero elige qué muestra la foto.') : t('Wait until the photo says Attached ✓.', 'Espera hasta que la foto diga Adjunta ✓.')); return; }
+    if (!text) { if (attachedIds().length) notice(t('Tell me what the photo is for, then press Send.', 'Dime para qué es la foto y después pulsa Enviar.')); return; }
+    $('message').value = ''; if (isTodayQuery(text)) todayEntries(text); else sendTurn({ text });
+  });
   $('message').addEventListener('keydown', event => { if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); $('composer').requestSubmit(); } });
   document.querySelectorAll('[data-prompt]').forEach(b => b.addEventListener('click', () => {
     if (b.dataset.prompt.startsWith('What')) { todayEntries(); return; }
     $('message').value = language === 'es' ? 'Consulta el inventario de ' : b.dataset.prompt; $('message').focus();
   }));
-  function evidenceLabel(kind) {
-    return ({ bol: t('BOL', 'BOL'), truck_photo: t('Truck photo', 'Foto de camión'), correction_photo: t('Correction photo', 'Foto de corrección'),
-      lot_tag: t('Lot tag', 'Etiqueta de lote'), count_sheet: t('Count sheet', 'Hoja de conteo'),
-      signed_packing_slip: t('Signed packing slip', 'Nota de empaque firmada'), other: t('Other evidence', 'Otra evidencia') })[kind] || kind;
+  const attachedIds = () => attachments.filter(a => a.state === 'attached').map(a => a.id);
+  function kindName(kind) { return t(...(photoKinds[kind] || photoKinds.other)); }
+  function photoStatusNode(item) {
+    const status = el('span', t(photoStatus(item, 'en'), photoStatus(item, 'es')), 'photo-status'); status.setAttribute('role', 'status'); return status;
   }
   function renderAttachments() {
     $('attachments').replaceChildren();
-    for (const a of attachments) { const chip = el('div', undefined, 'attachment-chip'); chip.append(el('span', `${a.filename} · ${evidenceLabel(a.kind)}`), button('×', () => { attachments = attachments.filter(x => x.id !== a.id); renderAttachments(); })); $('attachments').append(chip); }
+    for (const item of attachments) {
+      const chip = el('div', undefined, 'attachment-chip photo-' + item.state), body = el('div', undefined, 'photo-body');
+      if (item.url) { const thumb = el('img', undefined, 'photo-thumb'); thumb.src = item.url; thumb.alt = t('Photo preview', 'Vista previa de la foto'); chip.append(thumb); }
+      body.append(el('strong', item.kind ? kindName(item.kind) : t('New photo', 'Foto nueva')));
+      if (item.state === 'failed') body.append(button(t(photoStatus(item, 'en'), photoStatus(item, 'es')), () => uploadPhoto(item), 'photo-retry'));
+      else body.append(item.statusNode = photoStatusNode(item));
+      if (item.state === 'uploading') { item.bar = el('progress'); item.bar.max = 100; item.bar.value = item.progress || 0; body.append(item.bar); }
+      if (item.state === 'choose') {
+        const kinds = el('div', undefined, 'photo-kinds');
+        for (const kind of Object.keys(photoKinds)) kinds.append(button(kindName(kind), () => choosePhotoKind(item, kind), 'photo-kind-choice'));
+        body.append(kinds);
+      }
+      const remove = button('×', () => removePhoto(item), 'photo-remove'); remove.setAttribute('aria-label', t('Remove photo', 'Quitar foto'));
+      chip.append(body, remove); $('attachments').append(chip);
+    }
+  }
+  function removePhoto(item) {
+    item.xhr?.abort(); attachments = attachments.filter(a => a !== item);
+    if (item.url && item.state !== 'attached') URL.revokeObjectURL(item.url);
+    renderAttachments();
+  }
+  function choosePhotoKind(item, kind) {
+    if (kind === 'correction_photo' && attachments.some(a => a !== item && a.kind === 'correction_photo')) {
+      notice(t('Send one correction photo with a message. Remove the first photo to replace it.', 'Envía una foto de corrección por mensaje. Quita la primera foto para reemplazarla.')); return;
+    }
+    notice(''); item.kind = kind; uploadPhoto(item);
+  }
+  // Only a photo over FL's 5 MB limit (or one FL cannot read, e.g. HEIC) is re-encoded on the phone.
+  async function fitPhoto(file) {
+    if (['image/jpeg', 'image/png', 'image/webp'].includes(file.type) && file.size <= MAX_PHOTO) return file;
+    const image = new Image(), url = URL.createObjectURL(file);
+    try { image.src = url; await image.decode(); } catch (error) { throw { photo: 'wrong_type' }; } finally { URL.revokeObjectURL(url); }
+    const canvas = document.createElement('canvas');
+    for (const [edge, quality] of [[3000, 0.85], [2400, 0.8], [1800, 0.75]]) {
+      const scale = Math.min(1, edge / Math.max(image.naturalWidth, image.naturalHeight));
+      canvas.width = Math.round(image.naturalWidth * scale); canvas.height = Math.round(image.naturalHeight * scale);
+      canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', quality));
+      if (blob && blob.size <= MAX_PHOTO) return new File([blob], (file.name || 'photo').replace(/\.[^.]*$/, '') + '.jpg', { type: 'image/jpeg' });
+    }
+    throw { photo: 'too_large' };
+  }
+  // XHR rather than fetch: only XHR reports upload progress on iPhone Safari.
+  function sendPhoto(form, item) {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest(); item.xhr = xhr;
+      xhr.open('POST', new URL('/assistant/attachment?session_id=' + encodeURIComponent(session), root.FLDashboard?.base || location.origin));
+      xhr.setRequestHeader('X-API-Key', credential); xhr.timeout = 120000;
+      xhr.upload.onprogress = event => {
+        if (!event.lengthComputable) return;
+        item.progress = Math.min(99, Math.round(event.loaded / event.total * 100));
+        if (item.bar) item.bar.value = item.progress;
+        if (item.statusNode) { delete item.statusNode.dataset.en; delete item.statusNode.dataset.es; item.statusNode.textContent = t(photoStatus(item, 'en'), photoStatus(item, 'es')); }
+      };
+      xhr.onload = () => {
+        let data; try { data = JSON.parse(xhr.responseText); } catch (error) { reject({ httpStatus: xhr.status }); return; }
+        if (xhr.status >= 200 && xhr.status < 300) { resolve(data); return; }
+        if (data?.detail?.error_code === 'SESSION_EXPIRED') sessionEnded();
+        reject({ ...data, httpStatus: xhr.status });
+      };
+      xhr.onerror = xhr.ontimeout = () => reject({ network: true });
+      xhr.onabort = () => reject({ aborted: true });
+      xhr.send(form);
+    });
+  }
+  async function uploadPhoto(item) {
+    item.state = 'uploading'; item.progress = 0; renderAttachments();
+    let sent = item.file.size;
+    try {
+      const file = await fitPhoto(item.file); sent = file.size;
+      const form = new FormData(); form.append('file', file, file.name || 'photo.jpg'); form.append('kind', item.kind);
+      const result = await sendPhoto(form, item);
+      if (!validAttachment(result)) throw { detail: t('FL did not confirm a private evidence attachment.', 'FL no confirmó un adjunto privado de evidencia.') };
+      Object.assign(item, { state: 'attached', id: result.id });
+      photoUrls.set(result.id, { url: item.url, kind: item.kind });
+    } catch (error) { item.state = photoProblem(error, sent); }
+    finally { item.xhr = null; }
+    if (attachments.includes(item)) renderAttachments();
   }
   async function viewPhoto(id) {
     try {
@@ -696,19 +874,12 @@
     } catch (error) { notice(errorText(error, language)); }
   }
   $('photo-button').addEventListener('click', () => $('photo').click());
-  $('photo').addEventListener('change', async () => {
+  $('photo').addEventListener('change', () => {
     const file = $('photo').files[0]; $('photo').value = ''; if (!file || busy) return;
     if (attachments.length >= 5) { notice(t('Send at most five photos with a message.', 'Envía hasta cinco fotos con un mensaje.')); return; }
-    const kind = $('photo-kind').value;
-    if (kind === 'correction_photo' && attachments.some(a => a.kind === 'correction_photo')) { notice(t('Send one correction photo with a message. Remove the first photo to replace it.', 'Envía una foto de corrección por mensaje. Quita la primera foto para reemplazarla.')); return; }
-    setBusy(true); notice(''); const form = new FormData(); form.append('file', file); form.append('kind', kind);
-    try {
-      const result = await api('/assistant/attachment?session_id=' + encodeURIComponent(session), { form });
-      if (!validAttachment(result)) throw { detail: t('FL did not confirm a private evidence attachment.', 'FL no confirmó un adjunto privado de evidencia.') };
-      attachments.push(result); renderAttachments();
-    }
-    catch (error) { notice(t('Photo upload failed. Please try again.', 'Falló la carga de foto. Inténtalo de nuevo.')); }
-    finally { setBusy(false); }
+    const image = /^image\//.test(file.type || '');
+    attachments.push({ file, state: image ? 'choose' : 'wrong_type', kind: null, url: image ? URL.createObjectURL(file) : null });
+    notice(''); renderAttachments();
   });
   async function startMic() {
     if (busy || held || micStarting || recorder) return;

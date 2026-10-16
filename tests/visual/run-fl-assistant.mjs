@@ -354,8 +354,11 @@ try {
   assert.ok(!/NOT recorded|NO registrado|Provider unavailable/.test(await page.locator('#notice').innerText()));
   failDictation = false;
   await page.locator('#message').fill('Edited transcript');
+  // Mobile UX round: the evidence type is chosen after picking; nothing uploads before that.
   await page.locator('#photo').setInputFiles({ name: 'tag.png', mimeType: 'image/png', buffer: Buffer.from('photo fixture') });
-  await page.locator('.attachment-chip').waitFor(); assert.equal(uploaded, 1); assert.deepEqual(uploadedKinds, ['lot_tag']);
+  await page.locator('.attachment-chip.photo-choose').waitFor(); assert.equal(uploaded, 0);
+  await page.getByRole('button', { name: 'Lot tag', exact: true }).click();
+  await page.locator('.attachment-chip.photo-attached').waitFor(); assert.equal(uploaded, 1); assert.deepEqual(uploadedKinds, ['lot_tag']);
   await page.locator('#message').fill('ambiguous'); await page.locator('#send').click();
   await page.getByRole('button', { name: 'Classic Chocolate Chip', exact: true }).waitFor();
   assert.equal(await page.locator('.card img').count(), 0);
@@ -365,12 +368,15 @@ try {
   // Recovered receipt comes from saved commit JSON, with no duplicate Record.
   await page.reload(); if (!pilotMode) { await page.locator('#actor-key').fill('fixture-key'); await page.locator('#sign-in-form button').click(); }
   await page.locator('.receipt').waitFor(); assert.equal(records.length, 2);
-  await page.locator('#photo-kind').selectOption('correction_photo');
   await page.locator('#photo').setInputFiles({ name: 'correction.png', mimeType: 'image/png', buffer: photoBytes });
-  await page.locator('.attachment-chip').waitFor();
+  await page.getByRole('button', { name: 'Correction', exact: true }).click();
+  await page.locator('.attachment-chip.photo-attached').waitFor();
   await page.locator('#photo').setInputFiles({ name: 'duplicate.png', mimeType: 'image/png', buffer: photoBytes });
+  await page.getByRole('button', { name: 'Correction', exact: true }).click();
   await page.getByText('Send one correction photo with a message.', { exact: false }).waitFor();
   assert.equal(uploaded, 2);
+  await page.locator('.attachment-chip.photo-choose').getByRole('button', { name: 'Remove photo' }).click();
+  assert.equal(await page.locator('.attachment-chip').count(), 1);
   await page.locator('#message').fill('held'); await page.locator('#send').click();
   await page.getByRole('button', { name: 'View attached photo', exact: true }).click();
   await page.locator('dialog img').waitFor(); assert.deepEqual(reads, [102]);
@@ -397,12 +403,12 @@ try {
   await blockedShip.getByText('Enter the BOL number before recording.', { exact: true }).waitFor();
   assert.equal(await blockedShip.getByRole('button', { name: 'Record', exact: true }).isDisabled(), true);
   assert.equal(records.length, beforeShip);
-  await page.locator('#photo-kind').selectOption('bol');
   await page.locator('#photo').setInputFiles({ name: 'bol.png', mimeType: 'image/png', buffer: photoBytes });
-  await page.locator('.attachment-chip').waitFor();
-  await page.locator('#photo-kind').selectOption('truck_photo');
+  await page.getByRole('button', { name: 'BOL (bill of lading)', exact: true }).click();
+  await page.locator('.attachment-chip.photo-attached').waitFor();
   await page.locator('#photo').setInputFiles({ name: 'truck.png', mimeType: 'image/png', buffer: photoBytes });
-  await page.waitForFunction(() => document.querySelectorAll('.attachment-chip').length === 2);
+  await page.getByRole('button', { name: 'Truck', exact: true }).click();
+  await page.waitForFunction(() => document.querySelectorAll('.attachment-chip.photo-attached').length === 2);
   await page.locator('#message').fill('ship'); await page.locator('#send').click();
   const shipment = page.locator(`[data-draft-id="${shipId}"]`);
   await shipment.getByRole('heading', { name: 'Ship order', exact: true }).waitFor();
