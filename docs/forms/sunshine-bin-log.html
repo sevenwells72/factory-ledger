@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sunshine bulk bin log / Sunshine a granel: registro de contenedores</title>
+<!-- O-2: 15-row companion adapted from docs/pilot/sunshine-bin-log.pdf (PR #123).
+     Matches the existing contenedor/recibo wording and same-day shipment procedure.
+     Existing order, weigher and FL receipt details are captured in Notes; the original is unchanged.
+     Print: Letter, landscape, 100% scale, browser headers/footers off.
+     The matching PDF is rendered from this standalone HTML. No network assets. -->
+<style>
+@page { size: Letter landscape; margin: 0.4in; }
+* { box-sizing: border-box; }
+html { color: #000; background: #fff; }
+body { margin: 0; font: 9pt/1.2 Arial, Helvetica, sans-serif; }
+.sheet { width: 10.2in; margin: 0 auto; }
+.title { display: grid; grid-template-columns: 0.6in 1fr 1fr; gap: 10pt; align-items: start; border-bottom: 1.3pt solid #000; padding-bottom: 6pt; }
+.brand { font-size: 18pt; font-weight: 700; }
+h1, .title-es { font-size: 14pt; line-height: 1.1; font-weight: 700; margin: 0; }
+.meta { display: flex; align-items: baseline; justify-content: space-between; gap: 15pt; padding: 10pt 0 9pt; font-size: 10pt; }
+.line { display: inline-block; border-bottom: 0.7pt solid #000; height: 12pt; vertical-align: baseline; }
+.month { width: 2.1in; }
+.date { width: 1.25in; }
+.area { width: 1.5in; }
+.page-no { width: 0.4in; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; column-gap: 15pt; }
+p { margin: 0; }
+.instructions { margin-bottom: 7pt; }
+.instructions p { line-height: 1.24; }
+.instructions .pair + .pair { margin-top: 4pt; }
+.log { width: calc(100% - 1pt); margin-left: 0.5pt; border-collapse: collapse; table-layout: fixed; }
+.log th, .log td { border: 0.65pt solid #000; }
+.log th { padding: 4pt 1.5pt; height: 47pt; vertical-align: middle; font-size: 8pt; line-height: 1.16; font-weight: 700; text-align: center; }
+.label { display: grid; grid-template-columns: 1fr 1fr; column-gap: 2.5pt; align-items: start; }
+.label > span { min-width: 0; }
+.bin-label { grid-template-columns: 1fr 2fr; }
+.initials { display: block; margin-top: 3pt; font-size: 7.5pt; font-weight: 400; }
+.unit { display: block; margin-top: 3pt; font-size: 8pt; }
+.log td { height: 23pt; padding: 0; vertical-align: top; }
+.log tr { break-inside: avoid; }
+thead { display: table-header-group; }
+.footer { margin-top: 7pt; font-size: 8.7pt; line-height: 1.23; }
+.footer .pair + .pair { margin-top: 4pt; }
+.receipt-rule { border-top: 1pt solid #000; padding-top: 6pt; font-size: 10pt; font-weight: 700; }
+@media screen { body { padding: 0.4in; } .sheet { margin: 0 auto; } }
+</style>
+</head>
+<body>
+<main class="sheet">
+<header>
+  <div class="title"><div class="brand">CNS</div><h1>Sunshine bulk bin log</h1><p class="title-es" lang="es">Sunshine a granel: registro de contenedores</p></div>
+  <div class="meta"><span>Month / year / <span lang="es">Mes / año</span> <span class="line month"></span></span><span>Page / <span lang="es">Página</span> <span class="line page-no"></span> of / <span lang="es">de</span> <span class="line page-no"></span></span></div>
+</header>
+<section class="instructions" aria-label="Instructions / Instrucciones"><div class="pair "><p lang="en">One row per bin. Use this paper log until after the changeover.</p><p lang="es">Una línea por contenedor. Use este registro en papel hasta después del cambio.</p></div><div class="pair "><p lang="en">Weights in lb: gross = full bin; tare = empty bin; net = gross - tare.</p><p lang="es">Pesos en lb: bruto = contenedor lleno; tara = contenedor vacío; neto = bruto - tara.</p></div></section>
+<table class="log" aria-label="Handwritten entries / Anotaciones a mano">
+  <colgroup><col style="width: 7.25490%;"><col style="width: 6.07843%;"><col style="width: 13.03922%;"><col style="width: 10.29412%;"><col style="width: 10.78431%;"><col style="width: 7.05882%;"><col style="width: 6.17647%;"><col style="width: 6.17647%;"><col style="width: 9.31373%;"><col style="width: 10.78431%;"><col style="width: 13.03922%;"></colgroup>
+  <thead><tr><th scope="col"><div class="label"><span lang="en">Date</span><span lang="es">Fecha</span></div></th><th scope="col"><div class="label"><span lang="en">Time</span><span lang="es">Hora</span></div></th><th scope="col"><div class="label"><span lang="en">Sunshine<br>product</span><span lang="es">Producto<br>Sunshine</span></div></th><th scope="col"><div class="label"><span lang="en">Lot<br>number</span><span lang="es">Número<br>de lote</span></div></th><th scope="col"><div class="label bin-label"><span lang="en">Bin<br>#</span><span lang="es">Contenedor<br>#</span></div></th><th scope="col"><div class="label"><span lang="en">Gross</span><span lang="es">Bruto</span></div><span class="unit">lb</span></th><th scope="col"><div class="label"><span lang="en">Tare</span><span lang="es">Tara</span></div><span class="unit">lb</span></th><th scope="col"><div class="label"><span lang="en">Net</span><span lang="es">Neto</span></div><span class="unit">lb</span></th><th scope="col"><div class="label"><span lang="en">Filled by</span><span lang="es">Llenado por</span></div><span class="initials">initials / <span lang="es">iniciales</span></span></th><th scope="col"><div class="label"><span lang="en">Checked by</span><span lang="es">Revisado por</span></div><span class="initials">initials / <span lang="es">iniciales</span></span></th><th scope="col"><div class="label"><span lang="en">Notes</span><span lang="es">Notas</span></div></th></tr></thead>
+  <tbody>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+    <tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+  </tbody>
+</table>
+<footer class="footer"><div class="pair "><p lang="en">When a bin ships, enter the shipment in FL the same day with this lot and net lb. In Notes, write the Sunshine order, who weighed it, and the full FL receipt number.</p><p lang="es">Cuando salga un contenedor, registre el envío en FL el mismo día con este lote y las lb netas. En Notas, escriba el pedido de Sunshine, quién lo pesó y el número completo del recibo de FL.</p></div><div class="pair "><p lang="en">Keep the filled sheet with the shipping papers.</p><p lang="es">Guarde la hoja llena con los papeles de envío.</p></div></footer>
+</main>
+</body>
+</html>
