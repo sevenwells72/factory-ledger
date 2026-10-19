@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>FL Canvas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script src="config.js"></script>
+<script src="api.js"></script>
+<script defer src="app.js"></script>
+</head>
+<body>
+<header id="header">
+  <div class="brand">
+    <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="1" width="20" height="20" rx="6" fill="#12151A"></rect><path d="M6 15V7h7M6 11h5" stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round"></path></svg>
+    Factory Ledger <span id="env" class="env-badge"></span>
+  </div>
+  <div class="vsep"></div>
+  <nav id="crumbs" aria-label="Location"></nav>
+  <div class="search">
+    <label for="q" class="sr">Search products, lots, orders</label>
+    <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="#626A78" stroke-width="1.6" fill="none"></circle><path d="M11 11l3.5 3.5" stroke="#626A78" stroke-width="1.6" stroke-linecap="round"></path></svg>
+    <input id="q" autocomplete="off" placeholder="Jump to product, lot, order…">
+    <div id="results" hidden></div>
+  </div>
+  <div class="tasks" id="tasks" aria-label="Quick tasks"></div>
+</header>
+
+<div id="viewport"><div id="world"></div></div>
+
+<div id="banner" hidden></div>
+
+<div id="minimap" class="float">
+  <div class="mm-head"><span>Map</span><span id="mm-src"></span></div>
+  <div id="mm"></div>
+</div>
+
+<div id="zoombar" class="float">
+  <button id="home" type="button"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4" stroke="#FFFFFF" stroke-width="1.6" fill="none" stroke-linecap="round"></path></svg>Entire factory</button>
+  <button id="zout" class="zbtn" type="button" aria-label="Zoom out one level">−</button>
+  <div id="level"><b>Entire factory</b><span>—</span></div>
+  <button id="zin" class="zbtn" type="button" aria-label="Zoom in">+</button>
+</div>
+
+<div id="assistant" class="float">
+  <div class="ctx"><span class="dot blue"></span>Assistant is looking at <strong id="ctx">the whole factory</strong></div>
+  <label for="ask" class="sr">Ask the assistant</label>
+  <input id="ask" disabled placeholder="Ask about the whole factory…">
+  <div class="note"><span class="nc">not connected yet</span> the assistant needs a signed-in actor session</div>
+</div>
+
+<aside id="inspector" aria-label="Record" aria-hidden="true"></aside>
+</body>
+</html>

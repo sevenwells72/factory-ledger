@@ -1,0 +1,887 @@
+// FL Canvas: zoomable, read-only view of Factory Ledger.
+// World coordinates follow the ConceptA prototype (2600 x 1600 canvas).
+(function () {
+  const CFG = window.FL_CANVAS_CONFIG;
+  const API = window.FLApi;
+  const DASH = CFG.dashboardBase.replace(/\/$/, '');
+  const $ = (s) => document.querySelector(s);
+
+  // ---------- formatting ----------
+  const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ESC[c]);
+  const num = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+  const fmt = (v) => { const n = num(v); return n.toLocaleString('en-US', { maximumFractionDigits: Math.abs(n) < 10 && n % 1 ? 1 : 0 }); };
+  const signed = (v) => (num(v) > 0 ? '+' : num(v) < 0 ? '−' : '') + fmt(Math.abs(num(v)));
+  const ymdFmt = new Intl.DateTimeFormat('en-CA', { timeZone: CFG.timeZone, year: 'numeric', month: '2-digit', day: '2-digit' });
+  const TODAY = ymdFmt.format(new Date());
+  const addDays = (ymd, d) => { const t = new Date(ymd + 'T12:00:00Z'); t.setUTCDate(t.getUTCDate() + d); return t.toISOString().slice(0, 10); };
+  const daysBetween = (a, b) => Math.round((new Date(b + 'T12:00:00Z') - new Date(a + 'T12:00:00Z')) / 86400000);
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const short = (ymd) => (ymd ? MONTHS[+ymd.slice(5, 7) - 1] + ' ' + +ymd.slice(8, 10) : '—');
+  const longToday = () => { const t = new Date(TODAY + 'T12:00:00Z'); return DAYS[t.getUTCDay()] + ' ' + short(TODAY); };
+  const nc = (what) => '<span class="nc" title="' + esc(what || 'No read endpoint for this yet') + '">not connected yet</span>';
+  const TX_LABEL = { receive: 'Received', make: 'Made', pack: 'Packed', ship: 'Shipped', adjust: 'Adjusted' };
+  const SOURCE_LABEL = { production_output: 'Made', pack_output: 'Packed', received: 'Received', receive: 'Received', found_inventory: 'Found', found: 'Found', adjustment: 'Adjusted' };
+  const sourceLabel = (s) => SOURCE_LABEL[s] || (s ? String(s).replace(/_/g, ' ') : '—');
+
+  function dashUrl(page, params) {
+    const u = new URL(DASH + '/' + page);
+    for (const [k, v] of Object.entries(params || {})) if (v != null && v !== '') u.searchParams.set(k, v);
+    return u.toString();
+  }
+  const openTab = (url) => window.open(url, '_blank', 'noopener');
+
+  // ---------- world layout (prototype coordinates) ----------
+  const AREAS = {
+    production: { x: 520, y: 120, w: 560, h: 340, name: 'Production' },
+    packing: { x: 1520, y: 120, w: 560, h: 340, name: 'Packing' },
+    receiving: { x: 160, y: 640, w: 480, h: 380, name: 'Receiving' },
+    inventory: { x: 900, y: 560, w: 800, h: 540, name: 'Inventory', hub: true },
+    shipping: { x: 1960, y: 640, w: 480, h: 380, name: 'Orders & shipping' },
+    quality: { x: 520, y: 1200, w: 560, h: 300, name: 'Quality & traceability' },
+    reports: { x: 1520, y: 1200, w: 560, h: 300, name: 'Reports' }
+  };
+  const TILES = {
+    ingredient: { dx: 24, dy: 76, name: 'Ingredients' },
+    batch: { dx: 408, dy: 76, name: 'Bulk granola', accent: true },
+    packaging: { dx: 24, dy: 304, name: 'Packaging' },
+    finished: { dx: 408, dy: 304, name: 'Finished goods' }
+  };
+  const TILE_W = 368, TILE_H = 212;
+  const GRID = { w: 1472, h: 848, k: 0.25, left: 40, top: 104, right: 40, bottom: 28, gap: 20 };
+  const CARD = { w: 440, h: 348 };
+  const WS = { w: 1100, h: 870 };
+  const BOX = { x: 160, y: 120, w: 2280, h: 1380 };
+  // A node "opens" (shows its next level) once it covers this share of the viewport.
+  const OPEN_AT = { area: 0.45, tile: 0.6, product: 0.5 };
+
+  const nodes = new Map();
+  const data = {};
+  const lotCache = new Map();
+  let products = [];
+  let cam = { cx: BOX.x + BOX.w / 2, cy: BOX.y + BOX.h / 2, s: 0.5 };
+  let selection = null; // {kind:'lot'|'order'|'er', label, ...}
+  let focus = { area: null, tile: null, product: null };
+
+  const world = $('#world');
+  const vp = $('#viewport');
+  const vpSize = () => ({ w: vp.clientWidth, h: vp.clientHeight });
+
+  function banner(msg, isError) {
+    const b = $('#banner');
+    if (!msg) { b.hidden = true; return; }
+    b.hidden = false;
+    b.className = isError ? 'error' : '';
+    b.textContent = msg;
+  }
+
+  // ---------- data ----------
+  async function loadAll() {
+    const since7 = addDays(TODAY, -6);
+    const jobs = {
+      inv: API.get('/inventory/current', { limit: 500 }),
+      supIng: API.get('/supplies/inventory', { category: 'ingredient' }),
+      supPkg: API.get('/supplies/inventory', { category: 'packaging' }),
+      er: API.get('/expected-receipts', { status: 'open' }),
+      orders: API.get('/sales/orders', { state: 'open', limit: 200 }),
+      counts: API.get('/sales/orders/counts'),
+      sales: API.get('/sales/dashboard'),
+      tx: API.get('/transactions/history', { since: since7, limit: 1000 }),
+      runs: API.get('/production/runs', { from: TODAY, to: TODAY }),
+      exceptions: API.get('/exceptions', { status: 'open' })
+    };
+    const keys = Object.keys(jobs);
+    const settled = await Promise.allSettled(keys.map((k) => jobs[k]));
+    settled.forEach((r, i) => { data[keys[i]] = r.status === 'fulfilled' ? r.value : { error: r.reason && r.reason.message, status: r.reason && r.reason.status }; });
+    data.loadedAt = new Date();
+  }
+
+  const failed = (d) => !d || d.error;
+  const postedTx = () => (failed(data.tx) ? [] : data.tx.transactions.filter((t) => t.status === 'posted'));
+
+  function buildProducts() {
+    const units = {};
+    for (const src of [data.supIng, data.supPkg]) if (!failed(src)) for (const it of src.items) units[it.product_id] = it.unit;
+    const byId = new Map();
+    for (const r of failed(data.inv) ? [] : data.inv.inventory) {
+      let p = byId.get(r.product_id);
+      if (!p) {
+        p = { id: r.product_id, name: r.product_name, type: r.product_type, sku: r.odoo_code, caseLb: num(r.case_size_lb) || null, batchLb: num(r.default_batch_lb) || null, unit: units[r.product_id] || 'lb', lots: [], qty: 0, units: 0 };
+        byId.set(r.product_id, p);
+      }
+      p.lots.push({ id: r.lot_id, code: r.lot_code, qty: num(r.quantity_on_hand), units: num(r.unit_count) });
+      p.qty += num(r.quantity_on_hand);
+      p.units += num(r.unit_count) || (p.caseLb ? num(r.quantity_on_hand) / p.caseLb : 0);
+    }
+    products = [...byId.values()].sort((a, b) => b.qty - a.qty);
+  }
+
+  function qtyText(p, which) {
+    const q = which === 'units' ? p.units : p.qty;
+    if (p.type === 'finished' && p.caseLb) return fmt(p.units) + ' cs';
+    if (p.type === 'packaging' || (p.unit && p.unit !== 'lb')) return fmt(q) + ' ' + (p.unit && p.unit !== 'unit' ? p.unit : 'ea');
+    return fmt(q) + ' lb';
+  }
+  const ofType = (t) => products.filter((p) => p.type === t);
+  const isEK = (name) => /EXTRA-KOSHER/i.test(name || '');
+
+  // ---------- area content ----------
+  function errLine(d) { return '<div class="sub t-red">Couldn’t load (' + esc(d && d.error) + ')</div>'; }
+
+  function txOf(type) { return postedTx().filter((t) => t.type === type).sort((a, b) => (b.business_date + b.created_at).localeCompare(a.business_date + a.created_at)); }
+  const outLine = (t) => (t.lines || []).find((l) => num(l.quantity_lb) > 0) || (t.lines || [])[0] || {};
+  const inLine = (t) => (t.lines || []).find((l) => num(l.quantity_lb) < 0) || {};
+
+  function productionArea() {
+    const a = AREAS.production;
+    if (failed(data.tx)) return { far: '<div class="far-body"><div class="kicker">Production</div>' + errLine(data.tx) + '</div>', near: '' };
+    const makes = txOf('make');
+    const today = makes.filter((t) => t.business_date === TODAY);
+    const lbToday = today.reduce((s, t) => s + num(outLine(t).quantity_lb), 0);
+    const last = makes[0];
+    const runs = failed(data.runs) ? null : data.runs.runs;
+    const runSignal = runs == null ? '<div class="signal"><span class="dot grey"></span><span class="muted">Planned runs: couldn’t load</span></div>'
+      : runs.length ? '<div class="signal t-green"><span class="dot green"></span>' + runs.length + ' planned run' + (runs.length > 1 ? 's' : '') + ' today</div>'
+        : '<div class="signal muted"><span class="dot grey"></span>No planned runs scheduled today</div>';
+    const far = '<div class="far-body"><div class="kicker">Production</div><div class="big">' + today.length + ' make' + (today.length === 1 ? '' : 's') + '</div>'
+      + '<div class="sub">' + (today.length ? 'today · ' + fmt(lbToday) + ' lb made' : 'today' + (last ? ' · last make ' + short(last.business_date) : ' · none in 7 days')) + '</div>' + runSignal + '</div>';
+    const cols = 'grid-template-columns: 0.7fr 2fr 1.3fr 0.9fr 1fr';
+    const rows = makes.slice(0, 6).map((t) => { const o = outLine(t); return '<button class="row" style="' + cols + '" data-lot="' + esc(o.lot_code) + '" data-pid="' + esc(o.product_id) + '" data-pname="' + esc(o.product_name) + '"><div>' + short(t.business_date) + '</div><div style="font-weight:600">' + esc(o.product_name) + '</div><div class="mono" style="font-size:16px">' + esc(o.lot_code) + '</div><div>' + fmt(o.quantity_lb) + ' lb</div><div class="muted">' + esc(t.operator_id || '') + '</div></button>'; }).join('');
+    const runRows = (runs || []).slice(0, 4).map((r) => '<div class="row" style="grid-template-columns: 1fr 2fr 1fr 1fr"><div>' + esc(r.run_type) + '</div><div style="font-weight:600">' + esc(r.product_name) + '</div><div>' + esc(r.planned_qty_lb != null ? fmt(r.planned_qty_lb) + ' lb' : (r.planned_batches != null ? fmt(r.planned_batches) + ' batches' : '')) + '</div><div><span class="chip grey">' + esc(r.status) + '</span></div></div>').join('');
+    const near = '<div class="near-body"><div class="near-head"><div class="near-title">Production</div><div class="near-meta">Today · ' + longToday() + '</div></div>'
+      + '<div class="cols" style="' + cols + '"><div>Date</div><div>Made</div><div>Lot</div><div>Amount</div><div>By</div></div>'
+      + '<div class="rows">' + (rows || '<div class="row muted" style="grid-template-columns:1fr">No makes recorded in the last 7 days</div>') + '</div>'
+      + '<div class="foot">' + (runs == null ? 'Planned runs couldn’t load' : runs.length ? 'Planned runs today' : 'Planner: no runs scheduled for today (GET /production/runs)') + '</div>'
+      + (runRows ? '<div class="rows">' + runRows + '</div>' : '') + '</div>';
+    return { far, near, nearScale: 0.5 };
+  }
+
+  function packingArea() {
+    if (failed(data.tx)) return { far: '<div class="far-body"><div class="kicker">Packing</div>' + errLine(data.tx) + '</div>', near: '' };
+    const packs = txOf('pack');
+    const today = packs.filter((t) => t.business_date === TODAY);
+    const cases = (list) => list.reduce((s, t) => s + num(outLine(t).unit_count), 0);
+    const last = packs[0];
+    const far = '<div class="far-body"><div class="kicker">Packing</div><div class="big">' + today.length + ' pack' + (today.length === 1 ? '' : 's') + '</div>'
+      + '<div class="sub">' + (today.length ? 'today · ' + fmt(cases(today)) + ' cases packed' : 'today' + (last ? ' · last pack ' + short(last.business_date) : ' · none in 7 days')) + '</div>'
+      + '<div class="signal muted"><span class="dot grey"></span>' + fmt(cases(packs)) + ' cases packed in the last 7 days</div></div>';
+    const cols = 'grid-template-columns: 0.7fr 2fr 1.6fr 0.7fr 1fr';
+    const rows = packs.slice(0, 6).map((t) => { const o = outLine(t), i = inLine(t); return '<button class="row" style="' + cols + '" data-lot="' + esc(o.lot_code) + '" data-pid="' + esc(o.product_id) + '" data-pname="' + esc(o.product_name) + '"><div>' + short(t.business_date) + '</div><div style="font-weight:600">' + esc(o.product_name) + '</div><div>' + esc(i.product_name || 'direct') + '</div><div>' + fmt(o.unit_count) + '</div><div class="muted">' + esc(t.operator_id || '') + '</div></button>'; }).join('');
+    const near = '<div class="near-body"><div class="near-head"><div class="near-title">Packing</div><div class="near-meta">Last 7 days</div></div>'
+      + '<div class="cols" style="' + cols + '"><div>Date</div><div>Finished SKU</div><div>From bulk</div><div>Cases</div><div>By</div></div>'
+      + '<div class="rows">' + (rows || '<div class="row muted" style="grid-template-columns:1fr">No packs recorded in the last 7 days</div>') + '</div>'
+      + '<div class="foot">Planned packing ' + nc('Packing plan has no read endpoint the dashboard key can use') + '</div></div>';
+    return { far, near, nearScale: 0.5 };
+  }
+
+  function receivingArea() {
+    const d = data.er;
+    if (failed(d)) return { far: '<div class="far-body"><div class="kicker">Receiving</div>' + errLine(d) + '</div>', near: '' };
+    const list = d.expected_receipts.slice().sort((a, b) => (b.is_overdue - a.is_overdue) || String(a.expected_date || '9').localeCompare(String(b.expected_date || '9')));
+    const signal = d.overdue_count ? '<div class="signal t-red"><span class="dot red"></span>' + d.overdue_count + ' overdue</div>' : '<div class="signal t-green"><span class="dot green"></span>None overdue</div>';
+    const far = '<div class="far-body"><div class="kicker">Receiving</div><div class="big">' + d.open_count + ' open</div><div class="sub">expected receipts</div>' + signal + '</div>';
+    const cols = 'grid-template-columns: 1.6fr 1fr 1.1fr';
+    const rows = list.slice(0, 6).map((e) => {
+      const chip = e.is_overdue ? '<span class="chip red">' + e.days_overdue + ' day' + (e.days_overdue === 1 ? '' : 's') + ' late</span>'
+        : e.expected_date === TODAY ? '<span class="chip blue">Today</span>'
+          : e.expected_date ? '<span class="chip blue">' + short(e.expected_date) + '</span>' : '<span class="chip grey">No date</span>';
+      return '<button class="row" style="' + cols + '" data-er="' + esc(e.id) + '"><div style="font-weight:600">' + esc(e.product_name) + '</div><div>' + fmt(e.remaining) + ' lb</div><div>' + chip + '</div></button>';
+    }).join('');
+    const near = '<div class="near-body" style="padding:36px 40px"><div class="near-head"><div class="near-title">Expected receipts</div><div class="near-meta">' + d.open_count + ' open</div></div>'
+      + '<div class="rows">' + (rows || '<div class="row muted" style="grid-template-columns:1fr">No open expected receipts</div>') + '</div>'
+      + '<div class="foot">' + (list.length > 6 ? '+' + (list.length - 6) + ' more · ' : '') + 'remaining qty shown</div></div>';
+    return { far, near, nearScale: 0.5 };
+  }
+
+  const orderIndex = () => { const m = new Map(); if (!failed(data.orders)) for (const o of data.orders.orders) m.set(o.order_number, o); return m; };
+
+  function shippingArea() {
+    const sd = data.sales, c = data.counts;
+    if (failed(sd)) return { far: '<div class="far-body"><div class="kicker">Orders &amp; shipping</div>' + errLine(sd) + '</div>', near: '' };
+    const idx = orderIndex();
+    const short_ = failed(data.orders) ? [] : data.orders.orders.filter((o) => num(o.shortage_lb) > 0);
+    const signal = sd.overdue_count ? '<div class="signal t-red"><span class="dot red"></span>' + sd.overdue_count + ' overdue</div>'
+      : short_.length ? '<div class="signal t-amber"><span class="dot amber"></span>' + short_.length + ' short on stock</div>'
+        : '<div class="signal t-green"><span class="dot green"></span>Nothing overdue or short</div>';
+    const far = '<div class="far-body"><div class="kicker">Orders &amp; shipping</div><div class="big">' + sd.due_this_week_count + ' orders</div><div class="sub">due this week' + (!failed(c) ? ' · ' + c.open + ' open' : '') + '</div>' + signal + '</div>';
+    const list = [...(sd.overdue_orders || []).map((o) => Object.assign({ overdue: true }, o)), ...(sd.due_this_week || [])];
+    const cols = 'grid-template-columns: 1.5fr 1.4fr 0.7fr 1.2fr';
+    const rows = list.slice(0, 6).map((o) => {
+      const full = idx.get(o.order_number) || {};
+      const chip = o.overdue ? '<span class="chip red">Overdue</span>'
+        : num(full.shortage_lb) > 0 ? '<span class="chip amber">Short ' + fmt(full.shortage_lb) + ' lb</span>'
+          : full.inventory_ready ? '<span class="chip green">Stock ready</span>' : '<span class="chip grey">' + fmt(o.remaining_lb) + ' lb left</span>';
+      return '<button class="row" style="' + cols + '" data-order="' + esc(full.order_id || o.order_number) + '"><div class="mono" style="font-size:16px">' + esc(o.order_number) + '</div><div style="font-weight:600">' + esc(o.customer) + '</div><div>' + short(o.requested_ship_date) + '</div><div>' + chip + '</div></button>';
+    }).join('');
+    const near = '<div class="near-body"><div class="near-head"><div class="near-title">Orders due</div><div class="near-meta">Overdue + this week</div></div>'
+      + '<div class="rows">' + (rows || '<div class="row muted" style="grid-template-columns:1fr">Nothing due this week</div>') + '</div>'
+      + '<div class="foot">' + (list.length > 6 ? '+' + (list.length - 6) + ' more · ' : '') + 'shipped only with a recorded BOL</div></div>';
+    return { far, near, nearScale: 0.5 };
+  }
+
+  function weekAdjusts() { return postedTx().filter((t) => t.type === 'adjust'); }
+
+  function qualityArea() {
+    const ex = data.exceptions;
+    const exConnected = !failed(ex);
+    const ekLots = products.filter((p) => isEK(p.name));
+    const ekLb = ekLots.reduce((s, p) => s + p.qty, 0);
+    const ekLotCount = ekLots.reduce((s, p) => s + p.lots.length, 0);
+    const big = weekAdjusts().filter((t) => (t.lines || []).some((l) => Math.abs(num(l.quantity_lb)) >= 500));
+    const far = '<div class="far-body"><div class="kicker">Quality &amp; traceability</div>'
+      + (exConnected ? '<div class="big sm">' + ex.count + ' open</div><div class="sub">exceptions</div>'
+        : '<div class="big sm" style="color:#A9B0BC">— holds</div><div class="sub">' + nc('GET /exceptions needs a signed-in actor key; the dashboard key gets 403') + ' exceptions &amp; holds</div>')
+      + '<div class="signal muted"><span class="dot grey"></span>' + ekLotCount + ' extra-kosher lot' + (ekLotCount === 1 ? '' : 's') + ' on hand</div></div>';
+    const near = '<div class="near-body" style="gap:18px"><div class="near-title">Quality &amp; traceability</div><div class="boxes">'
+      + (exConnected ? '<div class="box"><div class="lbl">Open exceptions</div><div class="val">' + ex.count + '</div></div>'
+        : '<div class="box nc-block"><div class="lbl">Exceptions &amp; holds</div><div class="val">' + nc('GET /exceptions is actor-only (403 for the dashboard key)') + '</div></div>')
+      + '<div class="box"><div class="lbl">Extra-kosher on hand</div><div class="val">' + ekLotCount + ' lots · ' + fmt(ekLb) + ' lb</div></div>'
+      + '<div class="box"><div class="lbl">Large corrections (≥ 500 lb)</div><div class="val">' + big.length + ' in the last 7 days</div></div>'
+      + '<a class="box" href="' + esc(dashUrl('traceability.html')) + '" target="_blank" rel="noopener" draggable="false"><div class="lbl">Trace a lot</div><div class="val">Open traceability ↗</div></a>'
+      + '</div><div class="foot">Mock recall schedule ' + nc('No endpoint for mock recalls') + '</div></div>';
+    return { far, near, nearScale: 0.5 };
+  }
+
+  function reportsArea() {
+    const adj = weekAdjusts();
+    const far = '<div class="far-body"><div class="kicker">Reports</div><div class="big sm">' + (failed(data.tx) ? '—' : adj.length) + ' corrections</div><div class="sub">adjust entries, last 7 days</div></div>';
+    const link = (label, meta, url) => '<a class="row" href="' + esc(url) + '" target="_blank" rel="noopener" draggable="false" style="display:flex;justify-content:space-between;color:inherit;text-decoration:none"><div style="font-weight:600">' + label + ' ↗</div><div class="muted">' + meta + '</div></a>';
+    const near = '<div class="near-body" style="gap:18px"><div class="near-title">Reports</div><div class="rows">'
+      + link('Shift summary', 'who recorded what, by day', dashUrl('shift-summary.html'))
+      + link('Entry history', 'every transaction by day', dashUrl('history.html'))
+      + link('Orders board', 'open, ready, overdue', dashUrl('index.html', { section: 'orders' }))
+      + link('Traceability', 'forward and back', dashUrl('traceability.html'))
+      + '<div class="row" style="display:flex;justify-content:space-between"><div style="font-weight:600">Owner weekly view</div><div>' + nc('No endpoint for the owner weekly view') + '</div></div>'
+      + '</div></div>';
+    return { far, near, nearScale: 0.5 };
+  }
+
+  function alerts() {
+    const out = [];
+    if (!failed(data.sales) && data.sales.overdue_count) out.push(['red', data.sales.overdue_count + ' order' + (data.sales.overdue_count > 1 ? 's' : '') + ' overdue']);
+    if (!failed(data.er) && data.er.overdue_count) out.push(['red', data.er.overdue_count + ' expected receipt' + (data.er.overdue_count > 1 ? 's' : '') + ' overdue']);
+    if (!failed(data.orders)) { const n = data.orders.orders.filter((o) => num(o.shortage_lb) > 0).length; if (n) out.push(['amber', n + ' open order' + (n > 1 ? 's' : '') + ' short on stock']); }
+    for (const s of [data.supIng, data.supPkg]) if (!failed(s)) for (const it of s.items.filter((i) => i.is_low)) out.push(['red', it.name + ' below reorder']);
+    return out;
+  }
+
+  function catSummary(t) {
+    const list = ofType(t);
+    const qty = list.reduce((s, p) => s + p.qty, 0);
+    if (t === 'finished') return { big: fmt(list.reduce((s, p) => s + p.units, 0)) + ' cs', meta: list.length + ' SKUs · ' + fmt(qty) + ' lb' };
+    if (t === 'packaging') return { big: list.length + ' items', meta: list.length + ' items in stock' };
+    if (t === 'ingredient') return { big: list.length + ' items', meta: list.length + ' items · ' + fmt(qty) + ' lb' };
+    return { big: fmt(qty) + ' lb', meta: list.length + ' products · ' + fmt(qty) + ' lb' };
+  }
+
+  function inventoryFar() {
+    if (failed(data.inv)) return '<div class="far-body"><div class="kicker">Inventory</div>' + errLine(data.inv) + '</div>';
+    const cell = (t) => '<div><div style="font-size:22px" class="muted">' + TILES[t].name + '</div><div style="font-size:44px;font-weight:600;letter-spacing:-0.02em">' + catSummary(t).big + '</div></div>';
+    const al = alerts();
+    const sig = al.length ? al.slice(0, 3).map(([c, m]) => '<div class="signal t-' + c + '"><span class="dot ' + c + '"></span>' + esc(m) + '</div>').join('')
+      : '<div class="signal t-green"><span class="dot green"></span>No overdue, short or low-stock alerts</div>';
+    return '<div class="far-body" style="padding:36px 40px;gap:14px"><div class="near-head"><div class="kicker" style="font-size:24px">Inventory</div><div style="font-size:22px" class="muted">updated ' + data.loadedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + '</div></div>'
+      + '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 28px;margin-top:6px">' + cell('ingredient') + cell('batch') + cell('packaging') + cell('finished') + '</div>'
+      + '<div class="signals">' + sig + '</div></div>';
+  }
+
+  // ---------- product grid layout ----------
+  function gridLayout(n) {
+    const W = GRID.w - GRID.left - GRID.right, H = GRID.h - GRID.top - GRID.bottom, g = GRID.gap, ar = CARD.w / CARD.h;
+    let best = { cw: 0 };
+    for (let c = 1; c <= Math.max(1, n); c++) {
+      const r = Math.ceil(n / c);
+      let cw = (W - (c - 1) * g) / c, ch = cw / ar;
+      if (r * ch + (r - 1) * g > H) { ch = (H - (r - 1) * g) / r; cw = ch * ar; }
+      if (cw > best.cw) best = { cols: c, rows: r, cw, ch };
+    }
+    return best;
+  }
+
+  function tileHTML(t) {
+    const tile = TILES[t], list = ofType(t), sum = catSummary(t);
+    const top = list.slice(0, t === 'batch' ? 5 : 5);
+    const max = top.length ? top[0].qty : 1;
+    const rows = top.map((p) => t === 'batch'
+      ? '<div class="bar-row"><span>' + esc(p.name.replace(/^Batch\s+/i, '')) + '</span><span class="bar"><span style="width:' + Math.max(2, Math.round(p.qty / max * 100)) + '%"></span></span><span class="mono" style="text-align:right">' + qtyText(p) + '</span></div>'
+      : '<div><span>' + esc(p.name) + '</span><span class="mono">' + qtyText(p) + '</span></div>').join('');
+    const zeroNote = t === 'packaging' && !failed(data.supPkg) ? ' · ' + (data.supPkg.count - list.length) + ' at zero' : t === 'ingredient' && !failed(data.supIng) ? ' · ' + (data.supIng.count - list.length) + ' at zero' : '';
+    const t1 = '<div class="layer fill tile-body t1"><div class="tile-head"><div class="tile-title">' + tile.name + '</div><div class="tile-meta">' + esc(sum.meta) + '</div></div>'
+      + '<div class="tile-list">' + (rows || '<div class="muted">Nothing on hand</div>') + '</div>'
+      + '<div class="tile-more">' + (list.length > top.length ? '+' + (list.length - top.length) + ' more' : '') + esc(zeroNote) + '</div></div>';
+    const L = gridLayout(list.length);
+    const cards = list.map((p, i) => {
+      const c = i % L.cols, r = Math.floor(i / L.cols);
+      const x = GRID.left + c * (L.cw + GRID.gap), y = GRID.top + r * (L.ch + GRID.gap);
+      p.design = { x, y, w: L.cw, h: L.ch };
+      return '<div class="node pcard' + (isEK(p.name) ? ' warn' : '') + '" data-node="p' + p.id + '" style="--k:' + L.cw / CARD.w + ';left:' + x + 'px;top:' + y + 'px;width:' + L.cw + 'px;height:' + L.ch + 'px">'
+        + '<div class="layer far" style="width:' + CARD.w + 'px;height:' + CARD.h + 'px;transform:scale(' + L.cw / CARD.w + ')">' + productCardHTML(p) + '</div>'
+        + '<div class="layer near ws-slot" style="width:' + WS.w + 'px;height:' + WS.h + 'px;transform:scale(' + L.cw / WS.w + ')"></div>'
+        + '<button class="hit" data-fly="p' + p.id + '" aria-label="Zoom into ' + esc(p.name) + '"></button></div>';
+    }).join('');
+    const t2 = '<div class="layer t2" style="width:' + GRID.w + 'px;height:' + GRID.h + 'px;transform:scale(' + GRID.k + ')">'
+      + '<div class="grid-head"><div class="t">' + tile.name + '</div><div class="m">' + esc(sum.meta) + ' on hand</div></div>' + cards + '</div>';
+    return '<div class="node tile' + (tile.accent ? ' accent' : '') + '" data-node="t-' + t + '" style="left:' + tile.dx + 'px;top:' + tile.dy + 'px;width:' + TILE_W + 'px;height:' + TILE_H + 'px">'
+      + t1 + t2 + '<button class="hit" data-fly="t-' + t + '" aria-label="Zoom into ' + tile.name + '"></button></div>';
+  }
+
+  function productCardHTML(p) {
+    const lots = p.lots.length;
+    const foot = isEK(p.name) ? '<div class="pc-foot t-amber">Extra-kosher (SS)</div>' : '<div class="pc-foot">' + esc(p.sku ? 'SKU ' + p.sku : '') + '</div>';
+    return '<div class="pc-body"><div class="pc-name">' + esc(p.name) + '</div><div class="pc-qty">' + qtyText(p) + '</div><div class="pc-meta">' + lots + ' lot' + (lots === 1 ? '' : 's') + (p.type === 'finished' ? ' · ' + fmt(p.qty) + ' lb' : '') + '</div>' + foot + '</div>';
+  }
+
+  function inventoryNear() {
+    const al = alerts();
+    const reds = al.filter((a) => a[0] === 'red').length, ambers = al.length - reds;
+    return '<div class="layer fill near-inv" style="padding:0">'
+      + '<div style="position:absolute;left:24px;top:22px;right:24px;display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:baseline;gap:10px"><div style="font-size:20px;font-weight:600">Inventory</div><div style="font-size:11px" class="muted">4 categories · ' + al.length + ' alert' + (al.length === 1 ? '' : 's') + '</div></div>'
+      + '<div style="display:flex;gap:6px;font-size:10px">' + (ambers ? '<span class="chip amber" style="font-size:10px;padding:3px 8px">' + ambers + ' warning' + (ambers > 1 ? 's' : '') + '</span>' : '') + (reds ? '<span class="chip red" style="font-size:10px;padding:3px 8px">' + reds + ' urgent</span>' : '') + '</div></div>'
+      + Object.keys(TILES).map(tileHTML).join('') + '</div>';
+  }
+
+  // ---------- build world ----------
+  function buildWorld() {
+    const svg = '<svg class="flow" width="2600" height="1600" viewBox="0 0 2600 1600" aria-hidden="true"><defs><marker id="faArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#8C95A4"></path></marker></defs>'
+      + '<g fill="none" stroke="#8C95A4" stroke-width="2.5" stroke-linecap="round">'
+      + ['M640 830 C 770 830, 770 742, 896 742', 'M1108 560 C 1108 505, 860 520, 860 464', 'M1080 290 C 1330 290, 1450 380, 1450 556', 'M1620 560 C 1620 505, 1720 515, 1720 464', 'M1880 460 C 1880 760, 1830 960, 1704 960', 'M1700 1040 C 1830 1040, 1840 900, 1956 900'].map((d) => '<path d="' + d + '" marker-end="url(#faArrow)"></path>').join('')
+      + '</g><g fill="none" stroke="#A9B0BC" stroke-width="2" stroke-dasharray="6 8"><path d="M800 1200 C 800 1150, 1000 1150, 1000 1100"></path><path d="M1800 1200 C 1800 1150, 1600 1150, 1600 1100"></path></g>'
+      + '<g id="flowtext" font-family="Instrument Sans, sans-serif" font-size="22" fill="#4A5160"><text x="700" y="800">receive</text><text x="905" y="520">to bake</text><text x="1270" y="320">bulk</text><text x="1660" y="520">to pack</text><text x="1895" y="740">cases</text><text x="1770" y="1090">to ship</text><text x="820" y="1160" fill="#626A78">trace</text><text x="1700" y="1160" fill="#626A78">reports</text></g></svg>';
+    const builders = { production: productionArea, packing: packingArea, receiving: receivingArea, shipping: shippingArea, quality: qualityArea, reports: reportsArea };
+    let html = '<div class="dots" id="dots"></div>' + svg;
+    for (const [id, a] of Object.entries(AREAS)) {
+      let far, near;
+      if (id === 'inventory') { far = '<div class="layer fill far">' + inventoryFar() + '</div>'; near = inventoryNear().replace('class="layer fill near-inv"', 'class="layer fill near"'); }
+      else {
+        const b = builders[id]();
+        far = '<div class="layer fill far">' + b.far + '</div>';
+        near = '<div class="layer near" style="width:' + a.w * 2 + 'px;height:' + a.h * 2 + 'px;transform:scale(0.5)">' + b.near + '</div>';
+      }
+      html += '<div class="node area' + (a.hub ? ' hub' : '') + '" data-node="' + id + '" style="left:' + a.x + 'px;top:' + a.y + 'px;width:' + a.w + 'px;height:' + a.h + 'px">' + far + near
+        + '<button class="hit" data-fly="' + id + '" aria-label="Zoom into ' + esc(a.name) + '"></button></div>';
+    }
+    world.innerHTML = html;
+
+    nodes.clear();
+    for (const [id, a] of Object.entries(AREAS)) nodes.set(id, { id, kind: 'area', name: a.name, rect: a, parent: null });
+    const inv = AREAS.inventory;
+    for (const [t, tile] of Object.entries(TILES)) {
+      const r = { x: inv.x + tile.dx, y: inv.y + tile.dy, w: TILE_W, h: TILE_H };
+      nodes.set('t-' + t, { id: 't-' + t, kind: 'tile', name: tile.name, rect: r, parent: 'inventory', type: t });
+      for (const p of ofType(t)) {
+        const d = p.design;
+        nodes.set('p' + p.id, { id: 'p' + p.id, kind: 'product', name: p.name, product: p, parent: 't-' + t, rect: { x: r.x + d.x * GRID.k, y: r.y + d.y * GRID.k, w: d.w * GRID.k, h: d.h * GRID.k } });
+      }
+    }
+    for (const n of nodes.values()) {
+      n.el = world.querySelector('[data-node="' + n.id + '"]');
+      n.hit = n.el && n.el.querySelector(':scope > .hit');
+    }
+    buildMinimap();
+  }
+
+  // ---------- camera ----------
+  // Fit a rect into the viewport, keeping clear of the floating bar at the bottom and,
+  // while it is open, the record panel on the right.
+  const BOTTOM_CHROME = 72;
+  function fit(r, pad) {
+    const v = vpSize();
+    const side = selection && v.w > 900 ? 460 : 0;
+    const w = v.w - side, h = v.h - BOTTOM_CHROME;
+    const s = Math.min(w / r.w, h / r.h) * (pad || 0.92);
+    return { cx: r.x + r.w / 2 + side / 2 / s, cy: r.y + r.h / 2 + BOTTOM_CHROME / 2 / s, s };
+  }
+  function limits() {
+    let smallest = Infinity;
+    for (const n of nodes.values()) if (n.kind === 'product') smallest = Math.min(smallest, n.rect.w);
+    const deep = Number.isFinite(smallest) ? fit({ x: 0, y: 0, w: smallest, h: smallest * CARD.h / CARD.w }, 1).s * 1.6 : 12;
+    return { min: fit(BOX, 0.95).s * 0.6, max: Math.max(12, deep) };
+  }
+  function setCam(next, animate) {
+    const L = limits();
+    cam = { cx: next.cx, cy: next.cy, s: Math.max(L.min, Math.min(L.max, next.s)) };
+    world.classList.toggle('flying', !!animate);
+    const v = vpSize();
+    world.style.transform = 'translate(' + v.w / 2 + 'px,' + v.h / 2 + 'px) scale(' + cam.s + ') translate(' + -cam.cx + 'px,' + -cam.cy + 'px)';
+    scheduleUpdate();
+  }
+  function flyTo(id) {
+    const n = nodes.get(id);
+    if (!n) return;
+    setCam(fit(n.rect, n.kind === 'product' ? 0.86 : 0.92), true);
+  }
+  const goHome = () => { closeInspector(); setCam(fit(BOX, 0.95), true); };
+
+  let raf = 0;
+  function scheduleUpdate() { if (!raf) raf = requestAnimationFrame(() => { raf = 0; update(); }); }
+
+  const inside = (r, x, y) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
+  const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+
+  function update() {
+    const v = vpSize();
+    const frac = (r) => Math.max(r.w * cam.s / v.w, r.h * cam.s / v.h);
+    const open = new Set();
+    for (const n of nodes.values()) {
+      if (n.kind === 'area') { if (frac(n.rect) >= OPEN_AT.area) open.add(n.id); }
+    }
+    // Deeper levels open only where the camera is: tiles that are on screen, and the one
+    // product card under the viewport centre (each open product loads its own data).
+    const view = { x: cam.cx - v.w / 2 / cam.s, y: cam.cy - v.h / 2 / cam.s, w: v.w / cam.s, h: v.h / cam.s };
+    for (const n of nodes.values()) if (n.kind === 'tile' && open.has(n.parent) && overlaps(n.rect, view) && frac(n.rect) >= OPEN_AT.tile) open.add(n.id);
+    for (const n of nodes.values()) if (n.kind === 'product' && open.has(n.parent) && inside(n.rect, cam.cx, cam.cy) && frac(n.rect) >= OPEN_AT.product) open.add(n.id);
+    for (const n of nodes.values()) {
+      if (!n.el) continue;
+      const isOpen = open.has(n.id);
+      if (n.el.classList.contains('open') !== isOpen) n.el.classList.toggle('open', isOpen);
+      const parentOpen = !n.parent || open.has(n.parent);
+      if (n.hit) {
+        const active = parentOpen && !isOpen;
+        n.hit.classList.toggle('active', active);
+        n.hit.tabIndex = active ? 0 : -1;
+      }
+      if (n.kind === 'product' && isOpen && !n.loaded) { n.loaded = true; buildWorkingScreen(n); }
+    }
+    // tiles: swap list (t1) for product grid (t2)
+    for (const n of nodes.values()) if (n.kind === 'tile' && n.el) {
+      const o = open.has(n.id);
+      n.el.querySelector('.t1').style.opacity = o ? 0 : 1;
+      const t2 = n.el.querySelector('.t2');
+      t2.style.opacity = o ? 1 : 0;
+      t2.style.pointerEvents = o ? 'auto' : 'none';
+    }
+    const anyArea = [...open].some((id) => nodes.get(id).kind === 'area');
+    const anyTile = [...open].some((id) => nodes.get(id).kind === 'tile');
+    $('#dots').style.opacity = anyTile ? 0 : 1;
+    $('#flowtext').style.opacity = anyArea ? 0 : 1;
+
+    focus = { area: null, tile: null, product: null };
+    for (const n of nodes.values()) {
+      if (!open.has(n.id) || !inside(n.rect, cam.cx, cam.cy)) continue;
+      focus[n.kind] = n.id;
+    }
+    renderChrome();
+  }
+
+  // ---------- chrome: crumbs, level, minimap, assistant ----------
+  function crumbs() {
+    const list = [{ label: 'Entire factory', go: goHome }];
+    for (const k of ['area', 'tile', 'product']) if (focus[k]) { const id = focus[k]; list.push({ label: nodes.get(id).name, go: () => { closeInspector(); flyTo(id); } }); }
+    if (selection) list.push({ label: selection.label, go: () => {} });
+    return list;
+  }
+
+  function renderChrome() {
+    const nav = $('#crumbs');
+    nav.innerHTML = '';
+    crumbs().forEach((c, i, arr) => {
+      if (i) { const s = document.createElement('span'); s.className = 'sep'; s.textContent = '/'; s.setAttribute('aria-hidden', 'true'); nav.appendChild(s); }
+      const b = document.createElement('button');
+      b.type = 'button'; b.textContent = c.label; b.title = c.label;
+      if (i === arr.length - 1) { b.className = 'last'; b.setAttribute('aria-current', 'location'); }
+      b.onclick = c.go;
+      nav.appendChild(b);
+    });
+    const depth = focus.product ? 3 : focus.tile ? 2 : focus.area ? 1 : 0;
+    const names = ['Entire factory', 'Area', 'Category', 'Working screen'];
+    $('#level').innerHTML = '<b>' + names[depth] + '</b><span>' + Math.round(cam.s * 100) + '%</span>';
+    const ctx = selection ? selection.label : focus.product ? nodes.get(focus.product).name : focus.tile ? nodes.get(focus.tile).name : focus.area ? nodes.get(focus.area).name : 'the whole factory';
+    $('#ctx').textContent = ctx;
+    $('#ask').placeholder = 'Ask about ' + ctx + '…';
+    renderMinimap();
+  }
+
+  function buildMinimap() {
+    const k = 200 / BOX.w, mm = $('#mm');
+    mm.innerHTML = Object.entries(AREAS).map(([id, r]) => '<button type="button" data-mm="' + id + '" class="' + (r.hub ? 'hub' : '') + '" aria-label="Go to ' + esc(r.name) + '" style="left:' + (r.x - BOX.x) * k + 'px;top:' + (r.y - BOX.y) * k + 'px;width:' + r.w * k + 'px;height:' + r.h * k + 'px"></button>').join('') + '<div class="vr"></div>';
+    mm.querySelectorAll('[data-mm]').forEach((b) => { b.onclick = () => { closeInspector(); flyTo(b.dataset.mm); }; });
+    $('#mm-src').textContent = CFG.env === 'production' ? 'Live production data' : 'Live ' + CFG.env + ' data';
+  }
+  function renderMinimap() {
+    const k = 200 / BOX.w, v = vpSize();
+    const vw = v.w / cam.s, vh = v.h / cam.s;
+    const vr = $('#mm .vr');
+    if (!vr) return;
+    Object.assign(vr.style, { left: (cam.cx - vw / 2 - BOX.x) * k + 'px', top: (cam.cy - vh / 2 - BOX.y) * k + 'px', width: Math.max(4, vw * k) + 'px', height: Math.max(3, vh * k) + 'px' });
+    $('#mm').querySelectorAll('[data-mm]').forEach((b) => b.classList.toggle('focus', b.dataset.mm === focus.area));
+  }
+
+  // ---------- product working screen ----------
+  async function lotDetail(code, pid) {
+    const key = pid + '|' + code;
+    if (!lotCache.has(key)) lotCache.set(key, API.get('/dashboard/api/lot/' + encodeURIComponent(code), { product_id: pid }).catch((e) => { lotCache.delete(key); throw e; }));
+    return lotCache.get(key);
+  }
+  const firstDate = (d) => (d && d.timeline && d.timeline.length ? d.timeline.map((t) => t.date).sort()[0] : null);
+
+  function primaryTask(p) {
+    if (p.type === 'batch') return ['Pack from this', 'pack'];
+    if (p.type === 'finished') return ['Ship', 'ship'];
+    if (p.type === 'ingredient' || p.type === 'packaging') return ['Receive', 'receive'];
+    return ['Make', 'make'];
+  }
+
+  async function buildWorkingScreen(n) {
+    const p = n.product;
+    const slot = n.el.querySelector('.ws-slot');
+    const [label, act] = primaryTask(p);
+    const typeChip = { batch: 'Bulk · lb', finished: p.caseLb ? 'Finished · ' + fmt(p.caseLb) + ' lb case' : 'Finished', ingredient: 'Ingredient · ' + (p.unit || 'lb'), packaging: 'Packaging' }[p.type] || p.type;
+    slot.innerHTML = '<div class="ws"><div class="ws-head"><div style="display:flex;flex-direction:column;gap:6px;min-width:0"><div class="ws-crumb">Inventory · ' + esc(TILES[p.type] ? TILES[p.type].name : p.type) + '</div>'
+      + '<div class="ws-title"><h2>' + esc(p.name) + '</h2><span class="chip grey">' + esc(typeChip) + '</span>' + (isEK(p.name) ? '<span class="chip amber">Extra-kosher (SS)</span>' : '') + (p.sku ? '<span class="chip blue">SKU ' + esc(p.sku) + '</span>' : '') + '</div></div>'
+      + '<div class="ws-actions"><button class="fa-btn" data-trace="1">Trace</button><button class="fa-btn" data-task="adjust">Adjust</button><button class="fa-btn" data-task="adjust" title="No separate count page: opens Adjust, choose reason Physical count">Record count</button><button class="fa-btn fa-primary" data-task="' + act + '">' + label + '</button></div></div>'
+      + '<div class="kpis" data-kpis><div><div class="k">On hand</div><div class="v">' + qtyText(p) + '</div></div><div><div class="k">Lots</div><div class="v">' + p.lots.length + '</div></div><div><div class="k">Oldest lot</div><div class="v" data-k="oldest">…</div></div><div><div class="k">In · last 7 days</div><div class="v" data-k="in">…</div></div><div><div class="k">Out · last 7 days</div><div class="v" data-k="out">…</div></div></div>'
+      + '<div class="ws-main"><div class="ws-col"><div class="panel flush" style="flex:1"><div class="panel-head"><h3>Lots on hand</h3><div class="dim">Click a lot for its full record</div></div>'
+      + '<div class="lot-cols"><div>Lot</div><div>First entry</div><div>Source</div><div>On hand</div><div>Age</div></div><div class="lot-rows" data-lots><div class="loading" style="padding:14px 18px">Loading lots…</div></div></div>'
+      + '<div class="panel"><h3>Planned production</h3><div class="mini-rows" data-runs><div class="loading">Loading…</div></div></div></div>'
+      + '<div class="ws-col"><div class="panel"><h3>Where it comes from and goes · 30 days</h3><div data-flow class="loading">Loading…</div></div>'
+      + '<div class="panel" style="flex:1"><h3>Recent activity</h3><div class="activity" data-activity><span></span><span class="loading">Loading…</span><span></span></div></div></div></div></div>';
+    const ws = slot.firstChild;
+    ws.addEventListener('click', (e) => {
+      const t = e.target.closest('[data-task],[data-trace],[data-lot]');
+      if (!t) return;
+      if (t.dataset.task) openTab(taskUrl(t.dataset.task));
+      else if (t.dataset.trace) { const l = (n.lotsSorted || p.lots)[0]; if (l) openLot(l.code, p.id, p.name); }
+    });
+
+    const since30 = addDays(TODAY, -29), since7 = addDays(TODAY, -6);
+    const [lotsR, txR, runsR] = await Promise.allSettled([
+      API.get('/dashboard/api/product/' + p.id + '/lots'),
+      API.get('/transactions/history', { product_name: p.name, since: since30, limit: 500 }),
+      API.get('/production/runs', { product: p.id, from: TODAY })
+    ]);
+
+    // lots
+    const lotsEl = ws.querySelector('[data-lots]');
+    let lots = lotsR.status === 'fulfilled' ? lotsR.value.lots.map((l) => ({ code: l.lot_code, qty: num(l.on_hand_lbs), source: l.entry_source })) : p.lots.map((l) => ({ code: l.code, qty: l.qty }));
+    lots = lots.filter((l) => l.qty > 0);
+    // First-entry dates: take them from the 30-day history first, then look up at most 20
+    // older lots one by one (each lookup is a request against the API's small DB pool).
+    if (txR.status === 'fulfilled') {
+      const firstSeen = new Map();
+      for (const t of txR.value.transactions) {
+        if (t.status !== 'posted') continue;
+        for (const l of t.lines || []) {
+          if (l.product_id !== p.id || num(l.quantity_lb) <= 0) continue;
+          if (!firstSeen.has(l.lot_code) || t.business_date < firstSeen.get(l.lot_code)) firstSeen.set(l.lot_code, t.business_date);
+        }
+      }
+      for (const l of lots) if (firstSeen.has(l.code)) l.first = firstSeen.get(l.code);
+    }
+    const unknown = lots.filter((l) => !l.first);
+    const details = await Promise.allSettled(unknown.slice(0, 20).map((l) => lotDetail(l.code, p.id)));
+    details.forEach((d, i) => { if (d.status === 'fulfilled') { unknown[i].first = firstDate(d.value); unknown[i].source = unknown[i].source || d.value.entry_source; } });
+    const undated = unknown.length - 20;
+    lots.sort((a, b) => String(a.first || '9').localeCompare(String(b.first || '9')));
+    n.lotsSorted = lots;
+    const unitFmt = (lbs) => (p.type === 'finished' && p.caseLb ? fmt(lbs / p.caseLb) + ' cs' : p.unit && p.unit !== 'lb' ? fmt(lbs) + ' ' + (p.unit === 'unit' ? 'ea' : p.unit) : fmt(lbs) + ' lb');
+    lotsEl.innerHTML = lots.length ? lots.map((l) => {
+      const age = l.first ? daysBetween(l.first, TODAY) : null;
+      return '<button class="lot-row" data-lot="' + esc(l.code) + '" data-pid="' + p.id + '" data-pname="' + esc(p.name) + '"><span class="mono" style="font-size:13px">' + esc(l.code) + '</span><span>' + short(l.first) + '</span><span><span class="chip grey">' + esc(sourceLabel(l.source)) + '</span></span><span style="font-weight:600">' + unitFmt(l.qty) + '</span><span class="muted">' + (age == null ? '—' : age + ' day' + (age === 1 ? '' : 's')) + '</span></button>';
+    }).join('') + (undated > 0 ? '<div class="loading" style="padding:10px 18px">' + undated + ' older lots show no date (dates are looked up for at most 20 lots, to keep load on the API low)</div>' : '')
+      : '<div class="loading" style="padding:14px 18px">' + (lotsR.status === 'fulfilled' ? 'No lots on hand' : 'Couldn’t load lots') + '</div>';
+    const oldest = lots.find((l) => l.first);
+    ws.querySelector('[data-k="oldest"]').textContent = oldest ? daysBetween(oldest.first, TODAY) + ' days' + (undated > 0 ? '+' : '') : '—';
+    if (undated > 0) ws.querySelector('[data-k="oldest"]').title = 'At least this old: ' + undated + ' lots have no looked-up date';
+
+    // runs
+    const runsEl = ws.querySelector('[data-runs]');
+    if (runsR.status === 'fulfilled') {
+      const runs = runsR.value.runs;
+      runsEl.innerHTML = runs.length ? runs.slice(0, 4).map((r) => '<div><span>' + esc(r.run_type) + ' · ' + esc(r.status) + '</span><span class="muted">' + short(String(r.planned_date || '').slice(0, 10)) + '</span></div>').join('') : '<div class="muted">No planned runs from today on (GET /production/runs)</div>';
+    } else runsEl.innerHTML = '<div class="t-red">Couldn’t load planned runs</div>';
+
+    // transactions → in/out, flow, activity
+    const actEl = ws.querySelector('[data-activity]'), flowEl = ws.querySelector('[data-flow]');
+    if (txR.status !== 'fulfilled') {
+      actEl.innerHTML = '<span></span><span class="t-red">Couldn’t load activity</span><span></span>';
+      flowEl.innerHTML = '<span class="t-red">Couldn’t load</span>';
+      ws.querySelector('[data-k="in"]').textContent = ws.querySelector('[data-k="out"]').textContent = '—';
+      return;
+    }
+    const txs = txR.value.transactions.filter((t) => t.status === 'posted' && (t.lines || []).some((l) => l.product_id === p.id))
+      .sort((a, b) => (b.business_date + b.created_at).localeCompare(a.business_date + a.created_at));
+    const mine = (t) => t.lines.filter((l) => l.product_id === p.id);
+    const sumMine = (t) => mine(t).reduce((s, l) => s + num(l.quantity_lb), 0);
+    let qin = 0, qout = 0;
+    for (const t of txs) if (t.business_date >= since7) { const q = sumMine(t); if (q > 0) qin += q; else qout -= q; }
+    ws.querySelector('[data-k="in"]').textContent = unitFmt(qin);
+    ws.querySelector('[data-k="out"]').textContent = unitFmt(qout);
+
+    const sources = new Map(), uses = new Map();
+    for (const t of txs) {
+      const q = sumMine(t);
+      if (q > 0) sources.set(TX_LABEL[t.type] || t.type, (sources.get(TX_LABEL[t.type] || t.type) || 0) + 1);
+      if (q < 0) {
+        const outs = t.type === 'ship' ? [t.customer_name ? 'Shipped to ' + t.customer_name : 'Shipped'] : t.lines.filter((l) => l.product_id !== p.id && num(l.quantity_lb) > 0).map((l) => l.product_name);
+        if (!outs.length) outs.push(TX_LABEL[t.type] || t.type);
+        for (const o of outs) uses.set(o, (uses.get(o) || 0) + -q / outs.length);
+      }
+    }
+    const useList = [...uses.entries()].sort((a, b) => b[1] - a[1]);
+    flowEl.className = '';
+    flowEl.innerHTML = '<div class="flowline">' + ([...sources.keys()].map((s) => '<span class="pill">' + esc(s) + '</span>').join('') || '<span class="pill">no inflow</span>') + '<span style="color:#8C95A4">→</span><span class="pill me">' + esc(p.name) + '</span><span style="color:#8C95A4">→</span><span class="pill">' + useList.length + ' use' + (useList.length === 1 ? '' : 's') + '</span></div>'
+      + '<div style="display:flex;flex-direction:column;gap:6px;font-size:13px;margin-top:8px" class="muted">' + (useList.slice(0, 5).map(([name, q]) => '<div style="display:flex;justify-content:space-between;gap:10px"><span>' + esc(name) + '</span><span class="mono">' + unitFmt(q) + '</span></div>').join('') || '<div>Not used in the last 30 days</div>') + '</div>';
+
+    actEl.innerHTML = txs.slice(0, 9).map((t) => {
+      const q = sumMine(t), l = mine(t)[0] || {};
+      const color = q > 0 ? 'color:#1A6B43' : '';
+      return '<span class="dim">' + short(t.business_date) + '</span><span>' + esc(TX_LABEL[t.type] || t.type) + ' · ' + esc(l.lot_code || '') + (t.operator_id ? ' · ' + esc(t.operator_id) : '') + '</span><span class="mono" style="' + color + '">' + signed(p.type === 'finished' && p.caseLb ? q / p.caseLb : q) + '</span>';
+    }).join('') || '<span></span><span class="muted">No activity in the last 30 days</span><span></span>';
+  }
+
+  // ---------- inspector ----------
+  const ins = $('#inspector');
+  // Opening the panel slides the camera left by half the panel width so the focused card
+  // stays visible; closing slides it back.
+  const panelShift = () => (vpSize().w > 900 ? 230 / cam.s : 0);
+  function showInspector(html) {
+    ins.innerHTML = html;
+    if (!ins.classList.contains('show')) { ins.classList.add('show'); setCam({ cx: cam.cx + panelShift(), cy: cam.cy, s: cam.s }, true); }
+    ins.setAttribute('aria-hidden', 'false');
+  }
+  function closeInspector() {
+    if (!selection) return;
+    selection = null;
+    if (ins.classList.contains('show')) { ins.classList.remove('show'); setCam({ cx: cam.cx - panelShift(), cy: cam.cy, s: cam.s }, true); }
+    ins.setAttribute('aria-hidden', 'true');
+    renderChrome();
+  }
+  const insHead = (kicker, id, meta) => '<div class="ins-head"><div style="display:flex;flex-direction:column;gap:6px;min-width:0"><div class="k">' + esc(kicker) + '</div><div class="id">' + esc(id) + '</div><div class="m">' + meta + '</div></div><button class="xbtn" data-close aria-label="Close record">×</button></div>';
+  const stat3 = (cells) => '<div class="stat3">' + cells.map(([k, v]) => '<div><div class="k">' + esc(k) + '</div><div class="v">' + v + '</div></div>').join('') + '</div>';
+  const footBtns = (btns) => '<div class="ins-foot">' + btns.map(([label, url, primary]) => '<a class="fa-btn' + (primary ? ' fa-primary' : '') + '" href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(label) + '</a>').join('') + '</div>';
+  ins.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) closeInspector(); });
+
+  async function openLot(code, pid, pname) {
+    if (!code) return;
+    selection = { kind: 'lot', label: code, code, pid };
+    renderChrome();
+    showInspector(insHead('Lot record · ' + (pname || ''), code, 'Loading…') + '<div class="ins-body"><div class="loading">Loading lot record…</div></div>');
+    const p = products.find((x) => String(x.id) === String(pid));
+    const traceType = p && (p.type === 'ingredient' || p.type === 'packaging') ? 'ingredient' : 'batch';
+    const [dR, tR] = await Promise.allSettled([lotDetail(code, pid), API.get('/trace/' + traceType + '/' + encodeURIComponent(code), { product_id: pid })]);
+    if (!selection || selection.code !== code) return;
+    if (dR.status !== 'fulfilled') { showInspector(insHead('Lot record', code, '') + '<div class="ins-body"><div class="t-red">Couldn’t load this lot (' + esc(dR.reason && dR.reason.message) + ')</div></div>'); return; }
+    const d = dR.value, tr = tR.status === 'fulfilled' ? tR.value : null;
+    const tl = (d.timeline || []).slice().sort((a, b) => (a.created_at || a.date).localeCompare(b.created_at || b.date));
+    const tin = tl.filter((t) => num(t.quantity_lb) > 0).reduce((s, t) => s + num(t.quantity_lb), 0);
+    const tout = tl.filter((t) => num(t.quantity_lb) < 0).reduce((s, t) => s - num(t.quantity_lb), 0);
+    const first = tl[0];
+    const meta = (first ? 'First entry ' + short(first.date) + ' · ' : '') + esc(sourceLabel(d.entry_source)) + (tr && tr.kosher_label ? ' · ' + esc(tr.kosher_label) + ' kosher' : '');
+    const cs = d.case_size_lb ? ' <span class="dim" style="font-size:12px">(' + fmt(num(d.on_hand_lbs) / d.case_size_lb) + ' cs)</span>' : '';
+    let back = '', fwd = '';
+    if (tr) {
+      const ing = tr.ingredients || [];
+      back = ing.length ? '<div class="trace">' + ing.map((i) => '<span>' + esc(i.ingredient_name || i.product_name) + '</span><span class="mono muted">' + esc(i.lot_code || '') + '</span><span class="mono">' + fmt(i.quantity_lb) + ' lb</span>').join('') + '</div>'
+        : '<div class="muted" style="font-size:13px">' + (tr.supplier_lot_code ? 'Supplier lot ' + esc(tr.supplier_lot_code) + (tr.supplier ? ' · ' + esc(tr.supplier) : '') : 'No ingredient lots recorded for this lot.') + '</div>';
+      const seen = new Set(), items = [];
+      const push = (name, ref, q) => { const k = name + '|' + ref + '|' + q; if (seen.has(k)) return; seen.add(k); items.push([name, ref, q]); };
+      for (const b of tr.downstream_batches || []) push(b.batch_product, b.batch_lot_code, b.quantity_consumed);
+      for (const b of tr.used_in_batches || []) push(b.batch_product || b.product_name, b.batch_lot_code || b.lot_code, b.quantity_consumed || b.quantity_lb);
+      for (const s of [...(tr.customer_shipments || []), ...(tr.direct_shipments || [])]) push('Shipped · ' + (s.customer_name || s.customer || ''), s.order_reference || s.order_number || '', s.quantity_lb || s.total_lb);
+      fwd = items.length ? '<div class="trace">' + items.map(([a, b, q]) => '<span>' + esc(a) + '</span><span class="mono muted">' + esc(b || '') + '</span><span class="mono">' + fmt(q) + ' lb</span>').join('') + '</div>' : '<div class="muted" style="font-size:13px">Not used yet.</div>';
+    } else {
+      back = fwd = '<div class="t-red" style="font-size:13px">Trace couldn’t load</div>';
+    }
+    const txl = tl.map((t) => '<div><span>' + short(t.date) + ' · ' + esc(TX_LABEL[t.type] || t.type) + (t.customer_name ? ' · ' + esc(t.customer_name) : '') + (t.adjust_reason ? ' · ' + esc(t.adjust_reason) : '') + '</span><span class="mono">' + signed(t.quantity_lb) + ' lb</span></div>').join('');
+    const adjNote = tl.some((t) => t.type === 'adjust') ? '<div class="warnbox">This lot has adjust entries. Check the reasons below before relying on the on-hand figure.</div>' : '';
+    showInspector(insHead('Lot record · ' + (d.product_name || pname || ''), code, meta)
+      + '<div class="ins-body">' + stat3([['In', fmt(tin) + ' lb'], ['Out', fmt(tout) + ' lb'], ['On hand', fmt(d.on_hand_lbs) + ' lb' + cs]]) + adjNote
+      + '<div class="sect"><h4>Trace back · what went into it</h4>' + back + '</div>'
+      + '<div class="sect"><h4>Trace forward · where it went</h4>' + fwd + '</div>'
+      + '<div class="sect"><h4>Transactions</h4><div class="txlist">' + (txl || '<div class="muted">None</div>') + '</div></div></div>'
+      + footBtns([['Full trace ↗', dashUrl('traceability.html', { v: 4, lot: code, direction: 'forward', product_id: pid })], ['Adjust ↗', taskUrl('adjust')], ['Record count ↗', taskUrl('adjust'), true]]));
+  }
+
+  async function openOrder(id) {
+    selection = { kind: 'order', label: String(id), orderId: id };
+    renderChrome();
+    showInspector(insHead('Sales order', String(id), 'Loading…') + '<div class="ins-body"><div class="loading">Loading order…</div></div>');
+    let o;
+    try { o = await API.get('/sales/orders/' + encodeURIComponent(id)); } catch (e) {
+      showInspector(insHead('Sales order', String(id), '') + '<div class="ins-body"><div class="t-red">Couldn’t load (' + esc(e.message) + ')</div></div>'); return;
+    }
+    if (!selection || selection.orderId !== id) return;
+    selection.label = o.order_number; selection.orderId = o.order_id;
+    renderChrome();
+    const reasons = (o.health && o.health.reasons) || [];
+    const lines = (o.lines || []).map((l) => '<span>' + esc(l.product) + '</span><span class="mono muted">' + esc(l.unit_count != null ? fmt(l.unit_count) + ' ' + (l.unit || '') : '') + '</span><span class="mono">' + fmt(l.remaining_lb) + ' lb left</span>').join('');
+    const ships = (o.shipments || []).map((s) => '<div><span>' + short(String(s.date || s.ship_date || s.business_date || '').slice(0, 10)) + ' · ' + esc(s.bol_reference || s.bol || 'shipment') + '</span><span class="mono">' + fmt(s.total_lb || s.quantity_lb || 0) + ' lb</span></div>').join('');
+    showInspector(insHead('Sales order · ' + o.customer, o.order_number, 'Ship by ' + short(o.requested_ship_date) + ' · ' + esc(o.status) + (o.customer_po ? ' · PO ' + esc(o.customer_po) : ''))
+      + '<div class="ins-body">' + stat3([['Ordered', fmt(o.ordered_lb) + ' lb'], ['Shipped', fmt(o.shipped_effective_lb) + ' lb'], ['Remaining', fmt(o.remaining_effective_lb) + ' lb']])
+      + (reasons.length ? '<div class="warnbox">' + reasons.map(esc).join('<br>') + '</div>' : '')
+      + (num(o.shortage_lb) > 0 ? '<div class="warnbox">Short ' + fmt(o.shortage_lb) + ' lb of stock.</div>' : '')
+      + '<div class="sect"><h4>Lines</h4><div class="trace">' + (lines || '<span class="muted">No lines</span>') + '</div></div>'
+      + '<div class="sect"><h4>Shipments</h4><div class="txlist">' + (ships || '<div class="muted">None yet</div>') + '</div></div></div>'
+      + footBtns([['Open orders board ↗', dashUrl('index.html', { section: 'orders' })], ['Ship this order ↗', dashUrl('entry.html', { action: 'ship', order: o.order_id }), true]]));
+  }
+
+  function openER(id) {
+    const e = failed(data.er) ? null : data.er.expected_receipts.find((x) => String(x.id) === String(id));
+    if (!e) return;
+    selection = { kind: 'er', label: e.reference_number || 'ER ' + e.id };
+    renderChrome();
+    showInspector(insHead('Expected receipt · ' + e.supplier_name, e.reference_number || 'ER ' + e.id, esc(e.product_name) + (e.expected_date ? ' · expected ' + short(e.expected_date) : ' · no expected date'))
+      + '<div class="ins-body">' + stat3([['Expected', fmt(e.expected_qty) + ' lb'], ['Received', fmt(e.received_qty) + ' lb'], ['Remaining', fmt(e.remaining) + ' lb']])
+      + (e.is_overdue ? '<div class="warnbox">' + e.days_overdue + ' days overdue.</div>' : '')
+      + '<div class="sect"><h4>Details</h4><div class="txlist"><div><span>Receipts so far</span><span>' + e.receipt_count + '</span></div><div><span>Last received</span><span>' + (e.last_received_at ? short(e.last_received_at.slice(0, 10)) : '—') + '</span></div><div><span>Created by</span><span>' + esc(e.created_by || '—') + '</span></div></div>'
+      + (e.notes ? '<div class="muted" style="font-size:13px">' + esc(e.notes) + '</div>' : '') + '</div></div>'
+      + footBtns([['Expected receipts ↗', dashUrl('index.html', { section: 'expected' })], ['Receive ↗', taskUrl('receive'), true]]));
+  }
+
+  // ---------- tasks ----------
+  function taskUrl(action) {
+    const params = { action };
+    if (action === 'ship' && selection && selection.kind === 'order' && selection.orderId) params.order = selection.orderId;
+    return dashUrl('entry.html', params);
+  }
+  function buildTasks() {
+    const el = $('#tasks');
+    [['Receive', 'receive'], ['Make', 'make'], ['Pack', 'pack'], ['Ship', 'ship'], ['Count', 'adjust']].forEach(([label, action]) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'fa-btn'; b.textContent = label;
+      b.title = action === 'adjust' ? 'Opens the dashboard entry page on Adjust (there is no separate count page; pick reason Physical count)' : 'Opens the dashboard entry page: ' + label;
+      b.onclick = () => openTab(taskUrl(action));
+      el.appendChild(b);
+    });
+  }
+
+  // ---------- search ----------
+  let searchIndex = [];
+  function buildIndex() {
+    searchIndex = [];
+    for (const [id, a] of Object.entries(AREAS)) searchIndex.push({ label: a.name, kind: 'Area', go: () => flyTo(id) });
+    for (const [t, tile] of Object.entries(TILES)) searchIndex.push({ label: tile.name, kind: 'Inventory category', go: () => flyTo('t-' + t) });
+    for (const p of products) {
+      searchIndex.push({ label: p.name, kind: (TILES[p.type] ? TILES[p.type].name : p.type) + ' · ' + qtyText(p), extra: p.sku, go: () => { closeInspector(); flyTo('p' + p.id); } });
+      for (const l of p.lots) searchIndex.push({ label: l.code, kind: 'Lot · ' + p.name, go: () => { flyTo('p' + p.id); openLot(l.code, p.id, p.name); } });
+    }
+    if (!failed(data.orders)) for (const o of data.orders.orders) searchIndex.push({ label: o.order_number + ' · ' + o.customer, kind: 'Order', extra: o.customer_po, go: () => { flyTo('shipping'); openOrder(o.order_id); } });
+    if (!failed(data.er)) for (const e of data.er.expected_receipts) searchIndex.push({ label: e.product_name + ' · ' + (e.reference_number || 'ER ' + e.id), kind: 'Expected receipt', go: () => { flyTo('receiving'); openER(e.id); } });
+  }
+
+  const qEl = $('#q'), resEl = $('#results');
+  let results = [], active = 0, searchSeq = 0;
+  function renderResults() {
+    resEl.innerHTML = results.length ? '' : '<div class="empty">No matches on the canvas</div>';
+    results.forEach((r, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; if (i === active) b.className = 'active';
+      b.innerHTML = '<span>' + esc(r.label) + '</span><span>' + esc(r.kind) + '</span>';
+      b.onmousedown = (e) => { e.preventDefault(); pick(r); };
+      resEl.appendChild(b);
+    });
+    resEl.hidden = false;
+  }
+  function pick(r) { resEl.hidden = true; qEl.blur(); r.go(); }
+  async function runSearch() {
+    const q = qEl.value.trim().toLowerCase();
+    const seq = ++searchSeq;
+    const local = q ? searchIndex.filter((r) => (r.label + ' ' + r.kind + ' ' + (r.extra || '')).toLowerCase().includes(q)) : searchIndex.filter((r) => r.kind === 'Area' || r.kind === 'Inventory category');
+    local.sort((a, b) => (a.label.toLowerCase().startsWith(q) ? 0 : 1) - (b.label.toLowerCase().startsWith(q) ? 0 : 1));
+    results = local.slice(0, 9); active = 0; renderResults();
+    if (q.length < 3) return;
+    // Server search finds lots and orders that are not on hand / not open.
+    try {
+      const s = await API.get('/dashboard/api/search', { q });
+      if (seq !== searchSeq) return;
+      const have = new Set(results.map((r) => r.label));
+      const extra = [];
+      for (const l of s.lots || []) {
+        const code = l.lot_code || l.code; if (!code || have.has(code)) continue;
+        extra.push({ label: code, kind: 'Lot · ' + (l.product_name || '') + ' (record only)', go: () => openLot(code, l.product_id, l.product_name) });
+      }
+      for (const o of s.orders || []) {
+        const lbl = (o.order_number || '') + ' · ' + (o.customer || o.customer_name || '');
+        if (have.has(lbl)) continue;
+        extra.push({ label: lbl, kind: 'Order (record only)', go: () => openOrder(o.order_id || o.id || o.order_number) });
+      }
+      if (extra.length) { results = results.concat(extra).slice(0, 12); renderResults(); }
+    } catch (e) { /* local results are enough */ }
+  }
+  let st = 0;
+  qEl.addEventListener('input', () => { clearTimeout(st); st = setTimeout(runSearch, 160); });
+  qEl.addEventListener('focus', runSearch);
+  qEl.addEventListener('blur', () => setTimeout(() => { resEl.hidden = true; }, 150));
+  qEl.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowDown') { active = Math.min(results.length - 1, active + 1); renderResults(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp') { active = Math.max(0, active - 1); renderResults(); e.preventDefault(); }
+    else if (e.key === 'Enter' && results[active]) pick(results[active]);
+    else if (e.key === 'Escape') { resEl.hidden = true; qEl.blur(); }
+  });
+
+  // ---------- input: wheel, drag, click ----------
+  vp.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const r = vp.getBoundingClientRect();
+    const px = e.clientX - r.left - r.width / 2, py = e.clientY - r.top - r.height / 2;
+    const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    const s = cam.s * Math.exp(-dy * 0.0018);
+    const L = limits();
+    const ns = Math.max(L.min, Math.min(L.max, s));
+    const wx = cam.cx + px / cam.s, wy = cam.cy + py / cam.s;
+    setCam({ s: ns, cx: wx - px / ns, cy: wy - py / ns }, false);
+  }, { passive: false });
+
+  let down = null, dragged = false;
+  vp.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    down = { x: e.clientX, y: e.clientY, cam: Object.assign({}, cam), id: e.pointerId };
+    dragged = false;
+  });
+  vp.addEventListener('pointermove', (e) => {
+    if (!down) return;
+    const dx = e.clientX - down.x, dy = e.clientY - down.y;
+    if (!dragged && Math.abs(dx) + Math.abs(dy) < 5) return;
+    if (!dragged) { dragged = true; vp.classList.add('dragging'); try { vp.setPointerCapture(down.id); } catch (_) {} }
+    setCam({ s: down.cam.s, cx: down.cam.cx - dx / down.cam.s, cy: down.cam.cy - dy / down.cam.s }, false);
+  });
+  const endDrag = () => { if (!down) return; down = null; vp.classList.remove('dragging'); setTimeout(() => { dragged = false; }, 0); };
+  vp.addEventListener('pointerup', endDrag);
+  vp.addEventListener('pointercancel', endDrag);
+  vp.addEventListener('dragstart', (e) => e.preventDefault());
+  vp.addEventListener('click', (e) => { if (dragged) { e.stopPropagation(); e.preventDefault(); } }, true);
+
+  world.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-fly],[data-lot],[data-order],[data-er]');
+    if (!t) return;
+    if (t.dataset.fly) { closeInspector(); flyTo(t.dataset.fly); }
+    else if (t.dataset.lot) openLot(t.dataset.lot, t.dataset.pid, t.dataset.pname);
+    else if (t.dataset.order) openOrder(t.dataset.order);
+    else if (t.dataset.er) openER(t.dataset.er);
+  });
+
+  function zoomOut() {
+    if (selection) { closeInspector(); return; }
+    const id = focus.product ? focus.tile : focus.tile ? focus.area : null;
+    if (id) flyTo(id); else goHome();
+  }
+  $('#home').onclick = goHome;
+  $('#zout').onclick = zoomOut;
+  $('#zin').onclick = () => setCam({ cx: cam.cx, cy: cam.cy, s: cam.s * 1.8 }, true);
+  document.addEventListener('keydown', (e) => {
+    if (e.target.closest && e.target.closest('input')) return;
+    if (e.key === 'Escape') zoomOut();
+    else if (e.key === '+' || e.key === '=') $('#zin').click();
+    else if (e.key === '-') zoomOut();
+    else if (e.key === '/') { e.preventDefault(); qEl.focus(); }
+  });
+  window.addEventListener('resize', () => setCam(cam, false));
+
+  // ---------- start ----------
+  async function start() {
+    const env = $('#env');
+    env.textContent = CFG.env;
+    env.classList.toggle('production', CFG.env === 'production');
+    buildTasks();
+    banner('Loading live ' + CFG.env + ' data…');
+    try { await loadAll(); } catch (e) { banner('Couldn’t load data: ' + e.message, true); return; }
+    if (failed(data.inv)) { banner('Couldn’t load inventory from ' + API.base + ' (' + data.inv.error + ')', true); }
+    else banner('');
+    buildProducts();
+    buildWorld();
+    buildIndex();
+    setCam(fit(BOX, 0.95), false);
+  }
+  start();
+})();
