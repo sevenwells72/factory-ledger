@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-19 18:37 — PR #138 rebased on #139; three dashboard handlers return 503 on pool exhaustion
+- **File(s) changed:** `main.py`, `tests/test_db_pool_wait.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Rebased `fix/db-pool-dashboard` onto main 89744686 (changelog conflicts only; row 217 kept beside #139's row 218). `/production/today-tile`, `/sales/orders/fulfillment-check` and `/sales/orders/counts` now re-raise `pool.PoolError` so the exception handler answers 503 `DATABASE_BUSY` like the other dashboard panels, instead of catching it into a 500. The 503 test is parametrized over all six dashboard panels that 500ed on prod (the three new cases fail without the change). Row 218 now says merged and deployed (89744686, Railway a3b93f1f); row 217 no longer says draft.
+- **Why:** Prod logs 2026-10-18/19 showed every dashboard 500 was "connection pool exhausted"; owner approved finishing and deploying #138 with a uniform retryable 503.
+
+---
+
 ## 2026-10-19 15:43 — Open and Ready to ship tabs exclude fully shipped sales orders
 - **File(s) changed:** `main.py`, `dashboard/dashboard.js`, `dashboard/index.html`, `tests/test_sales_order_state_model.py`, `tests/visual/run-sales-orders-interactions.mjs`, `tests/visual/run-so-detail-interactions.mjs`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** `GET /sales/orders/counts` `open` and `ready_to_ship` now skip state-open orders whose fulfillment is `shipped`; dashboard Open / Ready to ship tab filter does the same; dashboard.js cache-bust v76→v77. Counts test adds a ready+shipped order (open +2, shipped +2); Playwright list runner asserts order 109 (open, shipped, Ready checked) is only on Shipped; detail runner Open count after close 8→7. FL changelog row 218.
@@ -7,6 +14,12 @@
 
 ---
 
+## 2026-10-19 11:40 — DB pool: wait instead of failing on dashboard load
+- **File(s) changed:** `main.py`, `fl_assistant.py`, `tests/test_db_pool_wait.py`, `tests/test_final_db_recovery.py`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** New `WaitingConnectionPool` (psycopg2 `ThreadedConnectionPool` subclass, still 1–10 connections): `getconn` waits up to 10 s for a returned connection instead of raising at once; a request that still has none gets 503 `DATABASE_BUSY` (retryable) rather than 500; audited reads no longer retry a pool timeout; `DB_POOL_CAPACITY` log separates app-pool exhaustion from Supabase EMAXCONNSESSION. `/assistant/record` checks linked photos inside its existing transaction instead of opening a second connection while holding one. New load test runs the real app in a local Uvicorn process (pool 10, each SQL statement slowed 0.15 s) and fires 25 concurrent dashboard requests: 15 fail on main, 25/25 pass on the branch with 0 connections left checked out and no session idle-in-transaction; plus slow-query/no-starvation, bounded-wait, 503 and error/threadpool release tests. FACTORY_LEDGER_CHANGELOG row 217.
+- **Why:** Since 2026-10-18 production logged 54 "connection pool exhausted" errors in 6 bursts, each when the dashboard opened (~20 parallel reads against the 10-connection pool #136 introduced). Pool size kept at 10: staging uses the Supabase session pooler, which hit its client limit at 20. Validation: Python 6,872 passed sessions off + 6,872 on (fresh DBs), Node 411/411, browser runners existing assistant both modes, dashboard access 48/48, round B page 68, round B contract 9+9 groups, round C 36; all fl_pool_* DBs dropped.
+
+---
 ## 2026-10-16 13:01 — Clean captured log whitespace before commit
 - **File(s) changed:** `docs/validation/fl-final2/python*/collect.log`, `schema.log`
 - **What changed:** Removed only trailing spaces and extra final blank lines from eight captured logs. Assertions, counts and output text unchanged. Key-literal guard reports zero structural/retired-key findings; live-value matching was not enabled.

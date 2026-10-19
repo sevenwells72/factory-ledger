@@ -269,21 +269,23 @@ def draft_row(api, draft_id, actor_id, *, lock=False, cur=None):
     return row
 
 
-def linked_attachments(api, session_id, actor_id, attachment_ids):
+def linked_attachments(api, session_id, actor_id, attachment_ids, *, cur=None):
     """Chat provenance only; A6 owns evidence storage and ticket-context checks."""
+    if cur is None:
+        with api.get_transaction() as cursor:
+            return linked_attachments(api, session_id, actor_id, attachment_ids, cur=cursor)
     found = []
-    with api.get_transaction() as cur:
-        for aid in attachment_ids:
-            cur.execute('''SELECT a.id,a.kind FROM assistant_attachment_links l
-                JOIN attachments a ON a.id=l.attachment_id
-                JOIN assistant_sessions s ON s.id=l.session_id
-                WHERE l.attachment_id=%s AND l.session_id=%s AND l.actor_id=%s
-                  AND s.actor_id=%s AND a.uploaded_by_actor_id=%s''',
-                (aid, str(session_id), actor_id, actor_id, actor_id))
-            row = cur.fetchone()
-            if not row:
-                fail(404, 'ATTACHMENT_NOT_FOUND', 'Attachment unavailable / Adjunto no disponible.')
-            found.append(dict(row))
+    for aid in attachment_ids:
+        cur.execute('''SELECT a.id,a.kind FROM assistant_attachment_links l
+            JOIN attachments a ON a.id=l.attachment_id
+            JOIN assistant_sessions s ON s.id=l.session_id
+            WHERE l.attachment_id=%s AND l.session_id=%s AND l.actor_id=%s
+              AND s.actor_id=%s AND a.uploaded_by_actor_id=%s''',
+            (aid, str(session_id), actor_id, actor_id, actor_id))
+        row = cur.fetchone()
+        if not row:
+            fail(404, 'ATTACHMENT_NOT_FOUND', 'Attachment unavailable / Adjunto no disponible.')
+        found.append(dict(row))
     return found
 
 
@@ -1439,7 +1441,8 @@ def register_routes(app, api):
             saved = cur.fetchone()
             evidence = {} if saved and saved['recorded'] else evidence_fields(
                 row['card'].get('prepared', {}).get('action'),
-                linked_attachments(api, row['session_id'], actor['id'], record_attachment_ids(row['card'])))
+                # Same transaction: Record must not hold one pooled connection while waiting for another.
+                linked_attachments(api, row['session_id'], actor['id'], record_attachment_ids(row['card']), cur=cur))
             prior_attempt = row['record_started_at']
             cur.execute('UPDATE assistant_drafts SET record_started_at=clock_timestamp() WHERE id=%s RETURNING record_started_at', (str(body.draft_id),))
             attempt = cur.fetchone()['record_started_at']

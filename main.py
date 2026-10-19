@@ -295,6 +295,19 @@ async def _exception_receipt_response(request: Request, exc: Exception) -> JSONR
             },
         )
 
+    if isinstance(exc, pool.PoolError) and 'connection pool exhausted' in str(exc):
+        # Already logged as DB_POOL_CAPACITY; the request never touched the DB.
+        return JSONResponse(
+            status_code=503,
+            content={
+                "success": False,
+                "error_code": "DATABASE_BUSY",
+                "error": str(exc),
+                "retryable": True,
+                "message": "The server is busy. Retry in a few seconds.",
+            },
+        )
+
     logger.error(
         f"Unhandled exception on {request.method} {request.url.path}: {exc}\n"
         + traceback.format_exc()
@@ -1847,6 +1860,51 @@ def validate_lot_deduction(cur, lot_id: int, lot_code: str, requested_lb: float)
 # Connection pool (initialized on startup)
 db_pool = None
 
+DB_POOL_MAX_CONNECTIONS = 10
+# The dashboard opens ~20 reads at once; past the pool size they queue for a
+# free connection instead of failing. Bounded, so a stuck query costs a 503
+# after this many seconds rather than an indefinitely hung request.
+DB_POOL_WAIT_SECONDS = 10.0
+
+
+class WaitingConnectionPool(pool.ThreadedConnectionPool):
+    """ThreadedConnectionPool whose getconn waits (bounded) for a free slot.
+
+    psycopg2's own pool raises PoolError the instant every connection is in
+    use. Waiters are woken one per returned connection, oldest first.
+    """
+
+    def __init__(self, minconn, maxconn, *args, wait_seconds=DB_POOL_WAIT_SECONDS, **kwargs):
+        super().__init__(minconn, maxconn, *args, **kwargs)
+        self.wait_seconds = wait_seconds
+        self._released = threading.Condition(self._lock)
+
+    def getconn(self, key=None):
+        deadline = time.monotonic() + self.wait_seconds
+        with self._released:
+            while not self.closed and key not in self._used and len(self._used) >= self.maxconn:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise pool.PoolError(
+                        f"connection pool exhausted: all {self.maxconn} connections "
+                        f"busy for {self.wait_seconds:g} s")
+                self._released.wait(remaining)
+            return self._getconn(key)
+
+    def putconn(self, conn=None, key=None, close=False):
+        with self._released:
+            try:
+                self._putconn(conn, key, close)
+            finally:
+                self._released.notify()
+
+    def closeall(self):
+        with self._released:
+            try:
+                self._closeall()
+            finally:
+                self._released.notify_all()
+
 
 # ─────────────────────────────────────────────────────────────────
 # In-app startup migrations — once per database, not once per boot
@@ -2459,7 +2517,7 @@ async def startup():
         # The Supabase session pooler reserves a server session for every
         # client. Bound this process below its former 20-client burst and
         # return excess idle sessions immediately (psycopg2 minconn=1).
-        db_pool = pool.ThreadedConnectionPool(minconn=1, maxconn=10, dsn=DATABASE_URL,
+        db_pool = WaitingConnectionPool(minconn=1, maxconn=DB_POOL_MAX_CONNECTIONS, dsn=DATABASE_URL,
             connect_timeout=10, keepalives=1, keepalives_idle=30,
             keepalives_interval=10, keepalives_count=3)
         logger.info("Database connection pool created")
@@ -2544,9 +2602,12 @@ def get_db_connection():
     try:
         conn = db_pool.getconn()
     except (psycopg2.OperationalError, psycopg2.InterfaceError, pool.PoolError) as exc:
-        if ('EMAXCONNSESSION' in str(exc) or getattr(exc, 'pgcode', None) == '53300'
-                or 'connection pool exhausted' in str(exc)):
-            logger.error('DB_POOL_CAPACITY: session pooler client limit reached; this process is capped at 10 connections')
+        if 'connection pool exhausted' in str(exc):
+            logger.error(f'DB_POOL_CAPACITY: all {db_pool.maxconn} app connections stayed busy '
+                         f'for {getattr(db_pool, "wait_seconds", "?")} s')
+        elif 'EMAXCONNSESSION' in str(exc) or getattr(exc, 'pgcode', None) == '53300':
+            logger.error('DB_POOL_CAPACITY: session pooler client limit reached; this process is capped at '
+                         f'{DB_POOL_MAX_CONNECTIONS} connections')
         raise
     try:
         yield conn
@@ -2604,7 +2665,8 @@ def retry_database_read(function):
             except (psycopg2.OperationalError, psycopg2.InterfaceError, pool.PoolError) as exc:
                 if not _is_db_disconnect(exc):
                     raise
-                if attempt:
+                # A full app pool was already waited on; a second wait only doubles it.
+                if attempt or isinstance(exc, pool.PoolError):
                     raise HTTPException(503, {'error_code': 'DATABASE_TEMPORARILY_UNAVAILABLE',
                         'message': 'The database connection was interrupted. Please retry this lookup.',
                         'message_es': 'Se interrumpió la conexión. Vuelva a intentar esta consulta.',
@@ -14550,7 +14612,8 @@ def fulfillment_check(
                 "summary": summary,
                 "orders": results
             }
-    except HTTPException:
+    except (HTTPException, pool.PoolError):
+        # PoolError: the exception handler answers 503 DATABASE_BUSY.
         raise
     except Exception as e:
         logger.error(f"Fulfillment check failed: {e}")
@@ -14629,7 +14692,8 @@ def sales_order_counts(_: bool = Depends(verify_api_key)):
                 "closed": by_state.get("closed", 0),
                 "cancelled": by_state.get("cancelled", 0),
             }
-    except HTTPException:
+    except (HTTPException, pool.PoolError):
+        # PoolError: the exception handler answers 503 DATABASE_BUSY.
         raise
     except Exception as e:
         logger.error(f"Sales order counts failed: {e}")
@@ -19266,7 +19330,8 @@ def production_today_tile(
                 })
 
         return {"date": str(target_date), "made": made, "packed": packed}
-    except HTTPException:
+    except (HTTPException, pool.PoolError):
+        # PoolError: the exception handler answers 503 DATABASE_BUSY.
         raise
     except Exception as e:
         logger.error(f"Production today-tile failed: {e}")
