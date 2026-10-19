@@ -55,8 +55,9 @@ async function installStatefulDetail(context) {
     if (pathname === '/sales/orders/counts') {
       reads.push({ kind: 'counts' });
       const open = orders.filter(order => order.state === 'open');
+      const unshipped = open.filter(order => order.fulfillment !== 'shipped');
       return route.fulfill({ json: {
-        open: open.length, ready_to_ship: open.filter(order => order.ready).length,
+        open: unshipped.length, ready_to_ship: unshipped.filter(order => order.ready).length,
         overdue: open.filter(order => order.overdue && order.fulfillment !== 'shipped').length,
         shipped: open.filter(order => order.fulfillment === 'shipped').length,
         closed: orders.filter(order => order.state === 'closed').length,
@@ -265,7 +266,8 @@ try {
         assert.equal(await page.locator('.so-detail-exit-action[data-action="reopen"]').count(), 1);
         assert(await page.locator('.order-detail-header').evaluate(node => node.contains(document.activeElement)), 'Focus returns to an available detail header action');
         for (const kind of ['detail', 'list', 'counts']) assert(api.reads.filter(read => read.kind === kind).length > readsBefore[kind], `${kind} refresh after exit`);
-        assert.match(await page.locator('[data-orders-tab="open"]').textContent(), /\b8\b/);
+        // 102–108; 109 is state open but fully shipped, so it counts under Shipped only.
+        assert.match(await page.locator('[data-orders-tab="open"]').textContent(), /\b7\b/);
         assert.match(await page.locator('[data-orders-tab="closed"]').textContent(), /\b2\b/);
         assert.deepEqual(api.writes.filter(write => write.id === 101 && write.action === 'close').map(write => write.body.mode), ['preview', 'preview', 'preview', 'commit']);
       });

@@ -2238,6 +2238,9 @@
   function getFilteredOrders() {
     return state.ordersData.filter(order => {
       if (order.state !== (['closed', 'cancelled'].includes(state.ordersTab) ? state.ordersTab : 'open')) return false;
+      // State and Fulfillment are separate: a fully shipped order stays
+      // state 'open' until someone closes it, but it belongs on Shipped only.
+      if (['open', 'ready_to_ship'].includes(state.ordersTab) && order.fulfillment === 'shipped') return false;
       if (state.ordersTab === 'ready_to_ship' && !order.ready) return false;
       if (state.ordersTab === 'shipped' && order.fulfillment !== 'shipped') return false;
       if (state.ordersTab === 'overdue' && !(order.requested_ship_date < plantToday() && order.fulfillment !== 'shipped')) return false;

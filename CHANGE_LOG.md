@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-19 15:43 — Open and Ready to ship tabs exclude fully shipped sales orders
+- **File(s) changed:** `main.py`, `dashboard/dashboard.js`, `dashboard/index.html`, `tests/test_sales_order_state_model.py`, `tests/visual/run-sales-orders-interactions.mjs`, `tests/visual/run-so-detail-interactions.mjs`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** `GET /sales/orders/counts` `open` and `ready_to_ship` now skip state-open orders whose fulfillment is `shipped`; dashboard Open / Ready to ship tab filter does the same; dashboard.js cache-bust v76→v77. Counts test adds a ready+shipped order (open +2, shipped +2); Playwright list runner asserts order 109 (open, shipped, Ready checked) is only on Shipped; detail runner Open count after close 8→7. FL changelog row 218.
+- **Why:** Open tab (56) and Ready to ship (46) filtered on state only, so physically shipped but not-yet-closed orders appeared there. Display/filter only; no order state or data changed. Branch fix/open-tab-excludes-shipped, not merged/pushed/deployed.
+
+---
+
 ## 2026-10-16 13:01 — Clean captured log whitespace before commit
 - **File(s) changed:** `docs/validation/fl-final2/python*/collect.log`, `schema.log`
 - **What changed:** Removed only trailing spaces and extra final blank lines from eight captured logs. Assertions, counts and output text unchanged. Key-literal guard reports zero structural/retired-key findings; live-value matching was not enabled.
