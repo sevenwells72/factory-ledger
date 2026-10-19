@@ -14571,10 +14571,15 @@ def fulfillment_check(
 def sales_order_counts(_: bool = Depends(verify_api_key)):
     """Board counts for the sales-order tabs.
 
-    open / closed / cancelled come from the stored state. The other three are
-    slices of open, and two of them depend on DERIVED fulfillment, so they are
+    closed / cancelled come from the stored state. The four open-board tabs are
+    slices of state='open' that depend on DERIVED fulfillment, so they are
     computed in Python from the same readiness data the list endpoint uses —
     there is no stored fulfillment column to count in SQL.
+
+    'open' and 'ready_to_ship' leave out orders whose fulfillment is 'shipped'
+    (nothing left to ship): those are still administratively open until
+    someone closes them, but they belong to the 'shipped' tab only. The
+    dashboard's tab filter (getFilteredOrders) applies the same rule.
 
     'ready_to_ship' rather than 'ready': the legacy status column already has a
     'ready' value and sales_order_flags already has a 'ready' boolean, and this
@@ -14602,20 +14607,22 @@ def sales_order_counts(_: bool = Depends(verify_api_key)):
             # The same factory clock health uses — the overdue bucket and the
             # per-order health badge must never disagree about what day it is.
             today = _factory_today()
-            ready_to_ship = overdue = shipped = 0
+            open_unshipped = ready_to_ship = overdue = shipped = 0
             for row in open_rows:
                 fulfillment = derive_fulfillment(readiness_by_order[row["id"]])
-                if row["ready"]:
-                    ready_to_ship += 1
                 if fulfillment == "shipped":
                     shipped += 1
+                    continue
+                open_unshipped += 1
+                if row["ready"]:
+                    ready_to_ship += 1
                 ship_date = row["requested_ship_date"]
                 if (ship_date is not None and ship_date < today
                         and fulfillment != "shipped"):
                     overdue += 1
 
             return {
-                "open": by_state.get("open", 0),
+                "open": open_unshipped,
                 "ready_to_ship": ready_to_ship,
                 "overdue": overdue,
                 "shipped": shipped,

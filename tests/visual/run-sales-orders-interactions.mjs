@@ -31,8 +31,9 @@ async function installStatefulList(context){
   }
   if(p==='/sales/orders/counts'){
    requests.push({kind:'counts'});
-   const open=orders.filter(o=>o.state==='open');
-   return route.fulfill({json:{open:open.length,ready_to_ship:open.filter(o=>o.ready).length,overdue:open.filter(o=>o.overdue&&o.fulfillment!=='shipped').length,shipped:open.filter(o=>o.fulfillment==='shipped').length,closed:orders.filter(o=>o.state==='closed').length,cancelled:orders.filter(o=>o.state==='cancelled').length}});
+   // Mirrors GET /sales/orders/counts: Open and Ready to ship leave out fully shipped orders.
+   const open=orders.filter(o=>o.state==='open'),unshipped=open.filter(o=>o.fulfillment!=='shipped');
+   return route.fulfill({json:{open:unshipped.length,ready_to_ship:unshipped.filter(o=>o.ready).length,overdue:open.filter(o=>o.overdue&&o.fulfillment!=='shipped').length,shipped:open.filter(o=>o.fulfillment==='shipped').length,closed:orders.filter(o=>o.state==='closed').length,cancelled:orders.filter(o=>o.state==='cancelled').length}});
   }
   const exit=p.match(/^\/sales\/orders\/(\d+)\/(close|cancel|reopen)$/);
   if(exit&&request.method()==='POST'){
@@ -99,13 +100,15 @@ try{
   await page.goto(server.origin,{waitUntil:'domcontentloaded'});
   await page.locator(width===390?'.mobile-nav > a[data-section="orders"]':'.tab[data-tab="orders"]').click();
   await loaded(page);
-  assert.deepEqual(await ids(page),[101,102,103,104,105,106,107,108,109]);
+  // 109 is state open but fully shipped (and still marked Ready): Shipped tab only.
+  assert.deepEqual(await ids(page),[101,102,103,104,105,106,107,108]);
+  assert.equal(await page.locator('#orders-table-container .order-row[data-order-id="109"]').count(),0,'Fully shipped orders are not listed under Open');
   // The independent mini calendar also fetches /sales/orders during
   // startup. Compare list/count refreshes caused by list-tab interactions.
   const initialListReads=api.requests.filter(r=>r.kind==='list').length;
   const initialCountReads=api.requests.filter(r=>r.kind==='counts').length;
-  for(const [name,count] of [['Open',9],['Ready to ship',4],['Overdue',3],['Shipped',1],['Closed',1],['Cancelled',1]])assert.match(await page.getByRole('tab',{name:new RegExp(`^${name}\\b`)}).innerText(),new RegExp(`\\b${count}\\b`));
-  for(const [name,expected] of [['Ready to ship',[102,104,107,109]],['Overdue',[101,102,103]],['Shipped',[109]],['Closed',[110]],['Cancelled',[111]],['Open',[101,102,103,104,105,106,107,108,109]]]){
+  for(const [name,count] of [['Open',8],['Ready to ship',3],['Overdue',3],['Shipped',1],['Closed',1],['Cancelled',1]])assert.match(await page.getByRole('tab',{name:new RegExp(`^${name}\\b`)}).innerText(),new RegExp(`\\b${count}\\b`));
+  for(const [name,expected] of [['Ready to ship',[102,104,107]],['Overdue',[101,102,103]],['Shipped',[109]],['Closed',[110]],['Cancelled',[111]],['Open',[101,102,103,104,105,106,107,108]]]){
    await switchTab(page,name);assert.deepEqual(await ids(page),expected,`${name} membership`);
    const q=api.requests.filter(r=>r.kind==='list').at(-1).query;
    assert.equal(q.state,['Closed','Cancelled'].includes(name)?name.toLowerCase():'open');
@@ -117,7 +120,7 @@ try{
   await page.waitForFunction(()=>document.querySelectorAll('#orders-table-container .order-row').length===1);
   assert.deepEqual(await ids(page),[101]);
   await page.locator('#orders-customer-search').fill('');await page.locator('#orders-customer-search').press('Enter');await loaded(page);
-  await page.waitForFunction(()=>document.querySelectorAll('#orders-table-container .order-row').length===9);
+  await page.waitForFunction(()=>document.querySelectorAll('#orders-table-container .order-row').length===8);
   assert.equal(await page.getByLabel('Hide ready to ship',{exact:true}).count(),0,'Ready membership is controlled by the Ready to ship tab');
   assert.equal(await page.locator('#section-orders > .section-header .table-tools').count(),1,'Sort and Resize belong in the table header');
   const orderTrigger=page.locator('.order-row[data-order-id="101"] > td:nth-child(2) [data-explain]').first();

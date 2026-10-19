@@ -2119,6 +2119,14 @@ def test_counts_endpoint_buckets(db_cursor, client):
     line_id = _add_line(db_cursor, shipped_id, product_id, 10, shipped=10, status="fulfilled")
     _post_ship(db_cursor, line_id, product_id, lot_id, 10, recorded=10)
 
+    # open, physically shipped AND still flagged Ready to ship: the flag is
+    # never cleared by shipping, so it must not count as Open or Ready either
+    ready_shipped_id, _ = _seed_order(db_cursor, customer_id, token, floor_ready=True,
+                                      status="partial_ship")
+    rs_line_id = _add_line(db_cursor, ready_shipped_id, product_id, 10, shipped=10,
+                           status="fulfilled")
+    _post_ship(db_cursor, rs_line_id, product_id, lot_id, 10, recorded=10)
+
     closed_id, _ = _seed_order(db_cursor, customer_id, token)
     _recorded_close_shipment(db_cursor, closed_id)
     client.post(f"/sales/orders/{closed_id}/close",
@@ -2131,10 +2139,12 @@ def test_counts_endpoint_buckets(db_cursor, client):
     assert set(after) >= {"open", "ready_to_ship", "overdue", "shipped",
                           "closed", "cancelled"}
     assert "ready" not in after, "owner ruling 5: the key is ready_to_ship"
-    assert after["open"] - before["open"] == 3
+    # Open counts only orders with something left to ship (ready + overdue);
+    # both fully shipped orders land on Shipped, not Open / Ready to ship.
+    assert after["open"] - before["open"] == 2
     assert after["ready_to_ship"] - before["ready_to_ship"] == 1
     assert after["overdue"] - before["overdue"] == 1
-    assert after["shipped"] - before["shipped"] == 1
+    assert after["shipped"] - before["shipped"] == 2
     assert after["closed"] - before["closed"] == 1
     assert after["cancelled"] - before["cancelled"] == 1
 
