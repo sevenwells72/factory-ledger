@@ -254,7 +254,20 @@ def test_waiting_is_bounded_when_every_connection_stays_busy():
         db_pool.closeall()
 
 
-def test_pool_exhaustion_is_a_retryable_503_not_a_500(monkeypatch, caplog):
+# Every dashboard panel that 500ed on prod 2026-10-18/19; the last three catch
+# their own exceptions and used to turn the pool error into a 500.
+DASHBOARD_PANEL_PATHS = [
+    "/supplies/inventory",
+    "/supply-requests?status=all&limit=500",
+    "/expected-receipts?status=open&limit=500",
+    "/production/today-tile",
+    "/sales/orders/fulfillment-check",
+    "/sales/orders/counts",
+]
+
+
+@pytest.mark.parametrize("path", DASHBOARD_PANEL_PATHS)
+def test_pool_exhaustion_is_a_retryable_503_not_a_500(monkeypatch, caplog, path):
     db_pool = _waiting_pool(maxconn=1, wait_seconds=0.2)
     held = db_pool.getconn()
     monkeypatch.setattr(main, "db_pool", db_pool)
@@ -262,8 +275,7 @@ def test_pool_exhaustion_is_a_retryable_503_not_a_500(monkeypatch, caplog):
         async def call():
             transport = httpx.ASGITransport(app=main.app, raise_app_exceptions=False)
             async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-                return await client.get("/supplies/inventory",
-                                        headers={"X-API-Key": os.environ["DASHBOARD_API_KEY"]})
+                return await client.get(path, headers={"X-API-Key": os.environ["DASHBOARD_API_KEY"]})
         response = asyncio.run(call())
         assert response.status_code == 503, response.text
         assert response.json()["error_code"] == "DATABASE_BUSY"

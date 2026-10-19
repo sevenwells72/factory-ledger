@@ -14612,7 +14612,8 @@ def fulfillment_check(
                 "summary": summary,
                 "orders": results
             }
-    except HTTPException:
+    except (HTTPException, pool.PoolError):
+        # PoolError: the exception handler answers 503 DATABASE_BUSY.
         raise
     except Exception as e:
         logger.error(f"Fulfillment check failed: {e}")
@@ -14691,7 +14692,8 @@ def sales_order_counts(_: bool = Depends(verify_api_key)):
                 "closed": by_state.get("closed", 0),
                 "cancelled": by_state.get("cancelled", 0),
             }
-    except HTTPException:
+    except (HTTPException, pool.PoolError):
+        # PoolError: the exception handler answers 503 DATABASE_BUSY.
         raise
     except Exception as e:
         logger.error(f"Sales order counts failed: {e}")
@@ -19328,7 +19330,8 @@ def production_today_tile(
                 })
 
         return {"date": str(target_date), "made": made, "packed": packed}
-    except HTTPException:
+    except (HTTPException, pool.PoolError):
+        # PoolError: the exception handler answers 503 DATABASE_BUSY.
         raise
     except Exception as e:
         logger.error(f"Production today-tile failed: {e}")

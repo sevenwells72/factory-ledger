@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-19 18:37 — PR #138 rebased on #139; three dashboard handlers return 503 on pool exhaustion
+- **File(s) changed:** `main.py`, `tests/test_db_pool_wait.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Rebased `fix/db-pool-dashboard` onto main 89744686 (changelog conflicts only; row 217 kept beside #139's row 218). `/production/today-tile`, `/sales/orders/fulfillment-check` and `/sales/orders/counts` now re-raise `pool.PoolError` so the exception handler answers 503 `DATABASE_BUSY` like the other dashboard panels, instead of catching it into a 500. The 503 test is parametrized over all six dashboard panels that 500ed on prod (the three new cases fail without the change). Row 218 now says merged and deployed (89744686, Railway a3b93f1f); row 217 no longer says draft.
+- **Why:** Prod logs 2026-10-18/19 showed every dashboard 500 was "connection pool exhausted"; owner approved finishing and deploying #138 with a uniform retryable 503.
+
+---
+
 ## 2026-10-19 15:43 — Open and Ready to ship tabs exclude fully shipped sales orders
 - **File(s) changed:** `main.py`, `dashboard/dashboard.js`, `dashboard/index.html`, `tests/test_sales_order_state_model.py`, `tests/visual/run-sales-orders-interactions.mjs`, `tests/visual/run-so-detail-interactions.mjs`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** `GET /sales/orders/counts` `open` and `ready_to_ship` now skip state-open orders whose fulfillment is `shipped`; dashboard Open / Ready to ship tab filter does the same; dashboard.js cache-bust v76→v77. Counts test adds a ready+shipped order (open +2, shipped +2); Playwright list runner asserts order 109 (open, shipped, Ready checked) is only on Shipped; detail runner Open count after close 8→7. FL changelog row 218.
