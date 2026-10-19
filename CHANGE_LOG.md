@@ -7,6 +7,12 @@
 
 ---
 
+## 2026-10-19 11:40 — DB pool: wait instead of failing on dashboard load
+- **File(s) changed:** `main.py`, `fl_assistant.py`, `tests/test_db_pool_wait.py`, `tests/test_final_db_recovery.py`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** New `WaitingConnectionPool` (psycopg2 `ThreadedConnectionPool` subclass, still 1–10 connections): `getconn` waits up to 10 s for a returned connection instead of raising at once; a request that still has none gets 503 `DATABASE_BUSY` (retryable) rather than 500; audited reads no longer retry a pool timeout; `DB_POOL_CAPACITY` log separates app-pool exhaustion from Supabase EMAXCONNSESSION. `/assistant/record` checks linked photos inside its existing transaction instead of opening a second connection while holding one. New load test runs the real app in a local Uvicorn process (pool 10, each SQL statement slowed 0.15 s) and fires 25 concurrent dashboard requests: 15 fail on main, 25/25 pass on the branch with 0 connections left checked out and no session idle-in-transaction; plus slow-query/no-starvation, bounded-wait, 503 and error/threadpool release tests. FACTORY_LEDGER_CHANGELOG row 217.
+- **Why:** Since 2026-10-18 production logged 54 "connection pool exhausted" errors in 6 bursts, each when the dashboard opened (~20 parallel reads against the 10-connection pool #136 introduced). Pool size kept at 10: staging uses the Supabase session pooler, which hit its client limit at 20. Validation: Python 6,872 passed sessions off + 6,872 on (fresh DBs), Node 411/411, browser runners existing assistant both modes, dashboard access 48/48, round B page 68, round B contract 9+9 groups, round C 36; all fl_pool_* DBs dropped.
+
+---
 ## 2026-10-16 13:01 — Clean captured log whitespace before commit
 - **File(s) changed:** `docs/validation/fl-final2/python*/collect.log`, `schema.log`
 - **What changed:** Removed only trailing spaces and extra final blank lines from eight captured logs. Assertions, counts and output text unchanged. Key-literal guard reports zero structural/retired-key findings; live-value matching was not enabled.

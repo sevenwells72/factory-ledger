@@ -81,7 +81,8 @@ def test_local_pool_capacity_is_bounded_too(monkeypatch):
     with pytest.raises(HTTPException) as caught:
         main.search_products(q='Oats', limit=5, _=True)
     assert caught.value.status_code == 503
-    assert database_pool.getconn.call_count == 2
+    # getconn already waited for a free connection; a retry would double it.
+    assert database_pool.getconn.call_count == 1
 
 
 @pytest.mark.parametrize('value,display', [(88.80000000000001, '88.8'), (0.5, '0.5'),
