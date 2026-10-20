@@ -241,31 +241,31 @@ key_sessions.py:35
     class Exchange(BaseModel):
 
 main.py:2525
-  /Users/cns/dev/fl-pilotux-wt/main.py:2525: DeprecationWarning: 
+  /Users/cns/dev/fl-pilotux-wt/main.py:2525: DeprecationWarning:
           on_event is deprecated, use lifespan event handlers instead.
-  
+
           Read more about it in the
           [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-          
+
     @app.on_event("startup")
 
 ../../Documents/factory-ledger/.venv-test.nosync/lib/python3.12/site-packages/fastapi/applications.py:4547
 ../../Documents/factory-ledger/.venv-test.nosync/lib/python3.12/site-packages/fastapi/applications.py:4547
-  /Users/cns/Documents/factory-ledger/.venv-test.nosync/lib/python3.12/site-packages/fastapi/applications.py:4547: DeprecationWarning: 
+  /Users/cns/Documents/factory-ledger/.venv-test.nosync/lib/python3.12/site-packages/fastapi/applications.py:4547: DeprecationWarning:
           on_event is deprecated, use lifespan event handlers instead.
-  
+
           Read more about it in the
           [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-          
+
     return self.router.on_event(event_type)
 
 main.py:2620
-  /Users/cns/dev/fl-pilotux-wt/main.py:2620: DeprecationWarning: 
+  /Users/cns/dev/fl-pilotux-wt/main.py:2620: DeprecationWarning:
           on_event is deprecated, use lifespan event handlers instead.
-  
+
           Read more about it in the
           [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
-          
+
     @app.on_event("shutdown")
 
 main.py:4101

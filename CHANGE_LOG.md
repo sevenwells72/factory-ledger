@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-20 14:19 — Normalize whitespace in checked-in Python validation stdout
+- **File(s) changed:** `docs/validation/pilot-ux-round/logs/python-off.log`, `docs/validation/pilot-ux-round/logs/python-on.log`
+- **What changed:** Remove trailing spaces from copied deprecation-warning output; test results and original full logs remain unchanged.
+- **Why:** Keep the final patch whitespace check clean.
+
+---
+
 ## 2026-10-20 14:18 — Prepare the requested pilot UX draft PR description
 - **File(s) changed:** `/private/tmp/fl-pilotux-pr-body.txt`
 - **What changed:** Prepare a review description with final behavior, traceability boundaries, all passing counts, cleanup and screenshot links.
