@@ -605,7 +605,7 @@
       "seconds": 585.04,
       "log": "docs/validation/make-draft-compact/logs/visual-audit.log",
       "report": "docs/validation/make-draft-compact/logs/visual-audit/06-browser-check.md",
-      "raw_results": "docs/validation/make-draft-compact/logs/visual-audit/screenshots/results.json",
+      "raw_results": "docs/validation/make-draft-compact/logs/visual-audit/screenshots/results.json.gz",
       "screenshot_directory": "/private/tmp/fl-makedraft-validation/visual-harness/docs/design/audit/screenshots",
       "validation_role": "diagnostic"
     }

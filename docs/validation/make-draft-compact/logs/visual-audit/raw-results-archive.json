@@ -1,0 +1,6 @@
+{
+  "compressed_file": "screenshots/results.json.gz",
+  "uncompressed_sha256": "fc1b4e055953d74f322c2c846e05a420cd62c35a4659964620fb8d0b14a61a6a",
+  "original_local_file": "/private/tmp/fl-makedraft-raw-results/visual-audit-results.json",
+  "note": "Lossless compression of broad audit machine measurements; readable summaries and the complete matrix remain ordinary Markdown/JSON."
+}

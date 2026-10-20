@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-20 19:42 — Link Draft PR 144 and compress raw audit measurements for review
+- **File(s) changed:** `REPORT.md`, `FULL_SUITE_REPORT.md`, `verification.json`, broad audit raw JSON replaced by `.json.gz`, `raw-results-archive.json`, local raw-results archive
+- **What changed:** Add the open/unmerged PR link and disclose automatic Netlify preview; losslessly compress the 93,318-line audit measurement file with checksum/original copy retained. Runtime, tests and screenshots unchanged.
+- **Why:** Make the delivered report complete and keep machine-output volume from obscuring the code review.
+
+---
+
 ## 2026-10-20 19:40 — Preserve raw stdout while cleaning delivery-log whitespace
 - **File(s) changed:** two validation `.log` copies, `logs/raw-stdout-archive.json`, `verification.json`, `FULL_SUITE_REPORT.md`, `/private/tmp/fl-makedraft-raw-stdout/`
 - **What changed:** Remove trailing whitespace from two committed log copies; retain original stdout bytes locally with original/delivery checksums and disclosure.

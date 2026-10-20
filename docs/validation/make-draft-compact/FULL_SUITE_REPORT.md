@@ -39,7 +39,7 @@ The complete existing `npm run test:visual -- --concurrency 4` audit finished al
 
 The diagnostic run recorded the unmatched fixture endpoint `/auth/session/config`; it remained intercepted locally.
 
-This audit is not a zero-findings functional gate. Its September 11 historical report is not an untouched-HEAD rendered baseline: dates, timing, calendar state and intervening changes can change cells. The comparison records 165 changed cells without attributing them to this task. Its `PAGE_URLS` cover index, sankey, process-flow, traceability and scheduler; it does **not** cover current Record Make. See the [complete matrix](logs/visual-audit/06-browser-check.md), [raw measurements](logs/visual-audit/screenshots/results.json), and [historical comparison](logs/visual-audit/historical-comparison.json).
+This audit is not a zero-findings functional gate. Its September 11 historical report is not an untouched-HEAD rendered baseline: dates, timing, calendar state and intervening changes can change cells. The comparison records 165 changed cells without attributing them to this task. Its `PAGE_URLS` cover index, sankey, process-flow, traceability and scheduler; it does **not** cover current Record Make. See the [complete matrix](logs/visual-audit/06-browser-check.md), [raw measurements](logs/visual-audit/screenshots/results.json.gz), and [historical comparison](logs/visual-audit/historical-comparison.json).
 
 ## Optional Chromium mobile check — existing failure retained
 
@@ -61,3 +61,5 @@ Excluded workflows are listed individually with reasons in `verification.json`: 
 All **1,114 broad-suite PNGs** (128,274,692 bytes), including optional failure/baseline evidence, are preserved locally at `/private/tmp/fl-makedraft-full-suite-screenshots`. The [archive manifest](logs/screenshot-archive.json) maps original paths to archived paths and records SHA-256 checksums. Generated reports and result JSON retain their original capture paths; use this manifest to locate their images. No broad-suite PNG remains under `logs/`; the dedicated requested Make screenshots are unchanged.
 
 Two delivery log copies had trailing whitespace removed for the Git diff check. Their original stdout bytes remain in `/private/tmp/fl-makedraft-raw-stdout`; the [stdout archive manifest](logs/raw-stdout-archive.json) records both checksums. Every diagnostic is retained.
+
+The broad audit’s 93,318-line raw measurement JSON is delivered losslessly compressed to keep the PR review focused. The [raw-results manifest](logs/visual-audit/raw-results-archive.json) records its uncompressed checksum and original local copy.

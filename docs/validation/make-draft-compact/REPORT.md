@@ -1,5 +1,7 @@
 # Make draft: easier to check on a phone
 
+[Draft PR #144](https://github.com/sevenwells72/factory-ledger/pull/144) is open and unmerged.
+
 The Make draft now gives each ingredient one compact row. It shows the needed pounds, the full suggested lot code with its last characters enlarged, a ✓ button and Change. Nothing is checked automatically. The form explains that the ingredients come from the product’s recipe and appear after Prepare.
 
 Arturo can check the bag tag and tap ✓. If he used another lot, Change shows its full code, received date and pounds on hand. He selects it and checks its tag. He can still type the last four characters or full code, or use the barcode-reader input. Lots that both end in C-01 are easy to distinguish by their complete codes.
@@ -31,4 +33,4 @@ The current functional browser runners also pass in their documented modes. Earl
 
 See the [full test report](FULL_SUITE_REPORT.md), [Make walkthrough](BROWSER_WALKTHROUGH.md), [machine-readable results](verification.json), and [protected-file checks](scope-guard.json).
 
-Zero OpenAI API calls were made. No staging or production database or Railway action was used. main.py, pool code, Assistant turn handling and dashboard/fl-assistant files are unchanged. The new database update for storing tap confirmations is included as migration 085, but has only been applied to disposable local test databases. It must be applied separately before a future hosted release. This work is for an unmerged Draft PR; nothing has been deployed.
+Zero OpenAI API calls were made. No staging or production database or Railway action was used. main.py, pool code, Assistant turn handling and dashboard/fl-assistant files are unchanged. The new database update for storing tap confirmations is included as migration 085, but has only been applied to disposable local test databases. It must be applied separately before a future hosted release. This work is for an unmerged Draft PR. No production deployment was run. Opening the PR automatically created a Netlify preview; it was not used to contact a live database.
