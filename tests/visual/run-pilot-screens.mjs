@@ -103,6 +103,7 @@ try {
       }
       if (pathname === '/sales/orders/70') return send({ order_id: 70, order_number: 'SO-PILOT-001', customer: 'Pilot Bakery',
         lines: [{ line_id: 701, product_id: 13, product_name: products.finished.name, product: products.finished.name, remaining_lb: 40, quantity_lb: 40, is_service: false }] });
+      if (pathname === '/entry/lots') return send({ lots: [] });
       if (pathname === '/ship/lots') return send({ product_id: Number(url.searchParams.get('product_id')), product: products.finished.name,
         case_size_lb: 20, lots: lotRows, suggested_lots: [{ ...lotRows[0], quantity_lb: Number(url.searchParams.get('quantity_lb')) || 40 }] });
       if (pathname === '/attachments') return send({ attachment_id: 81, kind: 'bol' });
@@ -191,7 +192,7 @@ try {
     const confirm = async () => {
       const fields = page.locator('#resolution fieldset').filter({ hasText: 'Confirm physical lot:' });
       for (const field of await fields.all()) {
-        const code = (await field.locator('legend').textContent()).replace('Confirm physical lot: ', '');
+        const code = (await field.locator('legend').textContent()).replace('Confirm physical lot: ', '').split(' · ').at(-1);
         await field.locator('select').selectOption('full_code'); await field.locator('input').fill(code);
       }
       await page.getByRole('button', { name: 'Check confirmations → new draft', exact: true }).click();
@@ -293,7 +294,7 @@ try {
         assert.match(draftText, /PACK261019-P1561/); assert.match(draftText, /PACK261019-P1562/); assert.doesNotMatch(draftText, /OPEN261014-P1561/);
         assert.equal(await page.locator('#resolution .record-bar button').isDisabled(), true); await confirm();
         await page.locator('#resolution input[type=file]').setInputFiles({ name: 'bol.png', mimeType: 'image/png', buffer: Buffer.from('pilot-bol-fixture') });
-        await page.getByText('Photo attached', { exact: false }).first().waitFor();
+        await page.locator('#resolution').getByText('Photo attached', { exact: true }).waitFor();
         const number = await record(); assert.deepEqual(state.commits.at(-1).body.attachment_ids, [81]); await openReceipt(number);
         const text = await page.locator('#content').innerText(); assert.match(text, /PACK261019-P1561/); assert.match(text, /PACK261019-P1562/); assert.match(text, /Photo attached ✓/); assert.doesNotMatch(text, /Photo pending|Photo due/);
         await screenshot('ship-' + shipMode + '-receipt'); check(`${shipMode} shipment defaults FIFO and records worker-selected split lots with attached proof`);

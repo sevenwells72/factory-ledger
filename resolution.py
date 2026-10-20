@@ -11,7 +11,7 @@ import re
 import unicodedata
 from typing import Literal, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field, validator
 
 
@@ -129,6 +129,7 @@ class ResolutionContext(BaseModel):
     action: Optional[Literal['make', 'pack', 'receive', 'ship', 'order', 'adjust', 'void']] = None
     group: Optional[Literal['floor', 'office']] = None
     product_id: Optional[int] = Field(None, gt=0)
+    product_type: Optional[Literal['batch', 'finished', 'ingredient', 'packaging', 'consumable']] = None
     customer_id: Optional[int] = Field(None, gt=0)
     supplier_id: Optional[int] = Field(None, gt=0)
     order_id: Optional[int] = Field(None, gt=0)
@@ -546,6 +547,9 @@ def _products(cur, req, variants, aliases):
               c.action, c.action, c.product_id, c.product_id)
     if bare:
         params += (ids,)
+    if c.product_type:
+        source += ' AND p.type=%s'
+        params += (c.product_type,)
     rows = _search(cur, source, params, variants, aliases, limit=req.limit, offset=req.offset)
     for row in rows:
         if row['score'] == 1 and ((row['id'] in ids and not literal_ids) or row['_variant'].text not in
@@ -875,8 +879,41 @@ def resolve_bulk_product(cur, name):
                 suggestions=result.get('near_misses', []))
 
 
+def entry_lots(cur, *, product_id=None, query='', include_empty=False):
+    """Bounded display choices only; ticket prepare/commit still verify every tag."""
+    # Literal text, not SQL wildcards; product words also find lots in Adjust/Found.
+    terms = [term.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+             for term in catalog_query(query).split()]
+    pattern = '%' + '%'.join(terms) + '%'
+    cur.execute("""SELECT l.id, l.id AS lot_id, l.lot_code, l.product_id,
+            p.name AS product_name, b.on_hand_lb, b.on_hand_lb AS available_lb,
+            l.received_at, l.created_at
+        FROM lots l JOIN products p ON p.id=l.product_id
+        CROSS JOIN LATERAL (
+            SELECT COALESCE(sum(tl.quantity_lb),0) AS on_hand_lb
+            FROM ledger_current_transaction_lines tl
+            JOIN ledger_current_transactions t ON t.id=tl.transaction_id
+            WHERE tl.lot_id=l.id AND t.effective_status='posted'
+        ) b
+        WHERE p.active IS DISTINCT FROM false AND l.status IS DISTINCT FROM 'merged'
+          AND (%s::int IS NULL OR l.product_id=%s)
+          AND (%s OR b.on_hand_lb>0)
+          AND (l.lot_code ILIKE %s OR p.name ILIKE %s)
+        ORDER BY COALESCE(l.received_at,l.created_at) DESC,l.id DESC LIMIT 51""",
+        (product_id,product_id,include_empty,pattern,pattern))
+    rows = [dict(row) for row in cur.fetchall()]
+    return {'lots': rows[:50], 'has_more': len(rows)>50}
+
+
 def build_router(transaction, authenticate):
     router = APIRouter()
+
+    @router.get('/entry/lots')
+    def entry_lots_endpoint(product_id: Optional[int] = Query(None, gt=0),
+                            query: str = Query('', max_length=500),
+                            include_empty: bool = False, _: bool = Depends(authenticate)):
+        with transaction() as cur:
+            return entry_lots(cur, product_id=product_id, query=query, include_empty=include_empty)
 
     @router.post('/resolve')
     def resolve_endpoint(req: ResolveRequest, _: bool = Depends(authenticate)):

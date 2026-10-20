@@ -7,8 +7,8 @@ const vm = require('node:vm');
 const ROOT = path.resolve(__dirname, '..');
 const settle = async () => { for (let i = 0; i < 6; i++) await new Promise(resolve => setImmediate(resolve)); };
 function element(tag = 'div') {
-  return { tag, children: [], listeners: {}, dataset: {}, style: {}, value: '', hidden: false,
-    append(...children) { this.children.push(...children); },
+  return { tag, isConnected: true, children: [], listeners: {}, dataset: {}, style: {}, value: '', hidden: false,
+    append(...children) { children.forEach(child => child.parentElement = this); this.children.push(...children); },
     replaceChildren(...children) { this.children = children; },
     setAttribute(name, value) { this[name] = value; },
     addEventListener(name, callback) { (this.listeners[name] ||= []).push(callback); },
@@ -30,7 +30,7 @@ function harness(search = '') {
     },
     exceptionQueue: require('../dashboard/ledger-ui.js').exceptionQueue, openingStock: require('../dashboard/ledger-ui.js').openingStock, groups: () => [], receiptState: () => ({ state: 'recorded', tone: 'good' }), voidChoices: () => [], draftHtml: () => '',
     notice() {}, failure(error) { throw error; }, relabel() {}, translate() {} };
-  const context = vm.createContext({ URL, URLSearchParams, FLLedger: ui, FLReceipts: { page: name => name },
+  const context = vm.createContext({ setTimeout, clearTimeout, URL, URLSearchParams, FLLedger: ui, FLReceipts: { page: name => name },
     FLDashboard: { writesEnabled: true }, location: { search, href: 'https://fl.local/entry.html' + search }, history: { replaceState() {} },
     document: { getElementById: get }, console });
   context.window = context;

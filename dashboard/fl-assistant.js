@@ -83,7 +83,7 @@
     if (code === 'PHOTO_INVALID' || error?.httpStatus === 413) return sentBytes > MAX_PHOTO || error?.httpStatus === 413 ? 'too_large' : 'wrong_type';
     return 'failed';
   }
-  const assistantOffline = value => { const data = value?.result || value, detail = data?.detail || data; return (detail?.error_code || detail?.code) === 'ASSISTANT_QUOTA_EXHAUSTED'; };
+  const assistantOffline = value => { const data = value?.result || value, detail = data?.detail || data; return ['ASSISTANT_QUOTA_EXHAUSTED','ASSISTANT_DISABLED'].includes(detail?.error_code || detail?.code); };
   const safeOfficeLink = href => /^\/dashboard\/(?:entry|office|receipt|exceptions)\.html(?:[?#]|$)/.test(String(href || '')) ? href : null;
   const exports = { assistantOffline, safeOfficeLink, supplierChoices, isTodayQuery, voidTarget, refusalDraft, validReceipt, canRecord, validAttachment, evidenceKinds, errorText, awaitingApproval, neutralMessages,
     dayLabel, dividerLabel, showJump, photoKinds, photoStatus, photoProblem, MAX_PHOTO };
@@ -130,7 +130,7 @@
   function notice(message, tone = 'error') { if (tone === 'neutral') $('composer').after($('notice')); $('notice').textContent = message; $('notice').hidden = !message; $('notice').className = tone === 'neutral' ? 'notice neutral-notice' : 'notice'; $('notice').setAttribute('role', tone === 'neutral' ? 'status' : 'alert'); }
   function handoffActions(node, actions) {
     const row = el('div', undefined, 'card-actions');
-    for (const action of actions || []) { const href = safeOfficeLink(action.href); if (!href) continue; const link = el('a', action.label, 'button-link'); link.href = href; row.append(link); }
+    for (const action of actions || []) { const href = safeOfficeLink(action.href); if (!href) continue; const link = el('a', action.label, 'button-link'); const destination = new URL(href, location.origin); link.href = (root.FLReceipts?.page(destination.pathname.split('/').pop()) || destination.origin + destination.pathname) + destination.search + destination.hash; row.append(link); }
     node.append(row);
   }
   function handoff(node, card) {
@@ -767,7 +767,11 @@
   authReady.catch(() => {});
   async function enterChat(who, { background = false } = {}) {
     actor = who; sessionStore = 'fl-assistant-chat:' + (actor.id || actor.name);
-    await loadChat({ background }); $('sign-in-panel').hidden = true; $('chat-panel').hidden = false; $('sign-out').hidden = false;
+    try { await loadChat({ background }); } catch (error) {
+      if (!assistantOffline(error)) throw error;
+      session = ''; $('sign-in-panel').hidden = true; $('chat-panel').hidden = false; $('sign-out').hidden = false; applyLanguage(); offline(shell(), error); setBusy(false); return;
+    }
+    $('sign-in-panel').hidden = true; $('chat-panel').hidden = false; $('sign-out').hidden = false;
     applyLanguage(); setBusy(false); $('message').focus({ preventScroll: true });
     // Resume where the conversation is now: the latest message, never the oldest.
     scrollToLatest(); root.requestAnimationFrame?.(scrollToLatest);

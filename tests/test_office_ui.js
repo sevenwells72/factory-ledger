@@ -9,7 +9,7 @@ test('office visibility fails closed with flag off or missing FL permission',()=
 const common={order_id:10,line_id:2,customer_id:3,product_id:4,supplier_id:5,expected_receipt_id:6,document_id:7,customer_po:'000123',lines:[{product_id:4,quantity:2,unit:'each'}],reason:'short_closed',note:'reason',status:'in_production',quantity_lb:20,unit_price:0,expected_qty:50};
 for(const [action] of office.actions)test('A7 route and no direct write: '+action,()=>{
   const built=office.build(action,common);assert.ok(built.path.endsWith('/prepare'));assert.equal(built.body.client_source,'dashboard');
-  assert.ok(['ORD','ER'].includes(built.prefix));assert.ok(!('mode' in built.body));assert.ok(!('created_by' in built.body));assert.ok(!('customer_name' in built.body));
+  assert.ok(['ORD','ER','CUS'].includes(built.prefix));assert.ok(!('mode' in built.body));assert.ok(!('created_by' in built.body));assert.ok(!('customer_name' in built.body));
 });
 test('PO keeps leading zeroes and No PO is explicit null',()=>{
   assert.equal(office.build('create_order',common).body.customer_po,'000123');
@@ -37,4 +37,14 @@ for(const [name,args] of [['saveOrderHeader',[{}]],['saveOrderLines',[{}]],['erS
  const start=source.indexOf('  async function '+name+'('),code=source.slice(start,source.indexOf('\n  }',start)+4),visited=[];
  const context=vm.createContext({FLDashboard:{ready:Promise.resolve(true),writesEnabled:true},FLReceipts:{page:(page,params)=>({page,params})},location:{assign:value=>visited.push(value)},state:{currentOrderDetail:{order_id:3},erEditing:{id:4},erIntake:{documentId:5},soIntake:{documentId:6}},fetchSalesAPI:()=>{throw Error('Direct route called');}});
  vm.runInContext(code,context);await context[name](...args);assert.equal(visited.length,1);assert.equal(visited[0].page,'office.html');
+});
+
+
+test('expected cases calculate pounds without accepting missing or zero package sizes',()=>{
+ assert.equal(office.expectedPounds(10,25),250);assert.equal(office.expectedPounds(1.5,2.2),3.3);
+ for(const [count,size] of [[0,25],[10,0],[-1,25],[10,Infinity],[NaN,25]])assert.throws(()=>office.expectedPounds(count,size));
+});
+test('product choices put regular first and preserve every explicit extra-kosher identity',()=>{
+ const rows=[{id:2,kosher_tier:'extra_kosher'},{id:3,kosher_tier:'extra_kosher'},{id:1,kosher_tier:'regular'}];
+ assert.deepEqual(office.productChoices(rows).map(row=>row.id),[1,2,3]);assert.equal(rows[0].id,2);
 });

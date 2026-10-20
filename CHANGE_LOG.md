@@ -1,5 +1,110 @@
 # Change Log
 
+## 2026-10-20 14:18 — Prepare the requested pilot UX draft PR description
+- **File(s) changed:** `/private/tmp/fl-pilotux-pr-body.txt`
+- **What changed:** Prepare a review description with final behavior, traceability boundaries, all passing counts, cleanup and screenshot links.
+- **Why:** Open the user-requested draft PR after final verification.
+
+---
+
+## 2026-10-20 14:18 — Validate all 17 pilot UX fixes and record row 221 with final evidence
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/pilot-ux-round/summary.md`, `docs/validation/pilot-ux-round/verification.json`, `docs/validation/pilot-ux-round/actual-browser-results.json`, `docs/validation/pilot-ux-round/hosting-results.json`, `docs/validation/pilot-ux-round/logs/*`, `docs/validation/pilot-ux-round/screenshots/*`, `tests/visual/run-pilot-ux-round.mjs`
+- **What changed:** Add final item-by-item validation, source hashes, stdout logs and 20 representative screenshots; reserve row 221 after parallel pool row 220. Fresh Python 6,916 off + 6,916 on, Node 488, actual browser 96/96 with 44 receipts, hosting 272, existing pilot 60 and dashboard/Assistant both modes pass.
+- **Why:** Provide reviewable proof for the requested draft PR; all local fl_pilotux_ databases are dropped and temporary servers stopped. No OpenAI or hosted changes.
+
+---
+
+## 2026-10-20 14:13 — Match local pilot replay to the exact Luz and Arturo practice inputs
+- **File(s) changed:** `tests/visual/run-pilot-ux-round.mjs`, `tests/visual/pilot_ux_page_bridge.py`
+- **What changed:** Replay Setton Farms with the requested ship date, exact new-customer name, expected delivery date, four packed cases from the new batch, manual shipment lots and physical supplier tags on isolated synthetic data; verify receipt lookup and both supported Receive photo kinds.
+- **Why:** The final browser evidence must represent the supplied walkthroughs with real local Record actions.
+
+---
+
+## 2026-10-20 14:09 — Verify supported evidence and complete bilingual phone/desktop hosting checks
+- **File(s) changed:** `tests/test_assistant_page_round_a.js`, `tests/test_dashboard_runtime.js`, `tests/test_pilot_entry_ui.js`, `tests/test_pilot_ticket_ui.js`, `tests/visual/run-pilot-ux-hosting.mjs`, `tests/visual/run-pilot-ux-round.mjs`, `tests/visual/pilot_ux_page_bridge.py`
+- **What changed:** Align static-host asset assertions with the path-only alias base, validate real Receive evidence arrays/types and fresh per-scenario practice DBs, and preserve identified-lot supplier-tag guards in Found tests. Hosting passes 16 scenarios/272 grouped checks; all 488 Node tests pass.
+- **Why:** Run the pilot flows against actual contracts without weakening identity, evidence or disabled-mode behavior.
+
+---
+
+## 2026-10-20 14:06 — Expose supported Receive photo types and check shared navigation across dashboard hosts
+- **File(s) changed:** `dashboard/entry.js`, `tests/test_pilot_entry_ui.js`, `tests/test_pilot_ticket_ui.js`, `tests/visual/run-pilot-ux-hosting.mjs`
+- **What changed:** Offer Receive BOL or label/lot-tag evidence, retain the chosen type through draft replacement and edits, and cover supported Receive commit arrays. Extend browser hosting checks to every shared dashboard header.
+- **Why:** Staff must attach accepted evidence before preparing, and button navigation must work on every desktop/phone page.
+
+---
+
+## 2026-10-20 14:05 — Use existing Receive BOL/lot-tag evidence contract and verify both hosting layouts
+- **File(s) changed:** `dashboard/ledger-ticket.js`, `tests/visual/run-pilot-ux-hosting.mjs`, `tests/test_assistant_mobile_ux.js`, `tests/visual/pilot_ux_page_bridge.py`
+- **What changed:** Send Receive photos through the existing attachment_ids contract and supported BOL/lot-tag kinds; add a receive draft type choice. Add root/prefixed/alias browser hosting smoke and cache/evidence cleanup checks.
+- **Why:** Actual local Record exposed the old Receive UI using correction-only evidence; preserve the existing backend without changing posting code.
+
+---
+
+## 2026-10-20 14:04 — Complete pilot evidence and disabled-mode regression coverage with valid local tag fixtures
+- **File(s) changed:** `tests/test_pilot_ux_reads.py`, `tests/test_pilot_ticket_ui.js`, `tests/test_fl_assistant_ui.js`, `tests/visual/run-pilot-ux-round.mjs`
+- **What changed:** Use canonical lot-code fixtures under strict full-suite constraints; test all shared-substitute references and disabled/quota handoff classification; assert actual receipt photos and improve practice selectors.
+- **Why:** Exercise real pilot rules on fresh DBs and prevent UI evidence from silently diverging from a reviewed draft.
+
+---
+
+## 2026-10-20 14:04 — Resolve Assistant assets on both dashboard hosts and keep shared-substitute lot choices consistent
+- **File(s) changed:** `dashboard/fl-assistant.html`, `dashboard/ledger-ticket.js`, `tests/test_assistant_mobile_ux.js`, `tests/visual/run-pilot-screens.mjs`
+- **What changed:** Resolve Assistant assets/home links relative to the dashboard directory, retain the backend alias base, and update every use of the same substitute when a worker chooses its full physical lot code. Update cache and photo-status browser regressions.
+- **Why:** Home and offline handoff must work on root-published static hosting and backend hosting; shared substitutes must remain one consistent reviewed lot.
+
+---
+
+## 2026-10-20 14:03 — Show pilot handoff when Assistant is disabled and retain replacement evidence through edits
+- **File(s) changed:** `dashboard/fl-assistant.js`, `dashboard/ledger-ticket.js`, `dashboard/entry.js`, `tests/test_pilot_entry_ui.js`, `tests/test_pilot_ticket_ui.js`, `tests/visual/pilot_ux_page_bridge.py`, `tests/visual/run-pilot-screens.mjs`, `tests/visual/run-pilot-ux-round.mjs`
+- **What changed:** Display safe Office/Record handoff when disabled session loading refuses; keep photo B on edit/reprepare, reject stale upload callbacks and test both Receive/Ship custody. Complete local bridge prerequisites and actual-page Today assertions.
+- **Why:** Pilot staff need working form access with the Assistant disabled, and receipts must contain the photo they reviewed.
+
+---
+
+## 2026-10-20 14:02 — Preserve draft replacement photos and show useful Today entry context
+- **File(s) changed:** `dashboard/receipt.js`, `dashboard/ledger-ticket.js`, `tests/visual/run-pilot-screens.mjs`, `tests/visual/pilot_ux_page_bridge.py`, `tests/visual/run-pilot-ux-round.mjs`
+- **What changed:** Add a successful-photo callback for draft-to-form evidence custody, display frozen Today summary or action/product plus void status, and align browser lot helpers with compact tag labels.
+- **Why:** Editing a draft must not silently lose a replaced photo; Today must explain recorded work without AI.
+
+---
+
+## 2026-10-20 14:01 — Refresh all dashboard pilot assets and complete Today/evidence regression checks
+- **File(s) changed:** `dashboard/receipt.html`, `dashboard/runs.html`, `dashboard/index.html`, `dashboard/process-flow.html`, `dashboard/fl-assistant.html`, `dashboard/traceability.html`, `dashboard/exceptions.html`, `dashboard/shift-summary.html`, `dashboard/sankey.html`, `dashboard/history.html`, `dashboard/office.html`, `dashboard/entry.html`, `dashboard/entry.js`, `tests/test_pilot_entry_ui.js`, `tests/visual/run-pilot-ux-round.mjs`
+- **What changed:** Refresh shared navigation/draft cache keys on every dashboard page; complete direct Today links, late-photo isolation and explicit case-weight batch-pin checks. Adjust actual-page runner selectors to the implemented controls.
+- **Why:** Every page must show updated buttons and tag/draft controls on pilot devices with cached assets.
+
+---
+
+## 2026-10-20 14:00 — Keep Today independent of disabled Assistant and validate pilot tag/photo custody
+- **File(s) changed:** `dashboard/fl-assistant.js`, `dashboard/ledger-ticket.js`, `dashboard/receipt.js`, `dashboard/ledger-forms.css`, `dashboard/office.js`, `dashboard/office.html`, `tests/test_background_startup_ui.js`, `tests/test_pilot_entry_ui.js`, `tests/test_pilot_ticket_ui.js`, `tests/visual/run-pilot-ux-round.mjs`
+- **What changed:** Render Today via read-only receipts with no Assistant session; fix offline links for the current dashboard directory, guard Edit during upload, and add real-page practice and shared draft tests. Preserve bilingual duplicate and stale-search checks.
+- **Why:** The pilot must work with Assistant off and retain every explicit physical tag and photo across review.
+
+---
+
+## 2026-10-20 13:59 — Cover pilot form choices and isolated lookup safety with regression tests
+- **File(s) changed:** `tests/test_pilot_ux_reads.py`, `tests/test_office_ui.js`, `tests/test_office_customer_ui.js`, `tests/test_pilot_entry_ui.js`, `dashboard/office.js`, `dashboard/office.html`, `dashboard/entry.js`
+- **What changed:** Add real-DB read-only lot search/filter/validation and batch-source tests, plus exact Setton Farms duplicate, New customer, delivery conversion, debounce, evidence carry, role and cancellation tests. Finish Today links and stale-callback guards.
+- **Why:** Verify pilot actions and prove catalog choices cannot bypass tag confirmation or post inventory.
+
+---
+
+## 2026-10-20 13:58 — Make pilot Office and Record forms clearer with explicit draft and tag choices
+- **File(s) changed:** `dashboard/office.js`, `dashboard/office-logic.js`, `dashboard/office.html`, `dashboard/entry.js`, `dashboard/entry.html`, `dashboard/ledger-ticket.js`, `tests/visual/pilot_ux_page_bridge.py`
+- **What changed:** Add Office starting buttons, separate customer creation and duplicates, live search/tier labels, cases delivery input, empty-form Cancel, pre-draft photos, recent batch choices, product lot searches and owner-only backfill. Shared drafts show shortage warnings and ambiguous full-tag choices with server revalidation. Add isolated local practice bridge with OpenAI disabled.
+- **Why:** Address Luz and Arturo pilot walkthrough confusion while preserving every physical-tag confirmation.
+
+---
+
+## 2026-10-20 13:57 — Add pilot lot display lookup and clear shared navigation with direct Today view
+- **File(s) changed:** `resolution.py`, `main.py`, `dashboard/ledger-forms.css`, `dashboard/fl-assistant.css`, `dashboard/fl-assistant.js`
+- **What changed:** Add SELECT-only product/lot choices and batch product context; style header links as buttons and support a direct Today route.
+- **Why:** Pilot workers need visible navigation and physical-lot choices without changing posting or pool behavior.
+
+---
+
 ## 2026-10-19 21:20 — Record final pilot-screen validation and regression guard
 - **File(s) changed:** FACTORY_LEDGER_CHANGELOG.md, docs/validation/pilot-screens/verification.json, /tmp/fl_pilot_pr_body.md
 - **What changed:** Add row 219 and final source-hashed evidence: 6,909 fresh Python tests in each session mode, 440 Node and 60 phone/desktop browser checks, existing runners both modes; all six disposable local pilot databases dropped. Prepare draft PR text; no model calls, settings/hosted data changes, migration or deployment.

@@ -1,0 +1,119 @@
+{
+  "checked_at": "2026-10-20T14:16:56.399981-04:00",
+  "base_commit": "9d5e888b17ac6da9afe4631ea124c9bd8a5d9098",
+  "local_only": true,
+  "openai_calls": 0,
+  "python": {
+    "off": {
+      "tests": 6916,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "time": "187.919",
+      "timestamp": "2026-10-20T14:10:48.648038-04:00"
+    },
+    "on": {
+      "tests": 6916,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "time": "172.957",
+      "timestamp": "2026-10-20T14:05:53.037055-04:00"
+    }
+  },
+  "node": {
+    "tests": 488,
+    "passed": 488,
+    "failed": 0,
+    "skipped": 0
+  },
+  "actual_browser": {
+    "checks": 96,
+    "passed": 96,
+    "failed": 0,
+    "scenarios": 8,
+    "local_records": 44,
+    "physical_lot_confirmations": 20,
+    "attachments": 8,
+    "screenshots": 100,
+    "databases_dropped": [
+      "fl_pilotux_page_75725_0_1440_en",
+      "fl_pilotux_page_75725_0_1440_es",
+      "fl_pilotux_page_75725_0_390_en",
+      "fl_pilotux_page_75725_0_390_es",
+      "fl_pilotux_page_75725_1_1440_en",
+      "fl_pilotux_page_75725_1_1440_es",
+      "fl_pilotux_page_75725_1_390_en",
+      "fl_pilotux_page_75725_1_390_es"
+    ]
+  },
+  "hosting_browser": {
+    "scenarios": 16,
+    "checks": 272,
+    "screenshots": 48,
+    "all_passed": true
+  },
+  "existing_browser": {
+    "dashboard": {
+      "sessions_off": "passed",
+      "sessions_on": "passed"
+    },
+    "assistant": {
+      "sessions_off": "passed",
+      "sessions_on": "passed"
+    },
+    "pilot_screens": {
+      "checks": 60,
+      "passed": 60,
+      "sessions": [
+        0,
+        1
+      ]
+    }
+  },
+  "cleanup": {
+    "default_local_cluster_fl_pilotux_databases": [],
+    "isolated_cluster_port": 55472,
+    "isolated_cluster_stopped": true,
+    "all_runner_servers_stopped": true
+  },
+  "full_output": "/Users/cns/dev/fl-test-runs/pilot-ux-round",
+  "source_sha256": {
+    "dashboard/entry.html": "4b35492972bd61d480915a2a46d41c80edc17f0e0106e16ab66ccc3754469519",
+    "dashboard/entry.js": "bdc8081768aeb5ebbdfc718a735709361e59a6853e0e5925f9c547936543aaad",
+    "dashboard/exceptions.html": "c82d7eca76877d74afd96f24bb749cad213f012976bcb204a3805b1958ee0315",
+    "dashboard/fl-assistant.css": "0b4144151b2e8aad931dc8a28e4503ce5041a9d838a7dc4651846c1a8ae524d7",
+    "dashboard/fl-assistant.html": "7a70337eaf26653ca5ca5c6376dfd31b76aed85ca0c80bc483635353a2f98415",
+    "dashboard/fl-assistant.js": "7046841602a67a5ade21c74fcc45803f8788230c9ab81ef5088c0a2cc83acee9",
+    "dashboard/history.html": "962375656c1fc146040f71fe9128ff48051fbde38d7d0d2057cfd9892f1d5c29",
+    "dashboard/index.html": "a4daa5c2e38120bf2e57956f2924e23429366ccf74f55df8aa5be3475477894e",
+    "dashboard/ledger-forms.css": "c42031c1f77bb7b61146c2d69c775414edaa2ba3fdd74cea466dbce1c5e50313",
+    "dashboard/ledger-ticket.js": "17efd45f0cba2b30f979e60c1ff10a8627d2185920f81f1b7be075fc2334ab14",
+    "dashboard/office-logic.js": "3a3b420d319f45e6aee2f3b80432488e4cd58f17f31410787e3104d814c4fa95",
+    "dashboard/office.html": "f6c9be2d954d46a2b825cec5e6146f0bfda2b908bf41e99144a0add2609db15e",
+    "dashboard/office.js": "855f030c35e662230f5c34f699ddaea40520be41ff8e6eb5a86de064d3ca2048",
+    "dashboard/process-flow.html": "ee2ecd197474e9a3297c4b990c61a514ed9b88ca7ecdc24072c08535d2cf8bb7",
+    "dashboard/receipt.html": "bb157b62dfc27823e905506f035726a5036ee5b7985ea31cf0466c30364b07d6",
+    "dashboard/receipt.js": "20b1a3c4f846fd40a96ee90b37a4bd65e5128ec45431d667e45d323da9cf3537",
+    "dashboard/runs.html": "70bfb5e7711de919192a242615ce7b62789ddf11961fd796ed3d07809203083b",
+    "dashboard/sankey.html": "2c85f7462fb3195d835092d5a8c516f48380c0a3082b8dfc0176bc467bc6d1a0",
+    "dashboard/shift-summary.html": "c65b41595d61893ebbdcccbf655bed8b9e9d51c0f4ecce8ff27321f37b75dfaf",
+    "dashboard/traceability.html": "9563786c259ce4bfb6a67917747c7f00092f367aae807b541e1f53fff29cde66",
+    "main.py": "faf05e71bbe5cf418b21a19d8d3fefe7c91b12e5c8b2d5c0a3f6825371b3e4c9",
+    "resolution.py": "f1dce7d325f4caa7363b12436aaaefb377ba0ee558391630d0b2f069df0fc195",
+    "tests/test_assistant_mobile_ux.js": "22b8fd23b460adad173af6b8fe56413db1f7b63ab53aa4b3256d9f81ace461c7",
+    "tests/test_assistant_page_round_a.js": "bf03c1935aecfc75294c5f2d5eff7b65c336dccacd2bdbf4bb0a192d94d03eef",
+    "tests/test_background_startup_ui.js": "d2796d686adacf9e67dacf70d9744064f9e6f81852e8a503788916abd835d2bd",
+    "tests/test_dashboard_runtime.js": "cd9c8c611ace403928b4ff386b1df14bff118ab2f93b41dca2d52afe781bdc87",
+    "tests/test_fl_assistant_ui.js": "ab52c89d0bb1b9aad3f632aa59c4f849ce6dbfa651468fbff5efe623b330da94",
+    "tests/test_office_customer_ui.js": "c119109810df888d78c33cea432327a04dcb3d3d84ff867f9bae8e409d845f7c",
+    "tests/test_office_ui.js": "a67dc744d87ea6b8e2bdf07e78acb5df98e83de83d0e5d374a0e72ce9c677c65",
+    "tests/test_pilot_entry_ui.js": "490129cc193a76ac22c2f0ca8c29c1b872a47473cef19ee6d2c15861ce28c101",
+    "tests/test_pilot_ticket_ui.js": "533f28ae2047693b537657a5d8f1a12bb1cd5c629e5af0384793f351c1ae23ee",
+    "tests/test_pilot_ux_reads.py": "05dc9637a897fe5b4bb2f226c0c5e7374007a845d887db5a28bd98315540017b",
+    "tests/visual/pilot_ux_page_bridge.py": "07eed9856749a96c6326865afb1432557483620d187ed5957d1e93bc3b59cd1c",
+    "tests/visual/run-pilot-screens.mjs": "7f5da8ae8f2d8348a7ba1c3fd6f8eea24acc22bf085a46212d33fe15f68640af",
+    "tests/visual/run-pilot-ux-hosting.mjs": "da01bf2d7aeb8113a737568a6e81dea0a287677cb98ab62094b8db5ad58e29b0",
+    "tests/visual/run-pilot-ux-round.mjs": "c9107c11a274fcd4481ac69ca29f2ebeff8edfac515147941629a5b94e0fd395"
+  }
+}
