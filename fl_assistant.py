@@ -8,6 +8,7 @@ import json
 import logging
 import threading
 import os
+import time
 import re
 from urllib.parse import quote
 from pathlib import Path
@@ -22,6 +23,7 @@ from pydantic import BaseModel, Field, StrictInt, StrictStr
 from psycopg2.extras import Json
 
 import assistant_runtime as runtime
+import db_busy
 import assistant_tools as catalog
 import write_tickets
 import resolution
@@ -37,6 +39,8 @@ ACTOR_ROUTES = frozenset({('POST', '/assistant/' + p) for p in ROUTES} |
 MAX_PHOTO = 5 * 1024 * 1024
 MAX_AUDIO = 20 * 1024 * 1024
 MAX_STEPS = 8
+LEASE_SECONDS = 120              # the chat lock's interval '2 minutes'
+LEASE_RELEASE_WAIT_SECONDS = 0.5  # a failed turn's lock release never waits longer on a busy pool
 MODEL = 'gpt-6.1-sol'  # PoC choice; service may explicitly override it.
 TRANSCRIBE_MODEL = 'gpt-transcribe'
 logger = logging.getLogger(__name__)
@@ -244,7 +248,18 @@ async def relay(app, request, method, path, *, body=None, params=None, file=None
         result = json.loads(raw)
     except ValueError:
         fail(502, 'FL_RESPONSE_INVALID', 'FL returned no usable response.')
+    if request.scope.get('_fl_assistant_turn') and status == 503 and _database_busy(result):
+        # A busy pool during a chat turn (lookups and prepares alike) aborts
+        # the turn unsaved: the page shows "busy" with Retry, and the retry
+        # runs the turn again instead of replaying a saved lookup failure.
+        raise db_busy.PoolTimeout(f'connection pool exhausted during assistant {method} {path}')
     return status, result
+
+
+def _database_busy(result):
+    detail = result.get('detail') if isinstance(result, dict) else None
+    return isinstance(result, dict) and 'DATABASE_BUSY' in (
+        result.get('error_code'), detail.get('error_code') if isinstance(detail, dict) else None)
 
 
 def session_row(api, session_id, actor_id, *, lock=False):
@@ -371,6 +386,10 @@ def receipt_ok(status, result):
     return (status == 200 and isinstance(result, dict) and result.get('success') is not False
             and isinstance(result.get('receipt_number'), str)
             and re.fullmatch(r'(?:RCV|MK|PK|ADJ|FND|SHP|CUS|ORD)-\d{6}-\d{3,}', result['receipt_number']) is not None)
+
+
+def _in_background(target, *args):
+    threading.Thread(target=target, args=args, daemon=True, name='assistant-lease-release').start()
 
 
 def register_routes(app, api):
@@ -1067,8 +1086,46 @@ def register_routes(app, api):
             if cur.rowcount != 1:
                 fail(409, 'CHAT_BUSY', 'Chat changed; reload / El chat cambió; recarga.')
 
+    # Chat locks a failed turn gave up while FL had no free connection to clear
+    # the row with. A claim treats them as free at once, so Retry works the
+    # moment FL is free again; a background thread clears the row itself.
+    released_leases = set()
+    released_lock = threading.Lock()
+
+    def clear_lease(sid, lease):
+        with api.get_transaction() as cur:
+            cur.execute('UPDATE assistant_sessions SET lease_id=NULL,lease_until=NULL WHERE id=%s AND lease_id=%s', (sid, lease))
+
+    def release_lease(sid, lease):
+        """Free a failed turn's chat lock without waiting on a busy pool."""
+        token = api._pool_wait_deadline.set(time.monotonic() + LEASE_RELEASE_WAIT_SECONDS)
+        try:
+            clear_lease(sid, lease)
+            return
+        except Exception:
+            logger.warning('assistant chat lock release deferred: FL busy or unreachable', exc_info=True)
+        finally:
+            api._pool_wait_deadline.reset(token)
+        with released_lock:
+            released_leases.add(lease)
+        _in_background(clear_lease_later, sid, lease)
+
+    def clear_lease_later(sid, lease):
+        give_up = time.monotonic() + LEASE_SECONDS
+        try:
+            while time.monotonic() < give_up:
+                try:
+                    clear_lease(sid, lease)
+                    return
+                except Exception:
+                    time.sleep(0.5)
+        finally:
+            with released_lock:
+                released_leases.discard(lease)
+
     @app.post('/assistant/turn')
     async def turn(body: TurnBody, request: Request, actor=Depends(authenticate)):
+        request.scope['_fl_assistant_turn'] = True   # relay: a busy FL route aborts the turn
         return await runtime.run_turn(lambda: turn_impl(body, request, actor), request)
 
     async def turn_impl(body, request, actor):
@@ -1083,9 +1140,12 @@ def register_routes(app, api):
                 if previous['request_hash'] != digest:
                     fail(409, 'TURN_CHANGED', 'Retry the original message / Reintenta el mensaje original.')
                 return previous['response']
+            with released_lock:
+                released = sorted(released_leases)
             cur.execute("""UPDATE assistant_sessions SET lease_id=%s,lease_until=clock_timestamp()+interval '2 minutes'
-                WHERE id=%s AND actor_id=%s AND (lease_until IS NULL OR lease_until < clock_timestamp()) RETURNING state""",
-                        (lease, sid, actor['id']))
+                WHERE id=%s AND actor_id=%s AND (lease_until IS NULL OR lease_until < clock_timestamp()
+                                                 OR lease_id::text = ANY(%s::text[])) RETURNING state""",
+                        (lease, sid, actor['id'], released))
             claimed = cur.fetchone()
             if not claimed:
                 fail(409, 'CHAT_BUSY', 'Wait for the current message / Espera el mensaje actual.')
@@ -1405,9 +1465,11 @@ def register_routes(app, api):
                 next_user = next(i for i, x in enumerate(history[1:], 1) if x.get('role') == 'user')
                 del history[:next_user]
             return save_turn(state, cards, body, actor, digest, lease)
-        finally:
-            with api.get_transaction() as cur:
-                cur.execute('UPDATE assistant_sessions SET lease_id=NULL,lease_until=NULL WHERE id=%s AND lease_id=%s', (sid, lease))
+        except BaseException:
+            # Every normal return above is save_turn, which frees the lock in
+            # the same commit: a saved turn never reports a cleanup failure.
+            release_lease(sid, lease)
+            raise
 
     def save_turn(state, cards, body, actor, digest, lease):
         if state.get('receive_queue') and not any(card['kind'] == 'receive_queue' for card in cards):
@@ -1416,7 +1478,8 @@ def register_routes(app, api):
         cards = [replies.decorate(card, state.get('language', 'en')) for card in cards]
         result = {'turn_id': str(body.turn_id), 'text': state.pop('_submitted_text', body.text), 'language': state.get('language', 'en'), 'cards': cards}
         with api.get_transaction() as cur:
-            cur.execute('UPDATE assistant_sessions SET state=%s,updated_at=clock_timestamp() WHERE id=%s AND actor_id=%s AND lease_id=%s',
+            cur.execute('''UPDATE assistant_sessions SET state=%s,updated_at=clock_timestamp(),lease_id=NULL,lease_until=NULL
+                WHERE id=%s AND actor_id=%s AND lease_id=%s''',
                         (Json(state), str(body.session_id), actor['id'], lease))
             if cur.rowcount != 1:
                 fail(409, 'CHAT_BUSY', 'Chat changed; reload / El chat cambió; recarga.')

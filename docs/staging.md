@@ -54,6 +54,15 @@ embedded `uvicorn.Config` call, preserving its database guard and Railway proxy
 adapter. The hosted command includes that adapter ahead of this branch; do not
 replace it with an older generated command. This PR does not deploy either service.
 
+Both web launch paths also run exactly **one** server process (PR #141): the
+Procfile passes `--workers 1` and the generator passes `workers=1`, so a
+`WEB_CONCURRENCY` variable cannot add workers. The FL Assistant frees a stuck
+chat lock in that one process's memory; a second worker would keep answering
+"chat busy" for up to two minutes. The hosted staging command calls
+`uvicorn.Server(config()).run()`, which is always a single process.
+`tests/test_single_worker.py` fails if either pin is raised or removed, and
+startup logs `SINGLE_WORKER_REQUIRED` if a launch bypasses them.
+
 All variables were set independently: DATABASE_URL, API_KEY, a separate random
 DASHBOARD_API_KEY, ENVIRONMENT, the three database identity settings above,
 PORT, RAILPACK_PYTHON_VERSION, and PYTHONUNBUFFERED. No production variables were

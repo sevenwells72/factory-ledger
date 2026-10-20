@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-20 15:41 — PR #141 fix round 4: exactly one server worker; rebased onto main after #142
+- **File(s) changed:** `Procfile`, `scripts/staging_start_command.py`, `server_workers.py` (new), `main.py`, `tests/test_single_worker.py` (new), `docs/staging.md`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Rebased `fix/db-pool-followup` onto main 27a2518 (#142); changelog conflicts kept both sides, row 220 kept once, Assistant page script cache now v16 (main already used v15). Procfile passes `--workers 1` and the staging generator `workers=1`, so `WEB_CONCURRENCY` cannot add workers; startup logs `SINGLE_WORKER_REQUIRED` when more workers are configured or the app runs under a multi-worker supervisor (log only — refusing would leave a uvicorn 0.24 supervisor with no workers, i.e. an outage). New test fails if either pin is raised or removed and checks real 1- and 2-worker uvicorn launches. Read-only Railway check: FastAPI and FastAPI-staging each run 1 replica, 1 process; staging's custom command uses `uvicorn.Server(...).run()` (always one process). FL changelog row 220 updated.
+- **Why:** Codex FIX FIRST on PR #141: the instant Assistant chat unlock lives in one process's memory, so a second worker answered "chat busy".
+
+---
+
 ## 2026-10-20 15:12 — Document the five Spanish Record wording changes and fresh passing 562 Node, 34 reason/unit and 22 Spanish pilot checks; add regression row 224 and retain the first failed Office-load attempt
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/pilot-ux-fix-round/record-wording-followup.md`, `docs/validation/pilot-ux-fix-round/record-wording-results.json`
 - **What changed:** Document the five Spanish Record wording changes and fresh passing 562 Node, 34 reason/unit and 22 Spanish pilot checks; add regression row 224 and retain the first failed Office-load attempt
@@ -319,6 +326,31 @@
 - **File(s) changed:** `resolution.py`, `main.py`, `dashboard/ledger-forms.css`, `dashboard/fl-assistant.css`, `dashboard/fl-assistant.js`
 - **What changed:** Add SELECT-only product/lot choices and batch product context; style header links as buttons and support a direct Today route.
 - **Why:** Pilot workers need visible navigation and physical-lot choices without changing posting or pool behavior.
+## 2026-10-20 15:10 — PR #141 fix round 3: idle hand-over deadline, Assistant chat lock, sign-in timeout not cached
+- **File(s) changed:** `main.py`, `fl_assistant.py`, `tests/test_db_pool_wait.py`, `tests/test_assistant_progress_round_d.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** (1) Pool: idle and same-key returns now leave the mutex first and pass the last deadline check; a late idle connection is given back (next waiter/pool), a late same-key return stays with its holder. (2) Assistant: save_turn clears the chat lock in the same commit as the save; a failed turn's lock release waits at most 0.5 s and, if FL is still full, marks the lock released in-process (the next claim may take it) while a background thread clears the row. (3) A PoolTimeout while loading the actor-key cache is re-raised (503 DATABASE_BUSY) and never published as an empty list. 8 new tests, all failing on bb8c0d3.
+- **Why:** PR #141 re-check comment 6297413580.
+
+---
+
+## 2026-10-20 13:00 — PR #141 fix round 2: no late connections, busy lookups abort the Assistant turn
+- **File(s) changed:** `main.py`, `fl_assistant.py`, `dashboard/fl-assistant.js`, `dashboard/fl-assistant.html`, `tests/test_db_pool_wait.py`, `tests/test_assistant_progress_round_d.py`, `tests/test_assistant_page_round_a.js`, `tests/test_assistant_mobile_ux.js`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Pool re-checks the deadline as the last step of every hand-over (idle checkout, grant, finished open); a connection seen late is given back on a helper thread, never returned. Inside an Assistant turn, a relayed FL call answering 503 DATABASE_BUSY raises a pool timeout, so the turn is not saved, the lease is released and the page shows busy + Retry; old saved busy cards also show busy + Retry (new turn). fl-assistant.js v16. FL row 220 updated.
+- **Why:** PR #141 re-check comment 6295966584. Validation: Python 6,930 ×2 (fresh fl_pool3_ DBs), Node 445, all browser runners both modes; DBs dropped.
+
+---
+
+## 2026-10-20 12:30 — PR #141 fix round: precise busy 503, hard 10 s deadline, Assistant stream busy event
+- **File(s) changed:** `db_busy.py` (new), `main.py`, `assistant_runtime.py`, `dashboard/fl-assistant.js`, `dashboard/fl-assistant.html`, `tests/test_db_pool_wait.py`, `tests/test_assistant_progress_round_d.py`, `tests/test_assistant_page_round_a.js`, `tests/test_assistant_mobile_ux.js`, `tests/test_final_db_recovery.py`, `tests/visual/run-fl-assistant.mjs`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** (1) Each pool timeout carries a random wait id; the busy middleware converts a 5xx only if its body quotes that id or the escaping exception is the timeout / raised `from` it, so real 500s after a handled wait stay 500. `/auth/dashboard-key` and retried reads let the timeout itself through. (2) Pool caller takes the mutex once with a timeout, then meets the granter/opener on a per-waiter lock; abandoned waiters/opens are never granted; the retry pause and both attempts share one deadline. Reviewer cases at 10 s: 10.707/10.709/10.109 s → 10.006/10.004/10.006 s. (3) NDJSON Assistant stream sends a retryable `DATABASE_BUSY` event (EN/ES); page shows "FL is busy right now — try again in a moment." with Retry; fl-assistant.js v15. FL row 220 rewritten (7 columns).
+- **Why:** PR #141 re-check comment 6294160112. Validation: Python 6,924 ×2 (fresh fl_pool3_ DBs, sessions off/on), Node 443, all browser runners both modes; DBs dropped. No Railway/Supabase/data changes.
+
+---
+
+## 2026-10-20 10:55 — DB pool follow-up: 503 on all paths, FIFO, 10 s cap
+- **File(s) changed:** `main.py`, `tests/test_db_pool_wait.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** New `DatabaseBusyMiddleware` (innermost) turns any 5xx of a request whose pool wait timed out into 503 `DATABASE_BUSY` (59 routes answered 500 on main). `WaitingConnectionPool` rewritten: explicit FIFO waiter queue with direct hand-over, one deadline across mutex/queue/connect, connects on a helper thread outside the mutex, rollback/close on return outside the mutex; `PoolTimeout` subclass of `PoolError`; `retry_database_read` shares one wait budget across both attempts. 8 new tests, all failing on main 9d5e888. FL rows 217 (marked deployed) and 220.
+- **Why:** PR #138 review comment 6271859908 blockers (500s on dashboard reads, non-FIFO queue, ~18 s acquisitions against a 10 s limit); #138 was merged before they were fixed, so this is a follow-up branch off main. Validation: Python 6,917 ×2 (sessions off/on, fresh DBs fl_pool2_*), Node 440, all browser runners both modes; DBs dropped.
 
 ---
 

@@ -78,10 +78,10 @@ def test_local_pool_capacity_is_bounded_too(monkeypatch):
     database_pool = Mock()
     database_pool.getconn.side_effect = main.pool.PoolError('connection pool exhausted')
     monkeypatch.setattr(main, 'db_pool', database_pool)
-    with pytest.raises(HTTPException) as caught:
+    # The timeout itself reaches the app, which answers 503 DATABASE_BUSY
+    # (PR #141); getconn already waited, so a retry would double the wait.
+    with pytest.raises(main.pool.PoolError, match='connection pool exhausted'):
         main.search_products(q='Oats', limit=5, _=True)
-    assert caught.value.status_code == 503
-    # getconn already waited for a free connection; a retry would double it.
     assert database_pool.getconn.call_count == 1
 
 
