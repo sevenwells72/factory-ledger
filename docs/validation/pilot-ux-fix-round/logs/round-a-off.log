@@ -1,0 +1,4 @@
+(node:43824) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("data%3Atext/javascript%2Cexport%20async%20function%20resolve(s%2Cc%2Cn)%7Bif(s%3D%3D%3D%27playwright%27)return%20%7Burl%3A%27file%3A///Users/cns/Documents/factory-ledger/node_modules/playwright/index.mjs%27%2CshortCircuit%3Atrue%7D%3Breturn%20n(s%2Cc)%3B%7D", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+{"mode":"sessions-off","passed":30,"failed":0,"cases":30,"screenshot_count":54,"out":"/private/tmp/pr142-fix-runs/regression/round-a-0"}

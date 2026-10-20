@@ -1,5 +1,138 @@
 # Change Log
 
+## 2026-10-20 14:53 — Normalize trailing whitespace in checked-in Python validation logs; retain raw stdout locally
+- **File(s) changed:** `docs/validation/pilot-ux-fix-round/logs/python-off.log`, `docs/validation/pilot-ux-fix-round/logs/python-on.log`
+- **What changed:** Normalize trailing whitespace in checked-in Python validation logs; retain raw stdout locally
+- **Why:** Address PR #142 pilot review before the staff walkthrough; local-only validation, no deployment.
+
+---
+
+## 2026-10-20 14:52 — Document all requested pilot fixes, green validation, scoped visual findings and changelog row 223
+- **File(s) changed:** `docs/validation/pilot-ux-fix-round/summary.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Document all requested pilot fixes, green validation, scoped visual findings and changelog row 223
+- **Why:** Address PR #142 pilot review before the staff walkthrough; local-only validation, no deployment.
+
+---
+
+## 2026-10-20 14:51 — Record complete green local fix-round verification and unchanged runtime safety hashes
+- **File(s) changed:** `docs/validation/pilot-ux-fix-round/verification.json`
+- **What changed:** Record complete green local fix-round verification and unchanged runtime safety hashes
+- **Why:** Address PR #142 pilot review before the staff walkthrough; local-only validation, no deployment.
+
+---
+
+## 2026-10-20 14:51 — Save fresh fix-round test results and six inspected EN/ES 390px draft screenshots
+- **File(s) changed:** `docs/validation/pilot-ux-fix-round/actual-browser-results.json`, `docs/validation/pilot-ux-fix-round/browser-suite-results.json`, `docs/validation/pilot-ux-fix-round/hosting-results.json`, `docs/validation/pilot-ux-fix-round/logs/hosting.log`, `docs/validation/pilot-ux-fix-round/logs/intake.log`, `docs/validation/pilot-ux-fix-round/logs/node.log`, `docs/validation/pilot-ux-fix-round/logs/pilot-walkthrough.log`, `docs/validation/pilot-ux-fix-round/logs/python-off.log`, `docs/validation/pilot-ux-fix-round/logs/python-on.log`, `docs/validation/pilot-ux-fix-round/logs/reason-unit.log`, `docs/validation/pilot-ux-fix-round/logs/round-a-off.log`, `docs/validation/pilot-ux-fix-round/logs/round-a-on.log`, `docs/validation/pilot-ux-fix-round/photo-language-results.json`, `docs/validation/pilot-ux-fix-round/pilot-page-audit.json`, `docs/validation/pilot-ux-fix-round/reason-unit-results.json`, `docs/validation/pilot-ux-fix-round/screenshots/make-draft-en-390.png`, `docs/validation/pilot-ux-fix-round/screenshots/make-draft-es-390.png`, `docs/validation/pilot-ux-fix-round/screenshots/pack-draft-en-390.png`, `docs/validation/pilot-ux-fix-round/screenshots/pack-draft-es-390.png`, `docs/validation/pilot-ux-fix-round/screenshots/receive-draft-en-390.png`, `docs/validation/pilot-ux-fix-round/screenshots/receive-draft-es-390.png`
+- **What changed:** Save fresh fix-round test results and six inspected EN/ES 390px draft screenshots
+- **Why:** Address PR #142 pilot review before the staff walkthrough; local-only validation, no deployment.
+
+---
+
+## 2026-10-20 14:49 — Match live picker status to the actual catalog label and prove photo reclassification retains identical image bytes
+- **File(s) changed:** `tests/visual/run-pilot-photo-language.mjs`
+- **What changed:** Match live picker status to the actual catalog label and prove photo reclassification retains identical image bytes
+- **Why:** Address PR #142 pilot review before the staff walkthrough; local-only validation, no deployment.
+
+---
+
+## 2026-10-20 14:48 — Add actual local-browser proof that photo type changes update final receipt evidence and live language changes retain chosen lots and typed tags
+- **File(s) changed:** `tests/visual/run-pilot-photo-language.mjs`
+- **What changed:** Add actual local-browser proof that photo type changes update final receipt evidence and live language changes retain chosen lots and typed tags
+- **Why:** Address PR #142 pilot review before the staff walkthrough; local-only validation, no deployment.
+
+---
+
+## 2026-10-20 14:46 — Preserve bilingual local validation notices through Error creation without clearing entry or office form data
+- **File(s) changed:** `dashboard/ledger-ui.js`, `dashboard/entry.js`, `dashboard/office.js`, `tests/test_pilot_entry_ui.js`, `tests/test_office_customer_ui.js`, `tests/test_background_startup_ui.js`, `tests/test_ledger_language_ui.js`
+- **What changed:** Preserve bilingual local validation notices through Error creation without clearing entry or office form data
+- **Why:** Address PR #142 pilot review before the staff walkthrough; local-only validation, no deployment.
+
+---
+
+## 2026-10-20 14:46 — Refresh pilot asset versions for updated photos, translations and phone styles
+- **File(s) changed:** `dashboard/entry.html`, `dashboard/exceptions.html`, `dashboard/fl-assistant.html`, `dashboard/history.html`, `dashboard/index.html`, `dashboard/office.html`, `dashboard/process-flow.html`, `dashboard/receipt.html`, `dashboard/runs.html`, `dashboard/sankey.html`, `dashboard/shift-summary.html`, `dashboard/traceability.html`
+- **What changed:** Refresh pilot asset versions for updated photos, translations and phone styles
+- **Why:** Address PR #142 pilot review before the staff walkthrough; local-only validation, no deployment.
+
+---
+
+## 2026-10-20 14:45 — Teach the existing startup UI fixture the shared bilingual text setter while preserving its background-request assertions
+- **File(s) changed:** `tests/test_background_startup_ui.js`
+- **What changed:** Teach the existing startup UI fixture the shared bilingual text setter while preserving its background-request assertions
+- **Why:** Address PR #142 pilot review before the staff walkthrough; local-only validation, no deployment.
+
+---
+
+## 2026-10-20 14:45 — Exercise the real shared bilingual text setter and translated server notices while preserving form controls
+- **File(s) changed:** `tests/test_pilot_display.js`, `tests/test_ledger_language_ui.js`
+- **What changed:** Exercise the real shared bilingual text setter and translated server notices while preserving form controls
+- **Why:** Address PR #142 pilot review before the staff walkthrough; local-only validation, no deployment.
+
+---
+
+## 2026-10-20 14:45 — Translate displayed actor roles and draft status/time values on language change; retain meaningful Office selection coverage
+- **File(s) changed:** `dashboard/ledger-ui.js`, `dashboard/assistant-display.js`, `tests/test_office_customer_ui.js`, `tests/test_pilot_display.js`
+- **What changed:** Translate displayed actor roles and draft status/time values on language change; retain meaningful Office selection coverage
+- **Why:** Address PR #142 pilot review before the staff walkthrough; local-only validation, no deployment.
+
+---
+
+## 2026-10-20 14:45 — Make pilot-page links easier to tap and physical-tag fields readable on phones
+- **File(s) changed:** `dashboard/ledger-forms.css`
+- **What changed:** Make pilot-page links easier to tap and physical-tag fields readable on phones
+- **Why:** Address PR #142 pilot review before the staff walkthrough; local-only validation, no deployment.
+
+---
+
+## 2026-10-20 14:45 — Update integrated Intake checker to current Sales Orders State tabs and eight-column readiness UI while retaining upload review checks
+- **File(s) changed:** `tests/visual/run-integrated-intake.mjs`
+- **What changed:** Update integrated Intake checker to current Sales Orders State tabs and eight-column readiness UI while retaining upload review checks
+- **Why:** Address PR #142 pilot review before the staff walkthrough; local-only validation, no deployment.
+
+---
+
+## 2026-10-20 14:44 — Add targeted pilot-page visual measurements to the actual local walkthrough screenshots
+- **File(s) changed:** `tests/visual/lib/pilot-page-audit.mjs`
+- **What changed:** Add targeted pilot-page visual measurements to the actual local walkthrough screenshots
+- **Why:** Address PR #142 pilot review before the staff walkthrough; local-only validation, no deployment.
+
+---
+
+## 2026-10-20 14:44 — Cover attached-photo type replacement, failure recovery and live language switching in entry, office and shared draft tests
+- **File(s) changed:** `tests/test_pilot_ticket_ui.js`, `tests/test_pilot_entry_ui.js`, `tests/test_office_customer_ui.js`
+- **What changed:** Cover attached-photo type replacement, failure recovery and live language switching in entry, office and shared draft tests
+- **Why:** Address PR #142 pilot review before the staff walkthrough; local-only validation, no deployment.
+
+---
+
+## 2026-10-20 14:44 — Update legacy Assistant browser checker for seven exact speculative alias requests while requiring every final asset to load
+- **File(s) changed:** `tests/visual/run-fl-assistant-round-a.mjs`
+- **What changed:** Update legacy Assistant browser checker for seven exact speculative alias requests while requiring every final asset to load
+- **Why:** Address PR #142 pilot review before the staff walkthrough; local-only validation, no deployment.
+
+---
+
+## 2026-10-20 14:44 — Keep session-off database verification after completing its pilot checks
+- **File(s) changed:** `tests/visual/run-pilot-ux-round.mjs`
+- **What changed:** Keep session-off database verification after completing its pilot checks
+- **Why:** Address PR #142 pilot review before the staff walkthrough; local-only validation, no deployment.
+
+---
+
+## 2026-10-20 14:44 — Retain photo files so type changes update attached evidence; refresh dynamic entry, office and ticket messages in both languages
+- **File(s) changed:** `dashboard/ledger-ui.js`, `dashboard/ledger-ticket.js`, `dashboard/entry.js`, `dashboard/office.js`
+- **What changed:** Retain photo files so type changes update attached evidence; refresh dynamic entry, office and ticket messages in both languages
+- **Why:** Address PR #142 pilot review before the staff walkthrough; local-only validation, no deployment.
+
+---
+
+## 2026-10-20 14:44 — Fail incomplete pilot walkthroughs and sign-in errors with explicit planned-check coverage; add executable failure regression
+- **File(s) changed:** `tests/visual/run-pilot-ux-round.mjs`, `tests/visual/lib/pilot-walkthrough-report.mjs`, `tests/test_pilot_walkthrough_reporting.js`
+- **What changed:** Fail incomplete pilot walkthroughs and sign-in errors with explicit planned-check coverage; add executable failure regression
+- **Why:** Address PR #142 pilot review before the staff walkthrough; local-only validation, no deployment.
+
+---
+
 ## 2026-10-20 14:40 — Finalize compact validation evidence and numbered PR 142 review row
 - **File(s) changed:** FACTORY_LEDGER_CHANGELOG.md, docs/validation/pilot-ux-review/summary.md, docs/validation/pilot-ux-review/verification.json, validation stdout and JSON
 - **What changed:** Read JUnit totals directly, retain final browser result counts and source hashes, and save all cleanup evidence. Correct the evidence compiler to read integer confirmation counts, then write regression row 222 and the final summary successfully.

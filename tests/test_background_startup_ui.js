@@ -20,6 +20,8 @@ function harness(search = '') {
   const els = new Map(), events = new Map(), calls = [];
   const get = id => { if (!els.has(id)) els.set(id, element(id)); return els.get(id); };
   const ui = { bind() {}, ready: Promise.resolve(true), session: { token: 'fls_test-startup', actor: { id: 7 } },
+    problem: value => Error(String(value)),
+    setText: (node, value) => { node.textContent = String(value); },
     t: en => en, el: (tag, value, parent) => { const node = element(tag); if (value !== undefined) node.textContent = String(value); parent?.append(node); return node; },
     request: async (pathname, body, options = {}) => {
       calls.push({ pathname, body, options });

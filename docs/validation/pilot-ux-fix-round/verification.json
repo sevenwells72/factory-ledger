@@ -1,0 +1,149 @@
+{
+  "checked_at": "2026-10-20T14:51:40.649313-04:00",
+  "starting_head": "976d0a720eda5401a2bcfc56571e97ee6937752d",
+  "branch": "fix/pilot-ux-round",
+  "local_only": true,
+  "openai_calls": 0,
+  "python": {
+    "off": {
+      "tests": 6916,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 6916,
+      "seconds": 158.432
+    },
+    "on": {
+      "tests": 6916,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 6916,
+      "seconds": 200.691
+    }
+  },
+  "node": {
+    "passed": 559,
+    "failed": 0,
+    "skipped": 0
+  },
+  "pilot": {
+    "checks": 96,
+    "passed": 96,
+    "failed": 0,
+    "planned_checks": 96,
+    "scenarios": 8,
+    "completed_scenarios": 8,
+    "records": 44,
+    "physical_confirmations": 20,
+    "attachments": 16
+  },
+  "reason_units": {
+    "passed": 34,
+    "failed": 0
+  },
+  "photo_language": {
+    "passed": 13,
+    "failed": 0,
+    "complete": true,
+    "records": 2,
+    "uploads": 6
+  },
+  "browser_jobs": {
+    "total": 20,
+    "passed": 20,
+    "failed": 0
+  },
+  "pilot_visual": {
+    "captures": 92,
+    "touch_failures": 0,
+    "overflow_captures": 0,
+    "contrast_flags": 24,
+    "contrast_opacities": [
+      0.5
+    ],
+    "contrast_note": "All 24 flags are disabled controls at opacity 0.5; intentional disabled styling.",
+    "historical_418_findings_included_pilot_pages": false
+  },
+  "screenshots": {
+    "count": 6,
+    "width": 390,
+    "languages": [
+      "en",
+      "es"
+    ],
+    "visually_inspected": true
+  },
+  "source_sha256": {
+    "dashboard/assistant-display.js": "61ac4ffc994e02ed055b4a0ac203a6cfb0ffc9abc7f2f248ccc99ef018548abe",
+    "dashboard/dashboard-runtime.js": "c89c34c06b80ed50ba88ffde50e6fe1e7690323ec999b38a3b5bd45c531f4bf5",
+    "dashboard/dashboard.css": "d0d9a6f7bb92cb088121f69c334569fd49bf4faa2f0178cf88c9ac1d3cd26552",
+    "dashboard/dashboard.js": "49c6e3cba16292139f4ad8b33440fcaaab2de42b9b91bad65dc8070c1c851a32",
+    "dashboard/design-controls.js": "908730357e0f3f80176f9c7eb10d71c054ec2b1fa09852dbb53ce7adf01251f8",
+    "dashboard/entry.html": "213018d119e32372daffb56398c9bf99dc63a4d91d29a459add3ebe1e3a67ab1",
+    "dashboard/entry.js": "65e4be5b4daea951272c2beef5941852cb7ccba09f83bc6c0a7fe1ccba0ce5cd",
+    "dashboard/exceptions.html": "f8b5089f652b36b7d1c61c1ecf6ccce519b5de9d7bf8a2d32f8339bf9ea941d4",
+    "dashboard/exceptions.js": "4589d12169a27c7f25ddf204048a0cadbb15f59ef0241ef7be87a63e32b8e08d",
+    "dashboard/fetch-timeout.js": "dc0611d376fe25e1c256488fe700990d8967be3145d595bfd0cbd09c29e71bdc",
+    "dashboard/fl-assistant.css": "0b4144151b2e8aad931dc8a28e4503ce5041a9d838a7dc4651846c1a8ae524d7",
+    "dashboard/fl-assistant.html": "2b1d15df8d7c824bdde9c2d0c39903725191dc26bcb546f12d4521700518c78c",
+    "dashboard/fl-assistant.js": "7046841602a67a5ade21c74fcc45803f8788230c9ab81ef5088c0a2cc83acee9",
+    "dashboard/history.html": "dab04dab76fa3ab988efac66c3848f121c5f6b42815f10bc4d700aa48f25aef7",
+    "dashboard/history.js": "1065aa4254bddaeca739001e2b6e0ca97626d5808f7a2dc920666590e63073af",
+    "dashboard/index.html": "db8d9385c02a9a78cdcbafb11416cea1d45d8b16f9ca265e56048c754700e533",
+    "dashboard/intake-logic.js": "8f0bb6c0c6eb9fc2f5a2f6dc02765ce1d27b80b381f515ba72d7f9676885163e",
+    "dashboard/interaction.css": "e8f7c96cc48d5752b55f3911f53a988a6a68b903b3bba70563e6f712bf90922e",
+    "dashboard/key-session.css": "ce34f4474ea9b8e9400cbc832b68ed2f08833fdb457c1739d3b714f9ade01207",
+    "dashboard/key-session.js": "f3840e9c98f8600f2574758dc9497bdd0fb38b4dd40262d5f6941d15ad26e002",
+    "dashboard/ledger-forms.css": "4a42d21b48218523bc9b8147dc0b863799aab3db2151c0be0faa648eb1fb459c",
+    "dashboard/ledger-ticket.js": "7e17cd1192ce1fbfc379146d39317613405b5125deb100e4470b9329cf4eff51",
+    "dashboard/ledger-ui.js": "d1a3ff9a90f472c64ccd63b66d12d8fd5514f69cffb7849bcaa9eb0bf3d898f7",
+    "dashboard/mini-calendar.css": "003a958da70f3ac9d335b1a9867c43770893bb6337bb5b7ea72c940dc902e74a",
+    "dashboard/mini-calendar.js": "657f7d67382a4f8eef9a4cb995216571585c51a0b3b1733c00515500da360ed2",
+    "dashboard/office-logic.js": "e0765f2c34bb5fda4e10fef272772694efd78fb5ab318c6ac58665b1f4eb1786",
+    "dashboard/office.html": "1d40896daf9ca428bd14eb98a809e44abfd8acf25b4622eb4b85ae78375b3a48",
+    "dashboard/office.js": "5a5998ec43c9b139e91a6cfd5cb2719ebeda9c38fc86a885dc7d26b0475e515e",
+    "dashboard/pallet-calculations.js": "3a913bff1296f340a99204b00e94c588d781d1f02263cfe5c819cca1e545eca1",
+    "dashboard/process-flow.html": "59e883dd727f84ecdda430348fb065ebb86742ce9eddaf65eb037c28b16d79d9",
+    "dashboard/receipt-shell.js": "689a2d2a4c494b311d5ccd39fcb69a57f13f6f03a1d5739571d15216ca1be099",
+    "dashboard/receipt.html": "7344c879ce9d8acd24897da4973e649bc87a07ebc730f5541388ebf978fff9db",
+    "dashboard/receipt.js": "20b1a3c4f846fd40a96ee90b37a4bd65e5128ec45431d667e45d323da9cf3537",
+    "dashboard/runs.css": "3cae1bba0a20d9b1c8238f574f058e3a0fc8dbead90d7f60f7836bf5f9c305dc",
+    "dashboard/runs.html": "b962aa6afce32330a29e27dc81e6b402fd89b4dff8df3ad498a3022f157a577b",
+    "dashboard/runs.js": "472ade7ef9cae12abe485525c75a410ae83a1321d3eb4d9cfd8d428c5c83bddb",
+    "dashboard/sankey.html": "7aa00826d8ec9b0d2b2902262d6a8acddaf0d6289baf469bbd93360259a5303a",
+    "dashboard/shell-layout.css": "f7e0e37022f13c0690c74c53fd582cac9af5bd410c722c98e77d0a623cad0c11",
+    "dashboard/shell.js": "ec3036eee92cee2b1a4edd89866b4b22fc16da1214f19734b680e45753ed2498",
+    "dashboard/shift-summary.css": "2a2daeed047c9fd52df7332941e9cbf261b0a072de0784b65fba7e6d96d333a9",
+    "dashboard/shift-summary.html": "ecac6a0bd126a04c4b638beede8d70227c137db6021efee100aedaab34e4bedd",
+    "dashboard/shift-summary.js": "f216d40cfeabc0a841203bc6fd01f2f2574422ce7b258d8f5e78cdaeee437e0b",
+    "dashboard/so-detail.css": "dc4d66a6a233dcbfa6f12d19744e1116c47a3de7a5203a46ff541a90c61acc7a",
+    "dashboard/so-list-actions.css": "5520879aaa67b28ac423392bcf60f72458b89ffefca5bb4600b6808d8521a694",
+    "dashboard/so-list-actions.js": "6089e11183726c0ca345ddfb8b693d2583252637e17d4d89fb0a2b0295767494",
+    "dashboard/so-list.css": "ff80b61a56e51ed4fd70e1b70bd1d193a3fce197ce7939205401e15c3305679b",
+    "dashboard/so-list.js": "1a7bacc01b32f7156c414a2d0f832787a0d5a193da1ad12b876e637dfd7d2906",
+    "dashboard/traceability.html": "2ad039aff883c29cc510febe803037c7ab0bd541b72d3a8ed54ce21cdda93905",
+    "main.py": "faf05e71bbe5cf418b21a19d8d3fefe7c91b12e5c8b2d5c0a3f6825371b3e4c9",
+    "resolution.py": "f1dce7d325f4caa7363b12436aaaefb377ba0ee558391630d0b2f069df0fc195",
+    "write_tickets.py": "cc1a80409fa15ddf075a3e636ab9726d30fb554eab2b212c206cfc7a37a7f47a",
+    "fl_assistant.py": "a816e3be6b914222b21b02d0eb2a515cde6687c7d60bd068c8a37e18e5b6d7e0",
+    "assistant_runtime.py": "7b1d4a8bbd13f5b0cfce605169eaa09272d69d155d0ddf7966606fec44c5b549",
+    "permissions.py": "7b6e33b6211142eba52066223b4fac32c4eaf9d55d35fa35082410ae167a98db"
+  },
+  "safety": {
+    "runtime_files_unchanged_since_start": true,
+    "no_migrations_or_env_changes": true,
+    "hosted_services_accessed": false,
+    "pr_should_remain_draft": true
+  },
+  "cleanup": {
+    "all_browser_task_databases_dropped": true,
+    "browser_private_pg_port": 55453,
+    "browser_private_pg_stopped": true,
+    "python_databases_dropped": true,
+    "python_private_pg_port": 55452,
+    "python_private_pg_stopped": true,
+    "all_mock_browser_jobs_exited": true
+  },
+  "full_output": "/private/tmp/pr142-fix-runs"
+}

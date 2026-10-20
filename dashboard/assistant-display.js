@@ -9,6 +9,7 @@
   const fmt = value => number(value) === null ? '' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(Number(value));
   const codeNames = {
     physical_count: ['Physical count', 'Conteo físico'], missing_receipt: ['Missing receipt', 'Recepción no registrada'],
+    floor: ['Floor', 'Piso'], office: ['Office', 'Oficina'], owner: ['Owner', 'Propietario'],
     missing_production: ['Missing production', 'Producción no registrada'], wrong_lot: ['Wrong lot used', 'Lote equivocado'], wrong_lot_used: ['Wrong lot used', 'Lote equivocado'],
     damage_disposal: ['Damage/disposal', 'Daño o desecho'], damaged: ['Damaged', 'Dañado'],
     unrecorded_usage: ['Unrecorded usage', 'Uso no registrado'], data_entry_error: ['Data-entry error', 'Error de captura'],

@@ -6,6 +6,7 @@ import path from 'node:path';
 import readline from 'node:readline';
 import { spawn, execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { createWalkthroughReporter, pilotCheckPlan } from './lib/pilot-walkthrough-report.mjs';
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
 const python=process.env.PILOT_UX_PYTHON || path.join(root,'.venv-test/bin/python');
@@ -20,11 +21,12 @@ await fs.mkdir(out,{recursive:true});
 const env={...process.env};
 for(const name of Object.keys(env))if(['DATABASE_URL','OPENAI_API_KEY','ANTHROPIC_API_KEY','PGHOSTADDR','PGSERVICE','PGSERVICEFILE','PGOPTIONS'].includes(name)||name.startsWith('SUPABASE_'))delete env[name];
 const report={created_at:new Date().toISOString(),local_only:true,actual_records:true,openai_calls:0,results:[],receipts:[],screenshots:[],databases_dropped:[]};
+const scenarios=modes.flatMap(mode=>widths.flatMap(width=>languages.map(lang=>({mode,width,lang}))));
+const walkthrough=createWalkthroughReporter(report,scenarios,pilotCheckPlan,{save:()=>fs.writeFile(path.join(out,'results.json'),JSON.stringify(report,null,2))});
 const browser=await chromium.launch({headless:true,channel:process.env.PLAYWRIGHT_CHANNEL || 'chrome'});
 const image=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+iDbcAAAAASUVORK5CYII=','base64');
-let failed=0;
 try{
- for(const scenario of modes.flatMap(mode=>widths.flatMap(width=>languages.map(lang=>({mode,width,lang}))))){
+ for(const scenario of scenarios)await walkthrough.runScenario(scenario,async()=>{
   const {mode}=scenario;
   const db=`fl_pilotux_page_${process.pid}_${mode}_${scenario.width}_${scenario.lang}`;
   const pgRun=(command,args)=>execFileSync(path.join(pg,command),args,{cwd:root,env,stdio:'pipe'});
@@ -50,7 +52,7 @@ try{
     const t=(en,es)=>lang==='es'?es:en;
     const shot=async name=>{assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true,`${name} overflow`);const file=path.join(out,`${mode?'on':'off'}-${width}-${lang}-${name}.png`);await page.screenshot({path:file,fullPage:true});report.screenshots.push(file);return file;};
     const open=async(file,query='')=>{await page.goto(`${origin}/dashboard/${file}${query}`);if(await page.evaluate(()=>!!window.FLLedger))await page.evaluate(()=>FLLedger.ready);const number=new URLSearchParams(query.replace(/^\?/, '')).get('number');if(file==='receipt.html'&&number)await page.locator('#content').getByRole('heading',{name:number,exact:true}).waitFor();};
-    const check=async(item,name,fn)=>{const row={item,name,sessions:mode,width,language:lang};try{await fn();row.passed=true;}catch(e){row.passed=false;row.error=e.stack || String(e);row.screenshot=await shot(`FAIL-${String(item).replaceAll('.','-')}`).catch(()=>null);row.notice=await page.locator('#notice').textContent().catch(()=>null);failed++;}report.results.push(row);await fs.writeFile(path.join(out,'results.json'),JSON.stringify(report,null,2));if(!row.passed)throw Error(`${item} ${name}: ${row.error}\nNotice: ${row.notice}\nBridge: ${diagnostic}`);};
+    const check=async(item,name,fn)=>{const row={item,name,sessions:mode,width,language:lang};try{await fn();row.passed=true;}catch(e){row.passed=false;row.error=e.stack || String(e);row.screenshot=await shot(`FAIL-${String(item).replaceAll('.','-')}`).catch(()=>null);row.notice=await page.locator('#notice').textContent().catch(()=>null);}walkthrough.recordCheck(scenario,row);await fs.writeFile(path.join(out,'results.json'),JSON.stringify(report,null,2));if(!row.passed)throw Error(`${item} ${name}: ${row.error}\nNotice: ${row.notice}\nBridge: ${diagnostic}`);};
     const login=async(role,file='entry.html')=>{await open(file);if(!(await page.locator('#actor-key').isVisible())){await page.locator('#sign-out').click();await page.locator('#actor-key').waitFor();}await page.locator('#actor-key').fill(fixture.actors[role].key);await page.locator('#sign-in-form button').click();await page.locator('#identity').filter({hasText:fixture.actors[role].name}).waitFor();if(file==='office.html')await page.waitForFunction(()=>document.querySelector('[data-office-start]'));};
     const picker=async(name,query,match,scope=page)=>{const field=scope.locator(`[data-picker="${name}"]`).first();await field.locator('input').first().fill(query);const options=field.locator('.picker-options button');await options.first().waitFor();const found=match?options.filter({hasText:match}).first():options.first();await found.click();};
     const fill=async(name,value)=>page.locator(`#entry-form [name="${name}"],#office-form [name="${name}"]`).first().fill(String(value));
@@ -95,14 +97,15 @@ try{
      await check('8+arturo.today','Record entry Today works on phone and desktop',async()=>{await open('entry.html');await page.locator('#today-entries-link').click();await page.locator('[data-today-entries] article').first().waitFor();const card=page.locator('[data-today-entries] article').filter({hasText:adjusted});assert.match(await card.textContent(),/VOIDED|ANULADO/);assert.equal(requests.filter(r=>r.path.startsWith('/assistant/')).length,0);await shot('arturo-today');});
      await check(17,'Assistant offline card Office and Record links open actual pages',async()=>{await open('fl-assistant.html');const input=page.locator('#actor-key');if(await input.isVisible()){await input.fill(fixture.actors.floor.key);await page.locator('#sign-in-form button').click();}const card=page.locator('.assistant-offline,.offline-card,.card').filter({hasText:/Office|Oficina/}).last();await card.waitFor();for(const file of ['office.html','entry.html']){const href=await card.locator(`a[href*="${file}"]`).getAttribute('href');assert.ok(href);const p=await context.newPage();await p.goto(new URL(href,origin).href);assert.equal(new URL(p.url()).pathname,`/dashboard/${file}`);await p.close();}await shot('assistant-offline-links');});
      await check('integrity','No page errors, hosted traffic or direct ledger writes',async()=>{assert.deepEqual(errors,[]);assert.deepEqual(remote,[]);assert.equal(requests.filter(r=>r.method==='POST'&&['/receive','/make','/pack','/adjust','/inventory/found','/ship','/assistant/turn'].includes(r.path)).length,0);});
-    }catch(error){console.error(error.message);break;}finally{await context.close();}
+    }finally{await context.close();}
    }
    report[`verify_sessions_${mode}_${scenario.width}_${scenario.lang}`]=await(await fetch(origin+'/test/verify')).json();
   }finally{
    if(child){child.kill('SIGTERM');await new Promise(resolve=>{child.once('exit',resolve);setTimeout(()=>{child.kill('SIGKILL');resolve();},3000).unref();});}
    pgRun('dropdb',['-h','127.0.0.1','-p',pgPort,'--if-exists',db]);report.databases_dropped.push(db);await fs.writeFile(path.join(out,'results.json'),JSON.stringify(report,null,2));
   }
- }
+ });
 }finally{await browser.close();}
-console.log(JSON.stringify({checks:report.results.length,passed:report.results.filter(r=>r.passed).length,failed,records:report.receipts.length,screenshots:report.screenshots.length,results:path.join(out,'results.json')}));
-if(failed)process.exitCode=1;
+const summary=await walkthrough.finalize();
+console.log(JSON.stringify({...summary,records:report.receipts.length,screenshots:report.screenshots.length,results:path.join(out,'results.json')}));
+if(summary.failed)process.exitCode=1;

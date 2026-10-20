@@ -26,7 +26,7 @@ async function harness({on=true,create=true,language='en',permissions={}}={}){
   body.kind==='product'?{outcome:'match',match:{id:44,name:'Test product'}}:
   {outcome:'match',draft:{product_id:body.context.product_id,quantity:body.quantity,unit:body.query}};
  const labelled=new Set();
- const ui={bind(){},session:{token:'session'},ready:Promise.resolve(on),lang:language,codeText:require('../dashboard/ledger-ui.js').codeText,t:(en,es)=>Object.assign(new String(ui.lang==='es'?es:en),{en,es}),relabel(){for(const element of labelled){if(!element.isConnected){labelled.delete(element);continue;}element.textContent=element.labels[ui.lang==='es'?1:0];}},
+ const ui={problem:value=>Error(String(value)),setText(node,value){node.textContent=String(value??'');if(value?.en!==undefined){node.labels=[value.en,value.es];labelled.add(node);}else{delete node.labels;labelled.delete(node);}return node;},bind(){},session:{token:'session'},ready:Promise.resolve(on),lang:language,codeText:require('../dashboard/ledger-ui.js').codeText,t:(en,es)=>Object.assign(new String(ui.lang==='es'?es:en),{en,es}),relabel(){for(const element of labelled){if(!element.isConnected){labelled.delete(element);continue;}element.textContent=element.labels[ui.lang==='es'?1:0];}},
   el(tag,text,parent){const element=new Element(tag,text);if(text?.en!==undefined){element.labels=[text.en,text.es];labelled.add(element);}parent?.append(element);return element;},
   notice(message){byId('notice').textContent=message;},failure(error){failures.push(error);},
   async request(path,body){requests.push({path,body});return path==='/auth/whoami'?{permissions:{create_order:true,create_expected_receipt:true,...(create?{create_customer:true}:{}),...permissions}}:resolveRequest(body);},
@@ -212,4 +212,8 @@ for(const action of ['approve_so','approve_er'])test(action+' distinguishes extr
   assert.deepEqual(h.nodes().filter(node=>node.name==='quantity_lb').map(node=>node.value),[75,100]);
  }
  assert.deepEqual(lines.map(line=>line.unit),['cases','boxes']);assert.equal(h.tickets.length,0);assert.deepEqual(h.failures,[]);
+});
+
+test('Office selected-record status refreshes in both languages without changing the selected customer',async()=>{
+ const h=await harness();h.setResolver(()=>({outcome:'match',match:{id:7,label:'Setton Farms'}}));const box=await h.search('customer','Setton');h.find(node=>node.tag==='button',h.find(node=>node.className==='picker-options',box)).onclick();assert.ok(h.find(node=>node.textContent==='Selected: Setton Farms'));h.ui.lang='es';h.events['ledger-language']();assert.ok(h.find(node=>node.textContent==='Seleccionado: Setton Farms'));h.ui.lang='en';h.events['ledger-language']();assert.ok(h.find(node=>node.textContent==='Selected: Setton Farms'));
 });

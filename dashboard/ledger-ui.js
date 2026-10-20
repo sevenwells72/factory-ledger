@@ -78,7 +78,7 @@
   }
   const codeFields=new Set(['reason','reason_code','identity_status','status','effective_status','proof_status','role','method','action','resolution_kind','type','photo','state','customer_po_status','unit']);
   const correctionReasons=[['physical_count','Physical count','Conteo físico'],['missing_receipt','Missing receipt','Recepción no registrada'],['missing_production','Missing production','Producción no registrada'],['wrong_lot','Wrong lot used','Lote equivocado'],['damage_disposal','Damage/disposal','Daño o desecho'],['unrecorded_usage','Unrecorded usage','Uso no registrado'],['data_entry_error','Data-entry error','Error de captura'],['unknown','Unknown','Desconocido']];
-  const codeLabels={...Object.fromEntries(correctionReasons.map(([code,...names])=>[code,names])),wrong_lot_used:['Wrong lot used','Lote equivocado'],unidentified:['Lot identity needs to be checked','Hay que verificar la identidad del lote'],unidentified_lot:['Lot identity needs to be checked','Hay que verificar la identidad del lote'],unknown:['Unknown','Desconocido'],photo_pending:['Photo pending','Foto pendiente'],awaiting_approval:['Waiting for owner approval','En espera de aprobación del dueño'],ship_order:['Ship order','Enviar pedido'],ship_standalone:['Ship','Enviar'],ship_bulk:['Ship multiple products','Enviar varios productos']};
+  const codeLabels={...Object.fromEntries(correctionReasons.map(([code,...names])=>[code,names])),wrong_lot_used:['Wrong lot used','Lote equivocado'],unidentified:['Lot identity needs to be checked','Hay que verificar la identidad del lote'],unidentified_lot:['Lot identity needs to be checked','Hay que verificar la identidad del lote'],unknown:['Unknown','Desconocido'],photo_pending:['Photo pending','Foto pendiente'],awaiting_approval:['Waiting for owner approval','En espera de aprobación del dueño'],ship_order:['Ship order','Enviar pedido'],ship_standalone:['Ship','Enviar'],ship_bulk:['Ship multiple products','Enviar varios productos'],floor:['Floor','Piso'],office:['Office','Oficina'],owner:['Owner','Propietario']};
   Object.assign(codeLabels,{cases:['Cases','Cajones'],boxes:['Boxes','Cajas'],pouches:['Pouches','Bolsas'],pallets:['Pallets','Palés'],each:['Each','Cada uno'],committed:['Recorded','Registrado'],prepared:['Draft','Borrador'],posted:['Counts in stock','Cuenta en el inventario'],voided:['Voided','Anulado'],partially_voided:['Partly voided','Anulado en parte'],active:['Active','Activo'],identified:['Lot identity checked','Identidad del lote verificada'],receive:['Receive','Recibir'],make:['Make','Producir'],pack:['Pack','Empacar'],adjust:['Adjust','Ajustar'],found:['Found inventory','Inventario encontrado']});
   function codeText(value,lang='en'){
     const raw=String(value??''),pair=codeLabels[raw.toLowerCase()];if(pair)return pair[lang==='es'?1:0];
@@ -118,8 +118,8 @@
       return esc(label)+(value.note?'<p>'+esc(value.note)+'</p>':'');
     }
     if(Array.isArray(value))return '<ul'+(field==='suggested_lots'?' class="suggested-lots"':'')+'>'+value.map(v=>'<li>'+draftHtml(v,undefined,options)+'</li>').join('')+'</ul>';
-    if(value&&typeof value==='object')return autoSubstitutionsHtml(value.auto_substitutions)+'<dl>'+Object.entries(value).filter(([k,v])=>labels[k]&&k!=='summary_es'&&v!==null&&v!==undefined&&!(Array.isArray(v)&&!v.length)).map(([k,v])=>'<dt data-en="'+esc(labels[k][0])+'" data-es="'+esc(labels[k][1])+'">'+esc(labels[k][api.lang==='es'?1:0])+'</dt><dd>'+(k==='summary'&&value.summary_es?'<span data-en="'+esc(v)+'" data-es="'+esc(value.summary_es)+'">'+esc(api.lang==='es'?value.summary_es:v)+'</span>':['happened_at','entered_at','proof_due_at'].includes(k)?esc(plantTime(v,api.lang)):draftHtml(v,k,options))+'</dd>').join('')+'</dl>';
-    if(['reason','reason_code','unit'].includes(field)&&codeLabels[String(value).toLowerCase()])return '<span data-en="'+esc(codeText(value,'en'))+'" data-es="'+esc(codeText(value,'es'))+'">'+esc(codeText(value,api.lang))+'</span>';
+    if(value&&typeof value==='object')return autoSubstitutionsHtml(value.auto_substitutions)+'<dl>'+Object.entries(value).filter(([k,v])=>labels[k]&&k!=='summary_es'&&v!==null&&v!==undefined&&!(Array.isArray(v)&&!v.length)).map(([k,v])=>'<dt data-en="'+esc(labels[k][0])+'" data-es="'+esc(labels[k][1])+'">'+esc(labels[k][api.lang==='es'?1:0])+'</dt><dd>'+(k==='summary'&&value.summary_es?'<span data-en="'+esc(v)+'" data-es="'+esc(value.summary_es)+'">'+esc(api.lang==='es'?value.summary_es:v)+'</span>':['happened_at','entered_at','proof_due_at'].includes(k)?'<span data-en="'+esc(plantTime(v,'en'))+'" data-es="'+esc(plantTime(v,'es'))+'">'+esc(plantTime(v,api.lang))+'</span>':draftHtml(v,k,options))+'</dd>').join('')+'</dl>';
+    if(codeFields.has(field)&&codeLabels[String(value).toLowerCase()])return '<span data-en="'+esc(codeText(value,'en'))+'" data-es="'+esc(codeText(value,'es'))+'">'+esc(codeText(value,api.lang))+'</span>';
     return esc(codeFields.has(field)?codeText(value,api.lang):(typeof value==='number'||/^(?:quantity|quantity_lb|cases|cases_received|batches|counted_lb|.*_lb|unit_price|amount|total)$/.test(field||'')&&value!==null&&value!==''&&Number.isFinite(Number(value)))?formatNumber(value):value);
   }
   const api={correctionReasons,formatNumber,exceptionLabel,exceptionQueue,openingStock,esc,text,errorText,recorded,decisionOutcome,resolutionChoices,decisionRequest,noteRequired,voidChoices,voidRequest,receiptState,transportText,groups,dataHtml,draftHtml,makeDraftHtml,receiptData,autoSubstitutionsHtml,plantTime,codeText};
@@ -131,17 +131,20 @@
   // language switch can relabel in place (relabel) without rebuilding forms or drafts.
   const labelled=new Set();
   api.t=(en,es)=>Object.assign(new String(api.lang==='es'?es:en),{en,es});
-  api.el=(tag,value,parent)=>{const e=document.createElement(tag);if(value!==undefined){const node=document.createTextNode(String(value));if(value instanceof String&&value.en!==undefined){node.labels=[value.en,value.es];labelled.add(node);}e.append(node);}if(parent)parent.append(e);return e;};
+  api.problem=message=>{const error=Error(String(message));if(message?.en!==undefined)error.labels=[message.en,message.es];return error;};
+  function appendText(element,value){const node=document.createTextNode(String(value));if(value?.en!==undefined){node.labels=[value.en,value.es];labelled.add(node);}element.append(node);}
+  api.setText=(element,value)=>{element.replaceChildren();appendText(element,value);return element;};
+  api.el=(tag,value,parent)=>{const e=document.createElement(tag);if(value!==undefined)appendText(e,value);if(parent)parent.append(e);return e;};
   api.relabel=()=>{for(const node of labelled){if(!node.isConnected){labelled.delete(node);continue;}node.nodeValue=node.labels[api.lang==='es'?1:0];}};
-  api.translate=()=>{document.documentElement.lang=api.lang;document.querySelectorAll('[data-en]').forEach(e=>e.textContent=e.dataset[api.lang]||e.dataset.en);const b=document.getElementById('language');if(b)b.textContent=api.lang==='en'?'ES':'EN';};
-  api.notice=(message,kind='bad')=>{const box=document.getElementById('notice');box.hidden=false;box.className=kind;box.textContent=message;};
-  api.failure=error=>api.notice(error?.accessUnavailable?root.FLDashboard.accessMessage(api.lang):error?.transport?error.message:api.t('NOT recorded — ','NO registrado — ')+(error?.result?errorText(error.result,api.lang):error.message||String(error)));
+  api.translate=()=>{api.relabel();document.documentElement.lang=api.lang;document.querySelectorAll('[data-en]').forEach(e=>e.textContent=e.dataset[api.lang]||e.dataset.en);const b=document.getElementById('language');if(b)b.textContent=api.lang==='en'?'ES':'EN';};
+  api.notice=(message,kind='bad')=>{const box=document.getElementById('notice');box.hidden=false;box.className=kind;api.setText(box,message);};
+  api.failure=error=>api.notice(api.t(...['en','es'].map(lang=>error?.accessUnavailable?root.FLDashboard.accessMessage(lang):error?.transport?(transportText(error.cause,lang)||error.message):(lang==='es'?'NO registrado — ':'NOT recorded — ')+(error?.result?errorText(error.result,lang):error?.labels?.[lang==='es'?1:0]||error.message||String(error)))));
   api.base=root.FLDashboard.base;
   let actor=null;
   api.session=FLKeySessions.create({base:api.base,fetch:root.fetch.bind(root),storage:root.sessionStorage,config:root.FLDashboard.config,changed:()=>paintIdentity()});
   function paintIdentity(){actor=api.session.actor||actor;const identity=document.getElementById('identity');if(!identity)return;const current=api.session.actor;
     identity.hidden=!root.FLDashboard.writesEnabled;if(identity.hidden){identity.textContent='';document.getElementById('sign-in-form').hidden=true;document.getElementById('sign-out').hidden=true;return;}
-    identity.textContent=current?api.t('Signed in as ','Sesión de ')+current.name:api.t('Sign in before recording','Inicia sesión antes de registrar');
+    api.setText(identity,current?api.t('Signed in as '+current.name,'Sesión de '+current.name):api.t('Sign in before recording','Inicia sesión antes de registrar'));
     document.getElementById('sign-in-form').hidden=!!current;document.getElementById('sign-out').hidden=!current;
   }
   api.ready=root.FLDashboard.ready.then(async on=>{if(!on){api.session.clear();return false;}await api.session.init();return true;}).catch(error=>{api.failure(error);throw error;});api.ready.catch(()=>{});
@@ -149,11 +152,11 @@
     await api.ready;
     if(!read&&!root.FLDashboard.writesEnabled)throw Error('Recording is unavailable / El registro no está disponible');
     const key=api.session.token;
-    if(!key&&!read)throw Error(api.t('Sign in before recording.','Inicia sesión antes de registrar.'));
+    if(!key&&!read)throw api.problem(api.t('Sign in before recording.','Inicia sesión antes de registrar.'));
     const headers={'X-API-Key':key||await root.FLDashboard.key(api.base,api.lang),...(background?{'X-FL-Background':'1'}:{})};if(body!==undefined&&!form)headers['Content-Type']='application/json';
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);let response,result;
     try{response=await fetch(api.base+path,{method:body===undefined?'GET':'POST',headers,body:body===undefined?undefined:form?body:JSON.stringify(body),signal:controller.signal,cache:'no-store'});result=await Promise.resolve().then(()=>binary&&response.ok?response.blob():response.json()).catch(error=>{if([401,403].includes(response.status))return {};throw error;});}
-    catch(error){const plain=transportText(error,api.lang);if(!plain)throw error;const wrapped=Error(plain);wrapped.transport=true;throw wrapped;}finally{clearTimeout(timer);}
+    catch(error){const plain=transportText(error,api.lang);if(!plain)throw error;const wrapped=Error(plain);wrapped.transport=true;wrapped.cause=error;throw wrapped;}finally{clearTimeout(timer);}
     if(response.status===401&&result.detail?.error_code==='SESSION_EXPIRED'){api.session.clear();actor=null;paintIdentity();}
     root.FLDashboard.checkReadAccess(response,{method:body===undefined?'GET':'POST',headers},api.lang,api.base);
     if(!response.ok){const error=Error(errorText(result,api.lang));error.result=result;error.status=response.status;throw error;}return result;

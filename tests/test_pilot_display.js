@@ -39,3 +39,7 @@ for(const action of ['create_customer','create_order'])test(`${action} receipt r
  const html=ui.draftHtml(ui.receiptData(original));assert.match(html,/7:37 PM/);assert.doesNotMatch(html,/12:00 AM/);
  assert.equal(original.draft.happened_at,'2026-10-19T00:00:00-04:00');
 });
+
+for(const [code,en,es] of [['floor','Floor','Piso'],['office','Office','Oficina'],['owner','Owner','Propietario']])test(`actor role ${code} has bilingual draft and Assistant display labels`,()=>{
+ const display=require('../dashboard/assistant-display.js');for(const [lang,label] of [['en',en],['es',es]]){ui.lang=lang;const html=ui.draftHtml({actor:{role:code}});assert.ok(html.includes('>'+label+'</span>'));assert.equal(display.plainLabel(code,lang),label);assert.match(html,/data-en=/);assert.match(html,/data-es=/);}
+});

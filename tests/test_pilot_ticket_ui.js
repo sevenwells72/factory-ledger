@@ -11,15 +11,17 @@ class Element{
 }
 const descendants=node=>[node,...node.children.flatMap(descendants)];
 const plain=value=>JSON.parse(JSON.stringify(value));
-async function harness({language='en',path='/make/prepare',draft={},canCommit=true,onPrepare,initialAttachment=null,photoKind='correction_photo',payload={}}={}){
+async function harness({language='en',path='/make/prepare',draft={},canCommit=true,onPrepare,initialAttachment=null,initialPhoto=null,photoKind='correction_photo',payload={}}={}){
   const host=new Element('main'),notice=new Element('div'),requests=[],failures=[],uploads=[],busy=[],attachments=[];let cancelled=0,edited=0;
-  const ui={...ledger,lang:language,t:(en,es)=>language==='es'?es:en,el(tag,text,parent){const node=new Element(tag,text);parent?.append(node);return node;},makeDraftHtml:()=>'',draftHtml:()=>'',autoSubstitutionsHtml:()=>'',plantTime:()=>'',failure(error){failures.push(error.message);},notice(){},
+  const labelled=new Set();
+  const label=(node,value)=>{node.textContent=String(value??'');if(value?.en!==undefined){node.labels=[value.en,value.es];labelled.add(node);}else{delete node.labels;labelled.delete(node);}return node;};
+  const ui={...ledger,lang:language,t:(en,es)=>Object.assign(new String(ui.lang==='es'?es:en),{en,es}),setText:label,relabel(){for(const node of labelled)if(descendants(host).includes(node))node.textContent=node.labels[ui.lang==='es'?1:0];},el(tag,text,parent){const node=label(new Element(tag),text);parent?.append(node);return node;},makeDraftHtml:()=>'',draftHtml:()=>'',autoSubstitutionsHtml:()=>'',plantTime:()=>'',failure(error){failures.push(error.message);},notice(){},
     async upload(file,kind){uploads.push({file,kind});return {attachment_id:91,kind};},
     async request(url,body){requests.push({url,body:plain(body)});if(url.includes('/commit'))return {receipt_number:'MK-261020-001',success:true};return {ticket:'ticket-1',payload_hash:'hash-1',draft:plain(draft),actor:{name:'Arturo'},can_commit:canCommit,...(onPrepare?onPrepare(body):{})};}};
   const root={FLLedger:ui,addEventListener(){},matchMedia:()=>({matches:true})};vm.runInNewContext(source,{window:root,document:{getElementById:()=>notice},FLReceipts:{link:receipt=>'receipt.html?number='+receipt,page:name=>name}});
-  const controller=ui.ticketCard(host,path,{client_source:'dashboard',...plain(payload)},{initialAttachment,photoKind,onAttachment(attachment){attachments.push(attachment);},onCancel(){cancelled++;},onEdit(){edited++;},onBusy(value){busy.push(value);}});await flush();
+  const controller=ui.ticketCard(host,path,{client_source:'dashboard',...plain(payload)},{initialAttachment,initialPhoto,photoKind,onAttachment(attachment){attachments.push(attachment);},onCancel(){cancelled++;},onEdit(){edited++;},onBusy(value){busy.push(value);}});await flush();
   const all=predicate=>descendants(host).filter(predicate),find=predicate=>all(predicate)[0],button=text=>find(node=>node.tag==='button'&&node.textContent===text);
-  return {host,ui,controller,requests,failures,uploads,busy,attachments,all,find,button,get cancelled(){return cancelled;},get edited(){return edited;}};
+  return {host,ui,controller,requests,failures,uploads,busy,attachments,all,find,button,switchLanguage(lang){ui.lang=lang;ui.relabel();},get cancelled(){return cancelled;},get edited(){return edited;}};
 }
 test('Cancel closes the draft without a commit',async()=>{
   const h=await harness();h.button('Cancel').onclick();assert.equal(h.cancelled,1);assert.equal(h.host.children.length,0);assert.equal(h.requests.length,1);assert.equal(h.requests[0].url,'/make/prepare');
@@ -79,4 +81,20 @@ for(const language of ['en','es'])for(const path of ['/receive/prepare','/adjust
   await h.button(language==='en'?'Record':'Registrar').onclick();const body=h.requests.at(-1).body;
   if(path==='/receive/prepare')assert.deepEqual(body.attachment_ids,[91]);else assert.equal(body.attachment_id,91);
   assert.ok(h.find(node=>node.className==='good'));assert.deepEqual(h.failures,[]);
+});
+
+for(const language of ['en','es'])test(`Receive draft changes the attached photo kind and commits the replacement in ${language}`,async()=>{
+  const file={name:'same-label.png'},h=await harness({language,path:'/receive/prepare',initialAttachment:{attachment_id:88,kind:'lot_tag'},initialPhoto:file}),type=h.find(node=>node.name==='draft_photo_kind');
+  let finish;h.ui.upload=(selected,kind)=>{h.uploads.push({file:selected,kind});return new Promise(resolve=>finish=resolve);};
+  type.value='bol';const pending=type.onchange();assert.equal(h.button(language==='en'?'Record':'Registrar').disabled,true);h.button(language==='en'?'Cancel':'Cancelar').onclick();assert.equal(h.cancelled,0);await h.button(language==='en'?'Record':'Registrar').onclick();assert.equal(h.requests.length,1);
+  assert.equal(h.uploads[0].file,file);assert.equal(h.uploads[0].kind,'bol');finish({attachment_id:92,kind:'bol'});await pending;
+  assert.deepEqual(h.attachments,[{attachment_id:92,kind:'bol'}]);await h.button(language==='en'?'Record':'Registrar').onclick();assert.deepEqual(h.requests.at(-1).body.attachment_ids,[92]);
+});
+test('failed photo reclassification keeps the attached evidence and restores its kind',async()=>{
+  const h=await harness({path:'/receive/prepare',initialAttachment:{attachment_id:88,kind:'lot_tag'},initialPhoto:{name:'label.png'}}),type=h.find(node=>node.name==='draft_photo_kind');h.ui.upload=async()=>{throw Error('offline');};type.value='bol';await type.onchange();assert.equal(type.value,'lot_tag');assert.deepEqual(h.attachments,[]);assert.match(h.find(node=>/previous type/.test(node.textContent)).textContent,/not changed/);await h.button('Record').onclick();assert.deepEqual(h.requests.at(-1).body.attachment_ids,[88]);
+});
+test('switching language refreshes physical-tag legends, actor and photo status without clearing the draft',async()=>{
+  const h=await harness({path:'/receive/prepare',draft:makeDraft}),photo=h.find(node=>node.type==='file');photo.files=[{name:'label.png'}];await photo.onchange();
+  h.switchLanguage('es');assert.ok(h.find(node=>node.textContent==='Foto adjunta'));assert.ok(h.find(node=>node.tag==='legend'&&node.textContent==='Confirma lote físico: Oats · OATS-A-001'));assert.ok(h.find(node=>node.textContent==='Registrando como Arturo'));assert.ok(h.button('Registrar'));
+  h.switchLanguage('en');assert.ok(h.find(node=>node.textContent==='Photo attached'));assert.ok(h.find(node=>node.tag==='legend'&&node.textContent==='Confirm physical lot: Oats · OATS-A-001'));assert.equal(h.uploads.length,1);assert.equal(h.requests.length,1);
 });

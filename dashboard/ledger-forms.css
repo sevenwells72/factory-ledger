@@ -12,7 +12,7 @@
 .ledger-page h1 {font-size:28px;margin:12px 0}
 .ledger-page h2 {font-size:21px;margin-top:0}
 .ledger-page h3 {font-size:17px}
-.ledger-page a {color:#125678;overflow-wrap:anywhere}
+.ledger-page a {color:#125678;overflow-wrap:anywhere;display:inline-flex;align-items:center;min-height:44px;min-width:44px;max-width:100%}
 .ledger-page button,.ledger-page input,.ledger-page select,.ledger-page textarea {font:inherit;min-height:44px;border:1px solid #8799a6;border-radius:6px;padding:9px 12px;max-width:100%;color:inherit;background:#fff}
 .ledger-page button {cursor:pointer;font-weight:650}
 .ledger-page button.primary {background:#174e69;color:white;border-color:#174e69}
@@ -72,6 +72,6 @@
 .ledger-page .lot-confirmation-controls label {font-size:13px;gap:3px}
 .ledger-page .lot-confirmation-choices {display:grid;gap:6px;margin-top:8px}
 .ledger-page .lot-confirmation-choices button {text-align:left;font-size:14px}
-@media(max-width:520px){.receipt-tools>a[data-fl-write-ui]{flex:1 1 145px}.ledger-page .lot-confirmation-row{padding:8px}.ledger-page .lot-confirmation-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.ledger-page .lot-confirmation-controls select,.ledger-page .lot-confirmation-controls input{padding:8px 6px;font-size:14px}}
+@media(max-width:520px){.receipt-tools>a[data-fl-write-ui]{flex:1 1 145px}.ledger-page .lot-confirmation-row{padding:8px}.ledger-page .lot-confirmation-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.ledger-page .lot-confirmation-controls select,.ledger-page .lot-confirmation-controls input{padding:8px 6px;font-size:16px}}
 
 .ledger-page .picker-options hr{border:0;border-top:1px solid #b6c5cf;width:100%;margin:16px 0 4px}.ledger-page .picker-options button.new-customer-option{margin-top:0;padding:10px 12px;background:#f3f5f7;font-size:14px;font-weight:500;color:#344f60}.ledger-page .today-entry{padding:12px 0;border-top:1px solid #c6d1d7}.ledger-page .today-entry p{margin:4px 0}

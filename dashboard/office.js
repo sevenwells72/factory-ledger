@@ -25,11 +25,11 @@
     let value=null,generation=0,timer=null;
     const clear=()=>{clearTimeout(timer);generation++;value=null;button.disabled=false;list.replaceChildren();status.textContent='';invalidate();changed(null);};
     input.oninput=()=>{clear();if(input.value.trim().length>=2)timer=setTimeout(()=>find(),300);};
-    function select(candidate,requestOptions={}){clearTimeout(timer);generation++;button.disabled=false;value=candidate;input.value=candidate.label||candidate.name;list.replaceChildren();status.textContent=ui.t('Selected: ','Seleccionado: ')+input.value;invalidate();changed(candidate,requestOptions);}
+    function select(candidate,requestOptions={}){clearTimeout(timer);generation++;button.disabled=false;value=candidate;input.value=candidate.label||candidate.name;list.replaceChildren();ui.setText(status,ui.t('Selected: '+input.value,'Seleccionado: '+input.value));invalidate();changed(candidate,requestOptions);}
     async function find(offset=0){clearTimeout(timer);if(!input.value.trim()||!box.isConnected||input.disabled)return;const version=++generation;button.disabled=true;try{
       const result=await ui.request('/resolve',{kind,query:input.value.trim(),context:{action:'order',group:'office'},limit:8,offset});
       if(version!==generation||!box.isConnected)return;list.replaceChildren();
-      const candidates=result.outcome==='match'?[result.match]:result.candidates||[],rows=kind==='product'?logic.productChoices(candidates):candidates.filter(Boolean);status.textContent=rows.length?ui.t('Choose the exact record.','Elige el registro exacto.'):ui.t('No matches. Try the full name or code.','Sin resultados. Prueba el nombre completo o código.');
+      const candidates=result.outcome==='match'?[result.match]:result.candidates||[],rows=kind==='product'?logic.productChoices(candidates):candidates.filter(Boolean);ui.setText(status,rows.length?ui.t('Choose the exact record.','Elige el registro exacto.'):ui.t('No matches. Try the full name or code.','Sin resultados. Prueba el nombre completo o código.'));
       for(const item of rows){
         const extra=kind==='product'&&item.kosher_tier==='extra_kosher',text=item.label||item.name;
         const b=ui.el('button',extra?text.replace(/\s*[—-]\s*EXTRA-KOSHER\s*(?:\(SS\))?/gi,'').trim():text,list);b.type='button';
@@ -40,7 +40,7 @@
       if(offset===0&&missing)missing({query:input.value.trim(),host:list});
     }catch(error){if(version===generation)ui.failure(error);}finally{if(version===generation)button.disabled=false;}}
     button.onclick=()=>find();input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();find();}};
-    return {input,select,clear,setDisabled(flag){input.disabled=flag;button.disabled=flag;for(const option of list.querySelectorAll?.('button')||list.children)option.disabled=flag;},get value(){return value;},id(){if(!value)throw Error(ui.t('Choose ','Elige ')+ui.t(en,es));return value.id;}};
+    return {input,select,clear,setDisabled(flag){input.disabled=flag;button.disabled=flag;for(const option of list.querySelectorAll?.('button')||list.children)option.disabled=flag;},get value(){return value;},id(){if(!value)throw ui.problem(ui.t('Choose '+en,'Elige '+es));return value.id;}};
   }
   function render({background=false}={}){
     invalidate();content.replaceChildren();
@@ -124,7 +124,7 @@
               const params=new URLSearchParams({state:order.state,limit:'200'});if(order.customer)params.set('customer',order.customer);
               const result=await ui.request('/sales/orders?'+params,undefined,requestOptions);if(generation!==orderGeneration||!form.isConnected)return;
               mark=(result.orders||[]).find(row=>String(row.order_id)===String(selected.id));
-              if(!mark||!Object.prototype.hasOwnProperty.call(mark,'note'))throw Error(ui.t('The ready-to-ship note could not be loaded. Choose the order again.','No se pudo cargar la nota de listo para enviar. Elige el pedido otra vez.'));
+              if(!mark||!Object.prototype.hasOwnProperty.call(mark,'note'))throw ui.problem(ui.t('The ready-to-ship note could not be loaded. Choose the order again.','No se pudo cargar la nota de listo para enviar. Elige el pedido otra vez.'));
             }
             controls.ready.checked=Boolean(mark.ready);controls.note.value=mark.note||'';readyLoaded=selected.id;readyIntent=null;
           }
@@ -176,7 +176,7 @@
         const load=ui.el('button',ui.t('Load extracted document','Cargar documento extraído'),fields);load.type='button';const status=ui.el('p','',fields);
         input.oninput=()=>{documentLoaded=null;status.textContent='';};
         load.onclick=async({background=false}={})=>{documentLoaded=null;const id=input.value;try{const data=await ui.request('/purchase-documents/'+encodeURIComponent(id),undefined,{background});if(input.value!==id||!form.isConnected)return;
-          if(data.status!=='extracted'||data.document_kind!==(action==='approve_so'?'sales':'purchase'))throw Error(ui.t('Choose an extracted document of this type.','Elige un documento extraído de este tipo.'));
+          if(data.status!=='extracted'||data.document_kind!==(action==='approve_so'?'sales':'purchase'))throw ui.problem(ui.t('Choose an extracted document of this type.','Elige un documento extraído de este tipo.'));
           const ex=data.extraction||{};documentLoaded=Number(id);status.textContent=data.original_filename||'#'+id;
           if(controls.customer_po)controls.customer_po.value=ex.po_number||'';if(controls.reference_number)controls.reference_number.value=ex.reference_number||ex.po_number||'';
           if(choices.customer)choices.customer.input.value=ex.customer_name||'';if(choices.supplier)choices.supplier.input.value=ex.supplier_name||'';
@@ -209,7 +209,7 @@
       function showExisting(result){
         suggestion.replaceChildren();const existing=logic.existingCustomer(result);if(!existing)return;
         if(existing.active===false){ui.el('p',ui.t('This customer is inactive. Ask an owner to review it before placing an order.','Este cliente está inactivo. Pide al propietario que lo revise antes de hacer un pedido.'),suggestion);return;}
-        const use=ui.el('button',ui.t('Use existing customer: ','Usar cliente existente: ')+existing.name,suggestion);use.type='button';use.onclick=()=>{close();choices.customer.select(existing);};
+        const use=ui.el('button',ui.t('Use existing customer: '+existing.name,'Usar cliente existente: '+existing.name),suggestion);use.type='button';use.onclick=()=>{close();choices.customer.select(existing);};
       }
       function edit(){customerGeneration++;customerController?.invalidate();customerController=null;customerDraft.replaceChildren();suggestion.replaceChildren();editor.hidden=false;choices.customer.setDisabled(false);}
       review.onclick=()=>{
@@ -239,11 +239,11 @@
         if(action==='create_expected_receipt'&&v.expected_unit==='cases')v.expected_qty=logic.expectedPounds(v.expected_cases,v.expected_case_size);
         for(const name of ['customer','supplier','product','order'])if(choices[name]?.value)v[name+'_id']=choices[name].id();
         if(choices.related?.value)v.related_so_id=choices.related.id();
-        if(action==='mark_order_ready'&&readyLoaded!==v.order_id)throw Error(ui.t('Choose and load the sales order first.','Elige y carga el pedido primero.'));
-        if(controls.document_id&&documentLoaded!==Number(v.document_id))throw Error(ui.t('Load and review the extracted document first.','Carga y revisa el documento primero.'));
-        if(controls.expected_receipt_id&&expectedLoaded!==Number(v.expected_receipt_id))throw Error(ui.t('Load the expected delivery first.','Carga la entrega esperada primero.'));
+        if(action==='mark_order_ready'&&readyLoaded!==v.order_id)throw ui.problem(ui.t('Choose and load the sales order first.','Elige y carga el pedido primero.'));
+        if(controls.document_id&&documentLoaded!==Number(v.document_id))throw ui.problem(ui.t('Load and review the extracted document first.','Carga y revisa el documento primero.'));
+        if(controls.expected_receipt_id&&expectedLoaded!==Number(v.expected_receipt_id))throw ui.problem(ui.t('Load the expected delivery first.','Carga la entrega esperada primero.'));
         if(lineHost){
-          if(!rows.length)throw Error(ui.t('Add at least one line.','Agrega al menos una línea.'));
+          if(!rows.length)throw ui.problem(ui.t('Add at least one line.','Agrega al menos una línea.'));
           v.lines=[];
           for(const item of rows){
             const value=values(item.inputs),pid=item.product.id();
@@ -271,7 +271,7 @@
     function offerExistingCustomer(result){
       if(!form.isConnected)return;
       const existing=logic.existingCustomer(result);if(!existing||existing.active===false||grants.create_order!==true)return;
-      const use=ui.el('button',ui.t('Use existing customer: ','Usar cliente existente: ')+existing.name,draft);use.type='button';
+      const use=ui.el('button',ui.t('Use existing customer: '+existing.name,'Usar cliente existente: '+existing.name),draft);use.type='button';
       use.onclick=()=>{selectedCustomer=existing;action='create_order';render();};
     }
     if(orderAction&&initial.get('order')){const id=initial.get('order');initial.delete('order');ui.request('/sales/orders/'+encodeURIComponent(id),undefined,initialRead).then(o=>{if(form.isConnected)choices.order.select({id:o.order_id,label:o.order_number},initialRead);}).catch(ui.failure);}
