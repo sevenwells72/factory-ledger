@@ -32,6 +32,7 @@ import time
 from collections import defaultdict, deque
 import contextvars
 import db_busy
+import server_workers
 # Vision extraction lives in its own module (vendor-swappable, zero DB
 # imports). Always referenced as `extraction.<name>` so tests can monkeypatch
 # the module attributes and both sides see it.
@@ -2830,6 +2831,11 @@ async def startup():
     attachments.validate_configuration()
     ship_tickets.validate_configuration()
     assert_staging_database(DATABASE_URL)
+    problem = server_workers.multiple_workers_problem()
+    if problem:
+        logger.error(f"SINGLE_WORKER_REQUIRED: {problem}. FL must run exactly one worker "
+                     "(Procfile --workers 1); with more, a freed Assistant chat stays "
+                     "'busy' on the other workers for up to 2 minutes.")
     if not DATABASE_URL:
         raise RuntimeError("DATABASE_URL env var required — app cannot start without a database")
     if not API_KEY:

@@ -12,7 +12,7 @@ if os.getenv("ENVIRONMENT", "").strip().lower() != "staging":
     raise RuntimeError("This launcher requires ENVIRONMENT=staging")
 assert_staging_database(os.getenv("DATABASE_URL", ""))
 import uvicorn
-uvicorn.run("main:app", host="0.0.0.0", port=int(os.environ.get("PORT", "8000")), timeout_keep_alive=75)
+uvicorn.run("main:app", host="0.0.0.0", port=int(os.environ.get("PORT", "8000")), workers=1, timeout_keep_alive=75)
 '''
 
 

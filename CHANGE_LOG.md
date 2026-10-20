@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-20 15:41 — PR #141 fix round 4: exactly one server worker; rebased onto main after #142
+- **File(s) changed:** `Procfile`, `scripts/staging_start_command.py`, `server_workers.py` (new), `main.py`, `tests/test_single_worker.py` (new), `docs/staging.md`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Rebased `fix/db-pool-followup` onto main 27a2518 (#142); changelog conflicts kept both sides, row 220 kept once, Assistant page script cache now v16 (main already used v15). Procfile passes `--workers 1` and the staging generator `workers=1`, so `WEB_CONCURRENCY` cannot add workers; startup logs `SINGLE_WORKER_REQUIRED` when more workers are configured or the app runs under a multi-worker supervisor (log only — refusing would leave a uvicorn 0.24 supervisor with no workers, i.e. an outage). New test fails if either pin is raised or removed and checks real 1- and 2-worker uvicorn launches. Read-only Railway check: FastAPI and FastAPI-staging each run 1 replica, 1 process; staging's custom command uses `uvicorn.Server(...).run()` (always one process). FL changelog row 220 updated.
+- **Why:** Codex FIX FIRST on PR #141: the instant Assistant chat unlock lives in one process's memory, so a second worker answered "chat busy".
+
+---
+
 ## 2026-10-20 15:12 — Document the five Spanish Record wording changes and fresh passing 562 Node, 34 reason/unit and 22 Spanish pilot checks; add regression row 224 and retain the first failed Office-load attempt
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/pilot-ux-fix-round/record-wording-followup.md`, `docs/validation/pilot-ux-fix-round/record-wording-results.json`
 - **What changed:** Document the five Spanish Record wording changes and fresh passing 562 Node, 34 reason/unit and 22 Spanish pilot checks; add regression row 224 and retain the first failed Office-load attempt
