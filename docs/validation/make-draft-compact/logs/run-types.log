@@ -1,0 +1,5 @@
+command: ["/opt/homebrew/bin/node", "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-run-types.mjs"]
+cwd: /Users/cns/dev/fl-makedraft-wt
+local_only: true; OpenAI/hosted credentials absent; loopback network guard active
+
+Run-type UI: bake/coconut/pack/other, whole pans, saved yields, routed coverage, cross-week warning, daily board; 1440/390 light/dark passed.

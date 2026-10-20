@@ -1,0 +1,60 @@
+{
+  "local_only": true,
+  "actions": [
+    {
+      "command": [
+        "/opt/homebrew/opt/postgresql@17/bin/psql",
+        "-d",
+        "postgres",
+        "-Atc",
+        "SELECT datname FROM pg_database ORDER BY datname"
+      ],
+      "exit_code": 0,
+      "stdout": "fl_makedraft_suite\nfl_makedraft_suite_off\nfl_makedraft_suite_on\npostgres\ntemplate0\ntemplate1\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/opt/homebrew/opt/postgresql@17/bin/dropdb",
+        "fl_makedraft_suite"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/opt/homebrew/opt/postgresql@17/bin/dropdb",
+        "fl_makedraft_suite_off"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/opt/homebrew/opt/postgresql@17/bin/dropdb",
+        "fl_makedraft_suite_on"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/opt/homebrew/opt/postgresql@17/bin/pg_ctl",
+        "-D",
+        "/private/tmp/fl-makedraft-pg-20261020/data",
+        "-m",
+        "fast",
+        "-w",
+        "stop"
+      ],
+      "exit_code": 0,
+      "stdout": "waiting for server to shut down.... done\nserver stopped\n",
+      "stderr": ""
+    }
+  ],
+  "isolated_cluster_stopped": true,
+  "cluster_files_retained_for_audit": "/private/tmp/fl-makedraft-pg-20261020"
+}

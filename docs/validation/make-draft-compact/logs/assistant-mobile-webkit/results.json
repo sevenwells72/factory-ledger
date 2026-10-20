@@ -1,0 +1,1160 @@
+{
+  "runner": "tests/visual/run-fl-assistant-mobile-ux.mjs",
+  "api_fixtures": true,
+  "local_only": true,
+  "records": 0,
+  "results": [
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "opens-at-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "jump-to-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "reload-resumes-same-chat",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "today-opens-on-screen",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "photo-attached",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "photo-only-hint",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "photo-on-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "photo-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "photo-rejected-and-removed",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "opens-at-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "jump-to-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "reload-resumes-same-chat",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "today-opens-on-screen",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "photo-attached",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "photo-only-hint",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "photo-on-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "photo-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 390,
+      "scenario": "photo-rejected-and-removed",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "opens-at-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "jump-to-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "reload-resumes-same-chat",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "today-opens-on-screen",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "photo-attached",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "photo-only-hint",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "photo-on-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "photo-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 393,
+      "scenario": "photo-rejected-and-removed",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "opens-at-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "jump-to-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "reload-resumes-same-chat",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "today-opens-on-screen",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "photo-attached",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "photo-only-hint",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "photo-on-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "photo-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 430,
+      "scenario": "photo-rejected-and-removed",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "opens-at-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "jump-to-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "reload-resumes-same-chat",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "today-opens-on-screen",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "photo-attached",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "photo-only-hint",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "photo-on-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "photo-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 375,
+      "scenario": "photo-rejected-and-removed",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "opens-at-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "jump-to-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "reload-resumes-same-chat",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "today-opens-on-screen",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "photo-attached",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "photo-only-hint",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "photo-on-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "photo-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 390,
+      "scenario": "photo-rejected-and-removed",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "opens-at-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "jump-to-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "reload-resumes-same-chat",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "today-opens-on-screen",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "photo-attached",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "photo-only-hint",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "photo-on-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "photo-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 393,
+      "scenario": "photo-rejected-and-removed",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "opens-at-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "jump-to-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "reload-resumes-same-chat",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "today-opens-on-screen",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "photo-attached",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "photo-only-hint",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "photo-on-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "photo-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": false,
+      "language": "es",
+      "width": 430,
+      "scenario": "photo-rejected-and-removed",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "opens-at-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "jump-to-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "reload-resumes-same-chat",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "today-opens-on-screen",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "photo-attached",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "photo-only-hint",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "photo-on-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "photo-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 375,
+      "scenario": "photo-rejected-and-removed",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "opens-at-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "jump-to-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "reload-resumes-same-chat",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "today-opens-on-screen",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "photo-attached",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "photo-only-hint",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "photo-on-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "photo-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 390,
+      "scenario": "photo-rejected-and-removed",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "opens-at-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "jump-to-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "reload-resumes-same-chat",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "today-opens-on-screen",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "photo-attached",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "photo-only-hint",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "photo-on-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "photo-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 393,
+      "scenario": "photo-rejected-and-removed",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "opens-at-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "jump-to-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "reload-resumes-same-chat",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "today-opens-on-screen",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "photo-attached",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "photo-only-hint",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "photo-on-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "photo-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "en",
+      "width": 430,
+      "scenario": "photo-rejected-and-removed",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "opens-at-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "jump-to-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "reload-resumes-same-chat",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "today-opens-on-screen",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "photo-attached",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "photo-only-hint",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "photo-on-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "photo-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 375,
+      "scenario": "photo-rejected-and-removed",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "opens-at-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "jump-to-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "reload-resumes-same-chat",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "today-opens-on-screen",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "photo-attached",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "photo-only-hint",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "photo-on-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "photo-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 390,
+      "scenario": "photo-rejected-and-removed",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "opens-at-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "jump-to-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "reload-resumes-same-chat",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "today-opens-on-screen",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "photo-attached",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "photo-only-hint",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "photo-on-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "photo-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 393,
+      "scenario": "photo-rejected-and-removed",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "opens-at-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "jump-to-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "reload-resumes-same-chat",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "today-opens-on-screen",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "photo-attached",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "photo-only-hint",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "photo-on-draft",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "photo-retry",
+      "status": "passed"
+    },
+    {
+      "engine": "webkit",
+      "sessions_enabled": true,
+      "language": "es",
+      "width": 430,
+      "scenario": "photo-rejected-and-removed",
+      "status": "passed"
+    }
+  ]
+}

@@ -1,5 +1,803 @@
 # Change Log
 
+## 2026-10-20 19:40 — Preserve raw stdout while cleaning delivery-log whitespace
+- **File(s) changed:** two validation `.log` copies, `logs/raw-stdout-archive.json`, `verification.json`, `FULL_SUITE_REPORT.md`, `/private/tmp/fl-makedraft-raw-stdout/`
+- **What changed:** Remove trailing whitespace from two committed log copies; retain original stdout bytes locally with original/delivery checksums and disclosure.
+- **Why:** Keep the final Git whitespace check clean without discarding or rewriting failure evidence.
+
+---
+
+## 2026-10-20 19:40 — Finalize Make report and remove temporary verification lock
+- **File(s) changed:** `docs/validation/make-draft-compact/REPORT.md`, `docs/validation/make-draft-compact/logs/verification.lock` (removed)
+- **What changed:** Include completed broader audit counts and keep the existing unrelated Chromium issue visible; remove the finished-run lock file before review. All test databases and temporary dependency links are cleaned up.
+- **Why:** Deliver complete evidence without presenting diagnostic findings as passed checks or committing temporary locks.
+
+---
+
+## 2026-10-20 19:39 — Finalized diagnostic fixture disclosure in full validation artifacts
+- **File(s) changed:** docs/validation/make-draft-compact/FULL_SUITE_REPORT.md, verification.json, logs/full-suite-summary.json
+- **What changed:** Recorded the audit unmatched /auth/session/config fixture explicitly alongside its402 FAIL/63 WARN/0 ERROR diagnostic counts. All26 required functional invocations passed; initial and optional failures remain disclosed. Validation writes are now complete.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:39 — Published full local validation report and canonical verification JSON
+- **File(s) changed:** docs/validation/make-draft-compact/FULL_SUITE_REPORT.md, verification.json, logs/full-suite-summary.json, /private/tmp/fl-makedraft-validation/validate.py
+- **What changed:** Named the requested review artifacts, recorded all final functional passes, broad audit findings, unchanged-HEAD optional Chromium failure, preserved initial attempts, exclusions and local screenshot archive. Renamed the earlier verification file to verification.json; no application or test code changed.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:38 — Write plain-English compact Make report with phone comparisons
+- **File(s) changed:** `docs/validation/make-draft-compact/REPORT.md`
+- **What changed:** Explain the finished floor flow, before/after EN/ES screenshots, testing results, choices and local-only limits; retain broader audit and baseline Chromium caveats.
+- **Why:** User requested a non-technical report and reviewable evidence with the Draft PR.
+
+---
+
+## 2026-10-20 19:38 — Completed full compact-Make validation and archived broad evidence
+- **File(s) changed:** docs/validation/make-draft-compact/full-suite-verification.json, logs/full-suite-summary.json, logs/visual-audit/, logs/screenshot-archive.json, node_modules (temporary symlink removed)
+- **What changed:** All 26 required functional runner invocations passed; Python6935 per mode and Node577. Recorded full388-capture diagnostic counts, historical comparison and unchanged-HEAD optional Chromium mobile failure; archived 1114 broad PNGs locally and retained raw logs/JSON. Stopped isolated database infrastructure and removed temporary checkout dependencies.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:37 — Prepared final verification summary and archive reconciliation
+- **File(s) changed:** /private/tmp/fl-makedraft-validation/finalize.py
+- **What changed:** Prepared exact final required-suite classification, full visual diagnostic counts/historical comparison, screenshot archive mapping and temporary dependency cleanup; execution waits for the complete audit.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:37 — Completed visual-audit validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/visual-audit.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 585.04 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:37 — Cleaned up isolated local full-suite databases and stopped PG17
+- **File(s) changed:** docs/validation/make-draft-compact/logs/local-database-cleanup.json, /private/tmp/fl-makedraft-pg-20261020/
+- **What changed:** Dropped only the three suite databases owned by this validation task and stopped its loopback-only port55473 cluster after all database-backed tests completed. Retained cluster/log files locally for audit; no shared or hosted database was touched.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:36 — Completed pytest-final-sessions-1 validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/pytest-final-sessions-1.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 170.1 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:34 — Add compact Make regression guard row 225
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Add draft-only row 225 covering compact review, explicit per-lot taps, honest method evidence, retries, substitutions and migration 085 prerequisite.
+- **Why:** Preserve the physical-tag and phone-layout behavior in future changes without claiming a deployment.
+
+---
+
+## 2026-10-20 19:34 — Refreshed compact Make screenshots and passing walkthrough for final runtime
+- **File(s) changed:** `docs/validation/make-draft-compact/BROWSER_WALKTHROUGH.md`, `browser-results.json`, `browser-before-results.json`, `browser-capture-manifest.json`, `browser-capture-history.json`, `screenshots/*.png`
+- **What changed:** Repeated all 48 actual-page checks with the portable runner and explicit pinned Python; refreshed final source hashes including runner and bridge, and retained aligned before captures plus capture chronology.
+- **Why:** Ensure review evidence matches the final implementation.
+
+---
+
+## 2026-10-20 19:34 — Archived broad browser screenshots outside the review change set
+- **File(s) changed:** docs/validation/make-draft-compact/logs/screenshot-archive.json, /private/tmp/fl-makedraft-full-suite-screenshots/
+- **What changed:** Moved 726 broad-suite PNGs (64996320 bytes) to the requested local archive while retaining stdout, result JSON and failure evidence metadata in validation/logs; dedicated requested screenshots stay versioned.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:33 — Started pytest-final-sessions-1 validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/pytest-final-sessions-1.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:33 — Completed pytest-final-sessions-0 validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/pytest-final-sessions-0.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 190.99 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:33 — Completed runs-interactions validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/runs-interactions.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 14.35 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:33 — Started runs-interactions validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/runs-interactions.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:33 — Completed run-types validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/run-types.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 5.88 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:33 — Made the compact Make browser runner portable and documented simulated scan input
+- **File(s) changed:** `tests/visual/run-make-draft-compact.mjs`, `docs/validation/make-draft-compact/BROWSER_WALKTHROUGH.md`
+- **What changed:** Resolve test Python from explicit overrides or checkout venv; record the current pinned override and simulated scanner coverage.
+- **Why:** Keep the runner reusable and the verification scope honest.
+
+---
+
+## 2026-10-20 19:33 — Started run-types validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/run-types.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:33 — Completed production-trace validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/production-trace.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 2.34 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:33 — Started production-trace validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/production-trace.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:33 — Completed so-exit-actions validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/so-exit-actions.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 20.78 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:33 — Started so-exit-actions validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/so-exit-actions.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:33 — Completed so-detail-interactions validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/so-detail-interactions.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 13.97 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:32 — Started so-detail-interactions validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/so-detail-interactions.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:32 — Completed sales-orders-interactions validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/sales-orders-interactions.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 6.57 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:32 — Started sales-orders-interactions validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/sales-orders-interactions.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:32 — Completed sales-orders-layout validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/sales-orders-layout.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 46.6 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:32 — Completed pytest-full-sessions-1 validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/pytest-full-sessions-1.log, full-suite-verification.json
+- **What changed:** Runner exited 1 after 220.11 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:32 — Completed assistant-mobile-chromium-baseline validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/assistant-mobile-chromium-baseline.log, full-suite-verification.json
+- **What changed:** Runner exited 1 after 31.48 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:32 — Started sales-orders-layout validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/sales-orders-layout.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:32 — Completed key-sessions validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/key-sessions.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 1.62 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:32 — Started key-sessions validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/key-sessions.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:32 — Completed assistant-round-a-1 validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/assistant-round-a-1.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 14.98 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:31 — Completed assistant-mobile-webkit validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/assistant-mobile-webkit.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 22.46 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:31 — Started assistant-round-a-1 validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/assistant-round-a-1.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:31 — Completed assistant-1 validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/assistant-1.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 6.23 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:31 — Verify protected pool and Assistant files remain unchanged
+- **File(s) changed:** `docs/validation/make-draft-compact/scope-guard.json`
+- **What changed:** Record base/current SHA-256 checks for main.py, Assistant runtime/assets and process configuration; every protected file matches task-start main.
+- **Why:** User explicitly excluded pool, Assistant turn handling and hosted infrastructure from this work.
+
+---
+
+## 2026-10-20 19:31 — Started assistant-mobile-chromium-baseline validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/assistant-mobile-chromium-baseline.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:31 — Prepared untouched HEAD baseline for optional Chromium mobile upload check
+- **File(s) changed:** /private/tmp/fl-makedraft-mobile-baseline/
+- **What changed:** Extracted committed dashboard assets and unchanged existing mobile runner to a temporary tree; no working source is used in this baseline comparison.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:31 — Started assistant-1 validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/assistant-1.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:31 — Completed assistant-round-a-0 validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/assistant-round-a-0.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 16.35 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:31 — Started assistant-mobile-webkit validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/assistant-mobile-webkit.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:31 — Started assistant-round-a-0 validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/assistant-round-a-0.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:31 — Completed assistant-0 validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/assistant-0.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 6.02 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:31 — Started assistant-0 validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/assistant-0.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:31 — Completed assistant-final-floor validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/assistant-final-floor.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 42.48 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:31 — Refreshed compact Make screenshots and passing walkthrough for final runtime
+- **File(s) changed:** `docs/validation/make-draft-compact/BROWSER_WALKTHROUGH.md`, `browser-results.json`, `browser-before-results.json`, `browser-capture-manifest.json`, `browser-capture-history.json`, `screenshots/*.png`
+- **What changed:** Repeated all 48 actual-page checks against the final received-date backend correction; retained aligned before captures, refreshed after evidence and exact source hashes, and preserved prior capture chronology.
+- **Why:** Ensure review evidence matches the final implementation.
+
+---
+
+## 2026-10-20 19:30 — Completed pilot-photo-language validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/pilot-photo-language.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 13.09 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:30 — Started pytest-final-sessions-0 validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/pytest-final-sessions-0.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:30 — Prepared final-source Python reruns with fresh database per session mode
+- **File(s) changed:** /private/tmp/fl-makedraft-validation/validate.py
+- **What changed:** Final pytest runs now use separate fresh DB URLs and scratch prefixes; use repository quiet setting once so final passing/failed counts are visible.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:30 — Created independently fresh final full-suite databases
+- **File(s) changed:** docs/validation/make-draft-compact/logs/final-fresh-databases.json
+- **What changed:** Created isolated fl_makedraft_suite_off/on databases from final schema so committed fixture state cannot cross session modes; prior attempts remain separate evidence.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:30 — Started assistant-final-floor validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/assistant-final-floor.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:30 — Completed assistant-phone validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/assistant-phone.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 41.89 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:30 — Started pilot-photo-language validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/pilot-photo-language.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:30 — Completed pilot-ux-round validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/pilot-ux-round.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 112.67 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:30 — Keep missing receipt dates honest and admit pending tap migration in guards
+- **File(s) changed:** `lot_confirmation.py`, `tests/test_lot_confirmation.py`, `tests/test_a12_shift_integration.py`
+- **What changed:** Return the actual received_at value for candidate lots, preserving null when unknown and leaving FIFO fallback ordering intact; add a missing-date regression and accept only the specific pending 085 schema include in the existing integration guard.
+- **Why:** Lot creation time must not be presented as a known received date; the legitimate additive tap migration must pass existing numbering and route protection checks.
+
+---
+
+## 2026-10-20 19:30 — Refreshed compact Make screenshots and passing walkthrough for final runtime
+- **File(s) changed:** `docs/validation/make-draft-compact/BROWSER_WALKTHROUGH.md`, `browser-results.json`, `browser-before-results.json`, `browser-capture-manifest.json`, `browser-capture-history.json`, `screenshots/*.png`
+- **What changed:** Repeated all 48 checks and two before captures after final UI refinements; aligned framing, retained prior hash chronology and visually reviewed EN/ES phone/desktop, Change and receipts.
+- **Why:** Ensure review evidence matches the final implementation.
+
+---
+
+## 2026-10-20 19:29 — Completed pilot-screens validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/pilot-screens.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 14.56 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:29 — Started assistant-phone validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/assistant-phone.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:29 — Completed assistant-mobile validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/assistant-mobile.log, full-suite-verification.json
+- **What changed:** Runner exited 1 after 31.37 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:29 — Started pilot-screens validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/pilot-screens.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:29 — Completed node-full validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/node-full.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 2.27 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:29 — Started node-full validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/node-full.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:29 — Preserved initial Node and pilot selector failure logs before full reruns
+- **File(s) changed:** docs/validation/make-draft-compact/logs/node-full-attempt1.log, pilot-screens-attempt1.log, full-suite-verification.json
+- **What changed:** Retained exact failures from validation overlapping the new More-lots paging change; queue complete reruns against updated test expectations.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:29 — Started assistant-mobile validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/assistant-mobile.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:29 — Completed pilot-hosting validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/pilot-hosting.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 19.48 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:29 — Verify combined substitute quantities and complete lot pagination
+- **File(s) changed:** `tests/test_pilot_ticket_ui.js`, `tests/visual/run-pilot-screens.mjs`, `tests/visual/run-pilot-ux-round.mjs`
+- **What changed:** Test summed requirements for repeated substitute ingredients, all lot choices across six-item pages in EN/ES, ancestor-aware visibility and server-review waits that require an existing enabled Record button.
+- **Why:** Compact rows must retain the complete required quantity and every physical lot option without creating implicit evidence.
+
+---
+
+## 2026-10-20 19:29 — Started pytest-full-sessions-1 validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/pytest-full-sessions-1.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:29 — Completed pytest-full-sessions-0 validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/pytest-full-sessions-0.log, full-suite-verification.json
+- **What changed:** Runner exited 1 after 181.09 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:29 — Started pilot-hosting validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/pilot-hosting.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:29 — Completed pilot-ux-review validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/pilot-ux-review.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 49.53 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:28 — Aligned before and after Make screenshots to the same draft position
+- **File(s) changed:** `tests/visual/run-make-draft-compact.mjs`
+- **What changed:** Use the draft panel’s exact top for comparable before/after screenshots.
+- **Why:** Prevent viewport centering from trimming the heading in phone captures.
+
+---
+
+## 2026-10-20 19:28 — Started pilot-ux-round validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/pilot-ux-round.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:28 — Completed pilot-screens validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/pilot-screens.log, full-suite-verification.json
+- **What changed:** Runner exited 1 after 6.63 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:28 — Completed node-full validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/node-full.log, full-suite-verification.json
+- **What changed:** Runner exited 1 after 2.98 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:28 — Started node-full validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/node-full.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:28 — Started pilot-screens validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/pilot-screens.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:28 — Saved passing compact Make browser evidence and before-after phone screenshots
+- **File(s) changed:** `docs/validation/make-draft-compact/BROWSER_WALKTHROUGH.md`, `browser-results.json`, `browser-before-results.json`, `browser-capture-manifest.json`, `screenshots/*.png`
+- **What changed:** Stored 48 passing actual-page checks, eight local receipts, immutable tap/typed/scan audit proof, EN/ES 390px before/after captures and source hashes.
+- **Why:** Provide reviewable phone evidence for the Make floor workflow; zero hosted/OpenAI traffic.
+
+---
+
+## 2026-10-20 19:28 — Keep alternate lots and substitution review compact
+- **File(s) changed:** `dashboard/ledger-ticket.js`
+- **What changed:** Show six alternate lots at a time with More lots, concise visible substitution/exclusion notes, and summed pounds when recipe inputs share a substitute product.
+- **Why:** A long lot history or repeated substitute must not undo compact phone review or understate ingredient pounds.
+
+---
+
+## 2026-10-20 19:28 — Exercise compact Make in existing browser acceptance suites
+- **File(s) changed:** `tests/test_pilot_ticket_ui.js`, `tests/visual/run-pilot-screens.mjs`, `tests/visual/run-pilot-ux-round.mjs`, `tests/visual/run-pilot-photo-language.mjs`
+- **What changed:** Update existing browser flows to expand optional code controls, resolve ambiguous suffixes by selecting a full lot then explicitly tapping its check, verify split-FIFO checks and Change-only stock details, and preserve typed values during EN/ES switches. Add a Node guard against server blockers after local checks.
+- **Why:** Keep existing local acceptance suites testing the real compact Make interaction while retaining non-Make photo and tag coverage.
+
+---
+
+## 2026-10-20 19:28 — Started pilot-ux-review validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/pilot-ux-review.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:28 — Completed session-shift validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/session-shift.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 3.09 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:28 — Started session-shift validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/session-shift.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:28 — Completed dashboard-key-failure validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/dashboard-key-failure.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 20.01 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:27 — Started dashboard-key-failure validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/dashboard-key-failure.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:27 — Completed intake validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/intake.log, full-suite-verification.json
+- **What changed:** Runner exited 0 after 6.02 seconds. Captured output, exact command and result; failures remain visible for review.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:27 — Started visual-audit validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/visual-audit.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:27 — Started intake validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/intake.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:27 — Separated browser validation pending Make selector adaptations
+- **File(s) changed:** /private/tmp/fl-makedraft-validation/validate.py
+- **What changed:** Run current stable browser suites and complete package audit now; queue pilot-screens, pilot-ux-round and photo-language until their Make selectors are updated. Keep full audit screenshots in temporary local harness and record report/raw measurements in task evidence.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:27 — Included complete current key-session browser checks
+- **File(s) changed:** /private/tmp/fl-makedraft-validation/validate.py, docs/validation/make-draft-compact/logs/key-sessions/
+- **What changed:** Added existing key-session fixture runner against actual dashboard files in the isolated output harness.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:27 — Extended real Make walkthrough for ambiguous suffix and stock proof
+- **File(s) changed:** `tests/visual/run-make-draft-compact.mjs`
+- **What changed:** Exercise optional C-01 ambiguity without auto-confirmation, prove alternate-lot deduction, and frame receipt method evidence at phone size.
+- **Why:** Cover the exact floor blockage and make screenshots readable.
+
+---
+
+## 2026-10-20 19:26 — Discard superseded tag evidence before retrying a Make lot change
+- **File(s) changed:** `dashboard/ledger-ticket.js`
+- **What changed:** Remove accepted evidence for a lot when its identity or confirmation changes; disable failed-refresh old-plan controls until retry.
+- **Why:** A retry must not resend unused-lot evidence or offer an old physical plan as current.
+
+---
+
+## 2026-10-20 19:26 — Test failed Make draft retry against stale lot evidence
+- **File(s) changed:** `tests/test_pilot_ticket_ui.js`
+- **What changed:** Make the unit server reject evidence for an unselected lot and verify EN/ES retry recovery after a failed lot-change prepare.
+- **Why:** Retrying a changed lot must not resubmit evidence for the previous identity or unblock stale Record.
+
+---
+
+## 2026-10-20 19:26 — Bring compact Make rows onto the first phone screen
+- **File(s) changed:** `dashboard/ledger-ticket.js`, `dashboard/ledger-forms.css`, `tests/test_pilot_entry_ui.js`
+- **What changed:** Condense product/output/actor review into a short summary, with extra entry details behind a disclosure; keep recipe changes, notes and shortages visible. Test recipe hint and live translation.
+- **Why:** Browser inspection showed the old field-by-field batch header still pushed compact ingredient rows below the first phone screen.
+
+---
+
+## 2026-10-20 19:26 — Cover compact Make taps and explicit changed-lot confirmation
+- **File(s) changed:** `tests/test_pilot_ticket_ui.js`
+- **What changed:** Replace always-visible typing assumptions with compact-row tests for per-lot taps, split FIFO plans, optional typed/scanned evidence, ambiguous suffix selection, checked counts, changed and substituted lots, failed re-prepare guard, shortage visibility and EN/ES state preservation; preserve non-Make photo tests.
+- **Why:** Verify every physical tag remains an explicit action and a stale or incomplete Make draft cannot record.
+
+---
+
+## 2026-10-20 19:26 — Matched the displayed tap label in receipt browser acceptance
+- **File(s) changed:** `tests/visual/run-make-draft-compact.mjs`
+- **What changed:** Compare the truthful receipt tap method label without a capitalization assumption.
+- **Why:** Actual receipt wording uses lowercase tap.
+
+---
+
+## 2026-10-20 19:26 — Scoped Make lot-list browser checks to the changed ingredient
+- **File(s) changed:** `tests/visual/run-make-draft-compact.mjs`
+- **What changed:** Count only the opened ingredient’s candidates and capture all compact ingredient rows in one phone view.
+- **Why:** Hidden lots for other ingredients should not affect the changed-lot assertion.
+
+---
+
+## 2026-10-20 19:26 — Started pytest-full-sessions-0 validation
+- **File(s) changed:** docs/validation/make-draft-compact/logs/pytest-full-sessions-0.log
+- **What changed:** Started the complete runner with the local isolated environment; output is captured in this log.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:26 — Prepared session-off and session-on full Python suite runs
+- **File(s) changed:** /private/tmp/fl-makedraft-validation/validate.py
+- **What changed:** Set both KEY_SESSIONS_ENABLED modes explicitly for complete pytest validation against the owned local database.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:25 — Prepared complete local validation harness and network guards
+- **File(s) changed:** /private/tmp/fl-makedraft-validation/, docs/validation/make-draft-compact/logs/suite-plan.json
+- **What changed:** Recorded commands, runtime/environment and explicit exclusions; added local-only Python/socket and Playwright/fetch guards and isolated output for the existing full visual audit.
+- **Why:** Complete local-only validation of compact Make draft changes with zero model calls.
+
+---
+
+## 2026-10-20 19:25 — Keep Record blocked when a changed Make draft fails to refresh
+- **File(s) changed:** `dashboard/ledger-ticket.js`, `dashboard/ledger-forms.css`
+- **What changed:** Keep a failed refresh from re-enabling an older ticket; add explicit retry and preserve checked evidence. Keep optional typing link at 44px touch height.
+- **Why:** A failed lot change must never allow recording the previous physical lot by mistake.
+
+---
+
+## 2026-10-20 19:25 — Refined compact Make receipt audit and layout measurements
+- **File(s) changed:** `tests/visual/run-make-draft-compact.mjs`
+- **What changed:** Read immutable confirmation evidence from receipt transactions and measure complete draft height.
+- **Why:** Validate actual audit structure and quantify phone scrolling.
+
+---
+
+## 2026-10-20 19:25 — Compact Make draft into explicit tap-to-check ingredient rows
+- **File(s) changed:** `dashboard/entry.js`, `dashboard/ledger-ticket.js`, `dashboard/ledger-ui.js`, `dashboard/ledger-forms.css`, `dashboard/entry.html`, `dashboard/receipt.html`
+- **What changed:** Add recipe hint, oldest-first compact ingredient rows, explicit bag-tag checks, Change lot list and optional code/scanner entry; keep every lot check and server revalidation; translate confirmation methods on receipts. Refresh permitted entry/receipt caches.
+- **Why:** Floor manager needs less phone scrolling and a way around ambiguous suffixes without typing.
+
+---
+
+## 2026-10-20 19:24 — Rebuilt isolated Make draft suite database after schema search-path repair
+- **File(s) changed:** docs/validation/make-draft-compact/logs/database-schema-bootstrap-repaired.json
+- **What changed:** Recreated owned suite database on loopback PG17 port55473 and loaded current schema with migration085.
+- **Why:** Validate backend against the completed fresh test schema.
+
+---
+
+## 2026-10-20 19:24 — Added compact Make phone and desktop browser walkthrough
+- **File(s) changed:** `tests/visual/run-make-draft-compact.mjs`, `tests/visual/make_draft_compact_page_bridge.py`
+- **What changed:** Added EN/ES before/after capture and actual local-handler acceptance for taps, changes, shortage, substitutions and truthful methods.
+- **Why:** Exercise Arturo’s complete Make workflow at 390px without hosted DB or model calls.
+
+---
+
+## 2026-10-20 19:24 — Restore public search path before pending tap schema migration
+- **File(s) changed:** `tests/schema/schema.sql`
+- **What changed:** Set the public search path before applying pending migration 085 after the schema dump clears it.
+- **Why:** Fresh disposable schema bootstrap must resolve the existing lot-confirmation table.
+
+---
+
+## 2026-10-20 19:24 — Recorded fresh local schema bootstrap failure for migration085
+- **File(s) changed:** docs/validation/make-draft-compact/logs/database-schema-bootstrap.json
+- **What changed:** Recorded that the owned fresh test database lacks transaction_lot_confirmations when migration085 executes.
+- **Why:** Preserve failed validation evidence and repair bootstrap before full suites.
+
+---
+
+## 2026-10-20 19:23 — Add explicit tap lot evidence and reversible schema support
+- **File(s) changed:** `lot_confirmation.py`, `migrations/085_tap_lot_confirmation.sql`, `migrations/down/085_tap_lot_confirmation_down.sql`, `tests/schema/schema.sql`, `tests/test_lot_confirmation.py`
+- **What changed:** Accept tap only with the selected complete lot code; retain tap, typed and scan evidence in receipts and append-only audit rows; expose candidate receipt dates; add idempotent migration 085 and regression coverage.
+- **Why:** Floor workers must explicitly check each bag tag without ambiguous suffix typing; no suggestion may auto-confirm. Migration requires separate future approval before any hosted use.
+
+---
+
+## 2026-10-20 19:23 — Added isolated real-backend compact Make browser fixture
+- **File(s) changed:** `tests/visual/make_draft_compact_page_bridge.py`
+- **What changed:** Seed local Classic #9 recipe, duplicate C-01 suffixes, shortage, substitutions and alternate lots; serve actual pages and handlers with OpenAI refused.
+- **Why:** Verify phone lot selection and truthful receipt/audit evidence without hosted writes.
+
+---
+
+## 2026-10-20 19:23 — Prepared isolated local PG17 and pinned validation dependencies for compact Make
+- **File(s) changed:** node_modules (ignored symlink), docs/validation/make-draft-compact/logs/environment-bootstrap.json, /private/tmp/fl-makedraft-pg-20261020/
+- **What changed:** Started a new loopback-only PostgreSQL 17 cluster on port 55473 and recorded Python, Node and Playwright tooling.
+- **Why:** Run complete validation without accessing hosted systems or modifying a shared database.
+
+---
+
+## 2026-10-20 19:22 — Saved untouched Make screen assets for compact-draft before screenshots
+- **File(s) changed:** `/tmp/fl-makedraft-before/dashboard/*`
+- **What changed:** Saved base dashboard assets for local before captures.
+- **Why:** Compare the unchanged phone layout with compact Make draft.
+
+---
+
+## 2026-10-20 17:49 — Created Make draft compact worktree from origin/main
+- **File(s) changed:** `.git`, checked-out project files, `CHANGE_LOG.md`
+- **What changed:** Fetched origin and created `/Users/cns/dev/fl-makedraft-wt` on new branch `fix/make-draft-compact` from `origin/main`.
+- **Why:** User requested an isolated worktree for the Make draft compact task.
+
+---
+
 ## 2026-10-20 15:12 — Document the five Spanish Record wording changes and fresh passing 562 Node, 34 reason/unit and 22 Spanish pilot checks; add regression row 224 and retain the first failed Office-load attempt
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/pilot-ux-fix-round/record-wording-followup.md`, `docs/validation/pilot-ux-fix-round/record-wording-results.json`
 - **What changed:** Document the five Spanish Record wording changes and fresh passing 562 Node, 34 reason/unit and 22 Spanish pilot checks; add regression row 224 and retain the first failed Office-load attempt

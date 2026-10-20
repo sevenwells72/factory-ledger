@@ -1,0 +1,1796 @@
+{
+  "created_at": "2026-10-20T23:28:38.840Z",
+  "local_only": true,
+  "actual_records": true,
+  "openai_calls": 0,
+  "results": [
+    {
+      "item": 1,
+      "name": "Header links are visible buttons on each shared page",
+      "sessions": 0,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "off",
+      "name": "Session-off preserves write cutover and makes zero writes",
+      "sessions": 0,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": 1,
+      "name": "Header links are visible buttons on each shared page",
+      "sessions": 0,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "off",
+      "name": "Session-off preserves write cutover and makes zero writes",
+      "sessions": 0,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": 1,
+      "name": "Header links are visible buttons on each shared page",
+      "sessions": 0,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "off",
+      "name": "Session-off preserves write cutover and makes zero writes",
+      "sessions": 0,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": 1,
+      "name": "Header links are visible buttons on each shared page",
+      "sessions": 0,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "off",
+      "name": "Session-off preserves write cutover and makes zero writes",
+      "sessions": 0,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": 1,
+      "name": "Header links are visible buttons on each shared page",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": 2,
+      "name": "Clear Office start buttons and direct New customer",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "9.office",
+      "name": "Cancel Office draft discards fields without a write",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "3-5.customer",
+      "name": "Debounced matches and separate Add customer; exact Setton duplicate opens and offers existing",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": 6,
+      "name": "Regular Classic is first and extra-kosher choices have distinct tags",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "luz.1",
+      "name": "Luz practice A records Setton Farms Fruit Nut and Classic case order",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "luz.2",
+      "name": "Luz practice B records new customer then Sprinkles order",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "7+luz.3",
+      "name": "Luz practice C records expected Sunflower delivery: 10 cases × 25 = 250 lb",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "8+luz.4",
+      "name": "Luz practice D opens receipt, Today and Exceptions directly",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "15-16",
+      "name": "Floor and Office hide Owner backfill; home points to Assistant",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "5.entry",
+      "name": "Record product/supplier search debounces after two characters; Enter still searches",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "9.entry",
+      "name": "Cancel Receive draft returns empty form and records nothing",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "10+arturo.receive",
+      "name": "Arturo Receive attaches form photo, draft and receipt preserve evidence",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "11-12+arturo.make",
+      "name": "Arturo Make warns zero Coconut, disambiguates Oats suffix and requires every tag",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "13+arturo.pack",
+      "name": "Arturo Pack finds Classic #9 batch and offers newest just-made lot, still confirms tag",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "10+arturo.ship",
+      "name": "Arturo Ship form photo and physical tag produce real receipt",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "14+arturo.found",
+      "name": "Arturo Found searches Oats and picks full lot",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "14+arturo.adjust",
+      "name": "Arturo Adjust finds Oats by product and records -5 lb",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "arturo.void",
+      "name": "Arturo Void explicitly records the correction and receipt backlink",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "8+arturo.today",
+      "name": "Record entry Today works on phone and desktop",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": 17,
+      "name": "Assistant offline card Office and Record links open actual pages",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "integrity",
+      "name": "No page errors, hosted traffic or direct ledger writes",
+      "sessions": 1,
+      "width": 1440,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": 1,
+      "name": "Header links are visible buttons on each shared page",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": 2,
+      "name": "Clear Office start buttons and direct New customer",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "9.office",
+      "name": "Cancel Office draft discards fields without a write",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "3-5.customer",
+      "name": "Debounced matches and separate Add customer; exact Setton duplicate opens and offers existing",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": 6,
+      "name": "Regular Classic is first and extra-kosher choices have distinct tags",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "luz.1",
+      "name": "Luz practice A records Setton Farms Fruit Nut and Classic case order",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "luz.2",
+      "name": "Luz practice B records new customer then Sprinkles order",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "7+luz.3",
+      "name": "Luz practice C records expected Sunflower delivery: 10 cases × 25 = 250 lb",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "8+luz.4",
+      "name": "Luz practice D opens receipt, Today and Exceptions directly",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "15-16",
+      "name": "Floor and Office hide Owner backfill; home points to Assistant",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "5.entry",
+      "name": "Record product/supplier search debounces after two characters; Enter still searches",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "9.entry",
+      "name": "Cancel Receive draft returns empty form and records nothing",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "10+arturo.receive",
+      "name": "Arturo Receive attaches form photo, draft and receipt preserve evidence",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "11-12+arturo.make",
+      "name": "Arturo Make warns zero Coconut, disambiguates Oats suffix and requires every tag",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "13+arturo.pack",
+      "name": "Arturo Pack finds Classic #9 batch and offers newest just-made lot, still confirms tag",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "10+arturo.ship",
+      "name": "Arturo Ship form photo and physical tag produce real receipt",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "14+arturo.found",
+      "name": "Arturo Found searches Oats and picks full lot",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "14+arturo.adjust",
+      "name": "Arturo Adjust finds Oats by product and records -5 lb",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "arturo.void",
+      "name": "Arturo Void explicitly records the correction and receipt backlink",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "8+arturo.today",
+      "name": "Record entry Today works on phone and desktop",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": 17,
+      "name": "Assistant offline card Office and Record links open actual pages",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "integrity",
+      "name": "No page errors, hosted traffic or direct ledger writes",
+      "sessions": 1,
+      "width": 1440,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": 1,
+      "name": "Header links are visible buttons on each shared page",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": 2,
+      "name": "Clear Office start buttons and direct New customer",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "9.office",
+      "name": "Cancel Office draft discards fields without a write",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "3-5.customer",
+      "name": "Debounced matches and separate Add customer; exact Setton duplicate opens and offers existing",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": 6,
+      "name": "Regular Classic is first and extra-kosher choices have distinct tags",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "luz.1",
+      "name": "Luz practice A records Setton Farms Fruit Nut and Classic case order",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "luz.2",
+      "name": "Luz practice B records new customer then Sprinkles order",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "7+luz.3",
+      "name": "Luz practice C records expected Sunflower delivery: 10 cases × 25 = 250 lb",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "8+luz.4",
+      "name": "Luz practice D opens receipt, Today and Exceptions directly",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "15-16",
+      "name": "Floor and Office hide Owner backfill; home points to Assistant",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "5.entry",
+      "name": "Record product/supplier search debounces after two characters; Enter still searches",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "9.entry",
+      "name": "Cancel Receive draft returns empty form and records nothing",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "10+arturo.receive",
+      "name": "Arturo Receive attaches form photo, draft and receipt preserve evidence",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "11-12+arturo.make",
+      "name": "Arturo Make warns zero Coconut, disambiguates Oats suffix and requires every tag",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "13+arturo.pack",
+      "name": "Arturo Pack finds Classic #9 batch and offers newest just-made lot, still confirms tag",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "10+arturo.ship",
+      "name": "Arturo Ship form photo and physical tag produce real receipt",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "14+arturo.found",
+      "name": "Arturo Found searches Oats and picks full lot",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "14+arturo.adjust",
+      "name": "Arturo Adjust finds Oats by product and records -5 lb",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "arturo.void",
+      "name": "Arturo Void explicitly records the correction and receipt backlink",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "8+arturo.today",
+      "name": "Record entry Today works on phone and desktop",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": 17,
+      "name": "Assistant offline card Office and Record links open actual pages",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": "integrity",
+      "name": "No page errors, hosted traffic or direct ledger writes",
+      "sessions": 1,
+      "width": 390,
+      "language": "en",
+      "passed": true
+    },
+    {
+      "item": 1,
+      "name": "Header links are visible buttons on each shared page",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": 2,
+      "name": "Clear Office start buttons and direct New customer",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "9.office",
+      "name": "Cancel Office draft discards fields without a write",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "3-5.customer",
+      "name": "Debounced matches and separate Add customer; exact Setton duplicate opens and offers existing",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": 6,
+      "name": "Regular Classic is first and extra-kosher choices have distinct tags",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "luz.1",
+      "name": "Luz practice A records Setton Farms Fruit Nut and Classic case order",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "luz.2",
+      "name": "Luz practice B records new customer then Sprinkles order",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "7+luz.3",
+      "name": "Luz practice C records expected Sunflower delivery: 10 cases × 25 = 250 lb",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "8+luz.4",
+      "name": "Luz practice D opens receipt, Today and Exceptions directly",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "15-16",
+      "name": "Floor and Office hide Owner backfill; home points to Assistant",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "5.entry",
+      "name": "Record product/supplier search debounces after two characters; Enter still searches",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "9.entry",
+      "name": "Cancel Receive draft returns empty form and records nothing",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "10+arturo.receive",
+      "name": "Arturo Receive attaches form photo, draft and receipt preserve evidence",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "11-12+arturo.make",
+      "name": "Arturo Make warns zero Coconut, disambiguates Oats suffix and requires every tag",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "13+arturo.pack",
+      "name": "Arturo Pack finds Classic #9 batch and offers newest just-made lot, still confirms tag",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "10+arturo.ship",
+      "name": "Arturo Ship form photo and physical tag produce real receipt",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "14+arturo.found",
+      "name": "Arturo Found searches Oats and picks full lot",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "14+arturo.adjust",
+      "name": "Arturo Adjust finds Oats by product and records -5 lb",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "arturo.void",
+      "name": "Arturo Void explicitly records the correction and receipt backlink",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "8+arturo.today",
+      "name": "Record entry Today works on phone and desktop",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": 17,
+      "name": "Assistant offline card Office and Record links open actual pages",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    },
+    {
+      "item": "integrity",
+      "name": "No page errors, hosted traffic or direct ledger writes",
+      "sessions": 1,
+      "width": 390,
+      "language": "es",
+      "passed": true
+    }
+  ],
+  "receipts": [
+    {
+      "number": "ORD-261020-001",
+      "mode": 1,
+      "width": 1440,
+      "lang": "en"
+    },
+    {
+      "number": "CUS-261020-001",
+      "mode": 1,
+      "width": 1440,
+      "lang": "en"
+    },
+    {
+      "number": "ORD-261020-002",
+      "mode": 1,
+      "width": 1440,
+      "lang": "en"
+    },
+    {
+      "number": "ER-261020-001",
+      "mode": 1,
+      "width": 1440,
+      "lang": "en"
+    },
+    {
+      "number": "RCV-261020-001",
+      "mode": 1,
+      "width": 1440,
+      "lang": "en"
+    },
+    {
+      "number": "MK-261020-001",
+      "mode": 1,
+      "width": 1440,
+      "lang": "en"
+    },
+    {
+      "number": "PK-261020-001",
+      "mode": 1,
+      "width": 1440,
+      "lang": "en"
+    },
+    {
+      "number": "SHP-261020-001",
+      "mode": 1,
+      "width": 1440,
+      "lang": "en"
+    },
+    {
+      "number": "FND-261020-001",
+      "mode": 1,
+      "width": 1440,
+      "lang": "en"
+    },
+    {
+      "number": "ADJ-261020-001",
+      "mode": 1,
+      "width": 1440,
+      "lang": "en"
+    },
+    {
+      "number": "VD-261020-001",
+      "mode": 1,
+      "width": 1440,
+      "lang": "en"
+    },
+    {
+      "number": "ORD-261020-001",
+      "mode": 1,
+      "width": 1440,
+      "lang": "es"
+    },
+    {
+      "number": "CUS-261020-001",
+      "mode": 1,
+      "width": 1440,
+      "lang": "es"
+    },
+    {
+      "number": "ORD-261020-002",
+      "mode": 1,
+      "width": 1440,
+      "lang": "es"
+    },
+    {
+      "number": "ER-261020-001",
+      "mode": 1,
+      "width": 1440,
+      "lang": "es"
+    },
+    {
+      "number": "RCV-261020-001",
+      "mode": 1,
+      "width": 1440,
+      "lang": "es"
+    },
+    {
+      "number": "MK-261020-001",
+      "mode": 1,
+      "width": 1440,
+      "lang": "es"
+    },
+    {
+      "number": "PK-261020-001",
+      "mode": 1,
+      "width": 1440,
+      "lang": "es"
+    },
+    {
+      "number": "SHP-261020-001",
+      "mode": 1,
+      "width": 1440,
+      "lang": "es"
+    },
+    {
+      "number": "FND-261020-001",
+      "mode": 1,
+      "width": 1440,
+      "lang": "es"
+    },
+    {
+      "number": "ADJ-261020-001",
+      "mode": 1,
+      "width": 1440,
+      "lang": "es"
+    },
+    {
+      "number": "VD-261020-001",
+      "mode": 1,
+      "width": 1440,
+      "lang": "es"
+    },
+    {
+      "number": "ORD-261020-001",
+      "mode": 1,
+      "width": 390,
+      "lang": "en"
+    },
+    {
+      "number": "CUS-261020-001",
+      "mode": 1,
+      "width": 390,
+      "lang": "en"
+    },
+    {
+      "number": "ORD-261020-002",
+      "mode": 1,
+      "width": 390,
+      "lang": "en"
+    },
+    {
+      "number": "ER-261020-001",
+      "mode": 1,
+      "width": 390,
+      "lang": "en"
+    },
+    {
+      "number": "RCV-261020-001",
+      "mode": 1,
+      "width": 390,
+      "lang": "en"
+    },
+    {
+      "number": "MK-261020-001",
+      "mode": 1,
+      "width": 390,
+      "lang": "en"
+    },
+    {
+      "number": "PK-261020-001",
+      "mode": 1,
+      "width": 390,
+      "lang": "en"
+    },
+    {
+      "number": "SHP-261020-001",
+      "mode": 1,
+      "width": 390,
+      "lang": "en"
+    },
+    {
+      "number": "FND-261020-001",
+      "mode": 1,
+      "width": 390,
+      "lang": "en"
+    },
+    {
+      "number": "ADJ-261020-001",
+      "mode": 1,
+      "width": 390,
+      "lang": "en"
+    },
+    {
+      "number": "VD-261020-001",
+      "mode": 1,
+      "width": 390,
+      "lang": "en"
+    },
+    {
+      "number": "ORD-261020-001",
+      "mode": 1,
+      "width": 390,
+      "lang": "es"
+    },
+    {
+      "number": "CUS-261020-001",
+      "mode": 1,
+      "width": 390,
+      "lang": "es"
+    },
+    {
+      "number": "ORD-261020-002",
+      "mode": 1,
+      "width": 390,
+      "lang": "es"
+    },
+    {
+      "number": "ER-261020-001",
+      "mode": 1,
+      "width": 390,
+      "lang": "es"
+    },
+    {
+      "number": "RCV-261020-001",
+      "mode": 1,
+      "width": 390,
+      "lang": "es"
+    },
+    {
+      "number": "MK-261020-001",
+      "mode": 1,
+      "width": 390,
+      "lang": "es"
+    },
+    {
+      "number": "PK-261020-001",
+      "mode": 1,
+      "width": 390,
+      "lang": "es"
+    },
+    {
+      "number": "SHP-261020-001",
+      "mode": 1,
+      "width": 390,
+      "lang": "es"
+    },
+    {
+      "number": "FND-261020-001",
+      "mode": 1,
+      "width": 390,
+      "lang": "es"
+    },
+    {
+      "number": "ADJ-261020-001",
+      "mode": 1,
+      "width": 390,
+      "lang": "es"
+    },
+    {
+      "number": "VD-261020-001",
+      "mode": 1,
+      "width": 390,
+      "lang": "es"
+    }
+  ],
+  "screenshots": [
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/off-1440-en-header-buttons.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/off-1440-en-off-gating.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/off-1440-es-header-buttons.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/off-1440-es-off-gating.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/off-390-en-header-buttons.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/off-390-en-off-gating.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/off-390-es-header-buttons.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/off-390-es-off-gating.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-header-buttons.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-office-start-customer.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-setton-duplicate.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-regular-extra-kosher.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-luz-a-order-draft.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-luz-b-customer-order.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-expected-cases-form.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-luz-c-expected-cases.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-luz-d-receipt-lookup.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-luz-d-today.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-luz-d-exceptions.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-arturo-receive-draft.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-arturo-receive-receipt.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-arturo-make-ambiguous-tags.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-arturo-make-ready-shortage.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-arturo-make-receipt.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-arturo-pack-draft.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-arturo-pack-recorded.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-arturo-ship-receipt.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-arturo-found-recorded.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-arturo-adjust-recorded.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-arturo-void-recorded.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-arturo-today.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-en-assistant-offline-links.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-header-buttons.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-office-start-customer.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-setton-duplicate.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-regular-extra-kosher.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-luz-a-order-draft.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-luz-b-customer-order.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-expected-cases-form.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-luz-c-expected-cases.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-luz-d-receipt-lookup.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-luz-d-today.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-luz-d-exceptions.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-arturo-receive-draft.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-arturo-receive-receipt.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-arturo-make-ambiguous-tags.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-arturo-make-ready-shortage.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-arturo-make-receipt.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-arturo-pack-draft.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-arturo-pack-recorded.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-arturo-ship-receipt.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-arturo-found-recorded.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-arturo-adjust-recorded.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-arturo-void-recorded.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-arturo-today.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-1440-es-assistant-offline-links.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-header-buttons.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-office-start-customer.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-setton-duplicate.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-regular-extra-kosher.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-luz-a-order-draft.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-luz-b-customer-order.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-expected-cases-form.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-luz-c-expected-cases.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-luz-d-receipt-lookup.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-luz-d-today.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-luz-d-exceptions.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-arturo-receive-draft.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-arturo-receive-receipt.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-arturo-make-ambiguous-tags.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-arturo-make-ready-shortage.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-arturo-make-receipt.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-arturo-pack-draft.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-arturo-pack-recorded.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-arturo-ship-receipt.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-arturo-found-recorded.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-arturo-adjust-recorded.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-arturo-void-recorded.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-arturo-today.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-en-assistant-offline-links.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-header-buttons.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-office-start-customer.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-setton-duplicate.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-regular-extra-kosher.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-luz-a-order-draft.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-luz-b-customer-order.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-expected-cases-form.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-luz-c-expected-cases.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-luz-d-receipt-lookup.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-luz-d-today.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-luz-d-exceptions.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-arturo-receive-draft.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-arturo-receive-receipt.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-arturo-make-ambiguous-tags.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-arturo-make-ready-shortage.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-arturo-make-receipt.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-arturo-pack-draft.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-arturo-pack-recorded.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-arturo-ship-receipt.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-arturo-found-recorded.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-arturo-adjust-recorded.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-arturo-void-recorded.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-arturo-today.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round/on-390-es-assistant-offline-links.png"
+  ],
+  "databases_dropped": [
+    "fl_pilotux_page_96711_0_1440_en",
+    "fl_pilotux_page_96711_0_1440_es",
+    "fl_pilotux_page_96711_0_390_en",
+    "fl_pilotux_page_96711_0_390_es",
+    "fl_pilotux_page_96711_1_1440_en",
+    "fl_pilotux_page_96711_1_1440_es",
+    "fl_pilotux_page_96711_1_390_en",
+    "fl_pilotux_page_96711_1_390_es"
+  ],
+  "scenarios": [
+    {
+      "mode": 0,
+      "width": 1440,
+      "lang": "en",
+      "planned_checks": [
+        "1",
+        "off"
+      ],
+      "completed_checks": [
+        "1",
+        "off"
+      ],
+      "started": true,
+      "complete": true,
+      "passed": true,
+      "missing_checks": [],
+      "failed_checks": 0
+    },
+    {
+      "mode": 0,
+      "width": 1440,
+      "lang": "es",
+      "planned_checks": [
+        "1",
+        "off"
+      ],
+      "completed_checks": [
+        "1",
+        "off"
+      ],
+      "started": true,
+      "complete": true,
+      "passed": true,
+      "missing_checks": [],
+      "failed_checks": 0
+    },
+    {
+      "mode": 0,
+      "width": 390,
+      "lang": "en",
+      "planned_checks": [
+        "1",
+        "off"
+      ],
+      "completed_checks": [
+        "1",
+        "off"
+      ],
+      "started": true,
+      "complete": true,
+      "passed": true,
+      "missing_checks": [],
+      "failed_checks": 0
+    },
+    {
+      "mode": 0,
+      "width": 390,
+      "lang": "es",
+      "planned_checks": [
+        "1",
+        "off"
+      ],
+      "completed_checks": [
+        "1",
+        "off"
+      ],
+      "started": true,
+      "complete": true,
+      "passed": true,
+      "missing_checks": [],
+      "failed_checks": 0
+    },
+    {
+      "mode": 1,
+      "width": 1440,
+      "lang": "en",
+      "planned_checks": [
+        "1",
+        "2",
+        "9.office",
+        "3-5.customer",
+        "6",
+        "luz.1",
+        "luz.2",
+        "7+luz.3",
+        "8+luz.4",
+        "15-16",
+        "5.entry",
+        "9.entry",
+        "10+arturo.receive",
+        "11-12+arturo.make",
+        "13+arturo.pack",
+        "10+arturo.ship",
+        "14+arturo.found",
+        "14+arturo.adjust",
+        "arturo.void",
+        "8+arturo.today",
+        "17",
+        "integrity"
+      ],
+      "completed_checks": [
+        "1",
+        "2",
+        "9.office",
+        "3-5.customer",
+        "6",
+        "luz.1",
+        "luz.2",
+        "7+luz.3",
+        "8+luz.4",
+        "15-16",
+        "5.entry",
+        "9.entry",
+        "10+arturo.receive",
+        "11-12+arturo.make",
+        "13+arturo.pack",
+        "10+arturo.ship",
+        "14+arturo.found",
+        "14+arturo.adjust",
+        "arturo.void",
+        "8+arturo.today",
+        "17",
+        "integrity"
+      ],
+      "started": true,
+      "complete": true,
+      "passed": true,
+      "missing_checks": [],
+      "failed_checks": 0
+    },
+    {
+      "mode": 1,
+      "width": 1440,
+      "lang": "es",
+      "planned_checks": [
+        "1",
+        "2",
+        "9.office",
+        "3-5.customer",
+        "6",
+        "luz.1",
+        "luz.2",
+        "7+luz.3",
+        "8+luz.4",
+        "15-16",
+        "5.entry",
+        "9.entry",
+        "10+arturo.receive",
+        "11-12+arturo.make",
+        "13+arturo.pack",
+        "10+arturo.ship",
+        "14+arturo.found",
+        "14+arturo.adjust",
+        "arturo.void",
+        "8+arturo.today",
+        "17",
+        "integrity"
+      ],
+      "completed_checks": [
+        "1",
+        "2",
+        "9.office",
+        "3-5.customer",
+        "6",
+        "luz.1",
+        "luz.2",
+        "7+luz.3",
+        "8+luz.4",
+        "15-16",
+        "5.entry",
+        "9.entry",
+        "10+arturo.receive",
+        "11-12+arturo.make",
+        "13+arturo.pack",
+        "10+arturo.ship",
+        "14+arturo.found",
+        "14+arturo.adjust",
+        "arturo.void",
+        "8+arturo.today",
+        "17",
+        "integrity"
+      ],
+      "started": true,
+      "complete": true,
+      "passed": true,
+      "missing_checks": [],
+      "failed_checks": 0
+    },
+    {
+      "mode": 1,
+      "width": 390,
+      "lang": "en",
+      "planned_checks": [
+        "1",
+        "2",
+        "9.office",
+        "3-5.customer",
+        "6",
+        "luz.1",
+        "luz.2",
+        "7+luz.3",
+        "8+luz.4",
+        "15-16",
+        "5.entry",
+        "9.entry",
+        "10+arturo.receive",
+        "11-12+arturo.make",
+        "13+arturo.pack",
+        "10+arturo.ship",
+        "14+arturo.found",
+        "14+arturo.adjust",
+        "arturo.void",
+        "8+arturo.today",
+        "17",
+        "integrity"
+      ],
+      "completed_checks": [
+        "1",
+        "2",
+        "9.office",
+        "3-5.customer",
+        "6",
+        "luz.1",
+        "luz.2",
+        "7+luz.3",
+        "8+luz.4",
+        "15-16",
+        "5.entry",
+        "9.entry",
+        "10+arturo.receive",
+        "11-12+arturo.make",
+        "13+arturo.pack",
+        "10+arturo.ship",
+        "14+arturo.found",
+        "14+arturo.adjust",
+        "arturo.void",
+        "8+arturo.today",
+        "17",
+        "integrity"
+      ],
+      "started": true,
+      "complete": true,
+      "passed": true,
+      "missing_checks": [],
+      "failed_checks": 0
+    },
+    {
+      "mode": 1,
+      "width": 390,
+      "lang": "es",
+      "planned_checks": [
+        "1",
+        "2",
+        "9.office",
+        "3-5.customer",
+        "6",
+        "luz.1",
+        "luz.2",
+        "7+luz.3",
+        "8+luz.4",
+        "15-16",
+        "5.entry",
+        "9.entry",
+        "10+arturo.receive",
+        "11-12+arturo.make",
+        "13+arturo.pack",
+        "10+arturo.ship",
+        "14+arturo.found",
+        "14+arturo.adjust",
+        "arturo.void",
+        "8+arturo.today",
+        "17",
+        "integrity"
+      ],
+      "completed_checks": [
+        "1",
+        "2",
+        "9.office",
+        "3-5.customer",
+        "6",
+        "luz.1",
+        "luz.2",
+        "7+luz.3",
+        "8+luz.4",
+        "15-16",
+        "5.entry",
+        "9.entry",
+        "10+arturo.receive",
+        "11-12+arturo.make",
+        "13+arturo.pack",
+        "10+arturo.ship",
+        "14+arturo.found",
+        "14+arturo.adjust",
+        "arturo.void",
+        "8+arturo.today",
+        "17",
+        "integrity"
+      ],
+      "started": true,
+      "complete": true,
+      "passed": true,
+      "missing_checks": [],
+      "failed_checks": 0
+    }
+  ],
+  "verify_sessions_0_1440_en": {
+    "receipts": [],
+    "exceptions": [],
+    "attachments": 0,
+    "confirmations": 0
+  },
+  "verify_sessions_0_1440_es": {
+    "receipts": [],
+    "exceptions": [],
+    "attachments": 0,
+    "confirmations": 0
+  },
+  "verify_sessions_0_390_en": {
+    "receipts": [],
+    "exceptions": [],
+    "attachments": 0,
+    "confirmations": 0
+  },
+  "verify_sessions_0_390_es": {
+    "receipts": [],
+    "exceptions": [],
+    "attachments": 0,
+    "confirmations": 0
+  },
+  "verify_sessions_1_1440_en": {
+    "receipts": [
+      {
+        "receipt_number": "ORD-261020-001",
+        "action": "create_order",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "CUS-261020-001",
+        "action": "create_customer",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "ORD-261020-002",
+        "action": "create_order",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "ER-261020-001",
+        "action": "create_expected_receipt",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "RCV-261020-001",
+        "action": "receive",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "MK-261020-001",
+        "action": "make",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "PK-261020-001",
+        "action": "pack",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "SHP-261020-001",
+        "action": "ship_order",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "FND-261020-001",
+        "action": "found",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "ADJ-261020-001",
+        "action": "adjust",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "VD-261020-001",
+        "action": "void",
+        "status": "committed"
+      }
+    ],
+    "exceptions": [
+      {
+        "kind": "SHORTAGE",
+        "detail": {
+          "clock": "2 business days; Mon–Fri; entry date excluded; 23:59 America/New_York",
+          "action": "make",
+          "short_lb": 10,
+          "needed_lb": 10,
+          "balance_after_lb": -10,
+          "on_hand_before_lb": 0,
+          "entered_by_actor_id": 1
+        }
+      }
+    ],
+    "attachments": 4,
+    "confirmations": 5
+  },
+  "verify_sessions_1_1440_es": {
+    "receipts": [
+      {
+        "receipt_number": "ORD-261020-001",
+        "action": "create_order",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "CUS-261020-001",
+        "action": "create_customer",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "ORD-261020-002",
+        "action": "create_order",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "ER-261020-001",
+        "action": "create_expected_receipt",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "RCV-261020-001",
+        "action": "receive",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "MK-261020-001",
+        "action": "make",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "PK-261020-001",
+        "action": "pack",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "SHP-261020-001",
+        "action": "ship_order",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "FND-261020-001",
+        "action": "found",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "ADJ-261020-001",
+        "action": "adjust",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "VD-261020-001",
+        "action": "void",
+        "status": "committed"
+      }
+    ],
+    "exceptions": [
+      {
+        "kind": "SHORTAGE",
+        "detail": {
+          "clock": "2 business days; Mon–Fri; entry date excluded; 23:59 America/New_York",
+          "action": "make",
+          "short_lb": 10,
+          "needed_lb": 10,
+          "balance_after_lb": -10,
+          "on_hand_before_lb": 0,
+          "entered_by_actor_id": 1
+        }
+      }
+    ],
+    "attachments": 4,
+    "confirmations": 5
+  },
+  "verify_sessions_1_390_en": {
+    "receipts": [
+      {
+        "receipt_number": "ORD-261020-001",
+        "action": "create_order",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "CUS-261020-001",
+        "action": "create_customer",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "ORD-261020-002",
+        "action": "create_order",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "ER-261020-001",
+        "action": "create_expected_receipt",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "RCV-261020-001",
+        "action": "receive",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "MK-261020-001",
+        "action": "make",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "PK-261020-001",
+        "action": "pack",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "SHP-261020-001",
+        "action": "ship_order",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "FND-261020-001",
+        "action": "found",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "ADJ-261020-001",
+        "action": "adjust",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "VD-261020-001",
+        "action": "void",
+        "status": "committed"
+      }
+    ],
+    "exceptions": [
+      {
+        "kind": "SHORTAGE",
+        "detail": {
+          "clock": "2 business days; Mon–Fri; entry date excluded; 23:59 America/New_York",
+          "action": "make",
+          "short_lb": 10,
+          "needed_lb": 10,
+          "balance_after_lb": -10,
+          "on_hand_before_lb": 0,
+          "entered_by_actor_id": 1
+        }
+      }
+    ],
+    "attachments": 4,
+    "confirmations": 5
+  },
+  "verify_sessions_1_390_es": {
+    "receipts": [
+      {
+        "receipt_number": "ORD-261020-001",
+        "action": "create_order",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "CUS-261020-001",
+        "action": "create_customer",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "ORD-261020-002",
+        "action": "create_order",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "ER-261020-001",
+        "action": "create_expected_receipt",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "RCV-261020-001",
+        "action": "receive",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "MK-261020-001",
+        "action": "make",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "PK-261020-001",
+        "action": "pack",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "SHP-261020-001",
+        "action": "ship_order",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "FND-261020-001",
+        "action": "found",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "ADJ-261020-001",
+        "action": "adjust",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "VD-261020-001",
+        "action": "void",
+        "status": "committed"
+      }
+    ],
+    "exceptions": [
+      {
+        "kind": "SHORTAGE",
+        "detail": {
+          "clock": "2 business days; Mon–Fri; entry date excluded; 23:59 America/New_York",
+          "action": "make",
+          "short_lb": 10,
+          "needed_lb": 10,
+          "balance_after_lb": -10,
+          "on_hand_before_lb": 0,
+          "entered_by_actor_id": 1
+        }
+      }
+    ],
+    "attachments": 4,
+    "confirmations": 5
+  },
+  "summary": {
+    "checks": 96,
+    "passed": 96,
+    "failed": 0,
+    "planned_checks": 96,
+    "scenarios": 8,
+    "completed_scenarios": 8
+  }
+}

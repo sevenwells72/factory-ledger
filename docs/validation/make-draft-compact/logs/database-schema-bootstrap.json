@@ -1,0 +1,8 @@
+{
+  "local_only": true,
+  "port": 55473,
+  "database": "fl_makedraft_suite",
+  "status": "failed",
+  "error": "Migration085 requires transaction_lot_confirmations but fresh schema dump does not create it. Owned suite DB left partial for inspection; will drop/recreate after repair.",
+  "resolved_root_cause": "The schema dump ends with an empty search_path. The table existed in public; adding SET search_path=public before085 fixed unqualified lookup."
+}

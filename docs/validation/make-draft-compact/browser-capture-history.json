@@ -1,0 +1,57 @@
+[
+  {
+    "captured_at": "2026-10-20T19:28:28.860834-04:00",
+    "base_revision": "27a2518655da43ae31860a0bcf8c1f73db114422",
+    "source_sha256": {
+      "dashboard/entry.js": "08d11796e2c3f4d55830810d5483f5d2828e850416148dd1599042da05a036bb",
+      "dashboard/entry.html": "00702198b76bb290a8f9a49a388c3962a164eecc97a93c76e837984a993328eb",
+      "dashboard/ledger-ticket.js": "8b38c72bd7fc97742c172cf4354eec1979af64f614afd0fe1e3ba7111f83bd2b",
+      "dashboard/ledger-ui.js": "06f5fd108d2cf7b8ed02694174804db8ad2727fd313d229a217322ad76b2543c",
+      "dashboard/ledger-forms.css": "5aad1f45fa8cfe7e9be60c4ba8299d46ecd409df771b94ad6f84c9e31767a671",
+      "lot_confirmation.py": "3948517ca62644c8568f15c0a097b44abe8d475749cb3ce73db8031eef8d0c3a",
+      "migrations/085_tap_lot_confirmation.sql": "071b704650e2b924348407efa9711bd558c8461874bdbbcaa6fe8feea82f0e5d"
+    }
+  },
+  {
+    "captured_at": "2026-10-20T19:30:00.712841-04:00",
+    "base_revision": "27a2518655da43ae31860a0bcf8c1f73db114422",
+    "framing": "Before/after primary draft screenshots align exactly to draft panel top",
+    "source_sha256": {
+      "dashboard/entry.js": "08d11796e2c3f4d55830810d5483f5d2828e850416148dd1599042da05a036bb",
+      "dashboard/entry.html": "00702198b76bb290a8f9a49a388c3962a164eecc97a93c76e837984a993328eb",
+      "dashboard/ledger-ticket.js": "8b38c72bd7fc97742c172cf4354eec1979af64f614afd0fe1e3ba7111f83bd2b",
+      "dashboard/ledger-ui.js": "06f5fd108d2cf7b8ed02694174804db8ad2727fd313d229a217322ad76b2543c",
+      "dashboard/ledger-forms.css": "5aad1f45fa8cfe7e9be60c4ba8299d46ecd409df771b94ad6f84c9e31767a671",
+      "lot_confirmation.py": "3948517ca62644c8568f15c0a097b44abe8d475749cb3ce73db8031eef8d0c3a",
+      "migrations/085_tap_lot_confirmation.sql": "071b704650e2b924348407efa9711bd558c8461874bdbbcaa6fe8feea82f0e5d"
+    },
+    "visual_review": {
+      "english_and_spanish_390": true,
+      "english_and_spanish_1440": true,
+      "change_choices_and_methods": true,
+      "no_horizontal_overflow": true,
+      "notes": "Reviewed aligned before/after draft, compact ingredient view, Change, tap receipt and mixed typed/scan/tap receipts. Large suffixes, green selected checks, red shortage and readable codes remain visible."
+    }
+  },
+  {
+    "captured_at": "2026-10-20T19:31:08.811617-04:00",
+    "base_revision": "27a2518655da43ae31860a0bcf8c1f73db114422",
+    "framing": "Before/after primary draft screenshots align exactly to draft panel top",
+    "source_sha256": {
+      "dashboard/entry.js": "08d11796e2c3f4d55830810d5483f5d2828e850416148dd1599042da05a036bb",
+      "dashboard/entry.html": "00702198b76bb290a8f9a49a388c3962a164eecc97a93c76e837984a993328eb",
+      "dashboard/ledger-ticket.js": "8b38c72bd7fc97742c172cf4354eec1979af64f614afd0fe1e3ba7111f83bd2b",
+      "dashboard/ledger-ui.js": "06f5fd108d2cf7b8ed02694174804db8ad2727fd313d229a217322ad76b2543c",
+      "dashboard/ledger-forms.css": "5aad1f45fa8cfe7e9be60c4ba8299d46ecd409df771b94ad6f84c9e31767a671",
+      "lot_confirmation.py": "e9d0b622173cb1aeb562125898783390f4938327f2a51a8e1ab94d2fcfddaccd",
+      "migrations/085_tap_lot_confirmation.sql": "071b704650e2b924348407efa9711bd558c8461874bdbbcaa6fe8feea82f0e5d"
+    },
+    "visual_review": {
+      "english_and_spanish_390": true,
+      "english_and_spanish_1440": true,
+      "change_choices_and_methods": true,
+      "no_horizontal_overflow": true,
+      "notes": "Reviewed aligned before/after draft, compact ingredient view, Change, tap receipt and mixed typed/scan/tap receipts. Large suffixes, green selected checks, red shortage and readable codes remain visible."
+    }
+  }
+]

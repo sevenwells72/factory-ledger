@@ -10,6 +10,7 @@ class Element{
   setAttribute(name,value){this[name]=value;}
 }
 const descendants=node=>[node,...node.children.flatMap(descendants)];
+const isVisible=node=>!!node&&!node.hidden&&(!node.parent||isVisible(node.parent));
 const plain=value=>JSON.parse(JSON.stringify(value));
 async function harness({language='en',path='/make/prepare',draft={},canCommit=true,onPrepare,initialAttachment=null,initialPhoto=null,photoKind='correction_photo',payload={}}={}){
   const host=new Element('main'),notice=new Element('div'),requests=[],failures=[],uploads=[],busy=[],attachments=[];let cancelled=0,edited=0;
@@ -32,19 +33,85 @@ for(const [path,photoKind,array] of [['/adjust/prepare','correction_photo',false
 test('an unfinished draft upload disables Record and blocks Cancel until it finishes',async()=>{
   const h=await harness({path:'/adjust/prepare'});let finish;h.ui.upload=()=>new Promise(resolve=>finish=resolve);const photo=h.find(node=>node.type==='file');photo.files=[{name:'tag.png'}];const uploading=photo.onchange();assert.equal(h.button('Record').disabled,true);h.button('Cancel').onclick();assert.equal(h.cancelled,0);await h.button('Record').onclick();assert.equal(h.requests.length,1);finish({attachment_id:91});await uploading;await h.button('Record').onclick();assert.equal(h.requests.at(-1).body.attachment_id,91);
 });
-const makeDraft={input_plan:[{product_id:1,product_name:'Oats',lot_id:11,lot_code:'OATS-A-001'},{product_id:2,product_name:'Sunflower Seeds',lot_id:21,lot_code:'SUN-SUN1'}],lot_confirmation_group:{ingredients:[{product_id:1,candidates:[{lot_id:11,lot_code:'OATS-A-001'},{lot_id:12,lot_code:'OATS-B-001'}]},{product_id:2,candidates:[{lot_id:21,lot_code:'SUN-SUN1'}]}]}};
-function fillTags(h,{sun=true}={}){const methods=h.all(node=>node.tag==='select'),inputs=h.all(node=>node.tag==='input'&&node.autocomplete==='off');methods.forEach(node=>node.value='last4');inputs[0].value='-001';inputs[0].oninput();if(sun){inputs[1].value='SUN1';inputs[1].oninput();}}
-test('ambiguous suffix shows full codes and the suggested choice still needs every tag checked',async()=>{
-  const h=await harness({draft:makeDraft,canCommit:false,onPrepare:body=>({can_commit:body.lot_confirmations?.length===2})});assert.equal('lot_confirmations' in h.requests[0].body,false);fillTags(h);await h.button('Check confirmations → new draft').onclick();assert.equal(h.requests.length,1);assert.ok(h.button('OATS-A-001'));assert.ok(h.button('OATS-B-001'));h.button('OATS-A-001').onclick();assert.equal(h.button('Record').disabled,true);await h.button('Check confirmations → new draft').onclick();await flush();assert.deepEqual(h.requests[1].body.lot_confirmations,[{lot_id:11,method:'full_code',value:'OATS-A-001'},{lot_id:21,method:'last4',value:'SUN1'}]);assert.equal(h.button('Record').disabled,false);
+const makeDraft={ingredients:[{ingredient_id:1,ingredient_name:'Oats',needed_lb:10},{ingredient_id:2,ingredient_name:'Sunflower Seeds',needed_lb:2}],input_plan:[{product_id:1,product_name:'Oats',lot_id:11,lot_code:'OATS-A-001',quantity_lb:10,confirmed:false},{product_id:2,product_name:'Sunflower Seeds',lot_id:21,lot_code:'SUN-SUN1',quantity_lb:2,confirmed:false}],lot_confirmation_group:{ingredients:[{product_id:1,product_name:'Oats',needed_lb:10,candidates:[{lot_id:11,lot_code:'OATS-A-001',available_lb:30,received_at:'2026-10-01T12:00:00Z'},{lot_id:12,lot_code:'OATS-B-001',available_lb:20,received_at:'2026-10-02T12:00:00Z'}]},{product_id:2,product_name:'Sunflower Seeds',needed_lb:2,candidates:[{lot_id:21,lot_code:'SUN-SUN1',available_lb:20,received_at:'2026-10-01T12:00:00Z'}]}]}};
+// Simulate FL returning a newly validated plan, including changed lot identity.
+function reviewedMake(body,initial=makeDraft){
+  const draft=plain(initial),evidence=body.lot_confirmations||[];
+  const choices=new Map((body.ingredient_lots||[]).map(item=>[item.ingredient_product_id,item.lot_id]));
+  for(const item of body.substitutions||[])choices.set(item.substitute_product_id,item.lot_id);
+  for(const [productId,lotId] of choices){
+    const lots=draft.input_plan.filter(item=>item.product_id===productId),candidate=draft.lot_confirmation_group.ingredients.find(item=>item.product_id===productId)?.candidates.find(item=>item.lot_id===lotId);
+    if(!candidate||!lots.length)continue;
+    draft.input_plan=draft.input_plan.filter(item=>item.product_id!==productId);
+    draft.input_plan.push({...lots[0],lot_id:lotId,lot_code:candidate.lot_code,quantity_lb:lots.reduce((sum,item)=>sum+item.quantity_lb,0)});
+  }
+  if(evidence.some(item=>!draft.input_plan.some(lot=>lot.lot_id===item.lot_id)))throw Error('UNUSED_LOT_CONFIRMATION');
+  for(const lot of draft.input_plan){const confirmation=evidence.find(item=>item.lot_id===lot.lot_id);lot.confirmed=!!confirmation;if(confirmation)lot.confirmation=confirmation;else delete lot.confirmation;}
+  const can_commit=draft.input_plan.every(item=>item.confirmed);
+  return {draft,can_commit,blockers:can_commit?[]:[{code:'LOT_NOT_CONFIRMED',message:'Confirm every physical lot.'}]};
+}
+const byData=(h,key,value)=>h.find(node=>node.dataset[key]===String(value));
+const checked=(h,lotId)=>byData(h,'makeLotConfirm',lotId)['aria-pressed']==='true';
+const progress=h=>h.find(node=>node.dataset.makeProgress!==undefined).textContent;
+const tap=async(h,lotId)=>{await byData(h,'makeLotConfirm',lotId).onclick();await flush();};
+const selectLot=async(h,productId,lotId)=>{byData(h,'makeChange',productId).onclick();const choice=byData(h,'makeLotChoice',lotId);assert.equal(isVisible(choice),true);await choice.onclick();await flush();};
+async function typeCode(h,lotId,method,value){
+  byData(h,'makeTypeCode',lotId).onclick();const select=byData(h,'makeCodeMethod',lotId),input=byData(h,'makeCodeValue',lotId);
+  assert.equal(select.parent.parent.hidden,false);select.value=method;select.oninput();input.value=value;input.oninput();await byData(h,'makeCodeCheck',lotId).onclick();await flush();
+}
+const compactHarness=({draft=makeDraft,onPrepare,...options}={})=>harness({draft,onPrepare:onPrepare||((body)=>reviewedMake(body,draft)),...options});
+
+test('Make starts with one compact row per ingredient, selected lots unchecked and optional controls hidden',async()=>{
+  const h=await compactHarness();assert.equal(h.all(node=>node.dataset.makeIngredient!==undefined).length,2);assert.equal(progress(h),'0 of 2 checked');assert.equal(checked(h,11),false);assert.equal(checked(h,21),false);assert.equal(h.button('Record').disabled,true);assert.equal('lot_confirmations' in h.requests[0].body,false);
+  assert.ok(h.find(node=>node.className==='make-lot-suffix'&&node.textContent==='-001'));assert.equal(byData(h,'makeCodeMethod',11).parent.parent.hidden,true);assert.equal(isVisible(byData(h,'makeLotChoice',12)),false);
+  await h.button('Record').onclick();assert.equal(h.requests.length,1);
 });
-test('choosing a different full lot refreshes the plan and preserves only typed evidence for other ingredients',async()=>{
-  const h=await harness({draft:makeDraft,canCommit:false});fillTags(h);await h.button('Check confirmations → new draft').onclick();h.button('OATS-B-001').onclick();await flush();const body=h.requests[1].body;assert.deepEqual(body.ingredient_lots,[{ingredient_product_id:1,lot_id:12}]);assert.deepEqual(body.lot_confirmations,[{lot_id:21,method:'last4',value:'SUN1'},{lot_id:12,method:'full_code',value:'OATS-B-001'}]);
+test('each explicit tap advances the ingredient count and Record waits for every checked tag and a fresh server draft',async()=>{
+  const h=await compactHarness();await tap(h,11);assert.equal(progress(h),'1 of 2 checked');assert.equal(checked(h,11),true);assert.equal(checked(h,21),false);assert.equal(h.requests.length,1);assert.equal(h.button('Record').disabled,true);
+  await tap(h,21);assert.equal(progress(h),'2 of 2 checked');assert.equal(h.button('Record').disabled,false);assert.deepEqual(h.requests[1].body.lot_confirmations,[{lot_id:11,method:'tap',value:'OATS-A-001'},{lot_id:21,method:'tap',value:'SUN-SUN1'}]);
+  await tap(h,11);assert.equal(progress(h),'1 of 2 checked');assert.equal(h.button('Record').disabled,true);await h.button('Record').onclick();assert.equal(h.requests.some(request=>request.url.includes('/commit')),false);
 });
-test('choosing a different full lot never invents confirmation for an untouched ingredient',async()=>{
-  const h=await harness({draft:makeDraft,canCommit:false});fillTags(h,{sun:false});await h.button('Check confirmations → new draft').onclick();h.button('OATS-B-001').onclick();await flush();assert.deepEqual(h.requests[1].body.lot_confirmations,[{lot_id:12,method:'full_code',value:'OATS-B-001'}]);assert.equal(h.button('Record').disabled,true);
+test('all local checks still cannot override a fresh server blocker',async()=>{
+  const h=await compactHarness({onPrepare:body=>({...reviewedMake(body),can_commit:false,blockers:[{code:'RECIPE_CHANGED',message:'Prepare again after recipe review.'}]})});await tap(h,11);await tap(h,21);assert.equal(progress(h),'2 of 2 checked');assert.equal(h.button('Record').disabled,true);assert.ok(h.find(node=>node.textContent==='Prepare again after recipe review.'));await h.button('Record').onclick();assert.equal(h.requests.some(request=>request.url.includes('/commit')),false);
 });
-for(const language of ['en','es'])test(`zero-stock draft warning is obvious and respects FL's permission to record in ${language}`,async()=>{
-  const h=await harness({language,draft:{shortages:[{product_name:'Coconut Macaroon',on_hand_lb:0,short_lb:10}]}});const warning=h.find(node=>node.dataset.shortageWarning!==undefined);assert.match(warning.textContent,language==='en'?/Only 0 lb of Coconut Macaroon.*shortage/:/Solo hay 0 lb de Coconut Macaroon.*faltante/);assert.equal(h.button(language==='en'?'Record':'Registrar').disabled,false);
+test('every FIFO split lot must be checked before its ingredient counts as checked',async()=>{
+  const draft=plain(makeDraft);draft.input_plan=[{...draft.input_plan[0],quantity_lb:6},{...draft.input_plan[0],lot_id:12,lot_code:'OATS-B-001',quantity_lb:4},draft.input_plan[1]];
+  const h=await compactHarness({draft});assert.equal(h.all(node=>node.dataset.makeIngredient!==undefined).length,2);await tap(h,11);assert.equal(progress(h),'0 of 2 checked');assert.equal(h.button('Record').disabled,true);await tap(h,12);assert.equal(progress(h),'1 of 2 checked');assert.equal(h.requests.length,1);await tap(h,21);assert.equal(progress(h),'2 of 2 checked');assert.equal(h.button('Record').disabled,false);assert.deepEqual(h.requests[1].body.lot_confirmations.map(item=>item.lot_id),[11,12,21]);
+});
+test('substitutions using the same ingredient share one row with the summed requirement',async()=>{
+  const draft=plain(makeDraft);draft.ingredients=[{ingredient_id:1,ingredient_name:'Oats',needed_lb:4},{ingredient_id:1,ingredient_name:'Oats',needed_lb:6},draft.ingredients[1]];
+  const payload={substitutions:[{ingredient_product_id:3,substitute_product_id:1,lot_id:11,reason_code:'physical_substitution'},{ingredient_product_id:4,substitute_product_id:1,lot_id:11,reason_code:'physical_substitution'}]};const h=await compactHarness({draft,payload}),row=byData(h,'makeIngredient',1),heading=descendants(row).find(node=>node.tag==='h3');assert.equal(h.all(node=>node.dataset.makeIngredient!==undefined).length,2);assert.match(heading.children.map(node=>node.textContent).join(''),/Oats · 10 lb needed/);assert.equal(descendants(row).filter(node=>node.dataset.makeLotConfirm!==undefined).length,1);await tap(h,11);assert.equal(progress(h),'1 of 2 checked');await tap(h,21);assert.equal(h.button('Record').disabled,false);assert.equal(h.requests.at(-1).body.lot_confirmations.filter(item=>item.lot_id===11).length,1);
+});
+for(const language of ['en','es'])test(`Change pages through every on-hand lot without confirming it in ${language}`,async()=>{
+  const draft=plain(makeDraft);draft.lot_confirmation_group.ingredients[0].candidates=Array.from({length:14},(_,index)=>({lot_id:11+index,lot_code:index===0?'OATS-A-001':index===1?'OATS-B-001':'OATS-PAGE-'+String(index).padStart(3,'0'),available_lb:20,received_at:'2026-10-01T12:00:00Z'}));const h=await compactHarness({language,draft}),rows=()=>descendants(byData(h,'makeIngredient',1)).filter(node=>node.dataset.makeLotChoice!==undefined);assert.equal(rows().length,6);assert.equal(isVisible(rows()[0]),false);byData(h,'makeChange',1).onclick();assert.equal(isVisible(rows()[0]),true);assert.equal(progress(h),language==='en'?'0 of 2 checked':'0 de 2 verificados');
+  const more=byData(h,'makeMoreLots',1);assert.equal(more.textContent,language==='en'?'More lots':'Más lotes');more.onclick();assert.equal(rows().length,12);assert.equal(more.hidden,false);more.onclick();assert.equal(rows().length,14);assert.equal(more.hidden,true);assert.equal(new Set(rows().map(node=>node.dataset.makeLotChoice)).size,14);assert.equal(h.requests.length,1);assert.equal(checked(h,11),false);assert.equal(h.button(language==='en'?'Record':'Registrar').disabled,true);
+  await byData(h,'makeLotChoice',24).onclick();await flush();assert.deepEqual(h.requests[1].body.ingredient_lots,[{ingredient_product_id:1,lot_id:24}]);assert.equal('lot_confirmations' in h.requests[1].body,false);assert.equal(checked(h,24),false);await tap(h,24);assert.equal(progress(h),language==='en'?'1 of 2 checked':'1 de 2 verificados');
+});
+test('an ambiguous typed suffix offers exact lots and choosing the suggestion still requires an explicit tap',async()=>{
+  const h=await compactHarness();await tap(h,21);await typeCode(h,11,'last4','-001');assert.equal(h.requests.length,1);assert.ok(h.button('OATS-A-001'));assert.ok(h.button('OATS-B-001'));await h.button('OATS-A-001').onclick();await flush();assert.deepEqual(h.requests[1].body.lot_confirmations,[{lot_id:21,method:'tap',value:'SUN-SUN1'}]);assert.equal(checked(h,11),false);assert.equal(h.button('Record').disabled,true);
+  await tap(h,11);assert.deepEqual(h.requests[2].body.lot_confirmations,[{lot_id:21,method:'tap',value:'SUN-SUN1'},{lot_id:11,method:'tap',value:'OATS-A-001'}]);assert.equal(h.button('Record').disabled,false);
+});
+test('changing an already checked lot clears that ingredient evidence, preserves other checks and waits for the new bag check',async()=>{
+  const h=await compactHarness();await tap(h,11);await tap(h,21);assert.equal(h.button('Record').disabled,false);await selectLot(h,1,12);
+  assert.deepEqual(h.requests[2].body.ingredient_lots,[{ingredient_product_id:1,lot_id:12}]);assert.deepEqual(h.requests[2].body.lot_confirmations,[{lot_id:21,method:'tap',value:'SUN-SUN1'}]);assert.equal(checked(h,12),false);assert.equal(checked(h,21),true);assert.equal(progress(h),'1 of 2 checked');assert.equal(h.button('Record').disabled,true);
+  await tap(h,12);assert.deepEqual(h.requests[3].body.lot_confirmations,[{lot_id:21,method:'tap',value:'SUN-SUN1'},{lot_id:12,method:'tap',value:'OATS-B-001'}]);assert.equal(h.button('Record').disabled,false);
+});
+test('choosing another lot never invents checks for that lot or an untouched ingredient',async()=>{
+  const h=await compactHarness();await selectLot(h,1,12);assert.equal('lot_confirmations' in h.requests[1].body,false);assert.equal(progress(h),'0 of 2 checked');await tap(h,12);assert.equal(progress(h),'1 of 2 checked');assert.equal(checked(h,21),false);assert.equal(h.button('Record').disabled,true);assert.equal(h.requests.some(request=>request.url.includes('/commit')),false);
+});
+for(const [method,value] of [['last4','SUN1'],['full_code','SUN-SUN1'],['scan','SUN-SUN1']])test(`optional ${method} code confirmation keeps its honest method beside tap evidence`,async()=>{
+  const h=await compactHarness();await typeCode(h,21,method,value);assert.deepEqual(h.requests[1].body.lot_confirmations,[{lot_id:21,method,value}]);assert.equal(checked(h,21),true);assert.equal(h.button('Record').disabled,true);await tap(h,11);assert.deepEqual(h.requests[2].body.lot_confirmations,[{lot_id:21,method,value},{lot_id:11,method:'tap',value:'OATS-A-001'}]);assert.equal(h.button('Record').disabled,false);
+});
+for(const language of ['en','es'])test(`a failed changed-lot prepare blocks stale Record and Retry recovers without stale lot evidence in ${language}`,async()=>{
+  const record=language==='en'?'Record':'Registrar';let failNext=false;const h=await compactHarness({language,onPrepare:body=>{if(failNext){failNext=false;throw Error('offline while changing lot');}return reviewedMake(body);}});await tap(h,11);await tap(h,21);assert.equal(h.button(record).disabled,false);failNext=true;await selectLot(h,1,12);assert.match(h.failures.at(-1),/offline/);assert.equal(h.button(record).disabled,true);await h.button(record).onclick();assert.equal(h.requests.some(request=>request.url.includes('/commit')),false);
+  await h.find(node=>node.dataset.makeRetry!==undefined).onclick();await flush();assert.deepEqual(h.failures,['offline while changing lot']);assert.equal(checked(h,12),false);assert.equal(checked(h,21),true);assert.equal(h.button(record).disabled,true);await tap(h,12);assert.equal(h.button(record).disabled,false);
+});
+test('switching language preserves compact checks, typed scanner evidence and the selected draft',async()=>{
+  const h=await compactHarness();await typeCode(h,21,'scan','SUN-SUN1');const requestCount=h.requests.length;h.switchLanguage('es');assert.equal(progress(h),'1 de 2 verificados');assert.equal(checked(h,21),true);assert.equal(byData(h,'makeCodeMethod',21).value,'scan');assert.equal(byData(h,'makeCodeValue',21).value,'SUN-SUN1');assert.ok(h.button('Cambiar'));assert.ok(h.button('Escribir código'));assert.equal(h.requests.length,requestCount);
+  await tap(h,11);assert.equal(h.button('Registrar').disabled,false);h.switchLanguage('en');assert.equal(progress(h),'2 of 2 checked');assert.equal(byData(h,'makeCodeMethod',21).value,'scan');assert.equal(byData(h,'makeCodeValue',21).value,'SUN-SUN1');assert.equal(h.button('Record').disabled,false);
+});
+for(const language of ['en','es'])test(`zero-stock warning stays visible while lot choices are hidden and still requires every tag in ${language}`,async()=>{
+  const draft=plain(makeDraft);draft.shortages=[{product_id:1,product_name:'Oats',on_hand_lb:0,short_lb:10}];const h=await compactHarness({language,draft});const warning=byData(h,'makeShortage',1);assert.match(warning.textContent,language==='en'?/Only 0 lb on hand.*short 10 lb.*shortage/:/Solo hay 0 lb.*faltan 10 lb.*faltante/);assert.equal(warning.parent.hidden,false);assert.equal(isVisible(byData(h,'makeLotChoice',12)),false);assert.equal(h.button(language==='en'?'Record':'Registrar').disabled,true);await tap(h,11);await tap(h,21);assert.equal(h.button(language==='en'?'Record':'Registrar').disabled,false);
 });
 
 test('Edit cannot discard a draft while its replacement photo is uploading',async()=>{
@@ -58,10 +125,10 @@ test('an invalidated draft never reports a late photo upload back to the form',a
   const h=await harness({path:'/adjust/prepare'});let finish;h.ui.upload=()=>new Promise(resolve=>finish=resolve);const photo=h.find(node=>node.type==='file');photo.files=[{name:'late.png'}];const pending=photo.onchange();h.controller.invalidate();finish({attachment_id:92});await pending;assert.deepEqual(h.attachments,[]);assert.equal(h.requests.length,1);
 });
 
-test('an alternate physical lot moves every substitution using that product and its override together without confirming untouched tags',async()=>{
+test('an alternate physical lot updates every substitution using that product and its override without checking the new tag',async()=>{
   const payload={substitutions:[{ingredient_product_id:3,substitute_product_id:1,lot_id:11,reason_code:'physical_substitution'},{ingredient_product_id:4,substitute_product_id:1,lot_id:11,reason_code:'physical_substitution'},{ingredient_product_id:5,substitute_product_id:2,lot_id:21,reason_code:'physical_substitution'}],ingredient_lots:[{ingredient_product_id:1,lot_id:11},{ingredient_product_id:2,lot_id:21}]};
-  const h=await harness({draft:makeDraft,canCommit:false,payload});fillTags(h,{sun:false});await h.button('Check confirmations → new draft').onclick();h.button('OATS-B-001').onclick();await flush();const body=h.requests[1].body;
-  assert.deepEqual(body.substitutions,[{...payload.substitutions[0],lot_id:12},{...payload.substitutions[1],lot_id:12},payload.substitutions[2]]);assert.deepEqual(body.ingredient_lots,[{ingredient_product_id:1,lot_id:12},{ingredient_product_id:2,lot_id:21}]);assert.deepEqual(body.lot_confirmations,[{lot_id:12,method:'full_code',value:'OATS-B-001'}]);assert.equal(h.button('Record').disabled,true);assert.equal(h.requests.some(request=>request.url.includes('/commit')),false);
+  const h=await compactHarness({payload});await selectLot(h,1,12);const body=h.requests[1].body;
+  assert.deepEqual(body.substitutions,[{...payload.substitutions[0],lot_id:12},{...payload.substitutions[1],lot_id:12},payload.substitutions[2]]);assert.deepEqual(body.ingredient_lots,[{ingredient_product_id:1,lot_id:12},{ingredient_product_id:2,lot_id:21}]);assert.equal('lot_confirmations' in body,false);assert.equal(checked(h,12),false);assert.equal(checked(h,21),false);await tap(h,12);assert.equal(progress(h),'1 of 2 checked');assert.equal(h.button('Record').disabled,true);assert.equal(h.requests.some(request=>request.url.includes('/commit')),false);
 });
 
 for(const kind of ['lot_tag','bol'])test(`Receive draft uploads ${kind} with the existing evidence type and commits an attachment array`,async()=>{

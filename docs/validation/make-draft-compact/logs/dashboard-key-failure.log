@@ -1,0 +1,53 @@
+command: ["/opt/homebrew/bin/node", "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-dashboard-key-failure.mjs"]
+cwd: /Users/cns/dev/fl-makedraft-wt
+local_only: true; OpenAI/hosted credentials absent; loopback network guard active
+
+PASS today key503: plain message, no details, Retry recovery
+PASS today wrong401: plain message, no details, Retry recovery
+PASS today wrong403: plain message, no details, Retry recovery
+PASS recent key503: plain message, no details, Retry recovery
+PASS recent wrong403: plain message, no details, Retry recovery
+PASS recent wrong401: plain message, no details, Retry recovery
+PASS orders key503: plain message, no details, Retry recovery
+PASS orders wrong403: plain message, no details, Retry recovery
+PASS orders wrong401: plain message, no details, Retry recovery
+PASS expected key503: plain message, no details, Retry recovery
+PASS expected wrong403: plain message, no details, Retry recovery
+PASS expected wrong401: plain message, no details, Retry recovery
+PASS supply inventory key503: plain message, no details, Retry recovery
+PASS supply inventory wrong401: plain message, no details, Retry recovery
+PASS supply inventory wrong403: plain message, no details, Retry recovery
+PASS supply requests key503: plain message, no details, Retry recovery
+PASS supply requests wrong403: plain message, no details, Retry recovery
+PASS supply requests wrong401: plain message, no details, Retry recovery
+PASS calendar key503: plain message, no details, Retry recovery
+PASS calendar wrong403: plain message, no details, Retry recovery
+PASS calendar wrong401: plain message, no details, Retry recovery
+PASS production lines wrong403: plain message, no details, Retry recovery
+PASS production lines wrong401: plain message, no details, Retry recovery
+PASS production lines key503: plain message, no details, Retry recovery
+PASS material flow wrong401: plain message, no details, Retry recovery
+PASS material flow wrong403: plain message, no details, Retry recovery
+PASS material flow key503: plain message, no details, Retry recovery
+PASS traceability wrong403: plain message, no details, Retry recovery
+PASS traceability wrong401: plain message, no details, Retry recovery
+PASS traceability key503: plain message, no details, Retry recovery
+PASS history wrong401: plain message, no details, Retry recovery
+PASS history key503: plain message, no details, Retry recovery
+PASS history wrong403: plain message, no details, Retry recovery
+PASS runs wrong401: plain message, no details, Retry recovery
+PASS runs wrong403: plain message, no details, Retry recovery
+PASS runs key503: plain message, no details, Retry recovery
+PASS receipt en wrong403: plain message, no details, Retry recovery
+PASS receipt en wrong401: plain message, no details, Retry recovery
+PASS receipt en key503: plain message, no details, Retry recovery
+PASS shift summary en wrong401: plain message, no details, Retry recovery
+PASS shift summary en wrong403: plain message, no details, Retry recovery
+PASS shift summary en key503: plain message, no details, Retry recovery
+PASS receipt es wrong401: plain message, no details, Retry recovery
+PASS receipt es wrong403: plain message, no details, Retry recovery
+PASS receipt es key503: plain message, no details, Retry recovery
+PASS shift summary es wrong401: plain message, no details, Retry recovery
+PASS shift summary es wrong403: plain message, no details, Retry recovery
+PASS shift summary es key503: plain message, no details, Retry recovery
+48/48 dashboard access cases passed; 0 failed; no real API requests.

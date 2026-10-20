@@ -1,0 +1,427 @@
+{
+  "local_only": true,
+  "fixture_only": true,
+  "openai_calls": 0,
+  "legacy_alias_note": "Only the known seven initial /dash/ asset preloads may return 404; every final /dashboard/ asset must return 200. Published-root and ordinary /dashboard/ pages allow no missing assets.",
+  "scenarios": [
+    {
+      "layout": "published-root",
+      "sessions": false,
+      "width": 1440,
+      "language": "en",
+      "checks": 11,
+      "passed": true
+    },
+    {
+      "layout": "published-root",
+      "sessions": false,
+      "width": 390,
+      "language": "en",
+      "checks": 11,
+      "passed": true
+    },
+    {
+      "layout": "published-root",
+      "sessions": false,
+      "width": 1440,
+      "language": "es",
+      "checks": 11,
+      "passed": true
+    },
+    {
+      "layout": "published-root",
+      "sessions": false,
+      "width": 390,
+      "language": "es",
+      "checks": 11,
+      "passed": true
+    },
+    {
+      "layout": "published-root",
+      "sessions": true,
+      "width": 1440,
+      "language": "en",
+      "checks": 20,
+      "passed": true
+    },
+    {
+      "layout": "published-root",
+      "sessions": true,
+      "width": 390,
+      "language": "en",
+      "checks": 20,
+      "passed": true
+    },
+    {
+      "layout": "published-root",
+      "sessions": true,
+      "width": 1440,
+      "language": "es",
+      "checks": 20,
+      "passed": true
+    },
+    {
+      "layout": "published-root",
+      "sessions": true,
+      "width": 390,
+      "language": "es",
+      "checks": 20,
+      "passed": true
+    },
+    {
+      "layout": "dashboard-prefix",
+      "sessions": false,
+      "width": 1440,
+      "language": "en",
+      "checks": 14,
+      "passed": true,
+      "legacy_alias_preloads": [
+        {
+          "path": "/dash/ledger-forms.css",
+          "status": 404
+        },
+        {
+          "path": "/dash/fl-assistant.css",
+          "status": 404
+        },
+        {
+          "path": "/dash/dashboard-runtime.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/assistant-display.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/key-session.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/fl-assistant.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/receipt-shell.js",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "layout": "dashboard-prefix",
+      "sessions": false,
+      "width": 390,
+      "language": "en",
+      "checks": 14,
+      "passed": true,
+      "legacy_alias_preloads": [
+        {
+          "path": "/dash/dashboard-runtime.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/ledger-forms.css",
+          "status": 404
+        },
+        {
+          "path": "/dash/fl-assistant.css",
+          "status": 404
+        },
+        {
+          "path": "/dash/key-session.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/assistant-display.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/fl-assistant.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/receipt-shell.js",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "layout": "dashboard-prefix",
+      "sessions": false,
+      "width": 1440,
+      "language": "es",
+      "checks": 14,
+      "passed": true,
+      "legacy_alias_preloads": [
+        {
+          "path": "/dash/dashboard-runtime.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/ledger-forms.css",
+          "status": 404
+        },
+        {
+          "path": "/dash/fl-assistant.css",
+          "status": 404
+        },
+        {
+          "path": "/dash/key-session.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/assistant-display.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/fl-assistant.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/receipt-shell.js",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "layout": "dashboard-prefix",
+      "sessions": false,
+      "width": 390,
+      "language": "es",
+      "checks": 14,
+      "passed": true,
+      "legacy_alias_preloads": [
+        {
+          "path": "/dash/dashboard-runtime.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/ledger-forms.css",
+          "status": 404
+        },
+        {
+          "path": "/dash/fl-assistant.css",
+          "status": 404
+        },
+        {
+          "path": "/dash/key-session.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/assistant-display.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/fl-assistant.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/receipt-shell.js",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "layout": "dashboard-prefix",
+      "sessions": true,
+      "width": 1440,
+      "language": "en",
+      "checks": 23,
+      "passed": true,
+      "legacy_alias_preloads": [
+        {
+          "path": "/dash/ledger-forms.css",
+          "status": 404
+        },
+        {
+          "path": "/dash/fl-assistant.css",
+          "status": 404
+        },
+        {
+          "path": "/dash/dashboard-runtime.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/assistant-display.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/key-session.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/fl-assistant.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/receipt-shell.js",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "layout": "dashboard-prefix",
+      "sessions": true,
+      "width": 390,
+      "language": "en",
+      "checks": 23,
+      "passed": true,
+      "legacy_alias_preloads": [
+        {
+          "path": "/dash/dashboard-runtime.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/ledger-forms.css",
+          "status": 404
+        },
+        {
+          "path": "/dash/fl-assistant.css",
+          "status": 404
+        },
+        {
+          "path": "/dash/key-session.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/assistant-display.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/fl-assistant.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/receipt-shell.js",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "layout": "dashboard-prefix",
+      "sessions": true,
+      "width": 1440,
+      "language": "es",
+      "checks": 23,
+      "passed": true,
+      "legacy_alias_preloads": [
+        {
+          "path": "/dash/dashboard-runtime.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/ledger-forms.css",
+          "status": 404
+        },
+        {
+          "path": "/dash/fl-assistant.css",
+          "status": 404
+        },
+        {
+          "path": "/dash/key-session.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/assistant-display.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/fl-assistant.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/receipt-shell.js",
+          "status": 404
+        }
+      ]
+    },
+    {
+      "layout": "dashboard-prefix",
+      "sessions": true,
+      "width": 390,
+      "language": "es",
+      "checks": 23,
+      "passed": true,
+      "legacy_alias_preloads": [
+        {
+          "path": "/dash/dashboard-runtime.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/ledger-forms.css",
+          "status": 404
+        },
+        {
+          "path": "/dash/fl-assistant.css",
+          "status": 404
+        },
+        {
+          "path": "/dash/key-session.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/assistant-display.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/fl-assistant.js",
+          "status": 404
+        },
+        {
+          "path": "/dash/receipt-shell.js",
+          "status": 404
+        }
+      ]
+    }
+  ],
+  "screenshots": [
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-off-1440-en-office.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-off-1440-en-entry.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-off-1440-en-offline.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-off-390-en-office.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-off-390-en-entry.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-off-390-en-offline.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-off-1440-es-office.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-off-1440-es-entry.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-off-1440-es-offline.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-off-390-es-office.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-off-390-es-entry.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-off-390-es-offline.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-on-1440-en-office.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-on-1440-en-entry.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-on-1440-en-offline.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-on-390-en-office.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-on-390-en-entry.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-on-390-en-offline.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-on-1440-es-office.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-on-1440-es-entry.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-on-1440-es-offline.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-on-390-es-office.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-on-390-es-entry.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/published-root-on-390-es-offline.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-off-1440-en-office.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-off-1440-en-entry.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-off-1440-en-offline.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-off-390-en-office.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-off-390-en-entry.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-off-390-en-offline.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-off-1440-es-office.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-off-1440-es-entry.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-off-1440-es-offline.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-off-390-es-office.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-off-390-es-entry.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-off-390-es-offline.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-on-1440-en-office.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-on-1440-en-entry.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-on-1440-en-offline.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-on-390-en-office.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-on-390-en-entry.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-on-390-en-offline.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-on-1440-es-office.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-on-1440-es-entry.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-on-1440-es-offline.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-on-390-es-office.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-on-390-es-entry.png",
+    "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting/dashboard-prefix-on-390-es-offline.png"
+  ],
+  "checks": 272
+}

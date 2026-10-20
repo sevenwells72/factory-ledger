@@ -23,7 +23,8 @@ def evidence(item, method='last4', value=None):
 
 
 @pytest.mark.parametrize('action', ['make', 'pack'])
-def test_no_preconfirmation_and_late_evidence(client, db_cursor, items, actors, action):
+@pytest.mark.parametrize('method', ['last4', 'full_code', 'scan', 'tap'])
+def test_no_preconfirmation_and_late_evidence(client, db_cursor, items, actors, action, method):
     key = actors['floor']['key']
     draft = prepare(client, action, body(action, items), key)
     assert not draft['can_commit']
@@ -32,7 +33,7 @@ def test_no_preconfirmation_and_late_evidence(client, db_cursor, items, actors, 
     error(commit(client, draft, key), 422, 'LOT_NOT_CONFIRMED')
     assert posted_count(db_cursor, draft) == 0
     assert ticket_row(db_cursor, draft)['status'] == 'prepared'
-    confirmations = [evidence(i) for i in draft['draft']['input_plan']]
+    confirmations = [evidence(i, method) for i in draft['draft']['input_plan']]
     result = commit(client, draft, key, lot_confirmations=confirmations)
     assert result.status_code == 200, result.text
     result = result.json()
@@ -42,10 +43,16 @@ def test_no_preconfirmation_and_late_evidence(client, db_cursor, items, actors, 
     assert len(rows) == len(confirmations)
     assert rows[0]['actor_id'] == actors['floor']['id']
     assert rows[0]['value'] == confirmations[0]['value']
+    assert rows[0]['method'] == method
+    assert result['input_plan'][0]['confirmation'] == confirmations[0]
+    detail = client.get('/receipts/' + result['receipt_number'], headers=headers(key)).json()
+    assert detail['response']['input_plan'][0]['confirmation'] == confirmations[0]
+    saved = detail['transactions'][0]['lot_confirmations'][0]
+    assert (saved['method'], saved['value'], saved['actor_id']) == (method, confirmations[0]['value'], actors['floor']['id'])
     assert commit(client, draft, key).json() == result | {'replayed': True}
 
 
-@pytest.mark.parametrize('method,value', [('last4','NOPE'), ('last4',''), ('full_code','bogus'), ('scan','bogus'), ('pallet','bogus')])
+@pytest.mark.parametrize('method,value', [('last4','NOPE'), ('last4',''), ('full_code','bogus'), ('scan','bogus'), ('tap','bogus'), ('tap',''), ('pallet','bogus')])
 def test_mismatched_evidence_cannot_post(client, db_cursor, items, method, value):
     draft = prepare(client, 'make', body('make',items))
     r = commit(client, draft, lot_confirmations=[evidence(items['ingredient'], method, value)])
@@ -53,14 +60,15 @@ def test_mismatched_evidence_cannot_post(client, db_cursor, items, method, value
     assert posted_count(db_cursor, draft) == 0
 
 
-@pytest.mark.parametrize('method', ['last4', 'full_code', 'scan'])
+@pytest.mark.parametrize('method', ['last4', 'full_code', 'scan', 'tap'])
 def test_matching_evidence_at_prepare(client, items, method):
     draft = prepare(client, 'make', body('make',items) | {'lot_confirmations':[evidence(items['ingredient'], method)]})
     assert draft['can_commit'] and draft['draft']['input_plan'][0]['confirmed']
     assert commit(client,draft).status_code == 200
 
 
-def test_suffix_ambiguity_same_product_active_only(client, db_cursor, items):
+@pytest.mark.parametrize('method', ['full_code', 'tap'])
+def test_suffix_ambiguity_same_product_active_only(client, db_cursor, items, method):
     item = items['ingredient']
     db_cursor.execute('INSERT INTO lots(product_id,lot_code) VALUES (%s,%s) RETURNING id', (item['id'],'OTHER-'+item['lot_code'][-4:]))
     twin = db_cursor.fetchone()['id']
@@ -69,10 +77,11 @@ def test_suffix_ambiguity_same_product_active_only(client, db_cursor, items):
     db_cursor.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES (%s,%s,%s,20)', (tx,item['id'],twin))
     draft=prepare(client,'make',body('make',items))
     error(commit(client,draft,lot_confirmations=[evidence(item)]),422,'AMBIGUOUS_SUFFIX')
-    assert commit(client,draft,lot_confirmations=[evidence(item,'full_code')]).status_code==200
+    assert commit(client,draft,lot_confirmations=[evidence(item,method)]).status_code==200
 
 
-def test_every_fifo_lot_and_pack_addin_needs_evidence(client, db_cursor, items):
+@pytest.mark.parametrize('method', ['full_code', 'tap'])
+def test_every_fifo_lot_and_pack_addin_needs_evidence(client, db_cursor, items, method):
     item = items['ingredient']
     db_cursor.execute("INSERT INTO transactions(type) VALUES ('adjust') RETURNING id")
     tx = db_cursor.fetchone()['id']
@@ -82,8 +91,8 @@ def test_every_fifo_lot_and_pack_addin_needs_evidence(client, db_cursor, items):
     db_cursor.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES (%s,%s,%s,100)', (tx,item['id'],lid))
     draft=prepare(client,'make',body('make',items))
     assert len(draft['draft']['input_plan'])==2
-    error(commit(client,draft,lot_confirmations=[evidence(item)]),422,'LOT_NOT_CONFIRMED')
-    assert commit(client,draft,lot_confirmations=[evidence(i,'full_code') for i in draft['draft']['input_plan']]).status_code==200
+    error(commit(client,draft,lot_confirmations=[evidence(item,method)]),422,'LOT_NOT_CONFIRMED')
+    assert commit(client,draft,lot_confirmations=[evidence(i,method) for i in draft['draft']['input_plan']]).status_code==200
     db_cursor.execute("INSERT INTO products(name,type,uom) VALUES ('A5 intermediate','batch','lb') RETURNING id")
     intermediate=db_cursor.fetchone()['id']
     db_cursor.execute('UPDATE products SET parent_batch_product_id=%s WHERE id=%s',(intermediate,items['finished']['id']))
@@ -175,9 +184,10 @@ def substitute(db_cursor,items):
     return row
 
 
-def test_substitution_consumes_replacement_and_records_reason(client,db_cursor,items,substitute,actors):
+@pytest.mark.parametrize('method', ['last4', 'tap'])
+def test_substitution_consumes_replacement_and_records_reason(client,db_cursor,items,substitute,actors,method):
     sub=sub_payload(items) | {'substitute_product_id':substitute['id'],'lot_id':substitute['lot_id']}
-    payload=body('make',items) | {'substitutions':[sub],'lot_confirmations':[evidence(substitute)]}
+    payload=body('make',items) | {'substitutions':[sub],'lot_confirmations':[evidence(substitute,method)]}
     d=prepare(client,'make',payload,actors['floor']['key'])
     assert d['can_commit'],d
     assert d['draft']['substitutions'][0]['reason_code']=='ingredient_unavailable'
@@ -498,3 +508,96 @@ def test_last4_includes_hyphen(client, db_cursor, items):
     error(commit(client, draft, lot_confirmations=[evidence(items['ingredient'], value='004')]), 422, 'LOT_CONFIRMATION_MISMATCH')
     response = commit(client, draft, lot_confirmations=[evidence(items['ingredient'], value='-004')])
     assert response.status_code == 200, response.text
+
+
+@pytest.mark.parametrize('value', ['suffix', 'other_code'])
+def test_tap_requires_the_selected_full_lot_code(client, db_cursor, items, value):
+    item = items['ingredient']
+    draft = prepare(client, 'make', body('make', items))
+    code = item['lot_code'][-4:] if value == 'suffix' else items['batch']['lot_code']
+    error(commit(client, draft, lot_confirmations=[evidence(item, 'tap', code)]),
+          422, 'LOT_CONFIRMATION_MISMATCH')
+    assert posted_count(db_cursor, draft) == 0
+    assert ticket_row(db_cursor, draft)['status'] == 'prepared'
+
+
+def test_tap_cannot_confirm_an_unselected_lot(client, db_cursor, items):
+    draft = prepare(client, 'make', body('make', items))
+    error(commit(client, draft, lot_confirmations=[evidence(items['batch'], 'tap')]),
+          422, 'UNUSED_LOT_CONFIRMATION')
+    assert posted_count(db_cursor, draft) == 0
+
+
+def test_changed_lot_tap_uses_selected_identity_and_retains_fifo_stock(client, db_cursor, items, actors):
+    item = items['ingredient']
+    db_cursor.execute("INSERT INTO lots(product_id,lot_code,received_at) VALUES (%s,'TAP-NEW-C-01',clock_timestamp()) RETURNING id,lot_code", (item['id'],))
+    selected = dict(db_cursor.fetchone())
+    selected['lot_id'] = selected.pop('id')
+    db_cursor.execute("INSERT INTO transactions(type) VALUES ('receive') RETURNING id")
+    transaction_id = db_cursor.fetchone()['id']
+    db_cursor.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES (%s,%s,%s,20)',
+                      (transaction_id, item['id'], selected['lot_id']))
+    payload = body('make', items) | {'ingredient_lots': [{'ingredient_product_id': item['id'], 'lot_id': selected['lot_id']}]}
+    draft = prepare(client, 'make', payload, actors['floor']['key'])
+    assert not draft['can_commit']
+    assert draft['draft']['input_plan'][0]['lot_id'] == selected['lot_id']
+    candidates = draft['draft']['lot_confirmation_group']['ingredients'][0]['candidates']
+    assert next(c for c in candidates if c['lot_id'] == selected['lot_id'])['received_at']
+    response = commit(client, draft, actors['floor']['key'], lot_confirmations=[evidence(selected, 'tap')])
+    assert response.status_code == 200, response.text
+    assert main.lot_on_hand(db_cursor, item['lot_id']) == 100
+    assert main.lot_on_hand(db_cursor, selected['lot_id']) == 10
+    assert response.json()['input_plan'][0]['confirmation'] == evidence(selected, 'tap')
+
+
+def test_short_lot_still_needs_a_tap_and_retains_shortage_evidence(client, db_cursor, items):
+    item = items['ingredient']
+    db_cursor.execute("INSERT INTO transactions(type) VALUES ('adjust') RETURNING id")
+    transaction_id = db_cursor.fetchone()['id']
+    db_cursor.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES (%s,%s,%s,-99)',
+                      (transaction_id, item['id'], item['lot_id']))
+    draft = prepare(client, 'make', body('make', items))
+    assert not draft['can_commit']
+    assert draft['draft']['shortages'][0]['short_lb'] == 9
+    error(commit(client, draft), 422, 'LOT_NOT_CONFIRMED')
+    response = commit(client, draft, lot_confirmations=[evidence(item, 'tap')])
+    assert response.status_code == 200, response.text
+    assert response.json()['input_plan'][0]['confirmation']['method'] == 'tap'
+    assert main.lot_on_hand(db_cursor, item['lot_id']) == -9
+    db_cursor.execute("SELECT detail FROM exceptions WHERE transaction_id=%s AND kind='SHORTAGE'", (response.json()['transaction_id'],))
+    assert db_cursor.fetchone() is not None
+
+
+def test_tap_migration_is_idempotent_reversible_and_preserves_old_methods(client, db_cursor, items):
+    root = Path(__file__).parents[1]
+    up = (root / 'migrations/085_tap_lot_confirmation.sql').read_text()
+    down = (root / 'migrations/down/085_tap_lot_confirmation_down.sql').read_text()
+    db_cursor.execute(up)
+    db_cursor.execute(up)
+    db_cursor.execute("SELECT count(*) AS n FROM migration_markers WHERE name='085_tap_lot_confirmation'")
+    assert db_cursor.fetchone()['n'] == 1
+    db_cursor.execute(down)
+    db_cursor.execute(down)
+    db_cursor.execute("SELECT pg_get_constraintdef(oid) AS definition FROM pg_constraint WHERE conrelid='transaction_lot_confirmations'::regclass AND conname='transaction_lot_confirmations_method_check'")
+    definition = db_cursor.fetchone()['definition']
+    assert 'tap' not in definition
+    assert all(method in definition for method in ('last4', 'full_code', 'scan', 'pallet'))
+    db_cursor.execute(up)
+    draft = prepare(client, 'make', body('make', items))
+    response = commit(client, draft, lot_confirmations=[evidence(items['ingredient'], 'tap')])
+    assert response.status_code == 200, response.text
+    db_cursor.execute('SAVEPOINT tap_rollback')
+    with pytest.raises(psycopg2.errors.RaiseException, match='tap confirmation evidence exists'):
+        db_cursor.execute(down)
+    db_cursor.execute('ROLLBACK TO SAVEPOINT tap_rollback')
+    db_cursor.execute('SELECT method,value FROM transaction_lot_confirmations WHERE transaction_id=%s', (response.json()['transaction_id'],))
+    assert dict(db_cursor.fetchone()) == {'method': 'tap', 'value': items['ingredient']['lot_code']}
+
+
+def test_lot_choices_do_not_present_creation_time_as_received_date(client, db_cursor, items):
+    item = items['ingredient']
+    db_cursor.execute('UPDATE lots SET received_at=NULL WHERE id=%s RETURNING created_at', (item['lot_id'],))
+    assert db_cursor.fetchone()['created_at'] is not None
+    draft = prepare(client, 'make', body('make', items))
+    candidates = draft['draft']['lot_confirmation_group']['ingredients'][0]['candidates']
+    assert next(row for row in candidates if row['lot_id'] == item['lot_id'])['received_at'] is None

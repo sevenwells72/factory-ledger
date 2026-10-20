@@ -1,0 +1,22 @@
+command: ["/opt/homebrew/bin/node", "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-pilot-screens.mjs"]
+cwd: /Users/cns/dev/fl-makedraft-wt
+local_only: true; OpenAI/hosted credentials absent; loopback network guard active
+
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+
+false !== true
+
+    at file:///Users/cns/dev/fl-makedraft-wt/tests/visual/run-pilot-screens.mjs:266:14 {
+  generatedMessage: true,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v24.16.0

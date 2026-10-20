@@ -1,0 +1,1177 @@
+{
+  "historical_report_date": "2026-09-11",
+  "historical_report_commit": "27a2518655da43ae31860a0bcf8c1f73db114422",
+  "historical_counts": {
+    "PASS": 3251,
+    "FAIL": 431,
+    "WARN": 58,
+    "N/A": 1304,
+    "ERROR": 0
+  },
+  "current_counts": {
+    "PASS": 3229,
+    "FAIL": 402,
+    "WARN": 63,
+    "N/A": 1350,
+    "ERROR": 0
+  },
+  "changed_cells": [
+    {
+      "screen": "S-01",
+      "rule": "LAYOUT-020",
+      "variant": "1440-dark",
+      "historical_status": "FAIL",
+      "current_status": "WARN"
+    },
+    {
+      "screen": "S-01",
+      "rule": "LAYOUT-020",
+      "variant": "1440-light",
+      "historical_status": "FAIL",
+      "current_status": "WARN"
+    },
+    {
+      "screen": "S-01",
+      "rule": "LAYOUT-020",
+      "variant": "390-dark",
+      "historical_status": "WARN",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-01",
+      "rule": "LAYOUT-020",
+      "variant": "390-light",
+      "historical_status": "WARN",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-01",
+      "rule": "`1440-dark`",
+      "variant": "390-light",
+      "historical_status": "**0.2958**",
+      "current_status": "**0.24**"
+    },
+    {
+      "screen": "S-02",
+      "rule": "LAYOUT-020",
+      "variant": "1440-dark",
+      "historical_status": "FAIL",
+      "current_status": "WARN"
+    },
+    {
+      "screen": "S-02",
+      "rule": "LAYOUT-020",
+      "variant": "1440-light",
+      "historical_status": "FAIL",
+      "current_status": "WARN"
+    },
+    {
+      "screen": "S-02",
+      "rule": "`390-dark`",
+      "variant": "390-light",
+      "historical_status": "**0.4003**",
+      "current_status": "**0.2866**"
+    },
+    {
+      "screen": "S-02",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "**0.4003**",
+      "current_status": "console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-03",
+      "rule": "LAYOUT-020",
+      "variant": "390-dark",
+      "historical_status": "FAIL",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-03",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "**0.4003**",
+      "current_status": "console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-04",
+      "rule": "LAYOUT-020",
+      "variant": "1440-dark",
+      "historical_status": "FAIL",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-04",
+      "rule": "LAYOUT-020",
+      "variant": "1440-light",
+      "historical_status": "PASS",
+      "current_status": "WARN"
+    },
+    {
+      "screen": "S-04",
+      "rule": "LAYOUT-020",
+      "variant": "390-dark",
+      "historical_status": "FAIL",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-04",
+      "rule": "`390-light`",
+      "variant": "1440-dark",
+      "historical_status": "93",
+      "current_status": "95"
+    },
+    {
+      "screen": "S-04",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "**0.4003**",
+      "current_status": "console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-05",
+      "rule": "LAYOUT-020",
+      "variant": "1440-dark",
+      "historical_status": "FAIL",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-05",
+      "rule": "LAYOUT-020",
+      "variant": "1440-light",
+      "historical_status": "FAIL",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-05",
+      "rule": "LAYOUT-020",
+      "variant": "390-dark",
+      "historical_status": "FAIL",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-05",
+      "rule": "LAYOUT-020",
+      "variant": "390-light",
+      "historical_status": "PASS",
+      "current_status": "FAIL"
+    },
+    {
+      "screen": "S-05",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "**0.2892**",
+      "current_status": "console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-05",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "Region `.tab-bar` was not visible; captured the page as it stood.",
+      "current_status": "Region `.tab-bar` was not visible; captured the page as it stood. \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-06",
+      "rule": "LAYOUT-020",
+      "variant": "1440-light",
+      "historical_status": "FAIL",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-06",
+      "rule": "LAYOUT-020",
+      "variant": "390-light",
+      "historical_status": "FAIL",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-06",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "**0.4003**",
+      "current_status": "console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-07",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "console: `Failed to load resource: the server responded with a status of 503 (Service Unavailable)` \u00b7 console: `Failed to load resource: the server responded with a status of 503 (Service Unavailable)`",
+      "current_status": "console: `Failed to load resource: the server responded with a status of 404 (Not Found)` \u00b7 console: `Failed to load resource: the server responded with a status of 503 (Service Unavailable)`"
+    },
+    {
+      "screen": "S-08",
+      "rule": "LAYOUT-020",
+      "variant": "1440-light",
+      "historical_status": "FAIL",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-08",
+      "rule": "LAYOUT-020",
+      "variant": "390-dark",
+      "historical_status": "PASS",
+      "current_status": "FAIL"
+    },
+    {
+      "screen": "S-08",
+      "rule": "LAYOUT-020",
+      "variant": "390-light",
+      "historical_status": "PASS",
+      "current_status": "FAIL"
+    },
+    {
+      "screen": "S-09",
+      "rule": "LAYOUT-020",
+      "variant": "1440-dark",
+      "historical_status": "PASS",
+      "current_status": "FAIL"
+    },
+    {
+      "screen": "S-09",
+      "rule": "LAYOUT-020",
+      "variant": "390-light",
+      "historical_status": "PASS",
+      "current_status": "FAIL"
+    },
+    {
+      "screen": "S-09",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "**0.3457**",
+      "current_status": "**0.4061**"
+    },
+    {
+      "screen": "S-09",
+      "rule": "`390-dark`",
+      "variant": "390-light",
+      "historical_status": "**0.4003**",
+      "current_status": "**0.2866**"
+    },
+    {
+      "screen": "S-10",
+      "rule": "LAYOUT-020",
+      "variant": "1440-dark",
+      "historical_status": "WARN",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-10",
+      "rule": "LAYOUT-020",
+      "variant": "1440-light",
+      "historical_status": "WARN",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-10",
+      "rule": "LAYOUT-020",
+      "variant": "390-dark",
+      "historical_status": "PASS",
+      "current_status": "FAIL"
+    },
+    {
+      "screen": "S-10",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "**0.4003**",
+      "current_status": "console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-11",
+      "rule": "`390-dark`",
+      "variant": "390-light",
+      "historical_status": "**0.4003**",
+      "current_status": "**0.2866**"
+    },
+    {
+      "screen": "S-11",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "**0.4003**",
+      "current_status": "console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-12",
+      "rule": "LAYOUT-020",
+      "variant": "1440-dark",
+      "historical_status": "FAIL",
+      "current_status": "WARN"
+    },
+    {
+      "screen": "S-12",
+      "rule": "LAYOUT-020",
+      "variant": "1440-light",
+      "historical_status": "FAIL",
+      "current_status": "WARN"
+    },
+    {
+      "screen": "S-12",
+      "rule": "`1440-dark`",
+      "variant": "390-light",
+      "historical_status": "**0.2892**",
+      "current_status": "**0.1683**"
+    },
+    {
+      "screen": "S-12",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "**0.2892**",
+      "current_status": "**0.2335**"
+    },
+    {
+      "screen": "S-13",
+      "rule": "LAYOUT-020",
+      "variant": "1440-dark",
+      "historical_status": "FAIL",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-13",
+      "rule": "`390-dark`",
+      "variant": "390-light",
+      "historical_status": "**0.4003**",
+      "current_status": "**0.2866**"
+    },
+    {
+      "screen": "S-13",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "**0.4003**",
+      "current_status": "console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-14",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "2",
+      "current_status": "console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-15",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "console: `Failed to load resource: the server responded with a status of 503 (Service Unavailable)` \u00b7 console: `Failed to load resource: the server responded with a status of 503 (Service Unavailable)`",
+      "current_status": "console: `Failed to load resource: the server responded with a status of 404 (Not Found)` \u00b7 console: `Failed to load resource: the server responded with a status of 503 (Service Unavailable)`"
+    },
+    {
+      "screen": "S-16",
+      "rule": "`1440-light`",
+      "variant": "1440-light",
+      "historical_status": "0px",
+      "current_status": "3px"
+    },
+    {
+      "screen": "S-16",
+      "rule": "`1440-light`",
+      "variant": "390-dark",
+      "historical_status": "0",
+      "current_status": "6"
+    },
+    {
+      "screen": "S-16",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "**0.3404**",
+      "current_status": "**0.3989**"
+    },
+    {
+      "screen": "S-16",
+      "rule": "`1440-light`",
+      "variant": "zoom200-dark",
+      "historical_status": "\u2014",
+      "current_status": "SUMMARY   Reference calendar (\u0394x 3px, \u0394y 0px)"
+    },
+    {
+      "screen": "S-16",
+      "rule": "`390-dark`",
+      "variant": "390-light",
+      "historical_status": "**0.5606**",
+      "current_status": "**0.5174**"
+    },
+    {
+      "screen": "S-16",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "**0.5736**",
+      "current_status": "console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-17",
+      "rule": "LAYOUT-020",
+      "variant": "390-dark",
+      "historical_status": "FAIL",
+      "current_status": "WARN"
+    },
+    {
+      "screen": "S-17",
+      "rule": "`1440-dark`",
+      "variant": "390-light",
+      "historical_status": "**0.3415**",
+      "current_status": "**0.3933**"
+    },
+    {
+      "screen": "S-17",
+      "rule": "`1440-dark`",
+      "variant": "zoom200-dark",
+      "historical_status": "TR  expandable {{TODAY-0}} 09:25 AMEntered: (\u0394x 0px, \u0394y -104px)",
+      "current_status": "TR  expandable Legacy TX-9001{{TODAY-0}} 09 (\u0394x 0px, \u0394y -104px)"
+    },
+    {
+      "screen": "S-17",
+      "rule": "`1440-light`",
+      "variant": "390-dark",
+      "historical_status": "8",
+      "current_status": "14"
+    },
+    {
+      "screen": "S-17",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "**0.3416**",
+      "current_status": "**0.3934**"
+    },
+    {
+      "screen": "S-17",
+      "rule": "`1440-light`",
+      "variant": "zoom200-dark",
+      "historical_status": "TR  expandable {{TODAY-0}} 09:25 AMEntered: (\u0394x 0px, \u0394y -104px)",
+      "current_status": "TR  expandable Legacy TX-9001{{TODAY-0}} 09 (\u0394x 0px, \u0394y -104px)"
+    },
+    {
+      "screen": "S-17",
+      "rule": "`390-dark`",
+      "variant": "390-light",
+      "historical_status": "**0.5736**",
+      "current_status": "**0.0466**"
+    },
+    {
+      "screen": "S-17",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "**0.7872**",
+      "current_status": "console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-18",
+      "rule": "LAYOUT-020",
+      "variant": "390-light",
+      "historical_status": "FAIL",
+      "current_status": "WARN"
+    },
+    {
+      "screen": "S-18",
+      "rule": "`1440-dark`",
+      "variant": "390-light",
+      "historical_status": "**0.4489**",
+      "current_status": "**0.399**"
+    },
+    {
+      "screen": "S-18",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "**0.4382**",
+      "current_status": "**0.3989**"
+    },
+    {
+      "screen": "S-18",
+      "rule": "`390-dark`",
+      "variant": "390-light",
+      "historical_status": "**0.5736**",
+      "current_status": "**0.5966**"
+    },
+    {
+      "screen": "S-18",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "**0.5606**",
+      "current_status": "console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-19",
+      "rule": "ACCESS-008",
+      "variant": "390-dark",
+      "historical_status": "PASS",
+      "current_status": "FAIL"
+    },
+    {
+      "screen": "S-22",
+      "rule": "LAYOUT-020",
+      "variant": "1440-dark",
+      "historical_status": "WARN",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-24",
+      "rule": "LAYOUT-020",
+      "variant": "1440-dark",
+      "historical_status": "WARN",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-25",
+      "rule": "LAYOUT-020",
+      "variant": "1440-dark",
+      "historical_status": "WARN",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-26",
+      "rule": "LAYOUT-020",
+      "variant": "1440-dark",
+      "historical_status": "PASS",
+      "current_status": "WARN"
+    },
+    {
+      "screen": "S-26",
+      "rule": "LAYOUT-020",
+      "variant": "1440-light",
+      "historical_status": "WARN",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-29",
+      "rule": "LAYOUT-020",
+      "variant": "1440-light",
+      "historical_status": "WARN",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-42",
+      "rule": "LAYOUT-020",
+      "variant": "1440-dark",
+      "historical_status": "WARN",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-43",
+      "rule": "LAYOUT-020",
+      "variant": "1440-light",
+      "historical_status": "PASS",
+      "current_status": "WARN"
+    },
+    {
+      "screen": "S-44",
+      "rule": "LAYOUT-020",
+      "variant": "1440-light",
+      "historical_status": "PASS",
+      "current_status": "WARN"
+    },
+    {
+      "screen": "S-45",
+      "rule": "LAYOUT-020",
+      "variant": "1440-light",
+      "historical_status": "PASS",
+      "current_status": "WARN"
+    },
+    {
+      "screen": "S-54",
+      "rule": "LAYOUT-020",
+      "variant": "1440-dark",
+      "historical_status": "FAIL",
+      "current_status": "WARN"
+    },
+    {
+      "screen": "S-54",
+      "rule": "`390-dark`",
+      "variant": "390-light",
+      "historical_status": "**0.4075**",
+      "current_status": "**0.2866**"
+    },
+    {
+      "screen": "S-54",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "**0.4003**",
+      "current_status": "console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-55",
+      "rule": "LAYOUT-020",
+      "variant": "1440-dark",
+      "historical_status": "FAIL",
+      "current_status": "WARN"
+    },
+    {
+      "screen": "S-55",
+      "rule": "LAYOUT-020",
+      "variant": "1440-light",
+      "historical_status": "FAIL",
+      "current_status": "WARN"
+    },
+    {
+      "screen": "S-55",
+      "rule": "`390-dark`",
+      "variant": "390-light",
+      "historical_status": "**0.4075**",
+      "current_status": "**0.2866**"
+    },
+    {
+      "screen": "S-55",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "console: `Failed to load resource: the server responded with a status of 409 (Conflict)`",
+      "current_status": "console: `Failed to load resource: the server responded with a status of 404 (Not Found)` \u00b7 console: `Failed to load resource: the server responded with a status of 409 (Conflict)`"
+    },
+    {
+      "screen": "S-56",
+      "rule": "LAYOUT-020",
+      "variant": "1440-dark",
+      "historical_status": "FAIL",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-56",
+      "rule": "LAYOUT-020",
+      "variant": "1440-light",
+      "historical_status": "WARN",
+      "current_status": "PASS"
+    },
+    {
+      "screen": "S-56",
+      "rule": "LAYOUT-020",
+      "variant": "390-dark",
+      "historical_status": "PASS",
+      "current_status": "FAIL"
+    },
+    {
+      "screen": "S-56",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "Region `#lot-panel-overlay` was not visible; captured the page as it stood.",
+      "current_status": "Region `#lot-panel-overlay` was not visible; captured the page as it stood. \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-58",
+      "rule": "STATUS-006",
+      "variant": "1440-dark",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-58",
+      "rule": "STATUS-006",
+      "variant": "1440-light",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-58",
+      "rule": "STATUS-010",
+      "variant": "1440-dark",
+      "historical_status": "PASS",
+      "current_status": "FAIL"
+    },
+    {
+      "screen": "S-58",
+      "rule": "STATUS-010",
+      "variant": "1440-light",
+      "historical_status": "PASS",
+      "current_status": "FAIL"
+    },
+    {
+      "screen": "S-58",
+      "rule": "TOUCH-003",
+      "variant": "1440-dark",
+      "historical_status": "PASS",
+      "current_status": "FAIL"
+    },
+    {
+      "screen": "S-58",
+      "rule": "TOUCH-003",
+      "variant": "1440-light",
+      "historical_status": "PASS",
+      "current_status": "FAIL"
+    },
+    {
+      "screen": "S-59",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "console: `Failed to load resource: the server responded with a status of 503 (Service Unavailable)` \u00b7 console: `Failed to load resource: the server responded with a status of 503 (Service Unavailable)`",
+      "current_status": "console: `Failed to load resource: net::ERR_FAILED` \u00b7 console: `Failed to load resource: net::ERR_FAILED`"
+    },
+    {
+      "screen": "S-62",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "console: `Failed to load resource: the server responded with a status of 503 (Service Unavailable)` \u00b7 console: `Failed to load resource: the server responded with a status of 503 (Service Unavailable)`",
+      "current_status": "console: `Failed to load resource: the server responded with a status of 404 (Not Found)` \u00b7 console: `Failed to load resource: the server responded with a status of 503 (Service Unavailable)`"
+    },
+    {
+      "screen": "S-63",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "2",
+      "current_status": "console: `Failed to load resource: net::ERR_FAILED` \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-65",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "2",
+      "current_status": "console: `Failed to load resource: net::ERR_FAILED` \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-68",
+      "rule": "ACCESS-008",
+      "variant": "1440-dark",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-68",
+      "rule": "ACCESS-008",
+      "variant": "1440-light",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-68",
+      "rule": "STATUS-002",
+      "variant": "1440-dark",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-68",
+      "rule": "STATUS-002",
+      "variant": "1440-light",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-68",
+      "rule": "STATUS-005",
+      "variant": "1440-dark",
+      "historical_status": "FAIL",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-68",
+      "rule": "STATUS-005",
+      "variant": "1440-light",
+      "historical_status": "FAIL",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-68",
+      "rule": "STATUS-006",
+      "variant": "1440-dark",
+      "historical_status": "FAIL",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-68",
+      "rule": "STATUS-006",
+      "variant": "1440-light",
+      "historical_status": "FAIL",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-68",
+      "rule": "TOUCH-003",
+      "variant": "1440-dark",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-68",
+      "rule": "TOUCH-003",
+      "variant": "1440-light",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-69",
+      "rule": "ACCESS-008",
+      "variant": "1440-dark",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-69",
+      "rule": "ACCESS-008",
+      "variant": "1440-light",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-69",
+      "rule": "STATUS-002",
+      "variant": "1440-dark",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-69",
+      "rule": "STATUS-002",
+      "variant": "1440-light",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-69",
+      "rule": "STATUS-005",
+      "variant": "1440-dark",
+      "historical_status": "FAIL",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-69",
+      "rule": "STATUS-005",
+      "variant": "1440-light",
+      "historical_status": "FAIL",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-69",
+      "rule": "STATUS-006",
+      "variant": "1440-dark",
+      "historical_status": "FAIL",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-69",
+      "rule": "STATUS-006",
+      "variant": "1440-light",
+      "historical_status": "FAIL",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-69",
+      "rule": "TOUCH-003",
+      "variant": "1440-dark",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-69",
+      "rule": "TOUCH-003",
+      "variant": "1440-light",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-70",
+      "rule": "ACCESS-008",
+      "variant": "1440-dark",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-70",
+      "rule": "ACCESS-008",
+      "variant": "1440-light",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-70",
+      "rule": "STATUS-002",
+      "variant": "1440-dark",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-70",
+      "rule": "STATUS-002",
+      "variant": "1440-light",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-70",
+      "rule": "STATUS-004",
+      "variant": "1440-dark",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-70",
+      "rule": "STATUS-004",
+      "variant": "1440-light",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-70",
+      "rule": "STATUS-005",
+      "variant": "1440-dark",
+      "historical_status": "FAIL",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-70",
+      "rule": "STATUS-005",
+      "variant": "1440-light",
+      "historical_status": "FAIL",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-70",
+      "rule": "STATUS-006",
+      "variant": "1440-dark",
+      "historical_status": "FAIL",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-70",
+      "rule": "STATUS-006",
+      "variant": "1440-light",
+      "historical_status": "FAIL",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-70",
+      "rule": "STATUS-008",
+      "variant": "1440-dark",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-70",
+      "rule": "STATUS-008",
+      "variant": "1440-light",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-70",
+      "rule": "TOUCH-003",
+      "variant": "1440-dark",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-70",
+      "rule": "TOUCH-003",
+      "variant": "1440-light",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-70",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "Region `#detailPanel` was not visible; captured the page as it stood.",
+      "current_status": "Region `#detailPanel` was not visible; captured the page as it stood. \u00b7 console: `Failed to load resource: net::ERR_FAILED` \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-71",
+      "rule": "STATUS-002",
+      "variant": "1440-dark",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-71",
+      "rule": "STATUS-002",
+      "variant": "1440-light",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-71",
+      "rule": "STATUS-004",
+      "variant": "1440-dark",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-71",
+      "rule": "STATUS-004",
+      "variant": "1440-light",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-71",
+      "rule": "STATUS-005",
+      "variant": "1440-dark",
+      "historical_status": "FAIL",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-71",
+      "rule": "STATUS-005",
+      "variant": "1440-light",
+      "historical_status": "FAIL",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-71",
+      "rule": "STATUS-006",
+      "variant": "1440-dark",
+      "historical_status": "FAIL",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-71",
+      "rule": "STATUS-006",
+      "variant": "1440-light",
+      "historical_status": "FAIL",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-71",
+      "rule": "STATUS-008",
+      "variant": "1440-dark",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-71",
+      "rule": "STATUS-008",
+      "variant": "1440-light",
+      "historical_status": "PASS",
+      "current_status": "n/a"
+    },
+    {
+      "screen": "S-72",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "Page defines no light palette \u2014 the light capture is the dark surface.",
+      "current_status": "Page defines no light palette \u2014 the light capture is the dark surface. \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-73",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "Page defines no light palette \u2014 the light capture is the dark surface.",
+      "current_status": "Page defines no light palette \u2014 the light capture is the dark surface. \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-74",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "Page defines no light palette \u2014 the light capture is the dark surface.",
+      "current_status": "Page defines no light palette \u2014 the light capture is the dark surface. \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-75",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "Page defines no light palette \u2014 the light capture is the dark surface.",
+      "current_status": "Page defines no light palette \u2014 the light capture is the dark surface. \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-76",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "Page defines no light palette \u2014 the light capture is the dark surface.",
+      "current_status": "Page defines no light palette \u2014 the light capture is the dark surface. \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-77",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "Page defines no light palette \u2014 the light capture is the dark surface.",
+      "current_status": "Page defines no light palette \u2014 the light capture is the dark surface. \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-78",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "Page defines no light palette \u2014 the light capture is the dark surface.",
+      "current_status": "Page defines no light palette \u2014 the light capture is the dark surface. \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-79",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "Page defines no light palette \u2014 the light capture is the dark surface.",
+      "current_status": "Page defines no light palette \u2014 the light capture is the dark surface. \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-80",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "Page defines no light palette \u2014 the light capture is the dark surface.",
+      "current_status": "Page defines no light palette \u2014 the light capture is the dark surface. \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-81",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "Page defines no light palette \u2014 the light capture is the dark surface.",
+      "current_status": "Page defines no light palette \u2014 the light capture is the dark surface. \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-82",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "Page defines no light palette \u2014 the light capture is the dark surface.",
+      "current_status": "Page defines no light palette \u2014 the light capture is the dark surface. \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-83",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "Page defines no light palette \u2014 the light capture is the dark surface.",
+      "current_status": "Page defines no light palette \u2014 the light capture is the dark surface. \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-84",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "Page defines no light palette \u2014 the light capture is the dark surface.",
+      "current_status": "Page defines no light palette \u2014 the light capture is the dark surface. \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-85",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "Page defines no light palette \u2014 the light capture is the dark surface.",
+      "current_status": "Page defines no light palette \u2014 the light capture is the dark surface. \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-86",
+      "rule": "`390-dark`",
+      "variant": "390-light",
+      "historical_status": "190px",
+      "current_status": "console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-86",
+      "rule": "`390-light`",
+      "variant": "390-light",
+      "historical_status": "Page defines no light palette \u2014 the light capture is the dark surface.",
+      "current_status": "Page defines no light palette \u2014 the light capture is the dark surface. \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-87",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "Page defines no light palette \u2014 the light capture is the dark surface.",
+      "current_status": "Page defines no light palette \u2014 the light capture is the dark surface. \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-88",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "Page defines no light palette \u2014 the light capture is the dark surface.",
+      "current_status": "Page defines no light palette \u2014 the light capture is the dark surface. \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-90",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "Page defines no light palette \u2014 the light capture is the dark surface.",
+      "current_status": "Page defines no light palette \u2014 the light capture is the dark surface. \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-91",
+      "rule": "`1440-dark`",
+      "variant": "390-light",
+      "historical_status": "487px",
+      "current_status": "console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    },
+    {
+      "screen": "S-91",
+      "rule": "`1440-light`",
+      "variant": "390-light",
+      "historical_status": "Page defines no light palette \u2014 the light capture is the dark surface.",
+      "current_status": "Page defines no light palette \u2014 the light capture is the dark surface. \u00b7 console: `Failed to load resource: the server responded with a status of 404 (Not Found)`"
+    }
+  ],
+  "changed_cell_count": 165,
+  "note": "Historical snapshot comparison, not an untouched-HEAD rendered baseline. Dates, calendar state, timing and intervening main changes can alter cells. No claim that the broad design audit is clean or that differences are attributable to this Make change. PAGE_URLS only index/sankey/process-flow/traceability/scheduler and exclude current Record Make."
+}

@@ -1,0 +1,16 @@
+[
+  {
+    "delivered_log": "docs/validation/make-draft-compact/logs/node-full-attempt1.log",
+    "original_stdout": "/private/tmp/fl-makedraft-raw-stdout/node-full-attempt1.log",
+    "original_sha256": "f8972403111ad2a415616e4e6344de883cef262929a6d9191d781edfc09ffab9",
+    "delivered_sha256": "3449e6f5c68319efec5175a0c579442da12e717a162eced138565b00ff9939eb",
+    "change": "Trailing whitespace and extra EOF blank lines only; every diagnostic retained."
+  },
+  {
+    "delivered_log": "docs/validation/make-draft-compact/logs/runs-interactions.log",
+    "original_stdout": "/private/tmp/fl-makedraft-raw-stdout/runs-interactions.log",
+    "original_sha256": "822b80d5c8ef695b66812c52ef2ea0c867225787d62e79821b438bccfdc339d9",
+    "delivered_sha256": "2f4a2bc9496b6b08692b1131ce7e8f1541114acf2be65fb8c38c2423c5407d0c",
+    "change": "Trailing whitespace and extra EOF blank lines only; every diagnostic retained."
+  }
+]

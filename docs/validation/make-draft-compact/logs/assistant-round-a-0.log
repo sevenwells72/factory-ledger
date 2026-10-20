@@ -1,0 +1,5 @@
+command: ["/opt/homebrew/bin/node", "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-fl-assistant-round-a.mjs"]
+cwd: /Users/cns/dev/fl-makedraft-wt
+local_only: true; OpenAI/hosted credentials absent; loopback network guard active
+
+{"mode":"sessions-off","passed":30,"failed":0,"cases":30,"screenshot_count":54,"out":"/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/assistant-round-a-0"}

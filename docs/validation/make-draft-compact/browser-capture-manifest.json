@@ -1,0 +1,23 @@
+{
+  "captured_at": "2026-10-20T19:34:18.647769-04:00",
+  "base_revision": "27a2518655da43ae31860a0bcf8c1f73db114422",
+  "framing": "Before/after primary draft screenshots align exactly to draft panel top",
+  "source_sha256": {
+    "dashboard/entry.js": "08d11796e2c3f4d55830810d5483f5d2828e850416148dd1599042da05a036bb",
+    "dashboard/entry.html": "00702198b76bb290a8f9a49a388c3962a164eecc97a93c76e837984a993328eb",
+    "dashboard/ledger-ticket.js": "8b38c72bd7fc97742c172cf4354eec1979af64f614afd0fe1e3ba7111f83bd2b",
+    "dashboard/ledger-ui.js": "06f5fd108d2cf7b8ed02694174804db8ad2727fd313d229a217322ad76b2543c",
+    "dashboard/ledger-forms.css": "5aad1f45fa8cfe7e9be60c4ba8299d46ecd409df771b94ad6f84c9e31767a671",
+    "lot_confirmation.py": "e9d0b622173cb1aeb562125898783390f4938327f2a51a8e1ab94d2fcfddaccd",
+    "migrations/085_tap_lot_confirmation.sql": "071b704650e2b924348407efa9711bd558c8461874bdbbcaa6fe8feea82f0e5d",
+    "tests/visual/run-make-draft-compact.mjs": "cb10f4a2ad5a91a519deb9983dbb270c807b03ba05a8cc8bf1c355704431d8b7",
+    "tests/visual/make_draft_compact_page_bridge.py": "80fbca3210aef69b4d5ed9327cd01a97fb0084b583387619a3564aeb15fa8d28"
+  },
+  "visual_review": {
+    "english_and_spanish_390": true,
+    "english_and_spanish_1440": true,
+    "change_choices_and_methods": true,
+    "no_horizontal_overflow": true,
+    "notes": "Reviewed aligned before/after draft, compact ingredient view, Change, tap receipt and mixed typed/scan/tap receipts. Large suffixes, green selected checks, red shortage and readable codes remain visible."
+  }
+}
