@@ -1,0 +1,795 @@
+{
+  "date": "2026-10-20",
+  "base_commit": "8ce8d7c11fc8ba655355c21d7b31f4e31fd1ed32",
+  "scope": "Five Spanish Record Receive/Pack case phrases; Office Boxes stays Cajas",
+  "node": {
+    "command": "node --test tests/test_*.js",
+    "passed": 562,
+    "failed": 0,
+    "skipped": 0,
+    "cancelled": 0
+  },
+  "reason_unit": {
+    "created_at": "2026-10-20T19:10:29.686Z",
+    "local_only": true,
+    "actual_handlers": true,
+    "openai_calls": 0,
+    "records": 0,
+    "width": 390,
+    "results": [
+      {
+        "name": "adjust: physical_count form and draft agree, including live language changes",
+        "initial_language": "en",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "adjust: missing_receipt form and draft agree, including live language changes",
+        "initial_language": "en",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "adjust: missing_production form and draft agree, including live language changes",
+        "initial_language": "en",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "adjust: wrong_lot form and draft agree, including live language changes",
+        "initial_language": "en",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "adjust: damage_disposal form and draft agree, including live language changes",
+        "initial_language": "en",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "adjust: unrecorded_usage form and draft agree, including live language changes",
+        "initial_language": "en",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "adjust: data_entry_error form and draft agree, including live language changes",
+        "initial_language": "en",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "adjust: unknown form and draft agree, including live language changes",
+        "initial_language": "en",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "found: physical_count form and draft agree, including live language changes",
+        "initial_language": "en",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "found: missing_receipt form and draft agree, including live language changes",
+        "initial_language": "en",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "found: missing_production form and draft agree, including live language changes",
+        "initial_language": "en",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "found: unknown form and draft agree, including live language changes",
+        "initial_language": "en",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "Office order Cases and Boxes stay distinct on form and draft in both languages",
+        "initial_language": "en",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "Expected delivery missing-input help and calculated total switch language without losing numbers",
+        "initial_language": "en",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "Real catalog pouch conversion switches both form and draft wording",
+        "initial_language": "en",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "approve_so shows distinct translated units on already-extracted document lines",
+        "initial_language": "en",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "approve_er shows distinct translated units on already-extracted document lines",
+        "initial_language": "en",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "adjust: physical_count form and draft agree, including live language changes",
+        "initial_language": "es",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "adjust: missing_receipt form and draft agree, including live language changes",
+        "initial_language": "es",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "adjust: missing_production form and draft agree, including live language changes",
+        "initial_language": "es",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "adjust: wrong_lot form and draft agree, including live language changes",
+        "initial_language": "es",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "adjust: damage_disposal form and draft agree, including live language changes",
+        "initial_language": "es",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "adjust: unrecorded_usage form and draft agree, including live language changes",
+        "initial_language": "es",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "adjust: data_entry_error form and draft agree, including live language changes",
+        "initial_language": "es",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "adjust: unknown form and draft agree, including live language changes",
+        "initial_language": "es",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "found: physical_count form and draft agree, including live language changes",
+        "initial_language": "es",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "found: missing_receipt form and draft agree, including live language changes",
+        "initial_language": "es",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "found: missing_production form and draft agree, including live language changes",
+        "initial_language": "es",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "found: unknown form and draft agree, including live language changes",
+        "initial_language": "es",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "Office order Cases and Boxes stay distinct on form and draft in both languages",
+        "initial_language": "es",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "Expected delivery missing-input help and calculated total switch language without losing numbers",
+        "initial_language": "es",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "Real catalog pouch conversion switches both form and draft wording",
+        "initial_language": "es",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "approve_so shows distinct translated units on already-extracted document lines",
+        "initial_language": "es",
+        "width": 390,
+        "passed": true
+      },
+      {
+        "name": "approve_er shows distinct translated units on already-extracted document lines",
+        "initial_language": "es",
+        "width": 390,
+        "passed": true
+      }
+    ],
+    "databases_dropped": [
+      "fl_pilotux_review_69496"
+    ],
+    "verified": {
+      "receipts": [],
+      "exceptions": [],
+      "attachments": 0,
+      "confirmations": 0
+    }
+  },
+  "spanish_390_walkthrough": {
+    "created_at": "2026-10-20T19:11:30.986Z",
+    "local_only": true,
+    "actual_records": true,
+    "openai_calls": 0,
+    "results": [
+      {
+        "item": 1,
+        "name": "Header links are visible buttons on each shared page",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": 2,
+        "name": "Clear Office start buttons and direct New customer",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": "9.office",
+        "name": "Cancel Office draft discards fields without a write",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": "3-5.customer",
+        "name": "Debounced matches and separate Add customer; exact Setton duplicate opens and offers existing",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": 6,
+        "name": "Regular Classic is first and extra-kosher choices have distinct tags",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": "luz.1",
+        "name": "Luz practice A records Setton Farms Fruit Nut and Classic case order",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": "luz.2",
+        "name": "Luz practice B records new customer then Sprinkles order",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": "7+luz.3",
+        "name": "Luz practice C records expected Sunflower delivery: 10 cases × 25 = 250 lb",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": "8+luz.4",
+        "name": "Luz practice D opens receipt, Today and Exceptions directly",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": "15-16",
+        "name": "Floor and Office hide Owner backfill; home points to Assistant",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": "5.entry",
+        "name": "Record product/supplier search debounces after two characters; Enter still searches",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": "9.entry",
+        "name": "Cancel Receive draft returns empty form and records nothing",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": "10+arturo.receive",
+        "name": "Arturo Receive attaches form photo, draft and receipt preserve evidence",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": "11-12+arturo.make",
+        "name": "Arturo Make warns zero Coconut, disambiguates Oats suffix and requires every tag",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": "13+arturo.pack",
+        "name": "Arturo Pack finds Classic #9 batch and offers newest just-made lot, still confirms tag",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": "10+arturo.ship",
+        "name": "Arturo Ship form photo and physical tag produce real receipt",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": "14+arturo.found",
+        "name": "Arturo Found searches Oats and picks full lot",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": "14+arturo.adjust",
+        "name": "Arturo Adjust finds Oats by product and records -5 lb",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": "arturo.void",
+        "name": "Arturo Void explicitly records the correction and receipt backlink",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": "8+arturo.today",
+        "name": "Record entry Today works on phone and desktop",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": 17,
+        "name": "Assistant offline card Office and Record links open actual pages",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": "integrity",
+        "name": "No page errors, hosted traffic or direct ledger writes",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      }
+    ],
+    "receipts": [
+      {
+        "number": "ORD-261020-001",
+        "mode": 1,
+        "width": 390,
+        "lang": "es"
+      },
+      {
+        "number": "CUS-261020-001",
+        "mode": 1,
+        "width": 390,
+        "lang": "es"
+      },
+      {
+        "number": "ORD-261020-002",
+        "mode": 1,
+        "width": 390,
+        "lang": "es"
+      },
+      {
+        "number": "ER-261020-001",
+        "mode": 1,
+        "width": 390,
+        "lang": "es"
+      },
+      {
+        "number": "RCV-261020-001",
+        "mode": 1,
+        "width": 390,
+        "lang": "es"
+      },
+      {
+        "number": "MK-261020-001",
+        "mode": 1,
+        "width": 390,
+        "lang": "es"
+      },
+      {
+        "number": "PK-261020-001",
+        "mode": 1,
+        "width": 390,
+        "lang": "es"
+      },
+      {
+        "number": "SHP-261020-001",
+        "mode": 1,
+        "width": 390,
+        "lang": "es"
+      },
+      {
+        "number": "FND-261020-001",
+        "mode": 1,
+        "width": 390,
+        "lang": "es"
+      },
+      {
+        "number": "ADJ-261020-001",
+        "mode": 1,
+        "width": 390,
+        "lang": "es"
+      },
+      {
+        "number": "VD-261020-001",
+        "mode": 1,
+        "width": 390,
+        "lang": "es"
+      }
+    ],
+    "screenshots": [
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-header-buttons.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-office-start-customer.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-setton-duplicate.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-regular-extra-kosher.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-luz-a-order-draft.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-luz-b-customer-order.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-expected-cases-form.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-luz-c-expected-cases.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-luz-d-receipt-lookup.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-luz-d-today.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-luz-d-exceptions.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-arturo-receive-draft.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-arturo-receive-receipt.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-arturo-make-ambiguous-tags.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-arturo-make-ready-shortage.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-arturo-make-receipt.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-arturo-pack-draft.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-arturo-pack-recorded.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-arturo-ship-receipt.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-arturo-found-recorded.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-arturo-adjust-recorded.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-arturo-void-recorded.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-arturo-today.png",
+      "/private/tmp/pr142-wording-runs/spanish-rerun/on-390-es-assistant-offline-links.png"
+    ],
+    "databases_dropped": [
+      "fl_pilotux_page_71386_1_390_es"
+    ],
+    "scenarios": [
+      {
+        "mode": 1,
+        "width": 390,
+        "lang": "es",
+        "planned_checks": [
+          "1",
+          "2",
+          "9.office",
+          "3-5.customer",
+          "6",
+          "luz.1",
+          "luz.2",
+          "7+luz.3",
+          "8+luz.4",
+          "15-16",
+          "5.entry",
+          "9.entry",
+          "10+arturo.receive",
+          "11-12+arturo.make",
+          "13+arturo.pack",
+          "10+arturo.ship",
+          "14+arturo.found",
+          "14+arturo.adjust",
+          "arturo.void",
+          "8+arturo.today",
+          "17",
+          "integrity"
+        ],
+        "completed_checks": [
+          "1",
+          "2",
+          "9.office",
+          "3-5.customer",
+          "6",
+          "luz.1",
+          "luz.2",
+          "7+luz.3",
+          "8+luz.4",
+          "15-16",
+          "5.entry",
+          "9.entry",
+          "10+arturo.receive",
+          "11-12+arturo.make",
+          "13+arturo.pack",
+          "10+arturo.ship",
+          "14+arturo.found",
+          "14+arturo.adjust",
+          "arturo.void",
+          "8+arturo.today",
+          "17",
+          "integrity"
+        ],
+        "started": true,
+        "complete": true,
+        "passed": true,
+        "missing_checks": [],
+        "failed_checks": 0
+      }
+    ],
+    "verify_sessions_1_390_es": {
+      "receipts": [
+        {
+          "receipt_number": "ORD-261020-001",
+          "action": "create_order",
+          "status": "committed"
+        },
+        {
+          "receipt_number": "CUS-261020-001",
+          "action": "create_customer",
+          "status": "committed"
+        },
+        {
+          "receipt_number": "ORD-261020-002",
+          "action": "create_order",
+          "status": "committed"
+        },
+        {
+          "receipt_number": "ER-261020-001",
+          "action": "create_expected_receipt",
+          "status": "committed"
+        },
+        {
+          "receipt_number": "RCV-261020-001",
+          "action": "receive",
+          "status": "committed"
+        },
+        {
+          "receipt_number": "MK-261020-001",
+          "action": "make",
+          "status": "committed"
+        },
+        {
+          "receipt_number": "PK-261020-001",
+          "action": "pack",
+          "status": "committed"
+        },
+        {
+          "receipt_number": "SHP-261020-001",
+          "action": "ship_order",
+          "status": "committed"
+        },
+        {
+          "receipt_number": "FND-261020-001",
+          "action": "found",
+          "status": "committed"
+        },
+        {
+          "receipt_number": "ADJ-261020-001",
+          "action": "adjust",
+          "status": "committed"
+        },
+        {
+          "receipt_number": "VD-261020-001",
+          "action": "void",
+          "status": "committed"
+        }
+      ],
+      "exceptions": [
+        {
+          "kind": "SHORTAGE",
+          "detail": {
+            "clock": "2 business days; Mon–Fri; entry date excluded; 23:59 America/New_York",
+            "action": "make",
+            "short_lb": 10,
+            "needed_lb": 10,
+            "balance_after_lb": -10,
+            "on_hand_before_lb": 0,
+            "entered_by_actor_id": 1
+          }
+        }
+      ],
+      "attachments": 4,
+      "confirmations": 5
+    },
+    "summary": {
+      "checks": 22,
+      "passed": 22,
+      "failed": 0,
+      "planned_checks": 22,
+      "scenarios": 1,
+      "completed_scenarios": 1
+    }
+  },
+  "initial_walkthrough_attempt": {
+    "created_at": "2026-10-20T19:10:28.980Z",
+    "local_only": true,
+    "actual_records": true,
+    "openai_calls": 0,
+    "results": [
+      {
+        "item": 1,
+        "name": "Header links are visible buttons on each shared page",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": 2,
+        "name": "Clear Office start buttons and direct New customer",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": "9.office",
+        "name": "Cancel Office draft discards fields without a write",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": true
+      },
+      {
+        "item": "3-5.customer",
+        "name": "Debounced matches and separate Add customer; exact Setton duplicate opens and offers existing",
+        "sessions": 1,
+        "width": 390,
+        "language": "es",
+        "passed": false,
+        "error": "locator.selectOption: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#office-action')\u001b[22m\n\n    at office (/private/tmp/pr142-fix/tests/visual/run-pilot-ux-round.mjs:66:96)\n    at async file:///private/tmp/pr142-fix/tests/visual/run-pilot-ux-round.mjs:78:139\n    at async check (/private/tmp/pr142-fix/tests/visual/run-pilot-ux-round.mjs:55:99)\n    at async file:///private/tmp/pr142-fix/tests/visual/run-pilot-ux-round.mjs:78:6\n    at async Object.runScenario (/private/tmp/pr142-fix/tests/visual/lib/pilot-walkthrough-report.mjs:28:11)\n    at async file:///private/tmp/pr142-fix/tests/visual/run-pilot-ux-round.mjs:29:34",
+        "screenshot": "/private/tmp/pr142-wording-runs/spanish/on-390-es-FAIL-3-5-customer.png",
+        "notice": ""
+      }
+    ],
+    "receipts": [],
+    "screenshots": [
+      "/private/tmp/pr142-wording-runs/spanish/on-390-es-header-buttons.png",
+      "/private/tmp/pr142-wording-runs/spanish/on-390-es-office-start-customer.png",
+      "/private/tmp/pr142-wording-runs/spanish/on-390-es-FAIL-3-5-customer.png"
+    ],
+    "databases_dropped": [
+      "fl_pilotux_page_69478_1_390_es"
+    ],
+    "scenarios": [
+      {
+        "mode": 1,
+        "width": 390,
+        "lang": "es",
+        "planned_checks": [
+          "1",
+          "2",
+          "9.office",
+          "3-5.customer",
+          "6",
+          "luz.1",
+          "luz.2",
+          "7+luz.3",
+          "8+luz.4",
+          "15-16",
+          "5.entry",
+          "9.entry",
+          "10+arturo.receive",
+          "11-12+arturo.make",
+          "13+arturo.pack",
+          "10+arturo.ship",
+          "14+arturo.found",
+          "14+arturo.adjust",
+          "arturo.void",
+          "8+arturo.today",
+          "17",
+          "integrity"
+        ],
+        "completed_checks": [
+          "1",
+          "2",
+          "9.office",
+          "3-5.customer"
+        ],
+        "started": true,
+        "complete": false,
+        "passed": false,
+        "error": "Error: 3-5.customer Debounced matches and separate Add customer; exact Setton duplicate opens and offers existing: locator.selectOption: Timeout 12000ms exceeded.\nCall log:\n\u001b[2m  - waiting for locator('#office-action')\u001b[22m\n\n    at office (/private/tmp/pr142-fix/tests/visual/run-pilot-ux-round.mjs:66:96)\n    at async file:///private/tmp/pr142-fix/tests/visual/run-pilot-ux-round.mjs:78:139\n    at async check (/private/tmp/pr142-fix/tests/visual/run-pilot-ux-round.mjs:55:99)\n    at async file:///private/tmp/pr142-fix/tests/visual/run-pilot-ux-round.mjs:78:6\n    at async Object.runScenario (/private/tmp/pr142-fix/tests/visual/lib/pilot-walkthrough-report.mjs:28:11)\n    at async file:///private/tmp/pr142-fix/tests/visual/run-pilot-ux-round.mjs:29:34\nNotice: \nBridge: /Users/cns/Documents/factory-ledger/.venv-test.nosync/lib/python3.12/site-packages/pydantic/_internal/_config.py:408: UserWarning: Valid config keys have changed in V2:\n* 'underscore_attrs_are_private' has been removed\n  warnings.warn(message, UserWarning)\n\n    at check (file:///private/tmp/pr142-fix/tests/visual/run-pilot-ux-round.mjs:55:481)\n    at async file:///private/tmp/pr142-fix/tests/visual/run-pilot-ux-round.mjs:78:6\n    at async Object.runScenario (file:///private/tmp/pr142-fix/tests/visual/lib/pilot-walkthrough-report.mjs:28:11)\n    at async file:///private/tmp/pr142-fix/tests/visual/run-pilot-ux-round.mjs:29:34",
+        "missing_checks": [
+          "6",
+          "luz.1",
+          "luz.2",
+          "7+luz.3",
+          "8+luz.4",
+          "15-16",
+          "5.entry",
+          "9.entry",
+          "10+arturo.receive",
+          "11-12+arturo.make",
+          "13+arturo.pack",
+          "10+arturo.ship",
+          "14+arturo.found",
+          "14+arturo.adjust",
+          "arturo.void",
+          "8+arturo.today",
+          "17",
+          "integrity"
+        ],
+        "failed_checks": 1
+      }
+    ],
+    "summary": {
+      "checks": 4,
+      "passed": 3,
+      "failed": 1,
+      "planned_checks": 22,
+      "scenarios": 1,
+      "completed_scenarios": 0
+    }
+  },
+  "initial_attempt_note": "The concurrent first attempt failed at Office loading before Receive/Pack: #office-action never appeared. Its incomplete 3/22 pass report was retained as a failure. The fresh sequential run completed all 22 checks. Screenshot indicates Office script initialization did not finish; the exact cause was not captured and no unrelated runtime change was made.",
+  "safety": {
+    "openai_calls": 0,
+    "hosted_database_access": false,
+    "railway_operations": false,
+    "server_pool_turn_changes": false,
+    "all_disposable_databases_removed": true,
+    "private_postgres_stopped": true
+  },
+  "source_sha256": {
+    "dashboard/entry.js": "9061429efddc1608eb806b0f0bd2519c2333f654cb65332cf112c51be1aa2afc",
+    "dashboard/entry.html": "f3b8fa4f6b1cb98e84307130f6b4464fa53e98043f39e63200b7948a508e8906",
+    "tests/test_pilot_entry_ui.js": "b60e6ef9a3adde0769e58ec8b229784326f8c2bcdaac40fa433ed8df69ede211"
+  }
+}

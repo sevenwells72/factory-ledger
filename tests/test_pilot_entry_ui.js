@@ -192,3 +192,29 @@ for(const language of ['en','es'])for(const action of ['make','pack','receive','
   h.submit();assert.deepEqual(h.failures,[]);assert.equal(h.tickets[0].options.allowPhoto,!['make','pack'].includes(action));
   if(['make','pack'].includes(action))assert.equal(h.find(node=>node.type==='file'),undefined);
 });
+
+for(const action of ['receive','pack'])test(`Spanish ${action} case wording matches shared drafts through language switches`,async()=>{
+  const h=await harness(action,'es'),ledger=require('../dashboard/ledger-ui.js');
+  const weight=action==='receive'?'case_size_lb':'case_weight_lb';
+  const labels=action==='receive'
+    ?{en:['Cases / containers received','lb per case / container'],es:['Cajones / envases recibidos','lb por cajón / envase']}
+    :{en:['Cases to pack','lb per case (optional override)'],es:['Cajones para empacar','lb por cajón (opcional)']};
+  h.field('cases').value='4';h.field(weight).value='25';
+  for(const language of ['es','en','es']){
+    h.switchLanguage(language);ledger.lang=language;
+    assert.equal(h.field('cases').parentElement.textContent,labels[language][0]);
+    assert.equal(h.field(weight).parentElement.textContent,labels[language][1]);
+    assert.equal(h.field('cases').value,'4');assert.equal(h.field(weight).value,'25');
+    const headings=[...ledger.draftHtml({cases:4,[weight]:25}).matchAll(/<dt[^>]*>([^<]+)<\/dt>/g)].map(match=>match[1]);
+    assert.deepEqual(headings,language==='es'?['Cajones','lb por cajón']:['Cases','lb per case']);
+    assert.equal(ledger.codeText('boxes','es'),'Cajas','Office boxes retain their distinct Spanish unit');
+  }
+});
+test('Spanish Pack missing case weight warning agrees with its form and prepares no draft',async()=>{
+  const h=await harness('pack','es');
+  h.setResolver(body=>({outcome:'match',match:{id:1561,label:body.kind}}));
+  await h.pick('source');h.find(node=>node.dataset.recentLot==='12').onclick();await h.pick('target');
+  h.field('cases').value='4';h.submit();
+  assert.equal(h.tickets.length,0);
+  assert.deepEqual(h.failures,['Escribe lb por cajón para usar el lote seleccionado.']);
+});

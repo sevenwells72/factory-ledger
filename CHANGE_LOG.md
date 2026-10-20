@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-10-20 15:12 — Document the five Spanish Record wording changes and fresh passing 562 Node, 34 reason/unit and 22 Spanish pilot checks; add regression row 224 and retain the first failed Office-load attempt
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/pilot-ux-fix-round/record-wording-followup.md`, `docs/validation/pilot-ux-fix-round/record-wording-results.json`
+- **What changed:** Document the five Spanish Record wording changes and fresh passing 562 Node, 34 reason/unit and 22 Spanish pilot checks; add regression row 224 and retain the first failed Office-load attempt
+- **Why:** Address PR #142 pilot review before the staff walkthrough; local-only validation, no deployment.
+
+---
+
+## 2026-10-20 15:10 — Align the five Spanish Record Receive and Pack case phrases with Cajones; add form/draft language-switch and missing-weight regressions; refresh the entry script cache
+- **File(s) changed:** `dashboard/entry.js`, `dashboard/entry.html`, `tests/test_pilot_entry_ui.js`
+- **What changed:** Align the five Spanish Record Receive and Pack case phrases with Cajones; add form/draft language-switch and missing-weight regressions; refresh the entry script cache
+- **Why:** Address PR #142 pilot review before the staff walkthrough; local-only validation, no deployment.
+
+---
+
 ## 2026-10-20 14:53 — Normalize trailing whitespace in checked-in Python validation logs; retain raw stdout locally
 - **File(s) changed:** `docs/validation/pilot-ux-fix-round/logs/python-off.log`, `docs/validation/pilot-ux-fix-round/logs/python-on.log`
 - **What changed:** Normalize trailing whitespace in checked-in Python validation logs; retain raw stdout locally
