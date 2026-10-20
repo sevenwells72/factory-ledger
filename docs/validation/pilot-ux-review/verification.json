@@ -1,0 +1,340 @@
+{
+  "checked_at": "2026-10-20T14:40:20.707754-04:00",
+  "base_commit": "fb08f228d90943264142f105982554ab3330bf91",
+  "local_only": true,
+  "openai_calls": 0,
+  "hosted_database_access": false,
+  "railway_access": false,
+  "protected_code_unchanged": [
+    "main.py",
+    "write_tickets.py",
+    "fl_assistant.py",
+    "assistant_runtime.py",
+    "assistant_tools.py",
+    "assistant_voice.py",
+    "ticket_actions.py",
+    "migrations",
+    "railway.json"
+  ],
+  "spanish": {
+    "cases": "Cajones",
+    "boxes": "Cajas",
+    "singular_case": "caj\u00f3n",
+    "wrong_lot": "Lote equivocado"
+  },
+  "python": {
+    "off": {
+      "tests": 6916,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 6916,
+      "seconds": 178.762
+    },
+    "on": {
+      "tests": 6916,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": 6916,
+      "seconds": 178.423
+    }
+  },
+  "node": {
+    "tests": 541,
+    "passed": 541,
+    "failed": 0,
+    "skipped": 0
+  },
+  "actual_browser": {
+    "checks": 96,
+    "passed": 96,
+    "failed": 0,
+    "local_records": 44,
+    "physical_lot_confirmations": 20,
+    "attachments": 16,
+    "screenshots": 104,
+    "databases_dropped": [
+      "fl_pilotux_page_9862_0_1440_en",
+      "fl_pilotux_page_9862_0_1440_es",
+      "fl_pilotux_page_9862_0_390_en",
+      "fl_pilotux_page_9862_0_390_es",
+      "fl_pilotux_page_9862_1_1440_en",
+      "fl_pilotux_page_9862_1_1440_es",
+      "fl_pilotux_page_9862_1_390_en",
+      "fl_pilotux_page_9862_1_390_es"
+    ]
+  },
+  "review_browser": {
+    "checks": 34,
+    "passed": 34,
+    "failed": 0,
+    "width": 390,
+    "records": 0,
+    "databases_dropped": [
+      "fl_pilotux_review_29874"
+    ]
+  },
+  "hosting_browser": {
+    "scenarios": 16,
+    "checks": 272,
+    "all_passed": true
+  },
+  "existing_browser": {
+    "dashboard": {
+      "sessions_off": "passed",
+      "sessions_on": "passed"
+    },
+    "assistant": {
+      "sessions_off": "passed",
+      "sessions_on": "passed"
+    },
+    "pilot_screens": {
+      "checks": 60,
+      "passed": 60
+    }
+  },
+  "suite_runner_details": {
+    "checked_at": "2026-10-20T14:39:29.382567-04:00",
+    "working_directory": "/private/tmp/fl_pr142_review",
+    "local_only": true,
+    "openai_calls": 0,
+    "external_service_credentials_present": false,
+    "python": {
+      "off": {
+        "tests": 6916,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 6916,
+        "time_seconds": 178.762,
+        "timestamp": "2026-10-20T14:35:48.235412-04:00",
+        "exit_code": 0,
+        "stdout": "/private/tmp/fl_pr142_validation/python-off.log",
+        "junit": "/private/tmp/fl_pr142_validation/python-off.xml"
+      },
+      "on": {
+        "tests": 6916,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "passed": 6916,
+        "time_seconds": 178.423,
+        "timestamp": "2026-10-20T14:35:12.432243-04:00",
+        "exit_code": 0,
+        "stdout": "/private/tmp/fl_pr142_validation/python-on.log",
+        "junit": "/private/tmp/fl_pr142_validation/python-on.xml"
+      }
+    },
+    "node": {
+      "tests": 541,
+      "passed": 541,
+      "failures": 0,
+      "skipped": 0,
+      "exit_code": 0,
+      "command": "node --test tests/test_*.js",
+      "stdout": "/private/tmp/fl_pr142_validation/node.log"
+    },
+    "existing_browser": {
+      "dashboard": {
+        "sessions_off": "passed",
+        "sessions_on": "passed",
+        "exit_code": 0,
+        "runner": "tests/visual/run-key-sessions.mjs",
+        "stdout": "/private/tmp/fl_pr142_validation/dashboard-browser.log"
+      },
+      "assistant": {
+        "off": {
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "/private/tmp/fl_pr142_validation/assistant-off.log"
+        },
+        "on": {
+          "passed": true,
+          "exit_code": 0,
+          "stdout": "/private/tmp/fl_pr142_validation/assistant-on.log"
+        }
+      },
+      "pilot_screens": {
+        "checks": 60,
+        "passed": 60,
+        "sessions": [
+          0,
+          1
+        ],
+        "widths": [
+          390,
+          1440
+        ],
+        "exit_code": 0,
+        "stdout": "/private/tmp/fl_pr142_validation/pilot-screens.log"
+      }
+    },
+    "hosting": {
+      "scenarios": 16,
+      "checks": 272,
+      "passed_scenarios": 16,
+      "screenshots": 48,
+      "exit_code": 0,
+      "stdout": "/private/tmp/fl_pr142_validation/hosting.log",
+      "results": "/private/tmp/fl_pr142_validation/hosting/results.json"
+    },
+    "replay": {
+      "python_binary": "/Users/cns/Documents/factory-ledger/.venv-test/bin/python",
+      "python_version": "3.12.14",
+      "environment_mode": "env -i",
+      "common_environment": {
+        "PATH": "/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+        "HOME": "/Users/cns",
+        "TMPDIR": "/private/tmp",
+        "LANG": "en_US.UTF-8",
+        "API_KEY": "test-api-key",
+        "DASHBOARD_API_KEY": "test-dashboard-key",
+        "ENVIRONMENT": "test",
+        "ASSISTANT_ENABLED": "0"
+      },
+      "modes": {
+        "off": {
+          "TEST_DATABASE_URL": "postgresql://127.0.0.1:55473/fl_pr142_py_off_final",
+          "TEST_DB_PREFIX": "fl_pr142_off",
+          "KEY_SESSIONS_ENABLED": "0"
+        },
+        "on": {
+          "TEST_DATABASE_URL": "postgresql://127.0.0.1:55475/fl_pr142_py_on_final",
+          "TEST_DB_PREFIX": "fl_pr142_on",
+          "KEY_SESSIONS_ENABLED": "1"
+        }
+      },
+      "python_arguments": [
+        "-m",
+        "pytest",
+        "--junitxml=/private/tmp/fl_pr142_validation/python-{off,on}.xml"
+      ],
+      "database_setup": [
+        "PG17 initdb -A trust -E UTF8 --no-locale",
+        "createdb -h 127.0.0.1 -p <isolated_port> -E UTF8 -T template0 <disposable_name>",
+        "psql -h 127.0.0.1 -p <isolated_port> -d <disposable_name> -v ON_ERROR_STOP=1 -q -c CREATE EXTENSION pg_trgm -f tests/schema/schema.sql"
+      ],
+      "playwright_module": "/Users/cns/Documents/factory-ledger/node_modules/playwright/index.mjs",
+      "playwright_channel": "chrome",
+      "browser_commands": [
+        "node tests/visual/run-key-sessions.mjs",
+        "PILOT_SESSIONS=0 node tests/visual/run-fl-assistant.mjs",
+        "PILOT_SESSIONS=1 node tests/visual/run-fl-assistant.mjs",
+        "node tests/visual/run-pilot-screens.mjs",
+        "node tests/visual/run-pilot-ux-hosting.mjs"
+      ]
+    },
+    "cleanup": {
+      "python_clusters": [
+        {
+          "port": 55473,
+          "directory": "/private/tmp/fl_pr142_pg17_20261020",
+          "stopped": true,
+          "pg_ctl_status_exit_code": 3,
+          "remaining_pr142_databases": []
+        },
+        {
+          "port": 55475,
+          "directory": "/private/tmp/fl_pr142_on_pg17_20261020",
+          "stopped": true,
+          "pg_ctl_status_exit_code": 3,
+          "remaining_pr142_databases": []
+        }
+      ],
+      "databases_dropped": [
+        "fl_pr142_py_off",
+        "fl_pr142_py_off_final",
+        "fl_pr142_py_on",
+        "fl_pr142_py_on_final"
+      ],
+      "owned_browser_runners_exited_zero_and_closed_servers": true
+    },
+    "earlier_attempts": [
+      {
+        "scope": "Python sessions-off",
+        "excluded_from_final_counts": true,
+        "reason": "Initial launch used different synthetic master API key than existing hardcoded test fixtures; interrupted and rerun from a fresh database with exact synthetic test fixture keys. No source change needed.",
+        "exit_code": 2,
+        "failures_before_interrupt": 87,
+        "passed_before_interrupt": 6603,
+        "stdout": "/private/tmp/fl_pr142_validation/python-off-initial-fixture-mismatch.log",
+        "junit": "/private/tmp/fl_pr142_validation/python-off-initial-fixture-mismatch.xml"
+      },
+      {
+        "scope": "Node",
+        "excluded_from_final_counts": true,
+        "reason": "Two existing expectations needed the new bilingual markup/canonical reason label; root corrected expectations and full suite passed.",
+        "tests": 535,
+        "passed": 533,
+        "failed": 2,
+        "stdout": "/private/tmp/fl_pr142_validation/node-initial-stale-expectations.log"
+      }
+    ]
+  },
+  "screenshots": [
+    {
+      "file": "screenshots/make-draft-en-390.png",
+      "width": 390,
+      "height": 4515,
+      "sha256": "1ef77cf1989cd26e33c0e6650246a4f592ec61397696c52eb2b5ea144a2acfd9"
+    },
+    {
+      "file": "screenshots/make-draft-es-390.png",
+      "width": 390,
+      "height": 4547,
+      "sha256": "af2dfbcd53b934298eb6fa28519539d3ff9e0c1f5e94048ca1b4283b1ea56c36"
+    },
+    {
+      "file": "screenshots/pack-draft-en-390.png",
+      "width": 390,
+      "height": 2045,
+      "sha256": "8a268f15bdbf5cee25631e802d1b3d7f2eb1789c7374a5bc699b62bc17cc6b1a"
+    },
+    {
+      "file": "screenshots/pack-draft-es-390.png",
+      "width": 390,
+      "height": 2101,
+      "sha256": "42e028b78549141f486e1542545216f3bc83e769f29cd29f4903adabdb664191"
+    },
+    {
+      "file": "screenshots/receive-draft-en-390.png",
+      "width": 390,
+      "height": 2094,
+      "sha256": "98340c3e991833467739c2fad3e1f5c7a9757be398ae9a3c7740634a378c68cf"
+    },
+    {
+      "file": "screenshots/receive-draft-es-390.png",
+      "width": 390,
+      "height": 2126,
+      "sha256": "fd89bc6ddf040ebc0405f1d132202b27a2e5122a8f80b0f09f114d63bbb3601f"
+    }
+  ],
+  "source_sha256": {
+    "dashboard/assistant-display.js": "3a8cf8fd3f2203543673ad0c1d251fc77c899ae4a805fc765e50fe1c7e770914",
+    "dashboard/entry.html": "fb48c0af68fff0a053071c13fb557ce4eab6c5e499de5067ef582bb45f4edb13",
+    "dashboard/entry.js": "dba61c163cbd462d69b80d822ff5465c5cbe9816f3b6eedc63309da2a2294e4b",
+    "dashboard/exceptions.html": "920db9986de6077b2f310f2d1ccf7232952177a2aaa67f5d1180069e929e2704",
+    "dashboard/fl-assistant.html": "48e1203483626b0321e7963ad0856255de981140c8324ac81ed2fbfe2e916fb0",
+    "dashboard/ledger-ticket.js": "15f44c2886da3250a85b7595b7c48824351f4780837b5d0dc401772806448cfb",
+    "dashboard/ledger-ui.js": "f66c20a7bc0ffef0f0cbf9c7d7edd3aa2e145f693a493a3bd839bd7e72e1725a",
+    "dashboard/office-logic.js": "e0765f2c34bb5fda4e10fef272772694efd78fb5ab318c6ac58665b1f4eb1786",
+    "dashboard/office.html": "2cb0e5306b7c752c7d50d6993c11dbe604b1d17e8a8d4512e7ab60be2086190b",
+    "dashboard/office.js": "77cdc208f5fc0a62a2386bdce0ed37309e0d3f79995f3ea11fd41532551879c0",
+    "dashboard/receipt.html": "9dc6a0ac5c3440a9c67f30deb99daecc23dae9f2508ea48bd2d4edc1baf1b65b",
+    "tests/test_assistant_display.js": "595961f5f414531ca2ce12b03fc94ef02e7007ba67b38ac9298966e7cd21d985",
+    "tests/test_office_customer_ui.js": "6d5811284af1b55d9c8d97fcaf535aefd04dfa3af43c1e20f2c9057aa0eb97e1",
+    "tests/test_office_ui.js": "9852f7a1669d0b86a88fcf165c7651163fe0f0ca2f2214dcab95fce7cd3fc01f",
+    "tests/test_pilot_entry_ui.js": "259d24c35787a075fe3f216dc0d4c4f09c6aac49dbc0f515c6dffdab38156f80",
+    "tests/test_pilot_ticket_ui.js": "9335db22851792cf653ce4d7340329dc3da7bb77e6c5c8dceb2bb0d5c09014eb",
+    "tests/visual/run-pilot-ux-review.mjs": "73165852de5485137be3499796951db3379bd6854d4bfbcc202dfca6fc05c7b9",
+    "tests/visual/run-pilot-ux-round.mjs": "dbfb6d15c9d70403656b90a0ae608bd33baef759d00e03b6516ea98d765b6814"
+  },
+  "full_output": "/private/tmp/fl_pr142_validation",
+  "browser_cleanup": {
+    "isolated_cluster_port": 55474,
+    "remaining_task_databases": [],
+    "cluster_stopped": true,
+    "bridges_stopped": true
+  }
+}

@@ -1,5 +1,5 @@
 (() => {
-  const ui=FLLedger;ui.bind();let receipt,generation=0,ticket=null,busy=false,missing=false;const voidNotes=new Map();
+  const ui=FLLedger,initial=new URLSearchParams(location.search);if(['en','es'].includes(initial.get('lang'))){ui.lang=initial.get('lang');sessionStorage.setItem('fl-ledger-language',ui.lang);}ui.bind();let receipt,generation=0,ticket=null,busy=false,missing=false;const voidNotes=new Map();
   const content=document.getElementById('content');
   const resolution=document.getElementById('resolution');
   function render(){if(!receipt)return;content.replaceChildren();const card=ui.el('section',undefined,content);card.className='panel';ui.el('h2',receipt.receipt_number,card);const state=ui.receiptState(receipt);
@@ -32,7 +32,26 @@
     }
     const link=ui.el('a',ui.t('Open exceptions','Ver excepciones'),card);link.dataset.flWriteUi='';link.href=FLReceipts.page('exceptions.html',{receipt:receipt.receipt_number});
   }
+  async function today({background=false}={}){
+    const current=++generation;receipt=null;missing=false;content.replaceChildren();
+    const title=document.querySelector('main h1');if(title){title.dataset.en="Today's entries";title.dataset.es='Entradas de hoy';title.textContent=ui.t("Today's entries",'Entradas de hoy');}
+    const card=ui.el('section',undefined,content);card.className='panel';card.dataset.todayEntries='';
+    ui.el('p',ui.t("Loading today's entries…",'Cargando las entradas de hoy…'),card);
+    try{
+      const date=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+      const rows=[];let offset=0;
+      for(;;){const result=await ui.request('/receipts?'+new URLSearchParams({date,summary:'true',limit:'500',offset:String(offset)}),undefined,{read:true,background});if(current!==generation)return;rows.push(...(result.receipts||[]));if(!result.has_more)break;const next=result.next_offset;if(!Number.isSafeInteger(next)||next<=offset)throw Error(ui.t('Could not load the next page. Try again.','No se pudo cargar la siguiente página. Inténtalo de nuevo.'));offset=next;}
+      card.replaceChildren();document.getElementById('notice').hidden=true;
+      ui.el('h2',ui.t("Today's entries",'Entradas de hoy'),card);
+      const actor=ui.session.actor,own=rows.filter(row=>actor&&(String(row.actor?.id||row.actor_id||'')===String(actor.id)||(!row.actor?.id&&!row.actor_id&&(row.actor?.name||row.actor_name||row.actor)===actor.name))).length;
+      ui.el('p',ui.t('Your entries: '+own+' · Team entries: '+rows.length,'Tus entradas: '+own+' · Entradas del equipo: '+rows.length),card);
+      if(!rows.length)ui.el('p',ui.t('No entries recorded today.','No hay entradas registradas hoy.'),card);
+      rows.sort((a,b)=>new Date(b.entered_at||b.happened_at)-new Date(a.entered_at||a.happened_at));
+      for(const row of rows){const item=ui.el('article',undefined,card);item.className='today-entry';const link=ui.el('a',row.receipt_number,item);link.href=FLReceipts.link(row.receipt_number);ui.el('p',ui.plantTime(row.entered_at||row.happened_at,ui.lang),item);const person=typeof row.actor==='string'?row.actor:row.actor?.name||row.actor_name;if(person)ui.el('p',person,item);const draft=row.draft||{},names={receive:['Received','Recibido'],make:['Made','Producido'],pack:['Packed','Empacado'],adjust:['Adjusted','Ajustado'],found:['Found inventory','Inventario encontrado'],ship_order:['Shipped order','Pedido enviado'],ship_standalone:['Shipped','Enviado'],ship_bulk:['Shipped','Enviado'],create_order:['New order','Pedido nuevo'],create_customer:['New customer','Cliente nuevo'],create_expected_receipt:['Expected delivery','Entrega esperada'],void:['Voided entry','Entrada anulada']};const action=names[row.action]||['Entry recorded','Entrada registrada'];const subject=draft.product_name||draft.target_product||draft.customer?.name||(typeof draft.customer==='string'?draft.customer:'')||draft.product;const summary=ui.lang==='es'?(row.summary_es||draft.summary_es||row.summary||draft.summary):(row.summary||draft.summary||row.summary_es||draft.summary_es);ui.el('p',summary||ui.t(...action)+(typeof subject==='string'?' · '+subject:''),item);if(['voided','partially_voided'].includes(row.effective_status)){const state=ui.el('p',row.effective_status==='voided'?ui.t('VOIDED — no longer counts in stock.','ANULADO — ya no cuenta en el inventario.'):ui.t('PARTLY VOIDED','ANULADO EN PARTE'),item);state.className='voided';}}
+    }catch(error){if(current!==generation)return;card.replaceChildren();ui.el('p',error.message||String(error),card);const retry=ui.el('button',ui.t('Try again','Intentar de nuevo'),card);retry.type='button';retry.onclick=()=>today();}
+  }
   async function load({background=false}={}){
+    if(initial.get('view')==='today')return today({background});
     const current=++generation,number=new URLSearchParams(location.search).get('number');
     if(!number){ui.notice(ui.t('Enter a Receipt # above.','Ingresa un número de recibo arriba.'),'notice');return;}
     try{const data=await ui.request('/receipts/'+encodeURIComponent(number),undefined,{read:true,background});

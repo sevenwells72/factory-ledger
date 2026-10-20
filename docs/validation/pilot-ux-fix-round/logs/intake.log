@@ -1,0 +1,337 @@
+(node:50411) ExperimentalWarning: `--experimental-loader` may be removed in the future; instead use `register()`:
+--import 'data:text/javascript,import { register } from "node:module"; import { pathToFileURL } from "node:url"; register("data%3Atext/javascript%2Cexport%20async%20function%20resolve(s%2Cc%2Cn)%7Bif(s%3D%3D%3D%27playwright%27)return%20%7Burl%3A%27file%3A///Users/cns/Documents/factory-ledger/node_modules/playwright/index.mjs%27%2CshortCircuit%3Atrue%7D%3Breturn%20n(s%2Cc)%3B%7D", pathToFileURL("./"));'
+(Use `node --trace-warnings ...` to show where the warning was created)
+[
+  {
+    "width": 1440,
+    "theme": "light",
+    "rowsSorted": 8,
+    "listContract": "State tabs, eight columns, readiness checkbox and attached expansion rows",
+    "cardGeometry": [
+      {
+        "id": "108",
+        "readyContained": true
+      },
+      {
+        "id": "104",
+        "readyContained": true
+      },
+      {
+        "id": "103",
+        "readyContained": true
+      },
+      {
+        "id": "102",
+        "readyContained": true
+      },
+      {
+        "id": "107",
+        "readyContained": true
+      },
+      {
+        "id": "106",
+        "readyContained": true
+      },
+      {
+        "id": "105",
+        "readyContained": true
+      },
+      {
+        "id": "101",
+        "readyContained": true
+      }
+    ],
+    "toolbar": {
+      "height": 69,
+      "width": 1400
+    },
+    "historyStyle": {
+      "padding": "32px",
+      "controlBackground": "rgb(255, 255, 255)"
+    },
+    "measurements": [
+      {
+        "kind": "er",
+        "modalWidth": 520,
+        "modalRight": 1440,
+        "bodyWidth": 518,
+        "bodyScrollWidth": 518,
+        "footerPosition": "sticky",
+        "actionTop": 751,
+        "actionBottom": 795,
+        "actionRight": 1347.359375,
+        "actionHeight": 44,
+        "font": "16px",
+        "pageWidth": 1440,
+        "viewport": 1440
+      },
+      {
+        "kind": "so",
+        "modalWidth": 520,
+        "modalRight": 1440,
+        "bodyWidth": 518,
+        "bodyScrollWidth": 518,
+        "footerPosition": "sticky",
+        "actionTop": 751,
+        "actionBottom": 795,
+        "actionRight": 1307.3125,
+        "actionHeight": 44,
+        "font": "16px",
+        "pageWidth": 1440,
+        "viewport": 1440
+      }
+    ],
+    "errors": [],
+    "unmatched": [],
+    "blocked": []
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "rowsSorted": 8,
+    "listContract": "State tabs, eight columns, readiness checkbox and attached expansion rows",
+    "cardGeometry": [
+      {
+        "id": "108",
+        "readyContained": true
+      },
+      {
+        "id": "104",
+        "readyContained": true
+      },
+      {
+        "id": "103",
+        "readyContained": true
+      },
+      {
+        "id": "102",
+        "readyContained": true
+      },
+      {
+        "id": "107",
+        "readyContained": true
+      },
+      {
+        "id": "106",
+        "readyContained": true
+      },
+      {
+        "id": "105",
+        "readyContained": true
+      },
+      {
+        "id": "101",
+        "readyContained": true
+      }
+    ],
+    "toolbar": {
+      "height": 69,
+      "width": 1400
+    },
+    "historyStyle": {
+      "padding": "32px",
+      "controlBackground": "rgb(40, 53, 72)"
+    },
+    "measurements": [
+      {
+        "kind": "er",
+        "modalWidth": 520,
+        "modalRight": 1440,
+        "bodyWidth": 518,
+        "bodyScrollWidth": 518,
+        "footerPosition": "sticky",
+        "actionTop": 751,
+        "actionBottom": 795,
+        "actionRight": 1347.359375,
+        "actionHeight": 44,
+        "font": "16px",
+        "pageWidth": 1440,
+        "viewport": 1440
+      },
+      {
+        "kind": "so",
+        "modalWidth": 520,
+        "modalRight": 1440,
+        "bodyWidth": 518,
+        "bodyScrollWidth": 518,
+        "footerPosition": "sticky",
+        "actionTop": 751,
+        "actionBottom": 795,
+        "actionRight": 1307.3125,
+        "actionHeight": 44,
+        "font": "16px",
+        "pageWidth": 1440,
+        "viewport": 1440
+      }
+    ],
+    "errors": [],
+    "unmatched": [],
+    "blocked": []
+  },
+  {
+    "width": 390,
+    "theme": "light",
+    "rowsSorted": 8,
+    "listContract": "State tabs, eight columns, readiness checkbox and attached expansion rows",
+    "cardGeometry": [
+      {
+        "id": "108",
+        "readyContained": true
+      },
+      {
+        "id": "104",
+        "readyContained": true
+      },
+      {
+        "id": "103",
+        "readyContained": true
+      },
+      {
+        "id": "102",
+        "readyContained": true
+      },
+      {
+        "id": "107",
+        "readyContained": true
+      },
+      {
+        "id": "106",
+        "readyContained": true
+      },
+      {
+        "id": "105",
+        "readyContained": true
+      },
+      {
+        "id": "101",
+        "readyContained": true
+      }
+    ],
+    "toolbar": {
+      "height": 221,
+      "width": 366
+    },
+    "historyStyle": {
+      "padding": "12px",
+      "controlBackground": "rgb(255, 255, 255)"
+    },
+    "measurements": [
+      {
+        "kind": "er",
+        "modalWidth": 390,
+        "modalRight": 390,
+        "bodyWidth": 388,
+        "bodyScrollWidth": 388,
+        "footerPosition": "sticky",
+        "actionTop": 745,
+        "actionBottom": 797,
+        "actionRight": 369,
+        "actionHeight": 52,
+        "font": "17px",
+        "pageWidth": 390,
+        "viewport": 390
+      },
+      {
+        "kind": "so",
+        "modalWidth": 390,
+        "modalRight": 390,
+        "bodyWidth": 388,
+        "bodyScrollWidth": 388,
+        "footerPosition": "sticky",
+        "actionTop": 753,
+        "actionBottom": 797,
+        "actionRight": 306.9375,
+        "actionHeight": 44,
+        "font": "17px",
+        "pageWidth": 390,
+        "viewport": 390
+      }
+    ],
+    "errors": [],
+    "unmatched": [],
+    "blocked": []
+  },
+  {
+    "width": 390,
+    "theme": "dark",
+    "rowsSorted": 8,
+    "listContract": "State tabs, eight columns, readiness checkbox and attached expansion rows",
+    "cardGeometry": [
+      {
+        "id": "108",
+        "readyContained": true
+      },
+      {
+        "id": "104",
+        "readyContained": true
+      },
+      {
+        "id": "103",
+        "readyContained": true
+      },
+      {
+        "id": "102",
+        "readyContained": true
+      },
+      {
+        "id": "107",
+        "readyContained": true
+      },
+      {
+        "id": "106",
+        "readyContained": true
+      },
+      {
+        "id": "105",
+        "readyContained": true
+      },
+      {
+        "id": "101",
+        "readyContained": true
+      }
+    ],
+    "toolbar": {
+      "height": 221,
+      "width": 366
+    },
+    "historyStyle": {
+      "padding": "12px",
+      "controlBackground": "rgb(40, 53, 72)"
+    },
+    "measurements": [
+      {
+        "kind": "er",
+        "modalWidth": 390,
+        "modalRight": 390,
+        "bodyWidth": 388,
+        "bodyScrollWidth": 388,
+        "footerPosition": "sticky",
+        "actionTop": 745,
+        "actionBottom": 797,
+        "actionRight": 369,
+        "actionHeight": 52,
+        "font": "17px",
+        "pageWidth": 390,
+        "viewport": 390
+      },
+      {
+        "kind": "so",
+        "modalWidth": 390,
+        "modalRight": 390,
+        "bodyWidth": 388,
+        "bodyScrollWidth": 388,
+        "footerPosition": "sticky",
+        "actionTop": 753,
+        "actionBottom": 797,
+        "actionRight": 306.9375,
+        "actionHeight": 44,
+        "font": "17px",
+        "pageWidth": 390,
+        "viewport": 390
+      }
+    ],
+    "errors": [],
+    "unmatched": [],
+    "blocked": []
+  }
+]

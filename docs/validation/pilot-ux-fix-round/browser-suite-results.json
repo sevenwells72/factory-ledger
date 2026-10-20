@@ -1,0 +1,122 @@
+[
+  {
+    "name": "key-sessions",
+    "exit_code": 0,
+    "seconds": 1.98,
+    "log": "/private/tmp/pr142-fix-runs/regression/key-sessions.log"
+  },
+  {
+    "name": "assistant-0",
+    "exit_code": 0,
+    "seconds": 6.3,
+    "log": "/private/tmp/pr142-fix-runs/regression/assistant-0.log"
+  },
+  {
+    "name": "dashboard-access",
+    "exit_code": 0,
+    "seconds": 21.6,
+    "log": "/private/tmp/pr142-fix-runs/regression/dashboard-access.log"
+  },
+  {
+    "name": "round-a-0",
+    "exit_code": 0,
+    "seconds": 17.39,
+    "log": "/private/tmp/pr142-fix-runs/regression/round-a-0.log"
+  },
+  {
+    "name": "assistant-1",
+    "exit_code": 0,
+    "seconds": 6.28,
+    "log": "/private/tmp/pr142-fix-runs/regression/assistant-1.log"
+  },
+  {
+    "name": "round-a-1",
+    "exit_code": 0,
+    "seconds": 14.89,
+    "log": "/private/tmp/pr142-fix-runs/regression/round-a-1.log"
+  },
+  {
+    "name": "pilot-screens",
+    "exit_code": 0,
+    "seconds": 13.91,
+    "log": "/private/tmp/pr142-fix-runs/regression/pilot-screens.log"
+  },
+  {
+    "name": "hosting",
+    "exit_code": 0,
+    "seconds": 18.06,
+    "log": "/private/tmp/pr142-fix-runs/regression/hosting.log"
+  },
+  {
+    "name": "sales-list",
+    "exit_code": 0,
+    "seconds": 5.93,
+    "log": "/private/tmp/pr142-fix-runs/regression/sales-list.log"
+  },
+  {
+    "name": "sales-detail",
+    "exit_code": 0,
+    "seconds": 14.17,
+    "log": "/private/tmp/pr142-fix-runs/regression/sales-detail.log"
+  },
+  {
+    "name": "sales-layout",
+    "exit_code": 0,
+    "seconds": 47.08,
+    "log": "/private/tmp/pr142-fix-runs/regression/sales-layout.log"
+  },
+  {
+    "name": "sales-exits",
+    "exit_code": 0,
+    "seconds": 20.93,
+    "log": "/private/tmp/pr142-fix-runs/regression/sales-exits.log"
+  },
+  {
+    "name": "assistant-mobile",
+    "exit_code": 0,
+    "seconds": 21.65,
+    "log": "/private/tmp/pr142-fix-runs/regression/assistant-mobile.log"
+  },
+  {
+    "name": "assistant-phone",
+    "exit_code": 0,
+    "seconds": 38.56,
+    "log": "/private/tmp/pr142-fix-runs/regression/assistant-phone.log"
+  },
+  {
+    "name": "session-shift",
+    "exit_code": 0,
+    "seconds": 3.1,
+    "log": "/private/tmp/pr142-fix-runs/regression/session-shift.log"
+  },
+  {
+    "name": "production-trace",
+    "exit_code": 0,
+    "seconds": 2.56,
+    "log": "/private/tmp/pr142-fix-runs/regression/production-trace.log"
+  },
+  {
+    "name": "run-types",
+    "exit_code": 0,
+    "seconds": 5.8,
+    "log": "/private/tmp/pr142-fix-runs/regression/run-types.log"
+  },
+  {
+    "name": "runs",
+    "exit_code": 0,
+    "seconds": 14.34,
+    "log": "/private/tmp/pr142-fix-runs/regression/runs.log"
+  },
+  {
+    "name": "intake",
+    "exit_code": 0,
+    "seconds": 6.26,
+    "log": "/private/tmp/pr142-fix-runs/regression/intake.log"
+  },
+  {
+    "name": "assistant-final-floor",
+    "exit_code": 0,
+    "seconds": 41.2,
+    "log": "/private/tmp/pr142-fix-runs/regression/assistant-final-floor.log"
+  }
+]

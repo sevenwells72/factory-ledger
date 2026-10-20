@@ -4,7 +4,9 @@
   const ui=FLLedger,logic=FLOffice;ui.bind();
   const content=document.getElementById('content'),draft=document.getElementById('resolution');
   const initial=new URLSearchParams(location.search);
-  let action=initial.get('action')||'create_order',grants={},controller,revision=0,authRevision=0,readyIntent=null;
+  function todayLink(){const link=document.getElementById('today-entries-link');if(link)link.href='receipt.html?view=today&lang='+encodeURIComponent(ui.lang||'en');}
+  todayLink();
+  let action=initial.get('action')||'create_order',grants={},controller,revision=0,authRevision=0,readyIntent=null,selectedCustomer=null;
   if(action==='mark_order_ready'){
     try{const saved=JSON.parse(sessionStorage.getItem('fl-order-ready-draft')||'null');if(saved&&String(saved.order_id)===initial.get('order')&&typeof saved.ready==='boolean')readyIntent=saved;}catch(_){}
     sessionStorage.removeItem('fl-order-ready-draft');
@@ -20,20 +22,25 @@
     const label=ui.el('label',ui.t('Search name or code','Buscar nombre o código'),box),input=ui.el('input',undefined,label);input.autocomplete='off';
     const button=ui.el('button',ui.t('Search','Buscar'),box);button.type='button';
     const list=ui.el('div',undefined,box);list.className='picker-options';const status=ui.el('p','',box);status.setAttribute('role','status');
-    let value=null,generation=0;
-    const clear=()=>{generation++;value=null;list.replaceChildren();status.textContent='';invalidate();changed(null);};
-    input.oninput=clear;
-    function select(candidate,requestOptions={}){value=candidate;input.value=candidate.label||candidate.name;list.replaceChildren();status.textContent=ui.t('Selected: ','Seleccionado: ')+input.value;invalidate();changed(candidate,requestOptions);}
-    async function find(offset=0){const version=++generation;button.disabled=true;try{
+    let value=null,generation=0,timer=null;
+    const clear=()=>{clearTimeout(timer);generation++;value=null;button.disabled=false;list.replaceChildren();status.textContent='';invalidate();changed(null);};
+    input.oninput=()=>{clear();if(input.value.trim().length>=2)timer=setTimeout(()=>find(),300);};
+    function select(candidate,requestOptions={}){clearTimeout(timer);generation++;button.disabled=false;value=candidate;input.value=candidate.label||candidate.name;list.replaceChildren();ui.setText(status,ui.t('Selected: '+input.value,'Seleccionado: '+input.value));invalidate();changed(candidate,requestOptions);}
+    async function find(offset=0){clearTimeout(timer);if(!input.value.trim()||!box.isConnected||input.disabled)return;const version=++generation;button.disabled=true;try{
       const result=await ui.request('/resolve',{kind,query:input.value.trim(),context:{action:'order',group:'office'},limit:8,offset});
       if(version!==generation||!box.isConnected)return;list.replaceChildren();
-      const rows=result.outcome==='match'?[result.match]:result.candidates||[];status.textContent=result.ask||result.note||ui.t('Choose the exact record.','Elige el registro exacto.');
-      for(const item of rows.filter(Boolean)){const b=ui.el('button',item.label||item.name,list);b.type='button';b.onclick=()=>select(item);}
-      if(offset===0&&missing)missing({query:input.value.trim(),host:list});
+      const candidates=result.outcome==='match'?[result.match]:result.candidates||[],rows=kind==='product'?logic.productChoices(candidates):candidates.filter(Boolean);ui.setText(status,rows.length?ui.t('Choose the exact record.','Elige el registro exacto.'):ui.t('No matches. Try the full name or code.','Sin resultados. Prueba el nombre completo o código.'));
+      for(const item of rows){
+        const extra=kind==='product'&&item.kosher_tier==='extra_kosher',text=item.label||item.name;
+        const b=ui.el('button',extra?text.replace(/\s*[—-]\s*EXTRA-KOSHER\s*(?:\(SS\))?/gi,'').trim():text,list);b.type='button';
+        if(extra){b.className='extra-kosher-choice';const tag=ui.el('span',' EXTRA-KOSHER',b);tag.className='product-tier';}
+        b.onclick=()=>select(item);
+      }
       if(rows.length===8){const more=ui.el('button',ui.t('More matches','Más resultados'),list);more.type='button';more.onclick=()=>find(offset+8);}
-    }catch(error){if(version===generation)ui.failure(error);}finally{button.disabled=false;}}
+      if(offset===0&&missing)missing({query:input.value.trim(),host:list});
+    }catch(error){if(version===generation)ui.failure(error);}finally{if(version===generation)button.disabled=false;}}
     button.onclick=()=>find();input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();find();}};
-    return {input,select,clear,setDisabled(flag){input.disabled=flag;button.disabled=flag;for(const option of list.children)option.disabled=flag;},get value(){return value;},id(){if(!value)throw Error(ui.t('Choose ','Elige ')+ui.t(en,es));return value.id;}};
+    return {input,select,clear,setDisabled(flag){input.disabled=flag;button.disabled=flag;for(const option of list.querySelectorAll?.('button')||list.children)option.disabled=flag;},get value(){return value;},id(){if(!value)throw ui.problem(ui.t('Choose '+en,'Elige '+es));return value.id;}};
   }
   function render({background=false}={}){
     invalidate();content.replaceChildren();
@@ -41,6 +48,11 @@
     const available=logic.permitted(grants,true);
     if(!available.length){ui.el('p',ui.t('Sign in with permission for this action.','Inicia sesión con permiso para esta acción.'),content);return;}
     if(!available.some(([key])=>key===action))action=available[0][0];
+    const starts=ui.el('nav',undefined,content);starts.className='office-start toolbar';starts.setAttribute('aria-label',ui.t('Start here','Empieza aquí'));
+    for(const [key,en,es] of [['create_order','New order','Pedido nuevo'],['create_customer','New customer','Cliente nuevo'],['create_expected_receipt','Expected delivery','Entrega esperada']]){
+      if(!available.some(([value])=>value===key))continue;
+      const start=ui.el('button',ui.t(en,es),starts);start.type='button';start.dataset.officeStart=key;if(action===key){start.className='primary';start.setAttribute('aria-current','true');}start.onclick=()=>{action=key;render();};
+    }
     const label=ui.el('label',ui.t('Office action','Acción de oficina'),content),selector=ui.el('select',undefined,label);selector.id='office-action';
     for(const [key,en,es] of available){ui.el('option',ui.t(en,es),selector).value=key;}
     selector.value=action;selector.onchange=()=>{action=selector.value;render();};
@@ -59,6 +71,25 @@
     function values(registry=controls){return Object.fromEntries(Object.entries(registry).map(([k,c])=>[k,c.type==='checkbox'?c.checked:c.type==='number'&&c.value!==''?Number(c.value):c.value]));}
     function noPO(){const check=field('no_po','No PO','Sin PO','checkbox');check.onchange=()=>{controls.customer_po.disabled=check.checked;if(check.checked)controls.customer_po.value='';invalidate();};}
     function notes(){field('notes','Notes — English','Notas — inglés','textarea');field('notes_es','Notes — Spanish','Notas — español','textarea');}
+    function customerFields(parent=fields,registry=controls,name=''){
+      field('name','Customer name','Nombre del cliente','text',true,parent,registry).value=name;
+      field('contact_name','Contact name (optional)','Contacto (opcional)','text',false,parent,registry);
+      field('email','Email (optional)','Correo (opcional)','email',false,parent,registry);
+      field('phone','Phone (optional)','Teléfono (opcional)','tel',false,parent,registry);
+      field('address','Address (optional)','Dirección (opcional)','textarea',false,parent,registry);
+      field('notes','Customer notes — English (optional)','Notas del cliente — inglés (opcional)','textarea',false,parent,registry);
+      field('notes_es','Customer notes — Spanish (optional)','Notas del cliente — español (opcional)','textarea',false,parent,registry);
+    }
+    function expectedQuantity(){
+      const unit=select('expected_unit','Enter expected quantity in','Ingresa la cantidad esperada en',[['lb','Pounds (lb)','Libras (lb)'],['cases','Cases','Cajones']]);unit.value='lb';
+      const poundsHost=ui.el('div',undefined,fields),pounds=field('expected_qty','Expected lb','lb esperadas','number',true,poundsHost);pounds.min='0.000001';
+      const casesHost=ui.el('div',undefined,fields);casesHost.hidden=true;
+      const cases=field('expected_cases','Cases','Cajones','number',false,casesHost),size=field('expected_case_size','Case size (lb each)','Tamaño de cajón (lb cada uno)','number',false,casesHost);cases.min=size.min='0.000001';
+      const total=ui.el('p','',casesHost);total.setAttribute('role','status');total.className='neutral';
+      function calculate(){total.replaceChildren();try{pounds.value=logic.expectedPounds(Number(cases.value),Number(size.value));ui.el('span',ui.t('Expected total: '+pounds.value+' lb','Total esperado: '+pounds.value+' lb'),total);}catch(_){pounds.value='';ui.el('span',ui.t('Enter cases and lb per case to calculate the total.','Ingresa cajones y lb por cajón para calcular el total.'),total);}}
+      cases.oninput=size.oninput=calculate;
+      unit.onchange=()=>{const byCases=unit.value==='cases';casesHost.hidden=!byCases;poundsHost.hidden=byCases;pounds.disabled=byCases;pounds.required=!byCases;cases.required=size.required=byCases;if(byCases)calculate();invalidate();};
+    }
     function addLine(seed={}){
       invalidate();const row=ui.el('fieldset',undefined,lineHost);ui.el('legend',ui.t('Order / document line','Línea de pedido / documento'),row);const inputs={};
       const product=picker(row,'product','Product (including Pallet Charge)','Producto (incluye cargo por palé)','product');
@@ -68,11 +99,11 @@
         field('quantity_lb',action==='approve_er'?'Expected lb':'Reviewed order lb',action==='approve_er'?'lb esperadas':'lb revisadas','number',true,row,inputs).value=seed.quantity_lb||seed.expected_qty_lb||'';
         field('save_alias','Remember this product match','Recordar este producto','checkbox',false,row,inputs).checked=true;
         ui.el('p',ui.t('Check the extracted quantity against the source document; enter the reviewed pounds.','Verifica la cantidad extraída contra el documento; ingresa las libras revisadas.'),row);
-        if(seed.quantity!==undefined)ui.el('p',ui.t('Extracted: ','Extraído: ')+seed.quantity+' '+(seed.unit||''),row);
+        if(seed.quantity!==undefined)ui.el('p',ui.t('Extracted: '+seed.quantity+' '+ui.codeText(seed.unit||'','en'),'Extraído: '+seed.quantity+' '+ui.codeText(seed.unit||'','es')),row);
       }else{
         field('quantity','Quantity','Cantidad','number',true,row,inputs).min='0.000001';
         const unitLabel=ui.el('label',ui.t('Unit','Unidad'),row),unit=ui.el('select',undefined,unitLabel);unit.name='unit';inputs.unit=unit;
-        for(const [value,en,es] of [['cases','Cases','Cajas'],['lb','lb','lb'],['bags','Bags','Bolsas'],['boxes','Boxes','Cajas'],['each','Each (services / pallets)','Unidad (servicios / palés)'],['pouches','Pouches → cases','Bolsitas → cajas']])ui.el('option',ui.t(en,es),unit).value=value;
+        for(const [value,en,es] of [['cases','Cases','Cajones'],['lb','lb','lb'],['bags','Bags','Bolsas'],['boxes','Boxes','Cajas'],['each','Each (services / pallets)','Unidad (servicios / palés)'],['pouches','Pouches → cases','Bolsitas → cajones']])ui.el('option',ui.t(en,es),unit).value=value;
         ui.el('p',ui.t('Choose Pallet Charge from the catalog with unit Each. FL keeps service lines out of stock pounds.','Elige el cargo por palé del catálogo con unidad Unidad. FL excluye los servicios del peso de inventario.'),row);
       }
       if(action!=='approve_er')field('unit_price','Price per unit (optional)','Precio por unidad (opcional)','number',false,row,inputs);
@@ -93,7 +124,7 @@
               const params=new URLSearchParams({state:order.state,limit:'200'});if(order.customer)params.set('customer',order.customer);
               const result=await ui.request('/sales/orders?'+params,undefined,requestOptions);if(generation!==orderGeneration||!form.isConnected)return;
               mark=(result.orders||[]).find(row=>String(row.order_id)===String(selected.id));
-              if(!mark||!Object.prototype.hasOwnProperty.call(mark,'note'))throw Error(ui.t('The ready-to-ship note could not be loaded. Choose the order again.','No se pudo cargar la nota de listo para enviar. Elige el pedido otra vez.'));
+              if(!mark||!Object.prototype.hasOwnProperty.call(mark,'note'))throw ui.problem(ui.t('The ready-to-ship note could not be loaded. Choose the order again.','No se pudo cargar la nota de listo para enviar. Elige el pedido otra vez.'));
             }
             controls.ready.checked=Boolean(mark.ready);controls.note.value=mark.note||'';readyLoaded=selected.id;readyIntent=null;
           }
@@ -104,8 +135,10 @@
         }catch(error){ui.failure(error);}
       });
     }
+    if(action==='create_customer')customerFields();
     if(['create_order','approve_so','update_order_header'].includes(action)){
       choices.customer=picker(fields,'customer',action==='update_order_header'?'New customer (optional)':'Customer',action==='update_order_header'?'Cliente nuevo (opcional)':'Cliente','customer',()=>{if(customerOpen)customerClose?.();},action==='create_order'&&grants.create_customer===true?offerCustomer:null);
+      if(selectedCustomer){choices.customer.select(selectedCustomer);selectedCustomer=null;}
       if(action==='create_order'&&grants.create_customer===true){customerHost=ui.el('section',undefined,fields);customerHost.className='wide';}
       field('customer_po','Customer PO','PO del cliente','text',action==='approve_so');if(action!=='approve_so')noPO();
       field('requested_ship_date','Ship by','Enviar antes de','date');if(action!=='update_order_header')field('order_date','Order date','Fecha del pedido','date');notes();
@@ -127,7 +160,7 @@
       choices.supplier=picker(fields,'supplier','Supplier','Proveedor','supplier');
       field('reference_number','PO / delivery reference','PO / referencia de entrega');field('expected_date','Expected date','Fecha esperada','date');
     }
-    if(action==='create_expected_receipt'){choices.product=picker(fields,'product','Product','Producto','product');field('expected_qty','Expected lb','lb esperadas','number',true);field('notes','Notes','Notas','textarea');}
+    if(action==='create_expected_receipt'){choices.product=picker(fields,'product','Product','Producto','product');expectedQuantity();field('notes','Notes','Notas','textarea');}
     if(['update_expected_receipt','cancel_expected_receipt'].includes(action)){
       const input=field('expected_receipt_id','Expected delivery #','Entrega esperada #','number',true);input.step='1';
       const button=ui.el('button',ui.t('Load expected delivery','Cargar entrega esperada'),fields);button.type='button';const view=ui.el('div',undefined,fields);view.className='wide';
@@ -143,7 +176,7 @@
         const load=ui.el('button',ui.t('Load extracted document','Cargar documento extraído'),fields);load.type='button';const status=ui.el('p','',fields);
         input.oninput=()=>{documentLoaded=null;status.textContent='';};
         load.onclick=async({background=false}={})=>{documentLoaded=null;const id=input.value;try{const data=await ui.request('/purchase-documents/'+encodeURIComponent(id),undefined,{background});if(input.value!==id||!form.isConnected)return;
-          if(data.status!=='extracted'||data.document_kind!==(action==='approve_so'?'sales':'purchase'))throw Error(ui.t('Choose an extracted document of this type.','Elige un documento extraído de este tipo.'));
+          if(data.status!=='extracted'||data.document_kind!==(action==='approve_so'?'sales':'purchase'))throw ui.problem(ui.t('Choose an extracted document of this type.','Elige un documento extraído de este tipo.'));
           const ex=data.extraction||{};documentLoaded=Number(id);status.textContent=data.original_filename||'#'+id;
           if(controls.customer_po)controls.customer_po.value=ex.po_number||'';if(controls.reference_number)controls.reference_number.value=ex.reference_number||ex.po_number||'';
           if(choices.customer)choices.customer.input.value=ex.customer_name||'';if(choices.supplier)choices.supplier.input.value=ex.supplier_name||'';
@@ -155,7 +188,9 @@
     }
     function offerCustomer({query,host}){
       if(!query)return;
-      const create=ui.el('button',ui.t("Add '"+query+"' as a new customer","Agregar '"+query+"' como cliente nuevo"),host);create.type='button';create.dataset.newCustomer='';
+      const separator=ui.el('hr',undefined,host);separator.className='new-customer-divider';
+      ui.el('p',ui.t('Customer not listed? Create a separate customer record.','¿El cliente no está en la lista? Crea un registro de cliente aparte.'),host).className='muted';
+      const create=ui.el('button',ui.t("Add '"+query+"' as a new customer","Agregar '"+query+"' como cliente nuevo"),host);create.type='button';create.className='new-customer-option secondary';create.dataset.newCustomer='';
       create.onclick=()=>openCustomer(query);
     }
     function openCustomer(name){
@@ -164,22 +199,17 @@
       ui.el('h2',ui.t('New customer','Cliente nuevo'),editor);
       ui.el('p',ui.t('Review the customer first. After you press Record, we will select this customer and keep your order details.','Revisa el cliente primero. Después de presionar Registrar, seleccionaremos este cliente y conservaremos los detalles del pedido.'),editor);
       const customerInputs={};
-      field('name','Customer name','Nombre del cliente','text',true,editor,customerInputs).value=name;
-      field('contact_name','Contact name (optional)','Contacto (opcional)','text',false,editor,customerInputs);
-      field('email','Email (optional)','Correo (opcional)','email',false,editor,customerInputs);
-      field('phone','Phone (optional)','Teléfono (opcional)','tel',false,editor,customerInputs);
-      field('address','Address (optional)','Dirección (opcional)','textarea',false,editor,customerInputs);
-      field('notes','Customer notes — English (optional)','Notas del cliente — inglés (opcional)','textarea',false,editor,customerInputs);
-      field('notes_es','Customer notes — Spanish (optional)','Notas del cliente — español (opcional)','textarea',false,editor,customerInputs);
+      customerFields(editor,customerInputs,name);
       const review=ui.el('button',ui.t('Prepare customer','Preparar cliente'),editor);review.type='button';
       const cancel=ui.el('button',ui.t('Cancel new customer','Cancelar cliente nuevo'),editor);cancel.type='button';
       const customerDraft=ui.el('div',undefined,customerHost),suggestion=ui.el('div',undefined,customerHost);customerDraft.dataset.customerDraft='';
       function close(){customerGeneration++;customerController?.invalidate();customerController=null;customerOpen=false;customerClose=null;choices.customer.setDisabled(false);customerHost.replaceChildren();prepare.disabled=false;}
       customerClose=close;cancel.onclick=close;
+      editor.scrollIntoView({block:'nearest'});customerInputs.name.focus?.();
       function showExisting(result){
         suggestion.replaceChildren();const existing=logic.existingCustomer(result);if(!existing)return;
         if(existing.active===false){ui.el('p',ui.t('This customer is inactive. Ask an owner to review it before placing an order.','Este cliente está inactivo. Pide al propietario que lo revise antes de hacer un pedido.'),suggestion);return;}
-        const use=ui.el('button',ui.t('Use existing customer: ','Usar cliente existente: ')+existing.name,suggestion);use.type='button';use.onclick=()=>{close();choices.customer.select(existing);};
+        const use=ui.el('button',ui.t('Use existing customer: '+existing.name,'Usar cliente existente: '+existing.name),suggestion);use.type='button';use.onclick=()=>{close();choices.customer.select(existing);};
       }
       function edit(){customerGeneration++;customerController?.invalidate();customerController=null;customerDraft.replaceChildren();suggestion.replaceChildren();editor.hidden=false;choices.customer.setDisabled(false);}
       review.onclick=()=>{
@@ -187,7 +217,7 @@
         const request=logic.build('create_customer',values(customerInputs)),version=++customerGeneration;
         customerController?.invalidate();customerDraft.replaceChildren();suggestion.replaceChildren();editor.hidden=true;choices.customer.setDisabled(true);
         customerController=ui.ticketCard(customerDraft,request.path,request.body,{receiptPrefix:request.prefix,allowPhoto:false,
-          onEdit:edit,onBusy:flag=>{busy(flag);prepare.disabled=flag||customerOpen;},
+          onEdit:edit,onCancel:close,onBusy:flag=>{busy(flag);prepare.disabled=flag||customerOpen;},
           onPrepared:result=>{if(version===customerGeneration&&form.isConnected)showExisting(result);},
           onFailure:error=>{if(version===customerGeneration&&form.isConnected)showExisting(error.result);},
           onRecorded:result=>{
@@ -199,20 +229,21 @@
         });
       };
     }
-    const prepare=ui.el('button',ui.t('Prepare draft','Preparar borrador'),form);prepare.type='submit';prepare.className='primary';
+    const prepare=ui.el('button',action==='create_customer'?ui.t('Prepare customer','Preparar cliente'):ui.t('Prepare draft','Preparar borrador'),form);prepare.type='submit';prepare.className='primary';
     form.addEventListener('input',invalidate);
-    const busy=flag=>{selector.disabled=flag;document.getElementById('language').disabled=flag;document.getElementById('sign-out').disabled=flag;prepare.disabled=flag||customerOpen;};
+    const busy=flag=>{for(const start of starts.children)start.disabled=flag;selector.disabled=flag;document.getElementById('language').disabled=flag;document.getElementById('sign-out').disabled=flag;prepare.disabled=flag||customerOpen;};
     form.onsubmit=async e=>{
       e.preventDefault();if(customerOpen){ui.notice(ui.t('Finish or cancel the new customer first.','Termina o cancela el cliente nuevo primero.'));return;}invalidate();const version=revision;busy(true);
       try{
         const v=values(),conversions=[];
+        if(action==='create_expected_receipt'&&v.expected_unit==='cases')v.expected_qty=logic.expectedPounds(v.expected_cases,v.expected_case_size);
         for(const name of ['customer','supplier','product','order'])if(choices[name]?.value)v[name+'_id']=choices[name].id();
         if(choices.related?.value)v.related_so_id=choices.related.id();
-        if(action==='mark_order_ready'&&readyLoaded!==v.order_id)throw Error(ui.t('Choose and load the sales order first.','Elige y carga el pedido primero.'));
-        if(controls.document_id&&documentLoaded!==Number(v.document_id))throw Error(ui.t('Load and review the extracted document first.','Carga y revisa el documento primero.'));
-        if(controls.expected_receipt_id&&expectedLoaded!==Number(v.expected_receipt_id))throw Error(ui.t('Load the expected delivery first.','Carga la entrega esperada primero.'));
+        if(action==='mark_order_ready'&&readyLoaded!==v.order_id)throw ui.problem(ui.t('Choose and load the sales order first.','Elige y carga el pedido primero.'));
+        if(controls.document_id&&documentLoaded!==Number(v.document_id))throw ui.problem(ui.t('Load and review the extracted document first.','Carga y revisa el documento primero.'));
+        if(controls.expected_receipt_id&&expectedLoaded!==Number(v.expected_receipt_id))throw ui.problem(ui.t('Load the expected delivery first.','Carga la entrega esperada primero.'));
         if(lineHost){
-          if(!rows.length)throw Error(ui.t('Add at least one line.','Agrega al menos una línea.'));
+          if(!rows.length)throw ui.problem(ui.t('Add at least one line.','Agrega al menos una línea.'));
           v.lines=[];
           for(const item of rows){
             const value=values(item.inputs),pid=item.product.id();
@@ -222,7 +253,7 @@
               const result=await ui.request('/resolve',{kind:'unit',query:value.unit,quantity:value.quantity,context:{product_id:pid,action:'order',group:'office'}});
               if(version!==revision)return;
               const line=logic.resolvedLine(result,pid,value.quantity,value.unit,value.unit_price!==''?{unit_price:value.unit_price}:{});
-              if(result.conversion){conversions.push(result.conversion.from_quantity+' '+ui.t('pouches → ','bolsitas → ')+line.quantity+' '+ui.t('cases','cajas'));item.conversion.hidden=false;item.conversion.textContent=result.conversion.from_quantity+' '+ui.t('pouches → ','bolsitas → ')+line.quantity+' '+ui.t('cases','cajas');}
+              if(result.conversion){const conversion=ui.t(result.conversion.from_quantity+' pouches → '+line.quantity+' cases',result.conversion.from_quantity+' bolsitas → '+line.quantity+' cajones');conversions.push(conversion);item.conversion.hidden=false;item.conversion.replaceChildren();ui.el('span',conversion,item.conversion);}
               v.lines.push(line);
             }
           }
@@ -230,17 +261,25 @@
         if(version!==revision)return;
         const request=logic.build(action,v);form.hidden=true;for(const conversion of conversions)ui.el('p',conversion,draft).className='neutral';
         controller=ui.ticketCard(draft,request.path,request.body,{receiptPrefix:request.prefix,allowPhoto:false,onBusy:busy,
-          onEdit:()=>{invalidate();form.hidden=false;},
+          onEdit:()=>{invalidate();form.hidden=false;},onCancel:()=>render(),
+          onPrepared:result=>{if(action==='create_customer')offerExistingCustomer(result);},
+          onFailure:error=>{if(action==='create_customer')offerExistingCustomer(error.result);},
           onRecorded:()=>{const another=ui.el('button',ui.t('Another office action','Otra acción de oficina'),draft);another.type='button';another.onclick=render;}
         });draft.scrollIntoView({block:'start'});
       }catch(error){ui.failure(error);}finally{busy(false);}
     };
+    function offerExistingCustomer(result){
+      if(!form.isConnected)return;
+      const existing=logic.existingCustomer(result);if(!existing||existing.active===false||grants.create_order!==true)return;
+      const use=ui.el('button',ui.t('Use existing customer: '+existing.name,'Usar cliente existente: '+existing.name),draft);use.type='button';
+      use.onclick=()=>{selectedCustomer=existing;action='create_order';render();};
+    }
     if(orderAction&&initial.get('order')){const id=initial.get('order');initial.delete('order');ui.request('/sales/orders/'+encodeURIComponent(id),undefined,initialRead).then(o=>{if(form.isConnected)choices.order.select({id:o.order_id,label:o.order_number},initialRead);}).catch(ui.failure);}
   }
   async function refresh({background=false}={}){const version=++authRevision;grants={};render({background});if(!FLDashboard.writesEnabled||!ui.session.token)return;
     try{const who=await ui.request('/auth/whoami',undefined,{background});if(version!==authRevision)return;grants=who.permissions||{};render({background});}catch(error){ui.failure(error);}
   }
-  window.addEventListener('ledger-language',ui.relabel);
+  window.addEventListener('ledger-language',()=>{ui.relabel();todayLink();});
   window.addEventListener('ledger-auth',refresh);window.addEventListener('ledger-signout',refresh);
   ui.ready.then(on=>{if(on)refresh({background:true});}).catch(()=>{});
 })();

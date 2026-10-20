@@ -8,10 +8,11 @@
   const number = value => value !== null && value !== '' && value !== undefined && Number.isFinite(Number(value)) ? Number(value) : null;
   const fmt = value => number(value) === null ? '' : new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(Number(value));
   const codeNames = {
-    physical_count: ['Physical count', 'Conteo físico'], missing_receipt: ['Missing receipt', 'Falta recibo'],
-    missing_production: ['Missing production', 'Falta producción'], wrong_lot_used: ['Wrong lot used', 'Se usó el lote equivocado'],
-    damage_disposal: ['Damage or disposal', 'Daño o desecho'], damaged: ['Damaged', 'Dañado'],
-    unrecorded_usage: ['Unrecorded usage', 'Uso sin registrar'], data_entry_error: ['Data-entry error', 'Error de captura'],
+    physical_count: ['Physical count', 'Conteo físico'], missing_receipt: ['Missing receipt', 'Recepción no registrada'],
+    floor: ['Floor', 'Piso'], office: ['Office', 'Oficina'], owner: ['Owner', 'Propietario'],
+    missing_production: ['Missing production', 'Producción no registrada'], wrong_lot: ['Wrong lot used', 'Lote equivocado'], wrong_lot_used: ['Wrong lot used', 'Lote equivocado'],
+    damage_disposal: ['Damage/disposal', 'Daño o desecho'], damaged: ['Damaged', 'Dañado'],
+    unrecorded_usage: ['Unrecorded usage', 'Uso no registrado'], data_entry_error: ['Data-entry error', 'Error de captura'],
     unknown: ['Unknown', 'Desconocido'], unidentified: ['Lot identity needs to be checked', 'Hay que verificar la identidad del lote'],
     unidentified_lot: ['Lot identity needs to be checked', 'Hay que verificar la identidad del lote'],
     photo_pending: ['Photo pending', 'Foto pendiente'], pending: ['Pending', 'Pendiente'], complete: ['Complete', 'Completo'],
@@ -39,7 +40,7 @@
   const unavailable = (language = 'en') => choose(language, 'Factory Ledger is temporarily unavailable — try again in a minute.', 'Factory Ledger no está disponible temporalmente — inténtalo de nuevo en un minuto.');
   function plainMessage(value, language = 'en') {
     return scalar(value).replace(/(?:internal server error|FL returned an unreadable response(?:\. Please try again\.)?)/gi, unavailable(language)).replace(/\bUNIDENTIFIED(?:_LOT)?\b/g, plainLabel('unidentified', language))
-      .replace(/\b(?:physical_count|missing_receipt|missing_production|wrong_lot_used|damage_disposal|unrecorded_usage|data_entry_error)\b/g, code => plainLabel(code, language));
+      .replace(/\b(?:physical_count|missing_receipt|missing_production|wrong_lot_used|wrong_lot|damage_disposal|unrecorded_usage|data_entry_error|unknown)\b/g, code => plainLabel(code, language));
   }
   function receiptEvidence(receipt = {}, language = 'en') {
     const values = [receipt, receipt.response || {}, receipt.draft || {}, receipt.shipment || {}, ...(receipt.lots || []), ...(receipt.transactions || [])];

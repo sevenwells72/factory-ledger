@@ -1,0 +1,3145 @@
+{
+  "scope": "Record entry, Office, Receipt, Exceptions and receipt-based Today on actual local pages",
+  "captures": [
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/off-1440-en-off-gating.png",
+      "title": "Record an entry",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 5,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 6,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/off-1440-es-off-gating.png",
+      "title": "Registrar una entrada",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 5,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 6,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/off-390-en-off-gating.png",
+      "title": "Record an entry",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 5,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 6,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/off-390-es-off-gating.png",
+      "title": "Registrar una entrada",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 5,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 6,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-office-start-customer.png",
+      "title": "Office",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 21,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 24,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-setton-duplicate.png",
+      "title": "Office",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 35,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "form#office-form > div.fields > label.check > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 306,
+            "h": 75,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 61,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 5,
+        "indeterminate": 0,
+        "worst": [
+          {
+            "path": "div.fields > fieldset > div.picker-options > button.new-customer-option.secondary",
+            "text": "Add 'Setton Farms' as a new customer",
+            "ratio": 2.4,
+            "target": 4.5,
+            "fontPx": 14,
+            "weight": 500,
+            "fg": "rgb(52, 79, 96)",
+            "bg": "rgb(243, 245, 247)",
+            "opacity": 0.5
+          },
+          {
+            "path": "form#office-form > div.fields > fieldset > button",
+            "text": "Search",
+            "ratio": 3.02,
+            "target": 4.5,
+            "fontPx": 16,
+            "weight": 650,
+            "fg": "rgb(23, 45, 61)",
+            "bg": "rgb(255, 255, 255)",
+            "opacity": 0.5
+          },
+          {
+            "path": "div.fields > fieldset > div.picker-options > button",
+            "text": "Setton Farms",
+            "ratio": 3.02,
+            "target": 4.5,
+            "fontPx": 16,
+            "weight": 650,
+            "fg": "rgb(23, 45, 61)",
+            "bg": "rgb(255, 255, 255)",
+            "opacity": 0.5
+          },
+          {
+            "path": "div > section.panel > div.record-bar > button.primary",
+            "text": "Record",
+            "ratio": 3.54,
+            "target": 4.5,
+            "fontPx": 16,
+            "weight": 650,
+            "fg": "rgb(255, 255, 255)",
+            "bg": "rgb(23, 78, 105)",
+            "opacity": 0.5
+          },
+          {
+            "path": "form#office-form > button.primary",
+            "text": "Prepare draft",
+            "ratio": 3.54,
+            "target": 4.5,
+            "fontPx": 16,
+            "weight": 650,
+            "fg": "rgb(255, 255, 255)",
+            "bg": "rgb(23, 78, 105)",
+            "opacity": 0.5
+          }
+        ]
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-regular-extra-kosher.png",
+      "title": "Office",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 32,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "form#office-form > div.fields > label.check > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 306,
+            "h": 75,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 43,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-luz-a-order-draft.png",
+      "title": "Office",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 17,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#resolution > section.panel > label.check.notice > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 950,
+            "h": 74,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 77,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-luz-b-customer-order.png",
+      "title": "Office",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 15,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 19,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-expected-cases-form.png",
+      "title": "Office",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 24,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 32,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-luz-c-expected-cases.png",
+      "title": "Office",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 16,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 46,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-luz-d-receipt-lookup.png",
+      "title": "Receipt",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 9,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 70,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": "today",
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-luz-d-today.png",
+      "title": "Today's entries",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 29,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/exceptions.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-luz-d-exceptions.png",
+      "title": "Exceptions",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 9,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 13,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-arturo-receive-draft.png",
+      "title": "Record an entry",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 15,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 55,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-arturo-receive-receipt.png",
+      "title": "Receipt",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 131,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-arturo-make-ambiguous-tags.png",
+      "title": "Record an entry",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 25,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#resolution > section.panel > label.check.notice > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 950,
+            "h": 74,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 139,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 1,
+        "indeterminate": 0,
+        "worst": [
+          {
+            "path": "div#resolution > section.panel > div.record-bar > button.primary",
+            "text": "Record",
+            "ratio": 3.54,
+            "target": 4.5,
+            "fontPx": 16,
+            "weight": 650,
+            "fg": "rgb(255, 255, 255)",
+            "bg": "rgb(23, 78, 105)",
+            "opacity": 0.5
+          }
+        ]
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-arturo-make-ready-shortage.png",
+      "title": "Record an entry",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 23,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#resolution > section.panel > label.check.notice > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 950,
+            "h": 74,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 132,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-arturo-make-receipt.png",
+      "title": "Receipt",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 11,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 264,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-arturo-pack-draft.png",
+      "title": "Record an entry",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 16,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 53,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-arturo-pack-recorded.png",
+      "title": "Record an entry",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 16,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-arturo-ship-receipt.png",
+      "title": "Receipt",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 143,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-arturo-found-recorded.png",
+      "title": "Record an entry",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 16,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-arturo-adjust-recorded.png",
+      "title": "Record an entry",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 16,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-arturo-void-recorded.png",
+      "title": "Receipt",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 130,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": "today",
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-en-arturo-today.png",
+      "title": "Today's entries",
+      "language": "en",
+      "width": 1440,
+      "touch": {
+        "checked": 19,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 58,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-office-start-customer.png",
+      "title": "Oficina",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 21,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 24,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-setton-duplicate.png",
+      "title": "Oficina",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 35,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "form#office-form > div.fields > label.check > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 306,
+            "h": 75,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 61,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 5,
+        "indeterminate": 0,
+        "worst": [
+          {
+            "path": "div.fields > fieldset > div.picker-options > button.new-customer-option.secondary",
+            "text": "Agregar 'Setton Farms' como cliente nuevo",
+            "ratio": 2.4,
+            "target": 4.5,
+            "fontPx": 14,
+            "weight": 500,
+            "fg": "rgb(52, 79, 96)",
+            "bg": "rgb(243, 245, 247)",
+            "opacity": 0.5
+          },
+          {
+            "path": "form#office-form > div.fields > fieldset > button",
+            "text": "Buscar",
+            "ratio": 3.02,
+            "target": 4.5,
+            "fontPx": 16,
+            "weight": 650,
+            "fg": "rgb(23, 45, 61)",
+            "bg": "rgb(255, 255, 255)",
+            "opacity": 0.5
+          },
+          {
+            "path": "div.fields > fieldset > div.picker-options > button",
+            "text": "Setton Farms",
+            "ratio": 3.02,
+            "target": 4.5,
+            "fontPx": 16,
+            "weight": 650,
+            "fg": "rgb(23, 45, 61)",
+            "bg": "rgb(255, 255, 255)",
+            "opacity": 0.5
+          },
+          {
+            "path": "div > section.panel > div.record-bar > button.primary",
+            "text": "Registrar",
+            "ratio": 3.54,
+            "target": 4.5,
+            "fontPx": 16,
+            "weight": 650,
+            "fg": "rgb(255, 255, 255)",
+            "bg": "rgb(23, 78, 105)",
+            "opacity": 0.5
+          },
+          {
+            "path": "form#office-form > button.primary",
+            "text": "Preparar borrador",
+            "ratio": 3.54,
+            "target": 4.5,
+            "fontPx": 16,
+            "weight": 650,
+            "fg": "rgb(255, 255, 255)",
+            "bg": "rgb(23, 78, 105)",
+            "opacity": 0.5
+          }
+        ]
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-regular-extra-kosher.png",
+      "title": "Oficina",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 32,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "form#office-form > div.fields > label.check > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 306,
+            "h": 75,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 43,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-luz-a-order-draft.png",
+      "title": "Oficina",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 17,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#resolution > section.panel > label.check.notice > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 950,
+            "h": 74,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 77,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-luz-b-customer-order.png",
+      "title": "Oficina",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 15,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 19,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-expected-cases-form.png",
+      "title": "Oficina",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 24,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 32,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-luz-c-expected-cases.png",
+      "title": "Oficina",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 16,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 46,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-luz-d-receipt-lookup.png",
+      "title": "Recibo",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 9,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 70,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": "today",
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-luz-d-today.png",
+      "title": "Entradas de hoy",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 29,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/exceptions.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-luz-d-exceptions.png",
+      "title": "Excepciones",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 9,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 13,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-arturo-receive-draft.png",
+      "title": "Registrar una entrada",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 15,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 55,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-arturo-receive-receipt.png",
+      "title": "Recibo",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 131,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-arturo-make-ambiguous-tags.png",
+      "title": "Registrar una entrada",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 25,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#resolution > section.panel > label.check.notice > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 950,
+            "h": 74,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 139,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 1,
+        "indeterminate": 0,
+        "worst": [
+          {
+            "path": "div#resolution > section.panel > div.record-bar > button.primary",
+            "text": "Registrar",
+            "ratio": 3.54,
+            "target": 4.5,
+            "fontPx": 16,
+            "weight": 650,
+            "fg": "rgb(255, 255, 255)",
+            "bg": "rgb(23, 78, 105)",
+            "opacity": 0.5
+          }
+        ]
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-arturo-make-ready-shortage.png",
+      "title": "Registrar una entrada",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 23,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#resolution > section.panel > label.check.notice > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 950,
+            "h": 74,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 132,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-arturo-make-receipt.png",
+      "title": "Recibo",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 11,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 264,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-arturo-pack-draft.png",
+      "title": "Registrar una entrada",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 16,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 53,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-arturo-pack-recorded.png",
+      "title": "Registrar una entrada",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 16,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-arturo-ship-receipt.png",
+      "title": "Recibo",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 143,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-arturo-found-recorded.png",
+      "title": "Registrar una entrada",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 16,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-arturo-adjust-recorded.png",
+      "title": "Registrar una entrada",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 16,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-arturo-void-recorded.png",
+      "title": "Recibo",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 13,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 129,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": "today",
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-1440-es-arturo-today.png",
+      "title": "Entradas de hoy",
+      "language": "es",
+      "width": 1440,
+      "touch": {
+        "checked": 19,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 58,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-office-start-customer.png",
+      "title": "Office",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 21,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 24,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-setton-duplicate.png",
+      "title": "Office",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 35,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "form#office-form > div.fields > label.check > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 328,
+            "h": 50,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 61,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 5,
+        "indeterminate": 0,
+        "worst": [
+          {
+            "path": "div.fields > fieldset > div.picker-options > button.new-customer-option.secondary",
+            "text": "Add 'Setton Farms' as a new customer",
+            "ratio": 2.4,
+            "target": 4.5,
+            "fontPx": 14,
+            "weight": 500,
+            "fg": "rgb(52, 79, 96)",
+            "bg": "rgb(243, 245, 247)",
+            "opacity": 0.5
+          },
+          {
+            "path": "form#office-form > div.fields > fieldset > button",
+            "text": "Search",
+            "ratio": 3.02,
+            "target": 4.5,
+            "fontPx": 16,
+            "weight": 650,
+            "fg": "rgb(23, 45, 61)",
+            "bg": "rgb(255, 255, 255)",
+            "opacity": 0.5
+          },
+          {
+            "path": "div.fields > fieldset > div.picker-options > button",
+            "text": "Setton Farms",
+            "ratio": 3.02,
+            "target": 4.5,
+            "fontPx": 16,
+            "weight": 650,
+            "fg": "rgb(23, 45, 61)",
+            "bg": "rgb(255, 255, 255)",
+            "opacity": 0.5
+          },
+          {
+            "path": "div > section.panel > div.record-bar > button.primary",
+            "text": "Record",
+            "ratio": 3.54,
+            "target": 4.5,
+            "fontPx": 16,
+            "weight": 650,
+            "fg": "rgb(255, 255, 255)",
+            "bg": "rgb(23, 78, 105)",
+            "opacity": 0.5
+          },
+          {
+            "path": "form#office-form > button.primary",
+            "text": "Prepare draft",
+            "ratio": 3.54,
+            "target": 4.5,
+            "fontPx": 16,
+            "weight": 650,
+            "fg": "rgb(255, 255, 255)",
+            "bg": "rgb(23, 78, 105)",
+            "opacity": 0.5
+          }
+        ]
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-regular-extra-kosher.png",
+      "title": "Office",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 32,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "form#office-form > div.fields > label.check > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 328,
+            "h": 50,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 43,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-luz-a-order-draft.png",
+      "title": "Office",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 17,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#resolution > section.panel > label.check.notice > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 328,
+            "h": 74,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 77,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-luz-b-customer-order.png",
+      "title": "Office",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 15,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 19,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-expected-cases-form.png",
+      "title": "Office",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 24,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 32,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-luz-c-expected-cases.png",
+      "title": "Office",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 16,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 46,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-luz-d-receipt-lookup.png",
+      "title": "Receipt",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 9,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 70,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": "today",
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-luz-d-today.png",
+      "title": "Today's entries",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 29,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/exceptions.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-luz-d-exceptions.png",
+      "title": "Exceptions",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 9,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 13,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-arturo-receive-draft.png",
+      "title": "Record an entry",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 15,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 55,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-arturo-receive-receipt.png",
+      "title": "Receipt",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 131,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-arturo-make-ambiguous-tags.png",
+      "title": "Record an entry",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 25,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#resolution > section.panel > label.check.notice > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 328,
+            "h": 144,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 139,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 1,
+        "indeterminate": 0,
+        "worst": [
+          {
+            "path": "div#resolution > section.panel > div.record-bar > button.primary",
+            "text": "Record",
+            "ratio": 3.54,
+            "target": 4.5,
+            "fontPx": 16,
+            "weight": 650,
+            "fg": "rgb(255, 255, 255)",
+            "bg": "rgb(23, 78, 105)",
+            "opacity": 0.5
+          }
+        ]
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-arturo-make-ready-shortage.png",
+      "title": "Record an entry",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 23,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#resolution > section.panel > label.check.notice > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 328,
+            "h": 144,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 132,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-arturo-make-receipt.png",
+      "title": "Receipt",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 11,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 264,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-arturo-pack-draft.png",
+      "title": "Record an entry",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 16,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 53,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-arturo-pack-recorded.png",
+      "title": "Record an entry",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 16,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-arturo-ship-receipt.png",
+      "title": "Receipt",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 143,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-arturo-found-recorded.png",
+      "title": "Record an entry",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 16,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-arturo-adjust-recorded.png",
+      "title": "Record an entry",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 16,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-arturo-void-recorded.png",
+      "title": "Receipt",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 130,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": "today",
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-en-arturo-today.png",
+      "title": "Today's entries",
+      "language": "en",
+      "width": 390,
+      "touch": {
+        "checked": 19,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 58,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-office-start-customer.png",
+      "title": "Oficina",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 21,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 24,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-setton-duplicate.png",
+      "title": "Oficina",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 35,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "form#office-form > div.fields > label.check > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 328,
+            "h": 50,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 61,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 5,
+        "indeterminate": 0,
+        "worst": [
+          {
+            "path": "div.fields > fieldset > div.picker-options > button.new-customer-option.secondary",
+            "text": "Agregar 'Setton Farms' como cliente nuevo",
+            "ratio": 2.4,
+            "target": 4.5,
+            "fontPx": 14,
+            "weight": 500,
+            "fg": "rgb(52, 79, 96)",
+            "bg": "rgb(243, 245, 247)",
+            "opacity": 0.5
+          },
+          {
+            "path": "form#office-form > div.fields > fieldset > button",
+            "text": "Buscar",
+            "ratio": 3.02,
+            "target": 4.5,
+            "fontPx": 16,
+            "weight": 650,
+            "fg": "rgb(23, 45, 61)",
+            "bg": "rgb(255, 255, 255)",
+            "opacity": 0.5
+          },
+          {
+            "path": "div.fields > fieldset > div.picker-options > button",
+            "text": "Setton Farms",
+            "ratio": 3.02,
+            "target": 4.5,
+            "fontPx": 16,
+            "weight": 650,
+            "fg": "rgb(23, 45, 61)",
+            "bg": "rgb(255, 255, 255)",
+            "opacity": 0.5
+          },
+          {
+            "path": "div > section.panel > div.record-bar > button.primary",
+            "text": "Registrar",
+            "ratio": 3.54,
+            "target": 4.5,
+            "fontPx": 16,
+            "weight": 650,
+            "fg": "rgb(255, 255, 255)",
+            "bg": "rgb(23, 78, 105)",
+            "opacity": 0.5
+          },
+          {
+            "path": "form#office-form > button.primary",
+            "text": "Preparar borrador",
+            "ratio": 3.54,
+            "target": 4.5,
+            "fontPx": 16,
+            "weight": 650,
+            "fg": "rgb(255, 255, 255)",
+            "bg": "rgb(23, 78, 105)",
+            "opacity": 0.5
+          }
+        ]
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-regular-extra-kosher.png",
+      "title": "Oficina",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 32,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "form#office-form > div.fields > label.check > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 328,
+            "h": 50,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 43,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-luz-a-order-draft.png",
+      "title": "Oficina",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 17,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#resolution > section.panel > label.check.notice > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 328,
+            "h": 74,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 77,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-luz-b-customer-order.png",
+      "title": "Oficina",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 15,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 19,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-expected-cases-form.png",
+      "title": "Oficina",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 24,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 32,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/office.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-luz-c-expected-cases.png",
+      "title": "Oficina",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 16,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 46,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-luz-d-receipt-lookup.png",
+      "title": "Recibo",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 9,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 70,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": "today",
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-luz-d-today.png",
+      "title": "Entradas de hoy",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 29,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/exceptions.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-luz-d-exceptions.png",
+      "title": "Excepciones",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 9,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 13,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-arturo-receive-draft.png",
+      "title": "Registrar una entrada",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 15,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 55,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-arturo-receive-receipt.png",
+      "title": "Recibo",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 131,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-arturo-make-ambiguous-tags.png",
+      "title": "Registrar una entrada",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 25,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#resolution > section.panel > label.check.notice > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 328,
+            "h": 120,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 139,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 1,
+        "indeterminate": 0,
+        "worst": [
+          {
+            "path": "div#resolution > section.panel > div.record-bar > button.primary",
+            "text": "Registrar",
+            "ratio": 3.54,
+            "target": 4.5,
+            "fontPx": 16,
+            "weight": 650,
+            "fg": "rgb(255, 255, 255)",
+            "bg": "rgb(23, 78, 105)",
+            "opacity": 0.5
+          }
+        ]
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-arturo-make-ready-shortage.png",
+      "title": "Registrar una entrada",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 23,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "div#resolution > section.panel > label.check.notice > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 328,
+            "h": 120,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 132,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-arturo-make-receipt.png",
+      "title": "Recibo",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 11,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 264,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-arturo-pack-draft.png",
+      "title": "Registrar una entrada",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 16,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 53,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-arturo-pack-recorded.png",
+      "title": "Registrar una entrada",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 16,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-arturo-ship-receipt.png",
+      "title": "Recibo",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 143,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-arturo-found-recorded.png",
+      "title": "Registrar una entrada",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 16,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/entry.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-arturo-adjust-recorded.png",
+      "title": "Registrar una entrada",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 12,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 16,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": null,
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-arturo-void-recorded.png",
+      "title": "Recibo",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 13,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 129,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    },
+    {
+      "page": "/dashboard/receipt.html",
+      "view": "today",
+      "screenshot": "/private/tmp/pr142-fix-runs/browser/actual/on-390-es-arturo-today.png",
+      "title": "Entradas de hoy",
+      "language": "es",
+      "width": 390,
+      "touch": {
+        "checked": 19,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "contrast": {
+        "checked": 58,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 0,
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      }
+    }
+  ]
+}

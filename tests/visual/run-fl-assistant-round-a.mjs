@@ -34,12 +34,16 @@ const receipt = { success: true, receipt_number: receiptNumber, action: 'receive
   happened_at: received.happened_at, entered_at: received.happened_at, draft: received,
   transactions: [{ id: 71, type: 'receive', effective_status: 'posted', allowed_actions: ['void'], lines: [{ product_name: 'Sunflower Seeds', quantity_lb: 50, lot_code: '26-10-15-SUNF-001' }] }] };
 const results = [], screenshots = [];
+// HTML's preload scanner may request these before the legacy alias installs its base.
+// Only these exact speculative URLs may 404; final /dashboard/ assets must all load.
+const legacyAssets = ['dashboard-runtime.js', 'ledger-forms.css', 'fl-assistant.css', 'key-session.js', 'assistant-display.js', 'fl-assistant.js', 'receipt-shell.js'];
+const speculativeAssets = new Set(legacyAssets.map(name => '/dash/' + name));
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
 function deferred() { let resolve; const promise = new Promise(done => { resolve = done; }); return { promise, resolve }; }
 try {
   for (const width of [1440, 390]) {
     const context = await browser.newContext({ viewport: { width, height: width === 390 ? 844 : 1000 }, timezoneId: 'America/New_York', colorScheme: 'light' });
-    const state = { turns: [], records: [], pages: [], gates: new Map(), authGate: null, receiptMode: 'normal', receiptRows: null, heldRoutes: [], assets: [], unknown: [], errors: [] };
+    const state = { turns: [], records: [], pages: [], gates: new Map(), authGate: null, receiptMode: 'normal', receiptRows: null, heldRoutes: [], assets: [], speculative: [], legacyAlias: false, unknown: [], errors: [] };
     await context.addInitScript(({ pilot, token, sid }) => {
       localStorage.setItem('fl-assistant-language', 'en');
       localStorage.setItem('fl-assistant-chat:4', sid);
@@ -57,11 +61,13 @@ try {
     page.on('response', response => {
       const url = new URL(response.url());
       if (url.pathname.startsWith('/dashboard/')) state.assets.push({ path: url.pathname, status: response.status() });
+      if (speculativeAssets.has(url.pathname)) state.speculative.push({ path: url.pathname, status: response.status() });
     });
     await page.route('**/*', async route => {
       const request = route.request(), url = new URL(request.url()), pathname = url.pathname;
       if (pathname === '/dash/fl-assistant') return route.fulfill({ contentType: 'text/html', body: await fs.readFile(path.join(root, 'dashboard/fl-assistant.html'), 'utf8') });
       if (pathname.startsWith('/dashboard/')) return route.continue();
+      if (state.legacyAlias && speculativeAssets.has(pathname)) return route.continue();
       if (pathname === '/auth/session/config') { if (state.authGate) await state.authGate.promise; return route.fulfill({ json: { key_sessions_enabled: pilot } }); }
       if (pathname === '/auth/whoami') { if (state.authGate) await state.authGate.promise; await pause(60); return route.fulfill({ json: { key_kind: pilot ? 'session' : 'actor', actor } }); }
       if (pathname === '/auth/session') return route.fulfill({ json: { key_kind: 'session', actor, session_token: token } });
@@ -121,7 +127,7 @@ try {
       await page.waitForFunction(() => !document.getElementById('send').disabled);
     };
     const reset = async (url = '/dashboard/fl-assistant.html') => {
-      state.receiptMode = 'normal'; state.receiptRows = null; state.authGate = null; state.assets = []; state.pages = []; state.turns = []; state.records = [];
+      state.receiptMode = 'normal'; state.receiptRows = null; state.authGate = null; state.assets = []; state.speculative = []; state.legacyAlias = url === '/dash/fl-assistant'; state.pages = []; state.turns = []; state.records = [];
       await page.goto(server.origin + url, { waitUntil: 'domcontentloaded' }); await login();
     };
     const send = async text => {
@@ -242,9 +248,12 @@ try {
     });
     await test(9, 'Short Assistant URL loads every absolute asset', async () => {
       await reset('/dash/fl-assistant');
-      for (const name of ['dashboard-runtime.js', 'ledger-forms.css', 'receipt-shell.js', 'assistant-display.js', 'fl-assistant.js', 'fl-assistant.css', 'key-session.js']) {
+      for (const name of legacyAssets) {
         assert.ok(state.assets.some(asset => asset.path === '/dashboard/' + name && asset.status === 200), `${name} was not served from /dashboard/`);
       }
+      assert.ok(state.assets.every(asset => asset.status === 200), 'Every final dashboard asset must load successfully');
+      assert.ok(state.speculative.every(asset => speculativeAssets.has(asset.path) && asset.status === 404), 'Only the seven documented speculative legacy assets may return 404');
+      assert.equal(new Set(state.speculative.map(asset => asset.path)).size, state.speculative.length, 'Speculative legacy requests may occur at most once per asset');
       assert.equal(new URL(page.url()).pathname, '/dash/fl-assistant'); await take('09-short-url-assets');
     });
     await test(10, 'Session restoration does not flash the sign-in screen', async () => {

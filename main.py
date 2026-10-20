@@ -2950,6 +2950,7 @@ def _capture_readonly_diagnostics() -> dict:
 DASHBOARD_KEY_ALLOWLIST = frozenset({
     ("POST", "/resolve"),  # A4: read-only resolution, shared by every client.
     ("GET", "/aliases"),
+    ("GET", "/entry/lots"),  # Pilot lot choices; SELECT-only, no confirmation.
     # Who am I (FR-15). Read-only, returns nothing but the caller's own
     # identity, and is how the dashboard will learn whether it is holding an
     # actor key or the shared one. Deliberately NOT in openapi-gpt-v3.yaml.

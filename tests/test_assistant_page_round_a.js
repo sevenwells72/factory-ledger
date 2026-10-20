@@ -324,15 +324,14 @@ test('void refusal provides a direct handoff to that receipt screen', async () =
   assert.equal(target.pathname, '/dashboard/receipt.html'); assert.equal(target.searchParams.get('number'), 'ADJ-261015-242');
 });
 
-test('every Assistant asset resolves to a real absolute dashboard file from either page URL', () => {
+test('Assistant assets resolve under /dashboard for the alias and at the Netlify root', () => {
   const assets = [...html.matchAll(/<(?:script|link)\b[^>]*(?:src|href)="([^"]+)"/g)].map(match => match[1]);
-  for (const name of ['dashboard-runtime.js', 'ledger-forms.css', 'receipt-shell.js']) assert.ok(assets.some(asset => asset.includes('/' + name)));
-  for (const asset of assets) {
-    assert.match(asset, /^\/dashboard\//);
-    for (const pageUrl of ['https://fl.local/dash/fl-assistant', 'https://fl.local/dashboard/fl-assistant.html']) {
-      const resolved = new URL(asset, pageUrl); assert.equal(resolved.pathname.startsWith('/dashboard/'), true);
-      assert.equal(fs.existsSync(path.join(root, resolved.pathname)), true, asset);
-    }
+  const initializer = html.match(/<head>\s*<script>([\s\S]*?)<\/script>/)?.[1];assert.ok(initializer);
+  for (const name of ['dashboard-runtime.js', 'ledger-forms.css', 'receipt-shell.js']) assert.ok(assets.some(asset => asset.split('?')[0] === name));
+  for (const [pageUrl, prefix] of [['https://fl.local/dash/fl-assistant','/dashboard/'],['https://fl.local/dashboard/fl-assistant.html','/dashboard/'],['https://preview.netlify.app/fl-assistant.html','/']]) {
+    const bases=[];vm.runInNewContext(initializer,{location:new URL(pageUrl),document:{createElement(tag){assert.equal(tag,'base');return {};},head:{append(base){bases.push(base);}}}});
+    const assetBase=bases.length?new URL(bases[0].href,pageUrl):new URL(pageUrl);
+    for (const asset of assets) {assert.doesNotMatch(asset,/^\//);const resolved=new URL(asset,assetBase);assert.equal(resolved.pathname,prefix+asset.split('?')[0]);assert.equal(fs.existsSync(path.join(root,'dashboard',path.basename(resolved.pathname))),true,asset);}
   }
 });
 

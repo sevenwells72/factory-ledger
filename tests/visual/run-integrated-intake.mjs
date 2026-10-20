@@ -35,11 +35,13 @@ try {
   await page.route(`https://${API_HOST}/**`,async route=>{
    const req=route.request();const u=new URL(req.url());requests.push({method:req.method(),path:u.pathname});
    const reply=data=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify(data)});
+   if(u.pathname==='/auth/session/config')return reply({key_sessions_enabled:false});
    if(u.pathname==='/customers')return reply({customers:[{id:4,name:'Fixture Customer'}]});
    if(u.pathname==='/suppliers')return reply({suppliers:[{id:4,name:'Fixture Supplier'}]});
    if(u.pathname==='/sales/orders' && req.method()==='GET'){
-    const data=await loadFixture('sales-orders.json',tokens);
-    data.orders.forEach(o=>{o.source_document_id=9000+o.order_id;o.customer_po='PO-'+o.order_id;if(o.ready){o.ready_by='floor';o.ready_at='2026-09-08T17:17:00Z';}});return reply(data);
+    const data=await loadFixture('sales-orders-list.json',tokens);
+    data.orders.forEach(o=>{o.customer_po='PO-'+o.order_id;if(o.ready){o.ready_by='floor';o.ready_at='2026-09-08T17:17:00Z';}});
+    const selected=u.searchParams.get('state');data.orders=data.orders.filter(o=>!selected||o.state===selected);return reply(data);
    }
    if(u.pathname.match(/^\/purchase-documents\/\d+\/url$/))return reply({url:server.origin+'/fixture-document.pdf'});
    if(['/expected-receipts/extract','/sales/orders/extract'].includes(u.pathname)){
@@ -54,32 +56,33 @@ try {
    return route.fallback();
   });
   await page.goto(server.origin+'/?section=orders');
-  await page.locator('#orders-status-filter').selectOption('open');
-  await page.locator('.so-doc-link').first().waitFor();
+  // The Sales Orders board now uses State tabs, eight columns and a readiness
+  // checkbox. The former status select/paperclip/ready badge were retired.
+  await page.locator('[data-orders-tab="open"]').click();
   const table=page.locator('#orders-list-view .orders-table').first();
   await table.locator('th .table-sort').first().waitFor({state:'attached'});
-  const original=await table.locator('.order-row').evaluateAll(rows=>rows.map(row=>({id:row.dataset.orderId,doc:row.querySelector('.so-doc-link').dataset.docId})));
-  // Sorting must move the complete row, including paperclip and detail group.
-  await page.locator('#orders-table-container .table-tools select').first().selectOption({label:'Customer'});
+  const original=await table.locator('.order-row').evaluateAll(rows=>rows.map(row=>({id:row.dataset.orderId,state:row.dataset.state})));
+  assert.ok(original.length>0);
+  assert.ok(original.every(row=>row.state==='open'));
+  assert.equal(await table.locator('thead th').count(),8);
+  // Sorting must retain the complete order and its associated expansion row.
+  await page.locator('#orders-table-tools .table-tools select').first().selectOption({label:'Customer'});
   for(const row of original){
-   assert.equal(await table.locator(`.order-row[data-order-id="${row.id}"] .so-doc-link`).getAttribute('data-doc-id'),row.doc);
    assert.equal(await table.locator(`.order-row[data-order-id="${row.id}"]`).evaluate(r=>r.nextElementSibling.dataset.orderId),row.id);
   }
-  const paperclip=table.locator('.so-doc-link').first();const docId=await paperclip.getAttribute('data-doc-id');
-  await paperclip.click();await page.waitForFunction(()=>window.__opened.length===1);
   assert.ok(await page.locator('#orders-list-view').isVisible());
-  assert.ok(requests.some(r=>r.path===`/purchase-documents/${docId}/url`));
   assert.equal(await page.locator('#order-detail-view').isVisible(),false);
   assert.ok(await table.locator('.order-link').first().evaluate(el=>el.tagName==='BUTTON'));
   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth),width);
-  const adjacent=await table.locator('.order-identity-cell').first().evaluate(cell=>{const a=cell.querySelector('.order-link').getBoundingClientRect(),b=cell.querySelector('.so-doc-link').getBoundingClientRect();return b.left>=a.right && b.top<a.bottom;});
-  assert.ok(adjacent,'order button and paperclip stay side by side');
-  const cardGeometry=await table.locator('.order-row').evaluateAll(rows=>rows.filter(r=>r.querySelector('.so-ready-pill')).map(r=>{const badge=r.querySelector('.so-ready-pill').getBoundingClientRect(),qty=r.cells[10].getBoundingClientRect();return {id:r.dataset.orderId,badgeTop:badge.top,quantityBottom:qty.bottom,below:badge.top>=qty.bottom,overlap:Math.min(badge.right,qty.right)>Math.max(badge.left,qty.left)&&Math.min(badge.bottom,qty.bottom)>Math.max(badge.top,qty.top)};}));
-  if(width===390 && !process.env.CAPTURE_BASELINE)assert.ok(cardGeometry.length && cardGeometry.every(x=>x.below&&!x.overlap),JSON.stringify(cardGeometry));
+  const cardGeometry=await table.locator('.order-row').evaluateAll(rows=>rows.map(r=>{
+   const ready=r.querySelector('.order-ready-checkbox').getBoundingClientRect(),row=r.getBoundingClientRect();
+   return {id:r.dataset.orderId,readyContained:ready.left>=row.left&&ready.right<=row.right&&ready.top>=row.top&&ready.bottom<=row.bottom};
+  }));
+  assert.ok(cardGeometry.every(row=>row.readyContained),JSON.stringify(cardGeometry));
   await page.evaluate(()=>window.scrollTo(0,0));
   const toolbar=await page.locator('#orders-list-view .orders-toolbar').evaluate(e=>({height:e.getBoundingClientRect().height,width:e.getBoundingClientRect().width}));
   await page.screenshot({path:path.join(output,`orders-${width}-${theme}.png`)});
-  await table.locator('.order-row.so-ready').first().screenshot({path:path.join(output,`ready-card-${width}-${theme}.png`)});
+  await table.locator('.order-row').filter({has:page.locator('.order-ready-checkbox:checked')}).first().screenshot({path:path.join(output,`ready-card-${width}-${theme}.png`)});
   const measurements=[];
   for(const kind of ['er','so']){
    if(kind==='er')await page.goto(server.origin+'/?section=expected');
@@ -126,7 +129,7 @@ try {
   const historyStyle=await page.locator('#history-form').evaluate(e=>({padding:getComputedStyle(e.closest('main')).paddingLeft,controlBackground:getComputedStyle(e.querySelector('select')).backgroundColor}));
   assert.deepEqual(errors,[]);
   assert.ok(!requests.some(r=>r.path.endsWith('/approve')));
-  results.push({width,theme,rowsSorted:original.length,paperclip:'opened document only',cardGeometry,toolbar,historyStyle,measurements,errors,unmatched:[...state.unmatched],blocked:[...new Set(blocked)]});
+  results.push({width,theme,rowsSorted:original.length,listContract:'State tabs, eight columns, readiness checkbox and attached expansion rows',cardGeometry,toolbar,historyStyle,measurements,errors,unmatched:[...state.unmatched],blocked:[...new Set(blocked)]});
   await context.close();
  }
  await fs.writeFile(path.join(output,'results.json'),JSON.stringify(results,null,2));

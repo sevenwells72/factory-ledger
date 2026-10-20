@@ -150,3 +150,5 @@ html,body{width:100%;max-width:100%;min-width:0}
   .attachment-chip .photo-retry,.jump-latest{min-height:44px}
   .jump-latest{position:static;display:block;transform:none;margin:0 auto 8px;max-width:100%}
 }
+
+.topbar .receipt-tools>a[data-fl-write-ui]{min-height:44px;padding:9px 12px;font-size:13px;background:var(--surface);color:var(--text);border-color:var(--line)}

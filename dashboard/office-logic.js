@@ -3,6 +3,7 @@
   'use strict';
   const actions=[
     ['create_order','Create order','Crear pedido'],
+    ['create_customer','New customer','Cliente nuevo'],
     ['add_order_lines','Add order lines','Agregar líneas'],
     ['update_order_line','Update order line','Modificar línea'],
     ['cancel_order_line','Cancel order line','Cancelar línea'],
@@ -60,6 +61,15 @@
     const detail=result?.detail||result;
     return customerChoice(detail?.existing_customer||(detail?.blockers||[]).find(b=>b.code==='CUSTOMER_ALREADY_EXISTS')?.existing_customer);
   }
-  const api={actions,permission,permitted,build,resolvedLine,customerChoice,existingCustomer};
+  function productChoices(rows){
+    return rows.filter(Boolean).map((item,index)=>({item,index})).sort((a,b)=>Number(a.item.kosher_tier==='extra_kosher')-Number(b.item.kosher_tier==='extra_kosher')||a.index-b.index).map(({item})=>item);
+  }
+  function expectedPounds(cases,caseSize){
+    if(!Number.isFinite(cases)||cases<=0||!Number.isFinite(caseSize)||caseSize<=0)throw Error('Enter cases and lb per case / Ingresa cajones y lb por cajón');
+    const pounds=cases*caseSize;
+    if(!Number.isFinite(pounds)||pounds<=0)throw Error('Enter a valid expected weight / Ingresa un peso esperado válido');
+    return Number(pounds.toFixed(6));
+  }
+  const api={actions,permission,permitted,build,resolvedLine,customerChoice,existingCustomer,productChoices,expectedPounds};
   if(typeof module!=='undefined')module.exports=api;root.FLOffice=api;
 })(typeof window==='undefined'?globalThis:window);

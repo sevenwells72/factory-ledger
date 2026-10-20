@@ -1,0 +1,223 @@
+{
+  "created_at": "2026-10-20T18:38:24.424Z",
+  "local_only": true,
+  "actual_handlers": true,
+  "openai_calls": 0,
+  "records": 0,
+  "width": 390,
+  "results": [
+    {
+      "name": "adjust: physical_count form and draft agree, including live language changes",
+      "initial_language": "en",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "adjust: missing_receipt form and draft agree, including live language changes",
+      "initial_language": "en",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "adjust: missing_production form and draft agree, including live language changes",
+      "initial_language": "en",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "adjust: wrong_lot form and draft agree, including live language changes",
+      "initial_language": "en",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "adjust: damage_disposal form and draft agree, including live language changes",
+      "initial_language": "en",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "adjust: unrecorded_usage form and draft agree, including live language changes",
+      "initial_language": "en",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "adjust: data_entry_error form and draft agree, including live language changes",
+      "initial_language": "en",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "adjust: unknown form and draft agree, including live language changes",
+      "initial_language": "en",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "found: physical_count form and draft agree, including live language changes",
+      "initial_language": "en",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "found: missing_receipt form and draft agree, including live language changes",
+      "initial_language": "en",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "found: missing_production form and draft agree, including live language changes",
+      "initial_language": "en",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "found: unknown form and draft agree, including live language changes",
+      "initial_language": "en",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "Office order Cases and Boxes stay distinct on form and draft in both languages",
+      "initial_language": "en",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "Expected delivery missing-input help and calculated total switch language without losing numbers",
+      "initial_language": "en",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "Real catalog pouch conversion switches both form and draft wording",
+      "initial_language": "en",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "approve_so shows distinct translated units on already-extracted document lines",
+      "initial_language": "en",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "approve_er shows distinct translated units on already-extracted document lines",
+      "initial_language": "en",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "adjust: physical_count form and draft agree, including live language changes",
+      "initial_language": "es",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "adjust: missing_receipt form and draft agree, including live language changes",
+      "initial_language": "es",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "adjust: missing_production form and draft agree, including live language changes",
+      "initial_language": "es",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "adjust: wrong_lot form and draft agree, including live language changes",
+      "initial_language": "es",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "adjust: damage_disposal form and draft agree, including live language changes",
+      "initial_language": "es",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "adjust: unrecorded_usage form and draft agree, including live language changes",
+      "initial_language": "es",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "adjust: data_entry_error form and draft agree, including live language changes",
+      "initial_language": "es",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "adjust: unknown form and draft agree, including live language changes",
+      "initial_language": "es",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "found: physical_count form and draft agree, including live language changes",
+      "initial_language": "es",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "found: missing_receipt form and draft agree, including live language changes",
+      "initial_language": "es",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "found: missing_production form and draft agree, including live language changes",
+      "initial_language": "es",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "found: unknown form and draft agree, including live language changes",
+      "initial_language": "es",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "Office order Cases and Boxes stay distinct on form and draft in both languages",
+      "initial_language": "es",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "Expected delivery missing-input help and calculated total switch language without losing numbers",
+      "initial_language": "es",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "Real catalog pouch conversion switches both form and draft wording",
+      "initial_language": "es",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "approve_so shows distinct translated units on already-extracted document lines",
+      "initial_language": "es",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "approve_er shows distinct translated units on already-extracted document lines",
+      "initial_language": "es",
+      "width": 390,
+      "passed": true
+    }
+  ],
+  "databases_dropped": [
+    "fl_pilotux_review_29874"
+  ],
+  "verified": {
+    "receipts": [],
+    "exceptions": [],
+    "attachments": 0,
+    "confirmations": 0
+  }
+}

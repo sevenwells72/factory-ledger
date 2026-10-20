@@ -535,3 +535,8 @@ for (const language of ['en', 'es']) for (const [pounds, size, quantity] of [
   for (let i=0;i<6;i++) await new Promise(resolve=>setImmediate(resolve));
   assert.equal(h.bodies[0].text, language==='en'?'Ship all remaining on order SO-261015-001.':'Envía todo lo pendiente del pedido SO-261015-001.');
 });
+
+test('disabled Assistant and exhausted quota share the offline handoff classifier',()=>{
+  for(const code of ['ASSISTANT_DISABLED','ASSISTANT_QUOTA_EXHAUSTED'])for(const response of [{error_code:code},{code},{detail:{error_code:code}},{detail:{code}},{result:{detail:{error_code:code}}},{result:{detail:{code}}}])assert.equal(ui.assistantOffline(response),true,JSON.stringify(response));
+  for(const response of [null,{},'ASSISTANT_DISABLED',{message:'ASSISTANT_DISABLED'},{detail:{error_code:'SESSION_EXPIRED'}},{detail:{error_code:'ROLE_NOT_ALLOWED'}},{result:{detail:{error_code:'DATABASE_BUSY'}}}])assert.equal(ui.assistantOffline(response),false,JSON.stringify(response));
+});

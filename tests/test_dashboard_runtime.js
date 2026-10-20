@@ -24,7 +24,7 @@ test('delayed, failed and malformed config cannot expose write UI; true enables 
 });
 test('every receipt-enabled page loads routing before other scripts and hides new UI initially',()=>{
  const directory=path.join(__dirname,'../dashboard');const files=[...fs.readdirSync(directory).filter(n=>n.endsWith('.html')).map(n=>path.join(directory,n)),path.join(directory,'scheduler/seven-wells-production-board.html')];
- for(const file of files){const source=fs.readFileSync(file,'utf8');if(!source.includes('receipt-shell.js'))continue;assert.match(source,/<head>\s*<script src="(?:\.\.\/|\/dashboard\/)?dashboard-runtime\.js/,'routing first: '+file);}
+ for(const file of files){const source=fs.readFileSync(file,'utf8');if(!source.includes('receipt-shell.js'))continue;const head=source.match(/<head>([\s\S]*?)<\/head>/)[1],scripts=[...head.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)];if(!scripts[0][1].includes('src=')){assert.equal(scripts[0][2],"if(location.pathname.startsWith('/dash/')){const base=document.createElement('base');base.href='/dashboard/';document.head.append(base);}",'only a path-only base may precede routing: '+file);scripts.shift();}assert.match(scripts[0][1],/src="(?:\.\.\/|\/dashboard\/)?dashboard-runtime\.js/,'routing first: '+file);}
  for(const name of ['entry','exceptions','receipt']){const source=fs.readFileSync(path.join(directory,name+'.html'),'utf8');assert.match(source,/<form hidden data-fl-write-ui id="sign-in-form"/);if(name!=='receipt')assert.match(source,/<main data-fl-write-ui>/);}
  assert.match(fs.readFileSync(path.join(directory,'ledger-forms.css'),'utf8'),/:root:not\(\[data-fl-write-ui="on"\]\) \[data-fl-write-ui\]\{display:none!important\}/);
 });
