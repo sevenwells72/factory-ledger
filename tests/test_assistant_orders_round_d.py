@@ -91,7 +91,9 @@ def test_shipping_question_uses_effective_physical_remaining_and_keeps_bulk_in_p
     target = orders['Sunshine Granola']
     # A stale recorded count must not hide pounds restored by a voided shipment.
     db_cursor.execute('UPDATE sales_order_lines SET quantity_shipped_lb=25 WHERE id=%s', (target['line'],))
-    db_cursor.execute('UPDATE products SET case_size_lb=NULL WHERE id=%s', (items['batch']['id'],))
+    # The random fixture tag sometimes contained "FEE" and the bulk line was read
+    # as a fee; always name it that way so the service flag alone is exercised.
+    db_cursor.execute("UPDATE products SET case_size_lb=NULL, name=name || ' COFFEE FEE' WHERE id=%s", (items['batch']['id'],))
     db_cursor.execute('INSERT INTO sales_order_lines(sales_order_id,product_id,quantity_lb) VALUES (%s,%s,12.5)', (target['id'], items['batch']['id']))
     db_cursor.execute("INSERT INTO products(name,type,uom,case_size_lb,is_service,active) VALUES ('Keepalive freight','finished','each',5,true,true) RETURNING id")
     service_id = db_cursor.fetchone()['id']

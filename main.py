@@ -15401,12 +15401,10 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
                     line_value = round(qty * price, 2)
                     total_value += line_value
 
-                # Detect non-weight items (pallets, freight, surcharges, etc.)
-                # Primary: DB flag; fallback: keyword matching
-                product_name_lower = r['name'].lower()
-                non_weight_keywords = ('pallet', 'freight', 'delivery', 'surcharge', 'charge', 'fee')
-                is_non_weight = (is_service if r['ordered_quantity'] is not None else
-                                 is_service or any(kw in product_name_lower for kw in non_weight_keywords))
+                # Non-weight items (pallets, freight, surcharges, etc.) come only
+                # from the products.is_service flag. Name matching mistook real
+                # products such as "Coffee" ("fee") for charges.
+                is_non_weight = bool(is_service)
 
                 if is_non_weight:
                     price_basis = "per_unit"
@@ -16766,6 +16764,7 @@ def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = D
                 # ── Post-shipment: pull actual lot allocations from shipment records ──
                 cur.execute("""
                     SELECT p.name AS product_name, p.case_size_lb,
+                           COALESCE(p.is_service, false) AS is_service,
                            l.lot_code, l.supplier_lot_code,
                            ABS(tl.quantity_lb) AS quantity_lb
                     FROM shipment_lines sl
@@ -16787,9 +16786,7 @@ def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = D
                     case_size = float(row['case_size_lb']) if row['case_size_lb'] else None
                     qty = float(row['quantity_lb'])
 
-                    product_lower = product_name.lower()
-                    non_weight_keywords = ('pallet', 'freight', 'delivery', 'surcharge', 'charge', 'fee')
-                    is_non_weight = any(kw in product_lower for kw in non_weight_keywords)
+                    is_non_weight = bool(row['is_service'])
 
                     if is_non_weight:
                         qty_display = str(int(qty)) if qty == int(qty) else str(qty)
@@ -16810,10 +16807,7 @@ def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = D
                 shipped_product_names = {r['product_name'] for r in shipped_lots}
                 for line in lines:
                     product_name = line['product_name']
-                    product_lower = product_name.lower()
-                    non_weight_keywords = ('pallet', 'freight', 'delivery', 'surcharge', 'charge', 'fee')
-                    is_non_weight = (line['is_service'] if line['ordered_quantity'] is not None else
-                                     line['is_service'] or any(kw in product_lower for kw in non_weight_keywords))
+                    is_non_weight = bool(line['is_service'])
                     if is_non_weight and product_name not in shipped_product_names:
                         count = float(line['ordered_quantity'] if line['ordered_quantity'] is not None else line['quantity_lb'])
                         qty_display = f"{count:g}"
@@ -16831,11 +16825,8 @@ def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = D
                     remaining_lb = qty_lb - float(line['quantity_shipped_lb'])
                     case_size = float(line['case_size_lb']) if line['case_size_lb'] else None
 
-                    # Detect non-weight items
-                    product_lower = product_name.lower()
-                    non_weight_keywords = ('pallet', 'freight', 'delivery', 'surcharge', 'charge', 'fee')
-                    is_non_weight = (line['is_service'] if line['ordered_quantity'] is not None else
-                                     line['is_service'] or any(kw in product_lower for kw in non_weight_keywords))
+                    # Detect non-weight items (products.is_service only, never the name)
+                    is_non_weight = bool(line['is_service'])
 
                     if is_non_weight:
                         count = float(line['ordered_quantity'] if line['ordered_quantity'] is not None else line['quantity_lb'])

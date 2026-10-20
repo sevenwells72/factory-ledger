@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-20 18:00 — Fee/charge lines decided by the is_service flag only, not the product name
+- **File(s) changed:** `main.py`, `tests/test_fee_name_not_service.py`, `tests/test_assistant_orders_round_d.py`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Removed the product-name keyword fallback (pallet/freight/delivery/surcharge/charge/fee) from order detail and the packing slip (4 places); only `products.is_service` marks a service line now. Added 15 regression tests (Coffee/FEE/Delivery-named bulk products, real Pallet Charge) and made the round D shipping-question test always use a FEE-named product. FL row 225. 6,931 Python ×2 modes and 562 Node pass.
+- **Why:** Codex found a flaky test while reviewing PR #141: a random fixture tag containing "FEE" made a bulk item look like a fee; real products such as "Batch Setton Coffee Granola #12" were exposed to the same mistake.
+
+---
+
 ## 2026-10-20 15:12 — Document the five Spanish Record wording changes and fresh passing 562 Node, 34 reason/unit and 22 Spanish pilot checks; add regression row 224 and retain the first failed Office-load attempt
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/pilot-ux-fix-round/record-wording-followup.md`, `docs/validation/pilot-ux-fix-round/record-wording-results.json`
 - **What changed:** Document the five Spanish Record wording changes and fresh passing 562 Node, 34 reason/unit and 22 Spanish pilot checks; add regression row 224 and retain the first failed Office-load attempt
