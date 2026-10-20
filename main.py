@@ -30,6 +30,7 @@ import pypdf
 import threading
 import time
 from collections import defaultdict, deque
+import contextvars
 # Vision extraction lives in its own module (vendor-swappable, zero DB
 # imports). Always referenced as `extraction.<name>` so tests can monkeypatch
 # the module attributes and both sides see it.
@@ -157,6 +158,87 @@ class DecimalSafeJSONResponse(JSONResponse):
 
 app = FastAPI(title="Factory Ledger System", version="3.1.1", default_response_class=DecimalSafeJSONResponse)
 from fastapi.middleware.cors import CORSMiddleware
+
+
+# ═══════════════════════════════════════════════════════════════
+# DATABASE BUSY → 503 on every route
+# When getconn's wait for a free pool connection runs out, the request gets
+# a retryable 503 DATABASE_BUSY. Many handlers wrap their work in
+# `except Exception` and answer their own 500, so the PoolError exception
+# handler alone cannot guarantee that. Instead the pool marks the current
+# request (_mark_request_database_busy) and this middleware replaces any 5xx
+# response — or escaping exception — of a marked request. Registered BEFORE
+# CORSMiddleware, so it is the innermost middleware: CORS headers and the
+# write envelope still apply to the 503 it sends. A response already
+# streaming (status sent before the timeout) cannot be changed.
+# ═══════════════════════════════════════════════════════════════
+
+_request_database_busy = contextvars.ContextVar("fl_request_database_busy", default=None)
+
+
+def _mark_request_database_busy():
+    # The marker is a dict shared by reference: sync handlers run in a worker
+    # thread on a copy of the request's context, and still reach it.
+    marker = _request_database_busy.get()
+    if marker is not None:
+        marker["busy"] = True
+
+
+def _database_busy_response(error="connection pool exhausted") -> JSONResponse:
+    return JSONResponse(
+        status_code=503,
+        content={
+            "success": False,
+            "error_code": "DATABASE_BUSY",
+            "error": error,
+            "retryable": True,
+            "message": "The server is busy. Retry in a few seconds.",
+        },
+    )
+
+
+class DatabaseBusyMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        marker = {"busy": False}
+        token = _request_database_busy.set(marker)
+        state = {"started": False, "replacing": False, "sent": False}
+
+        async def guarded_send(message):
+            if message["type"] == "http.response.start":
+                if marker["busy"] and message["status"] >= 500:
+                    state["replacing"] = True
+                    return
+                state["started"] = True
+            elif state["replacing"]:
+                if not message.get("more_body") and not state["sent"]:
+                    state["sent"] = True
+                    await self._send_busy(scope, receive, send, "response")
+                return
+            await send(message)
+
+        try:
+            await self.app(scope, receive, guarded_send)
+        except Exception:
+            if not marker["busy"] or state["started"] or state["sent"]:
+                raise
+            await self._send_busy(scope, receive, send, "exception")
+        finally:
+            _request_database_busy.reset(token)
+
+    @staticmethod
+    async def _send_busy(scope, receive, send, replaced):
+        logger.warning(f"DATABASE_BUSY_503: {scope.get('method')} {scope.get('path')} "
+                       f"(replaced a 5xx {replaced} after a pool wait timed out)")
+        await _database_busy_response()(scope, receive, send)
+
+
+app.add_middleware(DatabaseBusyMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -296,17 +378,10 @@ async def _exception_receipt_response(request: Request, exc: Exception) -> JSONR
         )
 
     if isinstance(exc, pool.PoolError) and 'connection pool exhausted' in str(exc):
-        # Already logged as DB_POOL_CAPACITY; the request never touched the DB.
-        return JSONResponse(
-            status_code=503,
-            content={
-                "success": False,
-                "error_code": "DATABASE_BUSY",
-                "error": str(exc),
-                "retryable": True,
-                "message": "The server is busy. Retry in a few seconds.",
-            },
-        )
+        # Already logged as DB_POOL_CAPACITY. This acquisition never reached
+        # the DB, but an earlier transaction in the same request may have
+        # committed; retries are safe only because writes replay by ticket.
+        return _database_busy_response(str(exc))
 
     logger.error(
         f"Unhandled exception on {request.method} {request.url.path}: {exc}\n"
@@ -1895,43 +1970,226 @@ DB_POOL_MAX_CONNECTIONS = 10
 DB_POOL_WAIT_SECONDS = 10.0
 
 
+class PoolTimeout(pool.PoolError):
+    """getconn found no free connection within the wait limit."""
+
+
+class _PoolWaiter:
+    __slots__ = ("key", "event", "grant")
+
+    def __init__(self, key):
+        self.key = key
+        self.event = threading.Event()
+        self.grant = None   # a checked-out connection, _POOL_SLOT or _POOL_CLOSED
+
+
+class _PoolConnectAttempt:
+    __slots__ = ("done", "conn", "error", "abandoned")
+
+    def __init__(self):
+        self.done = threading.Event()
+        self.conn = self.error = None
+        self.abandoned = False
+
+
+_POOL_SLOT = object()     # grant: a free slot; the waiter opens its own connection
+_POOL_CLOSED = object()   # grant: closeall ran while waiting
+
+# retry_database_read sets one budget for both attempts, so a retried read
+# never waits longer in total than a single acquisition may.
+_pool_wait_budget = contextvars.ContextVar("fl_pool_wait_budget", default=None)
+
+
 class WaitingConnectionPool(pool.ThreadedConnectionPool):
     """ThreadedConnectionPool whose getconn waits (bounded) for a free slot.
 
     psycopg2's own pool raises PoolError the instant every connection is in
-    use. Waiters are woken one per returned connection, oldest first.
+    use. Here callers queue first-come first-served: a returned connection (or
+    freed slot) is handed straight to the oldest waiter, so a newcomer can
+    never overtake the queue. One deadline covers the whole acquisition —
+    taking the mutex, queueing and opening the connection — and the mutex
+    guards bookkeeping only: opens, rollbacks and closes run outside it.
     """
 
     def __init__(self, minconn, maxconn, *args, wait_seconds=DB_POOL_WAIT_SECONDS, **kwargs):
         super().__init__(minconn, maxconn, *args, **kwargs)
         self.wait_seconds = wait_seconds
-        self._released = threading.Condition(self._lock)
+        self._waiters = deque()
+        self._opening = 0   # slots reserved by connection opens still in flight
 
     def getconn(self, key=None):
-        deadline = time.monotonic() + self.wait_seconds
-        with self._released:
-            while not self.closed and key not in self._used and len(self._used) >= self.maxconn:
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
-                    raise pool.PoolError(
-                        f"connection pool exhausted: all {self.maxconn} connections "
-                        f"busy for {self.wait_seconds:g} s")
-                self._released.wait(remaining)
-            return self._getconn(key)
+        budget = _pool_wait_budget.get()
+        limit = self.wait_seconds if budget is None else min(self.wait_seconds, budget[0])
+        started = time.monotonic()
+        try:
+            return self._acquire(key, started + max(limit, 0))
+        finally:
+            if budget is not None:
+                budget[0] -= time.monotonic() - started
+
+    def _acquire(self, key, deadline):
+        if not self._lock.acquire(timeout=max(deadline - time.monotonic(), 0)):
+            raise self._timeout()
+        try:
+            if self.closed:
+                raise pool.PoolError("connection pool is closed")
+            if key is None:
+                key = self._getkey()
+            elif key in self._used:
+                return self._used[key]
+            waiter = None
+            if not self._waiters and self._pool:
+                return self._checkout(key, self._pool.pop())
+            if self._waiters or len(self._used) + self._opening >= self.maxconn:
+                waiter = _PoolWaiter(key)
+                self._waiters.append(waiter)
+            else:
+                self._opening += 1
+        finally:
+            self._lock.release()
+        if waiter is not None:
+            waiter.event.wait(max(deadline - time.monotonic(), 0))
+            with self._lock:
+                grant = waiter.grant
+                if grant is None:
+                    self._waiters.remove(waiter)
+            if grant is None:
+                raise self._timeout()
+            if grant is _POOL_CLOSED:
+                raise pool.PoolError("connection pool is closed")
+            if grant is not _POOL_SLOT:
+                return grant
+        return self._open(key, deadline)
+
+    def _open(self, key, deadline):
+        """Open a connection for a reserved slot, giving up at the deadline.
+
+        libpq's connect cannot be interrupted, so it runs on a helper thread;
+        an open that outlives the deadline is abandoned, and the helper hands
+        its connection (or the slot) to the next waiter when it finishes."""
+        attempt = _PoolConnectAttempt()
+        threading.Thread(target=self._connect_for, args=(attempt,), daemon=True,
+                         name="db-pool-connect").start()
+        if not attempt.done.wait(max(deadline - time.monotonic(), 0)):
+            with self._lock:
+                attempt.abandoned = not attempt.done.is_set()
+            if attempt.abandoned:
+                raise self._timeout()
+        to_close = None
+        with self._lock:
+            self._opening -= 1
+            closed = self.closed
+            if attempt.error is not None:
+                to_close = self._pass_on(None)
+            elif closed:
+                to_close = attempt.conn
+            else:
+                self._checkout(key, attempt.conn)
+        self._close_quietly(to_close)
+        if attempt.error is not None:
+            raise attempt.error
+        if closed:
+            raise pool.PoolError("connection pool is closed")
+        return attempt.conn
+
+    def _connect_for(self, attempt):
+        try:
+            conn, error = psycopg2.connect(*self._args, **self._kwargs), None
+        except Exception as exc:
+            conn, error = None, exc
+        to_close = None
+        with self._lock:
+            attempt.conn, attempt.error = conn, error
+            attempt.done.set()
+            if attempt.abandoned:
+                self._opening -= 1
+                to_close = conn if self.closed else self._pass_on(conn)
+        self._close_quietly(to_close)
 
     def putconn(self, conn=None, key=None, close=False):
-        with self._released:
-            try:
-                self._putconn(conn, key, close)
-            finally:
-                self._released.notify()
+        with self._lock:
+            if self.closed:
+                raise pool.PoolError("connection pool is closed")
+            if key is None:
+                key = self._rused.get(id(conn))
+                if key is None:
+                    raise pool.PoolError("trying to put unkeyed connection")
+            if conn is None:
+                conn = self._used[key]
+        # Bring the connection back to a clean state outside the mutex: a
+        # rollback is a network round trip.
+        keep = not close and not conn.closed
+        if keep:
+            status = conn.info.transaction_status
+            if status == psycopg2.extensions.TRANSACTION_STATUS_UNKNOWN:
+                keep = False   # server connection lost
+            elif status != psycopg2.extensions.TRANSACTION_STATUS_IDLE:
+                try:
+                    conn.rollback()
+                except Exception:
+                    keep = False
+        to_close = None if keep else conn
+        with self._lock:
+            if self._used.get(key) is conn:
+                del self._used[key]
+                self._rused.pop(id(conn), None)
+                if self.closed:
+                    to_close = conn
+                else:
+                    passed = self._pass_on(conn if keep else None)
+                    to_close = to_close or passed
+        self._close_quietly(to_close)
 
     def closeall(self):
-        with self._released:
+        with self._lock:
+            if self.closed:
+                raise pool.PoolError("connection pool is closed")
+            self.closed = True
+            conns = self._pool + list(self._used.values())
+            self._pool = []
+            while self._waiters:
+                waiter = self._waiters.popleft()
+                waiter.grant = _POOL_CLOSED
+                waiter.event.set()
+        for conn in conns:
+            self._close_quietly(conn)
+
+    def _pass_on(self, conn):
+        """A slot just freed, with an idle connection or None. Caller holds the mutex.
+
+        The oldest waiter gets it; otherwise the connection idles (up to
+        minconn) or is returned for the caller to close outside the mutex."""
+        if self._waiters:
+            waiter = self._waiters.popleft()
+            if conn is None:
+                self._opening += 1
+                waiter.grant = _POOL_SLOT
+            else:
+                waiter.grant = self._checkout(waiter.key, conn)
+            waiter.event.set()
+            return None
+        if conn is not None and len(self._pool) < self.minconn:
+            self._pool.append(conn)
+            return None
+        return conn
+
+    def _checkout(self, key, conn):
+        self._used[key] = conn
+        self._rused[id(conn)] = key
+        return conn
+
+    @staticmethod
+    def _close_quietly(conn):
+        if conn is not None and not conn.closed:
             try:
-                self._closeall()
-            finally:
-                self._released.notify_all()
+                conn.close()
+            except Exception:
+                pass
+
+    def _timeout(self):
+        _mark_request_database_busy()
+        return PoolTimeout(f"connection pool exhausted: all {self.maxconn} connections "
+                           f"busy for {self.wait_seconds:g} s")
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -2687,6 +2945,14 @@ def retry_database_read(function):
     """
     @wraps(function)
     def read(*args, **kwargs):
+        # Both attempts draw on one connection-wait budget (seconds left).
+        token = _pool_wait_budget.set([getattr(db_pool, 'wait_seconds', DB_POOL_WAIT_SECONDS)])
+        try:
+            return _read(*args, **kwargs)
+        finally:
+            _pool_wait_budget.reset(token)
+
+    def _read(*args, **kwargs):
         for attempt in range(2):
             try:
                 return function(*args, **kwargs)

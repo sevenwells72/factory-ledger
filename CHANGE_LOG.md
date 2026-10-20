@@ -319,6 +319,10 @@
 - **File(s) changed:** `resolution.py`, `main.py`, `dashboard/ledger-forms.css`, `dashboard/fl-assistant.css`, `dashboard/fl-assistant.js`
 - **What changed:** Add SELECT-only product/lot choices and batch product context; style header links as buttons and support a direct Today route.
 - **Why:** Pilot workers need visible navigation and physical-lot choices without changing posting or pool behavior.
+## 2026-10-20 10:55 — DB pool follow-up: 503 on all paths, FIFO, 10 s cap
+- **File(s) changed:** `main.py`, `tests/test_db_pool_wait.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** New `DatabaseBusyMiddleware` (innermost) turns any 5xx of a request whose pool wait timed out into 503 `DATABASE_BUSY` (59 routes answered 500 on main). `WaitingConnectionPool` rewritten: explicit FIFO waiter queue with direct hand-over, one deadline across mutex/queue/connect, connects on a helper thread outside the mutex, rollback/close on return outside the mutex; `PoolTimeout` subclass of `PoolError`; `retry_database_read` shares one wait budget across both attempts. 8 new tests, all failing on main 9d5e888. FL rows 217 (marked deployed) and 220.
+- **Why:** PR #138 review comment 6271859908 blockers (500s on dashboard reads, non-FIFO queue, ~18 s acquisitions against a 10 s limit); #138 was merged before they were fixed, so this is a follow-up branch off main. Validation: Python 6,917 ×2 (sessions off/on, fresh DBs fl_pool2_*), Node 440, all browser runners both modes; DBs dropped.
 
 ---
 
