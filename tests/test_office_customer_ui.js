@@ -5,6 +5,8 @@ const source=fs.readFileSync('dashboard/office.js','utf8');
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
 class Element{
  constructor(tag,text=''){this.tag=tag;this.textContent=String(text??'');this.children=[];this.parent=null;this.dataset={};this.value='';this.hidden=false;this.disabled=false;this.type='';this.required=false;this.events={};}
+ get textContent(){return this._textContent;}
+ set textContent(value){this._textContent=String(value??'');}
  append(child){child.parent=this;this.children.push(child);}
  replaceChildren(...children){for(const child of this.children)child.parent=null;this.children=[];for(const child of children)this.append(child);}
  remove(){if(this.parent)this.parent.children=this.parent.children.filter(child=>child!==this);this.parent=null;}
@@ -15,7 +17,7 @@ class Element{
  scrollIntoView(){}
 }
 function descendants(root){return [root,...root.children.flatMap(descendants)];}
-async function harness({on=true,create=true,language='en'}={}){
+async function harness({on=true,create=true,language='en',permissions={}}={}){
  const documentRoot=new Element('document');documentRoot.root=true;
  for(const id of ['content','resolution','notice','language','sign-out']){const node=new Element('div');node.id=id;documentRoot.append(node);}
  let nextTimer=0;const timers=new Map();
@@ -23,18 +25,19 @@ async function harness({on=true,create=true,language='en'}={}){
  let resolveRequest=body=>body.kind==='customer'?{outcome:'none',candidates:[]}:
   body.kind==='product'?{outcome:'match',match:{id:44,name:'Test product'}}:
   {outcome:'match',draft:{product_id:body.context.product_id,quantity:body.quantity,unit:body.query}};
- const ui={bind(){},session:{token:'session'},ready:Promise.resolve(on),lang:language,t:(en,es)=>language==='es'?es:en,relabel(){},
-  el(tag,text,parent){const element=new Element(tag,text);parent?.append(element);return element;},
+ const labelled=new Set();
+ const ui={bind(){},session:{token:'session'},ready:Promise.resolve(on),lang:language,codeText:require('../dashboard/ledger-ui.js').codeText,t:(en,es)=>Object.assign(new String(ui.lang==='es'?es:en),{en,es}),relabel(){for(const element of labelled){if(!element.isConnected){labelled.delete(element);continue;}element.textContent=element.labels[ui.lang==='es'?1:0];}},
+  el(tag,text,parent){const element=new Element(tag,text);if(text?.en!==undefined){element.labels=[text.en,text.es];labelled.add(element);}parent?.append(element);return element;},
   notice(message){byId('notice').textContent=message;},failure(error){failures.push(error);},
-  async request(path,body){requests.push({path,body});return path==='/auth/whoami'?{permissions:{create_order:true,create_expected_receipt:true,...(create?{create_customer:true}:{})}}:resolveRequest(body);},
+  async request(path,body){requests.push({path,body});return path==='/auth/whoami'?{permissions:{create_order:true,create_expected_receipt:true,...(create?{create_customer:true}:{}),...permissions}}:resolveRequest(body);},
   ticketCard(host,path,body,options){const ticket={host,path,body,options,invalidated:false};tickets.push(ticket);return {invalidate(){ticket.invalidated=true;host.replaceChildren();}};}
  };
  const context={setTimeout(fn,ms){const key=++nextTimer;timers.set(key,{fn,ms});return key;},clearTimeout(key){timers.delete(key);},FLLedger:ui,FLOffice:office,FLDashboard:{writesEnabled:on},URLSearchParams,location:{search:''},sessionStorage:{getItem(){return null;},removeItem(){}},document:{getElementById:byId},window:{addEventListener(name,callback){events[name]=callback;}}};
  vm.runInNewContext(source,context);await flush();await flush();
  const find=(test,root=documentRoot)=>descendants(root).find(test),button=(text,root)=>find(node=>node.tag==='button'&&node.textContent===text,root);
- async function search(kind,query){const box=find(node=>node.dataset.picker===kind);find(node=>node.tag==='input',box).value=query;await button('Search',box).onclick();return box;}
+ async function search(kind,query){const box=find(node=>node.dataset.picker===kind);find(node=>node.tag==='input',box).value=query;await button(language==='es'?'Buscar':'Search',box).onclick();return box;}
  async function open(){await search('customer','New Account');button("Add 'New Account' as a new customer").onclick();}
- return {ui,nodes,find,button,byId,tickets,requests,failures,events,search,open,timers,async tick(){for(const [key,timer] of [...timers]){timers.delete(key);await timer.fn();}await flush();},setResolver(fn){resolveRequest=fn;}};
+ return {ui,nodes,find,button,byId,tickets,requests,failures,events,search,open,timers,switchLanguage(next){language=ui.lang=next;events['ledger-language']();},async tick(){for(const [key,timer] of [...timers]){timers.delete(key);await timer.fn();}await flush();},setResolver(fn){resolveRequest=fn;}};
 }
 test('customer prepare sends exactly direct-route fields through its own CUS ticket',()=>{
  const fields={name:'New Account',contact_name:'Pat',email:'pat@example.test',phone:'555-0123',address:'1 Example Road',notes:'Call first',notes_es:'Llamar primero',customer_id:99,active:true};
@@ -145,4 +148,68 @@ for(const language of ['en','es'])test('direct new-customer start and duplicate 
  ticket.options.onPrepared({blockers:[{code:'CUSTOMER_ALREADY_EXISTS',existing_customer:{id:5,name:'Setton Farms',active:true}}]});
  h.button((spanish?'Usar cliente existente: ':'Use existing customer: ')+'Setton Farms').onclick();
  assert.equal(h.byId('office-action').value,'create_order');assert.equal(h.find(n=>n.dataset.picker==='customer').children.at(-1).textContent,(spanish?'Seleccionado: ':'Selected: ')+'Setton Farms');
+});
+
+for(const language of ['en','es'])for(const action of ['create_order','add_order_lines'])test(action+' distinguishes cases and boxes on every order line in '+language,async()=>{
+ const h=await harness({language,permissions:{add_order_lines:true}}),spanish=language==='es';
+ const selector=h.byId('office-action');selector.value=action;selector.onchange();
+ h.button(spanish?'Agregar línea':'Add line').onclick();
+ const units=h.nodes().filter(node=>node.name==='unit');assert.equal(units.length,2);
+ for(const unit of units){
+  const label=value=>unit.children.find(option=>option.value===value).textContent;
+  assert.equal(label('cases'),spanish?'Cajones':'Cases');assert.equal(label('boxes'),spanish?'Cajas':'Boxes');
+  assert.notEqual(label('cases'),label('boxes'));assert.equal(label('pouches'),spanish?'Bolsitas → cajones':'Pouches → cases');
+ }
+});
+for(const language of ['en','es'])test('expected delivery uses the same case word for mode, quantity, size and help in '+language,async()=>{
+ const h=await harness({language}),spanish=language==='es';h.find(node=>node.dataset.officeStart==='create_expected_receipt').onclick();
+ const mode=h.find(node=>node.name==='expected_unit'),cases=h.find(node=>node.name==='expected_cases'),size=h.find(node=>node.name==='expected_case_size');
+ assert.equal(mode.children.find(option=>option.value==='cases').textContent,spanish?'Cajones':'Cases');
+ assert.equal(cases.parent.textContent,spanish?'Cajones':'Cases');assert.equal(size.parent.textContent,spanish?'Tamaño de cajón (lb cada uno)':'Case size (lb each)');
+ mode.value='cases';mode.onchange();
+ const help=spanish?'Ingresa cajones y lb por cajón para calcular el total.':'Enter cases and lb per case to calculate the total.';
+ assert.ok(h.find(node=>node.textContent===help));cases.value='10';size.value='25';size.oninput();
+ assert.ok(h.find(node=>node.textContent===(spanish?'Total esperado: ':'Expected total: ')+'250 lb'));
+});
+for(const language of ['en','es'])test('pouch conversion uses the same case word on the form and Office draft in '+language,async()=>{
+ const h=await harness({language}),spanish=language==='es';
+ h.setResolver(body=>body.kind==='unit'?{outcome:'match',draft:{product_id:44,quantity:2,unit:'cases'},conversion:{from_quantity:24}}:{outcome:'match',match:{id:body.kind==='customer'?12:44,name:body.kind==='customer'?'Customer':'Product'}});
+ for(const kind of ['customer','product']){const box=await h.search(kind,kind);h.button(kind==='customer'?'Customer':'Product',box).onclick();}
+ h.find(node=>node.name==='quantity').value='24';h.find(node=>node.name==='unit').value='pouches';
+ await h.byId('office-form').onsubmit({preventDefault(){}});
+ assert.deepEqual(h.failures,[]);assert.equal(h.tickets[0].body.lines[0].quantity,2);assert.equal(h.tickets[0].body.lines[0].unit,'cases');
+ const expected=spanish?'24 bolsitas → 2 cajones':'24 pouches → 2 cases';
+ assert.equal(h.nodes().filter(node=>node.textContent===expected).length,2,'The line and draft both explain the same conversion');
+});
+test('switching Office languages relabels pouch conversion in place without changing the draft',async()=>{
+ const h=await harness();
+ h.setResolver(body=>body.kind==='unit'?{outcome:'match',draft:{product_id:44,quantity:2,unit:'cases'},conversion:{from_quantity:24}}:{outcome:'match',match:{id:body.kind==='customer'?12:44,name:body.kind==='customer'?'Customer':'Product'}});
+ for(const kind of ['customer','product']){const box=await h.search(kind,kind);h.button(kind==='customer'?'Customer':'Product',box).onclick();}
+ const quantity=h.find(node=>node.name==='quantity'),unit=h.find(node=>node.name==='unit');quantity.value='24';unit.value='pouches';
+ await h.byId('office-form').onsubmit({preventDefault(){}});const ticket=h.tickets[0],body=JSON.stringify(ticket.body),form=h.byId('office-form');
+ for(const [language,expected,cases,boxes] of [['es','24 bolsitas → 2 cajones','Cajones','Cajas'],['en','24 pouches → 2 cases','Cases','Boxes']]){
+  h.switchLanguage(language);assert.equal(h.nodes().filter(node=>node.textContent===expected).length,2);
+  assert.equal(unit.children.find(option=>option.value==='cases').textContent,cases);assert.equal(unit.children.find(option=>option.value==='boxes').textContent,boxes);
+  assert.equal(h.byId('office-form'),form);assert.equal(form.hidden,true);assert.equal(quantity.value,'24');assert.equal(unit.value,'pouches');assert.equal(h.tickets.length,1);assert.equal(ticket.invalidated,false);assert.equal(JSON.stringify(ticket.body),body);
+ }
+});
+test('switching Office languages relabels expected-delivery help and calculated total without clearing quantities',async()=>{
+ const h=await harness();h.find(node=>node.dataset.officeStart==='create_expected_receipt').onclick();
+ const mode=h.find(node=>node.name==='expected_unit'),cases=h.find(node=>node.name==='expected_cases'),size=h.find(node=>node.name==='expected_case_size'),pounds=h.find(node=>node.name==='expected_qty');mode.value='cases';mode.onchange();
+ h.switchLanguage('es');assert.ok(h.find(node=>node.textContent==='Ingresa cajones y lb por cajón para calcular el total.'));assert.equal(cases.parent.textContent,'Cajones');assert.equal(size.parent.textContent,'Tamaño de cajón (lb cada uno)');
+ h.switchLanguage('en');assert.ok(h.find(node=>node.textContent==='Enter cases and lb per case to calculate the total.'));
+ cases.value='10';size.value='25';size.oninput();
+ for(const [language,total] of [['es','Total esperado: 250 lb'],['en','Expected total: 250 lb']]){h.switchLanguage(language);assert.ok(h.find(node=>node.textContent===total));assert.equal(cases.value,'10');assert.equal(size.value,'25');assert.equal(pounds.value,250);assert.equal(mode.value,'cases');}
+ assert.equal(h.tickets.length,0);
+});
+for(const action of ['approve_so','approve_er'])test(action+' distinguishes extracted case and box units and relabels them in place',async()=>{
+ const h=await harness(),selector=h.byId('office-action');selector.value=action;selector.onchange();
+ const lines=[{description:'Case product',quantity:3,unit:'cases',quantity_lb:75},{description:'Box product',quantity:4,unit:'boxes',quantity_lb:100}];
+ h.setResolver(()=>({status:'extracted',document_kind:action==='approve_so'?'sales':'purchase',original_filename:'packing-list.pdf',extraction:{lines}}));
+ h.find(node=>node.name==='document_id').value='41';await h.button('Load extracted document').onclick();
+ for(const [language,caseText,boxText] of [['en','Extracted: 3 Cases','Extracted: 4 Boxes'],['es','Extraído: 3 Cajones','Extraído: 4 Cajas'],['en','Extracted: 3 Cases','Extracted: 4 Boxes']]){
+  h.switchLanguage(language);assert.ok(h.find(node=>node.textContent===caseText));assert.ok(h.find(node=>node.textContent===boxText));
+  assert.deepEqual(h.nodes().filter(node=>node.name==='quantity_lb').map(node=>node.value),[75,100]);
+ }
+ assert.deepEqual(lines.map(line=>line.unit),['cases','boxes']);assert.equal(h.tickets.length,0);assert.deepEqual(h.failures,[]);
 });

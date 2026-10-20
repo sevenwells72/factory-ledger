@@ -28,7 +28,7 @@ for(const [path,photoKind,array] of [['/adjust/prepare','correction_photo',false
   const h=await harness({path,photoKind,initialAttachment:{attachment_id:88,kind:photoKind}});assert.ok(h.find(node=>node.textContent==='Photo attached'));await h.button('Record').onclick();const body=h.requests.at(-1).body;assert.deepEqual(array?body.attachment_ids:[body.attachment_id],[88]);assert.equal(array?'attachment_id' in body:'attachment_ids' in body,false);assert.equal(h.uploads.length,0);
 });
 test('an unfinished draft upload disables Record and blocks Cancel until it finishes',async()=>{
-  const h=await harness();let finish;h.ui.upload=()=>new Promise(resolve=>finish=resolve);const photo=h.find(node=>node.type==='file');photo.files=[{name:'tag.png'}];const uploading=photo.onchange();assert.equal(h.button('Record').disabled,true);h.button('Cancel').onclick();assert.equal(h.cancelled,0);await h.button('Record').onclick();assert.equal(h.requests.length,1);finish({attachment_id:91});await uploading;await h.button('Record').onclick();assert.equal(h.requests.at(-1).body.attachment_id,91);
+  const h=await harness({path:'/adjust/prepare'});let finish;h.ui.upload=()=>new Promise(resolve=>finish=resolve);const photo=h.find(node=>node.type==='file');photo.files=[{name:'tag.png'}];const uploading=photo.onchange();assert.equal(h.button('Record').disabled,true);h.button('Cancel').onclick();assert.equal(h.cancelled,0);await h.button('Record').onclick();assert.equal(h.requests.length,1);finish({attachment_id:91});await uploading;await h.button('Record').onclick();assert.equal(h.requests.at(-1).body.attachment_id,91);
 });
 const makeDraft={input_plan:[{product_id:1,product_name:'Oats',lot_id:11,lot_code:'OATS-A-001'},{product_id:2,product_name:'Sunflower Seeds',lot_id:21,lot_code:'SUN-SUN1'}],lot_confirmation_group:{ingredients:[{product_id:1,candidates:[{lot_id:11,lot_code:'OATS-A-001'},{lot_id:12,lot_code:'OATS-B-001'}]},{product_id:2,candidates:[{lot_id:21,lot_code:'SUN-SUN1'}]}]}};
 function fillTags(h,{sun=true}={}){const methods=h.all(node=>node.tag==='select'),inputs=h.all(node=>node.tag==='input'&&node.autocomplete==='off');methods.forEach(node=>node.value='last4');inputs[0].value='-001';inputs[0].oninput();if(sun){inputs[1].value='SUN1';inputs[1].oninput();}}
@@ -46,14 +46,14 @@ for(const language of ['en','es'])test(`zero-stock draft warning is obvious and 
 });
 
 test('Edit cannot discard a draft while its replacement photo is uploading',async()=>{
-  const h=await harness();let finish;h.ui.upload=()=>new Promise(resolve=>finish=resolve);const photo=h.find(node=>node.type==='file');photo.files=[{name:'replacement.png'}];const pending=photo.onchange();h.button('Edit entry').onclick();assert.equal(h.edited,0);finish({attachment_id:92});await pending;h.button('Edit entry').onclick();assert.equal(h.edited,1);
+  const h=await harness({path:'/adjust/prepare'});let finish;h.ui.upload=()=>new Promise(resolve=>finish=resolve);const photo=h.find(node=>node.type==='file');photo.files=[{name:'replacement.png'}];const pending=photo.onchange();h.button('Edit entry').onclick();assert.equal(h.edited,0);finish({attachment_id:92});await pending;h.button('Edit entry').onclick();assert.equal(h.edited,1);
 });
 
 test('a replacement draft upload notifies the form once and commits the new attachment',async()=>{
   const h=await harness({path:'/receive/prepare',photoKind:'lot_tag',initialAttachment:{attachment_id:88,kind:'lot_tag'}}),photo=h.find(node=>node.type==='file');photo.files=[{name:'draft-B.png'}];await photo.onchange();assert.deepEqual(h.attachments,[{attachment_id:91,kind:'lot_tag'}]);assert.equal(h.uploads.length,1);await h.button('Record').onclick();assert.deepEqual(h.requests.at(-1).body.attachment_ids,[91]);assert.equal('attachment_id' in h.requests.at(-1).body,false);
 });
 test('an invalidated draft never reports a late photo upload back to the form',async()=>{
-  const h=await harness();let finish;h.ui.upload=()=>new Promise(resolve=>finish=resolve);const photo=h.find(node=>node.type==='file');photo.files=[{name:'late.png'}];const pending=photo.onchange();h.controller.invalidate();finish({attachment_id:92});await pending;assert.deepEqual(h.attachments,[]);assert.equal(h.requests.length,1);
+  const h=await harness({path:'/adjust/prepare'});let finish;h.ui.upload=()=>new Promise(resolve=>finish=resolve);const photo=h.find(node=>node.type==='file');photo.files=[{name:'late.png'}];const pending=photo.onchange();h.controller.invalidate();finish({attachment_id:92});await pending;assert.deepEqual(h.attachments,[]);assert.equal(h.requests.length,1);
 });
 
 test('an alternate physical lot moves every substitution using that product and its override together without confirming untouched tags',async()=>{
@@ -64,4 +64,19 @@ test('an alternate physical lot moves every substitution using that product and 
 
 for(const kind of ['lot_tag','bol'])test(`Receive draft uploads ${kind} with the existing evidence type and commits an attachment array`,async()=>{
   const h=await harness({path:'/receive/prepare',photoKind:'lot_tag'}),type=h.find(node=>node.name==='draft_photo_kind'),photo=h.find(node=>node.type==='file');type.value=kind;type.onchange();photo.files=[{name:'receive.png'}];await photo.onchange();assert.equal(h.uploads[0].kind,kind);assert.deepEqual(h.attachments,[{attachment_id:91,kind}]);await h.button('Record').onclick();assert.deepEqual(h.requests.at(-1).body.attachment_ids,[91]);assert.equal('attachment_id' in h.requests.at(-1).body,false);
+});
+
+for(const language of ['en','es'])for(const path of ['/make/prepare','/pack/prepare'])test(`${path} shared card never creates a photo control in ${language}`,async()=>{
+  const h=await harness({language,path,initialAttachment:{attachment_id:88,kind:'correction_photo'}});
+  assert.equal(h.find(node=>node.type==='file'),undefined);
+  assert.equal(h.find(node=>/Attach photo|Adjuntar foto/.test(node.textContent)),undefined);
+  await h.button(language==='en'?'Record':'Registrar').onclick();const body=h.requests.at(-1).body;
+  assert.equal('attachment_id' in body,false);assert.equal('attachment_ids' in body,false);assert.equal(h.uploads.length,0);
+});
+for(const language of ['en','es'])for(const path of ['/receive/prepare','/adjust/prepare','/inventory/found/prepare'])test(`${path} keeps working photo upload and Record in ${language}`,async()=>{
+  const h=await harness({language,path}),photo=h.find(node=>node.type==='file');assert.ok(photo);assert.equal(photo.parent.hidden,false);photo.files=[{name:'evidence.png'}];await photo.onchange();
+  const kind=path==='/receive/prepare'?'lot_tag':'correction_photo';assert.equal(h.uploads[0].kind,kind);
+  await h.button(language==='en'?'Record':'Registrar').onclick();const body=h.requests.at(-1).body;
+  if(path==='/receive/prepare')assert.deepEqual(body.attachment_ids,[91]);else assert.equal(body.attachment_id,91);
+  assert.ok(h.find(node=>node.className==='good'));assert.deepEqual(h.failures,[]);
 });

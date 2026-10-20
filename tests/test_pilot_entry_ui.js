@@ -24,7 +24,7 @@ async function harness(action='ship',language='en',{role='floor'}={}){
   const lots=[{lot_id:11,lot_code:'OPEN261014-P1561',available_lb:50},{lot_id:12,lot_code:'PACK261019-001',available_lb:80}];
   let stock=async()=>({product_id:1561,product:'Classic Granola',lots});
   const order={order_id:5,order_number:'SO-PILOT',lines:[{line_id:101,product_id:1561,product:'Classic Granola',remaining_lb:60,line_status:'open'},{line_id:102,product_id:9,product:'Pallet',remaining_lb:0,is_service:true,line_status:'open'},{line_id:103,product_id:1561,product:'Cancelled',remaining_lb:10,line_status:'cancelled'},{line_id:104,product_id:1561,product:'Fulfilled',remaining_lb:0,line_status:'fulfilled'}]};
-  const ui={session:{actor:{role}},async upload(file,kind){const attached={attachment_id:88,kind};uploads.push({file,kind,attached});return attached;},formatNumber:require('../dashboard/ledger-ui.js').formatNumber,bind(){},ready:Promise.resolve(true),relabel(){},t:(en,es)=>language==='es'?es:en,el(tag,text,parent){const node=new Element(tag,text);parent?.append(node);return node;},failure(error){failures.push(error.message);},
+  const ui={correctionReasons:require('../dashboard/ledger-ui.js').correctionReasons,session:{actor:{role}},async upload(file,kind){const attached={attachment_id:88,kind};uploads.push({file,kind,attached});return attached;},formatNumber:require('../dashboard/ledger-ui.js').formatNumber,bind(){},ready:Promise.resolve(true),relabel(){},t:(en,es)=>language==='es'?es:en,el(tag,text,parent){const node=new Element(tag,text);parent?.append(node);return node;},failure(error){failures.push(error.message);},
     async request(path,body,options){requests.push({path,body,options});if(path==='/entry/lots?'+new URLSearchParams({product_id:'1561'}))return stock(path);if(path.startsWith('/entry/lots?'))return stock(path);if(path==='/resolve'){if(resolver)return resolver(body);return {outcome:'match',match:{id:body.kind==='order'?5:body.kind==='customer'?7:body.kind==='supplier'?8:1561,label:body.kind,case_size_lb:25}};}if(path.startsWith('/sales/orders/'))return order;if(path.startsWith('/ship/lots?'))return stock(path);throw Error('Unexpected request '+path);},
     ticketCard(host,path,body,options){const ticket={host,path,body:plain(body),options};tickets.push(ticket);return {invalidate(){ticket.invalidated=true;}};}
   };
@@ -157,4 +157,27 @@ for(const language of ['en','es'])test(`Receive allows BOL or lot-tag form photo
 });
 test('Receive disables photo type during upload and changing type clears the old attachment',async()=>{
   const h=await harness('receive');await h.pick('product');await h.pick('supplier');let finish;h.setUpload(()=>new Promise(resolve=>finish=resolve));const type=h.field('entry_photo_kind'),photo=h.field('entry_photo');photo.files=[{name:'label.png'}];const pending=photo.onchange();assert.equal(type.disabled,true);finish({attachment_id:89,kind:'lot_tag'});await pending;assert.equal(type.disabled,false);type.value='bol';type.onchange();h.submit();assert.equal(h.tickets[0].options.initialAttachment,null);assert.equal(h.tickets[0].options.photoKind,'bol');
+});
+
+const reasons=[['physical_count','Physical count','Conteo físico'],['missing_receipt','Missing receipt','Recepción no registrada'],['missing_production','Missing production','Producción no registrada'],['wrong_lot','Wrong lot used','Lote equivocado'],['damage_disposal','Damage/disposal','Daño o desecho'],['unrecorded_usage','Unrecorded usage','Uso no registrado'],['data_entry_error','Data-entry error','Error de captura'],['unknown','Unknown','Desconocido']];
+for(const language of ['en','es'])for(const [code,en,es] of reasons)test(`correction reason ${code} agrees on the form and draft in ${language}`,async()=>{
+  const h=await harness('adjust',language),label=language==='es'?es:en;
+  const option=h.find(node=>node.tag==='option'&&node.value===code,h.field('reason_code'));
+  assert.equal(option.textContent,label);await h.pick('lot');h.field('reason_code').value=code;h.field('delta_lb').value='-5';h.submit();
+  assert.equal(h.tickets[0].body.reason_code,code);
+  const ledger=require('../dashboard/ledger-ui.js');ledger.lang=language;
+  assert.equal(ledger.draftHtml(code,'reason_code').replace(/<[^>]+>/g,''),label);
+  assert.equal(ledger.draftHtml({code,label_en:en,label_es:es},'reason').replace(/<[^>]+>/g,''),label);
+  const display=require('../dashboard/assistant-display.js');assert.equal(display.plainLabel(code,language),label);assert.equal(display.plainMessage(code,language),label);
+});
+for(const language of ['en','es'])test(`Found offers exactly its four supported translated reasons in ${language}`,async()=>{
+  const h=await harness('found',language),allowed=['physical_count','missing_receipt','missing_production','unknown'];
+  assert.deepEqual(h.field('reason_code').children.slice(1).map(option=>[option.value,option.textContent]),reasons.filter(([code])=>allowed.includes(code)).map(([code,en,es])=>[code,language==='es'?es:en]));
+});
+for(const language of ['en','es'])for(const action of ['make','pack','receive','adjust','found'])test(`${action} form and shared draft photo permission in ${language}`,async()=>{
+  const h=await harness(action,language);
+  if(action==='pack'){await h.pick('source');await h.pick('target');}else if(action==='adjust')await h.pick('lot');else await h.pick('product');
+  if(action==='receive')await h.pick('supplier');
+  h.submit();assert.deepEqual(h.failures,[]);assert.equal(h.tickets[0].options.allowPhoto,!['make','pack'].includes(action));
+  if(['make','pack'].includes(action))assert.equal(h.find(node=>node.type==='file'),undefined);
 });

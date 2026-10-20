@@ -44,6 +44,20 @@ test('expected cases calculate pounds without accepting missing or zero package 
  assert.equal(office.expectedPounds(10,25),250);assert.equal(office.expectedPounds(1.5,2.2),3.3);
  for(const [count,size] of [[0,25],[10,0],[-1,25],[10,Infinity],[NaN,25]])assert.throws(()=>office.expectedPounds(count,size));
 });
+test('expected delivery validation uses the same distinct Spanish case word',()=>{
+ assert.throws(()=>office.expectedPounds(0,25),/Enter cases and lb per case \/ Ingresa cajones y lb por cajón/);
+});
+for(const language of ['en','es'])test('shared Office draft and receipt keep case and box wording distinct in '+language,()=>{
+ const previous=ui.lang;ui.lang=language;
+ try{
+  const draft={cases:2,case_size_lb:25,lines:[{quantity:2,unit:'cases'},{quantity:3,unit:'boxes'}]},receipt={action:'create_order',draft};
+  for(const value of [draft,ui.receiptData(receipt)]){
+   const html=ui.draftHtml(value),text=html.replace(/<[^>]+>/g,' ');
+   assert.match(text,language==='es'?/Cajones/:/Cases/);assert.match(text,language==='es'?/Cajas/:/Boxes/);assert.match(text,language==='es'?/lb por cajón/:/lb per case/);
+   assert.match(html,/data-en="Cases" data-es="Cajones"/);assert.match(html,/data-en="Boxes" data-es="Cajas"/);
+  }
+ }finally{ui.lang=previous;}
+});
 test('product choices put regular first and preserve every explicit extra-kosher identity',()=>{
  const rows=[{id:2,kosher_tier:'extra_kosher'},{id:3,kosher_tier:'extra_kosher'},{id:1,kosher_tier:'regular'}];
  assert.deepEqual(office.productChoices(rows).map(row=>row.id),[1,2,3]);assert.equal(rows[0].id,2);

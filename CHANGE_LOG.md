@@ -1,5 +1,68 @@
 # Change Log
 
+## 2026-10-20 14:40 — Finalize compact validation evidence and numbered PR 142 review row
+- **File(s) changed:** FACTORY_LEDGER_CHANGELOG.md, docs/validation/pilot-ux-review/summary.md, docs/validation/pilot-ux-review/verification.json, validation stdout and JSON
+- **What changed:** Read JUnit totals directly, retain final browser result counts and source hashes, and save all cleanup evidence. Correct the evidence compiler to read integer confirmation counts, then write regression row 222 and the final summary successfully.
+- **Why:** Keep recorded validation evidence complete and reproducible before committing the reviewed fixes.
+
+---
+
+## 2026-10-20 14:40 — Complete PR 142 review validation and record regression row 222
+- **File(s) changed:** FACTORY_LEDGER_CHANGELOG.md, docs/validation/pilot-ux-review, tests/visual/run-pilot-ux-review.mjs
+- **What changed:** Final clean local results: 6916 Python sessions off + 6916 on; 541 Node; dashboard and Assistant both modes; 96 actual pilot checks with 44 receipts and 16 photos; 34 added phone checks; 60 pilot-screen checks; 272 hosting checks. Save six inspected 390px EN/ES draft screenshots, per-check JSON, stdout logs, replay/cleanup evidence and protected-code hashes. All task databases dropped and temporary clusters stopped. Add row 222, retaining row 221 and PR 141 reservation.
+- **Why:** Finish all three requested review fixes with zero OpenAI calls, hosted database or Railway operations; keep PR 142 Draft and unmerged.
+
+---
+
+## 2026-10-20 14:37 — Save and inspect all six requested 390px draft screenshots
+- **File(s) changed:** docs/validation/pilot-ux-review/screenshots/*.png, tests/visual/run-pilot-ux-review.mjs
+- **What changed:** Save full Make/Pack/Receive drafts in EN and ES at exactly 390px; inspect photo controls and Record footer. Match browser reason assertions to repeated reason fields and use the valid positive missing-receipt adjustment.
+- **Why:** Provide reviewable visual evidence and exercise actual canonical reason rules without changing server behavior.
+
+---
+
+## 2026-10-20 14:36 — Add phone browser coverage for every correction reason and Office package language
+- **File(s) changed:** tests/visual/run-pilot-ux-review.mjs
+- **What changed:** Add actual-page 390px checks for all Adjust/Found reasons on forms and drafts in both languages, language switches, distinct Office cases/boxes, delivery totals, pouch conversions and extracted document units. Original extended pilot matrix passed 96 checks with 44 local receipts and all eight task databases dropped.
+- **Why:** Verify the exact review findings in real browser DOM while model calls are hard-refused and all data stays local.
+
+---
+
+## 2026-10-20 14:35 — Translate extracted Office package units and verify live bilingual summaries
+- **File(s) changed:** dashboard/office.js, tests/test_office_customer_ui.js, tests/test_office_ui.js
+- **What changed:** Translate extracted cases/boxes without modifying document source values. Verify draft and receipt units, expected-delivery help/totals and pouch conversions switch languages in place. Office targeted suite: 62 passed, zero failures/skips.
+- **Why:** Keep Cases=Cajones and Boxes=Cajas consistent on document-review screens as well as order lines and expected deliveries.
+
+---
+
+## 2026-10-20 14:35 — Keep Office package labels correct when switching languages on an open form or draft
+- **File(s) changed:** dashboard/office.js, tests/test_office_customer_ui.js
+- **What changed:** Use complete bilingual tracked helper/conversion text so live EN-ES switches retain Cajones for Cases and Cajas for Boxes without clearing entered quantities or drafts; add two switching regressions.
+- **Why:** Independent review found concatenated helper text stayed in the previous language after a live switch.
+
+---
+
+## 2026-10-20 14:33 — Align receipt label assertions with canonical bilingual correction reasons
+- **File(s) changed:** tests/test_assistant_display.js
+- **What changed:** Preserve product/lot identity and escaped-note assertions while checking bilingual reason spans and the same catalog label used on the form. Targeted display suite: 54 passed.
+- **Why:** Full Node run identified two expectations for the previous markup and Spanish wording; verify the intended replacement exactly.
+
+---
+
+## 2026-10-20 14:33 — Cover every correction reason and photo rule in both languages
+- **File(s) changed:** tests/test_pilot_entry_ui.js, tests/test_pilot_ticket_ui.js, tests/visual/run-pilot-ux-round.mjs, dashboard/assistant-display.js
+- **What changed:** Check every reason code on forms, shared and Assistant draft labels; assert Make/Pack photo controls absent and Receive/Adjust/Found uploads still record. Extend real local pilot walkthrough with saved-photo checks and six 390px draft captures. Targeted Node: 152 passed.
+- **Why:** Complete all requested PR 142 review regression coverage without any OpenAI calls or hosted access.
+
+---
+
+## 2026-10-20 14:32 — Fix PR 142 photo controls, bilingual reasons and distinct Office package words
+- **File(s) changed:** dashboard/entry.js, dashboard/ledger-ui.js, dashboard/ledger-ticket.js, dashboard/assistant-display.js, dashboard/office.js, dashboard/office-logic.js, dashboard entry/Office/receipt/Exceptions/Assistant HTML cache versions, pilot and Office Node tests
+- **What changed:** Hide Make/Pack photo controls at form and shared-card boundaries; share the canonical correction reasons and retain translated historical wrong-lot labels; use Cases=Cajones and Boxes=Cajas consistently in Office and shared summaries. Refresh changed browser assets.
+- **Why:** Address all three Claude Code review findings on draft PR #142 without server, pool, turn-handling or hosted changes.
+
+---
+
 ## 2026-10-20 14:19 — Normalize whitespace in checked-in Python validation stdout
 - **File(s) changed:** `docs/validation/pilot-ux-round/logs/python-off.log`, `docs/validation/pilot-ux-round/logs/python-on.log`
 - **What changed:** Remove trailing spaces from copied deprecation-warning output; test results and original full logs remain unchanged.

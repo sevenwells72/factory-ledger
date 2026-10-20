@@ -81,12 +81,12 @@
       field('notes_es','Customer notes — Spanish (optional)','Notas del cliente — español (opcional)','textarea',false,parent,registry);
     }
     function expectedQuantity(){
-      const unit=select('expected_unit','Enter expected quantity in','Ingresa la cantidad esperada en',[['lb','Pounds (lb)','Libras (lb)'],['cases','Cases','Cajas']]);unit.value='lb';
+      const unit=select('expected_unit','Enter expected quantity in','Ingresa la cantidad esperada en',[['lb','Pounds (lb)','Libras (lb)'],['cases','Cases','Cajones']]);unit.value='lb';
       const poundsHost=ui.el('div',undefined,fields),pounds=field('expected_qty','Expected lb','lb esperadas','number',true,poundsHost);pounds.min='0.000001';
       const casesHost=ui.el('div',undefined,fields);casesHost.hidden=true;
-      const cases=field('expected_cases','Cases','Cajas','number',false,casesHost),size=field('expected_case_size','Case size (lb each)','Tamaño de caja (lb cada una)','number',false,casesHost);cases.min=size.min='0.000001';
+      const cases=field('expected_cases','Cases','Cajones','number',false,casesHost),size=field('expected_case_size','Case size (lb each)','Tamaño de cajón (lb cada uno)','number',false,casesHost);cases.min=size.min='0.000001';
       const total=ui.el('p','',casesHost);total.setAttribute('role','status');total.className='neutral';
-      function calculate(){try{pounds.value=logic.expectedPounds(Number(cases.value),Number(size.value));total.textContent=ui.t('Expected total: ','Total esperado: ')+pounds.value+' lb';}catch(_){pounds.value='';total.textContent=ui.t('Enter cases and lb per case to calculate the total.','Ingresa cajas y lb por caja para calcular el total.');}}
+      function calculate(){total.replaceChildren();try{pounds.value=logic.expectedPounds(Number(cases.value),Number(size.value));ui.el('span',ui.t('Expected total: '+pounds.value+' lb','Total esperado: '+pounds.value+' lb'),total);}catch(_){pounds.value='';ui.el('span',ui.t('Enter cases and lb per case to calculate the total.','Ingresa cajones y lb por cajón para calcular el total.'),total);}}
       cases.oninput=size.oninput=calculate;
       unit.onchange=()=>{const byCases=unit.value==='cases';casesHost.hidden=!byCases;poundsHost.hidden=byCases;pounds.disabled=byCases;pounds.required=!byCases;cases.required=size.required=byCases;if(byCases)calculate();invalidate();};
     }
@@ -99,11 +99,11 @@
         field('quantity_lb',action==='approve_er'?'Expected lb':'Reviewed order lb',action==='approve_er'?'lb esperadas':'lb revisadas','number',true,row,inputs).value=seed.quantity_lb||seed.expected_qty_lb||'';
         field('save_alias','Remember this product match','Recordar este producto','checkbox',false,row,inputs).checked=true;
         ui.el('p',ui.t('Check the extracted quantity against the source document; enter the reviewed pounds.','Verifica la cantidad extraída contra el documento; ingresa las libras revisadas.'),row);
-        if(seed.quantity!==undefined)ui.el('p',ui.t('Extracted: ','Extraído: ')+seed.quantity+' '+(seed.unit||''),row);
+        if(seed.quantity!==undefined)ui.el('p',ui.t('Extracted: '+seed.quantity+' '+ui.codeText(seed.unit||'','en'),'Extraído: '+seed.quantity+' '+ui.codeText(seed.unit||'','es')),row);
       }else{
         field('quantity','Quantity','Cantidad','number',true,row,inputs).min='0.000001';
         const unitLabel=ui.el('label',ui.t('Unit','Unidad'),row),unit=ui.el('select',undefined,unitLabel);unit.name='unit';inputs.unit=unit;
-        for(const [value,en,es] of [['cases','Cases','Cajas'],['lb','lb','lb'],['bags','Bags','Bolsas'],['boxes','Boxes','Cajas'],['each','Each (services / pallets)','Unidad (servicios / palés)'],['pouches','Pouches → cases','Bolsitas → cajas']])ui.el('option',ui.t(en,es),unit).value=value;
+        for(const [value,en,es] of [['cases','Cases','Cajones'],['lb','lb','lb'],['bags','Bags','Bolsas'],['boxes','Boxes','Cajas'],['each','Each (services / pallets)','Unidad (servicios / palés)'],['pouches','Pouches → cases','Bolsitas → cajones']])ui.el('option',ui.t(en,es),unit).value=value;
         ui.el('p',ui.t('Choose Pallet Charge from the catalog with unit Each. FL keeps service lines out of stock pounds.','Elige el cargo por palé del catálogo con unidad Unidad. FL excluye los servicios del peso de inventario.'),row);
       }
       if(action!=='approve_er')field('unit_price','Price per unit (optional)','Precio por unidad (opcional)','number',false,row,inputs);
@@ -253,7 +253,7 @@
               const result=await ui.request('/resolve',{kind:'unit',query:value.unit,quantity:value.quantity,context:{product_id:pid,action:'order',group:'office'}});
               if(version!==revision)return;
               const line=logic.resolvedLine(result,pid,value.quantity,value.unit,value.unit_price!==''?{unit_price:value.unit_price}:{});
-              if(result.conversion){conversions.push(result.conversion.from_quantity+' '+ui.t('pouches → ','bolsitas → ')+line.quantity+' '+ui.t('cases','cajas'));item.conversion.hidden=false;item.conversion.textContent=result.conversion.from_quantity+' '+ui.t('pouches → ','bolsitas → ')+line.quantity+' '+ui.t('cases','cajas');}
+              if(result.conversion){const conversion=ui.t(result.conversion.from_quantity+' pouches → '+line.quantity+' cases',result.conversion.from_quantity+' bolsitas → '+line.quantity+' cajones');conversions.push(conversion);item.conversion.hidden=false;item.conversion.replaceChildren();ui.el('span',conversion,item.conversion);}
               v.lines.push(line);
             }
           }

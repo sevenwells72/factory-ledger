@@ -2,6 +2,8 @@
 (function(root){
   const ui=root.FLLedger;
   ui.ticketCard=function(host,path,payload,{onRecorded=()=>{},onPrepared=()=>{},onFailure=()=>{},onBusy=()=>{},onEdit=null,onCancel=null,onAttachment=()=>{},initialAttachment=null,photoKind='correction_photo',receiptPrefix=null,allowPhoto=true}={}){
+    allowPhoto=allowPhoto&&!['/make/prepare','/pack/prepare'].includes(path);
+    if(!allowPhoto)initialAttachment=null;
     if(path==='/receive/prepare')photoKind=['bol','lot_tag'].includes(initialAttachment?.kind)?initialAttachment.kind:['bol','lot_tag'].includes(photoKind)?photoKind:'lot_tag';
     let prepared=null,busy=false,finished=false,attachment=initialAttachment,uploading=false,confirmations=[],lastLots=[];
     const card=ui.el('section',undefined,host);card.className='panel';
@@ -59,11 +61,12 @@
         }
         if(ambiguous)return;confirmations=inputs.map(input=>input.read());prepare();
       };}
-      let photoType=null;if(path==='/receive/prepare'){const kindLabel=ui.el('label',ui.t('Photo type','Tipo de foto'),card);photoType=ui.el('select',undefined,kindLabel);photoType.name='draft_photo_kind';for(const [value,en,es] of [['lot_tag','Label / lot tag','Etiqueta / etiqueta de lote'],['bol','BOL','BOL']]){const option=ui.el('option',ui.t(en,es),photoType);option.value=value;}photoType.value=photoKind;photoType.onchange=()=>{photoKind=photoType.value;};kindLabel.hidden=!allowPhoto;}
+      if(allowPhoto){
+      let photoType=null;if(path==='/receive/prepare'){const kindLabel=ui.el('label',ui.t('Photo type','Tipo de foto'),card);photoType=ui.el('select',undefined,kindLabel);photoType.name='draft_photo_kind';for(const [value,en,es] of [['lot_tag','Label / lot tag','Etiqueta / etiqueta de lote'],['bol','BOL','BOL']]){const option=ui.el('option',ui.t(en,es),photoType);option.value=value;}photoType.value=photoKind;photoType.onchange=()=>{photoKind=photoType.value;};}
       const uploadLabel=ui.el('label',ui.t('Attach photo','Adjuntar foto'),card),photo=ui.el('input',undefined,uploadLabel);photo.type='file';photo.accept='image/jpeg,image/png,image/webp';photo.setAttribute('capture','environment');
       const uploadStatus=ui.el('p',attachment?ui.t('Photo attached','Foto adjunta'):'',card);
-      uploadLabel.hidden=!allowPhoto;uploadStatus.hidden=!allowPhoto;
       photo.onchange=async()=>{if(!photo.files[0]||busy||finished||uploading)return;uploading=true;if(photoType)photoType.disabled=true;onBusy(true);record.disabled=true;try{const uploaded=await ui.upload(photo.files[0],photoKind);if(finished)return;attachment=uploaded;onAttachment(attachment);uploadStatus.textContent=ui.t('Photo attached','Foto adjunta');}catch(error){if(!finished)failure(error);}finally{uploading=false;if(photoType)photoType.disabled=false;if(!finished)onBusy(false);record.disabled=busy||finished||evidenceDirty||prepared.can_commit!==true;}};
+      }
       const actions=ui.el('div',undefined,card);actions.className='record-bar';const record=ui.el('button',ui.t('Record','Registrar'),actions);record.type='button';record.className='primary';record.disabled=prepared.can_commit!==true;
       record.onclick=async()=>{if(busy||finished||uploading)return;busy=true;onBusy(true);record.disabled=true;const body={payload_hash:prepared.payload_hash,acknowledged_warnings:ack.filter(([input])=>input.checked).map(([,code])=>code)};
         if(attachment){if(path==='/receive/prepare'||photoKind==='bol')body.attachment_ids=[attachment.attachment_id];else body.attachment_id=attachment.attachment_id;}

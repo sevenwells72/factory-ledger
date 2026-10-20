@@ -158,14 +158,14 @@ test('receipt renderer translates status and reason fields without changing prod
   const html = ledger.draftHtml({ product_name: 'UNIDENTIFIED', lot_code: 'physical_count', reason_code: 'physical_count', identity_status: 'UNIDENTIFIED', proof_status: 'photo_pending' });
   assert.match(html, /<dd>UNIDENTIFIED<\/dd>/);
   assert.match(html, /<dd>physical_count<\/dd>/);
-  assert.match(html, /<dd>Physical count<\/dd>/);
+  assert.match(html, /<dd><span data-en="Physical count" data-es="Conteo físico">Physical count<\/span><\/dd>/);
   assert.match(html, /Lot identity needs to be checked/);
   assert.match(html, /Photo pending/);
 });
-test('receipt reasons render catalog labels and safe escaped notes', () => {
+test('receipt reasons use canonical bilingual labels and keep safe escaped notes', () => {
   ledger.lang = 'es';
   const html = ledger.draftHtml({ reason: { code: 'missing_receipt', label_en: 'Missing receipt', label_es: 'Falta recibo', note: '<script>' } });
-  assert.match(html, /Falta recibo/);
+  assert.match(html, /data-en="Missing receipt" data-es="Recepción no registrada">Recepción no registrada<\/span>/);
   assert.match(html, /&lt;script&gt;/);
   assert.doesNotMatch(html, /missing_receipt|<script>/);
   ledger.lang = 'en';

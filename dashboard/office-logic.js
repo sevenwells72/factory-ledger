@@ -65,7 +65,7 @@
     return rows.filter(Boolean).map((item,index)=>({item,index})).sort((a,b)=>Number(a.item.kosher_tier==='extra_kosher')-Number(b.item.kosher_tier==='extra_kosher')||a.index-b.index).map(({item})=>item);
   }
   function expectedPounds(cases,caseSize){
-    if(!Number.isFinite(cases)||cases<=0||!Number.isFinite(caseSize)||caseSize<=0)throw Error('Enter cases and lb per case / Ingresa cajas y lb por caja');
+    if(!Number.isFinite(cases)||cases<=0||!Number.isFinite(caseSize)||caseSize<=0)throw Error('Enter cases and lb per case / Ingresa cajones y lb por cajón');
     const pounds=cases*caseSize;
     if(!Number.isFinite(pounds)||pounds<=0)throw Error('Enter a valid expected weight / Ingresa un peso esperado válido');
     return Number(pounds.toFixed(6));
