@@ -176,6 +176,8 @@ def test_actor_only_scope_is_approved_writes_plus_product_resolution():
         ('POST', '/void/{transaction_id}/prepare'),
         ('POST', '/exceptions/{exception_id}/approve'),
         ('POST', '/exceptions/{exception_id}/reject'),
+        # Pilot ship picker: named shipping actors may read available physical lots.
+        ('GET', '/ship/lots'),
         ('POST', '/ship/prepare'), ('POST', '/ship/bulk/prepare'),
         ('POST', '/sales/orders/{order_id}/ship/prepare'),
         ('POST', '/attachments'), ('GET', '/attachments/{attachment_id}'),

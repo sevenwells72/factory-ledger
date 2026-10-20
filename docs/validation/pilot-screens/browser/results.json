@@ -1,0 +1,390 @@
+{
+  "results": [
+    {
+      "name": "Current attached proof replaces stale pending text and shows shipped lots",
+      "sessions": 0,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "Missing photo keeps the genuine deadline",
+      "sessions": 0,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "RCV receipt retains note or found location",
+      "sessions": 0,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "MK- receipt retains note or found location",
+      "sessions": 0,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "PK- receipt retains note or found location",
+      "sessions": 0,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "VD- receipt retains note or found location",
+      "sessions": 0,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "FND receipt retains note or found location",
+      "sessions": 0,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "ORD receipt retains note or found location",
+      "sessions": 0,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "CUS receipt shows actual New York time",
+      "sessions": 0,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "ORD receipt shows actual New York time",
+      "sessions": 0,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "Session-off Record and Office gating is unchanged",
+      "sessions": 0,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "Current attached proof replaces stale pending text and shows shipped lots",
+      "sessions": 0,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "Missing photo keeps the genuine deadline",
+      "sessions": 0,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "RCV receipt retains note or found location",
+      "sessions": 0,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "MK- receipt retains note or found location",
+      "sessions": 0,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "PK- receipt retains note or found location",
+      "sessions": 0,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "VD- receipt retains note or found location",
+      "sessions": 0,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "FND receipt retains note or found location",
+      "sessions": 0,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "ORD receipt retains note or found location",
+      "sessions": 0,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "CUS receipt shows actual New York time",
+      "sessions": 0,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "ORD receipt shows actual New York time",
+      "sessions": 0,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "Session-off Record and Office gating is unchanged",
+      "sessions": 0,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "Current attached proof replaces stale pending text and shows shipped lots",
+      "sessions": 1,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "Missing photo keeps the genuine deadline",
+      "sessions": 1,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "RCV receipt retains note or found location",
+      "sessions": 1,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "MK- receipt retains note or found location",
+      "sessions": 1,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "PK- receipt retains note or found location",
+      "sessions": 1,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "VD- receipt retains note or found location",
+      "sessions": 1,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "FND receipt retains note or found location",
+      "sessions": 1,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "ORD receipt retains note or found location",
+      "sessions": 1,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "CUS receipt shows actual New York time",
+      "sessions": 1,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "ORD receipt shows actual New York time",
+      "sessions": 1,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "receive form, request, draft and receipt preserve requested fields",
+      "sessions": 1,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "pack form, request, draft and receipt preserve requested fields",
+      "sessions": 1,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "found form, request, draft and receipt preserve requested fields",
+      "sessions": 1,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "Make FIFO list is compact on phones, expandable, and every physical tag remains required",
+      "sessions": 1,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "standalone shipment defaults FIFO and records worker-selected split lots with attached proof",
+      "sessions": 1,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "order shipment defaults FIFO and records worker-selected split lots with attached proof",
+      "sessions": 1,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "Void note travels from optional field through draft and receipt",
+      "sessions": 1,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "Created customer receipt preserves actual time",
+      "sessions": 1,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "Created order receipt shows note and actual time",
+      "sessions": 1,
+      "width": 390,
+      "passed": true
+    },
+    {
+      "name": "Current attached proof replaces stale pending text and shows shipped lots",
+      "sessions": 1,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "Missing photo keeps the genuine deadline",
+      "sessions": 1,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "RCV receipt retains note or found location",
+      "sessions": 1,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "MK- receipt retains note or found location",
+      "sessions": 1,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "PK- receipt retains note or found location",
+      "sessions": 1,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "VD- receipt retains note or found location",
+      "sessions": 1,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "FND receipt retains note or found location",
+      "sessions": 1,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "ORD receipt retains note or found location",
+      "sessions": 1,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "CUS receipt shows actual New York time",
+      "sessions": 1,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "ORD receipt shows actual New York time",
+      "sessions": 1,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "receive form, request, draft and receipt preserve requested fields",
+      "sessions": 1,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "pack form, request, draft and receipt preserve requested fields",
+      "sessions": 1,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "found form, request, draft and receipt preserve requested fields",
+      "sessions": 1,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "Make FIFO list is compact on phones, expandable, and every physical tag remains required",
+      "sessions": 1,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "standalone shipment defaults FIFO and records worker-selected split lots with attached proof",
+      "sessions": 1,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "order shipment defaults FIFO and records worker-selected split lots with attached proof",
+      "sessions": 1,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "Void note travels from optional field through draft and receipt",
+      "sessions": 1,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "Created customer receipt preserves actual time",
+      "sessions": 1,
+      "width": 1440,
+      "passed": true
+    },
+    {
+      "name": "Created order receipt shows note and actual time",
+      "sessions": 1,
+      "width": 1440,
+      "passed": true
+    }
+  ],
+  "passed": 60,
+  "network": "All API calls stubbed; off-origin requests refused; no database or OpenAI calls.",
+  "command": "PILOT_VISUAL_OUT=/tmp/fl_pilot_browser/pilot-final node tests/visual/run-pilot-screens.mjs",
+  "screenshots": [
+    "on-390-ship-standalone-lots.png",
+    "on-390-ship-order-lots.png",
+    "on-390-ship-standalone-receipt.png",
+    "on-390-receive-draft.png",
+    "on-390-make-lots-suggested.png",
+    "on-390-pack-draft.png",
+    "on-390-found-draft.png",
+    "on-390-void-draft.png",
+    "on-390-customer-receipt.png",
+    "on-390-order-receipt.png",
+    "on-1440-ship-standalone-lots.png",
+    "on-1440-ship-order-lots.png",
+    "on-1440-ship-standalone-receipt.png",
+    "on-1440-receive-draft.png",
+    "on-1440-make-lots-suggested.png",
+    "on-1440-pack-draft.png",
+    "on-1440-found-draft.png",
+    "on-1440-void-draft.png",
+    "on-1440-customer-receipt.png",
+    "on-1440-order-receipt.png"
+  ],
+  "visual_review": "Inspected phone lot selection, receipt proof, pack/found drafts and compact make suggestions; desktop order lot choices and receipt. Final phone/desktop order screenshots show Sales order and Ship all controls before quantities and lot choices. All screenshot captures assert no horizontal overflow."
+}

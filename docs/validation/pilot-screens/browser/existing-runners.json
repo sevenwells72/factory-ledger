@@ -1,0 +1,43 @@
+{
+  "validated_at": "2026-10-19T21:09:48.612031-04:00",
+  "scope": "Local browser fixtures only. No hosted data, database, credential file, or OpenAI model transport.",
+  "runs": [
+    {
+      "command": "PLAYWRIGHT_CHANNEL=chrome node tests/visual/run-key-sessions.mjs",
+      "sessions": [
+        0,
+        1
+      ],
+      "exit_code": 0,
+      "result": "Passed: flag-off parity, token-only writes, reload, person banner, expiry, logout, desktop and phone layout."
+    },
+    {
+      "command": "PILOT_SESSIONS=0 PLAYWRIGHT_CHANNEL=chrome F1_VISUAL_OUT=/tmp/fl_pilot_browser/assistant-final-0 node tests/visual/run-fl-assistant.mjs",
+      "sessions": [
+        0
+      ],
+      "exit_code": 0,
+      "result": "Passed: F1 draft/receipt/retry, physical lot inputs, warnings, typed attachment proof, customer/order flow, EN/ES and phone light/dark."
+    },
+    {
+      "command": "PILOT_SESSIONS=1 PLAYWRIGHT_CHANNEL=chrome F1_VISUAL_OUT=/tmp/fl_pilot_browser/assistant-final-1 node tests/visual/run-fl-assistant.mjs",
+      "sessions": [
+        1
+      ],
+      "exit_code": 0,
+      "result": "Passed: F1 draft/receipt/retry, physical lot inputs, warnings, typed attachment proof, Today/Assistant session expiry, customer/order flow, EN/ES and phone light/dark."
+    }
+  ],
+  "sha256": {
+    "dashboard/entry.js": "92f79a15494a86a9f5b8deecf73ee49855144cdf7e9cb5bc969f162866a0f1ea",
+    "dashboard/ledger-ui.js": "ef09cbf5e997add513861dc54bec51a34c7215da6814adb260d14acfab3458d7",
+    "dashboard/ledger-ticket.js": "e186d6101635bf3e41168e69189fcc1c09a35f2318555b85477abaef338f1406",
+    "dashboard/ledger-forms.css": "f46d23b44d23cdb7d038375a930a11fbc4043a0eb207088cae476758b945598d",
+    "dashboard/receipt.js": "464985852332380a6701693ef5520889c932bc5fc8b345ee9bf78c6f1f683afd",
+    "dashboard/office.js": "5b35d49de92bac3363ffa135d4161c94433ce45fc6fa73b2facd668fbf938a86",
+    "tests/visual/run-key-sessions.mjs": "178fb79d5630c5f5dbd49ca5855c8c4fa1059a87036ca2ed5083a8fc3f5cbd9d",
+    "tests/visual/run-fl-assistant.mjs": "e0c294bd4c0ea2699a5d8a961c72eca0a64590502def39ea6ff07c7a36603e15",
+    "tests/visual/run-pilot-screens.mjs": "7caae43003dd0f6b3cd9b7951c744bf587c6fe4cc4e5d3c0f0acf43df85ff434"
+  },
+  "final_recheck": "All listed commands exited 0 after the final order selector placement correction."
+}

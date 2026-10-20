@@ -459,6 +459,8 @@ def draft_from(action, payload, response, ctx):
                             + (f"PO {po}" if po else 'no PO'))
         draft['summary_es'] = (f"Crear pedido para {cust['name']}: {n} línea(s), {_lb(draft.get('total_lb'))}, "
                                + (f"PO {po}" if po else 'sin PO'))
+        draft['notes'] = payload.get('notes')
+        draft['notes_es'] = payload.get('notes_es')
         draft['note'] = 'order_id, line ids and the order number are assigned at commit.'
         return draft
     order = ctx['order']
@@ -629,8 +631,12 @@ def commit(api, cur, row, body, actor, request, entry_timing):
         response.update(receipt_number=receipt, ticket_id=row['id'], replayed=False, state_changed=state_changed,
                         success=True)
         cur.execute('SELECT clock_timestamp() AS at')
-        response['entry_timing'] = {**entry_timing, 'entered_at': cur.fetchone()['at'],
+        entered_at = cur.fetchone()['at']
+        response['entry_timing'] = {**permissions.timing(entered_at, entered_at), 'entered_at': entered_at,
                                     'entered_by': actor, 'late_entry_exception_id': None}
+        if action == 'create_order':
+            response['notes'] = payload.get('notes')
+            response['notes_es'] = payload.get('notes_es')
         if action=='close_order' and payload['reason']=='shipped_not_recorded':
             import ship_tickets
             response['policy_acknowledgements']=[{'code':'SHIPPED_NOT_RECORDED','actor':dict(actor),

@@ -11,7 +11,7 @@ from datetime import date, datetime, time as day_time
 from typing import List, Optional
 from urllib.parse import urlencode
 
-from fastapi import Depends, HTTPException, Request
+from fastapi import Depends, HTTPException, Query, Request
 from psycopg2.extras import Json
 from pydantic import Field, root_validator, validator, confloat
 
@@ -47,6 +47,7 @@ class ShipBase(wt.IdInput):
     def trim(cls,value): return value.strip()
 
 class OrderLine(wt.IdInput):
+    lot_allocations: Optional[List[wt.LotAllocation]] = Field(None, max_length=100)
     line_id: wt.PositiveId
     quantity_lb: confloat(ge=0,allow_inf_nan=False)
 
@@ -55,11 +56,13 @@ class OrderShip(ShipBase):
     lines: List[OrderLine]=Field(default_factory=list,max_length=100)
 
 class BulkLine(wt.IdInput):
+    lot_allocations: Optional[List[wt.LotAllocation]] = Field(None, max_length=100)
     product_id: wt.PositiveId
     lot_id: Optional[wt.PositiveId]=None
     quantity_lb: confloat(gt=0,allow_inf_nan=False)
 
 class StandaloneShip(ShipBase):
+    lot_allocations: Optional[List[wt.LotAllocation]] = Field(None, max_length=100)
     customer_id: wt.PositiveId
     product_id: wt.PositiveId
     lot_id: Optional[wt.PositiveId]=None
@@ -128,6 +131,8 @@ def validate(api,cur,action,payload,actor,*,lock=False,ticket_id=None):
             if not row: wt.fail(404,'LINE_NOT_FOUND','Line does not belong to this order.')
             if row['line_status']=='cancelled': wt.fail(409,'LINE_CANCELLED','Cancelled lines cannot ship.')
             p=ticket_actions.product(api,cur,row['product_id'],False)
+            if p['is_service'] and requested.get('lot_allocations') is not None:
+                wt.fail(422,'UNUSED_LOT_SELECTION','Service charges do not consume lots.')
             remaining=float(row['quantity_lb'])-float(row['quantity_shipped_lb'])
             if row['line_status']=='fulfilled': wt.fail(409,'LINE_ALREADY_FULFILLED','Line is already fulfilled.')
             if not p['is_service'] and (requested['quantity_lb']<=0 or requested['quantity_lb']>remaining):
@@ -136,7 +141,18 @@ def validate(api,cur,action,payload,actor,*,lock=False,ticket_id=None):
         customer=order_tickets.customer(cur,order['customer_id'],lock=False)
     else:
         customer=order_tickets.customer(cur,payload['customer_id'],lock=False)
-        lines=[dict(r,product=ticket_actions.product(api,cur,r['product_id'],False)) for r in payload['lines']]
+        lines=[]
+        for row in payload['lines']:
+            p=ticket_actions.product(api,cur,row['product_id'],False)
+            choices=row.get('lot_allocations')
+            if choices is not None:
+                if (row.get('lot_id') is not None or not choices
+                        or len({r['lot_id'] for r in choices}) != len(choices)
+                        or abs(sum(float(r['quantity_lb']) for r in choices)-float(row['quantity_lb']))>api.BALANCE_EPSILON):
+                    wt.fail(422,'INVALID_LOT_ALLOCATIONS','Select each lot once; lot quantities must add up to the shipment quantity.')
+                lines.extend(dict(row,**choice,product=p) for choice in choices)
+            else:
+                lines.append(dict(row,product=p))
         original=[]
         if any(r['product']['is_service'] for r in lines): wt.fail(422,'SERVICE_STANDALONE_UNSUPPORTED','Service charges ship against an order.')
     if not lines: wt.fail(409,'ORDER_ALREADY_FULFILLED','No remaining lines to ship.')
@@ -147,7 +163,7 @@ def validate(api,cur,action,payload,actor,*,lock=False,ticket_id=None):
         p=row['product']; qty=row['quantity_lb']; allocated=[]
         if not p['is_service']:
             if action=='ship_order':
-                allocation=api._sales_order_ship_plan(cur,p['id'],row['line_id'],qty,lock=lock,persist_expired=False)
+                allocation=api._sales_order_ship_plan(cur,p['id'],row['line_id'],qty,lock=lock,persist_expired=False,lot_allocations=row.get('lot_allocations'))
                 allocated=allocation['lots']
                 if float(allocation['actual_ship_lb'])+api.BALANCE_EPSILON<qty:
                     stock_shortage(p, float(allocation['actual_ship_lb']), qty, order=True)
@@ -257,7 +273,8 @@ def commit(api,cur,row,body,actor,request,entry_timing):
         receipt=wt.allocate_receipt(cur,row['action'],ctx['occurred'].astimezone(api.PLANT_TIMEZONE).date())
         if row['action']=='ship_order':
             req=api.ShipOrderRequest(mode='commit',ship_all=False,lines=[api.ShipOrderLineRequest(**r) for r in payload['lines']])
-            result=api._ship_order_commit_core(cur,request,payload['order_id'],req,ctx['occurred'],ctx['source'],ticket_id=row['id'],receipt_number=receipt,bol_reference=payload['bol_reference'])
+            result=api._ship_order_commit_core(cur,request,payload['order_id'],req,ctx['occurred'],ctx['source'],ticket_id=row['id'],receipt_number=receipt,bol_reference=payload['bol_reference'],
+                lot_allocations_by_line={r['line_id']:r['lot_allocations'] for r in payload['lines'] if r.get('lot_allocations') is not None})
         else:
             result=None
             for line in ctx['lines']:
@@ -358,6 +375,37 @@ def open_missing_photos(cur):
     return added
 
 def register_routes(app,api):
+    @app.get('/ship/lots')
+    def shipping_lots(request:Request, product_id:int=Query(...,gt=0), line_id:Optional[int]=Query(None,gt=0),
+                      quantity_lb:Optional[float]=Query(None,gt=0,allow_inf_nan=False), _:bool=Depends(api.verify_api_key)):
+        actor=wt.identity(api,request)
+        permissions.require('ship_order' if line_id else 'ship_bulk',actor)
+        with api.get_transaction() as cur:
+            p=ticket_actions.product(api,cur,product_id,False)
+            if line_id:
+                cur.execute('SELECT product_id FROM sales_order_lines WHERE id=%s',(line_id,))
+                row=cur.fetchone()
+                if not row or row['product_id']!=product_id:
+                    wt.fail(404,'LINE_NOT_FOUND','The order line does not match this product.')
+            lots=kosher_tiers.sale_lots(cur,product_id,api.available_lots_for_product(cur,product_id,line_id))
+            choices=[]
+            for lot in lots:
+                own=min(float(lot['reserved_this_line_lot'] or 0),
+                        max(0.0,float(lot['on_hand'])-float(lot['reserved_others_lot'] or 0)))
+                available=(own+float(lot['takeable'] or 0)) if line_id else (
+                    float(lot['takeable'] or 0) if api._allocations_enforced() else float(lot['on_hand']))
+                if available>api.BALANCE_EPSILON:
+                    choices.append({'lot_id':lot['lot_id'],'lot_code':lot['lot_code'],'available_lb':available})
+            suggested=[]
+            if quantity_lb is not None:
+                if line_id:
+                    suggested=api._sales_order_ship_plan(cur,product_id,line_id,quantity_lb,lock=False,persist_expired=False)['lots']
+                else:
+                    suggested=[{'lot_id':r['lot']['lot_id'],'lot_code':r['lot']['lot_code'],'quantity_lb':r['quantity_lb']}
+                               for r in api._takeable_deduction_plan(lots,quantity_lb)['lots']]
+            return {'product_id':product_id,'product':p['name'],'case_size_lb':p.get('case_size_lb'),
+                    'lots':choices,'suggested_lots':suggested}
+
     def prepare(action,req,request,order_id=None):
         actor=wt.identity(api,request);permissions.require(action,actor)
         now=api.get_plant_now();occurred=req.occurred_at or now
@@ -370,7 +418,7 @@ def register_routes(app,api):
                 if req.ship_all:
                     payload['lines']=[{'line_id':r['id'],'quantity_lb':max(0,float(r['quantity_lb'])-float(r['quantity_shipped_lb']))} for r in order_tickets.order_lines(cur,order_id) if r['line_status'] not in ('fulfilled','cancelled')]
                 if len({r['line_id'] for r in payload['lines']})!=len(payload['lines']): wt.fail(422,'DUPLICATE_LINE','Supply each order line once.')
-            elif action=='ship_standalone': payload['lines']=[{k:payload.pop(k) for k in ('product_id','lot_id','quantity_lb')}]
+            elif action=='ship_standalone': payload['lines']=[{k:payload.pop(k) for k in ('product_id','lot_id','quantity_lb','lot_allocations')}]
             ctx=validate(api,cur,action,payload,actor)
             late=permissions.late_entry_warning(actor,timing)
             if late: ctx['warnings'].append(late)

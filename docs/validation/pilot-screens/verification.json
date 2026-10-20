@@ -1,0 +1,139 @@
+{
+  "validated_at": "2026-10-19T21:20:26.638553-04:00",
+  "branch": "fix/pilot-screens",
+  "base_main": "112e1fd5e5538279932d5e6e67cf8b479ab9e715",
+  "status": "Validated locally; draft PR only; not deployed.",
+  "scope": [
+    "FIFO remains the shipment default; workers can select actual lots and quantities, shown on draft and receipt.",
+    "Live complete shipment proof replaces historical pending/deadline text with Photo attached ✓.",
+    "Optional receive, make, pack and void notes persist through draft and receipt.",
+    "Found location and original order note appear on receipts; found location also appears on draft.",
+    "Customer and order receipts show the actual entry time, including older saved display snapshots.",
+    "Pack draft identifies the finished product.",
+    "Phone make drafts show suggested lots first, with Show more lots; every physical tag remains required."
+  ],
+  "environment": {
+    "python": "3.12.14",
+    "pydantic": "2.14.1",
+    "pytest": "9.1.1",
+    "postgres": "17; fresh UTF-8 template0 databases with tests/schema/schema.sql and pg_trgm",
+    "test_database_prefix": "fl_pilot_",
+    "unset_environment": [
+      "DATABASE_URL",
+      "OPENAI_API_KEY",
+      "ANTHROPIC_API_KEY"
+    ],
+    "network_guard": {
+      "HTTP_PROXY": "http://127.0.0.1:9",
+      "HTTPS_PROXY": "http://127.0.0.1:9",
+      "ALL_PROXY": "http://127.0.0.1:9",
+      "NO_PROXY": "localhost,127.0.0.1"
+    }
+  },
+  "python": [
+    {
+      "key_sessions_enabled": 0,
+      "fresh_database": "fl_pilot_verified_off",
+      "passed": 6909,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "warnings": 15091,
+      "seconds": 207.21,
+      "command": ".venv-test/bin/python -m pytest",
+      "log_sha256": "2eb73c5e5e325f5e50f67632cc266f07cd28a20d73bf988b6369ff759b558676"
+    },
+    {
+      "key_sessions_enabled": 1,
+      "fresh_database": "fl_pilot_verified_on",
+      "passed": 6909,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "warnings": 15091,
+      "seconds": 209.14,
+      "command": ".venv-test/bin/python -m pytest",
+      "log_sha256": "2949ff99cea2c3e4c2472b844a9f283e2706e48318ae0275bf1c12a05aadf0c8"
+    }
+  ],
+  "node": {
+    "command": "node --test tests/test_*.js",
+    "passed": 440,
+    "failed": 0,
+    "skipped": 0,
+    "log_sha256": "9ffafca09844759b43bc8435a1c7a5ed6c01c386b0c2a38b0d8b5de17ee3b986"
+  },
+  "browser": {
+    "command": "PILOT_VISUAL_OUT=/tmp/fl_pilot_browser/pilot-final node tests/visual/run-pilot-screens.mjs",
+    "passed": 60,
+    "failed": 0,
+    "widths": [
+      390,
+      1440
+    ],
+    "key_sessions_enabled": [
+      0,
+      1
+    ],
+    "transport": "Actual local static pages with stubbed API responses; off-origin requests blocked. No model transport.",
+    "results": "browser/results.json",
+    "existing_runners": "browser/existing-runners.json",
+    "screenshots": 20,
+    "independent_source_hash_and_screenshot_audit": "Passed; screenshots match final run outputs."
+  },
+  "review": {
+    "shipment_reservation_locks": "Selected-lot cleanup rereads only allocation rows already locked by the shipment; existing canonical product/lot/allocation lock order preserved. Full and partial alternative-lot shipments and void recovery covered.",
+    "actor_read_scope": "New GET /ship/lots is a named-actor read; actor/session authorized, dashboard/anonymous denied; it does not post ledger entries, issue tickets or expire reservations.",
+    "db_pool_fix": "Base main already contains merged PR #138; this change does not modify pooling code.",
+    "git_diff_check": "Passed"
+  },
+  "cleanup": {
+    "dropped_databases": [
+      "fl_pilot_dev_1020",
+      "fl_pilot_final_off_1020",
+      "fl_pilot_off_1020",
+      "fl_pilot_on_1020",
+      "fl_pilot_verified_off",
+      "fl_pilot_verified_on"
+    ],
+    "remaining_fl_pilot_databases": 0,
+    "database_host": "localhost:5432"
+  },
+  "constraints": {
+    "openai_calls": 0,
+    "hosted_database_access": false,
+    "settings_changes": false,
+    "hosted_data_changes": false,
+    "migrations": false,
+    "deployment": false,
+    "merge": false
+  },
+  "source_sha256": {
+    "customer_tickets.py": "02fe2c2307509d03de602f06b6f9283d416b9575b3719d24fc320f8b60469c68",
+    "dashboard/entry.html": "8fd0f6939416665b6334e489573ad6c794cc2dc0c66eadc7c013ada18366cffa",
+    "dashboard/entry.js": "92f79a15494a86a9f5b8deecf73ee49855144cdf7e9cb5bc969f162866a0f1ea",
+    "dashboard/exceptions.html": "1b00828213c3e83f47c15a8c33b26da2d6bf5f74a5d0c6668b80e4a3dc39a095",
+    "dashboard/ledger-forms.css": "f46d23b44d23cdb7d038375a930a11fbc4043a0eb207088cae476758b945598d",
+    "dashboard/ledger-ticket.js": "e186d6101635bf3e41168e69189fcc1c09a35f2318555b85477abaef338f1406",
+    "dashboard/ledger-ui.js": "ef09cbf5e997add513861dc54bec51a34c7215da6814adb260d14acfab3458d7",
+    "dashboard/office.html": "9ef80b6b44edd5c1d1a16db0aaaffe6380122e0298bdc55a9216a873f54ede24",
+    "dashboard/office.js": "5b35d49de92bac3363ffa135d4161c94433ce45fc6fa73b2facd668fbf938a86",
+    "dashboard/receipt.html": "85f274cfd990a3743433d2eb4393c94beb82c9d8bf192c0e8e956589ef2cfb9f",
+    "dashboard/receipt.js": "464985852332380a6701693ef5520889c932bc5fc8b345ee9bf78c6f1f683afd",
+    "main.py": "d183fa09091d5b16b624a316e789206d4d567afd19b11d95eb09c38d70e0eca4",
+    "order_tickets.py": "b391d55917ffc934d070524bdf6c42e7c37474e41121f35ad78ca2918742395f",
+    "resolution_receipts.py": "edd0fa7feecefe100a38ea4ff5010af7d7999a01fc1604c08639c3c9245b3a0d",
+    "ship_tickets.py": "f243de33bba071bf18df0bec1580712acbee9388b6f6c60973fb5108e5f071c7",
+    "tests/test_named_actor_writes.py": "747effa2d9a4e55a72771586057ddc7520b7c521091d5764988f5db0ba51b8c2",
+    "tests/test_order_tickets.py": "46f4dcb89e2939a8e1ab4eabfd334ee772e3673005254fbb669603f407e60c23",
+    "tests/test_pilot_display.js": "772fdf648fe64a58f34e06cebb659546d8c92f49dce515e3e583345394065936",
+    "tests/test_pilot_entry_ui.js": "95f79fcf0e9f5a034bf7da3049471069368f29f04a6f0b107f29acd00a2fad73",
+    "tests/test_pilot_screens.py": "ecd76c70648e6c2d2f091d292712aeb4a72a2a7419c37b711ed5f5e46dd78715",
+    "tests/test_sales_order_state_model.py": "b6bcd61e6770329579c86a58ad3aa83ee7b44604b07106dbf5cfec66e649bf4e",
+    "tests/visual/run-fl-assistant.mjs": "e0c294bd4c0ea2699a5d8a961c72eca0a64590502def39ea6ff07c7a36603e15",
+    "tests/visual/run-key-sessions.mjs": "178fb79d5630c5f5dbd49ca5855c8c4fa1059a87036ca2ed5083a8fc3f5cbd9d",
+    "tests/visual/run-pilot-screens.mjs": "7caae43003dd0f6b3cd9b7951c744bf587c6fe4cc4e5d3c0f0acf43df85ff434",
+    "ticket_actions.py": "d5a34cc08c65bbf2e18ea8349e587b9750c550f236c525cb1104ff7e5dd2130d",
+    "write_tickets.py": "cc1a80409fa15ddf075a3e636ab9726d30fb554eab2b212c206cfc7a37a7f47a"
+  }
+}

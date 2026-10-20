@@ -127,7 +127,8 @@ def commit(api, cur, row, body, actor, request, entry_timing):
         response.update(receipt_number=receipt, ticket_id=row['id'], replayed=False,
                         state_changed=False, success=True)
         cur.execute('SELECT clock_timestamp() AS at')
-        response['entry_timing'] = {**entry_timing, 'entered_at': cur.fetchone()['at'],
+        entered_at = cur.fetchone()['at']
+        response['entry_timing'] = {**permissions.timing(entered_at, entered_at), 'entered_at': entered_at,
                                     'entered_by': actor, 'late_entry_exception_id': None}
         response = wt.json_value(api, response)
     except HTTPException as exc:

@@ -179,6 +179,7 @@ def validate(api, cur, action, payload, lock=False):
             cases=payload['cases'], case_weight_lb=payload.get('case_weight_lb'),
             target_lot_code=payload.get('target_lot_code'), lot_allocations=legacy_allocations or None)
         draft = response_dict(api._pack_preview_core(cur, req, source=source, target=target))
+        draft.update(target_product=target['name'], target_product_id=target['id'])
         primary = [{'product_id': source['id'], 'lot_id': a['lot_id'], 'quantity_lb': a['allocated_lb']}
                    for a in draft['allocations'] if a.get('lot_id')]
         if input_plan is not None:
@@ -345,6 +346,8 @@ def validate(api, cur, action, payload, lock=False):
         draft.update(a12.fields(output_product))
         if action in ('make', 'found') and a12.tier(output_product)==a12.EXTRA:
             draft['kosher_approval'] = {'required': True, 'message': "HELD until Michael approves from his own signed-in device; nothing posts before approval."}
+    if action in ('make', 'pack'):
+        draft['note'] = payload.get('note')
     state = {'products': products, 'lots': states, 'specification': specification}
     return draft, state, req, options, occurred_at, time_source, specification, input_plan
 
@@ -365,6 +368,8 @@ def post(api, cur, action, validated, payload, request, ticket_id, receipt_numbe
         draft['shortages'] = a3b.shortfalls(draft['input_plan'], states)
     if action == 'found':
         req.performed_by = api._operator_id(request)
+    if action in ('make', 'pack'):
+        options['note'] = payload.get('note')
     if action in ('make', 'pack', 'found'):
         options['require_new_lot'] = require_new_lot
     response = response_dict(getattr(api, f'_{action}_commit_core')(
@@ -404,6 +409,8 @@ def post(api, cur, action, validated, payload, request, ticket_id, receipt_numbe
             response['shortages_closed'] = a3b.close_shortages_by_count(
                 api, cur, request, payload['resolves_shortage_ids'], response, ticket_id=ticket_id,
                 receipt_number=receipt_number, book_before_lb=draft['current_quantity_lb'])
+    if action == 'found':
+        response['found_location'] = draft.get('found_location')
     if action in ('adjust', 'found'):
         # A3b hook (R2): the review facts travel on the receipt for the weekly view.
         response['reason_code'] = draft['reason_code']
