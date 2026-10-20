@@ -1,5 +1,250 @@
 # Change Log
 
+## 2026-10-19 21:20 — Record final pilot-screen validation and regression guard
+- **File(s) changed:** FACTORY_LEDGER_CHANGELOG.md, docs/validation/pilot-screens/verification.json, /tmp/fl_pilot_pr_body.md
+- **What changed:** Add row 219 and final source-hashed evidence: 6,909 fresh Python tests in each session mode, 440 Node and 60 phone/desktop browser checks, existing runners both modes; all six disposable local pilot databases dropped. Prepare draft PR text; no model calls, settings/hosted data changes, migration or deployment.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:12 — Update pilot shipping scope and lock regression contracts
+- **File(s) changed:** tests/test_named_actor_writes.py,tests/test_sales_order_state_model.py,tests/test_pilot_screens.py
+- **What changed:** Document the approved actor-only lot lookup and already-held allocation reread lock order; verify actor/session authorization, FIFO availability, no ledger/ticket writes, dashboard denial, and no expired-reservation mutation on reads.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:09 — Refresh final browser evidence after shipping order layout correction
+- **File(s) changed:** docs/validation/pilot-screens/browser/results.json; docs/validation/pilot-screens/browser/existing-runners.json; docs/validation/pilot-screens/browser/on-*.png
+- **What changed:** Re-ran all 60 pilot checks and dashboard/Assistant runners in both modes on final JavaScript; refreshed screenshots and source hashes, visually confirming order selection precedes quantities and lots at phone and desktop widths.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:08 — Keep selected sales order above shipment lot choices
+- **File(s) changed:** `dashboard/entry.js`, `tests/test_pilot_entry_ui.js`
+- **What changed:** Place the sales-order picker and ship-all checkbox before the order line quantities and lot selectors; add a focused field-order regression.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:08 — Save pilot screen acceptance screenshots and results
+- **File(s) changed:** docs/validation/pilot-screens/browser/results.json; docs/validation/pilot-screens/browser/on-*.png
+- **What changed:** Preserve all 60 passing browser checks and 20 representative phone and desktop screenshots covering all seven requested fixes, including collapsed FIFO suggestions and real-time customer/order receipts.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:08 — Save existing dashboard and Assistant browser results
+- **File(s) changed:** docs/validation/pilot-screens/browser/existing-runners.json
+- **What changed:** Record passing final-source dashboard and Assistant browser commands in both session modes, source hashes and local-stub-only scope.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:07 — Capture concise make and customer pilot evidence
+- **File(s) changed:** tests/visual/run-pilot-screens.mjs
+- **What changed:** Name the already-collapsed make screenshot clearly and capture the created customer receipt time at each viewport for the permanent validation bundle.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:07 — Recreate historical receipt snapshots before commit in regression
+- **File(s) changed:** tests/test_pilot_screens.py
+- **What changed:** Model the older writer while the ticket is prepared, preserving committed-ticket immutability while testing original bilingual note fallback.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:06 — Verify phone shipped lot labels remain fully readable
+- **File(s) changed:** tests/visual/run-pilot-screens.mjs
+- **What changed:** Assert full chosen lot codes and available pounds below the selector and explicitly check the make note on its reviewed draft.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:06 — Show original notes on historical order receipts
+- **File(s) changed:** write_tickets.py,tests/test_pilot_screens.py
+- **What changed:** Recover missing English and Spanish display notes from immutable order-ticket payloads in returned receipt copies; preserve stored snapshots and ignore later mutable order notes.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:06 — Make shipped lot availability readable on phones
+- **File(s) changed:** `dashboard/entry.js`, `tests/test_pilot_entry_ui.js`
+- **What changed:** Move standalone lot selection after product and total quantity, show the full selected lot code and available lb below the dropdown, and format displayed stock quantities while keeping precise validation values. Cover visual content and field order in Node tests.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:06 — Stabilize native browser focus before draft submission
+- **File(s) changed:** tests/visual/run-pilot-screens.mjs
+- **What changed:** Focus and scroll the real submit button before clicking after full-page capture so the last number input cannot redirect the mouse event during blur.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:05 — Trace native pilot form submit association
+- **File(s) changed:** tests/visual/run-pilot-screens.mjs
+- **What changed:** Improve acceptance diagnostics with the clicked submit control and native form association while investigating a browser-only manual ship submit failure.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:05 — Release unused lot pins after selected order shipments
+- **File(s) changed:** main.py,tests/test_pilot_screens.py
+- **What changed:** Release only excess own reservations when a worker ships different physical lots; preserve actual consumed-allocation and void behavior, with partial/full shipment and void regressions.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:05 — Leave manual shipment quantities to the worker
+- **File(s) changed:** `dashboard/entry.js`, `tests/test_pilot_entry_ui.js`
+- **What changed:** Start manual shipping choices with a blank quantity in both modes instead of approximating FIFO or reservation preference in the browser; the default FIFO draft continues to use the authoritative server plan. Update split-lot tests.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:04 — Exercise old receipt timestamps and preserve compact make evidence
+- **File(s) changed:** tests/visual/run-pilot-screens.mjs
+- **What changed:** Add legacy midnight metadata fixtures, capture the unexpanded phone make draft, and collect submit diagnostics for local browser acceptance.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:04 — Cover reserved and stale selected shipment lots
+- **File(s) changed:** tests/test_pilot_screens.py
+- **What changed:** Use existing customer schema fixture and verify displayed availability, own versus foreign allocation consumption, wrong-line refusal, and stock-change refusal without FIFO substitution.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:04 — Remove midnight timestamps from historical metadata receipt display
+- **File(s) changed:** dashboard/ledger-ui.js, tests/test_pilot_display.js
+- **What changed:** Use the actual customer/order receipt event time consistently when rendering its historical nested draft, while preserving the stored snapshot; cover both customer and order receipts.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:04 — Write pilot notes atomically with ledger entries
+- **File(s) changed:** main.py,write_tickets.py,ticket_actions.py,tests/test_pilot_screens.py,tests/test_order_tickets.py
+- **What changed:** Pass optional notes into immutable receive/make/pack inserts, preserving generated provenance; use real metadata draft time while retaining stable day-based duplicate hashing and update time regression.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:04 — Capture useful pilot browser failure evidence
+- **File(s) changed:** tests/visual/run-pilot-screens.mjs
+- **What changed:** Retain a screenshot and exact local form or API fixture details when a draft fails to appear during acceptance.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:03 — Refine pilot shipment validation tests
+- **File(s) changed:** tests/test_pilot_screens.py,ship_tickets.py
+- **What changed:** Align fixture order-line identifiers with API shape and reject nonfinite available-lot quantity requests.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:03 — Match pilot browser fixtures to finalized draft contract
+- **File(s) changed:** tests/visual/run-pilot-screens.mjs
+- **What changed:** Use the packed-product field emitted by the backend and inspect the first ingredient suggestion list in the multi-ingredient make test.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:03 — Keep inactive shipment choices out of form validation
+- **File(s) changed:** `dashboard/entry.js`, `tests/test_pilot_entry_ui.js`
+- **What changed:** Disable hidden manual lot controls and restore their state after draft work; preserve existing order quantity hooks, relabel lot options in place, and require explicit order split quantities instead of guessing reservation priority. Add regressions for both cases.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:03 — Identify suggested make lots in browser checks
+- **File(s) changed:** dashboard/ledger-ui.js
+- **What changed:** Add a presentation class to the suggested lot list so browser acceptance verifies visible suggestions separately from collapsed alternatives.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:03 — Add pilot ticket regression coverage
+- **File(s) changed:** tests/test_pilot_screens.py,ticket_actions.py,ship_tickets.py
+- **What changed:** Exercise FIFO versus selected and split physical lots, refused invalid selections, tag gates, persisted notes/location/product labels, real metadata receipt time, and later proof upload; keep one packed-product label and reject service lot selection.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:03 — Align pilot browser test with shipping lot controls
+- **File(s) changed:** tests/visual/run-pilot-screens.mjs
+- **What changed:** Drive the shipped lot row selectors and quantities used by the actual form, including adding a second actual lot.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:03 — Refresh pilot screen assets and Spanish notes
+- **File(s) changed:** dashboard/ledger-ui.js, dashboard/entry.html, dashboard/office.html, dashboard/receipt.html, dashboard/exceptions.html
+- **What changed:** Expose Spanish note text on drafts and receipts and version the changed shared renderer, form, receipt and CSS assets so deployed pages load the fixes.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:03 — Cover pilot entry notes and actual shipment lots
+- **File(s) changed:** `tests/test_pilot_entry_ui.js`
+- **What changed:** Add Node page-harness regressions for optional notes, bilingual FIFO defaults, actual-lot splits, invalid totals and quantities, ship-all/service-line handling, stale selections and stock-read retry.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:03 — Add deterministic pilot screen browser coverage
+- **File(s) changed:** tests/visual/run-pilot-screens.mjs
+- **What changed:** Add real Record, Office and receipt page checks at phone and desktop widths with stubbed API traffic, shipped lot selection, proof state, notes, location, time and physical tag confirmation coverage.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:02 — Allow explicit physical lots on pilot shipments
+- **File(s) changed:** ship_tickets.py,main.py,write_tickets.py
+- **What changed:** Add validated per-lot quantities and available-lot lookup for standalone and order shipments; preserve FIFO defaults, physical tag confirmation, order reservations, kosher guards, and the existing atomic posting core.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:02 — Verify pilot receipt details and compact make lots
+- **File(s) changed:** dashboard/receipt.js, tests/test_pilot_display.js
+- **What changed:** Preserve void notes across renders, invalidate drafts if a note changes, and add behavioral display tests for current photo proof, all 65 make lot choices, suggested split quantities, escaping and optional notes.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:02 — Add shipped-lot choices and optional entry notes
+- **File(s) changed:** `dashboard/entry.js`
+- **What changed:** Record entry keeps FIFO as the shipping default, loads available shipment stock, supports explicit per-lot split quantities for standalone and order shipments, and adds optional notes to receive, make and pack; physical tag controls remain unchanged.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:02 — Show pilot draft and receipt details clearly
+- **File(s) changed:** dashboard/ledger-ui.js, dashboard/ledger-ticket.js, dashboard/receipt.js, dashboard/ledger-forms.css
+- **What changed:** Add found-location/packed-product/shipped-lot labels, current completed shipment photo status across snapshot sections, optional void note, and suggested make lots first with expandable other lots on phones. Physical confirmation fields and submission stay unchanged.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:02 — Preserve pilot entry notes and receipt details
+- **File(s) changed:** write_tickets.py,ticket_actions.py,order_tickets.py,customer_tickets.py,resolution_receipts.py
+- **What changed:** Add optional receive/pack/void notes; persist notes with make/receive/pack ledger receipts, expose found location and packed product, show actual customer/order entry times without changing same-day duplicate hashing.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
+## 2026-10-19 21:01 — Prepare isolated pilot screen validation
+- **File(s) changed:** .venv-test, node_modules, /tmp/fl_pilot_log.py
+- **What changed:** Created dependency links to the existing pinned Python 3.12/Pydantic 2.14.1 environment and Node packages; added a serialized append-only log helper. Isolated branch starts from main 112e1fd5; no hosted changes.
+- **Why:** Pre-pilot Record entry and Office fixes for October 21.
+
+---
+
 ## 2026-10-19 18:37 — PR #138 rebased on #139; three dashboard handlers return 503 on pool exhaustion
 - **File(s) changed:** `main.py`, `tests/test_db_pool_wait.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Rebased `fix/db-pool-dashboard` onto main 89744686 (changelog conflicts only; row 217 kept beside #139's row 218). `/production/today-tile`, `/sales/orders/fulfillment-check` and `/sales/orders/counts` now re-raise `pool.PoolError` so the exception handler answers 503 `DATABASE_BUSY` like the other dashboard panels, instead of catching it into a 500. The 503 test is parametrized over all six dashboard panels that 500ed on prod (the three new cases fail without the change). Row 218 now says merged and deployed (89744686, Railway a3b93f1f); row 217 no longer says draft.

@@ -1,5 +1,5 @@
 (() => {
-  const ui=FLLedger;ui.bind();let receipt,generation=0,ticket=null,busy=false,missing=false;
+  const ui=FLLedger;ui.bind();let receipt,generation=0,ticket=null,busy=false,missing=false;const voidNotes=new Map();
   const content=document.getElementById('content');
   const resolution=document.getElementById('resolution');
   function render(){if(!receipt)return;content.replaceChildren();const card=ui.el('section',undefined,content);card.className='panel';ui.el('h2',receipt.receipt_number,card);const state=ui.receiptState(receipt);
@@ -8,7 +8,7 @@
     if(state.voidReceipt){const p=ui.el('p',ui.t('Voided by receipt ','Anulado por el recibo '),card);const a=ui.el('a',state.voidReceipt,p);a.href=FLReceipts.link(state.voidReceipt);}
     const data={action:receipt.action,status:receipt.status,actor:receipt.actor,happened_at:receipt.happened_at,entered_at:receipt.entered_at,supplier_lot_code:receipt.supplier_lot_code,bol_reference:receipt.bol_reference,transactions:receipt.transactions,lots:receipt.lots,shipment:receipt.shipment,order:receipt.order,warnings:receipt.warnings,acknowledged:receipt.acknowledged,draft:receipt.draft,response:receipt.response};
     (receipt.warnings||[]).forEach(w=>{const p=ui.el('p',ui.text(w,ui.lang),card);p.className='notice';});
-    const view=ui.el('div',undefined,card);view.innerHTML=ui.draftHtml(data);
+    const view=ui.el('div',undefined,card);view.innerHTML=ui.draftHtml(ui.receiptData(data));
     const photos=receipt.attachments||receipt.response?.attachments||[];
     if(photos.length){const section=ui.el('section',undefined,card);section.className='receipt-photos';ui.el('h3',ui.t('Receipt photos','Fotos del recibo'),section);
       const names={lot_tag:['Lot tag','Etiqueta de lote'],bol:['BOL','BOL'],truck_photo:['Truck','Camión'],signed_packing_slip:['Signed packing slip','Nota de empaque firmada'],correction_photo:['Correction','Corrección']};
@@ -17,12 +17,13 @@
     if(ui.session.token)for(const txn of ui.voidChoices(receipt,FLDashboard.writesEnabled)){
       const controls=ui.el('div',undefined,card);controls.dataset.flWriteUi='';
       ui.el('p',ui.t('Void reason: data-entry error. This removes entry #','Motivo: error de captura. Esto anula la entrada #')+txn.id+ui.t(' from stock totals.',' de los totales de inventario.'),controls);
+      const noteLabel=ui.el('label',ui.t('Note (optional)','Nota (opcional)'),controls),note=ui.el('textarea',undefined,noteLabel);note.name='note';note.dataset.voidNote=txn.id;note.maxLength=2000;note.value=voidNotes.get(txn.id)||'';note.disabled=busy;note.oninput=()=>{voidNotes.set(txn.id,note.value);ticket?.invalidate();ticket=null;resolution.replaceChildren();};
       const button=ui.el('button',ui.t('Prepare void for entry #','Preparar anulación de entrada #')+txn.id,controls);
       button.type='button';button.disabled=busy;button.dataset.void=txn.id;
       button.onclick=()=>{
         if(busy||!ui.session.token||!FLDashboard.writesEnabled)return;
         ticket?.invalidate();resolution.replaceChildren();
-        const request=ui.voidRequest(txn.id);
+        const request=ui.voidRequest(txn.id,note.value);
         ticket=ui.ticketCard(resolution,request.path,request.body,{receiptPrefix:'VD',allowPhoto:false,
           onBusy(value){busy=value;document.getElementById('sign-out').disabled=value;render();},
           onRecorded(){load();}});

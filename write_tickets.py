@@ -63,6 +63,7 @@ DASHBOARD_ROUTES = frozenset({
 ACTOR_ROUTES = DASHBOARD_ROUTES | frozenset({
     ('POST', '/customers/prepare'),
     ('GET', '/sales/orders/{order_id}/office-options'),
+    ('GET', '/ship/lots'),
     ('GET', '/purchase-documents/{document_id}'),
     ('POST', '/void/{transaction_id}/prepare'),
     ('POST', '/lots/{lot_id}/move/prepare'),
@@ -107,6 +108,7 @@ class SupplierLotEntry(IdInput):
 
 
 class ReceivePrepareRequest(IdInput):
+    note: Optional[str] = Field(None, max_length=2000)
     product_id: PositiveId
     supplier_id: Optional[PositiveId] = None
     cases: conint(strict=True, gt=0)
@@ -191,6 +193,7 @@ class LotAllocation(IdInput):
 
 
 class PackPrepareRequest(ActionPrepareRequest):
+    note: Optional[str] = Field(None, max_length=2000)
     lot_confirmations: List[a5.LotConfirmation] = Field(default_factory=list)
     source_product_id: PositiveId
     target_product_id: PositiveId
@@ -366,6 +369,7 @@ def validate_receive(api, cur, payload, *, lock=False):
     # A5 hook: unresolved supplier lot identity is a flag, not a stock blocker.
     a5.identity_draft(api, cur, payload, draft)
     draft['supplier_lot_code'] = payload.get('supplier_lot_code')
+    draft['note'] = payload.get('note')
     state = {'supplier': dict(shipper), 'product': {'id': product['id'], 'active': product['active']},
              'lots': lots, 'expected_receipt': dict(expected) if expected else None}
     return draft, state, req, product, occurred_at, source, er_id
@@ -457,6 +461,10 @@ def receipt_detail(api, cur, number, actor=None):
     import kosher_tiers
     kosher_tiers.receipt_evidence(cur, transactions, lots)
     happened = datetime.fromisoformat(ticket['payload']['occurred_at'])
+    if ticket['action'] in ORDER_ACTIONS or ticket['action'] == 'create_customer':
+        # Metadata has no physical event time: show when this entry was made.
+        # Keep the day-normalized payload for same-day duplicate supersession.
+        happened = ticket['committed_at'] or ticket['prepared_at']
     entered = ticket['committed_at']   # NULL on a rejected/held ticket that already drew a number
     late = entered is not None and happened.astimezone(api.PLANT_TIMEZONE).date() != entered.astimezone(api.PLANT_TIMEZONE).date()
     import order_tickets   # A7 hook: the order an order receipt created or edited (None otherwise)
@@ -471,12 +479,21 @@ def receipt_detail(api, cur, number, actor=None):
         shipment = cur.fetchone()
     import attachments
     photos = attachments.for_receipt(cur, ticket['id'])
+    draft, response = ticket['draft'], ticket['response']
+    if ticket['action'] == 'create_order':
+        # Earlier receipts omitted the order note from their saved display
+        # snapshots. Recover the original note from the immutable payload,
+        # never from the order's editable current notes or a stored rewrite.
+        draft, response = dict(draft), dict(response or {})
+        for key in ('notes', 'notes_es'):
+            draft.setdefault(key, ticket['payload'].get(key))
+            response.setdefault(key, ticket['payload'].get(key))
     receipt = {'attachments': photos, 'shipment': shipment, 'receipt_number': number, 'action': ticket['action'], 'status': ticket['status'],
             'order': order, 'customer': customer, 'expected_receipts': expected,
             'actor': ticket['draft']['actor'], 'operator_id': ticket['operator_id'],
             'client_source': ticket['client_source'], 'happened_at': happened,
             'entered_at': ticket['committed_at'], 'late_entry': late,
-            'draft': ticket['draft'], 'response': ticket['response'],
+            'draft': draft, 'response': response,
             'warnings': ticket['warnings'], 'acknowledged': ticket['acknowledged'],
             'transactions': transactions, 'lots': lots}
     statuses = {t['effective_status'] for t in transactions}
@@ -646,7 +663,7 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
         if row['action'] == 'receive':
             req.mode = 'commit'
             response = api._receive_commit_core(cur, req, request, occurred_at, source,
-                product=product, ticket_id=row['id'], receipt_number=receipt, expected_receipt_id=er_id, supplier_id=row['payload']['supplier_id'])
+                product=product, ticket_id=row['id'], receipt_number=receipt, expected_receipt_id=er_id, supplier_id=row['payload']['supplier_id'], note=effective_payload.get('note'))
             a5.record_identity(cur, row['payload'], response, row['id'], receipt)
             a5.supplier_receipt(cur, response)
             import attachments
@@ -659,6 +676,9 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
         if row['action'] in ('adjust', 'found') and photo:
             cur.execute('UPDATE attachments SET transaction_id=%s WHERE attachment_ref=%s', (response.get('transaction_id'), photo))
             response['attachments'] = attachments.for_receipt(cur, row['id'])
+        if row['action'] in ('receive', 'make', 'pack'):
+            note = effective_payload.get('note')
+            response['note'] = note
         response.update(receipt_number=receipt, ticket_id=row['id'], replayed=False,
                         state_changed=state_changed)
         # A2: 48 h–14 d late entries open exceptions(LATE_ENTRY) for the
@@ -727,7 +747,8 @@ def issue_ticket(api, cur, *, actor, action, payload, draft, state, warnings, bl
     envelope. A7 hook: shared by the ledger prepares below and order_tickets.
     `draft` gains actor/happened_at/happened_vs_now_minutes/blockers here."""
     payload_hash = canonical_hash(payload)
-    draft.update(actor=actor, happened_at=payload['occurred_at'],
+    happened_at = event_time.isoformat() if action in ORDER_ACTIONS or action == 'create_customer' else payload['occurred_at']
+    draft.update(actor=actor, happened_at=happened_at,
                  happened_vs_now_minutes=round(permissions.elapsed(event_time, api.get_plant_now()).total_seconds()/60, 1),
                  blockers=blockers)
     draft = json_value(api, draft)

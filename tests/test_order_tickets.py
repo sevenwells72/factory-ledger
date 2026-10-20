@@ -505,7 +505,7 @@ def test_wrong_user_payload_mismatch_expiry_and_supersession(client, db_cursor, 
     again = prepare(client, '/sales/orders/prepare', create_body(catalog), office(actors))
     assert ticket_row(db_cursor, prepared)['status'] == 'superseded'
     assert again['payload_hash'] == prepared['payload_hash']
-    assert again['draft']['happened_at'] == main.get_plant_now().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    assert again['draft']['happened_at'] == again['draft']['entry_timing']['happened_at']
     error(commit(client, prepared, office(actors)), 409, 'TICKET_NOT_COMMITTABLE')
     db_cursor.execute("UPDATE write_tickets SET expires_at=now()-interval '1 minute' WHERE id=%s", (again['ticket_id'],))
     error(commit(client, again, office(actors)), 409, 'TICKET_EXPIRED')

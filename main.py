@@ -1019,8 +1019,9 @@ def _sales_order_ship_plan(
     released_by: Optional[str] = None,
     lock: bool = True,
     persist_expired: bool = True,
+    lot_allocations: Optional[list] = None,
 ) -> dict:
-    """Lock and plan one SO line: own lot pins first, then takeable FIFO."""
+    """Plan one SO line, preserving explicit physical lots when supplied."""
     lots = available_lots_for_product(
         cur,
         product_id,
@@ -1058,29 +1059,56 @@ def _sales_order_ship_plan(
                 "quantity_lb": qty,
             })
 
-    for row in own_lot_rows:
-        if remaining <= BALANCE_EPSILON:
-            break
-        lot = by_lot.get(int(row["lot_id"]))
-        if not lot:
-            continue
-        protected_for_others = float(lot["reserved_others_lot"] or 0)
-        own_physical_cover = max(0.0, float(lot["on_hand"]) - protected_for_others)
-        take = min(remaining, float(row["quantity_lb"]), own_physical_cover)
-        if take <= BALANCE_EPSILON:
-            continue
-        add_lot_take(lot, take)
-        allocation_takes.append({"allocation_id": int(row["id"]), "quantity_lb": take})
-        remaining -= take
+    if lot_allocations is not None:
+        if (not lot_allocations or len({int(r['lot_id']) for r in lot_allocations}) != len(lot_allocations)
+                or any(float(r['quantity_lb']) <= 0 for r in lot_allocations)
+                or abs(sum(float(r['quantity_lb']) for r in lot_allocations) - float(requested_lb)) > BALANCE_EPSILON):
+            raise HTTPException(422, {'error_code': 'INVALID_LOT_ALLOCATIONS',
+                                     'message': 'Select each lot once; lot quantities must add up to the shipment quantity.'})
+        for selected in lot_allocations:
+            lot = by_lot.get(int(selected['lot_id']))
+            qty = float(selected['quantity_lb'])
+            own_cover = min(float(lot['reserved_this_line_lot'] or 0),
+                            max(0.0, float(lot['on_hand']) - float(lot['reserved_others_lot'] or 0))) if lot else 0.0
+            available = own_cover + float(lot['takeable'] or 0) if lot else 0.0
+            if not lot or qty > available + BALANCE_EPSILON:
+                raise HTTPException(409, {'error_code': 'INSUFFICIENT_STOCK',
+                    'message': 'The selected lot does not have enough available stock for this order.',
+                    'lot_id': selected['lot_id'], 'available_lb': available, 'needed_lb': qty})
+            add_lot_take(lot, qty)
+            remaining -= qty
+            reserved_to_consume = min(qty, own_cover)
+            for row in own_lot_rows:
+                if int(row['lot_id']) != int(selected['lot_id']):
+                    continue
+                take = min(reserved_to_consume, float(row['quantity_lb']))
+                if take > BALANCE_EPSILON:
+                    allocation_takes.append({'allocation_id': int(row['id']), 'quantity_lb': take})
+                    reserved_to_consume -= take
+    else:
+        for row in own_lot_rows:
+            if remaining <= BALANCE_EPSILON:
+                break
+            lot = by_lot.get(int(row["lot_id"]))
+            if not lot:
+                continue
+            protected_for_others = float(lot["reserved_others_lot"] or 0)
+            own_physical_cover = max(0.0, float(lot["on_hand"]) - protected_for_others)
+            take = min(remaining, float(row["quantity_lb"]), own_physical_cover)
+            if take <= BALANCE_EPSILON:
+                continue
+            add_lot_take(lot, take)
+            allocation_takes.append({"allocation_id": int(row["id"]), "quantity_lb": take})
+            remaining -= take
 
-    for lot in lots:
-        if remaining <= BALANCE_EPSILON:
-            break
-        take = min(remaining, float(lot["takeable"] or 0))
-        if take <= BALANCE_EPSILON:
-            continue
-        add_lot_take(lot, take)
-        remaining -= take
+        for lot in lots:
+            if remaining <= BALANCE_EPSILON:
+                break
+            take = min(remaining, float(lot["takeable"] or 0))
+            if take <= BALANCE_EPSILON:
+                continue
+            add_lot_take(lot, take)
+            remaining -= take
 
     actual_ship = max(0.0, float(requested_lb) - remaining)
     lot_allocated_take = sum(item["quantity_lb"] for item in allocation_takes)
@@ -5873,7 +5901,7 @@ def _receive_preview_core(cur, req: ReceiveRequest, *, product=None):
 
 def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
                          created_at_source, *, product=None, ticket_id=None,
-                         receipt_number=None, expected_receipt_id=None, supplier_id=None):
+                         receipt_number=None, expected_receipt_id=None, supplier_id=None, note=None):
     """Receive post on the caller's transaction, preserving the legacy locks."""
     cur.execute("SELECT pg_advisory_xact_lock(1)")
     product = product if product is not None else resolve_product_full(cur, req.product_name)
@@ -5922,15 +5950,15 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
             type, timestamp, bol_reference, shipper_name,
             shipper_code, cases_received, case_size_lb,
             expected_receipt_id, occurred_at, created_at_source, operator_id,
-            ticket_id, receipt_number, supplier_id, entered_by_actor_id, kosher_tier
+            ticket_id, receipt_number, supplier_id, entered_by_actor_id, kosher_tier, notes
         )
-        VALUES ('receive', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES ('receive', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id, occurred_at, business_date
     """, (
         now, req.bol_reference, req.shipper_name, shipper_code,
         req.cases, req.case_size_lb, expected_receipt_id,
         occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number, supplier_id,
-        _entered_by_actor_id(request), kosher_tiers.tier(product),
+        _entered_by_actor_id(request), kosher_tiers.tier(product), note,
     ))
     txn_row = cur.fetchone()
     txn_id = txn_row['id']
@@ -8487,7 +8515,7 @@ def _ship_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
     return response
 
 
-def _ship_order_commit_core(cur, request, order_id, req, occurred_at, created_at_source, *, ticket_id=None, receipt_number=None, bol_reference=None):
+def _ship_order_commit_core(cur, request, order_id, req, occurred_at, created_at_source, *, ticket_id=None, receipt_number=None, bol_reference=None, lot_allocations_by_line=None):
     """Existing ship commit body; caller owns the transaction (A6)."""
     cur.execute(
         "SELECT so.id, so.order_number, so.status, so.state, so.customer_id, c.name "
@@ -8602,6 +8630,7 @@ def _ship_order_commit_core(cur, request, order_id, req, occurred_at, created_at
                 released_by=caller_source_tag(request),
                 lock=True,
                 persist_expired=False,
+                lot_allocations=(lot_allocations_by_line or {}).get(int(item["line_id"])),
             )
             can_ship = float(plan["actual_ship_lb"])
             # Match the ship plan's physical basis exactly:
@@ -8674,6 +8703,7 @@ def _ship_order_commit_core(cur, request, order_id, req, occurred_at, created_at
             int(item["line_id"]),
             qty_to_ship,
             released_by=caller_source_tag(request),
+            lot_allocations=(lot_allocations_by_line or {}).get(int(item["line_id"])),
         )
         actual_ship = float(plan["actual_ship_lb"])
         if actual_ship <= BALANCE_EPSILON:
@@ -8718,6 +8748,21 @@ def _ship_order_commit_core(cur, request, order_id, req, occurred_at, created_at
             new_line_status = 'pending'
         cur.execute("UPDATE sales_order_lines SET line_status = %s WHERE id = %s", (new_line_status, item["line_id"]))
 
+        allocations_released = []
+        if (lot_allocations_by_line or {}).get(int(item["line_id"])) is not None:
+            # Choosing physical stock can bypass a pin on a different lot.
+            # Release only coverage beyond the remaining demand; these old
+            # physical lots were not shipped and must not be marked shipped.
+            cur.execute("""SELECT * FROM sales_order_allocations
+                             WHERE sales_order_line_id=%s AND status='active'
+                               AND (expires_at IS NULL OR expires_at>clock_timestamp())
+                             ORDER BY created_at DESC,id DESC FOR UPDATE""", (item["line_id"],))
+            active = cur.fetchall()
+            excess = max(0.0, sum(float(r['quantity_lb']) for r in active) - max(0.0, ordered-new_shipped))
+            if excess > BALANCE_EPSILON:
+                allocations_released = _shrink_active_allocations(
+                    cur, active, excess, 'ship_lot_changed', caller_source_tag(request))
+
         # Record in sales_order_shipments
         cur.execute("INSERT INTO sales_order_shipments (sales_order_line_id, transaction_id, quantity_lb) VALUES (%s, %s, %s)", (item["line_id"], txn_id, actual_ship))
 
@@ -8752,7 +8797,7 @@ def _ship_order_commit_core(cur, request, order_id, req, occurred_at, created_at
                         "requested_lb": qty_to_ship, "shipped_lb": actual_ship,
                         "shipped_units": round(actual_ship / cs_lb) if cs_lb else None,
                         "short_lb": max(0, qty_to_ship - actual_ship), "lots_used": lots_used,
-                        "allocation_changes": allocation_changes,
+                        "allocation_changes": allocation_changes, "allocations_released": allocations_released,
                         "transaction_id": txn_id, "confirmation_code": generate_confirmation_code(txn_id),
                         "line_status": new_line_status})
 
@@ -9121,7 +9166,7 @@ def _make_preview_core(cur, req, *, product=None, auto_substitute=True):
     return response
 
 
-def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, ticket_id=None, receipt_number=None, require_new_lot=False, input_plan=None, substitutions=None, auto_substitutions=None, kosher_attestation=None):
+def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, ticket_id=None, receipt_number=None, require_new_lot=False, input_plan=None, substitutions=None, auto_substitutions=None, kosher_attestation=None, note=None):
     product = product if product is not None else resolve_product_full(cur, req.product_name)
 
     if kosher_tiers.tier(product)==kosher_tiers.EXTRA:
@@ -9229,7 +9274,7 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
         VALUES ('make', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id, occurred_at, business_date
     """, (
-        now, f"{req.batches} batch(es) of {product['name']}{exclusion_note}",
+        now, f"{req.batches} batch(es) of {product['name']}{exclusion_note}" + ("\n" + note if note else ""),
         occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number,
         _entered_by_actor_id(request), kosher_tiers.tier(product),
         kosher_attestation['actor_id'] if kosher_attestation else None,
@@ -9515,7 +9560,7 @@ def _pack_preview_core(cur, req, *, source=None, target=None):
     return result
 
 
-def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, source=None, target=None, ticket_id=None, receipt_number=None, require_new_lot=False, input_plan=None):
+def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, source=None, target=None, ticket_id=None, receipt_number=None, require_new_lot=False, input_plan=None, note=None):
     source = source if source is not None else resolve_product_full(cur, req.source_product)
     target = target if target is not None else resolve_product_full(cur, req.target_product)
     kosher_tiers.refuse_batch_pack(target)
@@ -9630,7 +9675,7 @@ def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, sour
         RETURNING id, occurred_at, business_date
     """, (
         now,
-        f"Pack {req.cases} cases of {target['name']} from {source['name']} lots: {source_lot_summary}",
+        f"Pack {req.cases} cases of {target['name']} from {source['name']} lots: {source_lot_summary}" + ("\n" + note if note else ""),
         occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number,
         _entered_by_actor_id(request), kosher_tiers.tier(target), is_downgrade,
     ))

@@ -3,7 +3,7 @@
 Every helper uses the caller's transaction. XR records the exception decision;
 resolution_ticket_id continues to identify its fixing posting, such as ADJ.
 """
-from typing import Literal
+from typing import Literal, Optional
 from fastapi import Depends, Request
 from pydantic import BaseModel, Field, field_validator
 from psycopg2.extras import Json
@@ -55,7 +55,8 @@ def record_void(api, cur, transaction_id, event, actor, reason, *, ticket=None):
     source = cur.fetchone()['receipt_number']
     receipt = begin(api, cur, 'void', actor, {'transaction_id': transaction_id, 'reason': reason},
         {'transaction_id': transaction_id, 'source_receipt_number': source, 'reason': reason}, prepared=ticket)
-    return finish(api, cur, receipt, {**event, **receipt, 'source_receipt_number': source,
+    note = (ticket.get('payload') or {}).get('note') if ticket else None
+    return finish(api, cur, receipt, {**event, **receipt, 'source_receipt_number': source, 'note': note,
         'voided_transaction_id': transaction_id, 'success': True, 'replayed': False},
         {'correction_id': str(event['correction_id']), 'voided_transaction_id': transaction_id,
          'transaction_ids': [], 'lot_ids': []})
@@ -127,6 +128,7 @@ class ResolvePrepare(exceptions.ResolveRequest):
 
 
 class VoidPrepare(BaseModel):
+    note: Optional[str] = Field(None, max_length=2000)
     reason: str = Field(min_length=1, max_length=2000)
     client_source: Literal['mcp','dashboard','fl_assistant','api'] = 'dashboard'
     _strip = field_validator('reason')(exceptions._non_blank)
@@ -159,9 +161,9 @@ def register_routes(app, api):
             state = require_void(api, cur, actor, transaction_id)
             if state['effective_status'] == 'voided':
                 exceptions.fail(409, 'TRANSACTION_VOIDED', 'This transaction is already voided.')
-            draft = {'transaction_id': transaction_id, 'reason': body.reason,
+            draft = {'transaction_id': transaction_id, 'reason': body.reason, 'note': body.note,
                      'source_receipt_number': state['receipt_number']}
-            _, prepared = start(api, cur, actor, 'void', {'transaction_id': transaction_id, 'reason': body.reason},
+            _, prepared = start(api, cur, actor, 'void', {'transaction_id': transaction_id, 'reason': body.reason, 'note': body.note},
                                 draft, dict(state), body.client_source)
             return prepared
 

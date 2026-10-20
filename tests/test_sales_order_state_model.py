@@ -4447,8 +4447,12 @@ EXPECTED_LOCK_SEQUENCE = {
     "update_order_line": ["_lock_sales_order(", "FOR NO KEY UPDATE",
                           "_lock_allocation_product(", "FOR UPDATE"],
     # Ship commit: order row -> lines -> all products, sorted, up front.
+    # Explicit physical-lot selection then rereads own active allocations to
+    # release coverage beyond remaining demand. _lock_allocation_products has
+    # already locked all those rows by id, so this FOR UPDATE adds no new
+    # wait-order edge (the same held-row reread as update_order_line above).
     "ship_order": ["FOR NO KEY UPDATE", "_lock_sales_order_lines(",
-                   "_lock_allocation_products("],
+                   "_lock_allocation_products(", "FOR UPDATE"],
     # ── Scheduling S1 (migration 053) ─────────────────────────────────
     # production_runs is step "2b": taken strictly AFTER any order and line
     # lock, never before one, and no run path ever reaches step 3 (products,
