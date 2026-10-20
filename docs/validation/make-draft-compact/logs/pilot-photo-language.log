@@ -1,0 +1,5 @@
+command: ["/opt/homebrew/bin/node", "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-pilot-photo-language.mjs"]
+cwd: /Users/cns/dev/fl-makedraft-wt
+local_only: true; OpenAI/hosted credentials absent; loopback network guard active
+
+{"checks":13,"expected":13,"passed":13,"failed":0,"complete":true,"receipts":2,"photos":6,"results":"/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-photo-language/results.json"}

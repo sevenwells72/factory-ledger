@@ -1,0 +1,146 @@
+{
+  "completed_at": "2026-10-20T19:38:16.561261-04:00",
+  "local_only": true,
+  "openai_calls": 0,
+  "required_functional_result": "passed",
+  "required_functional_runner_count": 26,
+  "required_functional_runners": [
+    "pytest-final-sessions-0",
+    "pytest-final-sessions-1",
+    "node-full",
+    "intake",
+    "dashboard-key-failure",
+    "session-shift",
+    "pilot-screens",
+    "pilot-ux-round",
+    "pilot-ux-review",
+    "pilot-photo-language",
+    "pilot-hosting",
+    "assistant-mobile-webkit",
+    "assistant-phone",
+    "assistant-final-floor",
+    "assistant-0",
+    "assistant-1",
+    "assistant-round-a-0",
+    "assistant-round-a-1",
+    "key-sessions",
+    "sales-orders-layout",
+    "sales-orders-interactions",
+    "so-detail-interactions",
+    "so-exit-actions",
+    "production-trace",
+    "run-types",
+    "runs-interactions"
+  ],
+  "python": {
+    "0": {
+      "passed": 6935,
+      "warnings": 15157,
+      "seconds": 189.62,
+      "failed": 0,
+      "skipped": 0,
+      "database": "fl_makedraft_suite_off"
+    },
+    "1": {
+      "passed": 6935,
+      "warnings": 15157,
+      "seconds": 168.82,
+      "failed": 0,
+      "skipped": 0,
+      "database": "fl_makedraft_suite_on"
+    }
+  },
+  "node": {
+    "passed": 577,
+    "failed": 0,
+    "skipped": 0
+  },
+  "browser_highlights": {
+    "pilot_screens": 60,
+    "pilot_ux_round": 96,
+    "pilot_ux_review": 34,
+    "pilot_photo_language": 13,
+    "pilot_hosting": 272,
+    "assistant_webkit_mobile": 144,
+    "assistant_chromium_webkit_phone": 288,
+    "assistant_round_a_per_session_mode": 30,
+    "sales_order_layout_cases": 26,
+    "sales_order_detail_checks": 36
+  },
+  "diagnostic_visual_audit": {
+    "captures": 388,
+    "screens": 92,
+    "current_counts": {
+      "PASS": 3229,
+      "FAIL": 402,
+      "WARN": 63,
+      "N/A": 1350,
+      "ERROR": 0
+    },
+    "historical_counts": {
+      "PASS": 3251,
+      "FAIL": 431,
+      "WARN": 58,
+      "N/A": 1304,
+      "ERROR": 0
+    },
+    "historical_comparison": "docs/validation/make-draft-compact/logs/visual-audit/historical-comparison.json",
+    "report": "docs/validation/make-draft-compact/logs/visual-audit/06-browser-check.md",
+    "current_Record_Make_covered": false,
+    "focused_Make_acceptance": "docs/validation/make-draft-compact/browser-results.json",
+    "unmatched_fixture_endpoints": [
+      "/auth/session/config"
+    ]
+  },
+  "optional_existing_failure": {
+    "runner": "run-fl-assistant-mobile-ux.mjs",
+    "engine": "chromium",
+    "current_log": "docs/validation/make-draft-compact/logs/assistant-mobile.log",
+    "untouched_HEAD_baseline_log": "docs/validation/make-draft-compact/logs/assistant-mobile-chromium-baseline.log",
+    "baseline_commit": "27a2518655da43ae31860a0bcf8c1f73db114422",
+    "failure": "Timeout at line140 waiting for Upload failed \u2014 tap to retry after fixture socket dropout. Reproduced identically using untouched committed assets/runner.",
+    "documented_default_engine": "webkit",
+    "default_mode_result": "144 checks passed, zero Record requests",
+    "note": "Optional Chromium expansion remains unresolved and outside the Make change. No Assistant runtime was modified."
+  },
+  "exclusions": [
+    {
+      "runners": "scripts/check_*staging.py, tests/visual/run-d12-staging.mjs, run-office-void-staging.mjs",
+      "reason": "Hosted/staging deployment integration workflows are outside this local-only task and would require prohibited hosted targets or staging fixture orchestration."
+    },
+    {
+      "runners": "scripts/check_dashboard_pages.mjs",
+      "reason": "Deployment key-delivery integration checker requires a separately served target service. Current local dashboard-key/retry/browser suites exercise key loading and auth errors with deterministic local fixtures; no deployment target was used."
+    },
+    {
+      "runners": "scripts/check_assistant_*real_model.py, scripts/check_assistant_final2_customer_paths.py, scripts/check_assistant_final_supplement.py; FIXB_REAL_MODEL=1/FIXC_REAL_MODEL=1",
+      "reason": "Read real model secrets or invoke external model transport; zero OpenAI calls is required."
+    },
+    {
+      "runners": "run-fl-assistant-round-b-page.mjs, run-fl-assistant-round-c.mjs, run-assistant-round-b.mjs",
+      "reason": "Historical actual-page runners hardcode bridge DB URLs on :5432. Current actual-page pilot/compact-Make suites use isolated :55473; fixture assistant rounds A/C-phone/mobile/final-floor are included."
+    },
+    {
+      "runners": "run-d12*.mjs local variants, run-d2.mjs, run-oatbran.mjs, run-office.mjs, run-void.mjs",
+      "reason": "Historical fixture-server generation requires .venv-test/d12-fixture.json and fixed ports. Current full pilot screens/actual-API pilot suites supersede these flows; Python and Node retain backend regression checks."
+    }
+  ],
+  "initial_attempt_explanation": "Initial schema bootstrap needed public search_path before085; first Python run hit missing085 allowlist; second initial mode reused committed fixture state and hit receipt/actor counts. Final full runs used independently fresh mode databases and both passed. Initial Node/pilot assertions were adapted for final pagination; complete reruns passed. All raw logs preserved.",
+  "screenshot_archive": {
+    "path": "/private/tmp/fl-makedraft-full-suite-screenshots",
+    "count": 1114,
+    "bytes": 128274692,
+    "manifest": "docs/validation/make-draft-compact/logs/screenshot-archive.json",
+    "dedicated_requested_screenshots_unchanged": true
+  },
+  "network_guard": {
+    "external_requests_permitted": 0,
+    "blocked_attempts_by_host": {
+      "cdnjs.cloudflare.com": 54
+    },
+    "secrets_inherited": false
+  },
+  "local_database_cluster_stopped": true,
+  "verification_document": "docs/validation/make-draft-compact/verification.json",
+  "report": "docs/validation/make-draft-compact/FULL_SUITE_REPORT.md"
+}

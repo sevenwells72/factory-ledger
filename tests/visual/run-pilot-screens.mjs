@@ -116,7 +116,7 @@ try {
         let plan = [], draft = { happened_at: at, note: body.note };
         if (action === 'receive') Object.assign(draft, { product_name: products.oats.name, cases: body.cases, case_size_lb: body.case_size_lb });
         if (action === 'found') Object.assign(draft, { product_name: products.oats.name, quantity: body.quantity, found_location: body.found_location, notes: body.notes });
-        if (action === 'make') { plan = structuredClone(makePlan); Object.assign(draft, { product_name: products.batch.name, batches: 1, total_output_lb: 35, ingredients: makeIngredients }); }
+        if (action === 'make') { plan = structuredClone(makePlan); Object.assign(draft, { product_name: products.batch.name, batches: 1, total_output_lb: 35, ingredients: makeIngredients, lot_confirmation_group: { ingredients: makeIngredients.map(ingredient => ({ product_id: ingredient.ingredient_id, product_name: ingredient.ingredient_name, needed_lb: ingredient.needed_lb, candidates: ingredient.lots.map((lot, index) => ({ ...lot, lot_id: (ingredient.ingredient_id === 11 ? 201 : 301) + index, received_at: '2026-10-01T12:00:00Z' })) })) } }); }
         if (action === 'pack') Object.assign(draft, { source_product: products.batch.name, target_product: products.finished.name, target_product_id: 13, cases: body.cases, total_lb: 40 });
         if (action === 'void') Object.assign(draft, { voided_transaction_id: 99, reason: 'data_entry_error' });
         if (action === 'create_customer') Object.assign(draft, { customer: { id: 92, name: body.name, notes: body.notes } });
@@ -128,8 +128,8 @@ try {
           Object.assign(draft, { customer: 'Pilot Bakery', photo: 'pending', bol_reference: body.bol_reference,
             lines: [{ product: products.finished.name, quantity_lb: 40, lots: plan }] });
         }
-        const confirmed = plan.every(lot => body.lot_confirmations?.some(c => c.lot_id === lot.lot_id && c.method === 'full_code' && c.value === lot.lot_code));
-        draft.input_plan = plan.map(lot => ({ ...lot, confirmed }));
+        const confirmed = plan.every(lot => body.lot_confirmations?.some(c => c.lot_id === lot.lot_id && (action === 'make' ? ['tap', 'full_code', 'scan'] : ['full_code']).includes(c.method) && c.value === lot.lot_code));
+        draft.input_plan = plan.map(lot => ({ ...lot, confirmed, ...(confirmed ? { confirmation: body.lot_confirmations.find(item => item.lot_id === lot.lot_id) } : {}) }));
         const ticket = `pilot-${++state.next}`;
         const prepared = { action, ticket, payload_hash: ticket + '-hash', actor, draft, can_commit: confirmed,
           blockers: confirmed ? [] : [{ code: 'LOT_NOT_CONFIRMED', message: 'Confirm every physical lot tag.' }], warnings: [], expires_at: '2026-10-19T20:00:00-04:00' };
@@ -142,7 +142,7 @@ try {
         const prefix = ({ receive: 'RCV', make: 'MK', pack: 'PK', found: 'FND', void: 'VD', create_customer: 'CUS', create_order: 'ORD' })[action] || 'SHP';
         const number = `${prefix}-261019-${String(100 + state.commits.length).padStart(3, '0')}`;
         const result = { success: true, receipt_number: number, note: saved.body.note, found_location: saved.body.found_location,
-          notes: saved.body.notes, customer: action === 'create_customer' ? { id: 92, name: saved.body.name } : 'Pilot Bakery' };
+          notes: saved.body.notes, ...(action === 'make' ? { input_plan: draft.input_plan } : {}), customer: action === 'create_customer' ? { id: 92, name: saved.body.name } : 'Pilot Bakery' };
         const shipped = prefix === 'SHP';
         if (shipped) Object.assign(result, { proof_status: body.attachment_ids?.includes(81) ? 'complete' : 'photo_pending', lots_used: draft.lines[0].lots });
         state.receipts.set(number, receipt(number, action, draft, result, shipped ? {
@@ -190,13 +190,20 @@ try {
       const link = scope.locator('.good a'); await link.waitFor(); return await link.textContent();
     };
     const confirm = async () => {
+      const taps = page.locator('#resolution [data-make-lot-confirm]');
+      if (await taps.count()) {
+        const ids = await taps.evaluateAll(nodes => nodes.filter(node => node.getAttribute('aria-pressed') !== 'true').map(node => node.dataset.makeLotConfirm));
+        for (const id of ids) await page.locator(`#resolution [data-make-lot-confirm="${id}"]`).click();
+        await page.waitForFunction(() => { const button = document.querySelector('#resolution .record-bar button'); return button && !button.disabled; });
+        return;
+      }
       const fields = page.locator('#resolution fieldset').filter({ hasText: 'Confirm physical lot:' });
       for (const field of await fields.all()) {
         const code = (await field.locator('legend').textContent()).replace('Confirm physical lot: ', '').split(' · ').at(-1);
         await field.locator('select').selectOption('full_code'); await field.locator('input').fill(code);
       }
       await page.getByRole('button', { name: 'Check confirmations → new draft', exact: true }).click();
-      await page.waitForFunction(() => !document.querySelector('#resolution .record-bar button')?.disabled);
+      await page.waitForFunction(() => { const button = document.querySelector('#resolution .record-bar button'); return button && !button.disabled; });
     };
 
     // Stored drafts can contain pending-photo text after the current shipment is complete.
@@ -246,21 +253,32 @@ try {
       await page.locator('[name=batches]').fill('1'); await page.locator('[name=confirmed_sku]').check(); await page.locator('[name=note]').fill('Make pilot note');
       await prepare(); assert.equal(state.prepares.at(-1).body.note, 'Make pilot note');
       assert.match(await page.locator('#resolution').innerText(), /Make pilot note/);
-      const tags = page.locator('#resolution fieldset').filter({ hasText: 'Confirm physical lot:' });
-      assert.equal(await tags.count(), 3); for (const input of await tags.locator('input').all()) assert.equal(await input.inputValue(), '');
+      const rows = page.locator('#resolution [data-make-ingredient]'), tags = page.locator('#resolution [data-make-lot-confirm]');
+      assert.equal(await rows.count(), 2); assert.equal(await tags.count(), 3);
+      for (const button of await tags.all()) assert.equal(await button.getAttribute('aria-pressed'), 'false');
+      for (const input of await page.locator('[data-make-code-value]').all()) assert.equal(await input.inputValue(), '');
       assert.equal(await page.locator('#resolution .record-bar button').isDisabled(), true);
-      const extraLot = page.locator('.draft-data').getByText('OATS-062', { exact: true });
+      const extraLot = page.locator('[data-make-lot-choice="262"] .make-lot-code');
       await screenshot('make-lots-suggested');
-      if (width === 390) {
-        assert.equal(await extraLot.isVisible(), false); assert.ok((await page.locator('.suggested-lots').first().innerText()).includes('OATS-001'));
-        const before = state.prepares.length; await page.getByText('Show more lots', { exact: false }).first().click();
-        assert.equal(await extraLot.isVisible(), true); assert.equal(state.prepares.length, before);
-        for (const input of await tags.locator('input').all()) assert.equal(await input.inputValue(), '');
-      } else assert.equal(await extraLot.isVisible(), true);
-      await screenshot('make-lots-draft'); await confirm();
+      assert.equal(await extraLot.isVisible(), false);
+      assert.ok((await page.locator('[data-make-ingredient="11"] .make-selected-lots').innerText()).includes('OATS-001'));
+      const before = state.prepares.length; await page.locator('[data-make-change="11"]').click();
+      assert.equal(await page.locator('[data-make-ingredient="11"] [data-make-lot-choice]').count(), 6);
+      assert.equal(await extraLot.isVisible(), false);
+      const moreLots = page.locator('[data-make-more-lots="11"]');
+      while (await moreLots.isVisible()) await moreLots.click();
+      assert.equal(await page.locator('[data-make-ingredient="11"] [data-make-lot-choice]').count(), 62);
+      assert.equal(await extraLot.isVisible(), true); assert.equal(state.prepares.length, before);
+      for (const button of await tags.all()) assert.equal(await button.getAttribute('aria-pressed'), 'false');
+      await screenshot('make-lots-draft');
+      await page.locator('[data-make-lot-confirm="201"]').click();
+      assert.equal(await page.locator('[data-make-progress]').textContent(), '0 of 2 checked', 'A split ingredient needs every FIFO tag');
+      assert.equal(await page.locator('#resolution .record-bar button').isDisabled(), true);
+      await confirm();
       assert.equal(state.prepares.at(-1).body.lot_confirmations.length, 3);
+      assert.ok(state.prepares.at(-1).body.lot_confirmations.every(item => item.method === 'tap'));
       const made = await record(); await openReceipt(made); assert.match(await page.locator('#content').innerText(), /Make pilot note/);
-      check('Make FIFO list is compact on phones, expandable, and every physical tag remains required');
+      check('Make has compact ingredient rows, Change-only lot choices and an explicit check for every FIFO lot');
 
       // Default remains FIFO; selecting later lots changes exactly the posted allocation request.
       for (const shipMode of ['standalone', 'order']) {

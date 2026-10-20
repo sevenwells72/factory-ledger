@@ -1,0 +1,11 @@
+command: ["/opt/homebrew/bin/node", "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-so-exit-actions.mjs"]
+cwd: /Users/cns/dev/fl-makedraft-wt
+local_only: true; OpenAI/hosted credentials absent; loopback network guard active
+
+PASS 1440-light: 43 exit-action checks
+PASS 1440-dark: 43 exit-action checks
+PASS 390-light: 43 exit-action checks
+PASS 390-dark: 43 exit-action checks
+PASS 1440-integrated: commit rerender restores selected-tab focus
+PASS 390-integrated: commit rerender restores selected-tab focus
+PASS: 174 Sales Orders exit-action checks; all API calls stubbed in memory.

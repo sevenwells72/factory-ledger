@@ -1,0 +1,76 @@
+{
+  "checked_at": "2026-10-20T19:31:44.670495-04:00",
+  "base_commit": "27a2518655da43ae31860a0bcf8c1f73db114422",
+  "base_description": "Current main containing PR #142 at task start",
+  "protected_files": [
+    {
+      "file": "main.py",
+      "base_sha256": "faf05e71bbe5cf418b21a19d8d3fefe7c91b12e5c8b2d5c0a3f6825371b3e4c9",
+      "working_sha256": "faf05e71bbe5cf418b21a19d8d3fefe7c91b12e5c8b2d5c0a3f6825371b3e4c9",
+      "unchanged": true
+    },
+    {
+      "file": "fl_assistant.py",
+      "base_sha256": "a816e3be6b914222b21b02d0eb2a515cde6687c7d60bd068c8a37e18e5b6d7e0",
+      "working_sha256": "a816e3be6b914222b21b02d0eb2a515cde6687c7d60bd068c8a37e18e5b6d7e0",
+      "unchanged": true
+    },
+    {
+      "file": "assistant_tools.py",
+      "base_sha256": "65453bd11ac6c0b9c258c1d6f7b02ea1e295553ec682761d56852657b86eda10",
+      "working_sha256": "65453bd11ac6c0b9c258c1d6f7b02ea1e295553ec682761d56852657b86eda10",
+      "unchanged": true
+    },
+    {
+      "file": "assistant_replies.py",
+      "base_sha256": "9f1f252fea883fe0043fa54409286125976890a6ea3a17042b485797c52ea08c",
+      "working_sha256": "9f1f252fea883fe0043fa54409286125976890a6ea3a17042b485797c52ea08c",
+      "unchanged": true
+    },
+    {
+      "file": "dashboard/fl-assistant.html",
+      "base_sha256": "2b1d15df8d7c824bdde9c2d0c39903725191dc26bcb546f12d4521700518c78c",
+      "working_sha256": "2b1d15df8d7c824bdde9c2d0c39903725191dc26bcb546f12d4521700518c78c",
+      "unchanged": true
+    },
+    {
+      "file": "dashboard/fl-assistant.js",
+      "base_sha256": "7046841602a67a5ade21c74fcc45803f8788230c9ab81ef5088c0a2cc83acee9",
+      "working_sha256": "7046841602a67a5ade21c74fcc45803f8788230c9ab81ef5088c0a2cc83acee9",
+      "unchanged": true
+    },
+    {
+      "file": "dashboard/fl-assistant.css",
+      "base_sha256": "0b4144151b2e8aad931dc8a28e4503ce5041a9d838a7dc4651846c1a8ae524d7",
+      "working_sha256": "0b4144151b2e8aad931dc8a28e4503ce5041a9d838a7dc4651846c1a8ae524d7",
+      "unchanged": true
+    },
+    {
+      "file": "Procfile",
+      "base_sha256": "6be3c743d5fbfb051efc56bf45be79cea924b63722ccda146e2b025c383be26c",
+      "working_sha256": "6be3c743d5fbfb051efc56bf45be79cea924b63722ccda146e2b025c383be26c",
+      "unchanged": true
+    },
+    {
+      "file": "railway.json",
+      "base_sha256": "375234c3c05ec823df77e34f6f28e282ea1a8a7a6fe0cdb12c23dbe63541b6d0",
+      "working_sha256": "375234c3c05ec823df77e34f6f28e282ea1a8a7a6fe0cdb12c23dbe63541b6d0",
+      "unchanged": true
+    },
+    {
+      "file": "scripts/staging_start_command.py",
+      "base_sha256": "b3d961cd838bba62c6ca8744540dc31735c0593152e2f04a4970acc91d648fa1",
+      "working_sha256": "b3d961cd838bba62c6ca8744540dc31735c0593152e2f04a4970acc91d648fa1",
+      "unchanged": true
+    }
+  ],
+  "all_protected_files_unchanged": true,
+  "hosted_database_access": false,
+  "railway_actions": false,
+  "openai_api_calls": 0,
+  "local_test_database_host": "127.0.0.1:55473",
+  "notes": [
+    "Pool code is in the unchanged main.py.",
+    "No merge, hosted migration, or deployment is part of this task."
+  ]
+}

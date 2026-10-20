@@ -1,0 +1,788 @@
+{
+  "local_only": true,
+  "openai_calls": 0,
+  "environment": {
+    "TMPDIR": "/private/tmp",
+    "LC_ALL": "en_US.UTF-8",
+    "TZ": "America/New_York",
+    "PGHOST": "127.0.0.1",
+    "PGPORT": "55473",
+    "TEST_DB_PREFIX": "fl_mkcmp_",
+    "TEST_DATABASE_URL": "postgresql://127.0.0.1:55473/fl_makedraft_suite",
+    "API_KEY": "test-api-key",
+    "DASHBOARD_API_KEY": "test-dashboard-key",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONPATH": "/private/tmp/fl-makedraft-validation/guards:/Users/cns/dev/fl-makedraft-wt",
+    "PLAYWRIGHT_MODULE": "/Users/cns/dev/factory-ledger/node_modules/playwright/index.mjs",
+    "PLAYWRIGHT_CHANNEL": "chrome",
+    "BROWSER_CHANNEL": "chrome",
+    "PILOT_UX_PYTHON": "/Users/cns/Documents/factory-ledger/.venv-test/bin/python",
+    "PILOT_UX_PG_PORT": "55473",
+    "FIXB_REAL_MODEL": "0",
+    "FIXC_REAL_MODEL": "0",
+    "NETWORK_AUDIT_FILE": "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/network-guard.jsonl",
+    "NODE_OPTIONS": "--import=/private/tmp/fl-makedraft-validation/guards/network-guard.mjs"
+  },
+  "runs": [
+    {
+      "name": "intake",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-integrated-intake.mjs"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {
+        "BROWSER_OUTPUT": "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/intake",
+        "PLAYWRIGHT_MODULE": "/Users/cns/dev/factory-ledger/node_modules/playwright"
+      },
+      "exit_code": 0,
+      "seconds": 6.02,
+      "log": "docs/validation/make-draft-compact/logs/intake.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "dashboard-key-failure",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-dashboard-key-failure.mjs"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {},
+      "exit_code": 0,
+      "seconds": 20.01,
+      "log": "docs/validation/make-draft-compact/logs/dashboard-key-failure.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "session-shift",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-session-shift-fix.mjs"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {},
+      "exit_code": 0,
+      "seconds": 3.09,
+      "log": "docs/validation/make-draft-compact/logs/session-shift.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "node-full",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "--test",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_archived_products_dashboard.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_assistant_display.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_assistant_mobile_ux.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_assistant_page_round_a.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_background_session_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_background_startup_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_batch_a_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_batch_c_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_d12_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_dashboard_access_errors.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_dashboard_runtime.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_er_intake_logic.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_final_floor_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_fl_assistant_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_key_session_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_ledger_language_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_office_customer_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_office_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_order_create_review.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_pallet_calculations.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_pilot_display.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_pilot_entry_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_pilot_ticket_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_pilot_walkthrough_reporting.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_ready_ticket_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_session_shift_fix_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_shift_summary_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_so_list_actions_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_void_ui.js"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {},
+      "exit_code": 1,
+      "seconds": 2.98,
+      "log": "docs/validation/make-draft-compact/logs/node-full-attempt1.log",
+      "attempt": 1,
+      "validation_role": "superseded_attempt"
+    },
+    {
+      "name": "pilot-screens",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-pilot-screens.mjs"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {
+        "PILOT_VISUAL_OUT": "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-screens"
+      },
+      "exit_code": 1,
+      "seconds": 6.63,
+      "log": "docs/validation/make-draft-compact/logs/pilot-screens-attempt1.log",
+      "attempt": 1,
+      "validation_role": "superseded_attempt"
+    },
+    {
+      "name": "pilot-ux-review",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-pilot-ux-review.mjs"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {
+        "PILOT_UX_REVIEW_OUT": "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-review"
+      },
+      "exit_code": 0,
+      "seconds": 49.53,
+      "log": "docs/validation/make-draft-compact/logs/pilot-ux-review.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "pytest-full-sessions-0",
+      "command": [
+        "/Users/cns/Documents/factory-ledger/.venv-test/bin/python",
+        "-m",
+        "pytest",
+        "tests",
+        "-q",
+        "--disable-warnings",
+        "--tb=short",
+        "-o",
+        "cache_dir=/private/tmp/fl-makedraft-validation/pytest-cache"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {
+        "KEY_SESSIONS_ENABLED": "0"
+      },
+      "exit_code": 1,
+      "seconds": 181.09,
+      "log": "docs/validation/make-draft-compact/logs/pytest-full-sessions-0.log",
+      "validation_role": "superseded_attempt"
+    },
+    {
+      "name": "pilot-hosting",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-pilot-ux-hosting.mjs"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {
+        "PILOT_UX_HOSTING_OUT": "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-hosting"
+      },
+      "exit_code": 0,
+      "seconds": 19.48,
+      "log": "docs/validation/make-draft-compact/logs/pilot-hosting.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "node-full",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "--test",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_archived_products_dashboard.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_assistant_display.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_assistant_mobile_ux.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_assistant_page_round_a.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_background_session_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_background_startup_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_batch_a_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_batch_c_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_d12_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_dashboard_access_errors.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_dashboard_runtime.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_er_intake_logic.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_final_floor_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_fl_assistant_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_key_session_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_ledger_language_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_office_customer_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_office_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_order_create_review.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_pallet_calculations.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_pilot_display.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_pilot_entry_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_pilot_ticket_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_pilot_walkthrough_reporting.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_ready_ticket_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_session_shift_fix_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_shift_summary_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_so_list_actions_ui.js",
+        "/Users/cns/dev/fl-makedraft-wt/tests/test_void_ui.js"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {},
+      "exit_code": 0,
+      "seconds": 2.27,
+      "log": "docs/validation/make-draft-compact/logs/node-full.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "assistant-mobile",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-fl-assistant-mobile-ux.mjs"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {
+        "MOBILE_UX_OUT": "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/assistant-mobile",
+        "MOBILE_UX_ENGINES": "chromium,webkit"
+      },
+      "exit_code": 1,
+      "seconds": 31.37,
+      "log": "docs/validation/make-draft-compact/logs/assistant-mobile.log",
+      "validation_role": "optional_extra_engine_existing_failure"
+    },
+    {
+      "name": "pilot-screens",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-pilot-screens.mjs"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {
+        "PILOT_VISUAL_OUT": "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-screens"
+      },
+      "exit_code": 0,
+      "seconds": 14.56,
+      "log": "docs/validation/make-draft-compact/logs/pilot-screens.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "pilot-ux-round",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-pilot-ux-round.mjs"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {
+        "PILOT_UX_OUT": "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-round"
+      },
+      "exit_code": 0,
+      "seconds": 112.67,
+      "log": "docs/validation/make-draft-compact/logs/pilot-ux-round.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "assistant-phone",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-fl-assistant-round-c-phone.mjs"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {
+        "FIXC_PHONE_OUT": "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/assistant-phone"
+      },
+      "exit_code": 0,
+      "seconds": 41.89,
+      "log": "docs/validation/make-draft-compact/logs/assistant-phone.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "pilot-photo-language",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-pilot-photo-language.mjs"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {
+        "PILOT_PHOTO_LANGUAGE_OUT": "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-photo-language"
+      },
+      "exit_code": 0,
+      "seconds": 13.09,
+      "log": "docs/validation/make-draft-compact/logs/pilot-photo-language.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "assistant-final-floor",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-fl-assistant-final-floor.mjs"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {
+        "FL_FINAL_UI_OUT": "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/assistant-final-floor"
+      },
+      "exit_code": 0,
+      "seconds": 42.48,
+      "log": "docs/validation/make-draft-compact/logs/assistant-final-floor.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "assistant-0",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-fl-assistant.mjs"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {
+        "F1_VISUAL_OUT": "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/assistant-0",
+        "PILOT_SESSIONS": "0"
+      },
+      "exit_code": 0,
+      "seconds": 6.02,
+      "log": "docs/validation/make-draft-compact/logs/assistant-0.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "assistant-round-a-0",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-fl-assistant-round-a.mjs"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {
+        "FIX_A_VISUAL_OUT": "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/assistant-round-a-0",
+        "PILOT_SESSIONS": "0"
+      },
+      "exit_code": 0,
+      "seconds": 16.35,
+      "log": "docs/validation/make-draft-compact/logs/assistant-round-a-0.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "assistant-1",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-fl-assistant.mjs"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {
+        "F1_VISUAL_OUT": "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/assistant-1",
+        "PILOT_SESSIONS": "1"
+      },
+      "exit_code": 0,
+      "seconds": 6.23,
+      "log": "docs/validation/make-draft-compact/logs/assistant-1.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "assistant-mobile-webkit",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-fl-assistant-mobile-ux.mjs"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {
+        "MOBILE_UX_OUT": "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/assistant-mobile-webkit",
+        "MOBILE_UX_ENGINES": "webkit"
+      },
+      "exit_code": 0,
+      "seconds": 22.46,
+      "log": "docs/validation/make-draft-compact/logs/assistant-mobile-webkit.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "assistant-round-a-1",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-fl-assistant-round-a.mjs"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {
+        "FIX_A_VISUAL_OUT": "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/assistant-round-a-1",
+        "PILOT_SESSIONS": "1"
+      },
+      "exit_code": 0,
+      "seconds": 14.98,
+      "log": "docs/validation/make-draft-compact/logs/assistant-round-a-1.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "key-sessions",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl-makedraft-validation/visual-harness/tests/visual/run-key-sessions.mjs"
+      ],
+      "cwd": "/private/tmp/fl-makedraft-validation/visual-harness",
+      "extra_environment": {},
+      "exit_code": 0,
+      "seconds": 1.62,
+      "log": "docs/validation/make-draft-compact/logs/key-sessions.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "assistant-mobile-chromium-baseline",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl-makedraft-mobile-baseline/tests/visual/run-fl-assistant-mobile-ux.mjs"
+      ],
+      "cwd": "/private/tmp/fl-makedraft-mobile-baseline",
+      "extra_environment": {
+        "MOBILE_UX_OUT": "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/assistant-mobile-chromium-baseline",
+        "MOBILE_UX_ENGINES": "chromium"
+      },
+      "exit_code": 1,
+      "seconds": 31.48,
+      "log": "docs/validation/make-draft-compact/logs/assistant-mobile-chromium-baseline.log",
+      "validation_role": "optional_extra_engine_existing_failure"
+    },
+    {
+      "name": "pytest-full-sessions-1",
+      "command": [
+        "/Users/cns/Documents/factory-ledger/.venv-test/bin/python",
+        "-m",
+        "pytest",
+        "tests",
+        "-q",
+        "--disable-warnings",
+        "--tb=short",
+        "-o",
+        "cache_dir=/private/tmp/fl-makedraft-validation/pytest-cache"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {
+        "KEY_SESSIONS_ENABLED": "1"
+      },
+      "exit_code": 1,
+      "seconds": 220.11,
+      "log": "docs/validation/make-draft-compact/logs/pytest-full-sessions-1.log",
+      "validation_role": "superseded_attempt"
+    },
+    {
+      "name": "sales-orders-layout",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-sales-orders-layout.mjs",
+        "/Users/cns/dev/fl-makedraft-wt/dashboard",
+        "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/sales-orders-layout"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {},
+      "exit_code": 0,
+      "seconds": 46.6,
+      "log": "docs/validation/make-draft-compact/logs/sales-orders-layout.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "sales-orders-interactions",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-sales-orders-interactions.mjs",
+        "/Users/cns/dev/fl-makedraft-wt/dashboard",
+        "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/sales-orders-interactions"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {},
+      "exit_code": 0,
+      "seconds": 6.57,
+      "log": "docs/validation/make-draft-compact/logs/sales-orders-interactions.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "so-detail-interactions",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-so-detail-interactions.mjs",
+        "/Users/cns/dev/fl-makedraft-wt/dashboard",
+        "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/so-detail-interactions"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {},
+      "exit_code": 0,
+      "seconds": 13.97,
+      "log": "docs/validation/make-draft-compact/logs/so-detail-interactions.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "so-exit-actions",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-so-exit-actions.mjs"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {},
+      "exit_code": 0,
+      "seconds": 20.78,
+      "log": "docs/validation/make-draft-compact/logs/so-exit-actions.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "production-trace",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-production-trace.mjs",
+        "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/production-trace"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {},
+      "exit_code": 0,
+      "seconds": 2.34,
+      "log": "docs/validation/make-draft-compact/logs/production-trace.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "run-types",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-run-types.mjs"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {
+        "RUNS_AUDIT_OUT": "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/run-types"
+      },
+      "exit_code": 0,
+      "seconds": 5.88,
+      "log": "docs/validation/make-draft-compact/logs/run-types.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "runs-interactions",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-runs-interactions.mjs"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {
+        "RUNS_AUDIT_OUT": "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/runs-interactions"
+      },
+      "exit_code": 0,
+      "seconds": 14.35,
+      "log": "docs/validation/make-draft-compact/logs/runs-interactions.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "pytest-final-sessions-0",
+      "command": [
+        "/Users/cns/Documents/factory-ledger/.venv-test/bin/python",
+        "-m",
+        "pytest",
+        "tests",
+        "--disable-warnings",
+        "--tb=short",
+        "-o",
+        "cache_dir=/private/tmp/fl-makedraft-validation/pytest-final-0"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {
+        "KEY_SESSIONS_ENABLED": "0",
+        "TEST_DATABASE_URL": "postgresql://127.0.0.1:55473/fl_makedraft_suite_off",
+        "TEST_DB_PREFIX": "fl_mkcmp_off_"
+      },
+      "exit_code": 0,
+      "seconds": 190.99,
+      "log": "docs/validation/make-draft-compact/logs/pytest-final-sessions-0.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "pytest-final-sessions-1",
+      "command": [
+        "/Users/cns/Documents/factory-ledger/.venv-test/bin/python",
+        "-m",
+        "pytest",
+        "tests",
+        "--disable-warnings",
+        "--tb=short",
+        "-o",
+        "cache_dir=/private/tmp/fl-makedraft-validation/pytest-final-1"
+      ],
+      "cwd": "/Users/cns/dev/fl-makedraft-wt",
+      "extra_environment": {
+        "KEY_SESSIONS_ENABLED": "1",
+        "TEST_DATABASE_URL": "postgresql://127.0.0.1:55473/fl_makedraft_suite_on",
+        "TEST_DB_PREFIX": "fl_mkcmp_on_"
+      },
+      "exit_code": 0,
+      "seconds": 170.1,
+      "log": "docs/validation/make-draft-compact/logs/pytest-final-sessions-1.log",
+      "validation_role": "required_functional"
+    },
+    {
+      "name": "visual-audit",
+      "command": [
+        "/opt/homebrew/bin/npm",
+        "run",
+        "test:visual",
+        "--",
+        "--concurrency",
+        "4"
+      ],
+      "cwd": "/private/tmp/fl-makedraft-validation/visual-harness",
+      "extra_environment": {},
+      "exit_code": 0,
+      "seconds": 585.04,
+      "log": "docs/validation/make-draft-compact/logs/visual-audit.log",
+      "report": "docs/validation/make-draft-compact/logs/visual-audit/06-browser-check.md",
+      "raw_results": "docs/validation/make-draft-compact/logs/visual-audit/screenshots/results.json.gz",
+      "screenshot_directory": "/private/tmp/fl-makedraft-validation/visual-harness/docs/design/audit/screenshots",
+      "validation_role": "diagnostic"
+    }
+  ],
+  "exclusions": [
+    {
+      "runners": "scripts/check_*staging.py, tests/visual/run-d12-staging.mjs, run-office-void-staging.mjs",
+      "reason": "Hosted/staging deployment integration workflows are outside this local-only task and would require prohibited hosted targets or staging fixture orchestration."
+    },
+    {
+      "runners": "scripts/check_dashboard_pages.mjs",
+      "reason": "Deployment key-delivery integration checker requires a separately served target service. Current local dashboard-key/retry/browser suites exercise key loading and auth errors with deterministic local fixtures; no deployment target was used."
+    },
+    {
+      "runners": "scripts/check_assistant_*real_model.py, scripts/check_assistant_final2_customer_paths.py, scripts/check_assistant_final_supplement.py; FIXB_REAL_MODEL=1/FIXC_REAL_MODEL=1",
+      "reason": "Read real model secrets or invoke external model transport; zero OpenAI calls is required."
+    },
+    {
+      "runners": "run-fl-assistant-round-b-page.mjs, run-fl-assistant-round-c.mjs, run-assistant-round-b.mjs",
+      "reason": "Historical actual-page runners hardcode bridge DB URLs on :5432. Current actual-page pilot/compact-Make suites use isolated :55473; fixture assistant rounds A/C-phone/mobile/final-floor are included."
+    },
+    {
+      "runners": "run-d12*.mjs local variants, run-d2.mjs, run-oatbran.mjs, run-office.mjs, run-void.mjs",
+      "reason": "Historical fixture-server generation requires .venv-test/d12-fixture.json and fixed ports. Current full pilot screens/actual-API pilot suites supersede these flows; Python and Node retain backend regression checks."
+    }
+  ],
+  "updated_at": "2026-10-20T19:38:16.561261-04:00",
+  "summary": {
+    "completed_at": "2026-10-20T19:38:16.561261-04:00",
+    "local_only": true,
+    "openai_calls": 0,
+    "required_functional_result": "passed",
+    "required_functional_runner_count": 26,
+    "required_functional_runners": [
+      "pytest-final-sessions-0",
+      "pytest-final-sessions-1",
+      "node-full",
+      "intake",
+      "dashboard-key-failure",
+      "session-shift",
+      "pilot-screens",
+      "pilot-ux-round",
+      "pilot-ux-review",
+      "pilot-photo-language",
+      "pilot-hosting",
+      "assistant-mobile-webkit",
+      "assistant-phone",
+      "assistant-final-floor",
+      "assistant-0",
+      "assistant-1",
+      "assistant-round-a-0",
+      "assistant-round-a-1",
+      "key-sessions",
+      "sales-orders-layout",
+      "sales-orders-interactions",
+      "so-detail-interactions",
+      "so-exit-actions",
+      "production-trace",
+      "run-types",
+      "runs-interactions"
+    ],
+    "python": {
+      "0": {
+        "passed": 6935,
+        "warnings": 15157,
+        "seconds": 189.62,
+        "failed": 0,
+        "skipped": 0,
+        "database": "fl_makedraft_suite_off"
+      },
+      "1": {
+        "passed": 6935,
+        "warnings": 15157,
+        "seconds": 168.82,
+        "failed": 0,
+        "skipped": 0,
+        "database": "fl_makedraft_suite_on"
+      }
+    },
+    "node": {
+      "passed": 577,
+      "failed": 0,
+      "skipped": 0
+    },
+    "browser_highlights": {
+      "pilot_screens": 60,
+      "pilot_ux_round": 96,
+      "pilot_ux_review": 34,
+      "pilot_photo_language": 13,
+      "pilot_hosting": 272,
+      "assistant_webkit_mobile": 144,
+      "assistant_chromium_webkit_phone": 288,
+      "assistant_round_a_per_session_mode": 30,
+      "sales_order_layout_cases": 26,
+      "sales_order_detail_checks": 36
+    },
+    "diagnostic_visual_audit": {
+      "captures": 388,
+      "screens": 92,
+      "current_counts": {
+        "PASS": 3229,
+        "FAIL": 402,
+        "WARN": 63,
+        "N/A": 1350,
+        "ERROR": 0
+      },
+      "historical_counts": {
+        "PASS": 3251,
+        "FAIL": 431,
+        "WARN": 58,
+        "N/A": 1304,
+        "ERROR": 0
+      },
+      "historical_comparison": "docs/validation/make-draft-compact/logs/visual-audit/historical-comparison.json",
+      "report": "docs/validation/make-draft-compact/logs/visual-audit/06-browser-check.md",
+      "current_Record_Make_covered": false,
+      "focused_Make_acceptance": "docs/validation/make-draft-compact/browser-results.json",
+      "unmatched_fixture_endpoints": [
+        "/auth/session/config"
+      ]
+    },
+    "optional_existing_failure": {
+      "runner": "run-fl-assistant-mobile-ux.mjs",
+      "engine": "chromium",
+      "current_log": "docs/validation/make-draft-compact/logs/assistant-mobile.log",
+      "untouched_HEAD_baseline_log": "docs/validation/make-draft-compact/logs/assistant-mobile-chromium-baseline.log",
+      "baseline_commit": "27a2518655da43ae31860a0bcf8c1f73db114422",
+      "failure": "Timeout at line140 waiting for Upload failed \u2014 tap to retry after fixture socket dropout. Reproduced identically using untouched committed assets/runner.",
+      "documented_default_engine": "webkit",
+      "default_mode_result": "144 checks passed, zero Record requests",
+      "note": "Optional Chromium expansion remains unresolved and outside the Make change. No Assistant runtime was modified."
+    },
+    "exclusions": [
+      {
+        "runners": "scripts/check_*staging.py, tests/visual/run-d12-staging.mjs, run-office-void-staging.mjs",
+        "reason": "Hosted/staging deployment integration workflows are outside this local-only task and would require prohibited hosted targets or staging fixture orchestration."
+      },
+      {
+        "runners": "scripts/check_dashboard_pages.mjs",
+        "reason": "Deployment key-delivery integration checker requires a separately served target service. Current local dashboard-key/retry/browser suites exercise key loading and auth errors with deterministic local fixtures; no deployment target was used."
+      },
+      {
+        "runners": "scripts/check_assistant_*real_model.py, scripts/check_assistant_final2_customer_paths.py, scripts/check_assistant_final_supplement.py; FIXB_REAL_MODEL=1/FIXC_REAL_MODEL=1",
+        "reason": "Read real model secrets or invoke external model transport; zero OpenAI calls is required."
+      },
+      {
+        "runners": "run-fl-assistant-round-b-page.mjs, run-fl-assistant-round-c.mjs, run-assistant-round-b.mjs",
+        "reason": "Historical actual-page runners hardcode bridge DB URLs on :5432. Current actual-page pilot/compact-Make suites use isolated :55473; fixture assistant rounds A/C-phone/mobile/final-floor are included."
+      },
+      {
+        "runners": "run-d12*.mjs local variants, run-d2.mjs, run-oatbran.mjs, run-office.mjs, run-void.mjs",
+        "reason": "Historical fixture-server generation requires .venv-test/d12-fixture.json and fixed ports. Current full pilot screens/actual-API pilot suites supersede these flows; Python and Node retain backend regression checks."
+      }
+    ],
+    "initial_attempt_explanation": "Initial schema bootstrap needed public search_path before085; first Python run hit missing085 allowlist; second initial mode reused committed fixture state and hit receipt/actor counts. Final full runs used independently fresh mode databases and both passed. Initial Node/pilot assertions were adapted for final pagination; complete reruns passed. All raw logs preserved.",
+    "screenshot_archive": {
+      "path": "/private/tmp/fl-makedraft-full-suite-screenshots",
+      "count": 1114,
+      "bytes": 128274692,
+      "manifest": "docs/validation/make-draft-compact/logs/screenshot-archive.json",
+      "dedicated_requested_screenshots_unchanged": true
+    },
+    "network_guard": {
+      "external_requests_permitted": 0,
+      "blocked_attempts_by_host": {
+        "cdnjs.cloudflare.com": 54
+      },
+      "secrets_inherited": false
+    },
+    "local_database_cluster_stopped": true,
+    "verification_document": "docs/validation/make-draft-compact/verification.json",
+    "report": "docs/validation/make-draft-compact/FULL_SUITE_REPORT.md"
+  },
+  "report": "docs/validation/make-draft-compact/FULL_SUITE_REPORT.md",
+  "verification_document": "docs/validation/make-draft-compact/verification.json",
+  "delivery_log_normalization": {
+    "manifest": "logs/raw-stdout-archive.json",
+    "scope": "Whitespace only in two committed delivery copies; original stdout preserved locally."
+  }
+}

@@ -1,0 +1,5 @@
+command: ["/opt/homebrew/bin/node", "/private/tmp/fl-makedraft-validation/visual-harness/tests/visual/run-key-sessions.mjs"]
+cwd: /private/tmp/fl-makedraft-validation/visual-harness
+local_only: true; OpenAI/hosted credentials absent; loopback network guard active
+
+Dashboard browser: flag-off parity, token-only writes, reload, person banner, expiry re-ask, logout and desktop/mobile layout passed.

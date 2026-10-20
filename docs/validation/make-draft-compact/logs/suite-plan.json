@@ -1,0 +1,53 @@
+{
+  "environment": {
+    "PATH": "/opt/homebrew/opt/postgresql@17/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin",
+    "HOME": "/Users/cns",
+    "TMPDIR": "/private/tmp",
+    "LC_ALL": "en_US.UTF-8",
+    "TZ": "America/New_York",
+    "PGHOST": "127.0.0.1",
+    "PGPORT": "55473",
+    "TEST_DB_PREFIX": "fl_mkcmp_",
+    "TEST_DATABASE_URL": "postgresql://127.0.0.1:55473/fl_makedraft_suite",
+    "API_KEY": "test-api-key",
+    "DASHBOARD_API_KEY": "test-dashboard-key",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONPATH": "/private/tmp/fl-makedraft-validation/guards:/Users/cns/dev/fl-makedraft-wt",
+    "PLAYWRIGHT_MODULE": "/Users/cns/dev/factory-ledger/node_modules/playwright/index.mjs",
+    "PLAYWRIGHT_CHANNEL": "chrome",
+    "BROWSER_CHANNEL": "chrome",
+    "PILOT_UX_PYTHON": "/Users/cns/Documents/factory-ledger/.venv-test/bin/python",
+    "PILOT_UX_PG_PORT": "55473",
+    "FIXB_REAL_MODEL": "0",
+    "FIXC_REAL_MODEL": "0",
+    "NETWORK_AUDIT_FILE": "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/network-guard.jsonl",
+    "NODE_OPTIONS": "--import=/private/tmp/fl-makedraft-validation/guards/network-guard.mjs"
+  },
+  "exclusions": [
+    {
+      "runners": "scripts/check_*staging.py, tests/visual/run-d12-staging.mjs, run-office-void-staging.mjs",
+      "reason": "Hosted/staging deployment integration workflows are outside this local-only task and would require prohibited hosted targets or staging fixture orchestration."
+    },
+    {
+      "runners": "scripts/check_dashboard_pages.mjs",
+      "reason": "Deployment key-delivery integration checker requires a separately served target service. Current local dashboard-key/retry/browser suites exercise key loading and auth errors with deterministic local fixtures; no deployment target was used."
+    },
+    {
+      "runners": "scripts/check_assistant_*real_model.py, scripts/check_assistant_final2_customer_paths.py, scripts/check_assistant_final_supplement.py; FIXB_REAL_MODEL=1/FIXC_REAL_MODEL=1",
+      "reason": "Read real model secrets or invoke external model transport; zero OpenAI calls is required."
+    },
+    {
+      "runners": "run-fl-assistant-round-b-page.mjs, run-fl-assistant-round-c.mjs, run-assistant-round-b.mjs",
+      "reason": "Historical actual-page runners hardcode bridge DB URLs on :5432. Current actual-page pilot/compact-Make suites use isolated :55473; fixture assistant rounds A/C-phone/mobile/final-floor are included."
+    },
+    {
+      "runners": "run-d12*.mjs local variants, run-d2.mjs, run-oatbran.mjs, run-office.mjs, run-void.mjs",
+      "reason": "Historical fixture-server generation requires .venv-test/d12-fixture.json and fixed ports. Current full pilot screens/actual-API pilot suites supersede these flows; Python and Node retain backend regression checks."
+    }
+  ],
+  "source_sha256": {
+    "tests/visual/run-visual-audit.mjs": "3623f29297e176593f79112786c4f00a02878d6d177d12f74d1bcf7b12bafe8d",
+    "package.json": "154e3a9bf8f1d124ed180132875eecd01b9c96ba141558bc18e12ef5d8c92acd"
+  },
+  "note": "Visual package script runs byte-identical copied harness with dashboard symlink to actual worktree, preserving tracked baseline audit."
+}

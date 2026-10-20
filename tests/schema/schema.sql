@@ -7202,3 +7202,7 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 
 \unrestrict 9AR9WaXWTtqJkeWt7ytxJva3DsGes1kdbWi0i3dIO2bG3bXEH4KQhYlABwktO3r
 
+
+-- Pending explicit migration; remove after the next authoritative schema dump.
+SET search_path = public;
+\ir ../../migrations/085_tap_lot_confirmation.sql

@@ -1,0 +1,255 @@
+{
+  "created_at": "2026-10-20T23:30:31.561Z",
+  "local_only": true,
+  "actual_handlers": true,
+  "openai_calls": 0,
+  "width": 390,
+  "expected_checks": 13,
+  "results": [
+    {
+      "language": "en",
+      "name": "sign-in",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "language": "en",
+      "name": "form-photo-kind",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "language": "en",
+      "name": "draft-photo-kind-receipt",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "language": "en",
+      "name": "pack-live-language",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "language": "en",
+      "name": "make-live-language",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "language": "en",
+      "name": "integrity",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "language": "es",
+      "name": "sign-in",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "language": "es",
+      "name": "form-photo-kind",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "language": "es",
+      "name": "draft-photo-kind-receipt",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "language": "es",
+      "name": "pack-live-language",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "language": "es",
+      "name": "make-live-language",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "language": "es",
+      "name": "integrity",
+      "width": 390,
+      "passed": true
+    },
+    {
+      "language": "both",
+      "name": "database-proof",
+      "width": 390,
+      "passed": true
+    }
+  ],
+  "receipts": [
+    {
+      "language": "en",
+      "number": "RCV-261020-001",
+      "attachment": {
+        "id": 3,
+        "attachment_ref": "att_389671875ad44d3dabaa036e1db647b1",
+        "kind": "lot_tag",
+        "sha256": "9774343e60fda62d83ae67a4b2be7a16449d39431f5b906efad4a4f9bd11ad68",
+        "content_type": "image/png",
+        "bytes": 68,
+        "uploaded_by_actor_id": 1,
+        "created_at": "2026-10-20T19:30:35.092395-04:00",
+        "ticket_id": 1,
+        "shipment_id": null,
+        "exception_id": null,
+        "extracted": {},
+        "transaction_id": 10
+      }
+    },
+    {
+      "language": "es",
+      "number": "RCV-261020-002",
+      "attachment": {
+        "id": 6,
+        "attachment_ref": "att_0e5f85a9e1944f12b922454860242a11",
+        "kind": "bol",
+        "sha256": "9774343e60fda62d83ae67a4b2be7a16449d39431f5b906efad4a4f9bd11ad68",
+        "content_type": "image/png",
+        "bytes": 68,
+        "uploaded_by_actor_id": 1,
+        "created_at": "2026-10-20T19:30:40.648049-04:00",
+        "ticket_id": 4,
+        "shipment_id": null,
+        "exception_id": null,
+        "extracted": {},
+        "transaction_id": 11
+      }
+    }
+  ],
+  "photos": [
+    {
+      "language": "en",
+      "id": 1,
+      "attachment_ref": "att_2215b7ac20124717afdc90795e3831dd",
+      "kind": "lot_tag",
+      "sha256": "9774343e60fda62d83ae67a4b2be7a16449d39431f5b906efad4a4f9bd11ad68",
+      "content_type": "image/png",
+      "bytes": 68,
+      "uploaded_by_actor_id": 1,
+      "created_at": "2026-10-20T19:30:34.850883-04:00",
+      "ticket_id": null,
+      "shipment_id": null,
+      "exception_id": null,
+      "extracted": {},
+      "attachment_id": 1,
+      "success": true
+    },
+    {
+      "language": "en",
+      "id": 2,
+      "attachment_ref": "att_c226ea6295b841f1a50b49b39fcc7104",
+      "kind": "bol",
+      "sha256": "9774343e60fda62d83ae67a4b2be7a16449d39431f5b906efad4a4f9bd11ad68",
+      "content_type": "image/png",
+      "bytes": 68,
+      "uploaded_by_actor_id": 1,
+      "created_at": "2026-10-20T19:30:34.877100-04:00",
+      "ticket_id": null,
+      "shipment_id": null,
+      "exception_id": null,
+      "extracted": {},
+      "attachment_id": 2,
+      "success": true
+    },
+    {
+      "language": "en",
+      "id": 3,
+      "attachment_ref": "att_389671875ad44d3dabaa036e1db647b1",
+      "kind": "lot_tag",
+      "sha256": "9774343e60fda62d83ae67a4b2be7a16449d39431f5b906efad4a4f9bd11ad68",
+      "content_type": "image/png",
+      "bytes": 68,
+      "uploaded_by_actor_id": 1,
+      "created_at": "2026-10-20T19:30:35.092395-04:00",
+      "ticket_id": null,
+      "shipment_id": null,
+      "exception_id": null,
+      "extracted": {},
+      "attachment_id": 3,
+      "success": true
+    },
+    {
+      "language": "es",
+      "id": 4,
+      "attachment_ref": "att_a6cc05add078485d8b020735f09affaa",
+      "kind": "bol",
+      "sha256": "9774343e60fda62d83ae67a4b2be7a16449d39431f5b906efad4a4f9bd11ad68",
+      "content_type": "image/png",
+      "bytes": 68,
+      "uploaded_by_actor_id": 1,
+      "created_at": "2026-10-20T19:30:40.475728-04:00",
+      "ticket_id": null,
+      "shipment_id": null,
+      "exception_id": null,
+      "extracted": {},
+      "attachment_id": 4,
+      "success": true
+    },
+    {
+      "language": "es",
+      "id": 5,
+      "attachment_ref": "att_9eab8bcc5c5f4162ae647be710333419",
+      "kind": "lot_tag",
+      "sha256": "9774343e60fda62d83ae67a4b2be7a16449d39431f5b906efad4a4f9bd11ad68",
+      "content_type": "image/png",
+      "bytes": 68,
+      "uploaded_by_actor_id": 1,
+      "created_at": "2026-10-20T19:30:40.504104-04:00",
+      "ticket_id": null,
+      "shipment_id": null,
+      "exception_id": null,
+      "extracted": {},
+      "attachment_id": 5,
+      "success": true
+    },
+    {
+      "language": "es",
+      "id": 6,
+      "attachment_ref": "att_0e5f85a9e1944f12b922454860242a11",
+      "kind": "bol",
+      "sha256": "9774343e60fda62d83ae67a4b2be7a16449d39431f5b906efad4a4f9bd11ad68",
+      "content_type": "image/png",
+      "bytes": 68,
+      "uploaded_by_actor_id": 1,
+      "created_at": "2026-10-20T19:30:40.648049-04:00",
+      "ticket_id": null,
+      "shipment_id": null,
+      "exception_id": null,
+      "extracted": {},
+      "attachment_id": 6,
+      "success": true
+    }
+  ],
+  "databases_dropped": [
+    "fl_pilotux_photo_language_2600"
+  ],
+  "verified": {
+    "receipts": [
+      {
+        "receipt_number": "RCV-261020-001",
+        "action": "receive",
+        "status": "committed"
+      },
+      {
+        "receipt_number": "RCV-261020-002",
+        "action": "receive",
+        "status": "committed"
+      }
+    ],
+    "exceptions": [],
+    "attachments": 6,
+    "confirmations": 0
+  },
+  "passed": 13,
+  "failed": 0,
+  "complete": true
+}

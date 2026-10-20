@@ -1,0 +1,45 @@
+{
+  "created_at": "2026-10-20T23:29:05.790Z",
+  "before": true,
+  "local_only": true,
+  "real_handlers": true,
+  "synthetic_recipe": true,
+  "openai_calls": 0,
+  "results": [
+    {
+      "name": "untouched main before screenshots",
+      "width": 390,
+      "language": "en",
+      "sessions": 1,
+      "passed": true
+    },
+    {
+      "name": "untouched main before screenshots",
+      "width": 390,
+      "language": "es",
+      "sessions": 1,
+      "passed": true
+    }
+  ],
+  "receipts": [],
+  "screenshots": [
+    "screenshots/before-en-390-make-draft.png",
+    "screenshots/before-en-390-make-draft-full.png",
+    "screenshots/before-en-390-ambiguous-suffix.png",
+    "screenshots/before-es-390-make-draft.png",
+    "screenshots/before-es-390-make-draft-full.png",
+    "screenshots/before-es-390-ambiguous-suffix.png"
+  ],
+  "databases_dropped": [
+    "fl_makedraft_98061_390_en_before",
+    "fl_makedraft_98061_390_es_before"
+  ],
+  "layout_390_en": {
+    "draft_height": 4349,
+    "page_height": 5027
+  },
+  "layout_390_es": {
+    "draft_height": 4380,
+    "page_height": 5059
+  }
+}

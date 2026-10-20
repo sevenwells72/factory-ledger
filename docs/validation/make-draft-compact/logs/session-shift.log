@@ -1,0 +1,5 @@
+command: ["/opt/homebrew/bin/node", "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-session-shift-fix.mjs"]
+cwd: /Users/cns/dev/fl-makedraft-wt
+local_only: true; OpenAI/hosted credentials absent; loopback network guard active
+
+Session/Shift browser: flag off/on, automatic polling/restoration preserve expiry,180-minute idle expiration,manual Refresh extends expiry, real Sales Orders/Expected Receipts/supplier reads, shared sign-in reuse, session confirmation, 60-second timer, expiry, re-sign-in, logout and 390px layout passed.

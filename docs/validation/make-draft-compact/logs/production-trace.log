@@ -1,0 +1,5 @@
+command: ["/opt/homebrew/bin/node", "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-production-trace.mjs", "/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/production-trace"]
+cwd: /Users/cns/dev/fl-makedraft-wt
+local_only: true; OpenAI/hosted credentials absent; loopback network guard active
+
+PASS: four viewport/theme combinations, keyboard expand/collapse, nested prior-date lot trace, retry, escaped text, units, touch targets, no overflow or page errors.

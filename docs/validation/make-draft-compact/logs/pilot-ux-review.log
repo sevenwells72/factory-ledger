@@ -1,0 +1,5 @@
+command: ["/opt/homebrew/bin/node", "/Users/cns/dev/fl-makedraft-wt/tests/visual/run-pilot-ux-review.mjs"]
+cwd: /Users/cns/dev/fl-makedraft-wt
+local_only: true; OpenAI/hosted credentials absent; loopback network guard active
+
+{"checks":34,"passed":34,"failed":0,"records":0,"results":"/Users/cns/dev/fl-makedraft-wt/docs/validation/make-draft-compact/logs/pilot-ux-review/results.json"}

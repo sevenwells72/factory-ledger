@@ -12,7 +12,7 @@ from pydantic import BaseModel, conint, constr
 
 class LotConfirmation(BaseModel):
     lot_id: conint(strict=True, gt=0)
-    method: Literal['last4', 'full_code', 'scan', 'pallet', 'different_lot']
+    method: Literal['last4', 'full_code', 'scan', 'tap', 'pallet', 'different_lot']
     value: constr(strict=True, strip_whitespace=True, min_length=1, max_length=200)
 
     class Config:
@@ -44,7 +44,7 @@ def verify(api, cur, lot, evidence):
         if len(cur.fetchall()) > 1:
             fail('AMBIGUOUS_SUFFIX', f'The suffix matches multiple active lots of {lot["product_name"]}; type the full code or scan.',
                  f'Esos cuatro caracteres coinciden con varios lotes de {lot["product_name"]}. Escriba el código completo de la etiqueta o escanéelo.')
-    elif method in ('full_code', 'scan', 'pallet'):
+    elif method in ('full_code', 'scan', 'tap', 'pallet'):
         if value != code:
             fail('LOT_CONFIRMATION_MISMATCH', f'The entered code does not match {label}.',
                  f'El código no coincide con el lote {lot["lot_code"]} de {lot["product_name"]}. Revise la etiqueta.')
@@ -138,7 +138,9 @@ def confirmation_group(api, cur, plan):
             ('lot_id', 'lot_code', 'quantity_lb', 'confirmed')})
     for ingredient in grouped.values():
         ingredient['needed_lb'] = round(ingredient['needed_lb'], 2)
-        cur.execute(f'''SELECT l.id AS lot_id,l.lot_code,COALESCE(sum(tl.quantity_lb),0) AS available_lb
+        cur.execute(f'''SELECT l.id AS lot_id,l.lot_code,
+                l.received_at,
+                COALESCE(sum(tl.quantity_lb),0) AS available_lb
             FROM lots l LEFT JOIN {api.POSTED_LINES} tl ON tl.lot_id=l.id
             WHERE l.product_id=%s AND l.status IS DISTINCT FROM 'merged'
             GROUP BY l.id HAVING COALESCE(sum(tl.quantity_lb),0)>0

@@ -218,3 +218,10 @@ test('Spanish Pack missing case weight warning agrees with its form and prepares
   assert.equal(h.tickets.length,0);
   assert.deepEqual(h.failures,['Escribe lb por cajón para usar el lote seleccionado.']);
 });
+
+for(const language of ['en','es'])test(`Make recipe hint explains Prepare and follows live language changes in ${language}`,async()=>{
+  const h=await harness('make',language),hint=h.find(node=>node.className==='wide make-recipe-hint');
+  assert.ok(hint);assert.match(hint.textContent,language==='en'?/Ingredients.*recipe.*Prepare/:/ingredientes.*receta.*borrador/);
+  h.switchLanguage(language==='en'?'es':'en');assert.match(hint.textContent,language==='en'?/ingredientes.*receta.*borrador/:/Ingredients.*recipe.*Prepare/);
+  assert.equal(h.tickets.length,0);
+});

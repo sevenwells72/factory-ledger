@@ -1,0 +1,64 @@
+{
+  "runner": "tests/visual/run-fl-assistant-mobile-ux.mjs",
+  "api_fixtures": true,
+  "local_only": true,
+  "records": 0,
+  "results": [
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "opens-at-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "jump-to-latest",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "reload-resumes-same-chat",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "today-opens-on-screen",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "photo-attached",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "photo-only-hint",
+      "status": "passed"
+    },
+    {
+      "engine": "chromium",
+      "sessions_enabled": false,
+      "language": "en",
+      "width": 375,
+      "scenario": "photo-on-draft",
+      "status": "passed"
+    }
+  ]
+}
