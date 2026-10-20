@@ -893,3 +893,103 @@ def test_an_idle_connection_is_not_handed_out_once_the_shared_deadline_passed(fa
     finally:
         main._pool_wait_deadline.reset(token)
     assert len(db_pool._pool) == 1 and db_pool._used == {}
+
+
+# ── Re-check round 3 (PR #141 comment 6297413580) item 1: idle hand-over ─────
+
+class _PausesOnCheckout(main.WaitingConnectionPool):
+    """Stalls inside the idle checkout, like a scheduler pause just before the
+    idle connection is returned (reviewer: success 8.44 ms past the deadline)."""
+    pause = 0.0
+
+    def _checkout(self, key, conn):
+        conn = super()._checkout(key, conn)
+        time.sleep(self.pause)
+        return conn
+
+
+def test_an_idle_connection_reached_after_the_deadline_goes_back(fake_connect):
+    db_pool = _PausesOnCheckout(1, 1, wait_seconds=0.2)
+    db_pool.pause = 0.3
+    with pytest.raises(main.PoolTimeout):
+        db_pool.getconn()
+    _wait_until(lambda: db_pool._used == {} and len(db_pool._pool) == 1)   # back in the pool
+    db_pool.pause = 0
+    db_pool.putconn(db_pool.getconn())
+    assert db_pool._used == {} and len(db_pool._pool) == 1
+
+
+def test_a_late_idle_connection_goes_to_the_next_waiter_not_the_expired_caller(fake_connect):
+    db_pool = _PausesOnCheckout(1, 1, wait_seconds=0.2)
+    db_pool.pause = 0.3
+    got = []
+    late = threading.Thread(target=lambda: got.append(_try_getconn(db_pool)))
+    late.start()
+    time.sleep(0.1)   # the late caller is inside its checkout, deadline fixed at 0.2 s
+    db_pool.pause = 0
+    db_pool.wait_seconds = 2
+    conn = db_pool.getconn()   # queues behind it and receives the connection it gave back
+    late.join(5)
+    assert isinstance(got[0], main.PoolTimeout)
+    assert db_pool._used == {db_pool._rused[id(conn)]: conn}
+    db_pool.putconn(conn)
+
+
+def _try_getconn(db_pool):
+    try:
+        return db_pool.getconn()
+    except main.PoolTimeout as exc:
+        return exc
+
+
+class _SlowKeys(dict):
+    pause = 0.0
+
+    def __getitem__(self, key):
+        value = super().__getitem__(key)
+        time.sleep(self.pause)
+        return value
+
+
+def test_a_keyed_checkout_reached_after_the_deadline_times_out_and_keeps_the_holder(fake_connect):
+    db_pool = main.WaitingConnectionPool(0, 1, wait_seconds=0.2)
+    db_pool._used = _SlowKeys()
+    conn = db_pool.getconn(key="job")
+    db_pool._used.pause = 0.3
+    with pytest.raises(main.PoolTimeout):
+        db_pool.getconn(key="job")
+    db_pool._used.pause = 0
+    assert dict(db_pool._used) == {"job": conn}   # still the holder's, not given back
+    db_pool.putconn(conn, key="job")
+    assert dict(db_pool._used) == {}
+
+
+# ── Re-check round 3 (PR #141 comment 6297413580) item 3: sign-in timeout ────
+
+from tests.test_actor_attribution import actors, client  # noqa: E402,F401
+REAL_GET_DB_CONNECTION = main.get_db_connection   # before the client fixture swaps it
+
+
+@pytest.mark.db
+def test_a_pool_timeout_on_the_first_key_check_is_busy_and_never_cached_as_invalid(
+        client, actors, db_cursor, monkeypatch):
+    headers = {"X-API-Key": actors["office"]["key"]}
+    db_pool = main.WaitingConnectionPool(0, 1, wait_seconds=0.1, dsn=db_cursor.connection.dsn)
+    held = db_pool.getconn()   # every connection busy while the actor list loads
+    test_connection, app_pool = main.get_db_connection, main.db_pool
+    monkeypatch.setattr(main, "db_pool", db_pool)
+    monkeypatch.setattr(main, "get_db_connection", REAL_GET_DB_CONNECTION)
+    try:
+        busy = client.get("/auth/whoami", headers=headers)
+    finally:
+        db_pool.putconn(held)
+        db_pool.closeall()
+        monkeypatch.setattr(main, "get_db_connection", test_connection)
+        monkeypatch.setattr(main, "db_pool", app_pool)   # app shutdown closes its own pool
+    assert busy.status_code == 503, busy.text
+    assert busy.json()["error_code"] == "DATABASE_BUSY" and busy.json()["retryable"] is True
+    assert main._actor_cache_loaded_at == 0.0   # nothing cached for the next 60 s
+
+    again = client.get("/auth/whoami", headers=headers)   # FL free again: the key works at once
+    assert again.status_code == 200, again.text
+    assert again.json()["actor"]["id"] == actors["office"]["id"]

@@ -319,6 +319,13 @@
 - **File(s) changed:** `resolution.py`, `main.py`, `dashboard/ledger-forms.css`, `dashboard/fl-assistant.css`, `dashboard/fl-assistant.js`
 - **What changed:** Add SELECT-only product/lot choices and batch product context; style header links as buttons and support a direct Today route.
 - **Why:** Pilot workers need visible navigation and physical-lot choices without changing posting or pool behavior.
+## 2026-10-20 15:10 — PR #141 fix round 3: idle hand-over deadline, Assistant chat lock, sign-in timeout not cached
+- **File(s) changed:** `main.py`, `fl_assistant.py`, `tests/test_db_pool_wait.py`, `tests/test_assistant_progress_round_d.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** (1) Pool: idle and same-key returns now leave the mutex first and pass the last deadline check; a late idle connection is given back (next waiter/pool), a late same-key return stays with its holder. (2) Assistant: save_turn clears the chat lock in the same commit as the save; a failed turn's lock release waits at most 0.5 s and, if FL is still full, marks the lock released in-process (the next claim may take it) while a background thread clears the row. (3) A PoolTimeout while loading the actor-key cache is re-raised (503 DATABASE_BUSY) and never published as an empty list. 8 new tests, all failing on bb8c0d3.
+- **Why:** PR #141 re-check comment 6297413580.
+
+---
+
 ## 2026-10-20 13:00 — PR #141 fix round 2: no late connections, busy lookups abort the Assistant turn
 - **File(s) changed:** `main.py`, `fl_assistant.py`, `dashboard/fl-assistant.js`, `dashboard/fl-assistant.html`, `tests/test_db_pool_wait.py`, `tests/test_assistant_progress_round_d.py`, `tests/test_assistant_page_round_a.js`, `tests/test_assistant_mobile_ux.js`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Pool re-checks the deadline as the last step of every hand-over (idle checkout, grant, finished open); a connection seen late is given back on a helper thread, never returned. Inside an Assistant turn, a relayed FL call answering 503 DATABASE_BUSY raises a pool timeout, so the turn is not saved, the lease is released and the page shows busy + Retry; old saved busy cards also show busy + Retry (new turn). fl-assistant.js v16. FL row 220 updated.

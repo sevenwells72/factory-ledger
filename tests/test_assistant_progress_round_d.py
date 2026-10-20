@@ -1,5 +1,6 @@
 """Plain bilingual progress uses actual response chunks and retains safe failures."""
 import asyncio
+from contextlib import contextmanager
 import json
 from threading import Event
 import time
@@ -20,6 +21,16 @@ pytestmark = pytest.mark.db
 
 import main  # noqa: E402
 REAL_GET_DB_CONNECTION = main.get_db_connection   # before the client fixture swaps it
+
+
+@pytest.fixture(autouse=True)
+def deferred(monkeypatch):
+    """Deferred chat-lock releases, recorded instead of run on a thread that
+    would outlive the test and touch its shared connection."""
+    calls = []
+    monkeypatch.setattr(fl_assistant, '_in_background', lambda target, *args: calls.append((target, args)),
+                        raising=False)
+    return calls
 
 
 @pytest.mark.parametrize('spanish', [False, True])
@@ -219,3 +230,95 @@ def test_a_busy_lookup_aborts_the_turn_unsaved_and_the_retry_runs_it_again(clien
     result = [json.loads(line) for line in again.text.splitlines()][-1]['result'] if streamed else again.json()
     card = result['cards'][0]
     assert card['kind'] == 'lookup_failed' and card['result']['detail']['error_code'] == 'LOT_NOT_FOUND'
+
+
+# PR #141 re-check round 3 (comment 6297413580) item 2: the lookup timed out,
+# then the chat-lock release timed out too, so Retry met 409 CHAT_BUSY for two
+# minutes; and a release that timed out after the turn was saved answered busy.
+
+def _turn_events(response, streamed):
+    return [json.loads(line) for line in response.text.splitlines()][-1] if streamed else response.json()
+
+
+@pytest.mark.parametrize('streamed', [False, True])
+def test_retry_runs_at_once_after_the_lock_release_also_met_a_full_pool(client, chat, db_cursor, monkeypatch,
+                                                                       streamed, deferred):
+    db_pool = main.WaitingConnectionPool(0, 1, wait_seconds=0.1, dsn=db_cursor.connection.dsn)
+    app_pool, test_connection, held = main.db_pool, main.get_db_connection, db_pool.getconn()
+    relay = fl_assistant.relay
+    busy = [True]
+
+    async def lookup_fills_the_pool(app, request, method, path, **kwargs):
+        if busy[0] and path.startswith('/lots/'):   # and it stays full through the turn's cleanup
+            main.db_pool, main.get_db_connection = db_pool, REAL_GET_DB_CONNECTION
+        return await relay(app, request, method, path, **kwargs)
+    monkeypatch.setattr(fl_assistant, 'relay', lookup_fills_the_pool)
+    requests = model(monkeypatch, ('lot_lookup', {'lot_code': 'NOPE-1'}), ('lot_lookup', {'lot_code': 'NOPE-1'}))
+    headers = {**chat[1], **({'Accept': 'application/x-ndjson'} if streamed else {})}
+    turn = {'session_id': chat[0], 'turn_id': str(uuid4()), 'text': 'Where is lot NOPE-1?'}
+    try:
+        first = client.post('/assistant/turn', headers=headers, json=turn)
+    finally:
+        db_pool.putconn(held)
+        db_pool.closeall()
+        main.db_pool, main.get_db_connection = app_pool, test_connection   # FL is free again
+    if streamed:
+        assert _turn_events(first, True) == BUSY_EVENT
+    else:
+        assert first.status_code == 503 and first.json()['error_code'] == 'DATABASE_BUSY', first.text
+    db_cursor.execute('SELECT lease_id FROM assistant_sessions WHERE id=%s', (chat[0],))
+    assert db_cursor.fetchone()['lease_id'] is not None   # the release met the full pool too
+
+    busy[0] = False
+    again = client.post('/assistant/turn', headers=headers, json=turn)   # Retry, right away
+    assert again.status_code == 200, again.text
+    card = (_turn_events(again, streamed)['result'] if streamed else again.json())['cards'][0]
+    assert card['kind'] == 'lookup_failed' and card['result']['detail']['error_code'] == 'LOT_NOT_FOUND'
+    assert len(requests) == 2   # the model ran again; nothing was replayed
+    assert len(deferred) == 1
+    for target, args in deferred:   # the late row clear finds a newer lock owner: no effect
+        target(*args)
+    db_cursor.execute('SELECT lease_id FROM assistant_sessions WHERE id=%s', (chat[0],))
+    assert db_cursor.fetchone()['lease_id'] is None
+
+
+@pytest.mark.parametrize('streamed', [False, True])
+def test_a_turn_saved_just_before_the_pool_filled_reports_its_saved_result(client, chat, db_cursor, monkeypatch,
+                                                                         streamed, deferred):
+    db_pool = main.WaitingConnectionPool(0, 1, wait_seconds=0.1, dsn=db_cursor.connection.dsn)
+    app_pool, test_connection, held = main.db_pool, main.get_db_connection, db_pool.getconn()
+    turn = {'session_id': chat[0], 'turn_id': str(uuid4()), 'text': 'Where is lot NOPE-1?'}
+    saved = [False]
+
+    @contextmanager
+    def pool_full_once_saved():
+        if saved[0]:
+            with REAL_GET_DB_CONNECTION() as conn:   # main.db_pool is the full pool now
+                yield conn
+            return
+        with test_connection() as conn:
+            yield conn
+        db_cursor.execute('SELECT 1 FROM assistant_turns WHERE id=%s', (turn['turn_id'],))
+        if db_cursor.fetchone():
+            saved[0] = True
+            main.db_pool = db_pool
+    monkeypatch.setattr(main, 'get_db_connection', pool_full_once_saved)
+    model(monkeypatch, ('lot_lookup', {'lot_code': 'NOPE-1'}), ('lot_lookup', {'lot_code': 'NOPE-2'}))
+    headers = {**chat[1], **({'Accept': 'application/x-ndjson'} if streamed else {})}
+    try:
+        first = client.post('/assistant/turn', headers=headers, json=turn)
+    finally:
+        db_pool.putconn(held)
+        db_pool.closeall()
+        main.db_pool, main.get_db_connection = app_pool, test_connection
+    assert saved[0], 'the turn never saved'
+    assert first.status_code == 200, first.text
+    result = _turn_events(first, True)['result'] if streamed else first.json()
+    assert result['turn_id'] == turn['turn_id'] and result['cards'][0]['kind'] == 'lookup_failed'
+    db_cursor.execute('SELECT lease_id FROM assistant_sessions WHERE id=%s', (chat[0],))
+    assert db_cursor.fetchone()['lease_id'] is None   # freed in the same commit as the save
+    assert deferred == []
+
+    following = client.post('/assistant/turn', headers=headers, json={
+        'session_id': chat[0], 'turn_id': str(uuid4()), 'text': 'Where is lot NOPE-2?'})
+    assert following.status_code == 200, following.text   # not CHAT_BUSY

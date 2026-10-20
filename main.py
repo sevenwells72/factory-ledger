@@ -2040,6 +2040,7 @@ class WaitingConnectionPool(pool.ThreadedConnectionPool):
     def _acquire(self, key, deadline):
         if not self._lock.acquire(timeout=max(deadline - time.monotonic(), 0)):
             raise self._timeout()
+        waiter = idle = held = None
         try:
             if time.monotonic() >= deadline:
                 raise self._timeout()   # e.g. a retry whose shared deadline already passed
@@ -2048,19 +2049,27 @@ class WaitingConnectionPool(pool.ThreadedConnectionPool):
             if key is None:
                 key = self._getkey()
             elif key in self._used:
-                return self._used[key]
-            while self._waiters and self._waiters[0].abandoned:
-                self._waiters.popleft()
-            waiter = None
-            if not self._waiters and self._pool:
-                return self._checkout(key, self._pool.pop())
-            if self._waiters or len(self._used) + self._opening >= self.maxconn:
-                waiter = _PoolWaiter(key)
-                self._waiters.append(waiter)
-            else:
-                self._opening += 1
+                held = self._used[key]
+            if held is None:
+                while self._waiters and self._waiters[0].abandoned:
+                    self._waiters.popleft()
+                if not self._waiters and self._pool:
+                    idle = self._checkout(key, self._pool.pop())
+                elif self._waiters or len(self._used) + self._opening >= self.maxconn:
+                    waiter = _PoolWaiter(key)
+                    self._waiters.append(waiter)
+                else:
+                    self._opening += 1
         finally:
             self._lock.release()
+        if held is not None:
+            # Already this key's connection: on a late wake it stays with its
+            # holder, the caller just gets the timeout.
+            if time.monotonic() >= deadline:
+                raise self._timeout()
+            return held
+        if idle is not None:
+            return self._in_time(key, idle, deadline)
         if waiter is not None:
             waiter.event.wait(max(deadline - time.monotonic(), 0))
             with waiter.lock:
@@ -3561,6 +3570,8 @@ def _actors_by_hash() -> dict:
          three times over is a multi-minute hang, and the empty snapshot it
          published is already the right answer.
 
+    A load that timed out waiting for a pool connection is not a failed
+    load: it publishes nothing and raises PoolTimeout (a retryable 503).
     A failed load (most likely: migration 052 not applied yet on this
     database) caches EMPTY for a full TTL rather than raising. That is the
     correct degradation too — with no actors resolvable, every key falls
@@ -3583,6 +3594,11 @@ def _actors_by_hash() -> dict:
         try:
             loaded = _load_actors()
             failed = None
+        except PoolTimeout:
+            # FL was busy, not the actor table missing: nothing is published,
+            # so a valid key is not refused for a TTL afterwards. The request
+            # answers 503 DATABASE_BUSY instead (PR #141 comment 6297413580).
+            raise
         except Exception as e:
             loaded = {}
             failed = f"{type(e).__name__}: {e}"
