@@ -36,7 +36,7 @@ function page({ cards = [], drafts = [], language = 'en', request, init, enabled
   const actor = { id: 7, name: 'Arturo', role: 'floor' };
   const pilot = { enabled, actor: enabled ? actor : null, token: 'fixture-session', init: () => init || Promise.resolve(enabled),
     clear() { this.actor = null; this.token = ''; this.cleared = true; } };
-  const context = vm.createContext({ URL, crypto: require('node:crypto').webcrypto, AbortController, Error, Date: ClockDate, console, navigator: {},
+  const context = vm.createContext({ URL, TextDecoder, crypto: require('node:crypto').webcrypto, AbortController, Error, Date: ClockDate, console, navigator: {},
     setTimeout(callback, delay) { const id = ++nextTimer; const timer = { id, callback, delay }; timers.set(id, timer); scheduled.push(timer); return id; },
     clearTimeout(id) { timers.delete(id); }, localStorage: store, sessionStorage: store,
     location: { origin: 'https://fl.local', reload() {} },
@@ -373,4 +373,44 @@ for (const language of ['en', 'es']) test(`spoken Today language follows the mes
   const h = page({language, request: async () => response({receipts: [], has_more: false})});
   await h.ready(); h.submit(language === 'en' ? '¿Qué registré hoy?' : 'What did I record today?'); await flush();
   assert.match(text(h.cards()[0]), language === 'en' ? /Registraste 0 entradas hoy; el equipo registró 0/ : /You recorded 0 entries today; the team recorded 0/);
+});
+
+// PR #141 re-check item 3: a pool timeout during a streamed turn arrives as a
+// busy error event after HTTP 200 (or as a plain HTTP 503 without streaming).
+const ndjson = events => {
+  const chunks = [new TextEncoder().encode(events.map(event => JSON.stringify(event) + '\n').join(''))];
+  return { ok: true, status: 200, headers: { get: name => name.toLowerCase() === 'content-type' ? 'application/x-ndjson' : null },
+    body: { getReader: () => ({ read: async () => chunks.length ? { done: false, value: chunks.shift() } : { done: true } }) } };
+};
+const busyEvent = { type: 'error', status: 503, error_code: 'DATABASE_BUSY', retryable: true,
+  detail: { error_code: 'DATABASE_BUSY', retryable: true, message: 'FL is busy right now — try again in a moment.',
+    message_es: 'FL está ocupado en este momento — inténtalo de nuevo en un momento.' } };
+
+for (const language of ['en', 'es']) test(`a busy database shows a plain try-again-in-a-moment card with Retry in ${language}`, async () => {
+  const busy = language === 'en' ? /FL is busy right now — try again in a moment\./ : /FL está ocupado en este momento — inténtalo de nuevo en un momento\./;
+  for (const reply of [ndjson([{ type: 'progress', message: 'Reading your message…' }, busyEvent]),
+    { ok: false, status: 503, headers: { get: () => 'application/json' }, json: async () => ({ success: false, error_code: 'DATABASE_BUSY', retryable: true, message: 'The server is busy. Retry in a few seconds.' }) }]) {
+    const turns = [];
+    const h = page({ language, request: async ({ url, body }) => { assert.equal(url.pathname, '/assistant/turn'); turns.push(body);
+      return turns.length === 1 ? reply : ndjson([{ type: 'result', result: { cards: [{ kind: 'read' }] } }]); } });
+    await h.ready(); h.submit('How much oats?'); await flush();
+    const card = h.cards().at(-1);
+    assert.match(text(card), busy);
+    assert.doesNotMatch(text(card), /temporarily unavailable|temporalmente|500|DATABASE_BUSY/);
+    const retry = descendants(card).find(node => node.tag === 'button');
+    assert.match(retry.textContent, language === 'en' ? /Retry this message/ : /Reintentar este mensaje/);
+    const before = h.cards().length;
+    h.click(retry); await flush();
+    assert.equal(turns.length, 2);
+    assert.equal(turns[1].turn_id, turns[0].turn_id);   // same durable turn, never a duplicate
+    assert.equal(h.cards().length, before + 1);          // the retried turn's answer
+    assert.doesNotMatch(text(h.cards().at(-1)), busy);
+  }
+});
+
+test('other stream errors still show the unavailable card', async () => {
+  const h = page({ request: async () => ndjson([{ type: 'error', status: 500, detail: 'Factory Ledger is temporarily unavailable — try again in a minute.' }]) });
+  await h.ready(); h.submit('How much oats?'); await flush();
+  assert.match(text(h.cards().at(-1)), /Factory Ledger is temporarily unavailable — try again in a minute/);
+  assert.doesNotMatch(text(h.cards().at(-1)), /busy/);
 });

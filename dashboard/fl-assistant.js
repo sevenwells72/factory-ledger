@@ -11,7 +11,8 @@
     misunderstood: ['I didn’t understand that — please rephrase (e.g. “we packed 60 cases of Classic”).',
       'No entendí eso — reformula el mensaje (por ejemplo, “empacamos 60 cajas de Classic”).'],
     lookup_failed: ['Factory Ledger is temporarily unavailable — try again in a minute.', 'Factory Ledger no está disponible temporalmente — inténtalo de nuevo en un minuto.'],
-    request_failed: ['Couldn’t complete that request. Please try again.', 'No pude completar esa solicitud. Inténtalo de nuevo.']
+    request_failed: ['Couldn’t complete that request. Please try again.', 'No pude completar esa solicitud. Inténtalo de nuevo.'],
+    database_busy: ['FL is busy right now — try again in a moment.', 'FL está ocupado en este momento — inténtalo de nuevo en un momento.']
   };
   function errorText(value, language = 'en') {
     if (value?.name === 'SyntaxError') return display.unavailable(language);
@@ -84,8 +85,10 @@
     return 'failed';
   }
   const assistantOffline = value => { const data = value?.result || value, detail = data?.detail || data; return ['ASSISTANT_QUOTA_EXHAUSTED','ASSISTANT_DISABLED'].includes(detail?.error_code || detail?.code); };
+  // Pool wait ran out (HTTP 503, or a stream error event): busy, not broken.
+  const databaseBusy = value => { const data = value?.result || value, detail = data?.detail || data; return (detail?.error_code || data?.error_code) === 'DATABASE_BUSY'; };
   const safeOfficeLink = href => /^\/dashboard\/(?:entry|office|receipt|exceptions)\.html(?:[?#]|$)/.test(String(href || '')) ? href : null;
-  const exports = { assistantOffline, safeOfficeLink, supplierChoices, isTodayQuery, voidTarget, refusalDraft, validReceipt, canRecord, validAttachment, evidenceKinds, errorText, awaitingApproval, neutralMessages,
+  const exports = { assistantOffline, databaseBusy, safeOfficeLink, supplierChoices, isTodayQuery, voidTarget, refusalDraft, validReceipt, canRecord, validAttachment, evidenceKinds, errorText, awaitingApproval, neutralMessages,
     dayLabel, dividerLabel, showJump, photoKinds, photoStatus, photoProblem, MAX_PHOTO };
   if (typeof module !== 'undefined') module.exports = exports;
   if (!root.document) return;
@@ -732,7 +735,7 @@
     } catch (error) {
       const card = shell();
       if (assistantOffline(error)) { retryTurn = null; offline(card, error); }
-      else { retryTurn = body; neutral(card, 'lookup_failed'); card.append(button(t('Retry this message', 'Reintentar este mensaje'), () => sendTurn({}, body))); }
+      else { retryTurn = body; neutral(card, databaseBusy(error) ? 'database_busy' : 'lookup_failed'); card.append(button(t('Retry this message', 'Reintentar este mensaje'), () => sendTurn({}, body))); }
     } finally { waiting.remove(); setBusy(false); $('message').focus({ preventScroll: true }); revealLatest(); }
   }
   async function loadChat({ background = false } = {}) {

@@ -319,6 +319,13 @@
 - **File(s) changed:** `resolution.py`, `main.py`, `dashboard/ledger-forms.css`, `dashboard/fl-assistant.css`, `dashboard/fl-assistant.js`
 - **What changed:** Add SELECT-only product/lot choices and batch product context; style header links as buttons and support a direct Today route.
 - **Why:** Pilot workers need visible navigation and physical-lot choices without changing posting or pool behavior.
+## 2026-10-20 12:30 — PR #141 fix round: precise busy 503, hard 10 s deadline, Assistant stream busy event
+- **File(s) changed:** `db_busy.py` (new), `main.py`, `assistant_runtime.py`, `dashboard/fl-assistant.js`, `dashboard/fl-assistant.html`, `tests/test_db_pool_wait.py`, `tests/test_assistant_progress_round_d.py`, `tests/test_assistant_page_round_a.js`, `tests/test_assistant_mobile_ux.js`, `tests/test_final_db_recovery.py`, `tests/visual/run-fl-assistant.mjs`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** (1) Each pool timeout carries a random wait id; the busy middleware converts a 5xx only if its body quotes that id or the escaping exception is the timeout / raised `from` it, so real 500s after a handled wait stay 500. `/auth/dashboard-key` and retried reads let the timeout itself through. (2) Pool caller takes the mutex once with a timeout, then meets the granter/opener on a per-waiter lock; abandoned waiters/opens are never granted; the retry pause and both attempts share one deadline. Reviewer cases at 10 s: 10.707/10.709/10.109 s → 10.006/10.004/10.006 s. (3) NDJSON Assistant stream sends a retryable `DATABASE_BUSY` event (EN/ES); page shows "FL is busy right now — try again in a moment." with Retry; fl-assistant.js v15. FL row 220 rewritten (7 columns).
+- **Why:** PR #141 re-check comment 6294160112. Validation: Python 6,924 ×2 (fresh fl_pool3_ DBs, sessions off/on), Node 443, all browser runners both modes; DBs dropped. No Railway/Supabase/data changes.
+
+---
+
 ## 2026-10-20 10:55 — DB pool follow-up: 503 on all paths, FIFO, 10 s cap
 - **File(s) changed:** `main.py`, `tests/test_db_pool_wait.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** New `DatabaseBusyMiddleware` (innermost) turns any 5xx of a request whose pool wait timed out into 503 `DATABASE_BUSY` (59 routes answered 500 on main). `WaitingConnectionPool` rewritten: explicit FIFO waiter queue with direct hand-over, one deadline across mutex/queue/connect, connects on a helper thread outside the mutex, rollback/close on return outside the mutex; `PoolTimeout` subclass of `PoolError`; `retry_database_read` shares one wait budget across both attempts. 8 new tests, all failing on main 9d5e888. FL rows 217 (marked deployed) and 220.

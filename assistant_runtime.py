@@ -7,6 +7,8 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import StreamingResponse
 from starlette.concurrency import run_in_threadpool
 
+import db_busy
+
 
 def progress(request, stage, query='', language='en'):
     callback = request.scope.get('_fl_chat_progress')
@@ -49,11 +51,17 @@ async def run_turn(handler, request):
         try:
             result = await run_in_threadpool(work)
             await events.put({'type': 'result', 'result': jsonable_encoder(result)})
-        except HTTPException as error:
-            await events.put({'type': 'error', 'status': error.status_code, 'detail': error.detail})
-        except Exception:
-            await events.put({'type': 'error', 'status': 500,
-                              'detail': 'Factory Ledger is temporarily unavailable — try again in a minute.'})
+        except Exception as error:
+            # Headers (200) are already sent, so a pool timeout cannot become
+            # HTTP 503: send the same plain, retryable busy answer as an event.
+            if db_busy.caused_by_timeout(error):
+                await events.put({'type': 'error', 'status': 503, 'error_code': 'DATABASE_BUSY',
+                                  'retryable': True, 'detail': db_busy.busy_detail()})
+            elif isinstance(error, HTTPException):
+                await events.put({'type': 'error', 'status': error.status_code, 'detail': error.detail})
+            else:
+                await events.put({'type': 'error', 'status': 500,
+                                  'detail': 'Factory Ledger is temporarily unavailable — try again in a minute.'})
         finally:
             await events.put(None)
 

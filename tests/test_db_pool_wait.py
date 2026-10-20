@@ -7,6 +7,7 @@ Uvicorn process (startup builds the pool exactly as on Railway) with each SQL
 statement slowed down, so the burst overlaps the way it does over the network.
 """
 import asyncio
+import json
 import os
 from pathlib import Path
 import socket
@@ -564,61 +565,243 @@ def test_a_retried_read_shares_one_wait_limit(fake_connect, monkeypatch):
             raise psycopg2.OperationalError("server closed the connection unexpectedly")
 
     begin = time.monotonic()
-    with pytest.raises(main.HTTPException) as caught:
+    with pytest.raises(main.PoolTimeout):   # answered as 503 DATABASE_BUSY
         read()
     elapsed = time.monotonic() - begin
-    assert caught.value.status_code == 503
     # 0.7 s first wait + 0.1 s pause + the 0.3 s left, not another full 1 s.
     assert elapsed < 1.0 + 0.25, elapsed
 
 
-def test_busy_middleware_replaces_a_handlers_own_500_and_an_escaping_error():
+def _timed_out_pool_error():
+    db_pool = main.WaitingConnectionPool(0, 1, wait_seconds=0.01)
+    return db_pool._timeout()
+
+
+def test_busy_middleware_replaces_only_failures_the_timeout_caused():
+    """Re-check comment 6294160112 item 1: the request-wide marker turned a real
+    500 into 503 after a handled timeout. Only the timeout itself, an error
+    raised from it, or an answer quoting its message becomes busy now."""
     from starlette.applications import Starlette
+    from starlette.exceptions import HTTPException as StarletteHTTPException
     from starlette.responses import JSONResponse, StreamingResponse
     from starlette.routing import Route
 
-    def timed_out():
+    async def quotes_it(request):
         try:
-            raise main.WaitingConnectionPool._timeout(type("P", (), {"maxconn": 1, "wait_seconds": 0.1})())
-        except main.pool.PoolError:
-            pass
+            raise _timed_out_pool_error()
+        except Exception as e:  # the common handler shape in main.py
+            return JSONResponse({"error": str(e)}, status_code=500)
 
-    async def own_500(request):
-        timed_out()
-        return JSONResponse({"error": "Lookup failed"}, status_code=500)
+    async def raised_from(request):
+        try:
+            raise _timed_out_pool_error()
+        except main.pool.PoolError as exc:
+            raise RuntimeError("lookup failed") from exc
+
+    async def http_500_quoting(request):
+        try:
+            raise _timed_out_pool_error()
+        except Exception as e:
+            raise StarletteHTTPException(500, str(e))
 
     async def escapes(request):
-        timed_out()
-        raise RuntimeError("wrapped the pool error")
+        raise _timed_out_pool_error()
+
+    async def handled_then_own_500(request):
+        try:
+            raise _timed_out_pool_error()
+        except main.pool.PoolError:
+            pass  # handled; the bug below is real
+        return JSONResponse({"error": "division by zero"}, status_code=500)
+
+    async def handled_then_raises(request):
+        try:
+            raise _timed_out_pool_error()
+        except main.pool.PoolError:
+            pass
+        raise RuntimeError("unrelated bug")
+
+    async def raised_while_handling(request):
+        try:
+            raise _timed_out_pool_error()
+        except main.pool.PoolError:
+            raise RuntimeError("unrelated bug in the fallback")  # __context__ only
 
     async def not_busy(request):
         return JSONResponse({"error": "real bug"}, status_code=500)
 
     async def busy_but_ok(request):
-        timed_out()  # handled: a degraded 200 stays a 200
+        try:
+            raise _timed_out_pool_error()
+        except main.pool.PoolError:
+            pass  # handled: a degraded 200 stays a 200
         return JSONResponse({"partial": True})
+
+    async def streamed_500(request):
+        try:
+            raise _timed_out_pool_error()
+        except Exception as e:
+            message = str(e)
+
+        async def body():  # the quote arrives in a later chunk than the status
+            yield b'{"error":'
+            yield json.dumps(message).encode() + b"}"
+        return StreamingResponse(body(), status_code=500)
 
     async def streamed(request):
         async def body():
             yield b'{"started":true}'
-            timed_out()
+            try:
+                raise _timed_out_pool_error()
+            except main.pool.PoolError:
+                pass
             yield b'{"late":true}'
         return StreamingResponse(body(), status_code=200)
 
-    app = Starlette(routes=[Route(p, f) for p, f in [
-        ("/own-500", own_500), ("/escapes", escapes), ("/not-busy", not_busy),
-        ("/busy-but-ok", busy_but_ok), ("/streamed", streamed)]])
+    routes = {"/quotes-it": quotes_it, "/raised-from": raised_from, "/http-500-quoting": http_500_quoting,
+              "/escapes": escapes, "/handled-then-own-500": handled_then_own_500,
+              "/handled-then-raises": handled_then_raises, "/raised-while-handling": raised_while_handling,
+              "/not-busy": not_busy, "/busy-but-ok": busy_but_ok, "/streamed-500": streamed_500,
+              "/streamed": streamed}
+    app = Starlette(routes=[Route(p, f) for p, f in routes.items()])
     app.add_middleware(main.DatabaseBusyMiddleware)
 
     async def run():
         transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
         async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-            return {p: await client.get(p) for p in
-                    ["/own-500", "/escapes", "/not-busy", "/busy-but-ok", "/streamed"]}
+            return {p: await client.get(p) for p in routes}
     got = asyncio.run(run())
-    for path in ["/own-500", "/escapes"]:
-        assert got[path].status_code == 503, path
+    for path in ["/quotes-it", "/raised-from", "/http-500-quoting", "/escapes", "/streamed-500"]:
+        assert got[path].status_code == 503, (path, got[path].text)
         assert got[path].json()["error_code"] == "DATABASE_BUSY"
-    assert got["/not-busy"].status_code == 500
+    for path in ["/handled-then-own-500", "/handled-then-raises", "/raised-while-handling", "/not-busy"]:
+        assert got[path].status_code == 500, (path, got[path].text)
+        assert "DATABASE_BUSY" not in got[path].text, path
+    assert got["/handled-then-own-500"].json() == {"error": "division by zero"}
     assert got["/busy-but-ok"].json() == {"partial": True}
     assert got["/streamed"].status_code == 200  # already sent; cannot be changed
+
+
+def test_a_real_failure_after_a_handled_pool_timeout_keeps_its_500(monkeypatch):
+    """The reviewer's mixed case on the real pool held full: the route catches
+    the timeout, falls back, then hits an unrelated bug. Before the fix the
+    marker turned that bug into 503 DATABASE_BUSY."""
+    from fastapi import FastAPI
+    from fastapi.responses import JSONResponse
+
+    db_pool = _waiting_pool(maxconn=1, wait_seconds=0.05)
+    held = db_pool.getconn()
+    monkeypatch.setattr(main, "db_pool", db_pool)
+    app = FastAPI()
+
+    def fallback_then(fail):
+        try:
+            with main.get_transaction() as cur:
+                cur.execute("SELECT 1")
+        except main.pool.PoolError:
+            pass  # e.g. show cached numbers instead
+        fail()
+
+    @app.get("/own-500")
+    def own_500():
+        try:
+            fallback_then(lambda: 1 / 0)
+        except Exception as e:
+            return JSONResponse(status_code=500, content={"error": str(e)})
+
+    @app.get("/raises")
+    def raises():
+        fallback_then(lambda: (_ for _ in ()).throw(RuntimeError("unrelated bug")))
+
+    @app.get("/timeout")
+    def timeout():
+        try:
+            with main.get_transaction() as cur:
+                cur.execute("SELECT 1")
+        except Exception as e:
+            return JSONResponse(status_code=500, content={"error": str(e)})
+
+    app.add_middleware(main.DatabaseBusyMiddleware)
+    try:
+        async def run():
+            transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
+            async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+                return [await client.get(p) for p in ["/own-500", "/raises", "/timeout"]]
+        own, raised, timed_out = asyncio.run(run())
+    finally:
+        db_pool.putconn(held)
+        db_pool.closeall()
+    assert own.status_code == 500 and own.json() == {"error": "division by zero"}
+    assert raised.status_code == 500 and "DATABASE_BUSY" not in raised.text
+    assert timed_out.status_code == 503 and timed_out.json()["error_code"] == "DATABASE_BUSY"
+
+
+# ── Re-check round (PR #141 comment 6294160112) item 2: one hard deadline ───
+
+def _hold_pool_mutex(db_pool, start, until):
+    """Hold the pool's mutex from `start` to `until` (seconds from now)."""
+    def hold():
+        time.sleep(start)
+        with db_pool._lock:
+            time.sleep(until - start)
+    thread = threading.Thread(target=hold, daemon=True)
+    thread.start()
+    return thread
+
+
+def test_a_queued_wait_ends_on_time_while_the_mutex_is_held_past_it(fake_connect):
+    """A waiter whose wait ran out re-took the mutex without a limit: a hold
+    crossing the deadline stretched 10 s to 10.7 s. It now gives up on time,
+    and a connection returned afterwards is not granted to it."""
+    db_pool = main.WaitingConnectionPool(0, 1, wait_seconds=1.0)
+    held = db_pool.getconn()
+    holder = _hold_pool_mutex(db_pool, 0.8, 1.7)
+    begin = time.monotonic()
+    with pytest.raises(main.PoolTimeout):
+        db_pool.getconn()
+    assert time.monotonic() - begin < 1.0 + 0.05
+    holder.join(5)
+    db_pool.putconn(held)  # must not go to the abandoned waiter
+    assert db_pool._used == {} and db_pool._opening == 0
+    conn = db_pool.getconn()
+    db_pool.putconn(conn)
+    assert db_pool._used == {}
+
+
+def test_an_open_ends_on_time_while_the_mutex_is_held_past_the_deadline(fake_connect):
+    delay, opened = fake_connect
+    delay[0] = 0.5   # the open finishes in time, but its bookkeeping needs the mutex
+    db_pool = main.WaitingConnectionPool(0, 1, wait_seconds=1.0)
+    holder = _hold_pool_mutex(db_pool, 0.3, 1.7)
+    begin = time.monotonic()
+    with pytest.raises(main.PoolTimeout):
+        db_pool.getconn()
+    assert time.monotonic() - begin < 1.0 + 0.05
+    holder.join(5)
+    _wait_until(lambda: db_pool._opening == 0)
+    assert db_pool._used == {} and len(opened) == 1
+    delay[0] = 0
+    db_pool.putconn(db_pool.getconn())  # the abandoned open freed its slot
+    assert db_pool._used == {}
+
+
+def test_a_retried_read_keeps_the_pause_and_both_opens_inside_one_deadline(fake_connect, monkeypatch):
+    """Reviewer: two opens, each followed by an immediate disconnect, with zero
+    query work took 10.112 s — the 0.1 s pause sat outside the budget."""
+    delay, _ = fake_connect
+    delay[0] = 0.55
+    db_pool = main.WaitingConnectionPool(0, 1, wait_seconds=1.0)
+    monkeypatch.setattr(main, "db_pool", db_pool)
+
+    @main.retry_database_read
+    def read():
+        with main.get_db_connection():
+            raise psycopg2.OperationalError("server closed the connection unexpectedly")
+
+    begin = time.monotonic()
+    with pytest.raises(main.pool.PoolError):   # the second open is abandoned at the deadline
+        try:
+            read()
+        finally:
+            elapsed = time.monotonic() - begin
+    assert elapsed < 1.0 + 0.04, elapsed

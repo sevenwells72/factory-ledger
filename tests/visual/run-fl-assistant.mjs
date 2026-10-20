@@ -21,7 +21,12 @@ const neutralCases = [
   ['missing shipment details', { kind: 'missing_facts', fields: ['cases', 'case_size_lb', 'bol_reference'] },
     'Please add the missing details', 'Agrega los datos que faltan'],
   ['connection failure', null, 'Factory Ledger is temporarily unavailable', 'Factory Ledger no está disponible temporalmente'],
+  // PR #141: a pool timeout after the 200 NDJSON headers arrives as a busy event.
+  ['busy database', 'busy-stream', 'FL is busy right now — try again in a moment.', 'FL está ocupado en este momento — inténtalo de nuevo en un momento.'],
 ];
+const busyStream = [{ type: 'progress', message: 'Reading your message…' }, { type: 'error', status: 503, error_code: 'DATABASE_BUSY', retryable: true,
+  detail: { error_code: 'DATABASE_BUSY', retryable: true, message: 'FL is busy right now — try again in a moment.', message_es: 'FL está ocupado en este momento — inténtalo de nuevo en un momento.' } }]
+  .map(event => JSON.stringify(event) + '\n').join('');
 const missingReason = { kind: 'refusal', status: 422,
   result: { detail: [{ loc: ['body', 'reason_code'], type: 'missing', msg: 'Field required' }] },
   reasons: [{ code: 'damaged', label_en: 'Damaged', label_es: 'Dañado' }] };
@@ -235,6 +240,7 @@ try {
     if (url.pathname.endsWith('/turn')) {
       const body = data(); turns.push(body);
       const neutral = neutralCases.find(([text]) => text === body.text);
+      if (neutral?.[1] === 'busy-stream') return route.fulfill({ status: 200, contentType: 'application/x-ndjson', body: busyStream });
       if (neutral) return neutral[1] ? route.fulfill({ json: { cards: [neutral[1]] } }) : route.abort('failed');
       if (/^(The correction reason is|El motivo de corrección es) /.test(body.text)) return route.fulfill({ json: { cards: [{ kind: 'missing_facts', fields: ['lot_id'] }] } });
       if (body.text === 'adjust without a reason') return route.fulfill({ json: { cards: [missingReason] } });
