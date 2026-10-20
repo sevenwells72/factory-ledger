@@ -15,10 +15,27 @@
       const note=ui.lang==='es'?item.detail?.message_es:item.detail?.message;if(note)ui.el('p',note,desc);
       ui.el('div',ui.t('Owner: ','Responsable: ')+(item.owner?.name||ui.t('Unassigned','Sin asignar')),row);
       ui.el('div',(item.overdue?ui.t('Overdue · ','Vencido · '):'')+(item.due_at?new Date(item.due_at).toLocaleString(ui.lang==='es'?'es-US':'en-US',{timeZone:'America/New_York'}):ui.t('No deadline','Sin fecha límite')),row);
+      if(item.kind==='CHARGE_SETTING_CHECK'){chargeCheck(item,row);continue;}
       if(ui.resolutionChoices(item).length){const button=ui.el('button',ui.t('Resolve','Resolver'),row);button.onclick=()=>open(item.id);}
     }}
     if(recent.length){const section=ui.el('section',undefined,content);section.className='panel';ui.el('h2',ui.t('Needs follow-up','Necesita seguimiento')+' · '+recent.length,section);renderRows(recent,section);}
     if(opening.length){const group=ui.el('details',undefined,content);group.className='panel opening-stock';ui.el('summary',ui.t('Opening-stock items','Elementos del inventario inicial')+' · '+opening.length,group);renderRows(opening,group);}
+  }
+  // PR #143: "Confirm: Charge or Product?" is answered on the item — owner or office, one click, never asked again.
+  function chargeCheck(item,row){
+    const marked=item.detail?.marked_as==='charge';
+    const now=ui.el('p',ui.t('Now marked: ','Marcado ahora: ')+(marked?ui.t('Charge (pallet, freight, delivery…)','Cargo (palé, flete, entrega…)'):ui.t('Product','Producto')),row);now.className='neutral';
+    const choices=ui.resolutionChoices(item);
+    if(!choices.length){const p=ui.el('p',ui.t('The owner or office confirms this one.','El dueño o la oficina confirma esta.'),row);p.className='neutral';return;}
+    const actions=ui.el('div',undefined,row);actions.className='charge-check-actions';const buttons=[];
+    for(const [choice,kind,en,es] of [['confirmed_product','product','It is a Product','Es un Producto'],['confirmed_charge','charge','It is a Charge (pallet, freight, delivery…)','Es un Cargo (palé, flete, entrega…)']]){
+      if(!choices.includes(choice))continue;
+      const button=ui.el('button',ui.t(en,es),actions);button.type='button';button.dataset.itemKind=kind;buttons.push(button);
+      button.onclick=async()=>{for(const b of buttons)b.disabled=true;
+        try{const result=await ui.request(item.confirm_path,{item_kind:kind});
+          ui.notice(ui.t('Saved: ','Guardado: ')+result.item.name+' — '+(kind==='charge'?ui.t('Charge','Cargo'):ui.t('Product','Producto'))+ui.t('. FL will not ask about this item again.','. FL no volverá a preguntar por este artículo.'),'good');await load();
+        }catch(error){ui.failure(error);for(const b of buttons)b.disabled=false;}};
+    }
   }
   async function load({background=false}={}){try{const result=await ui.request('/exceptions?status=open&limit=1000',undefined,{background});rows=result.exceptions||[];const number=new URLSearchParams(location.search).get('receipt');if(number)rows=rows.filter(r=>(r.receipt_number||r.ticket_receipt_number)===number);render();if(result.count>=1000)ui.notice(ui.t('First 1,000 items shown.','Se muestran los primeros 1.000 elementos.'),'notice');}catch(error){ui.failure(error);}}
   async function open(id){try{selected=await ui.request('/exceptions/'+id);renderForm();resolution.scrollIntoView({block:'start'});}catch(error){ui.failure(error);}}

@@ -75,3 +75,13 @@
 @media(max-width:520px){.receipt-tools>a[data-fl-write-ui]{flex:1 1 145px}.ledger-page .lot-confirmation-row{padding:8px}.ledger-page .lot-confirmation-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.ledger-page .lot-confirmation-controls select,.ledger-page .lot-confirmation-controls input{padding:8px 6px;font-size:16px}}
 
 .ledger-page .picker-options hr{border:0;border-top:1px solid #b6c5cf;width:100%;margin:16px 0 4px}.ledger-page .picker-options button.new-customer-option{margin-top:0;padding:10px 12px;background:#f3f5f7;font-size:14px;font-weight:500;color:#344f60}.ledger-page .today-entry{padding:12px 0;border-top:1px solid #c6d1d7}.ledger-page .today-entry p{margin:4px 0}
+
+/* PR #143: charge lines (products.is_service) and the Product/Charge choice */
+.charge-tag { display:inline-block; align-self:flex-start; justify-self:start; width:auto; margin-left:6px; padding:1px 7px; border-radius:999px; background:#fdf0dc; color:#8a4b00; border:1px solid #e8c48f; font-size:.75rem; font-weight:700; letter-spacing:.02em; text-transform:uppercase; vertical-align:middle; white-space:nowrap; }
+.item-kind-choice { border:1px solid #c9ced6; border-radius:8px; padding:10px 12px; margin:0; }
+.item-kind-choice legend { font-weight:700; padding:0 4px; }
+.item-kind-choice label { display:flex; gap:8px; align-items:flex-start; margin:6px 0; font-weight:400; }
+.item-kind-choice input[type=radio] { width:18px; height:18px; min-height:0; padding:0; margin:3px 0 0; flex:none; }
+.catalog-item > .item-kind-choice, .catalog-item > button, .catalog-item > p { margin-top:12px; }
+.catalog-item > button { width:auto; display:inline-block; }
+.charge-check-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }

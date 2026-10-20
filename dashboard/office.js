@@ -42,6 +42,74 @@
     button.onclick=()=>find();input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();find();}};
     return {input,select,clear,setDisabled(flag){input.disabled=flag;button.disabled=flag;for(const option of list.querySelectorAll?.('button')||list.children)option.disabled=flag;},get value(){return value;},id(){if(!value)throw ui.problem(ui.t('Choose '+en,'Elige '+es));return value.id;}};
   }
+  // PR #143: a catalog item is a Product or a Charge only because a person chose it. No default, no name guess.
+  function kindChoice(host){
+    const box=ui.el('fieldset',undefined,host);box.className='item-kind-choice';box.dataset.itemKindChoice='';
+    ui.el('legend',ui.t('This item is (required)','Este artículo es (obligatorio)'),box);const radios=[];
+    for(const [value,en,es,hintEn,hintEs] of [['product','Product','Producto','Has pounds and lots (granola, ingredients, packaging).','Tiene libras y lotes (granola, ingredientes, empaque).'],
+      ['charge','Charge (pallet, freight, delivery…)','Cargo (palé, flete, entrega…)','Billed per unit; never pounds or lots.','Se cobra por unidad; nunca libras ni lotes.']]){
+      const label=ui.el('label',undefined,box),radio=ui.el('input',undefined,label);radio.type='radio';radio.name='item_kind';radio.value=value;radio.required=true;radios.push(radio);
+      const text=ui.el('span',undefined,label);ui.el('strong',ui.t(en,es),text);ui.el('small',ui.t(' — '+hintEn,' — '+hintEs),text);
+    }
+    ui.el('p',ui.t('FL never decides this from the name.','FL nunca decide esto por el nombre.'),box).className='neutral';
+    return {radios,get value(){return (radios.find(r=>r.checked)||{}).value||'';},onchange(fn){for(const r of radios)r.onchange=()=>fn(r.value);}};
+  }
+  function kindText(kind){return kind==='charge'?ui.t('Charge (pallet, freight, delivery…)','Cargo (palé, flete, entrega…)'):ui.t('Product','Producto');}
+  function checkNote(item,host){
+    if(!item.check_exception_id)return;
+    const p=ui.el('p',ui.t('Sent to Exceptions as “Confirm: Charge or Product?” (#'+item.check_exception_id+'): the name and the choice disagree. Nothing changes until the owner or office confirms.',
+      'Enviado a Excepciones como “Confirmar: ¿Cargo o Producto?” (#'+item.check_exception_id+'): el nombre y la elección no coinciden. Nada cambia hasta que el dueño o la oficina confirme.'),host);p.className='notice';p.dataset.chargeCheck=item.check_exception_id;
+  }
+  function catalogItem(){
+    const create=ui.el('form',undefined,content);create.id='catalog-create';create.className='panel catalog-item';create.noValidate=true;
+    ui.el('h2',ui.t('New catalog item','Artículo nuevo del catálogo'),create);
+    const basics=ui.el('div',undefined,create);basics.className='fields';
+    const input=(en,es,type='text',required=false)=>{const l=ui.el('label',ui.t(en,es),basics),i=ui.el('input',undefined,l);i.type=type;i.required=required;if(type==='number')i.step='any';return i;};
+    const name=input('Item name','Nombre del artículo','text',true),sku=input('SKU (optional)','SKU (opcional)');
+    const kind=kindChoice(create);
+    const productHost=ui.el('div',undefined,create);productHost.className='fields';productHost.hidden=true;
+    const typeLabel=ui.el('label',ui.t('Product type','Tipo de producto'),productHost),type=ui.el('select',undefined,typeLabel);ui.el('option',ui.t('Choose','Elige'),type).value='';
+    for(const [value,en,es] of [['finished','Finished goods','Producto terminado'],['ingredient','Ingredient','Ingrediente'],['packaging','Packaging','Empaque'],['consumable','Supplies','Suministros']])ui.el('option',ui.t(en,es),type).value=value;
+    const caseLabel=ui.el('label',ui.t('Case size lb (optional)','Tamaño de cajón lb (opcional)'),productHost),caseSize=ui.el('input',undefined,caseLabel);caseSize.type='number';caseSize.step='any';caseSize.min='0.0001';
+    const chargeHint=ui.el('p',ui.t('Charges are sold per unit (each). They never carry pounds or lots.','Los cargos se venden por unidad. Nunca llevan libras ni lotes.'),create);chargeHint.className='neutral';chargeHint.hidden=true;
+    kind.onchange(value=>{productHost.hidden=value!=='product';chargeHint.hidden=value!=='charge';type.required=value==='product';});
+    const save=ui.el('button',ui.t('Create item','Crear artículo'),create);save.type='submit';save.className='primary';
+    const result=ui.el('div',undefined,create);result.setAttribute('role','status');
+    create.onsubmit=async event=>{event.preventDefault();result.replaceChildren();
+      try{
+        if(!name.value.trim())throw ui.problem(ui.t('Enter the item name.','Escribe el nombre del artículo.'));
+        if(!kind.value)throw ui.problem(ui.t('Choose Product or Charge (pallet, freight, delivery…).','Elige Producto o Cargo (palé, flete, entrega…).'));
+        if(kind.value==='product'&&!type.value)throw ui.problem(ui.t('Choose the product type.','Elige el tipo de producto.'));
+        save.disabled=true;
+        const body={name:name.value.trim(),item_kind:kind.value};if(sku.value.trim())body.sku=sku.value.trim();
+        if(kind.value==='product'){body.type=type.value;if(caseSize.value!=='')body.case_size_lb=Number(caseSize.value);}
+        const done=await ui.request('/catalog/items',body);
+        const p=ui.el('p',ui.t('Created ','Creado ')+done.item.name+' — '+kindText(done.item.item_kind),result);p.className='good';checkNote(done.item,result);
+        name.value='';sku.value='';caseSize.value='';type.value='';for(const r of kind.radios)r.checked=false;productHost.hidden=chargeHint.hidden=true;
+      }catch(error){ui.failure(error);}finally{save.disabled=false;}
+    };
+    const edit=ui.el('form',undefined,content);edit.id='catalog-edit';edit.className='panel catalog-item';edit.noValidate=true;
+    ui.el('h2',ui.t('Change Product / Charge','Cambiar Producto / Cargo'),edit);
+    const searchRow=ui.el('div',undefined,edit);searchRow.className='fields';
+    const searchLabel=ui.el('label',ui.t('Search name or SKU','Buscar nombre o SKU'),searchRow),search=ui.el('input',undefined,searchLabel);search.autocomplete='off';
+    const find=ui.el('button',ui.t('Search','Buscar'),edit);find.type='button';
+    const list=ui.el('div',undefined,edit);list.className='picker-options';const chosen=ui.el('div',undefined,edit);
+    find.onclick=async()=>{list.replaceChildren();chosen.replaceChildren();if(!search.value.trim())return;find.disabled=true;
+      try{const found=await ui.request('/catalog/items?q='+encodeURIComponent(search.value.trim()));
+        if(!(found.items||[]).length)ui.el('p',ui.t('No matches.','Sin resultados.'),list);
+        for(const item of found.items||[]){const b=ui.el('button',item.name+(item.sku?' · '+item.sku:''),list);b.type='button';if(item.item_kind==='charge'){const tag=ui.el('span',ui.t('Charge','Cargo'),b);tag.className='charge-tag';}b.onclick=()=>pick(item);}
+      }catch(error){ui.failure(error);}finally{find.disabled=false;}};
+    function pick(item){list.replaceChildren();chosen.replaceChildren();
+      ui.el('h3',item.name,chosen);ui.el('p',ui.t('Now: ','Ahora: ')+kindText(item.item_kind),chosen).className='neutral';
+      const choice=kindChoice(chosen),apply=ui.el('button',ui.t('Save choice','Guardar elección'),chosen);apply.type='button';apply.className='primary';
+      const out=ui.el('div',undefined,chosen);out.setAttribute('role','status');
+      apply.onclick=async()=>{out.replaceChildren();try{
+        if(!choice.value)throw ui.problem(ui.t('Choose Product or Charge (pallet, freight, delivery…).','Elige Producto o Cargo (palé, flete, entrega…).'));
+        apply.disabled=true;const done=await ui.request('/catalog/items/'+item.id+'/item-kind',{item_kind:choice.value});
+        const p=ui.el('p',(done.changed?ui.t('Saved: ','Guardado: '):ui.t('No change: ','Sin cambio: '))+done.item.name+' — '+kindText(done.item.item_kind),out);p.className='good';checkNote(done.item,out);
+      }catch(error){ui.failure(error);}finally{apply.disabled=false;}};
+    }
+  }
   function render({background=false}={}){
     invalidate();content.replaceChildren();
     if(!FLDashboard.writesEnabled)return;
@@ -49,13 +117,14 @@
     if(!available.length){ui.el('p',ui.t('Sign in with permission for this action.','Inicia sesión con permiso para esta acción.'),content);return;}
     if(!available.some(([key])=>key===action))action=available[0][0];
     const starts=ui.el('nav',undefined,content);starts.className='office-start toolbar';starts.setAttribute('aria-label',ui.t('Start here','Empieza aquí'));
-    for(const [key,en,es] of [['create_order','New order','Pedido nuevo'],['create_customer','New customer','Cliente nuevo'],['create_expected_receipt','Expected delivery','Entrega esperada']]){
+    for(const [key,en,es] of [['create_order','New order','Pedido nuevo'],['create_customer','New customer','Cliente nuevo'],['create_expected_receipt','Expected delivery','Entrega esperada'],['catalog_item','Catalog item','Artículo del catálogo']]){
       if(!available.some(([value])=>value===key))continue;
       const start=ui.el('button',ui.t(en,es),starts);start.type='button';start.dataset.officeStart=key;if(action===key){start.className='primary';start.setAttribute('aria-current','true');}start.onclick=()=>{action=key;render();};
     }
     const label=ui.el('label',ui.t('Office action','Acción de oficina'),content),selector=ui.el('select',undefined,label);selector.id='office-action';
     for(const [key,en,es] of available){ui.el('option',ui.t(en,es),selector).value=key;}
     selector.value=action;selector.onchange=()=>{action=selector.value;render();};
+    if(action==='catalog_item'){catalogItem();return;}
     const form=ui.el('form',undefined,content);form.id='office-form';form.className='panel';
     const fields=ui.el('div',undefined,form);fields.className='fields';let controls={},choices={},rows=[],orderGeneration=0,documentLoaded=null,expectedLoaded=null,readyLoaded=null,customerHost,customerController=null,customerGeneration=0,customerOpen=false,customerClose=null;
     const initialRead={background};
@@ -128,7 +197,7 @@
             }
             controls.ready.checked=Boolean(mark.ready);controls.note.value=mark.note||'';readyLoaded=selected.id;readyIntent=null;
           }
-          if(controls.line_id){controls.line_id.replaceChildren();ui.el('option',ui.t('Choose line','Elige línea'),controls.line_id).value='';for(const line of order.lines||[])ui.el('option','#'+line.line_id+' · '+line.product+' · '+line.quantity_lb+' lb · '+line.line_status,controls.line_id).value=line.line_id;}
+          if(controls.line_id){controls.line_id.replaceChildren();ui.el('option',ui.t('Choose line','Elige línea'),controls.line_id).value='';for(const line of order.lines||[])ui.el('option',line.is_service||line.is_non_weight?ui.t('#'+line.line_id+' · '+line.product+' · CHARGE · '+(line.unit_quantity??line.quantity??'')+' '+(line.unit||'each')+' · '+line.line_status,'#'+line.line_id+' · '+line.product+' · CARGO · '+(line.unit_quantity??line.quantity??'')+' '+(line.unit||'each')+' · '+line.line_status):'#'+line.line_id+' · '+line.product+' · '+line.quantity_lb+' lb · '+line.line_status,controls.line_id).value=line.line_id;}
           if(controls.status&&action==='update_order_status'){controls.status.replaceChildren();for(const status of options.statuses||[])ui.el('option',ui.t(...(reasonText[status]||[status,status])),controls.status).value=status;}
           if(action==='close_order'){controls.reason.replaceChildren();for(const reason of options.close_reasons||[])ui.el('option',ui.t(...reasonText[reason]),controls.reason).value=reason;if(!options.close_reasons?.length)ui.notice(ui.t('FL offers no close reason for this order.','FL no ofrece un motivo de cierre para este pedido.'),'neutral');}
           if(action==='update_order_header'){for(const name of ['customer_po','requested_ship_date','notes','notes_es'])controls[name].value=order[name]||'';controls.no_po.checked=!order.customer_po;controls.customer_po.disabled=!order.customer_po;}

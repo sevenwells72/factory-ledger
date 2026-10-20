@@ -530,7 +530,7 @@ def test_found_inventory_emits_adjust(client, _db_connection):
 def test_found_with_new_product_emits_adjust(client, _db_connection):
     resp = client.post("/inventory/found-with-new-product", json={
         "product_name": f"TraceEmit Found {_token()}",
-        "product_type": "ingredient", "quantity": 8.0,
+        "product_type": "ingredient", "item_kind": "product", "quantity": 8.0,
         "reason_code": "found_count",
     })
     assert resp.status_code == 200, resp.text

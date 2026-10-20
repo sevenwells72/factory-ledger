@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-20 19:55 — Charge or Product: explicit choice, confirmation check and visible charge lines (PR #143 round 2)
+- **File(s) changed:** `charge_setting.py`, `main.py`, `exceptions_enforcement.py`, `permissions.py`, `scripts/exceptions_sweep.py`, `migrations/085_charge_setting_check.sql`, `migrations/down/085_charge_setting_check_down.sql`, `tests/schema/schema.sql`, `dashboard/office.js`, `dashboard/office-logic.js`, `dashboard/exceptions.js`, `dashboard/entry.js`, `dashboard/ledger-ui.js`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/ledger-forms.css`, `dashboard/{office,entry,exceptions,receipt,index}.html`, `tests/test_charge_setting.py`, `tests/test_charge_setting_ui.js`, `tests/visual/charge_setting_page_bridge.py`, `tests/visual/run-charge-setting.mjs`, updated guard tests, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Catalog items must be explicitly created as Product or Charge (API + new Office form, EN/ES); one "Confirm: Charge or Product?" exception per item whose name and setting disagree, answered once by owner/office; charge lines tagged with no lb/lot on order screens, draft cards and packing slips. FL row 226. 6,997 Python ×2 modes, 584 Node, 8/8 actual-page checks.
+- **Why:** Owner did not accept round 1: a forgotten is_service flag would silently count a charge as product pounds.
+
+---
+
 ## 2026-10-20 18:00 — Fee/charge lines decided by the is_service flag only, not the product name
 - **File(s) changed:** `main.py`, `tests/test_fee_name_not_service.py`, `tests/test_assistant_orders_round_d.py`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Removed the product-name keyword fallback (pallet/freight/delivery/surcharge/charge/fee) from order detail and the packing slip (4 places); only `products.is_service` marks a service line now. Added 15 regression tests (Coffee/FEE/Delivery-named bulk products, real Pallet Charge) and made the round D shipping-question test always use a FEE-named product. FL row 225. 6,931 Python ×2 modes and 562 Node pass.

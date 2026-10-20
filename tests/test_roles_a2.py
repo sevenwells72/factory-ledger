@@ -58,6 +58,8 @@ EXPECTED = {
     'cancel_expected_receipt':          'owner office legacy_ledger',
     'manage_customers':                 'owner office legacy_ledger',
     'manage_aliases':                   'owner office',
+    'manage_catalog':                   'owner office',
+    'confirm_item_kind':                'owner office',
     'list_exceptions':                  'owner floor office',
     'resolve_exception':                'owner floor',
     'approve_exception':                'owner',

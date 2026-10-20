@@ -97,7 +97,11 @@
       const lines=ui.el('section');lines.className='wide';
       choose('order','Sales order','Pedido de venta','order',()=>({}),async(selected,{background=false}={})=>{orderLines=[];lines.replaceChildren();if(!selected)return;try{const detail=await ui.request('/sales/orders/'+selected.id,undefined,{background});if(choices.order.value?.id!==selected.id)return;ui.el('h3',ui.t('Quantities to ship (lb)','Cantidades a enviar (lb)'),lines);(detail.lines||[]).filter(line=>!['cancelled','fulfilled'].includes(line.line_status)).forEach(line=>{
         const section=ui.el('section',undefined,lines);section.className='wide';section.dataset.shipmentLineId=String(line.line_id);
-        const label=ui.el('label',ui.t((line.product_name||line.product||'')+' · remaining lb: '+(line.remaining_lb??'—'),(line.product_name||line.product||'')+' · lb pendientes: '+(line.remaining_lb??'—')),section),input=ui.el('input',undefined,label);input.type='number';input.step='any';input.min='0';input.dataset.lineId=line.line_id;
+        const charge=!!(line.is_service||line.is_non_weight),name=line.product_name||line.product||'';
+        // PR #143: a charge line shows its tag and units, never pounds or a lot.
+        const label=ui.el('label',charge?ui.t(name+' · units: '+(line.remaining_units??line.unit_quantity??'—'),name+' · unidades: '+(line.remaining_units??line.unit_quantity??'—')):ui.t(name+' · remaining lb: '+(line.remaining_lb??'—'),name+' · lb pendientes: '+(line.remaining_lb??'—')),section);
+        if(charge){const tag=ui.el('span',ui.t('Charge','Cargo'),label);tag.className='charge-tag';}
+        const input=ui.el('input',undefined,label);input.type='number';input.step='any';input.min='0';input.dataset.lineId=line.line_id;
         const item={id:line.line_id,input,remaining:Number(line.remaining_lb||0),service:!!(line.is_service||line.is_non_weight)};orderLines.push(item);
         if(!item.service&&line.product_id)item.lots=shippedLots(section,line.product_id,line.line_id,{background});
       });}catch(error){ui.failure(error);}},order);

@@ -160,7 +160,7 @@ def test_quick_create_survives_audit_failure(client, _db_connection):
     name = f"AuditSP QC {uuid4().hex[:10]}"
     resp = client.post("/products/quick-create", json={
         "product_name": name,
-        "product_type": "ingredient",
+        "product_type": "ingredient", "item_kind": "product",
         "performed_by": LONG_NAME,  # overflows product_verification_history.performed_by varchar(100)
     })
     assert resp.status_code == 200, resp.text
@@ -183,7 +183,7 @@ def test_quick_create_audit_row_written_on_success(client, _db_connection):
     name = f"AuditSP QC {uuid4().hex[:10]}"
     resp = client.post("/products/quick-create", json={
         "product_name": name,
-        "product_type": "ingredient",
+        "product_type": "ingredient", "item_kind": "product",
     })
     assert resp.status_code == 200, resp.text
     body = resp.json()
@@ -529,7 +529,7 @@ def test_found_with_new_product_writes_adjustment_row(client, _db_connection):
     row at all (2026-08-25 audit, Risk notes §3)."""
     resp = client.post("/inventory/found-with-new-product", json={
         "product_name": f"AuditSP FNP {uuid4().hex[:10]}",
-        "product_type": "ingredient",
+        "product_type": "ingredient", "item_kind": "product",
         "quantity": 12,
         "reason_code": "found_count",
     })

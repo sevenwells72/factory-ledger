@@ -66,6 +66,8 @@ ROLE_PERMISSIONS = {
     'manage_customers': _NAMED_AND_MASTER - {FLOOR},
     # New in Phase 1 — no shared key reaches any of these.
     'manage_aliases': frozenset({OWNER, OFFICE}),
+    'manage_catalog': frozenset({OWNER, OFFICE}),     # Office catalog item: create, Charge/Product
+    'confirm_item_kind': frozenset({OWNER, OFFICE}),  # answer "Confirm: Charge or Product?"
     'list_exceptions': NAMED,
     'resolve_exception': frozenset({OWNER, FLOOR}),   # shortage, unidentified lot
     'approve_exception': frozenset({OWNER}),          # held corrections, late-entry ack, proof waiver
@@ -83,6 +85,8 @@ _LABELS = {
     'found': ('record found inventory', 'registrar inventario encontrado'),
     'list_exceptions': ('view the exceptions queue', 'ver la cola de excepciones'),
     'resolve_exception': ('resolve an exception', 'resolver una excepción'),
+    'manage_catalog': ('manage catalog items', 'administrar artículos del catálogo'),
+    'confirm_item_kind': ('confirm Charge or Product', 'confirmar Cargo o Producto'),
     'approve_exception': ('make an owner-only exception decision', 'tomar una decisión de excepción reservada al dueño'),
     'void': ('void a posting', 'anular un registro'),
     'move_lot': ('move a lot', 'mover un lote'),
@@ -198,6 +202,10 @@ ROUTE_ACTIONS = {
     ('POST', '/exceptions/{exception_id}/resolve/prepare'): 'resolve_exception',
     ('POST', '/exceptions/{exception_id}/approve'): 'approve_exception',
     ('POST', '/exceptions/{exception_id}/reject'): 'approve_exception',
+    # PR #143 Office catalog items (named owner/office only; handlers re-check)
+    ('POST', '/catalog/items'): 'manage_catalog',
+    ('POST', '/catalog/items/{product_id}/item-kind'): 'manage_catalog',
+    ('POST', '/catalog/items/{product_id}/confirm-kind'): 'confirm_item_kind',
 }
 # Actor-reachable writes with no §4.3 row. Listed so the completeness test
 # names every exemption; each stays open to every named role as today.

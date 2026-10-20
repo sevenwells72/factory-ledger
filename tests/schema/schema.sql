@@ -7202,3 +7202,6 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 
 \unrestrict 9AR9WaXWTtqJkeWt7ytxJva3DsGes1kdbWi0i3dIO2bG3bXEH4KQhYlABwktO3r
 
+
+-- PR #143: pending until 085 is applied to production and schema.sql is re-dumped.
+\ir ../../migrations/085_charge_setting_check.sql

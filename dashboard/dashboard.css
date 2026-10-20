@@ -3082,3 +3082,6 @@ body:has(#history-form) > main { padding:16px clamp(12px,3vw,32px); }
 .production-trace-panel p { margin: 8px 0; line-height: 1.5; }
 .production-trace-panel button { min-width: 44px; min-height: 44px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 16px; cursor: pointer; }
 .production-trace .production-detail-sku { display: block; }
+
+/* PR #143: charge lines (products.is_service) — no pounds, no lots */
+.charge-tag { display:inline-block; margin-left:6px; padding:1px 7px; border-radius:999px; background:#fdf0dc; color:#8a4b00; border:1px solid #e8c48f; font-size:11px; font-weight:700; letter-spacing:.02em; text-transform:uppercase; vertical-align:middle; white-space:nowrap; }

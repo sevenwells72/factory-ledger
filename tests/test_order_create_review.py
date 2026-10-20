@@ -231,8 +231,10 @@ def test_packing_slip_renders_service_counts_before_and_after_ship(client, db_cu
     assert response.status_code == 200, response.text
     assert response.headers['content-type'] == 'application/pdf'
     text = '\n'.join(page.extract_text() for page in PdfReader(BytesIO(response.content)).pages)
-    assert re.search(r'Review Pallets\s+N/A\s+3\b', text), text
-    assert re.search(r'Review Freight\s+N/A\s+1\b', text), text
+    # PR #143: charge lines carry a CHARGE tag, no lot and a unit count — never pounds.
+    assert re.search(r'Review Pallets\s+CHARGE\s+\u2014\s+3 \w+', text), text
+    assert re.search(r'Review Freight\s+CHARGE\s+\u2014\s+1 \w+', text), text
+    assert not re.search(r'Review (Pallets|Freight)[^\n]*\blb\b', text), text
 
 
 @pytest.mark.parametrize('finish', ['ship_all', 'individual', 'all_at_once'])

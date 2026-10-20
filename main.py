@@ -42,6 +42,7 @@ import shift_summary
 import lot_confirmation
 import oat_bran_substitution
 import exceptions_enforcement
+import charge_setting
 import resolution
 import permissions
 import fl_assistant
@@ -3138,7 +3139,7 @@ ACTOR_WRITE_ALLOWLIST = frozenset({
     ("PATCH", "/lots/{lot_code}/supplier-lot"),
     ("PATCH", "/lots/{lot_id}/rename"),
     ("PATCH", "/sales/orders/{order_id}/lines/{line_id}/cancel"),
-}) | write_tickets.ACTOR_ROUTES | exceptions_enforcement.ACTOR_ROUTES | attachments.ROUTES | fl_assistant.ACTOR_ROUTES
+}) | write_tickets.ACTOR_ROUTES | exceptions_enforcement.ACTOR_ROUTES | attachments.ROUTES | fl_assistant.ACTOR_ROUTES | charge_setting.ROUTES
 
 
 ACTOR_CACHE_TTL_S = 60
@@ -4021,6 +4022,7 @@ class AdjustRequest(InventoryWriteRequest):
 class QuickCreateProductRequest(BaseModel):
     product_name: str
     product_type: str
+    item_kind: Optional[str] = None  # required: 'product' | 'charge' (charge_setting.require_item_kind)
     uom: str = "lb"
     storage_type: str = "ambient"
     name_confidence: str = "exact"
@@ -4030,6 +4032,7 @@ class QuickCreateProductRequest(BaseModel):
 
 class QuickCreateBatchProductRequest(BaseModel):
     product_name: str
+    item_kind: Optional[str] = None  # required; a batch is always 'product'
     category: str
     production_context: str
     name_confidence: str = "exact"
@@ -4063,6 +4066,7 @@ class AddFoundInventoryRequest(InventoryWriteRequest):
 class AddFoundInventoryWithNewProductRequest(InventoryWriteRequest):
     product_name: str
     product_type: str
+    item_kind: Optional[str] = None  # required; found stock is always 'product'
     quantity: float
     reason_code: str
     uom: str = "lb"
@@ -11711,6 +11715,7 @@ def get_recent_ledger_events(
 @app.post("/products/quick-create")
 def quick_create_product(req: QuickCreateProductRequest, _: bool = Depends(verify_api_key)):
     validate_bilingual(req.notes, req.notes_es, "notes")
+    is_service = charge_setting.require_item_kind(req.item_kind)
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -11728,11 +11733,12 @@ def quick_create_product(req: QuickCreateProductRequest, _: bool = Depends(verif
                 verification_notes_es = req.notes_es
 
                 cur.execute("""
-                    INSERT INTO products (name, type, uom, storage_type, verification_status, verification_notes, verification_notes_es, created_via, active)
-                    VALUES (%s, %s, %s, %s, 'unverified', %s, %s, 'quick_create', true)
+                    INSERT INTO products (name, type, uom, storage_type, verification_status, verification_notes, verification_notes_es, created_via, active, is_service)
+                    VALUES (%s, %s, %s, %s, 'unverified', %s, %s, 'quick_create', true, %s)
                     RETURNING id, name, type, uom, verification_status
-                """, (req.product_name, req.product_type, req.uom, req.storage_type, verification_notes, verification_notes_es))
+                """, (req.product_name, req.product_type, req.uom, req.storage_type, verification_notes, verification_notes_es, is_service))
                 product = cur.fetchone()
+                charge_check_id = charge_setting.check(cur, product['id'])
 
                 _, audit_error = best_effort_audit_insert(
                     cur, "product_verification_history",
@@ -11750,6 +11756,8 @@ def quick_create_product(req: QuickCreateProductRequest, _: bool = Depends(verif
                     "product_id": product['id'],
                     "product_name": product['name'],
                     "product_type": product['type'],
+                    "item_kind": charge_setting.item_kind(is_service),
+                    "charge_check_exception_id": charge_check_id,
                     "verification_status": product['verification_status'],
                     "message": f"Created '{product['name']}' - flagged for verification"
                 }
@@ -11767,6 +11775,7 @@ def quick_create_product(req: QuickCreateProductRequest, _: bool = Depends(verif
 @app.post("/products/quick-create-batch")
 def quick_create_batch_product(req: QuickCreateBatchProductRequest, _: bool = Depends(verify_api_key)):
     validate_bilingual(req.notes, req.notes_es, "notes")
+    charge_setting.require_item_kind(req.item_kind, charge_allowed=False, what='batch')
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -11784,11 +11793,12 @@ def quick_create_batch_product(req: QuickCreateBatchProductRequest, _: bool = De
                 verification_notes_es = req.notes_es
 
                 cur.execute("""
-                    INSERT INTO products (name, type, uom, verification_status, verification_notes, verification_notes_es, production_context, created_via, active)
-                    VALUES (%s, 'batch', 'lb', 'unverified', %s, %s, %s, 'quick_create_batch', true)
+                    INSERT INTO products (name, type, uom, verification_status, verification_notes, verification_notes_es, production_context, created_via, active, is_service)
+                    VALUES (%s, 'batch', 'lb', 'unverified', %s, %s, %s, 'quick_create_batch', true, false)
                     RETURNING id, name, type, verification_status
                 """, (req.product_name, verification_notes, verification_notes_es, req.production_context))
                 product = cur.fetchone()
+                charge_setting.check(cur, product['id'])
 
                 logger.info(f"Quick-created batch product: {product['name']} (ID: {product['id']})")
 
@@ -11975,6 +11985,7 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
 
 @app.post("/inventory/found-with-new-product")
 def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductRequest, _: bool = Depends(verify_api_key)):
+    charge_setting.require_item_kind(req.item_kind, charge_allowed=False, what='found stock item')
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at, req.backfill
     )
@@ -11994,11 +12005,12 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                 verification_notes = f"Quick-created during inventory count. {req.notes or ''}"
                 verification_notes_es = req.notes_es
                 cur.execute("""
-                    INSERT INTO products (name, type, uom, storage_type, verification_status, verification_notes, verification_notes_es, created_via, active)
-                    VALUES (%s, %s, %s, %s, 'unverified', %s, %s, 'quick_create_found_inventory', true)
+                    INSERT INTO products (name, type, uom, storage_type, verification_status, verification_notes, verification_notes_es, created_via, active, is_service)
+                    VALUES (%s, %s, %s, %s, 'unverified', %s, %s, 'quick_create_found_inventory', true, false)
                     RETURNING id, name
                 """, (req.product_name, req.product_type, req.uom, req.storage_type, verification_notes, verification_notes_es))
                 product = cur.fetchone()
+                charge_setting.check(cur, product['id'])
                 
                 cur.execute("SELECT pg_advisory_xact_lock(2)")
 
@@ -12142,6 +12154,7 @@ def verify_product(product_id: int, req: VerifyProductRequest, _: bool = Depends
                         UPDATE products SET verification_status = %s, name = %s, verification_notes = %s, verification_notes_es = %s
                         WHERE id = %s
                     """, (new_status, new_name, req.notes, req.notes_es, product_id))
+                    charge_setting.check(cur, product_id)  # a rename may add or drop charge words
 
                 elif req.action == 'reject':
                     new_status = 'rejected'
@@ -15440,6 +15453,7 @@ def get_sales_order(order_id: int = Depends(resolve_order_id), _: bool = Depends
                 if r['ordered_quantity'] is not None:
                     line_data.update(quantity=float(r['ordered_quantity']), unit=r['ordered_unit'],
                                      unit_price=price, amount=line_value, is_service=is_service)
+                line_data["item_kind"] = "charge" if is_non_weight else "product"
                 if is_non_weight:
                     line_data["is_non_weight"] = True
                     count = float(r['ordered_quantity']) if r['ordered_quantity'] is not None else qty
@@ -16737,7 +16751,8 @@ def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = D
                 SELECT sol.id, sol.product_id, p.name AS product_name,
                        sol.quantity_lb, sol.quantity_shipped_lb,
                        p.case_size_lb, sol.line_status, sol.ordered_quantity,
-                       COALESCE(p.is_service, false) AS is_service
+                       COALESCE(p.is_service, false) AS is_service,
+                       COALESCE(sol.ordered_unit, p.uom, 'each') AS charge_unit
                 FROM sales_order_lines sol
                 JOIN products p ON p.id = sol.product_id
                 WHERE sol.sales_order_id = %s AND sol.line_status != 'cancelled'
@@ -16789,7 +16804,10 @@ def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = D
                     is_non_weight = bool(row['is_service'])
 
                     if is_non_weight:
-                        qty_display = str(int(qty)) if qty == int(qty) else str(qty)
+                        # Charge lines carry no lot and no pounds on the slip.
+                        line_allocations.append({"product_name": product_name, "lot_code": "\u2014",
+                                                 "qty_display": f"{qty:g}", "is_charge": True})
+                        continue
                     elif case_size and case_size > 0:
                         cases = round(qty / case_size)
                         qty_display = f"{qty:g} lb \u00b7 {cases} units"
@@ -16810,11 +16828,11 @@ def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = D
                     is_non_weight = bool(line['is_service'])
                     if is_non_weight and product_name not in shipped_product_names:
                         count = float(line['ordered_quantity'] if line['ordered_quantity'] is not None else line['quantity_lb'])
-                        qty_display = f"{count:g}"
                         line_allocations.append({
                             "product_name": product_name,
-                            "lot_code": "N/A",
-                            "qty_display": qty_display
+                            "lot_code": "\u2014",
+                            "qty_display": f"{count:g} {line['charge_unit']}",
+                            "is_charge": True,
                         })
 
             else:
@@ -16830,11 +16848,11 @@ def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = D
 
                     if is_non_weight:
                         count = float(line['ordered_quantity'] if line['ordered_quantity'] is not None else line['quantity_lb'])
-                        qty_display = f"{count:g}"
                         line_allocations.append({
                             "product_name": product_name,
-                            "lot_code": "N/A",
-                            "qty_display": qty_display
+                            "lot_code": "\u2014",
+                            "qty_display": f"{count:g} {line['charge_unit']}",
+                            "is_charge": True,
                         })
                         continue
 
@@ -17081,14 +17099,18 @@ def generate_packing_slip(order_id: int = Depends(resolve_order_id), _: bool = D
                 # Build lot cell with optional supplier lot reference
                 lot_text = alloc['lot_code']
                 supplier_code = alloc.get('supplier_lot_code')
-                if supplier_code and alloc['lot_code'] not in ('N/A', 'INSUFFICIENT'):
+                if supplier_code and alloc['lot_code'] not in ('N/A', 'INSUFFICIENT', '\u2014'):
                     lot_cell = [Paragraph(lot_text, lot_style),
                                 Paragraph(f"(Supplier: {supplier_code})", style_supplier_ref)]
                 else:
                     lot_cell = Paragraph(lot_text, lot_style)
+                activity = alloc['product_name']
+                if alloc.get('is_charge'):
+                    # PR #143: a charge line reads differently, so a wrong Charge/Product setting shows.
+                    activity += ' &nbsp;<font color="#8A4B00"><b>CHARGE</b></font>'
                 table_data.append([
                     Paragraph(order_date_str, style_table_cell),
-                    Paragraph(alloc['product_name'], style_table_cell),
+                    Paragraph(activity, style_table_cell),
                     lot_cell,
                     Paragraph(alloc['qty_display'], style_table_cell),
                 ])
@@ -18518,6 +18540,7 @@ class ProductUpdate(BaseModel):
     default_batch_lb: Optional[float] = None
     yield_multiplier: Optional[float] = None
     active: Optional[bool] = None
+    item_kind: Optional[str] = None  # 'product' | 'charge'; omitted keeps the current setting
 
 
 @app.put("/admin/products/{product_id}")
@@ -18548,12 +18571,16 @@ def admin_update_product(product_id: int, req: ProductUpdate, _: bool = Depends(
             if req.active is not None:
                 updates.append("active = %s")
                 params.append(req.active)
+            if req.item_kind is not None:
+                updates.append("is_service = %s")
+                params.append(charge_setting.require_item_kind(req.item_kind))
 
             if not updates:
                 return {"updated": False, "message": "No fields to update"}
 
             params.append(product_id)
             cur.execute(f"UPDATE products SET {', '.join(updates)} WHERE id = %s", params)
+            charge_setting.check(cur, product_id)
 
         return {
             "updated": True,
@@ -18565,7 +18592,8 @@ def admin_update_product(product_id: int, req: ProductUpdate, _: bool = Depends(
                     "case_size_lb": req.case_size_lb,
                     "default_batch_lb": req.default_batch_lb,
                     "yield_multiplier": req.yield_multiplier,
-                    "active": req.active
+                    "active": req.active,
+                    "item_kind": req.item_kind
                 }.items() if v is not None
             }
         }
@@ -21385,6 +21413,8 @@ if _dashboard_dir.is_dir():
 write_tickets.register_routes(app, sys.modules[__name__])
 # A3b: /exceptions list/view/resolve/approve/reject (named actors only).
 exceptions_enforcement.register_routes(app, sys.modules[__name__])
+# PR #143: Office catalog items — explicit Charge/Product choice + CHARGE_SETTING_CHECK answers.
+charge_setting.register_routes(app, sys.modules[__name__])
 attachments.register_routes(app, sys.modules[__name__])
 ship_tickets.register_routes(app, sys.modules[__name__])
 fl_assistant.register_routes(app, sys.modules[__name__])

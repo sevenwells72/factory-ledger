@@ -4,7 +4,8 @@ Order detail and the packing slip used to treat any line whose product name
 contained pallet/freight/delivery/surcharge/charge/fee as a service line. Real
 CNS products such as "Batch Setton Coffee Granola #12" — and random test tags
 like "...3A3FEE..." — were then dropped from weight totals and shown without a
-lot. Only products.is_service decides a service line now.
+lot. Only products.is_service decides a service line now, and a charge line reads
+differently on the slip (CHARGE tag, no lot, a unit count).
 """
 from uuid import uuid4
 
@@ -70,6 +71,13 @@ def _slip_rows(client, order, monkeypatch):  # noqa: F811
     return [[text(cell) for cell in row[1:]] for row in items[1:]]
 
 
+def assert_charge_row(rows, tag):
+    """A charge line: CHARGE tag on the name, no lot, a unit count — never pounds."""
+    charge = [row for row in rows if row[0].startswith('Pallet Charge ' + tag)]
+    assert len(charge) == 1 and 'CHARGE' in charge[0][0]
+    assert charge[0][1:] == ['\u2014', '2 each'] and 'lb' not in charge[0][2]
+
+
 @pytest.mark.parametrize('legacy', [True, False], ids=['pounds-only-line', 'contract-line'])
 @pytest.mark.parametrize('product_name', NAMES)
 def test_order_detail_counts_fee_named_product_as_bulk(client, _db_connection, product_name, legacy):  # noqa: F811
@@ -81,6 +89,7 @@ def test_order_detail_counts_fee_named_product_as_bulk(client, _db_connection, p
     assert not bulk.get('is_non_weight')
     assert bulk['price_basis'] == 'per_case' and bulk['unit_count'] == 4
     assert pallet['is_non_weight'] is True and pallet['price_basis'] == 'per_unit'
+    assert bulk['item_kind'] == 'product' and pallet['item_kind'] == 'charge'
     assert detail['totals']['total_ordered_lb'] == 100
     assert detail['totals']['total_ordered_units'] == 4
 
@@ -93,7 +102,7 @@ def test_packing_slip_gives_fee_named_product_a_lot_before_shipping(client, _db_
     rows = _slip_rows(client, seeded['order'], monkeypatch)
     bulk = [row for row in rows if row[0].startswith(product_name)]
     assert bulk == [[f"{product_name} {seeded['tag']}", 'FEE-LOT-' + seeded['tag'].upper(), '100 lb · 4 units']]
-    assert ['Pallet Charge ' + seeded['tag'], 'N/A', '2'] in rows
+    assert_charge_row(rows, seeded['tag'])
 
 
 @pytest.mark.parametrize('product_name', NAMES)
@@ -110,4 +119,4 @@ def test_packing_slip_shows_shipped_fee_named_product_in_pounds(client, _db_conn
                        VALUES (%s,%s,%s,%s,100)""", (cur.fetchone()[0], txn, seeded['line'], seeded['bulk']))
     rows = _slip_rows(client, seeded['order'], monkeypatch)
     assert [f"{product_name} {seeded['tag']}", 'FEE-LOT-' + seeded['tag'].upper(), '100 lb · 4 units'] in rows
-    assert ['Pallet Charge ' + seeded['tag'], 'N/A', '2'] in rows
+    assert_charge_row(rows, seeded['tag'])

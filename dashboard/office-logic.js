@@ -17,9 +17,10 @@
     ['update_expected_receipt','Update expected delivery','Modificar entrega esperada'],
     ['cancel_expected_receipt','Cancel expected delivery','Cancelar entrega esperada'],
     ['approve_so','Approve extracted customer PO','Aprobar PO de cliente extraída'],
-    ['approve_er','Approve extracted supplier document','Aprobar documento de proveedor extraído']
+    ['approve_er','Approve extracted supplier document','Aprobar documento de proveedor extraído'],
+    ['catalog_item','Catalog item: Product or Charge','Artículo del catálogo: Producto o Cargo']
   ];
-  const permission=action=>({approve_so:'create_order',approve_er:'create_expected_receipt'}[action]||action);
+  const permission=action=>({approve_so:'create_order',approve_er:'create_expected_receipt',catalog_item:'manage_catalog'}[action]||action);
   const permitted=(grants,on)=>on===true?actions.filter(([a])=>grants?.[permission(a)]===true):[];
   const id=value=>{if(!Number.isSafeInteger(Number(value))||Number(value)<=0)throw Error('Choose a record / Elige un registro');return Number(value);};
   function build(action,v){

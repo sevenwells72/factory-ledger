@@ -218,3 +218,14 @@ test('Spanish Pack missing case weight warning agrees with its form and prepares
   assert.equal(h.tickets.length,0);
   assert.deepEqual(h.failures,['Escribe lb por cajón para usar el lote seleccionado.']);
 });
+
+// PR #143: a charge line on Ship by order shows its tag and units, never pounds or a lot picker.
+for(const [language,tag,units,pounds] of [['en','Charge','Pallet · units: ','Classic Granola · remaining lb: 60'],['es','Cargo','Pallet · unidades: ','Classic Granola · lb pendientes: 60']])test('ship by order tags the charge line ('+language+')',async()=>{
+  const h=await harness('ship',language);await h.pick('order');
+  const charge=h.find(node=>node.dataset.shipmentLineId==='102'),product=h.find(node=>node.dataset.shipmentLineId==='101');
+  const label=h.find(node=>node.tag==='label',charge);
+  assert.ok(label.textContent.startsWith(units));assert.doesNotMatch(label.textContent,/lb/);
+  assert.equal(h.find(node=>node.className==='charge-tag',charge).textContent,tag);
+  assert.equal(h.find(node=>node.dataset.shipLots,charge),undefined);
+  assert.equal(h.find(node=>node.tag==='label',product).textContent,pounds);assert.equal(h.find(node=>node.className==='charge-tag',product),undefined);
+});

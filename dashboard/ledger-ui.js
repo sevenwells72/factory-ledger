@@ -50,7 +50,7 @@
   function transportText(error,lang){const pick=pair=>pair[lang==='es'?1:0];if(error?.name==='AbortError')return pick(TIMEOUT);if(error instanceof TypeError)return pick(OFFLINE);return null;}
   function groups(rows){const map=new Map();[...rows].sort((a,b)=>Number(!!b.overdue)-Number(!!a.overdue)||String(a.due_at||'z').localeCompare(String(b.due_at||'z'))||a.id-b.id).forEach(r=>{if(!map.has(r.kind))map.set(r.kind,[]);map.get(r.kind).push(r);});return [...map];}
   const formatNumber=value=>Number.isFinite(Number(value))?new Intl.NumberFormat('en-US',{maximumFractionDigits:2}).format(Number(value)):String(value??'');
-  const exceptionNames={UNIDENTIFIED_LOT:['Unidentified lot','Lote sin identificar'],PRE_MAKE_ADJUST:['Adjustment before a make','Ajuste antes de una producción'],SHORTAGE:['Stock shortage','Faltante de inventario'],NEGATIVE_BALANCE:['Negative stock balance','Saldo de inventario negativo'],LARGE_CORRECTION:['Large correction — owner review','Corrección grande — revisión del dueño'],KOSHER_ATTESTATION:['Kosher approval','Aprobación kosher'],LATE_ENTRY:['Late entry','Registro tardío'],SHIPMENT_PROOF_MISSING:['Shipment photo missing','Falta foto del envío'],BOL_PHOTO_MISSING:['BOL photo missing','Falta foto BOL'],ASSISTANT_OFFLINE:['Assistant offline','Asistente sin conexión']};
+  const exceptionNames={CHARGE_SETTING_CHECK:['Confirm: Charge or Product?','Confirmar: ¿Cargo o Producto?'],UNIDENTIFIED_LOT:['Unidentified lot','Lote sin identificar'],PRE_MAKE_ADJUST:['Adjustment before a make','Ajuste antes de una producción'],SHORTAGE:['Stock shortage','Faltante de inventario'],NEGATIVE_BALANCE:['Negative stock balance','Saldo de inventario negativo'],LARGE_CORRECTION:['Large correction — owner review','Corrección grande — revisión del dueño'],KOSHER_ATTESTATION:['Kosher approval','Aprobación kosher'],LATE_ENTRY:['Late entry','Registro tardío'],SHIPMENT_PROOF_MISSING:['Shipment photo missing','Falta foto del envío'],BOL_PHOTO_MISSING:['BOL photo missing','Falta foto BOL'],ASSISTANT_OFFLINE:['Assistant offline','Asistente sin conexión']};
   function exceptionLabel(kind,lang='en'){return exceptionNames[kind]?.[lang==='es'?1:0]||codeText(kind,lang);}
   function exceptionQueue(rows){
     const unresolved=item=>['open','escalated'].includes(item.status),overdue=item=>unresolved(item)&&!!item.overdue;
@@ -109,6 +109,9 @@
     });
     return draftHtml({...draft,ingredients},undefined,{compactLots:compact});
   }
+  function isChargeLine(line){return line.is_service===true||line.is_non_weight===true||line.item_kind==='charge'||line.line_type==='service';}
+  function chargeHidden(key){return key==='is_service'||key==='lb'||/_lb$/.test(key)||/^lots?(_|$)/.test(key);}
+  function chargeTag(){return '<span class="charge-tag" data-en="Charge" data-es="Cargo">'+(api.lang==='es'?'Cargo':'Charge')+'</span>';}
   function draftHtml(value,field,options={}){
     if(field==='photo'&&value==='attached'||field==='proof_status'&&value==='complete')return '<span data-en="Photo attached ✓" data-es="Foto adjunta ✓">'+(api.lang==='es'?'Foto adjunta ✓':'Photo attached ✓')+'</span>';
     if(field==='more_lots'&&Array.isArray(value))return '<details class="more-lots"'+(options.compactLots?'':' open')+'><summary data-en="Show more lots" data-es="Mostrar más lotes">'+(api.lang==='es'?'Mostrar más lotes':'Show more lots')+'</summary>'+draftHtml(value,undefined,options)+'</details>';
@@ -118,11 +121,13 @@
       return esc(label)+(value.note?'<p>'+esc(value.note)+'</p>':'');
     }
     if(Array.isArray(value))return '<ul'+(field==='suggested_lots'?' class="suggested-lots"':'')+'>'+value.map(v=>'<li>'+draftHtml(v,undefined,options)+'</li>').join('')+'</ul>';
-    if(value&&typeof value==='object')return autoSubstitutionsHtml(value.auto_substitutions)+'<dl>'+Object.entries(value).filter(([k,v])=>labels[k]&&k!=='summary_es'&&v!==null&&v!==undefined&&!(Array.isArray(v)&&!v.length)).map(([k,v])=>'<dt data-en="'+esc(labels[k][0])+'" data-es="'+esc(labels[k][1])+'">'+esc(labels[k][api.lang==='es'?1:0])+'</dt><dd>'+(k==='summary'&&value.summary_es?'<span data-en="'+esc(v)+'" data-es="'+esc(value.summary_es)+'">'+esc(api.lang==='es'?value.summary_es:v)+'</span>':['happened_at','entered_at','proof_due_at'].includes(k)?'<span data-en="'+esc(plantTime(v,'en'))+'" data-es="'+esc(plantTime(v,'es'))+'">'+esc(plantTime(v,api.lang))+'</span>':draftHtml(v,k,options))+'</dd>').join('')+'</dl>';
+    // PR #143: a charge line (products.is_service) shows a Charge tag and no pounds or lots.
+    const charge=value&&typeof value==='object'&&!Array.isArray(value)&&isChargeLine(value);
+    if(value&&typeof value==='object')return (charge?chargeTag():'')+autoSubstitutionsHtml(value.auto_substitutions)+'<dl>'+Object.entries(value).filter(([k,v])=>(!charge||!chargeHidden(k))&&!(k==='is_service'&&v===false)).filter(([k,v])=>labels[k]&&k!=='summary_es'&&v!==null&&v!==undefined&&!(Array.isArray(v)&&!v.length)).map(([k,v])=>'<dt data-en="'+esc(labels[k][0])+'" data-es="'+esc(labels[k][1])+'">'+esc(labels[k][api.lang==='es'?1:0])+'</dt><dd>'+(k==='summary'&&value.summary_es?'<span data-en="'+esc(v)+'" data-es="'+esc(value.summary_es)+'">'+esc(api.lang==='es'?value.summary_es:v)+'</span>':['happened_at','entered_at','proof_due_at'].includes(k)?'<span data-en="'+esc(plantTime(v,'en'))+'" data-es="'+esc(plantTime(v,'es'))+'">'+esc(plantTime(v,api.lang))+'</span>':draftHtml(v,k,options))+'</dd>').join('')+'</dl>';
     if(codeFields.has(field)&&codeLabels[String(value).toLowerCase()])return '<span data-en="'+esc(codeText(value,'en'))+'" data-es="'+esc(codeText(value,'es'))+'">'+esc(codeText(value,api.lang))+'</span>';
     return esc(codeFields.has(field)?codeText(value,api.lang):(typeof value==='number'||/^(?:quantity|quantity_lb|cases|cases_received|batches|counted_lb|.*_lb|unit_price|amount|total)$/.test(field||'')&&value!==null&&value!==''&&Number.isFinite(Number(value)))?formatNumber(value):value);
   }
-  const api={correctionReasons,formatNumber,exceptionLabel,exceptionQueue,openingStock,esc,text,errorText,recorded,decisionOutcome,resolutionChoices,decisionRequest,noteRequired,voidChoices,voidRequest,receiptState,transportText,groups,dataHtml,draftHtml,makeDraftHtml,receiptData,autoSubstitutionsHtml,plantTime,codeText};
+  const api={isChargeLine,chargeTag,correctionReasons,formatNumber,exceptionLabel,exceptionQueue,openingStock,esc,text,errorText,recorded,decisionOutcome,resolutionChoices,decisionRequest,noteRequired,voidChoices,voidRequest,receiptState,transportText,groups,dataHtml,draftHtml,makeDraftHtml,receiptData,autoSubstitutionsHtml,plantTime,codeText};
   if(typeof module!=='undefined')module.exports=api;
   root.FLLedger=api;
   if(!root.document)return;

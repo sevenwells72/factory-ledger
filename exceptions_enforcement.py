@@ -79,6 +79,8 @@ RESOLUTION_KINDS = {
     'BOL_PHOTO_MISSING': ('photo_attached', 'waived'),
     'PRE_MAKE_ADJUST': ('acknowledged',),
     'ASSISTANT_OFFLINE': ('acknowledged',),
+    # PR #143: answered on the item (POST /catalog/items/{id}/confirm-kind), owner or office.
+    'CHARGE_SETTING_CHECK': ('confirmed_product', 'confirmed_charge'),
 }
 DEFAULT_RESOLUTIONS = ('resolved', 'waived')
 WAIVE_KINDS = frozenset({'waived', 'written_off'})
@@ -853,6 +855,9 @@ def _nest(item, id_key, name_key, out_key, name_out='name'):
 def allowed_actions(row, actor):
     """The same A2 policy as the write gate; evidence is still checked on write."""
     role = permissions.role_of(actor)
+    if row['kind'] == 'CHARGE_SETTING_CHECK':
+        return list(RESOLUTION_KINDS['CHARGE_SETTING_CHECK']) if row['status'] in ('open', 'escalated') and \
+            permissions.allowed('confirm_item_kind', role) else []
     if row['status'] not in ('open', 'escalated') or not permissions.allowed('resolve_exception', role):
         return []
     owner = permissions.allowed('approve_exception', role)
@@ -876,6 +881,10 @@ def _view(cur, row, actor=None):
     _nest(item, 'lot_id', 'lot_code', 'lot', 'lot_code')
     _nest(item, 'owner_actor_id', 'owner_name', 'owner')
     _nest(item, 'resolved_by_actor_id', 'resolved_by_name', 'resolved_by')
+    if item['kind'] == 'CHARGE_SETTING_CHECK':
+        import charge_setting
+        item['detail'] = {**(item.get('detail') or {}), **charge_setting.check_text(item.get('detail') or {})}
+        item['confirm_path'] = f"/catalog/items/{row['product_id']}/confirm-kind"
     if item['kind'] in EVIDENCE_KINDS:
         cur.execute('SELECT id,short_lb,status,resolution_kind,resolved_at,due_at FROM shortage_flags WHERE exception_id=%s', (item['id'],))
         flag = cur.fetchone()
@@ -928,6 +937,9 @@ def _record_resolution(api, cur, row, actor, kind, *, prepared=None):
 
 
 def require_resolution(row, actor, kind):
+    if row['kind'] == 'CHARGE_SETTING_CHECK':
+        fail(409, 'USE_CONFIRM_KIND', 'Answer Charge or Product on the item.',
+             confirm=f"/catalog/items/{row['product_id']}/confirm-kind")
     permissions.require('resolve_exception', actor)
     if row['kind'] in OWNER_KINDS or kind in OWNER_RESOLUTIONS:
         permissions.require('approve_exception', actor)
