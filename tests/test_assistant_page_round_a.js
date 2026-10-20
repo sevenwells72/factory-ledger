@@ -414,3 +414,24 @@ test('other stream errors still show the unavailable card', async () => {
   assert.match(text(h.cards().at(-1)), /Factory Ledger is temporarily unavailable — try again in a minute/);
   assert.doesNotMatch(text(h.cards().at(-1)), /busy/);
 });
+
+// PR #141 re-check round 2: a lookup that met a busy pool used to be saved as
+// "unavailable" with no Retry. Any such saved card now shows busy + Retry,
+// and Retry runs the message again as a new turn (never the saved replay).
+for (const language of ['en', 'es']) test(`a saved busy lookup shows busy with Retry, never unavailable, in ${language}`, async () => {
+  const busy = language === 'en' ? /FL is busy right now — try again in a moment\./ : /FL está ocupado en este momento — inténtalo de nuevo en un momento\./;
+  const saved = { kind: 'lookup_failed', status: 503, language, message: 'Factory Ledger is temporarily unavailable — try again in a minute.',
+    result: { success: false, error_code: 'DATABASE_BUSY', retryable: true, message: 'The server is busy. Retry in a few seconds.' } };
+  const turns = [];
+  const h = page({ language, cards: [saved], turnText: 'Where is lot NOPE-1?', request: async ({ url, body }) => {
+    assert.equal(url.pathname, '/assistant/turn'); turns.push(body); return response({ cards: [{ kind: 'read' }] }); } });
+  await h.ready(); await flush();
+  const card = h.cards().find(node => busy.test(text(node)));
+  assert.ok(card, h.text());
+  assert.doesNotMatch(text(card), /temporarily unavailable|temporalmente/);
+  const retry = descendants(card).find(node => node.tag === 'button');
+  assert.match(retry.textContent, language === 'en' ? /Retry this message/ : /Reintentar este mensaje/);
+  h.click(retry); await flush();
+  assert.equal(turns.length, 1);
+  assert.equal(turns[0].text, 'Where is lot NOPE-1?');
+});

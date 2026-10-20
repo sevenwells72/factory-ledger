@@ -571,6 +571,13 @@
     }
     if (card.kind === 'draft') { renderDraft(card, null, sourceText); return; }
     const node = shell();
+    if ((card.kind === 'lookup_failed' || card.kind === 'refusal') && databaseBusy(card.result)) {
+      // A busy pool is never "unavailable". Turns saved like this before the
+      // server stopped saving them retry as a new turn, not a replay.
+      neutral(node, 'database_busy');
+      if (sourceText) node.append(button(t('Retry this message', 'Reintentar este mensaje'), () => sendTurn({ text: sourceText })));
+      return;
+    }
     if (card.kind === 'choices') {
       const result = card.result || {}, candidates = result.candidates || [], query = card.query || result.query;
       const supplier = card.resolution_kind === 'supplier' || result.kind === 'supplier' || result.resolution_kind === 'supplier' || card.supplier_search;

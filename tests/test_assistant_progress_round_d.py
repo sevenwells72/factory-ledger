@@ -172,3 +172,50 @@ def test_real_turn_with_the_pool_full_streams_busy_not_500(client, chat, db_curs
     events = [json.loads(line) for line in response.text.splitlines()]
     assert events[0]['type'] == 'progress'
     assert events[-1] == BUSY_EVENT
+
+
+# PR #141 re-check round 2 (comment 6295966584) item 2: a lookup inside the
+# turn that meets a full pool answered 503 DATABASE_BUSY, which the turn saved
+# as a "lookup_failed" card (unavailable, no Retry) and replayed on resend.
+
+@pytest.mark.parametrize('streamed', [False, True])
+def test_a_busy_lookup_aborts_the_turn_unsaved_and_the_retry_runs_it_again(client, chat, db_cursor, monkeypatch, streamed):
+    db_pool = main.WaitingConnectionPool(0, 1, wait_seconds=0.1, dsn=db_cursor.connection.dsn)
+    app_pool, held = main.db_pool, db_pool.getconn()   # every pool connection busy
+    relay, test_connection = fl_assistant.relay, main.get_db_connection
+    busy = [True]
+
+    async def lookup_while_pool_is_full(app, request, method, path, **kwargs):
+        if not (busy[0] and path.startswith('/lots/')):
+            return await relay(app, request, method, path, **kwargs)
+        main.db_pool, main.get_db_connection = db_pool, REAL_GET_DB_CONNECTION
+        try:
+            return await relay(app, request, method, path, **kwargs)
+        finally:   # capacity is back before the turn saves
+            main.db_pool, main.get_db_connection = app_pool, test_connection
+    monkeypatch.setattr(fl_assistant, 'relay', lookup_while_pool_is_full)
+    model(monkeypatch, ('lot_lookup', {'lot_code': 'NOPE-1'}), ('lot_lookup', {'lot_code': 'NOPE-1'}))
+    headers = {**chat[1], **({'Accept': 'application/x-ndjson'} if streamed else {})}
+    turn = {'session_id': chat[0], 'turn_id': str(uuid4()), 'text': 'Where is lot NOPE-1?'}
+    try:
+        first = client.post('/assistant/turn', headers=headers, json=turn)
+    finally:
+        db_pool.putconn(held)
+        db_pool.closeall()
+    if streamed:
+        assert first.status_code == 200
+        assert [json.loads(line) for line in first.text.splitlines()][-1] == BUSY_EVENT
+    else:
+        assert first.status_code == 503, first.text
+        assert first.json()['error_code'] == 'DATABASE_BUSY' and first.json()['retryable'] is True
+    db_cursor.execute('SELECT count(*) AS n FROM assistant_turns WHERE id=%s', (turn['turn_id'],))
+    assert db_cursor.fetchone()['n'] == 0   # nothing saved to replay
+    db_cursor.execute('SELECT lease_id FROM assistant_sessions WHERE id=%s', (chat[0],))
+    assert db_cursor.fetchone()['lease_id'] is None
+
+    busy[0] = False   # Retry: same turn id, pool free again
+    again = client.post('/assistant/turn', headers=headers, json=turn)
+    assert again.status_code == 200
+    result = [json.loads(line) for line in again.text.splitlines()][-1]['result'] if streamed else again.json()
+    card = result['cards'][0]
+    assert card['kind'] == 'lookup_failed' and card['result']['detail']['error_code'] == 'LOT_NOT_FOUND'

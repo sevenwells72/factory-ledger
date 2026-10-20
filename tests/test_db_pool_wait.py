@@ -805,3 +805,91 @@ def test_a_retried_read_keeps_the_pause_and_both_opens_inside_one_deadline(fake_
         finally:
             elapsed = time.monotonic() - begin
     assert elapsed < 1.0 + 0.04, elapsed
+
+
+# ── Re-check round 2 (PR #141 comment 6295966584) item 1: no late connection ─
+
+class _WakesLate(threading.Event):
+    """An event whose waiter oversleeps its timeout until the event is set,
+    the way a busy machine can wake a thread after its deadline."""
+
+    def wait(self, timeout=None):
+        return super().wait(5)
+
+
+def test_a_grant_seen_after_the_deadline_goes_back_not_to_the_expired_waiter(fake_connect, monkeypatch):
+    original = main._PoolWaiter
+
+    class LateWaiter(original):
+        def __init__(self, *args):
+            super().__init__(*args)
+            self.event = _WakesLate()
+    monkeypatch.setattr(main, "_PoolWaiter", LateWaiter)
+    db_pool = main.WaitingConnectionPool(0, 1, wait_seconds=0.3)
+    held = db_pool.getconn()
+    returner = threading.Timer(0.5, db_pool.putconn, args=(held,))
+    returner.start()   # granted at 0.5 s, after the waiter's 0.3 s deadline
+    with pytest.raises(main.PoolTimeout):
+        db_pool.getconn()
+    returner.join(5)
+    _wait_until(lambda: db_pool._used == {})   # given back, not kept by the waiter
+    monkeypatch.setattr(main, "_PoolWaiter", original)
+    db_pool.putconn(db_pool.getconn())
+    assert db_pool._used == {}
+
+
+def test_an_open_seen_after_the_deadline_goes_back_not_to_the_expired_caller(fake_connect, monkeypatch):
+    delay, opened = fake_connect
+    delay[0] = 0.5
+    original = main._PoolConnectAttempt
+
+    class LateAttempt(original):
+        def __init__(self, *args):
+            super().__init__(*args)
+            self.done = _WakesLate()
+    monkeypatch.setattr(main, "_PoolConnectAttempt", LateAttempt)
+    db_pool = main.WaitingConnectionPool(0, 1, wait_seconds=0.3)
+    with pytest.raises(main.PoolTimeout):
+        db_pool.getconn()   # the open finished at 0.5 s; the caller's limit was 0.3 s
+    _wait_until(lambda: db_pool._used == {} and db_pool._opening == 0)
+    assert len(opened) == 1
+    monkeypatch.setattr(main, "_PoolConnectAttempt", original)
+    delay[0] = 0
+    db_pool.putconn(db_pool.getconn())   # the slot was freed
+    assert db_pool._used == {}
+
+
+def test_a_retried_read_never_gets_an_idle_connection_after_its_deadline(fake_connect, monkeypatch):
+    """Reviewer: the first attempt disconnected near the limit and the retry
+    took an idle connection 4.8 ms after the deadline, then succeeded."""
+    db_pool = main.WaitingConnectionPool(2, 2, wait_seconds=1.0)   # idle connections ready
+    monkeypatch.setattr(main, "db_pool", db_pool)
+    attempts = []
+
+    @main.retry_database_read
+    def read():
+        with main.get_db_connection():
+            attempts.append(time.monotonic())   # only reads that got a connection
+            if len(attempts) == 1:
+                # Ends 50 ms before the shared deadline; the retry pause
+                # (min(0.1 s, time left), and sleep never returns early)
+                # carries the second acquisition to or past it.
+                time.sleep(0.95)
+                raise psycopg2.OperationalError("server closed the connection unexpectedly")
+        return "late success"
+
+    with pytest.raises(main.PoolTimeout):   # answered as 503 DATABASE_BUSY
+        read()
+    assert len(attempts) == 1   # the late idle connection never reached the read
+    assert len(db_pool._pool) == 1 and db_pool._used == {}   # the idle one was left alone
+
+
+def test_an_idle_connection_is_not_handed_out_once_the_shared_deadline_passed(fake_connect):
+    db_pool = main.WaitingConnectionPool(1, 1, wait_seconds=1.0)
+    token = main._pool_wait_deadline.set(time.monotonic() - 0.001)
+    try:
+        with pytest.raises(main.PoolTimeout):
+            db_pool.getconn()
+    finally:
+        main._pool_wait_deadline.reset(token)
+    assert len(db_pool._pool) == 1 and db_pool._used == {}

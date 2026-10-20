@@ -22,6 +22,7 @@ from pydantic import BaseModel, Field, StrictInt, StrictStr
 from psycopg2.extras import Json
 
 import assistant_runtime as runtime
+import db_busy
 import assistant_tools as catalog
 import write_tickets
 import resolution
@@ -244,7 +245,18 @@ async def relay(app, request, method, path, *, body=None, params=None, file=None
         result = json.loads(raw)
     except ValueError:
         fail(502, 'FL_RESPONSE_INVALID', 'FL returned no usable response.')
+    if request.scope.get('_fl_assistant_turn') and status == 503 and _database_busy(result):
+        # A busy pool during a chat turn (lookups and prepares alike) aborts
+        # the turn unsaved: the page shows "busy" with Retry, and the retry
+        # runs the turn again instead of replaying a saved lookup failure.
+        raise db_busy.PoolTimeout(f'connection pool exhausted during assistant {method} {path}')
     return status, result
+
+
+def _database_busy(result):
+    detail = result.get('detail') if isinstance(result, dict) else None
+    return isinstance(result, dict) and 'DATABASE_BUSY' in (
+        result.get('error_code'), detail.get('error_code') if isinstance(detail, dict) else None)
 
 
 def session_row(api, session_id, actor_id, *, lock=False):
@@ -1069,6 +1081,7 @@ def register_routes(app, api):
 
     @app.post('/assistant/turn')
     async def turn(body: TurnBody, request: Request, actor=Depends(authenticate)):
+        request.scope['_fl_assistant_turn'] = True   # relay: a busy FL route aborts the turn
         return await runtime.run_turn(lambda: turn_impl(body, request, actor), request)
 
     async def turn_impl(body, request, actor):

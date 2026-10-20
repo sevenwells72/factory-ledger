@@ -2041,6 +2041,8 @@ class WaitingConnectionPool(pool.ThreadedConnectionPool):
         if not self._lock.acquire(timeout=max(deadline - time.monotonic(), 0)):
             raise self._timeout()
         try:
+            if time.monotonic() >= deadline:
+                raise self._timeout()   # e.g. a retry whose shared deadline already passed
             if self.closed:
                 raise pool.PoolError("connection pool is closed")
             if key is None:
@@ -2070,7 +2072,7 @@ class WaitingConnectionPool(pool.ThreadedConnectionPool):
             if grant is _POOL_CLOSED:
                 raise pool.PoolError("connection pool is closed")
             if grant is not _POOL_SLOT:
-                return grant
+                return self._in_time(key, grant, deadline)
         return self._open(key, deadline)
 
     def _open(self, key, deadline):
@@ -2092,7 +2094,26 @@ class WaitingConnectionPool(pool.ThreadedConnectionPool):
             raise attempt.error
         if attempt.closed:
             raise pool.PoolError("connection pool is closed")
-        return attempt.conn
+        return self._in_time(key, attempt.conn, deadline)
+
+    def _in_time(self, key, conn, deadline):
+        """Hand a checked-out connection to the caller only before its deadline.
+
+        A grant or open that completes in time can still be seen late (the
+        thread wakes after the deadline). That connection is never returned:
+        a helper thread puts it back for the next waiter, so the caller does
+        not wait on the mutex either."""
+        if time.monotonic() < deadline:
+            return conn
+        threading.Thread(target=self._give_back, args=(conn, key), daemon=True,
+                         name="db-pool-give-back").start()
+        raise self._timeout()
+
+    def _give_back(self, conn, key):
+        try:
+            self.putconn(conn, key=key)
+        except pool.PoolError:
+            self._close_quietly(conn)   # closeall ran meanwhile
 
     def _connect_for(self, attempt):
         try:

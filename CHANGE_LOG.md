@@ -319,6 +319,13 @@
 - **File(s) changed:** `resolution.py`, `main.py`, `dashboard/ledger-forms.css`, `dashboard/fl-assistant.css`, `dashboard/fl-assistant.js`
 - **What changed:** Add SELECT-only product/lot choices and batch product context; style header links as buttons and support a direct Today route.
 - **Why:** Pilot workers need visible navigation and physical-lot choices without changing posting or pool behavior.
+## 2026-10-20 13:00 — PR #141 fix round 2: no late connections, busy lookups abort the Assistant turn
+- **File(s) changed:** `main.py`, `fl_assistant.py`, `dashboard/fl-assistant.js`, `dashboard/fl-assistant.html`, `tests/test_db_pool_wait.py`, `tests/test_assistant_progress_round_d.py`, `tests/test_assistant_page_round_a.js`, `tests/test_assistant_mobile_ux.js`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Pool re-checks the deadline as the last step of every hand-over (idle checkout, grant, finished open); a connection seen late is given back on a helper thread, never returned. Inside an Assistant turn, a relayed FL call answering 503 DATABASE_BUSY raises a pool timeout, so the turn is not saved, the lease is released and the page shows busy + Retry; old saved busy cards also show busy + Retry (new turn). fl-assistant.js v16. FL row 220 updated.
+- **Why:** PR #141 re-check comment 6295966584. Validation: Python 6,930 ×2 (fresh fl_pool3_ DBs), Node 445, all browser runners both modes; DBs dropped.
+
+---
+
 ## 2026-10-20 12:30 — PR #141 fix round: precise busy 503, hard 10 s deadline, Assistant stream busy event
 - **File(s) changed:** `db_busy.py` (new), `main.py`, `assistant_runtime.py`, `dashboard/fl-assistant.js`, `dashboard/fl-assistant.html`, `tests/test_db_pool_wait.py`, `tests/test_assistant_progress_round_d.py`, `tests/test_assistant_page_round_a.js`, `tests/test_assistant_mobile_ux.js`, `tests/test_final_db_recovery.py`, `tests/visual/run-fl-assistant.mjs`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** (1) Each pool timeout carries a random wait id; the busy middleware converts a 5xx only if its body quotes that id or the escaping exception is the timeout / raised `from` it, so real 500s after a handled wait stay 500. `/auth/dashboard-key` and retried reads let the timeout itself through. (2) Pool caller takes the mutex once with a timeout, then meets the granter/opener on a per-waiter lock; abandoned waiters/opens are never granted; the retry pause and both attempts share one deadline. Reviewer cases at 10 s: 10.707/10.709/10.109 s → 10.006/10.004/10.006 s. (3) NDJSON Assistant stream sends a retryable `DATABASE_BUSY` event (EN/ES); page shows "FL is busy right now — try again in a moment." with Retry; fl-assistant.js v15. FL row 220 rewritten (7 columns).
