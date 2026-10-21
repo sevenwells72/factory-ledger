@@ -90,17 +90,26 @@ older lots per product are then looked up one by one. Lots past that show no dat
 
 ## Ingredients relationship map
 
-Horizontal position = coconut share of the ingredient's use in posted make
-entries over the last 90 days, split by the batch product made. Nodes are labelled
-with on-hand quantity and sized by it; a node that has to move sideways keeps a
-leader line to its exact position on the axis. Ingredients with no use in the
-window, or used only in products without a family, go to the **Unplaced** tray.
+Two bases, switched inside the map:
 
-Factory Ledger has no coconut/granola flag on products (`product_category` is null;
-the backend classifies by name). The product → family list is therefore a
-proposal in `families.js` with `approved: false`, and **the map places nothing
-until it is approved** (set `approved: true`). Until then every ingredient sits in
-the tray.
+- **Recipes (default), labelled "Based on recipes, not actual usage."** Coconut
+  share = the ingredient's recipe weight in coconut batch products ÷ its weight in
+  coconut + granola batch products, one batch of each recipe
+  (`GET /bom/batches/{id}/formula` for the 25 batch products in `families.js`,
+  read once, max 4 at a time, cached). Formula lines excluded from inventory
+  (sweetening water) are left out. Only ingredients in no recipe go to Unplaced.
+- **Actual use · 90 days.** Coconut share of the ingredient's use in posted make
+  entries over the last 90 days, split by the batch product made
+  (`GET /transactions/history?transaction_type=make`). Ingredients with no use in
+  the window go to Unplaced.
+
+Nodes are labelled with on-hand quantity and sized by it. Each node keeps a thin
+leader line to a tick at its exact position on the axis, so nodes moved sideways to
+avoid overlap still show the true share.
+
+Factory Ledger has no coconut/granola flag on products, so the product → family list
+in `families.js` was approved by Michael on 2026-10-21 (4 coconut, 21 granola, by
+name). Setting `approved: false` puts every ingredient back in the tray.
 
 ## Record timestamps
 

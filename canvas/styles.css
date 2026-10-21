@@ -276,8 +276,10 @@ a.box:hover { background: #F5F7FA; }
 .relmap { display: none; position: absolute; left: 40px; top: 104px; right: 40px; bottom: 28px; flex-direction: column; gap: 12px; }
 .t2.mapmode .relmap { display: flex; }
 .rm-loading { font-size: 20px; color: var(--ink-3); padding: 20px 0; }
-.rm-legend { font-size: 17px; color: var(--ink-2); line-height: 1.4; }
-.rm-plot { position: relative; flex: 0 0 44%; border-radius: 14px; border: 1px solid var(--line-2); background: linear-gradient(90deg, var(--coco-bg), var(--shared-bg) 50%, var(--gran-bg)); }
+.rm-legend { font-size: 17px; color: var(--ink-2); line-height: 1.4; display: flex; align-items: center; gap: 18px; }
+.rm-legend .rm-basis { flex-shrink: 0; }
+.rm-legend .rm-basis button { font-size: 17px; padding: 6px 14px; }
+.rm-plot { position: relative; flex: 1 1 auto; min-height: 0; border-radius: 14px; border: 1px solid var(--line-2); background: linear-gradient(90deg, var(--coco-bg), var(--shared-bg) 50%, var(--gran-bg)); }
 .rm-plot.rm-wait { flex: 0 0 auto; display: grid; place-items: center; padding: 22px; }
 .rm-notice { max-width: 980px; font-size: 19px; line-height: 1.45; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 20px; color: var(--ink-2); }
 .rm-notice b { color: var(--ink); }
@@ -286,16 +288,17 @@ a.box:hover { background: #F5F7FA; }
 .rm-band span:nth-child(2) { color: var(--ink-3); }
 .rm-band span:last-child { color: var(--gran); }
 .rm-lines { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
-.rm-lines line { stroke: var(--arrow); stroke-width: 1.2; }
+.rm-lines line { stroke: var(--arrow); stroke-width: 1; opacity: 0.55; }
 .rm-lines line.axis { stroke: var(--ink-4); stroke-width: 1.5; }
 .rm-lines line.tick { stroke: var(--ink-2); stroke-width: 2; }
-.rm-node { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: flex-start; padding: 6px 11px; border-radius: 10px; background: var(--card); border: 1px solid var(--line); box-shadow: 0 1px 3px rgba(16,24,40,0.08); cursor: pointer; line-height: 1.15; white-space: nowrap; text-align: left; font: inherit; }
+.rm-node { position: absolute; left: 0; top: 0; display: flex; flex-direction: column; align-items: flex-start; padding: 4px 9px; border-radius: 10px; background: var(--card); border: 1px solid var(--line); box-shadow: 0 1px 3px rgba(16,24,40,0.08); cursor: pointer; line-height: 1.15; white-space: nowrap; text-align: left; font: inherit; }
 .rm-node b { font-weight: 700; }
 .rm-node span { font-size: 0.78em; color: var(--ink-2); }
 .rm-node:hover, .rm-chip:hover { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-bg); }
-.rm-tray { flex: 1; display: flex; flex-direction: column; border: 1.5px dashed var(--line); border-radius: 12px; padding: 10px 14px 12px; background: var(--card); min-height: 64px; overflow: hidden; }
+.rm-tray { flex: 0 0 auto; max-height: 22%; display: flex; flex-direction: column; border: 1.5px dashed var(--line); border-radius: 12px; padding: 10px 14px 12px; background: var(--card); min-height: 64px; overflow: hidden; }
 .rm-tray-head { font-size: 17px; font-weight: 600; color: var(--ink-2); }
 .rm-chips { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-wrap: wrap; align-content: flex-start; gap: 7px; margin-top: 8px; }
+.rm-wait ~ .rm-tray { flex: 1 1 auto; max-height: none; }
 .rm-chip[hidden] { display: none; }
 .rm-more { font-size: 14px; color: var(--ink-3); padding: 4px 6px; }
 .rm-chip { font: inherit; font-size: 14px; border: 1px solid var(--line-2); background: var(--soft); border-radius: 8px; padding: 4px 9px; display: inline-flex; gap: 8px; cursor: pointer; color: var(--ink); }

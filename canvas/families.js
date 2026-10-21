@@ -12,8 +12,14 @@
 //   name contains "granola"  -> granola
 //   anything else            -> not classified (its use counts as "unclassified")
 // Keyed by product id (stable), with the name for review.
+//
+// APPROVED by Michael 2026-10-21 as proposed. Check requested on 90007: it is product 128
+// (Batch Coconut Toasted Sweetened Flake), already coconut. A staging search for other
+// coconut batch products, inactive included (product search "coconut", "coco", "toasted",
+// "sweetened", "flake" and unused 9000x codes), found none, so nothing was added.
 window.FL_FAMILIES = {
-  approved: false,
+  approved: true,
+  approvedOn: '2026-10-21',
   proposedOn: '2026-10-21',
   products: {
     125: ['coconut', 'Batch Coconut Sweetened Fancy'],

@@ -354,7 +354,7 @@
     az: { label: 'Name A–Z', fn: (a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }) },
     za: { label: 'Name Z–A', fn: (a, b) => b.name.localeCompare(a.name, 'en', { sensitivity: 'base' }) }
   };
-  const view = { sort: { ingredient: 'qty' }, mode: { ingredient: 'grid' } };
+  const view = { sort: { ingredient: 'qty' }, mode: { ingredient: 'grid' }, basis: 'recipe' };
   const sortedOfType = (t) => { const k = view.sort[t] || 'qty'; return ofType(t).slice().sort(SORTS[k].fn); };
 
   function ingredientControls() {
@@ -998,6 +998,42 @@
     return r;
   }
 
+  // Recipe basis: each approved batch product's formula (one batch), by weight. Formula lines
+  // excluded from inventory (sweetening water) are left out. One GET per batch product,
+  // queued by the API client (max 4 at a time) and cached for the page.
+  let recipePromise = null;
+  function loadRecipes() {
+    if (!recipePromise) {
+      const ids = Object.keys(FAM.products);
+      recipePromise = Promise.allSettled(ids.map((id) => API.get('/bom/batches/' + id + '/formula'))).then((rs) => {
+        const byIng = new Map();
+        let failedN = 0;
+        rs.forEach((r, i) => {
+          if (r.status !== 'fulfilled') { failedN++; return; }
+          const f = r.value, pid = ids[i];
+          for (const l of f.ingredients || []) {
+            if (l.exclude_from_inventory || !(num(l.quantity_lb) > 0)) continue;
+            let u = byIng.get(l.ingredient_product_id);
+            if (!u) { u = { total: 0, by: new Map() }; byIng.set(l.ingredient_product_id, u); }
+            const q = num(l.quantity_lb);
+            u.total += q;
+            const b = u.by.get(pid) || { name: f.batch_name, q: 0 };
+            b.q += q;
+            u.by.set(pid, b);
+          }
+        });
+        if (failedN === ids.length) throw new Error('no recipe could be read');
+        return { byIng, recipes: ids.length - failedN, failed: failedN };
+      }).catch((e) => { recipePromise = null; throw e; });
+    }
+    return recipePromise;
+  }
+  function setMapBasis(b) {
+    if (b !== 'recipe' && b !== 'usage') return;
+    view.basis = b;
+    renderRelMap();
+  }
+
   function setIngredientMode(mode) {
     view.mode.ingredient = mode;
     const tile = nodes.get('t-ingredient');
@@ -1026,11 +1062,16 @@
     const el = world.querySelector('[data-relmap]');
     if (!el) return;
     const ings = ofType('ingredient').slice().sort(SORTS.qty.fn);
-    el.innerHTML = '<div class="rm-loading">Loading make history…</div>';
+    const basis = famApproved() ? view.basis : 'usage';
+    const seq = (renderRelMap.seq = (renderRelMap.seq || 0) + 1);
+    el.innerHTML = '<div class="rm-loading">' + (basis === 'recipe' ? 'Loading recipes…' : 'Loading make history…') + '</div>';
     let u;
-    try { u = await loadUse(); } catch (e) { el.innerHTML = '<div class="rm-loading t-red">Couldn’t load make history (' + esc(e.message) + ')</div>'; return; }
-    if (view.mode.ingredient !== 'map') return;
-    const legend = '<div class="rm-legend"><div><b>Position</b> = coconut share of each ingredient’s use in posted makes, last ' + USE_DAYS + ' days (' + winLabel(u) + ', ' + u.makes + ' makes' + (u.truncated ? ', first 1,000 only' : '') + '). Left: used mostly in coconut products · middle: shared · right: mostly in granola. Labels show on-hand quantity.</div></div>';
+    try { u = await (basis === 'recipe' ? loadRecipes() : loadUse()); } catch (e) { el.innerHTML = '<div class="rm-loading t-red">Couldn’t load ' + (basis === 'recipe' ? 'recipes' : 'make history') + ' (' + esc(e.message) + ')</div>'; return; }
+    if (view.mode.ingredient !== 'map' || seq !== renderRelMap.seq) return;
+    const basisSeg = famApproved() ? '<div class="seg rm-basis" role="group">' + [['recipe', 'Recipes'], ['usage', 'Actual use · ' + USE_DAYS + ' days']].map(([v, l]) => '<button type="button" data-basis="' + v + '" aria-pressed="' + (v === basis) + '"' + (v === basis ? ' class="on"' : '') + '>' + l + '</button>').join('') + '</div>' : '';
+    const legend = '<div class="rm-legend">' + basisSeg + (basis === 'recipe'
+      ? '<div><b>Based on recipes, not actual usage.</b> Position = an ingredient’s share of recipe weight in coconut batch products ÷ coconut + granola batch products, one batch of each recipe (' + u.recipes + ' recipes' + (u.failed ? ', ' + u.failed + ' couldn’t load' : '') + '). Left: coconut-heavy · middle: shared · right: granola-heavy. Labels show on-hand quantity.</div>'
+      : '<div><b>Based on actual usage.</b> Position = coconut share of each ingredient’s use in posted makes, last ' + USE_DAYS + ' days (' + winLabel(u) + ', ' + u.makes + ' makes' + (u.truncated ? ', first 1,000 only' : '') + '). Left: used mostly in coconut products · middle: shared · right: mostly in granola. Labels show on-hand quantity.</div>') + '</div>';
     const band = '<div class="rm-band"><span>Coconut-heavy</span><span>Shared</span><span>Granola-heavy</span></div>';
     if (!famApproved()) {
       const counts = Object.values(FAM.products).reduce((m, [f]) => { m[f] = (m[f] || 0) + 1; return m; }, {});
@@ -1045,7 +1086,7 @@
       const x = u.byIng.get(p.id);
       const f = x ? splitOf(x) : null;
       const known = f ? f.coconut + f.granola : 0;
-      if (!x) tray.push([p, 'no use in posted makes in the window']);
+      if (!x) tray.push([p, basis === 'recipe' ? 'in no recipe' : 'no use in posted makes in the window']);
       else if (!known) tray.push([p, 'used only in products without a family']);
       else placed.push({ p, share: f.coconut / known });
     }
@@ -1084,18 +1125,18 @@
     const maxQ = Math.max(1, ...placed.map((n) => n.p.qty));
     const btns = plot.querySelectorAll('.rm-node');
     const noRoom = [];
-    placed.forEach((n, i) => { n.el = btns[i]; n.el.style.fontSize = (15 + 7 * Math.sqrt(n.p.qty / maxQ)).toFixed(1) + 'px'; });
+    placed.forEach((n, i) => { n.el = btns[i]; n.el.style.fontSize = (12 + 6 * Math.sqrt(n.p.qty / maxQ)).toFixed(1) + 'px'; });
     placed.forEach((n) => { n.w = n.el.offsetWidth; n.h = n.el.offsetHeight; n.ax = PAD + (1 - n.share) * (PW - 2 * PAD); });
     const boxes = [];
-    const hits = (b) => boxes.some((o) => b.x < o.x + o.w + 8 && o.x < b.x + b.w + 8 && b.y < o.y + o.h + 6 && o.y < b.y + b.h + 6);
+    const hits = (b) => boxes.some((o) => b.x < o.x + o.w + 6 && o.x < b.x + b.w + 6 && b.y < o.y + o.h + 4 && o.y < b.y + b.h + 4);
     let lines = '';
     for (const n of placed) {
       let best = null;
       for (let k = 0; ; k++) {
-        const y = AX - 24 - n.h - k * (n.h + 6);
+        const y = AX - 18 - n.h - k * Math.ceil(n.h / 2);
         if (y < 0) break;
-        for (let j = 0; j <= Math.ceil(PW / 12); j++) {
-          const dx = (j % 2 ? 1 : -1) * Math.ceil(j / 2) * 24;
+        for (let j = 0; j <= Math.ceil(PW / 8); j++) {
+          const dx = (j % 2 ? 1 : -1) * Math.ceil(j / 2) * 16;
           const x = Math.max(0, Math.min(PW - n.w, n.ax - n.w / 2 + dx));
           const b = { x, y, w: n.w, h: n.h };
           if (hits(b)) continue;
@@ -1125,11 +1166,23 @@
     const head = insHead('Ingredient' + (p.sku ? ' · SKU ' + p.sku : ''), p.name, esc(qtyText(p)) + ' on hand · ' + p.lots.length + ' lot' + (p.lots.length === 1 ? '' : 's'));
     const foot = '<div class="ins-foot"><button type="button" class="fa-btn" data-ing-grid="' + p.id + '">Show in grid</button><a class="fa-btn fa-primary" href="' + esc(taskUrl('receive')) + '" target="_blank" rel="noopener">Receive ↗</a></div>';
     showInspector(head + '<div class="ins-body"><div class="loading">Loading use…</div></div>' + foot);
-    let u = null;
-    try { u = await loadUse(); } catch (e) { /* shown below */ }
+    const [uR, rR] = await Promise.allSettled([loadUse(), famApproved() ? loadRecipes() : Promise.reject(new Error('not approved'))]);
+    const u = uR.status === 'fulfilled' ? uR.value : null;
     if (!selection || selection.kind !== 'ingredient' || selection.pid !== p.id) return;
     const x = u && u.byIng.get(p.id);
     const lb = (v) => fmt(v) + ' lb';
+    let recipe = '';
+    if (rR.status === 'fulfilled') {
+      const rx = rR.value.byIng.get(p.id);
+      if (!rx) recipe = '<div class="muted" style="font-size:13px">In no recipe.</div>';
+      else {
+        const f = splitOf(rx), known = f.coconut + f.granola;
+        recipe = '<div class="txlist hist"><div><span>Coconut recipes</span><span class="mono">' + lb(f.coconut) + '</span></div><div><span>Granola recipes</span><span class="mono">' + lb(f.granola) + '</span></div>'
+          + '<div><span>Coconut share</span><span class="mono">' + (known ? Math.round(f.coconut / known * 100) + '%' : '—') + '</span></div></div>'
+          + '<div class="dim" style="font-size:12px">In ' + rx.by.size + ' recipe' + (rx.by.size === 1 ? '' : 's') + ': ' + esc([...rx.by.values()].sort((a, b) => b.q - a.q).map((b) => b.name.replace(/^Batch\s+/i, '') + ' ' + fmt(b.q) + ' lb').join(' · ')) + '</div>';
+      }
+      recipe = '<div class="sect"><h4>In recipes · per one batch (based on recipes, not actual usage)</h4>' + recipe + '</div>';
+    }
     let split;
     if (!u) split = '<div class="t-red" style="font-size:13px">Make history couldn’t load.</div>';
     else if (!x) split = '<div class="muted" style="font-size:13px">Not used in posted makes in the last ' + USE_DAYS + ' days.</div>';
@@ -1141,7 +1194,7 @@
     }
     const by = x ? [...x.by.values()].sort((a, b) => b.q - a.q).slice(0, 8).map((b) => '<div><span>' + esc(b.name) + '</span><span class="mono">' + lb(b.q) + '</span></div>').join('') : '';
     showInspector(head + '<div class="ins-body">' + stat3([['On hand', esc(qtyText(p))], ['Lots', p.lots.length], ['Used · ' + USE_DAYS + ' days', x ? lb(x.total) : '—']])
-      + '<div class="sect"><h4>Use by product family · posted makes, ' + (u ? winLabel(u) : 'last ' + USE_DAYS + ' days') + '</h4>' + split + '</div>'
+      + recipe + '<div class="sect"><h4>Actual use by product family · posted makes, ' + (u ? winLabel(u) : 'last ' + USE_DAYS + ' days') + '</h4>' + split + '</div>'
       + (by ? '<div class="sect"><h4>Used in</h4><div class="txlist">' + by + '</div></div>' : '') + '</div>' + foot);
   }
 
@@ -1280,9 +1333,10 @@
   vp.addEventListener('click', (e) => { if (dragged) { e.stopPropagation(); e.preventDefault(); } }, true);
 
   world.addEventListener('click', (e) => {
-    const t = e.target.closest('[data-view],[data-sort],[data-ing],[data-fly],[data-lot],[data-order],[data-er]');
+    const t = e.target.closest('[data-view],[data-sort],[data-basis],[data-ing],[data-fly],[data-lot],[data-order],[data-er]');
     if (!t) return;
     if (t.dataset.view) setIngredientMode(t.dataset.view);
+    else if (t.dataset.basis) setMapBasis(t.dataset.basis);
     else if (t.dataset.sort) setIngredientSort(t.dataset.sort);
     else if (t.dataset.ing) openIngredient(t.dataset.ing);
     else if (t.dataset.fly) { closeInspector(); flyTo(t.dataset.fly); }
