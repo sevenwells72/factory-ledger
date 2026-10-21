@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Factory Ledger — Floor & Fulfillment
-  version: 4.2.0
+  version: 4.3.0
   description: Physical production, packing, shipping, and inbound receipts for CNS Confectionery Products. Scoped to floor operator workflow.
 servers:
   - url: https://fastapi-production-b73a.up.railway.app
@@ -504,7 +504,7 @@ paths:
     post:
       operationId: ship
       summary: "Ship inventory STANDALONE (no sales order). Use only when no open order exists or operator explicitly says 'standalone'."
-      description: "If the customer has open orders, the API returns 409 OPEN_SALES_ORDER_EXISTS with the order ship endpoint to use instead. Do not set force_standalone=true without explicit operator instruction. Only ask 'When did this happen?' when the operator implies the shipment was not just now; then pass occurred_at in plant-local time. Otherwise omit occurred_at."
+      description: "If the customer has open orders, the API returns 409 OPEN_SALES_ORDER_EXISTS with the order ship endpoint to use instead. Do not set force_standalone=true without explicit operator instruction. Omit occurred_at unless the operator implies an earlier time."
       requestBody:
         required: true
         content:
@@ -520,7 +520,7 @@ paths:
     post:
       operationId: make
       summary: "Record batch production (preview or commit)."
-      description: "Preview checks ingredient availability. Sibling SKUs sharing the formula → sku_confirmation_required + sibling_skus; commit needs confirmed_sku=true. production_warning (e.g. Kosher Ignition) → relay verification_notes (EN + ES) verbatim; get operator acknowledgment before commit. Only ask 'When did this happen?' when the operator implies production was not just now; then pass occurred_at in plant-local time. Otherwise omit occurred_at."
+      description: "Preview checks ingredients. sku_confirmation_required → pick from sibling_skus; commit needs confirmed_sku=true. production_warning (e.g. Kosher Ignition) → relay verification_notes (EN + ES) verbatim; operator must acknowledge before commit. Omit occurred_at unless operator implies earlier."
       requestBody:
         required: true
         content:
@@ -534,7 +534,7 @@ paths:
     post:
       operationId: pack
       summary: "Pack batch into finished goods (preview or commit). Pack = batch → FG; use /make for batch production."
-      description: "FIFO on source batch by default. For intermediate BOM packs (e.g., base batch → flavored FG), preview includes add_in_ingredients showing what will be added at the hopper. Commit returns add_in_ingredients_consumed. target_lot_code is the OUTPUT FG lot — don't put source lot codes there. Only ask 'When did this happen?' when the operator implies packing was not just now; then pass occurred_at in plant-local time. Otherwise omit occurred_at."
+      description: "FIFO on source batch by default. For intermediate BOM packs (e.g., base batch → flavored FG), preview includes add_in_ingredients. target_lot_code is the OUTPUT FG lot — never a source lot code. Omit occurred_at unless the operator implies an earlier time."
       requestBody:
         required: true
         content:
@@ -725,7 +725,7 @@ paths:
     post:
       operationId: shipOrder
       summary: "PREVIEW a dispatch/shipment for a sales order. Makes no changes. Use commitShipOrder only after explicit operator approval."
-      description: "Use for the safe first stage of sales-order dispatch. Send mode: preview with ship_all: true or explicit lines. Show the resulting quantities, shortages, and warnings to the operator; call commitShipOrder only after the operator explicitly says to commit or dispatch. Only ask 'When did this happen?' when the operator implies the shipment was not just now; then pass occurred_at in plant-local time. Otherwise omit occurred_at."
+      description: "Safe first stage of sales-order dispatch. Send mode: preview with ship_all: true or lines. Show quantities, shortages, and warnings; call commitShipOrder only after the operator explicitly says to commit or dispatch. Omit occurred_at unless the operator implies an earlier time."
       x-openai-isConsequential: false
       parameters:
         - name: order_id
@@ -753,7 +753,7 @@ paths:
     post:
       operationId: commitShipOrder
       summary: "COMMIT a dispatch/shipment for a sales order. Call ONLY after the operator has seen the shipOrder preview and explicitly said to commit/dispatch. Returns the shipment receipt."
-      description: "Always commits. The request contains ship_all or explicit lines and never contains mode. The operator-level confirmation is enforced by the GPT's two-stage preview/approval protocol. Carry forward occurred_at/backfill from preview. Only ask 'When did this happen?' when the operator implies the shipment was not just now; otherwise omit occurred_at."
+      description: "Always commits. The request contains ship_all or explicit lines and never contains mode. The operator-level confirmation is enforced by the GPT's two-stage preview/approval protocol. Carry forward occurred_at/backfill from preview; otherwise omit occurred_at."
       x-openai-isConsequential: false
       parameters:
         - name: order_id
@@ -770,7 +770,7 @@ paths:
               $ref: '#/components/schemas/CommitShipOrderRequest'
       responses:
         '200':
-          description: "Committed shipment receipt with shipment_id, transaction_id per physical line, and order_status (shipped or partial_ship)."
+          description: "Committed shipment receipt with shipment_id, transaction_id per physical line, order_status (shipped or partial_ship), and packing_slip_url: a signed packing-slip link valid 10 minutes (null if unavailable). Give it to the operator exactly as returned."
         '400':
           description: "Order in non-shippable status (new/invoiced/cancelled)."
         '409':

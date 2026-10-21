@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-21 14:31 — Floor GPT signed packing-slip links and schema description limits
+- **File(s) changed:** `main.py`, `ship_tickets.py`, `gpt-configs/schemas/openapi-floor.yaml`, `gpt-configs/sources/floor-specific.md`, `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`, `tests/test_floor_packing_slip.py`, `tests/test_floor_gpt_receive_contract.py`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** commitShipOrder returns a 10-minute signed `packing_slip_url` + `packing_slip_expires_at` (existing PACKING_SLIP_SIGNING_KEY HMAC, `shipment-<id>` receipt bound to the order); link failure never fails the committed shipment. Floor schema v4.3.0 trims five >300-char descriptions and documents the link; PACKING SLIP rule relays it or says ask the office. FL row 230.
+- **Why:** Owner decision 2026-10-21: no master key in GPT instructions or links; the repo schema was rejected by the GPT editor.
+
+---
+
 ## 2026-10-21 13:59 — Verify final Floor GPT unreadable-lot wording and artifact budget
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/receive-lot-required/README.md`
 - **What changed:** Record five passing Floor contract tests, independently verified exact review wording, source/dist equality, 7,860 body characters and 7,990 full-file characters. Floor remains22/office30 operations. Keep the earlier full Python/JS/browser results explicitly attributed to 59cad84d.
