@@ -23,8 +23,11 @@ Then open http://localhost:8765/ (run the command from the repo root).
 - Click a lot to open its record in the side panel: in / out / on hand, trace back
   (ingredient lots), trace forward (batches and shipments), and its transactions.
   Orders and expected receipts open in the same panel.
-- Mouse-wheel zoom around the pointer, drag to pan, click to fly, minimap,
-  breadcrumb, "Entire factory" button, −/+ zoom, Esc to step out, `/` to search.
+- Mouse-wheel zoom around the pointer, drag to pan, click a card to fly into it,
+  left click on empty canvas to zoom in one step and right click anywhere on the
+  canvas to zoom out one step (both centred on the pointer; the browser's right-click
+  menu is turned off on the canvas only), minimap, breadcrumb, "Entire factory"
+  button, −/+ zoom, Esc to step out, `/` to search. A drag is never a click.
 - Search jumps to areas, categories, products, on-hand lots, open orders and
   expected receipts. For 3+ characters it also asks `GET /dashboard/api/search`
   and lists lots and orders that are not on the canvas (record only).
@@ -45,6 +48,36 @@ Then open http://localhost:8765/ (run the command from the repo root).
 - `dashboardBase`: where task buttons and links go (staging's `/dashboard`).
 - Auth header: `X-API-Key`. The API allows any origin (CORS `*`), so the page
   works from localhost or its own Netlify site.
+
+## Edit layout
+
+**Edit layout** in the top bar (blue "Editing layout" while on) lets you arrange the
+cards. Drag a card to move it; drag one of its four corner handles to resize it.
+Positions snap to an 8px grid (untick "Snap to 8px", or hold Shift, to place freely).
+Clicks don't zoom or fly while editing; background drag still pans and the wheel
+still zooms. Connectors, their labels and the minimap redraw from the real card
+edges while you drag; if you move cards so a connector's usual edges no longer face
+each other, it switches to the edges that do.
+
+- **What can be edited:** the 7 overview cards (at the overview) and the 4 category
+  tiles inside Inventory (once Inventory is open; they stay inside the Inventory card,
+  so make Inventory bigger first if you need room). A card is editable when it is shown
+  as a card at the current zoom. Product cards are not: they are placed by the
+  category's sort order and come and go with the data, so they reflow automatically to
+  fit the category's size.
+- **Minimum size:** a card can't get narrower than 300px (category 240px; Inventory
+  must fit its tiles), narrower than its unwrappable text, or shorter than its content
+  needs at that width, so nothing is cut off. If the data later needs more room, the
+  card grows.
+- **Saving:** every change is saved in this browser (`localStorage`, `flcanvas.layout`).
+  If storage is blocked, the layout still works for the open page. **Reset layout**
+  (asks first) clears it and goes back to the default.
+- **Default for everyone:** `canvas/layout.json`. Empty (`"areas": {}`) means the
+  automatic layout. **Save layout to code** downloads your current layout as
+  `layout.json`; committing that file as `canvas/layout.json` makes it the default for
+  anyone without a saved layout of their own. The page reads it once at load
+  (a same-origin static file, not the API). Cards missing from it use the automatic
+  layout.
 
 ## Data sources (all GET, dashboard key)
 

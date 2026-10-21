@@ -79,14 +79,23 @@
   const ICONS = window.FL_ICONS || {};
   const icon = (name) => '<span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[name] || '') + '</svg></span>';
   const kicker = (id, label) => '<div class="kick-row">' + icon(AREAS[id].icon) + '<div class="kicker">' + (label || esc(AREAS[id].name)) + '</div></div>';
-  const TILES = {
-    ingredient: { dx: 24, dy: 64, name: 'Ingredients' },
-    batch: { dx: 408, dy: 64, name: 'Bulk granola', accent: true },
-    packaging: { dx: 24, dy: 252, name: 'Packaging' },
-    finished: { dx: 408, dy: 252, name: 'Finished goods' }
-  };
   const TILE_W = 368, TILE_H = 172;
-  const GRID = { w: 1472, h: TILE_H / 0.25, k: 0.25, left: 40, top: 104, right: 40, bottom: 28, gap: 20 };
+  // Category tiles inside Inventory (dx/dy relative to the Inventory card). w/h can be
+  // changed in Edit layout; the product grid's design space follows the tile size.
+  const TILES = {
+    ingredient: { dx: 24, dy: 64, w: TILE_W, h: TILE_H, name: 'Ingredients' },
+    batch: { dx: 408, dy: 64, w: TILE_W, h: TILE_H, name: 'Bulk granola', accent: true },
+    packaging: { dx: 24, dy: 252, w: TILE_W, h: TILE_H, name: 'Packaging' },
+    finished: { dx: 408, dy: 252, w: TILE_W, h: TILE_H, name: 'Finished goods' }
+  };
+  // Defaults (used when no saved layout covers a card) and the smallest sizes Edit layout allows.
+  const AREA_DEFAULT = Object.fromEntries(Object.entries(AREAS).map(([id, a]) => [id, { x: a.x, w: a.w }]));
+  const TILE_DEFAULT = Object.fromEntries(Object.entries(TILES).map(([t, v]) => [t, { dx: v.dx, dy: v.dy, w: v.w, h: v.h }]));
+  const AREA_MIN_W = 300, TILE_MIN_W = 240;
+  // Corner resize handles, shown only in Edit layout on cards that can be edited at this zoom.
+  const RZ = ['nw', 'ne', 'sw', 'se'].map((c) => '<span class="rz rz-' + c + '" data-rz="' + c + '" aria-hidden="true"></span>').join('');
+  const GRID = { k: 0.25, left: 40, top: 104, right: 40, bottom: 28, gap: 20 };
+  const gridW = (t) => TILES[t].w / GRID.k, gridH = (t) => TILES[t].h / GRID.k;
   // Product cards and their working screen share one aspect ratio (the screen is scaled to the card).
   const CARD = { w: 440, h: 272 };
   const WS = { w: 1100, h: 680 };
@@ -336,8 +345,8 @@
   }
 
   // ---------- product grid layout ----------
-  function gridLayout(n) {
-    const W = GRID.w - GRID.left - GRID.right, H = GRID.h - GRID.top - GRID.bottom, g = GRID.gap, ar = CARD.w / CARD.h;
+  function gridLayout(n, gw, gh) {
+    const W = gw - GRID.left - GRID.right, H = gh - GRID.top - GRID.bottom, g = GRID.gap, ar = CARD.w / CARD.h;
     let best = { cw: 0 };
     for (let c = 1; c <= Math.max(1, n); c++) {
       const r = Math.ceil(n / c);
@@ -379,16 +388,17 @@
       + '<div class="layer far" style="width:' + CARD.w + 'px;height:' + CARD.h + 'px">' + productCardHTML(p) + '</div>'
       + '<div class="layer near ws-slot" style="width:' + WS.w + 'px;height:' + WS.h + 'px"></div>'
       + '<button class="hit" data-fly="p' + p.id + '" aria-label="Zoom into ' + esc(p.name) + '"></button></div>').join('');
-    const t2 = '<div class="layer t2' + (t === 'ingredient' && view.mode.ingredient === 'map' ? ' mapmode' : '') + '" style="width:' + GRID.w + 'px;height:' + GRID.h + 'px;transform:scale(' + GRID.k + ')">'
+    const t2 = '<div class="layer t2' + (t === 'ingredient' && view.mode.ingredient === 'map' ? ' mapmode' : '') + '" style="width:' + gridW(t) + 'px;height:' + gridH(t) + 'px;transform:scale(' + GRID.k + ')">'
       + '<div class="grid-head"><div class="t">' + tile.name + '</div>' + (t === 'ingredient' ? ingredientControls() : '') + '<div class="m">' + esc(sum.meta) + ' on hand</div></div>' + cards
       + (t === 'ingredient' ? '<div class="relmap" data-relmap></div>' : '') + '</div>';
-    return '<div class="node tile' + (tile.accent ? ' accent' : '') + '" data-node="t-' + t + '" style="left:' + tile.dx + 'px;top:' + tile.dy + 'px;width:' + TILE_W + 'px;height:' + TILE_H + 'px">'
-      + t1 + t2 + '<button class="hit" data-fly="t-' + t + '" aria-label="Zoom into ' + tile.name + '"></button></div>';
+    return '<div class="node tile' + (tile.accent ? ' accent' : '') + '" data-node="t-' + t + '" style="left:' + tile.dx + 'px;top:' + tile.dy + 'px;width:' + tile.w + 'px;height:' + tile.h + 'px">'
+      + t1 + t2 + '<button class="hit" data-fly="t-' + t + '" aria-label="Zoom into ' + tile.name + '"></button>' + RZ + '</div>';
   }
 
   // Place a category's cards in the current sort order and refresh their camera rects.
-  function layoutCards(t) {
-    const list = sortedOfType(t), L = gridLayout(list.length);
+  // rectsOnly: the tile only moved, so the cards keep their spot inside it.
+  function layoutCards(t, rectsOnly) {
+    const list = sortedOfType(t), L = gridLayout(list.length, gridW(t), gridH(t));
     const tileNode = nodes.get('t-' + t);
     const hidden = t === 'ingredient' && view.mode.ingredient === 'map';
     list.forEach((p, i) => {
@@ -397,13 +407,14 @@
       p.design = { x, y, w: L.cw, h: L.ch };
       const n = nodes.get('p' + p.id);
       if (!n || !n.el) return;
+      if (tileNode) n.rect = { x: tileNode.rect.x + x * GRID.k, y: tileNode.rect.y + y * GRID.k, w: L.cw * GRID.k, h: L.ch * GRID.k };
+      if (rectsOnly) return;
       const k = L.cw / CARD.w;
       Object.assign(n.el.style, { left: x + 'px', top: y + 'px', width: L.cw + 'px', height: L.ch + 'px' });
       n.el.style.setProperty('--k', k);
       n.el.querySelector(':scope > .far').style.transform = 'scale(' + k + ')';
       n.el.querySelector(':scope > .ws-slot').style.transform = 'scale(' + L.cw / WS.w + ')';
       n.hidden = hidden;
-      if (tileNode) n.rect = { x: tileNode.rect.x + x * GRID.k, y: tileNode.rect.y + y * GRID.k, w: L.cw * GRID.k, h: L.ch * GRID.k };
     });
   }
 
@@ -444,7 +455,22 @@
     if (side === 't') return [a.x + a.w * f, a.y];
     return [a.x + a.w * f, a.y + a.h];
   }
-  function curve([from, fs, ff, to, ts, tf], gapEnd) {
+  // If cards were moved so a connector's default edges no longer face each other,
+  // use the edges that do (same position along the edge), so arrows stay readable.
+  const OPPOSITE = { l: 'r', r: 'l', t: 'b', b: 't' };
+  function facing([from, fs, ff, to, ts, tf]) {
+    const p0 = anchor(from, fs, ff), p3 = anchor(to, ts, tf);
+    const ok = NORMAL[fs][0] * (p3[0] - p0[0]) + NORMAL[fs][1] * (p3[1] - p0[1]) > 0
+      && NORMAL[ts][0] * (p0[0] - p3[0]) + NORMAL[ts][1] * (p0[1] - p3[1]) > 0;
+    if (ok) return [fs, ts];
+    const A = AREAS[from], B = AREAS[to];
+    const dx = B.x + B.w / 2 - (A.x + A.w / 2), dy = B.y + B.h / 2 - (A.y + A.h / 2);
+    const s0 = Math.abs(dx) / (A.w + B.w) > Math.abs(dy) / (A.h + B.h) ? (dx > 0 ? 'r' : 'l') : (dy > 0 ? 'b' : 't');
+    return [s0, OPPOSITE[s0]];
+  }
+  function curve(f, gapEnd) {
+    const [from, , ff, to, , tf] = f;
+    const [fs, ts] = facing(f);
     const p0 = anchor(from, fs, ff), p3 = anchor(to, ts, tf);
     const n0 = NORMAL[fs], n3 = NORMAL[ts];
     p3[0] += n3[0] * gapEnd; p3[1] += n3[1] * gapEnd;
@@ -491,14 +517,14 @@
         near = '<div class="layer near" style="width:' + a.w * 2 + 'px;transform:scale(0.5)">' + b.near + '</div>';
       }
       html += '<div class="node area' + (a.hub ? ' hub' : '') + '" data-node="' + id + '" style="left:' + a.x + 'px;width:' + a.w + 'px">' + far + near
-        + '<button class="hit" data-fly="' + id + '" aria-label="Zoom into ' + esc(a.name) + '"></button></div>';
+        + '<button class="hit" data-fly="' + id + '" aria-label="Zoom into ' + esc(a.name) + '"></button>' + RZ + '</div>';
     }
     world.innerHTML = html;
 
     nodes.clear();
     for (const [id, a] of Object.entries(AREAS)) nodes.set(id, { id, kind: 'area', name: a.name, rect: a, parent: null });
     for (const [t, tile] of Object.entries(TILES)) {
-      nodes.set('t-' + t, { id: 't-' + t, kind: 'tile', name: tile.name, rect: { x: 0, y: 0, w: TILE_W, h: TILE_H }, parent: 'inventory', type: t });
+      nodes.set('t-' + t, { id: 't-' + t, kind: 'tile', name: tile.name, rect: { x: 0, y: 0, w: tile.w, h: tile.h }, parent: 'inventory', type: t });
       for (const p of ofType(t)) nodes.set('p' + p.id, { id: 'p' + p.id, kind: 'product', name: p.name, product: p, parent: 't-' + t, rect: { x: 0, y: 0, w: 1, h: 1 } });
     }
     for (const n of nodes.values()) {
@@ -511,20 +537,21 @@
   // Content-aware layout. Each area is as tall as its content needs at both zoom levels
   // (overview card, and the 2x near view scaled by 0.5); paired cards share the taller
   // height; rows stack with a fixed gap and the middle row is centred on Inventory.
+  // A saved layout (this browser, else canvas/layout.json) overrides position and size,
+  // but a card is never shorter than its content needs at its width.
   function layoutWorld() {
+    const L = activeLayout() || {}, la = L.areas || {}, lt = L.tiles || {};
+    for (const [t, tile] of Object.entries(TILES)) {
+      Object.assign(tile, TILE_DEFAULT[t], lt[t] || {});
+      if (lt[t]) { tile.w = Math.max(TILE_MIN_W, tile.w); tile.h = Math.max(tile.h, tileNeed(t)); }
+      applyTile(t);
+    }
     const need = {};
     for (const [id, a] of Object.entries(AREAS)) {
-      const el = nodes.get(id).el;
-      const far = el.querySelector(':scope > .far > .far-body');
-      far.style.height = 'auto';
-      let h = far.offsetHeight;
-      far.style.height = '';
-      if (id === 'inventory') h = Math.max(h, TILES.packaging.dy + TILE_H + 24);
-      else {
-        const nb = el.querySelector(':scope > .near > .near-body');
-        if (nb) h = Math.max(h, Math.ceil(nb.offsetHeight / 2));
-      }
-      need[id] = Math.ceil(h);
+      Object.assign(a, AREA_DEFAULT[id]);
+      if (la[id]) a.w = la[id].w;
+      a.w = Math.max(areaMinW(id), a.w);
+      need[id] = areaNeed(id);
     }
     const pairH = {};
     for (const [id, a] of Object.entries(AREAS)) if (a.pair) pairH[a.pair] = Math.max(pairH[a.pair] || 0, need[id]);
@@ -533,10 +560,20 @@
     const rowY = [ROW_TOP, ROW_TOP + rowH[0] + ROW_GAP, ROW_TOP + rowH[0] + rowH[1] + 2 * ROW_GAP];
     for (const a of Object.values(AREAS)) a.y = rowY[a.row] + (rowH[a.row] - a.h) / 2;
     for (const [id, a] of Object.entries(AREAS)) {
+      const s = la[id];
+      if (s) { a.x = s.x; a.y = s.y; a.h = Math.max(s.h, need[id]); }
+    }
+    placeWorld();
+  }
+
+  // Write the current AREAS / TILES geometry to the page: cards, world size, connectors,
+  // category and product camera rects, minimap. Cheap enough to run on every drag frame.
+  function placeWorld(movedOnly) {
+    for (const [id, a] of Object.entries(AREAS)) {
       const el = nodes.get(id).el;
-      Object.assign(el.style, { top: a.y + 'px', height: a.h + 'px' });
+      Object.assign(el.style, { left: a.x + 'px', top: a.y + 'px', width: a.w + 'px', height: a.h + 'px' });
       const near = el.querySelector(':scope > .near');
-      if (id !== 'inventory') near.style.height = a.h * 2 + 'px';
+      if (id !== 'inventory') { near.style.width = a.w * 2 + 'px'; near.style.height = a.h * 2 + 'px'; }
     }
     const all = Object.values(AREAS);
     BOX.x = Math.min(...all.map((a) => a.x)); BOX.y = Math.min(...all.map((a) => a.y));
@@ -546,10 +583,100 @@
     document.getElementById('flowwrap').innerHTML = flowSVG();
     const inv = AREAS.inventory;
     for (const [t, tile] of Object.entries(TILES)) {
-      nodes.get('t-' + t).rect = { x: inv.x + tile.dx, y: inv.y + tile.dy, w: TILE_W, h: TILE_H };
-      layoutCards(t);
+      nodes.get('t-' + t).rect = { x: inv.x + tile.dx, y: inv.y + tile.dy, w: tile.w, h: tile.h };
+      applyTile(t);
+      layoutCards(t, movedOnly && movedOnly !== 't-' + t);
     }
     buildMinimap();
+    renderMinimap();
+  }
+
+  function applyTile(t) {
+    const tile = TILES[t], el = nodes.get('t-' + t).el;
+    Object.assign(el.style, { left: tile.dx + 'px', top: tile.dy + 'px', width: tile.w + 'px', height: tile.h + 'px' });
+    const t2 = el.querySelector(':scope > .t2');
+    t2.style.width = gridW(t) + 'px';
+    t2.style.height = gridH(t) + 'px';
+  }
+
+  // Natural content height of an element that normally fills its box.
+  function naturalH(el) {
+    el.style.bottom = 'auto'; el.style.height = 'auto';
+    const h = el.offsetHeight;
+    el.style.bottom = ''; el.style.height = '';
+    return h;
+  }
+  // Height an area needs at its current width (content reflows to the width).
+  function areaNeed(id) {
+    const a = AREAS[id], el = nodes.get(id).el;
+    el.style.width = a.w + 'px';
+    let h = naturalH(el.querySelector(':scope > .far > .far-body'));
+    if (id === 'inventory') h = Math.max(h, ...Object.values(TILES).map((t) => t.dy + t.h + 24));
+    else {
+      const near = el.querySelector(':scope > .near');
+      near.style.width = a.w * 2 + 'px';
+      near.style.height = 'auto'; // placeWorld() sets it again; a stretched layer would measure its own old size
+      const nb = near.querySelector(':scope > .near-body');
+      if (nb) h = Math.max(h, Math.ceil(nb.offsetHeight / 2));
+    }
+    return Math.ceil(h);
+  }
+  function areaMinW(id) {
+    return id === 'inventory' ? Math.max(AREA_MIN_W, ...Object.values(TILES).map((t) => t.dx + t.w + 24)) : AREA_MIN_W;
+  }
+  function tileNeed(t) {
+    const el = nodes.get('t-' + t).el;
+    el.style.width = TILES[t].w + 'px';
+    return Math.ceil(naturalH(el.querySelector(':scope > .t1')));
+  }
+  // How far a card's content sticks out sideways (text that can't wrap) at its current width.
+  function overflowX(id) {
+    const el = nodes.get(id).el;
+    const parts = id.startsWith('t-') ? [':scope > .t1', ':scope > .t2 > .grid-head'] : [':scope > .far > .far-body', ':scope > .near > .near-body'];
+    return parts.reduce((m, sel) => { const e = el.querySelector(sel); return e ? Math.max(m, e.scrollWidth - e.clientWidth) : m; }, 0);
+  }
+
+  // ---------- saved layout ----------
+  // This browser's layout lives in localStorage; canvas/layout.json is the default shipped
+  // with the code. Either may be missing or blocked; then the automatic layout is used.
+  const LAYOUT_KEY = 'flcanvas.layout';
+  let codeLayout = null, userLayout = null;
+  const activeLayout = () => userLayout || codeLayout;
+  const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
+  function cleanLayout(j) {
+    if (!j || typeof j !== 'object') return null;
+    const out = { version: 1, areas: {}, tiles: {} };
+    for (const id of Object.keys(AREAS)) {
+      const r = j.areas && j.areas[id];
+      if (r && ['x', 'y', 'w', 'h'].every((k) => isNum(r[k]))) out.areas[id] = { x: Math.max(0, r.x), y: Math.max(0, r.y), w: r.w, h: r.h };
+    }
+    for (const t of Object.keys(TILES)) {
+      const r = j.tiles && j.tiles[t];
+      if (r && ['dx', 'dy', 'w', 'h'].every((k) => isNum(r[k]))) out.tiles[t] = { dx: Math.max(0, r.dx), dy: Math.max(0, r.dy), w: r.w, h: r.h };
+    }
+    return Object.keys(out.areas).length || Object.keys(out.tiles).length ? out : null;
+  }
+  function currentLayout() {
+    const r = (v) => Math.round(v * 10) / 10;
+    return {
+      version: 1,
+      areas: Object.fromEntries(Object.entries(AREAS).map(([id, a]) => [id, { x: r(a.x), y: r(a.y), w: r(a.w), h: r(a.h) }])),
+      tiles: Object.fromEntries(Object.entries(TILES).map(([t, v]) => [t, { dx: r(v.dx), dy: r(v.dy), w: r(v.w), h: r(v.h) }]))
+    };
+  }
+  function readUserLayout() {
+    try { userLayout = cleanLayout(JSON.parse(localStorage.getItem(LAYOUT_KEY) || 'null')); } catch (e) { userLayout = null; }
+  }
+  function saveUserLayout() {
+    userLayout = currentLayout();
+    try { localStorage.setItem(LAYOUT_KEY, JSON.stringify(userLayout)); } catch (e) { /* kept for this page only */ }
+  }
+  // Same-origin static file next to index.html, not the API.
+  async function loadCodeLayout() {
+    try {
+      const r = await fetch('layout.json', { cache: 'no-cache' });
+      codeLayout = r.ok ? cleanLayout(await r.json()) : null;
+    } catch (e) { codeLayout = null; }
   }
 
   // ---------- camera ----------
@@ -575,6 +702,7 @@
     world.classList.toggle('flying', !!animate);
     const v = vpSize();
     world.style.transform = 'translate(' + v.w / 2 + 'px,' + v.h / 2 + 'px) scale(' + cam.s + ') translate(' + -cam.cx + 'px,' + -cam.cy + 'px)';
+    world.style.setProperty('--px', 1 / cam.s); // one screen pixel in world units (edit handles)
     scheduleUpdate();
   }
   function flyTo(id) {
@@ -1313,24 +1441,143 @@
     setCam({ s: ns, cx: wx - px / ns, cy: wy - py / ns }, false);
   }, { passive: false });
 
-  let down = null, dragged = false;
+  // Left drag on the background pans. In Edit layout, a left drag on an editable card moves
+  // it and a drag on a corner handle resizes it. A drag never counts as a click.
+  let down = null, dragged = false, edit = null;
   vp.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
-    down = { x: e.clientX, y: e.clientY, cam: Object.assign({}, cam), id: e.pointerId };
     dragged = false;
+    if (editing && startEdit(e)) return;
+    down = { x: e.clientX, y: e.clientY, cam: Object.assign({}, cam), id: e.pointerId };
   });
   vp.addEventListener('pointermove', (e) => {
+    if (edit) { moveEdit(e); return; }
     if (!down) return;
     const dx = e.clientX - down.x, dy = e.clientY - down.y;
     if (!dragged && Math.abs(dx) + Math.abs(dy) < 5) return;
     if (!dragged) { dragged = true; vp.classList.add('dragging'); try { vp.setPointerCapture(down.id); } catch (_) {} }
     setCam({ s: down.cam.s, cx: down.cam.cx - dx / down.cam.s, cy: down.cam.cy - dy / down.cam.s }, false);
   });
-  const endDrag = () => { if (!down) return; down = null; vp.classList.remove('dragging'); setTimeout(() => { dragged = false; }, 0); };
+  const endDrag = () => {
+    if (edit) { const changed = edit.changed; edit = null; vp.classList.remove('dragging'); if (changed) saveUserLayout(); setTimeout(() => { dragged = false; }, 0); return; }
+    if (!down) return; down = null; vp.classList.remove('dragging'); setTimeout(() => { dragged = false; }, 0);
+  };
   vp.addEventListener('pointerup', endDrag);
   vp.addEventListener('pointercancel', endDrag);
   vp.addEventListener('dragstart', (e) => e.preventDefault());
   vp.addEventListener('click', (e) => { if (dragged) { e.stopPropagation(); e.preventDefault(); } }, true);
+
+  // Mouse zoom: left click on empty canvas zooms in one step, right click anywhere on the
+  // canvas zooms out one step, both centred on the pointer. Cards keep click-to-fly.
+  const ZSTEP = 1.8;
+  function zoomAt(e, f) {
+    const r = vp.getBoundingClientRect();
+    const px = e.clientX - r.left - r.width / 2, py = e.clientY - r.top - r.height / 2;
+    const L = limits();
+    const ns = Math.max(L.min, Math.min(L.max, cam.s * f));
+    const wx = cam.cx + px / cam.s, wy = cam.cy + py / cam.s;
+    setCam({ s: ns, cx: wx - px / ns, cy: wy - py / ns }, true);
+  }
+  vp.addEventListener('click', (e) => {
+    if (editing || e.button !== 0 || e.target.closest('.node')) return;
+    zoomAt(e, ZSTEP);
+  });
+  // The browser menu is suppressed on the canvas only (header, panel and floats keep it).
+  vp.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    if (!editing && !edit && !down) zoomAt(e, 1 / ZSTEP);
+  });
+
+  // ---------- edit layout ----------
+  let editing = false, snapOn = true;
+  const SNAP = 8;
+  const editBtn = $('#editLayout'), editBar = $('#editbar');
+  function setEditing(on) {
+    editing = on;
+    document.body.classList.toggle('editing', on);
+    editBtn.setAttribute('aria-pressed', on);
+    editBtn.textContent = on ? 'Editing layout' : 'Edit layout';
+    editBar.hidden = !on;
+  }
+  editBtn.onclick = () => setEditing(!editing);
+  $('#edDone').onclick = () => setEditing(false);
+  $('#edSnap').onchange = (e) => { snapOn = e.target.checked; };
+  $('#edReset').onclick = () => {
+    if (!window.confirm('Reset the layout to the default? Your moved and resized cards in this browser will be lost.')) return;
+    userLayout = null;
+    try { localStorage.removeItem(LAYOUT_KEY); } catch (e) { /* nothing stored */ }
+    layoutWorld();
+    setCam(cam, false);
+  };
+  // Static site: nothing is written to the code from the page. The file goes to Downloads,
+  // and committing it as canvas/layout.json makes it the default for everyone.
+  $('#edExport').onclick = () => {
+    const blob = new Blob([JSON.stringify(currentLayout(), null, 2) + '\n'], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'layout.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
+
+  // A card can be edited when it is shown as a card at this zoom (its fly button is active):
+  // the 7 areas at the overview, the 4 categories once Inventory is open.
+  function startEdit(e) {
+    const h = e.target.closest('.rz, .hit');
+    if (!h) return false;
+    const el = h.parentElement, id = el.dataset.node;
+    const hit = el.querySelector(':scope > .hit');
+    if (!hit || !hit.classList.contains('active') || !(AREAS[id] || (id.startsWith('t-') && TILES[id.slice(2)]))) return false;
+    const isTile = id.startsWith('t-');
+    const g = isTile ? TILES[id.slice(2)] : AREAS[id];
+    const r = isTile ? { x: g.dx, y: g.dy, w: g.w, h: g.h } : { x: g.x, y: g.y, w: g.w, h: g.h };
+    edit = { id, isTile, g, mode: h.dataset.rz || 'move', start: r, last: Object.assign({}, r), x: e.clientX, y: e.clientY, over: overflowX(id), changed: false };
+    vp.classList.add('dragging');
+    try { vp.setPointerCapture(e.pointerId); } catch (_) {}
+    e.preventDefault();
+    return true;
+  }
+  const snapV = (v, on) => (on ? Math.round(v / SNAP) * SNAP : Math.round(v));
+  function moveEdit(e) {
+    const dx = (e.clientX - edit.x) / cam.s, dy = (e.clientY - edit.y) / cam.s;
+    if (Math.abs(e.clientX - edit.x) + Math.abs(e.clientY - edit.y) >= 3) dragged = true;
+    const sn = snapOn && !e.shiftKey, s0 = edit.start, m = edit.mode;
+    let x = s0.x, y = s0.y, w = s0.w, h = s0.h;
+    if (m === 'move') { x = snapV(s0.x + dx, sn); y = snapV(s0.y + dy, sn); }
+    else {
+      // Move only the dragged corner's edges; the opposite corner stays put.
+      const R = s0.x + s0.w, B = s0.y + s0.h;
+      if (m.includes('w')) { x = snapV(s0.x + dx, sn); w = R - x; } else w = snapV(R + dx, sn) - s0.x;
+      if (m.includes('n')) { y = snapV(s0.y + dy, sn); h = B - y; } else h = snapV(B + dy, sn) - s0.y;
+    }
+    const minW = edit.isTile ? TILE_MIN_W : areaMinW(edit.id);
+    if (w < minW) { if (m.includes('w')) x -= minW - w; w = minW; }
+    // Width first: content reflows, then the height can't go below what the content needs.
+    const g = edit.g;
+    if (m !== 'move') {
+      const needAt = (ww) => { g.w = ww; if (edit.isTile) { applyTile(edit.id.slice(2)); return tileNeed(edit.id.slice(2)); } return areaNeed(edit.id); };
+      let need = needAt(w);
+      if (w < edit.last.w && overflowX(edit.id) > edit.over + 1) {
+        // Narrower would cut off text that can't wrap: keep the last width that fit.
+        if (m.includes('w')) x = edit.last.x;
+        w = edit.last.w;
+        need = needAt(w);
+      }
+      if (h < need) { if (m.includes('n')) y -= need - h; h = need; }
+    }
+    if (edit.isTile) {
+      // Categories stay inside the Inventory card (resize Inventory to make room).
+      const inv = AREAS.inventory;
+      w = Math.min(w, inv.w - 16); h = Math.min(h, inv.h - 64);
+      x = Math.max(8, Math.min(inv.w - w - 8, x));
+      y = Math.max(56, Math.min(inv.h - h - 8, y));
+      Object.assign(g, { dx: x, dy: y, w, h });
+    } else Object.assign(g, { x: Math.max(0, x), y: Math.max(0, y), w, h });
+    edit.last = { x, y, w, h };
+    edit.changed = true;
+    placeWorld(m === 'move' ? edit.id : null);
+    scheduleUpdate();
+  }
 
   world.addEventListener('click', (e) => {
     const t = e.target.closest('[data-view],[data-sort],[data-basis],[data-ing],[data-fly],[data-lot],[data-order],[data-er]');
@@ -1339,7 +1586,7 @@
     else if (t.dataset.basis) setMapBasis(t.dataset.basis);
     else if (t.dataset.sort) setIngredientSort(t.dataset.sort);
     else if (t.dataset.ing) openIngredient(t.dataset.ing);
-    else if (t.dataset.fly) { closeInspector(); flyTo(t.dataset.fly); }
+    else if (t.dataset.fly) { if (!editing) { closeInspector(); flyTo(t.dataset.fly); } }
     else if (t.dataset.lot) openLot(t.dataset.lot, t.dataset.pid, t.dataset.pname, t.dataset.tx);
     else if (t.dataset.order) openOrder(t.dataset.order);
     else if (t.dataset.er) openER(t.dataset.er);
@@ -1369,7 +1616,8 @@
     env.classList.toggle('production', CFG.env === 'production');
     buildTasks();
     banner('Loading live ' + CFG.env + ' data…');
-    try { await loadAll(); } catch (e) { banner('Couldn’t load data: ' + e.message, true); return; }
+    readUserLayout();
+    try { await Promise.all([loadAll(), loadCodeLayout()]); } catch (e) { banner('Couldn’t load data: ' + e.message, true); return; }
     if (failed(data.inv)) { banner('Couldn’t load inventory from ' + API.base + ' (' + data.inv.error + ')', true); }
     else banner('');
     buildProducts();

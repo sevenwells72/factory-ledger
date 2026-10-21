@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-21 19:14 — Mouse zoom clicks + Edit layout mode with saved layouts
+- **File(s) changed:** `canvas/app.js`, `canvas/index.html`, `canvas/styles.css`, `canvas/README.md`, `canvas/layout.json` (new), `canvas/review/edit-layout-overview.png`, `canvas/review/edit-layout-categories.png` (new)
+- **What changed:** Left click on empty canvas zooms in one step and right click anywhere on the canvas zooms out one step, both centred on the pointer; the browser context menu is suppressed on the canvas only; card click-to-fly, drag-pan, wheel, Esc, minimap and −/+ unchanged. New "Edit layout" mode (top-bar toggle + toolbar with Snap to 8px / Shift, Reset layout with confirm, Save layout to code, Done): move cards by dragging, resize from four corner handles with content-based minimum sizes; covers the 7 overview cards and the 4 Inventory category tiles (product grids follow the tile size). Connectors, labels, zones and minimap redraw live from the real card edges, switching to facing edges when moved cards no longer face. Layout auto-saves per browser in localStorage (`flcanvas.layout`, try/catch); `canvas/layout.json` (empty = automatic layout) is the code default, and "Save layout to code" downloads layout.json to be committed there. Layout code split into measure (`layoutWorld`) and place (`placeWorld`). Checked with Playwright at 1440×900 (39 checks: click/right-click zoom, drag ≠ click, move/resize/min size/snap, arrows follow, reload keeps layout, reset, blocked storage, GET only, max 4 API requests in flight).
+- **Why:** Michael asked for mouse zoom and a way to arrange the canvas cards himself and keep the arrangement. No push, merge or deploy.
+
+---
+
 ## 2026-10-21 17:58 — Relationship map: family list approved, recipe-based default, usage toggle
 - **File(s) changed:** `canvas/families.js`, `canvas/app.js`, `canvas/styles.css`, `canvas/README.md`, `canvas/review/ingredients-relationship-map.png`
 - **What changed:** Product → family list set to approved (90007 = product 128 already coconut; no other coconut batch products found on staging, inactive included, so nothing added). Map now defaults to recipe-based positions (one batch of each of the 25 recipes, by weight, inventory-excluded lines left out), labelled "Based on recipes, not actual usage"; the 90-day actual-use mode is a second option with its own label and tray. Ingredient panel shows the recipe split too. Map gives the plot most of the space and smaller nodes so all 44 recipe ingredients fit.

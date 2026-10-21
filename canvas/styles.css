@@ -409,3 +409,25 @@ a.box:hover { background: #F5F7FA; }
   #minimap { display: none; }
   #crumbs button { max-width: 120px; }
 }
+
+/* ---------- edit layout ---------- */
+.edit-btn { flex-shrink: 0; height: 34px; padding: 0 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--soft); color: var(--ink); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.edit-btn:hover { background: var(--grey-bg); }
+.edit-btn[aria-pressed="true"] { background: var(--blue); border-color: var(--blue); color: #FFFFFF; font-weight: 600; }
+#editbar { position: fixed; top: calc(var(--header) + 12px); left: 50%; transform: translateX(-50%); z-index: 8; display: flex; align-items: center; gap: 12px; padding: 8px 10px 8px 14px; background: var(--chrome); border: 1.5px solid var(--blue); border-radius: 12px; box-shadow: 0 8px 24px rgba(16,24,40,0.14); font-size: 13px; max-width: calc(100vw - 32px); flex-wrap: wrap; }
+#editbar[hidden] { display: none; }
+#editbar .eb-title { font-weight: 600; color: var(--blue); }
+#editbar .eb-hint { color: var(--ink-2); }
+#editbar .eb-snap { display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+#editbar .dim { color: var(--ink-3); }
+#editbar button { height: 30px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; }
+#editbar button:hover { background: var(--grey-bg); }
+#editbar button.primary { background: var(--blue); border-color: var(--blue); color: #FFFFFF; font-weight: 600; }
+/* editable cards: dashed outline + move cursor; handles stay ~14 screen px at any zoom */
+body.editing .hit.active { cursor: move; outline: calc(2px * var(--px, 1)) dashed var(--blue); outline-offset: calc(-2px * var(--px, 1)); }
+.rz { display: none; position: absolute; z-index: 3; width: calc(14px * var(--px, 1)); height: calc(14px * var(--px, 1)); background: #FFFFFF; border: calc(2px * var(--px, 1)) solid var(--blue); border-radius: calc(3px * var(--px, 1)); }
+body.editing .hit.active ~ .rz { display: block; }
+.rz-nw { left: 0; top: 0; cursor: nwse-resize; }
+.rz-se { right: 0; bottom: 0; cursor: nwse-resize; }
+.rz-ne { right: 0; top: 0; cursor: nesw-resize; }
+.rz-sw { left: 0; bottom: 0; cursor: nesw-resize; }

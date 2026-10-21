@@ -41,12 +41,22 @@
     <button type="button" role="radio" data-theme-pick="warm" title="Warm modern" aria-label="Warm modern theme"><span class="sw sw-warm"></span></button>
     <button type="button" role="radio" data-theme-pick="blueprint" title="Operational map" aria-label="Operational map theme"><span class="sw sw-blueprint"></span></button>
   </div>
+  <button type="button" id="editLayout" class="edit-btn" aria-pressed="false">Edit layout</button>
   <div class="tasks" id="tasks" aria-label="Quick tasks"></div>
 </header>
 
 <div id="viewport"><div id="world"></div></div>
 
 <div id="banner" hidden></div>
+
+<div id="editbar" class="float" role="toolbar" aria-label="Edit layout" hidden>
+  <span class="eb-title">Editing layout</span>
+  <span class="eb-hint">Drag a card to move it, a corner to resize. Wheel zooms, background drag pans.</span>
+  <label class="eb-snap"><input type="checkbox" id="edSnap" checked> Snap to 8px <span class="dim">(hold Shift to turn off)</span></label>
+  <button type="button" id="edReset">Reset layout</button>
+  <button type="button" id="edExport" title="Downloads layout.json. Ask Claude to commit it as canvas/layout.json to make it the default.">Save layout to code</button>
+  <button type="button" id="edDone" class="primary">Done</button>
+</div>
 
 <div id="minimap" class="float">
   <div class="mm-head"><span>Map</span><span id="mm-src"></span></div>
