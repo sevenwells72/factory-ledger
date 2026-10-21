@@ -245,8 +245,8 @@ def test_enough_bran_keeps_the_original_recipe(client, db_cursor, sunshine, acto
 
 
 def test_non_sunshine_recipe_with_oat_bran_keeps_its_existing_shortage(client, db_cursor, sunshine, actors):
-    db_cursor.execute("""INSERT INTO products(id,name,odoo_code,type,default_batch_lb)
-                         SELECT max(id)+1,'Other oat-bran recipe','AUTO-OTHER','batch',28 FROM products RETURNING id""")
+    db_cursor.execute("""INSERT INTO products(id,name,odoo_code,type,default_batch_lb,is_service)
+                         SELECT max(id)+1,'Other oat-bran recipe','AUTO-OTHER','batch',28,false FROM products RETURNING id""")
     pid = db_cursor.fetchone()['id']
     db_cursor.execute('''INSERT INTO batch_formulas(id,product_id,ingredient_product_id,quantity_lb)
                         SELECT max(id)+1,%s,%s,28 FROM batch_formulas''', (pid, BRAN))

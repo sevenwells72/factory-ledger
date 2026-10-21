@@ -688,7 +688,7 @@ class TestSalesMatchEndpoint:
     def test_exact_odoo_code_match_via_item_code(self, client, cur):
         cust = _seed_customer(cur, "Match Cust C2")
         cur.execute(
-            "INSERT INTO products (name, type, uom, active, odoo_code) VALUES ('Odoo Coded Prod', 'finished', 'lb', true, '424242') RETURNING id")
+            "INSERT INTO products (name, type, uom, active, odoo_code,is_service) VALUES ('Odoo Coded Prod', 'finished', 'lb', true, '424242',false) RETURNING id")
         prod = cur.fetchone()["id"]
         r = _match(client, "Match Cust C2", [_line("their own wording", 1, code="424242")])
         line = r.json()["lines"][0]
@@ -1107,7 +1107,7 @@ class TestSalesApprovalAdvisoryLock:
             with seed.cursor(cursor_factory=RealDictCursor) as sc:
                 sc.execute("INSERT INTO customers (name) VALUES ('Race Cust 050') RETURNING id")
                 cust_id = sc.fetchone()["id"]
-                sc.execute("INSERT INTO products (name, type, uom, active) VALUES ('Race Prod 050', 'finished', 'lb', true) RETURNING id")
+                sc.execute("INSERT INTO products (name, type, uom, active,is_service) VALUES ('Race Prod 050', 'finished', 'lb', true,false) RETURNING id")
                 pid = sc.fetchone()["id"]
                 for n in (1, 2):
                     sc.execute(

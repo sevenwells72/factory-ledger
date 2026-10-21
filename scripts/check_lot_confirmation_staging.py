@@ -83,8 +83,8 @@ def check(apply_migrations=False):
             actor_id = cur.fetchone()['id']
             products = {}
             for label,kind in [('ingredient','ingredient'),('substitute','ingredient'),('batch','batch')]:
-                cur.execute("""INSERT INTO products(name,odoo_code,type,uom,default_batch_lb,active)
-                    VALUES (%s,%s,%s,'lb',0.10,true) RETURNING id""",(reference+' '+label,reference+'-'+label,kind))
+                cur.execute("""INSERT INTO products(name,odoo_code,type,uom,default_batch_lb,active,is_service)
+                    VALUES (%s,%s,%s,'lb',0.10,true,false) RETURNING id""",(reference+' '+label,reference+'-'+label,kind))
                 products[label] = cur.fetchone()['id']
                 assert products[label] >= 1_000_000_000
             cur.execute('INSERT INTO batch_formulas(product_id,ingredient_product_id,quantity_lb) VALUES (%s,%s,0.10)',

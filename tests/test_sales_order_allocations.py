@@ -106,8 +106,8 @@ def _seed_order(cur, n_lines=2, product_ids=None):
             pid = product_ids[i]
         else:
             cur.execute(
-                "INSERT INTO products (name, type, odoo_code, uom, active) "
-                "VALUES (%s, 'finished', %s, 'lb', true) RETURNING id",
+                "INSERT INTO products (name, type, odoo_code, uom, active,is_service) "
+                "VALUES (%s, 'finished', %s, 'lb', true,false) RETURNING id",
                 (f"TEST-044 FG {i}", f"T044-{i}"),
             )
             pid = cur.fetchone()["id"]

@@ -74,7 +74,7 @@ def check(apply_migration=False):
             actor_id = cur.fetchone()['id']
             cur.execute('INSERT INTO suppliers(name,active) VALUES(%s,true) RETURNING id', (ref + ' supplier',))
             supplier = cur.fetchone()['id']
-            cur.execute("INSERT INTO products(name,odoo_code,type,uom,case_size_lb,active) VALUES(%s,%s,'ingredient','lb',25,true) RETURNING id",
+            cur.execute("INSERT INTO products(name,odoo_code,type,uom,case_size_lb,active,is_service) VALUES(%s,%s,'ingredient','lb',25,true,false) RETURNING id",
                         (ref + ' oats', ref))
             product = cur.fetchone()['id']
             if min(actor_id, supplier, product) < 1_000_000_000:

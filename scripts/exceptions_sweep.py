@@ -35,7 +35,14 @@ def sweep(cur):
     exceptions = cur.rowcount
     cur.execute("""UPDATE shortage_flags SET status='escalated'
                    WHERE status='open' AND due_at < clock_timestamp()""")
-    return exceptions, cur.rowcount
+    flags = cur.rowcount
+    # PR #143: items added outside the app (scripts, imports) still get their
+    # one "Confirm: Charge or Product?" check. Never changes a setting.
+    from psycopg2.extras import RealDictCursor
+    from charge_setting import sweep as charge_sweep
+    with cur.connection.cursor(cursor_factory=RealDictCursor) as dict_cur:
+        charge_sweep(dict_cur)
+    return exceptions, flags
 
 
 def main():

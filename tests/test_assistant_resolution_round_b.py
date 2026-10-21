@@ -14,6 +14,7 @@ def round_b_catalog(db_cursor):
     cur.execute("INSERT INTO search_aliases(kind,alias,expansion) VALUES ('token','SS','Sunshine')")
     def product(name, kind='ingredient', **fields):
         active = fields.pop('active', True)
+        fields.setdefault('is_service', False)
         columns = ['name', 'type', 'active', *fields]
         cur.execute(f"INSERT INTO products ({','.join(columns)}) VALUES ({','.join(['%s'] * len(columns))}) RETURNING id",
                     (name, kind, active, *fields.values()))
@@ -146,7 +147,7 @@ def test_customer_punctuation_keeps_short_word_boundaries(round_b_catalog):
 def test_literal_nine_identity_precedes_classic_nine_family(round_b_catalog, identity):
     cur, product = round_b_catalog
     if identity == 'id':
-        cur.execute("INSERT INTO products(id,name,type,active) VALUES (9,'Unrelated literal ninth batch','batch',true)")
+        cur.execute("INSERT INTO products(id,name,type,active,is_service) VALUES (9,'Unrelated literal ninth batch','batch',true,false)")
         expected, query = 9, '9'
     elif identity == 'sku':
         expected = product('Unrelated literal SKU nine batch', 'batch', odoo_code='9')

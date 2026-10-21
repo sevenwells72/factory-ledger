@@ -112,8 +112,8 @@ def _cur(conn):
 def _seed_product(conn, name=None, product_type="ingredient"):
     with _cur(conn) as cur:
         cur.execute(
-            "INSERT INTO products (name, type, uom, active) "
-            "VALUES (%s, %s, 'lb', true) RETURNING id",
+            "INSERT INTO products (name, type, uom, active,is_service) "
+            "VALUES (%s, %s, 'lb', true,false) RETURNING id",
             (name or f"Lot047 {uuid4().hex[:10]}", product_type),
         )
         return cur.fetchone()["id"]
@@ -263,13 +263,13 @@ def test_047_applies_cleanly_on_historical_shapes_with_merged_twins(scratch_db_f
     with psycopg2.connect(url) as conn:
         with _cur(conn) as cur:
             cur.execute(
-                "INSERT INTO products (name, type, uom, active) "
-                "VALUES ('Batch Classic Granola #9 (test)', 'batch', 'lb', true) "
+                "INSERT INTO products (name, type, uom, active,is_service) "
+                "VALUES ('Batch Classic Granola #9 (test)', 'batch', 'lb', true,false) "
                 "RETURNING id")
             p_batch = cur.fetchone()["id"]
             cur.execute(
-                "INSERT INTO products (name, type, uom, active) "
-                "VALUES ('Granola SS Choc Chip Case (test)', 'finished', 'lb', true) "
+                "INSERT INTO products (name, type, uom, active,is_service) "
+                "VALUES ('Granola SS Choc Chip Case (test)', 'finished', 'lb', true,false) "
                 "RETURNING id")
             p_fg = cur.fetchone()["id"]
 
@@ -530,14 +530,14 @@ def test_receive_commit_lot_uuid_and_t2_warning(client, _db_connection):
 def _seed_makeable_product(conn, name):
     with _cur(conn) as cur:
         cur.execute(
-            "INSERT INTO products (name, type, uom, default_batch_lb, active) "
-            "VALUES (%s, 'batch', 'lb', 50, true) RETURNING id",
+            "INSERT INTO products (name, type, uom, default_batch_lb, active,is_service) "
+            "VALUES (%s, 'batch', 'lb', 50, true,false) RETURNING id",
             (name,),
         )
         batch_id = cur.fetchone()["id"]
         cur.execute(
-            "INSERT INTO products (name, type, uom, active) "
-            "VALUES (%s, 'ingredient', 'lb', true) RETURNING id",
+            "INSERT INTO products (name, type, uom, active,is_service) "
+            "VALUES (%s, 'ingredient', 'lb', true,false) RETURNING id",
             (f"{name} ING",),
         )
         ing_id = cur.fetchone()["id"]

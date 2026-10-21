@@ -91,7 +91,9 @@ def test_shipping_question_uses_effective_physical_remaining_and_keeps_bulk_in_p
     target = orders['Sunshine Granola']
     # A stale recorded count must not hide pounds restored by a voided shipment.
     db_cursor.execute('UPDATE sales_order_lines SET quantity_shipped_lb=25 WHERE id=%s', (target['line'],))
-    db_cursor.execute('UPDATE products SET case_size_lb=NULL WHERE id=%s', (items['batch']['id'],))
+    # The random fixture tag sometimes contained "FEE" and the bulk line was read
+    # as a fee; always name it that way so the service flag alone is exercised.
+    db_cursor.execute("UPDATE products SET case_size_lb=NULL, name=name || ' COFFEE FEE' WHERE id=%s", (items['batch']['id'],))
     db_cursor.execute('INSERT INTO sales_order_lines(sales_order_id,product_id,quantity_lb) VALUES (%s,%s,12.5)', (target['id'], items['batch']['id']))
     db_cursor.execute("INSERT INTO products(name,type,uom,case_size_lb,is_service,active) VALUES ('Keepalive freight','finished','each',5,true,true) RETURNING id")
     service_id = db_cursor.fetchone()['id']
@@ -164,7 +166,7 @@ def test_different_batch_asks_for_tag_without_source_product_or_sku(client, chat
 def test_exact_coconut_transcript_chooses_actual_finished_output_then_parent_batch(client, chat, db_cursor, monkeypatch, spanish):
     catalog = {}
     for key,name,kind,size in [('raw','Sweetened Flake Coconut','ingredient',None),('bulk','Batch Coconut Sweetened Flake','batch',None),('ten','Coconut Sweetened Flake CNS 10 LB','finished',10),('twentyfive','Coconut Sweetened Flake CNS 25 LB','finished',25)]:
-        db_cursor.execute("INSERT INTO products(name,type,uom,case_size_lb,active) VALUES (%s,%s,'lb',%s,true) RETURNING id", (name,kind,size))
+        db_cursor.execute("INSERT INTO products(name,type,uom,case_size_lb,active,is_service) VALUES (%s,%s,'lb',%s,true,false) RETURNING id", (name,kind,size))
         catalog[key] = db_cursor.fetchone()['id']
     db_cursor.execute('UPDATE products SET parent_batch_product_id=%s WHERE id=ANY(%s)', (catalog['bulk'],[catalog['ten'],catalog['twentyfive']]))
     db_cursor.execute("INSERT INTO lots(product_id,lot_code) VALUES (%s,'B26-1015-004') RETURNING id", (catalog['bulk'],))

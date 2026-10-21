@@ -1,0 +1,492 @@
+{
+  "local_only": true,
+  "openai_calls": 0,
+  "environment": {
+    "HOME": "/Users/cns",
+    "USER": "cns",
+    "LOGNAME": "cns",
+    "PATH": "/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/pkg/env/global/bin:/Library/Apple/usr/bin:/opt/homebrew/bin:/Applications/ChatGPT.app/Contents/Resources/codex-cli/codex-path:/Users/cns/.codex/tmp/arg0-macos/codex-arg04fbhnr:/Users/cns/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/override:/Users/cns/.grok/bin:/Users/cns/.local/bin:/Users/cns/Documents/.local/node20/bin:/opt/homebrew/opt/node@20/bin:/opt/homebrew/sbin:/Users/cns/.cache/codex-runtimes/codex-primary-runtime/dependencies/bin/fallback:/Applications/ChatGPT.app/Contents/Resources:/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS",
+    "TMPDIR": "/private/tmp",
+    "LC_ALL": "en_US.UTF-8",
+    "TZ": "America/New_York",
+    "PGHOST": "127.0.0.1",
+    "PGPORT": "55483",
+    "TEST_DB_PREFIX": "fl143br_",
+    "TEST_DATABASE_URL": "postgresql://127.0.0.1:55483/fl143_dev",
+    "API_KEY": "test-api-key",
+    "DASHBOARD_API_KEY": "test-dashboard-key",
+    "PYTHONDONTWRITEBYTECODE": "1",
+    "PYTHONPATH": "/private/tmp/fl143-validation/guards:/private/tmp/fl143-fixes",
+    "PLAYWRIGHT_MODULE": "/Users/cns/Documents/factory-ledger/node_modules/playwright/index.mjs",
+    "PLAYWRIGHT_CHANNEL": "chrome",
+    "BROWSER_CHANNEL": "chrome",
+    "PILOT_UX_PYTHON": "/Users/cns/Documents/factory-ledger/.venv-test/bin/python",
+    "PILOT_UX_PG_PORT": "55483",
+    "FIXB_REAL_MODEL": "0",
+    "FIXC_REAL_MODEL": "0",
+    "NETWORK_AUDIT_FILE": "/private/tmp/fl143-validation/guards/network-audit-browser.jsonl",
+    "NODE_OPTIONS": "--import=/private/tmp/fl143-validation/guards/network-guard.mjs"
+  },
+  "started_at": "2026-10-21T07:10:00.093498-04:00",
+  "runs": [
+    {
+      "name": "session-shift",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-session-shift-fix.mjs"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {},
+      "exit_code": 0,
+      "seconds": 5.57,
+      "log": "logs/session-shift.log.gz",
+      "checks": null,
+      "scenarios": 2,
+      "count_unit": "workflow or viewport/session scenarios",
+      "reported_count": 2,
+      "original_local_log": "/private/tmp/fl143-validation/browser/session-shift.log"
+    },
+    {
+      "name": "intake",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-integrated-intake.mjs"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {
+        "BROWSER_OUTPUT": "/private/tmp/fl143-validation/browser/intake",
+        "PLAYWRIGHT_MODULE": "/Users/cns/Documents/factory-ledger/node_modules/playwright"
+      },
+      "exit_code": 0,
+      "seconds": 9.33,
+      "log": "logs/intake.log.gz",
+      "checks": 4,
+      "scenarios": 4,
+      "results": "/private/tmp/fl143-validation/browser/intake/results.json",
+      "count_unit": "checks or cases",
+      "reported_count": 4,
+      "original_local_log": "/private/tmp/fl143-validation/browser/intake.log"
+    },
+    {
+      "name": "dashboard-key-failure",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-dashboard-key-failure.mjs"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {},
+      "exit_code": 0,
+      "seconds": 24.19,
+      "log": "logs/dashboard-key-failure.log.gz",
+      "checks": 48,
+      "count_unit": "checks or cases",
+      "reported_count": 48,
+      "original_local_log": "/private/tmp/fl143-validation/browser/dashboard-key-failure.log"
+    },
+    {
+      "name": "pilot-hosting",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-pilot-ux-hosting.mjs"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {
+        "PILOT_UX_HOSTING_OUT": "/private/tmp/fl143-validation/browser/pilot-hosting"
+      },
+      "exit_code": 0,
+      "seconds": 18.86,
+      "log": "logs/pilot-hosting.log.gz",
+      "checks": 272,
+      "records": null,
+      "results": "/private/tmp/fl143-validation/browser/pilot-hosting/results.json",
+      "count_unit": "checks or cases",
+      "reported_count": 272,
+      "original_local_log": "/private/tmp/fl143-validation/browser/pilot-hosting.log"
+    },
+    {
+      "name": "pilot-screens",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-pilot-screens.mjs"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {
+        "PILOT_VISUAL_OUT": "/private/tmp/fl143-validation/browser/pilot-screens"
+      },
+      "exit_code": 0,
+      "seconds": 14.26,
+      "log": "logs/pilot-screens.log.gz",
+      "checks": 60,
+      "records": null,
+      "results": "/private/tmp/fl143-validation/browser/pilot-screens/results.json",
+      "count_unit": "checks or cases",
+      "reported_count": 60,
+      "original_local_log": "/private/tmp/fl143-validation/browser/pilot-screens.log"
+    },
+    {
+      "name": "pilot-ux-review",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-pilot-ux-review.mjs"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {
+        "PILOT_UX_REVIEW_OUT": "/private/tmp/fl143-validation/browser/pilot-ux-review"
+      },
+      "exit_code": 0,
+      "seconds": 51.61,
+      "log": "logs/pilot-ux-review.log.gz",
+      "checks": 34,
+      "records": 0,
+      "results": "/private/tmp/fl143-validation/browser/pilot-ux-review/results.json",
+      "count_unit": "checks or cases",
+      "reported_count": 34,
+      "original_local_log": "/private/tmp/fl143-validation/browser/pilot-ux-review.log"
+    },
+    {
+      "name": "pilot-photo-language",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-pilot-photo-language.mjs"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {
+        "PILOT_PHOTO_LANGUAGE_OUT": "/private/tmp/fl143-validation/browser/pilot-photo-language"
+      },
+      "exit_code": 0,
+      "seconds": 13.11,
+      "log": "logs/pilot-photo-language.log.gz",
+      "checks": 13,
+      "records": 2,
+      "results": "/private/tmp/fl143-validation/browser/pilot-photo-language/results.json",
+      "count_unit": "checks or cases",
+      "reported_count": 13,
+      "original_local_log": "/private/tmp/fl143-validation/browser/pilot-photo-language.log"
+    },
+    {
+      "name": "assistant-phone",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-fl-assistant-round-c-phone.mjs"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {
+        "FIXC_PHONE_OUT": "/private/tmp/fl143-validation/browser/assistant-phone"
+      },
+      "exit_code": 0,
+      "seconds": 41.55,
+      "log": "logs/assistant-phone.log.gz",
+      "checks": 288,
+      "records": 0,
+      "results": "/private/tmp/fl143-validation/browser/assistant-phone/results.json",
+      "count_unit": "checks or cases",
+      "reported_count": 288,
+      "original_local_log": "/private/tmp/fl143-validation/browser/assistant-phone.log"
+    },
+    {
+      "name": "assistant-0",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-fl-assistant.mjs"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {
+        "F1_VISUAL_OUT": "/private/tmp/fl143-validation/browser/assistant-0",
+        "PILOT_SESSIONS": "0"
+      },
+      "exit_code": 0,
+      "seconds": 5.36,
+      "log": "logs/assistant-0.log.gz",
+      "checks": null,
+      "scenarios": 2,
+      "count_unit": "workflow or viewport/session scenarios",
+      "reported_count": 2,
+      "original_local_log": "/private/tmp/fl143-validation/browser/assistant-0.log"
+    },
+    {
+      "name": "assistant-round-a-0",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-fl-assistant-round-a.mjs"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {
+        "FIX_A_VISUAL_OUT": "/private/tmp/fl143-validation/browser/assistant-round-a-0",
+        "PILOT_SESSIONS": "0"
+      },
+      "exit_code": 0,
+      "seconds": 16.0,
+      "log": "logs/assistant-round-a-0.log.gz",
+      "checks": 30,
+      "records": null,
+      "results": "/private/tmp/fl143-validation/browser/assistant-round-a-0/results.json",
+      "count_unit": "checks or cases",
+      "reported_count": 30,
+      "original_local_log": "/private/tmp/fl143-validation/browser/assistant-round-a-0.log"
+    },
+    {
+      "name": "assistant-1",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-fl-assistant.mjs"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {
+        "F1_VISUAL_OUT": "/private/tmp/fl143-validation/browser/assistant-1",
+        "PILOT_SESSIONS": "1"
+      },
+      "exit_code": 0,
+      "seconds": 5.96,
+      "log": "logs/assistant-1.log.gz",
+      "checks": null,
+      "scenarios": 2,
+      "count_unit": "workflow or viewport/session scenarios",
+      "reported_count": 2,
+      "original_local_log": "/private/tmp/fl143-validation/browser/assistant-1.log"
+    },
+    {
+      "name": "assistant-final-floor",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-fl-assistant-final-floor.mjs"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {
+        "FL_FINAL_UI_OUT": "/private/tmp/fl143-validation/browser/assistant-final-floor"
+      },
+      "exit_code": 0,
+      "seconds": 42.66,
+      "log": "logs/assistant-final-floor.log.gz",
+      "checks": 240,
+      "records": 48,
+      "results": "/private/tmp/fl143-validation/browser/assistant-final-floor/results.json",
+      "count_unit": "checks or cases",
+      "reported_count": 240,
+      "original_local_log": "/private/tmp/fl143-validation/browser/assistant-final-floor.log"
+    },
+    {
+      "name": "assistant-round-a-1",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-fl-assistant-round-a.mjs"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {
+        "FIX_A_VISUAL_OUT": "/private/tmp/fl143-validation/browser/assistant-round-a-1",
+        "PILOT_SESSIONS": "1"
+      },
+      "exit_code": 0,
+      "seconds": 15.32,
+      "log": "logs/assistant-round-a-1.log.gz",
+      "checks": 30,
+      "records": null,
+      "results": "/private/tmp/fl143-validation/browser/assistant-round-a-1/results.json",
+      "count_unit": "checks or cases",
+      "reported_count": 30,
+      "original_local_log": "/private/tmp/fl143-validation/browser/assistant-round-a-1.log"
+    },
+    {
+      "name": "assistant-mobile-webkit",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-fl-assistant-mobile-ux.mjs"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {
+        "MOBILE_UX_OUT": "/private/tmp/fl143-validation/browser/assistant-mobile-webkit",
+        "MOBILE_UX_ENGINES": "webkit"
+      },
+      "exit_code": 0,
+      "seconds": 22.42,
+      "log": "logs/assistant-mobile-webkit.log.gz",
+      "checks": 144,
+      "records": 0,
+      "results": "/private/tmp/fl143-validation/browser/assistant-mobile-webkit/results.json",
+      "count_unit": "checks or cases",
+      "reported_count": 144,
+      "original_local_log": "/private/tmp/fl143-validation/browser/assistant-mobile-webkit.log"
+    },
+    {
+      "name": "key-sessions",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-key-sessions.mjs"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {},
+      "exit_code": 0,
+      "seconds": 1.73,
+      "log": "logs/key-sessions.log.gz",
+      "checks": null,
+      "scenarios": 2,
+      "count_unit": "workflow or viewport/session scenarios",
+      "reported_count": 2,
+      "original_local_log": "/private/tmp/fl143-validation/browser/key-sessions.log"
+    },
+    {
+      "name": "sales-orders-interactions",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-sales-orders-interactions.mjs",
+        "/private/tmp/fl143-fixes/dashboard",
+        "/private/tmp/fl143-validation/browser/sales-orders-interactions"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {},
+      "exit_code": 0,
+      "seconds": 6.29,
+      "log": "logs/sales-orders-interactions.log.gz",
+      "checks": 20,
+      "scenarios": 2,
+      "results": "/private/tmp/fl143-validation/browser/sales-orders-interactions/results.json",
+      "count_unit": "checks or cases",
+      "reported_count": 20,
+      "original_local_log": "/private/tmp/fl143-validation/browser/sales-orders-interactions.log"
+    },
+    {
+      "name": "pilot-ux-round",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-pilot-ux-round.mjs"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {
+        "PILOT_UX_OUT": "/private/tmp/fl143-validation/browser/pilot-ux-round"
+      },
+      "exit_code": 0,
+      "seconds": 111.53,
+      "log": "logs/pilot-ux-round.log.gz",
+      "checks": 96,
+      "records": 44,
+      "results": "/private/tmp/fl143-validation/browser/pilot-ux-round/results.json",
+      "count_unit": "checks or cases",
+      "reported_count": 96,
+      "original_local_log": "/private/tmp/fl143-validation/browser/pilot-ux-round.log"
+    },
+    {
+      "name": "so-detail-interactions",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-so-detail-interactions.mjs",
+        "/private/tmp/fl143-fixes/dashboard",
+        "/private/tmp/fl143-validation/browser/so-detail-interactions"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {},
+      "exit_code": 0,
+      "seconds": 14.63,
+      "log": "logs/so-detail-interactions.log.gz",
+      "checks": 36,
+      "scenarios": 36,
+      "results": "/private/tmp/fl143-validation/browser/so-detail-interactions/results.json",
+      "count_unit": "checks or cases",
+      "reported_count": 36,
+      "original_local_log": "/private/tmp/fl143-validation/browser/so-detail-interactions.log"
+    },
+    {
+      "name": "production-trace",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-production-trace.mjs",
+        "/private/tmp/fl143-validation/browser/production-trace"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {},
+      "exit_code": 0,
+      "seconds": 2.5,
+      "log": "logs/production-trace.log.gz",
+      "checks": null,
+      "scenarios": 4,
+      "count_unit": "workflow or viewport/session scenarios",
+      "reported_count": 4,
+      "original_local_log": "/private/tmp/fl143-validation/browser/production-trace.log"
+    },
+    {
+      "name": "run-types",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-run-types.mjs"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {
+        "RUNS_AUDIT_OUT": "/private/tmp/fl143-validation/browser/run-types"
+      },
+      "exit_code": 0,
+      "seconds": 6.02,
+      "log": "logs/run-types.log.gz",
+      "checks": null,
+      "scenarios": 4,
+      "count_unit": "workflow or viewport/session scenarios",
+      "reported_count": 4,
+      "original_local_log": "/private/tmp/fl143-validation/browser/run-types.log"
+    },
+    {
+      "name": "so-exit-actions",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-so-exit-actions.mjs"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {},
+      "exit_code": 0,
+      "seconds": 21.69,
+      "log": "logs/so-exit-actions.log.gz",
+      "checks": 174,
+      "count_unit": "checks or cases",
+      "reported_count": 174,
+      "original_local_log": "/private/tmp/fl143-validation/browser/so-exit-actions.log"
+    },
+    {
+      "name": "runs-interactions",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-runs-interactions.mjs"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {
+        "RUNS_AUDIT_OUT": "/private/tmp/fl143-validation/browser/runs-interactions"
+      },
+      "exit_code": 0,
+      "seconds": 14.1,
+      "log": "logs/runs-interactions.log.gz",
+      "checks": null,
+      "scenarios": 4,
+      "count_unit": "workflow or viewport/session scenarios",
+      "reported_count": 4,
+      "original_local_log": "/private/tmp/fl143-validation/browser/runs-interactions.log"
+    },
+    {
+      "name": "sales-orders-layout",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "/private/tmp/fl143-fixes/tests/visual/run-sales-orders-layout.mjs",
+        "/private/tmp/fl143-fixes/dashboard",
+        "/private/tmp/fl143-validation/browser/sales-orders-layout"
+      ],
+      "cwd": "/private/tmp/fl143-fixes",
+      "extra_environment": {},
+      "exit_code": 0,
+      "seconds": 47.27,
+      "log": "logs/sales-orders-layout.log.gz",
+      "checks": 26,
+      "scenarios": 26,
+      "results": "/private/tmp/fl143-validation/browser/sales-orders-layout/results.json",
+      "count_unit": "checks or cases",
+      "reported_count": 26,
+      "original_local_log": "/private/tmp/fl143-validation/browser/sales-orders-layout.log"
+    }
+  ],
+  "completed_at": "2026-10-21T07:12:57.114584-04:00",
+  "summary": {
+    "runner_count": 23,
+    "passed": 23,
+    "failed": 0,
+    "reported_checks_or_cases": 1515,
+    "runners_with_numeric_check_counters": 16,
+    "additional_workflow_or_viewport_session_scenarios": 20,
+    "runners_without_check_counters": 7,
+    "network_guard_audit_events": 0,
+    "normal_daytime_clock": true
+  },
+  "count_notes": "Numeric counters are each existing runner\u2019s reported check/case/contract-group counts. Seven legacy runners have no assertion counter; their independent workflows or viewport/session scenarios are reported separately. F1 has separate Assistant and customer workflows."
+}

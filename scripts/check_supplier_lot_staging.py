@@ -69,7 +69,7 @@ def check(apply_migration=False):
             cur.execute("INSERT INTO actors(name,role,key_hash,active) VALUES (%s,'office',%s,true) RETURNING id",
                         (reference + ' office', sha256(actor_key.encode()).hexdigest()))
             actor_id = cur.fetchone()['id']
-            cur.execute("INSERT INTO products(name,odoo_code,type,uom,active) VALUES (%s,%s,'ingredient','lb',true) RETURNING id",
+            cur.execute("INSERT INTO products(name,odoo_code,type,uom,active,is_service) VALUES (%s,%s,'ingredient','lb',true,false) RETURNING id",
                         (reference + ' synthetic ingredient', reference))
             product_id = cur.fetchone()['id']
             assert product_id >= 1_000_000_000

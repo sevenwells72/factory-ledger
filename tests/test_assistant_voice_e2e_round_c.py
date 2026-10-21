@@ -29,8 +29,8 @@ def voice_catalog(db_cursor):
         ('fruit', 'Fruit and Nut Granola', 'finished'),
         ('sprinkles', 'Rainbow Sprinkles', 'finished'),
     ]:
-        cur.execute("""INSERT INTO products(name,type,uom,default_batch_lb,case_size_lb,active)
-            VALUES (%s,%s,'lb',10,5,true) RETURNING id,name""", (name, kind))
+        cur.execute("""INSERT INTO products(name,type,uom,default_batch_lb,case_size_lb,active,is_service)
+            VALUES (%s,%s,'lb',10,5,true,false) RETURNING id,name""", (name, kind))
         catalog[key] = dict(cur.fetchone())
     cur.execute('UPDATE products SET parent_batch_product_id=%s WHERE id=%s',
                 (catalog['fruit_batch']['id'], catalog['fruit']['id']))

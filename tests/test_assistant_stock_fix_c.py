@@ -25,8 +25,8 @@ def staging_stock_catalog(db_cursor):
         ('fruit', 'Granola Fruit Nut 25 LB', 'finished', 'fruit_bulk', 50),
         ('ss', 'Batch Classic Granola #9 — EXTRA-KOSHER (SS)', 'batch', None, 100),
     ]:
-        cur.execute("""INSERT INTO products(name,type,uom,active,parent_batch_product_id,case_size_lb)
-                       VALUES (%s,%s,'lb',true,%s,%s) RETURNING id,name""",
+        cur.execute("""INSERT INTO products(name,type,uom,active,parent_batch_product_id,case_size_lb,is_service)
+                       VALUES (%s,%s,'lb',true,%s,%s,false) RETURNING id,name""",
                     (name, kind, result[parent]['id'] if parent else None, 25 if kind == 'finished' else None))
         result[key] = dict(cur.fetchone())
         if pounds:
@@ -39,7 +39,7 @@ def staging_stock_catalog(db_cursor):
                         (tid, result[key]['id'], lot, pounds))
     for flavor in ('Fruit Nut', 'Chocolate Chip', 'Cinnamon Raisin', 'Vanilla Almond'):
         for suffix in ('', ' — EXTRA-KOSHER (SS)'):
-            cur.execute("INSERT INTO products(name,type,uom,active) VALUES (%s,'batch','lb',true)",
+            cur.execute("INSERT INTO products(name,type,uom,active,is_service) VALUES (%s,'batch','lb',true,false)",
                         ('Batch Classic ' + flavor + ' Granola #9' + suffix,))
     return result
 
@@ -82,7 +82,7 @@ def test_exact_catalog_identity_never_expands_its_children(db_cursor, staging_st
 @pytest.mark.parametrize('spanish', [False, True])
 def test_genuinely_ambiguous_stock_uses_four_short_choices(client, chat, db_cursor, monkeypatch, spanish):
     for i in range(7):
-        db_cursor.execute("INSERT INTO products(name,type,uom,active) VALUES (%s,'ingredient','lb',true)", ('RoundC Ambiguous Grain ' + str(i),))
+        db_cursor.execute("INSERT INTO products(name,type,uom,active,is_service) VALUES (%s,'ingredient','lb',true,false)", ('RoundC Ambiguous Grain ' + str(i),))
     model(monkeypatch, ('inventory_lookup', {'q': 'RoundC Ambiguous Grain'}))
     response = turn(client, chat, '¿Cuánto hay de RoundC Ambiguous Grain?' if spanish else 'How much RoundC Ambiguous Grain?')
     card = response.json()['cards'][0]
@@ -118,7 +118,7 @@ def test_plain_stock_summary_retains_supplied_finished_case_count(lang, expected
 
 @pytest.mark.parametrize('spanish', [False, True])
 def test_hiding_zero_physical_stock_keeps_unverified_tag_evidence(client, chat, db_cursor, monkeypatch, spanish):
-    db_cursor.execute("INSERT INTO products(name,type,uom,active) VALUES ('C Unverified Only Oats','ingredient','lb',true) RETURNING id")
+    db_cursor.execute("INSERT INTO products(name,type,uom,active,is_service) VALUES ('C Unverified Only Oats','ingredient','lb',true,false) RETURNING id")
     pid = db_cursor.fetchone()['id']
     code = 'UNVERIFIED-999-P%s-1' % pid
     db_cursor.execute("INSERT INTO lots(product_id,lot_code,entry_source) VALUES (%s,%s,'unverified_make_input') RETURNING id", (pid,code))

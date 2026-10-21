@@ -95,7 +95,7 @@ def _insert_txn(cur, txn_type, lines, status="posted", notes=None):
 
 def _seed_lot(cur, product_name="VOIDTEST Synthetic Batch", product_type="batch"):
     cur.execute(
-        "INSERT INTO products (name, type, active) VALUES (%s, %s, true) RETURNING id",
+        "INSERT INTO products (name, type, active,is_service) VALUES (%s, %s, true,false) RETURNING id",
         (product_name, product_type),
     )
     product_id = cur.fetchone()["id"]

@@ -80,8 +80,8 @@ def seed_before_state(cur):
     for pid, code, name, ptype, batch_lb in PRODUCTS:
         cur.execute(
             "INSERT INTO products (id, odoo_code, name, type, uom, active, default_batch_lb, yield_multiplier, "
-            "case_size_lb, pack_format, parent_batch_product_id, yield_25lb_cases, yield_10lb_cases) "
-            "VALUES (%s, %s, %s, %s, 'lb', true, %s, 1, %s, %s, %s, %s, %s)",
+            "case_size_lb, pack_format, parent_batch_product_id, yield_25lb_cases, yield_10lb_cases,is_service) "
+            "VALUES (%s, %s, %s, %s, 'lb', true, %s, 1, %s, %s, %s, %s, %s,false)",
             (pid, code, name, ptype, batch_lb,
              25 if pid == FRUIT_NUT_FG else None, "25lb" if pid == FRUIT_NUT_FG else None,
              FRUIT_NUT if pid == FRUIT_NUT_FG else None,

@@ -44,8 +44,8 @@ def test_direct_day_review_works_without_model_and_keeps_counts_with_bounded_pre
 ])
 def test_similar_name_is_a_real_button_never_approved_before_click(client, chat, db_cursor, monkeypatch, kind, name, query):
     table = {'supplier': 'suppliers', 'customer': 'customers', 'product': 'products'}[kind]
-    extra = ",type" if kind == 'product' else ''
-    value = ",'ingredient'" if kind == 'product' else ''
+    extra = ",type,is_service" if kind == 'product' else ''
+    value = ",'ingredient',false" if kind == 'product' else ''
     db_cursor.execute(f'INSERT INTO {table}(name{extra}) VALUES (%s{value}) RETURNING id', (name,))
     identity = db_cursor.fetchone()['id']
     model(monkeypatch, ('resolve', {'kind': kind, 'query': query}))
@@ -62,7 +62,7 @@ def test_similar_name_is_a_real_button_never_approved_before_click(client, chat,
 @pytest.mark.db
 @pytest.mark.parametrize('spanish', [False, True])
 def test_misspelled_inventory_offers_catalog_buttons(client, chat, db_cursor, monkeypatch, spanish):
-    db_cursor.execute("INSERT INTO products(name,type) VALUES ('Sunflower Seeds','ingredient') RETURNING id")
+    db_cursor.execute("INSERT INTO products(name,type,is_service) VALUES ('Sunflower Seeds','ingredient',false) RETURNING id")
     identity = db_cursor.fetchone()['id']
     model(monkeypatch, ('inventory_lookup', {'q': 'Sunflour Seeds'}))
     response = turn(client, chat, '¿Cuánto tenemos de Sunflour Seeds?' if spanish else 'How much Sunflour Seeds do we have?')
@@ -97,7 +97,7 @@ def test_spanish_review_followup_is_direct_read(text):
 @pytest.mark.db
 @pytest.mark.parametrize('spanish', [False, True])
 def test_literal_existing_word_tag_is_never_normalized(client, chat, db_cursor, monkeypatch, spanish):
-    db_cursor.execute("INSERT INTO products(name,type) VALUES ('Literal tag oats','ingredient') RETURNING id")
+    db_cursor.execute("INSERT INTO products(name,type,is_service) VALUES ('Literal tag oats','ingredient',false) RETURNING id")
     product = db_cursor.fetchone()['id']
     code = 'UNO DOS TRES CUATRO' if spanish else 'ONE TWO THREE FOUR'
     db_cursor.execute('INSERT INTO lots(product_id,lot_code) VALUES (%s,%s)', (product, code))

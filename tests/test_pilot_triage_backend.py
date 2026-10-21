@@ -68,7 +68,7 @@ def test_recipe_removed_after_prepare_cannot_commit(client, db_cursor, items, ac
 
 @pytest.mark.parametrize('path,mode', [('/pack/prepare',None),('/pack','preview'),('/pack','commit'),('/pack/preview','preview'),('/pack/commit','commit')])
 def test_pack_missing_intermediate_recipe_refused(client, db_cursor, items, actors, path, mode):
-    db_cursor.execute("INSERT INTO products(name,type,default_batch_lb) VALUES ('Missing pilot intermediate','batch',10) RETURNING id")
+    db_cursor.execute("INSERT INTO products(name,type,default_batch_lb,is_service) VALUES ('Missing pilot intermediate','batch',10,false) RETURNING id")
     intermediate = db_cursor.fetchone()['id']
     db_cursor.execute('UPDATE products SET parent_batch_product_id=%s WHERE id=%s', (intermediate, items['finished']['id']))
     payload = body('pack', items) if mode is None else {'source_product':items['batch']['name'],'target_product':items['finished']['name'],'cases':2,'mode':mode}

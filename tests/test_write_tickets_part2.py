@@ -32,8 +32,8 @@ def seed(cur):
     token = uuid4().hex[:12].upper()
     products = {}
     for name, kind in [('ingredient', 'ingredient'), ('batch', 'batch'), ('finished', 'finished')]:
-        cur.execute('''INSERT INTO products(name,odoo_code,type,uom,default_batch_lb,case_size_lb,active)
-                       VALUES (%s,%s,%s,'lb',10,5,true) RETURNING id,name''',
+        cur.execute('''INSERT INTO products(name,odoo_code,type,uom,default_batch_lb,case_size_lb,active,is_service)
+                       VALUES (%s,%s,%s,'lb',10,5,true,false) RETURNING id,name''',
                     (f'WT2 {name} {token}', f'WT2-{name}-{token}', kind))
         products[name] = dict(cur.fetchone())
     cur.execute('UPDATE products SET parent_batch_product_id=%s WHERE id=%s',
@@ -402,7 +402,7 @@ def test_make_pins_multiple_fifo_lots_even_after_new_stock_arrives(client, db_cu
 @pytest.mark.parametrize('shortage', [False, True])
 def test_pack_add_ins_are_pinned_revalidated_and_traced(client, db_cursor, items, shortage):
     cur = db_cursor
-    cur.execute("INSERT INTO products(name,type,odoo_code,uom) VALUES (%s,'batch',%s,'lb') RETURNING id",
+    cur.execute("INSERT INTO products(name,type,odoo_code,uom,is_service) VALUES (%s,'batch',%s,'lb',false) RETURNING id",
                 ('WT2 intermediate '+uuid4().hex, 'WT2-'+uuid4().hex))
     intermediate = cur.fetchone()['id']
     cur.execute('UPDATE products SET parent_batch_product_id=%s WHERE id=%s', (intermediate, items['finished']['id']))

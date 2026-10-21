@@ -7,7 +7,8 @@ test('office visibility fails closed with flag off or missing FL permission',()=
   assert.deepEqual(office.permitted({create_order:true},true).map(([a])=>a),['create_order','approve_so']);
 });
 const common={order_id:10,line_id:2,customer_id:3,product_id:4,supplier_id:5,expected_receipt_id:6,document_id:7,customer_po:'000123',lines:[{product_id:4,quantity:2,unit:'each'}],reason:'short_closed',note:'reason',status:'in_production',quantity_lb:20,unit_price:0,expected_qty:50};
-for(const [action] of office.actions)test('A7 route and no direct write: '+action,()=>{
+// catalog_item (PR #143) is a direct owner/office catalog write with its own form; tested in test_charge_setting_ui.js.
+for(const [action] of office.actions.filter(([a])=>a!=='catalog_item'))test('A7 route and no direct write: '+action,()=>{
   const built=office.build(action,common);assert.ok(built.path.endsWith('/prepare'));assert.equal(built.body.client_source,'dashboard');
   assert.ok(['ORD','ER','CUS'].includes(built.prefix));assert.ok(!('mode' in built.body));assert.ok(!('created_by' in built.body));assert.ok(!('customer_name' in built.body));
 });

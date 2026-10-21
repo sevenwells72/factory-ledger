@@ -79,14 +79,14 @@ def _seed_batch(conn, name, notes=None, notes_es=None):
     with conn.cursor() as cur:
         cur.execute(
             "INSERT INTO products (name, type, uom, default_batch_lb, active, "
-            "verification_notes, verification_notes_es) "
-            "VALUES (%s, 'batch', 'lb', 50, true, %s, %s) RETURNING id",
+            "verification_notes, verification_notes_es,is_service) "
+            "VALUES (%s, 'batch', 'lb', 50, true, %s, %s,false) RETURNING id",
             (name, notes, notes_es),
         )
         batch_id = cur.fetchone()[0]
         cur.execute(
-            "INSERT INTO products (name, type, uom, active) "
-            "VALUES (%s, 'ingredient', 'lb', true) RETURNING id",
+            "INSERT INTO products (name, type, uom, active,is_service) "
+            "VALUES (%s, 'ingredient', 'lb', true,false) RETURNING id",
             (f"{name} OATS ZQX",),
         )
         ing_id = cur.fetchone()[0]

@@ -126,8 +126,8 @@ def coconut(db_cursor):
         ('ten', 'Coconut Sweetened Flake CNS 10 LB', 'finished', 10),
         ('twentyfive', 'Coconut Sweetened Flake CNS 25 LB', 'finished', 25),
     ]:
-        db_cursor.execute("""INSERT INTO products(name,type,uom,case_size_lb,active)
-            VALUES (%s,%s,'lb',%s,true) RETURNING id,name""", (name, kind, size))
+        db_cursor.execute("""INSERT INTO products(name,type,uom,case_size_lb,active,is_service)
+            VALUES (%s,%s,'lb',%s,true,false) RETURNING id,name""", (name, kind, size))
         products[key] = dict(db_cursor.fetchone())
     db_cursor.execute('UPDATE products SET parent_batch_product_id=%s WHERE id=ANY(%s)',
         (products['bulk']['id'], [products['ten']['id'], products['twentyfive']['id']]))

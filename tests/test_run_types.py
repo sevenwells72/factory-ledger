@@ -76,7 +76,15 @@ def test_missing_type_and_yield(client,schema):
     ('other','ingredient',False,False,False,False),('other','finished',True,True,False,False),
 ])
 def test_product_rules(client,schema,kind,ptype,active,service,no_production,ok):
+    if ptype == 'batch' and service:
+        # Preserve the application guard against corrupt PRE-086 data. This
+        # test transaction rolls back the temporary constraint removal; put
+        # the NOT VALID constraint back before exercising the live endpoint.
+        schema.execute('ALTER TABLE products DROP CONSTRAINT products_batch_is_product_check')
     pid=_product(schema,uuid4().hex[:8],label='typed',ptype=ptype,active=active,is_service=service,no_production=no_production)
+    if ptype == 'batch' and service:
+        schema.execute("ALTER TABLE products ADD CONSTRAINT products_batch_is_product_check "
+                       "CHECK (type <> 'batch' OR NOT is_service) NOT VALID")
     out=client.post('/production/runs',json=dict(product_id=pid,run_type=kind,planned_qty=1,planned_unit='lb',planned_date=str(PLANNED)),headers=DASH)
     assert out.status_code==(201 if ok else 400),out.text
     if not ok: assert kind in out.json()['detail']['message']
@@ -184,7 +192,7 @@ def test_down_preserves_pack_coverage(schema,client):
 def test_q8_assignments_are_separate_and_idempotent(schema):
     schema.execute("INSERT INTO production_lines(name,line_code) VALUES ('Granola','granola') ON CONFLICT (line_code) DO NOTHING")
     for sku in ('90008','90025','90026'):
-        schema.execute("INSERT INTO products(name,type,odoo_code,uom) SELECT %s,'batch',%s,'lb' WHERE NOT EXISTS (SELECT 1 FROM products WHERE odoo_code=%s)",('Batch '+sku,sku,sku))
+        schema.execute("INSERT INTO products(name,type,odoo_code,uom,is_service) SELECT %s,'batch',%s,'lb',false WHERE NOT EXISTS (SELECT 1 FROM products WHERE odoo_code=%s)",('Batch '+sku,sku,sku))
     sql=(ROOT/'scripts/s1_batch_line_assignments.sql').read_text()
     schema.execute(sql);schema.execute(sql)
     schema.execute("SELECT p.odoo_code,count(*) AS n FROM product_line_assignments a JOIN products p ON p.id=a.product_id JOIN production_lines l ON l.id=a.line_id WHERE p.odoo_code IN ('90008','90025','90026') AND l.line_code='granola' GROUP BY p.odoo_code")

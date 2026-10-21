@@ -103,7 +103,7 @@ LEGACY_ROWS = [
 
 def seed_rows(cur):
     suffix = uuid4().hex[:10].upper()
-    cur.execute("INSERT INTO products(name,odoo_code,type,uom) VALUES (%s,%s,'ingredient','lb') RETURNING id",
+    cur.execute("INSERT INTO products(name,odoo_code,type,uom,is_service) VALUES (%s,%s,'ingredient','lb',false) RETURNING id",
                 ('A3a test ' + suffix, 'A3A-' + suffix))
     product = cur.fetchone()['id']
     cur.execute('INSERT INTO lots(product_id,lot_code) VALUES (%s,%s) RETURNING id', (product, 'A3A-' + suffix))

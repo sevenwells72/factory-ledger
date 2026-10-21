@@ -2485,7 +2485,7 @@
     for (const line of lines) {
       const unit = line.is_non_weight || line.is_service ? 'units' : 'lb';
       const remaining = line.readiness?.remaining_lb ?? line.remaining_lb;
-      html += `<tr><td>${escHtml(line.sku || '')}</td><td>${escHtml(line.product || line.name || '')}${line.line_status === 'cancelled' ? ' (cancelled)' : ''}</td><td class="num">${SOList.number(line.quantity_lb)} ${unit}</td><td class="num">${SOList.number(remaining)} ${unit}</td></tr>`;
+      html += `<tr><td>${escHtml(line.sku || '')}</td><td>${escHtml(line.product || line.name || '')}${unit === 'units' ? ' ' + '<span class="charge-tag" title="Marked as a charge: no pounds or lots">Charge</span>' : ''}${line.line_status === 'cancelled' ? ' (cancelled)' : ''}</td><td class="num">${SOList.number(line.quantity_lb)} ${unit}</td><td class="num">${SOList.number(remaining)} ${unit}</td></tr>`;
     }
     return html + '</tbody></table></div>';
   }
@@ -3173,7 +3173,7 @@
       const requested = Number(line.requested_ship_lb);
       const available = Number(line.can_ship_lb);
       html += '<div class="preview-line">';
-      html += `<div class="preview-line-main"><strong>${escHtml(line.product)}</strong><span>Requested ${SOList.number(requested)} ${unit} · Can ship ${SOList.number(available)} ${unit}</span></div>`;
+      html += `<div class="preview-line-main"><strong>${escHtml(line.product)}</strong>${line.is_service ? '<span class="charge-tag" title="Marked as a charge: no pounds or lots">Charge</span>' : ''}<span>Requested ${SOList.number(requested)} ${unit} · Can ship ${SOList.number(available)} ${unit}</span></div>`;
       if (!line.is_service) html += `<div class="preview-reservations">Reserved for other orders: ${SOList.number(line.reserved_others_lb || 0)} lb${owners ? ` · ${escHtml(owners)}` : ''}</div>`;
       if (Number.isFinite(requested) && Number.isFinite(available) && available < requested) html += `<p class="preview-general-warning">Short ${SOList.number(requested - available)} ${unit} for this request.</p>`;
       const warning = line.allocation_warning;
@@ -3378,7 +3378,7 @@
         const palletResult = PalletCalculations.calculateLinePallets(line, line.unit_count);
         const productContent = (line.sku ? SOList.paragraph('SKU: ' + line.sku) : '') + (q.service ? SOList.paragraph('This service or non-weight line uses units and is excluded from physical-weight totals.') : SOList.paragraph(palletResult.calculatedPallets == null ? 'Pallet estimate unavailable.' : SOList.number(palletResult.calculatedPallets, 'pallets') + ' pallets ordered.'));
         html += `<tr class="${lineEditable ? 'order-line-edit-row ' : ''}${line.line_status === 'cancelled' ? 'so-line-cancelled' : ''}" data-line-id="${escAttr(line.line_id)}">`;
-        html += `<td data-label="Product"><div class="order-product-cell">${SOList.trigger('line-product-' + line.line_id, escHtml(product), 'The product or service ordered on this line.', productContent, 'so-line-product')}${q.service ? '' : `<button type="button" class="btn-sm order-inventory-toggle" data-line-id="${escAttr(line.line_id)}" aria-expanded="false" aria-controls="order-inventory-${escAttr(line.line_id)}">Inventory</button>`}</div></td>`;
+        html += `<td data-label="Product"><div class="order-product-cell">${SOList.trigger('line-product-' + line.line_id, escHtml(product), 'The product or service ordered on this line.', productContent, 'so-line-product')}${q.service ? '<span class="charge-tag" title="Marked as a charge: no pounds or lots">Charge</span>' : `<button type="button" class="btn-sm order-inventory-toggle" data-line-id="${escAttr(line.line_id)}" aria-expanded="false" aria-controls="order-inventory-${escAttr(line.line_id)}">Inventory</button>`}</div></td>`;
         if (lineEditable) {
           html += line.unit === 'each'
             ? `<td class="num" data-label="Ordered units">${SOList.number(line.quantity)} units</td>`

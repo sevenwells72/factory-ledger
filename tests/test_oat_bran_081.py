@@ -18,7 +18,7 @@ def seed(cur):
     for f in snapshot['formulas']:
         products.setdefault(f['ingredient_product_id'],{'id':f['ingredient_product_id'],'odoo_code':f['ingredient_code'], 'name':f['ingredient_name'],'type':'ingredient','default_batch_lb':None})
     for p in products.values():
-        cur.execute('INSERT INTO products(id,odoo_code,name,type,default_batch_lb,active) VALUES (%s,%s,%s,%s,%s,true)',tuple(p[k] for k in ['id','odoo_code','name','type','default_batch_lb']))
+        cur.execute('INSERT INTO products(id,odoo_code,name,type,default_batch_lb,active,is_service) VALUES (%s,%s,%s,%s,%s,true,false)',tuple(p[k] for k in ['id','odoo_code','name','type','default_batch_lb']))
     for f in snapshot['formulas']:
         cur.execute('INSERT INTO batch_formulas(id,product_id,ingredient_product_id,quantity_lb,exclude_from_inventory) VALUES (%s,%s,%s,%s,%s)',tuple(f[k] for k in ['id','product_id','ingredient_product_id','quantity_lb','exclude_from_inventory']))
 

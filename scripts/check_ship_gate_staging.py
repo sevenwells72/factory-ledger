@@ -75,7 +75,7 @@ def check(apply_migration=False):
                             (ref+' '+role,role,sha256(key.encode()).hexdigest()));actor_ids[role]=cur.fetchone()['id']
             cur.execute('INSERT INTO customers(name,active) VALUES(%s,true) RETURNING id',(ref+' customer',));customer=cur.fetchone()['id']
             cur.execute('INSERT INTO suppliers(name,active) VALUES(%s,true) RETURNING id',(ref+' supplier',));supplier=cur.fetchone()['id']
-            cur.execute("INSERT INTO products(name,odoo_code,type,uom,case_size_lb,active) VALUES(%s,%s,'finished','lb',25,true) RETURNING id",(ref+' granola',ref));product=cur.fetchone()['id']
+            cur.execute("INSERT INTO products(name,odoo_code,type,uom,case_size_lb,active,is_service) VALUES(%s,%s,'finished','lb',25,true,false) RETURNING id",(ref+' granola',ref));product=cur.fetchone()['id']
             if min(customer,supplier,product)<1_000_000_000:raise RuntimeError('Staging synthetic ID range is required')
         http=TestClient(main.app)
         def post(path,payload,role='office',status=200):

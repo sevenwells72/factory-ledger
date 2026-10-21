@@ -21,6 +21,7 @@ def catalog(db_cursor):
     # Most unit cases control aliases explicitly; seed coverage reapplies 060.
     cur.execute('DELETE FROM search_aliases')
     def product(name, type='ingredient', **fields):
+        fields.setdefault('is_service', False)
         columns = ['name', 'type', 'active', *fields]
         cur.execute(f"INSERT INTO products ({','.join(columns)}) VALUES ({','.join(['%s'] * len(columns))}) RETURNING id",
                     (name, type, True, *fields.values()))
