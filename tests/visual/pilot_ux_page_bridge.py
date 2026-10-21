@@ -46,7 +46,7 @@ with connection() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
     products = {}
     rows = [(11, 'Oats', 'ingredient', '11020', None, None, 'regular'), (12, 'Sunflower Seeds', 'ingredient', '11010', None, None, 'regular'), (13, 'Coconut Macaroon', 'ingredient', '11030', None, None, 'regular'), (21, 'Batch Classic Granola #9', 'batch', '90002', 200, None, 'regular'), (22, 'Batch Fruit Nut Granola', 'batch', '90003', 40, None, 'regular'), (31, 'Granola Classic 25 LB', 'finished', '70013', None, 25, 'regular'), (32, 'Granola Classic 25 LB SS EXTRA-KOSHER', 'finished', '70014', None, 25, 'extra_kosher'), (33, 'Granola Classic 25 LB SS EXTRA-KOSHER ALT', 'finished', '70015', None, 25, 'extra_kosher'), (34, 'Granola Fruit Nut 25 LB', 'finished', '70016', None, 25, 'regular'), (35, 'Sprinkles Rainbow 10 LB', 'finished', '70017', None, 10, 'regular')]
     for pid, name, kind, sku, batch, case, tier in rows:
-        cur.execute("INSERT INTO products(id,name,type,odoo_code,uom,default_batch_lb,case_size_lb,active,kosher_tier) VALUES(%s,%s,%s,%s,'lb',%s,%s,true,%s)", (pid,name,kind,sku,batch,case,tier))
+        cur.execute("INSERT INTO products(id,name,type,odoo_code,uom,default_batch_lb,case_size_lb,active,kosher_tier,is_service) VALUES(%s,%s,%s,%s,'lb',%s,%s,true,%s,false)", (pid,name,kind,sku,batch,case,tier))
         products[name] = pid
     cur.execute('UPDATE products SET parent_batch_product_id=21 WHERE id IN (31,32,33)')
     cur.execute('UPDATE products SET parent_batch_product_id=22 WHERE id=34')

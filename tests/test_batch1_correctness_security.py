@@ -95,8 +95,8 @@ def _seed_trace_graph(cur):
         ("void_batch", void_batch_name, "batch"),
     ):
         cur.execute(
-            "INSERT INTO products (name, type, odoo_code, active) "
-            "VALUES (%s, %s, %s, true) RETURNING id",
+            "INSERT INTO products (name, type, odoo_code, active,is_service) "
+            "VALUES (%s, %s, %s, true,false) RETURNING id",
             (name, product_type, f"B1-{key}-{token}"),
         )
         product_ids[key] = cur.fetchone()["id"]
@@ -374,8 +374,8 @@ def test_output_lot_forward_trace_isolated_by_lot_id_when_codes_collide(
             ("other_pack", f"Coconut Pack {token}", "finished"),
         ):
             cur.execute(
-                "INSERT INTO products (name, type, odoo_code, active) "
-                "VALUES (%s, %s, %s, true) RETURNING id",
+                "INSERT INTO products (name, type, odoo_code, active,is_service) "
+                "VALUES (%s, %s, %s, true,false) RETURNING id",
                 (name, product_type, f"TRACE-{key}-{token}"),
             )
             product_ids[key] = cur.fetchone()["id"]
@@ -499,8 +499,8 @@ def test_dashboard_forward_trace_filters_same_code_shipments_by_lot_id(
             ("other_target", "finished"),
         ):
             cur.execute(
-                "INSERT INTO products (name, type, odoo_code, active) "
-                "VALUES (%s, %s, %s, true) RETURNING id",
+                "INSERT INTO products (name, type, odoo_code, active,is_service) "
+                "VALUES (%s, %s, %s, true,false) RETURNING id",
                 (f"Dashboard {key} {token}", product_type, f"DASH-{key}-{token}"),
             )
             product_ids[key] = cur.fetchone()["id"]
@@ -628,8 +628,8 @@ def test_sales_order_shipment_history_excludes_correction_voids(
         )
         customer_id = cur.fetchone()["id"]
         cur.execute(
-            "INSERT INTO products (name, type, odoo_code, active, case_size_lb) "
-            "VALUES (%s, 'finished', %s, true, 10) RETURNING id",
+            "INSERT INTO products (name, type, odoo_code, active, case_size_lb,is_service) "
+            "VALUES (%s, 'finished', %s, true, 10,false) RETURNING id",
             (f"B1 Finished {token}", f"B1-FG-{token}"),
         )
         product_id = cur.fetchone()["id"]

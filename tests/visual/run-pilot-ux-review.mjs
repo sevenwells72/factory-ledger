@@ -26,8 +26,8 @@ try{
   pgRun('psql',['-d',db,'-v','ON_ERROR_STOP=1','-q','-f',path.join(root,'tests/schema/schema.sql')]);
   // Synthetic pouch packaging and already-extracted documents; extraction is never run.
   pgRun('psql',['-d',db,'-v','ON_ERROR_STOP=1','-q','-c',`
-    INSERT INTO products(id,name,odoo_code,type,uom,pack_format,case_size_lb,bags_per_case,units_per_case,retail_bag_oz,active)
-      VALUES(501,'Pilot Review Pouches','PR142POUCH','finished','lb','bagged',7.5,12,12,10,true);
+    INSERT INTO products(id,name,odoo_code,type,uom,pack_format,case_size_lb,bags_per_case,units_per_case,retail_bag_oz,active,is_service)
+      VALUES(501,'Pilot Review Pouches','PR142POUCH','finished','lb','bagged',7.5,12,12,10,true,false);
     INSERT INTO purchase_documents(id,storage_path,original_filename,mime_type,file_sha256,byte_size,status,document_kind,extraction)
       VALUES(9101,'pilot-review/sales','pilot-review-sales.png','image/png','pilot-review-sales',10,'extracted','sales',
         '{"customer_name":"Setton Farms","po_number":"PRACTICE-REVIEW","lines":[{"description":"Practice cases","quantity":3,"unit":"cases","quantity_lb":75},{"description":"Practice boxes","quantity":4,"unit":"boxes","quantity_lb":100}]}'),

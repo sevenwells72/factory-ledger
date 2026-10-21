@@ -58,8 +58,8 @@ def _seed_adjustment_target(conn):
     lot_code = f"OCCURRED-{token}"
     with conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(
-            "INSERT INTO products (name, type, odoo_code, active) "
-            "VALUES (%s, 'finished', %s, true) RETURNING id",
+            "INSERT INTO products (name, type, odoo_code, active,is_service) "
+            "VALUES (%s, 'finished', %s, true,false) RETURNING id",
             (product_name, f"OCC-{token}"),
         )
         product_id = cur.fetchone()["id"]

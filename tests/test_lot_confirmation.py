@@ -84,7 +84,7 @@ def test_every_fifo_lot_and_pack_addin_needs_evidence(client, db_cursor, items):
     assert len(draft['draft']['input_plan'])==2
     error(commit(client,draft,lot_confirmations=[evidence(item)]),422,'LOT_NOT_CONFIRMED')
     assert commit(client,draft,lot_confirmations=[evidence(i,'full_code') for i in draft['draft']['input_plan']]).status_code==200
-    db_cursor.execute("INSERT INTO products(name,type,uom) VALUES ('A5 intermediate','batch','lb') RETURNING id")
+    db_cursor.execute("INSERT INTO products(name,type,uom,is_service) VALUES ('A5 intermediate','batch','lb',false) RETURNING id")
     intermediate=db_cursor.fetchone()['id']
     db_cursor.execute('UPDATE products SET parent_batch_product_id=%s WHERE id=%s',(intermediate,items['finished']['id']))
     for pid,qty in [(items['batch']['id'],10),(item['id'],2)]:
@@ -165,7 +165,7 @@ def sub_payload(items):
 
 @pytest.fixture
 def substitute(db_cursor,items):
-    db_cursor.execute("INSERT INTO products(name,type,uom) VALUES ('A5 replacement','ingredient','lb') RETURNING id")
+    db_cursor.execute("INSERT INTO products(name,type,uom,is_service) VALUES ('A5 replacement','ingredient','lb',false) RETURNING id")
     pid=db_cursor.fetchone()['id']
     db_cursor.execute("INSERT INTO lots(product_id,lot_code) VALUES (%s,'A5-SUBSTITUTE-4312') RETURNING id,lot_code",(pid,))
     row=dict(db_cursor.fetchone()); row['lot_id']=row.pop('id'); row['id']=pid

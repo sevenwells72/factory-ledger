@@ -24,8 +24,8 @@ def _order(cur, product_name, legacy):
     tag = uuid4().hex[:8]
     cur.execute("INSERT INTO customers(name,active) VALUES (%s,true) RETURNING id", ('Fee name ' + tag,))
     customer = cur.fetchone()[0]
-    cur.execute("""INSERT INTO products(name,odoo_code,type,uom,case_size_lb,active)
-                   VALUES (%s,%s,'finished','lb',25,true) RETURNING id""", (f'{product_name} {tag}', 'FEE-' + tag))
+    cur.execute("""INSERT INTO products(name,odoo_code,type,uom,case_size_lb,active,is_service)
+                   VALUES (%s,%s,'finished','lb',25,true,false) RETURNING id""", (f'{product_name} {tag}', 'FEE-' + tag))
     bulk = cur.fetchone()[0]
     cur.execute("""INSERT INTO products(name,odoo_code,type,uom,is_service,active)
                    VALUES (%s,%s,'finished','each',true,true) RETURNING id""", ('Pallet Charge ' + tag, 'PAL-' + tag))

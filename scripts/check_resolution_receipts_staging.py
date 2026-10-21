@@ -74,8 +74,8 @@ def check(apply_migration=False):
             products = {}
             for name, kind, unit, weight in [('ingredient','ingredient','lb',15), ('batch','batch','lb',15),
                                             ('case','finished','case',15)]:
-                cur.execute('''INSERT INTO products(name,odoo_code,type,uom,default_batch_lb,case_size_lb,active)
-                    VALUES (%s,%s,%s,%s,10,%s,true) RETURNING id''',
+                cur.execute('''INSERT INTO products(name,odoo_code,type,uom,default_batch_lb,case_size_lb,active,is_service)
+                    VALUES (%s,%s,%s,%s,10,%s,true,false) RETURNING id''',
                     (reference+' '+name, reference+'-'+name, kind, unit, weight))
                 products[name] = cur.fetchone()['id']
                 assert products[name] >= 1_000_000_000

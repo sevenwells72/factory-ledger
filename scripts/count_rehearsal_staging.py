@@ -164,8 +164,8 @@ def seed(uri, ref, t0):
                 [(f'misc{n}', 'ingredient', f'Ingredient {n}', 'lb', None, 100) for n in range(1, 7)] + \
                 [('empty', 'ingredient', 'Empty-shelf ingredient', 'lb', None, None)]   # zero-only group (fix round 2)
         for label, kind, name, uom, case, stock in specs:
-            cur.execute('''INSERT INTO products(name,odoo_code,type,uom,case_size_lb,default_batch_lb,active)
-                           VALUES (%s,%s,%s,%s,%s,%s,true) RETURNING id,name,odoo_code''',
+            cur.execute('''INSERT INTO products(name,odoo_code,type,uom,case_size_lb,default_batch_lb,active,is_service)
+                           VALUES (%s,%s,%s,%s,%s,%s,true,false) RETURNING id,name,odoo_code''',
                         (f'STG {ref} {name}', f'{ref}-{label.upper()}', kind, uom, case, 30 if kind == 'batch' else None))
             product = dict(cur.fetchone())
             assert product['id'] >= 1_000_000_000
@@ -190,8 +190,8 @@ def seed(uri, ref, t0):
         if not extra:
             # Every real lb candidate already carries an earlier run's lot: use a synthetic
             # extra-kosher lb batch product instead (real products are never reused twice).
-            cur.execute('''INSERT INTO products(name,odoo_code,type,uom,active,kosher_tier)
-                           VALUES (%s,%s,'batch','lb',true,'extra_kosher') RETURNING id,name,odoo_code''',
+            cur.execute('''INSERT INTO products(name,odoo_code,type,uom,active,kosher_tier,is_service)
+                           VALUES (%s,%s,'batch','lb',true,'extra_kosher',false) RETURNING id,name,odoo_code''',
                         (f'STG {ref} Extra-kosher batch', f'{ref}-EXTRA'))
             extra = cur.fetchone()
             assert extra['id'] >= 1_000_000_000

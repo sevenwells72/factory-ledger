@@ -1,0 +1,165 @@
+{
+  "pr": 143,
+  "branch": "fix/fee-name-match",
+  "completed_at": "2026-10-21T07:20:48.706121-04:00",
+  "status": "all requested local suites passed",
+  "draft": true,
+  "merged": false,
+  "environment": {
+    "timezone": "America/New_York",
+    "clock": "Unmodified daytime system clock on 2026-10-21, approximately 07:07\u201307:20 EDT",
+    "database": "isolated loopback PostgreSQL 17 on 127.0.0.1:55483",
+    "fresh_database_per_full_python_mode": true,
+    "python": "3.12.14",
+    "pydantic": "2.14.1",
+    "openai_calls": 0,
+    "production_database_access": false,
+    "railway_access": false,
+    "external_network_permitted": false,
+    "external_network_audit_events": 0
+  },
+  "numbering": {
+    "pr144_commit": "d147dbdbb603d8763c122bebca9636727628ee75",
+    "pr144_reserved": {
+      "migration": "085_tap_lot_confirmation",
+      "changelog_rows": [
+        225
+      ],
+      "ledger_ui_js": 18,
+      "ledger_forms_css": 9
+    },
+    "pr143": {
+      "migration": "086_charge_setting_check",
+      "changelog_rows": [
+        226,
+        227,
+        228
+      ],
+      "ledger_ui_js": 19,
+      "ledger_forms_css": 10,
+      "exceptions_js": 9
+    }
+  },
+  "fixes": [
+    "General creation and admin editing reject batch Charge choices; SQL constraint also rejects imported batch Charges.",
+    "New SQL imports must explicitly supply Product or Charge; existing settings are not rewritten. Legacy fixture inserts state their choices.",
+    "Question checking and confirmation lock the same product and re-read saved confirmation after waiting; four forced two-connection races cover both orders.",
+    "Open warning title, current-setting label and bilingual message use current item data while original exception details remain unchanged."
+  ],
+  "full_suites": {
+    "python-0": {
+      "passed": 7030,
+      "failed": 0,
+      "skipped": 0,
+      "exit_code": 0,
+      "seconds": 163.58,
+      "log": "logs/python-0.log.gz",
+      "command": [
+        "/Users/cns/Documents/factory-ledger/.venv-test/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "--tb=short"
+      ],
+      "database": "fl143_suite_0"
+    },
+    "python-1": {
+      "passed": 7030,
+      "failed": 0,
+      "skipped": 0,
+      "exit_code": 0,
+      "seconds": 162.08,
+      "log": "logs/python-1.log.gz",
+      "command": [
+        "/Users/cns/Documents/factory-ledger/.venv-test/bin/python",
+        "-m",
+        "pytest",
+        "-q",
+        "--tb=short"
+      ],
+      "database": "fl143_suite_1"
+    },
+    "node": {
+      "passed": 588,
+      "failed": 0,
+      "skipped": 0,
+      "exit_code": 0,
+      "seconds": 1.71,
+      "log": "logs/node.log.gz",
+      "command": [
+        "/opt/homebrew/bin/node",
+        "--test",
+        "/private/tmp/fl143-fixes/tests/test_archived_products_dashboard.js",
+        "/private/tmp/fl143-fixes/tests/test_assistant_display.js",
+        "/private/tmp/fl143-fixes/tests/test_assistant_mobile_ux.js",
+        "/private/tmp/fl143-fixes/tests/test_assistant_page_round_a.js",
+        "/private/tmp/fl143-fixes/tests/test_background_session_ui.js",
+        "/private/tmp/fl143-fixes/tests/test_background_startup_ui.js",
+        "/private/tmp/fl143-fixes/tests/test_batch_a_ui.js",
+        "/private/tmp/fl143-fixes/tests/test_batch_c_ui.js",
+        "/private/tmp/fl143-fixes/tests/test_charge_setting_ui.js",
+        "/private/tmp/fl143-fixes/tests/test_d12_ui.js",
+        "/private/tmp/fl143-fixes/tests/test_dashboard_access_errors.js",
+        "/private/tmp/fl143-fixes/tests/test_dashboard_runtime.js",
+        "/private/tmp/fl143-fixes/tests/test_er_intake_logic.js",
+        "/private/tmp/fl143-fixes/tests/test_final_floor_ui.js",
+        "/private/tmp/fl143-fixes/tests/test_fl_assistant_ui.js",
+        "/private/tmp/fl143-fixes/tests/test_key_session_ui.js",
+        "/private/tmp/fl143-fixes/tests/test_ledger_language_ui.js",
+        "/private/tmp/fl143-fixes/tests/test_office_customer_ui.js",
+        "/private/tmp/fl143-fixes/tests/test_office_ui.js",
+        "/private/tmp/fl143-fixes/tests/test_order_create_review.js",
+        "/private/tmp/fl143-fixes/tests/test_pallet_calculations.js",
+        "/private/tmp/fl143-fixes/tests/test_pilot_display.js",
+        "/private/tmp/fl143-fixes/tests/test_pilot_entry_ui.js",
+        "/private/tmp/fl143-fixes/tests/test_pilot_ticket_ui.js",
+        "/private/tmp/fl143-fixes/tests/test_pilot_walkthrough_reporting.js",
+        "/private/tmp/fl143-fixes/tests/test_ready_ticket_ui.js",
+        "/private/tmp/fl143-fixes/tests/test_session_shift_fix_ui.js",
+        "/private/tmp/fl143-fixes/tests/test_shift_summary_ui.js",
+        "/private/tmp/fl143-fixes/tests/test_so_list_actions_ui.js",
+        "/private/tmp/fl143-fixes/tests/test_void_ui.js"
+      ]
+    }
+  },
+  "browsers": {
+    "existing_runner_count": 23,
+    "existing_reported_checks_or_cases": 1515,
+    "additional_workflow_scenarios": 20,
+    "focused_charge_runner_checks": 10,
+    "total_runner_invocations": 24,
+    "total_reported_checks_or_cases": 1525,
+    "failed": 0,
+    "details": "browser-runners.json",
+    "focused_details": "charge-browser-results.json"
+  },
+  "migration_coexistence": {
+    "apply_down_reapply_idempotent": true,
+    "markers_independent": [
+      "085_tap_lot_confirmation",
+      "086_charge_setting_check"
+    ],
+    "batch_constraint_survives_085_rollback": true,
+    "log": "logs/migration-coexistence.log.gz"
+  },
+  "scope": {
+    "main_changed_functions": [
+      "admin_update_product",
+      "quick_create_product"
+    ],
+    "database_pool_and_turn_handling_unchanged": true,
+    "openapi_operations_before": 30,
+    "openapi_operations_after": 30
+  },
+  "initial_attempt": {
+    "result": "One polymorphic product test fixture still omitted is_service. Fixed the fixture and reran both entire suites on fresh databases.",
+    "log": "logs/initial-python-off.log.gz",
+    "interrupted_intermediate_attempts_preserved_locally": "/private/tmp/fl143-validation/initial-attempt"
+  },
+  "coverage_note": "Current local functional browser runners were used. Hosted, real-model, historical fixed-port runners and the broad diagnostic visual audit were not run.",
+  "cleanup": {
+    "owned_test_databases_remaining": 0,
+    "isolated_postgres_cluster_stopped": true,
+    "temporary_node_modules_symlink_removed": true
+  }
+}

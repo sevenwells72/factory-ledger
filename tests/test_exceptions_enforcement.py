@@ -521,7 +521,7 @@ def test_shortage_is_recomputed_under_lock_at_commit(client, db_cursor, items, a
 
 
 def test_product_with_no_lot_at_all_still_blocks(client, db_cursor, items):
-    db_cursor.execute("INSERT INTO products(name,odoo_code,type,uom) VALUES (%s,%s,'ingredient','lb') RETURNING id",
+    db_cursor.execute("INSERT INTO products(name,odoo_code,type,uom,is_service) VALUES (%s,%s,'ingredient','lb',false) RETURNING id",
                       ('A3b lotless ' + uuid4().hex[:8], 'A3B-' + uuid4().hex[:8]))
     pid = db_cursor.fetchone()['id']
     db_cursor.execute('INSERT INTO batch_formulas(product_id,ingredient_product_id,quantity_lb) VALUES (%s,%s,1)', (items['batch']['id'], pid))

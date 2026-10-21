@@ -60,7 +60,7 @@ with connection() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
         (288, 'Batch Classic Chocolate Chip Granola #9', 'batch', '90001'),
         (289, 'Granola Kookies & Kreme 25 LB', 'finished', '70028'),
     ]:
-        cur.execute("INSERT INTO products(id,name,odoo_code,type,uom,default_batch_lb,case_size_lb,active) VALUES(%s,%s,%s,%s,'lb',10,5,true)",
+        cur.execute("INSERT INTO products(id,name,odoo_code,type,uom,default_batch_lb,case_size_lb,active,is_service) VALUES(%s,%s,%s,%s,'lb',10,5,true,false)",
                     (pid, name, sku, kind))
         products[name] = pid
     cur.execute('UPDATE products SET parent_batch_product_id=285 WHERE id=286')

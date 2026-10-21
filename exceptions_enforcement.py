@@ -871,6 +871,7 @@ def allowed_actions(row, actor):
 
 def _view(cur, row, actor=None):
     item = dict(row)
+    product_is_service = item.pop('product_is_service', None)
     # Only the recorded opening-balance source marks a historical stock item.
     item['is_opening_stock'] = (item.get('kind') == 'UNIDENTIFIED_LOT' and
                                 (item.get('lot_entry_source_notes') or '').upper().startswith(('OPENING BALANCE ', 'STAGING OPENING STOCK ')))
@@ -883,7 +884,10 @@ def _view(cur, row, actor=None):
     _nest(item, 'resolved_by_actor_id', 'resolved_by_name', 'resolved_by')
     if item['kind'] == 'CHARGE_SETTING_CHECK':
         import charge_setting
-        item['detail'] = {**(item.get('detail') or {}), **charge_setting.check_text(item.get('detail') or {})}
+        current = {'name': item['product']['name'], 'is_service': product_is_service} \
+            if item['status'] in ('open', 'escalated') and item['product'] is not None else None
+        item['detail'] = {**(item.get('detail') or {}),
+                          **charge_setting.check_text(item.get('detail') or {}, current=current)}
         item['confirm_path'] = f"/catalog/items/{row['product_id']}/confirm-kind"
     if item['kind'] in EVIDENCE_KINDS:
         cur.execute('SELECT id,short_lb,status,resolution_kind,resolved_at,due_at FROM shortage_flags WHERE exception_id=%s', (item['id'],))
@@ -898,7 +902,7 @@ def _view(cur, row, actor=None):
     return item
 
 
-_SELECT = '''SELECT e.*, p.name AS product_name, l.lot_code, l.entry_source AS lot_entry_source, l.entry_source_notes AS lot_entry_source_notes, o.name AS owner_name, r.name AS resolved_by_name,
+_SELECT = '''SELECT e.*, p.name AS product_name, p.is_service AS product_is_service, l.lot_code, l.entry_source AS lot_entry_source, l.entry_source_notes AS lot_entry_source_notes, o.name AS owner_name, r.name AS resolved_by_name,
                     wt.status AS ticket_status, wt.receipt_number AS ticket_receipt_number,
                     fixing.receipt_number AS resolution_posting_receipt_number
              FROM exceptions e

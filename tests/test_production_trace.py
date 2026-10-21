@@ -20,7 +20,7 @@ def trace_client(_db_connection, db_cursor, monkeypatch):
 
 
 def product(cur, name, kind, unit='lb'):
-    cur.execute("INSERT INTO products (name, type, uom) VALUES (%s,%s,%s) RETURNING id", (name, kind, unit))
+    cur.execute("INSERT INTO products (name, type, uom,is_service) VALUES (%s,%s,%s,false) RETURNING id", (name, kind, unit))
     pid = cur.fetchone()['id']
     cur.execute("INSERT INTO lots (product_id, lot_code, supplier_lot_code) VALUES (%s,'SAME-CODE','SUP-123') RETURNING id", (pid,))
     return pid, cur.fetchone()['id']

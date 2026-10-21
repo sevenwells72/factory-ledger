@@ -41,7 +41,7 @@ def check(output=None):
                 cur.execute('INSERT INTO actors(name,role,key_hash,active) VALUES (%s,%s,%s,true) RETURNING id,name,role',
                             (name+' (STAGING '+marker+')',role,sha256(key.encode()).hexdigest()))
                 actors[name]=dict(cur.fetchone())
-            cur.execute("INSERT INTO products(name,odoo_code,type,uom,active) VALUES (%s,%s,'ingredient','lb',true) RETURNING id,name",(marker+' Almonds',marker+'-ALM'))
+            cur.execute("INSERT INTO products(name,odoo_code,type,uom,active,is_service) VALUES (%s,%s,'ingredient','lb',true,false) RETURNING id,name",(marker+' Almonds',marker+'-ALM'))
             product=dict(cur.fetchone())
             cur.execute('INSERT INTO suppliers(name) VALUES (%s) RETURNING id,name',(marker+' Supplier',))
             supplier=dict(cur.fetchone())

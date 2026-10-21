@@ -23,7 +23,7 @@
   }
   // PR #143: "Confirm: Charge or Product?" is answered on the item — owner or office, one click, never asked again.
   function chargeCheck(item,row){
-    const marked=item.detail?.marked_as==='charge';
+    const marked=(item.detail?.current_marked_as??item.detail?.marked_as)==='charge';
     const now=ui.el('p',ui.t('Now marked: ','Marcado ahora: ')+(marked?ui.t('Charge (pallet, freight, delivery…)','Cargo (palé, flete, entrega…)'):ui.t('Product','Producto')),row);now.className='neutral';
     const choices=ui.resolutionChoices(item);
     if(!choices.length){const p=ui.el('p',ui.t('The owner or office confirms this one.','El dueño o la oficina confirma esta.'),row);p.className='neutral';return;}

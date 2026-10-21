@@ -1,4 +1,4 @@
--- Roll back 085. Refuses once anyone has answered a check or confirmed an item:
+-- Roll back 086. Refuses once anyone has answered a check or confirmed an item:
 -- those decisions are history. Open, unanswered checks are removed.
 DO $$ DECLARE definition text; BEGIN
     IF EXISTS (SELECT 1 FROM public.exceptions WHERE kind='CHARGE_SETTING_CHECK' AND status NOT IN ('open','escalated')) THEN
@@ -28,8 +28,11 @@ DO $$ DECLARE definition text; BEGIN
             || replace(definition, ' OR (target_table = ''products''::text)', '');
     END IF;
 END $$;
+ALTER TABLE public.products DROP CONSTRAINT IF EXISTS products_batch_is_product_check;
+-- Restore the legacy import behavior only after the history guards above pass.
+ALTER TABLE public.products ALTER COLUMN is_service SET DEFAULT false;
 DROP INDEX IF EXISTS public.exceptions_one_charge_check_per_product_idx;
 DROP FUNCTION IF EXISTS public.charge_words_in_name(text);
 ALTER TABLE public.products DROP COLUMN IF EXISTS charge_setting_confirmed_by_actor_id;
 ALTER TABLE public.products DROP COLUMN IF EXISTS charge_setting_confirmed_at;
-DELETE FROM public.migration_markers WHERE name='085_charge_setting_check';
+DELETE FROM public.migration_markers WHERE name='086_charge_setting_check';

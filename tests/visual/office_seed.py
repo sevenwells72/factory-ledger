@@ -7,8 +7,8 @@ def seed_office(cur, data):
     data['similar_customer']=cur.fetchone()['id']
     cur.execute("INSERT INTO products(name,odoo_code,type,is_service,active) VALUES('D2 Pallet Charge','D2PALLET','finished',true,true) RETURNING id")
     data['pallet']=cur.fetchone()['id']
-    cur.execute("""INSERT INTO products(name,odoo_code,type,pack_format,case_size_lb,bags_per_case,units_per_case,retail_bag_oz,active)
-                   VALUES('D2 Pouches','D2POUCH','finished','bagged',7.5,12,12,10,true) RETURNING id""")
+    cur.execute("""INSERT INTO products(name,odoo_code,type,pack_format,case_size_lb,bags_per_case,units_per_case,retail_bag_oz,active,is_service)
+                   VALUES('D2 Pouches','D2POUCH','finished','bagged',7.5,12,12,10,true,false) RETURNING id""")
     data['pouch']=cur.fetchone()['id']
     data['documents']={}
     for kind in ['sales','purchase']:

@@ -77,8 +77,8 @@ def check(apply_migration=False):
                 ids[role]=cur.fetchone()['id']
             products={}
             for label,kind,tier in [('ingredient','ingredient','regular'),('batch','batch','extra_kosher'),('extra_finished','finished','extra_kosher'),('regular_finished','finished','regular')]:
-                cur.execute("""INSERT INTO products(name,odoo_code,type,uom,default_batch_lb,case_size_lb,active,kosher_tier)
-                    VALUES (%s,%s,%s,'lb',20,5,true,%s) RETURNING id""",(reference+' '+label,reference+'-'+label,kind,tier))
+                cur.execute("""INSERT INTO products(name,odoo_code,type,uom,default_batch_lb,case_size_lb,active,kosher_tier,is_service)
+                    VALUES (%s,%s,%s,'lb',20,5,true,%s,false) RETURNING id""",(reference+' '+label,reference+'-'+label,kind,tier))
                 products[label]=cur.fetchone()['id']
                 assert products[label]>=1_000_000_000
             cur.execute('INSERT INTO batch_formulas(product_id,ingredient_product_id,quantity_lb) VALUES (%s,%s,20)',(products['batch'],products['ingredient']))

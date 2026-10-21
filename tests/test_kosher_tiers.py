@@ -240,7 +240,7 @@ def classic_catalog(db_cursor):
     for key,name,tier in [('regular','Classic #9 Regular','regular'),
             ('extra','Classic #9 EXTRA-KOSHER (SS)','extra_kosher'),
             ('misleading','SS Classic #9 Regular','regular')]:
-        cur.execute("INSERT INTO products(name,type,active,kosher_tier,odoo_code) VALUES (%s,'batch',true,%s,%s) RETURNING id",(name,tier,'K9-'+key))
+        cur.execute("INSERT INTO products(name,type,active,kosher_tier,odoo_code,is_service) VALUES (%s,'batch',true,%s,%s,false) RETURNING id",(name,tier,'K9-'+key))
         ids[key]=cur.fetchone()['id']
     return ids
 
@@ -327,7 +327,7 @@ def test_catalog_migration_exact_mapping_and_labels_preserves_284_formula(db_cur
     regular=[107,108,136,144,137,138,129,179,143]
     extra=list(range(283,291))
     for pid in regular+extra:
-        db_cursor.execute("INSERT INTO products(id,name,type,active) VALUES (%s,%s,'batch',true)",(pid,'Original SS Classic #9 '+str(pid)))
+        db_cursor.execute("INSERT INTO products(id,name,type,active,is_service) VALUES (%s,%s,'batch',true,false)",(pid,'Original SS Classic #9 '+str(pid)))
     db_cursor.execute('INSERT INTO batch_formulas(product_id,ingredient_product_id,quantity_lb) VALUES (284,107,72)')
     db_cursor.execute("INSERT INTO lots(product_id,lot_code) VALUES (283,'WT2-HISTORICAL-001') RETURNING id")
     historical=db_cursor.fetchone()['id']

@@ -367,7 +367,7 @@ def test_session_person_can_record_and_continue_with_new_customer_order(client, 
     prepared = client.post('/customers/prepare', json=body(), headers=headers(key)).json()
     recorded = commit(client, prepared, key)
     assert recorded.status_code == 200, recorded.text
-    db_cursor.execute("INSERT INTO products(name,type,case_size_lb) VALUES (%s,'finished',25) RETURNING id", ('Customer order product ' + uuid4().hex,))
+    db_cursor.execute("INSERT INTO products(name,type,case_size_lb,is_service) VALUES (%s,'finished',25,false) RETURNING id", ('Customer order product ' + uuid4().hex,))
     product_id = db_cursor.fetchone()['id']
     order = client.post('/sales/orders/prepare', json={'customer_id': recorded.json()['customer_id'],
         'customer_po': 'PO-' + uuid4().hex, 'lines': [{'product_id': product_id, 'quantity': 1, 'unit': 'cases'}]}, headers=headers(key))

@@ -25,8 +25,8 @@ JS_TEST = ROOT / "tests" / "test_archived_products_dashboard.js"
 def _insert_finished(cur, *, sku, name, active, on_hand_lb=0, case_size_lb=3):
     cur.execute(
         """
-        INSERT INTO products (odoo_code, name, type, active, uom, case_size_lb)
-        VALUES (%s, %s, 'finished', %s, 'lb', %s)
+        INSERT INTO products (odoo_code, name, type, active, uom, case_size_lb,is_service)
+        VALUES (%s, %s, 'finished', %s, 'lb', %s,false)
         RETURNING id
         """,
         (sku, name, active, case_size_lb),

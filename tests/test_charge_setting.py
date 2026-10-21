@@ -1,4 +1,4 @@
-"""Charge or Product (PR #143, migration 085): explicit choice, one check, human answer."""
+"""Charge or Product (PR #143, migration 086): explicit choice, one check, human answer."""
 from pathlib import Path
 from uuid import uuid4
 
@@ -14,8 +14,8 @@ from tests.test_actor_attribution import client, actors  # noqa: F401
 from tests.test_write_tickets import headers, error
 
 ROOT = Path(__file__).resolve().parent.parent
-UP = (ROOT / 'migrations/085_charge_setting_check.sql').read_text()
-DOWN = (ROOT / 'migrations/down/085_charge_setting_check_down.sql').read_text()
+UP = (ROOT / 'migrations/086_charge_setting_check.sql').read_text()
+DOWN = (ROOT / 'migrations/down/086_charge_setting_check_down.sql').read_text()
 
 
 def tag():
@@ -295,8 +295,8 @@ def test_verify_rename_runs_the_check(client, db_cursor):
 
 @pytest.mark.db
 def test_sweep_catches_items_added_outside_the_app_once(db_cursor):
-    db_cursor.execute("""INSERT INTO products(name,type,uom,active) VALUES (%s,'finished','lb',true),
-                         (%s,'finished','each',false) RETURNING id""", ('Imported Freight ' + tag(), 'Inactive Fee ' + tag()))
+    db_cursor.execute("""INSERT INTO products(name,type,uom,active,is_service) VALUES (%s,'finished','lb',true,false),
+                         (%s,'finished','each',false,false) RETURNING id""", ('Imported Freight ' + tag(), 'Inactive Fee ' + tag()))
     active, inactive = [r['id'] for r in db_cursor.fetchall()]
     sweep(db_cursor)
     sweep(db_cursor)

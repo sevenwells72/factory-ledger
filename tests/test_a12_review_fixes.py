@@ -20,8 +20,8 @@ def role_key(actors, role):
 
 def receive_payload(cur, product_id):
     token = uuid4().hex[:12].upper()
-    cur.execute("""INSERT INTO products(id,name,type,active,kosher_tier,case_size_lb)
-        VALUES (%s,%s,'batch',true,'extra_kosher',5) RETURNING name""",
+    cur.execute("""INSERT INTO products(id,name,type,active,kosher_tier,case_size_lb,is_service)
+        VALUES (%s,%s,'batch',true,'extra_kosher',5,false) RETURNING name""",
         (product_id, 'A12 Review Extra Batch ' + str(product_id) + ' ' + token))
     product_name = cur.fetchone()['name']
     cur.execute('INSERT INTO suppliers(name) VALUES (%s) RETURNING id,name', ('A12 supplier ' + token,))
@@ -273,8 +273,8 @@ def test_regular_found_catalog_upgrade_cannot_create_extra_lot(client, db_cursor
 def test_pack_cannot_manufacture_extra_batch_output(client, db_cursor, items, actors, direct):
     # A different extra batch is needed because pack already forbids source=target.
     cur = db_cursor
-    cur.execute("""INSERT INTO products(name,type,active,kosher_tier,case_size_lb)
-        VALUES (%s,'batch',true,'extra_kosher',5) RETURNING id,name""",
+    cur.execute("""INSERT INTO products(name,type,active,kosher_tier,case_size_lb,is_service)
+        VALUES (%s,'batch',true,'extra_kosher',5,false) RETURNING id,name""",
         ('A12 Packed Extra Batch ' + uuid4().hex[:12],))
     target = cur.fetchone()
     code = 'A12-PK-' + uuid4().hex[:12].upper()

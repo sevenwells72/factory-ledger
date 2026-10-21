@@ -138,6 +138,24 @@ for(const language of ['en','es']){
   assert.equal(h.all(n=>n.tag==='button'&&n.dataset.itemKind,card).length,0);
   assert.match(card.text,language==='es'?/El dueño o la oficina confirma esta/:/The owner or office confirms this one/);
  });
+ for(const [was,now] of [['product','charge'],['charge','product']]){
+  test(`exception current setting follows ${was} to ${now} and preserves history (${language})`,async()=>{
+   const row=check(['confirmed_product','confirmed_charge']);
+   row.product.name='Current catalog name';
+   row.detail={name:'Original catalog name',marked_as:was,current_name:row.product.name,current_marked_as:now,
+    message:`Originally asked about Original catalog name: marked ${was}.`,
+    message_es:`Se preguntó originalmente por Original catalog name: marcado ${was}.`};
+   const h=await exceptionsHarness(language,row),card=h.find(n=>n.dataset.exceptionId===31);
+   const current=h.find(n=>n.tag==='p'&&n.className==='neutral',card);
+   assert.equal(current.textContent,(language==='es'?'Marcado ahora: ':'Now marked: ')+
+    (now==='charge'?(language==='es'?'Cargo (palé, flete, entrega…)':'Charge (pallet, freight, delivery…)'):
+     (language==='es'?'Producto':'Product')));
+   assert.match(card.text,/Current catalog name/);
+   assert.match(card.text,/Original catalog name/);
+   assert.match(card.text,language==='es'?/Se preguntó originalmente/:/Originally asked about/);
+   assert.equal(row.detail.marked_as,was);
+  });
+ }
 }
 
 // ── Draft cards (shared Office / Record entry) ──

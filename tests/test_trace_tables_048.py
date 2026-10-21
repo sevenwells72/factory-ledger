@@ -161,8 +161,8 @@ def _seed_txn(conn, txn_type="receive"):
 def _seed_lot(conn):
     with _cur(conn) as cur:
         cur.execute(
-            "INSERT INTO products (name, type, uom, active) "
-            "VALUES (%s, 'ingredient', 'lb', true) RETURNING id",
+            "INSERT INTO products (name, type, uom, active,is_service) "
+            "VALUES (%s, 'ingredient', 'lb', true,false) RETURNING id",
             (f"Trace048 {uuid4().hex[:10]}",),
         )
         pid = cur.fetchone()["id"]

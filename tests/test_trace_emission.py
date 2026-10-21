@@ -110,6 +110,7 @@ def _seed_product(conn, ptype="ingredient", name=None, **cols):
         "odoo_code": f"TE-{token}",
         "uom": "lb",
         "active": True,
+        "is_service": False,
     }
     fields.update(cols)
     with _cur(conn) as cur:

@@ -52,7 +52,7 @@ def phase1_client(_db_connection, monkeypatch):
 
 def _seed_transaction(cur, name):
     cur.execute(
-        "INSERT INTO products (name, type, active) VALUES (%s, 'ingredient', true) RETURNING id",
+        "INSERT INTO products (name, type, active,is_service) VALUES (%s, 'ingredient', true,false) RETURNING id",
         (name,),
     )
     product_id = cur.fetchone()["id"]
@@ -150,8 +150,8 @@ def test_floor_adjust_route_then_append_only_void(_db_connection, phase1_client)
     """Keep the unchanged Floor 2.0 adjust action compatible with Phase 1."""
     with _db_connection.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(
-            """INSERT INTO products (name, type, active)
-               VALUES ('PHASE1-FLOOR-SMOKE', 'ingredient', true)
+            """INSERT INTO products (name, type, active,is_service)
+               VALUES ('PHASE1-FLOOR-SMOKE', 'ingredient', true,false)
                RETURNING id"""
         )
         product_id = cur.fetchone()["id"]
@@ -267,8 +267,8 @@ def test_production_summaries_use_corrected_lines_and_effective_status(
     target_date = main.get_plant_now().date()
     with _db_connection.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(
-            """INSERT INTO products (name, type, active, default_batch_lb)
-               VALUES (%s, 'batch', true, 10)
+            """INSERT INTO products (name, type, active, default_batch_lb,is_service)
+               VALUES (%s, 'batch', true, 10,false)
                RETURNING id""",
             (product_name,),
         )

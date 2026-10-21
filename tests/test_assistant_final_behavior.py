@@ -67,7 +67,7 @@ def test_receive_queue_retains_second_product_across_reload_and_requires_first_r
     assert len(parts) == 2 and all('Grain Supply' in part and 'BOL MULTI-5521' in part for part in parts)
     db_cursor.execute('SELECT name FROM suppliers WHERE id=%s', (payload['supplier_id'],))
     supplier = db_cursor.fetchone()['name']
-    db_cursor.execute("INSERT INTO products(name,type,uom,active) VALUES('Final queue Oats','ingredient','lb',true) RETURNING id")
+    db_cursor.execute("INSERT INTO products(name,type,uom,active,is_service) VALUES('Final queue Oats','ingredient','lb',true,false) RETURNING id")
     second_product = db_cursor.fetchone()['id']
     model(monkeypatch, resolve_product(db_cursor, payload['product_id']),
         ('resolve', {'kind': 'supplier', 'query': supplier}), ('prepare_receive', payload))

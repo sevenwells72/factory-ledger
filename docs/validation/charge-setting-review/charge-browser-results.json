@@ -1,0 +1,77 @@
+{
+  "created_at": "2026-10-21T11:12:13.731Z",
+  "local_only": true,
+  "openai_calls": 0,
+  "checks": [
+    {
+      "lang": "en",
+      "name": "Office catalog item: choice required, nothing pre-selected",
+      "ok": true
+    },
+    {
+      "lang": "en",
+      "name": "Exceptions: current name and Charge setting retain the original Product history",
+      "ok": true
+    },
+    {
+      "lang": "en",
+      "name": "Exceptions: Confirm Charge or Product card, answered once",
+      "ok": true
+    },
+    {
+      "lang": "en",
+      "name": "Record entry ship by order and draft card show the charge line",
+      "ok": true
+    },
+    {
+      "lang": "en",
+      "name": "Packing slip tags the charge line",
+      "ok": true
+    },
+    {
+      "lang": "es",
+      "name": "Office catalog item: choice required, nothing pre-selected",
+      "ok": true
+    },
+    {
+      "lang": "es",
+      "name": "Exceptions: current name and Charge setting retain the original Product history",
+      "ok": true
+    },
+    {
+      "lang": "es",
+      "name": "Exceptions: Confirm Charge or Product card, answered once",
+      "ok": true
+    },
+    {
+      "lang": "es",
+      "name": "Record entry ship by order and draft card show the charge line",
+      "ok": true
+    },
+    {
+      "lang": "es",
+      "name": "Packing slip tags the charge line",
+      "ok": true
+    }
+  ],
+  "screenshots": [
+    "/private/tmp/fl143-validation/charge-browser-final/en-office-choice-required.png",
+    "/private/tmp/fl143-validation/charge-browser-final/en-office-choice-charge.png",
+    "/private/tmp/fl143-validation/charge-browser-final/en-office-created-sent-to-exceptions.png",
+    "/private/tmp/fl143-validation/charge-browser-final/en-exceptions-current-setting-original-history.png",
+    "/private/tmp/fl143-validation/charge-browser-final/en-exceptions-confirm-card.png",
+    "/private/tmp/fl143-validation/charge-browser-final/en-exceptions-confirmed.png",
+    "/private/tmp/fl143-validation/charge-browser-final/en-entry-ship-by-order.png",
+    "/private/tmp/fl143-validation/charge-browser-final/en-ship-draft-card.png",
+    "/private/tmp/fl143-validation/charge-browser-final/en-packing-slip.pdf",
+    "/private/tmp/fl143-validation/charge-browser-final/es-office-choice-required.png",
+    "/private/tmp/fl143-validation/charge-browser-final/es-office-choice-charge.png",
+    "/private/tmp/fl143-validation/charge-browser-final/es-office-created-sent-to-exceptions.png",
+    "/private/tmp/fl143-validation/charge-browser-final/es-exceptions-current-setting-original-history.png",
+    "/private/tmp/fl143-validation/charge-browser-final/es-exceptions-confirm-card.png",
+    "/private/tmp/fl143-validation/charge-browser-final/es-exceptions-confirmed.png",
+    "/private/tmp/fl143-validation/charge-browser-final/es-entry-ship-by-order.png",
+    "/private/tmp/fl143-validation/charge-browser-final/es-ship-draft-card.png",
+    "/private/tmp/fl143-validation/charge-browser-final/es-packing-slip.pdf"
+  ]
+}

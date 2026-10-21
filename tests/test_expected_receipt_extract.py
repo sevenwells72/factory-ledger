@@ -42,7 +42,7 @@ MIGRATION_049 = ROOT / "migrations" / "049_purchase_doc_intake.sql"
 
 def _seed_product(cur, name):
     cur.execute(
-        "INSERT INTO products (name, type, uom, active) VALUES (%s, 'ingredient', 'lb', true) RETURNING id",
+        "INSERT INTO products (name, type, uom, active,is_service) VALUES (%s, 'ingredient', 'lb', true,false) RETURNING id",
         (name,),
     )
     return cur.fetchone()["id"]
@@ -866,8 +866,8 @@ class TestMatchEndpoint:
     def _seed(self, cur):
         sup = _seed_supplier(cur, "Vendor Match Co 049")
         cur.execute(
-            """INSERT INTO products (name, type, uom, active, case_size_lb)
-               VALUES ('Match Oats Rolled 049', 'ingredient', 'lb', true, 25) RETURNING id""")
+            """INSERT INTO products (name, type, uom, active, case_size_lb,is_service)
+               VALUES ('Match Oats Rolled 049', 'ingredient', 'lb', true, 25,false) RETURNING id""")
         exact_pid = cur.fetchone()["id"]
         alias_pid = _seed_product(cur, "Match Alias Target 049")
         cur.execute(
@@ -1310,7 +1310,7 @@ class TestApprovalAdvisoryLock:
             with seed.cursor(cursor_factory=RealDictCursor) as sc:
                 sc.execute("INSERT INTO suppliers (name) VALUES ('Vendor Race Co 049') RETURNING id")
                 sup_id = sc.fetchone()["id"]
-                sc.execute("INSERT INTO products (name, type, uom, active) VALUES ('Race Prod 049', 'ingredient', 'lb', true) RETURNING id")
+                sc.execute("INSERT INTO products (name, type, uom, active,is_service) VALUES ('Race Prod 049', 'ingredient', 'lb', true,false) RETURNING id")
                 pid = sc.fetchone()["id"]
                 for n in (1, 2):
                     sc.execute(

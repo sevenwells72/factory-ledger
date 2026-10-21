@@ -63,8 +63,8 @@ def _seed_transaction(cur, name, txn_type="receive", quantity_lb=10, event_naive
     if event_naive_utc is None:
         event_naive_utc = datetime.now(timezone.utc).replace(tzinfo=None)
     cur.execute(
-        "INSERT INTO products (name, type, odoo_code, active) "
-        "VALUES (%s, 'ingredient', %s, true) RETURNING id",
+        "INSERT INTO products (name, type, odoo_code, active,is_service) "
+        "VALUES (%s, 'ingredient', %s, true,false) RETURNING id",
         (name, f"SKU-{name}"),
     )
     product_id = cur.fetchone()["id"]

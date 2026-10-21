@@ -1,4 +1,4 @@
--- 085: Charge vs Product safety net (PR #143).
+-- 086: Charge vs Product safety net (PR #143).
 -- products.is_service stays the only rule for charge lines. This adds:
 --   * products.charge_setting_confirmed_at / _by_actor_id — set when the owner
 --     or office confirms an item's Charge/Product setting; a confirmed item is
@@ -9,8 +9,23 @@
 --     setting disagree (charge words but Product, or Charge without the words).
 -- Nothing changes any item's setting. Apply before the code that reads the new
 -- columns. Idempotent.
+-- SQL imports must choose Product (false) or Charge (true) explicitly for each
+-- NEW item. NOT NULL already rejects an omitted/NULL choice once the old
+-- silent Product default is gone. Existing rows and updates keep their value.
+ALTER TABLE public.products ALTER COLUMN is_service DROP DEFAULT;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS charge_setting_confirmed_at timestamptz;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS charge_setting_confirmed_by_actor_id integer REFERENCES public.actors(id);
+
+-- Keep batches as Product even when an import bypasses the app. NOT VALID
+-- enforces every new/updated row without rewriting any existing item setting
+-- or requiring a production-data cleanup as part of applying this migration.
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint
+                   WHERE conrelid='public.products'::regclass AND conname='products_batch_is_product_check') THEN
+        ALTER TABLE public.products ADD CONSTRAINT products_batch_is_product_check
+            CHECK (type <> 'batch' OR NOT is_service) NOT VALID;
+    END IF;
+END $$;
 
 DO $$ DECLARE definition text; BEGIN
     SELECT pg_get_constraintdef(oid) INTO definition FROM pg_constraint
@@ -52,7 +67,7 @@ SELECT 'CHARGE_SETTING_CHECK', 'warn', p.id,
        jsonb_build_object('name', p.name,
                           'marked_as', CASE WHEN p.is_service THEN 'charge' ELSE 'product' END,
                           'reason', CASE WHEN p.is_service THEN 'charge_without_words' ELSE 'charge_words_marked_product' END,
-                          'opened_by', '085_charge_setting_check')
+                          'opened_by', '086_charge_setting_check')
 FROM public.products p
 WHERE COALESCE(p.active, true)
   AND p.charge_setting_confirmed_at IS NULL
@@ -60,4 +75,4 @@ WHERE COALESCE(p.active, true)
   AND NOT EXISTS (SELECT 1 FROM public.exceptions e WHERE e.kind='CHARGE_SETTING_CHECK' AND e.product_id=p.id
                     AND e.status IN ('open','escalated'));
 
-INSERT INTO public.migration_markers(name) VALUES ('085_charge_setting_check') ON CONFLICT DO NOTHING;
+INSERT INTO public.migration_markers(name) VALUES ('086_charge_setting_check') ON CONFLICT DO NOTHING;

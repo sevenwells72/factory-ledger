@@ -40,7 +40,7 @@ with connection() as conn,conn.cursor(cursor_factory=RealDictCursor) as cur:
  key='fixb-local-floor';cur.execute("INSERT INTO actors(name,role,key_hash,active) VALUES('Round B Worker','floor',%s,true) RETURNING id",(hashlib.sha256(key.encode()).hexdigest(),));actor=cur.fetchone()['id']
  products={}
  for name,kind,code,pid in [('Sunflower Seeds','ingredient','11010',283),('Rolled Oats','ingredient','11020',284),('Batch Classic Granola #9','batch','90002',285),('Granola Classic 25 LB','finished','70013',286),('Granola Fruit Nut Batch','batch','90008',287),('Batch Classic Chocolate Chip Granola #9','batch','90001',288)]:
-  cur.execute("INSERT INTO products(id,name,odoo_code,type,uom,default_batch_lb,case_size_lb,active) VALUES(%s,%s,%s,%s,'lb',10,5,true)",(pid,name,code,kind));products[name]=pid
+  cur.execute("INSERT INTO products(id,name,odoo_code,type,uom,default_batch_lb,case_size_lb,active,is_service) VALUES(%s,%s,%s,%s,'lb',10,5,true,false)",(pid,name,code,kind));products[name]=pid
  cur.execute('UPDATE products SET parent_batch_product_id=285 WHERE id=286')
  cur.execute('INSERT INTO batch_formulas(product_id,ingredient_product_id,quantity_lb) VALUES(285,283,4),(285,284,6)')
  lots={}

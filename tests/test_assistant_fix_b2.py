@@ -84,7 +84,7 @@ def test_receive_missing_weight_correction_replaces_old_total(client, chat, payl
 def test_exact_full_classic_nine_inventory_never_expands_family(client, chat, items, db_cursor, monkeypatch, spanish):
     batch = items['batch']
     db_cursor.execute("UPDATE products SET name='Batch Classic Granola #9',odoo_code='90002' WHERE id=%s", (batch['id'],))
-    db_cursor.execute("INSERT INTO products(name,type,uom) VALUES ('Batch Classic Fruit Nut Granola #9','batch','lb'),('Batch SS Classic Granola #9','batch','lb')")
+    db_cursor.execute("INSERT INTO products(name,type,uom,is_service) VALUES ('Batch Classic Fruit Nut Granola #9','batch','lb',false),('Batch SS Classic Granola #9','batch','lb',false)")
     model(monkeypatch, ('inventory_lookup', {'q': 'Batch Classic Granola #9'}))
     response = turn(client, chat, '¿Cuánto hay de Batch Classic Granola #9?' if spanish else 'How much Batch Classic Granola #9?')
     assert response.status_code == 200, response.text

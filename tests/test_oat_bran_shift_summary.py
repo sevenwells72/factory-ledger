@@ -13,7 +13,7 @@ pytestmark = pytest.mark.db
 
 
 def direct_swap(cur, items, actor_id=None, *, date=None):
-    cur.execute("INSERT INTO products(name,type,odoo_code) VALUES ('Oat Bran','ingredient','TEST-BRAN') RETURNING id")
+    cur.execute("INSERT INTO products(name,type,odoo_code,is_service) VALUES ('Oat Bran','ingredient','TEST-BRAN',false) RETURNING id")
     bran = cur.fetchone()['id']
     cur.execute("""INSERT INTO transactions(type,notes,occurred_at,entered_by_actor_id)
                    VALUES ('make','Automatic oat substitution',%s,%s) RETURNING id""",

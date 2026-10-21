@@ -58,8 +58,8 @@ with connection() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
         ('fruit_batch', 'Fruit and Nut Granola Batch', 'batch'),
         ('fruit', 'Fruit and Nut Granola', 'finished'), ('sprinkles', 'Rainbow Sprinkles', 'finished'),
     ]:
-        cur.execute("""INSERT INTO products(name,type,uom,default_batch_lb,case_size_lb,active)
-            VALUES(%s,%s,'lb',10,5,true) RETURNING id,name""", (name, kind))
+        cur.execute("""INSERT INTO products(name,type,uom,default_batch_lb,case_size_lb,active,is_service)
+            VALUES(%s,%s,'lb',10,5,true,false) RETURNING id,name""", (name, kind))
         products[key] = dict(cur.fetchone())
     cur.execute('UPDATE products SET parent_batch_product_id=%s WHERE id=%s', (products['fruit_batch']['id'], products['fruit']['id']))
     for key in ('classic', 'ss1', 'ss2', 'ss3'):

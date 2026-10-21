@@ -90,8 +90,8 @@ def _seed_customer(conn, name="Contract Test Customer"):
 def _seed_product(conn, name="CONTRACT TEST GRANOLA ZQX"):
     with conn.cursor() as cur:
         cur.execute(
-            "INSERT INTO products (name, type, uom, active) "
-            "VALUES (%s, 'finished', 'lb', true) RETURNING id",
+            "INSERT INTO products (name, type, uom, active,is_service) "
+            "VALUES (%s, 'finished', 'lb', true,false) RETURNING id",
             (name,),
         )
         return cur.fetchone()[0]

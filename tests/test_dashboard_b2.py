@@ -16,8 +16,8 @@ def _insert_product(cur, *, sku, name, product_type, uom="lb",
         INSERT INTO products (
             odoo_code, name, type, active, uom, default_batch_lb,
             yield_multiplier, case_size_lb
-        )
-        VALUES (%s, %s, %s, true, %s, %s, %s, %s)
+        ,is_service)
+        VALUES (%s, %s, %s, true, %s, %s, %s, %s,false)
         RETURNING id
         """,
         (sku, name, product_type, uom, default_batch_lb, yield_multiplier, case_size_lb),

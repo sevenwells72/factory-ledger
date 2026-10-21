@@ -29,7 +29,7 @@ pytestmark = pytest.mark.db
 
 def seed(cur):
     suffix = uuid4().hex[:12].upper()
-    cur.execute("INSERT INTO products(name,odoo_code,type,uom) VALUES (%s,%s,'ingredient','lb') RETURNING id",
+    cur.execute("INSERT INTO products(name,odoo_code,type,uom,is_service) VALUES (%s,%s,'ingredient','lb',false) RETURNING id",
                 ('Ticket test ' + suffix, 'WT-' + suffix))
     product = cur.fetchone()['id']
     cur.execute('INSERT INTO suppliers(name) VALUES (%s) RETURNING id', ('Ticket supplier ' + suffix,))

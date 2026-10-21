@@ -95,8 +95,8 @@ def _cur(conn):
 def _seed_product(conn, name=None, product_type="ingredient"):
     with _cur(conn) as cur:
         cur.execute(
-            "INSERT INTO products (name, type, uom, active) "
-            "VALUES (%s, %s, 'lb', true) RETURNING id",
+            "INSERT INTO products (name, type, uom, active,is_service) "
+            "VALUES (%s, %s, 'lb', true,false) RETURNING id",
             (name or f"AuditSP {uuid4().hex[:10]}", product_type),
         )
         return cur.fetchone()["id"]
@@ -320,14 +320,14 @@ def _seed_makeable_product(conn, name):
     written on `conn`'s open transaction (not committed)."""
     with _cur(conn) as cur:
         cur.execute(
-            "INSERT INTO products (name, type, uom, default_batch_lb, active) "
-            "VALUES (%s, 'batch', 'lb', 50, true) RETURNING id",
+            "INSERT INTO products (name, type, uom, default_batch_lb, active,is_service) "
+            "VALUES (%s, 'batch', 'lb', 50, true,false) RETURNING id",
             (name,),
         )
         batch_id = cur.fetchone()["id"]
         cur.execute(
-            "INSERT INTO products (name, type, uom, active) "
-            "VALUES (%s, 'ingredient', 'lb', true) RETURNING id",
+            "INSERT INTO products (name, type, uom, active,is_service) "
+            "VALUES (%s, 'ingredient', 'lb', true,false) RETURNING id",
             (f"{name} ING",),
         )
         ing_id = cur.fetchone()["id"]

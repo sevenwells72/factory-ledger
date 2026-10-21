@@ -30,7 +30,7 @@ def test_single_lot_requires_tag_on_one_complete_card(client, items, language, i
 
 
 def test_all_ingredients_share_one_group_and_keep_fifo_candidates(client, db_cursor, items):
-    db_cursor.execute("INSERT INTO products(name,type,uom) VALUES ('Second Round B ingredient','ingredient','lb') RETURNING id")
+    db_cursor.execute("INSERT INTO products(name,type,uom,is_service) VALUES ('Second Round B ingredient','ingredient','lb',false) RETURNING id")
     pid = db_cursor.fetchone()['id']
     db_cursor.execute('INSERT INTO batch_formulas(product_id,ingredient_product_id,quantity_lb) VALUES (%s,%s,2)', (items['batch']['id'], pid))
     for code in ('ROUND-B-OLD-1111', 'ROUND-B-NEW-2222'):

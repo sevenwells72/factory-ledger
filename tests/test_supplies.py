@@ -85,8 +85,8 @@ def cur(_db_connection):
 
 def _seed_product(cur, name, ptype="ingredient", uom="lb", threshold=None, active=True):
     cur.execute(
-        """INSERT INTO products (name, type, odoo_code, uom, active, low_stock_threshold)
-           VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
+        """INSERT INTO products (name, type, odoo_code, uom, active, low_stock_threshold,is_service)
+           VALUES (%s, %s, %s, %s, %s, %s,false) RETURNING id""",
         (name, ptype, f"SKU-{name[:20]}", uom, active, threshold),
     )
     return cur.fetchone()["id"]
@@ -223,9 +223,9 @@ def test_products_type_check_rejects_unknown_but_accepts_consumable(cur):
     import psycopg2
     cur.execute("SAVEPOINT typechk")
     with pytest.raises(psycopg2.errors.CheckViolation):
-        cur.execute("INSERT INTO products (name, type) VALUES ('SUP Bad Type', 'widget')")
+        cur.execute("INSERT INTO products (name, type,is_service) VALUES ('SUP Bad Type', 'widget',false)")
     cur.execute("ROLLBACK TO SAVEPOINT typechk")
-    cur.execute("INSERT INTO products (name, type) VALUES ('SUP Consumable OK', 'consumable') RETURNING type")
+    cur.execute("INSERT INTO products (name, type,is_service) VALUES ('SUP Consumable OK', 'consumable',false) RETURNING type")
     assert cur.fetchone()["type"] == "consumable"
     with pytest.raises(psycopg2.errors.CheckViolation):
         cur.execute("UPDATE products SET low_stock_threshold = -1 WHERE name = 'SUP Consumable OK'")

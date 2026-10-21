@@ -280,7 +280,7 @@ def test_unmatched_words_logged_no_alias_learning(client, chat, monkeypatch, db_
 def test_ambiguous_candidates_require_real_selection(client, chat, monkeypatch, db_cursor):
     token = 'F1AMB' + uuid4().hex[:8]
     for suffix in ('one', 'two'):
-        db_cursor.execute("INSERT INTO products(name,type,uom) VALUES (%s,'ingredient','lb')", (token + ' ' + suffix,))
+        db_cursor.execute("INSERT INTO products(name,type,uom,is_service) VALUES (%s,'ingredient','lb',false)", (token + ' ' + suffix,))
     calls = model(monkeypatch, ('resolve', {'kind': 'product', 'query': token}))
     r = turn(client, chat)
     card = r.json()['cards'][0]
@@ -475,7 +475,7 @@ def test_failed_repair_always_returns_plain_rephrase(client, chat, monkeypatch, 
 @pytest.mark.parametrize('status', [403, 404, 422, 500])
 def test_lookup_business_failure_keeps_plain_reason_without_model_retry(client, chat, db_cursor, monkeypatch, status):
     name = 'F1 read failure ' + uuid4().hex[:10]
-    db_cursor.execute("INSERT INTO products(name,type,uom) VALUES (%s,'ingredient','lb')", (name,))
+    db_cursor.execute("INSERT INTO products(name,type,uom,is_service) VALUES (%s,'ingredient','lb',false)", (name,))
     requests = model(monkeypatch, ('inventory_lookup', {'q': name}))
     original = fl_assistant.relay
 

@@ -77,8 +77,8 @@ def _seed_customer(conn, name="Line Fields Test Customer"):
 def _seed_product(conn, name, odoo_code, uom="lb", case_size_lb=None, no_production=False):
     with conn.cursor() as cur:
         cur.execute(
-            "INSERT INTO products (name, type, uom, odoo_code, case_size_lb, active, no_production) "
-            "VALUES (%s, 'finished', %s, %s, %s, true, %s) RETURNING id",
+            "INSERT INTO products (name, type, uom, odoo_code, case_size_lb, active, no_production,is_service) "
+            "VALUES (%s, 'finished', %s, %s, %s, true, %s,false) RETURNING id",
             (name, uom, odoo_code, case_size_lb, no_production),
         )
         return cur.fetchone()[0]
@@ -140,8 +140,8 @@ def test_uom_defaults_to_lb_when_null(client, _db_connection):
     # Insert a product with NULL uom directly (bypassing the seed default).
     with _db_connection.cursor() as cur:
         cur.execute(
-            "INSERT INTO products (name, type, uom, odoo_code, active) "
-            "VALUES ('LINE FIELDS NULL UOM ZQX', 'finished', NULL, '70998', true) "
+            "INSERT INTO products (name, type, uom, odoo_code, active,is_service) "
+            "VALUES ('LINE FIELDS NULL UOM ZQX', 'finished', NULL, '70998', true,false) "
             "RETURNING id"
         )
         cur.fetchone()

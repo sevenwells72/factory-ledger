@@ -1,5 +1,201 @@
 # Change Log
 
+## 2026-10-21 07:21 — Document successful cleanup: all PR143 test databases dropped and isolated PostgreSQL stopped
+- **File(s) changed:** docs/validation/charge-setting-review/verification.json, FACTORY_LEDGER_CHANGELOG.md
+- **What changed:** Document successful cleanup: all PR143 test databases dropped and isolated PostgreSQL stopped
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:20 — Complete PR143 review fixes: 7030 Python per mode, 588 Node and24 browser runners pass; reserve086/rows226–228/ui19/css10
+- **File(s) changed:** FACTORY_LEDGER_CHANGELOG.md, docs/validation/charge-setting-review/verification.json, compressed full-suite logs, node_modules temporary symlink removed
+- **What changed:** Complete PR143 review fixes: 7030 Python per mode, 588 Node and24 browser runners pass; reserve086/rows226–228/ui19/css10
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:18 — Preserve all passing browser-runner logs and bilingual current-warning evidence for PR143 review
+- **File(s) changed:** docs/validation/charge-setting-review/browser-runners.json, charge-browser-results.json, logs, en-current-warning.png, es-current-warning.png
+- **What changed:** Preserve all passing browser-runner logs and bilingual current-warning evidence for PR143 review
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:14 — Make the polymorphic voice-recovery catalog fixture choose Product explicitly
+- **File(s) changed:** tests/test_assistant_voice_recovery_round_c.py
+- **What changed:** Make the polymorphic voice-recovery catalog fixture choose Product explicitly
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:13 — Correct the schema-tail deployment comment to migration086
+- **File(s) changed:** tests/schema/schema.sql
+- **What changed:** Correct the schema-tail deployment comment to migration086
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:13 — Complete all 23 existing local functional browser runners with zero failures and retain per-run counts and logs
+- **File(s) changed:** `/private/tmp/fl143-validation/browser/verification.json`, `/private/tmp/fl143-validation/browser/counts.md`, local runner logs/results/screenshots, `/private/tmp/fl143-validation/guards/network-audit-browser.jsonl`
+- **What changed:** Complete all 23 existing local functional browser runners with zero failures and retain per-run counts and logs
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:12 — Refresh the nested scheduler stylesheet reference to shared forms v10
+- **File(s) changed:** dashboard/scheduler/seven-wells-production-board.html
+- **What changed:** Refresh the nested scheduler stylesheet reference to shared forms v10
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:12 — Preserve browser runner aggregate mobile and access counts in local validation manifest
+- **File(s) changed:** `/private/tmp/fl143-validation/run-browsers.py`
+- **What changed:** Preserve browser runner aggregate mobile and access counts in local validation manifest
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:12 — Verify 10 English/Spanish actual-page Charge/Product checks including live warning names/settings and unchanged history; zero model calls or non-local network attempts
+- **File(s) changed:** /private/tmp/fl143-validation/charge-browser-final/*, /private/tmp/fl143-validation/logs/charge-browser-final.log
+- **What changed:** Verify 10 English/Spanish actual-page Charge/Product checks including live warning names/settings and unchanged history; zero model calls or non-local network attempts
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:12 — Extend real-page Charge/Product coverage to renamed live Charge warnings with unchanged original Product history in English and Spanish
+- **File(s) changed:** tests/visual/run-charge-setting.mjs
+- **What changed:** Extend real-page Charge/Product coverage to renamed live Charge warnings with unchanged original Product history in English and Spanish
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:11 — Protect new and updated SQL batches from Charge settings without rewriting legacy items; test import insert and update guards
+- **File(s) changed:** `migrations/086_charge_setting_check.sql`, `migrations/down/086_charge_setting_check_down.sql`, `tests/test_charge_setting_import_choice.py`, `tests/test_run_types.py`
+- **What changed:** Protect new and updated SQL batches from Charge settings without rewriting legacy items; test import insert and update guards
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:10 — Show the live Charge/Product setting in the exception card with bilingual history regressions; refresh exceptions script cache to 9
+- **File(s) changed:** dashboard/exceptions.js, dashboard/exceptions.html, tests/test_charge_setting_ui.js
+- **What changed:** Show the live Charge/Product setting in the exception card with bilingual history regressions; refresh exceptions script cache to 9
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:09 — Reserve PR #144 migration085 row225 and renumber PR #143 migration to086 with rows226/227
+- **File(s) changed:** migrations/086_charge_setting_check.sql, migrations/down/086_charge_setting_check_down.sql, tests/schema/schema.sql, charge_setting.py, numbering references, FACTORY_LEDGER_CHANGELOG.md
+- **What changed:** Reserve PR #144 migration085 row225 and renumber PR #143 migration to086 with rows226/227
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:09 — Ensure legacy key-session browser output symlink resolves before validation
+- **File(s) changed:** `/private/tmp/fl143-validation/run-browsers.py`
+- **What changed:** Ensure legacy key-session browser output symlink resolves before validation
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:09 — Isolate committed race fixtures in disposable schemas so append-only audit history cannot leak into other tests
+- **File(s) changed:** tests/test_charge_setting_race.py
+- **What changed:** Isolate committed race fixtures in disposable schemas so append-only audit history cannot leak into other tests
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:09 — Prepare secret-free local browser validation harness and align Playwright network guard
+- **File(s) changed:** `/private/tmp/fl143-validation/run-browsers.py`, `/private/tmp/fl143-validation/guards/network-guard.mjs`, `node_modules` and `.venv-test/key-session-visual` operational symlinks
+- **What changed:** Prepare secret-free local browser validation harness and align Playwright network guard
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:09 — Make dynamic catalog fixture helpers choose Product explicitly while preserving charge overrides
+- **File(s) changed:** `tests/test_resolution.py`, `tests/test_assistant_resolution_round_b.py`, `tests/test_trace_emission.py`
+- **What changed:** Make dynamic catalog fixture helpers choose Product explicitly while preserving charge overrides
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:09 — Apply explicit Product choices to existing Python, staging-check and browser SQL fixtures
+- **File(s) changed:** `tests/test_*.py` fixture INSERTs, `tests/visual/*` fixture INSERTs, `scripts/check_*_staging.py` and `scripts/count_rehearsal_staging.py` fixture INSERTs
+- **What changed:** Apply explicit Product choices to existing Python, staging-check and browser SQL fixtures
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:09 — Prepare SQL-aware fixture migration helper; previous fixture rewrite stopped before any source edits
+- **File(s) changed:** `/private/tmp/fl143-explicit-fixtures.py`
+- **What changed:** Prepare SQL-aware fixture migration helper; previous fixture rewrite stopped before any source edits
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:09 — Prepare full fresh-database session-mode and Node validation with loopback network guards
+- **File(s) changed:** /private/tmp/fl143-validation/run-suites.py, local guard files
+- **What changed:** Prepare full fresh-database session-mode and Node validation with loopback network guards
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:08 — Add deterministic two-connection check/confirmation races and bilingual current-warning history regressions
+- **File(s) changed:** tests/test_charge_setting_race.py, tests/test_charge_setting_current_warning.py
+- **What changed:** Add deterministic two-connection check/confirmation races and bilingual current-warning history regressions
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:08 — Give existing test and browser fixtures an explicit Product setting after removing the silent import default
+- **File(s) changed:** `tests/test_*.py` fixture INSERT statements, `tests/visual/*` fixture INSERT statements, staging check fixture INSERT statements in `scripts/`
+- **What changed:** Give existing test and browser fixtures an explicit Product setting after removing the silent import default
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:08 — Allow Charge/Product actual-page runner to use an isolated local PostgreSQL port
+- **File(s) changed:** tests/visual/run-charge-setting.mjs
+- **What changed:** Allow Charge/Product actual-page runner to use an isolated local PostgreSQL port
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:08 — Raise shared ledger script to v19 and forms stylesheet to v10 above PR #144 v18/v9
+- **File(s) changed:** dashboard HTML cache references
+- **What changed:** Raise shared ledger script to v19 and forms stylesheet to v10 above PR #144 v18/v9
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:08 — Serialize Charge/Product checks with saved confirmations and show current warning item separately from its original history
+- **File(s) changed:** charge_setting.py, exceptions_enforcement.py
+- **What changed:** Serialize Charge/Product checks with saved confirmations and show current warning item separately from its original history
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:08 — Require an explicit Product or Charge setting in new SQL imports; preserve existing item settings and guarded rollback
+- **File(s) changed:** `migrations/085_charge_setting_check.sql`, `migrations/down/085_charge_setting_check_down.sql`, `tests/schema/schema.sql`, `tests/test_charge_setting_import_choice.py`
+- **What changed:** Require an explicit Product or Charge setting in new SQL imports; preserve existing item settings and guarded rollback
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:07 — Guard generic batch creation and admin charge edits; cover every batch choice route with endpoint regressions
+- **File(s) changed:** `main.py`, `tests/test_charge_setting_batch_guards.py`
+- **What changed:** Guard generic batch creation and admin charge edits; cover every batch choice route with endpoint regressions
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
+## 2026-10-21 07:06 — Prepare isolated PR #143 branch checkout and shared append-only log helper
+- **File(s) changed:** Isolated checkout, /private/tmp/fl143-log.py
+- **What changed:** Prepare isolated PR #143 branch checkout and shared append-only log helper
+- **Why:** Address PR #143 review on its Draft branch; local-only work.
+
+---
+
 ## 2026-10-20 19:55 — Charge or Product: explicit choice, confirmation check and visible charge lines (PR #143 round 2)
 - **File(s) changed:** `charge_setting.py`, `main.py`, `exceptions_enforcement.py`, `permissions.py`, `scripts/exceptions_sweep.py`, `migrations/085_charge_setting_check.sql`, `migrations/down/085_charge_setting_check_down.sql`, `tests/schema/schema.sql`, `dashboard/office.js`, `dashboard/office-logic.js`, `dashboard/exceptions.js`, `dashboard/entry.js`, `dashboard/ledger-ui.js`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/ledger-forms.css`, `dashboard/{office,entry,exceptions,receipt,index}.html`, `tests/test_charge_setting.py`, `tests/test_charge_setting_ui.js`, `tests/visual/charge_setting_page_bridge.py`, `tests/visual/run-charge-setting.mjs`, updated guard tests, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Catalog items must be explicitly created as Product or Charge (API + new Office form, EN/ES); one "Confirm: Charge or Product?" exception per item whose name and setting disagree, answered once by owner/office; charge lines tagged with no lb/lot on order screens, draft cards and packing slips. FL row 226. 6,997 Python ×2 modes, 584 Node, 8/8 actual-page checks.

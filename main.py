@@ -11715,7 +11715,8 @@ def get_recent_ledger_events(
 @app.post("/products/quick-create")
 def quick_create_product(req: QuickCreateProductRequest, _: bool = Depends(verify_api_key)):
     validate_bilingual(req.notes, req.notes_es, "notes")
-    is_service = charge_setting.require_item_kind(req.item_kind)
+    is_service = charge_setting.require_item_kind(
+        req.item_kind, charge_allowed=req.product_type != 'batch', what='batch')
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -18547,7 +18548,7 @@ class ProductUpdate(BaseModel):
 def admin_update_product(product_id: int, req: ProductUpdate, _: bool = Depends(verify_api_key)):
     try:
         with get_transaction() as cur:
-            cur.execute("SELECT id, name FROM products WHERE id = %s", (product_id,))
+            cur.execute("SELECT id, name, type FROM products WHERE id = %s FOR UPDATE", (product_id,))
             product = cur.fetchone()
             if not product:
                 raise HTTPException(status_code=404, detail=f"Product ID {product_id} not found")
@@ -18573,7 +18574,8 @@ def admin_update_product(product_id: int, req: ProductUpdate, _: bool = Depends(
                 params.append(req.active)
             if req.item_kind is not None:
                 updates.append("is_service = %s")
-                params.append(charge_setting.require_item_kind(req.item_kind))
+                params.append(charge_setting.require_item_kind(
+                    req.item_kind, charge_allowed=product['type'] != 'batch', what='batch'))
 
             if not updates:
                 return {"updated": False, "message": "No fields to update"}

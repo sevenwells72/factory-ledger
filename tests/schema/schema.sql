@@ -1900,7 +1900,7 @@ CREATE TABLE public.products (
     yield_multiplier double precision DEFAULT 1.0,
     case_size_lb numeric(14,4),
     parent_batch_product_id integer,
-    is_service boolean DEFAULT false NOT NULL,
+    is_service boolean NOT NULL,
     is_copack boolean DEFAULT false NOT NULL,
     no_production boolean DEFAULT false NOT NULL,
     pack_format text,
@@ -7203,5 +7203,5 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 \unrestrict 9AR9WaXWTtqJkeWt7ytxJva3DsGes1kdbWi0i3dIO2bG3bXEH4KQhYlABwktO3r
 
 
--- PR #143: pending until 085 is applied to production and schema.sql is re-dumped.
-\ir ../../migrations/085_charge_setting_check.sql
+-- PR #143: pending until 086 is applied to production and schema.sql is re-dumped.
+\ir ../../migrations/086_charge_setting_check.sql

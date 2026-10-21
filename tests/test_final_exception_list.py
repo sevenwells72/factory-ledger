@@ -23,7 +23,7 @@ def test_exception_limit_keeps_overdue_first(client, actors, db_cursor):
 
 
 def test_exception_queue_orders_deadlines_then_new_work_then_opening_stock(client, actors, db_cursor):
-    db_cursor.execute("INSERT INTO products(name,type,uom) VALUES ('Exception queue oats','ingredient','lb') RETURNING id")
+    db_cursor.execute("INSERT INTO products(name,type,uom,is_service) VALUES ('Exception queue oats','ingredient','lb',false) RETURNING id")
     product_id = db_cursor.fetchone()['id']
     db_cursor.execute("""INSERT INTO lots(product_id,lot_code,entry_source_notes)
         VALUES (%s,'OPEN-QUEUE','STAGING OPENING STOCK copied from production'),

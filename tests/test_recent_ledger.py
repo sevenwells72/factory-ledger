@@ -61,8 +61,8 @@ def cur(_db_connection):
 
 def _seed_transaction(cur, name, txn_type="receive", quantity=10):
     cur.execute(
-        """INSERT INTO products (name, type, uom, active)
-           VALUES (%s, 'ingredient', 'lb', true) RETURNING id""",
+        """INSERT INTO products (name, type, uom, active,is_service)
+           VALUES (%s, 'ingredient', 'lb', true,false) RETURNING id""",
         (name,),
     )
     product_id = cur.fetchone()["id"]

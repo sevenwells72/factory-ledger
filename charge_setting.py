@@ -1,4 +1,4 @@
-"""Charge or Product: products.is_service is the only rule (PR #143, migration 085).
+"""Charge or Product: products.is_service is the only rule (PR #143, migration 086).
 
 * Names never decide. Every route that creates a catalog item requires an
   explicit `item_kind` ('product' | 'charge'); there is no default.
@@ -20,7 +20,7 @@ import permissions
 
 KIND = 'CHARGE_SETTING_CHECK'
 CHARGE_WORDS = ('fee', 'charge', 'delivery', 'pallet', 'freight', 'surcharge')
-_CHARGE_WORDS = re.compile('|'.join(CHARGE_WORDS), re.IGNORECASE)   # = charge_words_in_name() in 085
+_CHARGE_WORDS = re.compile('|'.join(CHARGE_WORDS), re.IGNORECASE)   # = charge_words_in_name() in 086
 ITEM_KINDS = {'product': False, 'charge': True}
 LABELS = {'product': ('Product', 'Producto'),
           'charge': ('Charge (pallet, freight, delivery…)', 'Cargo (palé, flete, entrega…)')}
@@ -64,7 +64,7 @@ def require_item_kind(value, *, charge_allowed=True, what='item'):
 
 
 def installed(cur):
-    """Migration 085 present? The create routes still require the choice without it."""
+    """Migration 086 present? The create routes still require the choice without it."""
     cur.execute("SELECT to_regclass('exceptions_one_charge_check_per_product_idx') IS NOT NULL AS ok")
     return cur.fetchone()['ok']
 
@@ -75,8 +75,11 @@ def check(cur, product_id):
     Returns the open check's id (new or existing), or None. Never changes the item."""
     if not installed(cur):
         return None
+    # Confirming takes this same lock before saving the answer and closing the
+    # question. A checker that waits must read the saved answer after the wait;
+    # otherwise its old snapshot can reopen the question after confirmation.
     cur.execute('''SELECT id, name, is_service, COALESCE(active, true) AS active, charge_setting_confirmed_at
-                   FROM products WHERE id=%s''', (product_id,))
+                   FROM products WHERE id=%s FOR UPDATE''', (product_id,))
     item = cur.fetchone()
     if not item or not item['active'] or item['charge_setting_confirmed_at'] or \
             has_charge_words(item['name']) == bool(item['is_service']):
@@ -94,8 +97,8 @@ def check(cur, product_id):
     return open_check_id(cur, product_id)
 
 
-def check_text(detail):
-    """Card wording for one check: the question, the current setting and why it was asked."""
+def check_text(detail, *, current=None):
+    """Show the current item separately from the unchanged reason for the check."""
     marked = detail.get('marked_as') or 'product'
     en, es = LABELS[marked]
     found = sorted({m.group(0).lower() for m in _CHARGE_WORDS.finditer(detail.get('name') or '')})
@@ -105,9 +108,20 @@ def check_text(detail):
         words = ', '.join(f'"{w}"' for w in found)
         why = f'its name contains {words or "a charge word"}'
         why_es = f'su nombre contiene {words or "una palabra de cargo"}'
-    return {'question': QUESTION[0], 'question_es': QUESTION[1], 'charge_words_found': found,
+    text = {'question': QUESTION[0], 'question_es': QUESTION[1], 'charge_words_found': found,
             'message': f'{QUESTION[0]} Now marked {en}, but {why}. Nothing changes until someone confirms.',
             'message_es': f'{QUESTION[1]} Ahora está marcado como {es}, pero {why_es}. Nada cambia hasta que alguien confirme.'}
+    if current is not None:
+        kind = item_kind(current['is_service'])
+        now_en, now_es = LABELS[kind]
+        text.update(current_name=current['name'], current_marked_as=kind,
+                    message=f'{QUESTION[0]} {current["name"]} is now marked {now_en}. '
+                            f'Originally asked about {detail.get("name") or current["name"]}: '
+                            f'it was marked {en}, but {why}. Nothing changes until someone confirms.',
+                    message_es=f'{QUESTION[1]} {current["name"]} ahora está marcado como {now_es}. '
+                               f'Se preguntó originalmente por {detail.get("name") or current["name"]}: '
+                               f'estaba marcado como {es}, pero {why_es}. Nada cambia hasta que alguien confirme.')
+    return text
 
 
 def open_check_id(cur, product_id):

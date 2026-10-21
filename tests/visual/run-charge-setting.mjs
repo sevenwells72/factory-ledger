@@ -11,6 +11,8 @@ const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const python = process.env.CHARGE_PYTHON || path.join(root, '.venv-test/bin/python');
 const pg = process.env.CHARGE_PG_BIN || '/opt/homebrew/opt/postgresql@17/bin';
+const pgPort = process.env.CHARGE_PG_PORT || '5432';
+assert.match(pgPort, /^\d+$/);
 const out = process.env.CHARGE_OUT || '/tmp/fl-charge-setting';
 const languages = (process.env.CHARGE_LANGUAGES || 'en,es').split(',');
 await fs.mkdir(out, { recursive: true });
@@ -21,17 +23,19 @@ const browser = await chromium.launch({ headless: true, channel: process.env.PLA
 try {
   for (const lang of languages) {
     const db = `fl_charge_${process.pid}_${lang}`;
-    const pgRun = (command, args) => execFileSync(path.join(pg, command), args, { cwd: root, env, stdio: 'pipe' });
+    const pgRun = (command, args) => execFileSync(path.join(pg, command), ['-p', pgPort, ...args], { cwd: root, env, stdio: 'pipe' });
     pgRun('createdb', ['-h', '127.0.0.1', '-E', 'UTF8', '-T', 'template0', db]);
     let child;
     try {
       pgRun('psql', ['-h', '127.0.0.1', '-d', db, '-v', 'ON_ERROR_STOP=1', '-q', '-c', 'CREATE EXTENSION pg_trgm']);
       pgRun('psql', ['-h', '127.0.0.1', '-d', db, '-v', 'ON_ERROR_STOP=1', '-q', '-f', path.join(root, 'tests/schema/schema.sql')]);
-      child = spawn(python, ['-u', path.join(root, 'tests/visual/charge_setting_page_bridge.py')], { cwd: root, env: { ...env, TEST_DATABASE_URL: `postgresql://127.0.0.1:5432/${db}`, KEY_SESSIONS_ENABLED: '1' }, stdio: ['ignore', 'pipe', 'pipe'] });
+      child = spawn(python, ['-u', path.join(root, 'tests/visual/charge_setting_page_bridge.py')], { cwd: root, env: { ...env, TEST_DATABASE_URL: `postgresql://127.0.0.1:${pgPort}/${db}`, KEY_SESSIONS_ENABLED: '1' }, stdio: ['ignore', 'pipe', 'pipe'] });
       child.stderr.on('data', chunk => process.stderr.write(chunk));
       const ready = JSON.parse(await new Promise((resolve, reject) => { readline.createInterface({ input: child.stdout }).once('line', resolve); child.once('exit', code => reject(Error('bridge exited ' + code))); }));
       const origin = `http://127.0.0.1:${ready.port}`;
       const fixture = await (await fetch(origin + '/test/fixture')).json();
+      const originalCoffeeName = 'Setton Coffee Granola 25 LB';
+      const currentCoffeeName = 'Updated Setton Coffee Granola 25 LB';
       const context = await browser.newContext({ viewport: { width: 1180, height: 900 }, deviceScaleFactor: 2 });
       const page = await context.newPage();
       await page.route('**/*', r => new URL(r.request().url()).origin === origin ? r.continue() : r.abort());
@@ -70,15 +74,40 @@ try {
         await shot('office-created-sent-to-exceptions', form);
       });
 
+      await check('Exceptions: current name and Charge setting retain the original Product history', async () => {
+        const productId = fixture.products[originalCoffeeName];
+        const changed = await fetch(`${origin}/catalog/items/${productId}/item-kind`, {
+          method: 'POST', headers: { 'X-API-Key': fixture.actors.office.key, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ item_kind: 'charge' }),
+        });
+        assert.equal(changed.status, 200, await changed.text());
+        const renamed = await fetch(`${origin}/products/${productId}/verify`, {
+          method: 'POST', headers: { 'X-API-Key': 'charge-master', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'verify', verified_name: currentCoffeeName }),
+        });
+        assert.equal(renamed.status, 200, await renamed.text());
+        await login('office', 'exceptions.html');
+        const card = page.locator('article.exception-row').filter({ hasText: currentCoffeeName });
+        await card.waitFor();
+        assert.equal(await card.locator('h3').textContent(), t('Confirm: Charge or Product?', 'Confirmar: ¿Cargo o Producto?'));
+        await card.getByText(currentCoffeeName, { exact: true }).waitFor();
+        assert.equal(await card.locator('p.neutral').first().textContent(),
+          t('Now marked: Charge (pallet, freight, delivery…)', 'Marcado ahora: Cargo (palé, flete, entrega…)'));
+        assert.match(await card.textContent(), lang === 'es'
+          ? /Updated Setton Coffee Granola 25 LB ahora está marcado como Cargo[\s\S]*Se preguntó originalmente por Setton Coffee Granola 25 LB: estaba marcado como Producto/
+          : /Updated Setton Coffee Granola 25 LB is now marked Charge[\s\S]*Originally asked about Setton Coffee Granola 25 LB: it was marked Product/);
+        await shot('exceptions-current-setting-original-history', card);
+      });
+
       await check('Exceptions: Confirm Charge or Product card, answered once', async () => {
         await login('office', 'exceptions.html');
-        const card = page.locator('article.exception-row').filter({ hasText: 'Setton Coffee Granola 25 LB' });
+        const card = page.locator('article.exception-row').filter({ hasText: currentCoffeeName });
         await card.waitFor();
         assert.match(await card.textContent(), lang === 'es' ? /Confirmar: ¿Cargo o Producto\?[\s\S]*contiene "fee"/ : /Confirm: Charge or Product\?[\s\S]*contains "fee"/);
         await shot('exceptions-confirm-card');
         await card.getByRole('button', { name: t('It is a Product', 'Es un Producto') }).click();
         await page.locator('#notice').filter({ hasText: t('will not ask about this item again', 'no volverá a preguntar') }).waitFor();
-        await page.locator('article.exception-row').filter({ hasText: 'Setton Coffee Granola 25 LB' }).waitFor({ state: 'detached' });
+        await page.locator('article.exception-row').filter({ hasText: currentCoffeeName }).waitFor({ state: 'detached' });
         await shot('exceptions-confirmed');
         const item = await (await fetch(`${origin}/catalog/items?q=Setton`, { headers: { 'X-API-Key': fixture.actors.owner.key } })).json();
         assert.equal(item.items[0].confirmed, true);

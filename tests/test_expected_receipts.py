@@ -81,7 +81,7 @@ def cur(_db_connection):
 
 def _seed_product(cur, name):
     cur.execute(
-        "INSERT INTO products (name, type, odoo_code, active) VALUES (%s, 'ingredient', %s, true) RETURNING id",
+        "INSERT INTO products (name, type, odoo_code, active,is_service) VALUES (%s, 'ingredient', %s, true,false) RETURNING id",
         (name, f"SKU-{name[:20]}"),
     )
     return cur.fetchone()["id"]

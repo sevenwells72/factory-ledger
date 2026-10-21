@@ -72,7 +72,7 @@ with connection() as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute('''INSERT INTO sales_order_lines(sales_order_id,product_id,quantity_lb,ordered_quantity,ordered_unit,
                        ordered_case_weight_lb,unit_price,amount) VALUES(%s,%s,%s,%s,%s,%s,%s,%s)''',
                     (order, products[name], lb, quantity, unit, weight, price, quantity * price))
-    charge_setting.sweep(cur)        # what migration 085 / the nightly sweep does for existing items
+    charge_setting.sweep(cur)        # what migration 086 / the nightly sweep does for existing items
     fixture = {'actors': actors, 'products': products, 'order': order, 'order_number': 'SO-261020-143'}
 
 import main

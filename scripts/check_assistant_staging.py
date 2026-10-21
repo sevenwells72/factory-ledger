@@ -82,7 +82,7 @@ def check(audio_file=None):
             products = {}
             for kind in ('ingredient', 'batch', 'finished'):
                 name = f'{token} {kind}'
-                cur.execute("INSERT INTO products(name,odoo_code,type,uom,default_batch_lb,case_size_lb,active) VALUES (%s,%s,%s,'lb',10,5,true) RETURNING id,name",
+                cur.execute("INSERT INTO products(name,odoo_code,type,uom,default_batch_lb,case_size_lb,active,is_service) VALUES (%s,%s,%s,'lb',10,5,true,false) RETURNING id,name",
                             (name, f'{token}-{kind}', kind))
                 products[kind] = dict(cur.fetchone())
             cur.execute('UPDATE products SET parent_batch_product_id=%s WHERE id=%s',

@@ -19,7 +19,7 @@ def seed_day(cur, actors, count=601, *, day=None, happened_at=None, entered_at=N
     day = day or main.get_plant_now().date()
     start = datetime.combine(day, time(8), main.PLANT_TIMEZONE)
     tag = uuid4().hex.upper()
-    cur.execute("INSERT INTO products(name,odoo_code,type,uom) VALUES (%s,%s,'ingredient','lb') RETURNING id",
+    cur.execute("INSERT INTO products(name,odoo_code,type,uom,is_service) VALUES (%s,%s,'ingredient','lb',false) RETURNING id",
                 ('Sunflower Seeds ' + tag, 'FA-' + tag))
     product_id = cur.fetchone()['id']
     cur.execute('INSERT INTO lots(product_id,lot_code) VALUES (%s,%s) RETURNING id', (product_id, 'FA-' + tag))
