@@ -11,13 +11,13 @@ class Element{
 }
 const descendants=node=>[node,...node.children.flatMap(descendants)];
 const plain=value=>JSON.parse(JSON.stringify(value));
-async function harness({language='en',path='/make/prepare',draft={},canCommit=true,onPrepare,initialAttachment=null,initialPhoto=null,photoKind='correction_photo',payload={}}={}){
+async function harness({language='en',path='/make/prepare',draft={},canCommit=true,onPrepare,initialAttachment=null,initialPhoto=null,photoKind='correction_photo',payload={},result={receipt_number:'MK-261020-001',success:true}}={}){
   const host=new Element('main'),notice=new Element('div'),requests=[],failures=[],uploads=[],busy=[],attachments=[];let cancelled=0,edited=0;
   const labelled=new Set();
   const label=(node,value)=>{node.textContent=String(value??'');if(value?.en!==undefined){node.labels=[value.en,value.es];labelled.add(node);}else{delete node.labels;labelled.delete(node);}return node;};
   const ui={...ledger,lang:language,t:(en,es)=>Object.assign(new String(ui.lang==='es'?es:en),{en,es}),setText:label,relabel(){for(const node of labelled)if(descendants(host).includes(node))node.textContent=node.labels[ui.lang==='es'?1:0];},el(tag,text,parent){const node=label(new Element(tag),text);parent?.append(node);return node;},makeDraftHtml:()=>'',draftHtml:()=>'',autoSubstitutionsHtml:()=>'',plantTime:()=>'',failure(error){failures.push(error.message);},notice(){},
     async upload(file,kind){uploads.push({file,kind});return {attachment_id:91,kind};},
-    async request(url,body){requests.push({url,body:plain(body)});if(url.includes('/commit'))return {receipt_number:'MK-261020-001',success:true};return {ticket:'ticket-1',payload_hash:'hash-1',draft:plain(draft),actor:{name:'Arturo'},can_commit:canCommit,...(onPrepare?onPrepare(body):{})};}};
+    async request(url,body){requests.push({url,body:plain(body)});if(url.includes('/commit'))return plain(result);return {ticket:'ticket-1',payload_hash:'hash-1',draft:plain(draft),actor:{name:'Arturo'},can_commit:canCommit,...(onPrepare?onPrepare(body):{})};}};
   const root={FLLedger:ui,addEventListener(){},matchMedia:()=>({matches:true})};vm.runInNewContext(source,{window:root,document:{getElementById:()=>notice},FLReceipts:{link:receipt=>'receipt.html?number='+receipt,page:name=>name}});
   const controller=ui.ticketCard(host,path,{client_source:'dashboard',...plain(payload)},{initialAttachment,initialPhoto,photoKind,onAttachment(attachment){attachments.push(attachment);},onCancel(){cancelled++;},onEdit(){edited++;},onBusy(value){busy.push(value);}});await flush();
   const all=predicate=>descendants(host).filter(predicate),find=predicate=>all(predicate)[0],button=text=>find(node=>node.tag==='button'&&node.textContent===text);
@@ -98,3 +98,5 @@ test('switching language refreshes physical-tag legends, actor and photo status 
   h.switchLanguage('es');assert.ok(h.find(node=>node.textContent==='Foto adjunta'));assert.ok(h.find(node=>node.tag==='legend'&&node.textContent==='Confirma lote físico: Oats · OATS-A-001'));assert.ok(h.find(node=>node.textContent==='Registrando como Arturo'));assert.ok(h.button('Registrar'));
   h.switchLanguage('en');assert.ok(h.find(node=>node.textContent==='Photo attached'));assert.ok(h.find(node=>node.tag==='legend'&&node.textContent==='Confirm physical lot: Oats · OATS-A-001'));assert.equal(h.uploads.length,1);assert.equal(h.requests.length,1);
 });
+
+for(const language of ['en','es'])test(`receive success card puts the large CNS code before the receipt in ${language}`,async()=>{const h=await harness({language,path:'/receive/prepare',result:{receipt_number:'RCV-261021-001',success:true,lot_code:'26-10-21-OATS-001',supplier_lot_code:'SUP-22'}});h.ui.receiveLotHtml=receipt=>{ledger.lang=language;return ledger.receiveLotHtml(receipt);};await h.button(language==='en'?'Record':'Registrar').onclick();const card=h.host.children[0],tag=card.children[0];assert.match(tag.innerHTML,/class="receive-lot-code">26-10-21-OATS-001/);assert.match(tag.innerHTML,language==='en'?/>Write this on the pallet tag</:/>Escribe esto en la etiqueta del pallet</);assert.equal(card.children[1].className,'good');});

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Factory Ledger — Floor & Fulfillment
-  version: 4.1.0
+  version: 4.2.0
   description: Physical production, packing, shipping, and inbound receipts for CNS Confectionery Products. Scoped to floor operator workflow.
 servers:
   - url: https://fastapi-production-b73a.up.railway.app
@@ -16,7 +16,7 @@ components:
   schemas:
     ReceiveRequest:
       type: object
-      required: [product_name, cases, case_size_lb, shipper_name, bol_reference, supplier_lot_code]
+      required: [product_name, cases, case_size_lb, shipper_name, bol_reference]
       properties:
         mode:
           type: string
@@ -40,7 +40,11 @@ components:
           type: string
         supplier_lot_code:
           type: string
-          description: "Supplier's printed lot code. REQUIRED per floor policy — use 'UNKNOWN' with a note if unreadable. Defaults to lot_code if omitted, or 'N/A' if neither is provided."
+          description: 'Lot printed on the supplier label. Required for purchased ingredients unless no_supplier_lot is true. Never send UNKNOWN or N/A.'
+        no_supplier_lot:
+          type: boolean
+          default: false
+          description: 'True only when the operator says the label has no lot or the lot is unreadable ("No lot on label" / "Sin lote en la etiqueta"). The lot is recorded unidentified with the 7-business-day follow-up.'
         lot_type:
           type: string
           enum: [single_supplier, commingled]

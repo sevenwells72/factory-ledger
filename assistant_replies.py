@@ -260,6 +260,9 @@ def refusal_message(detail, es=False):
     if detail.get('blockers'):
         return '; '.join(refusal_message(item, es) for item in detail['blockers'])
     code = detail.get('error_code') or detail.get('code')
+    if code == 'SUPPLIER_LOT_REQUIRED':
+        return ('Escribe el lote del proveedor que aparece en la etiqueta. Si no hay lote o no se puede leer, di "sin lote en la etiqueta".' if es else
+                'Type the supplier lot printed on the label. If there is no lot or it is unreadable, say "no lot on label".')
     if es and detail.get('message_es'):
         return detail['message_es']
     if code == 'ORDER_ALREADY_FULFILLED' and detail.get('order_number'):

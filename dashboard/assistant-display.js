@@ -42,6 +42,12 @@
     return scalar(value).replace(/(?:internal server error|FL returned an unreadable response(?:\. Please try again\.)?)/gi, unavailable(language)).replace(/\bUNIDENTIFIED(?:_LOT)?\b/g, plainLabel('unidentified', language))
       .replace(/\b(?:physical_count|missing_receipt|missing_production|wrong_lot_used|wrong_lot|damage_disposal|unrecorded_usage|data_entry_error|unknown)\b/g, code => plainLabel(code, language));
   }
+  function receiveLotCodes(receipt={}){
+    if(receipt.action!=='receive'&&!/^RCV-/.test(receipt.receipt_number||''))return [];
+    const values=[receipt,receipt.response||{},...(receipt.lots||[]),...(receipt.transactions||[]).flatMap(txn=>txn.lines||[])];
+    const codes=values.map(value=>value.lot_code).filter(value=>typeof value==='string'&&value.trim()).map(value=>value.trim());
+    return [...new Set(codes)];
+  }
   function receiptEvidence(receipt = {}, language = 'en') {
     const values = [receipt, receipt.response || {}, receipt.draft || {}, receipt.shipment || {}, ...(receipt.lots || []), ...(receipt.transactions || [])];
     const unique = key => [...new Set(values.map(value => scalar(value[key])).filter(Boolean))].join(', ');
@@ -300,7 +306,7 @@
     const text = typeof value === 'string' ? value : scalar(value?.receipt_number || value?.source_receipt_number || value?.result?.receipt_number);
     return text.match(/\b(?:RCV|MK|PK|ADJ|FND|SHP)-\d{6}-\d{3,}\b/i)?.[0]?.toUpperCase() || null;
   }
-  const api = { formatQuantity: fmt, receiptEvidence, unavailable, plainLabel, plainMessage, formatTime, errorMessage, inventoryUnit, quantityLabel, draftFields, lineFields, existingCustomerChoice, newCustomerChoice, receiptSummary, orderRemaining, readSections, dedupeCards, voidReceipt };
+  const api = { receiveLotCodes, formatQuantity: fmt, receiptEvidence, unavailable, plainLabel, plainMessage, formatTime, errorMessage, inventoryUnit, quantityLabel, draftFields, lineFields, existingCustomerChoice, newCustomerChoice, receiptSummary, orderRemaining, readSections, dedupeCards, voidReceipt };
   if (typeof module !== 'undefined') module.exports = api;
   root.FLAssistantDisplay = api;
 })(typeof window === 'undefined' ? globalThis : window);

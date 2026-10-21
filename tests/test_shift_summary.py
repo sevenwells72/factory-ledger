@@ -130,7 +130,7 @@ def test_received_row_fields_lines_and_language_copies(client, db_cursor, actors
 
 def test_unidentified_receive_flag_and_open_exception_rollup(client, db_cursor, actors):
     key = actors['floor']['key']
-    result, payload, p = receive(client, db_cursor, key, supplier_lot_code='N/A')
+    result, payload, p = receive(client, db_cursor, key, supplier_lot_code='N/A', no_supplier_lot=True)
     doc = summary(client, key)
     [row] = section(doc, 'received')['rows']
     assert row['lot']['identity_status'] == 'unidentified'

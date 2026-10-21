@@ -540,3 +540,10 @@ test('disabled Assistant and exhausted quota share the offline handoff classifie
   for(const code of ['ASSISTANT_DISABLED','ASSISTANT_QUOTA_EXHAUSTED'])for(const response of [{error_code:code},{code},{detail:{error_code:code}},{detail:{code}},{result:{detail:{error_code:code}}},{result:{detail:{code}}}])assert.equal(ui.assistantOffline(response),true,JSON.stringify(response));
   for(const response of [null,{},'ASSISTANT_DISABLED',{message:'ASSISTANT_DISABLED'},{detail:{error_code:'SESSION_EXPIRED'}},{detail:{error_code:'ROLE_NOT_ALLOWED'}},{result:{detail:{error_code:'DATABASE_BUSY'}}}])assert.equal(ui.assistantOffline(response),false,JSON.stringify(response));
 });
+
+for(const language of ['en','es'])for(const readback of [false,true])test(`receive ${readback?'read-back':'receipt'} shows CNS pallet tag first in ${language}`,async()=>{
+ const result={success:true,receipt_number:'RCV-261021-001',action:'receive',lot_code:'26-10-21-OATS-001',supplier_lot_code:'SUP-22',transactions:[{lines:[{lot_code:'26-10-21-OATS-001',quantity_lb:50,product_name:'Oats'}]}]};
+ const card={kind:'draft',id:'receive-tag',prepared:{action:'receive',can_commit:true,draft:{product_name:'Oats'}}};
+ const h=readback?await resumedCard({kind:'read',tool:'receipt_lookup',result},language):await resumedCard(card,language,{savedDrafts:[{id:card.id,card,status:'committed',result}]});
+ const first=h.card.children[0];assert.equal(first.className,'receive-lot-tag');const nodes=descendants(first);assert.ok(nodes.some(node=>node.className==='receive-lot-code'&&node.textContent==='26-10-21-OATS-001'));assert.ok(nodes.some(node=>node.textContent===(language==='en'?'Write this on the pallet tag':'Escribe esto en la etiqueta del pallet')));await h.get('language').listeners.click();assert.ok(descendants(first).some(node=>node.textContent===(language==='es'?'Write this on the pallet tag':'Escribe esto en la etiqueta del pallet')));
+});

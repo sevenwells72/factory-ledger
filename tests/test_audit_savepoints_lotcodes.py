@@ -489,6 +489,7 @@ def test_receive_preview_seq_survives_manual_nonnumeric_code(client, _db_connect
         "cases": 1, "case_size_lb": 50,
         "shipper_name": "QQZZ Foods",
         "bol_reference": "BOL-SEQ-TEST",
+        "supplier_lot_code": "SEQ-SUP-LOT",
     })
     assert resp.status_code == 200, resp.text
     assert resp.json()["lot_code"] == f"{date_part}-QQZZ-002"
