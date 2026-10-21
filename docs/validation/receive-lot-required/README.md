@@ -1,30 +1,44 @@
 # Receive lot capture validation
 
-Branch `feat/receive-lot-required` starts from `origin/main` at `27a25186`. This change is unmerged and undeployed.
+`feat/receive-lot-required` starts from `origin/main` at `27a25186`. PR #145 remains unmerged. This report covers [review comment 6322477292](https://github.com/sevenwells72/factory-ledger/pull/145#issuecomment-6322477292).
 
-Purchased ingredient receipts require the printed supplier lot, or the explicit **No lot on label / Sin lote en la etiqueta** choice. Missing, blank and placeholder codes without the choice return HTTP 422 with English and Spanish instructions. The rule covers the dashboard, `/receive/prepare`, legacy `/receive`, and its preview/commit aliases. Valid commingled component codes remain accepted.
+Purchased ingredient receipts require the printed supplier lot or an explicit **No lot on label / Sin lote en la etiqueta** choice. Blank/sentinel codes without it return bilingual HTTP 422. Dashboard, ticket prepare/commit, legacy receive and preview/commit aliases share the guard. Existing purchased-ingredient exemptions, valid commingled codes, supplier links, legacy named-vendor handling, expected-receipt matching and normal receives are preserved. The explicit exception retains the existing unidentified status and seven-business-day New York deadline. No database migration is needed.
 
-The explicit exception keeps the existing unidentified-lot workflow: seven business days after entry, with the existing New York deadline and correction-only identification. Supplier requirements and links remain; legacy named-vendor handling and expected-receipt matching are preserved. No database schema changes or migration files are needed.
+The CNS lot appears first and large on success, receipt read-back and Assistant cards, followed by **Write this on the pallet tag / Escribe esto en la etiqueta del pallet**. New receive Spanish consistently uses tú: Ingresa, selecciona, Escribe and di.
 
-The CNS lot code appears first and large on receive success, receipt read-back and Assistant receipts, followed by **Write this on the pallet tag / Escriba esto en la etiqueta del pallet**. The Floor GPT schema and instructions expose the explicit exception and CNS-first read-back. The Assistant only accepts a worker's direct label-absence assertion; model-invented flags, questions and instructions do not authorize it, and explicit denials clear a saved choice.
+Review fixes:
 
-Validation on 2026-10-21:
+- The actual Floor GPT schema, `gpt-configs/schemas/openapi-floor.yaml`, is v4.2.0. Its receive schema makes supplier_lot_code optional and exposes boolean no_supplier_lot with default false. The reviewed descriptions replace stale UNKNOWN/fallback advice. The RECEIVE line is exact in `floor-specific.md`; `shared-rules.md` has no RECEIVE line and remains unchanged. The root `build_gpt_instructions.py floor` rebuilt the dist file from both sources.
+- Assistant no-lot facts work anywhere in EN/ES sentences: “10 bags oats 50 lb from Grain Millers, no lot on label”, “no lot”, “lot unreadable”, “No tiene lote”, “Sin lote” and “lote ilegible”. The receive tool binds worker facts even without a received verb. Supplier-choice turns retain them; real supplier codes take precedence; model-invented flags are refused; explicit denials clear the flag. The error says **say “no lot on label” / di “sin lote en la etiqueta”**, never select.
+- The receipt changelog entry is now **229**. PR #144 reserves 225; PR #143 uses 226–228. Historical CHANGE_LOG allocation records remain intact.
+- Office instructions are v3.8.2 with 515 characters of headroom. Routing and transaction rule areas remain intact.
+
+Final review-fix validation on 2026-10-21:
 
 | Check | Result |
 |---|---|
-| Full Python suite, final frozen source | 7,044 passed; zero failures, errors or skips; 151.43 seconds |
-| Full JavaScript suite | 577 passed; zero failures or skips |
-| Local browser checks | 12 passed; English/Spanish at 390px and 1440px |
-| Floor GPT OpenAPI operations | 30 before / 30 after |
-| Floor GPT instruction length | 7,997 characters; within 8,000 |
-| Diff whitespace and Python/YAML syntax | Passed |
+| Full Python suite, frozen source | 7,094 passed; zero failures/errors/skips; 155.42 seconds |
+| Full JavaScript suite | 577 passed; zero failures/skips |
+| Refreshed local browser checks | 12 passed; EN/ES at 390px and 1440px |
+| Office GPT operations | 30 before / 30 after |
+| Floor GPT operations | 22 before / 22 after |
+| Floor deployable body | 7,837 characters |
+| Floor file including generated header | 7,967 characters; below 8,000 |
+| Office instructions | 7,485 characters; below 8,000 |
+| Changed Floor receive descriptions | 128 and 147 characters; below 300 |
+| Diff whitespace and changed Python syntax | Passed |
 
-Python used the pinned Python 3.12.14 / Pydantic 2.14.1 environment and a fresh UTF-8 PostgreSQL 17 instance at `127.0.0.1:55471`. The runner explicitly removed `DATABASE_URL` and set `TEST_DATABASE_URL` to its disposable local database. JavaScript ran with `node --test tests/test_*.js`.
+Python used pinned Python 3.12.14 / Pydantic 2.14.1 and fresh UTF-8 PostgreSQL 17 at `127.0.0.1:55471`, with DATABASE_URL removed and TEST_DATABASE_URL explicitly local. JavaScript ran `node --test tests/test_*.js`. New tests exercise the deployable Floor schema plus real no-label preview/commit and actual Assistant prepare→Record→unidentified exception/deadline paths. Existing tests retain strict boolean refusal, blank-code guards, normal receipts, supplier provenance, identity corrections and old-ticket commit revalidation.
 
-New coverage includes blank/sentinel rejection on every receive endpoint, strict boolean exception handling, unidentified status and the unchanged deadline, supplier links, normal receives, commingled receipts, non-purchased exemptions, old-ticket commit revalidation, server policy metadata, Assistant source binding, and bilingual receipt rendering. Existing unrelated receipt fixtures now supply actual lot evidence; intentional unidentified fixtures explicitly set the flag.
+Browser checks used mocked local APIs with all external requests blocked: 26px phone and 38px desktop CNS lot text above the receipt number, no overflow or console/page errors. Spanish screenshots now use Escribe. See [checks](browser-checks.json), [English receive success](entry-success-en-390.png), and [Spanish read-back](receipt-es-390.png).
 
-Browser QA used local mocked API responses with all external requests blocked. CNS lot font size was 26px on phones and 38px on desktop, above the receipt number; no horizontal overflow or browser errors. See [browser checks](browser-checks.json), [English receive success](entry-success-en-390.png), and [Spanish receipt read-back](receipt-es-390.png).
+Final caches: ledger-ui 19, fl-assistant 17, entry/receipt/ledger-ticket 10, assistant-display 12, ledger-forms/fl-assistant CSS 9. All changed-asset consumers were refreshed.
 
-Cache versions: entry 9→10, receipt 9→10, ledger-ticket 9→10, ledger-ui 17→18, ledger-forms CSS 8→9, assistant-display 11→12, fl-assistant 15→16, fl-assistant CSS 8→9. All referencing dashboard pages were updated.
+Future approved rollout checklist — not executed here:
 
-No production or staging access, deployment, production migration, merge, or main-branch push occurred. No changes touch the live count worktree, `audits/fresh-start/`, or count/reset logic. Historical changelog entries remain intact; the canonical global log was updated through its verified symlink target using in-place writes.
+1. Verify the office GPT editor holds the intended source version; the prepared artifact is v3.8.2. Live editor contents were not inspected or changed.
+2. Paste the Floor v4.2.0 schema and rebuilt instructions **before** backend deployment. The current backend ignores the extra flag and retains its old blank-code fallback, avoiding a no-label outage during that order. Log an actual paste only after it happens.
+3. Just before an approved deployment, check open receive drafts. Old blank/no-flag drafts intentionally fail Record with 409 SUPPLIER_LOT_REQUIRED and need re-preparing.
+4. Legacy receives now report identity, create the existing unidentified exception and enforce correction-only mismatch guards. These are intentional, locally tested behaviors.
+
+No production/staging access, manual deployment, hosted GPT paste, production migration, merge or push to main occurred. No live count worktree, audits/fresh-start/ or count/reset changes. Required logs used the verified canonical global symlink target and in-place writes.

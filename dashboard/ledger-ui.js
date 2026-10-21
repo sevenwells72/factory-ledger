@@ -13,7 +13,7 @@
   }
   function receiveLotHtml(receipt){
     const codes=receiveLotCodes(receipt);if(!codes.length)return '';
-    return '<section class="receive-lot-tag"><p class="receive-lot-label" data-en="CNS lot code" data-es="Código de lote CNS">'+(api.lang==='es'?'Código de lote CNS':'CNS lot code')+'</p>'+codes.map(code=>'<p class="receive-lot-code">'+esc(code)+'</p>').join('')+'<p data-en="Write this on the pallet tag" data-es="Escriba esto en la etiqueta del pallet">'+(api.lang==='es'?'Escriba esto en la etiqueta del pallet':'Write this on the pallet tag')+'</p></section>';
+    return '<section class="receive-lot-tag"><p class="receive-lot-label" data-en="CNS lot code" data-es="Código de lote CNS">'+(api.lang==='es'?'Código de lote CNS':'CNS lot code')+'</p>'+codes.map(code=>'<p class="receive-lot-code">'+esc(code)+'</p>').join('')+'<p data-en="Write this on the pallet tag" data-es="Escribe esto en la etiqueta del pallet">'+(api.lang==='es'?'Escribe esto en la etiqueta del pallet':'Write this on the pallet tag')+'</p></section>';
   }
   // XR identifies the decision. A resolve response's receipt_number is its SOURCE posting.
   // Rejection can record an XR while posted=false / ticket_status=rejected for the held stock.

@@ -14,6 +14,21 @@ from assistant_receive import merge_receive_lot_facts, normalize_receive_argumen
     'Sin número de lote del proveedor en la etiqueta.',
     'Received 10 cases of oats, no lot on label.',
     'Recibimos 10 cajones de avena, sin lote en la etiqueta.',
+    '10 bags oats 50 lb from Grain Millers, no lot on label',
+    '10 bags oats, No lot on label',
+    '10 bags oats, no lot on label, 50 lb each from Grain Millers.',
+    'No lot on label, 10 bags oats 50 lb from Grain Millers.',
+    '10 bags oats, no lot, 50 lb each from Grain Millers.',
+    '10 bags oats, lot unreadable, 50 lb each from Grain Millers.',
+    'no lot',
+    'lot unreadable',
+    'No tiene lote',
+    'Sin lote',
+    'Sin lote del proveedor.',
+    '10 bolsas de avena, sin lote en la etiqueta, de Grain Millers.',
+    '10 bolsas de avena, no tiene lote, de Grain Millers.',
+    '10 bolsas de avena, lote ilegible, de Grain Millers.',
+    'El lote no se puede leer, 10 bolsas de avena.',
 ])
 def test_explicit_label_absence_is_bound_and_survives_button_turns(text):
     previous = {'supplier_lot_code': 'OLD-001', 'quantity_lb': 50}
@@ -32,7 +47,6 @@ def test_explicit_label_absence_is_bound_and_survives_button_turns(text):
     'Supplier lot N/A.',
     'The label is unreadable.',
     'El lote del proveedor es desconocido.',
-    'Sin lote del proveedor.',
     'La etiqueta no se puede leer.',
     'Do not select No lot on label.',
     "Don't use No lot on label.",
@@ -57,6 +71,15 @@ def test_explicit_label_absence_is_bound_and_survives_button_turns(text):
     'Received 10 cases, if missing, select No lot on label.',
     'Estoy preguntando sobre Sin lote en la etiqueta.',
     'Si falta, seleccione Sin lote en la etiqueta.',
+    'Did we receive 10 bags with no lot?',
+    'Is the lot unreadable',
+    'What does no lot mean?',
+    'If the lot unreadable option appears, ask the office.',
+    'No uses sin lote.',
+    '¿No tiene lote?',
+    '¿Lote ilegible?',
+    'La frase sin lote significa una excepción.',
+    'No lot was provided.',
 ])
 def test_missing_or_uncertain_lot_never_grants_the_label_exception(text):
     facts = merge_receive_lot_facts({}, text)
@@ -78,6 +101,17 @@ def test_actual_supplier_code_clears_a_previous_no_label_exception(text):
 
 def test_supplied_supplier_code_takes_precedence_over_a_label_absence_phrase():
     facts = merge_receive_lot_facts({}, 'No lot on label. Supplier lot SUP-001.')
+    assert normalize_receive_arguments({'no_supplier_lot': True}, facts) == {'supplier_lot_code': 'SUP-001'}
+
+
+@pytest.mark.parametrize('text', [
+    '10 bags oats, no lot on label; supplier lot SUP-001.',
+    'No lot, supplier lot SUP-001.',
+    'Lot unreadable; supplier lot SUP-001.',
+    'Sin lote; lote del proveedor SUP-001.',
+])
+def test_code_in_sentence_always_wins_over_explicit_no_lot_flag(text):
+    facts = merge_receive_lot_facts({}, text)
     assert normalize_receive_arguments({'no_supplier_lot': True}, facts) == {'supplier_lot_code': 'SUP-001'}
 
 

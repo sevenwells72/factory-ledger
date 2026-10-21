@@ -9,7 +9,7 @@
       "font": 26,
       "viewport": 390,
       "lotTop": 604.375,
-      "receiptTop": 743.5625
+      "receiptTop": 727.5625
     },
     {
       "surface": "readback",
@@ -36,7 +36,7 @@
       "font": 26,
       "viewport": 390,
       "lotTop": 604.375,
-      "receiptTop": 743.5625
+      "receiptTop": 727.5625
     },
     {
       "surface": "readback",
@@ -63,7 +63,7 @@
       "font": 38,
       "viewport": 1440,
       "lotTop": 444,
-      "receiptTop": 597.59375
+      "receiptTop": 581.59375
     },
     {
       "surface": "readback",
@@ -90,7 +90,7 @@
       "font": 38,
       "viewport": 1440,
       "lotTop": 444,
-      "receiptTop": 597.59375
+      "receiptTop": 581.59375
     },
     {
       "surface": "readback",

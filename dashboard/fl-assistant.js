@@ -334,7 +334,7 @@
     const codes=display.receiveLotCodes(result);if(!codes.length)return;
     const tag=el('section',undefined,'receive-lot-tag');tag.append(el('p',t('CNS lot code','Código de lote CNS'),'receive-lot-label'));
     for(const code of codes)tag.append(el('p',code,'receive-lot-code'));
-    tag.append(el('p',t('Write this on the pallet tag','Escriba esto en la etiqueta del pallet')));node.append(tag);
+    tag.append(el('p',t('Write this on the pallet tag','Escribe esto en la etiqueta del pallet')));node.append(tag);
   }
   function renderReceipt(node, result) {
     if (!validReceipt(result)) { failed(node, t('FL returned no receipt number.', 'FL no devolvió un número de recibo.')); return; }

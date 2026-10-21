@@ -353,7 +353,7 @@ def require_receive_supplier_lot(cur, payload, product_id):
             and payload.get('no_supplier_lot') is not True):
         fail('SUPPLIER_LOT_REQUIRED',
              'Enter the supplier lot code from the label, or select "No lot on label" if the label has no lot code.',
-             'Ingrese el lote del proveedor que aparece en la etiqueta, o seleccione "Sin lote en la etiqueta" si la etiqueta no tiene código de lote.')
+             'Ingresa el lote del proveedor que aparece en la etiqueta, o selecciona "Sin lote en la etiqueta" si la etiqueta no tiene código de lote.')
 
 
 def identity_draft(api, cur, payload, draft):

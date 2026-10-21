@@ -97,7 +97,7 @@ def test_normal_receive_preserves_code_supplier_and_quantity(client, db_cursor, 
     assert result['receipt_text'].splitlines()[:2] == [
         'CNS lot: ' + result['lot_code'], 'Write this on the pallet tag']
     assert result['receipt_text_es'].splitlines()[:2] == [
-        'Lote CNS: ' + result['lot_code'], 'Escriba esto en la etiqueta del pallet']
+        'Lote CNS: ' + result['lot_code'], 'Escribe esto en la etiqueta del pallet']
 
 
 @pytest.mark.parametrize('kind', ['finished', 'batch', 'packaging', 'consumable', 'service', 'has_bom'])

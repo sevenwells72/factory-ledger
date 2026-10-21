@@ -6003,7 +6003,7 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
     supplier_codes = [entry.get('supplier_lot_code') for entry in (req.supplier_lot_entries or []) if entry.get('supplier_lot_code')]
     supplier_label = ", ".join(supplier_codes) or req.supplier_lot_code or "N/A"
     receipt = f"CNS lot: {lot_code}\nWrite this on the pallet tag\nRECEIVED: {req.cases} cases ({_fmt_quantity(total_lb)} lb) {product['name']}\nSupplier lot: {supplier_label}\nBOL: {req.bol_reference}\n{date_str} {time_str}"
-    receipt_es = f"Lote CNS: {lot_code}\nEscriba esto en la etiqueta del pallet\nRECIBIDO: {req.cases} cajones ({_fmt_quantity(total_lb)} lb) de {product['name']}\nLote del proveedor: {supplier_label}\nBOL: {req.bol_reference}\n{date_str} {time_str}"
+    receipt_es = f"Lote CNS: {lot_code}\nEscribe esto en la etiqueta del pallet\nRECIBIDO: {req.cases} cajones ({_fmt_quantity(total_lb)} lb) de {product['name']}\nLote del proveedor: {supplier_label}\nBOL: {req.bol_reference}\n{date_str} {time_str}"
 
     lot_verb = "created" if is_new_lot else "found existing"
     logger.info(f"Receive committed: {lot_code} ({lot_verb}) - {_fmt_quantity(total_lb)} lb of {product['name']}")
@@ -6025,7 +6025,7 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
         "receipt_text": receipt,
         "receipt_text_es": receipt_es,
         "lot_tag_instruction": "Write this on the pallet tag",
-        "lot_tag_instruction_es": "Escriba esto en la etiqueta del pallet",
+        "lot_tag_instruction_es": "Escribe esto en la etiqueta del pallet",
         "message": f"Received {_fmt_quantity(total_lb)} lb as lot {lot_code}" + ("" if is_new_lot else " (existing lot)")
     }
     if code_similarity:
@@ -6051,7 +6051,7 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key), request: Req
     )
     if not req.shipper_name.strip():
         lot_confirmation.fail(
-            "SUPPLIER_REQUIRED", "Enter the supplier name.", "Ingrese el nombre del proveedor.")
+            "SUPPLIER_REQUIRED", "Enter the supplier name.", "Ingresa el nombre del proveedor.")
     req.supplier_lot_code = (req.supplier_lot_code or "").strip() or "N/A"
 
     try:
