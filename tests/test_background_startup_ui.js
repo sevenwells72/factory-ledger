@@ -30,7 +30,7 @@ function harness(search = '') {
       if (pathname === '/resolve') return { outcome: 'match', match: { id: 22, label: 'Selected order' } };
       return { order_id: 17, order_number: 'SO-TEST', lines: [] };
     },
-    exceptionQueue: require('../dashboard/ledger-ui.js').exceptionQueue, openingStock: require('../dashboard/ledger-ui.js').openingStock, groups: () => [], receiptState: () => ({ state: 'recorded', tone: 'good' }), voidChoices: () => [], draftHtml: () => '',
+    exceptionQueue: require('../dashboard/ledger-ui.js').exceptionQueue, openingStock: require('../dashboard/ledger-ui.js').openingStock, groups: () => [], receiveLotHtml: require('../dashboard/ledger-ui.js').receiveLotHtml, receiptData: require('../dashboard/ledger-ui.js').receiptData, receiptState: () => ({ state: 'recorded', tone: 'good' }), voidChoices: () => [], draftHtml: () => '',
     notice() {}, failure(error) { throw error; }, relabel() {}, translate() {} };
   const context = vm.createContext({ setTimeout, clearTimeout, URL, URLSearchParams, FLLedger: ui, FLReceipts: { page: name => name },
     FLDashboard: { writesEnabled: true }, location: { search, href: 'https://fl.local/entry.html' + search }, history: { replaceState() {} },
@@ -94,4 +94,8 @@ for (const savedChat of [true, false]) test(`Assistant automatic ${savedChat ? '
   await h.get('new-chat').fire('click'); await settle();
   assert.equal(calls.at(-1).pathname, '/assistant/session');
   assert.equal(calls.at(-1).init.headers['X-FL-Background'], undefined);
+});
+
+for(const language of ['en','es'])test(`receipt lookup puts the CNS code and pallet-tag instruction before receipt number in ${language}`,async()=>{
+ const h=harness('?number=RCV-261021-001'),ledger=require('../dashboard/ledger-ui.js');h.ui.lang=language;h.ui.receiveLotHtml=receipt=>{ledger.lang=language;return ledger.receiveLotHtml(receipt);};h.ui.request=async()=>({action:'receive',receipt_number:'RCV-261021-001',status:'committed',lot_code:'26-10-21-OATS-001',supplier_lot_code:'SUP-22',transactions:[]});h.run('receipt.js');await settle();const card=h.get('content').children[0];assert.match(card.children[0].innerHTML,/class="receive-lot-code">26-10-21-OATS-001/);assert.match(card.children[0].innerHTML,language==='en'?/>Write this on the pallet tag</:/>Escriba esto en la etiqueta del pallet</);assert.equal(card.children[1].textContent,'RCV-261021-001');
 });

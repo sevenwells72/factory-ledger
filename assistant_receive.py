@@ -29,6 +29,52 @@ _ABSENT_AFTER = re.compile(
     r'not\s+(?:given|provided|available|known)|desconocid[oa]|ninguno|'
     r'sin\s+(?:n[uú]mero|c[oó]digo)|no\s+(?:se\s+(?:indic[oó]|dio|proporcion[oó])|disponible))'
     r'(?![A-Za-z0-9_/-])', re.I)
+_NO_LOT_ON_LABEL = re.compile(
+    r'\b(?:no\s+(?:(?:supplier|vendor|manufacturer)\s+)?lot(?:\s+(?:code|number))?'
+    r'\s+on\s+(?:the\s+)?label'
+    r'|(?:the\s+)?label\s+has\s+no\s+(?:(?:supplier|vendor|manufacturer)\s+)?lot(?:\s+(?:code|number))?'
+    r'|(?:sin|no\s+hay)\s+(?:(?:n[uú]mero|c[oó]digo)\s+de\s+)?lote'
+    r'(?:\s+del\s+proveedor)?\s+en\s+(?:la\s+)?etiqueta)\b', re.I)
+_CLAUSE_BOUNDARY = re.compile(r'[;.!?\n]')
+_LABEL_ASSERTION_PREFIX_GUARD = re.compile(
+    r'\b(?:not|never|no|nunca|jam[aá]s|if|unless|whether|maybe|perhaps|assuming|suppose|'
+    r'si|quiz[aá]s?|supongamos|means?|meaning|option|flag|checkbox|phrase|wording|'
+    r'button|example|quote|instruction|asking|ask|select|choose|check|significa|'
+    r'opci[oó]n|casilla|frase|texto|bot[oó]n|ejemplo|pregunt[ao]|seleccion[ae])\b'
+    r'|\b\w+n[\'’]t\b', re.I)
+_LABEL_SIMPLE_PREFIX = re.compile(
+    r'\s*(?:(?:actually|in\s+fact|en\s+realidad|de\s+hecho)\s*[,:-]?\s*)?'
+    r'(?:there\s+(?:is|was)\s+)?["\'“]?\s*', re.I)
+_LABEL_RECEIVE_PREFIX = re.compile(
+    r'\s*(?:(?:we|I)\s+)?(?:received|recibimos|recib[ií])\b[^;.!?\n]*,\s*'
+    r'(?:there\s+(?:is|was)\s+)?["\'“]?\s*', re.I)
+_LABEL_ASSERTION_END = re.compile(r'\s*["\'”]?\s*')
+_LABEL_DENIAL_END = re.compile(
+    r'\s*["\'”]?\s*(?:is\s+(?:not\s+(?:true|correct)|false|incorrect|wrong)'
+    r'|isn[\'’]t\s+(?:true|correct)|es\s+(?:fals[oa]|incorrect[oa])'
+    r'|no\s+es\s+(?:cierto|verdad|correct[oa]))\s*', re.I)
+
+
+def _explicit_no_lot_on_label(text):
+    """Read an exact label assertion or its explicit denial; other text is unknown."""
+    result = None
+    for phrase in _NO_LOT_ON_LABEL.finditer(text):
+        before = _CLAUSE_BOUNDARY.split(text[:phrase.start()])[-1]
+        tail = text[phrase.end():]
+        boundary = _CLAUSE_BOUNDARY.search(tail)
+        after = tail[:boundary.start()] if boundary else tail
+        if '¿' in before or boundary and boundary[0] == '?':
+            continue
+        simple = _LABEL_SIMPLE_PREFIX.fullmatch(before)
+        receiving = (_LABEL_RECEIVE_PREFIX.fullmatch(before)
+                     and not _LABEL_ASSERTION_PREFIX_GUARD.search(before))
+        if not (simple or receiving):
+            continue
+        if _LABEL_DENIAL_END.fullmatch(after):
+            result = False
+        elif _LABEL_ASSERTION_END.fullmatch(after):
+            result = True
+    return result
 
 
 def _complete_code(text):
@@ -113,17 +159,35 @@ def lot_facts_from_text(text):
 
 def merge_receive_lot_facts(previous_facts, text):
     """Persist unresolved-field tombstones; button turns preserve all facts."""
-    facts, ambiguous = _parsed_lot_facts(text)
+    no_label_lot = _explicit_no_lot_on_label(text or '')
+    # The absence phrase is its own fact. Removing it before code parsing lets
+    # an actual supplier code from the same message take precedence.
+    facts, ambiguous = _parsed_lot_facts(_NO_LOT_ON_LABEL.sub(' ', text or ''))
     result = dict(previous_facts)
     for field in ambiguous:
         result[field] = None
     result.update(facts)
+    if facts.get('supplier_lot_code'):
+        result.pop('no_supplier_lot', None)
+    elif no_label_lot is not None:
+        # Only this explicit physical-label statement permits unidentified
+        # receiving. Missing/unknown/unreadable is not the worker's assertion.
+        result['supplier_lot_code'] = None
+        if no_label_lot:
+            result['no_supplier_lot'] = True
+        else:
+            result.pop('no_supplier_lot', None)
     return result
 
 
 def normalize_receive_arguments(arguments, facts):
     """Bind model arguments to the worker's explicit, separately labelled lots."""
     result = dict(arguments)
+    # The model may not invent the physical-label exception. Persist only the
+    # worker's explicit statement, including through supplier-choice buttons.
+    result.pop('no_supplier_lot', None)
+    if facts.get('no_supplier_lot') is True and not facts.get('supplier_lot_code'):
+        result['no_supplier_lot'] = True
     supplier = facts.get('supplier_lot_code')
     internal = facts.get('lot_code')
     for field in ('supplier_lot_code', 'lot_code'):

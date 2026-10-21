@@ -511,7 +511,7 @@ def test_receive_commit_lot_uuid_and_t2_warning(client, _db_connection):
         name = cur.fetchone()["name"]
 
     base = {"mode": "commit", "product_name": name, "cases": 2,
-            "case_size_lb": 50, "shipper_name": "ZZ047 Foods",
+            "case_size_lb": 50, "shipper_name": "ZZ047 Foods", "supplier_lot_code": "ZZ047-SUP-LOT",
             "bol_reference": "BOL-047"}
     first = client.post("/receive", json={**base, "lot_code": "ZZ047-RCV-1"})
     assert first.status_code == 200, first.text
@@ -656,7 +656,7 @@ def test_lowercase_receive_code_lands_upcased_with_uuid(client, _db_connection):
         name = cur.fetchone()["name"]
     resp = client.post("/receive", json={
         "mode": "commit", "product_name": name, "cases": 1,
-        "case_size_lb": 50, "shipper_name": "ZZ047 Foods",
+        "case_size_lb": 50, "shipper_name": "ZZ047 Foods", "supplier_lot_code": "ZZ047-SUP-LOT",
         "bol_reference": "BOL-047-LC", "lot_code": "zz047-lc-rcv-1",
     })
     assert resp.status_code == 200, resp.text

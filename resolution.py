@@ -857,6 +857,15 @@ def resolve(cur, req, *, aliases=None):
         if bare and not sunshine and result['outcome']=='match' and result['match'].get('tier') != 'exact':
             result.update(outcome='ambiguous',match=None,needs_clarification=True,
                 ask='Choose the Classic #9 kosher tier: ' + '; '.join(c['label'] for c in result['candidates']))
+    if req.kind == 'product' and req.context.action == 'receive':
+        from lot_confirmation import supplier_lot_identity_applies
+        policies = {}
+        for candidate in [*result['candidates'], result.get('match')]:
+            if candidate:
+                product_id = candidate['id']
+                if product_id not in policies:
+                    policies[product_id] = supplier_lot_identity_applies(cur, product_id)
+                candidate['supplier_lot_required'] = policies[product_id]
     result['alias_table_available'] = available
     return result
 

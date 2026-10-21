@@ -330,9 +330,15 @@
       node.append(button(t(`View ${photoKinds[item.kind]?.[0] || 'attached'} photo`, `Ver foto: ${photoKinds[item.kind]?.[1] || 'adjunta'}`), () => viewPhoto(id), 'receipt-photo'));
     }
   }
+  function receiveLotTag(node,result){
+    const codes=display.receiveLotCodes(result);if(!codes.length)return;
+    const tag=el('section',undefined,'receive-lot-tag');tag.append(el('p',t('CNS lot code','Código de lote CNS'),'receive-lot-label'));
+    for(const code of codes)tag.append(el('p',code,'receive-lot-code'));
+    tag.append(el('p',t('Write this on the pallet tag','Escriba esto en la etiqueta del pallet')));node.append(tag);
+  }
   function renderReceipt(node, result) {
     if (!validReceipt(result)) { failed(node, t('FL returned no receipt number.', 'FL no devolvió un número de recibo.')); return; }
-    node.replaceChildren(); node.className = 'card receipt';
+    node.replaceChildren(); node.className = 'card receipt';receiveLotTag(node,result);
     node.append(el('span', t('✓ RECORDED IN FACTORY LEDGER', '✓ REGISTRADO EN FACTORY LEDGER'), 'eyebrow'), el('h3', result.receipt_number, 'receipt-number'));
     node.append(el('p', result.replayed ? t('Same entry, same receipt. Your retry did not create another entry.', 'Misma entrada, mismo recibo. El reintento no creó otra entrada.') : t('FL confirmed this entry.', 'FL confirmó esta entrada.')));
     autoSubstitutions(node, result);
@@ -610,6 +616,7 @@
       const list = el('ul'); for (const text of card.queued_text || []) list.append(el('li', text)); node.append(list);
       if (card.continue_text) node.append(button(card.continue_text, () => sendTurn({ text: card.continue_text }), 'choice-button'));
     } else if (card.kind === 'read') {
+      receiveLotTag(node,card.result);
       node.append(el('span', t('FROM FACTORY LEDGER', 'DE FACTORY LEDGER'), 'eyebrow'), el('h3', t('Here’s what FL shows', 'Esto muestra FL')));
       readResult(node, card);
     } else if (card.kind === 'missing_facts') {
