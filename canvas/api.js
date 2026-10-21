@@ -37,19 +37,19 @@
       if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v);
     }
     const k = await key();
+    // Hold the slot until the body is read, so at most 4 requests are ever on the wire.
     await slot();
-    let r;
     try {
-      r = await fetch(url, { method: 'GET', headers: { 'X-API-Key': k } });
+      const r = await fetch(url, { method: 'GET', headers: { 'X-API-Key': k } });
+      if (!r.ok) {
+        const err = new Error(path + ' → HTTP ' + r.status);
+        err.status = r.status;
+        throw err;
+      }
+      return await r.json();
     } finally {
       release();
     }
-    if (!r.ok) {
-      const err = new Error(path + ' → HTTP ' + r.status);
-      err.status = r.status;
-      throw err;
-    }
-    return r.json();
   }
 
   window.FLApi = { get, base };

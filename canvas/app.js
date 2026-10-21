@@ -25,6 +25,37 @@
   const SOURCE_LABEL = { production_output: 'Made', pack_output: 'Packed', received: 'Received', receive: 'Received', found_inventory: 'Found', found: 'Found', adjustment: 'Adjusted' };
   const sourceLabel = (s) => SOURCE_LABEL[s] || (s ? String(s).replace(/_/g, ' ') : '—');
 
+  // ---------- record timestamps ----------
+  // One format everywhere: "Oct 20, 2026 · 10:30 AM", America/New_York. Only real API fields
+  // are shown; a missing field reads "Not recorded". Naive timestamps from the API
+  // (transactions.timestamp, last_received_at) are UTC, as the backend treats them.
+  const NOT_RECORDED = 'Not recorded';
+  const tsDate = new Intl.DateTimeFormat('en-US', { timeZone: CFG.timeZone, month: 'short', day: 'numeric', year: 'numeric' });
+  const tsTime = new Intl.DateTimeFormat('en-US', { timeZone: CFG.timeZone, hour: 'numeric', minute: '2-digit' });
+  function stamp(iso) {
+    if (!iso) return null;
+    const s = String(iso);
+    const d = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? s : s + 'Z');
+    return Number.isNaN(d.getTime()) ? null : tsDate.format(d) + ' · ' + tsTime.format(d);
+  }
+  // The API also returns some times pre-formatted in ET: created_date "2026-10-15" + created_time "11:54 AM ET".
+  function stampET(ymd, hm) {
+    if (!ymd) return null;
+    const m = /^(\d{4})-(\d\d)-(\d\d)/.exec(ymd);
+    if (!m) return null;
+    const day = MONTHS[+m[2] - 1] + ' ' + +m[3] + ', ' + m[1];
+    const t = hm ? String(hm).replace(/\s*ET$/, '').replace(/^0(\d)/, '$1') : '';
+    return t ? day + ' · ' + t : day;
+  }
+  const tsPart = (label, v) => '<span>' + label + ' ' + (v ? esc(v) : '<span class="nr">' + NOT_RECORDED + '</span>') + '</span>';
+  // Compact secondary line under a summary row: Created … · Updated … (+ optional extras).
+  const tsLine = (created, updated, extra) => '<div class="ts">' + tsPart('Created', created) + '<span class="sep">·</span>' + tsPart('Updated', updated) + (extra ? '<span class="sep">·</span><span>' + extra + '</span>' : '') + '</div>';
+  // Transactions are never edited in place; a correction is the closest thing to an update.
+  const txCreated = (t) => stamp(t.created_at);
+  const txUpdated = (t) => stamp(t.latest_correction_created_at);
+  // "Record history" block for the side panel: [[label, value-or-null], ...].
+  const history = (rows, note) => '<div class="sect"><h4>Record history</h4><div class="txlist hist">' + rows.map(([k, v]) => '<div><span>' + esc(k) + '</span><span>' + (v ? esc(v) : '<span class="nr">' + NOT_RECORDED + '</span>') + '</span></div>').join('') + '</div>' + (note ? '<div class="dim" style="font-size:12px">' + note + '</div>' : '') + '</div>';
+
   function dashUrl(page, params) {
     const u = new URL(DASH + '/' + page);
     for (const [k, v] of Object.entries(params || {})) if (v != null && v !== '') u.searchParams.set(k, v);
@@ -33,25 +64,32 @@
   const openTab = (url) => window.open(url, '_blank', 'noopener');
 
   // ---------- world layout (prototype coordinates) ----------
+  // x and w are fixed; y and h are set by layoutWorld() from each card's measured content.
+  // `pair` cards share a height so matching cards keep matching proportions.
   const AREAS = {
-    production: { x: 520, y: 120, w: 560, h: 340, name: 'Production' },
-    packing: { x: 1520, y: 120, w: 560, h: 340, name: 'Packing' },
-    receiving: { x: 160, y: 640, w: 480, h: 380, name: 'Receiving' },
-    inventory: { x: 900, y: 560, w: 800, h: 540, name: 'Inventory', hub: true },
-    shipping: { x: 1960, y: 640, w: 480, h: 380, name: 'Orders & shipping' },
-    quality: { x: 520, y: 1200, w: 560, h: 300, name: 'Quality & traceability' },
-    reports: { x: 1520, y: 1200, w: 560, h: 300, name: 'Reports' }
+    production: { x: 520, y: 120, w: 560, h: 340, name: 'Production', icon: 'factory', row: 0, pair: 'top' },
+    packing: { x: 1520, y: 120, w: 560, h: 340, name: 'Packing', icon: 'package', row: 0, pair: 'top' },
+    receiving: { x: 160, y: 640, w: 480, h: 380, name: 'Receiving', icon: 'truck', row: 1, pair: 'side' },
+    inventory: { x: 900, y: 560, w: 800, h: 540, name: 'Inventory', hub: true, icon: 'warehouse', row: 1 },
+    shipping: { x: 1960, y: 640, w: 480, h: 380, name: 'Orders & shipping', icon: 'clipboard-list', row: 1, pair: 'side' },
+    quality: { x: 520, y: 1200, w: 560, h: 300, name: 'Quality & traceability', icon: 'shield-check', row: 2, pair: 'bottom' },
+    reports: { x: 1520, y: 1200, w: 560, h: 300, name: 'Reports', icon: 'chart-column', row: 2, pair: 'bottom' }
   };
+  const ROW_TOP = 120, ROW_GAP = 110;
+  const ICONS = window.FL_ICONS || {};
+  const icon = (name) => '<span class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[name] || '') + '</svg></span>';
+  const kicker = (id, label) => '<div class="kick-row">' + icon(AREAS[id].icon) + '<div class="kicker">' + (label || esc(AREAS[id].name)) + '</div></div>';
   const TILES = {
-    ingredient: { dx: 24, dy: 76, name: 'Ingredients' },
-    batch: { dx: 408, dy: 76, name: 'Bulk granola', accent: true },
-    packaging: { dx: 24, dy: 304, name: 'Packaging' },
-    finished: { dx: 408, dy: 304, name: 'Finished goods' }
+    ingredient: { dx: 24, dy: 64, name: 'Ingredients' },
+    batch: { dx: 408, dy: 64, name: 'Bulk granola', accent: true },
+    packaging: { dx: 24, dy: 252, name: 'Packaging' },
+    finished: { dx: 408, dy: 252, name: 'Finished goods' }
   };
-  const TILE_W = 368, TILE_H = 212;
-  const GRID = { w: 1472, h: 848, k: 0.25, left: 40, top: 104, right: 40, bottom: 28, gap: 20 };
-  const CARD = { w: 440, h: 348 };
-  const WS = { w: 1100, h: 870 };
+  const TILE_W = 368, TILE_H = 172;
+  const GRID = { w: 1472, h: TILE_H / 0.25, k: 0.25, left: 40, top: 104, right: 40, bottom: 28, gap: 20 };
+  // Product cards and their working screen share one aspect ratio (the screen is scaled to the card).
+  const CARD = { w: 440, h: 272 };
+  const WS = { w: 1100, h: 680 };
   const BOX = { x: 160, y: 120, w: 2280, h: 1380 };
   // A node "opens" (shows its next level) once it covers this share of the viewport.
   const OPEN_AT = { area: 0.45, tile: 0.6, product: 0.5 };
@@ -134,8 +172,7 @@
   const inLine = (t) => (t.lines || []).find((l) => num(l.quantity_lb) < 0) || {};
 
   function productionArea() {
-    const a = AREAS.production;
-    if (failed(data.tx)) return { far: '<div class="far-body"><div class="kicker">Production</div>' + errLine(data.tx) + '</div>', near: '' };
+    if (failed(data.tx)) return { far: '<div class="far-body">' + kicker('production') + errLine(data.tx) + '</div>', near: '' };
     const makes = txOf('make');
     const today = makes.filter((t) => t.business_date === TODAY);
     const lbToday = today.reduce((s, t) => s + num(outLine(t).quantity_lb), 0);
@@ -144,80 +181,88 @@
     const runSignal = runs == null ? '<div class="signal"><span class="dot grey"></span><span class="muted">Planned runs: couldn’t load</span></div>'
       : runs.length ? '<div class="signal t-green"><span class="dot green"></span>' + runs.length + ' planned run' + (runs.length > 1 ? 's' : '') + ' today</div>'
         : '<div class="signal muted"><span class="dot grey"></span>No planned runs scheduled today</div>';
-    const far = '<div class="far-body"><div class="kicker">Production</div><div class="big">' + today.length + ' make' + (today.length === 1 ? '' : 's') + '</div>'
+    const far = '<div class="far-body">' + kicker('production') + '<div class="big">' + today.length + ' make' + (today.length === 1 ? '' : 's') + '</div>'
       + '<div class="sub">' + (today.length ? 'today · ' + fmt(lbToday) + ' lb made' : 'today' + (last ? ' · last make ' + short(last.business_date) : ' · none in 7 days')) + '</div>' + runSignal + '</div>';
     const cols = 'grid-template-columns: 0.7fr 2fr 1.3fr 0.9fr 1fr';
-    const rows = makes.slice(0, 6).map((t) => { const o = outLine(t); return '<button class="row" style="' + cols + '" data-lot="' + esc(o.lot_code) + '" data-pid="' + esc(o.product_id) + '" data-pname="' + esc(o.product_name) + '"><div>' + short(t.business_date) + '</div><div style="font-weight:600">' + esc(o.product_name) + '</div><div class="mono" style="font-size:16px">' + esc(o.lot_code) + '</div><div>' + fmt(o.quantity_lb) + ' lb</div><div class="muted">' + esc(t.operator_id || '') + '</div></button>'; }).join('');
+    const rows = makes.slice(0, 5).map((t) => { const o = outLine(t); return '<button class="row" style="' + cols + '" data-lot="' + esc(o.lot_code) + '" data-pid="' + esc(o.product_id) + '" data-pname="' + esc(o.product_name) + '" data-tx="' + esc(t.id) + '"><div>' + short(t.business_date) + '</div><div style="font-weight:600">' + esc(o.product_name) + '</div><div class="mono" style="font-size:16px">' + esc(o.lot_code) + '</div><div>' + fmt(o.quantity_lb) + ' lb</div><div class="muted">' + esc(t.operator_id || '') + '</div>' + tsLine(txCreated(t), txUpdated(t)) + '</button>'; }).join('');
     const runRows = (runs || []).slice(0, 4).map((r) => '<div class="row" style="grid-template-columns: 1fr 2fr 1fr 1fr"><div>' + esc(r.run_type) + '</div><div style="font-weight:600">' + esc(r.product_name) + '</div><div>' + esc(r.planned_qty_lb != null ? fmt(r.planned_qty_lb) + ' lb' : (r.planned_batches != null ? fmt(r.planned_batches) + ' batches' : '')) + '</div><div><span class="chip grey">' + esc(r.status) + '</span></div></div>').join('');
     const near = '<div class="near-body"><div class="near-head"><div class="near-title">Production</div><div class="near-meta">Today · ' + longToday() + '</div></div>'
       + '<div class="cols" style="' + cols + '"><div>Date</div><div>Made</div><div>Lot</div><div>Amount</div><div>By</div></div>'
       + '<div class="rows">' + (rows || '<div class="row muted" style="grid-template-columns:1fr">No makes recorded in the last 7 days</div>') + '</div>'
-      + '<div class="foot">' + (runs == null ? 'Planned runs couldn’t load' : runs.length ? 'Planned runs today' : 'Planner: no runs scheduled for today (GET /production/runs)') + '</div>'
+      + '<div class="foot">' + (makes.length > 5 ? '+' + (makes.length - 5) + ' more makes in 7 days · ' : '') + (runs == null ? 'Planned runs couldn’t load' : runs.length ? 'Planned runs today' : 'Planner: no runs scheduled for today (GET /production/runs)') + '</div>'
       + (runRows ? '<div class="rows">' + runRows + '</div>' : '') + '</div>';
-    return { far, near, nearScale: 0.5 };
+    return { far, near };
   }
 
   function packingArea() {
-    if (failed(data.tx)) return { far: '<div class="far-body"><div class="kicker">Packing</div>' + errLine(data.tx) + '</div>', near: '' };
+    if (failed(data.tx)) return { far: '<div class="far-body">' + kicker('packing') + errLine(data.tx) + '</div>', near: '' };
     const packs = txOf('pack');
     const today = packs.filter((t) => t.business_date === TODAY);
     const cases = (list) => list.reduce((s, t) => s + num(outLine(t).unit_count), 0);
     const last = packs[0];
-    const far = '<div class="far-body"><div class="kicker">Packing</div><div class="big">' + today.length + ' pack' + (today.length === 1 ? '' : 's') + '</div>'
+    const far = '<div class="far-body">' + kicker('packing') + '<div class="big">' + today.length + ' pack' + (today.length === 1 ? '' : 's') + '</div>'
       + '<div class="sub">' + (today.length ? 'today · ' + fmt(cases(today)) + ' cases packed' : 'today' + (last ? ' · last pack ' + short(last.business_date) : ' · none in 7 days')) + '</div>'
       + '<div class="signal muted"><span class="dot grey"></span>' + fmt(cases(packs)) + ' cases packed in the last 7 days</div></div>';
     const cols = 'grid-template-columns: 0.7fr 2fr 1.6fr 0.7fr 1fr';
-    const rows = packs.slice(0, 6).map((t) => { const o = outLine(t), i = inLine(t); return '<button class="row" style="' + cols + '" data-lot="' + esc(o.lot_code) + '" data-pid="' + esc(o.product_id) + '" data-pname="' + esc(o.product_name) + '"><div>' + short(t.business_date) + '</div><div style="font-weight:600">' + esc(o.product_name) + '</div><div>' + esc(i.product_name || 'direct') + '</div><div>' + fmt(o.unit_count) + '</div><div class="muted">' + esc(t.operator_id || '') + '</div></button>'; }).join('');
+    const rows = packs.slice(0, 5).map((t) => { const o = outLine(t), i = inLine(t); return '<button class="row" style="' + cols + '" data-lot="' + esc(o.lot_code) + '" data-pid="' + esc(o.product_id) + '" data-pname="' + esc(o.product_name) + '" data-tx="' + esc(t.id) + '"><div>' + short(t.business_date) + '</div><div style="font-weight:600">' + esc(o.product_name) + '</div><div>' + esc(i.product_name || 'direct') + '</div><div>' + fmt(o.unit_count) + '</div><div class="muted">' + esc(t.operator_id || '') + '</div>' + tsLine(txCreated(t), txUpdated(t)) + '</button>'; }).join('');
     const near = '<div class="near-body"><div class="near-head"><div class="near-title">Packing</div><div class="near-meta">Last 7 days</div></div>'
       + '<div class="cols" style="' + cols + '"><div>Date</div><div>Finished SKU</div><div>From bulk</div><div>Cases</div><div>By</div></div>'
       + '<div class="rows">' + (rows || '<div class="row muted" style="grid-template-columns:1fr">No packs recorded in the last 7 days</div>') + '</div>'
-      + '<div class="foot">Planned packing ' + nc('Packing plan has no read endpoint the dashboard key can use') + '</div></div>';
-    return { far, near, nearScale: 0.5 };
+      + '<div class="foot">' + (packs.length > 5 ? '+' + (packs.length - 5) + ' more packs · ' : '') + 'Planned packing ' + nc('Packing plan has no read endpoint the dashboard key can use') + '</div></div>';
+    return { far, near };
   }
 
   function receivingArea() {
     const d = data.er;
-    if (failed(d)) return { far: '<div class="far-body"><div class="kicker">Receiving</div>' + errLine(d) + '</div>', near: '' };
+    if (failed(d)) return { far: '<div class="far-body">' + kicker('receiving') + errLine(d) + '</div>', near: '' };
     const list = d.expected_receipts.slice().sort((a, b) => (b.is_overdue - a.is_overdue) || String(a.expected_date || '9').localeCompare(String(b.expected_date || '9')));
-    const signal = d.overdue_count ? '<div class="signal t-red"><span class="dot red"></span>' + d.overdue_count + ' overdue</div>' : '<div class="signal t-green"><span class="dot green"></span>None overdue</div>';
-    const far = '<div class="far-body"><div class="kicker">Receiving</div><div class="big">' + d.open_count + ' open</div><div class="sub">expected receipts</div>' + signal + '</div>';
+    const signal = d.overdue_count ? '<div class="signal t-red"><span class="dot red"></span>' + d.overdue_count + ' expected receipt' + (d.overdue_count > 1 ? 's' : '') + ' overdue</div>' : '<div class="signal t-green"><span class="dot green"></span>None overdue</div>';
+    const far = '<div class="far-body">' + kicker('receiving') + '<div class="big">' + d.open_count + ' open</div><div class="sub">expected receipts</div>' + signal + '</div>';
     const cols = 'grid-template-columns: 1.6fr 1fr 1.1fr';
-    const rows = list.slice(0, 6).map((e) => {
+    const rows = list.slice(0, 5).map((e) => {
+      // Expected date is a due date, kept apart from the record's created/updated times.
       const chip = e.is_overdue ? '<span class="chip red">' + e.days_overdue + ' day' + (e.days_overdue === 1 ? '' : 's') + ' late</span>'
-        : e.expected_date === TODAY ? '<span class="chip blue">Today</span>'
-          : e.expected_date ? '<span class="chip blue">' + short(e.expected_date) + '</span>' : '<span class="chip grey">No date</span>';
-      return '<button class="row" style="' + cols + '" data-er="' + esc(e.id) + '"><div style="font-weight:600">' + esc(e.product_name) + '</div><div>' + fmt(e.remaining) + ' lb</div><div>' + chip + '</div></button>';
+        : e.expected_date === TODAY ? '<span class="chip blue">Due today</span>'
+          : e.expected_date ? '<span class="chip blue">Due ' + short(e.expected_date) + '</span>' : '<span class="chip grey">No date</span>';
+      return '<button class="row" style="' + cols + '" data-er="' + esc(e.id) + '"><div style="font-weight:600">' + esc(e.product_name) + '</div><div>' + fmt(e.remaining) + ' lb</div><div>' + chip + '</div>' + tsLine(stamp(e.created_at), stamp(e.updated_at)) + '</button>';
     }).join('');
-    const near = '<div class="near-body" style="padding:36px 40px"><div class="near-head"><div class="near-title">Expected receipts</div><div class="near-meta">' + d.open_count + ' open</div></div>'
+    const near = '<div class="near-body"><div class="near-head"><div class="near-title">Expected receipts</div><div class="near-meta">' + d.open_count + ' open</div></div>'
+      + '<div class="cols" style="' + cols + '"><div>Product</div><div>Remaining</div><div>Expected</div></div>'
       + '<div class="rows">' + (rows || '<div class="row muted" style="grid-template-columns:1fr">No open expected receipts</div>') + '</div>'
-      + '<div class="foot">' + (list.length > 6 ? '+' + (list.length - 6) + ' more · ' : '') + 'remaining qty shown</div></div>';
-    return { far, near, nearScale: 0.5 };
+      + '<div class="foot">' + (list.length > 5 ? '+' + (list.length - 5) + ' more · ' : '') + 'remaining qty shown</div></div>';
+    return { far, near };
   }
 
   const orderIndex = () => { const m = new Map(); if (!failed(data.orders)) for (const o of data.orders.orders) m.set(o.order_number, o); return m; };
+  const shortOrders = () => (failed(data.orders) ? [] : data.orders.orders.filter((o) => num(o.shortage_lb) > 0));
 
   function shippingArea() {
     const sd = data.sales, c = data.counts;
-    if (failed(sd)) return { far: '<div class="far-body"><div class="kicker">Orders &amp; shipping</div>' + errLine(sd) + '</div>', near: '' };
+    if (failed(sd)) return { far: '<div class="far-body">' + kicker('shipping', 'Orders &amp; shipping') + errLine(sd) + '</div>', near: '' };
     const idx = orderIndex();
-    const short_ = failed(data.orders) ? [] : data.orders.orders.filter((o) => num(o.shortage_lb) > 0);
-    const signal = sd.overdue_count ? '<div class="signal t-red"><span class="dot red"></span>' + sd.overdue_count + ' overdue</div>'
-      : short_.length ? '<div class="signal t-amber"><span class="dot amber"></span>' + short_.length + ' short on stock</div>'
-        : '<div class="signal t-green"><span class="dot green"></span>Nothing overdue or short</div>';
-    const far = '<div class="far-body"><div class="kicker">Orders &amp; shipping</div><div class="big">' + sd.due_this_week_count + ' orders</div><div class="sub">due this week' + (!failed(c) ? ' · ' + c.open + ' open' : '') + '</div>' + signal + '</div>';
+    const short_ = shortOrders();
+    // Order alerts live here (moved off the Inventory card): overdue, and orders short on stock.
+    const sigs = [];
+    if (sd.overdue_count) sigs.push('<div class="signal t-red"><span class="dot red"></span>' + sd.overdue_count + ' order' + (sd.overdue_count > 1 ? 's' : '') + ' overdue</div>');
+    if (short_.length) sigs.push('<div class="signal t-amber"><span class="dot amber"></span>' + short_.length + ' short on stock</div>');
+    if (!sigs.length) sigs.push('<div class="signal t-green"><span class="dot green"></span>Nothing overdue or short</div>');
+    const far = '<div class="far-body">' + kicker('shipping', 'Orders &amp; shipping') + '<div class="big">' + sd.due_this_week_count + ' orders</div><div class="sub">due this week' + (!failed(c) ? ' · ' + c.open + ' open' : '') + '</div><div class="signals">' + sigs.join('') + '</div></div>';
     const list = [...(sd.overdue_orders || []).map((o) => Object.assign({ overdue: true }, o)), ...(sd.due_this_week || [])];
-    const cols = 'grid-template-columns: 1.5fr 1.4fr 0.7fr 1.2fr';
-    const rows = list.slice(0, 6).map((o) => {
+    const cols = 'grid-template-columns: 1.5fr 1.4fr 0.8fr 1.2fr';
+    const rows = list.slice(0, 5).map((o) => {
       const full = idx.get(o.order_number) || {};
       const chip = o.overdue ? '<span class="chip red">Overdue</span>'
         : num(full.shortage_lb) > 0 ? '<span class="chip amber">Short ' + fmt(full.shortage_lb) + ' lb</span>'
           : full.inventory_ready ? '<span class="chip green">Stock ready</span>' : '<span class="chip grey">' + fmt(o.remaining_lb) + ' lb left</span>';
-      return '<button class="row" style="' + cols + '" data-order="' + esc(full.order_id || o.order_number) + '"><div class="mono" style="font-size:16px">' + esc(o.order_number) + '</div><div style="font-weight:600">' + esc(o.customer) + '</div><div>' + short(o.requested_ship_date) + '</div><div>' + chip + '</div></button>';
+      // The open-orders list has no created time; it is filled from the order record once this area opens.
+      return '<button class="row" style="' + cols + '" data-order="' + esc(full.order_id || o.order_number) + '"><div class="mono" style="font-size:16px">' + esc(o.order_number) + '</div><div style="font-weight:600">' + esc(o.customer) + '</div><div>' + short(o.requested_ship_date) + '</div><div>' + chip + '</div>'
+        + '<div class="ts" data-order-ts="' + esc(full.order_id || o.order_number) + '"><span>Created …</span><span class="sep">·</span><span>Updated …</span></div></button>';
     }).join('');
     const near = '<div class="near-body"><div class="near-head"><div class="near-title">Orders due</div><div class="near-meta">Overdue + this week</div></div>'
+      + '<div class="cols" style="' + cols + '"><div>Order</div><div>Customer</div><div>Ship by</div><div>Status</div></div>'
       + '<div class="rows">' + (rows || '<div class="row muted" style="grid-template-columns:1fr">Nothing due this week</div>') + '</div>'
-      + '<div class="foot">' + (list.length > 6 ? '+' + (list.length - 6) + ' more · ' : '') + 'shipped only with a recorded BOL</div></div>';
-    return { far, near, nearScale: 0.5 };
+      + '<div class="foot">' + (list.length > 5 ? '+' + (list.length - 5) + ' more · ' : '') + 'shipped only with a recorded BOL</div></div>';
+    return { far, near };
   }
 
   function weekAdjusts() { return postedTx().filter((t) => t.type === 'adjust'); }
@@ -229,39 +274,42 @@
     const ekLb = ekLots.reduce((s, p) => s + p.qty, 0);
     const ekLotCount = ekLots.reduce((s, p) => s + p.lots.length, 0);
     const big = weekAdjusts().filter((t) => (t.lines || []).some((l) => Math.abs(num(l.quantity_lb)) >= 500));
-    const far = '<div class="far-body"><div class="kicker">Quality &amp; traceability</div>'
+    const far = '<div class="far-body">' + kicker('quality', 'Quality &amp; traceability')
       + (exConnected ? '<div class="big sm">' + ex.count + ' open</div><div class="sub">exceptions</div>'
-        : '<div class="big sm" style="color:#A9B0BC">— holds</div><div class="sub">' + nc('GET /exceptions needs a signed-in actor key; the dashboard key gets 403') + ' exceptions &amp; holds</div>')
+        : '<div class="big sm" style="color:var(--ink-4)">— holds</div><div class="sub">' + nc('GET /exceptions needs a signed-in actor key; the dashboard key gets 403') + ' exceptions &amp; holds</div>')
       + '<div class="signal muted"><span class="dot grey"></span>' + ekLotCount + ' extra-kosher lot' + (ekLotCount === 1 ? '' : 's') + ' on hand</div></div>';
-    const near = '<div class="near-body" style="gap:18px"><div class="near-title">Quality &amp; traceability</div><div class="boxes">'
+    const near = '<div class="near-body"><div class="near-title">Quality &amp; traceability</div><div class="boxes">'
       + (exConnected ? '<div class="box"><div class="lbl">Open exceptions</div><div class="val">' + ex.count + '</div></div>'
         : '<div class="box nc-block"><div class="lbl">Exceptions &amp; holds</div><div class="val">' + nc('GET /exceptions is actor-only (403 for the dashboard key)') + '</div></div>')
       + '<div class="box"><div class="lbl">Extra-kosher on hand</div><div class="val">' + ekLotCount + ' lots · ' + fmt(ekLb) + ' lb</div></div>'
       + '<div class="box"><div class="lbl">Large corrections (≥ 500 lb)</div><div class="val">' + big.length + ' in the last 7 days</div></div>'
       + '<a class="box" href="' + esc(dashUrl('traceability.html')) + '" target="_blank" rel="noopener" draggable="false"><div class="lbl">Trace a lot</div><div class="val">Open traceability ↗</div></a>'
       + '</div><div class="foot">Mock recall schedule ' + nc('No endpoint for mock recalls') + '</div></div>';
-    return { far, near, nearScale: 0.5 };
+    return { far, near };
   }
 
   function reportsArea() {
     const adj = weekAdjusts();
-    const far = '<div class="far-body"><div class="kicker">Reports</div><div class="big sm">' + (failed(data.tx) ? '—' : adj.length) + ' corrections</div><div class="sub">adjust entries, last 7 days</div></div>';
+    const latest = adj.slice().sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))[0];
+    const far = '<div class="far-body">' + kicker('reports') + '<div class="big sm">' + (failed(data.tx) ? '—' : adj.length) + ' corrections</div><div class="sub">adjust entries, last 7 days</div>'
+      + '<div class="signal muted"><span class="dot grey"></span>' + (latest ? 'Latest ' + esc(stamp(latest.created_at)) + (latest.operator_id ? ' · ' + esc(latest.operator_id) : '') : 'No corrections in 7 days') + '</div></div>';
     const link = (label, meta, url) => '<a class="row" href="' + esc(url) + '" target="_blank" rel="noopener" draggable="false" style="display:flex;justify-content:space-between;color:inherit;text-decoration:none"><div style="font-weight:600">' + label + ' ↗</div><div class="muted">' + meta + '</div></a>';
-    const near = '<div class="near-body" style="gap:18px"><div class="near-title">Reports</div><div class="rows">'
+    const near = '<div class="near-body"><div class="near-title">Reports</div><div class="rows">'
       + link('Shift summary', 'who recorded what, by day', dashUrl('shift-summary.html'))
       + link('Entry history', 'every transaction by day', dashUrl('history.html'))
       + link('Orders board', 'open, ready, overdue', dashUrl('index.html', { section: 'orders' }))
       + link('Traceability', 'forward and back', dashUrl('traceability.html'))
       + '<div class="row" style="display:flex;justify-content:space-between"><div style="font-weight:600">Owner weekly view</div><div>' + nc('No endpoint for the owner weekly view') + '</div></div>'
       + '</div></div>';
-    return { far, near, nearScale: 0.5 };
+    return { far, near };
   }
 
-  function alerts() {
+  // Inventory shows stock alerts only. Overdue orders sit on Orders & shipping and overdue
+  // expected receipts on Receiving; an order short on stock is a stock problem, so it stays.
+  function stockAlerts() {
     const out = [];
-    if (!failed(data.sales) && data.sales.overdue_count) out.push(['red', data.sales.overdue_count + ' order' + (data.sales.overdue_count > 1 ? 's' : '') + ' overdue']);
-    if (!failed(data.er) && data.er.overdue_count) out.push(['red', data.er.overdue_count + ' expected receipt' + (data.er.overdue_count > 1 ? 's' : '') + ' overdue']);
-    if (!failed(data.orders)) { const n = data.orders.orders.filter((o) => num(o.shortage_lb) > 0).length; if (n) out.push(['amber', n + ' open order' + (n > 1 ? 's' : '') + ' short on stock']); }
+    const n = shortOrders().length;
+    if (n) out.push(['amber', n + ' open order' + (n > 1 ? 's' : '') + ' short on stock']);
     for (const s of [data.supIng, data.supPkg]) if (!failed(s)) for (const it of s.items.filter((i) => i.is_low)) out.push(['red', it.name + ' below reorder']);
     return out;
   }
@@ -276,13 +324,14 @@
   }
 
   function inventoryFar() {
-    if (failed(data.inv)) return '<div class="far-body"><div class="kicker">Inventory</div>' + errLine(data.inv) + '</div>';
-    const cell = (t) => '<div><div style="font-size:22px" class="muted">' + TILES[t].name + '</div><div style="font-size:44px;font-weight:600;letter-spacing:-0.02em">' + catSummary(t).big + '</div></div>';
-    const al = alerts();
+    if (failed(data.inv)) return '<div class="far-body">' + kicker('inventory') + errLine(data.inv) + '</div>';
+    const cell = (t) => { const c = catSummary(t); return '<div class="inv-cell"><div class="lbl">' + TILES[t].name + '</div><div class="val">' + c.big + '</div><div class="meta">' + esc(c.meta) + '</div></div>'; };
+    const al = stockAlerts();
     const sig = al.length ? al.slice(0, 3).map(([c, m]) => '<div class="signal t-' + c + '"><span class="dot ' + c + '"></span>' + esc(m) + '</div>').join('')
-      : '<div class="signal t-green"><span class="dot green"></span>No overdue, short or low-stock alerts</div>';
-    return '<div class="far-body" style="padding:36px 40px;gap:14px"><div class="near-head"><div class="kicker" style="font-size:24px">Inventory</div><div style="font-size:22px" class="muted">updated ' + data.loadedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) + '</div></div>'
-      + '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 28px;margin-top:6px">' + cell('ingredient') + cell('batch') + cell('packaging') + cell('finished') + '</div>'
+        + (al.length > 3 ? '<div class="signal muted"><span class="dot grey"></span>+' + (al.length - 3) + ' more stock alerts</div>' : '')
+      : '<div class="signal t-green"><span class="dot green"></span>No short or low-stock alerts</div>';
+    return '<div class="far-body inv-far"><div class="near-head">' + kicker('inventory') + '<div class="inv-upd muted">updated ' + data.loadedAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZone: CFG.timeZone }) + '</div></div>'
+      + '<div class="inv-grid">' + cell('ingredient') + cell('batch') + cell('packaging') + cell('finished') + '</div>'
       + '<div class="signals">' + sig + '</div></div>';
   }
 
@@ -299,9 +348,24 @@
     return best;
   }
 
+  // Ingredient view state: sort order and Grid / Relationship map. Kept for the session.
+  const SORTS = {
+    qty: { label: 'Quantity ↓', fn: (a, b) => b.qty - a.qty || a.name.localeCompare(b.name) },
+    az: { label: 'Name A–Z', fn: (a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }) },
+    za: { label: 'Name Z–A', fn: (a, b) => b.name.localeCompare(a.name, 'en', { sensitivity: 'base' }) }
+  };
+  const view = { sort: { ingredient: 'qty' }, mode: { ingredient: 'grid' } };
+  const sortedOfType = (t) => { const k = view.sort[t] || 'qty'; return ofType(t).slice().sort(SORTS[k].fn); };
+
+  function ingredientControls() {
+    const seg = (attr, cur, opts) => '<div class="seg" role="group">' + opts.map(([v, l]) => '<button type="button" ' + attr + '="' + v + '" aria-pressed="' + (v === cur) + '"' + (v === cur ? ' class="on"' : '') + '>' + l + '</button>').join('') + '</div>';
+    return '<div class="ing-ctl">' + seg('data-view', view.mode.ingredient, [['grid', 'Grid view'], ['map', 'Relationship map']])
+      + '<div class="sortwrap"' + (view.mode.ingredient === 'map' ? ' hidden' : '') + '><span class="dim">Sort</span>' + seg('data-sort', view.sort.ingredient, Object.entries(SORTS).map(([k, v]) => [k, v.label])) + '</div></div>';
+  }
+
   function tileHTML(t) {
     const tile = TILES[t], list = ofType(t), sum = catSummary(t);
-    const top = list.slice(0, t === 'batch' ? 5 : 5);
+    const top = list.slice(0, 5);
     const max = top.length ? top[0].qty : 1;
     const rows = top.map((p) => t === 'batch'
       ? '<div class="bar-row"><span>' + esc(p.name.replace(/^Batch\s+/i, '')) + '</span><span class="bar"><span style="width:' + Math.max(2, Math.round(p.qty / max * 100)) + '%"></span></span><span class="mono" style="text-align:right">' + qtyText(p) + '</span></div>'
@@ -310,73 +374,180 @@
     const t1 = '<div class="layer fill tile-body t1"><div class="tile-head"><div class="tile-title">' + tile.name + '</div><div class="tile-meta">' + esc(sum.meta) + '</div></div>'
       + '<div class="tile-list">' + (rows || '<div class="muted">Nothing on hand</div>') + '</div>'
       + '<div class="tile-more">' + (list.length > top.length ? '+' + (list.length - top.length) + ' more' : '') + esc(zeroNote) + '</div></div>';
-    const L = gridLayout(list.length);
-    const cards = list.map((p, i) => {
-      const c = i % L.cols, r = Math.floor(i / L.cols);
-      const x = GRID.left + c * (L.cw + GRID.gap), y = GRID.top + r * (L.ch + GRID.gap);
-      p.design = { x, y, w: L.cw, h: L.ch };
-      return '<div class="node pcard' + (isEK(p.name) ? ' warn' : '') + '" data-node="p' + p.id + '" style="--k:' + L.cw / CARD.w + ';left:' + x + 'px;top:' + y + 'px;width:' + L.cw + 'px;height:' + L.ch + 'px">'
-        + '<div class="layer far" style="width:' + CARD.w + 'px;height:' + CARD.h + 'px;transform:scale(' + L.cw / CARD.w + ')">' + productCardHTML(p) + '</div>'
-        + '<div class="layer near ws-slot" style="width:' + WS.w + 'px;height:' + WS.h + 'px;transform:scale(' + L.cw / WS.w + ')"></div>'
-        + '<button class="hit" data-fly="p' + p.id + '" aria-label="Zoom into ' + esc(p.name) + '"></button></div>';
-    }).join('');
-    const t2 = '<div class="layer t2" style="width:' + GRID.w + 'px;height:' + GRID.h + 'px;transform:scale(' + GRID.k + ')">'
-      + '<div class="grid-head"><div class="t">' + tile.name + '</div><div class="m">' + esc(sum.meta) + ' on hand</div></div>' + cards + '</div>';
+    // Cards are positioned by layoutCards(), so a re-sort only moves them.
+    const cards = list.map((p) => '<div class="node pcard' + (isEK(p.name) ? ' warn' : '') + '" data-node="p' + p.id + '">'
+      + '<div class="layer far" style="width:' + CARD.w + 'px;height:' + CARD.h + 'px">' + productCardHTML(p) + '</div>'
+      + '<div class="layer near ws-slot" style="width:' + WS.w + 'px;height:' + WS.h + 'px"></div>'
+      + '<button class="hit" data-fly="p' + p.id + '" aria-label="Zoom into ' + esc(p.name) + '"></button></div>').join('');
+    const t2 = '<div class="layer t2' + (t === 'ingredient' && view.mode.ingredient === 'map' ? ' mapmode' : '') + '" style="width:' + GRID.w + 'px;height:' + GRID.h + 'px;transform:scale(' + GRID.k + ')">'
+      + '<div class="grid-head"><div class="t">' + tile.name + '</div>' + (t === 'ingredient' ? ingredientControls() : '') + '<div class="m">' + esc(sum.meta) + ' on hand</div></div>' + cards
+      + (t === 'ingredient' ? '<div class="relmap" data-relmap></div>' : '') + '</div>';
     return '<div class="node tile' + (tile.accent ? ' accent' : '') + '" data-node="t-' + t + '" style="left:' + tile.dx + 'px;top:' + tile.dy + 'px;width:' + TILE_W + 'px;height:' + TILE_H + 'px">'
       + t1 + t2 + '<button class="hit" data-fly="t-' + t + '" aria-label="Zoom into ' + tile.name + '"></button></div>';
   }
 
+  // Place a category's cards in the current sort order and refresh their camera rects.
+  function layoutCards(t) {
+    const list = sortedOfType(t), L = gridLayout(list.length);
+    const tileNode = nodes.get('t-' + t);
+    const hidden = t === 'ingredient' && view.mode.ingredient === 'map';
+    list.forEach((p, i) => {
+      const c = i % L.cols, r = Math.floor(i / L.cols);
+      const x = GRID.left + c * (L.cw + GRID.gap), y = GRID.top + r * (L.ch + GRID.gap);
+      p.design = { x, y, w: L.cw, h: L.ch };
+      const n = nodes.get('p' + p.id);
+      if (!n || !n.el) return;
+      const k = L.cw / CARD.w;
+      Object.assign(n.el.style, { left: x + 'px', top: y + 'px', width: L.cw + 'px', height: L.ch + 'px' });
+      n.el.style.setProperty('--k', k);
+      n.el.querySelector(':scope > .far').style.transform = 'scale(' + k + ')';
+      n.el.querySelector(':scope > .ws-slot').style.transform = 'scale(' + L.cw / WS.w + ')';
+      n.hidden = hidden;
+      if (tileNode) n.rect = { x: tileNode.rect.x + x * GRID.k, y: tileNode.rect.y + y * GRID.k, w: L.cw * GRID.k, h: L.ch * GRID.k };
+    });
+  }
+
+  // Name first (it wraps), then quantity, then lots · SKU as secondary text.
   function productCardHTML(p) {
     const lots = p.lots.length;
-    const foot = isEK(p.name) ? '<div class="pc-foot t-amber">Extra-kosher (SS)</div>' : '<div class="pc-foot">' + esc(p.sku ? 'SKU ' + p.sku : '') + '</div>';
-    return '<div class="pc-body"><div class="pc-name">' + esc(p.name) + '</div><div class="pc-qty">' + qtyText(p) + '</div><div class="pc-meta">' + lots + ' lot' + (lots === 1 ? '' : 's') + (p.type === 'finished' ? ' · ' + fmt(p.qty) + ' lb' : '') + '</div>' + foot + '</div>';
+    const meta = [lots + ' lot' + (lots === 1 ? '' : 's'), p.type === 'finished' ? fmt(p.qty) + ' lb' : '', p.sku ? 'SKU ' + p.sku : ''].filter(Boolean).join(' · ');
+    return '<div class="pc-body"><div class="pc-name">' + esc(p.name) + '</div><div class="pc-qty">' + qtyText(p) + '</div><div class="pc-meta">' + esc(meta) + '</div>'
+      + (isEK(p.name) ? '<div class="pc-foot t-amber">Extra-kosher (SS)</div>' : '') + '</div>';
   }
 
   function inventoryNear() {
-    const al = alerts();
+    const al = stockAlerts();
     const reds = al.filter((a) => a[0] === 'red').length, ambers = al.length - reds;
-    return '<div class="layer fill near-inv" style="padding:0">'
-      + '<div style="position:absolute;left:24px;top:22px;right:24px;display:flex;justify-content:space-between;align-items:center"><div style="display:flex;align-items:baseline;gap:10px"><div style="font-size:20px;font-weight:600">Inventory</div><div style="font-size:11px" class="muted">4 categories · ' + al.length + ' alert' + (al.length === 1 ? '' : 's') + '</div></div>'
+    return '<div class="layer fill near" style="padding:0">'
+      + '<div class="inv-near-head"><div style="display:flex;align-items:baseline;gap:10px"><div style="font-size:20px;font-weight:600">Inventory</div><div style="font-size:11px" class="muted">4 categories · ' + al.length + ' stock alert' + (al.length === 1 ? '' : 's') + '</div></div>'
       + '<div style="display:flex;gap:6px;font-size:10px">' + (ambers ? '<span class="chip amber" style="font-size:10px;padding:3px 8px">' + ambers + ' warning' + (ambers > 1 ? 's' : '') + '</span>' : '') + (reds ? '<span class="chip red" style="font-size:10px;padding:3px 8px">' + reds + ' urgent</span>' : '') + '</div></div>'
       + Object.keys(TILES).map(tileHTML).join('') + '</div>';
   }
 
   // ---------- build world ----------
+  // Material flow between areas: [from, side, along, to, side, along, label]. Anchors are
+  // computed from the real card bounds after layout, so they follow any card resize.
+  const FLOWS = [
+    ['receiving', 'r', 0.5, 'inventory', 'l', 0.4, 'receive'],
+    ['inventory', 't', 0.26, 'production', 'b', 0.61, 'to bake'],
+    ['production', 'r', 0.5, 'inventory', 't', 0.69, 'bulk'],
+    ['inventory', 't', 0.9, 'packing', 'b', 0.36, 'to pack'],
+    ['packing', 'b', 0.64, 'inventory', 'r', 0.32, 'cases'],
+    ['inventory', 'r', 0.8, 'shipping', 'l', 0.6, 'to ship']
+  ];
+  const LINKS = [['quality', 't', 0.5, 'inventory', 'b', 0.125, 'trace'], ['reports', 't', 0.5, 'inventory', 'b', 0.875, 'reports']];
+  const NORMAL = { l: [-1, 0], r: [1, 0], t: [0, -1], b: [0, 1] };
+  function anchor(id, side, f) {
+    const a = AREAS[id];
+    if (side === 'l') return [a.x, a.y + a.h * f];
+    if (side === 'r') return [a.x + a.w, a.y + a.h * f];
+    if (side === 't') return [a.x + a.w * f, a.y];
+    return [a.x + a.w * f, a.y + a.h];
+  }
+  function curve([from, fs, ff, to, ts, tf], gapEnd) {
+    const p0 = anchor(from, fs, ff), p3 = anchor(to, ts, tf);
+    const n0 = NORMAL[fs], n3 = NORMAL[ts];
+    p3[0] += n3[0] * gapEnd; p3[1] += n3[1] * gapEnd;
+    const d = Math.max(60, Math.hypot(p3[0] - p0[0], p3[1] - p0[1]) * 0.45);
+    const c1 = [p0[0] + n0[0] * d, p0[1] + n0[1] * d], c2 = [p3[0] + n3[0] * d, p3[1] + n3[1] * d];
+    const mid = [0, 1].map((i) => 0.125 * p0[i] + 0.375 * c1[i] + 0.375 * c2[i] + 0.125 * p3[i]);
+    // Tangent at the midpoint, for placing the label beside the curve rather than on it.
+    const tan = [0, 1].map((i) => 0.75 * (p3[i] + c2[i] - c1[i] - p0[i]));
+    return { d: 'M' + p0.join(' ') + ' C ' + c1.join(' ') + ', ' + c2.join(' ') + ', ' + p3.join(' '), mid, tan };
+  }
+  function flowSVG() {
+    const W = world.offsetWidth, H = world.offsetHeight;
+    const label = (c, text, cls) => {
+      const len = Math.hypot(c.tan[0], c.tan[1]) || 1;
+      let nx = -c.tan[1] / len, ny = c.tan[0] / len;
+      if (nx < -0.2 || (Math.abs(nx) <= 0.2 && ny > 0)) { nx = -nx; ny = -ny; }
+      const anchor = nx > 0.35 ? 'start' : nx < -0.35 ? 'end' : 'middle';
+      return '<text class="' + cls + '" text-anchor="' + anchor + '" dominant-baseline="middle" x="' + (c.mid[0] + nx * 16).toFixed(1) + '" y="' + (c.mid[1] + ny * 16).toFixed(1) + '">' + text + '</text>';
+    };
+    const flows = FLOWS.map((f) => curve(f, 4)), links = LINKS.map((f) => curve(f, 0));
+    // Faint zones (shown by the Operational map theme) group the areas by stage.
+    const zone = (ids, name) => {
+      const rs = ids.map((i) => AREAS[i]);
+      const x = Math.min(...rs.map((r) => r.x)) - 28, y = Math.min(...rs.map((r) => r.y)) - 44;
+      const x2 = Math.max(...rs.map((r) => r.x + r.w)) + 28, y2 = Math.max(...rs.map((r) => r.y + r.h)) + 28;
+      return '<rect x="' + x + '" y="' + y + '" width="' + (x2 - x) + '" height="' + (y2 - y) + '" rx="24"></rect><text x="' + (x + 22) + '" y="' + (y + 28) + '">' + name + '</text>';
+    };
+    return '<svg class="flow" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" aria-hidden="true"><defs><marker id="faArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z"></path></marker></defs>'
+      + '<g class="zones">' + zone(['receiving'], 'Inbound') + zone(['production', 'packing'], 'Make &amp; pack') + zone(['shipping'], 'Outbound') + zone(['quality', 'reports'], 'Oversight') + '</g>'
+      + '<g class="flows">' + flows.map((c) => '<path d="' + c.d + '" marker-end="url(#faArrow)"></path>').join('') + '</g>'
+      + '<g class="links">' + links.map((c) => '<path d="' + c.d + '"></path>').join('') + '</g>'
+      + '<g id="flowtext">' + flows.map((c, i) => label(c, FLOWS[i][6], 'fl')).join('') + links.map((c, i) => label(c, LINKS[i][6], 'fl dim')).join('') + '</g></svg>';
+  }
+
   function buildWorld() {
-    const svg = '<svg class="flow" width="2600" height="1600" viewBox="0 0 2600 1600" aria-hidden="true"><defs><marker id="faArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#8C95A4"></path></marker></defs>'
-      + '<g fill="none" stroke="#8C95A4" stroke-width="2.5" stroke-linecap="round">'
-      + ['M640 830 C 770 830, 770 742, 896 742', 'M1108 560 C 1108 505, 860 520, 860 464', 'M1080 290 C 1330 290, 1450 380, 1450 556', 'M1620 560 C 1620 505, 1720 515, 1720 464', 'M1880 460 C 1880 760, 1830 960, 1704 960', 'M1700 1040 C 1830 1040, 1840 900, 1956 900'].map((d) => '<path d="' + d + '" marker-end="url(#faArrow)"></path>').join('')
-      + '</g><g fill="none" stroke="#A9B0BC" stroke-width="2" stroke-dasharray="6 8"><path d="M800 1200 C 800 1150, 1000 1150, 1000 1100"></path><path d="M1800 1200 C 1800 1150, 1600 1150, 1600 1100"></path></g>'
-      + '<g id="flowtext" font-family="Instrument Sans, sans-serif" font-size="22" fill="#4A5160"><text x="700" y="800">receive</text><text x="905" y="520">to bake</text><text x="1270" y="320">bulk</text><text x="1660" y="520">to pack</text><text x="1895" y="740">cases</text><text x="1770" y="1090">to ship</text><text x="820" y="1160" fill="#626A78">trace</text><text x="1700" y="1160" fill="#626A78">reports</text></g></svg>';
     const builders = { production: productionArea, packing: packingArea, receiving: receivingArea, shipping: shippingArea, quality: qualityArea, reports: reportsArea };
-    let html = '<div class="dots" id="dots"></div>' + svg;
+    let html = '<div class="dots" id="dots"></div><div id="flowwrap"></div>';
     for (const [id, a] of Object.entries(AREAS)) {
       let far, near;
-      if (id === 'inventory') { far = '<div class="layer fill far">' + inventoryFar() + '</div>'; near = inventoryNear().replace('class="layer fill near-inv"', 'class="layer fill near"'); }
+      if (id === 'inventory') { far = '<div class="layer fill far">' + inventoryFar() + '</div>'; near = inventoryNear(); }
       else {
         const b = builders[id]();
         far = '<div class="layer fill far">' + b.far + '</div>';
-        near = '<div class="layer near" style="width:' + a.w * 2 + 'px;height:' + a.h * 2 + 'px;transform:scale(0.5)">' + b.near + '</div>';
+        near = '<div class="layer near" style="width:' + a.w * 2 + 'px;transform:scale(0.5)">' + b.near + '</div>';
       }
-      html += '<div class="node area' + (a.hub ? ' hub' : '') + '" data-node="' + id + '" style="left:' + a.x + 'px;top:' + a.y + 'px;width:' + a.w + 'px;height:' + a.h + 'px">' + far + near
+      html += '<div class="node area' + (a.hub ? ' hub' : '') + '" data-node="' + id + '" style="left:' + a.x + 'px;width:' + a.w + 'px">' + far + near
         + '<button class="hit" data-fly="' + id + '" aria-label="Zoom into ' + esc(a.name) + '"></button></div>';
     }
     world.innerHTML = html;
 
     nodes.clear();
     for (const [id, a] of Object.entries(AREAS)) nodes.set(id, { id, kind: 'area', name: a.name, rect: a, parent: null });
-    const inv = AREAS.inventory;
     for (const [t, tile] of Object.entries(TILES)) {
-      const r = { x: inv.x + tile.dx, y: inv.y + tile.dy, w: TILE_W, h: TILE_H };
-      nodes.set('t-' + t, { id: 't-' + t, kind: 'tile', name: tile.name, rect: r, parent: 'inventory', type: t });
-      for (const p of ofType(t)) {
-        const d = p.design;
-        nodes.set('p' + p.id, { id: 'p' + p.id, kind: 'product', name: p.name, product: p, parent: 't-' + t, rect: { x: r.x + d.x * GRID.k, y: r.y + d.y * GRID.k, w: d.w * GRID.k, h: d.h * GRID.k } });
-      }
+      nodes.set('t-' + t, { id: 't-' + t, kind: 'tile', name: tile.name, rect: { x: 0, y: 0, w: TILE_W, h: TILE_H }, parent: 'inventory', type: t });
+      for (const p of ofType(t)) nodes.set('p' + p.id, { id: 'p' + p.id, kind: 'product', name: p.name, product: p, parent: 't-' + t, rect: { x: 0, y: 0, w: 1, h: 1 } });
     }
     for (const n of nodes.values()) {
       n.el = world.querySelector('[data-node="' + n.id + '"]');
       n.hit = n.el && n.el.querySelector(':scope > .hit');
+    }
+    layoutWorld();
+  }
+
+  // Content-aware layout. Each area is as tall as its content needs at both zoom levels
+  // (overview card, and the 2x near view scaled by 0.5); paired cards share the taller
+  // height; rows stack with a fixed gap and the middle row is centred on Inventory.
+  function layoutWorld() {
+    const need = {};
+    for (const [id, a] of Object.entries(AREAS)) {
+      const el = nodes.get(id).el;
+      const far = el.querySelector(':scope > .far > .far-body');
+      far.style.height = 'auto';
+      let h = far.offsetHeight;
+      far.style.height = '';
+      if (id === 'inventory') h = Math.max(h, TILES.packaging.dy + TILE_H + 24);
+      else {
+        const nb = el.querySelector(':scope > .near > .near-body');
+        if (nb) h = Math.max(h, Math.ceil(nb.offsetHeight / 2));
+      }
+      need[id] = Math.ceil(h);
+    }
+    const pairH = {};
+    for (const [id, a] of Object.entries(AREAS)) if (a.pair) pairH[a.pair] = Math.max(pairH[a.pair] || 0, need[id]);
+    for (const [id, a] of Object.entries(AREAS)) a.h = a.pair ? pairH[a.pair] : need[id];
+    const rowH = [0, 1, 2].map((r) => Math.max(...Object.values(AREAS).filter((a) => a.row === r).map((a) => a.h)));
+    const rowY = [ROW_TOP, ROW_TOP + rowH[0] + ROW_GAP, ROW_TOP + rowH[0] + rowH[1] + 2 * ROW_GAP];
+    for (const a of Object.values(AREAS)) a.y = rowY[a.row] + (rowH[a.row] - a.h) / 2;
+    for (const [id, a] of Object.entries(AREAS)) {
+      const el = nodes.get(id).el;
+      Object.assign(el.style, { top: a.y + 'px', height: a.h + 'px' });
+      const near = el.querySelector(':scope > .near');
+      if (id !== 'inventory') near.style.height = a.h * 2 + 'px';
+    }
+    const all = Object.values(AREAS);
+    BOX.x = Math.min(...all.map((a) => a.x)); BOX.y = Math.min(...all.map((a) => a.y));
+    BOX.w = Math.max(...all.map((a) => a.x + a.w)) - BOX.x; BOX.h = Math.max(...all.map((a) => a.y + a.h)) - BOX.y;
+    world.style.width = BOX.x * 2 + BOX.w + 'px';
+    world.style.height = BOX.y * 2 + BOX.h + 'px';
+    document.getElementById('flowwrap').innerHTML = flowSVG();
+    const inv = AREAS.inventory;
+    for (const [t, tile] of Object.entries(TILES)) {
+      nodes.get('t-' + t).rect = { x: inv.x + tile.dx, y: inv.y + tile.dy, w: TILE_W, h: TILE_H };
+      layoutCards(t);
     }
     buildMinimap();
   }
@@ -430,7 +601,8 @@
     // product card under the viewport centre (each open product loads its own data).
     const view = { x: cam.cx - v.w / 2 / cam.s, y: cam.cy - v.h / 2 / cam.s, w: v.w / cam.s, h: v.h / cam.s };
     for (const n of nodes.values()) if (n.kind === 'tile' && open.has(n.parent) && overlaps(n.rect, view) && frac(n.rect) >= OPEN_AT.tile) open.add(n.id);
-    for (const n of nodes.values()) if (n.kind === 'product' && open.has(n.parent) && inside(n.rect, cam.cx, cam.cy) && frac(n.rect) >= OPEN_AT.product) open.add(n.id);
+    for (const n of nodes.values()) if (n.kind === 'product' && !n.hidden && open.has(n.parent) && inside(n.rect, cam.cx, cam.cy) && frac(n.rect) >= OPEN_AT.product) open.add(n.id);
+    if (open.has('shipping')) loadOrderStamps();
     for (const n of nodes.values()) {
       if (!n.el) continue;
       const isOpen = open.has(n.id);
@@ -458,7 +630,7 @@
 
     focus = { area: null, tile: null, product: null };
     for (const n of nodes.values()) {
-      if (!open.has(n.id) || !inside(n.rect, cam.cx, cam.cy)) continue;
+      if (!open.has(n.id) || n.hidden || !inside(n.rect, cam.cx, cam.cy)) continue;
       focus[n.kind] = n.id;
     }
     renderChrome();
@@ -494,6 +666,7 @@
 
   function buildMinimap() {
     const k = 200 / BOX.w, mm = $('#mm');
+    mm.style.height = Math.round(BOX.h * k) + 'px';
     mm.innerHTML = Object.entries(AREAS).map(([id, r]) => '<button type="button" data-mm="' + id + '" class="' + (r.hub ? 'hub' : '') + '" aria-label="Go to ' + esc(r.name) + '" style="left:' + (r.x - BOX.x) * k + 'px;top:' + (r.y - BOX.y) * k + 'px;width:' + r.w * k + 'px;height:' + r.h * k + 'px"></button>').join('') + '<div class="vr"></div>';
     mm.querySelectorAll('[data-mm]').forEach((b) => { b.onclick = () => { closeInspector(); flyTo(b.dataset.mm); }; });
     $('#mm-src').textContent = CFG.env === 'production' ? 'Live production data' : 'Live ' + CFG.env + ' data';
@@ -535,7 +708,7 @@
       + '<div class="lot-cols"><div>Lot</div><div>First entry</div><div>Source</div><div>On hand</div><div>Age</div></div><div class="lot-rows" data-lots><div class="loading" style="padding:14px 18px">Loading lots…</div></div></div>'
       + '<div class="panel"><h3>Planned production</h3><div class="mini-rows" data-runs><div class="loading">Loading…</div></div></div></div>'
       + '<div class="ws-col"><div class="panel"><h3>Where it comes from and goes · 30 days</h3><div data-flow class="loading">Loading…</div></div>'
-      + '<div class="panel" style="flex:1"><h3>Recent activity</h3><div class="activity" data-activity><span></span><span class="loading">Loading…</span><span></span></div></div></div></div></div>';
+      + '<div class="panel" style="flex:1"><h3>Recent activity</h3><div class="activity" data-activity><div class="act"><span></span><span class="loading">Loading…</span><span></span></div></div></div></div></div></div>';
     const ws = slot.firstChild;
     ws.addEventListener('click', (e) => {
       const t = e.target.closest('[data-task],[data-trace],[data-lot]');
@@ -594,7 +767,7 @@
     // transactions → in/out, flow, activity
     const actEl = ws.querySelector('[data-activity]'), flowEl = ws.querySelector('[data-flow]');
     if (txR.status !== 'fulfilled') {
-      actEl.innerHTML = '<span></span><span class="t-red">Couldn’t load activity</span><span></span>';
+      actEl.innerHTML = '<div class="act"><span></span><span class="t-red">Couldn’t load activity</span><span></span></div>';
       flowEl.innerHTML = '<span class="t-red">Couldn’t load</span>';
       ws.querySelector('[data-k="in"]').textContent = ws.querySelector('[data-k="out"]').textContent = '—';
       return;
@@ -626,8 +799,8 @@
     actEl.innerHTML = txs.slice(0, 9).map((t) => {
       const q = sumMine(t), l = mine(t)[0] || {};
       const color = q > 0 ? 'color:#1A6B43' : '';
-      return '<span class="dim">' + short(t.business_date) + '</span><span>' + esc(TX_LABEL[t.type] || t.type) + ' · ' + esc(l.lot_code || '') + (t.operator_id ? ' · ' + esc(t.operator_id) : '') + '</span><span class="mono" style="' + color + '">' + signed(p.type === 'finished' && p.caseLb ? q / p.caseLb : q) + '</span>';
-    }).join('') || '<span></span><span class="muted">No activity in the last 30 days</span><span></span>';
+      return '<div class="act"><span class="dim">' + short(t.business_date) + '</span><span>' + esc(TX_LABEL[t.type] || t.type) + ' · ' + esc(l.lot_code || '') + (t.operator_id ? ' · ' + esc(t.operator_id) : '') + '</span><span class="mono" style="' + color + '">' + signed(p.type === 'finished' && p.caseLb ? q / p.caseLb : q) + '</span>' + tsLine(txCreated(t), txUpdated(t)) + '</div>';
+    }).join('') || '<div class="act"><span></span><span class="muted">No activity in the last 30 days</span><span></span></div>';
   }
 
   // ---------- inspector ----------
@@ -652,7 +825,9 @@
   const footBtns = (btns) => '<div class="ins-foot">' + btns.map(([label, url, primary]) => '<a class="fa-btn' + (primary ? ' fa-primary' : '') + '" href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(label) + '</a>').join('') + '</div>';
   ins.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) closeInspector(); });
 
-  async function openLot(code, pid, pname) {
+  const findTx = (id) => (id && !failed(data.tx) ? data.tx.transactions.find((t) => String(t.id) === String(id)) : null);
+
+  async function openLot(code, pid, pname, txId) {
     if (!code) return;
     selection = { kind: 'lot', label: code, code, pid };
     renderChrome();
@@ -683,14 +858,51 @@
     } else {
       back = fwd = '<div class="t-red" style="font-size:13px">Trace couldn’t load</div>';
     }
-    const txl = tl.map((t) => '<div><span>' + short(t.date) + ' · ' + esc(TX_LABEL[t.type] || t.type) + (t.customer_name ? ' · ' + esc(t.customer_name) : '') + (t.adjust_reason ? ' · ' + esc(t.adjust_reason) : '') + '</span><span class="mono">' + signed(t.quantity_lb) + ' lb</span></div>').join('');
+    const txl = tl.map((t) => '<div class="txrow"><span>' + short(t.date) + ' · ' + esc(TX_LABEL[t.type] || t.type) + (t.customer_name ? ' · ' + esc(t.customer_name) : '') + (t.adjust_reason ? ' · ' + esc(t.adjust_reason) : '') + '</span><span class="mono">' + signed(t.quantity_lb) + ' lb</span>'
+      + '<div class="ts">' + tsPart('Created', stampET(t.created_date, t.created_time) || stamp(t.created_at)) + '</div></div>').join('');
+    // Lot timeline entries carry their recorded time but not who recorded them.
+    const lastTl = tl[tl.length - 1];
+    const entry = findTx(txId);
+    const hist = history([
+      ['Created (first entry)', first ? stampET(first.created_date, first.created_time) || stamp(first.created_at) : null],
+      // Known only when the entry you opened is the lot's first entry.
+      ['Created by', entry && first && String(first.transaction_id) === String(entry.id) ? entry.operator_id : null],
+      ['Last updated (latest entry)', lastTl ? stampET(lastTl.created_date, lastTl.created_time) || stamp(lastTl.created_at) : null],
+      ['Updated by', null]
+    ], 'A lot has no created/updated fields of its own; these come from its ledger entries, which do not include who recorded them.');
+    const entryHist = entry ? history([
+      [(TX_LABEL[entry.type] || entry.type) + ' entry', (entry.receipt_number || '#' + entry.id)],
+      ['Business date', stampET(entry.business_date)],
+      ['Created', txCreated(entry)],
+      ['Created by', entry.operator_id || null],
+      ['Last updated (correction)', txUpdated(entry) ? txUpdated(entry) + (entry.latest_correction_type ? ' · ' + entry.latest_correction_type : '') : null],
+      ['Updated by', null]
+    ]).replace('<h4>Record history</h4>', '<h4>Record history · the entry you opened</h4>') : '';
     const adjNote = tl.some((t) => t.type === 'adjust') ? '<div class="warnbox">This lot has adjust entries. Check the reasons below before relying on the on-hand figure.</div>' : '';
     showInspector(insHead('Lot record · ' + (d.product_name || pname || ''), code, meta)
       + '<div class="ins-body">' + stat3([['In', fmt(tin) + ' lb'], ['Out', fmt(tout) + ' lb'], ['On hand', fmt(d.on_hand_lbs) + ' lb' + cs]]) + adjNote
       + '<div class="sect"><h4>Trace back · what went into it</h4>' + back + '</div>'
       + '<div class="sect"><h4>Trace forward · where it went</h4>' + fwd + '</div>'
-      + '<div class="sect"><h4>Transactions</h4><div class="txlist">' + (txl || '<div class="muted">None</div>') + '</div></div></div>'
+      + '<div class="sect"><h4>Transactions</h4><div class="txlist">' + (txl || '<div class="muted">None</div>') + '</div></div>' + entryHist + hist + '</div>'
       + footBtns([['Full trace ↗', dashUrl('traceability.html', { v: 4, lot: code, direction: 'forward', product_id: pid })], ['Adjust ↗', taskUrl('adjust')], ['Record count ↗', taskUrl('adjust'), true]]));
+  }
+
+  // Order records are cached: the Orders area reads them for created times, the panel reuses them.
+  const orderCache = new Map();
+  function orderRecord(id) {
+    const k = String(id);
+    if (!orderCache.has(k)) orderCache.set(k, API.get('/sales/orders/' + encodeURIComponent(k)).catch((e) => { orderCache.delete(k); throw e; }));
+    return orderCache.get(k);
+  }
+  const orderCreated = (o) => stampET(o.created_date, o.created_time);
+  let orderStampsLoading = false;
+  function loadOrderStamps() {
+    if (orderStampsLoading) return;
+    orderStampsLoading = true;
+    world.querySelectorAll('[data-order-ts]').forEach((el) => {
+      orderRecord(el.dataset.orderTs).then((o) => { el.outerHTML = tsLine(orderCreated(o), null); })
+        .catch(() => { el.outerHTML = '<div class="ts"><span class="t-red">Record times couldn’t load</span></div>'; });
+    });
   }
 
   async function openOrder(id) {
@@ -698,21 +910,33 @@
     renderChrome();
     showInspector(insHead('Sales order', String(id), 'Loading…') + '<div class="ins-body"><div class="loading">Loading order…</div></div>');
     let o;
-    try { o = await API.get('/sales/orders/' + encodeURIComponent(id)); } catch (e) {
+    try { o = await orderRecord(id); } catch (e) {
       showInspector(insHead('Sales order', String(id), '') + '<div class="ins-body"><div class="t-red">Couldn’t load (' + esc(e.message) + ')</div></div>'); return;
     }
-    if (!selection || selection.orderId !== id) return;
+    if (!selection || String(selection.orderId) !== String(id)) return;
     selection.label = o.order_number; selection.orderId = o.order_id;
+    const listRow = failed(data.orders) ? null : data.orders.orders.find((x) => x.order_id === o.order_id);
     renderChrome();
     const reasons = (o.health && o.health.reasons) || [];
     const lines = (o.lines || []).map((l) => '<span>' + esc(l.product) + '</span><span class="mono muted">' + esc(l.unit_count != null ? fmt(l.unit_count) + ' ' + (l.unit || '') : '') + '</span><span class="mono">' + fmt(l.remaining_lb) + ' lb left</span>').join('');
-    const ships = (o.shipments || []).map((s) => '<div><span>' + short(String(s.date || s.ship_date || s.business_date || '').slice(0, 10)) + ' · ' + esc(s.bol_reference || s.bol || 'shipment') + '</span><span class="mono">' + fmt(s.total_lb || s.quantity_lb || 0) + ' lb</span></div>').join('');
+    const ships = (o.shipments || []).map((s) => '<div class="txrow"><span>' + esc(s.product || s.bol_reference || 'Shipment') + '</span><span class="mono">' + fmt(s.total_lb || s.quantity_lb || 0) + ' lb</span>'
+      + '<div class="ts">' + tsPart('Shipped', stampET(s.shipped_date, s.shipped_time)) + '</div></div>').join('');
+    // Order dates (ordered / ship by) are business dates, kept apart from the record's own times.
+    const dates = '<div class="sect"><h4>Dates</h4><div class="txlist hist"><div><span>Order date</span><span>' + esc(stampET(o.order_date) || NOT_RECORDED) + '</span></div><div><span>Requested ship date</span><span>' + esc(stampET(o.requested_ship_date) || NOT_RECORDED) + '</span></div></div></div>';
+    const hist = history([
+      ['Created', orderCreated(o)],
+      ['Created by', null],
+      ['Last updated', null],
+      ['Updated by', null]
+    ].concat(o.state_changed_at ? [['State changed', stamp(o.state_changed_at) + (o.state_changed_by ? ' · ' + o.state_changed_by : '')]] : [])
+      .concat(listRow && listRow.ready_at ? [['Marked ready', stamp(listRow.ready_at) + (listRow.ready_by ? ' · ' + listRow.ready_by : '')]] : []),
+    'GET /sales/orders/{id} returns a created time but no created-by, updated-at or updated-by.');
     showInspector(insHead('Sales order · ' + o.customer, o.order_number, 'Ship by ' + short(o.requested_ship_date) + ' · ' + esc(o.status) + (o.customer_po ? ' · PO ' + esc(o.customer_po) : ''))
       + '<div class="ins-body">' + stat3([['Ordered', fmt(o.ordered_lb) + ' lb'], ['Shipped', fmt(o.shipped_effective_lb) + ' lb'], ['Remaining', fmt(o.remaining_effective_lb) + ' lb']])
       + (reasons.length ? '<div class="warnbox">' + reasons.map(esc).join('<br>') + '</div>' : '')
       + (num(o.shortage_lb) > 0 ? '<div class="warnbox">Short ' + fmt(o.shortage_lb) + ' lb of stock.</div>' : '')
       + '<div class="sect"><h4>Lines</h4><div class="trace">' + (lines || '<span class="muted">No lines</span>') + '</div></div>'
-      + '<div class="sect"><h4>Shipments</h4><div class="txlist">' + (ships || '<div class="muted">None yet</div>') + '</div></div></div>'
+      + '<div class="sect"><h4>Shipments</h4><div class="txlist">' + (ships || '<div class="muted">None yet</div>') + '</div></div>' + dates + hist + '</div>'
       + footBtns([['Open orders board ↗', dashUrl('index.html', { section: 'orders' })], ['Ship this order ↗', dashUrl('entry.html', { action: 'ship', order: o.order_id }), true]]));
   }
 
@@ -724,10 +948,223 @@
     showInspector(insHead('Expected receipt · ' + e.supplier_name, e.reference_number || 'ER ' + e.id, esc(e.product_name) + (e.expected_date ? ' · expected ' + short(e.expected_date) : ' · no expected date'))
       + '<div class="ins-body">' + stat3([['Expected', fmt(e.expected_qty) + ' lb'], ['Received', fmt(e.received_qty) + ' lb'], ['Remaining', fmt(e.remaining) + ' lb']])
       + (e.is_overdue ? '<div class="warnbox">' + e.days_overdue + ' days overdue.</div>' : '')
-      + '<div class="sect"><h4>Details</h4><div class="txlist"><div><span>Receipts so far</span><span>' + e.receipt_count + '</span></div><div><span>Last received</span><span>' + (e.last_received_at ? short(e.last_received_at.slice(0, 10)) : '—') + '</span></div><div><span>Created by</span><span>' + esc(e.created_by || '—') + '</span></div></div>'
-      + (e.notes ? '<div class="muted" style="font-size:13px">' + esc(e.notes) + '</div>' : '') + '</div></div>'
+      + '<div class="sect"><h4>Details</h4><div class="txlist hist"><div><span>Expected date</span><span>' + esc(stampET(e.expected_date) || 'No date') + '</span></div><div><span>Receipts so far</span><span>' + e.receipt_count + '</span></div><div><span>Last received</span><span>' + esc(stamp(e.last_received_at) || '—') + '</span></div></div>'
+      + (e.notes ? '<div class="muted" style="font-size:13px">' + esc(e.notes) + '</div>' : '') + '</div>'
+      + history([['Created', stamp(e.created_at)], ['Created by', e.created_by || null], ['Last updated', stamp(e.updated_at)], ['Updated by', null]], 'GET /expected-receipts has no updated-by field.') + '</div>'
       + footBtns([['Expected receipts ↗', dashUrl('index.html', { section: 'expected' })], ['Receive ↗', taskUrl('receive'), true]]));
   }
+
+  // ---------- ingredients: view mode, sorting, relationship map ----------
+  const FAM = window.FL_FAMILIES || { approved: false, products: {} };
+  const famApproved = () => FAM.approved === true;
+  const familyOf = (pid) => (famApproved() && FAM.products[pid] ? FAM.products[pid][0] : null);
+  const USE_DAYS = 90;
+  let usePromise = null;
+
+  // Ingredient use from posted make entries over the window, split by the batch product made.
+  // One request, cached for the page.
+  function loadUse() {
+    if (!usePromise) {
+      const since = addDays(TODAY, -(USE_DAYS - 1));
+      usePromise = API.get('/transactions/history', { transaction_type: 'make', since, limit: 1000 }).then((r) => {
+        const makes = r.transactions.filter((t) => t.status === 'posted' && t.type === 'make');
+        const byIng = new Map();
+        for (const t of makes) {
+          const out = (t.lines || []).find((l) => num(l.quantity_lb) > 0);
+          if (!out) continue;
+          for (const l of t.lines) {
+            if (l.product_type !== 'ingredient' || num(l.quantity_lb) >= 0) continue;
+            let u = byIng.get(l.product_id);
+            if (!u) { u = { total: 0, by: new Map() }; byIng.set(l.product_id, u); }
+            const q = -num(l.quantity_lb);
+            u.total += q;
+            const b = u.by.get(out.product_id) || { name: out.product_name, q: 0 };
+            b.q += q;
+            u.by.set(out.product_id, b);
+          }
+        }
+        const dates = makes.map((t) => t.business_date).sort();
+        return { byIng, makes: makes.length, since, truncated: r.transactions.length >= 1000, first: dates[0], last: dates[dates.length - 1] };
+      }).catch((e) => { usePromise = null; throw e; });
+    }
+    return usePromise;
+  }
+
+  // Split an ingredient's use by the family of the batch product made. Families come from the
+  // approved list only; anything else counts as unclassified.
+  function splitOf(x) {
+    const r = { coconut: 0, granola: 0, unclassified: 0 };
+    for (const [pid, b] of x.by) r[familyOf(pid) || 'unclassified'] += b.q;
+    return r;
+  }
+
+  function setIngredientMode(mode) {
+    view.mode.ingredient = mode;
+    const tile = nodes.get('t-ingredient');
+    if (!tile || !tile.el) return;
+    const t2 = tile.el.querySelector('.t2');
+    t2.classList.toggle('mapmode', mode === 'map');
+    t2.querySelectorAll('[data-view]').forEach((b) => { const on = b.dataset.view === mode; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+    t2.querySelector('.sortwrap').hidden = mode === 'map';
+    layoutCards('ingredient');
+    if (mode === 'map') renderRelMap();
+    scheduleUpdate();
+  }
+  function setIngredientSort(k) {
+    if (!SORTS[k]) return;
+    view.sort.ingredient = k;
+    const tile = nodes.get('t-ingredient');
+    tile.el.querySelectorAll('[data-sort]').forEach((b) => { const on = b.dataset.sort === k; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+    layoutCards('ingredient');
+    scheduleUpdate();
+  }
+
+  const rmChip = (p, reason) => '<button type="button" class="rm-chip" data-ing="' + p.id + '" title="' + esc(p.name + ' · ' + qtyText(p) + (reason ? ' · ' + reason : '')) + '"><b>' + esc(p.name) + '</b><span>' + qtyText(p) + '</span></button>';
+  const winLabel = (u) => short(u.since) + ' – ' + short(TODAY);
+
+  async function renderRelMap() {
+    const el = world.querySelector('[data-relmap]');
+    if (!el) return;
+    const ings = ofType('ingredient').slice().sort(SORTS.qty.fn);
+    el.innerHTML = '<div class="rm-loading">Loading make history…</div>';
+    let u;
+    try { u = await loadUse(); } catch (e) { el.innerHTML = '<div class="rm-loading t-red">Couldn’t load make history (' + esc(e.message) + ')</div>'; return; }
+    if (view.mode.ingredient !== 'map') return;
+    const legend = '<div class="rm-legend"><div><b>Position</b> = coconut share of each ingredient’s use in posted makes, last ' + USE_DAYS + ' days (' + winLabel(u) + ', ' + u.makes + ' makes' + (u.truncated ? ', first 1,000 only' : '') + '). Left: used mostly in coconut products · middle: shared · right: mostly in granola. Labels show on-hand quantity.</div></div>';
+    const band = '<div class="rm-band"><span>Coconut-heavy</span><span>Shared</span><span>Granola-heavy</span></div>';
+    if (!famApproved()) {
+      const counts = Object.values(FAM.products).reduce((m, [f]) => { m[f] = (m[f] || 0) + 1; return m; }, {});
+      el.innerHTML = legend + '<div class="rm-plot rm-wait"><div class="rm-notice"><b>Positions are waiting for approval.</b> Factory Ledger has no coconut/granola flag on products, so each batch product needs a family first. Proposed (by product name, ' + esc(FAM.proposedOn || '') + '): '
+        + (counts.coconut || 0) + ' coconut and ' + (counts.granola || 0) + ' granola batch products, listed in <span class="mono">canvas/families.js</span>. Nothing is placed until that list is approved.</div></div>'
+        + band + '<div class="rm-tray"><div class="rm-tray-head">Unplaced · ' + ings.length + ' ingredients on hand (waiting for the family list)</div><div class="rm-chips">' + ings.map((p) => rmChip(p, 'not placed: family list not approved')).join('') + '</div></div>';
+      fitTray(el);
+      return;
+    }
+    const placed = [], tray = [];
+    for (const p of ings) {
+      const x = u.byIng.get(p.id);
+      const f = x ? splitOf(x) : null;
+      const known = f ? f.coconut + f.granola : 0;
+      if (!x) tray.push([p, 'no use in posted makes in the window']);
+      else if (!known) tray.push([p, 'used only in products without a family']);
+      else placed.push({ p, share: f.coconut / known });
+    }
+    el.innerHTML = legend + '<div class="rm-plot"><svg class="rm-lines" aria-hidden="true"></svg>'
+      + placed.map((n) => '<button type="button" class="rm-node" data-ing="' + n.p.id + '"><b>' + esc(n.p.name) + '</b><span>' + qtyText(n.p) + '</span></button>').join('') + '</div>'
+      + band + '<div class="rm-tray"><div class="rm-tray-head">Unplaced · ' + tray.length + '</div><div class="rm-chips">' + (tray.map(([p, r]) => rmChip(p, r)).join('') || '<span class="dim">None</span>') + '</div></div>';
+    const noRoom = placeNodes(el, placed);
+    if (noRoom.length) {
+      const head = el.querySelector('.rm-tray-head'), chips = el.querySelector('.rm-chips');
+      head.textContent = 'Unplaced · ' + (tray.length + noRoom.length);
+      chips.insertAdjacentHTML('afterbegin', noRoom.map((n) => rmChip(n.p, 'no room on the map at this size (' + Math.round(n.share * 100) + '% coconut)')).join(''));
+    }
+    fitTray(el);
+  }
+
+  // The tray never clips silently: chips that don't fit collapse into "+N more".
+  function fitTray(el) {
+    const box = el.querySelector('.rm-chips');
+    if (!box) return;
+    const chips = [...box.querySelectorAll('.rm-chip')];
+    let hidden = 0;
+    while (box.scrollHeight > box.clientHeight + 1 && chips.length - hidden > 1) {
+      chips[chips.length - 1 - hidden].hidden = true;
+      hidden++;
+      let more = box.querySelector('.rm-more');
+      if (!more) { more = document.createElement('span'); more.className = 'rm-more'; box.appendChild(more); }
+      more.textContent = '+' + hidden + ' more · see Grid view';
+    }
+  }
+
+  // Each node sits as close as it can above its exact position on the axis; when it has to
+  // move sideways a thin leader line ties it back to its tick. Larger stock first.
+  function placeNodes(el, placed) {
+    const plot = el.querySelector('.rm-plot');
+    const PW = plot.clientWidth, PH = plot.clientHeight, PAD = 12, AX = PH - 10;
+    const maxQ = Math.max(1, ...placed.map((n) => n.p.qty));
+    const btns = plot.querySelectorAll('.rm-node');
+    const noRoom = [];
+    placed.forEach((n, i) => { n.el = btns[i]; n.el.style.fontSize = (15 + 7 * Math.sqrt(n.p.qty / maxQ)).toFixed(1) + 'px'; });
+    placed.forEach((n) => { n.w = n.el.offsetWidth; n.h = n.el.offsetHeight; n.ax = PAD + (1 - n.share) * (PW - 2 * PAD); });
+    const boxes = [];
+    const hits = (b) => boxes.some((o) => b.x < o.x + o.w + 8 && o.x < b.x + b.w + 8 && b.y < o.y + o.h + 6 && o.y < b.y + b.h + 6);
+    let lines = '';
+    for (const n of placed) {
+      let best = null;
+      for (let k = 0; ; k++) {
+        const y = AX - 24 - n.h - k * (n.h + 6);
+        if (y < 0) break;
+        for (let j = 0; j <= Math.ceil(PW / 12); j++) {
+          const dx = (j % 2 ? 1 : -1) * Math.ceil(j / 2) * 24;
+          const x = Math.max(0, Math.min(PW - n.w, n.ax - n.w / 2 + dx));
+          const b = { x, y, w: n.w, h: n.h };
+          if (hits(b)) continue;
+          const cost = Math.abs(x + n.w / 2 - n.ax) + k * 30;
+          if (!best || cost < best.cost) best = Object.assign(b, { cost });
+          break;
+        }
+      }
+      if (!best) { n.el.remove(); noRoom.push(n); continue; }
+      boxes.push(best);
+      Object.assign(n.el.style, { left: best.x + 'px', top: best.y + 'px' });
+      const cx = best.x + n.w / 2;
+      lines += '<line class="tick" x1="' + n.ax + '" y1="' + (AX - 6) + '" x2="' + n.ax + '" y2="' + (AX + 6) + '"></line>';
+      if (Math.abs(cx - n.ax) > 4 || best.y + n.h < AX - 26) lines += '<line x1="' + n.ax + '" y1="' + (AX - 6) + '" x2="' + Math.max(best.x + 6, Math.min(best.x + n.w - 6, n.ax)) + '" y2="' + (best.y + n.h) + '"></line>';
+    }
+    const svg = plot.querySelector('.rm-lines');
+    svg.setAttribute('width', PW); svg.setAttribute('height', PH);
+    svg.innerHTML = '<line class="axis" x1="0" y1="' + AX + '" x2="' + PW + '" y2="' + AX + '"></line>' + lines;
+    return noRoom;
+  }
+
+  async function openIngredient(pid) {
+    const p = products.find((x) => String(x.id) === String(pid));
+    if (!p) return;
+    selection = { kind: 'ingredient', label: p.name, pid: p.id };
+    renderChrome();
+    const head = insHead('Ingredient' + (p.sku ? ' · SKU ' + p.sku : ''), p.name, esc(qtyText(p)) + ' on hand · ' + p.lots.length + ' lot' + (p.lots.length === 1 ? '' : 's'));
+    const foot = '<div class="ins-foot"><button type="button" class="fa-btn" data-ing-grid="' + p.id + '">Show in grid</button><a class="fa-btn fa-primary" href="' + esc(taskUrl('receive')) + '" target="_blank" rel="noopener">Receive ↗</a></div>';
+    showInspector(head + '<div class="ins-body"><div class="loading">Loading use…</div></div>' + foot);
+    let u = null;
+    try { u = await loadUse(); } catch (e) { /* shown below */ }
+    if (!selection || selection.kind !== 'ingredient' || selection.pid !== p.id) return;
+    const x = u && u.byIng.get(p.id);
+    const lb = (v) => fmt(v) + ' lb';
+    let split;
+    if (!u) split = '<div class="t-red" style="font-size:13px">Make history couldn’t load.</div>';
+    else if (!x) split = '<div class="muted" style="font-size:13px">Not used in posted makes in the last ' + USE_DAYS + ' days.</div>';
+    else if (!famApproved()) split = '<div class="muted" style="font-size:13px">The coconut / granola split appears once the product-family list is approved.</div>';
+    else {
+      const f = splitOf(x), known = f.coconut + f.granola;
+      split = '<div class="txlist hist"><div><span>Coconut products</span><span class="mono">' + lb(f.coconut) + '</span></div><div><span>Granola products</span><span class="mono">' + lb(f.granola) + '</span></div><div><span>Products without a family</span><span class="mono">' + lb(f.unclassified) + '</span></div>'
+        + '<div><span>Coconut share</span><span class="mono">' + (known ? Math.round(f.coconut / known * 100) + '%' : '—') + '</span></div></div>';
+    }
+    const by = x ? [...x.by.values()].sort((a, b) => b.q - a.q).slice(0, 8).map((b) => '<div><span>' + esc(b.name) + '</span><span class="mono">' + lb(b.q) + '</span></div>').join('') : '';
+    showInspector(head + '<div class="ins-body">' + stat3([['On hand', esc(qtyText(p))], ['Lots', p.lots.length], ['Used · ' + USE_DAYS + ' days', x ? lb(x.total) : '—']])
+      + '<div class="sect"><h4>Use by product family · posted makes, ' + (u ? winLabel(u) : 'last ' + USE_DAYS + ' days') + '</h4>' + split + '</div>'
+      + (by ? '<div class="sect"><h4>Used in</h4><div class="txlist">' + by + '</div></div>' : '') + '</div>' + foot);
+  }
+
+  ins.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-ing-grid]');
+    if (!b) return;
+    const id = 'p' + b.dataset.ingGrid;
+    closeInspector();
+    if (view.mode.ingredient !== 'grid') setIngredientMode('grid');
+    flyTo(id);
+  });
+
+  // ---------- theme ----------
+  const THEMES = ['industrial', 'warm', 'blueprint'];
+  function applyTheme(t) {
+    if (!THEMES.includes(t)) t = 'industrial';
+    document.documentElement.setAttribute('data-theme', t);
+    document.querySelectorAll('[data-theme-pick]').forEach((b) => b.setAttribute('aria-checked', b.dataset.themePick === t));
+  }
+  document.querySelectorAll('[data-theme-pick]').forEach((b) => {
+    b.onclick = () => { applyTheme(b.dataset.themePick); try { localStorage.setItem('flcanvas.theme', b.dataset.themePick); } catch (e) { /* not remembered */ } };
+  });
+  applyTheme(document.documentElement.getAttribute('data-theme'));
 
   // ---------- tasks ----------
   function taskUrl(action) {
@@ -843,10 +1280,13 @@
   vp.addEventListener('click', (e) => { if (dragged) { e.stopPropagation(); e.preventDefault(); } }, true);
 
   world.addEventListener('click', (e) => {
-    const t = e.target.closest('[data-fly],[data-lot],[data-order],[data-er]');
+    const t = e.target.closest('[data-view],[data-sort],[data-ing],[data-fly],[data-lot],[data-order],[data-er]');
     if (!t) return;
-    if (t.dataset.fly) { closeInspector(); flyTo(t.dataset.fly); }
-    else if (t.dataset.lot) openLot(t.dataset.lot, t.dataset.pid, t.dataset.pname);
+    if (t.dataset.view) setIngredientMode(t.dataset.view);
+    else if (t.dataset.sort) setIngredientSort(t.dataset.sort);
+    else if (t.dataset.ing) openIngredient(t.dataset.ing);
+    else if (t.dataset.fly) { closeInspector(); flyTo(t.dataset.fly); }
+    else if (t.dataset.lot) openLot(t.dataset.lot, t.dataset.pid, t.dataset.pname, t.dataset.tx);
     else if (t.dataset.order) openOrder(t.dataset.order);
     else if (t.dataset.er) openER(t.dataset.er);
   });
@@ -879,6 +1319,8 @@
     if (failed(data.inv)) { banner('Couldn’t load inventory from ' + API.base + ' (' + data.inv.error + ')', true); }
     else banner('');
     buildProducts();
+    // Card heights are measured from rendered text, so wait for the web fonts.
+    try { await document.fonts.ready; } catch (e) { /* measure with fallback fonts */ }
     buildWorld();
     buildIndex();
     setCam(fit(BOX, 0.95), false);

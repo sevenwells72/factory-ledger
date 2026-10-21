@@ -60,11 +60,62 @@ Then open http://localhost:8765/ (run the command from the repo root).
 | Product working screen | `/dashboard/api/product/{id}/lots`, `/transactions/history?product_name=&since=<30 days>` |
 | Lot record | `/dashboard/api/lot/{lot_code}?product_id=`, `/trace/batch/…` or `/trace/ingredient/…` |
 | Search (extra results) | `/dashboard/api/search?q=` |
+| Order created times (Orders area rows, read when that area opens; max 5) | `/sales/orders/{id}` (cached, reused by the order panel) |
+| Ingredients relationship map + ingredient panel (read on first open) | `/transactions/history?transaction_type=make&since=<90 days>&limit=1000` |
 
 The page sends at most 4 requests at a time, and only the product under the
 centre of the screen loads its working-screen data, because the API's database
 pool is small. Lot first-entry dates come from the 30-day history. Up to 20
 older lots per product are then looked up one by one. Lots past that show no date.
+
+## Look and layout
+
+- **Themes.** Three backgrounds, switched with the three swatches in the header:
+  Clean industrial (default), Warm modern, Operational map (faint drafting grid
+  plus dashed stage zones: Inbound, Make & pack, Outbound, Oversight). The choice is
+  remembered in `localStorage` (`flcanvas.theme`); if storage is blocked the page
+  just uses the default.
+- **Icons.** Lucide (lucide-static 0.460.0, ISC), vendored in `vendor/lucide/`
+  (`icons.js` holds only the 7 icons used). No CDN.
+- **Card sizes.** Each overview card is as tall as its content needs, at the
+  overview and at the zoomed-in level; matching cards (Production/Packing,
+  Receiving/Orders, Quality/Reports) share a height. The flow arrows are drawn from
+  the measured card edges after layout (`layoutWorld()`), so they follow any resize.
+- **Ingredients.** Cards lead with the name (wraps up to 3 lines), then quantity,
+  then `lots · SKU`. Sort: Quantity ↓ (default), Name A–Z, Name Z–A; kept while
+  the page is open, no requests. **Grid view | Relationship map** toggle.
+- **Alerts.** Inventory shows stock alerts only (below reorder, open orders short
+  on stock). Overdue orders are on Orders & shipping, overdue expected receipts on
+  Receiving.
+
+## Ingredients relationship map
+
+Horizontal position = coconut share of the ingredient's use in posted make
+entries over the last 90 days, split by the batch product made. Nodes are labelled
+with on-hand quantity and sized by it; a node that has to move sideways keeps a
+leader line to its exact position on the axis. Ingredients with no use in the
+window, or used only in products without a family, go to the **Unplaced** tray.
+
+Factory Ledger has no coconut/granola flag on products (`product_category` is null;
+the backend classifies by name). The product → family list is therefore a
+proposal in `families.js` with `approved: false`, and **the map places nothing
+until it is approved** (set `approved: true`). Until then every ingredient sits in
+the tray.
+
+## Record timestamps
+
+Summary rows show `Created … · Updated …` and side panels a **Record history**
+section, all in America/New_York (`Oct 20, 2026 · 10:30 AM`). Only real API fields
+are used; anything missing reads "Not recorded". Due / expected / ship dates are
+shown separately from created / updated. What the API returns today:
+
+| Record | Created | Created by | Updated | Updated by | Endpoint that would need the missing fields |
+|---|---|---|---|---|---|
+| Sales order | `created_date` + `created_time` (detail only) | missing | missing (`state_changed_at/by` covers state changes only) | missing | `GET /sales/orders` (list has no created time) and `GET /sales/orders/{id}` |
+| Expected receipt | `created_at` | `created_by` | `updated_at` | missing | `GET /expected-receipts` |
+| Make / pack / ship / adjust entry | `created_at` | `operator_id` | only `latest_correction_created_at` (entries are corrected, not edited) | missing (correction actor not returned) | `GET /transactions/history` |
+| Shipment (on an order) | `shipped_date` + `shipped_time` | missing | missing | missing | `GET /sales/orders/{id}` → `shipments[]` |
+| Lot | none of its own; first / latest ledger entry `created_at` | missing (timeline has no operator) | latest entry only | missing | `GET /dashboard/api/lot/{code}` → `timeline[]` |
 
 ## Not connected yet (shown with a striped "not connected yet" label)
 
@@ -82,6 +133,8 @@ older lots per product are then looked up one by one. Lots past that show no dat
 - Built for desktop. It loads on a phone without horizontal scroll, but there is
   no pinch zoom, and the working screen is small there.
 - Data is loaded once at page load. Reload the page to refresh.
+- The relationship map reads up to 1,000 make entries for its 90-day window and
+  says so if it hits that limit.
 - Staging's dashboard is served under `/dashboard/`. Some of its own links use
   root paths, so a few in-dashboard links may 404 there; the canvas's own links
   (`entry.html`, `traceability.html`, `history.html`, `shift-summary.html`) load.

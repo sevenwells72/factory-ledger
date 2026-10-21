@@ -5,18 +5,28 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
 <title>FL Canvas</title>
+<script>
+  // Apply the remembered theme before first paint. Storage can be blocked, so fall back quietly.
+  (function () {
+    var t = 'industrial';
+    try { var v = localStorage.getItem('flcanvas.theme'); if (v === 'industrial' || v === 'warm' || v === 'blueprint') t = v; } catch (e) {}
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <script src="config.js"></script>
 <script src="api.js"></script>
+<script src="families.js"></script>
+<script src="vendor/lucide/icons.js"></script>
 <script defer src="app.js"></script>
 </head>
 <body>
 <header id="header">
   <div class="brand">
     <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="1" width="20" height="20" rx="6" fill="#12151A"></rect><path d="M6 15V7h7M6 11h5" stroke="#FFFFFF" stroke-width="2" fill="none" stroke-linecap="round"></path></svg>
-    Factory Ledger <span id="env" class="env-badge"></span>
+    <span class="bt">Factory Ledger</span> <span id="env" class="env-badge"></span>
   </div>
   <div class="vsep"></div>
   <nav id="crumbs" aria-label="Location"></nav>
@@ -25,6 +35,11 @@
     <svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="5" stroke="#626A78" stroke-width="1.6" fill="none"></circle><path d="M11 11l3.5 3.5" stroke="#626A78" stroke-width="1.6" stroke-linecap="round"></path></svg>
     <input id="q" autocomplete="off" placeholder="Jump to product, lot, order…">
     <div id="results" hidden></div>
+  </div>
+  <div class="themes" id="themes" role="radiogroup" aria-label="Background theme">
+    <button type="button" role="radio" data-theme-pick="industrial" title="Clean industrial" aria-label="Clean industrial theme"><span class="sw sw-industrial"></span></button>
+    <button type="button" role="radio" data-theme-pick="warm" title="Warm modern" aria-label="Warm modern theme"><span class="sw sw-warm"></span></button>
+    <button type="button" role="radio" data-theme-pick="blueprint" title="Operational map" aria-label="Operational map theme"><span class="sw sw-blueprint"></span></button>
   </div>
   <div class="tasks" id="tasks" aria-label="Quick tasks"></div>
 </header>
