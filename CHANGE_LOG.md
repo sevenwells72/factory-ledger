@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-10-21 13:59 — Verify final Floor GPT unreadable-lot wording and artifact budget
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/receive-lot-required/README.md`
+- **What changed:** Record five passing Floor contract tests, independently verified exact review wording, source/dist equality, 7,860 body characters and 7,990 full-file characters. Floor remains22/office30 operations. Keep the earlier full Python/JS/browser results explicitly attributed to 59cad84d.
+- **Why:** Close the remaining re-review blocker without changing runtime or unrelated review notes.
+
+---
+
+## 2026-10-21 13:58 — Cover unreadable lots in the exact reviewed Floor GPT receive rule
+- **File(s) changed:** `gpt-configs/sources/floor-specific.md`, `gpt-configs/schemas/openapi-floor.yaml`, `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`, `tests/test_floor_gpt_receive_contract.py`
+- **What changed:** Replace the RECEIVE rule and no_supplier_lot description with the exact text in re-review 6322849012, update both pinned contract-test strings, and rebuild Floor instructions. Shorten the non-rule introduction so the generator accepts the full artifact; body is 7,860 characters, full file 7,990, both below 8,000.
+- **Why:** An operator reporting an unreadable lot must use the same explicit unidentified receive path as no lot on label.
+
+---
+
 ## 2026-10-21 13:47 — Close PR145 review findings with correct Floor contract and full validation
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/receive-lot-required/README.md`
 - **What changed:** Renumber receipt row 225→229 on explicit request after checking PR144 (225) and PR143 (226–228). Record 7,094 Python, 577 JS and 12 browser passes; office 30→30 versus Floor 22→22, Floor body/full 7,837/7,967 and office 7,485 characters. Document legacy identity behavior and future paste-before-deploy/open-draft checks without executing them.

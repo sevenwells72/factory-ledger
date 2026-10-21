@@ -12,9 +12,9 @@ from tests.test_write_tickets import headers, payload  # noqa: F401
 
 ROOT = Path(__file__).resolve().parents[1]
 FLOOR_SCHEMA = ROOT / 'gpt-configs/schemas/openapi-floor.yaml'
-RECEIVE_RULE = ('Ingredient label lot → supplier_lot_code. Only if operator says '
-                '"No lot on label"/"Sin lote en la etiqueta" → no_supplier_lot: true, '
-                'supplier_lot_code "". Never UNKNOWN/N/A.')
+RECEIVE_RULE = ('Ingredient label lot → supplier_lot_code. Operator says no lot on label '
+                'or lot unreadable ("Sin lote en la etiqueta"/"lote ilegible") → '
+                'no_supplier_lot: true, supplier_lot_code "". Never UNKNOWN/N/A; never assume.')
 
 
 @pytest.fixture
@@ -33,8 +33,9 @@ def test_floor_receive_schema_exposes_the_explicit_no_label_path(floor_schema):
         'Lot printed on the supplier label. Required for purchased ingredients unless '
         'no_supplier_lot is true. Never send UNKNOWN or N/A.')
     assert schema['properties']['no_supplier_lot']['description'] == (
-        'True only when the operator says "No lot on label" / "Sin lote en la etiqueta". '
-        'The lot is recorded unidentified with the 7-business-day follow-up.')
+        'True only when the operator says the label has no lot or the lot is unreadable '
+        '("No lot on label" / "Sin lote en la etiqueta"). The lot is recorded unidentified '
+        'with the 7-business-day follow-up.')
     operation = floor_schema['paths']['/receive']['post']
     assert operation['requestBody']['content']['application/json']['schema']['$ref'] == (
         '#/components/schemas/ReceiveRequest')

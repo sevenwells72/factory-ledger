@@ -1,5 +1,7 @@
 # Receive lot capture validation
 
+Latest [wording re-review 6322849012](https://github.com/sevenwells72/factory-ledger/pull/145#issuecomment-6322849012): the Floor RECEIVE rule and schema description now explicitly cover unreadable lots as well as no lot on label, using the exact proposed wording. The generated body is 7,860 characters (7,990 including header). All five matching contract tests pass, including real local preview/commit. This follow-up changes configuration, pinned text and documentation only; the full runtime suite results below are from 59cad84d.
+
 `feat/receive-lot-required` starts from `origin/main` at `27a25186`. PR #145 remains unmerged. This report covers [review comment 6322477292](https://github.com/sevenwells72/factory-ledger/pull/145#issuecomment-6322477292).
 
 Purchased ingredient receipts require the printed supplier lot or an explicit **No lot on label / Sin lote en la etiqueta** choice. Blank/sentinel codes without it return bilingual HTTP 422. Dashboard, ticket prepare/commit, legacy receive and preview/commit aliases share the guard. Existing purchased-ingredient exemptions, valid commingled codes, supplier links, legacy named-vendor handling, expected-receipt matching and normal receives are preserved. The explicit exception retains the existing unidentified status and seven-business-day New York deadline. No database migration is needed.
@@ -17,15 +19,16 @@ Final review-fix validation on 2026-10-21:
 
 | Check | Result |
 |---|---|
-| Full Python suite, frozen source | 7,094 passed; zero failures/errors/skips; 155.42 seconds |
-| Full JavaScript suite | 577 passed; zero failures/skips |
-| Refreshed local browser checks | 12 passed; EN/ES at 390px and 1440px |
+| Floor contract tests, latest wording | 5 passed; zero failures/skips |
+| Last full Python suite (59cad84d) | 7,094 passed; zero failures/errors/skips; 155.42 seconds |
+| Last full JavaScript suite (59cad84d) | 577 passed; zero failures/skips |
+| Last browser checks (59cad84d) | 12 passed; EN/ES at 390px and 1440px |
 | Office GPT operations | 30 before / 30 after |
 | Floor GPT operations | 22 before / 22 after |
-| Floor deployable body | 7,837 characters |
-| Floor file including generated header | 7,967 characters; below 8,000 |
+| Floor deployable body | 7,860 characters |
+| Floor file including generated header | 7,990 characters; below 8,000 |
 | Office instructions | 7,485 characters; below 8,000 |
-| Changed Floor receive descriptions | 128 and 147 characters; below 300 |
+| Changed Floor receive descriptions | 128 and 195 characters; below 300 |
 | Diff whitespace and changed Python syntax | Passed |
 
 Python used pinned Python 3.12.14 / Pydantic 2.14.1 and fresh UTF-8 PostgreSQL 17 at `127.0.0.1:55471`, with DATABASE_URL removed and TEST_DATABASE_URL explicitly local. JavaScript ran `node --test tests/test_*.js`. New tests exercise the deployable Floor schema plus real no-label preview/commit and actual Assistant prepare→Record→unidentified exception/deadline paths. Existing tests retain strict boolean refusal, blank-code guards, normal receipts, supplier provenance, identity corrections and old-ticket commit revalidation.

@@ -44,7 +44,7 @@ components:
         no_supplier_lot:
           type: boolean
           default: false
-          description: 'True only when the operator says "No lot on label" / "Sin lote en la etiqueta". The lot is recorded unidentified with the 7-business-day follow-up.'
+          description: 'True only when the operator says the label has no lot or the lot is unreadable ("No lot on label" / "Sin lote en la etiqueta"). The lot is recorded unidentified with the 7-business-day follow-up.'
         lot_type:
           type: string
           enum: [single_supplier, commingled]
