@@ -16728,7 +16728,38 @@ def commit_ship_order(
         occurred_at=req.occurred_at,
         backfill=req.backfill,
     )
-    return ship_order(request, order_id, commit_req, _)
+    result = ship_order(request, order_id, commit_req, _)
+    if isinstance(result, dict) and result.get("shipment_id"):
+        result.update(_floor_packing_slip(request, order_id, result["shipment_id"]))
+    return result
+
+
+def _public_api_base(request: Request) -> str:
+    configured = os.environ.get("PUBLIC_API_BASE_URL", "").strip().rstrip("/")
+    if configured:
+        return configured
+    railway = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "").strip()
+    if railway:
+        return f"https://{railway}"
+    host = request.headers.get("host") or "localhost"
+    local = host.split(":")[0] in ("localhost", "127.0.0.1", "testserver")
+    return f"{'http' if local else 'https'}://{host}"
+
+
+def _floor_packing_slip(request: Request, order_id: int, shipment_id: int) -> dict:
+    """10-minute signed packing-slip link for a commitShipOrder shipment, so the
+    Floor GPT never needs an API key in a URL. The shipment is already committed
+    here: a signing failure only drops the link, never turns the commit into an
+    error the operator might retry (a second shipment)."""
+    try:
+        path, expires = ship_tickets.shipment_packing_link(order_id, shipment_id)
+    except HTTPException as exc:
+        logger.warning("Packing slip link unavailable for shipment %s: %s", shipment_id, exc.detail)
+        return {"packing_slip_url": None, "packing_slip_expires_at": None}
+    return {
+        "packing_slip_url": _public_api_base(request) + path,
+        "packing_slip_expires_at": datetime.fromtimestamp(expires, timezone.utc).isoformat(),
+    }
 
 
 # ═══════════════════════════════════════════════════════════════
