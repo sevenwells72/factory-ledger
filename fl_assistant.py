@@ -31,7 +31,7 @@ from assistant_intents import office_handoff, is_receive_continuation, customer_
 from assistant_voice import normalize_voice_text, normalize_order_code
 from assistant_receive import merge_receive_lot_facts, normalize_receive_arguments, package_facts, split_receive_items
 
-ROUTES = ('session', 'resume', 'turn', 'record', 'cancel', 'confirm-sku', 'attachment', 'attachment/read', 'transcribe')
+ROUTES = ('session', 'resume', 'turn', 'record', 'cancel', 'confirm-sku', 'select-lots', 'attachment', 'attachment/read', 'transcribe')
 ACTOR_ROUTES = frozenset({('POST', '/assistant/' + p) for p in ROUTES} |
                          {('GET', '/correction-reasons')})
 MAX_PHOTO = 5 * 1024 * 1024
@@ -162,6 +162,12 @@ class RecordBody(DraftBody):
     acknowledged_warnings: list[str] = Field(default_factory=list, max_items=25)
     # Opaque FL evidence; validated only by CommitRequest/A5, never inferred here.
     lot_confirmations: list[dict] = Field(default_factory=list, max_items=100)
+
+
+class LotSelectionBody(DraftBody):
+    # Physical choices come only from the page. FL validates stock and sums.
+    ingredient_lot_allocations: list[dict] = Field(default_factory=list, max_length=100)
+    lot_confirmations: list[dict] = Field(min_length=1, max_length=100)
 
 
 class AttachmentRead(Body):
@@ -1056,6 +1062,42 @@ def register_routes(app, api):
         card = store_draft(result, args, row['session_id'], actor['id'], row['card'].get('attachment_ids', []), row['card'].get('language', 'en'))
         with api.get_transaction() as cur:
             cur.execute("UPDATE assistant_drafts SET status='cancelled' WHERE id=%s AND status='pending' AND record_started_at IS NULL", (str(body.draft_id),))
+        return {'card': card}
+
+    @app.post('/assistant/select-lots')
+    async def select_lots(body: LotSelectionBody, request: Request, actor=Depends(authenticate)):
+        # Retire the old card under its Record lock before preparing a new plan.
+        # Its signed quantities and product identity are the only source facts.
+        with api.get_transaction() as cur:
+            row = draft_row(api, body.draft_id, actor['id'], lock=True, cur=cur)
+            action = row['card']['prepared'].get('action')
+            if row['status'] != 'pending' or row['record_started_at'] or action not in ('make', 'pack'):
+                fail(409, 'LOT_SELECTION_UNAVAILABLE', 'Use the current FL draft / Usa el borrador actual de FL.')
+            cur.execute('SELECT payload FROM write_tickets WHERE ticket_hash=%s',
+                        (write_tickets.token_hash(row['ticket']),))
+            saved = cur.fetchone()
+            if not saved:
+                fail(409, 'LOT_SELECTION_UNAVAILABLE', 'Prepare again / Prepara de nuevo.')
+            model = catalog.PREPARES['prepare_' + action][1]
+            args = {key: value for key, value in saved['payload'].items() if key in model.model_fields}
+            args.update(ingredient_lot_allocations=body.ingredient_lot_allocations,
+                        lot_confirmations=body.lot_confirmations, client_source='fl_assistant')
+            # Replace only actively allocated ingredients. Different lot evidence
+            # keeps the legacy zero-stock placeholder and unresolved trace path.
+            allocated_products = {entry.get('ingredient_product_id') for entry in body.ingredient_lot_allocations}
+            if action == 'make':
+                args['ingredient_lots'] = [entry for entry in args.get('ingredient_lots', [])
+                                           if entry['ingredient_product_id'] not in allocated_products]
+            elif args.get('source_product_id') in allocated_products:
+                args['lot_allocations'] = None
+            cur.execute("UPDATE assistant_drafts SET status='cancelled' WHERE id=%s", (str(body.draft_id),))
+        # Retired drafts stay retired, including a concurrent human Cancel.
+        # Preparing cannot post inventory; on failure prepare a fresh entry.
+        status, result = await relay(app, request, 'POST', '/' + action + '/prepare', body=args)
+        if status != 200 or not result.get('ticket'):
+            return JSONResponse(status_code=status, content=catalog.safe_result(result))
+        card = store_draft(result, args, row['session_id'], actor['id'],
+                           row['card'].get('attachment_ids', []), row['card'].get('language', 'en'))
         return {'card': card}
 
     def renew_lease(sid, lease):

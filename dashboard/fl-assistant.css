@@ -152,3 +152,17 @@ html,body{width:100%;max-width:100%;min-width:0}
 }
 
 .topbar .receipt-tools>a[data-fl-write-ui]{min-height:44px;padding:9px 12px;font-size:13px;background:var(--surface);color:var(--text);border-color:var(--line)}
+
+/* Physical supplier lots: explicit choices, visible FIFO guidance and split pounds. */
+.supplier-lot-picker>div>label,.supplier-lot-picker>div>div>label{display:block;margin:10px 0;font-size:13px}
+.supplier-lot-picker input[type=text],.supplier-lot-picker input[type=number]{max-width:100%;min-width:0;border:1px solid var(--line);border-radius:7px;padding:10px;background:var(--surface)}
+.supplier-lot-choice{margin:12px 0;padding:12px;border:1px solid var(--line);border-radius:9px}
+.supplier-lot-choice.fifo-suggestion{border-color:var(--accent);background:var(--tint)}
+.supplier-lot-choice>label{display:flex!important;align-items:flex-start;gap:10px}
+.supplier-lot-choice input[type=checkbox]{width:22px;height:22px;flex:none;margin:2px 0}
+.supplier-lot-choice .supplier-lot-code{font-size:18px;line-height:1.4;overflow-wrap:anywhere}
+.supplier-lot-choice>small{display:block;margin:5px 0;font-size:12px}
+.supplier-lot-choice .lot-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:end}
+.supplier-lot-choice .lot-controls label{font-size:12px;flex:1;min-width:100px}
+.supplier-lot-choice .lot-controls label input{display:block;width:100%}
+.supplier-lot-choice .lot-controls>input,.supplier-lot-choice .lot-controls select{min-width:0;flex:1;max-width:100%}

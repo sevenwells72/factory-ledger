@@ -97,10 +97,50 @@ components:
           type: boolean
           default: false
           description: "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
+    LotConfirmation:
+      type: object
+      required: [lot_id, method, value]
+      properties:
+        lot_id:
+          type: integer
+          minimum: 1
+        method:
+          type: string
+          enum: [supplier_lot, last4, full_code, scan, pallet]
+        value:
+          type: string
+          description: "Physical supplier lot or CNS tag. Explicit opening-stock selection uses OPENING STOCK. Never infer from FIFO."
+        selected:
+          type: boolean
+          default: false
+          description: "True ONLY after the operator actively chooses this returned lot_id; required for ambiguous supplier codes and OPENING STOCK."
+    IngredientLotAllocation:
+      type: object
+      required: [ingredient_product_id, lot_id, quantity_lb]
+      properties:
+        ingredient_product_id:
+          type: integer
+          minimum: 1
+        lot_id:
+          type: integer
+          minimum: 1
+        quantity_lb:
+          type: number
+          exclusiveMinimum: 0
     MakeRequest:
       type: object
-      required: [product_name, batches]
+      required: [product_name, batches, ingredient_lot_allocations, lot_confirmations]
       properties:
+        ingredient_lot_allocations:
+          type: array
+          description: "REQUIRED: [] for initial preview. After explicit operator lot choices, allocate needed lb per ingredient (including Pack source/add-ins); splits must sum exactly. IDs only from returned candidates. Never infer FIFO confirmation."
+          items:
+            $ref: '#/components/schemas/IngredientLotAllocation'
+        lot_confirmations:
+          type: array
+          description: "REQUIRED: [] for initial preview. Before commit supply human evidence for every allocated lot; supplier_lot matching is case/space-insensitive; ambiguity requires an explicit choice. Never omit these arrays."
+          items:
+            $ref: '#/components/schemas/LotConfirmation'
         mode:
           type: string
           enum: [preview, commit]
@@ -137,8 +177,18 @@ components:
           description: "Set true only for an intentional occurred_at more than 14 days old. The entry will be marked backfilled."
     PackRequest:
       type: object
-      required: [source_product, target_product, cases]
+      required: [source_product, target_product, cases, ingredient_lot_allocations, lot_confirmations]
       properties:
+        ingredient_lot_allocations:
+          type: array
+          description: "REQUIRED: [] for initial preview. After explicit operator lot choices, allocate needed lb per ingredient (including Pack source/add-ins); splits must sum exactly. IDs only from returned candidates. Never infer FIFO confirmation."
+          items:
+            $ref: '#/components/schemas/IngredientLotAllocation'
+        lot_confirmations:
+          type: array
+          description: "REQUIRED: [] for initial preview. Before commit supply human evidence for every allocated lot; supplier_lot matching is case/space-insensitive; ambiguity requires an explicit choice. Never omit these arrays."
+          items:
+            $ref: '#/components/schemas/LotConfirmation'
         mode:
           type: string
           enum: [preview, commit]
@@ -530,7 +580,7 @@ paths:
     post:
       operationId: pack
       summary: "Pack batch into finished goods (preview or commit). Pack = batch → FG; use /make for batch production."
-      description: "FIFO on source batch by default. For intermediate BOM packs (e.g., base batch → flavored FG), preview includes add_in_ingredients showing what will be added at the hopper. Commit returns add_in_ingredients_consumed. target_lot_code is the OUTPUT FG lot — don't put source lot codes there. Only ask 'When did this happen?' when the operator implies packing was not just now; then pass occurred_at in plant-local time. Otherwise omit occurred_at."
+      description: "Preview shows supplier-lot choices for source and add-ins; FIFO is only a suggestion. Require active choices and confirmation before commit. target_lot_code is OUTPUT only. Add-ins auto-deduct. Ask event time only if packing was earlier; pass occurred_at in plant-local time."
       requestBody:
         required: true
         content:

@@ -1,0 +1,40 @@
+[
+  {
+    "language": "en",
+    "screenshot": "make-390-en.png",
+    "noOverflow": true,
+    "noInitialSelection": true,
+    "recordDisabledUntilChecked": true,
+    "split": [
+      {
+        "ingredient_product_id": 1,
+        "lot_id": 11,
+        "quantity_lb": 40
+      },
+      {
+        "ingredient_product_id": 1,
+        "lot_id": 12,
+        "quantity_lb": 60
+      }
+    ]
+  },
+  {
+    "language": "es",
+    "screenshot": "make-390-es.png",
+    "noOverflow": true,
+    "noInitialSelection": true,
+    "recordDisabledUntilChecked": true,
+    "split": [
+      {
+        "ingredient_product_id": 1,
+        "lot_id": 11,
+        "quantity_lb": 40
+      },
+      {
+        "ingredient_product_id": 1,
+        "lot_id": 12,
+        "quantity_lb": 60
+      }
+    ]
+  }
+]

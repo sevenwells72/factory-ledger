@@ -11,8 +11,8 @@ pytestmark = pytest.mark.db
 
 
 @pytest.mark.parametrize('language,instruction', [
-    ('en', 'Type the last 4 characters from the tag on each bag you used.'),
-    ('es', 'Escriba los últimos 4 caracteres de la etiqueta de cada bolsa que usó.'),
+    ('en', 'Select the supplier lot on each bag you used. If you used more than one lot, split the needed lb between them. FIFO is a suggestion; select every lot yourself.'),
+    ('es', 'Seleccione el lote del proveedor de cada bolsa que usó. Si usó más de un lote, divida las lb necesarias entre ellos. FIFO es una sugerencia; seleccione cada lote usted mismo.'),
 ])
 def test_single_lot_requires_tag_on_one_complete_card(client, items, language, instruction):
     prepared = prepare(client, 'make', body('make', items))
