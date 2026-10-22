@@ -103,6 +103,40 @@ def choose_inputs(api, cur, requirements, overrides):
                      product=name, needed_lb=round(float(needed), 2), available_lb=0)
     return plan
 
+
+def allocate_inputs(api, cur, requirements, overrides, allocations):
+    """Explicit worker splits replace only their ingredient's FIFO suggestion.
+
+    A draft pins every selected identity and quantity. Commit revalidates the
+    complete plan under the existing lot locks; shortage policy stays shared.
+    """
+    grouped, seen = {}, set()
+    for entry in allocations or []:
+        pid, lid = entry['ingredient_product_id'], entry['lot_id']
+        if pid not in requirements:
+            fail('UNUSED_LOT_SELECTION', 'A selected ingredient is not part of this draft.',
+                 message_es='Un ingrediente seleccionado no forma parte de este borrador.')
+        if lid in seen:
+            fail('DUPLICATE_LOT_SELECTION', 'Select each lot only once.',
+                 message_es='Seleccione cada lote una sola vez.')
+        seen.add(lid)
+        quantity = float(entry['quantity_lb'])
+        current = lot(api, cur, lid, pid)
+        if float(current['on_hand_lb']) <= 0:
+            fail('LOT_NOT_IN_STOCK', 'Select a lot with stock and prepare again.',
+                 message_es='Seleccione un lote con existencias y prepare de nuevo.')
+        grouped.setdefault(pid, []).append({'product_id': pid, 'lot_id': lid, 'quantity_lb': quantity})
+    for pid, rows in grouped.items():
+        if abs(sum(row['quantity_lb'] for row in rows) - requirements[pid]) > api.BALANCE_EPSILON:
+            fail('LOT_ALLOCATION_TOTAL_MISMATCH', 'The selected lot quantities must add up to the ingredient total.',
+                 message_es='Las cantidades de los lotes seleccionados deben sumar el total del ingrediente.',
+                 product_id=pid, needed_lb=float(requirements[pid]),
+                 selected_lb=sum(row['quantity_lb'] for row in rows))
+    automatic = {pid: qty for pid, qty in requirements.items() if pid not in grouped}
+    plan = choose_inputs(api, cur, automatic, overrides)
+    return plan + [row for pid in sorted(grouped) for row in grouped[pid]]
+
+
 def validate(api, cur, action, payload, lock=False):
     # A5 hook: non-ledger pallet evidence uses the same ticket lifecycle.
     if action == 'update_supplier_lot':
@@ -119,6 +153,7 @@ def validate(api, cur, action, payload, lock=False):
     output_product = None
     output_code = None
     options = {}
+    candidate_tiers = {}
     if action == 'make':
         p = product(api, cur, payload['product_id'], lock)
         products.append(p)
@@ -150,7 +185,8 @@ def validate(api, cur, action, payload, lock=False):
             requirements[pid] = requirements.get(pid, 0) + float(api.to_decimal(ingredient['needed_lb']))
         if set(overrides) - set(requirements):
             fail('UNUSED_LOT_SELECTION', 'An ingredient override is not part of this batch.')
-        input_plan = input_plan if input_plan is not None else choose_inputs(api, cur, requirements, overrides)
+        input_plan = input_plan if input_plan is not None else allocate_inputs(
+            api, cur, requirements, overrides, payload.get('ingredient_lot_allocations'))
         output_product, output_code = p, draft['lot_code']
         options = {'product': p, 'input_plan': input_plan, 'substitutions': substitutions,
                    'auto_substitutions': auto_substitutions}
@@ -168,7 +204,27 @@ def validate(api, cur, action, payload, lock=False):
         if source['id'] == target['id']:
             fail('INVALID_PACK', 'Source and target products must differ.')
         products.extend([source, target])
+        if a12.tier(target) == a12.EXTRA:
+            candidate_tiers[source['id']] = a12.EXTRA
         allocations = payload.get('lot_allocations')
+        ingredient_allocations = payload.get('ingredient_lot_allocations') or []
+        selected_source = [item for item in ingredient_allocations if item['ingredient_product_id'] == source['id']]
+        if selected_source and allocations and input_plan is None:
+            fail('DUPLICATE_LOT_SELECTION', 'Use one allocation list for the source batch.')
+        if selected_source and input_plan is None:
+            case_weight = payload.get('case_weight_lb') or target.get('case_size_lb')
+            if case_weight and abs(sum(float(item['quantity_lb']) for item in selected_source)
+                                   - float(case_weight) * payload['cases']) > api.BALANCE_EPSILON:
+                fail('LOT_ALLOCATION_TOTAL_MISMATCH', 'The selected lot quantities must add up to the source batch total.',
+                     message_es='Las cantidades de los lotes seleccionados deben sumar el total del lote a granel.',
+                     product_id=source['id'], needed_lb=float(case_weight) * payload['cases'])
+            # The pack preview handles the source requirement in pounds. Verify
+            # membership and stock here; the total check follows its calculation.
+            for item in selected_source:
+                current = lot(api, cur, item['lot_id'], source['id'])
+                if float(current['on_hand_lb']) <= 0:
+                    fail('LOT_NOT_IN_STOCK', 'Select a lot with stock and prepare again.')
+            allocations = selected_source
         if input_plan is not None:
             allocations = [item for item in input_plan if item['product_id'] == source['id']]
         if allocations and len({a['lot_id'] for a in allocations}) != len(allocations):
@@ -180,6 +236,11 @@ def validate(api, cur, action, payload, lock=False):
             target_lot_code=payload.get('target_lot_code'), lot_allocations=legacy_allocations or None)
         draft = response_dict(api._pack_preview_core(cur, req, source=source, target=target))
         draft.update(target_product=target['name'], target_product_id=target['id'])
+        if selected_source and input_plan is None and abs(
+                sum(float(item['quantity_lb']) for item in selected_source) - draft['total_lb']) > api.BALANCE_EPSILON:
+            fail('LOT_ALLOCATION_TOTAL_MISMATCH', 'The selected lot quantities must add up to the source batch total.',
+                 message_es='Las cantidades de los lotes seleccionados deben sumar el total del lote a granel.',
+                 product_id=source['id'], needed_lb=float(draft['total_lb']))
         primary = [{'product_id': source['id'], 'lot_id': a['lot_id'], 'quantity_lb': a['allocated_lb']}
                    for a in draft['allocations'] if a.get('lot_id')]
         if input_plan is not None:
@@ -197,7 +258,8 @@ def validate(api, cur, action, payload, lock=False):
         for ingredient in draft.get('add_in_ingredients', []):
             requirements[ingredient['ingredient_id']] = ingredient['needed_lb']
         if input_plan is None:
-            input_plan = primary + choose_inputs(api, cur, requirements, {})
+            input_plan = primary + allocate_inputs(api, cur, requirements, {}, [
+                item for item in ingredient_allocations if item['ingredient_product_id'] != source['id']])
         requirements[source['id']] = draft['total_lb']
         a12.require_sources(cur, target, [i['lot_id'] for i in primary])
         draft['transaction_kosher_downgrade'] = a12.downgrade(cur, target, [i['lot_id'] for i in primary])
@@ -285,6 +347,20 @@ def validate(api, cur, action, payload, lock=False):
     for pid in sorted(requirements):
         if pid not in seen_products:
             products.append(product(api, cur, pid, lock))
+    if lock and action in ('make', 'pack') and requirements:
+        # Protect the product-wide positive-stock comparison, including lots the
+        # worker did not select. Lock in ID order before reading pinned balances.
+        cur.execute('''SELECT id FROM lots WHERE product_id=ANY(%s::int[])
+            AND status IS DISTINCT FROM 'merged' ORDER BY id FOR UPDATE''', (sorted(requirements),))
+        cur.fetchall()
+        if action == 'make':
+            # Substitution seeds were read without row locks. Their product's
+            # complete lot set is now locked, so recheck identity without taking
+            # any out-of-order seed lock (the actual selection may use others).
+            for seed in substitutions:
+                current_seed = lot(api, cur, seed['lot_id'], seed['substitute_product_id'])
+                if current_seed['lot_code'] != seed['lot_code']:
+                    fail('LOT_IDENTITY_CHANGED', 'The substitution lot changed; prepare again.')
     totals = {}
     for item in sorted(input_plan or [], key=lambda i: i['lot_id']):
         current = lot(api, cur, item['lot_id'], item['product_id'], lock)
@@ -295,6 +371,11 @@ def validate(api, cur, action, payload, lock=False):
     # A3b hook (R3): the shortfall is measured against the balances just read —
     # at commit under FOR UPDATE — and posted + flagged instead of blocking.
     if action in ('make', 'pack'):
+        allocation_blockers = a5.allocation_stock_blockers(
+            api, cur, requirements, input_plan, states, payload.get('lot_confirmations'), candidate_tiers=candidate_tiers)
+        if lock and allocation_blockers:
+            blocker = dict(allocation_blockers[0])
+            a5.fail(blocker.pop('code'), blocker.pop('message'), blocker.pop('message_es'), **blocker)
         draft['shortages'] = a3b.shortfalls(input_plan, states)
         if action == 'make' and lock and oat_bran.eligible(p):
             pair = oat_bran.identities(cur, p)
@@ -336,10 +417,12 @@ def validate(api, cur, action, payload, lock=False):
                 if current['id'] in requirements and a12.tier(current) != a12.EXTRA
                 and not any(state['product_id'] == current['id'] and a12.tier(state) == a12.EXTRA
                             for state in states)})
+        draft['blockers'] = allocation_blockers + draft['blockers']
         draft['input_plan'] = input_plan
         options['input_plan'] = input_plan
+        draft['lot_confirmation_group'] = a5.confirmation_group(api, cur, input_plan, candidate_tiers=candidate_tiers)
         if action == 'make':
-            draft['lot_confirmation_group'] = a5.confirmation_group(api, cur, input_plan)
+            options['substitutions'] = a5.bind_substitution_lots(api, cur, draft, input_plan)
     if action == 'found':
         a5.identity_draft(api, cur, payload, draft)
     if output_product:
@@ -366,6 +449,7 @@ def post(api, cur, action, validated, payload, request, ticket_id, receipt_numbe
         # to the actual unresolved trace lot, never to the FIFO suggestion.
         states = [lot(api, cur, i['lot_id'], i['product_id'], True) for i in draft['input_plan']]
         draft['shortages'] = a3b.shortfalls(draft['input_plan'], states)
+        options['substitutions'] = a5.bind_substitution_lots(api, cur, draft, draft['input_plan'])
     if action == 'found':
         req.performed_by = api._operator_id(request)
     if action in ('make', 'pack'):
@@ -383,7 +467,8 @@ def post(api, cur, action, validated, payload, request, ticket_id, receipt_numbe
             response['lot_exceptions'] = a5.record_lot_exceptions(
                 cur, response['transaction_id'], draft['input_plan'], ticket_id=ticket_id,
                 receipt_number=receipt_number, actor_id=actor['id'] if actor else None)
-            a5.record_substitutions(cur, response['transaction_id'], payload, actor['id'] if actor else None)
+            a5.record_substitutions(cur, response['transaction_id'],
+                                   dict(payload, substitutions=draft['substitutions']), actor['id'] if actor else None)
             response['substitutions'] = draft['substitutions']
             response['exclusion_reason_code'] = draft['exclusion_reason_code']
         # A3b hook (R3): shortage flag + SHORTAGE exception in the posting transaction.

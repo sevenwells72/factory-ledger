@@ -1,5 +1,453 @@
 # Change Log
 
+## 2026-10-22 15:48 — Record full combined-branch review validation and cleanup
+- **File(s) changed:** `docs/validation/supplier-lot-selection/review-fixes/`
+- **What changed:** Saved complete OFF/ON Python logs (7,186 passes each), 640-pass JS log, exact Floor4.4/22op/7,987-char budgets, 404 unchanged source hashes and successful local database/private-cluster cleanup.
+- **Why:** Provide final review evidence before the feature-only lease-protected push; no hosted settings or production were touched.
+
+---
+
+## 2026-10-22 15:44 — Save combined-branch bilingual phone evidence
+- **File(s) changed:** `docs/validation/supplier-lot-selection/review-fixes/README.md`, `combined-390-en.png`, `combined-390-es.png`, `phone-checks.json`
+- **What changed:** Recorded final local-only Chrome checks and inspected responsive card captures on the combined receive/supplier-selection assets.
+- **Why:** Show the revised conditional stock guidance alongside explicit lot choice without accessing a hosted service.
+
+---
+
+## 2026-10-22 15:41 — Kept substitution locks in the complete input lot order
+- **File(s) changed:** `lot_confirmation.py`, `ticket_actions.py`, `tests/test_supplier_lot_stock_policy.py`
+- **What changed:** Deferred substitution seed row locks to the shared sorted input lot lock set, revalidated seed identity afterward, and added a deterministic two-transaction Make/Pack regression forcing the older-unused-lot lock cycle.
+- **Why:** Product-wide stock checks must not introduce a Make-versus-Pack deadlock around an earlier unselected lot.
+
+---
+
+## 2026-10-22 15:40 — Document combined review fixes and migration-before-deploy gate
+- **File(s) changed:** `docs/validation/supplier-lot-selection/README.md`, `docs/validation/supplier-lot-selection/review-fixes/README.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added review report and regression row232, exact Floor budgets, conditional stock policy, higher caches and default-off evidence switch; explicitly require087 before the PR147 deploy and GPT paste before switch activation.
+- **Why:** Make every review fix and the still-frozen future rollout concrete and reviewable without performing it.
+
+---
+
+## 2026-10-22 15:40 — Kept Pack stock comparison within permitted kosher source lots
+- **File(s) changed:** `lot_confirmation.py`, `ticket_actions.py`, `tests/test_supplier_lot_stock_policy.py`
+- **What changed:** Filtered extra-kosher Pack source choices and positive-stock totals to extra-kosher lots; added extra2/regular8 shortage coverage and regular-target mixed-tier split/downgrade regressions.
+- **Why:** Ineligible stock cannot force staff to cover a tier-safe shortage with a prohibited lot.
+
+---
+
+## 2026-10-22 15:38 — Verified genuine shortages through both Floor and Assistant
+- **File(s) changed:** `tests/test_supplier_lot_stock_policy.py`
+- **What changed:** Expanded Make/Pack Floor and Assistant stock-policy cases to prove both covered-stock refusals and real product-wide shortages posting with their atomic follow-up flags.
+- **Why:** The conditional owner rule must behave identically across every recording surface.
+
+---
+
+## 2026-10-22 15:38 — Label missing supplier identities and keep overdraw guidance beside its ingredient
+- **File(s) changed:** `dashboard/fl-assistant.js`, `dashboard/fl-assistant.css`, `tests/test_fl_assistant_ui.js`
+- **What changed:** A supplier-code-free Assistant row shows Supplier lot not recorded / Lote del proveedor no registrado while retaining the secondary CNS code and explicit full-code selection. Place aggregate-covered stock-overdraw guidance inline and add both-action bilingual missing-identity tests.
+- **Why:** Placeholder supplier identities must not be presented as physical bag codes, and each overdraw explanation must remain with its ingredient.
+
+---
+
+## 2026-10-22 15:37 — Cover conditional lot overdraw refusal and genuine shortages in both bilingual floor interfaces
+- **File(s) changed:** `tests/test_pilot_ticket_ui.js`, `tests/test_fl_assistant_ui.js`, `tests/test_assistant_mobile_ux.js`
+- **What changed:** Add Make/Pack EN/ES cases refusing selected/typed wrong-lot overdraw when aggregate stock covers the requirement, accepting correct splits and preserving genuinely short aggregate stock. Correct older shortage fixtures to include all candidate stock; inventory every dashboard asset reference while pinning newer Receive/display versions.
+- **Why:** Both floor entry paths must distinguish wrong physical-lot selection from genuine ingredient shortages after the receive-tag rebase.
+
+---
+
+## 2026-10-22 15:37 — Added covered-stock versus genuine-shortage regressions
+- **File(s) changed:** `tests/test_supplier_lot_stock_policy.py`
+- **What changed:** Added real PostgreSQL cases for wrong-lot overdrafts, correct Make/Pack splits and add-ins, product-wide shortage posting, frozen commit stock changes, checked Floor and Assistant selection paths, positive-versus-negative stock totals, and placeholder supplier aliases.
+- **Why:** The owner rule must hold server-side across every lot-selection surface while preserving true shortage recording.
+
+---
+
+## 2026-10-22 15:36 — Keep over-draw refusals actionable on prepared tickets
+- **File(s) changed:** `write_tickets.py`
+- **What changed:** Preserve LOT_ALLOCATION_EXCEEDS_STOCK as a recoverable bilingual 422 with the exact server guidance rather than retiring the draft as a generic state change.
+- **Why:** Workers must be able to pick the correct lot or split without an accidental post.
+
+---
+
+## 2026-10-22 15:36 — Regenerate resolved stacked Floor instructions
+- **File(s) changed:** `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`
+- **What changed:** Successfully regenerated the canonical Floor artifact: 7,857 body characters and 7,987 including the generated header; source parity and receive/signed-slip/lot-selection rules retained.
+- **Why:** Enforce the actual deployable instruction budget after conflict resolution.
+
+---
+
+## 2026-10-22 15:36 — Integrate receive pallet tags and supplier-lot stock selection on the PR 145/146 base with conditional overdraw guidance
+- **File(s) changed:** `dashboard/entry.html`, `dashboard/exceptions.html`, `dashboard/office.html`, `dashboard/receipt.html`, `dashboard/fl-assistant.html`, `dashboard/ledger-forms.css`, `dashboard/fl-assistant.css`, `tests/test_assistant_mobile_ux.js`, `tests/test_pilot_ticket_ui.js`, `tests/test_fl_assistant_ui.js`, `dashboard/runs.html`, `dashboard/index.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`, `dashboard/shift-summary.html`, `dashboard/sankey.html`, `dashboard/history.html`, `dashboard/ledger-ticket.js`, `dashboard/fl-assistant.js`
+- **What changed:** Resolve dashboard/test conflicts by preserving both receive pallet-tag and supplier-lot additions; retain newer Receive/display assets. Make/Pack cards cap individual lot quantities only when total ingredient stock covers the requirement, show bilingual choose/split guidance on overdraw, and preserve genuine shortage entry. Refresh all shared ledger and Assistant asset references beyond PR 145.
+- **Why:** Review found an incorrect lot could be overdrawn despite enough ingredient stock in other lots, while the genuine-shortage post-and-flag policy must survive.
+
+---
+
+## 2026-10-22 15:36 — Preserve stacked Floor receive and signed-slip contracts
+- **File(s) changed:** `gpt-configs/sources/floor-specific.md`, `gpt-configs/schemas/openapi-floor.yaml`, `tests/test_floor_gpt_receive_contract.py`, `tests/test_supplier_lot_clients.py`
+- **What changed:** Resolved Floor conflicts with the explicit no-label/unreadable receive path and signed-slip rules intact; retained active supplier-lot/split confirmation and permanent rules; raised schema to 4.4.0 with exactly 22 operations and every description within 300 characters; strengthened contract assertions. The preceding build-log count described the intended result before conflict resolution; that failed build produced 9,962 characters and is superseded by this resolved source and the successful build recorded next.
+- **Why:** PR147 must build on PR145 and PR146 without reviving UNKNOWN receives, automatic FIFO confirmation or API-key packing-slip URLs.
+
+---
+
+## 2026-10-22 15:36 — Gate legacy Floor Make/Pack commits with a default-off evidence switch
+- **File(s) changed:** `main.py`, `floor_lot_confirmation.py`, `tests/test_floor_lot_evidence_switch.py`
+- **What changed:** Added REQUIRE_MAKE_PACK_LOT_EVIDENCE; when enabled, commits reject omitted or null evidence arrays and previews use checked lot selection. Empty arrays still cannot confirm FIFO. Added real API tests for off/on, missing/null arrays and valid confirmations.
+- **Why:** Close review finding5 after a future approved GPT paste without changing any hosted setting now.
+
+---
+
+## 2026-10-22 15:36 — Refused wrong-lot overdrafts when ingredient stock is sufficient
+- **File(s) changed:** `lot_confirmation.py`, `ticket_actions.py`
+- **What changed:** Added bilingual LOT_ALLOCATION_EXCEEDS_STOCK checks on final prepared/frozen plans, locked every existing input lot before commit stock comparison, exposed positive-stock totals/shortage metadata, and hid UNKNOWN/N/A supplier placeholders while preserving real aliases.
+- **Why:** Staff must pick the correct lot or split when sufficient stock exists; genuine product shortages retain the existing post-and-flag policy.
+
+---
+
+## 2026-10-22 15:36 — Build stacked Floor GPT instructions
+- **File(s) changed:** `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`
+- **What changed:** Regenerated the deployable Floor artifact from combined receive, signed-slip and manual supplier-lot source rules; output is 7,988 characters including the generated header.
+- **Why:** Keep generated source parity and enforce the complete 8,000-character editor budget.
+
+---
+
+## 2026-10-22 15:35 — Integrate PR147 onto the receive and signed-slip stack
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, combined branch files from PR145/146
+- **What changed:** Begin rebase onto PR146 at 282204be after PR145 ffc405e8; preserve all three change histories and regression rows 229–231.
+- **Why:** Resolve review6349465333 without reverting no-lot receive handling or signed packing slips; production freeze remains active.
+
+---
+
+## 2026-10-22 15:11 — Confirm supplier-lot local test cleanup
+- **File(s) changed:** `docs/validation/supplier-lot-selection/README.md`, `docs/validation/supplier-lot-selection/verification.json`
+- **What changed:** Recorded deletion of all three named disposable databases and verified no task scratch databases remain.
+- **Why:** Leave review evidence without retaining local test inventory or affecting other sessions.
+
+---
+
+## 2026-10-22 15:10 — Record full supplier-lot validation results
+- **File(s) changed:** `docs/validation/supplier-lot-selection/`
+- **What changed:** Saved full Python/JS logs, exact schema/instruction budgets and verified source hashes; documented 6,955 full Python passes, 600 JS passes and the isolated sessions-on advisory-guard rerun.
+- **Why:** Provide complete, reproducible review evidence before opening the unmerged PR.
+
+---
+
+## 2026-10-22 15:07 — Save supplier-lot selection review evidence
+- **File(s) changed:** `docs/validation/supplier-lot-selection/`
+- **What changed:** Saved English/Spanish phone screenshots, fixture check results, exploratory logs and a plain-English behavior/compatibility/migration report.
+- **Why:** Make the feature and no-deployment boundary reviewable in the PR.
+
+---
+
+## 2026-10-22 15:06 — Use append-only zero-stock regression setup
+- **File(s) changed:** `tests/test_supplier_lot_clients.py`
+- **What changed:** Replaced fixture ledger mutation with a signed adjustment transaction and negative line that nets the lot balance to zero.
+- **Why:** Regression setup must preserve the append-only ledger guard.
+
+---
+
+## 2026-10-22 15:06 — Documented substitution migration prerequisite
+- **File(s) changed:** `migrations/087_supplier_lot_confirmation.sql`
+- **What changed:** Required both 062 and 063 before applying the supplier-lot and split-substitution audit extension.
+- **Why:** Migration 087 now extends the substitution evidence table introduced by 063.
+
+---
+
+## 2026-10-22 15:05 — Added substitution selection and shared-demand audit regressions
+- **File(s) changed:** `lot_confirmation.py`, `tests/test_supplier_lot_confirmation.py`
+- **What changed:** Tested replacing an earlier suggested substitute lot with one or two actual lots, exact audit/receipt/ledger agreement, native-plus-two-original shared replacement quantities without double-counting, and rerun safety for the additive audit column.
+- **Why:** Split substitute consumption must remain traceable and quantity-correct.
+
+---
+
+## 2026-10-22 15:05 — Bound substitution evidence to actual selected lots
+- **File(s) changed:** `lot_confirmation.py`, `ticket_actions.py`, `migrations/087_supplier_lot_confirmation.sql`, `tests/schema/schema.sql`
+- **What changed:** Allocated manual substitution demand across actual input lots without double-counting shared replacement demand, retained full split allocations in additive immutable audit JSON, and updated draft/receipt primary lot identity. Different-lot substitutions bind the unresolved trace lot only at post.
+- **Why:** Selecting or splitting substitute lots must never leave evidence falsely naming the earlier suggested lot.
+
+---
+
+## 2026-10-22 15:04 — Build final Floor supplier-lot instructions
+- **File(s) changed:** `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`
+- **What changed:** Regenerated final source with explicit Make/Pack daily-summary behavior.
+- **Why:** Preserve generated parity and instruction-budget verification.
+
+---
+
+## 2026-10-22 15:04 — Retain Make and Pack daily summaries
+- **File(s) changed:** `gpt-configs/sources/floor-specific.md`
+- **What changed:** Explicitly retained daily_production_summary after both Make and Pack while keeping Pack add-in consumption output.
+- **Why:** Instruction trimming must preserve post-record summaries.
+
+---
+
+## 2026-10-22 15:03 — Preserve original evidence and zero-stock trace exceptions
+- **File(s) changed:** `fl_assistant.py`, `dashboard/fl-assistant.js`, `tests/test_supplier_lot_clients.py`, `tests/test_fl_assistant_ui.js`
+- **What changed:** Restored exact confirmation method/value/selection evidence on reviewed cards; kept Different lot inputs out of stock-selection arrays and retained legacy placeholder choices; added explicit regression coverage.
+- **Why:** Re-review must not invent a row click or block unresolved physical tags when recorded stock is exhausted.
+
+---
+
+## 2026-10-22 15:03 — Show commingled supplier aliases beside primary bag codes in Today stock rows
+- **File(s) changed:** `dashboard/ledger-ticket.js`, `tests/test_pilot_ticket_ui.js`
+- **What changed:** Add a translated secondary line containing distinct supplier-lot aliases and EN/ES visibility regressions.
+- **Why:** Workers holding commingled bags must recognize their printed supplier code directly in the selectable stock list.
+
+---
+
+## 2026-10-22 15:03 — Keep supplier dates and unknown-tag review truthful
+- **File(s) changed:** `fl_assistant.py`, `dashboard/fl-assistant.js`, `tests/test_fl_assistant_ui.js`
+- **What changed:** Kept date-only receipt days intact while timestamps use plant time, retained the actual physical tag on reviewed Different lot cards, and simplified permanent retirement on reprepare failures.
+- **Why:** Staff must review the same physical evidence and receipt date before recording.
+
+---
+
+## 2026-10-22 15:02 — Record supplier-lot confirmation regression guard
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added row 231 with explicit selection, split, legacy evidence, shortage and future migration guards; reserved rows 225–230 from other open PRs.
+- **Why:** Future edits must retain physical supplier-lot confirmation without lifting the production freeze.
+
+---
+
+## 2026-10-22 15:02 — Preserve shortage and cancellation rules during lot review
+- **File(s) changed:** `fl_assistant.py`, `dashboard/fl-assistant.js`, `tests/test_supplier_lot_clients.py`, `tests/test_fl_assistant_ui.js`, `tests/test_named_actor_writes.py`
+- **What changed:** Kept failed selection drafts retired, retained recoverable supplier-error choices, removed browser stock caps so server shortage rules remain authoritative, aligned split epsilon, and added cancellation/shortage regressions.
+- **Why:** Lot selection must not revive human-cancelled drafts or silently override established shortage policy.
+
+---
+
+## 2026-10-22 15:02 — Corrected normalized ambiguity fixture
+- **File(s) changed:** `tests/test_supplier_lot_confirmation.py`
+- **What changed:** Kept supplier-code punctuation identical while varying case and spaces in the new duplicate-code fixture.
+- **Why:** Whitespace normalization must preserve meaningful supplier-code hyphens.
+
+---
+
+## 2026-10-22 15:02 — Retained stock choices after supplier-code mistakes
+- **File(s) changed:** `lot_confirmation.py`, `tests/test_supplier_lot_confirmation.py`
+- **What changed:** Preserved the complete unconfirmed input/card and bilingual specific blocker when supplier evidence fails during prepare; added missing/ambiguous real-ticket regressions proving choices remain and commit still refuses.
+- **Why:** Workers must be able to correct the bag supplier code or choose among matching lots without losing the stock list.
+
+---
+
+## 2026-10-22 15:01 — Regenerate Floor supported-method instructions
+- **File(s) changed:** `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`
+- **What changed:** Regenerated the Floor instruction artifact after direct-method scope alignment.
+- **Why:** Keep supported Action behavior and generated source aligned.
+
+---
+
+## 2026-10-22 15:01 — Align Floor Actions with direct confirmation methods
+- **File(s) changed:** `gpt-configs/schemas/openapi-floor.yaml`, `gpt-configs/sources/floor-specific.md`
+- **What changed:** Kept supplier-lot and four existing direct methods, retained unknown-tag exceptions in ticketed Assistant only, and shortened the touched Pack Action description below 300 characters.
+- **Why:** Published Actions must describe supported server behavior within import limits.
+
+---
+
+## 2026-10-22 15:00 — Use physical Pack wording in supplier-client fixture
+- **File(s) changed:** `tests/test_supplier_lot_clients.py`
+- **What changed:** Supplied the physical batch code in the worker transcript before the mocked packing-context call.
+- **Why:** Preserve the existing rule that model context cannot invent a physical batch selection.
+
+---
+
+## 2026-10-22 15:00 — Distinguish typed supplier matches from explicit row selections
+- **File(s) changed:** `dashboard/ledger-ticket.js`, `tests/test_pilot_ticket_ui.js`
+- **What changed:** Mark selected=true only when the worker actively chose the row; typed unique supplier matches retain selected=false for server ambiguity checks. Add both-input-path regressions.
+- **Why:** Stock can change after the draft, so stale client matching must not bypass a fresh server ambiguity check.
+
+---
+
+## 2026-10-22 15:00 — Preserved exact split pounds and shared FIFO date order
+- **File(s) changed:** `lot_confirmation.py`, `tests/test_supplier_lot_confirmation.py`
+- **What changed:** Kept card requirements at the ledger's four-decimal precision, added a 4.0001 + 6.0002 lb posting regression, and used the input planner's existing received/created ordering while serializing dates in plant time.
+- **Why:** Workers must be able to match the card's total exactly and see the same FIFO suggestion as the server planner.
+
+---
+
+## 2026-10-22 15:00 — Block unreviewed Assistant supplier choices
+- **File(s) changed:** `dashboard/fl-assistant.js`
+- **What changed:** Disabled Record until supplier choices are checked by FL and invalidated the old review whenever a new supplier search is typed.
+- **Why:** An empty local evidence list must never enable FIFO recording.
+
+---
+
+## 2026-10-22 15:00 — Normalize cross-context draft arrays in the new selector review tests
+- **File(s) changed:** `tests/test_pilot_ticket_ui.js`
+- **What changed:** Compare plain JSON ingredient arrays from the VM harness.
+- **Why:** Node strict equality treats otherwise identical cross-context array prototypes as different.
+
+---
+
+## 2026-10-22 14:59 — Keep unchosen FIFO input codes inside the explicit lot selector in Today drafts
+- **File(s) changed:** `dashboard/ledger-ticket.js`, `tests/test_pilot_ticket_ui.js`
+- **What changed:** Remove the duplicate legacy FIFO input list above new Make/Pack stock selectors while retaining output product, batches and needed ingredient weights. Add both-action review regressions.
+- **Why:** The unselected physical-lot card must not be preceded by a code list that looks like already-confirmed consumption.
+
+---
+
+## 2026-10-22 14:59 — Supplier-lot Assistant and Floor regressions
+- **File(s) changed:** `tests/test_supplier_lot_clients.py`, `tests/test_fl_assistant_ui.js`, `tests/test_assistant_mobile_ux.js`
+- **What changed:** Added Make/Pack human-choice and split reprepare/receipt tests, bilingual actual-page supplier ambiguity/opening/no-match tests, Floor 22-action/budget/permanent-rule contract checks, and refreshed cache regex expectations.
+- **Why:** Guard active selection, signed quantities and server confirmation across floor clients.
+
+---
+
+## 2026-10-22 14:59 — Retain shortage safeguards in checked Floor lot posts
+- **File(s) changed:** `floor_lot_confirmation.py`, `tests/test_floor_supplier_lot_confirmation.py`
+- **What changed:** Reuse ticket posting hooks for confirmation evidence, shortage exceptions and pre-make adjustment follow-up; add a real HTTP shortage regression.
+- **Why:** Exact selected input posting must retain the existing discrepancy policy.
+
+---
+
+## 2026-10-22 14:59 — Preserved other confirmation methods when applying migration 087
+- **File(s) changed:** `migrations/087_supplier_lot_confirmation.sql`, `tests/test_supplier_lot_confirmation.py`
+- **What changed:** Extended the existing evidence CHECK with supplier_lot instead of replacing its method list; added a rerun regression retaining a separately introduced tap method.
+- **Why:** This branch must coexist with the compact-Make migration reserved by PR #144.
+
+---
+
+## 2026-10-22 14:59 — Keep supplier-lot received dates correct for date-only and New York timestamp values
+- **File(s) changed:** `dashboard/ledger-ticket.js`, `tests/test_pilot_ticket_ui.js`
+- **What changed:** Render received dates without shifting date-only stock receipts to the prior day; format timestamp receipts in America/New_York. Add date-only and UTC-midnight regressions.
+- **Why:** The 390px EN/ES browser review exposed misleading received dates from timestamp formatting of calendar-only values.
+
+---
+
+## 2026-10-22 14:58 — Rebuilt Floor GPT supplier-lot instructions
+- **File(s) changed:** `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`
+- **What changed:** Regenerated from canonical sources; physical supplier-lot selection now replaces automatic FIFO confirmation.
+- **Why:** Preserve source/generated parity under the instruction limit.
+
+---
+
+## 2026-10-22 14:58 — Floor GPT explicit lot guidance and cache regressions
+- **File(s) changed:** `gpt-configs/sources/floor-specific.md`, `tests/test_assistant_mobile_ux.js`, `tests/test_assistant_make_round_b.py`, `tests/test_assistant_understanding_round_b.py`
+- **What changed:** Replaced automatic FIFO instruction with explicit supplier-lot and split review, retained permanent/kosher rules, trimmed repeated prose below the instruction budget, and aligned intentional copy/cache assertions.
+- **Why:** Every physical lot requires active worker confirmation through all floor entry points.
+
+---
+
+## 2026-10-22 14:58 — Regenerated Floor GPT instructions
+- **File(s) changed:** `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`
+- **What changed:** Ran the canonical instruction build after supplier-lot source updates.
+- **Why:** Keep generated instructions synchronized and below 8,000 characters.
+
+---
+
+## 2026-10-22 14:58 — Returned clear Pack split-total blockers
+- **File(s) changed:** `ticket_actions.py`
+- **What changed:** Checked explicitly selected source pounds against cases times case weight before the legacy Pack preview so invalid split totals return a specific bilingual blocker.
+- **Why:** Workers need an actionable quantity correction instead of a generic legacy validation failure.
+
+---
+
+## 2026-10-22 14:58 — Preserve existing shortage review for explicitly selected lots that still have stock
+- **File(s) changed:** `dashboard/ledger-ticket.js`, `tests/test_pilot_ticket_ui.js`
+- **What changed:** Display available stock while allowing a worker-selected stock-positive lot to carry the needed pounds through existing server shortage review; keep exact ingredient totals, positive quantities and no zero-stock choices. Add a regression for needed pounds exceeding FL's stock.
+- **Why:** Supplier-code selection must preserve existing shortage recording and warnings without introducing a new shortage policy.
+
+---
+
+## 2026-10-22 14:58 — Kept supplier-lot corrections recoverable on the same draft
+- **File(s) changed:** `write_tickets.py`, `tests/test_supplier_lot_confirmation.py`
+- **What changed:** Returned ambiguity/missing supplier evidence as correctable 422 responses instead of stale tickets; aligned split rejection assertions with existing blocked-prepare behavior.
+- **Why:** Workers must be able to select a matching stock row after mistyping a supplier code.
+
+---
+
+## 2026-10-22 14:58 — Floor GPT schema supplier-lot evidence
+- **File(s) changed:** `gpt-configs/schemas/openapi-floor.yaml`
+- **What changed:** Preserved exactly 22 operations while requiring explicit Make/Pack physical allocation and confirmation arrays.
+- **Why:** Floor GPT must use server-verified physical lot evidence.
+
+---
+
+## 2026-10-22 14:58 — Preserve Pack split refusal status contract in tests
+- **File(s) changed:** `tests/test_floor_supplier_lot_confirmation.py`
+- **What changed:** Accept existing HTTP 400 alongside structured validation refusals while verifying no transaction posts.
+- **Why:** Pack rejects an incorrect split total through its established validation response.
+
+---
+
+## 2026-10-22 14:57 — Default Floor confirmation event time to plant now
+- **File(s) changed:** `floor_lot_confirmation.py`
+- **What changed:** Set the plant-local event time when the legacy request omits its optional timestamp.
+- **Why:** The ticket validator requires a normalized ISO event time.
+
+---
+
+## 2026-10-22 14:57 — Added supplier-lot and split PostgreSQL regressions
+- **File(s) changed:** `tests/test_supplier_lot_confirmation.py`
+- **What changed:** Added real-ticket cases for normalized aliases, ambiguity, missing lots, bilingual opening choices, exact Make/Pack base/add-in splits, invalid selections, unchanged FIFO blockers and migration reruns.
+- **Why:** Protect physical lot identity and allocation arithmetic through server-side posting.
+
+---
+
+## 2026-10-22 14:57 — Test supplier-lot choices, opening stock, splits, legacy codes and FIFO refusal in Today draft cards
+- **File(s) changed:** `dashboard/ledger-ticket.js`, `tests/test_pilot_ticket_ui.js`
+- **What changed:** Add Make/Pack EN/ES stock-selection regressions, supplier aliases/ambiguity/no-match guidance, opening choice, two-lot exact splits, available-stock checks, typed legacy methods, language retention and post-check Record gating. Align opening translation with the server and total tolerance with its 0.0001 lb guard.
+- **Why:** Protect floor supplier-code confirmation without inferring a physical choice from FIFO.
+
+---
+
+## 2026-10-22 14:57 — Assistant supplier-lot card and explicit split review
+- **File(s) changed:** `dashboard/fl-assistant.js`, `dashboard/fl-assistant.css`, `dashboard/fl-assistant.html`
+- **What changed:** Added unselected stock choices with supplier labels, opening-stock guidance, dates and balances; typed supplier matching, ambiguity recovery and split-pound review; retained physical Different lot follow-up and legacy methods; refreshed asset versions.
+- **Why:** Staff identify bags by supplier lots and must actively verify every consumed lot before Record.
+
+---
+
+## 2026-10-22 14:57 — Test Floor supplier-lot confirmation and splits
+- **File(s) changed:** `tests/test_floor_supplier_lot_confirmation.py`
+- **What changed:** Added Make/Pack HTTP tests for unconfirmed FIFO, supplier-code evidence, exact two-lot consumption and rejected split totals.
+- **Why:** Verify that the existing Floor operations use the same physical lot checks as ticket workflows.
+
+---
+
+## 2026-10-22 14:56 — Added supplier-lot evidence migration and strict source totals
+- **File(s) changed:** `lot_confirmation.py`, `ticket_actions.py`, `migrations/087_supplier_lot_confirmation.sql`, `tests/schema/schema.sql`, `tests/test_write_tickets.py`
+- **What changed:** Added idempotent supplier_lot evidence constraint widening and local bootstrap support, serialized candidate dates, and checked explicit Pack source split totals before shortage handling.
+- **Why:** Supplier confirmations must persist safely and incorrect split totals must never post.
+
+---
+
+## 2026-10-22 14:56 — Use checked lot selections through Floor GPT operations
+- **File(s) changed:** `main.py`, `floor_lot_confirmation.py`
+- **What changed:** Added explicit evidence and split fields to the existing Make/Pack operations; route opted-in Floor requests through the same locked input and confirmation validator as tickets.
+- **Why:** Supplier-lot selection must work through Floor GPT without adding operations or assuming FIFO is confirmation.
+
+---
+
+## 2026-10-22 14:56 — Added explicit Make and Pack ingredient splits
+- **File(s) changed:** `write_tickets.py`, `ticket_actions.py`
+- **What changed:** Added ingredient_lot_allocations to both prepare contracts, validated positive-stock lot identity and exact ingredient totals, pinned selected splits, and exposed the same confirmation card for Pack base and add-ins.
+- **Why:** Workers must record the actual lots and pounds consumed instead of accepting FIFO.
+
+---
+
+## 2026-10-22 14:56 — Add explicit supplier-lot stock choices and ingredient split quantities to Today Make/Pack draft cards
+- **File(s) changed:** `dashboard/ledger-ticket.js`, `dashboard/ledger-forms.css`, `dashboard/receipt.html`, `dashboard/runs.html`, `dashboard/index.html`, `dashboard/process-flow.html`, `dashboard/traceability.html`, `dashboard/exceptions.html`, `dashboard/shift-summary.html`, `dashboard/sankey.html`, `dashboard/history.html`, `dashboard/office.html`, `dashboard/entry.html`
+- **What changed:** Show supplier lots prominently with CNS identity, supplier/date/stock, opening-stock instructions and unselected FIFO suggestions; require active selection and exact split totals, retaining legacy code methods and server reprepare. Refresh shared asset cache versions.
+- **Why:** Floor bags carry supplier codes; stock selection must match physical bags without treating FIFO as confirmation. Local-only work under production freeze.
+
+---
+
+## 2026-10-22 14:55 — Assistant physical supplier-lot selection transport
+- **File(s) changed:** `fl_assistant.py`, `assistant_tools.py`, `permissions.py`, `tests/test_named_actor_writes.py`
+- **What changed:** Added a human-only Make/Pack selection reprepare route retaining signed product and quantity facts; exposed no physical evidence to model tools; classified the route with existing Assistant permissions.
+- **Why:** Workers must choose physical supplier lots and splits without FIFO becoming confirmation.
+
+---
+
+## 2026-10-22 14:55 — Added supplier-lot evidence and stock choices
+- **File(s) changed:** `lot_confirmation.py`
+- **What changed:** Added case/space-insensitive in-stock supplier aliases, explicit ambiguity choice, bilingual missing/opening guidance and metadata-rich Make/Pack lot cards without automatic confirmation.
+- **Why:** Bags carry supplier lots and workers must select their actual stock.
+
+---
+
 ## 2026-10-21 14:31 — Floor GPT signed packing-slip links and schema description limits
 - **File(s) changed:** `main.py`, `ship_tickets.py`, `gpt-configs/schemas/openapi-floor.yaml`, `gpt-configs/sources/floor-specific.md`, `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`, `tests/test_floor_packing_slip.py`, `tests/test_floor_gpt_receive_contract.py`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** commitShipOrder returns a 10-minute signed `packing_slip_url` + `packing_slip_expires_at` (existing PACKING_SLIP_SIGNING_KEY HMAC, `shipment-<id>` receipt bound to the order); link failure never fails the committed shipment. Floor schema v4.3.0 trims five >300-char descriptions and documents the link; PACKING SLIP rule relays it or says ask the office. FL row 230.

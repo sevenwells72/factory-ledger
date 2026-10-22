@@ -547,3 +547,129 @@ for(const language of ['en','es'])for(const readback of [false,true])test(`recei
  const h=readback?await resumedCard({kind:'read',tool:'receipt_lookup',result},language):await resumedCard(card,language,{savedDrafts:[{id:card.id,card,status:'committed',result}]});
  const first=h.card.children[0];assert.equal(first.className,'receive-lot-tag');const nodes=descendants(first);assert.ok(nodes.some(node=>node.className==='receive-lot-code'&&node.textContent==='26-10-21-OATS-001'));assert.ok(nodes.some(node=>node.textContent===(language==='en'?'Write this on the pallet tag':'Escribe esto en la etiqueta del pallet')));await h.get('language').listeners.click();assert.ok(descendants(first).some(node=>node.textContent===(language==='es'?'Write this on the pallet tag':'Escribe esto en la etiqueta del pallet')));
 });
+
+function supplierDraft(action = 'make', language = 'en', codes = ['BAG 42', 'BAG-43']) {
+  const candidates = codes.map((supplier_lot_code, index) => ({lot_id: 301 + index, lot_code: 'CNS-' + index, supplier_lot_code,
+    supplier_lot_codes: [supplier_lot_code], supplier_name: 'CNS supplier', received_at: '2026-10-01T15:00:00Z', available_lb: 20, fifo_suggested: index === 0}));
+  return {kind: 'draft', id: 'supplier-' + action, language, prepared: {action, can_commit: false, actor: {name: 'Arturo'},
+    blockers: [{code: 'LOT_NOT_CONFIRMED'}], draft: {product_name: 'Classic', total_lb: 10,
+      input_plan: [{product_id: 1, product_name: 'Oats', lot_id: 301, lot_code: 'CNS-0', quantity_lb: 10, confirmed: false}],
+      lot_confirmation_group: {instruction_en: 'Select every physical supplier lot. FIFO is only a suggestion.', instruction_es: 'Seleccione cada lote físico. FIFO es solo una sugerencia.',
+        ingredients: [{product_id: 1, product_name: 'Oats', needed_lb: 10, suggested_lots: [{lot_id: 301, lot_code: 'CNS-0', quantity_lb: 10}], candidates}]}}}};
+}
+for (const action of ['make', 'pack']) for (const language of ['en', 'es']) test(`supplier lot card requires active split choice: ${action} ${language}`, async () => {
+  const card = supplierDraft(action, language); let selected;
+  const h = await resumedCard(card, language, {onRequest: async (path, body) => {
+    assert.equal(path, '/assistant/select-lots'); selected = body;
+    return {card: {kind: 'draft', id: 'checked', prepared: {action, can_commit: true, draft: {product_name: 'Classic'}}}};
+  }});
+  const nodes = descendants(h.card), checks = nodes.filter(n => n.tag === 'input' && n.type === 'checkbox');
+  assert.equal(checks.length, 2); assert.ok(checks.every(c => !c.checked), 'FIFO does not preselect stock');
+  const text = nodes.map(n => n.textContent).join(' ');
+  for (const phrase of ['BAG 42', 'CNS-0', 'CNS supplier', '20 lb']) assert.ok(text.includes(phrase));
+  const review = nodes.find(n => n.tag === 'button' && n.textContent === (language === 'es' ? 'Revisar lotes seleccionados' : 'Review selected lots'));
+  const record = nodes.find(n => n.tag === 'button' && n.textContent === (language === 'es' ? 'Registrar' : 'Record'));
+  assert.equal(review.disabled, true); assert.equal(record.disabled, true);
+  checks[0].checked = true; checks[0].listeners.change();
+  const amounts = nodes.filter(n => n.tag === 'input' && n.type === 'number'); amounts[0].value = '4'; amounts[0].listeners.input();
+  checks[1].checked = true; checks[1].listeners.change();
+  assert.equal(amounts[1].value, '6'); assert.equal(review.disabled, false); assert.equal(record.disabled, true);
+  amounts[1].value = '5'; amounts[1].listeners.input(); assert.equal(review.disabled, true, 'wrong split sum cannot be reviewed');
+  amounts[1].value = '6'; amounts[1].listeners.input();
+  await review.listeners.click();
+  assert.deepEqual(selected.ingredient_lot_allocations, [{ingredient_product_id: 1, lot_id: 301, quantity_lb: 4}, {ingredient_product_id: 1, lot_id: 302, quantity_lb: 6}]);
+  assert.ok(selected.lot_confirmations.every(c => c.method === 'supplier_lot' && c.selected === true));
+});
+for (const language of ['en', 'es']) test(`supplier typed ambiguity, no-match and opening guidance: ${language}`, async () => {
+  const card = supplierDraft('make', language, ['SAME 42', 'same42']);
+  card.prepared.draft.lot_confirmation_group.ingredients[0].candidates[1] = {...card.prepared.draft.lot_confirmation_group.ingredients[0].candidates[1],
+    opening_stock: true, label_en: 'OPENING STOCK — use for any bag already here on Oct 21', label_es: 'EXISTENCIAS INICIALES — usar para cualquier bolsa que ya estaba aquí el 21 de octubre'};
+  const h = await resumedCard(card, language); const nodes = descendants(h.card);
+  const typed = nodes.find(n => n['aria-label'] === (language === 'es' ? 'Escribir lote del proveedor' : 'Type supplier lot'));
+  const find = nodes.find(n => n.tag === 'button' && n.textContent === (language === 'es' ? 'Buscar lote del proveedor' : 'Find supplier lot'));
+  typed.value = ' same 42 '; find.listeners.click();
+  assert.ok(descendants(h.card).some(n => n.textContent.includes(language === 'es' ? 'Coinciden varios' : 'Several lots match')));
+  assert.ok(nodes.filter(n => n.type === 'checkbox').every(n => !n.checked));
+  typed.value = 'absent'; find.listeners.click();
+  assert.ok(descendants(h.card).some(n => n.textContent.includes(language === 'es' ? 'no tiene existencias en FL' : "isn't in stock in FL")));
+  const choices = nodes.filter(n => n.type === 'checkbox'); choices[1].checked = true; choices[1].listeners.change();
+  assert.ok(nodes.some(n => n.value === 'OPENING STOCK'));
+});
+
+for (const blocker of ['SUPPLIER_LOT_NOT_IN_STOCK', 'AMBIGUOUS_SUPPLIER_LOT']) test(`supplier error retains lot choices and shortage policy: ${blocker}`, async () => {
+  const card = supplierDraft(); card.prepared.blockers = [{code: blocker, message: 'Choose the actual supplier lot.'}];
+  card.prepared.draft.lot_confirmation_group.ingredients[0].candidates[0].available_lb = 1;
+  card.prepared.draft.lot_confirmation_group.ingredients[0].candidates[1].available_lb = 1;
+  const h = await resumedCard(card); const nodes = descendants(h.card);
+  const check = nodes.find(n => n.type === 'checkbox'); assert.ok(check, 'recoverable supplier error must retain its chooser');
+  check.checked = true; check.listeners.change();
+  assert.equal(nodes.find(n => n.type === 'number').value, '10', 'existing shortage policy permits actual use beyond recorded stock');
+  const review = nodes.find(n => n.tag === 'button' && n.textContent === 'Review selected lots');
+  assert.equal(review.disabled, false);
+  assert.equal(nodes.find(n => n.tag === 'button' && n.textContent === 'Record').disabled, true);
+});
+
+test('supplier receipt dates preserve date-only values and use ET for timestamps', () => {
+  assert.equal(ui.supplierReceivedDate('2026-10-21'), '10/21/2026');
+  assert.equal(ui.supplierReceivedDate('2026-10-22T02:00:00Z'), '10/21/2026');
+  assert.equal(ui.supplierReceivedDate(null), '—');
+});
+test('reviewed Different lot keeps actual tag visible and remains explicitly unverified', async () => {
+  const card = supplierDraft(); card.prepared.can_commit = true; card.prepared.blockers = [];
+  card.prepared.draft.input_plan[0].lot_exception = {physical_tag: 'UNLISTED-BAG-42'};
+  const h = await resumedCard(card); const nodes = descendants(h.card);
+  assert.ok(nodes.some(n => n.tag === 'input' && n.value === 'UNLISTED-BAG-42'));
+  assert.ok(nodes.some(n => n.textContent.includes('unverified lot follow-up')));
+  assert.equal(nodes.find(n => n.tag === 'button' && n.textContent === 'Different lot')['aria-pressed'], 'true');
+});
+
+test('reviewed legacy physical evidence is preserved through later lot review', async () => {
+  const card = supplierDraft(); card.prepared.can_commit = true; card.prepared.blockers = [];
+  card.prepared.draft.input_plan[0] = {...card.prepared.draft.input_plan[0], confirmed: true, confirmation: {method: 'last4', value: 'NS-0', selected: false}};
+  let submitted;
+  const h = await resumedCard(card, 'en', {onRequest: async (path, body) => {
+    submitted = body; return {card: {kind: 'draft', id: 'checked', prepared: {action: 'make', can_commit: true, draft: {}}}};
+  }});
+  const nodes = descendants(h.card); const amount = nodes.find(n => n.type === 'number');
+  amount.value = '10'; amount.listeners.input();
+  await nodes.find(n => n.tag === 'button' && n.textContent === 'Review selected lots').listeners.click();
+  assert.deepEqual(submitted.lot_confirmations, [{lot_id: 301, method: 'last4', value: 'NS-0'}]);
+});
+test('Different lot review omits stock allocations for its zero-stock placeholder', async () => {
+  const card = supplierDraft(); let submitted;
+  const h = await resumedCard(card, 'en', {onRequest: async (path, body) => {
+    submitted = body; return {card: {kind: 'draft', id: 'checked', prepared: {action: 'make', can_commit: true, draft: {}}}};
+  }});
+  const nodes = descendants(h.card); nodes.find(n => n.tag === 'button' && n.textContent === 'Different lot').listeners.click();
+  const physical = nodes.find(n => n.tag === 'label' && n.textContent.startsWith('Actual tag for')).children.find(n => n.tag === 'input');
+  physical.value = 'OLD-UNLISTED-BAG'; physical.listeners.input();
+  await nodes.find(n => n.tag === 'button' && n.textContent === 'Review selected lots').listeners.click();
+  assert.deepEqual(submitted.ingredient_lot_allocations, []);
+  assert.deepEqual(submitted.lot_confirmations, [{lot_id: 301, method: 'different_lot', value: 'OLD-UNLISTED-BAG'}]);
+});
+
+
+for(const action of ['make','pack'])for(const language of ['en','es'])test(`Assistant prevents covered-ingredient wrong-lot overdraw, accepts actual split: ${action} ${language}`,async()=>{
+  const card=supplierDraft(action,language),group=card.prepared.draft.lot_confirmation_group.ingredients[0];group.candidates[0].available_lb=3;group.total_available_lb=23;group.stock_shortage=false;
+  let selected;const h=await resumedCard(card,language,{onRequest:async(path,body)=>{selected=body;return {card:{kind:'draft',id:'checked',prepared:{action,can_commit:true,draft:{}}}};}});
+  const nodes=descendants(h.card),checks=nodes.filter(node=>node.type==='checkbox'),amounts=nodes.filter(node=>node.type==='number');
+  const review=nodes.find(node=>node.tag==='button'&&node.textContent===(language==='es'?'Revisar lotes seleccionados':'Review selected lots'));
+  checks[0].checked=true;checks[0].listeners.change();assert.equal(amounts[0].max,'3');assert.equal(amounts[0].value,'10');assert.equal(review.disabled,true);
+  assert.ok(descendants(h.card).some(node=>node.textContent.includes(language==='es'?'Elige el lote correcto o reparte entre varios lotes':'Pick the right lot or split across lots')));
+  await review.listeners.click();assert.equal(selected,undefined);
+  amounts[0].value='3';amounts[0].listeners.input();checks[1].checked=true;checks[1].listeners.change();assert.equal(amounts[1].value,'7');assert.equal(review.disabled,false);await review.listeners.click();assert.deepEqual(selected.ingredient_lot_allocations.map(row=>row.quantity_lb),[3,7]);
+});
+for(const action of ['make','pack'])for(const language of ['en','es'])test(`Assistant preserves genuine ingredient shortage despite selected-lot overage: ${action} ${language}`,async()=>{
+  const card=supplierDraft(action,language),group=card.prepared.draft.lot_confirmation_group.ingredients[0];group.candidates[0].available_lb=3;group.candidates[1].available_lb=2;group.total_available_lb=5;group.stock_shortage=true;
+  let selected;const h=await resumedCard(card,language,{onRequest:async(path,body)=>{selected=body;return {card:{kind:'draft',id:'checked',prepared:{action,can_commit:true,draft:{}}}};}});
+  const nodes=descendants(h.card),check=nodes.find(node=>node.type==='checkbox'),amount=nodes.find(node=>node.type==='number'),review=nodes.find(node=>node.tag==='button'&&node.textContent===(language==='es'?'Revisar lotes seleccionados':'Review selected lots'));
+  check.checked=true;check.listeners.change();assert.equal(amount.max,undefined);assert.equal(amount.value,'10');assert.equal(review.disabled,false);await review.listeners.click();assert.equal(selected.ingredient_lot_allocations[0].quantity_lb,10);
+});
+
+
+for(const action of ['make','pack'])for(const language of ['en','es'])test(`Assistant keeps missing supplier identity separate from CNS code: ${action} ${language}`,async()=>{
+  const card=supplierDraft(action,language),candidate=card.prepared.draft.lot_confirmation_group.ingredients[0].candidates[0];candidate.supplier_lot_code=null;candidate.supplier_lot_codes=[];
+  let selected;const h=await resumedCard(card,language,{onRequest:async(path,body)=>{selected=body;return {card:{kind:'draft',id:'checked',prepared:{action,can_commit:true,draft:{}}}};}});
+  const nodes=descendants(h.card),heading=nodes.find(node=>node.className==='supplier-lot-code');assert.equal(heading.textContent,language==='es'?'Lote del proveedor no registrado':'Supplier lot not recorded');assert.ok(nodes.some(node=>node.textContent===(language==='es'?'Lote CNS: CNS-0':'CNS lot: CNS-0')));
+  const check=nodes.find(node=>node.type==='checkbox');check.checked=true;check.listeners.change();await nodes.find(node=>node.tag==='button'&&node.textContent===(language==='es'?'Revisar lotes seleccionados':'Review selected lots')).listeners.click();assert.deepEqual(selected.lot_confirmations,[{lot_id:301,method:'full_code',value:'CNS-0',selected:true}]);
+});

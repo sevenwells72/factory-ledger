@@ -64,8 +64,16 @@ test('page: photo type is chosen after picking, jump button exists, assets re-fe
   const html = fs.readFileSync(path.join(__dirname, '../dashboard/fl-assistant.html'), 'utf8');
   assert.equal(html.includes('id="photo-kind"'), false, 'no hidden default evidence type');
   assert.match(html, /<button id="jump-latest"[^>]* hidden /);
-  assert.match(html, /fl-assistant\.js\?v=17/);
-  assert.match(html, /fl-assistant\.css\?v=9/);
+  assert.match(html, /fl-assistant\.js\?v=18/);
+  assert.match(html, /fl-assistant\.css\?v=10/);
   const css = fs.readFileSync(path.join(__dirname, '../dashboard/fl-assistant.css'), 'utf8');
   assert.match(css, /\.topbar\{position:sticky;top:0/);
+});
+
+
+test('supplier-lot assets refresh beyond the receive-tag base across every dashboard page',()=>{
+  const directory=path.join(__dirname,'../dashboard'),versions={'ledger-forms.css':'10','ledger-ticket.js':'11','fl-assistant.css':'10','fl-assistant.js':'18'},counts=Object.fromEntries(Object.keys(versions).map(name=>[name,0]));
+  for(const name of fs.readdirSync(directory).filter(name=>name.endsWith('.html'))){const html=fs.readFileSync(path.join(directory,name),'utf8');for(const [asset,expected] of Object.entries(versions)){const pattern=new RegExp(asset.replace(/\./g,'\\.')+'\\?v=(\\d+)','g');for(const match of html.matchAll(pattern)){counts[asset]++;assert.equal(match[1],expected,name+' '+asset);}}}
+  assert.ok(counts['ledger-forms.css']>=11);assert.equal(counts['ledger-ticket.js'],4);assert.equal(counts['fl-assistant.css'],1);assert.equal(counts['fl-assistant.js'],1);
+  const assistant=fs.readFileSync(path.join(directory,'fl-assistant.html'),'utf8'),entry=fs.readFileSync(path.join(directory,'entry.html'),'utf8');assert.match(assistant,/assistant-display\.js\?v=12/);assert.match(entry,/ledger-ui\.js\?v=19/);assert.match(entry,/entry\.js\?v=10/);
 });

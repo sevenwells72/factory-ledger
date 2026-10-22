@@ -157,6 +157,10 @@ class IngredientLot(IdInput):
     lot_id: PositiveId
 
 
+class IngredientLotAllocation(IngredientLot):
+    quantity_lb: confloat(gt=0, allow_inf_nan=False)
+
+
 class MovePrepareRequest(ActionPrepareRequest):
     to_location: Literal['storage', 'staging', 'production']
     method: Literal['last4', 'full_code', 'scan']
@@ -184,6 +188,7 @@ class MakePrepareRequest(ActionPrepareRequest):
     batches: conint(strict=True, gt=0)
     lot_code: Optional[str] = None
     ingredient_lots: List[IngredientLot] = Field(default_factory=list)
+    ingredient_lot_allocations: List[IngredientLotAllocation] = Field(default_factory=list)
     excluded_ingredients: List[PositiveId] = Field(default_factory=list)
     confirmed_sku: bool = False
 
@@ -201,6 +206,7 @@ class PackPrepareRequest(ActionPrepareRequest):
     cases: conint(strict=True, gt=0)
     case_weight_lb: Optional[confloat(gt=0)] = None
     lot_allocations: Optional[List[LotAllocation]] = None
+    ingredient_lot_allocations: List[IngredientLotAllocation] = Field(default_factory=list)
     target_lot_code: Optional[str] = None
 
 
@@ -718,7 +724,7 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
         errors = errors or [blocker(exc)]
         if errors[0]['code'] == 'ATTACHMENT_WRONG_ACTOR':
             return api.JSONResponse(status_code=403, content={'detail': exc.detail})
-        if exc.status_code == 422 and errors[0]['code'] in ('LOT_NOT_CONFIRMED', 'LOT_CONFIRMATION_MISMATCH', 'AMBIGUOUS_SUFFIX', 'PALLET_MOVE_REQUIRED', 'UNUSED_LOT_CONFIRMATION', 'DUPLICATE_LOT_CONFIRMATION', 'ATTACHMENT_NOT_FOUND', 'ATTACHMENT_WRONG_CONTEXT', 'ATTACHMENT_KIND_INVALID'):
+        if exc.status_code == 422 and errors[0]['code'] in ('LOT_NOT_CONFIRMED', 'LOT_CONFIRMATION_MISMATCH', 'AMBIGUOUS_SUFFIX', 'AMBIGUOUS_SUPPLIER_LOT', 'SUPPLIER_LOT_NOT_IN_STOCK', 'LOT_ALLOCATION_EXCEEDS_STOCK', 'PALLET_MOVE_REQUIRED', 'UNUSED_LOT_CONFIRMATION', 'DUPLICATE_LOT_CONFIRMATION', 'ATTACHMENT_NOT_FOUND', 'ATTACHMENT_WRONG_CONTEXT', 'ATTACHMENT_KIND_INVALID'):
             return api.JSONResponse(status_code=422, content={'detail': {
                 **errors[0], 'error_code': errors[0]['code'], 'message': errors[0]['message'], 'blockers': errors}})
         if not approval:

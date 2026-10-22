@@ -211,6 +211,7 @@ UNGATED_ROUTES = frozenset({
     ('POST', '/assistant/record'),
     ('POST', '/assistant/cancel'),
     ('POST', '/assistant/confirm-sku'),
+    ('POST', '/assistant/select-lots'),
     ('POST', '/assistant/attachment'),
     ('POST', '/assistant/attachment/read'),
     ('POST', '/assistant/transcribe'),
