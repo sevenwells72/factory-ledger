@@ -1,0 +1,41 @@
+{
+  "base_commit": "27a2518655da43ae31860a0bcf8c1f73db114422",
+  "branch": "feat/lot-pick-by-supplier-lot",
+  "python_full_sessions_off": {
+    "passed": 6955,
+    "failed": 0,
+    "skipped": 0
+  },
+  "python_full_sessions_on": {
+    "passed": 6954,
+    "failed": 0,
+    "skipped": 1,
+    "skip_reason": "Global advisory-lock test guard detected the other parallel suite"
+  },
+  "python_sessions_on_lock_guard_module_alone": {
+    "passed": 16,
+    "failed": 0,
+    "skipped": 0
+  },
+  "javascript_full": {
+    "passed": 600,
+    "failed": 0,
+    "skipped": 0
+  },
+  "floor_operations_before": 22,
+  "floor_operations_after": 22,
+  "office_operations_before": 30,
+  "office_operations_after": 30,
+  "floor_instruction_characters": 7688,
+  "phone_languages": [
+    "en",
+    "es"
+  ],
+  "phone_width_px": 390,
+  "source_hashes_verified": true,
+  "key_literal_findings": 0,
+  "hosted_access": false,
+  "deployment": false,
+  "production_freeze_active": true,
+  "local_test_databases_removed": true
+}

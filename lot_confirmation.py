@@ -7,23 +7,135 @@ from datetime import datetime
 from typing import Literal
 
 from fastapi import HTTPException
-from pydantic import BaseModel, conint, constr
+from pydantic import BaseModel, StrictBool, conint, constr
 
 
 class LotConfirmation(BaseModel):
     lot_id: conint(strict=True, gt=0)
-    method: Literal['last4', 'full_code', 'scan', 'pallet', 'different_lot']
+    method: Literal['last4', 'full_code', 'scan', 'pallet', 'supplier_lot', 'different_lot']
     value: constr(strict=True, strip_whitespace=True, min_length=1, max_length=200)
+    selected: StrictBool = False
 
     class Config:
         extra = 'forbid'
 
 
-def fail(code, message, message_es=None):
-    detail = {'error_code': code, 'message': message}
+def fail(code, message, message_es=None, **context):
+    detail = {'error_code': code, 'message': message, **context}
     if message_es:
         detail['message_es'] = message_es
     raise HTTPException(422, detail)
+
+
+OPENING_LABEL_EN = 'OPENING STOCK — use for any bag already here on Oct 21'
+OPENING_LABEL_ES = 'EXISTENCIAS INICIALES — use para cualquier bolsa que ya estaba aquí el 21 de octubre'
+
+
+def supplier_key(value):
+    """The bag's supplier code is insensitive to case and all whitespace."""
+    return ''.join((value or '').split()).casefold()
+
+
+def real_supplier_code(value):
+    """Missing-label placeholders are never physical supplier identities."""
+    return (value or '').strip() if supplier_key(value) not in ('', 'unknown', 'n/a', 'na') else None
+
+
+def stock_candidates(api, cur, product_id, *, kosher_tier=None):
+    """Posted stock only; supplier aliases never multiply the stock balance."""
+    cur.execute(f'''SELECT l.id AS lot_id,l.lot_code,l.supplier_lot_code,
+            COALESCE(l.received_at,l.created_at) AS received_at,
+            l.entry_source_notes,s.name AS supplier_name,
+            aliases.supplier_lot_codes,aliases.supplier_names,
+            COALESCE(balance.available_lb,0) AS available_lb
+        FROM lots l LEFT JOIN suppliers s ON s.id=l.supplier_id
+        LEFT JOIN LATERAL (
+            SELECT array_agg(DISTINCT c.supplier_lot_code ORDER BY c.supplier_lot_code)
+                       FILTER (WHERE btrim(COALESCE(c.supplier_lot_code,''))<>'') AS supplier_lot_codes,
+                   string_agg(DISTINCT COALESCE(cs.name,c.supplier_name), ', '
+                              ORDER BY COALESCE(cs.name,c.supplier_name)) AS supplier_names
+            FROM lot_supplier_codes c LEFT JOIN suppliers cs ON cs.id=c.supplier_id
+            WHERE c.lot_id=l.id) aliases ON true
+        LEFT JOIN LATERAL (
+            SELECT sum(tl.quantity_lb) AS available_lb FROM {api.POSTED_LINES} tl WHERE tl.lot_id=l.id
+        ) balance ON true
+        WHERE l.product_id=%s AND l.status IS DISTINCT FROM 'merged'
+          AND (%s::text IS NULL OR l.kosher_tier=%s)
+          AND COALESCE(balance.available_lb,0)>0
+        ORDER BY COALESCE(l.received_at,l.created_at),l.id''', (product_id, kosher_tier, kosher_tier))
+    rows = []
+    for index, record in enumerate(cur.fetchall()):
+        row = dict(record)
+        aliases = [code for value in row.get('supplier_lot_codes') or [] if (code := real_supplier_code(value))]
+        primary = real_supplier_code(row.get('supplier_lot_code'))
+        row['supplier_lot_codes'] = list(dict.fromkeys(([primary] if primary else []) + aliases))
+        row['supplier_lot_code'] = primary or (aliases[0] if aliases else None)
+        row['supplier_name'] = row.get('supplier_name') or row.pop('supplier_names') or None
+        row.pop('supplier_names', None)
+        row['available_lb'] = float(row['available_lb'])
+        row['received_at'] = row['received_at'].astimezone(api.PLANT_TIMEZONE).isoformat() if row['received_at'] else None
+        row['opening_stock'] = (row.pop('entry_source_notes') or '').lower().startswith('opening stock')
+        row['label_en'] = OPENING_LABEL_EN if row['opening_stock'] else row['supplier_lot_code'] or row['lot_code']
+        row['label_es'] = OPENING_LABEL_ES if row['opening_stock'] else row['supplier_lot_code'] or row['lot_code']
+        row['fifo_suggested'] = index == 0
+        rows.append(row)
+    return sorted(rows, key=lambda row: not row['opening_stock'])
+
+
+def allocation_stock_blockers(api, cur, requirements, plan, states, confirmations, *, candidate_tiers=None):
+    """Wrong-lot overdrafts refuse when positive product stock covers the need.
+
+    A real product-wide shortage keeps the existing post-and-flag policy. The
+    caller locks all input product lots before invoking this helper at commit.
+    An explicitly unverified physical lot does not debit its FIFO placeholder.
+    """
+    lots = {row['id']: row for row in states}
+    unknown = {row['lot_id'] for row in confirmations or [] if row['method'] == 'different_lot'}
+    blockers = []
+    for pid, needed in requirements.items():
+        overdrawn = [row for row in plan if row['product_id'] == pid and row['lot_id'] not in unknown
+                    and not row.get('lot_exception')
+                    and float(row['quantity_lb']) > max(0, float(lots[row['lot_id']]['on_hand_lb'])) + api.BALANCE_EPSILON]
+        if not overdrawn:
+            continue
+        candidates = stock_candidates(api, cur, pid, kosher_tier=(candidate_tiers or {}).get(pid))
+        total = float(api.to_decimal(sum(row['available_lb'] for row in candidates)))
+        if total + api.BALANCE_EPSILON < float(needed):
+            continue
+        name = lots[overdrawn[0]['lot_id']]['product_name']
+        blockers.append({'code': 'LOT_ALLOCATION_EXCEEDS_STOCK',
+            'message': f'{name} has enough stock in FL, but the selected lot does not have the entered lb. Pick the right lot or split the lb across lots.',
+            'message_es': f'Hay suficientes existencias de {name} en FL, pero el lote seleccionado no tiene las lb indicadas. Elija el lote correcto o divida las lb entre lotes.',
+            'product_id': pid, 'needed_lb': float(needed), 'total_available_lb': total,
+            'candidates': candidates,
+            'lots': [{'lot_id': row['lot_id'], 'quantity_lb': float(row['quantity_lb']),
+                      'available_lb': max(0, float(lots[row['lot_id']]['on_hand_lb']))} for row in overdrawn]})
+    return blockers
+
+
+def verify_supplier_lot(api, cur, lot, evidence):
+    candidates = stock_candidates(api, cur, lot['product_id'])
+    key = supplier_key(evidence['value'])
+    # Opening balances deliberately cover bags predating the reset without
+    # inventing a supplier identity. This alias requires an active row choice.
+    opening = next((row for row in candidates if row['lot_id'] == lot['id'] and row['opening_stock']), None)
+    if opening and evidence.get('selected') and key in ('openingstock', 'existenciasiniciales'):
+        return dict(evidence)
+    matches = [row for row in candidates if any(supplier_key(code) == key for code in row['supplier_lot_codes'])]
+    if not matches:
+        fail('SUPPLIER_LOT_NOT_IN_STOCK',
+             "That supplier lot isn't in stock in FL — if it's old stock already here on Oct 21, choose the OPENING STOCK lot",
+             'Ese lote del proveedor no tiene existencias en FL — si son existencias antiguas que ya estaban aquí el 21 de octubre, elija el lote de EXISTENCIAS INICIALES',
+             candidates=candidates, product_id=lot['product_id'])
+    if len(matches) > 1 and not evidence.get('selected'):
+        fail('AMBIGUOUS_SUPPLIER_LOT', 'That supplier lot matches several lots in stock. Select the lot you used.',
+             'Ese lote del proveedor coincide con varios lotes con existencias. Seleccione el lote que usó.',
+             candidates=matches, product_id=lot['product_id'])
+    if lot['id'] not in {row['lot_id'] for row in matches}:
+        fail('LOT_CONFIRMATION_MISMATCH', 'Select the matching supplier lot and prepare the draft again.',
+             'Seleccione el lote del proveedor que coincide y prepare el borrador de nuevo.',
+             candidates=matches, product_id=lot['product_id'])
+    return dict(evidence)
 
 
 def verify(api, cur, lot, evidence):
@@ -31,6 +143,8 @@ def verify(api, cur, lot, evidence):
     code = lot['lot_code'].upper()
     method = evidence['method']
     label = f"{lot['product_name']} lot {lot['lot_code']}"
+    if method == 'supplier_lot':
+        return verify_supplier_lot(api, cur, lot, evidence)
     if method == 'last4':
         if len(value) != 4 or value != code[-4:]:
             fail('LOT_CONFIRMATION_MISMATCH', f'Type the last four characters for {label}.',
@@ -76,6 +190,7 @@ def validate_plan(api, cur, plan, states, confirmations, *, commit=False, allow_
         lot = lots[item['lot_id']]
         entry = evidence.get(lot['id'])
         exception = None
+        evidence_error = None
         if entry and entry['method'] == 'different_lot':
             if not allow_different_lot or (different_lot_product_ids is not None
                                            and lot['product_id'] not in different_lot_product_ids):
@@ -83,7 +198,17 @@ def validate_plan(api, cur, plan, states, confirmations, *, commit=False, allow_
                      'This physical lot needs review before it can be used for this product. / Este lote físico necesita revisión antes de usarse para este producto.')
             exception = {'physical_tag': entry['value'].strip(), 'suggested_lot_id': lot['id'],
                          'suggested_lot_code': lot['lot_code'], 'kind': 'SHIFT_DISCREPANCY'}
-        confirmed = verify(api, cur, lot, entry) if entry and not exception else None
+        confirmed = None
+        if entry and not exception:
+            try:
+                confirmed = verify(api, cur, lot, entry)
+            except HTTPException as error:
+                if commit or entry['method'] != 'supplier_lot':
+                    raise
+                # A mistyped/ambiguous supplier code must leave the stocked
+                # choices on the prepare card so the worker can correct it.
+                detail = dict(error.detail)
+                evidence_error = dict(detail, code=detail['error_code'])
         row = dict(item, product_name=lot['product_name'], lot_code=lot['lot_code'], confirmed=confirmed is not None,
                    suggested_lot={'lot_id': lot['id'], 'lot_code': lot['lot_code'], 'confirmed': False})
         row.pop('lot_exception', None)
@@ -94,8 +219,9 @@ def validate_plan(api, cur, plan, states, confirmations, *, commit=False, allow_
             row['confirmation'] = confirmed
         else:
             row.pop('confirmation', None)
-            blockers.append({'code': 'LOT_NOT_CONFIRMED',
-                'message': f'Confirm {lot["product_name"]} lot {lot["lot_code"]}: type last four characters, full code, or record a pallet move.'})
+            blockers.append(evidence_error or {'code': 'LOT_NOT_CONFIRMED',
+                'message': f'Select the supplier lot used for {lot["product_name"]}, or confirm its tag code or pallet move.',
+                'message_es': f'Seleccione el lote del proveedor que usó para {lot["product_name"]}, o confirme el código de su etiqueta o el movimiento de tarima.'})
         result.append(row)
     if commit and blockers:
         fail('LOT_NOT_CONFIRMED', blockers[0]['message'])
@@ -125,7 +251,7 @@ def record_confirmations(cur, transaction_id, plan, actor_id):
             (transaction_id,item['lot_id'],evidence['method'],evidence['value'],actor_id,evidence.get('move_id')))
 
 
-def confirmation_group(api, cur, plan):
+def confirmation_group(api, cur, plan, *, candidate_tiers=None):
     """One additive, renderer-neutral card; FIFO suggestions never imply evidence."""
     grouped = {}
     for item in plan:
@@ -137,16 +263,14 @@ def confirmation_group(api, cur, plan):
         ingredient['suggested_lots'].append({key: item[key] for key in
             ('lot_id', 'lot_code', 'quantity_lb', 'confirmed')})
     for ingredient in grouped.values():
-        ingredient['needed_lb'] = round(ingredient['needed_lb'], 2)
-        cur.execute(f'''SELECT l.id AS lot_id,l.lot_code,COALESCE(sum(tl.quantity_lb),0) AS available_lb
-            FROM lots l LEFT JOIN {api.POSTED_LINES} tl ON tl.lot_id=l.id
-            WHERE l.product_id=%s AND l.status IS DISTINCT FROM 'merged'
-            GROUP BY l.id HAVING COALESCE(sum(tl.quantity_lb),0)>0
-            ORDER BY COALESCE(l.received_at,l.created_at),l.id''', (ingredient['product_id'],))
-        ingredient['candidates'] = [dict(row) for row in cur.fetchall()]
+        ingredient['needed_lb'] = float(api.to_decimal(ingredient['needed_lb']))
+        ingredient['candidates'] = stock_candidates(
+            api, cur, ingredient['product_id'], kosher_tier=(candidate_tiers or {}).get(ingredient['product_id']))
+        ingredient['total_available_lb'] = float(api.to_decimal(sum(row['available_lb'] for row in ingredient['candidates'])))
+        ingredient['stock_shortage'] = ingredient['total_available_lb'] + api.BALANCE_EPSILON < ingredient['needed_lb']
     return {'kind': 'lot_confirmation',
-            'instruction_en': 'Type the last 4 characters from the tag on each bag you used.',
-            'instruction_es': 'Escriba los últimos 4 caracteres de la etiqueta de cada bolsa que usó.',
+            'instruction_en': 'Select the supplier lot on each bag you used. If you used more than one lot, split the needed lb between them. FIFO is a suggestion; select every lot yourself.',
+            'instruction_es': 'Seleccione el lote del proveedor de cada bolsa que usó. Si usó más de un lote, divida las lb necesarias entre ellos. FIFO es una sugerencia; seleccione cada lote usted mismo.',
             'ingredients': list(grouped.values())}
 
 
@@ -259,7 +383,9 @@ def prepare_substitutions(api, cur, payload, draft, overrides, lock):
         product = actions.product(api, cur, replacement, lock)
         if product.get('is_service') or product['type'] not in ('ingredient', 'batch'):
             fail('INVALID_SUBSTITUTION', 'The substitute must be an active ingredient or batch product.')
-        current = actions.lot(api, cur, sub['lot_id'], replacement, lock)
+        # The final input-product lock set is acquired once in ascending lot ID
+        # order. Pre-locking this seed can invert that order against Pack.
+        current = actions.lot(api, cur, sub['lot_id'], replacement)
         if replacement in overrides and overrides[replacement] != sub['lot_id']:
             fail('INVALID_SUBSTITUTION', 'Select the same lot for repeated uses of a substitute ingredient.')
         overrides[replacement] = sub['lot_id']
@@ -297,17 +423,76 @@ def substituted_formula(formula, substitutions):
     return list(combined.values())
 
 
+def bind_substitution_lots(api, cur, draft, plan):
+    """Allocate manual replacement demand across the actual consumed lots.
+
+    Shared substitute products are pooled in the input plan. Charge their native
+    recipe demand first, then each original ingredient in its reviewed order, so
+    no consumed pound is claimed by two substitution audit rows.
+    """
+    changes = draft.get('substitutions') or []
+    if not changes:
+        return []
+    originals = {row['ingredient_id']: row for row in draft['original_ingredients']}
+    replacements = {row['substitute_product_id'] for row in changes}
+    queues = {pid: [dict(row, remaining=api.to_decimal(row['quantity_lb']))
+                    for row in plan if row['product_id'] == pid] for pid in replacements}
+
+    def take(pid, needed):
+        remaining, allocations = api.to_decimal(needed), []
+        for row in queues[pid]:
+            quantity = min(remaining, row['remaining'])
+            if quantity <= 0:
+                continue
+            exception = row.get('lot_exception')
+            # Before post, Different lot has only a physical tag, never a
+            # confirmed suggestion. Post binds its new unresolved trace lot.
+            actual_id = exception.get('lot_id') if exception else row['lot_id']
+            actual_code = exception.get('lot_code') if exception else row['lot_code']
+            allocation = {'lot_id': actual_id, 'lot_code': actual_code, 'quantity_lb': float(quantity)}
+            if exception:
+                allocation.update(physical_tag=exception['physical_tag'], unverified=True)
+            allocations.append(allocation)
+            row['remaining'] -= quantity
+            remaining -= quantity
+            if remaining <= 0:
+                break
+        if remaining > api.to_decimal(api.BALANCE_EPSILON):
+            fail('INPUT_PLAN_CHANGED', 'The substitute lot quantities do not cover the reviewed recipe.')
+        return allocations
+
+    for ingredient in draft['ingredients']:
+        if ingredient['ingredient_id'] in replacements and not ingredient.get('substituted_for'):
+            take(ingredient['ingredient_id'], ingredient['needed_lb'])
+    bound = []
+    for change in changes:
+        allocations = take(change['substitute_product_id'], originals[change['ingredient_product_id']]['needed_lb'])
+        primary = allocations[0]
+        bound.append(dict(change, lot_id=primary['lot_id'], lot_code=primary['lot_code'],
+                          actual_lot_allocations=allocations))
+        for ingredient in draft['ingredients']:
+            if ingredient.get('substituted_for') == change['ingredient_product_id']:
+                ingredient['override_lot'] = primary['lot_code']
+                ingredient['lots'] = [{'lot_code': row['lot_code'],
+                    'available_lb': float(api.lot_on_hand(cur, row['lot_id'])) if row['lot_id'] else 0,
+                    'selected_lb': row['quantity_lb']} for row in allocations]
+                ingredient['lot_count'] = len(allocations)
+    draft['substitutions'] = bound
+    return bound
+
+
 def record_substitutions(cur, transaction_id, payload, actor_id):
+    from psycopg2.extras import Json
     rows = list(payload.get('substitutions') or []) + [
         {'ingredient_product_id': pid, 'substitute_product_id': None, 'lot_id': None,
          'reason_code': payload['reason_code'], 'note': payload.get('note')}
         for pid in payload.get('excluded_ingredients') or []]
     for row in rows:
         cur.execute('''INSERT INTO transaction_substitutions
-            (transaction_id,ingredient_product_id,substitute_product_id,lot_id,reason_code,note,actor_id)
-            VALUES (%s,%s,%s,%s,%s,%s,%s)''',
+            (transaction_id,ingredient_product_id,substitute_product_id,lot_id,reason_code,note,actor_id,actual_lot_allocations)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)''',
             (transaction_id,row['ingredient_product_id'],row['substitute_product_id'],row['lot_id'],
-             row['reason_code'],row.get('note'),actor_id))
+             row['reason_code'],row.get('note'),actor_id,Json(row.get('actual_lot_allocations') or [])))
 
 
 # R8 counts seven weekdays AFTER the local entry date; holidays are not skipped.

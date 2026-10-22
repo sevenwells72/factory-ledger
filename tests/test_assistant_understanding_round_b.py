@@ -137,7 +137,7 @@ def test_resolved_make_goes_straight_to_filled_draft_still_needs_tags(client,cha
     assert d['total_output_lb']==10 and d['product_name']==p['name']
     assert {b['code'] for b in c['prepared']['blockers']}=={'LOT_NOT_CONFIRMED'}
     group=d['lot_confirmation_group']
-    assert group['instruction']==('Escriba los últimos 4 caracteres de la etiqueta de cada bolsa que usó.' if spanish else 'Type the last 4 characters from the tag on each bag you used.')
+    assert group['instruction']==('Seleccione el lote del proveedor de cada bolsa que usó. Si usó más de un lote, divida las lb necesarias entre ellos. FIFO es una sugerencia; seleccione cada lote usted mismo.' if spanish else 'Select the supplier lot on each bag you used. If you used more than one lot, split the needed lb between them. FIFO is a suggestion; select every lot yourself.')
     assert record(client,chat,c).status_code==422
 
 

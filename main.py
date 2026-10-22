@@ -3981,6 +3981,9 @@ class MakeRequest(InventoryWriteRequest):
     ingredient_lot_overrides: Optional[Union[Dict[str, str], str]] = None
     excluded_ingredients: Optional[List[int]] = None
     confirmed_sku: Optional[bool] = None  # Must be True when sibling SKUs exist
+    # Floor GPT opts into the same explicit input evidence contract as tickets.
+    lot_confirmations: Optional[List[lot_confirmation.LotConfirmation]] = None
+    ingredient_lot_allocations: Optional[List[write_tickets.IngredientLotAllocation]] = None
     
     def get_lot_overrides(self) -> Optional[Dict[str, str]]:
         """Parse ingredient_lot_overrides whether it's a dict or JSON string"""
@@ -4010,6 +4013,8 @@ class PackRequest(InventoryWriteRequest):
     # Lot Identity Policy: If target_lot_code is provided, find-or-create by (product_id, lot_code).
     # Only auto-generate (inherit from batch lot) if target_lot_code is omitted.
     target_lot_code: Optional[str] = None
+    lot_confirmations: Optional[List[lot_confirmation.LotConfirmation]] = None
+    ingredient_lot_allocations: Optional[List[write_tickets.IngredientLotAllocation]] = None
 
 class AdjustRequest(InventoryWriteRequest):
     mode: Literal["preview", "commit"] = "preview"
@@ -10019,6 +10024,10 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key), request: Request =
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at, req.backfill, request
     )
+    import floor_lot_confirmation
+    if floor_lot_confirmation.checked_path_required(req):
+        with get_transaction() as cur:
+            return floor_lot_confirmation.run(sys.modules[__name__], cur, 'make', req, request, occurred_at)
     if req.mode == "preview":
         try:
             with get_transaction() as cur:
@@ -10151,6 +10160,10 @@ def pack(req: PackRequest, _: bool = Depends(verify_api_key), request: Request =
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at, req.backfill, request
     )
+    import floor_lot_confirmation
+    if floor_lot_confirmation.checked_path_required(req):
+        with get_transaction() as cur:
+            return floor_lot_confirmation.run(sys.modules[__name__], cur, 'pack', req, request, occurred_at)
     if req.mode == "preview":
         try:
             with get_transaction() as cur:

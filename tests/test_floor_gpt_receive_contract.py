@@ -24,7 +24,7 @@ def floor_schema():
 
 def test_floor_receive_schema_exposes_the_explicit_no_label_path(floor_schema):
     schema = floor_schema['components']['schemas']['ReceiveRequest']
-    assert floor_schema['info']['version'] == '4.3.0'
+    assert floor_schema['info']['version'] == '4.4.0'
     assert 'supplier_lot_code' not in schema['required']
     assert 'shipper_name' in schema['required']
     assert schema['properties']['no_supplier_lot']['type'] == 'boolean'

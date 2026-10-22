@@ -27,7 +27,8 @@
   const isTodayQuery = text => /^(?:(?:open|show|list)(?: me)?(?: all)?(?: of)? (?:today[’']?s entries|entries (?:for |from )?today)|what (?:did|have) (?:i|we) (?:enter(?:ed)?|record(?:ed)?) today|today[’']?s entries|is everything there correct|open today[’']?s entries[?.!]?\s*is everything there correct|[¿]?(?:est[aá] todo|todo est[aá]) (?:ah[ií] )?correcto|entradas de hoy|(?:abre|abrir|mostrar|muestra|ver|lista)(?: todas)?(?: las)? entradas de hoy|[¿]?qu[eé] registr(?:[eé]|amos) hoy)[?.!¿]*$/i.test(String(text || '').trim());
   const voidTarget = text => /\b(void|anular|anula)\b/i.test(text || '') ? (String(text).match(/\b(?:RCV|MK|PK|ADJ|FND|SHP)-\d{6}-\d{3,}\b/i)?.[0]?.toUpperCase() || null) : null;
   const refusalDraft = prepared => !!prepared?.blockers?.some(b => !['LOT_NOT_CONFIRMED', 'SKU_CONFIRMATION_REQUIRED', 'BOL_REQUIRED'].includes(b.code)
-    && !(prepared.action === 'create_customer' && display.existingCustomerChoice(b)));
+    && !(prepared.action === 'create_customer' && display.existingCustomerChoice(b))
+    && !(prepared.draft?.lot_confirmation_group && ['SUPPLIER_LOT_NOT_IN_STOCK', 'AMBIGUOUS_SUPPLIER_LOT', 'LOT_CONFIRMATION_MISMATCH', 'AMBIGUOUS_SUFFIX', 'PALLET_MOVE_REQUIRED'].includes(b.code)));
   function supplierChoices(candidates = []) {
     const seen = new Set();
     return candidates.filter(candidate => {
@@ -42,6 +43,13 @@
   // Mobile UX: dated history, plain photo states and the jump-to-latest rule.
   const PLANT_ZONE = 'America/New_York', MAX_PHOTO = 5 * 1024 * 1024;
   const dayKey = when => new Intl.DateTimeFormat('en-CA', { timeZone: PLANT_ZONE, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(when));
+  function supplierReceivedDate(value, language = 'en') {
+    if (!value) return '—';
+    return new Intl.DateTimeFormat(language === 'es' ? 'es-US' : 'en-US', {
+      timeZone: /^\d{4}-\d{2}-\d{2}$/.test(value) ? 'UTC' : PLANT_ZONE,
+      year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(new Date(value));
+  }
   function dayLabel(when, now = new Date(), lang = 'en') {
     const day = dayKey(when), today = dayKey(now), yesterday = dayKey(new Date(now) - 864e5);
     if (day === today) return lang === 'es' ? 'Hoy' : 'Today';
@@ -86,7 +94,7 @@
   const assistantOffline = value => { const data = value?.result || value, detail = data?.detail || data; return ['ASSISTANT_QUOTA_EXHAUSTED','ASSISTANT_DISABLED'].includes(detail?.error_code || detail?.code); };
   const safeOfficeLink = href => /^\/dashboard\/(?:entry|office|receipt|exceptions)\.html(?:[?#]|$)/.test(String(href || '')) ? href : null;
   const exports = { assistantOffline, safeOfficeLink, supplierChoices, isTodayQuery, voidTarget, refusalDraft, validReceipt, canRecord, validAttachment, evidenceKinds, errorText, awaitingApproval, neutralMessages,
-    dayLabel, dividerLabel, showJump, photoKinds, photoStatus, photoProblem, MAX_PHOTO };
+    supplierReceivedDate, dayLabel, dividerLabel, showJump, photoKinds, photoStatus, photoProblem, MAX_PHOTO };
   if (typeof module !== 'undefined') module.exports = exports;
   if (!root.document) return;
   const $ = id => document.getElementById(id);
@@ -424,7 +432,128 @@
     }
     const confirmations = [], warningChecks = [], lotGroups = new Map();
     const group = draft.lot_confirmation_group;
-    if (group) {
+    const supplierSelection = group && ['make', 'pack'].includes(prepared.action)
+      && group.ingredients?.every(ingredient => Array.isArray(ingredient.candidates));
+    let selectionDirty = !!supplierSelection && prepared.can_commit !== true;
+    if (supplierSelection) {
+      node.append(el('p', t(group.instruction_en, group.instruction_es), 'lot-instruction'));
+      let selectionRetired = false;
+      const ingredients = [], reviewStatus = el('p', '', 'muted');
+      const key = value => String(value || '').replace(/\s/g, '').toUpperCase();
+      function selectionChanged() {
+        selectionDirty = true;
+        for (const ingredient of ingredients) ingredient.showStockProblem?.();
+        review.disabled = selectionRetired || busy || ingredients.some(i => !i.valid());
+        node.refreshRecord?.();
+      }
+      for (const ingredient of group.ingredients) {
+        const section = el('section', undefined, 'ingredient-confirmation supplier-lot-picker');
+        section.append(el('strong', ingredient.product_name + ' · ' + display.quantityLabel(ingredient.needed_lb)));
+        const status = el('p', '', 'muted'); status.setAttribute('role', 'status');
+        const stockProblem = el('p', '', 'stock-selection-warning'); stockProblem.hidden = true; stockProblem.setAttribute('role', 'status');
+        const totalAvailable = Number.isFinite(ingredient.total_available_lb) ? ingredient.total_available_lb : ingredient.candidates.reduce((sum, lot) => sum + Math.max(0, Number(lot.available_lb)), 0);
+        const stockShortage = typeof ingredient.stock_shortage === 'boolean' ? ingredient.stock_shortage : totalAvailable + 0.0001 < Number(ingredient.needed_lb);
+        const normal = el('div'), choices = [], unknown = el('div'); unknown.hidden = true;
+        const typedLabel = el('label', t('Supplier lot on the bag', 'Lote del proveedor en la bolsa'));
+        const typed = el('input'); typed.type = 'text'; typed.autocomplete = 'off'; typed.maxLength = 200;
+        typed.setAttribute('aria-label', t('Type supplier lot', 'Escribir lote del proveedor'));
+        typedLabel.append(typed); normal.append(typedLabel);
+        typed.addEventListener('input', () => { for (const choice of choices) { choice.check.checked = false; choice.amount.value = ''; } selectionChanged(); });
+        const find = button(t('Find supplier lot', 'Buscar lote del proveedor'), () => {
+          if (busy || !typed.value.trim()) return;
+          const matches = choices.filter(c => (c.lot.supplier_lot_codes || [c.lot.supplier_lot_code]).some(code => key(code) === key(typed.value)));
+          if (matches.length !== 1) {
+            for (const choice of choices) { choice.check.checked = false; choice.amount.value = ''; }
+            status.replaceChildren(el('span', matches.length
+              ? t('Several lots match. Choose the lot below.', 'Coinciden varios lotes. Elige el lote abajo.')
+              : t("That supplier lot isn't in stock in FL — if it's old stock already here on Oct 21, choose the OPENING STOCK lot", 'Ese lote del proveedor no tiene existencias en FL — si ya estaba aquí el 21 de octubre, elige el lote EXISTENCIAS INICIALES')));
+            selectionChanged(); return;
+          }
+          const choice = matches[0]; choice.check.checked = true; choice.amount.value = String(ingredient.needed_lb);
+          choice.method.value = 'supplier_lot'; choice.value.value = typed.value.trim(); choice.selected = false;
+          for (const other of choices) if (other !== choice) { other.check.checked = false; other.amount.value = ''; }
+          status.replaceChildren(); selectionChanged();
+        }); normal.append(find);
+        for (const lot of ingredient.candidates) {
+          const row = el('div', undefined, 'supplier-lot-choice' + (lot.fifo_suggested ? ' fifo-suggestion' : ''));
+          row.dataset.lotId = lot.lot_id;
+          const label = el('label'), check = el('input'); check.type = 'checkbox';
+          const heading = el('strong', lot.opening_stock ? t(lot.label_en, lot.label_es)
+            : [...new Set([lot.supplier_lot_code, ...(lot.supplier_lot_codes || [])].filter(Boolean))].join(' / ') || t('Supplier lot not recorded', 'Lote del proveedor no registrado'), 'supplier-lot-code');
+          label.append(check, heading); row.append(label);
+          row.append(el('small', t('CNS lot: ', 'Lote CNS: ') + lot.lot_code));
+          row.append(el('small', t('Supplier: ', 'Proveedor: ') + (lot.supplier_name || '—')));
+          row.append(el('small', t('Received: ' + supplierReceivedDate(lot.received_at, 'en'), 'Recibido: ' + supplierReceivedDate(lot.received_at, 'es')) + ' · ' + display.quantityLabel(lot.available_lb) + t(' available', ' disponibles')));
+          if (lot.fifo_suggested) row.append(el('small', t('FIFO suggestion — select if used', 'Sugerencia FIFO — selecciona si lo usaste'), 'fifo-label'));
+          const controls = el('div', undefined, 'lot-controls'), amountLabel = el('label', t('Use lb', 'Usar lb')), amount = el('input');
+          amount.type = 'number'; amount.min = '0.000001'; amount.step = 'any'; if (!stockShortage) amount.max = String(lot.available_lb); amount.setAttribute('aria-label', t('Pounds from ', 'Libras de ') + lot.lot_code); amountLabel.append(amount);
+          const method = el('select'); method.setAttribute('aria-label', t('Confirmation method', 'Método de confirmación'));
+          for (const [v, en, es] of [['supplier_lot','Supplier lot','Lote del proveedor'],['last4','Last 4, including hyphen','Últimos 4, incluido el guion'],['full_code','Full CNS code','Código CNS completo'],['scan','Scan full CNS code','Escanear código CNS completo'],['pallet','Pallet — full CNS code','Palé — código CNS completo']]) {
+            const option = el('option', t(en, es)); option.value = v; method.append(option);
+          }
+          method.value = 'supplier_lot';
+          const value = el('input'); value.type = 'text'; value.maxLength = 200; value.autocomplete = 'off'; value.setAttribute('aria-label', t('Physical lot evidence', 'Identificación del lote físico'));
+          controls.append(amountLabel, method, value); row.append(controls); normal.append(row);
+          const choice = { lot, check, amount, method, value, selected: false }; choices.push(choice);
+          const prior = (draft.input_plan || []).find(input => input.lot_id === lot.lot_id && input.confirmed);
+          if (prior?.confirmation) { check.checked = true; amount.value = String(prior.quantity_lb); value.value = prior.confirmation.value; method.value = prior.confirmation.method; choice.selected = prior.confirmation.selected === true; }
+          check.addEventListener('change', () => {
+            choice.selected = check.checked;
+            if (check.checked) {
+              const used = choices.filter(c => c !== choice && c.check.checked).reduce((sum, c) => sum + Number(c.amount.value || 0), 0);
+              amount.value = String(Math.max(0, ingredient.needed_lb - used));
+              method.value = lot.supplier_lot_code || lot.opening_stock ? 'supplier_lot' : 'full_code';
+              value.value = lot.opening_stock ? 'OPENING STOCK' : lot.supplier_lot_code || lot.lot_code;
+            } else { amount.value = ''; value.value = ''; }
+            status.replaceChildren(); selectionChanged();
+          });
+          for (const control of [amount, method, value]) control.addEventListener('input', () => { if (control !== amount) choice.selected = false; selectionChanged(); });
+        }
+        if (!choices.length) normal.append(el('p', t('No lots with stock. Record missing stock or use Different lot for follow-up.', 'No hay lotes con existencias. Registra las existencias faltantes o usa Otro lote para seguimiento.')));
+        const unknownInputs = (ingredient.suggested_lots || []).map(lot => {
+          const label = el('label', t('Actual tag for ', 'Etiqueta real para ') + display.quantityLabel(lot.quantity_lb)), value = el('input'); value.type = 'text'; value.maxLength = 200;
+          label.append(value); unknown.append(label); value.addEventListener('input', selectionChanged); return {lot, value};
+        });
+        const state = { ingredient, choices, different: false,
+          overdraw: () => !state.different && !stockShortage && choices.some(c => c.check.checked && Number(c.amount.value) > Number(c.lot.available_lb) + 0.0001),
+          showStockProblem: () => { const overdraw = state.overdraw(); stockProblem.hidden = !overdraw; stockProblem.replaceChildren(...(overdraw ? [el('span', t('Pick the right lot or split across lots — the selected lb exceed the stock in one of these lots.', 'Elige el lote correcto o reparte entre varios lotes — las lb seleccionadas superan las existencias de uno de estos lotes.'))] : [])); },
+          valid: () => state.different ? unknownInputs.length && unknownInputs.every(c => c.value.value.trim())
+            : !state.overdraw() && choices.some(c => c.check.checked) && choices.filter(c => c.check.checked).every(c => Number.isFinite(Number(c.amount.value)) && Number(c.amount.value) > 0 && c.value.value.trim())
+              && Math.abs(choices.filter(c => c.check.checked).reduce((n, c) => n + Number(c.amount.value), 0) - ingredient.needed_lb) < 0.0001,
+          read: () => state.different ? unknownInputs.map(c => ({ingredient_product_id: ingredient.product_id, lot_id: c.lot.lot_id, quantity_lb: c.lot.quantity_lb, method: 'different_lot', value: c.value.value.trim()}))
+            : choices.filter(c => c.check.checked).map(c => ({ingredient_product_id: ingredient.product_id, lot_id: c.lot.lot_id, quantity_lb: Number(c.amount.value), method: c.method.value, value: c.value.value.trim(), selected: c.selected})) };
+        ingredients.push(state);
+        const different = button(t('Different lot', 'Otro lote'), () => {
+          state.different = !state.different; normal.hidden = state.different; unknown.hidden = !state.different;
+          for (const choice of choices) { choice.check.checked = false; choice.amount.value = ''; choice.value.value = ''; }
+          for (const input of unknownInputs) input.value.value = '';
+          different.setAttribute('aria-pressed', String(state.different));
+          status.replaceChildren(el('span', state.different ? t('Enter the actual tag for every bag below. Its lot will remain unverified, awaiting follow-up.', 'Escribe la etiqueta real de cada bolsa abajo. Su lote quedará sin verificar, pendiente de seguimiento.') : ''));
+          selectionChanged();
+        }, 'different-lot'); different.setAttribute('aria-pressed', 'false');
+        const reviewedExceptions = (draft.input_plan || []).filter(row => row.product_id === ingredient.product_id && row.lot_exception);
+        if (reviewedExceptions.length && prepared.can_commit === true) {
+          state.different = true; normal.hidden = true; unknown.hidden = false; different.setAttribute('aria-pressed', 'true');
+          for (const input of unknownInputs) input.value.value = reviewedExceptions.find(row => row.lot_id === input.lot.lot_id)?.lot_exception.physical_tag || '';
+          status.replaceChildren(el('span', t('Actual tag saved for unverified lot follow-up.', 'Etiqueta real guardada para el seguimiento del lote sin verificar.')));
+        }
+        section.append(normal, stockProblem, different, unknown, status); node.append(section);
+      }
+      const review = button(t('Review selected lots', 'Revisar lotes seleccionados'), async () => {
+        if (busy || ingredients.some(i => !i.valid())) return;
+        setBusy(true); review.disabled = true; reviewStatus.replaceChildren();
+        const rows = ingredients.flatMap(i => i.read());
+        try {
+          const response = await api('/assistant/select-lots', { body: { draft_id: card.id,
+            ingredient_lot_allocations: rows.filter(row => row.method !== 'different_lot').map(({ingredient_product_id, lot_id, quantity_lb}) => ({ingredient_product_id, lot_id, quantity_lb})),
+            lot_confirmations: rows.map(({lot_id, method, value, selected}) => ({lot_id, method, value, ...(selected ? {selected: true} : {})})) } });
+          node.replaceChildren(el('p', t('Lot choices checked. Review the new draft below.', 'Lotes verificados. Revisa el nuevo borrador abajo.'))); renderCard(response.card);
+        } catch (error) { selectionRetired = true; failed(reviewStatus, error); reviewStatus.append(el('p', t('This draft was cleared. Prepare the Make/Pack entry again.', 'Este borrador se borró. Prepara la entrada de producción o empaque de nuevo.'))); }
+        finally { setBusy(false); review.disabled = selectionRetired || ingredients.some(i => !i.valid()); node.refreshRecord?.(); }
+      });
+      review.disabled = true; node.append(review, reviewStatus);
+    }
+    if (group && !supplierSelection) {
       node.append(el('p', t(group.instruction_en || 'Type the last 4 characters from the tag on each bag you used.', group.instruction_es || 'Escriba los últimos 4 caracteres de la etiqueta de cada bolsa que usó.'), 'lot-instruction'));
       for (const ingredient of group.ingredients || []) {
         const section = el('section', undefined, 'ingredient-confirmation');
@@ -446,7 +575,7 @@
         section.append(different, status); node.append(section); lotGroups.set(ingredient.product_id, section);
       }
     }
-    for (const lot of draft.input_plan || []) {
+    for (const lot of supplierSelection ? [] : draft.input_plan || []) {
       const row = el('div', undefined, 'lot-confirmation');
       const title = el('label'), suggested = el('span', ` · ${lot.lot_code}`, 'suggested-lot-code');
       title.append(el('span', lot.product_name || t('Input', 'Insumo')), suggested, el('span', ` · ${display.formatQuantity(lot.quantity_lb)} lb`)); row.append(title);
@@ -539,7 +668,7 @@
       catch (error) { neutral(errorArea, 'request_failed'); }
       finally { setBusy(false); cancelButton.disabled = false; refreshRecord(); }
     });
-    function refreshRecord() { recordButton.disabled = busy || !canRecord(prepared) || warningChecks.some(w => !w.checkbox.checked) || confirmations.some(c => !c.input.value.trim()); }
+    function refreshRecord() { recordButton.disabled = busy || selectionDirty || !canRecord(prepared) || warningChecks.some(w => !w.checkbox.checked) || confirmations.some(c => !c.input.value.trim()); }
     [...confirmations.map(c => c.input), ...warningChecks.map(w => w.checkbox)].forEach(input => input.addEventListener('input', refreshRecord));
     node.refreshRecord = refreshRecord;
     refreshRecord(); actions.append(recordButton, cancelButton); node.append(errorArea, actions);

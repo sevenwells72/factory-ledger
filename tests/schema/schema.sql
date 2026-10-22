@@ -3052,7 +3052,7 @@ CREATE TABLE public.transaction_lot_confirmations (
     move_id bigint,
     created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
     CONSTRAINT transaction_lot_confirmations_check CHECK (((method = 'pallet'::text) = (move_id IS NOT NULL))),
-    CONSTRAINT transaction_lot_confirmations_method_check CHECK ((method = ANY (ARRAY['last4'::text, 'full_code'::text, 'scan'::text, 'pallet'::text]))),
+    CONSTRAINT transaction_lot_confirmations_method_check CHECK ((method = ANY (ARRAY['last4'::text, 'full_code'::text, 'scan'::text, 'pallet'::text, 'supplier_lot'::text]))),
     CONSTRAINT transaction_lot_confirmations_value_check CHECK ((btrim(value) <> ''::text))
 );
 
@@ -3070,6 +3070,7 @@ CREATE TABLE public.transaction_substitutions (
     note text,
     actor_id integer,
     created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    actual_lot_allocations jsonb DEFAULT '[]'::jsonb NOT NULL,
     CONSTRAINT transaction_substitutions_check CHECK (((substitute_product_id IS NULL) = (lot_id IS NULL))),
     CONSTRAINT transaction_substitutions_check1 CHECK ((substitute_product_id IS DISTINCT FROM ingredient_product_id)),
     CONSTRAINT transaction_substitutions_reason_code_check CHECK ((btrim(reason_code) <> ''::text))

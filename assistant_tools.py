@@ -27,7 +27,7 @@ PREPARES = {
     'prepare_ship_bulk': ('/ship/bulk/prepare', ship_tickets.BulkShip),
 }
 # These fields are UI evidence, never model assertions. Client source is server-set.
-UI_FIELDS = {'client_source', 'lot_confirmations', 'confirmed_sku', 'attachment_ref', 'attachment_id', 'attachment_ids'}
+UI_FIELDS = {'client_source', 'ingredient_lot_allocations', 'lot_confirmations', 'confirmed_sku', 'attachment_ref', 'attachment_id', 'attachment_ids'}
 
 
 def has_ui_fields(value):
@@ -138,7 +138,7 @@ Use its source_product_id, target_product_id and lot_id, and the finished produc
 When the user gives only a finished product, show its catalog parent batch lots for the person to choose; never infer the physical lot.
 If a batch lot is given, use that lot's actual product, never search for a product named after the lot code.
 A resolved real product selection is sufficient output identity for make; do not request a second SKU confirmation.
-Do not infer physical lot confirmation; every input bag tag still needs human evidence.
+Make/Pack show every in-stock supplier lot for the person to actively select, including splits whose pounds sum to the ingredient total. FIFO is only a suggestion, never physical confirmation. Supplier lot matching and OPENING STOCK choices belong to the human lot card; never infer evidence or select its lots.
 When packing_context offers bulk batch lots or finished outputs, stop for the person's button choice.
 Never ask staff for a source product. A missing bulk batch is a batch/tag question.
 For pack resolve the batch and finished output separately only if packing_context asks for missing facts.
