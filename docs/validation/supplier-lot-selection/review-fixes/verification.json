@@ -1,0 +1,44 @@
+{
+  "application_commit": "bbd31821",
+  "stack_base_pr": 146,
+  "stack_base_commit": "282204be5486287e0ac80eec212c0c3f876d024f",
+  "includes_pr145_commit": "ffc405e8fe6485d869c5017c335f0a85c12893c6",
+  "python_sessions_off": {
+    "passed": 7186,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "python_sessions_on": {
+    "passed": 7186,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "javascript": {
+    "passed": 640,
+    "failed": 0,
+    "skipped": 0
+  },
+  "floor_schema_version": "4.4.0",
+  "floor_operations": 22,
+  "maximum_description_characters": 292,
+  "floor_full_characters": 7987,
+  "floor_body_characters": 7857,
+  "evidence_switch": "REQUIRE_MAKE_PACK_LOT_EVIDENCE",
+  "evidence_switch_default": "OFF",
+  "migration087_required_before_deploy": true,
+  "cache_versions": {
+    "ledger-forms.css": 10,
+    "ledger-ticket.js": 11,
+    "fl-assistant.css": 10,
+    "fl-assistant.js": 18
+  },
+  "tested_source_hash_count": 404,
+  "source_hashes_unchanged": true,
+  "key_literal_findings": 0,
+  "production_access": false,
+  "railway_access_or_changes": false,
+  "deployment": false,
+  "cleanup_complete": true
+}

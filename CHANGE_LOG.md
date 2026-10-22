@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-10-22 15:48 — Record full combined-branch review validation and cleanup
+- **File(s) changed:** `docs/validation/supplier-lot-selection/review-fixes/`
+- **What changed:** Saved complete OFF/ON Python logs (7,186 passes each), 640-pass JS log, exact Floor4.4/22op/7,987-char budgets, 404 unchanged source hashes and successful local database/private-cluster cleanup.
+- **Why:** Provide final review evidence before the feature-only lease-protected push; no hosted settings or production were touched.
+
+---
+
+## 2026-10-22 15:44 — Save combined-branch bilingual phone evidence
+- **File(s) changed:** `docs/validation/supplier-lot-selection/review-fixes/README.md`, `combined-390-en.png`, `combined-390-es.png`, `phone-checks.json`
+- **What changed:** Recorded final local-only Chrome checks and inspected responsive card captures on the combined receive/supplier-selection assets.
+- **Why:** Show the revised conditional stock guidance alongside explicit lot choice without accessing a hosted service.
+
+---
+
 ## 2026-10-22 15:41 — Kept substitution locks in the complete input lot order
 - **File(s) changed:** `lot_confirmation.py`, `ticket_actions.py`, `tests/test_supplier_lot_stock_policy.py`
 - **What changed:** Deferred substitution seed row locks to the shared sorted input lot lock set, revalidated seed identity afterward, and added a deterministic two-transaction Make/Pack regression forcing the older-unused-lot lock cycle.

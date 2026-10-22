@@ -1,0 +1,13 @@
+{
+  "targeted_shared_databases_removed": [
+    "fl_lot_review_backend",
+    "fl_lot_review_rootflag"
+  ],
+  "private_databases_removed": [
+    "fl_lot_review_off",
+    "fl_lot_review_on"
+  ],
+  "private_cluster_stopped": true,
+  "private_cluster_data_removed": true,
+  "shared_postgresql_service_left_running": true
+}
