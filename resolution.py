@@ -331,7 +331,7 @@ def _ranked_rows(cur, scored_sql, params, *, limit=MAX_CANDIDATES, offset=0):
 
 def _search(cur, source, params, variants, aliases, *, keywords=True, exact_only=False,
             limit=MAX_CANDIDATES, offset=0, name_sql='s.name', whole_words=False, party=False, customer_prefix=False,
-            customer_alias_substrings=False):
+            customer_legacy_substrings=False):
     '''Rank the deduplicated union of spellings, then count and page in SQL.'''
     variants = [variant for variant in variants if variant.text]
     if not variants:
@@ -353,13 +353,16 @@ def _search(cur, source, params, variants, aliases, *, keywords=True, exact_only
             # Literal prefixes: SQL wildcard characters never broaden a search.
             # Keep customer typeahead separate from product/supplier identities.
             score = f'''CASE
-                WHEN starts_with(lower(btrim(regexp_replace(s.name, '\\s+', ' ', 'g'))), v.query)
-                  OR starts_with(s.id::text, v.query) THEN 0.95
+                WHEN starts_with(lower(btrim(regexp_replace(s.name, '\\s+', ' ', 'g'))), v.query) THEN 0.95
                 WHEN EXISTS (SELECT 1 FROM regexp_split_to_table(lower(s.name), '[^[:alnum:]]+') word
                              WHERE starts_with(word, v.query)) THEN 0.9
-                ELSE LEAST(({score}), 0.8) END'''
-            if customer_alias_substrings:
-                score = f'''GREATEST(({score}), CASE WHEN EXISTS (
+                WHEN cardinality(v.patterns) > 0 AND lower({name_sql}) ~ ALL(v.patterns) THEN 0.8
+                WHEN v.fuzzy THEN LEAST(similarity(lower({name_sql}), v.query), 0.79) ELSE 0.0 END'''
+            if customer_legacy_substrings:
+                # Legacy partial-name searches also include literal mid-word hits.
+                # Keep these below prefixes/keywords and out of confident tiers.
+                score = f'''GREATEST(({score}), CASE WHEN strpos(lower(s.name), v.query) > 0
+                    THEN 0.79 ELSE 0.0 END, CASE WHEN EXISTS (
                     SELECT 1 FROM unnest(s.legacy_aliases) alias
                     WHERE strpos(lower(alias), v.query) > 0) THEN 0.8 ELSE 0.0 END)'''
         where = r'''WHERE EXISTS (SELECT 1 FROM unnest(s.exact_terms) term
@@ -384,7 +387,7 @@ def _search(cur, source, params, variants, aliases, *, keywords=True, exact_only
                 ('alias' if variant.expansions else 'keyword') if row['score'] == 0.8 else 'trigram')
             if customer_prefix and not exact and row['score'] in (0.95, 0.9):
                 row['tier'] = 'keyword'
-                row['why'] = ('Name or customer code starts with the query' if row['score'] == 0.95
+                row['why'] = ('Name starts with the query' if row['score'] == 0.95
                               else 'A name word starts with the query')
             row['_variant'] = variant
         if rows or exact_only:
@@ -629,9 +632,8 @@ def _parties(cur, req, variants, aliases, *, legacy_alias_substrings=False):
     # Remove acronym periods but keep other punctuation as word boundaries.
     party_name = "regexp_replace(replace(p.name, '.', ''), '[^a-zA-Z0-9 ]', ' ', 'g')"
     customer_fields = f'p.contact_name, p.phone, p.email, {old_aliases} AS legacy_aliases,' if customer else ''
-    code_terms = 'ARRAY[p.id::text]' if customer else 'ARRAY[]::text[]'
     source = f'''SELECT p.id, p.name, {customer_fields} {party_name} AS search_name,
-                  ARRAY[p.name, {party_name}] || {code_terms} || {old_aliases} ||
+                  ARRAY[p.name, {party_name}] || {old_aliases} ||
                   CASE WHEN p.id = ANY(%s::int[]) THEN ARRAY[%s::text] ELSE ARRAY[]::text[] END AS exact_terms,
                   {rank} AS context_rank, 0::float AS recent_activity
                   FROM {'customers' if customer else 'suppliers'} p
@@ -648,12 +650,11 @@ def _parties(cur, req, variants, aliases, *, legacy_alias_substrings=False):
     # _search accepts a private search_name override for punctuation-only folds.
     rows = _search(cur, source, params, variants, party_aliases, limit=req.limit, offset=req.offset,
                    name_sql='s.search_name', whole_words=True, party=True, customer_prefix=customer,
-                   customer_alias_substrings=customer and legacy_alias_substrings)
+                   customer_legacy_substrings=customer and legacy_alias_substrings)
     for row in rows:
         if row['context_rank']:
             row['context_boost'] = 'Customer address agrees; ranking only'
-        if (row['score'] == 1 and normalize(row['name']) != normalize(req.query)
-                and not (customer and str(row['id']) == normalize(req.query))):
+        if row['score'] == 1 and normalize(row['name']) != normalize(req.query):
             row['tier'], row['why'] = 'alias', 'Exact party alias'
     return rows
 
