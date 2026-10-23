@@ -73,10 +73,49 @@ def test_name_prefix_then_word_prefix_then_existing_fuzzy(client, customer, endp
 
 
 @pytest.mark.parametrize('endpoint', ENDPOINTS)
-def test_customer_id_code_exact_and_prefix(client, customer, endpoint):
-    customer('Code-only Customer', id=867530)
-    assert search(client, endpoint, '8675')[0]['name'] == 'Code-only Customer'
-    assert search(client, endpoint, '867530')[0]['name'] == 'Code-only Customer'
+@pytest.mark.parametrize('query', ['8675', '867530'])
+def test_internal_customer_ids_never_match(client, customer, endpoint, query):
+    customer('Unrelated Customer', id=867530)
+    assert search(client, endpoint, query) == []
+    if endpoint == '/resolve':
+        response = client.post('/resolve', headers={'X-API-Key': 'a4-dashboard'},
+                               json={'kind': 'customer', 'query': query}).json()
+        assert response['outcome'] == 'none' and response['match'] is None
+        assert response['confidence'] == 'none'
+
+
+@pytest.mark.parametrize('endpoint', ENDPOINTS)
+@pytest.mark.parametrize('source', ['legacy', 'search'])
+def test_real_numeric_customer_codes_match_their_alias_not_an_internal_id(
+        client, catalog, customer, endpoint, source):
+    customer('Unrelated Internal ID', id=867530)
+    cid = customer('Real Code Customer')
+    if source == 'legacy':
+        catalog['cur'].execute('INSERT INTO customer_aliases(customer_id,alias) VALUES (%s,%s)',
+                               (cid, '867530'))
+    else:
+        alias(catalog, kind='customer', text='867530', expansion=None, customer_id=cid)
+    assert [row['name'] for row in search(client, endpoint, '867530')] == ['Real Code Customer']
+    result = r.resolve(catalog['cur'], r.ResolveRequest(kind='customer', query='867530'))
+    assert result['match']['id'] == cid and result['match']['tier'] == 'alias'
+    assert result['confidence'] == 'high'
+
+
+@pytest.mark.parametrize('query', ['Sunshine Granolaa', 'Sunshine Granola, Inc.', 'Setton Farmss'])
+def test_customer_near_misses_remain_low_confidence_trigrams(catalog, customer, query):
+    cid = customer('Setton Farms' if query.startswith('Setton') else 'Sunshine Granola')
+    result = r.resolve(catalog['cur'], r.ResolveRequest(kind='customer', query=query))
+    choice = next(row for row in result['candidates'] if row['id'] == cid)
+    assert choice['tier'] == 'trigram' and choice['score'] <= 0.79
+    assert result['confidence'] == 'low'
+
+
+def test_customer_reordered_literal_words_remain_keywords(catalog, customer):
+    cid = customer('Setton Farms')
+    result = r.resolve(catalog['cur'], r.ResolveRequest(kind='customer', query='farms setton'))
+    assert result['match']['id'] == cid
+    assert result['match']['tier'] == 'keyword' and result['match']['score'] == 0.8
+    assert result['confidence'] == 'medium'
 
 
 @pytest.mark.parametrize('endpoint', ENDPOINTS)
@@ -97,7 +136,7 @@ def test_word_boundaries_inactive_and_literal_search_text(client, customer, endp
     customer('Asset Holdings')
     assert 'Acme-Farmfoods' in [row['name'] for row in search(client, endpoint, 'farm')]
     assert 'Setton Farms' not in [row['name'] for row in search(client, endpoint, 'set')]
-    assert 'Asset Holdings' not in [row['name'] for row in search(client, endpoint, 'set')]
+    assert ('Asset Holdings' in [row['name'] for row in search(client, endpoint, 'set')]) == (endpoint != '/resolve')
     for query in ('%_', '[s', r'\s'):
         assert search(client, endpoint, query) == []
 
@@ -140,7 +179,6 @@ def test_customer_prefixes_keep_known_customer_keyword_tier(catalog, customer, q
     assert choice['tier'] == 'keyword'
     assert result['confidence'] == 'medium'
 
-
 @pytest.mark.parametrize('endpoint', ['/customers/search', '/dashboard/api/search'])
 @pytest.mark.parametrize('query', ['sf-co', 'f-code'])
 def test_legacy_partial_alias_search_survives(client, catalog, customer, endpoint, query):
@@ -156,3 +194,30 @@ def test_legacy_alias_fallback_is_ranked_below_name_prefixes(client, catalog, cu
     catalog['cur'].execute('INSERT INTO customer_aliases(customer_id,alias) VALUES (%s,%s)', (cid, 'set-alias'))
     names = [row['name'] for row in search(client, '/customers/search', 'set')]
     assert names.index('Set Name Prefix') < names.index('Zebra Set Word Prefix') < names.index('Alpha Canonical Customer')
+
+
+@pytest.mark.parametrize('endpoint', ['/customers/search', '/dashboard/api/search'])
+@pytest.mark.parametrize('query,name', [('wells', 'SevenWells Granola Co'), ('ton', 'Setton Farms')])
+def test_legacy_middle_of_name_search_survives(client, customer, endpoint, query, name):
+    customer(name)
+    assert name in [row['name'] for row in search(client, endpoint, query)]
+
+@pytest.mark.parametrize('endpoint', ['/customers/search', '/dashboard/api/search'])
+def test_legacy_middle_of_name_hits_rank_after_exact_name_and_word_prefixes(
+        client, customer, endpoint):
+    customer('Ton Foods')
+    customer('Zebra Ton Foods')
+    customer('Setton Farms')
+    names = [row['name'] for row in search(client, endpoint, 'ton')]
+    assert names.index('Ton Foods') < names.index('Zebra Ton Foods') < names.index('Setton Farms')
+    customer('Ton')
+    # Exact identities intentionally take precedence over partial suggestions.
+    assert [row['name'] for row in search(client, endpoint, 'ton')] == ['Ton']
+
+
+def test_legacy_middle_of_name_fallback_stays_below_keyword_confidence(catalog, customer):
+    cid = customer('SevenWells Granola Co')
+    req = r.ResolveRequest(kind='customer', query='wells')
+    rows = r._parties(catalog['cur'], req, [], [], legacy_alias_substrings=True)
+    choice = next(row for row in rows if row['id'] == cid)
+    assert choice['score'] == 0.79 and choice['tier'] == 'trigram'
