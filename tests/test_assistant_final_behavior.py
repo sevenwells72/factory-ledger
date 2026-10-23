@@ -177,14 +177,15 @@ def test_shipping_shortage_uses_real_order_allocation_and_does_not_post(client, 
 
 
 @pytest.mark.parametrize('spanish', [False, True])
-def test_existing_short_customer_is_offered_even_if_model_creates_directly(client, actors, db_cursor, monkeypatch, spanish):
+def test_short_customer_suggestion_is_offered_even_if_model_creates_directly(client, actors, db_cursor, monkeypatch, spanish):
     db_cursor.execute("INSERT INTO customers(name,active) VALUES('Setton Farms',true) RETURNING id")
     existing = db_cursor.fetchone()['id']
     h = headers(actors['owner']['key'])
     own_chat = client.post('/assistant/session', headers=h).json()['session_id'], h
     requests = model(monkeypatch, ('prepare_create_customer', {'name': 'Setton'}))
     choice = card(turn(client, own_chat, 'Agrega Setton como cliente nuevo' if spanish else 'Add Setton as a new customer'), 'choices')
-    assert choice['existing_customer_only'] and [c['id'] for c in choice['result']['candidates']] == [existing]
+    assert not choice.get('existing_customer_only')
+    assert [c['id'] for c in choice['result']['candidates']] == [existing]
     assert len(requests) == 1
     model(monkeypatch)
     result = card(turn(client, own_chat, '', choice_id=choice['id'], selected_id=existing), 'handoff')

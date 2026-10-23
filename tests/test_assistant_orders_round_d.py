@@ -65,9 +65,9 @@ def test_open_orders_excludes_nothing_left_without_closing_and_exposes_effective
     ('Ship S O two six one oh one five dash zero zero one.', 'S O two six one oh one five dash zero zero one'),
     ('Ship SO 261015 001.', 'SO 261015 001'),
     ('Envía ese o dos seis uno cero uno cinco guion cero cero uno.', 'ese o dos seis uno cero uno cinco guion cero cero uno'),
-    ('Ship the Sunshine order.', 'the Sunshine order'),
-    ('Ship the order for Setton.', 'order for Setton'),
-    ('Envía el pedido de Setton.', 'el pedido de Setton'),
+    ('Ship the Sunshine Granola order.', 'the Sunshine Granola order'),
+    ('Ship the order for Setton Farms.', 'order for Setton Farms'),
+    ('Envía el pedido de Setton Farms.', 'el pedido de Setton Farms'),
 ])
 def test_ship_voice_or_customer_resolves_order_and_never_asks_for_sku(client, chat, orders, monkeypatch, text, query):
     target = orders['Setton Farms' if 'Setton' in text else 'Sunshine Granola']
@@ -106,9 +106,9 @@ def test_shipping_question_uses_effective_physical_remaining_and_keeps_bulk_in_p
 
 @pytest.mark.parametrize('spanish', [False, True])
 def test_missing_order_uses_customer_open_choices_and_order_copy(client, chat, orders, monkeypatch, spanish):
-    model(monkeypatch, ('resolve', {'kind':'customer','query':'Setton','context':{'action':'ship'}}),
+    model(monkeypatch, ('resolve', {'kind':'customer','query':'Setton Farms','context':{'action':'ship'}}),
         ('resolve', {'kind':'order','query':'SO-261015-999','context':{'action':'ship','customer_id':orders['Setton Farms']['customer_id']}}))
-    result = card(turn(client, chat, 'Envía el pedido SO-261015-999 de Setton' if spanish else 'Ship order SO-261015-999 for Setton'), 'choices')
+    result = card(turn(client, chat, 'Envía el pedido SO-261015-999 de Setton Farms' if spanish else 'Ship order SO-261015-999 for Setton Farms'), 'choices')
     assert result['order_not_found'] is True and result['resolution_kind'] == 'order'
     assert [row['id'] for row in result['result']['candidates']] == [orders['Setton Farms']['id']]
     assert 'SKU' not in result['message']
@@ -127,8 +127,8 @@ def test_multiple_customer_open_orders_require_human_button(client, chat, orders
     db_cursor.execute("INSERT INTO sales_orders(order_number,customer_id,state,status) VALUES ('SO-261015-004',%s,'open','confirmed') RETURNING id", (orders['Setton Farms']['customer_id'],))
     second = db_cursor.fetchone()['id']
     db_cursor.execute('INSERT INTO sales_order_lines(sales_order_id,product_id,quantity_lb) VALUES (%s,%s,25)', (second, items['finished']['id']))
-    model(monkeypatch, ('resolve', {'kind':'order','query':'Setton','context':{'action':'ship'}}))
-    result = card(turn(client, chat, 'Envía el pedido de Setton' if spanish else 'Ship the order for Setton'), 'choices')
+    model(monkeypatch, ('resolve', {'kind':'order','query':'Setton Farms','context':{'action':'ship'}}))
+    result = card(turn(client, chat, 'Envía el pedido de Setton Farms' if spanish else 'Ship the order for Setton Farms'), 'choices')
     assert {row['id'] for row in result['result']['candidates']} == {second, orders['Setton Farms']['id']}
 
 
@@ -211,7 +211,7 @@ def test_parent_with_no_available_lots_still_offers_different_batch(client, chat
 @pytest.mark.parametrize('spanish', [False, True])
 def test_missing_order_recovers_customer_from_original_transcript_when_model_omits_it(client, chat, orders, monkeypatch, spanish):
     model(monkeypatch, ('resolve', {'kind':'order','query':'SO-999999-999','context':{'action':'ship'}}))
-    result = card(turn(client, chat, 'Envía el pedido de Sunshine SO-999999-999.' if spanish else 'Ship the Sunshine order SO-999999-999.'), 'choices')
+    result = card(turn(client, chat, 'Envía el pedido de Sunshine Granola SO-999999-999.' if spanish else 'Ship the Sunshine Granola order SO-999999-999.'), 'choices')
     assert result['order_not_found'] is True
     assert [row['id'] for row in result['result']['candidates']] == [orders['Sunshine Granola']['id']]
     assert 'SKU' not in result['message']
@@ -288,9 +288,9 @@ def test_opaque_so_like_identifier_is_order_not_found_not_customer_sku(client, c
 @pytest.mark.parametrize('spanish', [False, True])
 def test_wrong_product_tool_for_customer_order_still_finds_order(client, chat, orders, monkeypatch, spanish):
     target = orders['Sunshine Granola']
-    model(monkeypatch, ('resolve', {'kind':'product','query':'Sunshine','context':{'action':'ship'}}),
+    model(monkeypatch, ('resolve', {'kind':'product','query':'Sunshine Granola','context':{'action':'ship'}}),
           ('prepare_ship_order', {'order_id':target['id'],'ship_all':None,'lines':None,'bol_reference':None}))
-    result = card(turn(client, chat, 'Envía el pedido de Sunshine.' if spanish else 'Ship the Sunshine order.'), 'missing_facts')
+    result = card(turn(client, chat, 'Envía el pedido de Sunshine Granola.' if spanish else 'Ship the Sunshine Granola order.'), 'missing_facts')
     assert result['shipping_quantity_needed'] is True and result['order']['order_number'] == target['number']
     assert 'SKU' not in result['message']
 

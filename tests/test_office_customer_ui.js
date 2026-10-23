@@ -63,6 +63,33 @@ for(const outcome of ['match','ambiguous'])test('office offers a new customer be
  add.onclick();assert.equal(h.find(n=>n.name==='name').value,'Sunrise Bakery');
  assert.equal(h.tickets.length,0,'Choosing Add only opens the customer form');
 });
+for(const [query,name] of [['Sun','Sunshine Granola'],['Green','Greenfield Bakery'],['Granola','Sunshine Granola'],['Wells','SevenWells Granola Co']]){
+ for(const language of ['en','es'])test('Office '+query+' suggestions require an explicit customer choice in '+language,async()=>{
+  const h=await harness({language}),spanish=language==='es',existing={id:88,name};
+  h.setResolver(body=>body.kind==='customer'?{outcome:'ambiguous',match:null,candidates:[existing]}:
+   body.kind==='product'?{outcome:'match',match:{id:44,name:'Test product'}}:
+   {outcome:'match',draft:{product_id:44,quantity:2,unit:'cases'}});
+  const picker=await h.search('customer',query),input=h.find(node=>node.tag==='input',picker);
+  const addLabel=spanish?"Agregar '"+query+"' como cliente nuevo":"Add '"+query+"' as a new customer";
+  assert.ok(h.button(name,picker));assert.ok(h.button(addLabel,picker));assert.equal(input.value,query);
+  assert.equal(h.find(node=>/^(Selected:|Seleccionado:)/.test(node.textContent),picker),undefined);
+  const request=h.requests.find(request=>request.body?.kind==='customer');
+  assert.equal(request.path,'/resolve');assert.equal(request.body.context.group,'office');assert.equal(request.body.context.action,'order');
+  const product=await h.search('product','Test');h.button('Test product',product).onclick();
+  h.find(node=>node.name==='quantity').value='2';h.find(node=>node.name==='unit').value='cases';
+  await h.byId('office-form').onsubmit({preventDefault(){}});
+  assert.equal(h.tickets.length,0,'A suggestion cannot become an order customer on submit');
+  assert.equal(h.failures.length,1);assert.equal(h.failures[0].message,'Choose a record / Elige un registro');
+  assert.ok(h.button(addLabel,picker),'Add as new remains available after an unchosen suggestion');
+  h.button(addLabel,picker).onclick();assert.equal(h.find(node=>node.name==='name').value,query);
+  assert.equal(h.tickets.length,0,'Add as new opens the editor without recording');
+  h.button(spanish?'Cancelar cliente nuevo':'Cancel new customer').onclick();
+  h.button(name,picker).onclick();
+  assert.equal(input.value,name);assert.ok(h.find(node=>node.textContent===(spanish?'Seleccionado: ':'Selected: ')+name,picker));
+  await h.byId('office-form').onsubmit({preventDefault(){}});
+  assert.equal(h.tickets.length,1);assert.equal(h.tickets[0].body.customer_id,88);
+ });
+}
 test('inline customer prepares separately, keeps order fields and selects only after Record',async()=>{
  const h=await harness();h.find(n=>n.name==='customer_po').value='000NEW';h.find(n=>n.name==='quantity').value='2';h.find(n=>n.name==='unit').value='cases';
  await h.open();h.find(n=>n.name==='contact_name').value='Pat';h.button('Prepare customer').onclick();

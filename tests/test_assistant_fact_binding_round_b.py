@@ -103,7 +103,7 @@ def test_receive_case_weight_is_not_mistaken_for_total(client, chat, payload, db
     assert card['prepared']['draft']['total_lb'] == 50
 
 
-def test_open_order_customer_shorthand_uses_canonical_party_name(client, chat, items, db_cursor, monkeypatch):
+def test_open_order_customer_shorthand_requires_choice_then_uses_canonical_party_name(client, chat, items, db_cursor, monkeypatch):
     customer = 'U.N.I.P.R.O. Foodservice'
     db_cursor.execute('INSERT INTO customers(name,active) VALUES (%s,true) RETURNING id', (customer,))
     customer_id = db_cursor.fetchone()['id']
@@ -114,6 +114,15 @@ def test_open_order_customer_shorthand_uses_canonical_party_name(client, chat, i
                       (order_id, items['finished']['id']))
     model(monkeypatch, ('open_orders', {'customer': 'UNIPRO', 'product': None}))
     response = turn(client, chat, '¿Qué órdenes están abiertas para UNIPRO?')
+    assert response.status_code == 200, response.text
+    choice = response.json()['cards'][0]
+    assert choice['kind'] == 'choices' and choice['resolution_kind'] == 'customer'
+    assert choice['language'] == 'es'
+    assert [row['id'] for row in choice['result']['candidates']] == [customer_id]
+    db_cursor.execute('SELECT state FROM assistant_sessions WHERE id=%s', (chat[0],))
+    assert customer_id not in db_cursor.fetchone()['state'].get('resolved', {}).get('customer', [])
+    model(monkeypatch, ('open_orders', {'customer': 'UNIPRO', 'product': None}))
+    response = turn(client, chat, '', choice_id=choice['id'], selected_id=customer_id)
     assert response.status_code == 200, response.text
     card = response.json()['cards'][0]
     assert card['kind'] == 'read'

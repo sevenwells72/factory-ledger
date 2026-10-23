@@ -1160,7 +1160,11 @@ def test_order_choice_fetches_selected_detail_before_partial_prepare(client, act
     from tests.test_order_tickets import create_order
     chat, data, detail, args, resolve = partial_order_fixture(client, actors, db_cursor)
     create_order(client, data, actors['owner']['key'], customer_po='F1-OTHER-PO-' + data['suffix'])
-    model(monkeypatch, ('resolve', {'kind': 'order', 'query': 'open orders',
+    db_cursor.execute('SELECT name FROM customers WHERE id=%s', (data['customer'],))
+    customer_name = db_cursor.fetchone()['name']
+    # Model context IDs become usable only after FL resolves the exact customer.
+    model(monkeypatch, ('resolve', {'kind': 'customer', 'query': customer_name}),
+          ('resolve', {'kind': 'order', 'query': 'open orders',
                                   'context': {'action': 'ship', 'customer_id': data['customer']}}))
     response = turn(client, chat)
     choice = response.json()['cards'][0]

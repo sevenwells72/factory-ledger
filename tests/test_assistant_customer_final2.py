@@ -30,13 +30,13 @@ def only_card(response, kind):
 @pytest.mark.parametrize('role', ['office', 'owner'])
 @pytest.mark.parametrize('language', ['en', 'es'])
 @pytest.mark.parametrize('tool', ['resolve', 'prepare_create_customer'])
-@pytest.mark.parametrize('spelling', ['exact', 'alias', 'short'])
+@pytest.mark.parametrize('spelling', ['exact', 'alias'])
 def test_existing_customer_is_offered_and_selected_without_second_model_call(
         client, actors, db_cursor, monkeypatch, role, language, tool, spelling):
     db_cursor.execute("INSERT INTO customers(name,active) VALUES('Sunshine Granola',true) RETURNING id")
     ident = db_cursor.fetchone()['id']
     db_cursor.execute("INSERT INTO search_aliases(kind,alias,customer_id) VALUES('customer','Sunny Foods',%s)", (ident,))
-    query = {'exact': 'Sunshine Granola', 'alias': 'Sunny Foods', 'short': 'Sunshine'}[spelling]
+    query = {'exact': 'Sunshine Granola', 'alias': 'Sunny Foods'}[spelling]
     args = {'kind': 'customer', 'query': query} if tool == 'resolve' else {'name': query}
     chat = own_chat(client, actors, role)
     # The review saw this incomplete second response. It must never be requested.
