@@ -1,0 +1,117 @@
+{
+  "completed_at": "2026-10-22T20:20:24-04:00",
+  "branch": "feat/ui-wallpaper-refresh",
+  "base_commit": "27a2518655da43ae31860a0bcf8c1f73db114422",
+  "python": [
+    {
+      "key_sessions_enabled": 0,
+      "tests": 6916,
+      "passed": 6916,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit_time_seconds": 345.703,
+      "started_at": "2026-10-22T20:09:22.386260-04:00",
+      "command": "python -m pytest --junitxml=<temporary output>/python-off.xml",
+      "database_url": "postgresql://127.0.0.1:55477/fl_wallpaper_py_off",
+      "log": "python-off.log"
+    },
+    {
+      "key_sessions_enabled": 1,
+      "tests": 6916,
+      "passed": 6916,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit_time_seconds": 258.982,
+      "started_at": "2026-10-22T20:15:16.890261-04:00",
+      "command": "python -m pytest --junitxml=<temporary output>/python-on.xml",
+      "database_url": "postgresql://127.0.0.1:55477/fl_wallpaper_py_on",
+      "log": "python-on.log"
+    }
+  ],
+  "node": {
+    "tests": 562,
+    "pass": 562,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "duration_ms": 1001.378375,
+    "command": "node --test tests/test_*.js",
+    "log": "node.log",
+    "started_at": "2026-10-22T20:26:34-04:00",
+    "completed_at": "2026-10-22T20:26:35-04:00",
+    "css_html_sha256": {
+      "dashboard/entry.html": "84e35abc6af9bc571cc3d036dec27ab80f47640cecb59df8554fa6f63ff5a247",
+      "dashboard/exceptions.html": "8c2b270c4c76a601d1726be0f90f00c4233148f6effb636d8dcb7c5178906603",
+      "dashboard/fl-assistant.html": "79fc169d96960ff36193aa924c9b96ea931799840bd9c4cc3c0c84bb76c93eda",
+      "dashboard/history.html": "79bf4a743751bc0f04dd405350216cf0c89b6dc2436d04124002dc96646905d4",
+      "dashboard/index.html": "7c34c03d93a3b9006a2ac14b632341e465f60d9169a87e4c598eb4e08a41ed83",
+      "dashboard/ledger-forms.css": "c249f379de97a85e072147a9ca6dc3ba8dfe56f1abd81a78c1fd350888bf5d13",
+      "dashboard/legal/eula.html": "ca75564e4b6a321b5dfacca8b3d54268a2f67890426babcbb7e9c2de3f3dfba1",
+      "dashboard/legal/privacy.html": "faae09384eeaf71fdf9c4dfe32b67e3a37a5cd2f79c1fe4f88db6f3319d23a41",
+      "dashboard/office.html": "be09c867a32f129912b03c4d653f0a876537920986b390ceca1dd89d847c93e1",
+      "dashboard/process-flow.html": "0f13692dac0b844bb88f280b7112cbd02a05e3a0f7782a9bd2fadf8bcffd845e",
+      "dashboard/receipt.html": "6ec764e010f1a23dd804a40f17ed238e11d034843b6eeb1fe76f785a97ab79c0",
+      "dashboard/runs.html": "2f057da6eb04d15f112ed1eb83eee5e73fd19deb4ec374bc3451537180539a42",
+      "dashboard/sankey.html": "6155aacc4c17660ce77b17bf0cc38fece2fbae3335bcdd6868ca6ac6b37352a5",
+      "dashboard/scheduler/seven-wells-production-board.html": "0e979afde7e8fa26c88267d218addd30b9a063dc498b72a12bce44a26aa85254",
+      "dashboard/shift-summary.html": "f2b9497a712157808a52af042eeb35714f6e60a6667bfe8ebc397139578193a2",
+      "dashboard/traceability.html": "6cc7585d5bad1ba034cf152acb7900069b66b3884b238cace5984d0c82862250",
+      "dashboard/wallpaper.css": "a8e7a89138588ffef1d1792a3a3b9e29a3cfc9d854c3cf4ed4cd78fc5d19f63f"
+    }
+  },
+  "database_isolation": {
+    "server": "PostgreSQL 17.11 (Homebrew)",
+    "host": "127.0.0.1",
+    "port": 55477,
+    "data_directory": "/tmp/fl_wallpaper_tests_20261022/pgdata",
+    "schema": "tests/schema/schema.sql",
+    "extension": "pg_trgm",
+    "fresh_database_per_mode": true,
+    "hosted_services_used": false,
+    "task_databases_dropped": [
+      "fl_wallpaper_py_off",
+      "fl_wallpaper_py_on"
+    ],
+    "server_stopped": true,
+    "cleanup_log": "cleanup.log"
+  },
+  "environment_notes": [
+    "Used a fresh task-only Python 3.12.14 venv installed from requirements.txt and tests/requirements-test.txt.",
+    "The existing shared venv was left unchanged: it had Pydantic 2.13.5 and lacked jsonschema; the initial collection attempt is retained only in the temporary directory.",
+    "Passing runs used pinned Pydantic 2.14.1 and inherited no hosted database or model credentials.",
+    "Both Python runs reported existing deprecation warnings; no failures, errors or skips.",
+    "Large raw JUnit XML is retained in /tmp/fl_wallpaper_tests_20261022, outside the committed evidence.",
+    "No application, migration, or test code was changed by this verification task."
+  ],
+  "css_html_sha256": {
+    "dashboard/entry.html": "84e35abc6af9bc571cc3d036dec27ab80f47640cecb59df8554fa6f63ff5a247",
+    "dashboard/exceptions.html": "8c2b270c4c76a601d1726be0f90f00c4233148f6effb636d8dcb7c5178906603",
+    "dashboard/fl-assistant.html": "79fc169d96960ff36193aa924c9b96ea931799840bd9c4cc3c0c84bb76c93eda",
+    "dashboard/history.html": "79bf4a743751bc0f04dd405350216cf0c89b6dc2436d04124002dc96646905d4",
+    "dashboard/index.html": "7c34c03d93a3b9006a2ac14b632341e465f60d9169a87e4c598eb4e08a41ed83",
+    "dashboard/ledger-forms.css": "c249f379de97a85e072147a9ca6dc3ba8dfe56f1abd81a78c1fd350888bf5d13",
+    "dashboard/legal/eula.html": "ca75564e4b6a321b5dfacca8b3d54268a2f67890426babcbb7e9c2de3f3dfba1",
+    "dashboard/legal/privacy.html": "faae09384eeaf71fdf9c4dfe32b67e3a37a5cd2f79c1fe4f88db6f3319d23a41",
+    "dashboard/office.html": "be09c867a32f129912b03c4d653f0a876537920986b390ceca1dd89d847c93e1",
+    "dashboard/process-flow.html": "0f13692dac0b844bb88f280b7112cbd02a05e3a0f7782a9bd2fadf8bcffd845e",
+    "dashboard/receipt.html": "6ec764e010f1a23dd804a40f17ed238e11d034843b6eeb1fe76f785a97ab79c0",
+    "dashboard/runs.html": "2f057da6eb04d15f112ed1eb83eee5e73fd19deb4ec374bc3451537180539a42",
+    "dashboard/sankey.html": "6155aacc4c17660ce77b17bf0cc38fece2fbae3335bcdd6868ca6ac6b37352a5",
+    "dashboard/scheduler/seven-wells-production-board.html": "0e979afde7e8fa26c88267d218addd30b9a063dc498b72a12bce44a26aa85254",
+    "dashboard/shift-summary.html": "f2b9497a712157808a52af042eeb35714f6e60a6667bfe8ebc397139578193a2",
+    "dashboard/traceability.html": "6cc7585d5bad1ba034cf152acb7900069b66b3884b238cace5984d0c82862250",
+    "dashboard/wallpaper.css": "b6dbeac8af81f41c5cfdf316d4a7c4ca6647c642b3eff94c6c90a01edcd13a82"
+  },
+  "updated_at": "2026-10-22T20:26:35-04:00",
+  "css_html_sha256_scope": "Preserved snapshot from the completed Python verification, before the final CSS-only contrast correction. The latest Node run has its own final-source hashes under node.css_html_sha256.",
+  "final_css_delta": {
+    "file": "dashboard/wallpaper.css",
+    "before_sha256": "b6dbeac8af81f41c5cfdf316d4a7c4ca6647c642b3eff94c6c90a01edcd13a82",
+    "after_sha256": "a8e7a89138588ffef1d1792a3a3b9e29a3cfc9d854c3cf4ed4cd78fc5d19f63f",
+    "change": ".late-lag now uses color: var(--fl-amber).",
+    "verification": "Repeated the complete 562-test Node suite after this CSS-only correction. Python results and earlier source snapshot are preserved; Python was not repeated for the CSS-only correction."
+  }
+}

@@ -1,0 +1,398 @@
+/* Original scenic theme. Replace this single URL to use another wallpaper.
+   SVG source: assets/wallpaper.svg; the smaller WebP is served to the browser. */
+:root {
+  color-scheme: light;
+  --fl-wallpaper: url("assets/wallpaper.webp");
+  --fl-forest: #145438;
+  --fl-forest-hover: #0c4029;
+  --fl-white: #ffffff;
+  --fl-paper: #f4f7f1;
+  --fl-panel: rgb(255 255 255 / 94%);
+  --fl-subsection: #edf5e9;
+  --fl-hover: #e2eddc;
+  --fl-ink: #19372b;
+  --fl-secondary: #365344;
+  --fl-muted: #4d6256;
+  --fl-line: #b9cbb9;
+  --fl-control-line: #758c78;
+  --fl-link: #155437;
+  --fl-icon-bg: #dcefd3;
+  --fl-icon-ink: #20542f;
+  --fl-shadow: 0 10px 32px rgb(15 43 26 / 13%), 0 2px 6px rgb(15 43 26 / 6%);
+  --fl-header-top: rgb(8 31 23 / 94%);
+  --fl-header-bottom: rgb(12 39 28 / 84%);
+  --fl-header-control: rgb(8 31 23 / 36%);
+  --fl-header-line: rgb(255 255 255 / 48%);
+  --fl-header-hover: rgb(8 31 23 / 72%);
+  --fl-header-focus: #f9da8a;
+  --fl-focus: #755019;
+  --fl-danger: #82232a;
+  --fl-danger-line: #b02930;
+  --fl-danger-bg: #fff0f0;
+  --fl-success: #125831;
+  --fl-success-line: #187342;
+  --fl-success-bg: #edf8f0;
+  --fl-neutral: #26323e;
+  --fl-neutral-line: #4a5a6a;
+  --fl-neutral-bg: #eef1f4;
+  --fl-void: #222222;
+  --fl-void-line: #4a4a4a;
+  --fl-void-bg: #ececec;
+  --fl-amber: #71420a;
+  --fl-amber-line: #a76813;
+  --fl-amber-bg: #fff6e4;
+  --fl-radius: 16px;
+  --fl-blur: 12px;
+  /* One decorative book glyph; masks inherit the semantic icon colour. */
+  --fl-section-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='M12 5v15M3 4c4-1 6 0 9 2 3-2 5-3 9-2v14c-4-1-6 0-9 2-3-2-5-3-9-2z'/%3E%3C/svg%3E");
+}
+
+/* Keep the user's existing dark preference (ACCESS-001). Dark glass uses
+   the same opacity as the light cards, with brighter text/link tokens. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --fl-paper: #14241c;
+  --fl-panel: rgb(23 40 31 / 94%);
+  --fl-subsection: #20382a;
+  --fl-hover: #2b4635;
+  --fl-ink: #f0f6ed;
+  --fl-secondary: #d4e3d0;
+  --fl-muted: #b1c5af;
+  --fl-line: #526d56;
+  --fl-control-line: #849c86;
+  --fl-link: #a9dfb5;
+  --fl-icon-bg: #2a5135;
+  --fl-icon-ink: #c2ecc2;
+  --fl-focus: #f9da8a;
+  --fl-danger: #ffb9be;
+  --fl-danger-bg: #40252a;
+  --fl-success: #b8e5c7;
+  --fl-success-bg: #203e2c;
+  --fl-neutral: #dbe5ed;
+  --fl-neutral-bg: #2b353e;
+  --fl-void: #e5e5e5;
+  --fl-void-bg: #343434;
+  --fl-amber: #f4d39b;
+  --fl-amber-bg: #44361f;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+    color-scheme: dark;
+    --fl-paper: #14241c;
+    --fl-panel: rgb(23 40 31 / 94%);
+    --fl-subsection: #20382a;
+    --fl-hover: #2b4635;
+    --fl-ink: #f0f6ed;
+    --fl-secondary: #d4e3d0;
+    --fl-muted: #b1c5af;
+    --fl-line: #526d56;
+    --fl-control-line: #849c86;
+    --fl-link: #a9dfb5;
+    --fl-icon-bg: #2a5135;
+    --fl-icon-ink: #c2ecc2;
+    --fl-focus: #f9da8a;
+    --fl-danger: #ffb9be;
+    --fl-danger-bg: #40252a;
+    --fl-success: #b8e5c7;
+    --fl-success-bg: #203e2c;
+    --fl-neutral: #dbe5ed;
+    --fl-neutral-bg: #2b353e;
+    --fl-void: #e5e5e5;
+    --fl-void-bg: #343434;
+    --fl-amber: #f4d39b;
+    --fl-amber-bg: #44361f;
+  }
+}
+
+/* Reuse the established dashboard, Assistant and scheduler token names. */
+:root, :root[data-theme] {
+  --bg: var(--fl-paper);
+  --surface: var(--fl-paper);
+  --surface-alt: var(--fl-subsection);
+  --surface-hover: var(--fl-hover);
+  --surface2: var(--fl-subsection);
+  --bg-card: var(--fl-paper);
+  --card-bg: var(--fl-paper);
+  --card-border: var(--fl-line);
+  --border: var(--fl-line);
+  --line: var(--fl-line);
+  --text: var(--fl-ink);
+  --text-secondary: var(--fl-secondary);
+  --text-muted: var(--fl-muted);
+  --text-dimmed: var(--fl-muted);
+  --muted: var(--fl-muted);
+  --primary: var(--fl-forest);
+  --primary-hover: var(--fl-forest-hover);
+  --primary-text: var(--fl-link);
+  --accent: var(--fl-link);
+  --danger: var(--fl-danger);
+  --fl-action: var(--fl-forest);
+  --fl-action-hover: var(--fl-forest-hover);
+  --rail: var(--fl-subsection);
+  --tint: var(--fl-subsection);
+  --row-alt: var(--fl-subsection);
+  --row-header: var(--fl-subsection);
+  --panel-header-bg: var(--fl-subsection);
+  --search-bg: var(--fl-paper);
+  --search-border: var(--fl-control-line);
+  --radius: var(--fl-radius);
+  --shadow: var(--fl-shadow);
+}
+
+:root body {
+  min-height: 100dvh;
+  background-color: var(--bg);
+  background-image: var(--fl-wallpaper);
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  color: var(--text);
+}
+:root :is(input, textarea)::placeholder { color: var(--text-muted); opacity: 1; }
+
+/* The darkest-to-lightest overlay endpoint guarantees AA white text even
+   over a replacement image's brightest pixel. Inputs keep solid surfaces. */
+:is(.ledger-page > header, .app-header, .header, .runs-header, .topbar, .site-nav, #topbar) {
+  background: linear-gradient(115deg, var(--fl-header-top), var(--fl-header-bottom));
+  color: var(--fl-white);
+  border-color: var(--fl-header-line);
+}
+:is(.ledger-page > header, .app-header, .header, .runs-header, .topbar, .site-nav, #topbar)
+  :is(h1, .site-nav-brand, .identity, #identity, .refresh-ts, .header-right, .receipt-tools, .receipt-lookup label, .brand, .meta) {
+  color: var(--fl-white);
+}
+:is(.ledger-page > header, .app-header, .header, .runs-header, .topbar, .site-nav) a {
+  color: var(--fl-white);
+}
+:is(.ledger-page > header, .app-header, .header, .runs-header, .topbar, .site-nav)
+  :is(button, .nav-button, .receipt-tools > a[data-fl-write-ui], .tools-menu > summary, .reference-calendar > summary) {
+  color: var(--fl-white);
+  background: var(--fl-header-control);
+  border: 1px solid var(--fl-header-line);
+}
+:is(.ledger-page > header, .app-header, .header, .runs-header, .topbar, .site-nav)
+  :is(button, .nav-button, .receipt-tools > a[data-fl-write-ui], .tools-menu > summary):hover {
+  background: var(--fl-header-hover);
+  color: var(--fl-white);
+}
+:is(.ledger-page > header, .app-header, .header, .runs-header, .topbar, .site-nav) :focus-visible {
+  outline-color: var(--fl-header-focus);
+}
+:is(.ledger-page > header, .app-header, .header, .runs-header, .topbar)
+  :is(input, select, .search-dropdown, .reference-calendar-panel) {
+  color: var(--text);
+  background: var(--surface);
+}
+.site-nav-link.active { background: var(--primary); }
+.day-card.today .day-card-date .day-name, .day-card-detail-hint, .production-detail-eyebrow,
+.show-more-btn:hover, .lot-link:hover, .order-link:hover, .supplies-subtab.active {
+  color: var(--primary-text);
+}
+.late-lag { color: var(--fl-amber); }
+.topbar .brand-mark { color: var(--fl-white); border-color: var(--fl-header-line); }
+.ledger-page .ledger-brand { gap: 10px; font-weight: 700; text-decoration: none; }
+.fl-brand-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--fl-header-line);
+  border-radius: 10px;
+  font-size: 14px;
+}
+.ledger-page .nav-button { padding: 9px 12px; border-radius: var(--radius-sm, 8px); text-decoration: none; }
+/* Popovers are independent solid surfaces, not part of the image header. */
+:root body :is(.app-header, .header, .topbar) :is(.reference-calendar-panel, .search-dropdown) :is(button, a, label) {
+  color: var(--text);
+  background: var(--surface);
+  border-color: var(--border);
+}
+:root body :is(.app-header, .header, .topbar) :is(.reference-calendar-panel, .search-dropdown) :is(button, a):hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+:root body :is(.app-header, .header, .topbar) :is(.reference-calendar-panel, .search-dropdown)
+  :is(button[aria-pressed="true"], button[aria-selected="true"], button.is-today) {
+  color: var(--text);
+  background: var(--surface-hover);
+  border-color: var(--primary-text);
+  outline: 2px solid var(--primary-text);
+  outline-offset: -2px;
+}
+:root body :is(.app-header, .header, .topbar) :is(.reference-calendar-panel, .search-dropdown) :focus-visible {
+  outline-color: var(--primary-text);
+}
+
+/* Panels use glass only at their outer boundary; controls and semantic
+   warning/success fills stay solid so wallpaper detail cannot obscure them. */
+:is(.section, .stat-card, .day-card, .flow-compact-list article, .run-day),
+.ledger-page .panel,
+.fl-assistant-page :is(.welcome, .sign-in-panel, .composer, .card),
+.fl-summary-page .panel,
+.fl-summary-page #summary-panel,
+.wallpaper-content {
+  background: var(--fl-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--fl-radius);
+  box-shadow: var(--fl-shadow);
+  -webkit-backdrop-filter: blur(var(--fl-blur));
+  backdrop-filter: blur(var(--fl-blur));
+}
+.ledger-page fieldset,
+.ledger-page .new-customer-option,
+.fl-assistant-page :is(.ingredient-confirmation, .lot-confirmation) {
+  background: var(--fl-subsection);
+  border-color: var(--border);
+  border-radius: var(--radius-sm, 8px);
+}
+.ledger-page .new-customer-option { padding: 16px; }
+.ledger-page #content > :is(label, .toolbar, p), .ledger-page #resolution > p {
+  background: var(--fl-panel);
+  border-radius: var(--fl-radius);
+  padding: 12px 16px;
+  box-shadow: var(--fl-shadow);
+}
+.ledger-page main > h1 {
+  width: fit-content;
+  max-width: 100%;
+  padding: 10px 16px;
+  background: var(--fl-panel);
+  border-radius: var(--fl-radius);
+  box-shadow: var(--fl-shadow);
+}
+.ledger-page .panel > h2, .ledger-page legend, .section > h2, .section-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ledger-page .panel > h2::before, .ledger-page legend::before, .section > h2::before, .section-header h2::before {
+  content: "";
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--fl-icon-ink);
+  -webkit-mask: var(--fl-section-icon) center / 19px no-repeat;
+  mask: var(--fl-section-icon) center / 19px no-repeat;
+}
+/* A separate circle behind the masked glyph keeps the icon decorative. */
+.ledger-page .panel > h2, .ledger-page legend, .section > h2, .section-header h2 {
+  background-image: radial-gradient(circle at 16px 50%, var(--fl-icon-bg) 16px, transparent 16.5px);
+}
+.section > h2 { background-origin: content-box; background-repeat: no-repeat; }
+.ledger-page legend { display: inline-flex; }
+
+/* Fixed popovers use viewport coordinates; their ancestors must not create
+   a containing block through a filter. Keep their translucent panel fill. */
+.section:has(.so-explanation), .run-day:has(.so-explanation),
+#runs-screen.wallpaper-content {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.fl-assistant-page .rail {
+  background: var(--fl-panel);
+  -webkit-backdrop-filter: blur(var(--fl-blur));
+  backdrop-filter: blur(var(--fl-blur));
+}
+.fl-assistant-page .welcome { padding: 28px; margin-top: 24px; }
+.fl-assistant-page .sign-in-panel { padding: 30px; }
+.fl-assistant-page .hero-icon { background: var(--fl-icon-bg); color: var(--fl-icon-ink); border-radius: 50%; }
+.fl-assistant-page .composer-wrap { background: none; }
+.fl-assistant-page .composer-hint { background: var(--fl-panel); border-radius: 8px; padding: 8px; }
+.fl-assistant-page .day-divider { background: var(--fl-panel); border-radius: 8px; padding: 8px 12px; }
+.fl-summary-page #summary-panel { padding: 20px; }
+.fl-assistant-page .primary, .fl-assistant-page .card .button-link, .fl-summary-page .primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--fl-white);
+}
+.fl-assistant-page .primary:hover, .fl-summary-page .primary:hover { background: var(--primary-hover); }
+.fl-assistant-page :is(button, .nav-current, .brand, .card .button-link) {
+  min-height: 44px;
+  min-width: 44px;
+}
+.fl-assistant-page .card.receipt { background: var(--green-bg); }
+.fl-assistant-page .card.refusal { background: var(--red-bg); }
+.fl-assistant-page .auth-loading { background: var(--fl-panel); border-radius: var(--fl-radius); }
+.fl-assistant-page .tools-menu[open] > [data-receipt-tools-host] { color: var(--text); }
+.wallpaper-content { padding: 24px; }
+.tab-content {
+  background: var(--fl-panel);
+  border-radius: var(--fl-radius);
+  box-shadow: var(--fl-shadow);
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+#runs-screen.wallpaper-content { margin: 24px auto; width: calc(100% - 48px); }
+.fl-history-page main.wallpaper-content { margin: 24px; }
+.fl-legal-page { max-width: none; }
+.fl-legal-page .wallpaper-content { max-width: 44rem; margin: auto; }
+.fl-legal-page :is(.meta, footer) { color: var(--text-muted); }
+.fl-legal-page a { color: var(--primary-text); }
+.chart-container, .graph-container, .detail-card, .summary-card, .line-card, .search-area {
+  background: var(--fl-panel);
+  border-radius: var(--fl-radius);
+  box-shadow: var(--fl-shadow);
+}
+body > :is(.legend, .footer, .trace-search-label, .status-bar) {
+  background: var(--fl-panel);
+  color: var(--text-muted);
+}
+/* The production board has its own permanently light cell/status palette. */
+:root body:has(#board) {
+  color-scheme: light;
+  --text: var(--ink);
+  --text-muted: var(--ink2);
+  --surface: var(--card);
+  --primary-text: var(--fl-forest);
+  color: var(--ink);
+}
+body:has(#board) > .receipt-tools { background: var(--card); color: var(--ink); padding: 12px 16px; }
+#topbar button.primary { background: var(--primary); border-color: var(--primary); color: var(--fl-white); }
+
+/* Small touch devices scroll the image with the document. This deliberately
+   avoids fixed-background rendering bugs in iOS Safari, including iPads. */
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  :root body { background-attachment: scroll; background-position: 62% top; }
+  .fl-assistant-page .welcome { padding: 20px; margin-top: 6px; }
+  .fl-assistant-page .sign-in-panel { padding: 22px; }
+  #runs-screen.wallpaper-content { margin: 16px auto; width: calc(100% - 24px); padding: 16px; }
+  .fl-history-page main.wallpaper-content { margin: 16px 12px; padding: 16px; }
+  .fl-assistant-page .tools-menu[open] > [data-receipt-tools-host] {
+    background: linear-gradient(115deg, var(--fl-header-top), var(--fl-header-bottom));
+    color: var(--fl-white);
+  }
+}
+@media (prefers-contrast: more), (prefers-reduced-transparency: reduce) {
+  :root { --fl-panel: var(--surface); --fl-blur: 0px; }
+}
+@media print {
+  :root, :root[data-theme] {
+    color-scheme: light;
+    --fl-paper: var(--fl-white);
+    --fl-panel: var(--fl-white);
+    --fl-subsection: var(--fl-white);
+    --fl-ink: #19372b;
+    --fl-secondary: #365344;
+    --fl-muted: #4d6256;
+    --fl-link: var(--fl-forest);
+    --fl-header-top: var(--fl-white);
+    --fl-header-bottom: var(--fl-white);
+    --fl-header-control: var(--fl-white);
+  }
+  :root body { background: none; }
+  :root :is(.ledger-page > header, .app-header, .header, .runs-header, .topbar, .site-nav, #topbar),
+  :root :is(.ledger-page > header, .app-header, .header, .runs-header, .topbar, .site-nav, #topbar)
+    :is(h1, a, button, label, .brand, .brand-mark, .fl-brand-mark, #identity, .identity, .receipt-tools, .site-nav-brand) {
+    color: var(--text);
+    background: none;
+    border-color: var(--border);
+  }
+  :is(.wallpaper-content, .section, .panel, .card, .composer, .rail) {
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

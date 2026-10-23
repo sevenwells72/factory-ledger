@@ -1,0 +1,1363 @@
+{
+  "verified_at": "2026-10-23T00:17:58.721Z",
+  "source": "read-only local Playwright review, existing fixture API only",
+  "wallpaper_css_sha256": "0976e19764ba6c5bf6d2a15624512dc79511be0e91dc3d4143f3def9749c80e8",
+  "passCount": 56,
+  "failCount": 0,
+  "blockedExternalRequests": [],
+  "pageErrors": [],
+  "cases": [
+    {
+      "name": "calendar-1440-light",
+      "status": "passed",
+      "width": 1440,
+      "theme": "light",
+      "style": {
+        "text": "‹",
+        "color": "rgb(25, 55, 43)",
+        "background": "rgb(244, 247, 241)",
+        "minContrast": 11.968433318905404
+      }
+    },
+    {
+      "name": "orders-popover-1440-light",
+      "status": "passed",
+      "width": 1440,
+      "theme": "light",
+      "box": {
+        "x": 166,
+        "y": 665.5,
+        "right": 526,
+        "bottom": 768.5,
+        "left": 166,
+        "top": 665.5,
+        "filters": [],
+        "text": "Sales order identifier and the date the order was placed.Order date · Oct 10, 2026"
+      },
+      "interaction": "hover/focus/escape"
+    },
+    {
+      "name": "orders-health-popover-1440-light",
+      "status": "passed",
+      "width": 1440,
+      "theme": "light",
+      "box": {
+        "x": 1072,
+        "y": 665.5,
+        "right": 1432,
+        "bottom": 853.5,
+        "left": 1072,
+        "top": 665.5,
+        "filters": [],
+        "text": "Health highlights work that needs attention based on stock and the ship-by date.Short 2,250 lb on 2 "
+      },
+      "interaction": "hover/focus/escape"
+    },
+    {
+      "name": "runs-popover-1440-light",
+      "status": "passed",
+      "width": 1440,
+      "theme": "light",
+      "box": {
+        "x": 497.734375,
+        "y": 585.265625,
+        "right": 857.734375,
+        "bottom": 702.265625,
+        "left": 497.734,
+        "top": 585.266,
+        "filters": [],
+        "text": "Planned quantity in the unit entered.1,000 lb planned. Saved case weight: 25 lb per case."
+      },
+      "interaction": "hover/focus/escape"
+    },
+    {
+      "name": "page-office.html-1440-light",
+      "status": "passed",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "page-entry.html-1440-light",
+      "status": "passed",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "assistant-day-divider-1440-light",
+      "status": "passed",
+      "width": 1440,
+      "theme": "light",
+      "style": {
+        "text": "Yesterday",
+        "color": "rgb(77, 98, 86)",
+        "background": "rgba(255, 255, 255, 0.94)",
+        "minContrast": 6.538315404485967
+      }
+    },
+    {
+      "name": "page-fl-assistant.html-1440-light",
+      "status": "passed",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "summary-text-1440-light",
+      "status": "passed",
+      "width": 1440,
+      "theme": "light",
+      "style": {
+        "text": "FL receipts today: 2",
+        "color": "rgb(77, 98, 86)",
+        "background": "rgba(0, 0, 0, 0)",
+        "minContrast": 6.538315404485967
+      }
+    },
+    {
+      "name": "page-shift-summary.html-1440-light",
+      "status": "passed",
+      "width": 1440,
+      "theme": "light"
+    },
+    {
+      "name": "calendar-1440-dark",
+      "status": "passed",
+      "width": 1440,
+      "theme": "dark",
+      "style": {
+        "text": "‹",
+        "color": "rgb(240, 246, 237)",
+        "background": "rgb(20, 36, 28)",
+        "minContrast": 14.71305563852449
+      }
+    },
+    {
+      "name": "orders-popover-1440-dark",
+      "status": "passed",
+      "width": 1440,
+      "theme": "dark",
+      "box": {
+        "x": 166,
+        "y": 665.5,
+        "right": 526,
+        "bottom": 768.5,
+        "left": 166,
+        "top": 665.5,
+        "filters": [],
+        "text": "Sales order identifier and the date the order was placed.Order date · Oct 10, 2026"
+      },
+      "interaction": "hover/focus/escape"
+    },
+    {
+      "name": "orders-health-popover-1440-dark",
+      "status": "passed",
+      "width": 1440,
+      "theme": "dark",
+      "box": {
+        "x": 1072,
+        "y": 665.5,
+        "right": 1432,
+        "bottom": 853.5,
+        "left": 1072,
+        "top": 665.5,
+        "filters": [],
+        "text": "Health highlights work that needs attention based on stock and the ship-by date.Short 2,250 lb on 2 "
+      },
+      "interaction": "hover/focus/escape"
+    },
+    {
+      "name": "runs-popover-1440-dark",
+      "status": "passed",
+      "width": 1440,
+      "theme": "dark",
+      "box": {
+        "x": 497.734375,
+        "y": 585.265625,
+        "right": 857.734375,
+        "bottom": 702.265625,
+        "left": 497.734,
+        "top": 585.266,
+        "filters": [],
+        "text": "Planned quantity in the unit entered.1,000 lb planned. Saved case weight: 25 lb per case."
+      },
+      "interaction": "hover/focus/escape"
+    },
+    {
+      "name": "page-office.html-1440-dark",
+      "status": "passed",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "name": "page-entry.html-1440-dark",
+      "status": "passed",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "name": "assistant-day-divider-1440-dark",
+      "status": "passed",
+      "width": 1440,
+      "theme": "dark",
+      "style": {
+        "text": "Yesterday",
+        "color": "rgb(177, 197, 175)",
+        "background": "rgba(23, 40, 31, 0.94)",
+        "minContrast": 8.463007618674409
+      }
+    },
+    {
+      "name": "page-fl-assistant.html-1440-dark",
+      "status": "passed",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "name": "summary-text-1440-dark",
+      "status": "passed",
+      "width": 1440,
+      "theme": "dark",
+      "style": {
+        "text": "FL receipts today: 2",
+        "color": "rgb(177, 197, 175)",
+        "background": "rgba(0, 0, 0, 0)",
+        "minContrast": 8.463007618674409
+      }
+    },
+    {
+      "name": "page-shift-summary.html-1440-dark",
+      "status": "passed",
+      "width": 1440,
+      "theme": "dark"
+    },
+    {
+      "name": "calendar-390-light",
+      "status": "passed",
+      "width": 390,
+      "theme": "light",
+      "style": {
+        "text": "‹",
+        "color": "rgb(25, 55, 43)",
+        "background": "rgb(244, 247, 241)",
+        "minContrast": 11.968433318905404
+      }
+    },
+    {
+      "name": "orders-popover-390-light",
+      "status": "passed",
+      "width": 390,
+      "theme": "light",
+      "box": {
+        "x": 22,
+        "y": 701.5,
+        "right": 382,
+        "bottom": 804.5,
+        "left": 22,
+        "top": 701.5,
+        "filters": [],
+        "text": "Sales order identifier and the date the order was placed.Order date · Oct 10, 2026"
+      },
+      "interaction": "tap/escape"
+    },
+    {
+      "name": "orders-health-popover-390-light",
+      "status": "passed",
+      "width": 390,
+      "theme": "light",
+      "box": {
+        "x": 22,
+        "y": 477.5,
+        "right": 382,
+        "bottom": 665.5,
+        "left": 22,
+        "top": 477.5,
+        "filters": [],
+        "text": "Health highlights work that needs attention based on stock and the ship-by date.Short 2,250 lb on 2 "
+      },
+      "interaction": "tap/escape"
+    },
+    {
+      "name": "runs-popover-390-light",
+      "status": "passed",
+      "width": 390,
+      "theme": "light",
+      "box": {
+        "x": 22,
+        "y": 700.453125,
+        "right": 382,
+        "bottom": 817.453125,
+        "left": 22,
+        "top": 700.453,
+        "filters": [],
+        "text": "Planned quantity in the unit entered.1,000 lb planned. Saved case weight: 25 lb per case."
+      },
+      "interaction": "tap/escape"
+    },
+    {
+      "name": "spanish-header-office.html-light",
+      "status": "passed",
+      "width": 390,
+      "theme": "light",
+      "geometries": {
+        "documentWidth": 390,
+        "viewport": 390,
+        "elements": [
+          {
+            "text": "FLFactory Ledger",
+            "left": 16,
+            "right": 179.046875,
+            "top": 16,
+            "bottom": 60,
+            "width": 163.046875
+          },
+          {
+            "text": "Entradas de hoy",
+            "left": 191.046875,
+            "right": 334.203125,
+            "top": 16,
+            "bottom": 60,
+            "width": 143.15625
+          },
+          {
+            "text": "EN",
+            "left": 16,
+            "right": 63.484375,
+            "top": 72,
+            "bottom": 116,
+            "width": 47.484375
+          },
+          {
+            "text": "Cerrar sesión",
+            "left": 75.484375,
+            "right": 204.359375,
+            "top": 72,
+            "bottom": 116,
+            "width": 128.875
+          },
+          {
+            "text": "Sesión de Pilot Worker",
+            "left": 16,
+            "right": 374,
+            "top": 132,
+            "bottom": 156,
+            "width": 358
+          },
+          {
+            "text": "Look up / Buscar",
+            "left": 235.28125,
+            "right": 374,
+            "top": 204,
+            "bottom": 248,
+            "width": 138.71875
+          },
+          {
+            "text": "Exceptions / Excepciones",
+            "left": 16,
+            "right": 191,
+            "top": 256,
+            "bottom": 312.375,
+            "width": 175
+          },
+          {
+            "text": "Record entry / Registrar",
+            "left": 199,
+            "right": 374,
+            "top": 256,
+            "bottom": 312.375,
+            "width": 175
+          },
+          {
+            "text": "Office / Oficina",
+            "left": 16,
+            "right": 374,
+            "top": 320.375,
+            "bottom": 364.375,
+            "width": 358
+          }
+        ]
+      }
+    },
+    {
+      "name": "page-office.html-390-light",
+      "status": "passed",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "name": "spanish-header-entry.html-light",
+      "status": "passed",
+      "width": 390,
+      "theme": "light",
+      "geometries": {
+        "documentWidth": 390,
+        "viewport": 390,
+        "elements": [
+          {
+            "text": "FLFactory Ledger",
+            "left": 16,
+            "right": 179.046875,
+            "top": 16,
+            "bottom": 60,
+            "width": 163.046875
+          },
+          {
+            "text": "Entradas de hoy",
+            "left": 191.046875,
+            "right": 334.203125,
+            "top": 16,
+            "bottom": 60,
+            "width": 143.15625
+          },
+          {
+            "text": "EN",
+            "left": 16,
+            "right": 63.484375,
+            "top": 72,
+            "bottom": 116,
+            "width": 47.484375
+          },
+          {
+            "text": "Cerrar sesión",
+            "left": 75.484375,
+            "right": 204.359375,
+            "top": 72,
+            "bottom": 116,
+            "width": 128.875
+          },
+          {
+            "text": "Sesión de Pilot Worker",
+            "left": 16,
+            "right": 374,
+            "top": 132,
+            "bottom": 156,
+            "width": 358
+          },
+          {
+            "text": "Look up / Buscar",
+            "left": 235.28125,
+            "right": 374,
+            "top": 204,
+            "bottom": 248,
+            "width": 138.71875
+          },
+          {
+            "text": "Exceptions / Excepciones",
+            "left": 16,
+            "right": 191,
+            "top": 256,
+            "bottom": 312.375,
+            "width": 175
+          },
+          {
+            "text": "Record entry / Registrar",
+            "left": 199,
+            "right": 374,
+            "top": 256,
+            "bottom": 312.375,
+            "width": 175
+          },
+          {
+            "text": "Office / Oficina",
+            "left": 16,
+            "right": 374,
+            "top": 320.375,
+            "bottom": 364.375,
+            "width": 358
+          }
+        ]
+      }
+    },
+    {
+      "name": "page-entry.html-390-light",
+      "status": "passed",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "name": "assistant-day-divider-390-light",
+      "status": "passed",
+      "width": 390,
+      "theme": "light",
+      "style": {
+        "text": "Yesterday",
+        "color": "rgb(77, 98, 86)",
+        "background": "rgba(255, 255, 255, 0.94)",
+        "minContrast": 6.538315404485967
+      }
+    },
+    {
+      "name": "summary-text-390-light",
+      "status": "passed",
+      "width": 390,
+      "theme": "light",
+      "style": {
+        "text": "FL receipts today: 2",
+        "color": "rgb(77, 98, 86)",
+        "background": "rgba(0, 0, 0, 0)",
+        "minContrast": 6.538315404485967
+      }
+    },
+    {
+      "name": "spanish-header-shift-summary.html-light",
+      "status": "passed",
+      "width": 390,
+      "theme": "light",
+      "geometries": {
+        "documentWidth": 390,
+        "viewport": 390,
+        "elements": [
+          {
+            "text": "FLResumen del turno",
+            "left": 16,
+            "right": 201.921875,
+            "top": 20,
+            "bottom": 52,
+            "width": 185.921875
+          },
+          {
+            "text": "EN",
+            "left": 232.1875,
+            "right": 270.25,
+            "top": 14,
+            "bottom": 58,
+            "width": 38.0625
+          },
+          {
+            "text": "Cerrar sesión",
+            "left": 276.25,
+            "right": 374,
+            "top": 14,
+            "bottom": 58,
+            "width": 97.75
+          },
+          {
+            "text": "Look up / Buscar",
+            "left": 236.265625,
+            "right": 374,
+            "top": 113,
+            "bottom": 157,
+            "width": 137.734375
+          },
+          {
+            "text": "Exceptions / Excepciones",
+            "left": 16,
+            "right": 191,
+            "top": 165,
+            "bottom": 221.375,
+            "width": 175
+          },
+          {
+            "text": "Record entry / Registrar",
+            "left": 199,
+            "right": 374,
+            "top": 165,
+            "bottom": 221.375,
+            "width": 175
+          },
+          {
+            "text": "Office / Oficina",
+            "left": 16,
+            "right": 374,
+            "top": 229.375,
+            "bottom": 273.375,
+            "width": 358
+          }
+        ]
+      }
+    },
+    {
+      "name": "page-shift-summary.html-390-light",
+      "status": "passed",
+      "width": 390,
+      "theme": "light"
+    },
+    {
+      "name": "calendar-390-dark",
+      "status": "passed",
+      "width": 390,
+      "theme": "dark",
+      "style": {
+        "text": "‹",
+        "color": "rgb(240, 246, 237)",
+        "background": "rgb(20, 36, 28)",
+        "minContrast": 14.71305563852449
+      }
+    },
+    {
+      "name": "orders-popover-390-dark",
+      "status": "passed",
+      "width": 390,
+      "theme": "dark",
+      "box": {
+        "x": 22,
+        "y": 701.5,
+        "right": 382,
+        "bottom": 804.5,
+        "left": 22,
+        "top": 701.5,
+        "filters": [],
+        "text": "Sales order identifier and the date the order was placed.Order date · Oct 10, 2026"
+      },
+      "interaction": "tap/escape"
+    },
+    {
+      "name": "orders-health-popover-390-dark",
+      "status": "passed",
+      "width": 390,
+      "theme": "dark",
+      "box": {
+        "x": 22,
+        "y": 477.5,
+        "right": 382,
+        "bottom": 665.5,
+        "left": 22,
+        "top": 477.5,
+        "filters": [],
+        "text": "Health highlights work that needs attention based on stock and the ship-by date.Short 2,250 lb on 2 "
+      },
+      "interaction": "tap/escape"
+    },
+    {
+      "name": "runs-popover-390-dark",
+      "status": "passed",
+      "width": 390,
+      "theme": "dark",
+      "box": {
+        "x": 22,
+        "y": 700.453125,
+        "right": 382,
+        "bottom": 817.453125,
+        "left": 22,
+        "top": 700.453,
+        "filters": [],
+        "text": "Planned quantity in the unit entered.1,000 lb planned. Saved case weight: 25 lb per case."
+      },
+      "interaction": "tap/escape"
+    },
+    {
+      "name": "spanish-header-office.html-dark",
+      "status": "passed",
+      "width": 390,
+      "theme": "dark",
+      "geometries": {
+        "documentWidth": 390,
+        "viewport": 390,
+        "elements": [
+          {
+            "text": "FLFactory Ledger",
+            "left": 16,
+            "right": 179.046875,
+            "top": 16,
+            "bottom": 60,
+            "width": 163.046875
+          },
+          {
+            "text": "Entradas de hoy",
+            "left": 191.046875,
+            "right": 334.203125,
+            "top": 16,
+            "bottom": 60,
+            "width": 143.15625
+          },
+          {
+            "text": "EN",
+            "left": 16,
+            "right": 63.484375,
+            "top": 72,
+            "bottom": 116,
+            "width": 47.484375
+          },
+          {
+            "text": "Cerrar sesión",
+            "left": 75.484375,
+            "right": 204.359375,
+            "top": 72,
+            "bottom": 116,
+            "width": 128.875
+          },
+          {
+            "text": "Sesión de Pilot Worker",
+            "left": 16,
+            "right": 374,
+            "top": 132,
+            "bottom": 156,
+            "width": 358
+          },
+          {
+            "text": "Look up / Buscar",
+            "left": 235.28125,
+            "right": 374,
+            "top": 204,
+            "bottom": 248,
+            "width": 138.71875
+          },
+          {
+            "text": "Exceptions / Excepciones",
+            "left": 16,
+            "right": 191,
+            "top": 256,
+            "bottom": 312.375,
+            "width": 175
+          },
+          {
+            "text": "Record entry / Registrar",
+            "left": 199,
+            "right": 374,
+            "top": 256,
+            "bottom": 312.375,
+            "width": 175
+          },
+          {
+            "text": "Office / Oficina",
+            "left": 16,
+            "right": 374,
+            "top": 320.375,
+            "bottom": 364.375,
+            "width": 358
+          }
+        ]
+      }
+    },
+    {
+      "name": "page-office.html-390-dark",
+      "status": "passed",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "name": "spanish-header-entry.html-dark",
+      "status": "passed",
+      "width": 390,
+      "theme": "dark",
+      "geometries": {
+        "documentWidth": 390,
+        "viewport": 390,
+        "elements": [
+          {
+            "text": "FLFactory Ledger",
+            "left": 16,
+            "right": 179.046875,
+            "top": 16,
+            "bottom": 60,
+            "width": 163.046875
+          },
+          {
+            "text": "Entradas de hoy",
+            "left": 191.046875,
+            "right": 334.203125,
+            "top": 16,
+            "bottom": 60,
+            "width": 143.15625
+          },
+          {
+            "text": "EN",
+            "left": 16,
+            "right": 63.484375,
+            "top": 72,
+            "bottom": 116,
+            "width": 47.484375
+          },
+          {
+            "text": "Cerrar sesión",
+            "left": 75.484375,
+            "right": 204.359375,
+            "top": 72,
+            "bottom": 116,
+            "width": 128.875
+          },
+          {
+            "text": "Sesión de Pilot Worker",
+            "left": 16,
+            "right": 374,
+            "top": 132,
+            "bottom": 156,
+            "width": 358
+          },
+          {
+            "text": "Look up / Buscar",
+            "left": 235.28125,
+            "right": 374,
+            "top": 204,
+            "bottom": 248,
+            "width": 138.71875
+          },
+          {
+            "text": "Exceptions / Excepciones",
+            "left": 16,
+            "right": 191,
+            "top": 256,
+            "bottom": 312.375,
+            "width": 175
+          },
+          {
+            "text": "Record entry / Registrar",
+            "left": 199,
+            "right": 374,
+            "top": 256,
+            "bottom": 312.375,
+            "width": 175
+          },
+          {
+            "text": "Office / Oficina",
+            "left": 16,
+            "right": 374,
+            "top": 320.375,
+            "bottom": 364.375,
+            "width": 358
+          }
+        ]
+      }
+    },
+    {
+      "name": "page-entry.html-390-dark",
+      "status": "passed",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "name": "assistant-day-divider-390-dark",
+      "status": "passed",
+      "width": 390,
+      "theme": "dark",
+      "style": {
+        "text": "Yesterday",
+        "color": "rgb(177, 197, 175)",
+        "background": "rgba(23, 40, 31, 0.94)",
+        "minContrast": 8.463007618674409
+      }
+    },
+    {
+      "name": "summary-text-390-dark",
+      "status": "passed",
+      "width": 390,
+      "theme": "dark",
+      "style": {
+        "text": "FL receipts today: 2",
+        "color": "rgb(177, 197, 175)",
+        "background": "rgba(0, 0, 0, 0)",
+        "minContrast": 8.463007618674409
+      }
+    },
+    {
+      "name": "spanish-header-shift-summary.html-dark",
+      "status": "passed",
+      "width": 390,
+      "theme": "dark",
+      "geometries": {
+        "documentWidth": 390,
+        "viewport": 390,
+        "elements": [
+          {
+            "text": "FLResumen del turno",
+            "left": 16,
+            "right": 201.921875,
+            "top": 20,
+            "bottom": 52,
+            "width": 185.921875
+          },
+          {
+            "text": "EN",
+            "left": 232.1875,
+            "right": 270.25,
+            "top": 14,
+            "bottom": 58,
+            "width": 38.0625
+          },
+          {
+            "text": "Cerrar sesión",
+            "left": 276.25,
+            "right": 374,
+            "top": 14,
+            "bottom": 58,
+            "width": 97.75
+          },
+          {
+            "text": "Look up / Buscar",
+            "left": 236.265625,
+            "right": 374,
+            "top": 113,
+            "bottom": 157,
+            "width": 137.734375
+          },
+          {
+            "text": "Exceptions / Excepciones",
+            "left": 16,
+            "right": 191,
+            "top": 165,
+            "bottom": 221.375,
+            "width": 175
+          },
+          {
+            "text": "Record entry / Registrar",
+            "left": 199,
+            "right": 374,
+            "top": 165,
+            "bottom": 221.375,
+            "width": 175
+          },
+          {
+            "text": "Office / Oficina",
+            "left": 16,
+            "right": 374,
+            "top": 229.375,
+            "bottom": 273.375,
+            "width": 358
+          }
+        ]
+      }
+    },
+    {
+      "name": "page-shift-summary.html-390-dark",
+      "status": "passed",
+      "width": 390,
+      "theme": "dark"
+    },
+    {
+      "name": "spanish-assistant-header-light-closed",
+      "status": "passed",
+      "theme": "light",
+      "state": "closed",
+      "geometry": {
+        "width": 390,
+        "viewport": 390,
+        "elements": [
+          {
+            "text": "FL Assistant",
+            "left": 12,
+            "right": 153,
+            "top": 11.234375,
+            "bottom": 32.828125
+          },
+          {
+            "text": "Hoy",
+            "left": 159,
+            "right": 203,
+            "top": 10,
+            "bottom": 54
+          },
+          {
+            "text": "EN",
+            "left": 203,
+            "right": 247,
+            "top": 10,
+            "bottom": 54
+          },
+          {
+            "text": "Cerrar sesión",
+            "left": 247,
+            "right": 321,
+            "top": 10,
+            "bottom": 54
+          },
+          {
+            "text": "Menú",
+            "left": 327,
+            "right": 378,
+            "top": 10,
+            "bottom": 54
+          }
+        ]
+      }
+    },
+    {
+      "name": "spanish-assistant-header-light-open",
+      "status": "passed",
+      "theme": "light",
+      "state": "open",
+      "geometry": {
+        "width": 390,
+        "viewport": 390,
+        "elements": [
+          {
+            "text": "FL Assistant",
+            "left": 12,
+            "right": 153,
+            "top": 11.234375,
+            "bottom": 32.828125
+          },
+          {
+            "text": "Hoy",
+            "left": 159,
+            "right": 203,
+            "top": 10,
+            "bottom": 54
+          },
+          {
+            "text": "EN",
+            "left": 203,
+            "right": 247,
+            "top": 10,
+            "bottom": 54
+          },
+          {
+            "text": "Cerrar sesión",
+            "left": 247,
+            "right": 321,
+            "top": 10,
+            "bottom": 54
+          },
+          {
+            "text": "Menú",
+            "left": 327,
+            "right": 378,
+            "top": 10,
+            "bottom": 54
+          },
+          {
+            "text": "Look up / Buscar",
+            "left": 244.59375,
+            "right": 365,
+            "top": 114.78125,
+            "bottom": 158.78125
+          },
+          {
+            "text": "Exceptions / Excepciones",
+            "left": 31,
+            "right": 189,
+            "top": 167.78125,
+            "bottom": 211.78125
+          },
+          {
+            "text": "Record entry / Registrar",
+            "left": 207,
+            "right": 365,
+            "top": 167.78125,
+            "bottom": 211.78125
+          },
+          {
+            "text": "Office / Oficina",
+            "left": 31,
+            "right": 365,
+            "top": 216.78125,
+            "bottom": 260.78125
+          }
+        ]
+      }
+    },
+    {
+      "name": "scheduler-light",
+      "status": "passed",
+      "theme": "light",
+      "print": {
+        "color": "rgb(27, 36, 49)",
+        "contrastOnWhitePaper": 15.633106772383746,
+        "headerBackground": "none",
+        "wallpaper": "none",
+        "bodyColor": "rgb(27, 36, 49)",
+        "leftHidden": true,
+        "rightHidden": true,
+        "tableHead": "static"
+      }
+    },
+    {
+      "name": "spanish-assistant-header-dark-closed",
+      "status": "passed",
+      "theme": "dark",
+      "state": "closed",
+      "geometry": {
+        "width": 390,
+        "viewport": 390,
+        "elements": [
+          {
+            "text": "FL Assistant",
+            "left": 12,
+            "right": 153,
+            "top": 11.234375,
+            "bottom": 32.828125
+          },
+          {
+            "text": "Hoy",
+            "left": 159,
+            "right": 203,
+            "top": 10,
+            "bottom": 54
+          },
+          {
+            "text": "EN",
+            "left": 203,
+            "right": 247,
+            "top": 10,
+            "bottom": 54
+          },
+          {
+            "text": "Cerrar sesión",
+            "left": 247,
+            "right": 321,
+            "top": 10,
+            "bottom": 54
+          },
+          {
+            "text": "Menú",
+            "left": 327,
+            "right": 378,
+            "top": 10,
+            "bottom": 54
+          }
+        ]
+      }
+    },
+    {
+      "name": "spanish-assistant-header-dark-open",
+      "status": "passed",
+      "theme": "dark",
+      "state": "open",
+      "geometry": {
+        "width": 390,
+        "viewport": 390,
+        "elements": [
+          {
+            "text": "FL Assistant",
+            "left": 12,
+            "right": 153,
+            "top": 11.234375,
+            "bottom": 32.828125
+          },
+          {
+            "text": "Hoy",
+            "left": 159,
+            "right": 203,
+            "top": 10,
+            "bottom": 54
+          },
+          {
+            "text": "EN",
+            "left": 203,
+            "right": 247,
+            "top": 10,
+            "bottom": 54
+          },
+          {
+            "text": "Cerrar sesión",
+            "left": 247,
+            "right": 321,
+            "top": 10,
+            "bottom": 54
+          },
+          {
+            "text": "Menú",
+            "left": 327,
+            "right": 378,
+            "top": 10,
+            "bottom": 54
+          },
+          {
+            "text": "Look up / Buscar",
+            "left": 244.59375,
+            "right": 365,
+            "top": 114.78125,
+            "bottom": 158.78125
+          },
+          {
+            "text": "Exceptions / Excepciones",
+            "left": 31,
+            "right": 189,
+            "top": 167.78125,
+            "bottom": 211.78125
+          },
+          {
+            "text": "Record entry / Registrar",
+            "left": 207,
+            "right": 365,
+            "top": 167.78125,
+            "bottom": 211.78125
+          },
+          {
+            "text": "Office / Oficina",
+            "left": 31,
+            "right": 365,
+            "top": 216.78125,
+            "bottom": 260.78125
+          }
+        ]
+      }
+    },
+    {
+      "name": "scheduler-dark",
+      "status": "passed",
+      "theme": "dark",
+      "print": {
+        "color": "rgb(27, 36, 49)",
+        "contrastOnWhitePaper": 15.633106772383746,
+        "headerBackground": "none",
+        "wallpaper": "none",
+        "bodyColor": "rgb(27, 36, 49)",
+        "leftHidden": true,
+        "rightHidden": true,
+        "tableHead": "static"
+      }
+    },
+    {
+      "name": "search-selection-1440-light",
+      "status": "passed",
+      "width": 1440,
+      "theme": "light",
+      "unselected": {
+        "color": "rgb(25, 55, 43)",
+        "background": "rgb(244, 247, 241)",
+        "outline": "rgb(25, 55, 43) none 3px",
+        "selected": "false",
+        "pressed": null,
+        "contrast": 11.968433318905404
+      },
+      "selected": {
+        "color": "rgb(25, 55, 43)",
+        "background": "rgb(226, 237, 220)",
+        "outline": "rgb(21, 84, 55) solid 2px",
+        "selected": "true",
+        "pressed": null,
+        "contrast": 10.711132803164562
+      }
+    },
+    {
+      "name": "search-selection-1440-dark",
+      "status": "passed",
+      "width": 1440,
+      "theme": "dark",
+      "unselected": {
+        "color": "rgb(240, 246, 237)",
+        "background": "rgb(20, 36, 28)",
+        "outline": "rgb(240, 246, 237) none 3px",
+        "selected": "false",
+        "pressed": null,
+        "contrast": 14.71305563852449
+      },
+      "selected": {
+        "color": "rgb(240, 246, 237)",
+        "background": "rgb(43, 70, 53)",
+        "outline": "rgb(169, 223, 181) solid 2px",
+        "selected": "true",
+        "pressed": null,
+        "contrast": 9.413032159069495
+      }
+    },
+    {
+      "name": "search-selection-390-light",
+      "status": "passed",
+      "width": 390,
+      "theme": "light",
+      "unselected": {
+        "color": "rgb(25, 55, 43)",
+        "background": "rgb(244, 247, 241)",
+        "outline": "rgb(25, 55, 43) none 3px",
+        "selected": "false",
+        "pressed": null,
+        "contrast": 11.968433318905404
+      },
+      "selected": {
+        "color": "rgb(25, 55, 43)",
+        "background": "rgb(226, 237, 220)",
+        "outline": "rgb(21, 84, 55) solid 2px",
+        "selected": "true",
+        "pressed": null,
+        "contrast": 10.711132803164562
+      }
+    },
+    {
+      "name": "calendar-selection-390-light",
+      "status": "passed",
+      "width": 390,
+      "theme": "light",
+      "before": {
+        "color": "rgb(25, 55, 43)",
+        "background": "rgb(244, 247, 241)",
+        "outline": "rgb(25, 55, 43) none 3px",
+        "selected": null,
+        "pressed": "false",
+        "contrast": 11.968433318905404
+      },
+      "pressed": {
+        "color": "rgb(25, 55, 43)",
+        "background": "rgb(226, 237, 220)",
+        "outline": "rgb(21, 84, 55) solid 2px",
+        "selected": null,
+        "pressed": "true",
+        "contrast": 10.711132803164562
+      },
+      "today": {
+        "color": "rgb(25, 55, 43)",
+        "background": "rgb(226, 237, 220)",
+        "outline": "rgb(21, 84, 55) solid 2px",
+        "selected": null,
+        "pressed": "false",
+        "contrast": 10.711132803164562
+      }
+    },
+    {
+      "name": "search-selection-390-dark",
+      "status": "passed",
+      "width": 390,
+      "theme": "dark",
+      "unselected": {
+        "color": "rgb(240, 246, 237)",
+        "background": "rgb(20, 36, 28)",
+        "outline": "rgb(240, 246, 237) none 3px",
+        "selected": "false",
+        "pressed": null,
+        "contrast": 14.71305563852449
+      },
+      "selected": {
+        "color": "rgb(240, 246, 237)",
+        "background": "rgb(43, 70, 53)",
+        "outline": "rgb(169, 223, 181) solid 2px",
+        "selected": "true",
+        "pressed": null,
+        "contrast": 9.413032159069495
+      }
+    },
+    {
+      "name": "calendar-selection-390-dark",
+      "status": "passed",
+      "width": 390,
+      "theme": "dark",
+      "before": {
+        "color": "rgb(240, 246, 237)",
+        "background": "rgb(20, 36, 28)",
+        "outline": "rgb(240, 246, 237) none 3px",
+        "selected": null,
+        "pressed": "false",
+        "contrast": 14.71305563852449
+      },
+      "pressed": {
+        "color": "rgb(240, 246, 237)",
+        "background": "rgb(43, 70, 53)",
+        "outline": "rgb(169, 223, 181) solid 2px",
+        "selected": null,
+        "pressed": "true",
+        "contrast": 9.413032159069495
+      },
+      "today": {
+        "color": "rgb(240, 246, 237)",
+        "background": "rgb(43, 70, 53)",
+        "outline": "rgb(169, 223, 181) solid 2px",
+        "selected": null,
+        "pressed": "false",
+        "contrast": 9.413032159069495
+      }
+    }
+  ],
+  "initialCheckerFindings": [
+    {
+      "name": "scheduler-light",
+      "status": "failed",
+      "error": "{\"text\":\"Seven Wells Production Board\",\"color\":\"rgb(27, 36, 49)\",\"background\":\"rgba(0, 0, 0, 0)\",\"minContrast\":1.3433030494678766}",
+      "disposition": "Checker corrected: print uses white paper, not black/white wallpaper backdrop. Retest passed."
+    },
+    {
+      "name": "scheduler-dark",
+      "status": "failed",
+      "error": "{\"text\":\"Seven Wells Production Board\",\"color\":\"rgb(27, 36, 49)\",\"background\":\"rgba(0, 0, 0, 0)\",\"minContrast\":1.3433030494678766}",
+      "disposition": "Checker corrected: print uses white paper, not black/white wallpaper backdrop. Retest passed."
+    },
+    {
+      "name": "fl-assistant.html-390-light",
+      "status": "failed",
+      "error": "{\"documentWidth\":390,\"viewport\":390,\"elements\":[{\"text\":\"Hoy\",\"left\":159,\"right\":203,\"top\":10,\"bottom\":54,\"width\":44},{\"text\":\"EN\",\"left\":203,\"right\":247,\"top\":10,\"bottom\":54,\"width\":44},{\"text\":\"Cerrar sesión\",\"left\":247,\"right\":321,\"top\":10,\"bottom\":54,\"width\":74},{\"text\":\"Look up / Buscar\",\"left\":335,\"right\":455.40625,\"top\":139.953125,\"bottom\":183.953125,\"width\":120.40625},{\"text\":\"Exceptions / Excepciones\",\"left\":327,\"right\":378,\"top\":192.953125,\"bottom\":236.953125,\"width\":51},{\"text\":\"Record entry / Registrar\",\"left\":327,\"right\":378,\"top\":241.953125,\"bottom\":285.953125,\"width\":51},{\"text\":\"Office / Oficina\",\"left\":327,\"right\":378,\"top\":290.953125,\"bottom\":334.953125,\"width\":51}]}",
+      "disposition": "Checker corrected: exclude closed details descendants; separately open menu and verify all visible controls. Retest passed."
+    },
+    {
+      "name": "fl-assistant.html-390-dark",
+      "status": "failed",
+      "error": "{\"documentWidth\":390,\"viewport\":390,\"elements\":[{\"text\":\"Hoy\",\"left\":159,\"right\":203,\"top\":10,\"bottom\":54,\"width\":44},{\"text\":\"EN\",\"left\":203,\"right\":247,\"top\":10,\"bottom\":54,\"width\":44},{\"text\":\"Cerrar sesión\",\"left\":247,\"right\":321,\"top\":10,\"bottom\":54,\"width\":74},{\"text\":\"Look up / Buscar\",\"left\":335,\"right\":455.40625,\"top\":139.953125,\"bottom\":183.953125,\"width\":120.40625},{\"text\":\"Exceptions / Excepciones\",\"left\":327,\"right\":378,\"top\":192.953125,\"bottom\":236.953125,\"width\":51},{\"text\":\"Record entry / Registrar\",\"left\":327,\"right\":378,\"top\":241.953125,\"bottom\":285.953125,\"width\":51},{\"text\":\"Office / Oficina\",\"left\":327,\"right\":378,\"top\":290.953125,\"bottom\":334.953125,\"width\":51}]}",
+      "disposition": "Checker corrected: exclude closed details descendants; separately open menu and verify all visible controls. Retest passed."
+    }
+  ]
+}
