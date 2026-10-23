@@ -330,7 +330,8 @@ def _ranked_rows(cur, scored_sql, params, *, limit=MAX_CANDIDATES, offset=0):
 
 
 def _search(cur, source, params, variants, aliases, *, keywords=True, exact_only=False,
-            limit=MAX_CANDIDATES, offset=0, name_sql='s.name', whole_words=False, party=False):
+            limit=MAX_CANDIDATES, offset=0, name_sql='s.name', whole_words=False, party=False, customer_prefix=False,
+            customer_legacy_substrings=False):
     '''Rank the deduplicated union of spellings, then count and page in SQL.'''
     variants = [variant for variant in variants if variant.text]
     if not variants:
@@ -348,6 +349,24 @@ def _search(cur, source, params, variants, aliases, *, keywords=True, exact_only
         score = '1.0::float' if exact else f'''CASE
             WHEN cardinality(v.patterns) > 0 AND lower({name_sql}) ~ ALL(v.patterns) THEN 0.8
             WHEN v.fuzzy THEN similarity(lower({name_sql}), v.query) ELSE 0.0 END'''
+        if customer_prefix and not exact:
+            # Literal prefixes: SQL wildcard characters never broaden a search.
+            # Keep customer typeahead separate from product/supplier identities.
+            score = f'''CASE
+                WHEN starts_with(lower(btrim(regexp_replace(s.name, '\\s+', ' ', 'g'))), v.query)
+                  OR starts_with(lower(btrim(regexp_replace({name_sql}, '\\s+', ' ', 'g'))), v.query) THEN 0.95
+                WHEN EXISTS (SELECT 1 FROM regexp_split_to_table(lower(s.name), '[^[:alnum:]]+') word
+                             WHERE starts_with(word, v.query)) THEN 0.9
+                WHEN cardinality(v.patterns) > 0 AND lower({name_sql}) ~ ALL(v.patterns) THEN 0.8
+                WHEN v.fuzzy THEN LEAST(similarity(lower({name_sql}), v.query), 0.79) ELSE 0.0 END'''
+            # Office and legacy searches include literal mid-word name hits.
+            # This ranking score is never an identity-confidence signal.
+            score = f'''GREATEST(({score}), CASE WHEN strpos(lower(s.name), v.query) > 0
+                THEN 0.79 ELSE 0.0 END)'''
+            if customer_legacy_substrings:
+                score = f'''GREATEST(({score}), CASE WHEN EXISTS (
+                    SELECT 1 FROM unnest(s.legacy_aliases) alias
+                    WHERE strpos(lower(alias), v.query) > 0) THEN 0.8 ELSE 0.0 END)'''
         where = r'''WHERE EXISTS (SELECT 1 FROM unnest(s.exact_terms) term
                     WHERE lower(btrim(regexp_replace(term, '\s+', ' ', 'g'))) = v.query)''' if exact else ''
         scored_sql = f'''
@@ -368,6 +387,12 @@ def _search(cur, source, params, variants, aliases, *, keywords=True, exact_only
             row['score'] = float(row['score'])
             row['tier'] = ('alias' if variant.expansions else 'exact') if exact else (
                 ('alias' if variant.expansions else 'keyword') if row['score'] == 0.8 else 'trigram')
+            if customer_prefix and not exact and row['score'] in (0.95, 0.9):
+                row['tier'] = 'prefix'
+                row['why'] = ('Name starts with the query' if row['score'] == 0.95
+                              else 'A name word starts with the query')
+            elif customer_prefix and not exact and row['score'] == 0.79 and variant.text in row['name'].lower():
+                row['tier'] = 'substring'
             row['_variant'] = variant
         if rows or exact_only:
             return rows
@@ -385,6 +410,8 @@ def _candidate(row, language='en'):
                   tier=row['tier'], why=row.get('why') or {
                       'exact': 'Exact identifier or full name', 'alias': 'Exact alias expansion',
                       'keyword': 'All query terms in the name', 'trigram': 'Similar name; confirm identity',
+                      'prefix': 'Partial name; choose the customer',
+                      'substring': 'Text within the name; choose the customer',
                       'suffix': 'Exact last four characters within this product',
                       'context': 'Open order for the specified customer'
                   }[row['tier']], context_boost=row.get('context_boost'))
@@ -394,6 +421,8 @@ def _candidate(row, language='en'):
             'alias': 'Nombre alternativo coincidente',
             'keyword': 'Todos los términos aparecen en el nombre',
             'trigram': 'Nombre parecido; confirme cuál es',
+            'prefix': 'Nombre parcial; elija el cliente',
+            'substring': 'Texto dentro del nombre; elija el cliente',
             'suffix': 'Últimos cuatro caracteres coincidentes para este producto',
             'context': 'Pedido abierto del cliente indicado',
         }[row['tier']]
@@ -418,7 +447,7 @@ def decide(query, rows, *, truncated=False, note=None, limit=MAX_CANDIDATES, off
     count = max([len(candidates)] + [int(row.get('candidate_count', 0)) for row in rows])
     plausible_count = max([len(plausible)] + [int(row.get('plausible_count', 0)) for row in rows])
     outcome = 'none' if not candidates else 'ambiguous'
-    if plausible_count == 1 and not truncated:
+    if plausible_count == 1 and not truncated and plausible[0]['tier'] not in ('prefix', 'substring'):
         outcome = 'match'
     displayed = [candidate(row) for i, row in enumerate(candidates, 1)
                  if offset < row.get('_position', i) <= offset + limit]
@@ -429,7 +458,8 @@ def decide(query, rows, *, truncated=False, note=None, limit=MAX_CANDIDATES, off
             if expansion not in expansions:
                 expansions.append(expansion)
     confidence = {'exact': 'high', 'alias': 'high', 'keyword': 'medium',
-                  'trigram': 'low', 'suffix': 'medium', 'context': 'medium'}
+                  'trigram': 'low', 'prefix': 'low', 'substring': 'low',
+                  'suffix': 'medium', 'context': 'medium'}
     result = dict(outcome=outcome, query_normalized=best['_variant'].text if best and '_variant' in best else normalize(query),
                   expansions_applied=expansions, candidates=displayed, candidate_count=count,
                   has_more=count > offset + limit, limit=limit, offset=offset, match=None,
@@ -597,10 +627,12 @@ def inventory_products(cur, query, resolved):
     return None
 
 
-def _parties(cur, req, variants, aliases):
+def _parties(cur, req, variants, aliases, *, legacy_alias_substrings=False):
     kind, c = req.kind, req.context
     ids = _target_ids(aliases, kind, req.query)
     customer = kind == 'customer'
+    if customer and len(normalize(req.query)) < 2:
+        return []
     old_aliases = '''ARRAY(SELECT alias FROM customer_aliases
                            WHERE customer_id = p.id)''' if customer else 'ARRAY[]::text[]'
     rank = "CASE WHEN %s <> '' AND lower(COALESCE(p.address, '')) LIKE %s THEN 1 ELSE 0 END" if customer else '0'
@@ -608,7 +640,8 @@ def _parties(cur, req, variants, aliases):
     params = (ids, normalize(req.query)) + ((address, '%' + address + '%') if customer else ())
     # Remove acronym periods but keep other punctuation as word boundaries.
     party_name = "regexp_replace(replace(p.name, '.', ''), '[^a-zA-Z0-9 ]', ' ', 'g')"
-    source = f'''SELECT p.id, p.name, {party_name} AS search_name,
+    customer_fields = f'p.contact_name, p.phone, p.email, {old_aliases} AS legacy_aliases,' if customer else ''
+    source = f'''SELECT p.id, p.name, {customer_fields} {party_name} AS search_name,
                   ARRAY[p.name, {party_name}] || {old_aliases} ||
                   CASE WHEN p.id = ANY(%s::int[]) THEN ARRAY[%s::text] ELSE ARRAY[]::text[] END AS exact_terms,
                   {rank} AS context_rank, 0::float AS recent_activity
@@ -625,13 +658,26 @@ def _parties(cur, req, variants, aliases):
     party_aliases = [row for row in aliases if row['kind'] != 'token']
     # _search accepts a private search_name override for punctuation-only folds.
     rows = _search(cur, source, params, variants, party_aliases, limit=req.limit, offset=req.offset,
-                   name_sql='s.search_name', whole_words=True, party=True)
+                   name_sql='s.search_name', whole_words=True, party=True, customer_prefix=customer,
+                   customer_legacy_substrings=customer and legacy_alias_substrings)
     for row in rows:
         if row['context_rank']:
             row['context_boost'] = 'Customer address agrees; ranking only'
         if row['score'] == 1 and normalize(row['name']) != normalize(req.query):
             row['tier'], row['why'] = 'alias', 'Exact party alias'
     return rows
+
+
+def customer_search(cur, query, *, limit=10):
+    """Bounded customer suggestions shared by legacy dashboard searches."""
+    if len(normalize(query)) < 2:
+        return []
+    req = ResolveRequest(kind='customer', query=query, limit=limit)
+    aliases, _ = read_aliases(cur)
+    rows = _parties(cur, req, [], [row for row in aliases if row.get('active', True)],
+                    legacy_alias_substrings=True)
+    return [{key: row[key] for key in ('id', 'name', 'contact_name', 'phone', 'email')}
+            for row in rows if row['score'] >= MIN_CANDIDATE and row['_position'] <= limit]
 
 
 def _lots(cur, req):
@@ -707,12 +753,15 @@ def _orders(cur, req, aliases):
     # convenient open order. Resolve customer text first; retain every candidate.
     browse = q in ('', 'open orders', 'orders', 'open order', 'order')
     customer_ids = [c.customer_id] if c.customer_id else []
+    customer_needs_choice = False
     party_query = re.sub(r'^open orders? for\s+', '', q)
     party_query = re.sub(r'^the\s+|\s+orders?$', '', party_query).strip()
     if not browse:
         parties = resolve(cur, ResolveRequest(kind='customer', query=party_query), aliases=aliases)
         if parties['outcome'] == 'none' or parties['has_more']:
             return choose([], note='Specify an exact order number or customer_id.')
+        customer_needs_choice = (parties['outcome'] != 'match'
+                                 or (parties.get('match') or {}).get('tier') not in ('exact', 'alias'))
         customer_ids = [r['id'] for r in parties['candidates'] if r['score'] >= PLAUSIBLE
                         and (c.customer_id is None or r['id'] == c.customer_id)]
     if not customer_ids and not c.order_id:
@@ -721,7 +770,13 @@ def _orders(cur, req, aliases):
              AND (%s OR o.customer_id = ANY(%s::int[])) AND o.state = %s) matches'''
     rows = _ranked_rows(cur, scored, params + (bool(c.order_id), customer_ids, c.state or 'open'),
                         limit=req.limit, offset=req.offset)
-    return choose([dict(row, tier='context') for row in rows])
+    result = choose([dict(row, tier='context') for row in rows])
+    if customer_needs_choice and result['outcome'] == 'match':
+        # One open order does not confirm a customer inferred from a partial name.
+        result.update(outcome='ambiguous', match=None, needs_clarification=True,
+                      confidence='low', ask='Choose the order for the customer you intended: ' +
+                      '; '.join(row['label'] for row in result['candidates']))
+    return result
 
 
 
@@ -827,6 +882,8 @@ def _units(cur, req):
 
 def resolve(cur, req, *, aliases=None):
     """Public shared core. ``aliases`` is an internal fixture seam, never HTTP input."""
+    if req.kind == 'customer' and len(normalize(req.query)) < 2:
+        return decide(req.query, [], limit=req.limit, offset=req.offset)
     if req.kind == 'unit':
         return _units(cur, req)
     if req.kind == 'lot':

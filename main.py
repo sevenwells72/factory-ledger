@@ -12317,16 +12317,7 @@ def list_customers(active_only: bool = True, _: bool = Depends(verify_api_key)):
 def search_customers(q: str = Query(..., min_length=1), _: bool = Depends(verify_api_key)):
     try:
         with get_transaction() as cur:
-            cur.execute(
-                """SELECT DISTINCT c.id, c.name, c.contact_name, c.phone, c.email
-                   FROM customers c
-                   LEFT JOIN customer_aliases ca ON ca.customer_id = c.id
-                   WHERE c.active = true
-                     AND (LOWER(c.name) LIKE LOWER(%s) OR LOWER(ca.alias) LIKE LOWER(%s))
-                   ORDER BY c.name""",
-                (f"%{q}%", f"%{q}%")
-            )
-            rows = cur.fetchall()
+            rows = resolution.customer_search(cur, q)
         return {"results": rows}
     except Exception as e:
         logger.error(f"Search customers failed: {e}")
@@ -18325,16 +18316,11 @@ def dashboard_api_search(q: str = Query(min_length=1)):
                 for r in cur.fetchall()
             ]
 
-            # Customers (also search by alias)
-            cur.execute("""
-                SELECT DISTINCT c.name, c.contact_name, c.email, c.phone
-                FROM customers c
-                LEFT JOIN customer_aliases ca ON ca.customer_id = c.id
-                WHERE (c.name ILIKE %s OR ca.alias ILIKE %s) AND c.active = true
-                ORDER BY c.name
-                LIMIT 20
-            """, (term, term))
-            results["customers"] = [dict(r) for r in cur.fetchall()]
+            # Share Office's ranked customer name/code and alias matching.
+            results["customers"] = [
+                {key: row[key] for key in ("name", "contact_name", "email", "phone")}
+                for row in resolution.customer_search(cur, q)
+            ]
 
         return results
     except Exception as e:

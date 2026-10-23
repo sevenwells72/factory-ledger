@@ -1,5 +1,110 @@
 # Change Log
 
+## 2026-10-23 08:47 — #233 PR #148 final acceptance after current-main rebase
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`; canonical iCloud global log via its resolved real path. Runtime/test files are recorded in the preceding entries.
+- **What changed:** Final full Python suites each pass **7,067 tests** with `KEY_SESSIONS_ENABLED` unset and `=1`; full JavaScript passes **570**. Zero failures/errors/skips. Both Python runs use fresh local PostgreSQL 17.11 databases, Python 3.12.14 / Pydantic 2.14.1, a credential-free environment and a loopback-only Python network guard. Source manifests are identical (`6d7f3ebc3a894b936cde1a389bc00fd41f7b3490ac773cdaf108eff3c3eda12f`) and match final files. Independent review, whitespace and key-literal guards pass. All five Claude review findings and requested Sun/Green/Office containment behavior are covered; exact aliases and existing duplicate protections survive.
+- **Why:** Complete PR #148 on main `4150434b` (#149) with row 233 confirmed free against all 18 other open PRs. Preserve both log histories, main row 225, the iCloud symlink and `feat/planner-v2`. No dashboard assets changed, so no cache bump. No merge, deployment, hosted access, key/GPT-schema/migration changes or OpenAI calls. Final raw logs/JUnit/manifests: `/private/tmp/pr148-20261023/final/`; JavaScript and earlier failed evidence remain in its parent. Task-only local databases are removed after verification; existing PostgreSQL service is preserved.
+
+---
+
+## 2026-10-23 08:38 — #233 Align full-suite fixtures with explicit customer identity
+- **File(s) changed:** `tests/test_assistant_fact_binding_round_b.py`, `tests/test_fl_assistant.py`, `CHANGE_LOG.md`; canonical global log.
+- **What changed:** First full run completed with 7,065 passing and two obsolete expectations: UNIPRO shorthand auto-selection and a model-supplied customer ID with no identity provenance. Tests now require explicit UNIPRO selection before the canonical Spanish read and resolve the exact seeded customer before order-detail checks; existing order/line assertions stay intact. Initial failed evidence is preserved; fresh complete reruns follow.
+- **Why:** New safety behavior intentionally rejects both old shortcuts; preserve each regression test’s original read/detail coverage while asserting the required choice boundary.
+
+---
+
+## 2026-10-23 08:33 — #233 Protect Add-new from keyword alternatives and stale selection
+- **File(s) changed:** `fl_assistant.py`, `tests/test_assistant_customer_prefixes.py`, `tests/test_assistant_resolution_round_b.py`, `CHANGE_LOG.md`; canonical global log.
+- **What changed:** Only exact names/aliases suppress Add-new; a lower-ranked keyword suggestion cannot hide it beside a prefix. Add name-binding, newly appeared exact-duplicate, stale selection and mixed-tier regressions. Update punctuation coverage to require prefix-first and substring-last suggestions.
+- **Why:** A partial name can describe a different company, and human authorization must stay attached to the choice actually made.
+
+---
+
+## 2026-10-23 08:33 — #233 Preserve explicit Add-new and selection intent through Assistant tools
+- **File(s) changed:** `fl_assistant.py`, `tests/test_assistant_customer_prefixes.py`, `tests/test_assistant_resolution_round_b.py`, `CHANGE_LOG.md`; canonical global log.
+- **What changed:** Carry a name-bound Add-new decision through a resolver preflight without approving suggestion IDs; carry a human customer selection through same-query ship/open-orders continuation for the current turn only. Require selected-ID provenance before using model context. Expand regression coverage for continuation and partial-name boundaries.
+- **Why:** Asking for a human choice must not create a repeat-choice loop or allow an unrelated prior customer to satisfy a new partial query.
+
+---
+
+## 2026-10-23 08:32 — #233 Cover Assistant choices and normalized customer prefixes
+- **File(s) changed:** `resolution.py`, `tests/test_assistant_customer_prefixes.py`, `tests/test_assistant_customer_final2.py`, `tests/test_assistant_resolution_round_b.py`, `tests/test_assistant_final_behavior.py`, `tests/test_assistant_orders_round_d.py`, `CHANGE_LOG.md`; canonical global log.
+- **What changed:** Add customer-choice matrices for Sun/Green/Sunshine, office/floor ship and open-orders, multiword partial keywords, office/owner EN/ES Add-new, and explicit selection continuation. Retain exact/alias duplicate tests and use full customer names in unrelated order tests. Treat normalized acronym prefixes as suggestions too. Full JavaScript suite passes 570 tests with zero failures/skips.
+- **Why:** Replace old expectations that partial names could identify customers; protect every requested Assistant path without weakening exact identity behavior.
+
+---
+
+## 2026-10-23 08:30 — #233 Prevent sole-order lookup from confirming a partial customer
+- **File(s) changed:** `resolution.py`, `tests/test_customer_typeahead.py`, `CHANGE_LOG.md`; canonical global log.
+- **What changed:** Preserve an explicit choice when order lookup has only one result but the customer text was partial; retain exact order/full customer lookup. Add office/floor Sun and Green regressions for this bypass.
+- **Why:** Order availability cannot establish customer identity.
+
+---
+
+## 2026-10-23 08:30 — #233 Keep Assistant and Office customer choices explicit
+- **File(s) changed:** `fl_assistant.py`, `tests/test_office_customer_ui.js`, Assistant regression tests, `CHANGE_LOG.md`; canonical iCloud global log.
+- **What changed:** Guard direct customer preparation and shipping/open-order lookups against partial identities, preserve query-bound Add-as-new choice, and prevent a missing-order lookup from silently reusing a previous customer. Add eight EN/ES Office tests covering Sun/Green/Granola/Wells, blocked order preparation without a choice, Add-new and explicit selection. Focused Office suite: 38 passed.
+- **Why:** Every partial-name path needs a human decision. GitHub audit confirms row 233 is free in main 4150434b and all 18 other open PRs; preserve main wallpaper row 225.
+
+---
+
+## 2026-10-23 08:29 — #233 Require a choice for partial customer names
+- **File(s) changed:** `resolution.py`, `tests/test_customer_typeahead.py`, `CHANGE_LOG.md`; canonical global log; disposable local validation resources.
+- **What changed:** Separate prefix/substring suggestion tiers from known identity confidence; add Office middle-of-name lookup and Sun/Green/Granola/Wells ambiguity, ranking and paging regressions. Keep exact aliases and real keyword/fuzzy distinctions. Prepare local-only test resources with provider credentials absent.
+- **Why:** Typing part of a customer name must leave the choice to a person while preserving Add as new; Office must find text anywhere in a name.
+
+---
+
+## 2026-10-23 08:28 — #233 Rebase PR #148 onto main 4150434b
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`; canonical iCloud global log.
+- **What changed:** Rebased both customer-typeahead commits onto current main with #149; resolved only log conflicts, preserving both histories, customer row 233 and wallpaper row 225.
+- **Why:** Prepare the requested prefix-safety and Office substring fixes on the current baseline; no merge, deployment or hosted access.
+
+---
+
+## 2026-10-22 22:39 — #233 PR #148 full-suite acceptance in both session modes
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`; canonical iCloud global log via its resolved path.
+- **What changed:** Full suites: KEY_SESSIONS_ENABLED unset: **6,988 Python / 562 JavaScript passed**; KEY_SESSIONS_ENABLED=1: **6,988 Python / 562 JavaScript passed**; zero failures, errors or skips. Fresh separate private local PostgreSQL 17.10 databases, Python 3.12.14 / Pydantic 2.14.1; provider credentials absent and Python external sockets blocked. Regression coverage adds 20 net Python cases for near-miss tiers, reordered keyword matches, internal ID exact/prefix rejection, real numeric alias codes, legacy middle-name lookup and ranking; strengthen existing EN/ES Assistant tests to verify human selection. Existing complete JS coverage verifies Add as new choices. Whitespace and structural/retired-key guards pass with zero live key values read. Local raw results: `/private/tmp/fl-pr148-review/`; initial interrupted runs retained under `initial/` (new dashboard assertion corrected; simultaneous mode servers shared the pool-test application name, so final runs are sequential).
+- **Why:** Complete all four Claude review findings on `fix/customer-typeahead`, reserve row 233 and replace the earlier focused-only validation. No merge, deployment, production/staging access, key changes or OpenAI calls.
+
+---
+
+## 2026-10-22 22:32 — #233 Check ranking through each endpoint's public response
+- **File(s) changed:** `tests/test_customer_typeahead.py`, `CHANGE_LOG.md`; canonical iCloud global log.
+- **What changed:** Compare customer names in the legacy ranking regression because dashboard responses intentionally omit internal IDs; remove an extra blank line. Final complete runs will use this corrected assertion on fresh private databases.
+- **Why:** The same ranking must hold through the dashboard and Office GPT public response shapes.
+
+---
+
+## 2026-10-22 22:30 — #233 Apply PR #148 customer-search review findings
+- **File(s) changed:** `resolution.py`, `tests/test_customer_typeahead.py`, `tests/test_assistant_customer_final2.py`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`; canonical iCloud global log via its resolved path.
+- **What changed:** Apply the reviewer’s fuzzy-score fix (true keyword 0.8, fuzzy at most 0.79); remove internal customer ID exact/prefix matching while retaining real alias codes; restore literal middle-of-name matches on dashboard and Office GPT legacy searches below exact/name/word prefixes. Add regressions and strengthen the Assistant human-choice check. Renumber this branch’s customer entry from 225 to 233; correct the original global row. Dashboard customer results remain capped at 10 (previously 20). Full Python/JavaScript suites in both session modes are being validated on isolated local PostgreSQL 17.
+- **Why:** Near-miss companies must retain human choice and Add as new; numeric database IDs must not select customers; legacy partial-name lookups must survive. No merge, deployment, production/staging access, key changes or OpenAI calls.
+
+---
+
+## 2026-10-22 20:20 — #233 Customer typeahead final local validation
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`; canonical iCloud global log.
+- **What changed:** Final focused suite: **542 Python passed** (52 new typeahead cases plus existing resolver/customer/auth regressions), **180 Office/pilot Node passed**, zero failures/skips. Real local PostgreSQL 17.10, Python 3.12.14 / installed Pydantic 2.13.5; not a full-suite run or hosted smoke test. Customer reads pass database-enforced READ ONLY. Independent review found no remaining actionable issues; whitespace and key-literal guards pass (zero configured live values read). Changes are prepared for branch `fix/customer-typeahead` and a draft PR.
+- **Why:** Verify `se`/`set`/`farm` choices, case/punctuation, exact/name/word/fuzzy ranking, customer-ID codes, both alias sources plus legacy partial aliases, active filtering, literal wildcard text, limits/pagination, short-query no-search, keyword identity protection and existing Add-as-new flow. Server-only: dashboard/cache/GPT schema/migrations/keys unchanged; no production/staging access, deployment, merge or OpenAI calls.
+
+---
+
+## 2026-10-22 20:19 — #233 Customer-search review guards and initial validation
+- **File(s) changed:** `resolution.py`, `tests/test_customer_typeahead.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`; canonical iCloud global log.
+- **What changed:** Classify literal customer prefixes as keyword choices so existing-customer protections keep working; preserve partial legacy alias searches on the two legacy search routes without weakening resolver alias identity rules. Add tier and partial-alias regression coverage. Initial tests before this review: 165 resolver/typeahead + 367 customer/auth Python and 180 Office/pilot Node passed, zero failures/skips; final rerun pending.
+- **Why:** Preserve existing consumers and legacy alias behavior while improving typeahead; no frontend, migration, GPT schema, key, deployment or OpenAI calls.
+
+---
+
+## 2026-10-22 20:18 — #233 Customer typeahead prefixes in shared read-only searches
+- **File(s) changed:** `resolution.py`, `main.py`, `tests/test_customer_typeahead.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`; canonical iCloud global log.
+- **What changed:** Start customer search at two characters; rank exact identities before name/customer-ID prefixes, word prefixes and existing fuzzy matches. Share matching across Office `/resolve`, `/customers/search` and dashboard global search, bounded to existing 8-choice resolver pages / 10 legacy choices; preserve exact aliases, ambiguity and Add as new customer. Added local PostgreSQL regression coverage; validation pending.
+- **Why:** Office typing `set` missed Setton Farms until `sett`; `farm` must also find it. Corrected by the PR #148 review above: internal IDs are not customer codes; only stored customer aliases identify codes. Server-only; no frontend/cache, migration, GPT schema, key, production, deployment or OpenAI change.
+
+---
+
 ## 2026-10-22 20:31 — Normalize archived Python log whitespace
 - **File(s) changed:** `audits/screenshots/wallpaper-refresh/verification/python-off.log`, `python-on.log`
 - **What changed:** Removed trailing spaces in emitted deprecation warnings; all test output, counts and messages are otherwise unchanged. Original console logs remain in the temporary verification directory.

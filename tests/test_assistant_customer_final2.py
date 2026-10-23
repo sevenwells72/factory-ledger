@@ -30,13 +30,13 @@ def only_card(response, kind):
 @pytest.mark.parametrize('role', ['office', 'owner'])
 @pytest.mark.parametrize('language', ['en', 'es'])
 @pytest.mark.parametrize('tool', ['resolve', 'prepare_create_customer'])
-@pytest.mark.parametrize('spelling', ['exact', 'alias', 'short'])
+@pytest.mark.parametrize('spelling', ['exact', 'alias'])
 def test_existing_customer_is_offered_and_selected_without_second_model_call(
         client, actors, db_cursor, monkeypatch, role, language, tool, spelling):
     db_cursor.execute("INSERT INTO customers(name,active) VALUES('Sunshine Granola',true) RETURNING id")
     ident = db_cursor.fetchone()['id']
     db_cursor.execute("INSERT INTO search_aliases(kind,alias,customer_id) VALUES('customer','Sunny Foods',%s)", (ident,))
-    query = {'exact': 'Sunshine Granola', 'alias': 'Sunny Foods', 'short': 'Sunshine'}[spelling]
+    query = {'exact': 'Sunshine Granola', 'alias': 'Sunny Foods'}[spelling]
     args = {'kind': 'customer', 'query': query} if tool == 'resolve' else {'name': query}
     chat = own_chat(client, actors, role)
     # The review saw this incomplete second response. It must never be requested.
@@ -108,7 +108,10 @@ def test_fuzzy_customer_selection_finishes_customer_add_without_loop(
     text = 'Add Sunshine Granolaa as a new customer' if language == 'en' else 'Agrega Sunshine Granolaa como cliente nuevo'
     card = only_card(turn(client, chat, text, language=language), 'choices')
     assert not card.get('existing_customer_only'), 'A similar name can be a different company'
-    assert ident in [row['id'] for row in card['result']['candidates']]
+    choice = next(row for row in card['result']['candidates'] if row['id'] == ident)
+    assert choice['tier'] == 'trigram' and choice['score'] <= 0.79
+    db_cursor.execute('SELECT state FROM assistant_sessions WHERE id=%s', (chat[0],))
+    assert ident not in db_cursor.fetchone()['state'].get('resolved', {}).get('customer', [])
     assert only_card(turn(client, chat, '', choice_id=card['id'], selected_id=ident), 'handoff')
     assert len(calls) == 1
 

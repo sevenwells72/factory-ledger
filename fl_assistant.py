@@ -568,6 +568,13 @@ def register_routes(app, api):
             return packing_lot_choices(state, target)
         return None
 
+    def chosen_customer(state, result, query):
+        """A partial name is usable only after this turn's matching human choice."""
+        chosen = state.get('_customer_choice') or {}
+        if chosen.get('query') != resolution.normalize(query):
+            return None
+        return next((row for row in result.get('candidates', []) if row['id'] == chosen.get('id')), None)
+
     async def shipping_order(request, body, actor, state, args):
         query = normalize_order_code(args.get('query', ''))
         code = re.search(r'\bSO-\d{6}-\d{3,}\b', query, re.I)
@@ -589,7 +596,9 @@ def register_routes(app, api):
         customer = None
         if not matches:
             context = args.get('context') or {}
-            customer_ids = [context['customer_id']] if context.get('customer_id') else state.get('resolved', {}).get('customer', [])[-1:]
+            approved_customers = state.get('resolved', {}).get('customer', [])
+            customer_ids = ([context['customer_id']] if context.get('customer_id') in approved_customers
+                            else approved_customers[-1:])
             party_query = query if not identifier else re.sub(r'.*\b(?:for|para)\s+', '', query, flags=re.I) if re.search(r'\b(?:for|para)\s+', query, re.I) else ''
             if identifier and not party_query:
                 # The model may supply only the order code while the worker's
@@ -599,10 +608,14 @@ def register_routes(app, api):
             party_query = re.sub(r'^(?:the|el|la)\s+|\b(?:open|abiertos?|orders?|pedidos?|all|remaining|todo|restante)\b|\b(?:for|para|de|of)\b', ' ', party_query, flags=re.I).strip(' .?!¿¡')
             if party_query:
                 party_status, party = await relay(app, request, 'POST', '/resolve', body={'kind': 'customer', 'query': party_query})
-                if party_status == 200 and party.get('outcome') == 'match':
+                if (party_status == 200 and party.get('outcome') == 'match'
+                        and (party.get('match') or {}).get('tier') in ('exact', 'alias')):
                     customer = party['match']['name']
                     customer_ids = [party['match']['id']]
-                elif not identifier:
+                elif party_status == 200 and (selected := chosen_customer(state, party, party_query)):
+                    customer = selected['name']
+                    customer_ids = [selected['id']]
+                else:
                     return await execute_tool(request, body, actor, state, 'resolve', {'kind': 'customer', 'query': party_query, 'context': {'action': 'ship'}})
             if not customer and customer_ids:
                 with api.get_transaction() as cur:
@@ -667,12 +680,22 @@ def register_routes(app, api):
             if args.get('kind') == 'supplier':
                 args = {**args, 'limit': 6}
             status, result = await relay(app, request, 'POST', '/resolve', body=args)
+            if status == 200 and args.get('kind') == 'customer':
+                if selected := chosen_customer(state, result, args.get('query', '')):
+                    return status, {**result, 'match': selected, 'outcome': 'match', 'needs_clarification': False}, None
+                if (state.get('_new_customer_query') == resolution.normalize(args.get('query', ''))
+                        and not any(row.get('tier') in ('exact', 'alias')
+                                    for row in result.get('candidates', []))):
+                    # The person chose Add as new for this exact query. A model
+                    # preflight may resolve it again before preparing the draft.
+                    # Continue without authorizing any suggested customer ID.
+                    return status, {**result, 'new_customer_requested': args['query']}, None
             # A similar customer can be a different business. Let office staff
             # choose the suggestion or add their exact wording before approving
             # that customer ID for an order. Exact names and aliases still resolve.
             similar_name = (status == 200 and args.get('kind') in ('product', 'supplier', 'customer')
                             and (result.get('match') or {}).get('tier') == 'trigram')
-            similar_customer = (status == 200 and args.get('kind') == 'customer' and actor['role'] in ('office', 'owner')
+            similar_customer = (status == 200 and args.get('kind') == 'customer'
                                 and (result.get('match') or {}).get('tier') not in ('exact', 'alias'))
             # Creating an already-known customer is a complete FL answer. Sending
             # that exact/alias match back to the model leaves it trying to offer
@@ -711,7 +734,7 @@ def register_routes(app, api):
                 choice_id = str(uuid4())
                 card = {'kind': 'choices', 'id': choice_id, 'resolution_kind': args['kind'], 'query': args.get('query', ''), 'result': result,
                         'supplier_search': args['kind'] == 'supplier'}
-                known_customer = args['kind'] == 'customer' and any(row.get('tier') in ('exact', 'alias', 'keyword') for row in result.get('candidates', []))
+                known_customer = args['kind'] == 'customer' and any(row.get('tier') in ('exact', 'alias') for row in result.get('candidates', []))
                 if known_customer:
                     card['existing_customer_only'] = True
                 state['pending'] = {'id': choice_id, 'args': args, 'result': result, 'supplier_search': args['kind'] == 'supplier',
@@ -730,16 +753,19 @@ def register_routes(app, api):
             if name == 'prepare_create_customer' and args.get('name'):
                 status, existing = await relay(app, request, 'POST', '/resolve', body={'kind': 'customer', 'query': args['name']})
                 candidates = existing.get('candidates', []) if status == 200 else []
-                # A clear catalog name/alias/prefix must be offered, never silently
-                # used or duplicated by the model's direct create-customer tool.
-                known = [row for row in candidates if row.get('tier') in ('exact', 'alias', 'keyword')]
-                if known:
+                # Prefixes are suggestions, not proof that the requested customer
+                # already exists. Offer a choice before a direct model prepare;
+                # an explicit Add-as-new choice may then prepare the typed name.
+                known = [row for row in candidates if row.get('tier') in ('exact', 'alias')]
+                suggestions = [row for row in candidates if row.get('tier') in ('prefix', 'substring', 'keyword')]
+                chose_new = state.get('_new_customer_query') == resolution.normalize(args['name'])
+                if known or suggestions and not chose_new:
                     choice_id = str(uuid4())
-                    result = {**existing, 'candidates': known, 'has_more': False}
+                    result = {**existing, 'candidates': known or candidates}
                     state['pending'] = {'id': choice_id, 'args': {'kind': 'customer', 'query': args['name']},
                         'result': result, 'existing_customer_only': customer_only(body.text)}
                     return 200, result, {'kind': 'choices', 'id': choice_id, 'resolution_kind': 'customer',
-                        'query': args['name'], 'result': result, 'existing_customer_only': True}
+                        'query': args['name'], 'result': result, 'existing_customer_only': bool(known)}
             unknown = untrusted_ids(args, state)
             if unknown:
                 return 422, {'detail': {'error_code': 'RESOLVE_REQUIRED', 'fields': unknown}}, None
@@ -894,9 +920,14 @@ def register_routes(app, api):
             if args.get('customer'):
                 # Party names use their literal wording, without product aliases.
                 resolved_status, party = await relay(app, request, 'POST', '/resolve', body={'kind': 'customer', 'query': args['customer']})
-                if resolved_status != 200 or party.get('outcome') != 'match':
+                selected = chosen_customer(state, party, args['customer']) if resolved_status == 200 else None
+                if selected:
+                    params['customer'] = selected['name']
+                elif (resolved_status == 200 and party.get('outcome') == 'match'
+                        and (party.get('match') or {}).get('tier') in ('exact', 'alias')):
+                    params['customer'] = party['match']['name']
+                else:
                     return await execute_tool(request, body, actor, state, 'resolve', {'kind': 'customer', 'query': args['customer']})
-                params['customer'] = party['match']['name']
             status, result = await relay(app, request, 'GET', '/sales/orders', params=params)
             if status != 200:
                 return status, result, {'kind': 'refusal', 'status': status, 'result': result}
@@ -1245,6 +1276,8 @@ def register_routes(app, api):
                 if selected_status != 200:
                     return save_turn(state, [{'kind': 'lookup_failed'}],
                                      body, actor, digest, lease)
+                if pending['args']['kind'] == 'customer':
+                    state['_customer_choice'] = {'id': selected['id'], 'query': resolution.normalize(pending['args'].get('query', ''))}
                 if pending.get('existing_customer_only'):
                     state.pop('pending', None)
                     es = state['language'] == 'es'
@@ -1284,6 +1317,13 @@ def register_routes(app, api):
             else:
                 if not body.text.strip():
                     fail(422, 'TEXT_REQUIRED', 'Enter a message / Escribe un mensaje.')
+                previous_query = resolution.normalize((pending or {}).get('args', {}).get('query', ''))
+                if (previous_query and (pending or {}).get('args', {}).get('kind') == 'customer'
+                        and customer_creation(body.text)
+                        and re.search(r'(?<!\w)' + re.escape(previous_query) + r'(?!\w)', resolution.normalize(body.text))
+                        and not any(row.get('tier') in ('exact', 'alias')
+                                    for row in (pending or {}).get('result', {}).get('candidates', []))):
+                    state['_new_customer_query'] = previous_query
                 state.pop('pending', None)
                 history.append({'role': 'user', 'content': text.strip()})
             if not body.choice_id and not order_number_in_text(body.text) and replies.is_today_query(body.text):
@@ -1410,6 +1450,8 @@ def register_routes(app, api):
                 cur.execute('UPDATE assistant_sessions SET lease_id=NULL,lease_until=NULL WHERE id=%s AND lease_id=%s', (sid, lease))
 
     def save_turn(state, cards, body, actor, digest, lease):
+        state.pop('_new_customer_query', None)
+        state.pop('_customer_choice', None)
         if state.get('receive_queue') and not any(card['kind'] == 'receive_queue' for card in cards):
             cards = [*cards, {'kind': 'receive_queue'}]
         cards = [dict(card, queued_text=list(state.get('receive_queue', []))) if card['kind'] == 'receive_queue' else card for card in cards]

@@ -30,18 +30,19 @@ def test_sunshine_customer_is_not_the_product_ss_alias(round_b_catalog):
     cur.execute("INSERT INTO customers(name) VALUES ('Sunshine Granola'), ('SS') RETURNING id")
     sunshine, unrelated_ss = [row['id'] for row in cur.fetchall()]
     result = resolved(round_b_catalog, 'customer', 'Sunshine')
-    assert result['match']['id'] == sunshine
-    assert result['match']['id'] != unrelated_ss
+    assert result['match'] is None and result['needs_clarification']
+    assert [row['id'] for row in result['candidates']] == [sunshine]
+    assert unrelated_ss not in [row['id'] for row in result['candidates']]
 
 
 @pytest.mark.parametrize('query,name', [('Sunshine', 'Sunshine Granola'), ('Setton', 'Setton International Foods'), ('UNIPRO', 'U.N.I.P.R.O. Foodservice')])
-def test_real_customer_short_names(round_b_catalog, query, name):
+def test_real_customer_short_names_are_suggestions(round_b_catalog, query, name):
     cur, _ = round_b_catalog
     cur.execute('INSERT INTO customers(name) VALUES (%s) RETURNING id', (name,))
     expected = cur.fetchone()['id']
     result = resolved(round_b_catalog, 'customer', query)
-    assert result['outcome'] == 'match'
-    assert result['match']['id'] == expected
+    assert result['outcome'] == 'ambiguous' and result['match'] is None
+    assert [row['id'] for row in result['candidates']] == [expected]
 
 
 def test_customer_short_name_keeps_real_ambiguity(round_b_catalog):
@@ -139,7 +140,10 @@ def test_customer_punctuation_keeps_short_word_boundaries(round_b_catalog):
     cur.execute("INSERT INTO customers(name) VALUES ('Setton-Foods'), ('Upsetton Foods') RETURNING id")
     setton, _ = [row['id'] for row in cur.fetchall()]
     result = resolved(round_b_catalog, 'customer', 'Setton')
-    assert result['match']['id'] == setton
+    assert result['match'] is None and result['needs_clarification']
+    assert result['candidates'][0]['id'] == setton
+    assert result['candidates'][0]['tier'] == 'prefix'
+    assert result['candidates'][1]['tier'] == 'substring'
 
 
 @pytest.mark.parametrize('identity', ['id', 'sku', 'full_name'])
