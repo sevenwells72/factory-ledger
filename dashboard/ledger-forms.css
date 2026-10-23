@@ -4,43 +4,43 @@
 .receipt-lookup input {width:190px;max-width:100%;box-sizing:border-box}
 .receipt-tools button,.receipt-tools input,.receipt-tools>a {min-height:44px;font:inherit}
 .receipt-tools>a {display:inline-flex;align-items:center}
-.ledger-page {margin:0;background:#f3f5f7;color:#172d3d;font:16px/1.5 system-ui,sans-serif}
+.ledger-page {margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,sans-serif}
 .ledger-page * {box-sizing:border-box}
 .ledger-page [hidden] {display:none!important}
-.ledger-page header {background:#fff;border-bottom:1px solid #c6d1d7;padding:16px max(16px,calc((100% - 1024px)/2));}
+.ledger-page header {background:var(--surface);border-bottom:1px solid var(--border);padding:16px max(16px,calc((100% - 1024px)/2));}
 .ledger-page main {max-width:1024px;margin:auto;padding:20px 16px 100px}
 .ledger-page h1 {font-size:28px;margin:12px 0}
 .ledger-page h2 {font-size:21px;margin-top:0}
 .ledger-page h3 {font-size:17px}
-.ledger-page a {color:#125678;overflow-wrap:anywhere;display:inline-flex;align-items:center;min-height:44px;min-width:44px;max-width:100%}
-.ledger-page button,.ledger-page input,.ledger-page select,.ledger-page textarea {font:inherit;min-height:44px;border:1px solid #8799a6;border-radius:6px;padding:9px 12px;max-width:100%;color:inherit;background:#fff}
+.ledger-page a {color:var(--primary-text);overflow-wrap:anywhere;display:inline-flex;align-items:center;min-height:44px;min-width:44px;max-width:100%}
+.ledger-page button,.ledger-page input,.ledger-page select,.ledger-page textarea {font:inherit;min-height:44px;border:1px solid var(--fl-control-line);border-radius:6px;padding:9px 12px;max-width:100%;color:inherit;background:var(--surface)}
 .ledger-page button {cursor:pointer;font-weight:650}
-.ledger-page button.primary {background:#174e69;color:white;border-color:#174e69}
+.ledger-page button.primary {background:var(--primary);color:var(--fl-white);border-color:var(--primary)}
 .ledger-page button:disabled {opacity:.5;cursor:not-allowed}
-.ledger-page :focus-visible {outline:3px solid #bf6b12;outline-offset:3px}
+.ledger-page :focus-visible {outline:3px solid var(--fl-focus);outline-offset:3px}
 .ledger-page label {display:grid;gap:5px}
 .ledger-page label.check {display:flex;align-items:center;gap:10px}
 .ledger-page input[type=checkbox] {width:24px;flex:none}
 .ledger-page .toolbar {display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.ledger-page .panel {background:white;border:1px solid #c6d1d7;border-radius:10px;padding:20px;margin:16px 0;overflow-wrap:anywhere}
+.ledger-page .panel {background:var(--surface);border:1px solid var(--border);border-radius:var(--fl-radius);padding:20px;margin:16px 0;overflow-wrap:anywhere}
 .ledger-page .fields {display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
 .ledger-page .wide {grid-column:1/-1}
-.ledger-page .bad {border-left:5px solid #b02930;background:#fff0f0;color:#82232a;padding:16px;white-space:pre-wrap}
-.ledger-page .good {border-left:5px solid #187342;background:#edf8f0;color:#125831;padding:16px}
-.ledger-page .neutral {border-left:5px solid #4a5a6a;background:#eef1f4;color:#26323e;padding:12px;white-space:pre-wrap}
-.ledger-page .voided {border-left:5px solid #4a4a4a;background:#ececec;color:#222;padding:16px;font-weight:700;letter-spacing:.02em}
-.ledger-page .notice {border-left:5px solid #a76813;background:#fff6e4;padding:12px;white-space:pre-wrap}
-.ledger-page .muted {color:#506575}
+.ledger-page .bad {border-left:5px solid var(--fl-danger-line);background:var(--fl-danger-bg);color:var(--fl-danger);padding:16px;white-space:pre-wrap}
+.ledger-page .good {border-left:5px solid var(--fl-success-line);background:var(--fl-success-bg);color:var(--fl-success);padding:16px}
+.ledger-page .neutral {border-left:5px solid var(--fl-neutral-line);background:var(--fl-neutral-bg);color:var(--fl-neutral);padding:12px;white-space:pre-wrap}
+.ledger-page .voided {border-left:5px solid var(--fl-void-line);background:var(--fl-void-bg);color:var(--fl-void);padding:16px;font-weight:700;letter-spacing:.02em}
+.ledger-page .notice {border-left:5px solid var(--fl-amber-line);background:var(--fl-amber-bg);padding:12px;white-space:pre-wrap}
+.ledger-page .muted {color:var(--text-muted)}
 .ledger-page .record-id {font-weight:750;font-size:18px}
-.ledger-page .exception-row {display:grid;grid-template-columns:minmax(0,2fr) 1fr 1fr auto;gap:12px;border-top:1px solid #d6dfe5;padding:16px 0;align-items:center}
-.ledger-page .overdue {border-left:4px solid #b02930;padding-left:10px}
+.ledger-page .exception-row {display:grid;grid-template-columns:minmax(0,2fr) 1fr 1fr auto;gap:12px;border-top:1px solid var(--border);padding:16px 0;align-items:center}
+.ledger-page .overdue {border-left:4px solid var(--fl-danger-line);padding-left:10px}
 .ledger-page dl {margin:8px 0;display:grid;grid-template-columns:minmax(100px,1fr) minmax(0,3fr);gap:4px 14px}
 .ledger-page dt {font-weight:650;overflow-wrap:anywhere}
 .ledger-page dd {margin:0;min-width:0;overflow-wrap:anywhere}
-.ledger-page .draft-data {border-top:1px solid #d6dfe5;padding-top:12px}
+.ledger-page .draft-data {border-top:1px solid var(--border);padding-top:12px}
 .ledger-page .picker-options {display:grid;gap:6px}
 .ledger-page .picker-options button {text-align:left}
-.ledger-page fieldset {border:1px solid #c6d1d7;min-width:0;margin:12px 0;padding:16px;border-radius:8px}
+.ledger-page fieldset {border:1px solid var(--border);min-width:0;margin:12px 0;padding:16px;border-radius:8px}
 .ledger-page .record-bar {display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}
 @media(max-width:520px){.receipt-tools{gap:8px}.receipt-lookup{width:100%}.receipt-lookup label{flex:1}.receipt-lookup input{width:100%}.receipt-lookup button{max-width:140px}.ledger-page .panel{padding:14px}.ledger-page .fields{grid-template-columns:minmax(0,1fr)}.ledger-page .exception-row{grid-template-columns:minmax(0,1fr)}.ledger-page dl{grid-template-columns:minmax(0,1fr)}.ledger-page dd{padding-left:12px}.ledger-page h1{font-size:24px}}
 
@@ -57,15 +57,15 @@
 .ledger-page .more-lots>summary{min-height:44px;cursor:pointer;font-weight:650;padding:10px 0}
 
 /* Pilot tools are visible, finger-sized buttons on every dashboard surface. */
-.receipt-tools>a[data-fl-write-ui] {display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:9px 13px;border:1px solid #8799a6;border-radius:7px;background:#fff;color:#125678;text-decoration:none;font-weight:650;line-height:1.3;text-align:center}
-.receipt-tools>a[data-fl-write-ui]:hover {background:#e6f0f5;border-color:#125678}
-.receipt-tools>a[data-fl-write-ui]:focus-visible {outline:3px solid #bf6b12;outline-offset:3px}
+.receipt-tools>a[data-fl-write-ui] {display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:9px 13px;border:1px solid var(--fl-control-line);border-radius:7px;background:var(--surface);color:var(--primary-text);text-decoration:none;font-weight:650;line-height:1.3;text-align:center}
+.receipt-tools>a[data-fl-write-ui]:hover {background:var(--surface-hover);border-color:var(--primary-text)}
+.receipt-tools>a[data-fl-write-ui]:focus-visible {outline:3px solid var(--fl-focus);outline-offset:3px}
 .ledger-page .office-start {display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
-.ledger-page .office-start button[aria-pressed=true] {background:#174e69;border-color:#174e69;color:#fff}
-.ledger-page .new-customer-option {border-top:1px solid #b6c5cf;margin-top:18px;padding-top:16px}
-.ledger-page .new-customer-option button,.ledger-page button.secondary {background:#f3f5f7;font-weight:500;color:#344f60}
-.ledger-page .product-tier,.ledger-page .tier-tag {display:inline-block;margin-left:8px;border:1px solid #a76813;border-radius:4px;padding:2px 6px;background:#fff1cf;color:#71420a;font-size:12px;font-weight:800;letter-spacing:.02em}
-.ledger-page .recent-batches {grid-column:1/-1;border-top:1px solid #c6d1d7;padding-top:12px;display:grid;gap:8px}
+.ledger-page .office-start button[aria-pressed=true] {background:var(--primary);border-color:var(--primary);color:var(--fl-white)}
+.ledger-page .new-customer-option {border-top:1px solid var(--border);margin-top:18px;padding-top:16px}
+.ledger-page .new-customer-option button,.ledger-page button.secondary {background:var(--bg);font-weight:500;color:var(--text-secondary)}
+.ledger-page .product-tier,.ledger-page .tier-tag {display:inline-block;margin-left:8px;border:1px solid var(--fl-amber-line);border-radius:4px;padding:2px 6px;background:var(--fl-amber-bg);color:var(--fl-amber);font-size:12px;font-weight:800;letter-spacing:.02em}
+.ledger-page .recent-batches {grid-column:1/-1;border-top:1px solid var(--border);padding-top:12px;display:grid;gap:8px}
 .ledger-page .lot-confirmation-row {padding:10px 12px;margin:8px 0}
 .ledger-page .lot-confirmation-row legend {font-weight:650;font-size:14px;overflow-wrap:anywhere}
 .ledger-page .lot-confirmation-controls {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}
@@ -74,4 +74,4 @@
 .ledger-page .lot-confirmation-choices button {text-align:left;font-size:14px}
 @media(max-width:520px){.receipt-tools>a[data-fl-write-ui]{flex:1 1 145px}.ledger-page .lot-confirmation-row{padding:8px}.ledger-page .lot-confirmation-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.ledger-page .lot-confirmation-controls select,.ledger-page .lot-confirmation-controls input{padding:8px 6px;font-size:16px}}
 
-.ledger-page .picker-options hr{border:0;border-top:1px solid #b6c5cf;width:100%;margin:16px 0 4px}.ledger-page .picker-options button.new-customer-option{margin-top:0;padding:10px 12px;background:#f3f5f7;font-size:14px;font-weight:500;color:#344f60}.ledger-page .today-entry{padding:12px 0;border-top:1px solid #c6d1d7}.ledger-page .today-entry p{margin:4px 0}
+.ledger-page .picker-options hr{border:0;border-top:1px solid var(--border);width:100%;margin:16px 0 4px}.ledger-page .picker-options button.new-customer-option{margin-top:0;padding:10px 12px;background:var(--bg);font-size:14px;font-weight:500;color:var(--text-secondary)}.ledger-page .today-entry{padding:12px 0;border-top:1px solid var(--border)}.ledger-page .today-entry p{margin:4px 0}

@@ -1,0 +1,104 @@
+[
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-baseline-20261022/docs/design/audit/screenshots/390-dark/S-63.png",
+    "url": "http://127.0.0.1:65265/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 32,
+    "failures": 1,
+    "minimumRatio": 3.17,
+    "worst": [
+      {
+        "tag": "INPUT",
+        "id": "global-search",
+        "text": "Search SKU, lot, SO, customer…",
+        "fontPx": 17,
+        "weight": 400,
+        "foreground": "rgb(117, 117, 117)",
+        "fg": [
+          117,
+          117,
+          117,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 3.17,
+        "sampledBackground": [
+          30,
+          41,
+          59
+        ]
+      }
+    ]
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-baseline-20261022/docs/design/audit/screenshots/390-light/S-63.png",
+    "url": "http://127.0.0.1:65265/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 32,
+    "failures": 1,
+    "minimumRatio": 2.59,
+    "worst": [
+      {
+        "tag": "BUTTON",
+        "id": "",
+        "text": "CSG-2201 — Coconut Sugar",
+        "fontPx": 14,
+        "weight": 400,
+        "foreground": "rgb(91, 105, 126)",
+        "fg": [
+          91,
+          105,
+          126,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 2.59,
+        "sampledBackground": [
+          172,
+          177,
+          186
+        ]
+      }
+    ]
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-baseline-20261022/docs/design/audit/screenshots/1440-light/S-63.png",
+    "url": "http://127.0.0.1:65265/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 42,
+    "failures": 0,
+    "minimumRatio": 4.57,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-baseline-20261022/docs/design/audit/screenshots/1440-dark/S-63.png",
+    "url": "http://127.0.0.1:65265/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 42,
+    "failures": 1,
+    "minimumRatio": 3.17,
+    "worst": [
+      {
+        "tag": "INPUT",
+        "id": "global-search",
+        "text": "Search SKU, lot, SO, customer…",
+        "fontPx": 16,
+        "weight": 400,
+        "foreground": "rgb(117, 117, 117)",
+        "fg": [
+          117,
+          117,
+          117,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 3.17,
+        "sampledBackground": [
+          30,
+          41,
+          59
+        ]
+      }
+    ]
+  }
+]

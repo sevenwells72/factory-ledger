@@ -1,0 +1,5283 @@
+{
+  "generatedAt": "2026-10-23T00:28:07.723Z",
+  "variants": [
+    {
+      "key": "390-light",
+      "label": "390px · light",
+      "width": 390,
+      "height": 844,
+      "dsf": 3,
+      "theme": "light",
+      "tier": "mobile"
+    },
+    {
+      "key": "390-dark",
+      "label": "390px · dark",
+      "width": 390,
+      "height": 844,
+      "dsf": 3,
+      "theme": "dark",
+      "tier": "mobile"
+    },
+    {
+      "key": "1440-light",
+      "label": "1440px · light",
+      "width": 1440,
+      "height": 900,
+      "dsf": 1,
+      "theme": "light",
+      "tier": "desktop"
+    },
+    {
+      "key": "1440-dark",
+      "label": "1440px · dark",
+      "width": 1440,
+      "height": 900,
+      "dsf": 1,
+      "theme": "dark",
+      "tier": "desktop"
+    }
+  ],
+  "rules": [
+    "TOUCH-003",
+    "ACCESS-008",
+    "LAYOUT-003/ACCESS-001",
+    "LAYOUT-011",
+    "LAYOUT-020",
+    "STATUS-002",
+    "STATUS-004",
+    "STATUS-005",
+    "STATUS-006",
+    "STATUS-007",
+    "STATUS-008",
+    "STATUS-010",
+    "STATUS-011"
+  ],
+  "results": [
+    {
+      "id": "S-02",
+      "name": "Mini-calendar strip (3-month)",
+      "variant": "390-light",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 1,
+          "failures": 0,
+          "failuresNotNested": 0,
+          "passedViaExtension": [],
+          "worst": []
+        },
+        "ACCESS-008": {
+          "checked": 4,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 0,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 390,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 0,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": false,
+          "reason": "Desktop clause only; viewport is 390px."
+        },
+        "STATUS-010": {
+          "checked": 4,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > nav.mobile-nav",
+              "anchor": "bottom",
+              "top": 781,
+              "bottom": 844,
+              "height": 63
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0012,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 92,
+          "anchorsAfter": 92,
+          "moved": 0,
+          "vanished": 0,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/390-light/S-02.png"
+    },
+    {
+      "id": "S-02",
+      "name": "Mini-calendar strip (3-month)",
+      "variant": "390-dark",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 1,
+          "failures": 0,
+          "failuresNotNested": 0,
+          "passedViaExtension": [],
+          "worst": []
+        },
+        "ACCESS-008": {
+          "checked": 4,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 0,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 390,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 0,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": false,
+          "reason": "Desktop clause only; viewport is 390px."
+        },
+        "STATUS-010": {
+          "checked": 4,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > nav.mobile-nav",
+              "anchor": "bottom",
+              "top": 781,
+              "bottom": 844,
+              "height": 63
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3192,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 92,
+          "anchorsAfter": 92,
+          "moved": 0,
+          "vanished": 0,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/390-dark/S-02.png"
+    },
+    {
+      "id": "S-02",
+      "name": "Mini-calendar strip (3-month)",
+      "variant": "1440-light",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 2,
+          "failures": 0,
+          "failuresNotNested": 0,
+          "passedViaExtension": [],
+          "worst": []
+        },
+        "ACCESS-008": {
+          "checked": 117,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 0,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 0,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "tallest": 0,
+          "worst": []
+        },
+        "STATUS-010": {
+          "checked": 117,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > header.app-header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 233,
+              "height": 185
+            },
+            {
+              "path": "html > body > nav.tab-bar",
+              "anchor": "floating",
+              "top": 233,
+              "bottom": 277,
+              "height": 44
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.314,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 103,
+          "anchorsAfter": 103,
+          "moved": 0,
+          "vanished": 0,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-light/S-02.png"
+    },
+    {
+      "id": "S-02",
+      "name": "Mini-calendar strip (3-month)",
+      "variant": "1440-dark",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 2,
+          "failures": 0,
+          "failuresNotNested": 0,
+          "passedViaExtension": [],
+          "worst": []
+        },
+        "ACCESS-008": {
+          "checked": 117,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 0,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 0,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "tallest": 0,
+          "worst": []
+        },
+        "STATUS-010": {
+          "checked": 117,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > header.app-header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 233,
+              "height": 185
+            },
+            {
+              "path": "html > body > nav.tab-bar",
+              "anchor": "floating",
+              "top": 233,
+              "bottom": 277,
+              "height": 44
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1182,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 103,
+          "anchorsAfter": 103,
+          "moved": 0,
+          "vanished": 0,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-dark/S-02.png"
+    },
+    {
+      "id": "S-02b",
+      "name": "Mini-calendar — expanded month (phone)",
+      "variant": "390-light",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 34,
+          "failures": 0,
+          "failuresNotNested": 0,
+          "passedViaExtension": [],
+          "worst": []
+        },
+        "ACCESS-008": {
+          "checked": 46,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 0,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 390,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 0,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": false,
+          "reason": "Desktop clause only; viewport is 390px."
+        },
+        "STATUS-010": {
+          "checked": 46,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 1,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > nav.mobile-nav",
+              "anchor": "bottom",
+              "top": 781,
+              "bottom": 844,
+              "height": 63
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0012,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 125,
+          "anchorsAfter": 125,
+          "moved": 0,
+          "vanished": 0,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/390-light/S-02b.png"
+    },
+    {
+      "id": "S-02b",
+      "name": "Mini-calendar — expanded month (phone)",
+      "variant": "390-dark",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 34,
+          "failures": 0,
+          "failuresNotNested": 0,
+          "passedViaExtension": [],
+          "worst": []
+        },
+        "ACCESS-008": {
+          "checked": 46,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 0,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 390,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 0,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": false,
+          "reason": "Desktop clause only; viewport is 390px."
+        },
+        "STATUS-010": {
+          "checked": 46,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 1,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > nav.mobile-nav",
+              "anchor": "bottom",
+              "top": 781,
+              "bottom": 844,
+              "height": 63
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3121,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 125,
+          "anchorsAfter": 125,
+          "moved": 0,
+          "vanished": 0,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/390-dark/S-02b.png"
+    },
+    {
+      "id": "S-02b",
+      "name": "Mini-calendar — expanded month (phone)",
+      "variant": "1440-light",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 2,
+          "failures": 0,
+          "failuresNotNested": 0,
+          "passedViaExtension": [],
+          "worst": []
+        },
+        "ACCESS-008": {
+          "checked": 117,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 0,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 0,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "tallest": 0,
+          "worst": []
+        },
+        "STATUS-010": {
+          "checked": 117,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > header.app-header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 233,
+              "height": 185
+            },
+            {
+              "path": "html > body > nav.tab-bar",
+              "anchor": "floating",
+              "top": 233,
+              "bottom": 277,
+              "height": 44
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.2195,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 103,
+          "anchorsAfter": 103,
+          "moved": 0,
+          "vanished": 0,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-light/S-02b.png"
+    },
+    {
+      "id": "S-02b",
+      "name": "Mini-calendar — expanded month (phone)",
+      "variant": "1440-dark",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 2,
+          "failures": 0,
+          "failuresNotNested": 0,
+          "passedViaExtension": [],
+          "worst": []
+        },
+        "ACCESS-008": {
+          "checked": 117,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 0,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 0,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "tallest": 0,
+          "worst": []
+        },
+        "STATUS-010": {
+          "checked": 117,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > header.app-header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 233,
+              "height": 185
+            },
+            {
+              "path": "html > body > nav.tab-bar",
+              "anchor": "floating",
+              "top": 233,
+              "bottom": 277,
+              "height": 44
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1181,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 103,
+          "anchorsAfter": 103,
+          "moved": 0,
+          "vanished": 0,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-dark/S-02b.png"
+    },
+    {
+      "id": "S-16",
+      "name": "Daily Entries + day/mode toolbar",
+      "variant": "390-light",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 11,
+          "failures": 1,
+          "failuresNotNested": 1,
+          "passedViaExtension": [],
+          "worst": [
+            {
+              "path": "thead > tr > th > button.table-sort",
+              "label": "SKU",
+              "w": 43.1,
+              "h": 44,
+              "nested": false,
+              "tag": "button",
+              "cls": "table-sort"
+            }
+          ]
+        },
+        "ACCESS-008": {
+          "checked": 104,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 1,
+          "indeterminate": 83,
+          "worst": [
+            {
+              "path": "div#daily-entries-table > div.table-scroll > div.table-tools > button",
+              "text": "Ascending",
+              "ratio": 3.69,
+              "target": 4.5,
+              "fontPx": 17,
+              "weight": 400,
+              "fg": "rgb(25, 55, 43)",
+              "bg": "rgb(244, 247, 241)",
+              "opacity": 0.6
+            }
+          ]
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 390,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 19,
+          "failures": 0,
+          "maxAlarms": 1,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 9,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": false,
+          "reason": "Desktop clause only; viewport is 390px."
+        },
+        "STATUS-010": {
+          "checked": 104,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > nav.mobile-nav",
+              "anchor": "bottom",
+              "top": 781,
+              "bottom": 844,
+              "height": 63
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.6431,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 76,
+          "anchorsAfter": 76,
+          "moved": 0,
+          "vanished": 0,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/390-light/S-16.png"
+    },
+    {
+      "id": "S-16",
+      "name": "Daily Entries + day/mode toolbar",
+      "variant": "390-dark",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 11,
+          "failures": 1,
+          "failuresNotNested": 1,
+          "passedViaExtension": [],
+          "worst": [
+            {
+              "path": "thead > tr > th > button.table-sort",
+              "label": "SKU",
+              "w": 43.1,
+              "h": 44,
+              "nested": false,
+              "tag": "button",
+              "cls": "table-sort"
+            }
+          ]
+        },
+        "ACCESS-008": {
+          "checked": 104,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 83,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 390,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 19,
+          "failures": 0,
+          "maxAlarms": 1,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 9,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": false,
+          "reason": "Desktop clause only; viewport is 390px."
+        },
+        "STATUS-010": {
+          "checked": 104,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > nav.mobile-nav",
+              "anchor": "bottom",
+              "top": 781,
+              "bottom": 844,
+              "height": 63
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.6301,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 76,
+          "anchorsAfter": 76,
+          "moved": 0,
+          "vanished": 0,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/390-dark/S-16.png"
+    },
+    {
+      "id": "S-16",
+      "name": "Daily Entries + day/mode toolbar",
+      "variant": "1440-light",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 17,
+          "failures": 0,
+          "failuresNotNested": 0,
+          "passedViaExtension": [],
+          "worst": []
+        },
+        "ACCESS-008": {
+          "checked": 110,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 1,
+          "indeterminate": 89,
+          "worst": [
+            {
+              "path": "div#daily-entries-table > div.table-scroll > div.table-tools > button",
+              "text": "Ascending",
+              "ratio": 3.69,
+              "target": 4.5,
+              "fontPx": 16,
+              "weight": 400,
+              "fg": "rgb(25, 55, 43)",
+              "bg": "rgb(244, 247, 241)",
+              "opacity": 0.6
+            }
+          ]
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 19,
+          "failures": 0,
+          "maxAlarms": 1,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 9,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 19,
+          "failures": 6,
+          "tallest": 82,
+          "worst": [
+            {
+              "path": "div.table-scroll > table.activity-table > tbody > tr.late-entry",
+              "label": "Legacy TX-7004Oct 22, 2026 10:46 PMentered 2 …",
+              "height": 82
+            },
+            {
+              "path": "div.table-scroll > table.activity-table > tbody > tr.late-entry",
+              "label": "Legacy TX-7008Oct 22, 2026 08:37 PMentered 2 …",
+              "height": 82
+            },
+            {
+              "path": "div.table-scroll > table.activity-table > tbody > tr",
+              "label": "Legacy TX-7002Oct 22, 2026 08:28 PMShipmentSu…",
+              "height": 59
+            },
+            {
+              "path": "div.table-scroll > table.activity-table > tbody > tr",
+              "label": "Legacy TX-7003Oct 22, 2026 09:37 AMReceiptShr…",
+              "height": 59
+            },
+            {
+              "path": "div.table-scroll > table.activity-table > tbody > tr",
+              "label": "Legacy TX-7007Oct 22, 2026 07:28 AM · legacyS…",
+              "height": 59
+            },
+            {
+              "path": "div.table-scroll > table.activity-table > tbody > tr",
+              "label": "Legacy TX-7009Oct 22, 2026 09:46 AMAdjustment…",
+              "height": 59
+            }
+          ]
+        },
+        "STATUS-010": {
+          "checked": 110,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > header.app-header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 233,
+              "height": 185
+            },
+            {
+              "path": "html > body > nav.tab-bar",
+              "anchor": "floating",
+              "top": 233,
+              "bottom": 277,
+              "height": 44
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.6162,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 95,
+          "anchorsAfter": 95,
+          "moved": 0,
+          "vanished": 0,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-light/S-16.png"
+    },
+    {
+      "id": "S-16",
+      "name": "Daily Entries + day/mode toolbar",
+      "variant": "1440-dark",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 17,
+          "failures": 0,
+          "failuresNotNested": 0,
+          "passedViaExtension": [],
+          "worst": []
+        },
+        "ACCESS-008": {
+          "checked": 110,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 89,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 19,
+          "failures": 0,
+          "maxAlarms": 1,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 9,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 19,
+          "failures": 6,
+          "tallest": 82,
+          "worst": [
+            {
+              "path": "div.table-scroll > table.activity-table > tbody > tr.late-entry",
+              "label": "Legacy TX-7004Oct 22, 2026 10:46 PMentered 2 …",
+              "height": 82
+            },
+            {
+              "path": "div.table-scroll > table.activity-table > tbody > tr.late-entry",
+              "label": "Legacy TX-7008Oct 22, 2026 08:37 PMentered 2 …",
+              "height": 82
+            },
+            {
+              "path": "div.table-scroll > table.activity-table > tbody > tr",
+              "label": "Legacy TX-7002Oct 22, 2026 08:28 PMShipmentSu…",
+              "height": 59
+            },
+            {
+              "path": "div.table-scroll > table.activity-table > tbody > tr",
+              "label": "Legacy TX-7003Oct 22, 2026 09:37 AMReceiptShr…",
+              "height": 59
+            },
+            {
+              "path": "div.table-scroll > table.activity-table > tbody > tr",
+              "label": "Legacy TX-7007Oct 22, 2026 07:28 AM · legacyS…",
+              "height": 59
+            },
+            {
+              "path": "div.table-scroll > table.activity-table > tbody > tr",
+              "label": "Legacy TX-7009Oct 22, 2026 09:46 AMAdjustment…",
+              "height": 59
+            }
+          ]
+        },
+        "STATUS-010": {
+          "checked": 110,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > header.app-header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 233,
+              "height": 185
+            },
+            {
+              "path": "html > body > nav.tab-bar",
+              "anchor": "floating",
+              "top": 233,
+              "bottom": 277,
+              "height": 44
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.6566,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 95,
+          "anchorsAfter": 95,
+          "moved": 0,
+          "vanished": 0,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-dark/S-16.png"
+    },
+    {
+      "id": "S-17",
+      "name": "Shipping log",
+      "variant": "390-light",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 14,
+          "failures": 3,
+          "failuresNotNested": 3,
+          "passedViaExtension": [
+            {
+              "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+              "label": "Show all (5 more)",
+              "boxW": 139.2,
+              "boxH": 20,
+              "w": 139.2,
+              "h": 44,
+              "hitVia": "pseudo"
+            }
+          ],
+          "worst": [
+            {
+              "path": "thead > tr > th > button.table-sort",
+              "label": "Ref",
+              "w": 33.7,
+              "h": 44,
+              "nested": false,
+              "tag": "button",
+              "cls": "table-sort"
+            },
+            {
+              "path": "tr#ship-9000 > td > span.lot-link",
+              "label": "CQ25-2609-A",
+              "w": 112.2,
+              "h": 20,
+              "nested": false,
+              "tag": "span",
+              "cls": "lot-link"
+            },
+            {
+              "path": "thead > tr > th.num > button.table-sort",
+              "label": "Qty (lb)",
+              "w": 43.4,
+              "h": 60,
+              "nested": false,
+              "tag": "button",
+              "cls": "table-sort"
+            }
+          ]
+        },
+        "ACCESS-008": {
+          "checked": 41,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 1,
+          "indeterminate": 22,
+          "worst": [
+            {
+              "path": "div#shipments-table > div.table-scroll > div.table-tools > button",
+              "text": "Ascending",
+              "ratio": 3.69,
+              "target": 4.5,
+              "fontPx": 17,
+              "weight": 400,
+              "fg": "rgb(25, 55, 43)",
+              "bg": "rgb(244, 247, 241)",
+              "opacity": 0.6
+            }
+          ]
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 390,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 15,
+          "alignedCells": 4,
+          "failures": 2,
+          "byKind": {
+            "lb-precision": 2
+          },
+          "worst": [
+            {
+              "kind": "lb-precision",
+              "value": "637.5",
+              "context": "637.5 lb · 53 units",
+              "path": "table.activity-table > tbody > tr.expandable > td.num"
+            },
+            {
+              "kind": "lb-precision",
+              "value": "912.5",
+              "context": "912.5 lb · 91 units",
+              "path": "table.activity-table > tbody > tr.expandable > td.num"
+            }
+          ]
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": false,
+          "reason": "Desktop clause only; viewport is 390px."
+        },
+        "STATUS-010": {
+          "checked": 41,
+          "failures": 2,
+          "worst": [
+            {
+              "terms": [
+                "legacy_unverified"
+              ],
+              "text": "[title] Entered time (legacy_unverified)",
+              "path": "tbody > tr.expandable > td > div.created-at-meta"
+            },
+            {
+              "terms": [
+                "api"
+              ],
+              "text": "[title] Entered time (api)",
+              "path": "tbody > tr.expandable > td > div.created-at-meta"
+            }
+          ]
+        },
+        "STATUS-011": {
+          "checked": 1,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > nav.mobile-nav",
+              "anchor": "bottom",
+              "top": 781,
+              "bottom": 844,
+              "height": 63
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 1,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.6431,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 77,
+          "anchorsAfter": 76,
+          "moved": 1,
+          "vanished": 35,
+          "maxDeltaPx": 105,
+          "worst": [
+            {
+              "key": "BUTTON  show-more-btn Show all (5 more)",
+              "dx": 0,
+              "dy": -105
+            }
+          ]
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/390-light/S-17.png"
+    },
+    {
+      "id": "S-17",
+      "name": "Shipping log",
+      "variant": "390-dark",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 14,
+          "failures": 3,
+          "failuresNotNested": 3,
+          "passedViaExtension": [
+            {
+              "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+              "label": "Show all (5 more)",
+              "boxW": 139.2,
+              "boxH": 20,
+              "w": 139.2,
+              "h": 44,
+              "hitVia": "pseudo"
+            }
+          ],
+          "worst": [
+            {
+              "path": "thead > tr > th > button.table-sort",
+              "label": "Ref",
+              "w": 33.7,
+              "h": 44,
+              "nested": false,
+              "tag": "button",
+              "cls": "table-sort"
+            },
+            {
+              "path": "tr#ship-9000 > td > span.lot-link",
+              "label": "CQ25-2609-A",
+              "w": 112.2,
+              "h": 20,
+              "nested": false,
+              "tag": "span",
+              "cls": "lot-link"
+            },
+            {
+              "path": "thead > tr > th.num > button.table-sort",
+              "label": "Qty (lb)",
+              "w": 43.4,
+              "h": 60,
+              "nested": false,
+              "tag": "button",
+              "cls": "table-sort"
+            }
+          ]
+        },
+        "ACCESS-008": {
+          "checked": 41,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 22,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 390,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 15,
+          "alignedCells": 4,
+          "failures": 2,
+          "byKind": {
+            "lb-precision": 2
+          },
+          "worst": [
+            {
+              "kind": "lb-precision",
+              "value": "637.5",
+              "context": "637.5 lb · 53 units",
+              "path": "table.activity-table > tbody > tr.expandable > td.num"
+            },
+            {
+              "kind": "lb-precision",
+              "value": "912.5",
+              "context": "912.5 lb · 91 units",
+              "path": "table.activity-table > tbody > tr.expandable > td.num"
+            }
+          ]
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": false,
+          "reason": "Desktop clause only; viewport is 390px."
+        },
+        "STATUS-010": {
+          "checked": 41,
+          "failures": 2,
+          "worst": [
+            {
+              "terms": [
+                "legacy_unverified"
+              ],
+              "text": "[title] Entered time (legacy_unverified)",
+              "path": "tbody > tr.expandable > td > div.created-at-meta"
+            },
+            {
+              "terms": [
+                "api"
+              ],
+              "text": "[title] Entered time (api)",
+              "path": "tbody > tr.expandable > td > div.created-at-meta"
+            }
+          ]
+        },
+        "STATUS-011": {
+          "checked": 1,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > nav.mobile-nav",
+              "anchor": "bottom",
+              "top": 781,
+              "bottom": 844,
+              "height": 63
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 1,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0426,
+          "shiftEntries": 1,
+          "clsSupported": true,
+          "anchorsBefore": 77,
+          "anchorsAfter": 76,
+          "moved": 1,
+          "vanished": 35,
+          "maxDeltaPx": 105,
+          "worst": [
+            {
+              "key": "BUTTON  show-more-btn Show all (5 more)",
+              "dx": 0,
+              "dy": -105
+            }
+          ]
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/390-dark/S-17.png"
+    },
+    {
+      "id": "S-17",
+      "name": "Shipping log",
+      "variant": "1440-light",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 20,
+          "failures": 1,
+          "failuresNotNested": 1,
+          "passedViaExtension": [
+            {
+              "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+              "label": "Show all (5 more)",
+              "boxW": 132.6,
+              "boxH": 18,
+              "w": 132.6,
+              "h": 44,
+              "hitVia": "pseudo"
+            }
+          ],
+          "worst": [
+            {
+              "path": "tr#ship-9000 > td > span.lot-link",
+              "label": "CQ25-2609-A",
+              "w": 105.6,
+              "h": 18,
+              "nested": false,
+              "tag": "span",
+              "cls": "lot-link"
+            }
+          ]
+        },
+        "ACCESS-008": {
+          "checked": 47,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 1,
+          "indeterminate": 28,
+          "worst": [
+            {
+              "path": "div#shipments-table > div.table-scroll > div.table-tools > button",
+              "text": "Ascending",
+              "ratio": 3.69,
+              "target": 4.5,
+              "fontPx": 16,
+              "weight": 400,
+              "fg": "rgb(25, 55, 43)",
+              "bg": "rgb(244, 247, 241)",
+              "opacity": 0.6
+            }
+          ]
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 15,
+          "alignedCells": 4,
+          "failures": 2,
+          "byKind": {
+            "lb-precision": 2
+          },
+          "worst": [
+            {
+              "kind": "lb-precision",
+              "value": "637.5",
+              "context": "637.5 lb · 53 units",
+              "path": "table.activity-table > tbody > tr.expandable > td.num"
+            },
+            {
+              "kind": "lb-precision",
+              "value": "912.5",
+              "context": "912.5 lb · 91 units",
+              "path": "table.activity-table > tbody > tr.expandable > td.num"
+            }
+          ]
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "tallest": 0,
+          "worst": []
+        },
+        "STATUS-010": {
+          "checked": 47,
+          "failures": 2,
+          "worst": [
+            {
+              "terms": [
+                "legacy_unverified"
+              ],
+              "text": "[title] Entered time (legacy_unverified)",
+              "path": "tbody > tr.expandable > td > div.created-at-meta"
+            },
+            {
+              "terms": [
+                "api"
+              ],
+              "text": "[title] Entered time (api)",
+              "path": "tbody > tr.expandable > td > div.created-at-meta"
+            }
+          ]
+        },
+        "STATUS-011": {
+          "checked": 1,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > header.app-header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 233,
+              "height": 185
+            },
+            {
+              "path": "html > body > nav.tab-bar",
+              "anchor": "floating",
+              "top": 233,
+              "bottom": 277,
+              "height": 44
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 2,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.635,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 96,
+          "anchorsAfter": 95,
+          "moved": 1,
+          "vanished": 29,
+          "maxDeltaPx": 104,
+          "worst": [
+            {
+              "key": "BUTTON  show-more-btn Show all (5 more)",
+              "dx": 0,
+              "dy": -104
+            }
+          ]
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-light/S-17.png"
+    },
+    {
+      "id": "S-17",
+      "name": "Shipping log",
+      "variant": "1440-dark",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 20,
+          "failures": 1,
+          "failuresNotNested": 1,
+          "passedViaExtension": [
+            {
+              "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+              "label": "Show all (5 more)",
+              "boxW": 132.6,
+              "boxH": 18,
+              "w": 132.6,
+              "h": 44,
+              "hitVia": "pseudo"
+            }
+          ],
+          "worst": [
+            {
+              "path": "tr#ship-9000 > td > span.lot-link",
+              "label": "CQ25-2609-A",
+              "w": 105.6,
+              "h": 18,
+              "nested": false,
+              "tag": "span",
+              "cls": "lot-link"
+            }
+          ]
+        },
+        "ACCESS-008": {
+          "checked": 47,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 28,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 15,
+          "alignedCells": 4,
+          "failures": 2,
+          "byKind": {
+            "lb-precision": 2
+          },
+          "worst": [
+            {
+              "kind": "lb-precision",
+              "value": "637.5",
+              "context": "637.5 lb · 53 units",
+              "path": "table.activity-table > tbody > tr.expandable > td.num"
+            },
+            {
+              "kind": "lb-precision",
+              "value": "912.5",
+              "context": "912.5 lb · 91 units",
+              "path": "table.activity-table > tbody > tr.expandable > td.num"
+            }
+          ]
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "tallest": 0,
+          "worst": []
+        },
+        "STATUS-010": {
+          "checked": 47,
+          "failures": 2,
+          "worst": [
+            {
+              "terms": [
+                "legacy_unverified"
+              ],
+              "text": "[title] Entered time (legacy_unverified)",
+              "path": "tbody > tr.expandable > td > div.created-at-meta"
+            },
+            {
+              "terms": [
+                "api"
+              ],
+              "text": "[title] Entered time (api)",
+              "path": "tbody > tr.expandable > td > div.created-at-meta"
+            }
+          ]
+        },
+        "STATUS-011": {
+          "checked": 1,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > header.app-header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 233,
+              "height": 185
+            },
+            {
+              "path": "html > body > nav.tab-bar",
+              "anchor": "floating",
+              "top": 233,
+              "bottom": 277,
+              "height": 44
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 2,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.6349,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 96,
+          "anchorsAfter": 95,
+          "moved": 1,
+          "vanished": 29,
+          "maxDeltaPx": 104,
+          "worst": [
+            {
+              "key": "BUTTON  show-more-btn Show all (5 more)",
+              "dx": 0,
+              "dy": -104
+            }
+          ]
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-dark/S-17.png"
+    },
+    {
+      "id": "S-18",
+      "name": "Receiving log",
+      "variant": "390-light",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 14,
+          "failures": 3,
+          "failuresNotNested": 3,
+          "passedViaExtension": [
+            {
+              "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+              "label": "Show all (3 more)",
+              "boxW": 139.3,
+              "boxH": 20,
+              "w": 139.3,
+              "h": 44,
+              "hitVia": "pseudo"
+            }
+          ],
+          "worst": [
+            {
+              "path": "tr#recv-8000 > td > span.lot-link",
+              "label": "OAT-4471",
+              "w": 81.6,
+              "h": 20,
+              "nested": false,
+              "tag": "span",
+              "cls": "lot-link"
+            },
+            {
+              "path": "thead > tr > th > button.table-sort",
+              "label": "BOL",
+              "w": 43.2,
+              "h": 44,
+              "nested": false,
+              "tag": "button",
+              "cls": "table-sort"
+            },
+            {
+              "path": "thead > tr > th.num > button.table-sort",
+              "label": "Qty (lb)",
+              "w": 38.7,
+              "h": 60,
+              "nested": false,
+              "tag": "button",
+              "cls": "table-sort"
+            }
+          ]
+        },
+        "ACCESS-008": {
+          "checked": 41,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 1,
+          "indeterminate": 22,
+          "worst": [
+            {
+              "path": "div#receipts-table > div.table-scroll > div.table-tools > button",
+              "text": "Ascending",
+              "ratio": 3.69,
+              "target": 4.5,
+              "fontPx": 17,
+              "weight": 400,
+              "fg": "rgb(25, 55, 43)",
+              "bg": "rgb(244, 247, 241)",
+              "opacity": 0.6
+            }
+          ]
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 390,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 10,
+          "alignedCells": 4,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": false,
+          "reason": "Desktop clause only; viewport is 390px."
+        },
+        "STATUS-010": {
+          "checked": 41,
+          "failures": 1,
+          "worst": [
+            {
+              "terms": [
+                "api"
+              ],
+              "text": "[title] Entered time (api)",
+              "path": "tbody > tr.expandable > td > div.created-at-meta"
+            }
+          ]
+        },
+        "STATUS-011": {
+          "checked": 2,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > nav.mobile-nav",
+              "anchor": "bottom",
+              "top": 781,
+              "bottom": 844,
+              "height": 63
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 2,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.6301,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 77,
+          "anchorsAfter": 76,
+          "moved": 1,
+          "vanished": 16,
+          "maxDeltaPx": 106,
+          "worst": [
+            {
+              "key": "BUTTON  show-more-btn Show all (3 more)",
+              "dx": 0,
+              "dy": -106
+            }
+          ]
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/390-light/S-18.png"
+    },
+    {
+      "id": "S-18",
+      "name": "Receiving log",
+      "variant": "390-dark",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 14,
+          "failures": 3,
+          "failuresNotNested": 3,
+          "passedViaExtension": [
+            {
+              "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+              "label": "Show all (3 more)",
+              "boxW": 139.3,
+              "boxH": 20,
+              "w": 139.3,
+              "h": 44,
+              "hitVia": "pseudo"
+            }
+          ],
+          "worst": [
+            {
+              "path": "tr#recv-8000 > td > span.lot-link",
+              "label": "OAT-4471",
+              "w": 81.6,
+              "h": 20,
+              "nested": false,
+              "tag": "span",
+              "cls": "lot-link"
+            },
+            {
+              "path": "thead > tr > th > button.table-sort",
+              "label": "BOL",
+              "w": 43.2,
+              "h": 44,
+              "nested": false,
+              "tag": "button",
+              "cls": "table-sort"
+            },
+            {
+              "path": "thead > tr > th.num > button.table-sort",
+              "label": "Qty (lb)",
+              "w": 38.7,
+              "h": 60,
+              "nested": false,
+              "tag": "button",
+              "cls": "table-sort"
+            }
+          ]
+        },
+        "ACCESS-008": {
+          "checked": 41,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 22,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 390,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 10,
+          "alignedCells": 4,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": false,
+          "reason": "Desktop clause only; viewport is 390px."
+        },
+        "STATUS-010": {
+          "checked": 41,
+          "failures": 1,
+          "worst": [
+            {
+              "terms": [
+                "api"
+              ],
+              "text": "[title] Entered time (api)",
+              "path": "tbody > tr.expandable > td > div.created-at-meta"
+            }
+          ]
+        },
+        "STATUS-011": {
+          "checked": 2,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > nav.mobile-nav",
+              "anchor": "bottom",
+              "top": 781,
+              "bottom": 844,
+              "height": 63
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 2,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.666,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 77,
+          "anchorsAfter": 76,
+          "moved": 1,
+          "vanished": 16,
+          "maxDeltaPx": 106,
+          "worst": [
+            {
+              "key": "BUTTON  show-more-btn Show all (3 more)",
+              "dx": 0,
+              "dy": -106
+            }
+          ]
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/390-dark/S-18.png"
+    },
+    {
+      "id": "S-18",
+      "name": "Receiving log",
+      "variant": "1440-light",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 20,
+          "failures": 1,
+          "failuresNotNested": 1,
+          "passedViaExtension": [
+            {
+              "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+              "label": "Show all (3 more)",
+              "boxW": 132.7,
+              "boxH": 18,
+              "w": 132.7,
+              "h": 44,
+              "hitVia": "pseudo"
+            }
+          ],
+          "worst": [
+            {
+              "path": "tr#recv-8000 > td > span.lot-link",
+              "label": "OAT-4471",
+              "w": 76.8,
+              "h": 18,
+              "nested": false,
+              "tag": "span",
+              "cls": "lot-link"
+            }
+          ]
+        },
+        "ACCESS-008": {
+          "checked": 47,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 1,
+          "indeterminate": 28,
+          "worst": [
+            {
+              "path": "div#receipts-table > div.table-scroll > div.table-tools > button",
+              "text": "Ascending",
+              "ratio": 3.69,
+              "target": 4.5,
+              "fontPx": 16,
+              "weight": 400,
+              "fg": "rgb(25, 55, 43)",
+              "bg": "rgb(244, 247, 241)",
+              "opacity": 0.6
+            }
+          ]
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 10,
+          "alignedCells": 4,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "tallest": 0,
+          "worst": []
+        },
+        "STATUS-010": {
+          "checked": 47,
+          "failures": 1,
+          "worst": [
+            {
+              "terms": [
+                "api"
+              ],
+              "text": "[title] Entered time (api)",
+              "path": "tbody > tr.expandable > td > div.created-at-meta"
+            }
+          ]
+        },
+        "STATUS-011": {
+          "checked": 2,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > header.app-header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 233,
+              "height": 185
+            },
+            {
+              "path": "html > body > nav.tab-bar",
+              "anchor": "floating",
+              "top": 233,
+              "bottom": 277,
+              "height": 44
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.6161,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 96,
+          "anchorsAfter": 95,
+          "moved": 1,
+          "vanished": 4,
+          "maxDeltaPx": 104,
+          "worst": [
+            {
+              "key": "BUTTON  show-more-btn Show all (3 more)",
+              "dx": 0,
+              "dy": -104
+            }
+          ]
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-light/S-18.png"
+    },
+    {
+      "id": "S-18",
+      "name": "Receiving log",
+      "variant": "1440-dark",
+      "page": "index",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 20,
+          "failures": 1,
+          "failuresNotNested": 1,
+          "passedViaExtension": [
+            {
+              "path": "tfoot > tr.show-more-row > td > button.show-more-btn",
+              "label": "Show all (3 more)",
+              "boxW": 132.7,
+              "boxH": 18,
+              "w": 132.7,
+              "h": 44,
+              "hitVia": "pseudo"
+            }
+          ],
+          "worst": [
+            {
+              "path": "tr#recv-8000 > td > span.lot-link",
+              "label": "OAT-4471",
+              "w": 76.8,
+              "h": 18,
+              "nested": false,
+              "tag": "span",
+              "cls": "lot-link"
+            }
+          ]
+        },
+        "ACCESS-008": {
+          "checked": 47,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 28,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 10,
+          "alignedCells": 4,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "tallest": 0,
+          "worst": []
+        },
+        "STATUS-010": {
+          "checked": 47,
+          "failures": 1,
+          "worst": [
+            {
+              "terms": [
+                "api"
+              ],
+              "text": "[title] Entered time (api)",
+              "path": "tbody > tr.expandable > td > div.created-at-meta"
+            }
+          ]
+        },
+        "STATUS-011": {
+          "checked": 2,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > header.app-header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 233,
+              "height": 185
+            },
+            {
+              "path": "html > body > nav.tab-bar",
+              "anchor": "floating",
+              "top": 233,
+              "bottom": 277,
+              "height": 44
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.6161,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 96,
+          "anchorsAfter": 95,
+          "moved": 1,
+          "vanished": 4,
+          "maxDeltaPx": 104,
+          "worst": [
+            {
+              "key": "BUTTON  show-more-btn Show all (3 more)",
+              "dx": 0,
+              "dy": -104
+            }
+          ]
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-dark/S-18.png"
+    },
+    {
+      "id": "S-63",
+      "name": "Lot search field + type-ahead dropdown",
+      "variant": "390-light",
+      "page": "traceability",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 30,
+          "failures": 3,
+          "failuresNotNested": 3,
+          "passedViaExtension": [],
+          "worst": [
+            {
+              "path": "div#searchDropdown > div.search-item",
+              "label": "BCQ-2609-A Batch Classic Granola",
+              "w": 340,
+              "h": 38,
+              "nested": false,
+              "tag": "div",
+              "cls": "search-item"
+            },
+            {
+              "path": "div#searchDropdown > div.search-item",
+              "label": "CQ25-2609-A Classic Granola 25 LB",
+              "w": 340,
+              "h": 38,
+              "nested": false,
+              "tag": "div",
+              "cls": "search-item"
+            },
+            {
+              "path": "div#searchDropdown > div.search-item",
+              "label": "CQ10-2609-A Classic Granola 10 LB",
+              "w": 340,
+              "h": 38,
+              "nested": false,
+              "tag": "div",
+              "cls": "search-item"
+            }
+          ]
+        },
+        "ACCESS-008": {
+          "checked": 39,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 25,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 390,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 21,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 21,
+          "failures": 21,
+          "complete": 0,
+          "titleOnly": 21,
+          "worst": [
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "BSC-2609-A — Batch Sweetened Coconut",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "CSG-2201 — Coconut Sugar",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "BGR-2609-A — Batch Graham Crumb",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "SLT-1140 — Sea Salt — Fine",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "BS6-2609-A — Blue Stripes Granola 6/2 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "SS25-2609-B — Sunshine Granola 25 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "GR20-2609-A — Graham Crumb 20 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "BCQ-2609-A — Batch Classic Granola",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "OAT-4471 — Rolled Oats — #1 Thick",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "MPL-0912 — Grade A Maple Syrup",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "SFO-3310 — Sunflower Oil",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "BSS-2609-A — Batch Sunshine Granola",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "PEC-7714 — Raw Pecan Halves",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "BBS-2608-C — Batch Blue Stripes Granola",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "PMP-5520 — Pumpkin Seeds",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "BTC-2609-A — Batch Toasted Coconut",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "COC-9081 — Shredded Coconut — Unsweetened",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "CQ25-2609-A — Classic Granola 25 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "CQ10-2609-A — Classic Granola 10 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "SS12-2609-A — Sunshine Granola 12/1 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "TC6-2609-A — Toasted Coconut 6/2 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            }
+          ]
+        },
+        "STATUS-006": {
+          "checked": 2,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": false,
+          "reason": "Desktop clause only; viewport is 390px."
+        },
+        "STATUS-010": {
+          "checked": 39,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 2,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > nav.mobile-nav",
+              "anchor": "bottom",
+              "top": 781,
+              "bottom": 844,
+              "height": 63
+            }
+          ],
+          "covered": [
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "label": "SS12-2609-A — Sunshine Granola 12/1 LB",
+              "blockedBy": "html > body > nav.mobile-nav",
+              "why": "under a bottom-anchored bar at maximum scroll"
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "label": "TC6-2609-A — Toasted Coconut 6/2 LB",
+              "blockedBy": "(clipped by its own scroll region)",
+              "why": "last item of a scroll region does not scroll fully into view"
+            }
+          ],
+          "coveredCount": 2,
+          "passUnderTopBar": 1,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": false,
+          "reason": "No background refresh and no refresh control on this surface."
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/390-light/S-63.png"
+    },
+    {
+      "id": "S-63",
+      "name": "Lot search field + type-ahead dropdown",
+      "variant": "390-dark",
+      "page": "traceability",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 30,
+          "failures": 3,
+          "failuresNotNested": 3,
+          "passedViaExtension": [],
+          "worst": [
+            {
+              "path": "div#searchDropdown > div.search-item",
+              "label": "BCQ-2609-A Batch Classic Granola",
+              "w": 340,
+              "h": 38,
+              "nested": false,
+              "tag": "div",
+              "cls": "search-item"
+            },
+            {
+              "path": "div#searchDropdown > div.search-item",
+              "label": "CQ25-2609-A Classic Granola 25 LB",
+              "w": 340,
+              "h": 38,
+              "nested": false,
+              "tag": "div",
+              "cls": "search-item"
+            },
+            {
+              "path": "div#searchDropdown > div.search-item",
+              "label": "CQ10-2609-A Classic Granola 10 LB",
+              "w": 340,
+              "h": 38,
+              "nested": false,
+              "tag": "div",
+              "cls": "search-item"
+            }
+          ]
+        },
+        "ACCESS-008": {
+          "checked": 39,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 25,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 390,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 21,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 21,
+          "failures": 21,
+          "complete": 0,
+          "titleOnly": 21,
+          "worst": [
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "BSC-2609-A — Batch Sweetened Coconut",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "CSG-2201 — Coconut Sugar",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "BGR-2609-A — Batch Graham Crumb",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "SLT-1140 — Sea Salt — Fine",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "BS6-2609-A — Blue Stripes Granola 6/2 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "SS25-2609-B — Sunshine Granola 25 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "GR20-2609-A — Graham Crumb 20 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "BCQ-2609-A — Batch Classic Granola",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "OAT-4471 — Rolled Oats — #1 Thick",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "MPL-0912 — Grade A Maple Syrup",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "SFO-3310 — Sunflower Oil",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "BSS-2609-A — Batch Sunshine Granola",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "PEC-7714 — Raw Pecan Halves",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "BBS-2608-C — Batch Blue Stripes Granola",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "PMP-5520 — Pumpkin Seeds",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "BTC-2609-A — Batch Toasted Coconut",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "COC-9081 — Shredded Coconut — Unsweetened",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "CQ25-2609-A — Classic Granola 25 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "CQ10-2609-A — Classic Granola 10 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "SS12-2609-A — Sunshine Granola 12/1 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "TC6-2609-A — Toasted Coconut 6/2 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            }
+          ]
+        },
+        "STATUS-006": {
+          "checked": 2,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": false,
+          "reason": "Desktop clause only; viewport is 390px."
+        },
+        "STATUS-010": {
+          "checked": 39,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 2,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > nav.mobile-nav",
+              "anchor": "bottom",
+              "top": 781,
+              "bottom": 844,
+              "height": 63
+            }
+          ],
+          "covered": [
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "label": "SS12-2609-A — Sunshine Granola 12/1 LB",
+              "blockedBy": "html > body > nav.mobile-nav",
+              "why": "under a bottom-anchored bar at maximum scroll"
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "label": "TC6-2609-A — Toasted Coconut 6/2 LB",
+              "blockedBy": "(clipped by its own scroll region)",
+              "why": "last item of a scroll region does not scroll fully into view"
+            }
+          ],
+          "coveredCount": 2,
+          "passUnderTopBar": 1,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": false,
+          "reason": "No background refresh and no refresh control on this surface."
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/390-dark/S-63.png"
+    },
+    {
+      "id": "S-63",
+      "name": "Lot search field + type-ahead dropdown",
+      "variant": "1440-light",
+      "page": "traceability",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 30,
+          "failures": 3,
+          "failuresNotNested": 3,
+          "passedViaExtension": [],
+          "worst": [
+            {
+              "path": "div#searchDropdown > div.search-item",
+              "label": "BCQ-2609-A Batch Classic Granola",
+              "w": 550.4,
+              "h": 38,
+              "nested": false,
+              "tag": "div",
+              "cls": "search-item"
+            },
+            {
+              "path": "div#searchDropdown > div.search-item",
+              "label": "CQ25-2609-A Classic Granola 25 LB",
+              "w": 550.4,
+              "h": 38,
+              "nested": false,
+              "tag": "div",
+              "cls": "search-item"
+            },
+            {
+              "path": "div#searchDropdown > div.search-item",
+              "label": "CQ10-2609-A Classic Granola 10 LB",
+              "w": 550.4,
+              "h": 38,
+              "nested": false,
+              "tag": "div",
+              "cls": "search-item"
+            }
+          ]
+        },
+        "ACCESS-008": {
+          "checked": 39,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 25,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 21,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 21,
+          "failures": 21,
+          "complete": 0,
+          "titleOnly": 21,
+          "worst": [
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "BSC-2609-A — Batch Sweetened Coconut",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "CSG-2201 — Coconut Sugar",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "BGR-2609-A — Batch Graham Crumb",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "SLT-1140 — Sea Salt — Fine",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "BS6-2609-A — Blue Stripes Granola 6/2 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "SS25-2609-B — Sunshine Granola 25 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "GR20-2609-A — Graham Crumb 20 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "BCQ-2609-A — Batch Classic Granola",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "OAT-4471 — Rolled Oats — #1 Thick",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "MPL-0912 — Grade A Maple Syrup",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "SFO-3310 — Sunflower Oil",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "BSS-2609-A — Batch Sunshine Granola",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "PEC-7714 — Raw Pecan Halves",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "BBS-2608-C — Batch Blue Stripes Granola",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "PMP-5520 — Pumpkin Seeds",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "BTC-2609-A — Batch Toasted Coconut",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "COC-9081 — Shredded Coconut — Unsweetened",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "CQ25-2609-A — Classic Granola 25 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "CQ10-2609-A — Classic Granola 10 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "SS12-2609-A — Sunshine Granola 12/1 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "TC6-2609-A — Toasted Coconut 6/2 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            }
+          ]
+        },
+        "STATUS-006": {
+          "checked": 2,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "tallest": 0,
+          "worst": []
+        },
+        "STATUS-010": {
+          "checked": 39,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 2,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > div.header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 291,
+              "height": 243
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": false,
+          "reason": "No background refresh and no refresh control on this surface."
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-light/S-63.png"
+    },
+    {
+      "id": "S-63",
+      "name": "Lot search field + type-ahead dropdown",
+      "variant": "1440-dark",
+      "page": "traceability",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 30,
+          "failures": 3,
+          "failuresNotNested": 3,
+          "passedViaExtension": [],
+          "worst": [
+            {
+              "path": "div#searchDropdown > div.search-item",
+              "label": "BCQ-2609-A Batch Classic Granola",
+              "w": 550.4,
+              "h": 38,
+              "nested": false,
+              "tag": "div",
+              "cls": "search-item"
+            },
+            {
+              "path": "div#searchDropdown > div.search-item",
+              "label": "CQ25-2609-A Classic Granola 25 LB",
+              "w": 550.4,
+              "h": 38,
+              "nested": false,
+              "tag": "div",
+              "cls": "search-item"
+            },
+            {
+              "path": "div#searchDropdown > div.search-item",
+              "label": "CQ10-2609-A Classic Granola 10 LB",
+              "w": 550.4,
+              "h": 38,
+              "nested": false,
+              "tag": "div",
+              "cls": "search-item"
+            }
+          ]
+        },
+        "ACCESS-008": {
+          "checked": 39,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 25,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 21,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 21,
+          "failures": 21,
+          "complete": 0,
+          "titleOnly": 21,
+          "worst": [
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "BSC-2609-A — Batch Sweetened Coconut",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "CSG-2201 — Coconut Sugar",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "BGR-2609-A — Batch Graham Crumb",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "SLT-1140 — Sea Salt — Fine",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "BS6-2609-A — Blue Stripes Granola 6/2 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > button.lot-pill",
+              "text": "SS25-2609-B — Sunshine Granola 25 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "GR20-2609-A — Graham Crumb 20 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "BCQ-2609-A — Batch Classic Granola",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "OAT-4471 — Rolled Oats — #1 Thick",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "MPL-0912 — Grade A Maple Syrup",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "SFO-3310 — Sunflower Oil",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "BSS-2609-A — Batch Sunshine Granola",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "PEC-7714 — Raw Pecan Halves",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "BBS-2608-C — Batch Blue Stripes Granola",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "PMP-5520 — Pumpkin Seeds",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "BTC-2609-A — Batch Toasted Coconut",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "COC-9081 — Shredded Coconut — Unsweetened",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "CQ25-2609-A — Classic Granola 25 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "CQ10-2609-A — Classic Granola 10 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "SS12-2609-A — Sunshine Granola 12/1 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            },
+            {
+              "path": "div#recentLots > details > button.lot-pill",
+              "text": "TC6-2609-A — Toasted Coconut 6/2 LB",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation"
+              ],
+              "hasTitle": true
+            }
+          ]
+        },
+        "STATUS-006": {
+          "checked": 2,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "tallest": 0,
+          "worst": []
+        },
+        "STATUS-010": {
+          "checked": 39,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 2,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > div.header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 291,
+              "height": 243
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": false,
+          "reason": "No background refresh and no refresh control on this surface."
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-dark/S-63.png"
+    },
+    {
+      "id": "S-64",
+      "name": "Trace direction switch + Trace button",
+      "variant": "390-light",
+      "page": "traceability",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 6,
+          "failures": 1,
+          "failuresNotNested": 1,
+          "passedViaExtension": [],
+          "worst": [
+            {
+              "path": "div#searchDropdown > div.search-item",
+              "label": "OAT-4471 Rolled Oats — #1 Thick",
+              "w": 340,
+              "h": 38,
+              "nested": false,
+              "tag": "div",
+              "cls": "search-item"
+            }
+          ]
+        },
+        "ACCESS-008": {
+          "checked": 7,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 1,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 390,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 0,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": false,
+          "reason": "Desktop clause only; viewport is 390px."
+        },
+        "STATUS-010": {
+          "checked": 7,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > nav.mobile-nav",
+              "anchor": "bottom",
+              "top": 781,
+              "bottom": 844,
+              "height": 63
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": false,
+          "reason": "No background refresh and no refresh control on this surface."
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/390-light/S-64.png"
+    },
+    {
+      "id": "S-64",
+      "name": "Trace direction switch + Trace button",
+      "variant": "390-dark",
+      "page": "traceability",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 6,
+          "failures": 1,
+          "failuresNotNested": 1,
+          "passedViaExtension": [],
+          "worst": [
+            {
+              "path": "div#searchDropdown > div.search-item",
+              "label": "OAT-4471 Rolled Oats — #1 Thick",
+              "w": 340,
+              "h": 38,
+              "nested": false,
+              "tag": "div",
+              "cls": "search-item"
+            }
+          ]
+        },
+        "ACCESS-008": {
+          "checked": 7,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 1,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 390,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 0,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": false,
+          "reason": "Desktop clause only; viewport is 390px."
+        },
+        "STATUS-010": {
+          "checked": 7,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > nav.mobile-nav",
+              "anchor": "bottom",
+              "top": 781,
+              "bottom": 844,
+              "height": 63
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": false,
+          "reason": "No background refresh and no refresh control on this surface."
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/390-dark/S-64.png"
+    },
+    {
+      "id": "S-64",
+      "name": "Trace direction switch + Trace button",
+      "variant": "1440-light",
+      "page": "traceability",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 6,
+          "failures": 1,
+          "failuresNotNested": 1,
+          "passedViaExtension": [],
+          "worst": [
+            {
+              "path": "div#searchDropdown > div.search-item",
+              "label": "OAT-4471 Rolled Oats — #1 Thick",
+              "w": 550.4,
+              "h": 38,
+              "nested": false,
+              "tag": "div",
+              "cls": "search-item"
+            }
+          ]
+        },
+        "ACCESS-008": {
+          "checked": 7,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 1,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 0,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "tallest": 0,
+          "worst": []
+        },
+        "STATUS-010": {
+          "checked": 7,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > div.header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 291,
+              "height": 243
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": false,
+          "reason": "No background refresh and no refresh control on this surface."
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-light/S-64.png"
+    },
+    {
+      "id": "S-64",
+      "name": "Trace direction switch + Trace button",
+      "variant": "1440-dark",
+      "page": "traceability",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 6,
+          "failures": 1,
+          "failuresNotNested": 1,
+          "passedViaExtension": [],
+          "worst": [
+            {
+              "path": "div#searchDropdown > div.search-item",
+              "label": "OAT-4471 Rolled Oats — #1 Thick",
+              "w": 550.4,
+              "h": 38,
+              "nested": false,
+              "tag": "div",
+              "cls": "search-item"
+            }
+          ]
+        },
+        "ACCESS-008": {
+          "checked": 7,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 1,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 0,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 0,
+          "failures": 0,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": []
+        },
+        "STATUS-006": {
+          "checked": 0,
+          "alignedCells": 0,
+          "failures": 0,
+          "byKind": {},
+          "worst": []
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "tallest": 0,
+          "worst": []
+        },
+        "STATUS-010": {
+          "checked": 7,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > div.header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 291,
+              "height": 243
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": false,
+          "reason": "No background refresh and no refresh control on this surface."
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-dark/S-64.png"
+    },
+    {
+      "id": "S-68",
+      "name": "Trace graph (D3) + zoom controls",
+      "variant": "1440-light",
+      "page": "traceability",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 3,
+          "failures": 0,
+          "failuresNotNested": 0,
+          "passedViaExtension": [],
+          "worst": []
+        },
+        "ACCESS-008": {
+          "checked": 29,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 28,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 1,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 1,
+          "failures": 1,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": [
+            {
+              "path": "div#traceInfo > span.completeness-badge.badge-complete",
+              "text": "✓ Complete trace — all links confirmed",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation",
+                "not focusable"
+              ],
+              "hasTitle": false
+            }
+          ]
+        },
+        "STATUS-006": {
+          "checked": 7,
+          "alignedCells": 0,
+          "failures": 6,
+          "byKind": {
+            "lb-precision": 6
+          },
+          "worst": [
+            {
+              "kind": "lb-precision",
+              "value": "1,140.8",
+              "context": "1,140.8 lb",
+              "path": "svg#graphSvg > g > g > text"
+            },
+            {
+              "kind": "lb-precision",
+              "value": "570.4",
+              "context": "570.4 lb",
+              "path": "svg#graphSvg > g > g > text"
+            },
+            {
+              "kind": "lb-precision",
+              "value": "285.2",
+              "context": "285.2 lb",
+              "path": "svg#graphSvg > g > g > text"
+            },
+            {
+              "kind": "lb-precision",
+              "value": "1,140.8",
+              "context": "1,140.8 lb",
+              "path": "g > g > g > text"
+            },
+            {
+              "kind": "lb-precision",
+              "value": "570.4",
+              "context": "570.4 lb",
+              "path": "g > g > g > text"
+            },
+            {
+              "kind": "lb-precision",
+              "value": "285.2",
+              "context": "285.2 lb",
+              "path": "g > g > g > text"
+            }
+          ]
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "tallest": 0,
+          "worst": []
+        },
+        "STATUS-010": {
+          "checked": 29,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > div.header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 291,
+              "height": 243
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": false,
+          "reason": "No background refresh and no refresh control on this surface."
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-light/S-68.png"
+    },
+    {
+      "id": "S-68",
+      "name": "Trace graph (D3) + zoom controls",
+      "variant": "1440-dark",
+      "page": "traceability",
+      "rules": {
+        "TOUCH-003": {
+          "checked": 3,
+          "failures": 0,
+          "failuresNotNested": 0,
+          "passedViaExtension": [],
+          "worst": []
+        },
+        "ACCESS-008": {
+          "checked": 29,
+          "placeholdersChecked": 0,
+          "placeholderFailures": 0,
+          "failures": 0,
+          "indeterminate": 28,
+          "worst": []
+        },
+        "LAYOUT-003/ACCESS-001": {
+          "overflowPx": 0,
+          "viewport": 1440,
+          "offenders": [],
+          "offenderCount": 0
+        },
+        "STATUS-002": {
+          "checked": 1,
+          "failures": 0,
+          "neutralNominal": [],
+          "worst": []
+        },
+        "STATUS-004": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "maxAlarms": 0,
+          "worst": []
+        },
+        "STATUS-005": {
+          "checked": 1,
+          "failures": 1,
+          "complete": 0,
+          "titleOnly": 0,
+          "worst": [
+            {
+              "path": "div#traceInfo > span.completeness-badge.badge-complete",
+              "text": "✓ Complete trace — all links confirmed",
+              "reasons": [
+                "no data-explain",
+                "aria-describedby does not name the explanation",
+                "not focusable"
+              ],
+              "hasTitle": false
+            }
+          ]
+        },
+        "STATUS-006": {
+          "checked": 7,
+          "alignedCells": 0,
+          "failures": 6,
+          "byKind": {
+            "lb-precision": 6
+          },
+          "worst": [
+            {
+              "kind": "lb-precision",
+              "value": "1,140.8",
+              "context": "1,140.8 lb",
+              "path": "svg#graphSvg > g > g > text"
+            },
+            {
+              "kind": "lb-precision",
+              "value": "570.4",
+              "context": "570.4 lb",
+              "path": "svg#graphSvg > g > g > text"
+            },
+            {
+              "kind": "lb-precision",
+              "value": "285.2",
+              "context": "285.2 lb",
+              "path": "svg#graphSvg > g > g > text"
+            },
+            {
+              "kind": "lb-precision",
+              "value": "1,140.8",
+              "context": "1,140.8 lb",
+              "path": "g > g > g > text"
+            },
+            {
+              "kind": "lb-precision",
+              "value": "570.4",
+              "context": "570.4 lb",
+              "path": "g > g > g > text"
+            },
+            {
+              "kind": "lb-precision",
+              "value": "285.2",
+              "context": "285.2 lb",
+              "path": "g > g > g > text"
+            }
+          ]
+        },
+        "STATUS-007": {
+          "checked": 0,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-008": {
+          "applicable": true,
+          "checked": 0,
+          "failures": 0,
+          "tallest": 0,
+          "worst": []
+        },
+        "STATUS-010": {
+          "checked": 29,
+          "failures": 0,
+          "worst": []
+        },
+        "STATUS-011": {
+          "checked": 0,
+          "failures": 0,
+          "repeatedInstances": 0,
+          "worst": []
+        },
+        "LAYOUT-011": {
+          "bars": [
+            {
+              "path": "nav#siteNav",
+              "anchor": "top",
+              "top": 0,
+              "bottom": 48,
+              "height": 48
+            },
+            {
+              "path": "html > body > div.header",
+              "anchor": "floating",
+              "top": 48,
+              "bottom": 291,
+              "height": 243
+            }
+          ],
+          "covered": [],
+          "coveredCount": 0,
+          "passUnderTopBar": 0,
+          "documentScrolls": true,
+          "scrollRegions": 0
+        },
+        "LAYOUT-020": {
+          "applicable": false,
+          "reason": "No background refresh and no refresh control on this surface."
+        }
+      },
+      "notes": [],
+      "consoleErrors": [
+        "Failed to load resource: the server responded with a status of 404 (Not Found)"
+      ],
+      "themeResponded": true,
+      "regionFramed": true,
+      "screenshot": "screenshots/1440-dark/S-68.png"
+    }
+  ],
+  "unmatchedEndpoints": [
+    "/auth/session/config"
+  ]
+}

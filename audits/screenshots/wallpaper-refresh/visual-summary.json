@@ -1,0 +1,161 @@
+{
+  "baselineCommit": "27a2518655da43ae31860a0bcf8c1f73db114422",
+  "broadAfterWallpaperSHA256": "b6dbeac8af81f41c5cfdf316d4a7c4ca6647c642b3eff94c6c90a01edcd13a82",
+  "finalWallpaperSHA256": "a8e7a89138588ffef1d1792a3a3b9e29a3cfc9d854c3cf4ed4cd78fc5d19f63f",
+  "broadAfterToFinalDelta": ".late-lag { color: var(--fl-amber); }",
+  "broad": {
+    "capturesBefore": 310,
+    "capturesAfter": 310,
+    "errorsBefore": 0,
+    "errorsAfter": 0,
+    "rawFailingCellComparison": {
+      "TOUCH-003": {
+        "beforeFailingCells": 94,
+        "afterFailingCells": 94,
+        "newCells": [],
+        "resolvedCells": []
+      },
+      "ACCESS-008": {
+        "beforeFailingCells": 9,
+        "afterFailingCells": 28,
+        "newCells": [
+          "S-10 1440-light",
+          "S-10 390-light",
+          "S-11 1440-light",
+          "S-11 390-light",
+          "S-12 1440-light",
+          "S-12 390-light",
+          "S-13 1440-light",
+          "S-13 390-light",
+          "S-16 1440-light",
+          "S-16 390-light",
+          "S-17 1440-light",
+          "S-17 390-light",
+          "S-18 1440-light",
+          "S-18 390-light",
+          "S-42 1440-light",
+          "S-42 390-light",
+          "S-43 1440-light",
+          "S-43 390-light",
+          "S-49 1440-light",
+          "S-49 390-light",
+          "S-50 1440-light",
+          "S-50 390-light",
+          "S-51 1440-light",
+          "S-51 390-light"
+        ],
+        "resolvedCells": [
+          "S-19 390-dark",
+          "S-59 1440-dark",
+          "S-59 390-dark",
+          "S-62 1440-dark",
+          "S-62 390-dark"
+        ]
+      },
+      "LAYOUT-003/ACCESS-001": {
+        "beforeFailingCells": 4,
+        "afterFailingCells": 4,
+        "newCells": [],
+        "resolvedCells": []
+      },
+      "LAYOUT-011": {
+        "beforeFailingCells": 8,
+        "afterFailingCells": 8,
+        "newCells": [],
+        "resolvedCells": []
+      },
+      "LAYOUT-020": {
+        "beforeFailingCells": 40,
+        "afterFailingCells": 43,
+        "newCells": [
+          "S-01 1440-dark",
+          "S-04 1440-light",
+          "S-04 390-dark",
+          "S-04 390-light",
+          "S-06 1440-dark",
+          "S-06 390-dark",
+          "S-12 1440-dark",
+          "S-18 390-light",
+          "S-54 1440-light"
+        ],
+        "resolvedCells": [
+          "S-03 390-light",
+          "S-09 390-light",
+          "S-10 390-light",
+          "S-16 1440-light",
+          "S-17 390-dark",
+          "S-18 390-dark"
+        ]
+      }
+    }
+  },
+  "classification": {
+    "newActiveContrastFailures": 0,
+    "newTouchTargetFailingCells": 0,
+    "newHorizontalOverflowFailingCells": 0,
+    "newOcclusionFailingCells": 0,
+    "rawAccessAfter": "24 cells contain only inactive Ascending sort buttons; 4 cells contain only inactive Create Expected Receipt button. Inactive UI controls are exempt from WCAG 1.4.3; raw canonical counts are preserved.",
+    "backgroundRefresh": "56 before and 56 after background interval captures all CLS 0 and moved 0. All nine newly failing numeric CLS cells use #refresh-btn, an explicit action allowed by LAYOUT-020. Matched24-before/24-after reruns retained two of those numeric failures, resolved seven, and reproduced three failures in baseline; see cls-trigger-comparison.json.",
+    "newAutomaticLayoutRegressions": 0
+  },
+  "raster": {
+    "initial310": "after-rendered-contrast-initial.json records the broad run before canvas color normalization; color(srgb ...) findings are superseded by the corrected 76-case color recheck.",
+    "colorRecheck76": "after-rendered-contrast-color-recheck.json uses canvas normalization of computed CSS colors at broad-after CSS hash; final late-lag delta superseded by final scoped recheck.",
+    "finalRecheck30": "after-rendered-contrast-final-recheck.json uses final CSS, canvas color normalization, and corrected glyph-paint restoration. S-02,S-02b,S-16,S-17,S-18,S-63,S-64,S-68 at all applicable variants. Late-lag now passes.",
+    "remainingBaselineKnown": "7 final scoped cells: compact-calendar shipment-dot samples (S-02,S-02b desktop), text in dropdown shadow (S-63 phone light,S-64 desktop light), and SVG edge labels (S-68 desktop light). All have matching baseline failing cases; trace/graph ratios improved. Conservative rectangle sampling includes dots/shadows and is not a glyph-mask proof."
+  },
+  "focused": {
+    "before-page-checks.json": {
+      "captures": 24,
+      "eligibleTextChecks": 676,
+      "contrastFailures": 5,
+      "minimumRatio": 3.2,
+      "horizontalOverflowFailures": 0,
+      "stylesheetHashes": {
+        "ledger-forms.css": "4a42d21b48218523bc9b8147dc0b863799aab3db2151c0be0faa648eb1fb459c"
+      },
+      "remoteRequests": [],
+      "unknownRequests": [],
+      "pageErrors": []
+    },
+    "after-page-checks.json": {
+      "captures": 24,
+      "eligibleTextChecks": 686,
+      "contrastFailures": 0,
+      "minimumRatio": 5.71,
+      "horizontalOverflowFailures": 0,
+      "stylesheetHashes": {
+        "wallpaper.css": "a8e7a89138588ffef1d1792a3a3b9e29a3cfc9d854c3cf4ed4cd78fc5d19f63f",
+        "ledger-forms.css": "c249f379de97a85e072147a9ca6dc3ba8dfe56f1abd81a78c1fd350888bf5d13"
+      },
+      "remoteRequests": [],
+      "unknownRequests": [],
+      "pageErrors": []
+    },
+    "after-webkit-page-checks.json": {
+      "captures": 12,
+      "eligibleTextChecks": 326,
+      "contrastFailures": 0,
+      "minimumRatio": 5.76,
+      "horizontalOverflowFailures": 0,
+      "stylesheetHashes": {
+        "wallpaper.css": "a8e7a89138588ffef1d1792a3a3b9e29a3cfc9d854c3cf4ed4cd78fc5d19f63f",
+        "ledger-forms.css": "c249f379de97a85e072147a9ca6dc3ba8dfe56f1abd81a78c1fd350888bf5d13"
+      },
+      "remoteRequests": [],
+      "unknownRequests": [],
+      "pageErrors": []
+    }
+  },
+  "limitations": [
+    "Raw full-harness report screenshot links retain original docs/design/audit-relative paths. Broad PNGs remain temporary build output; portable requested before/after PNGs are committed in this directory.",
+    "These are local fixture-driven browser checks, not physical-device or production data validation. Original general harness unmatched /auth/session/config fixture request remains local and unchanged.",
+    "Raw status/visual debt in the pre-existing dashboard is preserved; this report does not claim every original rule is green."
+  ],
+  "clsRecheck": "cls-trigger-comparison.json",
+  "visualHelperSHA256": {
+    "tests/visual/run-wallpaper-refresh.mjs": "b3d48323e0cd3b6afab88e21f4e04164b1f80f9790b69b1e0aa6d5f7bad2b4d9",
+    "tests/visual/lib/rendered-contrast.mjs": "023f1787ae2f8195caf5bbc9a12cb6c3827e24e624909d17326dc87b7af24743",
+    "tests/visual/lib/wallpaper-audit-hook.mjs": "259d9a79528bf8d15577ee50599e6e4f1d4266ca9dae9f9fc84d8e7bb1d6aa4f"
+  }
+}

@@ -1,0 +1,650 @@
+........................................................................ [  1%]
+........................................................................ [  2%]
+........................................................................ [  3%]
+........................................................................ [  4%]
+........................................................................ [  5%]
+........................................................................ [  6%]
+........................................................................ [  7%]
+........................................................................ [  8%]
+........................................................................ [  9%]
+........................................................................ [ 10%]
+........................................................................ [ 11%]
+........................................................................ [ 12%]
+........................................................................ [ 13%]
+........................................................................ [ 14%]
+........................................................................ [ 15%]
+........................................................................ [ 16%]
+........................................................................ [ 17%]
+........................................................................ [ 18%]
+........................................................................ [ 19%]
+........................................................................ [ 20%]
+........................................................................ [ 21%]
+........................................................................ [ 22%]
+........................................................................ [ 23%]
+........................................................................ [ 24%]
+........................................................................ [ 26%]
+........................................................................ [ 27%]
+........................................................................ [ 28%]
+........................................................................ [ 29%]
+........................................................................ [ 30%]
+........................................................................ [ 31%]
+........................................................................ [ 32%]
+........................................................................ [ 33%]
+........................................................................ [ 34%]
+........................................................................ [ 35%]
+........................................................................ [ 36%]
+........................................................................ [ 37%]
+........................................................................ [ 38%]
+........................................................................ [ 39%]
+........................................................................ [ 40%]
+........................................................................ [ 41%]
+........................................................................ [ 42%]
+........................................................................ [ 43%]
+........................................................................ [ 44%]
+........................................................................ [ 45%]
+........................................................................ [ 46%]
+........................................................................ [ 47%]
+........................................................................ [ 48%]
+........................................................................ [ 49%]
+........................................................................ [ 51%]
+........................................................................ [ 52%]
+........................................................................ [ 53%]
+........................................................................ [ 54%]
+........................................................................ [ 55%]
+........................................................................ [ 56%]
+........................................................................ [ 57%]
+........................................................................ [ 58%]
+........................................................................ [ 59%]
+........................................................................ [ 60%]
+........................................................................ [ 61%]
+........................................................................ [ 62%]
+........................................................................ [ 63%]
+........................................................................ [ 64%]
+........................................................................ [ 65%]
+........................................................................ [ 66%]
+........................................................................ [ 67%]
+........................................................................ [ 68%]
+........................................................................ [ 69%]
+........................................................................ [ 70%]
+........................................................................ [ 71%]
+........................................................................ [ 72%]
+........................................................................ [ 73%]
+........................................................................ [ 74%]
+........................................................................ [ 75%]
+........................................................................ [ 77%]
+........................................................................ [ 78%]
+........................................................................ [ 79%]
+........................................................................ [ 80%]
+........................................................................ [ 81%]
+........................................................................ [ 82%]
+........................................................................ [ 83%]
+........................................................................ [ 84%]
+........................................................................ [ 85%]
+........................................................................ [ 86%]
+........................................................................ [ 87%]
+........................................................................ [ 88%]
+........................................................................ [ 89%]
+........................................................................ [ 90%]
+........................................................................ [ 91%]
+........................................................................ [ 92%]
+........................................................................ [ 93%]
+........................................................................ [ 94%]
+........................................................................ [ 95%]
+........................................................................ [ 96%]
+........................................................................ [ 97%]
+........................................................................ [ 98%]
+........................................................................ [ 99%]
+....                                                                     [100%]
+=============================== warnings summary ===============================
+main.py:2299
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:2299: SyntaxWarning: invalid escape sequence '\d'
+    (substring(name FROM '(\d+)\s*x\s*\d+'))::numeric
+
+lot_confirmation.py:13
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/lot_confirmation.py:13: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class LotConfirmation(BaseModel):
+
+lot_confirmation.py:226
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/lot_confirmation.py:226: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class Substitution(BaseModel):
+
+exceptions_enforcement.py:638
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/exceptions_enforcement.py:638: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class ResolveRequest(BaseModel):
+
+exceptions_enforcement.py:663
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/exceptions_enforcement.py:663: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class DecisionRequest(BaseModel):
+
+write_tickets.py:83
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/write_tickets.py:83: PydanticDeprecatedSince20: Pydantic V1 style `@root_validator` validators are deprecated. You should migrate to Pydantic V2 style `@model_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @root_validator(pre=True)
+
+write_tickets.py:91
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/write_tickets.py:91: PydanticDeprecatedSince20: Pydantic V1 style `@root_validator` validators are deprecated. You should migrate to Pydantic V2 style `@model_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @root_validator(pre=True)
+
+write_tickets.py:82
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/write_tickets.py:82: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class IdInput(BaseModel):
+
+write_tickets.py:127
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/write_tickets.py:127: PydanticDeprecatedSince20: Pydantic V1 style `@root_validator` validators are deprecated. You should migrate to Pydantic V2 style `@model_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @root_validator(pre=True)
+
+write_tickets.py:144
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/write_tickets.py:144: PydanticDeprecatedSince20: Pydantic V1 style `@root_validator` validators are deprecated. You should migrate to Pydantic V2 style `@model_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @root_validator(pre=True)
+
+write_tickets.py:219
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/write_tickets.py:219: PydanticDeprecatedSince20: Pydantic V1 style `@root_validator` validators are deprecated. You should migrate to Pydantic V2 style `@model_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @root_validator(pre=True)
+
+write_tickets.py:250
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/write_tickets.py:250: PydanticDeprecatedSince20: Pydantic V1 style `@root_validator` validators are deprecated. You should migrate to Pydantic V2 style `@model_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @root_validator(pre=True)
+
+write_tickets.py:246
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/write_tickets.py:246: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class CommitRequest(BaseModel):
+
+attachments.py:144
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/attachments.py:144: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class AttachRequest(BaseModel):
+
+sales_document_tickets.py:35
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/sales_document_tickets.py:35: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @validator('customer_po')
+
+order_tickets.py:64
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/order_tickets.py:64: PydanticDeprecatedSince20: Pydantic V1 style `@root_validator` validators are deprecated. You should migrate to Pydantic V2 style `@model_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @root_validator(pre=True)
+
+order_tickets.py:86
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/order_tickets.py:86: PydanticDeprecatedSince20: Pydantic V1 style `@root_validator` validators are deprecated. You should migrate to Pydantic V2 style `@model_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @root_validator(skip_on_failure=True)
+
+order_tickets.py:104
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/order_tickets.py:104: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    _text = validator('customer_po', 'external_order_reference', allow_reuse=True)(_trim)
+
+order_tickets.py:104
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/order_tickets.py:104: PydanticDeprecatedSince20: `allow_reuse` is deprecated and will be ignored; it should no longer be necessary. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    _text = validator('customer_po', 'external_order_reference', allow_reuse=True)(_trim)
+
+order_tickets.py:128
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/order_tickets.py:128: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    _text = validator('customer_po', allow_reuse=True)(_trim)
+
+order_tickets.py:128
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/order_tickets.py:128: PydanticDeprecatedSince20: `allow_reuse` is deprecated and will be ignored; it should no longer be necessary. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    _text = validator('customer_po', allow_reuse=True)(_trim)
+
+ship_tickets.py:37
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/ship_tickets.py:37: PydanticDeprecatedSince20: Pydantic V1 style `@root_validator` validators are deprecated. You should migrate to Pydantic V2 style `@model_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @root_validator(pre=True)
+
+ship_tickets.py:46
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/ship_tickets.py:46: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @validator('bol_reference')
+
+shift_summary.py:1020
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/shift_summary.py:1020: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class ConfirmRequest(BaseModel):
+
+resolution.py:128
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/resolution.py:128: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class ResolutionContext(BaseModel):
+
+resolution.py:153
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/resolution.py:153: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @validator('query')
+
+resolution.py:159
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/resolution.py:159: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @validator('quantity', pre=True)
+
+resolution.py:145
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/resolution.py:145: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class ResolveRequest(BaseModel):
+
+resolution.py:186
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/resolution.py:186: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @validator('alias', 'expansion')
+
+resolution.py:175
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/resolution.py:175: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class AliasSeed(BaseModel):
+
+customer_tickets.py:33
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/customer_tickets.py:33: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @validator('name')
+
+customer_tickets.py:40
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/customer_tickets.py:40: PydanticDeprecatedSince20: Pydantic V1 style `@root_validator` validators are deprecated. You should migrate to Pydantic V2 style `@model_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @root_validator(pre=True)
+
+fl_assistant.py:138
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/fl_assistant.py:138: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class Body(BaseModel):
+
+fl_assistant.py:154
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/fl_assistant.py:154: PydanticDeprecatedSince20: `max_items` is deprecated and will be removed, use `max_length` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    attachment_ids: list[write_tickets.PositiveId] = Field(default_factory=list, max_items=5)
+
+fl_assistant.py:162
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/fl_assistant.py:162: PydanticDeprecatedSince20: `max_items` is deprecated and will be removed, use `max_length` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    acknowledged_warnings: list[str] = Field(default_factory=list, max_items=25)
+
+fl_assistant.py:164
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/fl_assistant.py:164: PydanticDeprecatedSince20: `max_items` is deprecated and will be removed, use `max_length` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    lot_confirmations: list[dict] = Field(default_factory=list, max_items=100)
+
+key_sessions.py:35
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/key_sessions.py:35: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class Exchange(BaseModel):
+
+main.py:2525
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:2525: DeprecationWarning:
+          on_event is deprecated, use lifespan event handlers instead.
+
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+
+    @app.on_event("startup")
+
+../../../../../../private/tmp/fl_wallpaper_tests_20261022/venv/lib/python3.12/site-packages/fastapi/applications.py:4547
+../../../../../../private/tmp/fl_wallpaper_tests_20261022/venv/lib/python3.12/site-packages/fastapi/applications.py:4547
+  /private/tmp/fl_wallpaper_tests_20261022/venv/lib/python3.12/site-packages/fastapi/applications.py:4547: DeprecationWarning:
+          on_event is deprecated, use lifespan event handlers instead.
+
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+
+    return self.router.on_event(event_type)
+
+main.py:2620
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:2620: DeprecationWarning:
+          on_event is deprecated, use lifespan event handlers instead.
+
+          Read more about it in the
+          [FastAPI docs for Lifespan Events](https://fastapi.tiangolo.com/advanced/events/).
+
+    @app.on_event("shutdown")
+
+main.py:4101
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:4101: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @validator("category")
+
+main.py:4107
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:4107: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @validator("priority")
+
+main.py:4122
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:4122: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @validator("priority")
+
+main.py:4128
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:4128: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @validator("status")
+
+main.py:4218
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:4218: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @validator('unit', pre=True, always=True)
+
+main.py:4222
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:4222: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @validator('quantity_lb', always=True, pre=True)
+
+main.py:4204
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:4204: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class OrderLineInput(BaseModel):
+
+../../../../../../private/tmp/fl_wallpaper_tests_20261022/venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:408
+tests/test_batch1_correctness_security.py::test_admin_sql_route_is_removed
+  /private/tmp/fl_wallpaper_tests_20261022/venv/lib/python3.12/site-packages/pydantic/_internal/_config.py:408: UserWarning: Valid config keys have changed in V2:
+  * 'underscore_attrs_are_private' has been removed
+    warnings.warn(message, UserWarning)
+
+main.py:4265
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:4265: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @validator('product_id', always=True)
+
+main.py:4271
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:4271: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @validator('quantity', 'case_weight_lb', 'quantity_lb', 'unit_price', 'amount')
+
+main.py:4277
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:4277: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @validator('quantity_lb', always=True)
+
+main.py:4323
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:4323: PydanticDeprecatedSince20: Pydantic V1 style `@root_validator` validators are deprecated. You should migrate to Pydantic V2 style `@model_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @root_validator(pre=True)
+
+main.py:4331
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:4331: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @validator('customer_id', always=True)
+
+main.py:4337
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:4337: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    _optional_text = validator('customer_po', 'external_order_reference', allow_reuse=True)(_optional_order_text)
+
+main.py:4337
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:4337: PydanticDeprecatedSince20: `allow_reuse` is deprecated and will be ignored; it should no longer be necessary. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    _optional_text = validator('customer_po', 'external_order_reference', allow_reuse=True)(_optional_order_text)
+
+main.py:4350
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:4350: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    _optional_text = validator('customer_po', allow_reuse=True)(_optional_order_text)
+
+main.py:4350
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:4350: PydanticDeprecatedSince20: `allow_reuse` is deprecated and will be ignored; it should no longer be necessary. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    _optional_text = validator('customer_po', allow_reuse=True)(_optional_order_text)
+
+main.py:4376
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:4376: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class CommitShipOrderRequest(InventoryWriteRequest):
+
+main.py:4623
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:4623: PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. You should migrate to Pydantic V2 style `@field_validator` validators, see the migration guide for more details. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    @validator('names')
+
+main.py:19666
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:19666: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class ProductionRunUpdate(BaseModel):
+
+resolution_receipts.py:130
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/resolution_receipts.py:130: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    class VoidPrepare(BaseModel):
+
+tests/test_a12_review_fixes.py: 93 warnings
+tests/test_a12_shift_integration.py: 21 warnings
+tests/test_a6_review_fixes.py: 25 warnings
+tests/test_a7_review_fixes.py: 28 warnings
+tests/test_actor_attribution.py: 80 warnings
+tests/test_assistant_customer_final2.py: 61 warnings
+tests/test_assistant_customer_round_e.py: 8 warnings
+tests/test_assistant_evidence_final2.py: 83 warnings
+tests/test_assistant_fact_binding_round_b.py: 16 warnings
+tests/test_assistant_final_behavior.py: 24 warnings
+tests/test_assistant_fix_b2.py: 31 warnings
+tests/test_assistant_make_round_b.py: 13 warnings
+tests/test_assistant_mobile_ux.py: 4 warnings
+tests/test_assistant_orders_round_d.py: 44 warnings
+tests/test_assistant_pack_review_c.py: 4 warnings
+tests/test_assistant_progress_round_d.py: 3 warnings
+tests/test_assistant_reason_round_e.py: 36 warnings
+tests/test_assistant_receive_lot_round_e.py: 16 warnings
+tests/test_assistant_round_e.py: 29 warnings
+tests/test_assistant_runtime_round_d.py: 12 warnings
+tests/test_assistant_stock_fix_c.py: 10 warnings
+tests/test_assistant_today_entries.py: 11 warnings
+tests/test_assistant_understanding_round_b.py: 28 warnings
+tests/test_assistant_voice_e2e_round_c.py: 36 warnings
+tests/test_assistant_voice_recovery_round_c.py: 9 warnings
+tests/test_audit_savepoints_lotcodes.py: 13 warnings
+tests/test_batch1_correctness_security.py: 4 warnings
+tests/test_customer_tickets.py: 105 warnings
+tests/test_d12_dashboard.py: 1 warning
+tests/test_daily_entries.py: 6 warnings
+tests/test_dashboard_api_key.py: 7 warnings
+tests/test_dashboard_key_delivery.py: 17 warnings
+tests/test_direct_order_close_guard.py: 2519 warnings
+tests/test_exceptions_enforcement.py: 66 warnings
+tests/test_expected_receipt_extract.py: 68 warnings
+tests/test_expected_receipts.py: 18 warnings
+tests/test_final_exception_list.py: 2 warnings
+tests/test_final_receive_receipts.py: 18 warnings
+tests/test_fl_assistant.py: 98 warnings
+tests/test_health_v3.py: 14 warnings
+tests/test_inventory_occurred_at.py: 5 warnings
+tests/test_key_session_rebase.py: 8 warnings
+tests/test_key_sessions.py: 32 warnings
+tests/test_kosher_tiers.py: 38 warnings
+tests/test_lot_confirmation.py: 63 warnings
+tests/test_lot_identity_047.py: 16 warnings
+tests/test_named_actor_writes.py: 202 warnings
+tests/test_notes_auth.py: 8 warnings
+tests/test_oat_bran_auto_substitute.py: 39 warnings
+tests/test_oat_bran_shift_summary.py: 2 warnings
+tests/test_office_prepare_review.py: 5 warnings
+tests/test_office_tickets.py: 10 warnings
+tests/test_order_create_contract.py: 37 warnings
+tests/test_order_create_review.py: 43 warnings
+tests/test_order_tickets.py: 30 warnings
+tests/test_orders_matrix_export.py: 8 warnings
+tests/test_phase1_ledger_integrity.py: 6 warnings
+tests/test_pilot_screens.py: 30 warnings
+tests/test_pilot_triage_backend.py: 24 warnings
+tests/test_pilot_ux_reads.py: 6 warnings
+tests/test_production_runs.py: 38 warnings
+tests/test_production_today_tile.py: 1 warning
+tests/test_production_trace.py: 5 warnings
+tests/test_production_warning.py: 6 warnings
+tests/test_readonly_api_key.py: 199 warnings
+tests/test_recent_ledger.py: 11 warnings
+tests/test_recipe_corrections_078.py: 3 warnings
+tests/test_released_by_attribution.py: 7 warnings
+tests/test_reset_shortage_close.py: 16 warnings
+tests/test_resolution.py: 5 warnings
+tests/test_resolution_receipts.py: 34 warnings
+tests/test_resolution_review.py: 32 warnings
+tests/test_roles_a2.py: 99 warnings
+tests/test_run_types.py: 32 warnings
+tests/test_sales_order_allocations.py: 45 warnings
+tests/test_sales_order_extract.py: 47 warnings
+tests/test_sales_order_line_fields.py: 4 warnings
+tests/test_sales_order_readiness.py: 16 warnings
+tests/test_sales_order_state_model.py: 94 warnings
+tests/test_session_background.py: 8 warnings
+tests/test_shift_ready_labels.py: 2 warnings
+tests/test_shift_summary.py: 29 warnings
+tests/test_ship_tickets.py: 48 warnings
+tests/test_supplier_lot_tickets.py: 50 warnings
+tests/test_supplies.py: 12 warnings
+tests/test_trace_emission.py: 22 warnings
+tests/test_void_aware_views.py: 5 warnings
+tests/test_void_screen.py: 9 warnings
+tests/test_write_response_contract.py: 25 warnings
+tests/test_write_tickets.py: 81 warnings
+tests/test_write_tickets_part2.py: 98 warnings
+  /private/tmp/fl_wallpaper_tests_20261022/venv/lib/python3.12/site-packages/httpx/_client.py:690: DeprecationWarning: The 'app' shortcut is now deprecated. Use the explicit style 'transport=WSGITransport(app=...)' instead.
+    warnings.warn(message, DeprecationWarning)
+
+tests/test_a12_review_fixes.py: 33 warnings
+tests/test_a12_shift_integration.py: 36 warnings
+tests/test_assistant_evidence_final2.py: 16 warnings
+tests/test_assistant_fact_binding_round_b.py: 10 warnings
+tests/test_assistant_final_behavior.py: 8 warnings
+tests/test_assistant_fix_b2.py: 17 warnings
+tests/test_assistant_make_round_b.py: 13 warnings
+tests/test_assistant_orders_round_d.py: 8 warnings
+tests/test_assistant_pack_review_c.py: 2 warnings
+tests/test_assistant_reason_round_e.py: 20 warnings
+tests/test_assistant_receive_lot_round_e.py: 22 warnings
+tests/test_assistant_round_e.py: 3 warnings
+tests/test_assistant_runtime_round_d.py: 1 warning
+tests/test_assistant_today_entries.py: 1 warning
+tests/test_assistant_understanding_round_b.py: 10 warnings
+tests/test_assistant_voice_e2e_round_c.py: 17 warnings
+tests/test_d12_dashboard.py: 1 warning
+tests/test_exceptions_enforcement.py: 128 warnings
+tests/test_final_receive_receipts.py: 15 warnings
+tests/test_fl_assistant.py: 34 warnings
+tests/test_key_session_rebase.py: 9 warnings
+tests/test_key_sessions.py: 4 warnings
+tests/test_kosher_tiers.py: 49 warnings
+tests/test_lot_confirmation.py: 69 warnings
+tests/test_oat_bran_auto_substitute.py: 49 warnings
+tests/test_pilot_screens.py: 7 warnings
+tests/test_pilot_triage_backend.py: 45 warnings
+tests/test_pilot_ux_reads.py: 1 warning
+tests/test_reset_shortage_close.py: 46 warnings
+tests/test_resolution_receipts.py: 38 warnings
+tests/test_roles_a2.py: 89 warnings
+tests/test_shift_summary.py: 47 warnings
+tests/test_ship_tickets.py: 17 warnings
+tests/test_supplier_lot_tickets.py: 83 warnings
+tests/test_void_screen.py: 9 warnings
+tests/test_write_tickets.py: 50 warnings
+tests/test_write_tickets_part2.py: 186 warnings
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/write_tickets.py:787: PydanticDeprecatedSince20: The `json` method is deprecated; use `model_dump_json` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    payload = json.loads(req.json(exclude={'client_source'}))
+
+tests/test_a12_shift_integration.py: 1 warning
+tests/test_a6_review_fixes.py: 9 warnings
+tests/test_assistant_evidence_final2.py: 9 warnings
+tests/test_assistant_final_behavior.py: 2 warnings
+tests/test_assistant_orders_round_d.py: 4 warnings
+tests/test_fl_assistant.py: 6 warnings
+tests/test_pilot_screens.py: 23 warnings
+tests/test_pilot_triage_backend.py: 2 warnings
+tests/test_shift_summary.py: 1 warning
+tests/test_ship_tickets.py: 48 warnings
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/ship_tickets.py:414: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    payload=wt.json_value(api,req.dict());payload['occurred_at']=occurred.isoformat()
+
+tests/test_a6_review_fixes.py: 36 warnings
+tests/test_a7_review_fixes.py: 41 warnings
+tests/test_assistant_customer_final2.py: 10 warnings
+tests/test_assistant_customer_round_e.py: 8 warnings
+tests/test_assistant_evidence_final2.py: 7 warnings
+tests/test_assistant_voice_e2e_round_c.py: 2 warnings
+tests/test_customer_tickets.py: 2 warnings
+tests/test_direct_order_close_guard.py: 451 warnings
+tests/test_fl_assistant.py: 10 warnings
+tests/test_office_prepare_review.py: 6 warnings
+tests/test_office_tickets.py: 7 warnings
+tests/test_order_tickets.py: 72 warnings
+tests/test_pilot_screens.py: 18 warnings
+tests/test_pilot_triage_backend.py: 3 warnings
+tests/test_shift_ready_labels.py: 6 warnings
+tests/test_shift_summary.py: 3 warnings
+tests/test_ship_tickets.py: 24 warnings
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/order_tickets.py:709: PydanticDeprecatedSince20: The `json` method is deprecated; use `model_dump_json` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    payload = json.loads(req.json(exclude={'client_source'}))
+
+tests/test_a7_review_fixes.py: 4 warnings
+tests/test_order_tickets.py: 6 warnings
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/order_tickets.py:711: PydanticDeprecatedSince20: The `__fields_set__` attribute is deprecated, use `model_fields_set` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    payload['fields'] = sorted(req.__fields_set__ - {'client_source'})
+
+tests/test_a7_review_fixes.py: 2 warnings
+tests/test_order_create_contract.py: 11 warnings
+tests/test_order_create_review.py: 2 warnings
+tests/test_order_tickets.py: 7 warnings
+tests/test_write_response_contract.py: 2 warnings
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:16050: PydanticDeprecatedSince20: The `__fields_set__` attribute is deprecated, use `model_fields_set` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    if 'customer_po' in req.__fields_set__:
+
+tests/test_a7_review_fixes.py: 8 warnings
+tests/test_expected_receipts.py: 10 warnings
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:6545: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    data = req.dict(exclude_unset=True)
+
+tests/test_actor_attribution.py::test_the_packing_slip_query_key_path_still_works_as_before
+  /private/tmp/fl_wallpaper_tests_20261022/venv/lib/python3.12/site-packages/reportlab/lib/rl_safe_eval.py:11: DeprecationWarning: ast.NameConstant is deprecated and will be removed in Python 3.14; use ast.Constant instead
+    haveNameConstant = hasattr(ast,'NameConstant')
+
+tests/test_assistant_customer_final2.py: 627 warnings
+tests/test_assistant_customer_round_e.py: 264 warnings
+tests/test_assistant_evidence_final2.py: 1056 warnings
+tests/test_assistant_fact_binding_round_b.py: 231 warnings
+tests/test_assistant_final_behavior.py: 220 warnings
+tests/test_assistant_fix_b2.py: 473 warnings
+tests/test_assistant_mobile_ux.py: 44 warnings
+tests/test_assistant_orders_round_d.py: 440 warnings
+tests/test_assistant_pack_review_c.py: 66 warnings
+tests/test_assistant_progress_round_d.py: 33 warnings
+tests/test_assistant_reason_round_e.py: 748 warnings
+tests/test_assistant_receive_lot_round_e.py: 220 warnings
+tests/test_assistant_request_compatibility.py: 22 warnings
+tests/test_assistant_round_e.py: 308 warnings
+tests/test_assistant_runtime_round_d.py: 121 warnings
+tests/test_assistant_stock_fix_c.py: 110 warnings
+tests/test_assistant_tools_schema.py: 99 warnings
+tests/test_assistant_understanding_round_b.py: 374 warnings
+tests/test_assistant_voice_e2e_round_c.py: 440 warnings
+tests/test_assistant_voice_recovery_round_c.py: 77 warnings
+tests/test_fl_assistant.py: 1056 warnings
+tests/test_key_sessions.py: 11 warnings
+tests/test_oat_bran_auto_substitute.py: 77 warnings
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/assistant_tools.py:47: PydanticDeprecatedSince20: The `schema` method is deprecated; use `model_json_schema` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    schema = copy.deepcopy(model.schema())
+
+tests/test_assistant_customer_final2.py: 6 warnings
+tests/test_assistant_customer_round_e.py: 8 warnings
+tests/test_customer_tickets.py: 94 warnings
+tests/test_fl_assistant.py: 3 warnings
+tests/test_pilot_screens.py: 2 warnings
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/customer_tickets.py:168: PydanticDeprecatedSince20: The `json` method is deprecated; use `model_dump_json` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    payload = json.loads(req.json(exclude={'client_source'}))
+
+tests/test_assistant_evidence_final2.py: 9 warnings
+tests/test_fl_assistant.py: 5 warnings
+tests/test_pilot_screens.py: 2 warnings
+tests/test_ship_tickets.py: 2 warnings
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/ship_tickets.py:265: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    payload=a5.merge_confirmations(row['payload'],[r.dict() for r in body.lot_confirmations])
+
+tests/test_assistant_make_round_b.py: 11 warnings
+tests/test_assistant_voice_e2e_round_c.py: 12 warnings
+tests/test_final_receive_receipts.py: 3 warnings
+tests/test_fl_assistant.py: 5 warnings
+tests/test_kosher_tiers.py: 1 warning
+tests/test_lot_confirmation.py: 20 warnings
+tests/test_oat_bran_auto_substitute.py: 51 warnings
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/write_tickets.py:959: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    effective_payload = a5.merge_confirmations(row['payload'], [e.dict() for e in body.lot_confirmations])
+
+tests/test_expected_receipt_extract.py: 13 warnings
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:7646: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    return match_extraction(cur, req.extraction.dict())
+
+tests/test_key_sessions.py::test_dashboard_note_session_writes_record_person
+tests/test_notes_auth.py::test_notes_update_with_key
+tests/test_notes_auth.py::test_notes_domain_errors_unchanged_with_key
+tests/test_write_response_contract.py::test_note_update_success_and_id
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:18441: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    data = req.dict(exclude_unset=True)
+
+tests/test_named_actor_writes.py::test_each_write_persists_the_authenticated_operator[Blubber-PATCH-/customers/{customer_id}]
+tests/test_named_actor_writes.py::test_each_write_persists_the_authenticated_operator[Miriam-PATCH-/customers/{customer_id}]
+tests/test_named_actor_writes.py::test_each_write_persists_the_authenticated_operator[shared-PATCH-/customers/{customer_id}]
+tests/test_named_actor_writes.py::test_metadata_audit_failure_rolls_back_the_write[PATCH-/customers/{customer_id}]
+tests/test_named_actor_writes.py::test_shared_metadata_writes_do_not_require_the_new_audit_table[PATCH-/customers/{customer_id}]
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:12368: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    updates = req.dict(exclude_none=True, exclude={'aliases'})
+
+tests/test_named_actor_writes.py: 10 warnings
+tests/test_order_create_contract.py: 39 warnings
+tests/test_order_create_review.py: 40 warnings
+tests/test_order_tickets.py: 1 warning
+tests/test_sales_order_extract.py: 1 warning
+tests/test_sales_order_line_fields.py: 4 warnings
+tests/test_sales_order_state_model.py: 1 warning
+tests/test_write_response_contract.py: 10 warnings
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:12754: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    save_contract = _uses_order_create_contract(req.dict(exclude_unset=True))
+
+tests/test_order_create_contract.py: 50 warnings
+tests/test_order_create_review.py: 33 warnings
+tests/test_order_tickets.py: 1 warning
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:12491: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    payload = req.dict(exclude={'customer_name', 'customer_address', 'allow_duplicate_po'})
+
+tests/test_production_runs.py: 20 warnings
+tests/test_run_types.py: 17 warnings
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/main.py:20052: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    data = req.dict(exclude_unset=True)
+
+tests/test_resolution.py::test_migration_idempotent_seed_format_constraints_and_readback
+tests/test_resolution.py::test_migration_idempotent_seed_format_constraints_and_readback
+tests/test_resolution.py::test_invalid_seed_rejected[row0]
+tests/test_resolution.py::test_invalid_seed_rejected[row2]
+  /Users/michaelgross/.codex/worktrees/ui-wallpaper-refresh/factory-ledger/resolution.py:204: PydanticDeprecatedSince20: The `dict` method is deprecated; use `model_dump` instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.14/migration/
+    row = AliasSeed(**data).dict()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+6916 passed, 15100 warnings in 346.57s (0:05:46)

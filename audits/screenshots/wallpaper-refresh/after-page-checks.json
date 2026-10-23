@@ -1,0 +1,1149 @@
+{
+  "phase": "after",
+  "sourceRoot": "/tmp/fl-wallpaper-final-20261022",
+  "stylesheetHashes": {
+    "wallpaper.css": "a8e7a89138588ffef1d1792a3a3b9e29a3cfc9d854c3cf4ed4cd78fc5d19f63f",
+    "ledger-forms.css": "c249f379de97a85e072147a9ca6dc3ba8dfe56f1abd81a78c1fd350888bf5d13"
+  },
+  "captures": [
+    {
+      "name": "create-order",
+      "file": "after-create-order-1440-light.png",
+      "title": "Office · Factory Ledger",
+      "width": 1440,
+      "theme": "light",
+      "contrast": {
+        "checked": 36,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 22,
+        "worst": []
+      },
+      "touch": {
+        "checked": 28,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "form#office-form > div.fields > label.check > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 306,
+            "h": 75,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "fixed",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 38,
+        "failures": 0,
+        "minimumRatio": 6.07,
+        "worst": []
+      }
+    },
+    {
+      "name": "record-entry",
+      "file": "after-record-entry-1440-light.png",
+      "title": "Record an entry · Factory Ledger",
+      "width": 1440,
+      "theme": "light",
+      "contrast": {
+        "checked": 31,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 25,
+        "worst": []
+      },
+      "touch": {
+        "checked": 25,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "form#entry-form > div.fields > label > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 306,
+            "h": 79,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "fixed",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 33,
+        "failures": 0,
+        "minimumRatio": 6.07,
+        "worst": []
+      }
+    },
+    {
+      "name": "fl-assistant",
+      "file": "after-fl-assistant-1440-light.png",
+      "title": "FL Assistant · Factory Ledger",
+      "width": 1440,
+      "theme": "light",
+      "contrast": {
+        "checked": 34,
+        "placeholdersChecked": 2,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 23,
+        "worst": []
+      },
+      "touch": {
+        "checked": 17,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "fixed",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 35,
+        "failures": 0,
+        "minimumRatio": 5.71,
+        "worst": []
+      }
+    },
+    {
+      "name": "exceptions",
+      "file": "after-exceptions-1440-light.png",
+      "title": "Exceptions · Factory Ledger",
+      "width": 1440,
+      "theme": "light",
+      "contrast": {
+        "checked": 14,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 12,
+        "worst": []
+      },
+      "touch": {
+        "checked": 9,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "fixed",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 14,
+        "failures": 0,
+        "minimumRatio": 6.07,
+        "worst": []
+      }
+    },
+    {
+      "name": "runs",
+      "file": "after-runs-1440-light.png",
+      "title": "Production Runs — Factory Ledger",
+      "width": 1440,
+      "theme": "light",
+      "contrast": {
+        "checked": 43,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 29,
+        "worst": []
+      },
+      "touch": {
+        "checked": 22,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#previous-week",
+            "label": "Previous week",
+            "w": 38.5,
+            "h": 44,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          },
+          {
+            "path": "button#next-week",
+            "label": "Next week",
+            "w": 38.5,
+            "h": 44,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          }
+        ]
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "fixed",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 43,
+        "failures": 0,
+        "minimumRatio": 6.07,
+        "worst": []
+      }
+    },
+    {
+      "name": "history",
+      "file": "after-history-1440-light.png",
+      "title": "Ledger History — Factory Ledger",
+      "width": 1440,
+      "theme": "light",
+      "contrast": {
+        "checked": 15,
+        "placeholdersChecked": 2,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 13,
+        "worst": []
+      },
+      "touch": {
+        "checked": 10,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "fixed",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 17,
+        "failures": 0,
+        "minimumRatio": 6.07,
+        "worst": []
+      }
+    },
+    {
+      "name": "create-order",
+      "file": "after-create-order-1440-dark.png",
+      "title": "Office · Factory Ledger",
+      "width": 1440,
+      "theme": "dark",
+      "contrast": {
+        "checked": 36,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 22,
+        "worst": []
+      },
+      "touch": {
+        "checked": 28,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "form#office-form > div.fields > label.check > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 306,
+            "h": 75,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "fixed",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 38,
+        "failures": 0,
+        "minimumRatio": 8.83,
+        "worst": []
+      }
+    },
+    {
+      "name": "record-entry",
+      "file": "after-record-entry-1440-dark.png",
+      "title": "Record an entry · Factory Ledger",
+      "width": 1440,
+      "theme": "dark",
+      "contrast": {
+        "checked": 31,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 25,
+        "worst": []
+      },
+      "touch": {
+        "checked": 25,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "form#entry-form > div.fields > label > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 306,
+            "h": 79,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "fixed",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 33,
+        "failures": 0,
+        "minimumRatio": 8.83,
+        "worst": []
+      }
+    },
+    {
+      "name": "fl-assistant",
+      "file": "after-fl-assistant-1440-dark.png",
+      "title": "FL Assistant · Factory Ledger",
+      "width": 1440,
+      "theme": "dark",
+      "contrast": {
+        "checked": 34,
+        "placeholdersChecked": 2,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 23,
+        "worst": []
+      },
+      "touch": {
+        "checked": 17,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "fixed",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 35,
+        "failures": 0,
+        "minimumRatio": 6.91,
+        "worst": []
+      }
+    },
+    {
+      "name": "exceptions",
+      "file": "after-exceptions-1440-dark.png",
+      "title": "Exceptions · Factory Ledger",
+      "width": 1440,
+      "theme": "dark",
+      "contrast": {
+        "checked": 14,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 12,
+        "worst": []
+      },
+      "touch": {
+        "checked": 9,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "fixed",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 14,
+        "failures": 0,
+        "minimumRatio": 8.83,
+        "worst": []
+      }
+    },
+    {
+      "name": "runs",
+      "file": "after-runs-1440-dark.png",
+      "title": "Production Runs — Factory Ledger",
+      "width": 1440,
+      "theme": "dark",
+      "contrast": {
+        "checked": 43,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 29,
+        "worst": []
+      },
+      "touch": {
+        "checked": 22,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#previous-week",
+            "label": "Previous week",
+            "w": 38.5,
+            "h": 44,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          },
+          {
+            "path": "button#next-week",
+            "label": "Next week",
+            "w": 38.5,
+            "h": 44,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          }
+        ]
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "fixed",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 43,
+        "failures": 0,
+        "minimumRatio": 7.29,
+        "worst": []
+      }
+    },
+    {
+      "name": "history",
+      "file": "after-history-1440-dark.png",
+      "title": "Ledger History — Factory Ledger",
+      "width": 1440,
+      "theme": "dark",
+      "contrast": {
+        "checked": 15,
+        "placeholdersChecked": 2,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 13,
+        "worst": []
+      },
+      "touch": {
+        "checked": 10,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 1440,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "fixed",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 17,
+        "failures": 0,
+        "minimumRatio": 7.28,
+        "worst": []
+      }
+    },
+    {
+      "name": "create-order",
+      "file": "after-create-order-390-light.png",
+      "title": "Office · Factory Ledger",
+      "width": 390,
+      "theme": "light",
+      "contrast": {
+        "checked": 36,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 22,
+        "worst": []
+      },
+      "touch": {
+        "checked": 28,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "form#office-form > div.fields > label.check > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 328,
+            "h": 50,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "scroll",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 38,
+        "failures": 0,
+        "minimumRatio": 6.07,
+        "worst": []
+      }
+    },
+    {
+      "name": "record-entry",
+      "file": "after-record-entry-390-light.png",
+      "title": "Record an entry · Factory Ledger",
+      "width": 390,
+      "theme": "light",
+      "contrast": {
+        "checked": 31,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 25,
+        "worst": []
+      },
+      "touch": {
+        "checked": 25,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "form#entry-form > div.fields > label > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 328,
+            "h": 79,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "scroll",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 33,
+        "failures": 0,
+        "minimumRatio": 6.07,
+        "worst": []
+      }
+    },
+    {
+      "name": "fl-assistant",
+      "file": "after-fl-assistant-390-light.png",
+      "title": "FL Assistant · Factory Ledger",
+      "width": 390,
+      "theme": "light",
+      "contrast": {
+        "checked": 23,
+        "placeholdersChecked": 2,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 15,
+        "worst": []
+      },
+      "touch": {
+        "checked": 15,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "nav.receipt-tools > form.receipt-lookup > label > input",
+            "label": "",
+            "w": 39.6,
+            "h": 44.4,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          }
+        ]
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "scroll",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 19,
+        "failures": 0,
+        "minimumRatio": 5.71,
+        "worst": []
+      }
+    },
+    {
+      "name": "exceptions",
+      "file": "after-exceptions-390-light.png",
+      "title": "Exceptions · Factory Ledger",
+      "width": 390,
+      "theme": "light",
+      "contrast": {
+        "checked": 14,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 12,
+        "worst": []
+      },
+      "touch": {
+        "checked": 9,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "scroll",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 14,
+        "failures": 0,
+        "minimumRatio": 6.07,
+        "worst": []
+      }
+    },
+    {
+      "name": "runs",
+      "file": "after-runs-390-light.png",
+      "title": "Production Runs — Factory Ledger",
+      "width": 390,
+      "theme": "light",
+      "contrast": {
+        "checked": 39,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 26,
+        "worst": []
+      },
+      "touch": {
+        "checked": 18,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#previous-week",
+            "label": "Previous week",
+            "w": 38.5,
+            "h": 44,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          },
+          {
+            "path": "button#next-week",
+            "label": "Next week",
+            "w": 38.5,
+            "h": 44,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          }
+        ]
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "scroll",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 37,
+        "failures": 0,
+        "minimumRatio": 6.07,
+        "worst": []
+      }
+    },
+    {
+      "name": "history",
+      "file": "after-history-390-light.png",
+      "title": "Ledger History — Factory Ledger",
+      "width": 390,
+      "theme": "light",
+      "contrast": {
+        "checked": 27,
+        "placeholdersChecked": 2,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 13,
+        "worst": []
+      },
+      "touch": {
+        "checked": 22,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "scroll",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 22,
+        "failures": 0,
+        "minimumRatio": 6.07,
+        "worst": []
+      }
+    },
+    {
+      "name": "create-order",
+      "file": "after-create-order-390-dark.png",
+      "title": "Office · Factory Ledger",
+      "width": 390,
+      "theme": "dark",
+      "contrast": {
+        "checked": 36,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 22,
+        "worst": []
+      },
+      "touch": {
+        "checked": 28,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "form#office-form > div.fields > label.check > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 328,
+            "h": 50,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "scroll",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 38,
+        "failures": 0,
+        "minimumRatio": 8.83,
+        "worst": []
+      }
+    },
+    {
+      "name": "record-entry",
+      "file": "after-record-entry-390-dark.png",
+      "title": "Record an entry · Factory Ledger",
+      "width": 390,
+      "theme": "dark",
+      "contrast": {
+        "checked": 31,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 25,
+        "worst": []
+      },
+      "touch": {
+        "checked": 25,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [
+          {
+            "path": "form#entry-form > div.fields > label > input",
+            "label": "",
+            "boxW": 24,
+            "boxH": 44,
+            "w": 328,
+            "h": 79,
+            "hitVia": "label"
+          }
+        ],
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "scroll",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 33,
+        "failures": 0,
+        "minimumRatio": 8.83,
+        "worst": []
+      }
+    },
+    {
+      "name": "fl-assistant",
+      "file": "after-fl-assistant-390-dark.png",
+      "title": "FL Assistant · Factory Ledger",
+      "width": 390,
+      "theme": "dark",
+      "contrast": {
+        "checked": 23,
+        "placeholdersChecked": 2,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 15,
+        "worst": []
+      },
+      "touch": {
+        "checked": 15,
+        "failures": 1,
+        "failuresNotNested": 1,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "nav.receipt-tools > form.receipt-lookup > label > input",
+            "label": "",
+            "w": 39.6,
+            "h": 44.4,
+            "nested": false,
+            "tag": "input",
+            "cls": ""
+          }
+        ]
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "scroll",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 19,
+        "failures": 0,
+        "minimumRatio": 6.91,
+        "worst": []
+      }
+    },
+    {
+      "name": "exceptions",
+      "file": "after-exceptions-390-dark.png",
+      "title": "Exceptions · Factory Ledger",
+      "width": 390,
+      "theme": "dark",
+      "contrast": {
+        "checked": 14,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 12,
+        "worst": []
+      },
+      "touch": {
+        "checked": 9,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "scroll",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 14,
+        "failures": 0,
+        "minimumRatio": 8.83,
+        "worst": []
+      }
+    },
+    {
+      "name": "runs",
+      "file": "after-runs-390-dark.png",
+      "title": "Production Runs — Factory Ledger",
+      "width": 390,
+      "theme": "dark",
+      "contrast": {
+        "checked": 39,
+        "placeholdersChecked": 1,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 26,
+        "worst": []
+      },
+      "touch": {
+        "checked": 18,
+        "failures": 2,
+        "failuresNotNested": 2,
+        "passedViaExtension": [],
+        "worst": [
+          {
+            "path": "button#previous-week",
+            "label": "Previous week",
+            "w": 38.5,
+            "h": 44,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          },
+          {
+            "path": "button#next-week",
+            "label": "Next week",
+            "w": 38.5,
+            "h": 44,
+            "nested": false,
+            "tag": "button",
+            "cls": ""
+          }
+        ]
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "scroll",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 37,
+        "failures": 0,
+        "minimumRatio": 7.27,
+        "worst": []
+      }
+    },
+    {
+      "name": "history",
+      "file": "after-history-390-dark.png",
+      "title": "Ledger History — Factory Ledger",
+      "width": 390,
+      "theme": "dark",
+      "contrast": {
+        "checked": 27,
+        "placeholdersChecked": 2,
+        "placeholderFailures": 0,
+        "failures": 0,
+        "indeterminate": 13,
+        "worst": []
+      },
+      "touch": {
+        "checked": 22,
+        "failures": 0,
+        "failuresNotNested": 0,
+        "passedViaExtension": [],
+        "worst": []
+      },
+      "overflow": {
+        "overflowPx": 0,
+        "viewport": 390,
+        "offenders": [],
+        "offenderCount": 0
+      },
+      "wallpaper": {
+        "image": "url(\"http://127.0.0.1:50189/dashboard/assets/wallpaper.webp\")",
+        "attachment": "scroll",
+        "size": "cover"
+      },
+      "renderedContrast": {
+        "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+        "checked": 22,
+        "failures": 0,
+        "minimumRatio": 7.63,
+        "worst": []
+      }
+    }
+  ],
+  "unknown": [],
+  "remote": [],
+  "errors": []
+}
