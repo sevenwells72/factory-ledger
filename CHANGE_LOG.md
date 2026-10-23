@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-10-22 20:20 — #225 Customer typeahead final local validation
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`; canonical iCloud global log.
+- **What changed:** Final focused suite: **542 Python passed** (52 new typeahead cases plus existing resolver/customer/auth regressions), **180 Office/pilot Node passed**, zero failures/skips. Real local PostgreSQL 17.10, Python 3.12.14 / installed Pydantic 2.13.5; not a full-suite run or hosted smoke test. Customer reads pass database-enforced READ ONLY. Independent review found no remaining actionable issues; whitespace and key-literal guards pass (zero configured live values read). Changes are prepared for branch `fix/customer-typeahead` and a draft PR.
+- **Why:** Verify `se`/`set`/`farm` choices, case/punctuation, exact/name/word/fuzzy ranking, customer-ID codes, both alias sources plus legacy partial aliases, active filtering, literal wildcard text, limits/pagination, short-query no-search, keyword identity protection and existing Add-as-new flow. Server-only: dashboard/cache/GPT schema/migrations/keys unchanged; no production/staging access, deployment, merge or OpenAI calls.
+
+---
+
+## 2026-10-22 20:19 — #225 Customer-search review guards and initial validation
+- **File(s) changed:** `resolution.py`, `tests/test_customer_typeahead.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`; canonical iCloud global log.
+- **What changed:** Classify literal customer prefixes as keyword choices so existing-customer protections keep working; preserve partial legacy alias searches on the two legacy search routes without weakening resolver alias identity rules. Add tier and partial-alias regression coverage. Initial tests before this review: 165 resolver/typeahead + 367 customer/auth Python and 180 Office/pilot Node passed, zero failures/skips; final rerun pending.
+- **Why:** Preserve existing consumers and legacy alias behavior while improving typeahead; no frontend, migration, GPT schema, key, deployment or OpenAI calls.
+
+---
+
+## 2026-10-22 20:18 — #225 Customer typeahead prefixes in shared read-only searches
+- **File(s) changed:** `resolution.py`, `main.py`, `tests/test_customer_typeahead.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`; canonical iCloud global log.
+- **What changed:** Start customer search at two characters; rank exact identities before name/customer-ID prefixes, word prefixes and existing fuzzy matches. Share matching across Office `/resolve`, `/customers/search` and dashboard global search, bounded to existing 8-choice resolver pages / 10 legacy choices; preserve exact aliases, ambiguity and Add as new customer. Added local PostgreSQL regression coverage; validation pending.
+- **Why:** Office typing `set` missed Setton Farms until `sett`; `farm` must also find it. Customer code is the existing numeric customer ID (no separate code column). Server-only; no frontend/cache, migration, GPT schema, key, production, deployment or OpenAI change.
+
+---
+
 ## 2026-10-20 15:12 — Document the five Spanish Record wording changes and fresh passing 562 Node, 34 reason/unit and 22 Spanish pilot checks; add regression row 224 and retain the first failed Office-load attempt
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/pilot-ux-fix-round/record-wording-followup.md`, `docs/validation/pilot-ux-fix-round/record-wording-results.json`
 - **What changed:** Document the five Spanish Record wording changes and fresh passing 562 Node, 34 reason/unit and 22 Spanish pilot checks; add regression row 224 and retain the first failed Office-load attempt

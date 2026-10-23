@@ -330,7 +330,8 @@ def _ranked_rows(cur, scored_sql, params, *, limit=MAX_CANDIDATES, offset=0):
 
 
 def _search(cur, source, params, variants, aliases, *, keywords=True, exact_only=False,
-            limit=MAX_CANDIDATES, offset=0, name_sql='s.name', whole_words=False, party=False):
+            limit=MAX_CANDIDATES, offset=0, name_sql='s.name', whole_words=False, party=False, customer_prefix=False,
+            customer_alias_substrings=False):
     '''Rank the deduplicated union of spellings, then count and page in SQL.'''
     variants = [variant for variant in variants if variant.text]
     if not variants:
@@ -348,6 +349,19 @@ def _search(cur, source, params, variants, aliases, *, keywords=True, exact_only
         score = '1.0::float' if exact else f'''CASE
             WHEN cardinality(v.patterns) > 0 AND lower({name_sql}) ~ ALL(v.patterns) THEN 0.8
             WHEN v.fuzzy THEN similarity(lower({name_sql}), v.query) ELSE 0.0 END'''
+        if customer_prefix and not exact:
+            # Literal prefixes: SQL wildcard characters never broaden a search.
+            # Keep customer typeahead separate from product/supplier identities.
+            score = f'''CASE
+                WHEN starts_with(lower(btrim(regexp_replace(s.name, '\\s+', ' ', 'g'))), v.query)
+                  OR starts_with(s.id::text, v.query) THEN 0.95
+                WHEN EXISTS (SELECT 1 FROM regexp_split_to_table(lower(s.name), '[^[:alnum:]]+') word
+                             WHERE starts_with(word, v.query)) THEN 0.9
+                ELSE LEAST(({score}), 0.8) END'''
+            if customer_alias_substrings:
+                score = f'''GREATEST(({score}), CASE WHEN EXISTS (
+                    SELECT 1 FROM unnest(s.legacy_aliases) alias
+                    WHERE strpos(lower(alias), v.query) > 0) THEN 0.8 ELSE 0.0 END)'''
         where = r'''WHERE EXISTS (SELECT 1 FROM unnest(s.exact_terms) term
                     WHERE lower(btrim(regexp_replace(term, '\s+', ' ', 'g'))) = v.query)''' if exact else ''
         scored_sql = f'''
@@ -368,6 +382,10 @@ def _search(cur, source, params, variants, aliases, *, keywords=True, exact_only
             row['score'] = float(row['score'])
             row['tier'] = ('alias' if variant.expansions else 'exact') if exact else (
                 ('alias' if variant.expansions else 'keyword') if row['score'] == 0.8 else 'trigram')
+            if customer_prefix and not exact and row['score'] in (0.95, 0.9):
+                row['tier'] = 'keyword'
+                row['why'] = ('Name or customer code starts with the query' if row['score'] == 0.95
+                              else 'A name word starts with the query')
             row['_variant'] = variant
         if rows or exact_only:
             return rows
@@ -597,10 +615,12 @@ def inventory_products(cur, query, resolved):
     return None
 
 
-def _parties(cur, req, variants, aliases):
+def _parties(cur, req, variants, aliases, *, legacy_alias_substrings=False):
     kind, c = req.kind, req.context
     ids = _target_ids(aliases, kind, req.query)
     customer = kind == 'customer'
+    if customer and len(normalize(req.query)) < 2:
+        return []
     old_aliases = '''ARRAY(SELECT alias FROM customer_aliases
                            WHERE customer_id = p.id)''' if customer else 'ARRAY[]::text[]'
     rank = "CASE WHEN %s <> '' AND lower(COALESCE(p.address, '')) LIKE %s THEN 1 ELSE 0 END" if customer else '0'
@@ -608,8 +628,10 @@ def _parties(cur, req, variants, aliases):
     params = (ids, normalize(req.query)) + ((address, '%' + address + '%') if customer else ())
     # Remove acronym periods but keep other punctuation as word boundaries.
     party_name = "regexp_replace(replace(p.name, '.', ''), '[^a-zA-Z0-9 ]', ' ', 'g')"
-    source = f'''SELECT p.id, p.name, {party_name} AS search_name,
-                  ARRAY[p.name, {party_name}] || {old_aliases} ||
+    customer_fields = f'p.contact_name, p.phone, p.email, {old_aliases} AS legacy_aliases,' if customer else ''
+    code_terms = 'ARRAY[p.id::text]' if customer else 'ARRAY[]::text[]'
+    source = f'''SELECT p.id, p.name, {customer_fields} {party_name} AS search_name,
+                  ARRAY[p.name, {party_name}] || {code_terms} || {old_aliases} ||
                   CASE WHEN p.id = ANY(%s::int[]) THEN ARRAY[%s::text] ELSE ARRAY[]::text[] END AS exact_terms,
                   {rank} AS context_rank, 0::float AS recent_activity
                   FROM {'customers' if customer else 'suppliers'} p
@@ -625,13 +647,27 @@ def _parties(cur, req, variants, aliases):
     party_aliases = [row for row in aliases if row['kind'] != 'token']
     # _search accepts a private search_name override for punctuation-only folds.
     rows = _search(cur, source, params, variants, party_aliases, limit=req.limit, offset=req.offset,
-                   name_sql='s.search_name', whole_words=True, party=True)
+                   name_sql='s.search_name', whole_words=True, party=True, customer_prefix=customer,
+                   customer_alias_substrings=customer and legacy_alias_substrings)
     for row in rows:
         if row['context_rank']:
             row['context_boost'] = 'Customer address agrees; ranking only'
-        if row['score'] == 1 and normalize(row['name']) != normalize(req.query):
+        if (row['score'] == 1 and normalize(row['name']) != normalize(req.query)
+                and not (customer and str(row['id']) == normalize(req.query))):
             row['tier'], row['why'] = 'alias', 'Exact party alias'
     return rows
+
+
+def customer_search(cur, query, *, limit=10):
+    """Bounded customer suggestions shared by legacy dashboard searches."""
+    if len(normalize(query)) < 2:
+        return []
+    req = ResolveRequest(kind='customer', query=query, limit=limit)
+    aliases, _ = read_aliases(cur)
+    rows = _parties(cur, req, [], [row for row in aliases if row.get('active', True)],
+                    legacy_alias_substrings=True)
+    return [{key: row[key] for key in ('id', 'name', 'contact_name', 'phone', 'email')}
+            for row in rows if row['score'] >= MIN_CANDIDATE and row['_position'] <= limit]
 
 
 def _lots(cur, req):
@@ -827,6 +863,8 @@ def _units(cur, req):
 
 def resolve(cur, req, *, aliases=None):
     """Public shared core. ``aliases`` is an internal fixture seam, never HTTP input."""
+    if req.kind == 'customer' and len(normalize(req.query)) < 2:
+        return decide(req.query, [], limit=req.limit, offset=req.offset)
     if req.kind == 'unit':
         return _units(cur, req)
     if req.kind == 'lot':
