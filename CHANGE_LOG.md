@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-26 14:05 — Sales-order ship commit retry protection (draft PR, not deployed)
+- **File(s) changed:** `main.py`, `migrations/088_ship_order_idempotency.sql` (new), `migrations/down/088_ship_order_idempotency_down.sql` (new), `tests/test_ship_order_idempotency.py` (new), `FACTORY_LEDGER_CHANGELOG.md` (row 234)
+- **What changed:** Direct ship commits (`commitShipOrder` and `shipOrder` mode=commit) store a receipt; an identical commit on the same order within 10 minutes returns the first receipt (`idempotent_replay: true`) instead of posting a second shipment. The check runs inside `_ship_order_commit_core` right after its existing order-row lock (lock sequence unchanged). Different lines/quantities always ship; voided shipments are never replayed; refused commits store nothing; without migration 088 the route runs exactly as before. Full Python suite on fresh local PostgreSQL 17: 6,925 passed with key sessions off and 6,925 with them on, zero failures/skips.
+- **Why:** A GPT retry after a timeout could record a second shipment (PR #146 review; owner post-reset work list item 2). Production freeze active: branch and draft PR only.
+
+---
+
 ## 2026-10-22 20:31 — Normalize archived Python log whitespace
 - **File(s) changed:** `audits/screenshots/wallpaper-refresh/verification/python-off.log`, `python-on.log`
 - **What changed:** Removed trailing spaces in emitted deprecation warnings; all test output, counts and messages are otherwise unchanged. Original console logs remain in the temporary verification directory.
