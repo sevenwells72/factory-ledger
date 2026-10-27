@@ -349,3 +349,60 @@ def test_concurrent_commits_post_once(isolated_database, monkeypatch, same_ticke
                 assert main.lot_on_hand(cur, received['lot_id']) == 50
     finally:
         main._reset_actor_cache()
+
+
+POOLED_NOTE = ('Opening stock — counted Oct 21–22, 2026. Possible sources: 2026-05-01, Franklin Baker, supplier lot 4062026, '
+               'BOL 4062026; bags counted by supplier lot (lb): 6161 46,300; 6182 38,400 = 84,700 lb; POOLED opening stock')
+OPENING_NOTE = ('Opening stock — counted Oct 21–22, 2026. Possible sources: 2026-04-27, Dutch Valley, supplier lot 55279, '
+                'BOL 55279; 2026-02-06 (no receipt record), supplier not recorded, supplier lot -, BOL -')
+
+
+def set_entry_note(cur, lot_id, note):
+    cur.execute('UPDATE lots SET entry_source_notes=%s WHERE id=%s', (note, lot_id))
+
+
+@pytest.mark.parametrize('code', ['6161', '4062026', 'SUP-2026/8812-A'])
+def test_pooled_opening_lot_never_takes_one_supplier_code(client, db_cursor, unidentified, actors, code):
+    lid = unidentified['lot_id']
+    set_entry_note(db_cursor, lid, POOLED_NOTE)
+    before = get_lot(db_cursor, lid)['supplier_lot_code']
+    draft = prepare(client, lid, actors['owner']['key'], supplier_lot_code=code)
+    assert not draft['can_commit']
+    assert draft['blockers'][0]['code'] == 'POOLED_LOT_NOT_IDENTIFIABLE'
+    error(commit(client, draft, actors['owner']['key']), 409, 'TICKET_STALE')
+    lot = get_lot(db_cursor, lid)
+    assert lot['identity_status'] == 'unidentified' and lot['supplier_lot_code'] == before
+    assert get_exception(db_cursor, unidentified['exception_id'])['status'] == 'open'
+
+
+def test_opening_lot_takes_only_a_documented_source_code(client, db_cursor, unidentified, actors):
+    lid, key = unidentified['lot_id'], actors['office']['key']
+    set_entry_note(db_cursor, lid, OPENING_NOTE)
+    undocumented = prepare(client, lid, key, supplier_lot_code='99999')
+    assert not undocumented['can_commit']
+    assert undocumented['blockers'][0]['code'] == 'OPENING_LOT_CODE_NOT_DOCUMENTED'
+    documented = prepare(client, lid, key, supplier_lot_code=' 55279 ')
+    assert documented['can_commit'], documented['blockers']
+    result = commit(client, documented, key)
+    assert result.status_code == 200, result.text
+    assert get_lot(db_cursor, lid)['identity_status'] == 'identified'
+    assert get_exception(db_cursor, unidentified['exception_id'])['resolution_kind'] == 'identified'
+
+
+def test_ordinary_unidentified_lot_is_unaffected(client, db_cursor, unidentified, actors):
+    draft = prepare(client, unidentified['lot_id'], actors['floor']['key'])
+    assert draft['can_commit'], draft['blockers']
+
+
+@pytest.mark.parametrize('note,code,status', [(POOLED_NOTE, '6161', 409), (OPENING_NOTE, '99999', 409),
+                                              (OPENING_NOTE, '55279', 200), (None, 'SUP-LEGACY-1', 200)])
+def test_legacy_supplier_lot_route_applies_the_same_rule(client, db_cursor, unidentified, actors, note, code, status):
+    lid = unidentified['lot_id']
+    set_entry_note(db_cursor, lid, note)
+    lot = get_lot(db_cursor, lid)
+    before = lot['supplier_lot_code']
+    response = client.patch(f"/lots/{lot['lot_code']}/supplier-lot", params={'product_id': lot['product_id']},
+                            headers=headers(actors['owner']['key']), json={'supplier_lot_code': code})
+    assert response.status_code == status, response.text
+    after = get_lot(db_cursor, lid)['supplier_lot_code']
+    assert after == (code if status == 200 else before)

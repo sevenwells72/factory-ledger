@@ -5480,6 +5480,14 @@ def update_supplier_lot(lot_code: str, req: SupplierLotUpdate, product_id: Optio
 
             old_supplier_lot = lot['supplier_lot_code']
             new_supplier_lot = req.supplier_lot_code.strip()
+            # Same evidence rule as the supplier-lot correction ticket: pooled opening stock never
+            # takes one code, other opening-stock lots only a code their entry note documents.
+            import supplier_lot_tickets
+            cur.execute("SELECT entry_source_notes FROM lots WHERE id = %s", (lot['id'],))
+            try:
+                supplier_lot_tickets.opening_stock_identity(cur.fetchone()['entry_source_notes'], new_supplier_lot)
+            except HTTPException as exc:
+                raise HTTPException(409, exc.detail)
 
             # Update lots.supplier_lot_code
             cur.execute("""

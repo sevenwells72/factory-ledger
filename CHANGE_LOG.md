@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-27 15:00 — Pooled opening-stock lots cannot be identified by one supplier code (draft PR, not deployed)
+- **File(s) changed:** `supplier_lot_tickets.py`, `main.py`, `tests/test_supplier_lot_tickets.py`, `FACTORY_LEDGER_CHANGELOG.md` (row 235)
+- **What changed:** Supplier-lot identification (ticket and legacy PATCH route) refuses POOLED lots and accepts on opening-stock lots only a supplier code their entry note documents. Full Python suite on fresh local PostgreSQL 17: 6,925 passed with key sessions off and 6,925 on; the 6 new guard tests fail without the change.
+- **Why:** Owner request 2026-10-27: prevent pooled inventory from being identified as one supplier lot without evidence. Production freeze: branch and draft PR only.
+
+---
+
 ## 2026-10-22 20:31 — Normalize archived Python log whitespace
 - **File(s) changed:** `audits/screenshots/wallpaper-refresh/verification/python-off.log`, `python-on.log`
 - **What changed:** Removed trailing spaces in emitted deprecation warnings; all test output, counts and messages are otherwise unchanged. Original console logs remain in the temporary verification directory.
