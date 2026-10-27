@@ -482,7 +482,7 @@ def test_direct_routes_still_open_where_the_matrix_allows(client, db_cursor, ite
         response = client.post('/make', json=LEGACY_BODIES['make'](items), headers=headers(actors[which]['key']))
         assert response.status_code == 200, response.text
     office = client.post('/receive', json={'product_name': items['ingredient']['name'], 'cases': 1, 'case_size_lb': 5,
-                                           'shipper_name': 'ACME', 'bol_reference': 'A2', 'mode': 'preview'},
+                                           'shipper_name': 'ACME', 'bol_reference': 'A2', 'supplier_lot_code': 'A2-SUP-LOT', 'mode': 'preview'},
                          headers=headers(actors['office']['key']))
     assert office.status_code == 200, office.text
     # Floor's one status change stays reachable (route exists; 404 is the handler's answer, not a 403).

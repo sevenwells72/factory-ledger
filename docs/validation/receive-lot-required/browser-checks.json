@@ -1,0 +1,120 @@
+{
+  "local_only": true,
+  "external_requests": [],
+  "checks": [
+    {
+      "surface": "entry",
+      "width": 390,
+      "language": "en",
+      "font": 26,
+      "viewport": 390,
+      "lotTop": 604.375,
+      "receiptTop": 727.5625
+    },
+    {
+      "surface": "readback",
+      "width": 390,
+      "language": "en",
+      "font": 26,
+      "viewport": 390,
+      "lotTop": 463.375,
+      "receiptTop": 586.5625
+    },
+    {
+      "surface": "assistant",
+      "width": 390,
+      "language": "en",
+      "font": 26,
+      "viewport": 390,
+      "lotTop": 136.796875,
+      "receiptTop": 263.421875
+    },
+    {
+      "surface": "entry",
+      "width": 390,
+      "language": "es",
+      "font": 26,
+      "viewport": 390,
+      "lotTop": 604.375,
+      "receiptTop": 727.5625
+    },
+    {
+      "surface": "readback",
+      "width": 390,
+      "language": "es",
+      "font": 26,
+      "viewport": 390,
+      "lotTop": 463.375,
+      "receiptTop": 586.5625
+    },
+    {
+      "surface": "assistant",
+      "width": 390,
+      "language": "es",
+      "font": 26,
+      "viewport": 390,
+      "lotTop": 136.796875,
+      "receiptTop": 263.421875
+    },
+    {
+      "surface": "entry",
+      "width": 1440,
+      "language": "en",
+      "font": 38,
+      "viewport": 1440,
+      "lotTop": 444,
+      "receiptTop": 581.59375
+    },
+    {
+      "surface": "readback",
+      "width": 1440,
+      "language": "en",
+      "font": 38,
+      "viewport": 1440,
+      "lotTop": 359,
+      "receiptTop": 496.59375
+    },
+    {
+      "surface": "assistant",
+      "width": 1440,
+      "language": "en",
+      "font": 38,
+      "viewport": 1440,
+      "lotTop": 275.265625,
+      "receiptTop": 416.296875
+    },
+    {
+      "surface": "entry",
+      "width": 1440,
+      "language": "es",
+      "font": 38,
+      "viewport": 1440,
+      "lotTop": 444,
+      "receiptTop": 581.59375
+    },
+    {
+      "surface": "readback",
+      "width": 1440,
+      "language": "es",
+      "font": 38,
+      "viewport": 1440,
+      "lotTop": 359,
+      "receiptTop": 496.59375
+    },
+    {
+      "surface": "assistant",
+      "width": 1440,
+      "language": "es",
+      "font": 38,
+      "viewport": 1440,
+      "lotTop": 275.265625,
+      "receiptTop": 416.296875
+    }
+  ],
+  "screenshots": [
+    "entry-success-en-390.png",
+    "receipt-es-390.png"
+  ],
+  "errors": [],
+  "passed": true
+}

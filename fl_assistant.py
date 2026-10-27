@@ -635,6 +635,10 @@ def register_routes(app, api):
     async def execute_tool(request, body, actor, state, name, args):
         args = dict(args)
         if name == 'prepare_receive':
+            # Bare receiving descriptions need not repeat "received". Once the
+            # selected tool is receive, bind its lot facts to the actual worker
+            # text too, before a model code or exception flag can be trusted.
+            state['receive_facts'] = merge_receive_lot_facts(state.get('receive_facts', {}), body.text)
             args = normalize_receive_arguments(args, state.get('receive_facts', {}))
         if name in catalog.PREPARES or name == 'packing_context':
             runtime.progress(request, 'lots', language=state.get('language', 'en'))

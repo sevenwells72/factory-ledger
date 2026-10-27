@@ -265,7 +265,7 @@ def test_seven_business_day_deadline_across_weekends_and_dst(entered,expected):
 def test_unidentified_receive_exception_uses_entry_not_happened(client,db_cursor,actors,code):
     from tests.test_write_tickets import seed
     from lot_confirmation import identification_deadline
-    payload=seed(db_cursor)|{'supplier_lot_code':code,'occurred_at':(main.get_plant_now()-timedelta(days=3)).isoformat()}
+    payload=seed(db_cursor)|{'supplier_lot_code':code,'no_supplier_lot':True,'occurred_at':(main.get_plant_now()-timedelta(days=3)).isoformat()}
     d=prepare(client,'receive',payload,actors['floor']['key'])
     assert d['can_commit'],d
     assert d['draft']['identity_status']=='unidentified'
@@ -300,7 +300,7 @@ def test_identified_receive_no_exception(client,db_cursor):
 
 def test_unidentified_topup_preserves_original_deadline(client,db_cursor):
     from tests.test_write_tickets import seed
-    payload=seed(db_cursor)|{'supplier_lot_code':'N/A'}
+    payload=seed(db_cursor)|{'supplier_lot_code':'N/A','no_supplier_lot':True}
     d=prepare(client,'receive',payload); first=commit(client,d).json()
     second=prepare(client,'receive',payload|{'cases':1})
     r=commit(client,second,acknowledged_warnings=['POSSIBLE_DUPLICATE']);assert r.status_code==200,r.text
@@ -407,7 +407,7 @@ def test_expected_receipt_carries_real_supplier_identity(client,db_cursor):
 def test_commingled_entry_supplier_ids_and_missing_identity(client,db_cursor):
     from tests.test_write_tickets import seed
     payload=seed(db_cursor)
-    payload|={'supplier_lot_entries':[{'supplier_id':payload['supplier_id'],'supplier_lot_code':'REAL-1','quantity_lb':25},
+    payload|={'no_supplier_lot':True,'supplier_lot_entries':[{'supplier_id':payload['supplier_id'],'supplier_lot_code':'REAL-1','quantity_lb':25},
         {'supplier_lot_code':'UNKNOWN','quantity_lb':25}]}
     d=prepare(client,'receive',payload)
     assert d['draft']['identity_status']=='unidentified'

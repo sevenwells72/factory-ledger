@@ -43,7 +43,7 @@ def get_exception(cur, exception_id):
 
 @pytest.fixture
 def unidentified(client, payload, actors):
-    draft = receive_prepare(client, payload | {'supplier_lot_code': 'UNKNOWN'}, actors['floor']['key'])
+    draft = receive_prepare(client, payload | {'supplier_lot_code': 'UNKNOWN', 'no_supplier_lot': True}, actors['floor']['key'])
     response = commit(client, draft, actors['floor']['key'])
     assert response.status_code == 200, response.text
     result = response.json()
@@ -237,7 +237,7 @@ def test_unsafe_lots_block(client, db_cursor, unidentified, actors, kind):
 def test_receive_never_resolves_or_extends_exception(client, db_cursor, payload, unidentified, actors):
     key = actors['floor']['key']
     before = get_exception(db_cursor, unidentified['exception_id'])
-    missing = receive_prepare(client, payload | {'supplier_lot_code': 'UNKNOWN'}, key)
+    missing = receive_prepare(client, payload | {'supplier_lot_code': 'UNKNOWN', 'no_supplier_lot': True}, key)
     r = commit(client, missing, key, acknowledged_warnings=['POSSIBLE_DUPLICATE'])
     assert r.status_code == 200, r.text
     assert get_exception(db_cursor, before['id']) == before
@@ -249,14 +249,14 @@ def test_receive_never_resolves_or_extends_exception(client, db_cursor, payload,
     r = client.post('/receive', headers=headers(key), json={'product_name': missing['draft']['product_name'],
         'shipper_name': missing['draft']['supplier_name'], 'cases': 1, 'case_size_lb': 25,
         'lot_code': payload['lot_code'], 'supplier_lot_code': 'REAL-123', 'bol_reference': 'A5 legacy top-up'})
-    assert r.status_code == 200, r.text
+    error(r, 422, 'LOT_IDENTITY_REQUIRES_CORRECTION')
     assert get_exception(db_cursor, before['id']) == before
     assert get_lot(db_cursor, unidentified['lot_id'])['identity_status'] == 'unidentified'
 
 
 def test_receive_prepared_before_correction_cannot_replace_it(client, db_cursor, payload, unidentified, actors):
     key = actors['floor']['key']
-    receive = receive_prepare(client, payload | {'supplier_lot_code': 'UNKNOWN'}, key)
+    receive = receive_prepare(client, payload | {'supplier_lot_code': 'UNKNOWN', 'no_supplier_lot': True}, key)
     correction = prepare(client, unidentified['lot_id'], key)
     assert commit(client, correction, key).status_code == 200
     r = commit(client, receive, key, acknowledged_warnings=['POSSIBLE_DUPLICATE'])
@@ -309,7 +309,7 @@ def test_migration_rerun_down_up_and_evidence_retention(client, db_cursor, unide
 def test_concurrent_commits_post_once(isolated_database, monkeypatch, same_ticket):
     key = 'a5-test-' + uuid4().hex
     with psycopg2.connect(isolated_database) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
-        receive_body = seed(cur) | {'supplier_lot_code': 'UNKNOWN'}
+        receive_body = seed(cur) | {'supplier_lot_code': 'UNKNOWN', 'no_supplier_lot': True}
         cur.execute("INSERT INTO actors(name,role,key_hash) VALUES (%s,'office',%s) RETURNING id",
                     ('A5 concurrent ' + uuid4().hex, sha256(key.encode()).hexdigest()))
         actor_id = cur.fetchone()['id']
