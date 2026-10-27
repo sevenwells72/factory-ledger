@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-27 15:16 — PR #145 updated to current main and revalidated (not merged)
+- **File(s) changed:** merge `16af6180` (dashboard HTML cache versions, `dashboard/ledger-forms.css`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`)
+- **What changed:** Merged main (#142, #149): pages keep main's wallpaper structure with this branch's cache bumps; `ledger-forms.css` = main's file plus this branch's receive-lot-tag rule, referenced as v=10 on all 12 pages. Python 7,094 passed with key sessions off and on; JavaScript 577; receiving and supplier-lot tests 316. No migration or startup change.
+- **Why:** Owner request 2026-10-27 to prepare #145 for deployment approval.
+
+---
+
 ## 2026-10-22 20:31 — Normalize archived Python log whitespace
 - **File(s) changed:** `audits/screenshots/wallpaper-refresh/verification/python-off.log`, `python-on.log`
 - **What changed:** Removed trailing spaces in emitted deprecation warnings; all test output, counts and messages are otherwise unchanged. Original console logs remain in the temporary verification directory.
