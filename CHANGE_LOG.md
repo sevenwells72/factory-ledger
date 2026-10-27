@@ -1,5 +1,128 @@
 # Change Log
 
+## 2026-10-22 20:31 — Normalize archived Python log whitespace
+- **File(s) changed:** `audits/screenshots/wallpaper-refresh/verification/python-off.log`, `python-on.log`
+- **What changed:** Removed trailing spaces in emitted deprecation warnings; all test output, counts and messages are otherwise unchanged. Original console logs remain in the temporary verification directory.
+- **Why:** Keep the committed evidence compatible with the repository whitespace check.
+
+---
+
+## 2026-10-22 20:31 — Complete desktop and phone wallpaper verification for PR review
+- **File(s) changed:** `tests/visual/run-wallpaper-refresh.mjs`, `tests/visual/lib/rendered-contrast.mjs`, `tests/visual/lib/wallpaper-audit-hook.mjs`, `audits/screenshots/wallpaper-refresh/`
+- **What changed:** Saved 60 PNGs, README, raw before/after reports, final-source scoped checks, matched refresh comparisons and evidence hashes. Full visual harness: 310 before + 310 after captures with zero errors; final focused Chromium 24 and WebKit 12 have zero active contrast/overflow failures. All 56 background-refresh captures in each version have CLS 0. Existing inactive-control, explicit-refresh and baseline findings remain documented. Removed the task-only dependency symlink after testing.
+- **Why:** Provide reproducible visual evidence alongside Python 6,916 OFF + 6,916 ON and Node 562 passing tests before committing the branch; no merge or deployment.
+
+---
+
+## 2026-10-22 20:27 — Archive the full 310-capture wallpaper audit and raster comparisons
+- **File(s) changed:** `audits/screenshots/wallpaper-refresh/after-visual-results.json`, `after-browser-check.md`, rendered contrast JSON reports; `tests/visual/lib/rendered-contrast.mjs`
+- **What changed:** Saved the full after audit with zero browser errors and unchanged touch, overflow and occlusion failure cells. Added baseline comparisons and corrected raster sampling for normalized CSS colors, SVG glyphs, occlusion and transitions. Matched layout-shift reruns and final timestamp checks remain in progress.
+- **Why:** Preserve raw findings and distinguish application regressions from existing findings and measurement artifacts.
+
+---
+
+## 2026-10-22 20:26 — Verify final CSS source scope and repeat the full JavaScript suite
+- **File(s) changed:** `audits/screenshots/wallpaper-refresh/source-integrity.json`, `audits/screenshots/wallpaper-refresh/verification/node.log`, `audits/screenshots/wallpaper-refresh/verification/results.json`
+- **What changed:** Rechecked all 15 unchanged script blocks/references, stylesheet paths and cache versions; repeated all 562 Node tests successfully on the final CSS. Preserved the original Python-run hashes and documented the subsequent one-line amber timestamp CSS change.
+- **Why:** Keep final-source verification and test provenance explicit.
+
+---
+
+## 2026-10-22 20:25 — Use accessible amber for late-entry timestamps
+- **File(s) changed:** `dashboard/wallpaper.css`
+- **What changed:** Changed late-entry timestamp text to the existing theme-aware amber token after pixel sampling measured the inherited warning mix below AA on both the original and refreshed surfaces.
+- **Why:** Improve timestamp legibility while preserving warning meaning and all behavior.
+
+---
+
+## 2026-10-22 20:20 — Record full test acceptance and wallpaper regression guard row 225
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `audits/screenshots/wallpaper-refresh/verification/`
+- **What changed:** Added row 225 and exact-environment test logs: Python 6,916 sessions OFF + 6,916 ON, Node 562, zero failures/skips. Tests used isolated local PostgreSQL 17 and pinned Python dependencies. Task databases were dropped and the private server stopped.
+- **Why:** Preserve regression rules and reproducible test evidence before branch commit and PR; no merge or deployment.
+
+---
+
+## 2026-10-22 20:19 — Keep overdue labels above AA on refreshed paper surfaces
+- **File(s) changed:** `dashboard/wallpaper.css`, `audits/screenshots/wallpaper-refresh/independent-interaction-review.json`
+- **What changed:** Mapped the shared danger text token to the accessible theme danger token after the audit measured the old red at 4.47:1. Final independent review records 56 passing interaction, popup, Spanish phone and print checks with no failures.
+- **Why:** Preserve readable overdue/error text on the new paper tint and verify original interaction cues.
+
+---
+
+## 2026-10-22 20:17 — Preserve selected and keyboard-focus cues in header popups
+- **File(s) changed:** `dashboard/wallpaper.css`
+- **What changed:** Restored selected/today calendar day and selected search-result fills/outlines after the popup contrast reset, with readable popup focus-ring tokens.
+- **Why:** Independent review caught popup resets masking existing state cues.
+
+---
+
+## 2026-10-22 20:17 — Record wallpaper baseline, interaction and source-integrity evidence
+- **File(s) changed:** `audits/screenshots/wallpaper-refresh/`
+- **What changed:** Archived the original 310-capture harness report and saved independent popup/calendar/Spanish layout checks plus script/reference integrity evidence. All 15 pages retain identical inline scripts and script references; no API/database/migration/application-JS changes.
+- **Why:** Make the visual-only scope and pre-existing audit findings reviewable alongside before/after screenshots.
+
+---
+
+## 2026-10-22 20:16 — Use contrasting green link tokens in calendar and hover states
+- **File(s) changed:** `dashboard/wallpaper.css`, `tests/visual/run-wallpaper-refresh.mjs`, `audits/screenshots/wallpaper-refresh/`
+- **What changed:** Kept forest fills distinct from readable green text for calendar labels, links and selected supplies tabs. Added passing 390px WebKit captures and background/contrast/layout assertions to the focused visual runner.
+- **Why:** Dark-mode raster review found legacy text selectors using the button-hover fill token.
+
+---
+
+## 2026-10-22 20:15 — Resolve full-dashboard raster contrast findings
+- **File(s) changed:** `dashboard/wallpaper.css`
+- **What changed:** Added tab-content and trace search/status backings, white header timestamps, and sufficient selector specificity for solid calendar/search popup controls.
+- **Why:** Full-harness pixel checks exposed uncovered prose and a header CSS specificity collision.
+
+---
+
+## 2026-10-22 20:13 — Complete summary and resumed-chat surfaces and raster audit coverage
+- **File(s) changed:** `dashboard/wallpaper.css`, `tests/visual/lib/rendered-contrast.mjs`, `tests/visual/lib/wallpaper-audit-hook.mjs`, `audits/screenshots/wallpaper-refresh/`
+- **What changed:** Protected Shift Summary headings and Assistant day dividers with theme surfaces; supplemented all general visual captures with browser-composited contrast evidence without changing the existing audit logic.
+- **Why:** Cover image-backed text beyond the three requested screenshot pages and preserve resumed-chat readability.
+
+---
+
+## 2026-10-22 20:13 — Keep ledger empty-state messages readable over scenery
+- **File(s) changed:** `dashboard/wallpaper.css`
+- **What changed:** Applied the same translucent backing to direct empty-state and resolution paragraphs.
+- **Why:** Raster contrast checks caught the Exceptions empty-state text over the wallpaper.
+
+---
+
+## 2026-10-22 20:12 — Preserve chart, scheduler, popup and print readability with wallpaper
+- **File(s) changed:** `dashboard/wallpaper.css`, `tests/visual/run-wallpaper-refresh.mjs`, `audits/screenshots/wallpaper-refresh/`
+- **What changed:** Added safe chart/footer and entry-toolbar backings, retained scheduler cell palette, reset popup control colors and print colors, and expanded local screenshot/contrast coverage to Exceptions, Runs and History.
+- **Why:** Independent CSS review found inherited colors and image-backed text that needed explicit surfaces.
+
+---
+
+## 2026-10-22 20:11 — Add decorative FL header mark to ledger pages
+- **File(s) changed:** `dashboard/wallpaper.css`, `dashboard/office.html`, `dashboard/entry.html`, `dashboard/exceptions.html`, `dashboard/receipt.html`
+- **What changed:** Added an aria-hidden FL brand mark and consistent header link padding without changing destinations or actions.
+- **Why:** Keep the logo and white navigation directly on the scenic header overlay.
+
+---
+
+## 2026-10-22 20:11 — Refine wallpaper contrast, decorative section badges and popover containment
+- **File(s) changed:** `dashboard/wallpaper.css`, `tests/visual/run-wallpaper-refresh.mjs`, `tests/visual/lib/rendered-contrast.mjs`, `audits/screenshots/wallpaper-refresh/`
+- **What changed:** Added browser-pixel contrast verification, readable placeholder tokens and action-label backings, circular section glyphs, theme-aware native fields, and 44px Assistant controls. Removed ancestor blur around viewport-positioned popovers. Captured first after images.
+- **Why:** Address visual verification findings without altering scripts or recording behavior.
+
+---
+
+## 2026-10-22 20:09 — Apply scenic theme across every dashboard page
+- **File(s) changed:** `dashboard/ledger-forms.css`, every `dashboard/**/*.html`, `dashboard/wallpaper.css`
+- **What changed:** Reused semantic tokens for ledger forms, linked wallpaper v1 on every page, updated all ledger-forms references to v9, and added minimal page classes/content wrappers. Fixed/cover desktop wallpaper, scrolling touch fallback, dark gradient headers, 94% glass panels and pale green subsections preserve existing controls and scripts.
+- **Why:** Make the requested visual refresh consistent across Office, entry, Assistant, reporting and secondary dashboard pages.
+
+---
+
+## 2026-10-22 20:09 — Build original scenic wallpaper, shared theme tokens and baseline visual evidence
+- **File(s) changed:** `dashboard/wallpaper.css`, `dashboard/assets/wallpaper.svg`, `dashboard/assets/wallpaper.webp`, `tests/visual/run-wallpaper-refresh.mjs`, `audits/screenshots/wallpaper-refresh/`
+- **What changed:** Created original vector sunrise and 44,524-byte WebP, shared wallpaper/theme styling, and local fixture-only before/after visual verification runner and baseline captures. Isolated local test tooling under `/tmp/fl_wallpaper_tests_20261022`; no deployment.
+- **Why:** Requested visual refresh with unchanged application behavior, preserved contrast and swappable wallpaper.
 ## 2026-10-21 13:59 — Verify final Floor GPT unreadable-lot wording and artifact budget
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/receive-lot-required/README.md`
 - **What changed:** Record five passing Floor contract tests, independently verified exact review wording, source/dist equality, 7,860 body characters and 7,990 full-file characters. Floor remains22/office30 operations. Keep the earlier full Python/JS/browser results explicitly attributed to 59cad84d.

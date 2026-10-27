@@ -1,0 +1,19 @@
+{
+  "python": "3.12.14 (main, Aug 12 2026, 13:57:54) [Clang 21.0.0 (clang-2100.1.1.101)]",
+  "python_executable": "/private/tmp/fl_wallpaper_tests_20261022/venv/bin/python",
+  "packages": {
+    "pytest": "9.1.1",
+    "pydantic": "2.14.1",
+    "fastapi": "0.104.1",
+    "psycopg2-binary": "2.9.9",
+    "jsonschema": "4.26.0"
+  },
+  "database_host": "127.0.0.1",
+  "database_port": 55477,
+  "schema": "tests/schema/schema.sql",
+  "key_session_modes": [
+    0,
+    1
+  ],
+  "node": "v26.0.0"
+}
