@@ -8544,7 +8544,7 @@ def _ship_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
     return response
 
 
-def _ship_order_commit_core(cur, request, order_id, req, occurred_at, created_at_source, *, ticket_id=None, receipt_number=None, bol_reference=None, lot_allocations_by_line=None):
+def _ship_order_commit_core(cur, request, order_id, req, occurred_at, created_at_source, *, ticket_id=None, receipt_number=None, bol_reference=None, lot_allocations_by_line=None, retry_guard=None):
     """Existing ship commit body; caller owns the transaction (A6)."""
     cur.execute(
         "SELECT so.id, so.order_number, so.status, so.state, so.customer_id, c.name "
@@ -8556,6 +8556,13 @@ def _ship_order_commit_core(cur, request, order_id, req, occurred_at, created_at
     order_row = cur.fetchone()
     if not order_row:
         raise HTTPException(404, f"Order #{order_id} not found")
+    if retry_guard:
+        # Under the order row lock: a concurrent identical retry waits for the first
+        # commit, then finds its receipt. Before the state checks, so a retry after the
+        # first commit closed the order still gets that receipt.
+        prior = _ship_order_prior_receipt(cur, order_id, retry_guard["request_hash"])
+        if prior:
+            return _ship_order_replay(prior)
     _require_open_state(order_row['state'], order_row['order_number'],
                         order_id, "shipping")
     # Step 2 of the normative lock order: the order's line rows,
@@ -16523,6 +16530,68 @@ def _pending_order_ship_counts(cur, order_id):
     return cur.fetchone()
 
 
+# A GPT action that times out after the server committed resends the identical
+# body, and an operator may say "try again" a few minutes later. Inside this window
+# an identical commit on the same order replays the first receipt instead of shipping
+# again (PR #146 review). A different body (other lines or quantities) always ships.
+SHIP_ORDER_RETRY_WINDOW_MINUTES = 10
+
+
+def _ship_order_request_hash(order_id, req):
+    """What the commit asks for; ship_all wins over lines, exactly as the core reads them."""
+    ship_all = bool(req.ship_all)
+    lines = None if ship_all else sorted((int(l.line_id), round(float(l.quantity_lb), 4)) for l in (req.lines or []))
+    body = {"order_id": int(order_id), "ship_all": ship_all, "lines": lines,
+            "occurred_at": str(req.occurred_at) if req.occurred_at else None, "backfill": bool(req.backfill)}
+    return hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()
+
+
+def _ship_order_prior_receipt(cur, order_id, request_hash):
+    """The receipt this commit repeats, or None. Caller holds the order row lock, so a
+    concurrent identical retry waits for the first commit and then sees its receipt.
+    A receipt whose shipment was since voided is not replayed: that order ships again."""
+    cur.execute("""SELECT r.shipment_id, r.response_json, r.created_at
+                     FROM ship_order_commit_receipts r
+                    WHERE r.sales_order_id = %s AND r.request_hash = %s
+                      AND r.created_at > clock_timestamp() - make_interval(mins => %s)
+                      AND EXISTS (SELECT 1 FROM shipment_lines sl
+                                    JOIN ledger_current_transactions t ON t.id = sl.transaction_id
+                                   WHERE sl.shipment_id = r.shipment_id AND t.effective_status = 'posted')
+                    ORDER BY r.created_at DESC LIMIT 1""",
+                (order_id, request_hash, SHIP_ORDER_RETRY_WINDOW_MINUTES))
+    return cur.fetchone()
+
+
+def _ship_order_replay(row):
+    response = dict(row['response_json'])
+    at = row['created_at'].astimezone(PLANT_TIMEZONE)
+    until = (at + timedelta(minutes=SHIP_ORDER_RETRY_WINDOW_MINUTES)).strftime("%-I:%M %p")
+    logger.warning("SHIP_ORDER_REPLAYED: order %s shipment %s", response.get("order_number"), row['shipment_id'])
+    response["idempotent_replay"] = True
+    response["message"] = (f"Already recorded as shipment {row['shipment_id']} at {at.strftime('%-I:%M %p')} — "
+                           f"nothing new was shipped. If this really is a second shipment of the same quantities, "
+                           f"send it after {until}. " + str(response.get("message") or ""))
+    return response
+
+
+def _ship_order_store_receipt(cur, order_id, request_hash, response):
+    if not response.get("shipment_id"):
+        return  # nothing shipped (legacy partial repair): no receipt to replay
+    cur.execute("INSERT INTO ship_order_commit_receipts (sales_order_id, request_hash, shipment_id, response_json) "
+                "VALUES (%s, %s, %s, %s)",
+                (order_id, request_hash, response["shipment_id"], json.dumps(jsonable_encoder(response))))
+
+
+def _ship_order_retry_guard(cur, order_id, req):
+    """Retry protection for a direct ship commit; takes no lock. None before migration
+    088 is applied: the receipts table is absent and the commit runs exactly as before."""
+    cur.execute("SELECT to_regclass('public.ship_order_commit_receipts') IS NOT NULL AS ready")
+    if not cur.fetchone()['ready']:
+        logger.error("SHIP_ORDER_RETRY_GUARD_UNAVAILABLE: migration 088 not applied; ship commit unguarded")
+        return None
+    return {"request_hash": _ship_order_request_hash(order_id, req)}
+
+
 @app.post("/sales/orders/{order_id}/ship")
 def ship_order(
     request: Request,
@@ -16636,7 +16705,12 @@ def ship_order(
                     # lock a concurrent close/cancel could commit between this
                     # eligibility read and the shipment write, shipping stock
                     # against an order that is no longer on the board.
-                    return _ship_order_commit_core(cur, request, order_id, req, occurred_at, created_at_source)
+                    guard = _ship_order_retry_guard(cur, order_id, req)
+                    result = _ship_order_commit_core(cur, request, order_id, req, occurred_at, created_at_source,
+                                                     retry_guard=guard)
+                    if guard and not result.get("idempotent_replay"):
+                        _ship_order_store_receipt(cur, order_id, guard["request_hash"], result)
+                    return result
         except HTTPException:
             raise
         except Exception as e:

@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-10-28 12:25 — PR #153 brought onto current main, tested, staging rehearsal passed (not merged; production untouched)
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md` (conflicts resolved: #153 entries kept above main's #145/#146 entries; row 234 unchanged); branch = main 97674c0a + the single #153 commit replayed (same 6 files, +248 −2)
+- **What changed:** Python 7,112 passed with key sessions off and 7,112 on (fresh local PostgreSQL 17 per mode; zero failures/skips). Staging rehearsal: migration 088 applied to the staging database only (port 5432, one transaction, lock_timeout 5s) and verified (table, RLS on, index, marker, 0 rows); branch uploaded to FastAPI-staging (deployment c7f2a6fa SUCCESS, /health healthy, no SHIP_ORDER_RETRY_GUARD_UNAVAILABLE). Same commit sent twice to staging order SO-261015-003 (line 1000000040, 10 lb): first recorded shipment 21; second returned `idempotent_replay: true` with "nothing new was shipped"; staging shows 1 shipment, 1 receipt row, 10 lb shipped. A third identical call also replayed and its signed packing-slip link (#146) opened as a PDF (200). Note: staging now runs this branch until the next main deploy.
+- **Why:** Owner request 2026-10-28 to prepare #153 (FREEZE-LIFT-PLAN step 5); production migration and merge still need separate approval.
+
+---
+
+## 2026-10-26 14:05 — Sales-order ship commit retry protection (draft PR, not deployed)
+- **File(s) changed:** `main.py`, `migrations/088_ship_order_idempotency.sql` (new), `migrations/down/088_ship_order_idempotency_down.sql` (new), `tests/test_ship_order_idempotency.py` (new), `FACTORY_LEDGER_CHANGELOG.md` (row 234)
+- **What changed:** Direct ship commits (`commitShipOrder` and `shipOrder` mode=commit) store a receipt; an identical commit on the same order within 10 minutes returns the first receipt (`idempotent_replay: true`) instead of posting a second shipment. The check runs inside `_ship_order_commit_core` right after its existing order-row lock (lock sequence unchanged). Different lines/quantities always ship; voided shipments are never replayed; refused commits store nothing; without migration 088 the route runs exactly as before. Full Python suite on fresh local PostgreSQL 17: 6,925 passed with key sessions off and 6,925 with them on, zero failures/skips.
+- **Why:** A GPT retry after a timeout could record a second shipment (PR #146 review; owner post-reset work list item 2). Production freeze active: branch and draft PR only.
+
+---
+
 ## 2026-10-28 11:55 — PR #146 replayed onto current main and revalidated (not merged)
 - **File(s) changed:** `CHANGE_LOG.md` (conflict resolved: #146 entry kept above main's entries); branch `feat/floor-signed-packing-slip` rebuilt as main d7bf203a + the single #146 commit (cherry-pick of 282204be); same 9 files / +232 −25 as before
 - **What changed:** #145 was squash-merged, so the old stacked history conflicted; replaying the one #146 commit onto main left only the change-log conflict. No migration; production `PACKING_SLIP_SIGNING_KEY` variable confirmed present (name only). Floor schema 4.3.0 = what the live Floor GPT already has (22 operations). Tests on a fresh throwaway local PostgreSQL 17 per mode: Python 7,103 passed with key sessions off and 7,103 on (zero failures/skips); JavaScript 577 passed. (A first key-sessions-on pass reusing the off-pass database had 6 failures in `test_seed_staging.py` from leftover rows; clean on a fresh database.)
