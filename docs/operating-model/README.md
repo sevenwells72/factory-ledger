@@ -80,7 +80,7 @@ The GPTs become **read-only, then retire**, as the October design already planne
    2. confirm the OpenAI key and spending cap;
    3. hand Arturo and Luz their personal keys;
    4. run a 1-day supervised pilot with one entry of each type.
-2. **The same week, make the GPTs read-only:** paste the prepared read-only versions and issue the read-only key. **Then rotate the master key**, which has been exposed publicly.
+2. **Later, once the new workflow is proven reliable (Michael's decision, no deadline), make the GPTs read-only:** paste the prepared read-only versions and issue the read-only key. **Then rotate the master key**, which has been exposed publicly. Until then both GPTs stay fully operational.
 3. **Fix four small things that block the guides** (each a small change, see [07](07-issues-and-recommendations.md)):
    - a visible "PRODUCTION / STAGING" banner;
    - a menu link to FL Assistant and the Shift Summary page;

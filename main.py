@@ -3124,6 +3124,9 @@ def _route_key(request: Request):
 
 ACTOR_WRITE_ALLOWLIST = frozenset({
     ("POST", "/products/resolve"),  # office.resolveProducts: lookup, no business write.
+    # Dashboard "Packing slip" button: named staff only. The served dashboard key
+    # stays refused here because the slip carries the customer's address.
+    ("GET", "/sales/orders/{order_id}/packing-slip"),
     ("POST", "/receive"),
     ("POST", "/ship"),
     ("POST", "/make"),

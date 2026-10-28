@@ -330,6 +330,19 @@
       node.append(button(t(`View ${photoKinds[item.kind]?.[0] || 'attached'} photo`, `Ver foto: ${photoKinds[item.kind]?.[1] || 'adjunta'}`), () => viewPhoto(id), 'receipt-photo'));
     }
   }
+  // Ship-order receipts carry a signed 10-minute link; the signature is the only credential in it.
+  function packingSlip(node, result) {
+    const path = typeof result.packing_slip_url === 'string' ? result.packing_slip_url : '';
+    if (!path.startsWith('/sales/orders/')) return;
+    const url = new URL(path, root.FLDashboard?.base || location.origin);
+    if (!(Number(url.searchParams.get('expires')) * 1000 > Date.now())) {
+      node.append(el('p', t('The packing slip link has expired. Open the order on the dashboard and press Packing slip.', 'El enlace de la hoja de empaque venció. Abre el pedido en el dashboard y pulsa Packing slip.'), 'packing-slip-expired'));
+      return;
+    }
+    const link = el('a', t('Open packing slip (valid 10 minutes)', 'Abrir hoja de empaque (válida 10 minutos)'), 'button-link packing-slip-link');
+    link.href = url.href; link.target = '_blank'; link.rel = 'noopener noreferrer';
+    node.append(link);
+  }
   function receiveLotTag(node,result){
     const codes=display.receiveLotCodes(result);if(!codes.length)return;
     const tag=el('section',undefined,'receive-lot-tag');tag.append(el('p',t('CNS lot code','Código de lote CNS'),'receive-lot-label'));
@@ -346,6 +359,7 @@
       [t('Customer', 'Cliente'), result.customer_name || result.customer], [t('Order', 'Pedido'), result.order_number], [t('Shipment', 'Envío'), result.shipment_id],
       ...display.receiptEvidence(result, 'en').map(([label, value], index) => [t(label, display.receiptEvidence(result, 'es')[index][0]), value]), [t('Photo status', 'Estado de foto'), result.proof_status === 'complete' ? t('Attached', 'Adjunta') : result.proof_status === 'photo_pending' ? t('Pending', 'Pendiente') : display.plainLabel(result.proof_status, language)]]);
     receiptPhotos(node, result);
+    packingSlip(node, result);
     for (const shortage of result.shortages || []) {
       const warning = el('div', undefined, 'warning'); warning.setAttribute('role', 'status');
       warning.append(el('strong', t('Shortage recorded', 'Faltante registrado')),

@@ -162,6 +162,8 @@ def _request(client, method, route, seed, body, key):
 
 def test_actor_only_scope_is_approved_writes_plus_product_resolution():
     assert main.ACTOR_WRITE_ALLOWLIST == set(CASES) | {('POST', '/products/resolve')} | {
+        # Dashboard packing-slip button: named staff only (not the served dashboard key).
+        ('GET', '/sales/orders/{order_id}/packing-slip'),
         ('POST', '/receive/prepare'), ('POST', '/tickets/{ticket}/commit'),
         ('POST', '/make/prepare'), ('POST', '/pack/prepare'),
         ('POST', '/lots/{lot_id}/move/prepare'),

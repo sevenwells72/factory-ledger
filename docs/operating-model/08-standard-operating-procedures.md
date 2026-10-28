@@ -89,7 +89,7 @@ If the owner of an entry is absent, Michael names a stand-in for the day. The st
 
 ## SOP-10: Chat tools
 
-- **Only FL Assistant may write.** ChatGPT GPTs and connectors are for questions only (after cutover they physically cannot write).
+- **The FL Assistant (or the Record entry form) is the normal way to write.** The Floor and Office GPTs stay available as **fallbacks** (Michael, 2026-10-28): use one for an entry only when the new path fails, and never record the same event in both. Making the GPTs read-only is a later, separate decision.
 - Never paste a key, password or PIN into any chat.
 - **If the Assistant is down:**
   1. use the Record entry form;

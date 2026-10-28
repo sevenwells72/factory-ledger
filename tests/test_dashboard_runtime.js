@@ -56,3 +56,14 @@ test('O-7 pages read the scoped key at runtime; no served file carries a key lit
   assert.match(source,/FLDashboard\.key\(/,name);assert.doesNotMatch(source,/SALES_API_KEY|readKey|DASHBOARD_KEY|const API_KEY/,name);
  }
 });
+test('every page whose API is not production carries the STAGING banner; production has none',()=>{
+ assert.equal(runtime.environmentBanner(runtime.PRODUCTION),null);
+ for(const base of [runtime.STAGING,'https://localhost:8125'])assert.match(runtime.environmentBanner(base),/^STAGING — test system\..*PRUEBAS/);
+ const page=host=>{const added=[];const document={readyState:'complete',title:'Office',documentElement:{dataset:{}},addEventListener(){},getElementById:id=>added.find(n=>n.id===id)||null,
+   createElement:()=>({style:{},setAttribute(){}}),body:{prepend:n=>added.push(n)}};
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../dashboard/dashboard-runtime.js'),'utf8'),{window:{location:loc(host),document,fetch:()=>Promise.reject(new Error('offline'))},document,AbortController,URL,setTimeout,clearTimeout});return {document,added};};
+ const preview=page('deploy-preview-160--cns-factory-ledger.netlify.app');
+ assert.equal(preview.added.length,1);assert.match(preview.added[0].textContent,/^STAGING/);assert.equal(preview.document.title,'[STAGING] Office');assert.equal(preview.document.documentElement.dataset.flEnvironment,'staging');
+ const railway=page('fastapi-staging-production-dd7b.up.railway.app');assert.equal(railway.added.length,1);
+ const production=page(runtime.PRODUCTION_SITE);assert.equal(production.added.length,0);assert.equal(production.document.title,'Office');assert.equal(production.document.documentElement.dataset.flEnvironment,undefined);
+});

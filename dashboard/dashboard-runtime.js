@@ -71,11 +71,30 @@
     if([PRODUCTION,STAGING].includes(target.origin))return new URL(target.pathname+target.search+target.hash,base).href;
     return target.href;
   }
-  const api={apiBase,enabled,route,accessMessage,accessError,checkReadAccess,renderAccess,keyClient,KEY_TTL_MS,PRODUCTION,STAGING,PRODUCTION_SITE};
+  // Previews look identical to production, so any page whose API is not
+  // production says so on every screen. The label follows the API, not the host.
+  function environmentBanner(base){
+    return base===PRODUCTION?null:'STAGING — test system. Entries here are not real inventory. / PRUEBAS — sistema de prueba. Lo que registres aquí no es inventario real.';
+  }
+  function showEnvironmentBanner(document,text){
+    if(document.getElementById('fl-environment-banner'))return;
+    const bar=document.createElement('div');bar.id='fl-environment-banner';bar.setAttribute('role','note');bar.textContent=text;
+    // In normal flow, not sticky: pages already pin their own top bars there.
+    bar.style.cssText='position:relative;z-index:1;background:#b3261e;color:#fff;font:600 14px/1.35 system-ui,sans-serif;text-align:center;padding:6px 12px';
+    document.body.prepend(bar);
+    if(!document.title.startsWith('[STAGING] '))document.title='[STAGING] '+document.title;
+  }
+  const api={apiBase,enabled,route,environmentBanner,accessMessage,accessError,checkReadAccess,renderAccess,keyClient,KEY_TTL_MS,PRODUCTION,STAGING,PRODUCTION_SITE};
   if(typeof module!=='undefined')module.exports=api;
   root.FLDashboard=api;
   if(!root.document)return;
   api.base=apiBase(root.location,root.FL_SESSION_API_BASE);
+  const banner=environmentBanner(api.base);
+  if(banner&&typeof document.addEventListener==='function'){
+    document.documentElement.dataset.flEnvironment='staging';
+    if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>showEnvironmentBanner(document,banner),{once:true});
+    else showEnvironmentBanner(document,banner);
+  }
   const keys=keyClient((url,options)=>root.fetch(url,options));
   api.key=(base,lang)=>keys(base||api.base).catch(()=>{throw accessError(lang);});
   api.invalidateKey=base=>keys.invalidate(base||api.base);

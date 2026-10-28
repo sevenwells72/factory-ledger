@@ -166,13 +166,13 @@
   color: var(--fl-white);
 }
 :is(.ledger-page > header, .app-header, .header, .runs-header, .topbar, .site-nav)
-  :is(button, .nav-button, .receipt-tools > a[data-fl-write-ui], .tools-menu > summary, .reference-calendar > summary) {
+  :is(button, .nav-button, .receipt-tools > a, .tools-menu > summary, .reference-calendar > summary) {
   color: var(--fl-white);
   background: var(--fl-header-control);
   border: 1px solid var(--fl-header-line);
 }
 :is(.ledger-page > header, .app-header, .header, .runs-header, .topbar, .site-nav)
-  :is(button, .nav-button, .receipt-tools > a[data-fl-write-ui], .tools-menu > summary):hover {
+  :is(button, .nav-button, .receipt-tools > a, .tools-menu > summary):hover {
   background: var(--fl-header-hover);
   color: var(--fl-white);
 }
