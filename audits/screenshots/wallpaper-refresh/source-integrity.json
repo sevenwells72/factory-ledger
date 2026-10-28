@@ -1,0 +1,95 @@
+{
+  "baseCommit": "27a2518655da43ae31860a0bcf8c1f73db114422",
+  "applicationJavaScriptChanged": false,
+  "htmlChecks": [
+    {
+      "page": "dashboard/entry.html",
+      "inlineScriptsAndScriptReferencesUnchanged": true,
+      "stylesheetsResolve": true
+    },
+    {
+      "page": "dashboard/exceptions.html",
+      "inlineScriptsAndScriptReferencesUnchanged": true,
+      "stylesheetsResolve": true
+    },
+    {
+      "page": "dashboard/fl-assistant.html",
+      "inlineScriptsAndScriptReferencesUnchanged": true,
+      "stylesheetsResolve": true
+    },
+    {
+      "page": "dashboard/history.html",
+      "inlineScriptsAndScriptReferencesUnchanged": true,
+      "stylesheetsResolve": true
+    },
+    {
+      "page": "dashboard/index.html",
+      "inlineScriptsAndScriptReferencesUnchanged": true,
+      "stylesheetsResolve": true
+    },
+    {
+      "page": "dashboard/legal/eula.html",
+      "inlineScriptsAndScriptReferencesUnchanged": true,
+      "stylesheetsResolve": true
+    },
+    {
+      "page": "dashboard/legal/privacy.html",
+      "inlineScriptsAndScriptReferencesUnchanged": true,
+      "stylesheetsResolve": true
+    },
+    {
+      "page": "dashboard/office.html",
+      "inlineScriptsAndScriptReferencesUnchanged": true,
+      "stylesheetsResolve": true
+    },
+    {
+      "page": "dashboard/process-flow.html",
+      "inlineScriptsAndScriptReferencesUnchanged": true,
+      "stylesheetsResolve": true
+    },
+    {
+      "page": "dashboard/receipt.html",
+      "inlineScriptsAndScriptReferencesUnchanged": true,
+      "stylesheetsResolve": true
+    },
+    {
+      "page": "dashboard/runs.html",
+      "inlineScriptsAndScriptReferencesUnchanged": true,
+      "stylesheetsResolve": true
+    },
+    {
+      "page": "dashboard/sankey.html",
+      "inlineScriptsAndScriptReferencesUnchanged": true,
+      "stylesheetsResolve": true
+    },
+    {
+      "page": "dashboard/scheduler/seven-wells-production-board.html",
+      "inlineScriptsAndScriptReferencesUnchanged": true,
+      "stylesheetsResolve": true
+    },
+    {
+      "page": "dashboard/shift-summary.html",
+      "inlineScriptsAndScriptReferencesUnchanged": true,
+      "stylesheetsResolve": true
+    },
+    {
+      "page": "dashboard/traceability.html",
+      "inlineScriptsAndScriptReferencesUnchanged": true,
+      "stylesheetsResolve": true
+    }
+  ],
+  "assetBytes": {
+    "wallpaper.svg": 8308,
+    "wallpaper.webp": 44524
+  },
+  "cacheVersions": {
+    "ledger-forms.css": "9",
+    "wallpaper.css": "1"
+  },
+  "checkedPages": 15,
+  "noApiDatabaseMigrationOrApplicationJsChanges": true,
+  "finalStylesheetSha256": {
+    "ledger-forms.css": "c249f379de97a85e072147a9ca6dc3ba8dfe56f1abd81a78c1fd350888bf5d13",
+    "wallpaper.css": "a8e7a89138588ffef1d1792a3a3b9e29a3cfc9d854c3cf4ed4cd78fc5d19f63f"
+  }
+}

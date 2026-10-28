@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="1600" viewBox="0 0 2400 1600" role="img" aria-labelledby="title desc">
+  <title id="title">First light over the fields</title>
+  <desc id="desc">An original illustration of a warm sunrise above a distant mountain ridge, rolling green hills, and curved rows of crops and golden grain.</desc>
+  <!-- Original, hand-authored vector artwork for Factory Ledger, October 2026.
+       No photographs, stock artwork, external resources, or embedded raster images.
+       Export: rsvg-convert wallpaper.svg -o /tmp/fl-wallpaper.png
+               cwebp -q 84 -m 6 /tmp/fl-wallpaper.png -o wallpaper.webp -->
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1">
+      <stop stop-color="#96bec3"/>
+      <stop offset=".28" stop-color="#c9d7c3"/>
+      <stop offset=".52" stop-color="#f3d7a8"/>
+      <stop offset="1" stop-color="#e5d6a2"/>
+    </linearGradient>
+    <radialGradient id="dawn" cx=".76" cy=".19" r=".6">
+      <stop stop-color="#fff3d1" stop-opacity=".96"/>
+      <stop offset=".22" stop-color="#ffdf9e" stop-opacity=".57"/>
+      <stop offset=".58" stop-color="#f7cca3" stop-opacity=".16"/>
+      <stop offset="1" stop-color="#f7cca3" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sunHalo">
+      <stop offset=".18" stop-color="#fff8df" stop-opacity=".85"/>
+      <stop offset=".45" stop-color="#ffedbd" stop-opacity=".42"/>
+      <stop offset="1" stop-color="#ffe0a2" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="sun">
+      <stop offset=".65" stop-color="#fff5d9"/>
+      <stop offset=".87" stop-color="#fff3cf" stop-opacity=".93"/>
+      <stop offset="1" stop-color="#fff0c3" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="farRidge" x2="0" y2="1">
+      <stop stop-color="#829b93"/>
+      <stop offset="1" stop-color="#b4bd9a"/>
+    </linearGradient>
+    <linearGradient id="nearRidge" x2="0" y2="1">
+      <stop stop-color="#668b7b"/>
+      <stop offset="1" stop-color="#91a77d"/>
+    </linearGradient>
+    <linearGradient id="farHill" x1=".15" y1=".1" x2=".7" y2="1">
+      <stop stop-color="#8ca866"/>
+      <stop offset=".55" stop-color="#739255"/>
+      <stop offset="1" stop-color="#51774e"/>
+    </linearGradient>
+    <linearGradient id="middleHill" x1=".78" y1="0" x2=".25" y2="1">
+      <stop stop-color="#9caf62"/>
+      <stop offset=".42" stop-color="#73994f"/>
+      <stop offset="1" stop-color="#406e42"/>
+    </linearGradient>
+    <linearGradient id="meadow" x1=".75" y1="0" x2=".15" y2="1">
+      <stop stop-color="#8eaa55"/>
+      <stop offset=".4" stop-color="#618d47"/>
+      <stop offset="1" stop-color="#315d3d"/>
+    </linearGradient>
+    <linearGradient id="wheat" x1=".85" y1="0" x2=".1" y2="1">
+      <stop stop-color="#d3c478"/>
+      <stop offset=".38" stop-color="#b6b564"/>
+      <stop offset="1" stop-color="#788c4e"/>
+    </linearGradient>
+    <linearGradient id="foreground" x1=".85" y1="0" x2=".15" y2="1">
+      <stop stop-color="#5f8546"/>
+      <stop offset=".55" stop-color="#3e713f"/>
+      <stop offset="1" stop-color="#244f36"/>
+    </linearGradient>
+    <linearGradient id="mist" x2="0" y2="1">
+      <stop stop-color="#f8e9c7" stop-opacity="0"/>
+      <stop offset=".5" stop-color="#f8e9c7" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#f8e9c7" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="wheatShape">
+      <path d="M1090 1197C1477 1060 1821 1134 2400 956V1600H1488Z"/>
+    </clipPath>
+    <clipPath id="foregroundShape">
+      <path d="M0 1169C305 1077 588 1157 864 1290S1500 1474 2400 1354V1600H0Z"/>
+    </clipPath>
+  </defs>
+
+  <path fill="url(#sky)" d="M0 0H2400V1600H0Z"/>
+  <path fill="url(#dawn)" d="M0 0H2400V1600H0Z"/>
+  <circle cx="1825" cy="298" r="430" fill="url(#sunHalo)"/>
+  <circle cx="1825" cy="298" r="104" fill="url(#sun)"/>
+
+  <!-- Long, quiet clouds keep the header area calm at every crop. -->
+  <g fill="#fff4db" opacity=".19">
+    <path d="M0 252C226 233 336 246 498 238S736 209 912 222C690 237 599 254 424 260S122 261 0 269Z"/>
+    <path d="M1267 434C1489 409 1669 425 1830 407S2160 381 2400 398V413C2185 405 2014 427 1834 430S1470 439 1267 434Z"/>
+    <path d="M146 446C379 419 533 430 693 422S1011 403 1161 422C979 423 830 442 654 441S310 442 146 446Z"/>
+  </g>
+
+  <!-- Distant ridge silhouettes soften into the morning haze. -->
+  <path fill="url(#farRidge)" d="M0 691L108 649L187 662L282 588L349 604L458 516L529 552L607 509L729 602L824 570L937 636L1046 591L1148 619L1235 564L1310 585L1386 523L1448 552L1550 488L1620 526L1715 482L1821 555L1907 529L2004 607L2094 562L2183 607L2290 570L2400 608V930H0Z"/>
+  <path fill="url(#nearRidge)" d="M0 764C159 720 217 686 318 695L435 645L517 682L606 648L735 717L814 686L934 732C1064 745 1147 688 1250 681L1398 613L1483 654L1576 624L1693 682L1805 640L1907 672L2033 629L2130 672L2237 646L2400 700V1020H0Z"/>
+  <path fill="url(#mist)" d="M0 628H2400V855H0Z"/>
+
+  <!-- Overlapping slopes, lit from the upper right. -->
+  <path fill="url(#farHill)" d="M0 766C237 704 401 728 626 801S1034 904 1282 835S1687 694 1904 718S2228 822 2400 784V1170H0Z"/>
+  <path fill="#c9c985" opacity=".17" d="M1064 884C1359 827 1560 741 1784 730S2214 848 2400 806V826C2181 879 1988 774 1771 757S1352 855 1064 884Z"/>
+  <path fill="url(#middleHill)" d="M0 994C258 1062 433 1008 645 899S1037 784 1258 849S1664 1026 1921 959S2233 871 2400 916V1360H0Z"/>
+  <path fill="#c3c979" opacity=".17" d="M317 1019C537 983 660 876 873 855S1177 892 1348 934C1155 906 1017 869 865 880S515 1011 317 1019Z"/>
+
+  <!-- Small hedgerows lend scale without competing with the interface. -->
+  <g fill="#3e6549" opacity=".57">
+    <path d="M146 853Q133 820 143 807Q148 791 154 811Q170 826 160 852L167 856H137Z"/>
+    <path d="M171 856Q161 833 171 818Q179 806 185 825Q195 837 189 856L196 859H166Z"/>
+    <path d="M193 860Q190 835 202 828Q214 830 217 850L224 861Z"/>
+    <path d="M1975 870Q1961 838 1975 822Q1987 811 1992 837Q2005 852 1997 870Z"/>
+    <path d="M2004 874Q1995 852 2006 841Q2019 829 2026 855L2033 876Z"/>
+    <path d="M2040 882Q2029 849 2042 832Q2055 825 2063 854L2070 883Z"/>
+    <path d="M2082 890Q2070 862 2083 848Q2094 838 2103 865L2110 892Z"/>
+  </g>
+
+  <path fill="url(#meadow)" d="M0 1017C317 905 609 1004 863 1116S1362 1185 1640 1076S2184 1036 2400 1004V1600H0Z"/>
+  <path fill="#b9c575" opacity=".2" d="M0 1017C282 928 525 992 721 1064C488 1013 273 975 0 1053Z"/>
+  <path fill="url(#wheat)" d="M1090 1197C1477 1060 1821 1134 2400 956V1600H1488Z"/>
+  <g clip-path="url(#wheatShape)" fill="none" stroke="#f4d993" stroke-width="7" opacity=".24">
+    <path d="M1333 1102C1574 1168 1741 1308 1820 1625"/>
+    <path d="M1441 1088C1678 1154 1871 1312 1981 1625"/>
+    <path d="M1546 1081C1793 1138 1991 1295 2144 1625"/>
+    <path d="M1651 1068C1913 1125 2135 1281 2307 1625"/>
+    <path d="M1757 1052C2034 1107 2270 1262 2470 1625"/>
+    <path d="M1866 1029C2151 1082 2398 1231 2632 1625"/>
+    <path d="M1971 1006C2285 1062 2520 1200 2792 1625"/>
+    <path d="M2073 982C2388 1027 2649 1171 2955 1625"/>
+    <path d="M2175 956C2493 996 2788 1146 3117 1625"/>
+  </g>
+  <path fill="none" stroke="#b7bb7b" stroke-width="10" opacity=".55" d="M2400 956C1821 1134 1477 1060 1090 1197"/>
+
+  <path fill="url(#foreground)" d="M0 1169C305 1077 588 1157 864 1290S1500 1474 2400 1354V1600H0Z"/>
+  <g clip-path="url(#foregroundShape)" fill="none" stroke="#8fac63" stroke-width="13" opacity=".23">
+    <path d="M-230 1596C-40 1308 142 1187 391 1135"/>
+    <path d="M-55 1647C117 1351 269 1217 487 1157"/>
+    <path d="M136 1665C259 1391 393 1251 583 1191"/>
+    <path d="M328 1670C402 1430 510 1300 678 1233"/>
+    <path d="M517 1676C549 1486 632 1348 777 1274"/>
+    <path d="M706 1680C695 1531 751 1392 874 1320"/>
+    <path d="M897 1680C844 1562 872 1442 971 1361"/>
+    <path d="M1085 1682C998 1597 1007 1487 1082 1397"/>
+    <path d="M1276 1685C1153 1630 1145 1517 1200 1425"/>
+    <path d="M1466 1687C1316 1651 1292 1534 1330 1445"/>
+    <path d="M1658 1690C1479 1664 1439 1550 1465 1453"/>
+    <path d="M1852 1692C1644 1670 1587 1559 1605 1458"/>
+    <path d="M2044 1694C1808 1673 1741 1554 1750 1450"/>
+    <path d="M2237 1697C1973 1676 1897 1551 1897 1441"/>
+    <path d="M2430 1700C2136 1677 2050 1542 2046 1420"/>
+    <path d="M2623 1700C2300 1673 2207 1526 2197 1394"/>
+  </g>
+</svg>

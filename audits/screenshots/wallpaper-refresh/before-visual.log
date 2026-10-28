@@ -1,0 +1,37 @@
+Factory Ledger visual audit — 92 screens, 4 variants, 310 captures.
+  10/310 captures
+  20/310 captures
+  30/310 captures
+  40/310 captures
+  50/310 captures
+  60/310 captures
+  70/310 captures
+  80/310 captures
+  90/310 captures
+  100/310 captures
+  110/310 captures
+  120/310 captures
+  130/310 captures
+  140/310 captures
+  150/310 captures
+  160/310 captures
+  170/310 captures
+  180/310 captures
+  190/310 captures
+  200/310 captures
+  210/310 captures
+  220/310 captures
+  230/310 captures
+  240/310 captures
+  250/310 captures
+  260/310 captures
+  270/310 captures
+  280/310 captures
+  290/310 captures
+  300/310 captures
+  310/310 captures
+
+Rule results across all captures: { PASS: 2500, FAIL: 373, WARN: 75, 'N/A': 1082, ERROR: 0 }
+Unmatched endpoints (no fixture): /auth/session/config
+Matrix:      docs/design/audit/06-browser-check.md
+Screenshots: docs/design/audit/screenshots/<variant>/<S-id>.png

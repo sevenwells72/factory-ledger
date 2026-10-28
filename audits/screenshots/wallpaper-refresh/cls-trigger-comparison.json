@@ -1,0 +1,4213 @@
+{
+  "generatedAt": "2026-10-23T00:30:22.182236+00:00",
+  "purpose": "Matched CLS investigation of nine numerically new FAIL cells; no application edits, no threshold changes.",
+  "finalWallpaperCssSha256": "a8e7a89138588ffef1d1792a3a3b9e29a3cfc9d854c3cf4ed4cd78fc5d19f63f",
+  "command": "node tests/visual/run-visual-audit.mjs --screens S-01,S-04,S-06,S-12,S-18,S-54 --variants 1440-light,1440-dark,390-light,390-dark --concurrency 4",
+  "execution": "Before and after ran sequentially on the same host, 24 captures each; application source frozen and harness/checks/screens byte-identical.",
+  "sources": {
+    "beforeSnapshot": "/tmp/fl-wallpaper-baseline-20261022",
+    "afterSnapshot": "/tmp/fl-wallpaper-final-20261022",
+    "rerunPaths": {
+      "before": "/var/folders/61/x92cz33j1qb8vftv75f2bymh0000gn/T/fl-wallpaper-cls-before-tv10_bqi",
+      "after": "/var/folders/61/x92cz33j1qb8vftv75f2bymh0000gn/T/fl-wallpaper-cls-after-9_es_z5l"
+    },
+    "fullBroadResultsPreserved": [
+      "before-visual-results.json",
+      "after-visual-results.json"
+    ]
+  },
+  "standardsBasis": {
+    "file": "docs/design/FL-Design-Standards-MASTER.md",
+    "line": 277,
+    "rule": "LAYOUT-020",
+    "exception": "unless it is a direct response to their explicit action",
+    "existingHarnessExplanation": "tests/visual/lib/report.mjs:363-380",
+    "triggerImplementation": "tests/visual/run-visual-audit.mjs:247-266",
+    "clsThresholdsUnchanged": {
+      "PASS": "CLS <= 0.1 and no moved anchors",
+      "WARN": "CLS <= 0.25 otherwise",
+      "FAIL": "CLS > 0.25"
+    }
+  },
+  "summary": {
+    "broadBackgroundCaptures": {
+      "before": 56,
+      "after": 56
+    },
+    "broadBackgroundNonzeroCls": {
+      "before": 0,
+      "after": 0
+    },
+    "broadBackgroundMovedAnchors": {
+      "before": 0,
+      "after": 0
+    },
+    "matchedRerunCapturesPerSource": 24,
+    "matchedRerunTriggers": "All 48 were #refresh-btn, not automatic/background intervals.",
+    "originallyNewNumericCells": 9,
+    "newAutomaticLayoutRegressions": 0,
+    "conclusion": "No new automatic/background LAYOUT-020 regression. Explicit-refresh repaint CLS can be higher with the visual refresh, and baseline scores also fluctuate substantially across runs. The existing rule explicitly permits this direct user-triggered response; original and rerun numeric FAIL values remain recorded."
+  },
+  "backgroundEvidence": {
+    "before": [
+      {
+        "id": "S-14",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 49,
+        "anchorsAfter": 49,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-14",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 49,
+        "anchorsAfter": 49,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-14",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 50,
+        "anchorsAfter": 50,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-14",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 50,
+        "anchorsAfter": 50,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-15",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 26,
+        "anchorsAfter": 26,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-15",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 26,
+        "anchorsAfter": 26,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-15",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 27,
+        "anchorsAfter": 27,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-15",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 27,
+        "anchorsAfter": 27,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-30",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 76,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-30",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 76,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-30",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-30",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-31",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 76,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-31",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 76,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-31",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-31",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-32",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 83,
+        "anchorsAfter": 84,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-32",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 83,
+        "anchorsAfter": 84,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-32",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 85,
+        "anchorsAfter": 85,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-32",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 85,
+        "anchorsAfter": 85,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-33",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 87,
+        "anchorsAfter": 88,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-33",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 87,
+        "anchorsAfter": 88,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-33",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 89,
+        "anchorsAfter": 89,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-33",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 89,
+        "anchorsAfter": 89,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-34",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 50,
+        "anchorsAfter": 51,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-34",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 50,
+        "anchorsAfter": 51,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-34",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 52,
+        "anchorsAfter": 52,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-34",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 52,
+        "anchorsAfter": 52,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-36",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 76,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-36",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 76,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-36",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-36",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-37",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 76,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-37",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 76,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-37",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-37",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-39",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 76,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-39",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 76,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-39",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-39",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-40",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 76,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-40",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 76,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-40",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-40",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-60",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 20,
+        "anchorsAfter": 21,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-60",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 20,
+        "anchorsAfter": 21,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-60",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 13,
+        "anchorsAfter": 13,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-60",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 13,
+        "anchorsAfter": 13,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-61",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 20,
+        "anchorsAfter": 21,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-61",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 20,
+        "anchorsAfter": 21,
+        "moved": 0,
+        "vanished": 6,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-61",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 13,
+        "anchorsAfter": 13,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-61",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 13,
+        "anchorsAfter": 13,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-62",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 23,
+        "anchorsAfter": 23,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-62",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 23,
+        "anchorsAfter": 23,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-62",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 15,
+        "anchorsAfter": 15,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-62",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 15,
+        "anchorsAfter": 15,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      }
+    ],
+    "after": [
+      {
+        "id": "S-14",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 49,
+        "anchorsAfter": 49,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-14",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 49,
+        "anchorsAfter": 49,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-14",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 50,
+        "anchorsAfter": 50,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-14",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 50,
+        "anchorsAfter": 50,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-15",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 26,
+        "anchorsAfter": 26,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-15",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 26,
+        "anchorsAfter": 26,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-15",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 27,
+        "anchorsAfter": 27,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-15",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 27,
+        "anchorsAfter": 27,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-30",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 77,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-30",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 77,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-30",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-30",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-31",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 77,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-31",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 77,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-31",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-31",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-32",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 84,
+        "anchorsAfter": 84,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-32",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 84,
+        "anchorsAfter": 84,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-32",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 85,
+        "anchorsAfter": 85,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-32",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 85,
+        "anchorsAfter": 85,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-33",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 88,
+        "anchorsAfter": 88,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-33",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 88,
+        "anchorsAfter": 88,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-33",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 89,
+        "anchorsAfter": 89,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-33",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 89,
+        "anchorsAfter": 89,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-34",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 51,
+        "anchorsAfter": 51,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-34",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 51,
+        "anchorsAfter": 51,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-34",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 52,
+        "anchorsAfter": 52,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-34",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 52,
+        "anchorsAfter": 52,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-36",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 77,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-36",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 77,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-36",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-36",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-37",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 77,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-37",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 77,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-37",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-37",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-39",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 77,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-39",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 77,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-39",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-39",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-40",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 77,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-40",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 77,
+        "anchorsAfter": 77,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-40",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-40",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 78,
+        "anchorsAfter": 78,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-60",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 21,
+        "anchorsAfter": 21,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-60",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 21,
+        "anchorsAfter": 21,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-60",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 13,
+        "anchorsAfter": 13,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-60",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 13,
+        "anchorsAfter": 13,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-61",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 21,
+        "anchorsAfter": 21,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-61",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 21,
+        "anchorsAfter": 21,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-61",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 13,
+        "anchorsAfter": 13,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-61",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 13,
+        "anchorsAfter": 13,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-62",
+        "variant": "390-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 23,
+        "anchorsAfter": 23,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-62",
+        "variant": "390-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 23,
+        "anchorsAfter": 23,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-62",
+        "variant": "1440-light",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 15,
+        "anchorsAfter": 15,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      },
+      {
+        "id": "S-62",
+        "variant": "1440-dark",
+        "applicable": true,
+        "trigger": "background interval callback",
+        "cls": 0,
+        "shiftEntries": 0,
+        "clsSupported": true,
+        "anchorsBefore": 15,
+        "anchorsAfter": 15,
+        "moved": 0,
+        "vanished": 0,
+        "maxDeltaPx": 0,
+        "worst": []
+      }
+    ]
+  },
+  "matchedCells": [
+    {
+      "id": "S-01",
+      "variant": "1440-dark",
+      "originallyNewNumericFail": true,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1662,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 100,
+          "anchorsAfter": 103,
+          "moved": 0,
+          "vanished": 45,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.2675,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 103,
+          "anchorsAfter": 103,
+          "moved": 0,
+          "vanished": 0,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.24,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 100,
+          "anchorsAfter": 103,
+          "moved": 0,
+          "vanished": 45,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1007,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 100,
+          "anchorsAfter": 103,
+          "moved": 0,
+          "vanished": 45,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-01",
+      "variant": "1440-light",
+      "originallyNewNumericFail": false,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1662,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 100,
+          "anchorsAfter": 103,
+          "moved": 0,
+          "vanished": 45,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1874,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 103,
+          "anchorsAfter": 103,
+          "moved": 0,
+          "vanished": 0,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0912,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 100,
+          "anchorsAfter": 103,
+          "moved": 0,
+          "vanished": 45,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1007,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 100,
+          "anchorsAfter": 103,
+          "moved": 0,
+          "vanished": 45,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-01",
+      "variant": "390-dark",
+      "originallyNewNumericFail": false,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0011,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 96,
+          "anchorsAfter": 97,
+          "moved": 0,
+          "vanished": 6,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0012,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 97,
+          "anchorsAfter": 97,
+          "moved": 0,
+          "vanished": 0,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0011,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 96,
+          "anchorsAfter": 97,
+          "moved": 0,
+          "vanished": 6,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0012,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 96,
+          "anchorsAfter": 97,
+          "moved": 0,
+          "vanished": 6,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-01",
+      "variant": "390-light",
+      "originallyNewNumericFail": false,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0011,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 96,
+          "anchorsAfter": 97,
+          "moved": 0,
+          "vanished": 6,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0012,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 97,
+          "anchorsAfter": 97,
+          "moved": 0,
+          "vanished": 0,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0011,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 96,
+          "anchorsAfter": 97,
+          "moved": 0,
+          "vanished": 6,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0012,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 96,
+          "anchorsAfter": 97,
+          "moved": 0,
+          "vanished": 6,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-04",
+      "variant": "1440-dark",
+      "originallyNewNumericFail": false,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1671,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 107,
+          "anchorsAfter": 104,
+          "moved": 0,
+          "vanished": 99,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1887,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 110,
+          "anchorsAfter": 104,
+          "moved": 0,
+          "vanished": 102,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.2345,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 107,
+          "anchorsAfter": 104,
+          "moved": 0,
+          "vanished": 99,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1013,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 107,
+          "anchorsAfter": 104,
+          "moved": 0,
+          "vanished": 99,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-04",
+      "variant": "1440-light",
+      "originallyNewNumericFail": true,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1671,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 107,
+          "anchorsAfter": 104,
+          "moved": 0,
+          "vanished": 99,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.2692,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 110,
+          "anchorsAfter": 104,
+          "moved": 0,
+          "vanished": 102,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.2345,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 107,
+          "anchorsAfter": 104,
+          "moved": 0,
+          "vanished": 99,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1013,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 107,
+          "anchorsAfter": 104,
+          "moved": 0,
+          "vanished": 99,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-04",
+      "variant": "390-dark",
+      "originallyNewNumericFail": true,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0011,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 98,
+          "anchorsAfter": 93,
+          "moved": 0,
+          "vanished": 95,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3192,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 99,
+          "anchorsAfter": 93,
+          "moved": 0,
+          "vanished": 96,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.2866,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 98,
+          "anchorsAfter": 93,
+          "moved": 0,
+          "vanished": 95,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0,
+          "shiftEntries": 0,
+          "clsSupported": true,
+          "anchorsBefore": 98,
+          "anchorsAfter": 93,
+          "moved": 0,
+          "vanished": 95,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-04",
+      "variant": "390-light",
+      "originallyNewNumericFail": true,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0011,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 98,
+          "anchorsAfter": 93,
+          "moved": 0,
+          "vanished": 95,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3192,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 99,
+          "anchorsAfter": 93,
+          "moved": 0,
+          "vanished": 96,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0011,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 98,
+          "anchorsAfter": 93,
+          "moved": 0,
+          "vanished": 95,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3192,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 98,
+          "anchorsAfter": 93,
+          "moved": 0,
+          "vanished": 95,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-06",
+      "variant": "1440-dark",
+      "originallyNewNumericFail": true,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1683,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 100,
+          "anchorsAfter": 103,
+          "moved": 0,
+          "vanished": 45,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.2675,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 103,
+          "anchorsAfter": 103,
+          "moved": 0,
+          "vanished": 0,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.24,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 100,
+          "anchorsAfter": 103,
+          "moved": 0,
+          "vanished": 45,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.2675,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 100,
+          "anchorsAfter": 103,
+          "moved": 0,
+          "vanished": 45,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-06",
+      "variant": "1440-light",
+      "originallyNewNumericFail": false,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1662,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 100,
+          "anchorsAfter": 103,
+          "moved": 6,
+          "vanished": 45,
+          "maxDeltaPx": 3,
+          "worst": [
+            {
+              "key": "SUMMARY   Reference calendar",
+              "dx": 3,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  mini-calendar-nav Previous month",
+              "dx": 3,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  mini-calendar-nav Next month",
+              "dx": 3,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON health-badge health-badge.health-yellow Health score 86 out of 100. ",
+              "dx": 3,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON theme-toggle btn-theme Switch to dark appearance",
+              "dx": 3,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON refresh-btn btn-refresh Refresh",
+              "dx": 3,
+              "dy": 0
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1874,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 103,
+          "anchorsAfter": 103,
+          "moved": 0,
+          "vanished": 0,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0001,
+          "shiftEntries": 1,
+          "clsSupported": true,
+          "anchorsBefore": 100,
+          "anchorsAfter": 103,
+          "moved": 6,
+          "vanished": 45,
+          "maxDeltaPx": 5,
+          "worst": [
+            {
+              "key": "SUMMARY   Reference calendar",
+              "dx": 5,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  mini-calendar-nav Previous month",
+              "dx": 5,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  mini-calendar-nav Next month",
+              "dx": 5,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON health-badge health-badge.health-yellow Health score 86 out of 100. ",
+              "dx": 5,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON theme-toggle btn-theme Switch to dark appearance",
+              "dx": 5,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON refresh-btn btn-refresh Refresh",
+              "dx": 5,
+              "dy": 0
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1007,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 100,
+          "anchorsAfter": 103,
+          "moved": 0,
+          "vanished": 45,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-06",
+      "variant": "390-dark",
+      "originallyNewNumericFail": true,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0011,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 91,
+          "anchorsAfter": 92,
+          "moved": 0,
+          "vanished": 6,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3192,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 92,
+          "anchorsAfter": 92,
+          "moved": 0,
+          "vanished": 0,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.2794,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 91,
+          "anchorsAfter": 92,
+          "moved": 0,
+          "vanished": 6,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0012,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 91,
+          "anchorsAfter": 92,
+          "moved": 0,
+          "vanished": 6,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-06",
+      "variant": "390-light",
+      "originallyNewNumericFail": false,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.2866,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 91,
+          "anchorsAfter": 92,
+          "moved": 0,
+          "vanished": 6,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3121,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 92,
+          "anchorsAfter": 92,
+          "moved": 0,
+          "vanished": 0,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.2866,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 91,
+          "anchorsAfter": 92,
+          "moved": 0,
+          "vanished": 6,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3192,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 91,
+          "anchorsAfter": 92,
+          "moved": 0,
+          "vanished": 6,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-12",
+      "variant": "1440-dark",
+      "originallyNewNumericFail": true,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1662,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 105,
+          "anchorsAfter": 103,
+          "moved": 4,
+          "vanished": 40,
+          "maxDeltaPx": 65,
+          "worst": [
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": 65,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": 65,
+              "dy": 0
+            },
+            {
+              "key": "TH   Est. Batches",
+              "dx": -49,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": -49,
+              "dy": 0
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.261,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 105,
+          "anchorsAfter": 103,
+          "moved": 4,
+          "vanished": 40,
+          "maxDeltaPx": 65,
+          "worst": [
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": 65,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": 65,
+              "dy": 0
+            },
+            {
+              "key": "TH   Est. Batches",
+              "dx": -49,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": -49,
+              "dy": 0
+            }
+          ]
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1683,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 105,
+          "anchorsAfter": 103,
+          "moved": 4,
+          "vanished": 40,
+          "maxDeltaPx": 65,
+          "worst": [
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": 65,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": 65,
+              "dy": 0
+            },
+            {
+              "key": "TH   Est. Batches",
+              "dx": -49,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": -49,
+              "dy": 0
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1875,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 105,
+          "anchorsAfter": 103,
+          "moved": 4,
+          "vanished": 40,
+          "maxDeltaPx": 65,
+          "worst": [
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": 65,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": 65,
+              "dy": 0
+            },
+            {
+              "key": "TH   Est. Batches",
+              "dx": -49,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": -49,
+              "dy": 0
+            }
+          ]
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-12",
+      "variant": "1440-light",
+      "originallyNewNumericFail": false,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1662,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 105,
+          "anchorsAfter": 103,
+          "moved": 4,
+          "vanished": 40,
+          "maxDeltaPx": 65,
+          "worst": [
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": 65,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": 65,
+              "dy": 0
+            },
+            {
+              "key": "TH   Est. Batches",
+              "dx": -49,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": -49,
+              "dy": 0
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.001,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 105,
+          "anchorsAfter": 103,
+          "moved": 4,
+          "vanished": 40,
+          "maxDeltaPx": 65,
+          "worst": [
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": 65,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": 65,
+              "dy": 0
+            },
+            {
+              "key": "TH   Est. Batches",
+              "dx": -49,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": -49,
+              "dy": 0
+            }
+          ]
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1683,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 105,
+          "anchorsAfter": 103,
+          "moved": 4,
+          "vanished": 40,
+          "maxDeltaPx": 65,
+          "worst": [
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": 65,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": 65,
+              "dy": 0
+            },
+            {
+              "key": "TH   Est. Batches",
+              "dx": -49,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": -49,
+              "dy": 0
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1853,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 105,
+          "anchorsAfter": 103,
+          "moved": 4,
+          "vanished": 40,
+          "maxDeltaPx": 65,
+          "worst": [
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": 65,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": 65,
+              "dy": 0
+            },
+            {
+              "key": "TH   Est. Batches",
+              "dx": -49,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": -49,
+              "dy": 0
+            }
+          ]
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-12",
+      "variant": "390-dark",
+      "originallyNewNumericFail": false,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.2866,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 93,
+          "anchorsAfter": 92,
+          "moved": 4,
+          "vanished": 43,
+          "maxDeltaPx": 17,
+          "worst": [
+            {
+              "key": "TH   Est. Batches",
+              "dx": -17,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": -17,
+              "dy": 0
+            },
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": -8,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": -8,
+              "dy": 0
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3192,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 94,
+          "anchorsAfter": 92,
+          "moved": 4,
+          "vanished": 44,
+          "maxDeltaPx": 17,
+          "worst": [
+            {
+              "key": "TH   Est. Batches",
+              "dx": -17,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": -17,
+              "dy": 0
+            },
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": -8,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": -8,
+              "dy": 0
+            }
+          ]
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.2866,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 93,
+          "anchorsAfter": 92,
+          "moved": 4,
+          "vanished": 43,
+          "maxDeltaPx": 17,
+          "worst": [
+            {
+              "key": "TH   Est. Batches",
+              "dx": -17,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": -17,
+              "dy": 0
+            },
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": -8,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": -8,
+              "dy": 0
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3192,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 93,
+          "anchorsAfter": 92,
+          "moved": 4,
+          "vanished": 43,
+          "maxDeltaPx": 17,
+          "worst": [
+            {
+              "key": "TH   Est. Batches",
+              "dx": -17,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": -17,
+              "dy": 0
+            },
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": -8,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": -8,
+              "dy": 0
+            }
+          ]
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-12",
+      "variant": "390-light",
+      "originallyNewNumericFail": false,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.2794,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 93,
+          "anchorsAfter": 92,
+          "moved": 4,
+          "vanished": 43,
+          "maxDeltaPx": 17,
+          "worst": [
+            {
+              "key": "TH   Est. Batches",
+              "dx": -17,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": -17,
+              "dy": 0
+            },
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": -8,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": -8,
+              "dy": 0
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3192,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 94,
+          "anchorsAfter": 92,
+          "moved": 4,
+          "vanished": 44,
+          "maxDeltaPx": 17,
+          "worst": [
+            {
+              "key": "TH   Est. Batches",
+              "dx": -17,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": -17,
+              "dy": 0
+            },
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": -8,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": -8,
+              "dy": 0
+            }
+          ]
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.2794,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 93,
+          "anchorsAfter": 92,
+          "moved": 4,
+          "vanished": 43,
+          "maxDeltaPx": 17,
+          "worst": [
+            {
+              "key": "TH   Est. Batches",
+              "dx": -17,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": -17,
+              "dy": 0
+            },
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": -8,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": -8,
+              "dy": 0
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3192,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 93,
+          "anchorsAfter": 92,
+          "moved": 4,
+          "vanished": 43,
+          "maxDeltaPx": 17,
+          "worst": [
+            {
+              "key": "TH   Est. Batches",
+              "dx": -17,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": -17,
+              "dy": 0
+            },
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": -8,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": -8,
+              "dy": 0
+            }
+          ]
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-18",
+      "variant": "1440-dark",
+      "originallyNewNumericFail": false,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3818,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 94,
+          "anchorsAfter": 95,
+          "moved": 0,
+          "vanished": 64,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.6162,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 96,
+          "anchorsAfter": 95,
+          "moved": 1,
+          "vanished": 4,
+          "maxDeltaPx": 104,
+          "worst": [
+            {
+              "key": "BUTTON  show-more-btn Show all (3 more)",
+              "dx": 0,
+              "dy": -104
+            }
+          ]
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3818,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 94,
+          "anchorsAfter": 95,
+          "moved": 0,
+          "vanished": 64,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.6335,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 94,
+          "anchorsAfter": 95,
+          "moved": 0,
+          "vanished": 64,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-18",
+      "variant": "1440-light",
+      "originallyNewNumericFail": false,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.4652,
+          "shiftEntries": 6,
+          "clsSupported": true,
+          "anchorsBefore": 94,
+          "anchorsAfter": 95,
+          "moved": 0,
+          "vanished": 64,
+          "maxDeltaPx": 0,
+          "worst": []
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.6522,
+          "shiftEntries": 5,
+          "clsSupported": true,
+          "anchorsBefore": 96,
+          "anchorsAfter": 95,
+          "moved": 1,
+          "vanished": 4,
+          "maxDeltaPx": 104,
+          "worst": [
+            {
+              "key": "BUTTON  show-more-btn Show all (3 more)",
+              "dx": 0,
+              "dy": -104
+            }
+          ]
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3989,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 94,
+          "anchorsAfter": 95,
+          "moved": 6,
+          "vanished": 64,
+          "maxDeltaPx": 3,
+          "worst": [
+            {
+              "key": "SUMMARY   Reference calendar",
+              "dx": -3,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  mini-calendar-nav Previous month",
+              "dx": -3,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  mini-calendar-nav Next month",
+              "dx": -3,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON health-badge health-badge.health-yellow Health score 86 out of 100. ",
+              "dx": -3,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON theme-toggle btn-theme Switch to dark appearance",
+              "dx": -3,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON refresh-btn btn-refresh Refresh",
+              "dx": -3,
+              "dy": 0
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.6522,
+          "shiftEntries": 5,
+          "clsSupported": true,
+          "anchorsBefore": 94,
+          "anchorsAfter": 95,
+          "moved": 0,
+          "vanished": 64,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-18",
+      "variant": "390-dark",
+      "originallyNewNumericFail": false,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.5966,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 76,
+          "anchorsAfter": 76,
+          "moved": 1,
+          "vanished": 9,
+          "maxDeltaPx": 106,
+          "worst": [
+            {
+              "key": "BUTTON  show-more-btn Show all (3 more)",
+              "dx": 0,
+              "dy": -106
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0437,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 77,
+          "anchorsAfter": 76,
+          "moved": 1,
+          "vanished": 16,
+          "maxDeltaPx": 106,
+          "worst": [
+            {
+              "key": "BUTTON  show-more-btn Show all (3 more)",
+              "dx": 0,
+              "dy": -106
+            }
+          ]
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.5044,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 76,
+          "anchorsAfter": 76,
+          "moved": 1,
+          "vanished": 9,
+          "maxDeltaPx": 106,
+          "worst": [
+            {
+              "key": "BUTTON  show-more-btn Show all (3 more)",
+              "dx": 0,
+              "dy": -106
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0437,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 76,
+          "anchorsAfter": 76,
+          "moved": 1,
+          "vanished": 9,
+          "maxDeltaPx": 106,
+          "worst": [
+            {
+              "key": "BUTTON  show-more-btn Show all (3 more)",
+              "dx": 0,
+              "dy": -106
+            }
+          ]
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-18",
+      "variant": "390-light",
+      "originallyNewNumericFail": true,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0466,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 76,
+          "anchorsAfter": 76,
+          "moved": 1,
+          "vanished": 9,
+          "maxDeltaPx": 106,
+          "worst": [
+            {
+              "key": "BUTTON  show-more-btn Show all (3 more)",
+              "dx": 0,
+              "dy": -106
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.6301,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 77,
+          "anchorsAfter": 76,
+          "moved": 1,
+          "vanished": 16,
+          "maxDeltaPx": 106,
+          "worst": [
+            {
+              "key": "BUTTON  show-more-btn Show all (3 more)",
+              "dx": 0,
+              "dy": -106
+            }
+          ]
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.5044,
+          "shiftEntries": 4,
+          "clsSupported": true,
+          "anchorsBefore": 76,
+          "anchorsAfter": 76,
+          "moved": 1,
+          "vanished": 9,
+          "maxDeltaPx": 106,
+          "worst": [
+            {
+              "key": "BUTTON  show-more-btn Show all (3 more)",
+              "dx": 0,
+              "dy": -106
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0437,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 76,
+          "anchorsAfter": 76,
+          "moved": 1,
+          "vanished": 9,
+          "maxDeltaPx": 106,
+          "worst": [
+            {
+              "key": "BUTTON  show-more-btn Show all (3 more)",
+              "dx": 0,
+              "dy": -106
+            }
+          ]
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-54",
+      "variant": "1440-dark",
+      "originallyNewNumericFail": false,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1683,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 123,
+          "anchorsAfter": 124,
+          "moved": 15,
+          "vanished": 61,
+          "maxDeltaPx": 105,
+          "worst": [
+            {
+              "key": "INPUT   On Hand (lb) column width",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "INPUT   Est. Batches column width",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "TH   Batch",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "BUTTON  table-sort Batch",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "TH   Est. Batches",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": 0,
+              "dy": -105
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0011,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 127,
+          "anchorsAfter": 124,
+          "moved": 0,
+          "vanished": 67,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1683,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 123,
+          "anchorsAfter": 124,
+          "moved": 15,
+          "vanished": 61,
+          "maxDeltaPx": 105,
+          "worst": [
+            {
+              "key": "INPUT   On Hand (lb) column width",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "INPUT   Est. Batches column width",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "TH   Batch",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "BUTTON  table-sort Batch",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "TH   Est. Batches",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": 0,
+              "dy": -105
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1007,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 123,
+          "anchorsAfter": 124,
+          "moved": 15,
+          "vanished": 61,
+          "maxDeltaPx": 105,
+          "worst": [
+            {
+              "key": "INPUT   On Hand (lb) column width",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "INPUT   Est. Batches column width",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "TH   Batch",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "BUTTON  table-sort Batch",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "TH   Est. Batches",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": 0,
+              "dy": -105
+            }
+          ]
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-54",
+      "variant": "1440-light",
+      "originallyNewNumericFail": true,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.0911,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 123,
+          "anchorsAfter": 124,
+          "moved": 15,
+          "vanished": 61,
+          "maxDeltaPx": 105,
+          "worst": [
+            {
+              "key": "INPUT   On Hand (lb) column width",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "INPUT   Est. Batches column width",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "TH   Batch",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "BUTTON  table-sort Batch",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "TH   Est. Batches",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": 0,
+              "dy": -105
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.261,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 127,
+          "anchorsAfter": 124,
+          "moved": 0,
+          "vanished": 67,
+          "maxDeltaPx": 0,
+          "worst": []
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1683,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 123,
+          "anchorsAfter": 124,
+          "moved": 15,
+          "vanished": 61,
+          "maxDeltaPx": 105,
+          "worst": [
+            {
+              "key": "INPUT   On Hand (lb) column width",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "INPUT   Est. Batches column width",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "TH   Batch",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "BUTTON  table-sort Batch",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "TH   Est. Batches",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": 0,
+              "dy": -105
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.1007,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 123,
+          "anchorsAfter": 124,
+          "moved": 15,
+          "vanished": 61,
+          "maxDeltaPx": 105,
+          "worst": [
+            {
+              "key": "INPUT   On Hand (lb) column width",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "INPUT   Est. Batches column width",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "TH   Batch",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "BUTTON  table-sort Batch",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "TH   Est. Batches",
+              "dx": 0,
+              "dy": -105
+            },
+            {
+              "key": "BUTTON  table-sort Est. Batches",
+              "dx": 0,
+              "dy": -105
+            }
+          ]
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-54",
+      "variant": "390-dark",
+      "originallyNewNumericFail": false,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.2794,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 99,
+          "anchorsAfter": 96,
+          "moved": 6,
+          "vanished": 55,
+          "maxDeltaPx": 54,
+          "worst": [
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": -54,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": -54,
+              "dy": 0
+            },
+            {
+              "key": "TH   Cases",
+              "dx": -51,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Cases",
+              "dx": -51,
+              "dy": 0
+            },
+            {
+              "key": "TH  num Pallets",
+              "dx": -46,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Pallets",
+              "dx": -46,
+              "dy": 0
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3192,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 99,
+          "anchorsAfter": 96,
+          "moved": 6,
+          "vanished": 55,
+          "maxDeltaPx": 54,
+          "worst": [
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": -54,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": -54,
+              "dy": 0
+            },
+            {
+              "key": "TH   Cases",
+              "dx": -51,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Cases",
+              "dx": -51,
+              "dy": 0
+            },
+            {
+              "key": "TH  num Pallets",
+              "dx": -46,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Pallets",
+              "dx": -46,
+              "dy": 0
+            }
+          ]
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.2866,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 99,
+          "anchorsAfter": 96,
+          "moved": 6,
+          "vanished": 55,
+          "maxDeltaPx": 54,
+          "worst": [
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": -54,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": -54,
+              "dy": 0
+            },
+            {
+              "key": "TH   Cases",
+              "dx": -51,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Cases",
+              "dx": -51,
+              "dy": 0
+            },
+            {
+              "key": "TH  num Pallets",
+              "dx": -46,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Pallets",
+              "dx": -46,
+              "dy": 0
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3192,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 99,
+          "anchorsAfter": 96,
+          "moved": 6,
+          "vanished": 55,
+          "maxDeltaPx": 54,
+          "worst": [
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": -54,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": -54,
+              "dy": 0
+            },
+            {
+              "key": "TH   Cases",
+              "dx": -51,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Cases",
+              "dx": -51,
+              "dy": 0
+            },
+            {
+              "key": "TH  num Pallets",
+              "dx": -46,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Pallets",
+              "dx": -46,
+              "dy": 0
+            }
+          ]
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    },
+    {
+      "id": "S-54",
+      "variant": "390-light",
+      "originallyNewNumericFail": false,
+      "original": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.2866,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 99,
+          "anchorsAfter": 96,
+          "moved": 6,
+          "vanished": 55,
+          "maxDeltaPx": 54,
+          "worst": [
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": -54,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": -54,
+              "dy": 0
+            },
+            {
+              "key": "TH   Cases",
+              "dx": -51,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Cases",
+              "dx": -51,
+              "dy": 0
+            },
+            {
+              "key": "TH  num Pallets",
+              "dx": -46,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Pallets",
+              "dx": -46,
+              "dy": 0
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3121,
+          "shiftEntries": 3,
+          "clsSupported": true,
+          "anchorsBefore": 99,
+          "anchorsAfter": 96,
+          "moved": 6,
+          "vanished": 55,
+          "maxDeltaPx": 54,
+          "worst": [
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": -54,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": -54,
+              "dy": 0
+            },
+            {
+              "key": "TH   Cases",
+              "dx": -51,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Cases",
+              "dx": -51,
+              "dy": 0
+            },
+            {
+              "key": "TH  num Pallets",
+              "dx": -46,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Pallets",
+              "dx": -46,
+              "dy": 0
+            }
+          ]
+        }
+      },
+      "matchedRerun": {
+        "before": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.2866,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 99,
+          "anchorsAfter": 96,
+          "moved": 6,
+          "vanished": 55,
+          "maxDeltaPx": 54,
+          "worst": [
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": -54,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": -54,
+              "dy": 0
+            },
+            {
+              "key": "TH   Cases",
+              "dx": -51,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Cases",
+              "dx": -51,
+              "dy": 0
+            },
+            {
+              "key": "TH  num Pallets",
+              "dx": -46,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Pallets",
+              "dx": -46,
+              "dy": 0
+            }
+          ]
+        },
+        "after": {
+          "applicable": true,
+          "trigger": "#refresh-btn",
+          "cls": 0.3192,
+          "shiftEntries": 2,
+          "clsSupported": true,
+          "anchorsBefore": 99,
+          "anchorsAfter": 96,
+          "moved": 6,
+          "vanished": 55,
+          "maxDeltaPx": 54,
+          "worst": [
+            {
+              "key": "TH  num On Hand (lb)",
+              "dx": -54,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort On Hand (lb)",
+              "dx": -54,
+              "dy": 0
+            },
+            {
+              "key": "TH   Cases",
+              "dx": -51,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Cases",
+              "dx": -51,
+              "dy": 0
+            },
+            {
+              "key": "TH  num Pallets",
+              "dx": -46,
+              "dy": 0
+            },
+            {
+              "key": "BUTTON  table-sort Pallets",
+              "dx": -46,
+              "dy": 0
+            }
+          ]
+        }
+      },
+      "classification": "Explicit user Refresh control: LAYOUT-020 permits layout response to this action; numeric measurements retained without threshold changes."
+    }
+  ],
+  "harnessLimitations": [
+    "Both matched reruns reported the same local /auth/session/config unmatched fixture; the harness handled it as a fixture 404. No screenshot threshold or application behavior was changed for this review."
+  ]
+}

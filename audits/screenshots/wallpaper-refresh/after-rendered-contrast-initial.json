@@ -1,0 +1,3769 @@
+[
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-05.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 30,
+    "failures": 0,
+    "minimumRatio": 4.64,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-03.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 30,
+    "failures": 0,
+    "minimumRatio": 4.64,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-07.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 24,
+    "failures": 0,
+    "minimumRatio": 5.89,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-06.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 33,
+    "failures": 0,
+    "minimumRatio": 4.64,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-01.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 26,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-02.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 31,
+    "failures": 0,
+    "minimumRatio": 4.64,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-02b.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 64,
+    "failures": 0,
+    "minimumRatio": 4.62,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-04.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 29,
+    "failures": 0,
+    "minimumRatio": 4.64,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-08.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 49,
+    "failures": 0,
+    "minimumRatio": 5.03,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-10.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 32,
+    "failures": 0,
+    "minimumRatio": 5.14,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-12.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 28,
+    "failures": 0,
+    "minimumRatio": 5.17,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-09.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 54,
+    "failures": 0,
+    "minimumRatio": 4.78,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-11.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 35,
+    "failures": 0,
+    "minimumRatio": 4.78,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-13.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 27,
+    "failures": 0,
+    "minimumRatio": 5.56,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-14.png",
+    "url": "http://127.0.0.1:63966/index.html?section=recent",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 28,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-15.png",
+    "url": "http://127.0.0.1:63966/index.html?section=recent",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 25,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-16.png",
+    "url": "http://127.0.0.1:63966/index.html?section=activity",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 32,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-17.png",
+    "url": "http://127.0.0.1:63966/index.html?section=activity",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 35,
+    "failures": 0,
+    "minimumRatio": 6.56,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-18.png",
+    "url": "http://127.0.0.1:63966/index.html?section=activity",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 32,
+    "failures": 0,
+    "minimumRatio": 6.55,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-20.png",
+    "url": "http://127.0.0.1:63966/index.html?section=notes",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 22,
+    "failures": 0,
+    "minimumRatio": 5.44,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-19.png",
+    "url": "http://127.0.0.1:63966/index.html?section=notes",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 28,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-21.png",
+    "url": "http://127.0.0.1:63966/index.html?section=notes",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 26,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-24.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 31,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-22.png",
+    "url": "http://127.0.0.1:63966/index.html?section=notes",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 19,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-25.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 28,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-26.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 32,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-28.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 28,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-27.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 28,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-29.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 27,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-30.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 33,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-31.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 31,
+    "failures": 0,
+    "minimumRatio": 6.57,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-32.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A101%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 31,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-33.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 32,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-34.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22109%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 33,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-37.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 23,
+    "failures": 0,
+    "minimumRatio": 5.89,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-36.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 25,
+    "failures": 0,
+    "minimumRatio": 5.89,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-41.png",
+    "url": "http://127.0.0.1:63966/index.html?section=expected",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 28,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-39.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 25,
+    "failures": 0,
+    "minimumRatio": 5.89,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-40.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 26,
+    "failures": 0,
+    "minimumRatio": 5.89,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-42.png",
+    "url": "http://127.0.0.1:63966/index.html?section=expected",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 28,
+    "failures": 0,
+    "minimumRatio": 5.66,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-43.png",
+    "url": "http://127.0.0.1:63966/index.html?section=expected",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 28,
+    "failures": 0,
+    "minimumRatio": 5.66,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-46.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 30,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-44.png",
+    "url": "http://127.0.0.1:63966/index.html?section=expected",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 25,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-45.png",
+    "url": "http://127.0.0.1:63966/index.html?section=expected",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 21,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-48.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 30,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-47.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 30,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-49.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 41,
+    "failures": 0,
+    "minimumRatio": 5.71,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-50.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 34,
+    "failures": 0,
+    "minimumRatio": 5.71,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-51.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 48,
+    "failures": 0,
+    "minimumRatio": 5.71,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-52.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 44,
+    "failures": 0,
+    "minimumRatio": 5.7,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-53.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 12,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-54.png",
+    "url": "http://127.0.0.1:63966/index.html?searchRecord=%7B%22type%22%3A%22lot%22%2C%22name%22%3A%22CQ10-2609-A%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 36,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-55.png",
+    "url": "http://127.0.0.1:63966/index.html?searchRecord=%7B%22type%22%3A%22lot%22%2C%22name%22%3A%22CQ10-2609-A%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 8,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-57.png",
+    "url": "http://127.0.0.1:63966/sankey.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 29,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-59.png",
+    "url": "http://127.0.0.1:63966/sankey.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 26,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-60.png",
+    "url": "http://127.0.0.1:63966/process-flow.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 23,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-61.png",
+    "url": "http://127.0.0.1:63966/process-flow.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 19,
+    "failures": 0,
+    "minimumRatio": 4.52,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-62.png",
+    "url": "http://127.0.0.1:63966/process-flow.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 22,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-63.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 32,
+    "failures": 1,
+    "minimumRatio": 2.97,
+    "worst": [
+      {
+        "tag": "BUTTON",
+        "id": "",
+        "text": "CSG-2201 — Coconut Sugar",
+        "fontPx": 14,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 2.97,
+        "sampledBackground": [
+          168,
+          175,
+          183
+        ]
+      }
+    ]
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-64.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 25,
+    "failures": 0,
+    "minimumRatio": 4.56,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-65.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 24,
+    "failures": 0,
+    "minimumRatio": 5.51,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-66.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 22,
+    "failures": 0,
+    "minimumRatio": 5.51,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-01.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 26,
+    "failures": 0,
+    "minimumRatio": 8.34,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-67.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 21,
+    "failures": 0,
+    "minimumRatio": 5.51,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-02.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 31,
+    "failures": 0,
+    "minimumRatio": 4.97,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-03.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 30,
+    "failures": 0,
+    "minimumRatio": 4.97,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-02b.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 64,
+    "failures": 0,
+    "minimumRatio": 4.97,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-56.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 29,
+    "failures": 0,
+    "minimumRatio": 4.64,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-86.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 11,
+    "failures": 0,
+    "minimumRatio": 5.7,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-05.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 30,
+    "failures": 0,
+    "minimumRatio": 4.97,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-04.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 29,
+    "failures": 0,
+    "minimumRatio": 4.97,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-58.png",
+    "url": "http://127.0.0.1:63966/sankey.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 25,
+    "failures": 0,
+    "minimumRatio": 6.4,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-06.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 33,
+    "failures": 0,
+    "minimumRatio": 4.97,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-07.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 24,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-08.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 49,
+    "failures": 0,
+    "minimumRatio": 5.78,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-09.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 54,
+    "failures": 0,
+    "minimumRatio": 5.78,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-10.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 32,
+    "failures": 0,
+    "minimumRatio": 5.28,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-12.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 28,
+    "failures": 0,
+    "minimumRatio": 6,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-11.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 35,
+    "failures": 0,
+    "minimumRatio": 6.36,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-13.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 27,
+    "failures": 0,
+    "minimumRatio": 5.28,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-14.png",
+    "url": "http://127.0.0.1:63966/index.html?section=recent",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 28,
+    "failures": 0,
+    "minimumRatio": 6.38,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-15.png",
+    "url": "http://127.0.0.1:63966/index.html?section=recent",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 25,
+    "failures": 0,
+    "minimumRatio": 7.63,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-16.png",
+    "url": "http://127.0.0.1:63966/index.html?section=activity",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 32,
+    "failures": 1,
+    "minimumRatio": 1.7,
+    "worst": [
+      {
+        "tag": "DIV",
+        "id": "",
+        "text": "entered 2 days later 06:10 PM",
+        "fontPx": 14,
+        "weight": 600,
+        "fg": [
+          0.955882,
+          0.705882,
+          0.264706,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.7,
+        "sampledBackground": [
+          51,
+          55,
+          28
+        ]
+      }
+    ]
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-17.png",
+    "url": "http://127.0.0.1:63966/index.html?section=activity",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 35,
+    "failures": 1,
+    "minimumRatio": 1.68,
+    "worst": [
+      {
+        "tag": "DIV",
+        "id": "",
+        "text": "entered 2 days later 08:37 PM",
+        "fontPx": 14,
+        "weight": 600,
+        "fg": [
+          0.955882,
+          0.705882,
+          0.264706,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.68,
+        "sampledBackground": [
+          51,
+          54,
+          28
+        ]
+      }
+    ]
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-18.png",
+    "url": "http://127.0.0.1:63966/index.html?section=activity",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 32,
+    "failures": 0,
+    "minimumRatio": 8.34,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-19.png",
+    "url": "http://127.0.0.1:63966/index.html?section=notes",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 28,
+    "failures": 0,
+    "minimumRatio": 5.28,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-20.png",
+    "url": "http://127.0.0.1:63966/index.html?section=notes",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 22,
+    "failures": 0,
+    "minimumRatio": 5.28,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-21.png",
+    "url": "http://127.0.0.1:63966/index.html?section=notes",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 26,
+    "failures": 0,
+    "minimumRatio": 7.51,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-22.png",
+    "url": "http://127.0.0.1:63966/index.html?section=notes",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 19,
+    "failures": 0,
+    "minimumRatio": 8.83,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-24.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 31,
+    "failures": 0,
+    "minimumRatio": 7.28,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-25.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 28,
+    "failures": 0,
+    "minimumRatio": 7.28,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-26.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 32,
+    "failures": 0,
+    "minimumRatio": 7.19,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-27.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 28,
+    "failures": 0,
+    "minimumRatio": 7.28,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-28.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 28,
+    "failures": 0,
+    "minimumRatio": 7.28,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-29.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 27,
+    "failures": 0,
+    "minimumRatio": 7.6,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-30.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 33,
+    "failures": 0,
+    "minimumRatio": 7.28,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-31.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 31,
+    "failures": 0,
+    "minimumRatio": 7.73,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-32.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A101%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 31,
+    "failures": 0,
+    "minimumRatio": 7.28,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-34.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22109%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 33,
+    "failures": 0,
+    "minimumRatio": 7.28,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-33.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 32,
+    "failures": 0,
+    "minimumRatio": 7.28,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-36.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 25,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-37.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 23,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-40.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 26,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-39.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 25,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-41.png",
+    "url": "http://127.0.0.1:63966/index.html?section=expected",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 28,
+    "failures": 0,
+    "minimumRatio": 7.27,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-42.png",
+    "url": "http://127.0.0.1:63966/index.html?section=expected",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 28,
+    "failures": 0,
+    "minimumRatio": 6.5,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-43.png",
+    "url": "http://127.0.0.1:63966/index.html?section=expected",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 28,
+    "failures": 0,
+    "minimumRatio": 6.5,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-44.png",
+    "url": "http://127.0.0.1:63966/index.html?section=expected",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 25,
+    "failures": 0,
+    "minimumRatio": 7.63,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-45.png",
+    "url": "http://127.0.0.1:63966/index.html?section=expected",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 21,
+    "failures": 0,
+    "minimumRatio": 8.83,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-46.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 30,
+    "failures": 0,
+    "minimumRatio": 5.43,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-47.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 30,
+    "failures": 0,
+    "minimumRatio": 5.43,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-48.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 30,
+    "failures": 0,
+    "minimumRatio": 5.43,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-49.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 41,
+    "failures": 0,
+    "minimumRatio": 5.43,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-51.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 48,
+    "failures": 0,
+    "minimumRatio": 5.43,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-50.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 34,
+    "failures": 0,
+    "minimumRatio": 5.43,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-52.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 44,
+    "failures": 0,
+    "minimumRatio": 5.43,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-53.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 12,
+    "failures": 0,
+    "minimumRatio": 8.83,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-54.png",
+    "url": "http://127.0.0.1:63966/index.html?searchRecord=%7B%22type%22%3A%22lot%22%2C%22name%22%3A%22CQ10-2609-A%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 36,
+    "failures": 0,
+    "minimumRatio": 8.83,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-55.png",
+    "url": "http://127.0.0.1:63966/index.html?searchRecord=%7B%22type%22%3A%22lot%22%2C%22name%22%3A%22CQ10-2609-A%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 8,
+    "failures": 0,
+    "minimumRatio": 8.83,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-57.png",
+    "url": "http://127.0.0.1:63966/sankey.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 29,
+    "failures": 0,
+    "minimumRatio": 7.28,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-59.png",
+    "url": "http://127.0.0.1:63966/sankey.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 26,
+    "failures": 0,
+    "minimumRatio": 6.93,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-60.png",
+    "url": "http://127.0.0.1:63966/process-flow.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 23,
+    "failures": 0,
+    "minimumRatio": 7.27,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-61.png",
+    "url": "http://127.0.0.1:63966/process-flow.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 19,
+    "failures": 0,
+    "minimumRatio": 4.61,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-63.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 32,
+    "failures": 0,
+    "minimumRatio": 6.76,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-62.png",
+    "url": "http://127.0.0.1:63966/process-flow.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 22,
+    "failures": 0,
+    "minimumRatio": 4.6,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-64.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 25,
+    "failures": 0,
+    "minimumRatio": 6.46,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-65.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 24,
+    "failures": 0,
+    "minimumRatio": 6.46,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-66.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 22,
+    "failures": 0,
+    "minimumRatio": 6.46,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-67.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 21,
+    "failures": 0,
+    "minimumRatio": 6.76,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-01.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 64,
+    "failures": 0,
+    "minimumRatio": 4.64,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-02.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 179,
+    "failures": 7,
+    "minimumRatio": 1.25,
+    "worst": [
+      {
+        "tag": "DIV",
+        "id": "",
+        "text": "19",
+        "fontPx": 8,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.25,
+        "sampledBackground": [
+          66,
+          118,
+          94
+        ]
+      },
+      {
+        "tag": "DIV",
+        "id": "",
+        "text": "20",
+        "fontPx": 8,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.25,
+        "sampledBackground": [
+          66,
+          118,
+          94
+        ]
+      },
+      {
+        "tag": "DIV",
+        "id": "",
+        "text": "21",
+        "fontPx": 8,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.25,
+        "sampledBackground": [
+          66,
+          118,
+          94
+        ]
+      },
+      {
+        "tag": "DIV",
+        "id": "",
+        "text": "23",
+        "fontPx": 8,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.25,
+        "sampledBackground": [
+          66,
+          118,
+          94
+        ]
+      },
+      {
+        "tag": "DIV",
+        "id": "",
+        "text": "24",
+        "fontPx": 8,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.25,
+        "sampledBackground": [
+          66,
+          118,
+          94
+        ]
+      },
+      {
+        "tag": "DIV",
+        "id": "",
+        "text": "25",
+        "fontPx": 8,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.25,
+        "sampledBackground": [
+          66,
+          118,
+          94
+        ]
+      },
+      {
+        "tag": "DIV",
+        "id": "",
+        "text": "26",
+        "fontPx": 8,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.25,
+        "sampledBackground": [
+          66,
+          118,
+          94
+        ]
+      }
+    ]
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-02b.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 179,
+    "failures": 7,
+    "minimumRatio": 1.25,
+    "worst": [
+      {
+        "tag": "DIV",
+        "id": "",
+        "text": "19",
+        "fontPx": 8,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.25,
+        "sampledBackground": [
+          66,
+          118,
+          94
+        ]
+      },
+      {
+        "tag": "DIV",
+        "id": "",
+        "text": "20",
+        "fontPx": 8,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.25,
+        "sampledBackground": [
+          66,
+          118,
+          94
+        ]
+      },
+      {
+        "tag": "DIV",
+        "id": "",
+        "text": "21",
+        "fontPx": 8,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.25,
+        "sampledBackground": [
+          66,
+          118,
+          94
+        ]
+      },
+      {
+        "tag": "DIV",
+        "id": "",
+        "text": "23",
+        "fontPx": 8,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.25,
+        "sampledBackground": [
+          66,
+          118,
+          94
+        ]
+      },
+      {
+        "tag": "DIV",
+        "id": "",
+        "text": "24",
+        "fontPx": 8,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.25,
+        "sampledBackground": [
+          66,
+          118,
+          94
+        ]
+      },
+      {
+        "tag": "DIV",
+        "id": "",
+        "text": "25",
+        "fontPx": 8,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.25,
+        "sampledBackground": [
+          66,
+          118,
+          94
+        ]
+      },
+      {
+        "tag": "DIV",
+        "id": "",
+        "text": "26",
+        "fontPx": 8,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.25,
+        "sampledBackground": [
+          66,
+          118,
+          94
+        ]
+      }
+    ]
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-56.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 29,
+    "failures": 0,
+    "minimumRatio": 4.97,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-light/S-70.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 25,
+    "failures": 0,
+    "minimumRatio": 4.56,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-03.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 64,
+    "failures": 0,
+    "minimumRatio": 4.64,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-86.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 11,
+    "failures": 0,
+    "minimumRatio": 5.7,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-58.png",
+    "url": "http://127.0.0.1:63966/sankey.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 25,
+    "failures": 0,
+    "minimumRatio": 7.28,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-05.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 64,
+    "failures": 0,
+    "minimumRatio": 4.64,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-06.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 64,
+    "failures": 0,
+    "minimumRatio": 4.64,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-04.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 65,
+    "failures": 0,
+    "minimumRatio": 4.64,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-07.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 50,
+    "failures": 0,
+    "minimumRatio": 5.89,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-08.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 104,
+    "failures": 0,
+    "minimumRatio": 4.78,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-09.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 97,
+    "failures": 0,
+    "minimumRatio": 4.6,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-10.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 66,
+    "failures": 0,
+    "minimumRatio": 4.78,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-12.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 57,
+    "failures": 0,
+    "minimumRatio": 5.17,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-11.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 86,
+    "failures": 0,
+    "minimumRatio": 4.78,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-13.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 51,
+    "failures": 0,
+    "minimumRatio": 5.56,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-14.png",
+    "url": "http://127.0.0.1:63966/index.html?section=recent",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 50,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-15.png",
+    "url": "http://127.0.0.1:63966/index.html?section=recent",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 33,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-16.png",
+    "url": "http://127.0.0.1:63966/index.html?section=activity",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 83,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-17.png",
+    "url": "http://127.0.0.1:63966/index.html?section=activity",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 70,
+    "failures": 0,
+    "minimumRatio": 5.89,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-19.png",
+    "url": "http://127.0.0.1:63966/index.html?section=notes",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 49,
+    "failures": 0,
+    "minimumRatio": 5.89,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-18.png",
+    "url": "http://127.0.0.1:63966/index.html?section=activity",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 67,
+    "failures": 0,
+    "minimumRatio": 5.89,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-20.png",
+    "url": "http://127.0.0.1:63966/index.html?section=notes",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 49,
+    "failures": 0,
+    "minimumRatio": 5.89,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-21.png",
+    "url": "http://127.0.0.1:63966/index.html?section=notes",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 34,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-22.png",
+    "url": "http://127.0.0.1:63966/index.html?section=notes",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 21,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-24.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 101,
+    "failures": 0,
+    "minimumRatio": 3.19,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-25.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 103,
+    "failures": 0,
+    "minimumRatio": 3.19,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-26.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 76,
+    "failures": 0,
+    "minimumRatio": 3.19,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-28.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 90,
+    "failures": 0,
+    "minimumRatio": 3.19,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-27.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 90,
+    "failures": 0,
+    "minimumRatio": 3.19,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-29.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 45,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-30.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 86,
+    "failures": 0,
+    "minimumRatio": 5.89,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-31.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 80,
+    "failures": 0,
+    "minimumRatio": 5.89,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-32.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A101%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 93,
+    "failures": 0,
+    "minimumRatio": 5.89,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-34.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22109%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 79,
+    "failures": 0,
+    "minimumRatio": 5.89,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-36.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 80,
+    "failures": 0,
+    "minimumRatio": 5.89,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-37.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 78,
+    "failures": 0,
+    "minimumRatio": 5.89,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-33.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 88,
+    "failures": 0,
+    "minimumRatio": 5.89,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-39.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 66,
+    "failures": 0,
+    "minimumRatio": 5.89,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-40.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 78,
+    "failures": 0,
+    "minimumRatio": 5.89,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-41.png",
+    "url": "http://127.0.0.1:63966/index.html?section=expected",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 99,
+    "failures": 0,
+    "minimumRatio": 5.65,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-42.png",
+    "url": "http://127.0.0.1:63966/index.html?section=expected",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 100,
+    "failures": 0,
+    "minimumRatio": 5.65,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-43.png",
+    "url": "http://127.0.0.1:63966/index.html?section=expected",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 100,
+    "failures": 0,
+    "minimumRatio": 5.65,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-44.png",
+    "url": "http://127.0.0.1:63966/index.html?section=expected",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 39,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-45.png",
+    "url": "http://127.0.0.1:63966/index.html?section=expected",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 26,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-46.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 84,
+    "failures": 0,
+    "minimumRatio": 5.69,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-47.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 84,
+    "failures": 0,
+    "minimumRatio": 5.69,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-48.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 84,
+    "failures": 0,
+    "minimumRatio": 5.69,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-49.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 89,
+    "failures": 0,
+    "minimumRatio": 5.69,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-50.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 95,
+    "failures": 0,
+    "minimumRatio": 5.44,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-51.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 91,
+    "failures": 0,
+    "minimumRatio": 5.71,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-52.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 90,
+    "failures": 0,
+    "minimumRatio": 5.7,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-53.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 12,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-55.png",
+    "url": "http://127.0.0.1:63966/index.html?searchRecord=%7B%22type%22%3A%22lot%22%2C%22name%22%3A%22CQ10-2609-A%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 8,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-54.png",
+    "url": "http://127.0.0.1:63966/index.html?searchRecord=%7B%22type%22%3A%22lot%22%2C%22name%22%3A%22CQ10-2609-A%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 36,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-57.png",
+    "url": "http://127.0.0.1:63966/sankey.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 50,
+    "failures": 0,
+    "minimumRatio": 4.8,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-58.png",
+    "url": "http://127.0.0.1:63966/sankey.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 34,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-59.png",
+    "url": "http://127.0.0.1:63966/sankey.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 37,
+    "failures": 0,
+    "minimumRatio": 4.75,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-60.png",
+    "url": "http://127.0.0.1:63966/process-flow.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 73,
+    "failures": 0,
+    "minimumRatio": 4.52,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-61.png",
+    "url": "http://127.0.0.1:63966/process-flow.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 76,
+    "failures": 0,
+    "minimumRatio": 4.52,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-63.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 42,
+    "failures": 0,
+    "minimumRatio": 5.12,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-64.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 36,
+    "failures": 2,
+    "minimumRatio": 3.28,
+    "worst": [
+      {
+        "tag": "BUTTON",
+        "id": "",
+        "text": "BGR-2609-A — Batch Graham Crumb",
+        "fontPx": 14,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 3.28,
+        "sampledBackground": [
+          178,
+          184,
+          191
+        ]
+      },
+      {
+        "tag": "BUTTON",
+        "id": "",
+        "text": "SLT-1140 — Sea Salt — Fine",
+        "fontPx": 14,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 3.29,
+        "sampledBackground": [
+          178,
+          184,
+          193
+        ]
+      }
+    ]
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-62.png",
+    "url": "http://127.0.0.1:63966/process-flow.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 29,
+    "failures": 0,
+    "minimumRatio": 6.07,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-65.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 33,
+    "failures": 0,
+    "minimumRatio": 5.55,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-66.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 33,
+    "failures": 0,
+    "minimumRatio": 5.55,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-67.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 33,
+    "failures": 0,
+    "minimumRatio": 5.55,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-68.png",
+    "url": "http://127.0.0.1:63966/traceability.html?lot=OAT-4471&direction=forward",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 50,
+    "failures": 3,
+    "minimumRatio": 3.54,
+    "worst": [
+      {
+        "tag": "text",
+        "id": "",
+        "text": "1,140.8 lb",
+        "fontPx": 10,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 3.54,
+        "sampledBackground": [
+          161,
+          194,
+          224
+        ]
+      },
+      {
+        "tag": "text",
+        "id": "",
+        "text": "570.4 lb",
+        "fontPx": 10,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 3.58,
+        "sampledBackground": [
+          163,
+          195,
+          224
+        ]
+      },
+      {
+        "tag": "text",
+        "id": "",
+        "text": "285.2 lb",
+        "fontPx": 10,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 3.62,
+        "sampledBackground": [
+          164,
+          196,
+          225
+        ]
+      }
+    ]
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-71.png",
+    "url": "http://127.0.0.1:63966/traceability.html?lot=OAT-4471&direction=forward",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 59,
+    "failures": 0,
+    "minimumRatio": 6.57,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-72.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 318,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-73.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 318,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-74.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 318,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-56.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 65,
+    "failures": 0,
+    "minimumRatio": 4.64,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/390-dark/S-70.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 25,
+    "failures": 0,
+    "minimumRatio": 6.46,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-76.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 318,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-75.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 287,
+    "failures": 0,
+    "minimumRatio": 4.61,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-77.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 321,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-78.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 320,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-80.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 318,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-79.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 335,
+    "failures": 0,
+    "minimumRatio": 4.61,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-83.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 318,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-84.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 317,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-82.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 319,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-81.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 320,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-90.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 132,
+    "failures": 0,
+    "minimumRatio": 4.67,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-85.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 280,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-87.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 318,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-86.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 11,
+    "failures": 0,
+    "minimumRatio": 5.7,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-91.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 179,
+    "failures": 0,
+    "minimumRatio": 4.69,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-88.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 285,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-01.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 64,
+    "failures": 0,
+    "minimumRatio": 4.97,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-02.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 179,
+    "failures": 1,
+    "minimumRatio": 2.34,
+    "worst": [
+      {
+        "tag": "DIV",
+        "id": "",
+        "text": "22",
+        "fontPx": 8,
+        "weight": 700,
+        "fg": [
+          240,
+          246,
+          237,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 2.34,
+        "sampledBackground": [
+          121,
+          166,
+          207
+        ]
+      }
+    ]
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-03.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 64,
+    "failures": 0,
+    "minimumRatio": 4.97,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-02b.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 179,
+    "failures": 1,
+    "minimumRatio": 2.34,
+    "worst": [
+      {
+        "tag": "DIV",
+        "id": "",
+        "text": "22",
+        "fontPx": 8,
+        "weight": 700,
+        "fg": [
+          240,
+          246,
+          237,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 2.34,
+        "sampledBackground": [
+          121,
+          166,
+          207
+        ]
+      }
+    ]
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-05.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 64,
+    "failures": 0,
+    "minimumRatio": 4.97,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-04.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 65,
+    "failures": 0,
+    "minimumRatio": 4.97,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-06.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 64,
+    "failures": 0,
+    "minimumRatio": 4.97,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-07.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 50,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-08.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 104,
+    "failures": 0,
+    "minimumRatio": 5.78,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-09.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 97,
+    "failures": 0,
+    "minimumRatio": 5.65,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-10.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 66,
+    "failures": 0,
+    "minimumRatio": 5.28,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-11.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 86,
+    "failures": 0,
+    "minimumRatio": 5.65,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-12.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 57,
+    "failures": 0,
+    "minimumRatio": 5.28,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-13.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 51,
+    "failures": 0,
+    "minimumRatio": 5.28,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-14.png",
+    "url": "http://127.0.0.1:63966/index.html?section=recent",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 50,
+    "failures": 0,
+    "minimumRatio": 5.43,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-15.png",
+    "url": "http://127.0.0.1:63966/index.html?section=recent",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 33,
+    "failures": 0,
+    "minimumRatio": 7.51,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-16.png",
+    "url": "http://127.0.0.1:63966/index.html?section=activity",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 83,
+    "failures": 2,
+    "minimumRatio": 1.67,
+    "worst": [
+      {
+        "tag": "DIV",
+        "id": "",
+        "text": "entered 2 days later 10:46 PM",
+        "fontPx": 14,
+        "weight": 600,
+        "fg": [
+          0.955882,
+          0.705882,
+          0.264706,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.67,
+        "sampledBackground": [
+          50,
+          54,
+          28
+        ]
+      },
+      {
+        "tag": "DIV",
+        "id": "",
+        "text": "entered 2 days later 06:10 PM",
+        "fontPx": 14,
+        "weight": 600,
+        "fg": [
+          0.955882,
+          0.705882,
+          0.264706,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.7,
+        "sampledBackground": [
+          51,
+          55,
+          28
+        ]
+      }
+    ]
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-17.png",
+    "url": "http://127.0.0.1:63966/index.html?section=activity",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 70,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-69.png",
+    "url": "http://127.0.0.1:63966/traceability.html?lot=OAT-4471&direction=forward",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 50,
+    "failures": 3,
+    "minimumRatio": 3.54,
+    "worst": [
+      {
+        "tag": "text",
+        "id": "",
+        "text": "1,140.8 lb",
+        "fontPx": 10,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 3.54,
+        "sampledBackground": [
+          161,
+          194,
+          224
+        ]
+      },
+      {
+        "tag": "text",
+        "id": "",
+        "text": "570.4 lb",
+        "fontPx": 10,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 3.58,
+        "sampledBackground": [
+          163,
+          195,
+          224
+        ]
+      },
+      {
+        "tag": "text",
+        "id": "",
+        "text": "285.2 lb",
+        "fontPx": 10,
+        "weight": 400,
+        "fg": [
+          77,
+          98,
+          86,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 3.62,
+        "sampledBackground": [
+          164,
+          196,
+          225
+        ]
+      }
+    ]
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-light/S-70.png",
+    "url": "http://127.0.0.1:63966/traceability.html?lot=OAT-4471&direction=forward",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 72,
+    "failures": 0,
+    "minimumRatio": 5.48,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-18.png",
+    "url": "http://127.0.0.1:63966/index.html?section=activity",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 67,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-19.png",
+    "url": "http://127.0.0.1:63966/index.html?section=notes",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 49,
+    "failures": 0,
+    "minimumRatio": 5.28,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-20.png",
+    "url": "http://127.0.0.1:63966/index.html?section=notes",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 49,
+    "failures": 0,
+    "minimumRatio": 5.28,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-21.png",
+    "url": "http://127.0.0.1:63966/index.html?section=notes",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 34,
+    "failures": 0,
+    "minimumRatio": 7.6,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-24.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 101,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-22.png",
+    "url": "http://127.0.0.1:63966/index.html?section=notes",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 21,
+    "failures": 0,
+    "minimumRatio": 8.83,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-25.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 103,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-26.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 76,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-28.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 90,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-27.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 90,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-29.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 45,
+    "failures": 0,
+    "minimumRatio": 7.6,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-30.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 86,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-31.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 80,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-32.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A101%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 93,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-33.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 88,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-34.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22109%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 79,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-36.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 80,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-37.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 78,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-41.png",
+    "url": "http://127.0.0.1:63966/index.html?section=expected",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 99,
+    "failures": 3,
+    "minimumRatio": 1.76,
+    "worst": [
+      {
+        "tag": "SPAN",
+        "id": "",
+        "text": "Mon",
+        "fontPx": 14,
+        "weight": 500,
+        "fg": [
+          0.914353,
+          0.738667,
+          0.728627,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.76,
+        "sampledBackground": [
+          56,
+          57,
+          29
+        ]
+      },
+      {
+        "tag": "SPAN",
+        "id": "",
+        "text": "Tue",
+        "fontPx": 14,
+        "weight": 500,
+        "fg": [
+          0.914353,
+          0.738667,
+          0.728627,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.76,
+        "sampledBackground": [
+          56,
+          57,
+          29
+        ]
+      },
+      {
+        "tag": "SPAN",
+        "id": "",
+        "text": "Wed",
+        "fontPx": 14,
+        "weight": 500,
+        "fg": [
+          0.914353,
+          0.738667,
+          0.728627,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.76,
+        "sampledBackground": [
+          55,
+          57,
+          29
+        ]
+      }
+    ]
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-40.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 78,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-39.png",
+    "url": "http://127.0.0.1:63966/index.html?section=orders&searchRecord=%7B%22type%22%3A%22order%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 66,
+    "failures": 0,
+    "minimumRatio": 6.91,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-42.png",
+    "url": "http://127.0.0.1:63966/index.html?section=expected",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 100,
+    "failures": 3,
+    "minimumRatio": 1.76,
+    "worst": [
+      {
+        "tag": "SPAN",
+        "id": "",
+        "text": "Mon",
+        "fontPx": 14,
+        "weight": 500,
+        "fg": [
+          0.914353,
+          0.738667,
+          0.728627,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.76,
+        "sampledBackground": [
+          55,
+          57,
+          29
+        ]
+      },
+      {
+        "tag": "SPAN",
+        "id": "",
+        "text": "Tue",
+        "fontPx": 14,
+        "weight": 500,
+        "fg": [
+          0.914353,
+          0.738667,
+          0.728627,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.76,
+        "sampledBackground": [
+          56,
+          57,
+          29
+        ]
+      },
+      {
+        "tag": "SPAN",
+        "id": "",
+        "text": "Wed",
+        "fontPx": 14,
+        "weight": 500,
+        "fg": [
+          0.914353,
+          0.738667,
+          0.728627,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.76,
+        "sampledBackground": [
+          56,
+          57,
+          29
+        ]
+      }
+    ]
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-43.png",
+    "url": "http://127.0.0.1:63966/index.html?section=expected",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 100,
+    "failures": 3,
+    "minimumRatio": 1.76,
+    "worst": [
+      {
+        "tag": "SPAN",
+        "id": "",
+        "text": "Mon",
+        "fontPx": 14,
+        "weight": 500,
+        "fg": [
+          0.914353,
+          0.738667,
+          0.728627,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.76,
+        "sampledBackground": [
+          55,
+          57,
+          29
+        ]
+      },
+      {
+        "tag": "SPAN",
+        "id": "",
+        "text": "Tue",
+        "fontPx": 14,
+        "weight": 500,
+        "fg": [
+          0.914353,
+          0.738667,
+          0.728627,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.76,
+        "sampledBackground": [
+          56,
+          57,
+          29
+        ]
+      },
+      {
+        "tag": "SPAN",
+        "id": "",
+        "text": "Wed",
+        "fontPx": 14,
+        "weight": 500,
+        "fg": [
+          0.914353,
+          0.738667,
+          0.728627,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 1.76,
+        "sampledBackground": [
+          56,
+          57,
+          29
+        ]
+      }
+    ]
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-44.png",
+    "url": "http://127.0.0.1:63966/index.html?section=expected",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 39,
+    "failures": 0,
+    "minimumRatio": 7.6,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-46.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 84,
+    "failures": 0,
+    "minimumRatio": 5.43,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-45.png",
+    "url": "http://127.0.0.1:63966/index.html?section=expected",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 26,
+    "failures": 0,
+    "minimumRatio": 8.83,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-47.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 84,
+    "failures": 0,
+    "minimumRatio": 5.43,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-48.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 84,
+    "failures": 0,
+    "minimumRatio": 5.43,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-49.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 89,
+    "failures": 0,
+    "minimumRatio": 5.43,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-51.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 91,
+    "failures": 0,
+    "minimumRatio": 5.43,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-50.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 95,
+    "failures": 0,
+    "minimumRatio": 5.43,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-52.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 90,
+    "failures": 0,
+    "minimumRatio": 5.43,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-53.png",
+    "url": "http://127.0.0.1:63966/index.html?section=supplies",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 12,
+    "failures": 0,
+    "minimumRatio": 8.83,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-54.png",
+    "url": "http://127.0.0.1:63966/index.html?searchRecord=%7B%22type%22%3A%22lot%22%2C%22name%22%3A%22CQ10-2609-A%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 36,
+    "failures": 0,
+    "minimumRatio": 8.83,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-55.png",
+    "url": "http://127.0.0.1:63966/index.html?searchRecord=%7B%22type%22%3A%22lot%22%2C%22name%22%3A%22CQ10-2609-A%22%2C%22id%22%3A%22101%22%7D",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 8,
+    "failures": 0,
+    "minimumRatio": 8.83,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-57.png",
+    "url": "http://127.0.0.1:63966/sankey.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 50,
+    "failures": 4,
+    "minimumRatio": 3.6,
+    "worst": [
+      {
+        "tag": "SPAN",
+        "id": "",
+        "text": "Finished Goods",
+        "fontPx": 14,
+        "weight": 700,
+        "fg": [
+          216,
+          90,
+          48,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 3.6,
+        "sampledBackground": [
+          31,
+          48,
+          37
+        ]
+      },
+      {
+        "tag": "SPAN",
+        "id": "",
+        "text": "Production Lines",
+        "fontPx": 14,
+        "weight": 700,
+        "fg": [
+          127,
+          119,
+          221,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 3.7,
+        "sampledBackground": [
+          31,
+          48,
+          37
+        ]
+      },
+      {
+        "tag": "SPAN",
+        "id": "",
+        "text": "Customers",
+        "fontPx": 14,
+        "weight": 700,
+        "fg": [
+          55,
+          138,
+          221,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 3.89,
+        "sampledBackground": [
+          30,
+          48,
+          35
+        ]
+      },
+      {
+        "tag": "SPAN",
+        "id": "",
+        "text": "Ingredients",
+        "fontPx": 14,
+        "weight": 700,
+        "fg": [
+          29,
+          158,
+          117,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 4.13,
+        "sampledBackground": [
+          30,
+          48,
+          35
+        ]
+      }
+    ]
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-58.png",
+    "url": "http://127.0.0.1:63966/sankey.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 34,
+    "failures": 0,
+    "minimumRatio": 8.83,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-60.png",
+    "url": "http://127.0.0.1:63966/process-flow.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 73,
+    "failures": 0,
+    "minimumRatio": 4.61,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-59.png",
+    "url": "http://127.0.0.1:63966/sankey.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 37,
+    "failures": 4,
+    "minimumRatio": 3.61,
+    "worst": [
+      {
+        "tag": "SPAN",
+        "id": "",
+        "text": "Finished Goods",
+        "fontPx": 14,
+        "weight": 700,
+        "fg": [
+          216,
+          90,
+          48,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 3.61,
+        "sampledBackground": [
+          30,
+          48,
+          34
+        ]
+      },
+      {
+        "tag": "SPAN",
+        "id": "",
+        "text": "Production Lines",
+        "fontPx": 14,
+        "weight": 700,
+        "fg": [
+          127,
+          119,
+          221,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 3.72,
+        "sampledBackground": [
+          30,
+          48,
+          34
+        ]
+      },
+      {
+        "tag": "SPAN",
+        "id": "",
+        "text": "Customers",
+        "fontPx": 14,
+        "weight": 700,
+        "fg": [
+          55,
+          138,
+          221,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 3.94,
+        "sampledBackground": [
+          29,
+          47,
+          34
+        ]
+      },
+      {
+        "tag": "SPAN",
+        "id": "",
+        "text": "Ingredients",
+        "fontPx": 14,
+        "weight": 700,
+        "fg": [
+          29,
+          158,
+          117,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 4.17,
+        "sampledBackground": [
+          30,
+          47,
+          35
+        ]
+      }
+    ]
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-61.png",
+    "url": "http://127.0.0.1:63966/process-flow.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 76,
+    "failures": 0,
+    "minimumRatio": 4.61,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-62.png",
+    "url": "http://127.0.0.1:63966/process-flow.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 29,
+    "failures": 0,
+    "minimumRatio": 4.6,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-63.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 42,
+    "failures": 0,
+    "minimumRatio": 6.89,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-65.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 33,
+    "failures": 0,
+    "minimumRatio": 6.75,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-64.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 36,
+    "failures": 0,
+    "minimumRatio": 6.88,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-66.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 33,
+    "failures": 0,
+    "minimumRatio": 6.75,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-67.png",
+    "url": "http://127.0.0.1:63966/traceability.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 33,
+    "failures": 0,
+    "minimumRatio": 6.75,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-68.png",
+    "url": "http://127.0.0.1:63966/traceability.html?lot=OAT-4471&direction=forward",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 50,
+    "failures": 0,
+    "minimumRatio": 4.5,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-72.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 318,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-71.png",
+    "url": "http://127.0.0.1:63966/traceability.html?lot=OAT-4471&direction=forward",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 59,
+    "failures": 0,
+    "minimumRatio": 6.57,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-73.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 318,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-74.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 318,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-75.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 287,
+    "failures": 0,
+    "minimumRatio": 4.61,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-76.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 318,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-77.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 321,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-56.png",
+    "url": "http://127.0.0.1:63966/index.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 65,
+    "failures": 0,
+    "minimumRatio": 4.97,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-78.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 320,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-79.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 335,
+    "failures": 0,
+    "minimumRatio": 4.61,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-80.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 318,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-81.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 320,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-82.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 319,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-83.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 318,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-84.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 317,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-90.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 132,
+    "failures": 0,
+    "minimumRatio": 4.67,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-85.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 280,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-87.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 318,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-86.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 11,
+    "failures": 0,
+    "minimumRatio": 5.7,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-91.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 179,
+    "failures": 0,
+    "minimumRatio": 4.69,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-88.png",
+    "url": "http://127.0.0.1:63966/scheduler/seven-wells-production-board.html",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 285,
+    "failures": 0,
+    "minimumRatio": 4.53,
+    "worst": []
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-69.png",
+    "url": "http://127.0.0.1:63966/traceability.html?lot=OAT-4471&direction=forward",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 79,
+    "failures": 2,
+    "minimumRatio": 4.37,
+    "worst": [
+      {
+        "tag": "text",
+        "id": "",
+        "text": "570.4 lb",
+        "fontPx": 10,
+        "weight": 400,
+        "fg": [
+          177,
+          197,
+          175,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 4.37,
+        "sampledBackground": [
+          43,
+          85,
+          110
+        ]
+      },
+      {
+        "tag": "text",
+        "id": "",
+        "text": "285.2 lb",
+        "fontPx": 10,
+        "weight": 400,
+        "fg": [
+          177,
+          197,
+          175,
+          1
+        ],
+        "target": 4.5,
+        "ratio": 4.43,
+        "sampledBackground": [
+          42,
+          84,
+          109
+        ]
+      }
+    ]
+  },
+  {
+    "screenshot": "/private/tmp/fl-wallpaper-final-20261022/docs/design/audit/screenshots/1440-dark/S-70.png",
+    "url": "http://127.0.0.1:63966/traceability.html?lot=OAT-4471&direction=forward",
+    "method": "Actual composited backing pixels at 15 points per text rectangle; glyph paint hidden without changing layout or backgrounds.",
+    "checked": 71,
+    "failures": 0,
+    "minimumRatio": 7.64,
+    "worst": []
+  }
+]
