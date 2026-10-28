@@ -1,0 +1,12 @@
+exception_id,decision,product_id,product,lot_as_printed,quantity,unit,location,counted_at,approved
+OPEN-73,OPENING_LOT,73,"Chocolate Chips – Real – 1,000 CT",,1250,lb,not recorded,2026-10-22T09:00:00-04:00,Y
+OPEN-7,OPENING_LOT,7,Cinnamon Ground,,20.0000,lb,not recorded,2026-10-22T09:00:00-04:00,Y
+OPEN-16,OPENING_LOT,16,Corn Starch,,1365.0000,lb,not recorded,2026-10-22T09:00:00-04:00,Y
+OPEN-29,OPENING_LOT,29,Glycol,,972.0000,lb,not recorded,2026-10-22T11:10:00-04:00,Y
+OPEN-30,OPENING_LOT,30,Honey,,1558.2000,lb,not recorded,2026-10-22T09:00:00-04:00,Y
+OPEN-40,OPENING_LOT,40,Sugar – 6X,,152.4900,lb,not recorded,2026-10-22T11:12:00-04:00,Y
+OPEN-12,OPENING_LOT,12,Coconut Flake Desiccated,,159250.0000,lb,Hot room + Warehouse,2026-10-22T09:00:00-04:00,Y
+E3,NEW_LOT_AFTER_RESET,10,Coconut Fancy Desiccated,6187,1600,lb,Warehouse,2026-10-22T09:00:00-04:00,Y
+E4,NEW_LOT_AFTER_RESET,10,Coconut Fancy Desiccated,6196,9900,lb,Warehouse,2026-10-22T09:00:00-04:00,Y
+E5,NEW_LOT_AFTER_RESET,10,Coconut Fancy Desiccated,6113,8050,lb,Warehouse,2026-10-22T09:00:00-04:00,Y
+E6,NEW_LOT_AFTER_RESET,10,Coconut Fancy Desiccated,6089,2250,lb,Warehouse,2026-10-22T09:00:00-04:00,Y

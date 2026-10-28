@@ -1,0 +1,1287 @@
+kind,product_id,name,lot_code,unit,counted,posted_by_reset,posted_by_found,movements_since_count,fl_now,difference,source
+reset,2,Almonds – Diced,26-01-29-DUTVF-001,lb,0,0,0,0,0,0,COVERAGE-P2-L3
+reset,2,Almonds – Diced,26-02-25-DUTC-002,lb,0,0,0,0,0,0,COVERAGE-P2-L234
+reset,2,Almonds – Diced,26-04-27-DUTC-005,lb,0,0,0,0,0,0,COVERAGE-P2-L473
+reset,2,Almonds – Diced,26-06-22-DUTC-002,lb,0,0,0,0,0,0,COVERAGE-P2-L857
+reset,2,Almonds – Diced,26-08-03-DUTC-002,lb,0,-259,0,0,0,0,COVERAGE-P2-L1097
+reset,2,Almonds – Diced,26-10-12-DUTC-002,lb,175,-150,0,-78,97,0,A01-2
+reset,3,Almonds – Sliced,26-01-29-DUTVF-001,lb,0,0,0,0,0,0,COVERAGE-P3-L2
+reset,3,Almonds – Sliced,26-02-25-STAR-001,lb,0,0,0,0,0,0,COVERAGE-P3-L236
+reset,3,Almonds – Sliced,26-04-22-SAMI-001,lb,0,0,0,0,0,0,COVERAGE-P3-L449
+reset,3,Almonds – Sliced,26-05-07-SAMI-001,lb,0,0,0,0,0,0,COVERAGE-P3-L561
+reset,3,Almonds – Sliced,26-07-24-REFR-001,lb,0,0,0,0,0,0,COVERAGE-P3-L1051
+reset,3,Almonds – Sliced,26-09-22-NATI-001,lb,375,-494,0,0,375,0,A01-3
+reset,4,Almonds – Slivered,26-02-16-DUTC-004,lb,0,0,0,0,0,0,COVERAGE-P4-L173
+reset,4,Almonds – Slivered,26-04-27-DUTC-004,lb,0,0,0,0,0,0,COVERAGE-P4-L472
+reset,4,Almonds – Slivered,08226,lb,0,0,0,0,0,0,COVERAGE-P4-L855
+reset,4,Almonds – Slivered,26-06-22-DUTC-001,lb,0,0,0,0,0,0,COVERAGE-P4-L856
+reset,4,Almonds – Slivered,26-08-03-DUTC-001,lb,0,0,0,0,0,0,COVERAGE-P4-L1096
+reset,4,Almonds – Slivered,26-10-12-DUTC-001,lb,175,-158,0,-116,59,0,A01-4
+reset,6,Chocolate Chips – Sugar Free,26-03-02-JOEL-001,lb,0,0,0,0,0,0,COVERAGE-P6-L253
+reset,6,Chocolate Chips – Sugar Free,26-05-04-ABAK-001,lb,0,-19,0,0,0,0,COVERAGE-P6-L531
+reset,6,Chocolate Chips – Sugar Free,26-08-04-ABAK-001,lb,0,-250,0,0,0,0,COVERAGE-P6-L1111
+reset,7,Cinnamon Ground,26-02-06-FOUND-006,lb,97,0,0,0,97,0,A01-7-R6-2
+reset,7,Cinnamon Ground,26-04-27-DUTC-001,lb,50,0,0,0,50,0,A01-7-R6-1
+reset,8,Cocoa Powder,26-02-06-FOUND-003,lb,0,-94,0,0,0,0,COVERAGE-P8-L94
+reset,8,Cocoa Powder,26-02-06-FOUND-004,lb,50,0,0,0,50,0,A01-8-R6-2
+reset,8,Cocoa Powder,26-04-27-DUTC-003,lb,100,0,0,0,100,0,A01-8-R6-1
+reset,9,Coconut Chips Desiccated,26-02-06-FOUND-007,lb,0,0,0,0,0,0,COVERAGE-P9-L98
+reset,9,Coconut Chips Desiccated,6011,lb,12000,0,0,0,12000,0,A02-97
+reset,9,Coconut Chips Desiccated,25212,lb,4125,0,0,0,4125,0,A02-98
+reset,9,Coconut Chips Desiccated,25134,lb,2850,0,0,0,2850,0,A02-99
+reset,9,Coconut Chips Desiccated,25213,lb,550,0,0,0,550,0,A02-100
+reset,9,Coconut Chips Desiccated,25133,lb,0,-275,0,0,0,0,COVERAGE-P9-L609
+reset,10,Coconut Fancy Desiccated,5267,lb,0,0,0,0,0,0,COVERAGE-P10-L238
+reset,10,Coconut Fancy Desiccated,6012,lb,8400,8400,0,0,8400,0,A02-87
+reset,10,Coconut Fancy Desiccated,24307,lb,0,-40,0,0,0,0,COVERAGE-P10-L611
+reset,10,Coconut Fancy Desiccated,6036,lb,4200,-5800,0,0,4200,0,A02-90
+reset,12,Coconut Flake Desiccated,26-01-30-PHIL-001,lb,0,0,0,0,0,0,COVERAGE-P12-L7
+reset,12,Coconut Flake Desiccated,26-01-30-FRAN-001,lb,0,0,0,0,0,0,COVERAGE-P12-L8
+reset,12,Coconut Flake Desiccated,26-02-05-FOUND-004,lb,0,0,0,0,0,0,COVERAGE-P12-L78
+reset,12,Coconut Flake Desiccated,26-02-09-FRAN-001,lb,0,0,0,0,0,0,COVERAGE-P12-L107
+reset,12,Coconut Flake Desiccated,26-02-12-FOUND-021,lb,0,0,0,0,0,0,COVERAGE-P12-L161
+reset,12,Coconut Flake Desiccated,26-02-18-BLEN-001,lb,0,0,0,0,0,0,COVERAGE-P12-L192
+reset,12,Coconut Flake Desiccated,26-02-24-PHIL-001,lb,0,0,0,0,0,0,COVERAGE-P12-L222
+reset,12,Coconut Flake Desiccated,26-05-01-FRAN-001,lb,0,0,0,0,0,0,COVERAGE-P12-L517
+reset,12,Coconut Flake Desiccated,6012,lb,0,0,0,0,0,0,COVERAGE-P12-L612
+reset,12,Coconut Flake Desiccated,6020,lb,0,0,0,0,0,0,COVERAGE-P12-L613
+reset,12,Coconut Flake Desiccated,6036,lb,0,0,0,0,0,0,COVERAGE-P12-L614
+reset,12,Coconut Flake Desiccated,6037,lb,0,0,0,0,0,0,COVERAGE-P12-L615
+reset,12,Coconut Flake Desiccated,6013,lb,8100,0,0,-1200,6900,0,A02-12-R6-1
+reset,13,Coconut Macaroon Desiccated,26-02-03-FOUND-001,lb,0,0,0,0,0,0,COVERAGE-P13-L33
+reset,13,Coconut Macaroon Desiccated,26-02-05-SAEM-001,lb,0,0,0,0,0,0,COVERAGE-P13-L80
+reset,13,Coconut Macaroon Desiccated,26-02-05-SAEM-002,lb,0,0,0,0,0,0,COVERAGE-P13-L82
+reset,13,Coconut Macaroon Desiccated,25120,lb,3875,3864,0,-78,3797,0,A02-96
+reset,14,Coconut Medium Desiccated,26-02-05-FOUND-005,lb,0,0,0,0,0,0,COVERAGE-P14-L79
+reset,14,Coconut Medium Desiccated,26-02-06-FOUND-008,lb,0,0,0,0,0,0,COVERAGE-P14-L99
+reset,14,Coconut Medium Desiccated,6020,lb,6200,1400,0,0,6200,0,A02-91
+reset,14,Coconut Medium Desiccated,5119,lb,550,-1650,0,0,550,0,A02-93
+reset,14,Coconut Medium Desiccated,6044,lb,9850,0,0,0,9850,0,A02-92
+reset,14,Coconut Medium Desiccated,25120,lb,3000,-13375,0,0,3000,0,A02-94
+reset,14,Coconut Medium Desiccated,24289,lb,0,-1725,0,0,0,0,COVERAGE-P14-L621
+reset,14,Coconut Medium Desiccated,VINA202524,lb,13200,0,0,0,13200,0,A02-101
+reset,16,Corn Starch,26-02-05-FOUND-001,lb,0,0,0,0,0,0,COVERAGE-P16-L69
+reset,16,Corn Starch,26-04-21-ESSE-002,lb,0,0,0,0,0,0,COVERAGE-P16-L441
+reset,16,Corn Starch,26-07-13-ESSE-001,lb,635,0,0,-30,605,0,A01-16-R6-2
+reset,16,Corn Starch,26-10-19-ESSE-001,lb,4500,0,0,0,4500,0,A01-16-R6-1
+reset,17,Cranberries Dried,26-02-04-FOUN-003,lb,0,0,0,0,0,0,COVERAGE-P17-L67
+reset,17,Cranberries Dried,26-02-16-DUTC-006,lb,0,0,0,0,0,0,COVERAGE-P17-L175
+reset,17,Cranberries Dried,26-05-04-DUTC-004,lb,0,0,0,0,0,0,COVERAGE-P17-L527
+reset,17,Cranberries Dried,26-08-17-ABAK-002,lb,0,-117.5,0,0,0,0,COVERAGE-P17-L1289
+reset,17,Cranberries Dried,26-09-16-ABAK-003,lb,0,-25,0,0,0,0,COVERAGE-P17-L1447
+reset,17,Cranberries Dried,26-10-12-DUTC-004,lb,0,-100,0,0,0,0,COVERAGE-P17-L1584
+reset,18,Flavor – Almond,26-02-03-FOUND-002,lb,0,0,0,0,0,0,COVERAGE-P18-L34
+reset,18,Flavor – Almond,26-04-21-PARK-001,lb,0,-176.2,0,0,0,0,COVERAGE-P18-L439
+reset,18,Flavor – Almond,26-07-21-PARK-001,lb,0,-800,0,0,0,0,COVERAGE-P18-L1027
+reset,18,Flavor – Almond,26-10-07-PARK-001,lb,720,-80,0,0,720,0,A01-18-R6-1
+reset,19,Flavor – Blueberry,26-02-03-FOUND-003,lb,0,-8.66,0,0,0,0,COVERAGE-P19-L35
+reset,20,Flavor – Chocolate,26-02-03-FOUND-004,lb,0,-38.08,0,0,0,0,COVERAGE-P20-L36
+reset,20,Flavor – Chocolate,26-07-21-PARK-003,lb,24,-16,0,0,24,0,A01-20-R6-1
+reset,21,Flavor – Cinnamon,26-02-03-FOUND-005,lb,24,-16.96,0,0,24,0,A01-21-R6-1
+reset,22,Flavor – Coffee,26-02-03-FOUND-006,lb,0,-80.08,0,0,0,0,COVERAGE-P22-L38
+reset,23,Flavor – Maple,26-02-03-FOUND-007,lb,0,-48.7,0,0,0,0,COVERAGE-P23-L39
+reset,25,Flavor – Strawberry,26-02-03-FOUND-008,lb,0,-8.66,0,0,0,0,COVERAGE-P25-L40
+reset,26,Flavor – Vanilla,26-02-03-FOUND-009,lb,480,-72.4,0,0,480,0,A01-26-R6-2
+reset,26,Flavor – Vanilla,26-07-21-PARK-002,lb,80,0,0,0,80,0,A01-26-R6-1
+reset,27,Flax – Ground,26-02-03-FOUND-010,lb,0,0,0,0,0,0,COVERAGE-P27-L42
+reset,27,Flax – Ground,26-03-02-FOUN-001,lb,0,0,0,0,0,0,COVERAGE-P27-L251
+reset,27,Flax – Ground,26-05-04-DUTC-005,lb,0,0,0,0,0,0,COVERAGE-P27-L532
+reset,27,Flax – Ground,26-10-20-DUTC-001,lb,0,-93,0,0,0,0,COVERAGE-P27-L1627
+reset,28,Flax – Seed,26-02-03-FOUND-011,lb,0,-350,0,0,0,0,COVERAGE-P28-L43
+reset,28,Flax – Seed,26-02-25-DUTC-003,lb,0,-75,0,0,0,0,COVERAGE-P28-L235
+reset,28,Flax – Seed,26-04-27-DUTC-006,lb,0,-150,0,0,0,0,COVERAGE-P28-L474
+reset,28,Flax – Seed,26-06-22-DUTC-003,lb,0,-100,0,0,0,0,COVERAGE-P28-L858
+reset,28,Flax – Seed,26-08-03-DUTC-003,lb,0,-125,0,0,0,0,COVERAGE-P28-L1098
+reset,28,Flax – Seed,26-10-12-DUTC-003,lb,50,-75,0,0,50,0,A01-28-R6-1
+reset,29,Glycol,26-02-03-FOUND-012,lb,0,0,0,0,0,0,COVERAGE-P29-L44
+reset,29,Glycol,26-04-24-TILL-001,lb,948,0,0,-42,906,0,A01-29-R6-2
+reset,29,Glycol,26-09-28-TILL-001,lb,7680,0,0,0,7680,0,A01-29-R6-1
+reset,30,Honey,26-02-03-FOUND-013,lb,0,0,0,0,0,0,COVERAGE-P30-L45
+reset,30,Honey,26-02-11-DUTC-001,lb,0,0,0,0,0,0,COVERAGE-P30-L136
+reset,30,Honey,26-03-11-DAVI-001,lb,0,0,0,0,0,0,COVERAGE-P30-L292
+reset,30,Honey,26-03-19-DUTC-001,lb,0,0,0,0,0,0,COVERAGE-P30-L337
+reset,30,Honey,26-04-28-DUTC-001,lb,0,0,0,0,0,0,COVERAGE-P30-L489
+reset,30,Honey,26-07-10-DUTC-001,lb,0,0,0,0,0,0,COVERAGE-P30-L977
+reset,30,Honey,26-09-03-DUTC-001,lb,0,0,0,0,0,0,COVERAGE-P30-L1393
+reset,30,Honey,26-10-06-DUTC-001,lb,1741.8,0,0,0,1741.8,0,A01-30-R6-1
+reset,31,Oat Bran,26-02-12-LACR-001,lb,0,0,0,0,0,0,COVERAGE-P31-L164
+reset,31,Oat Bran,26-04-14-QUAL-002,lb,0,0,0,0,0,0,COVERAGE-P31-L396
+reset,31,Oat Bran,26-04-27-QUAL-001,lb,0,0,0,0,0,0,COVERAGE-P31-L477
+reset,32,Oats,26-01-28-DUTV-001,lb,0,0,0,0,0,0,COVERAGE-P32-L1
+reset,32,Oats,26-01-30-QUAL-001,lb,0,0,0,0,0,0,COVERAGE-P32-L6
+reset,32,Oats,26-02-10-FOUND-004,lb,0,0,0,0,0,0,COVERAGE-P32-L124
+reset,32,Oats,26-04-14-QUAL-001,lb,0,0,0,0,0,0,COVERAGE-P32-L393
+reset,32,Oats,26-05-08-QUAL-001,lb,0,0,0,0,0,0,COVERAGE-P32-L566
+reset,32,Oats,26-06-05-QUAL-001,lb,0,0,0,0,0,0,COVERAGE-P32-L747
+reset,32,Oats,26-06-12-QUAL-001,lb,0,0,0,0,0,0,COVERAGE-P32-L810
+reset,32,Oats,26-06-30-QUAL-001,lb,0,0,0,0,0,0,COVERAGE-P32-L908
+reset,32,Oats,26-07-09-QUAL-001,lb,0,0,0,0,0,0,COVERAGE-P32-L967
+reset,32,Oats,26-07-15-QUAL-001,lb,0,0,0,0,0,0,COVERAGE-P32-L997
+reset,32,Oats,26-08-04-QUAL-001,lb,0,0,0,0,0,0,COVERAGE-P32-L1110
+reset,32,Oats,26-08-21-QUAL-001,lb,0,0,0,0,0,0,COVERAGE-P32-L1324
+reset,32,Oats,26-08-28-QUAL-001,lb,0,0,0,0,0,0,COVERAGE-P32-L1365
+reset,32,Oats,26-09-28-QUAL-001,lb,500,-3065.2,0,-156,344,0,A01-32-R6-3
+reset,32,Oats,26-10-12-DUTC-005,lb,2000,0,0,0,2000,0,A01-32-R6-2
+reset,32,Oats,26-10-22-QUAL-001,lb,43750,0,0,0,43750,0,A01-32-R6-1
+reset,33,Oats – Gluten Free,26-02-25-DUTC-001,lb,0,0,0,0,0,0,COVERAGE-P33-L233
+reset,33,Oats – Gluten Free,251121N,lb,0,0,0,0,0,0,COVERAGE-P33-L389
+reset,33,Oats – Gluten Free,26-05-04-DUTC-001,lb,0,0,0,0,0,0,COVERAGE-P33-L524
+reset,33,Oats – Gluten Free,26-06-08-DUTC-001,lb,0,0,0,0,0,0,COVERAGE-P33-L752
+reset,33,Oats – Gluten Free,26-08-17-DUTC-001,lb,0,0,0,0,0,0,COVERAGE-P33-L1180
+reset,33,Oats – Gluten Free,26-09-28-DUTC-001,lb,0,-2000,0,0,0,0,COVERAGE-P33-L1509
+reset,34,Oil – Canola,26-02-03-FOUND-014,lb,0,0,0,0,0,0,COVERAGE-P34-L46
+reset,34,Oil – Canola,26-02-09-CBSF-001,lb,0,0,0,0,0,0,COVERAGE-P34-L106
+reset,34,Oil – Canola,26-03-13-CBSF-001,lb,0,0,0,0,0,0,COVERAGE-P34-L312
+reset,34,Oil – Canola,26-04-29-CBSF-001,lb,0,0,0,0,0,0,COVERAGE-P34-L500
+reset,34,Oil – Canola,26-05-04-CBSF-001,lb,0,0,0,0,0,0,COVERAGE-P34-L523
+reset,34,Oil – Canola,26-05-28-CBSF-001,lb,0,0,0,0,0,0,COVERAGE-P34-L691
+reset,34,Oil – Canola,26-06-25-CBSF-001,lb,0,0,0,0,0,0,COVERAGE-P34-L876
+reset,34,Oil – Canola,26-07-01-CBSF-001,lb,0,0,0,0,0,0,COVERAGE-P34-L922
+reset,34,Oil – Canola,26-07-24-CBSF-001,lb,0,0,0,0,0,0,COVERAGE-P34-L1056
+reset,34,Oil – Canola,26-08-25-CBSF-001,lb,0,0,0,0,0,0,COVERAGE-P34-L1333
+reset,34,Oil – Canola,26-09-17-CBSF-001,lb,500,-1260.87,0,-44,456,0,A01-34-R6-2
+reset,34,Oil – Canola,26-10-20-CBSF-001,lb,6000,0,0,0,6000,0,A01-34-R6-1
+reset,35,Pumpkin Seeds,26-02-06-FOUND-005,lb,0,0,0,0,0,0,COVERAGE-P35-L96
+reset,35,Pumpkin Seeds,26-04-27-DUTC-007,lb,0,0,0,0,0,0,COVERAGE-P35-L475
+reset,35,Pumpkin Seeds,26-06-29-DUTC-002,lb,110,-21,0,0,110,0,A01-35-R6-1
+reset,36,Raisins,26-02-04-FOUN-002,lb,0,-116.25,0,0,0,0,COVERAGE-P36-L66
+reset,36,Raisins,26-02-16-DUTC-005,lb,0,-30,0,0,0,0,COVERAGE-P36-L174
+reset,36,Raisins,26-05-04-DUTC-003,lb,0,-30,0,0,0,0,COVERAGE-P36-L526
+reset,36,Raisins,26-09-16-ABAK-004,lb,0,-30,0,0,0,0,COVERAGE-P36-L1448
+reset,36,Raisins,26-10-06-ABAK-002,lb,0,-30,0,0,0,0,COVERAGE-P36-L1554
+reset,38,Rice Flour,26-02-03-FOUND-015,lb,0,0,0,0,0,0,COVERAGE-P38-L47
+reset,38,Rice Flour,26-02-16-DUTC-002,lb,0,0,0,0,0,0,COVERAGE-P38-L171
+reset,38,Rice Flour,26-02-18-DUTC-001,lb,0,0,0,0,0,0,COVERAGE-P38-L194
+reset,38,Rice Flour,26-04-27-DUTC-002,lb,0,0,0,0,0,0,COVERAGE-P38-L470
+reset,38,Rice Flour,26-06-29-DUTC-001,lb,0,-139.81,0,0,0,0,COVERAGE-P38-L890
+reset,39,Salt,26-02-03-FOUND-016,lb,0,0,0,0,0,0,COVERAGE-P39-L48
+reset,39,Salt,26-04-21-ESSE-001,lb,493.3,0,0,-15,478.3,0,A01-39-R6-1
+reset,39,Salt,26-07-13-ESSE-002,lb,2450,0,0,0,2450,0,A01-39-R6-2
+reset,39,Salt,26-08-05-ESSE-001,lb,4706.7,-193.3,0,0,4706.7,0,A01-39-R6-3
+reset,40,Sugar – 6X,26-02-03-FOUND-017,lb,0,0,0,0,0,0,COVERAGE-P40-L49
+reset,40,Sugar – 6X,26-02-06-JACK-001,lb,0,0,0,0,0,0,COVERAGE-P40-L101
+reset,40,Sugar – 6X,26-02-17-JACK-001,lb,0,0,0,0,0,0,COVERAGE-P40-L185
+reset,40,Sugar – 6X,26-03-04-JACK-001,lb,0,0,0,0,0,0,COVERAGE-P40-L264
+reset,40,Sugar – 6X,26-04-14-LINK-001,lb,0,0,0,0,0,0,COVERAGE-P40-L390
+reset,40,Sugar – 6X,26-06-10-NEWE-001,lb,0,0,0,0,0,0,COVERAGE-P40-L797
+reset,40,Sugar – 6X,26-08-06-SWEE-001,lb,8347.51,0,0,-660,7687.51,0,A01-40-R6-2
+reset,40,Sugar – 6X,26-09-30-NEWE-001,lb,44000,0,0,0,44000,0,A01-40-R6-1
+reset,41,Sugar – Cane – Organic,26-02-03-FOUND-018,lb,200,-1365,0,0,200,0,A01-41-R6-1
+reset,42,Sugar – Granulated,26-02-03-FOUND-019,lb,1050,-700,0,0,1050,0,A01-42-R6-1
+reset,43,Sugar – Invert(Cream),26-01-29-DUTVF-001,lb,0,0,0,0,0,0,COVERAGE-P43-L4
+reset,43,Sugar – Invert(Cream),26-02-03-FOUND-020,lb,100,-262.5,0,0,100,0,A01-43-R6-2
+reset,43,Sugar – Invert(Cream),26-02-16-DUTC-001,lb,500,0,0,0,500,0,A01-43-R6-1
+reset,44,Sugar – Light Brown,26-02-03-FOUND-021,lb,0,0,0,0,0,0,COVERAGE-P44-L53
+reset,44,Sugar – Light Brown,26-02-09-FOUND-005,lb,0,0,0,0,0,0,COVERAGE-P44-L112
+reset,44,Sugar – Light Brown,26-03-12-JACK-001,lb,0,0,0,0,0,0,COVERAGE-P44-L302
+reset,44,Sugar – Light Brown,26-04-29-JACK-001,lb,0,0,0,0,0,0,COVERAGE-P44-L501
+reset,44,Sugar – Light Brown,26-05-05-JACK-001,lb,0,0,0,0,0,0,COVERAGE-P44-L539
+reset,44,Sugar – Light Brown,26-05-26-JACK-001,lb,0,0,0,0,0,0,COVERAGE-P44-L674
+reset,44,Sugar – Light Brown,26-06-28-JACK-001,lb,0,0,0,0,0,0,COVERAGE-P44-L886
+reset,44,Sugar – Light Brown,26-07-06-JACK-001,lb,0,0,0,0,0,0,COVERAGE-P44-L940
+reset,44,Sugar – Light Brown,26-07-09-JACK-001,lb,0,0,0,0,0,0,COVERAGE-P44-L968
+reset,44,Sugar – Light Brown,26-08-04-JACK-001,lb,0,0,0,0,0,0,COVERAGE-P44-L1115
+reset,44,Sugar – Light Brown,26-08-26-JACK-001,lb,0,0,0,0,0,0,COVERAGE-P44-L1342
+reset,44,Sugar – Light Brown,26-09-30-JACK-001,lb,1850,-2260,0,0,1850,0,A01-44-R6-1
+reset,45,Sugar – Monk Fruit,26-02-03-FOUND-022,lb,0,0,0,0,0,0,COVERAGE-P45-L54
+reset,45,Sugar – Monk Fruit,26-08-26-HONI-001,lb,55,-333,0,-55,0,0,A01-45-R6-1
+reset,46,Sunflower Seeds,26-01-30-FOUND-018,lb,0,0,0,0,0,0,COVERAGE-P46-L26
+reset,46,Sunflower Seeds,26-02-03-FOUND-023,lb,0,0,0,0,0,0,COVERAGE-P46-L55
+reset,46,Sunflower Seeds,26-02-05-STAR-001,lb,0,0,0,0,0,0,COVERAGE-P46-L72
+reset,46,Sunflower Seeds,26-03-18-STAR-001,lb,0,0,0,0,0,0,COVERAGE-P46-L326
+reset,46,Sunflower Seeds,26-04-14-STAR-001,lb,0,0,0,0,0,0,COVERAGE-P46-L507
+reset,46,Sunflower Seeds,26-05-05-KADO-001,lb,0,0,0,0,0,0,COVERAGE-P46-L538
+reset,46,Sunflower Seeds,26-06-24-STAR-001,lb,0,0,0,0,0,0,COVERAGE-P46-L868
+reset,46,Sunflower Seeds,26-07-06-NATI-001,lb,0,-4604.4,0,0,0,0,COVERAGE-P46-L941
+reset,46,Sunflower Seeds,26-09-04-NATI-001,lb,2650,-2850,0,-78,2572,0,A01-46-R6-1
+reset,49,Walnuts,26-02-04-FOUN-001,lb,0,-116.25,0,0,0,0,COVERAGE-P49-L65
+reset,49,Walnuts,26-02-16-DUTC-003,lb,0,-30,0,0,0,0,COVERAGE-P49-L172
+reset,49,Walnuts,26-05-04-DUTC-002,lb,0,-30,0,0,0,0,COVERAGE-P49-L525
+reset,49,Walnuts,26-09-16-ABAK-002,lb,0,-60,0,0,0,0,COVERAGE-P49-L1446
+reset,50,Water,26-02-05-FOUND-002,lb,0,0,0,0,0,0,COVERAGE-P50-L70
+reset,50,Water,26-02-05-FOUND-003,lb,0,0,0,0,0,0,COVERAGE-P50-L74
+reset,52,Oil – Soybean,26-02-03-FOUND-024,lb,455,-20,0,0,455,0,A01-52-R6-1
+reset,54,BS Almond Butter,26-01-30-FOUND-001,lb,0,-1963.6,0,0,0,0,COVERAGE-P54-L9
+reset,55,BS Almonds – Sliced – Raw,26-01-30-FOUND-002,lb,0,0,0,0,0,0,COVERAGE-P55-L10
+reset,55,BS Almonds – Sliced – Raw,26-03-10-BLUE-001,lb,0,0,0,0,0,0,COVERAGE-P55-L278
+reset,55,BS Almonds – Sliced – Raw,26-03-19-BLUE-001,lb,0,-4407.85,0,0,0,0,COVERAGE-P55-L338
+reset,56,BS Banana Bites – Small,26-01-30-FOUND-003,lb,484,-94.81,0,0,484,0,A01-7
+reset,58,BS Cacao Nibs,26-01-30-FOUND-004,lb,0,0,0,0,0,0,COVERAGE-P58-L12
+reset,58,BS Cacao Nibs,26-03-03-BLUE-002,lb,0,0,0,0,0,0,COVERAGE-P58-L257
+reset,58,BS Cacao Nibs,26-05-11-BLUE-002,lb,1400,681.6,0,0,1400,0,A01-9
+reset,59,BS Cacao Shell Flour,26-01-30-FOUND-005,lb,0,0,0,0,0,0,COVERAGE-P59-L13
+reset,60,BS Chia Seeds,26-01-30-FOUND-006,lb,0,-1324.2,0,0,0,0,COVERAGE-P60-L14
+reset,61,BS Cocoa Liquor – Chips,26-01-30-FOUND-007,lb,0,0,0,0,0,0,COVERAGE-P61-L15
+reset,61,BS Cocoa Liquor – Chips,26-01-30-FOUND-017,lb,0,0,0,0,0,0,COVERAGE-P61-L25
+reset,61,BS Cocoa Liquor – Chips,26-02-03-FOUND-025,lb,0,-891.6,0,0,0,0,COVERAGE-P61-L58
+reset,61,BS Cocoa Liquor – Chips,26-02-03-BS-001,lb,0,-508,0,0,0,0,COVERAGE-P61-L59
+reset,61,BS Cocoa Liquor – Chips,26-02-06-BLUE-001,lb,0,-2200,0,0,0,0,COVERAGE-P61-L92
+reset,61,BS Cocoa Liquor – Chips,26-03-25-BLUE-001,lb,2200,0,0,0,2200,0,A01-12-1
+reset,61,BS Cocoa Liquor – Chips,26-05-11-BLUE-001,lb,2200,0,0,0,2200,0,A01-12-2
+reset,61,BS Cocoa Liquor – Chips,26-06-30-BLUE-001,lb,0,-1800,0,0,0,0,COVERAGE-P61-L909
+reset,62,BS Coconut Sugar,26-01-30-FOUND-008,lb,0,0,0,0,0,0,COVERAGE-P62-L16
+reset,62,BS Coconut Sugar,26-02-04-BLUE-001,lb,0,-512.8,0,0,0,0,COVERAGE-P62-L61
+reset,62,BS Coconut Sugar,26-06-01-BLUE-001,lb,0,-6160,0,0,0,0,COVERAGE-P62-L715
+reset,64,BS Hazelnut Butter,26-01-30-FOUND-009,lb,0,-1098.8,0,0,0,0,COVERAGE-P64-L17
+reset,65,BS Hazelnuts,26-01-30-FOUND-010,lb,0,-1860,0,0,0,0,COVERAGE-P65-L18
+reset,66,BS Hazelnuts – Diced,26-01-30-FOUND-011,lb,1725,-8275,0,0,1725,0,A01-17
+reset,67,BS Oats GF,26-01-30-FOUND-012,lb,0,-1932.6,0,0,0,0,COVERAGE-P67-L20
+reset,67,BS Oats GF,26-02-12-BLUE-001,lb,2000,-6000,0,0,2000,0,A01-18
+reset,67,BS Oats GF,121125,lb,0,-32,0,0,0,0,COVERAGE-P67-L206
+reset,68,BS Oil – Almond,26-01-30-FOUND-013,lb,0,0,0,0,0,0,COVERAGE-P68-L21
+reset,68,BS Oil – Almond,26-03-03-BLUE-001,lb,3200,462.2,0,0,3200,0,A01-19
+reset,69,BS Peanut Butter Chips,26-01-30-FOUND-014,lb,0,-65.82,0,0,0,0,COVERAGE-P69-L22
+reset,70,BS Pumpkin Seeds,26-01-30-FOUND-015,lb,110,-277.8,0,0,110,0,A01-21
+reset,71,BS Salt,26-01-30-FOUND-016,lb,0,0,0,0,0,0,COVERAGE-P71-L24
+reset,72,"Chocolate Chips – Real – 4,000 CT",26-02-12-BARR-001,lb,0,0,0,0,0,0,COVERAGE-P72-L163
+reset,72,"Chocolate Chips – Real – 4,000 CT",26-04-14-UNKN-001,lb,0,0,0,0,0,0,COVERAGE-P72-L395
+reset,72,"Chocolate Chips – Real – 4,000 CT",26-05-13-ABAK-001,lb,0,0,0,0,0,0,COVERAGE-P72-L592
+reset,72,"Chocolate Chips – Real – 4,000 CT",26-06-09-ABAK-001,lb,0,0,0,0,0,0,COVERAGE-P72-L791
+reset,72,"Chocolate Chips – Real – 4,000 CT",26-08-04-ABAK-002,lb,0,0,0,0,0,0,COVERAGE-P72-L1112
+reset,72,"Chocolate Chips – Real – 4,000 CT",26-08-17-ABAK-001,lb,0,0,0,0,0,0,COVERAGE-P72-L1288
+reset,72,"Chocolate Chips – Real – 4,000 CT",26-09-10-ABAK-001,lb,525,-765,0,0,525,0,A01-72-R6-3
+reset,72,"Chocolate Chips – Real – 4,000 CT",26-09-16-ABAK-001,lb,500,0,0,0,500,0,A01-72-R6-2
+reset,72,"Chocolate Chips – Real – 4,000 CT",26-10-06-ABAK-001,lb,500,0,0,0,500,0,A01-72-R6-1
+reset,73,"Chocolate Chips – Real – 1,000 CT",26-02-10-CALL-001,lb,0,0,0,0,0,0,COVERAGE-P73-L128
+reset,75,Graham Cracker Crumbs – 50 LB,26-02-06-CREA-001,lb,0,0,0,0,0,0,COVERAGE-P75-L93
+reset,75,Graham Cracker Crumbs – 50 LB,26-04-16-UNKN-001,lb,0,0,0,0,0,0,COVERAGE-P75-L411
+reset,75,Graham Cracker Crumbs – 50 LB,26-06-09-CREA-001,lb,0,0,0,0,0,0,COVERAGE-P75-L764
+reset,75,Graham Cracker Crumbs – 50 LB,26-07-28-CREA-001,lb,0,0,0,0,0,0,COVERAGE-P75-L1070
+reset,75,Graham Cracker Crumbs – 50 LB,26-09-22-CREA-001,lb,3950,-810,0,0,3950,0,A01-75-R6-2
+reset,75,Graham Cracker Crumbs – 50 LB,26-10-06-CREA-001,lb,8900,0,0,0,8900,0,A01-75-R6-1
+reset,107,Batch Classic Granola #9,JAN 30 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L57
+reset,107,Batch Classic Granola #9,B26-0204-001,lb,0,0,0,0,0,0,COVERAGE-P107-L64
+reset,107,Batch Classic Granola #9,FEB-03-2026,lb,0,0,0,0,0,0,COVERAGE-P107-L68
+reset,107,Batch Classic Granola #9,FEB-04-26,lb,0,0,0,0,0,0,COVERAGE-P107-L81
+reset,107,Batch Classic Granola #9,26-02-05-FOUND-006,lb,0,0,0,0,0,0,COVERAGE-P107-L83
+reset,107,Batch Classic Granola #9,FEB-02-26,lb,0,0,0,0,0,0,COVERAGE-P107-L84
+reset,107,Batch Classic Granola #9,FEB-05-2026,lb,0,0,0,0,0,0,COVERAGE-P107-L85
+reset,107,Batch Classic Granola #9,FEB 06 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L100
+reset,107,Batch Classic Granola #9,FEB 09 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L113
+reset,107,Batch Classic Granola #9,FEB 10 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L125
+reset,107,Batch Classic Granola #9,FEB 10 2026-02,lb,0,0,0,0,0,0,COVERAGE-P107-L127
+reset,107,Batch Classic Granola #9,FEB 26 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L246
+reset,107,Batch Classic Granola #9,MAR 03 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L261
+reset,107,Batch Classic Granola #9,B26-0304-001,lb,0,0,0,0,0,0,COVERAGE-P107-L265
+reset,107,Batch Classic Granola #9,MAR 10 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L287
+reset,107,Batch Classic Granola #9,MAR 11 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L293
+reset,107,Batch Classic Granola #9,MAR 12 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L305
+reset,107,Batch Classic Granola #9,MAR 16 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L317
+reset,107,Batch Classic Granola #9,MAR 18 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L328
+reset,107,Batch Classic Granola #9,MAR 23 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L351
+reset,107,Batch Classic Granola #9,MAR 24 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L359
+reset,107,Batch Classic Granola #9,APR 13 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L399
+reset,107,Batch Classic Granola #9,2026-04-15,lb,0,0,0,0,0,0,COVERAGE-P107-L412
+reset,107,Batch Classic Granola #9,2026-04-21,lb,0,0,0,0,0,0,COVERAGE-P107-L442
+reset,107,Batch Classic Granola #9,ABR 23 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L456
+reset,107,Batch Classic Granola #9,APR 28 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L490
+reset,107,Batch Classic Granola #9,APR 29 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L502
+reset,107,Batch Classic Granola #9,26-05-04-GRAN-001,lb,0,0,0,0,0,0,COVERAGE-P107-L529
+reset,107,Batch Classic Granola #9,26-05-05-GRAN-002,lb,0,0,0,0,0,0,COVERAGE-P107-L542
+reset,107,Batch Classic Granola #9,26-05-06-GRAN-003,lb,0,0,0,0,0,0,COVERAGE-P107-L550
+reset,107,Batch Classic Granola #9,MAY 08 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L568
+reset,107,Batch Classic Granola #9,MAY 12 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L582
+reset,107,Batch Classic Granola #9,MAY 13 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L594
+reset,107,Batch Classic Granola #9,MAY 14 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L630
+reset,107,Batch Classic Granola #9,MAY 19 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L648
+reset,107,Batch Classic Granola #9,MAY 20 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L655
+reset,107,Batch Classic Granola #9,MAY 21 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L662
+reset,107,Batch Classic Granola #9,MAY 27 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L686
+reset,107,Batch Classic Granola #9,MAY 28 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L698
+reset,107,Batch Classic Granola #9,JUN 01 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L722
+reset,107,Batch Classic Granola #9,JUN 02 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L726
+reset,107,Batch Classic Granola #9,JUN 09 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L789
+reset,107,Batch Classic Granola #9,JUN 25 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L878
+reset,107,Batch Classic Granola #9,JUN 26 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L883
+reset,107,Batch Classic Granola #9,JUN 28 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L887
+reset,107,Batch Classic Granola #9,JUN 29 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L896
+reset,107,Batch Classic Granola #9,JUN 30 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L912
+reset,107,Batch Classic Granola #9,Jul 01 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L926
+reset,107,Batch Classic Granola #9,JUL 2 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L934
+reset,107,Batch Classic Granola #9,JUL 06 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L942
+reset,107,Batch Classic Granola #9,JUL 07 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L950
+reset,107,Batch Classic Granola #9,JUL 10 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L978
+reset,107,Batch Classic Granola #9,JUL 13 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L991
+reset,107,Batch Classic Granola #9,JUL 14 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L992
+reset,107,Batch Classic Granola #9,JUL15 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L999
+reset,107,Batch Classic Granola #9,JUL 15 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1003
+reset,107,Batch Classic Granola #9,JUL 16 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1004
+reset,107,Batch Classic Granola #9,JUL 17 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1009
+reset,107,Batch Classic Granola #9,JUL 21 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1021
+reset,107,Batch Classic Granola #9,JUL 27 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1063
+reset,107,Batch Classic Granola #9,JUL 28 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1071
+reset,107,Batch Classic Granola #9,Jul 29 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1076
+reset,107,Batch Classic Granola #9,JUL 30 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1083
+reset,107,Batch Classic Granola #9,JUL 31 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1091
+reset,107,Batch Classic Granola #9,AUG 03 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1100
+reset,107,Batch Classic Granola #9,AUG 04 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1114
+reset,107,Batch Classic Granola #9,AUG 10 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1143
+reset,107,Batch Classic Granola #9,AUG 11 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1148
+reset,107,Batch Classic Granola #9,AUG 12 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1158
+reset,107,Batch Classic Granola #9,AUG 13 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1164
+reset,107,Batch Classic Granola #9,AUG 20 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1310
+reset,107,Batch Classic Granola #9,AUG 21 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1318
+reset,107,Batch Classic Granola #9,AUG 24 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1329
+reset,107,Batch Classic Granola #9,AUG 31 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1368
+reset,107,Batch Classic Granola #9,SEP 01 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1378
+reset,107,Batch Classic Granola #9,SEP 02 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1387
+reset,107,Batch Classic Granola #9,SEP 11 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1429
+reset,107,Batch Classic Granola #9,SEP 14 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1434
+reset,107,Batch Classic Granola #9,SEP 15 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1441
+reset,107,Batch Classic Granola #9,SEP 16 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1449
+reset,107,Batch Classic Granola #9,SEP 17 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1462
+reset,107,Batch Classic Granola #9,SEP 22 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1474
+reset,107,Batch Classic Granola #9,SEP 25 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1508
+reset,107,Batch Classic Granola #9,SEP 28 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1512
+reset,107,Batch Classic Granola #9,SEP 29 2026,lb,0,0,0,0,0,0,COVERAGE-P107-L1521
+reset,107,Batch Classic Granola #9,OCT 05 2026,lb,1387,0,0,0,1387,0,P09-107-1
+reset,107,Batch Classic Granola #9,OCT 12 2026,lb,768,0,0,0,768,0,P09-107-2
+reset,107,Batch Classic Granola #9,OCT 13 2026,lb,2376,0,0,0,2376,0,P09-107-3
+reset,107,Batch Classic Granola #9,OCT 14 2026,lb,1292,0,0,0,1292,0,P09-107-4
+reset,107,Batch Classic Granola #9,OCT 15 2026,lb,122,0,0,0,122,0,P09-107-5
+reset,107,Batch Classic Granola #9,OCT 16 2026,lb,1938,0,0,0,1938,0,P09-107-6
+reset,108,Batch Classic Chocolate Chip Granola #9,FEB 10 2026,lb,0,0,0,0,0,0,COVERAGE-P108-L129
+reset,108,Batch Classic Chocolate Chip Granola #9,FEB 26 2026,lb,0,0,0,0,0,0,COVERAGE-P108-L245
+reset,108,Batch Classic Chocolate Chip Granola #9,MAR 09 2026,lb,0,0,0,0,0,0,COVERAGE-P108-L280
+reset,108,Batch Classic Chocolate Chip Granola #9,2026-04-20,lb,0,0,0,0,0,0,COVERAGE-P108-L431
+reset,108,Batch Classic Chocolate Chip Granola #9,APR 24 2026,lb,0,0,0,0,0,0,COVERAGE-P108-L462
+reset,108,Batch Classic Chocolate Chip Granola #9,APR 28 2026,lb,0,0,0,0,0,0,COVERAGE-P108-L491
+reset,108,Batch Classic Chocolate Chip Granola #9,MAY 11 2026,lb,0,0,0,0,0,0,COVERAGE-P108-L572
+reset,108,Batch Classic Chocolate Chip Granola #9,MAY 27 2026,lb,0,0,0,0,0,0,COVERAGE-P108-L687
+reset,108,Batch Classic Chocolate Chip Granola #9,JUN 03 2026,lb,0,0,0,0,0,0,COVERAGE-P108-L733
+reset,108,Batch Classic Chocolate Chip Granola #9,JUN 10 2026,lb,0,0,0,0,0,0,COVERAGE-P108-L798
+reset,108,Batch Classic Chocolate Chip Granola #9,JUN 22 2026,lb,0,0,0,0,0,0,COVERAGE-P108-L848
+reset,108,Batch Classic Chocolate Chip Granola #9,JUN 23 2026,lb,0,0,0,0,0,0,COVERAGE-P108-L862
+reset,108,Batch Classic Chocolate Chip Granola #9,JUL 07 2026,lb,0,0,0,0,0,0,COVERAGE-P108-L951
+reset,108,Batch Classic Chocolate Chip Granola #9,JUL 08 2026,lb,0,0,0,0,0,0,COVERAGE-P108-L959
+reset,108,Batch Classic Chocolate Chip Granola #9,JUL 22 2026,lb,0,0,0,0,0,0,COVERAGE-P108-L1037
+reset,108,Batch Classic Chocolate Chip Granola #9,AUG 03 2026,lb,0,0,0,0,0,0,COVERAGE-P108-L1099
+reset,108,Batch Classic Chocolate Chip Granola #9,AUG 25 2026,lb,0,0,0,0,0,0,COVERAGE-P108-L1334
+reset,108,Batch Classic Chocolate Chip Granola #9,AUG 26 2026,lb,0,0,0,0,0,0,COVERAGE-P108-L1346
+reset,108,Batch Classic Chocolate Chip Granola #9,SEP 01 2026,lb,0,0,0,0,0,0,COVERAGE-P108-L1377
+reset,108,Batch Classic Chocolate Chip Granola #9,SEP 16 2026,lb,0,-2000,0,0,0,0,COVERAGE-P108-L1450
+reset,108,Batch Classic Chocolate Chip Granola #9,SEP 23 2026,lb,0,-1044,0,0,0,0,COVERAGE-P108-L1485
+reset,108,Batch Classic Chocolate Chip Granola #9,SEP 24 2026,lb,0,-2784,0,0,0,0,COVERAGE-P108-L1498
+reset,108,Batch Classic Chocolate Chip Granola #9,OCT 13 2026,lb,0,-1392,0,0,0,0,COVERAGE-P108-L1593
+reset,108,Batch Classic Chocolate Chip Granola #9,OCT 21 2026,lb,0,-696,0,0,0,0,COVERAGE-P108-L1630
+reset,109,Batch Setton Cinnamon Almond Granola #14,APR 27 2026,lb,0,0,0,0,0,0,COVERAGE-P109-L479
+reset,109,Batch Setton Cinnamon Almond Granola #14,MAY 12 2026,lb,0,0,0,0,0,0,COVERAGE-P109-L581
+reset,109,Batch Setton Cinnamon Almond Granola #14,JUN 30 2026,lb,0,0,0,0,0,0,COVERAGE-P109-L911
+reset,111,Batch Setton Cocoa Crunch Granola #13,FEB 19 2026,lb,0,0,0,0,0,0,COVERAGE-P111-L207
+reset,111,Batch Setton Cocoa Crunch Granola #13,MAY 01 2026,lb,0,0,0,0,0,0,COVERAGE-P111-L512
+reset,111,Batch Setton Cocoa Crunch Granola #13,JUN 03 2026,lb,0,0,0,0,0,0,COVERAGE-P111-L734
+reset,111,Batch Setton Cocoa Crunch Granola #13,JUN 30 2026,lb,0,0,0,0,0,0,COVERAGE-P111-L910
+reset,112,Batch Vanilla Crisp Granola #16(no almonds),FEB 16 2026,lb,0,0,0,0,0,0,COVERAGE-P112-L182
+reset,112,Batch Vanilla Crisp Granola #16(no almonds),FEB 17 2026,lb,0,0,0,0,0,0,COVERAGE-P112-L186
+reset,112,Batch Vanilla Crisp Granola #16(no almonds),FEB 18 2026,lb,0,0,0,0,0,0,COVERAGE-P112-L195
+reset,112,Batch Vanilla Crisp Granola #16(no almonds),APR 27 2026,lb,0,0,0,0,0,0,COVERAGE-P112-L476
+reset,112,Batch Vanilla Crisp Granola #16(no almonds),26-05-05-VAN-001,lb,0,0,0,0,0,0,COVERAGE-P112-L543
+reset,112,Batch Vanilla Crisp Granola #16(no almonds),26-05-06-VAN-002,lb,0,0,0,0,0,0,COVERAGE-P112-L551
+reset,112,Batch Vanilla Crisp Granola #16(no almonds),JUN 29 2026,lb,0,0,0,0,0,0,COVERAGE-P112-L898
+reset,112,Batch Vanilla Crisp Granola #16(no almonds),JUL 21 2026,lb,0,0,0,0,0,0,COVERAGE-P112-L1022
+reset,112,Batch Vanilla Crisp Granola #16(no almonds),SEP 14 2026,lb,0,-240,0,0,0,0,COVERAGE-P112-L1435
+reset,112,Batch Vanilla Crisp Granola #16(no almonds),SEP 17 2026,lb,0,-115,0,0,0,0,COVERAGE-P112-L1463
+reset,113,Batch Granola Vanilla Almond 380 lb,JAN 20 2026,lb,0,0,0,0,0,0,COVERAGE-P113-L276
+reset,113,Batch Granola Vanilla Almond 380 lb,MAY 12 2026,lb,0,0,0,0,0,0,COVERAGE-P113-L584
+reset,113,Batch Granola Vanilla Almond 380 lb,JUN 29 2026,lb,0,0,0,0,0,0,COVERAGE-P113-L899
+reset,113,Batch Granola Vanilla Almond 380 lb,SEP 14 2026,lb,0,0,0,0,0,0,COVERAGE-P113-L1437
+reset,114,Batch SS Chocolate Chip Granola #2,B26-0212-002,lb,0,0,0,0,0,0,COVERAGE-P114-L165
+reset,114,Batch SS Chocolate Chip Granola #2,FEB 13 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L167
+reset,114,Batch SS Chocolate Chip Granola #2,FEB 18 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L196
+reset,114,Batch SS Chocolate Chip Granola #2,FEB 24 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L225
+reset,114,Batch SS Chocolate Chip Granola #2,26-02-25,lb,0,0,0,0,0,0,COVERAGE-P114-L237
+reset,114,Batch SS Chocolate Chip Granola #2,FEB 26 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L247
+reset,114,Batch SS Chocolate Chip Granola #2,APR 10 2026 Lot,lb,0,0,0,0,0,0,COVERAGE-P114-L394
+reset,114,Batch SS Chocolate Chip Granola #2,APR 12 2026 Lote,lb,0,0,0,0,0,0,COVERAGE-P114-L397
+reset,114,Batch SS Chocolate Chip Granola #2,APR 13 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L398
+reset,114,Batch SS Chocolate Chip Granola #2,APR 14 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L405
+reset,114,Batch SS Chocolate Chip Granola #2,APR 28 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L492
+reset,114,Batch SS Chocolate Chip Granola #2,APR 30 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L508
+reset,114,Batch SS Chocolate Chip Granola #2,MAY 01 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L519
+reset,114,Batch SS Chocolate Chip Granola #2,26-05-04-SSCHOC-001,lb,0,0,0,0,0,0,COVERAGE-P114-L530
+reset,114,Batch SS Chocolate Chip Granola #2,MAY 15 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L639
+reset,114,Batch SS Chocolate Chip Granola #2,MAY 18 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L642
+reset,114,Batch SS Chocolate Chip Granola #2,MAY 26 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L671
+reset,114,Batch SS Chocolate Chip Granola #2,JUN 08 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L755
+reset,114,Batch SS Chocolate Chip Granola #2,JUN 15 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L821
+reset,114,Batch SS Chocolate Chip Granola #2,JUN 17 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L825
+reset,114,Batch SS Chocolate Chip Granola #2,JUN 18 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L832
+reset,114,Batch SS Chocolate Chip Granola #2,JUN 22 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L847
+reset,114,Batch SS Chocolate Chip Granola #2,JUN 23 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L861
+reset,114,Batch SS Chocolate Chip Granola #2,JUL 08 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L960
+reset,114,Batch SS Chocolate Chip Granola #2,JUL 09 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L972
+reset,114,Batch SS Chocolate Chip Granola #2,JUL 20 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L1018
+reset,114,Batch SS Chocolate Chip Granola #2,AUG 05 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L1127
+reset,114,Batch SS Chocolate Chip Granola #2,AUG 06 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L1133
+reset,114,Batch SS Chocolate Chip Granola #2,AUG 14 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L1175
+reset,114,Batch SS Chocolate Chip Granola #2,AUG 17 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L1290
+reset,114,Batch SS Chocolate Chip Granola #2,AUG 18 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L1295
+reset,114,Batch SS Chocolate Chip Granola #2,SEP 03 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L1395
+reset,114,Batch SS Chocolate Chip Granola #2,SEP 04 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L1400
+reset,114,Batch SS Chocolate Chip Granola #2,SEP 09 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L1413
+reset,114,Batch SS Chocolate Chip Granola #2,SEP 10 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L1422
+reset,114,Batch SS Chocolate Chip Granola #2,SEP 30 2026,lb,0,0,0,0,0,0,COVERAGE-P114-L1532
+reset,114,Batch SS Chocolate Chip Granola #2,OCT 01 2026,lb,0,-1354.5,0,0,0,0,COVERAGE-P114-L1542
+reset,116,Batch SS Original Granola #1,FEB 16 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L181
+reset,116,Batch SS Original Granola #1,B26-0302-001,lb,0,0,0,0,0,0,COVERAGE-P116-L250
+reset,116,Batch SS Original Granola #1,MAR 12 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L304
+reset,116,Batch SS Original Granola #1,APR 13 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L400
+reset,116,Batch SS Original Granola #1,APR 14 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L406
+reset,116,Batch SS Original Granola #1,2026-04-17,lb,0,0,0,0,0,0,COVERAGE-P116-L422
+reset,116,Batch SS Original Granola #1,APR 24 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L463
+reset,116,Batch SS Original Granola #1,APR 27 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L478
+reset,116,Batch SS Original Granola #1,MAY 12 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L580
+reset,116,Batch SS Original Granola #1,MAY 14 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L628
+reset,116,Batch SS Original Granola #1,JUN 08 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L756
+reset,116,Batch SS Original Granola #1,JUN 09 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L790
+reset,116,Batch SS Original Granola #1,JUN 24 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L870
+reset,116,Batch SS Original Granola #1,JUN 29 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L897
+reset,116,Batch SS Original Granola #1,AUG 05 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L1126
+reset,116,Batch SS Original Granola #1,AUG 18 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L1296
+reset,116,Batch SS Original Granola #1,AUG 19 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L1303
+reset,116,Batch SS Original Granola #1,AUG 27 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L1358
+reset,116,Batch SS Original Granola #1,SEP 03 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L1394
+reset,116,Batch SS Original Granola #1,SEP 08 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L1401
+reset,116,Batch SS Original Granola #1,SEP 10 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L1423
+reset,116,Batch SS Original Granola #1,SEP 14 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L1436
+reset,116,Batch SS Original Granola #1,SEP 23 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L1484
+reset,116,Batch SS Original Granola #1,SEP 24 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L1497
+reset,116,Batch SS Original Granola #1,OCT 06 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L1557
+reset,116,Batch SS Original Granola #1,OCT 07 2026,lb,0,0,0,0,0,0,COVERAGE-P116-L1569
+reset,116,Batch SS Original Granola #1,OCT 08 2026,lb,0,-2097.5,0,0,0,0,COVERAGE-P116-L1573
+reset,116,Batch SS Original Granola #1,OCT 14 2026,lb,0,-150,0,0,0,0,COVERAGE-P116-L1603
+reset,116,Batch SS Original Granola #1,OCT 19 2026,lb,0,-332.5,0,0,0,0,COVERAGE-P116-L1616
+reset,118,Batch SS Cranberry Granola #3,26-05-05-CRAN-001,lb,0,0,0,0,0,0,COVERAGE-P118-L541
+reset,118,Batch SS Cranberry Granola #3,MAY 14 2026,lb,0,0,0,0,0,0,COVERAGE-P118-L629
+reset,118,Batch SS Cranberry Granola #3,JUN 24 2026,lb,0,0,0,0,0,0,COVERAGE-P118-L871
+reset,118,Batch SS Cranberry Granola #3,AUG 06 2026,lb,0,0,0,0,0,0,COVERAGE-P118-L1134
+reset,118,Batch SS Cranberry Granola #3,BB081727,lb,0,0,0,0,0,0,COVERAGE-P118-L1304
+reset,118,Batch SS Cranberry Granola #3,OCT 21 2026,lb,0,-83,0,0,0,0,COVERAGE-P118-L1631
+reset,119,Batch SS Low Carb Chocolate Chip Granola #8,B26-0302-003,lb,0,0,0,0,0,0,COVERAGE-P119-L254
+reset,119,Batch SS Low Carb Chocolate Chip Granola #8,26-05-04-LOWCARB-001,lb,0,0,0,0,0,0,COVERAGE-P119-L533
+reset,119,Batch SS Low Carb Chocolate Chip Granola #8,JUN 25 2026,lb,0,0,0,0,0,0,COVERAGE-P119-L877
+reset,119,Batch SS Low Carb Chocolate Chip Granola #8,AUG 26 2026,lb,0,0,0,0,0,0,COVERAGE-P119-L1347
+reset,119,Batch SS Low Carb Chocolate Chip Granola #8,AUG 27 2026,lb,0,0,0,0,0,0,COVERAGE-P119-L1356
+reset,119,Batch SS Low Carb Chocolate Chip Granola #8,OCT 21 2026,lb,0,0,0,0,0,0,COVERAGE-P119-L1643
+reset,120,Batch SS Low Carb Original Granola #7,B26-0302-002,lb,0,0,0,0,0,0,COVERAGE-P120-L252
+reset,120,Batch SS Low Carb Original Granola #7,26-05-05-LOWCARB-002,lb,0,0,0,0,0,0,COVERAGE-P120-L540
+reset,120,Batch SS Low Carb Original Granola #7,JUN 24 2026,lb,0,0,0,0,0,0,COVERAGE-P120-L872
+reset,120,Batch SS Low Carb Original Granola #7,AUG 27 2026,lb,0,0,0,0,0,0,COVERAGE-P120-L1357
+reset,120,Batch SS Low Carb Original Granola #7,OCT 21 2026,lb,0,-32.5,0,0,0,0,COVERAGE-P120-L1628
+reset,121,Batch BS Dark Chocolate Granola 350,B26-0202-001,lb,0,0,0,0,0,0,COVERAGE-P121-L31
+reset,121,Batch BS Dark Chocolate Granola 350,B26-0203-001,lb,0,0,0,0,0,0,COVERAGE-P121-L60
+reset,121,Batch BS Dark Chocolate Granola 350,B26-0306-002,lb,0,0,0,0,0,0,COVERAGE-P121-L274
+reset,121,Batch BS Dark Chocolate Granola 350,MAR 09 2026,lb,0,0,0,0,0,0,COVERAGE-P121-L279
+reset,121,Batch BS Dark Chocolate Granola 350,MAR 17 2026,lb,0,0,0,0,0,0,COVERAGE-P121-L322
+reset,121,Batch BS Dark Chocolate Granola 350,MAR 18 2026,lb,0,0,0,0,0,0,COVERAGE-P121-L332
+reset,121,Batch BS Dark Chocolate Granola 350,MAR 19 2026,lb,0,0,0,0,0,0,COVERAGE-P121-L340
+reset,121,Batch BS Dark Chocolate Granola 350,MAR 20 2026,lb,0,0,0,0,0,0,COVERAGE-P121-L345
+reset,121,Batch BS Dark Chocolate Granola 350,JUL 23 2026,lb,0,0,0,0,0,0,COVERAGE-P121-L1050
+reset,121,Batch BS Dark Chocolate Granola 350,JUL 24 2026,lb,1050,0,0,0,1050,0,A05C-121-1
+reset,122,Batch BS Peanut Butter Banana Granola,JUL 27 2026,lb,0,0,0,0,0,0,COVERAGE-P122-L1079
+reset,123,Batch BS Almond Butter Granola 350,B26-0305-001,lb,0,0,0,0,0,0,COVERAGE-P123-L270
+reset,123,Batch BS Almond Butter Granola 350,B26-0306-001,lb,0,0,0,0,0,0,COVERAGE-P123-L273
+reset,124,Batch BS Hazelnut Butter Granola 350,FEB 19 2026,lb,0,0,0,0,0,0,COVERAGE-P124-L208
+reset,124,Batch BS Hazelnut Butter Granola 350,FEB 20 2026,lb,0,0,0,0,0,0,COVERAGE-P124-L219
+reset,124,Batch BS Hazelnut Butter Granola 350,B26-0304-002,lb,0,0,0,0,0,0,COVERAGE-P124-L266
+reset,124,Batch BS Hazelnut Butter Granola 350,26-05-06-HAZE-001,lb,0,0,0,0,0,0,COVERAGE-P124-L557
+reset,124,Batch BS Hazelnut Butter Granola 350,MAY 07 2026,lb,0,0,0,0,0,0,COVERAGE-P124-L562
+reset,125,Batch Coconut Sweetened Fancy,FEB 25 2026,lb,0,0,0,0,0,0,COVERAGE-P125-L239
+reset,125,Batch Coconut Sweetened Fancy,MAR 13 2026,lb,0,0,0,0,0,0,COVERAGE-P125-L313
+reset,125,Batch Coconut Sweetened Fancy,MAR 25 2026,lb,0,0,0,0,0,0,COVERAGE-P125-L363
+reset,125,Batch Coconut Sweetened Fancy,MAR 26 2026,lb,0,0,0,0,0,0,COVERAGE-P125-L367
+reset,125,Batch Coconut Sweetened Fancy,MAR 30 2026,lb,0,0,0,0,0,0,COVERAGE-P125-L382
+reset,125,Batch Coconut Sweetened Fancy,MAR 31 2026,lb,0,0,0,0,0,0,COVERAGE-P125-L385
+reset,125,Batch Coconut Sweetened Fancy,APR 10 2026 Lot,lb,0,0,0,0,0,0,COVERAGE-P125-L392
+reset,125,Batch Coconut Sweetened Fancy,2026-04-20,lb,0,0,0,0,0,0,COVERAGE-P125-L432
+reset,125,Batch Coconut Sweetened Fancy,APR 27 2026,lb,0,0,0,0,0,0,COVERAGE-P125-L481
+reset,125,Batch Coconut Sweetened Fancy,MAY 21 2026,lb,0,0,0,0,0,0,COVERAGE-P125-L664
+reset,125,Batch Coconut Sweetened Fancy,MAY 28 2026,lb,0,0,0,0,0,0,COVERAGE-P125-L702
+reset,125,Batch Coconut Sweetened Fancy,JUN 02 2026,lb,0,0,0,0,0,0,COVERAGE-P125-L727
+reset,125,Batch Coconut Sweetened Fancy,JUN 08 2026,lb,0,0,0,0,0,0,COVERAGE-P125-L759
+reset,125,Batch Coconut Sweetened Fancy,JUL 08 2026,lb,0,0,0,0,0,0,COVERAGE-P125-L964
+reset,125,Batch Coconut Sweetened Fancy,JUL 22 2026,lb,0,0,0,0,0,0,COVERAGE-P125-L1039
+reset,125,Batch Coconut Sweetened Fancy,AUG 04 2026,lb,0,0,0,0,0,0,COVERAGE-P125-L1118
+reset,125,Batch Coconut Sweetened Fancy,AUG 13 2026,lb,0,0,0,0,0,0,COVERAGE-P125-L1165
+reset,125,Batch Coconut Sweetened Fancy,SEP 01 2026,lb,0,0,0,0,0,0,COVERAGE-P125-L1381
+reset,125,Batch Coconut Sweetened Fancy,SEP 08 2026,lb,0,0,0,0,0,0,COVERAGE-P125-L1404
+reset,125,Batch Coconut Sweetened Fancy,SEP 09 2026,lb,0,0,0,0,0,0,COVERAGE-P125-L1416
+reset,125,Batch Coconut Sweetened Fancy,SEP 29 2026,lb,0,0,0,0,0,0,COVERAGE-P125-L1523
+reset,125,Batch Coconut Sweetened Fancy,SEP 30 2026,lb,0,0,0,0,0,0,COVERAGE-P125-L1533
+reset,125,Batch Coconut Sweetened Fancy,OCT 20 2026,lb,0,0,0,0,0,0,COVERAGE-P125-L1621
+reset,126,Batch Coconut Sweetened Flake,FEB-03-2026,lb,0,0,0,0,0,0,COVERAGE-P126-L71
+reset,126,Batch Coconut Sweetened Flake,020526,lb,0,0,0,0,0,0,COVERAGE-P126-L75
+reset,126,Batch Coconut Sweetened Flake,FEB 05 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L87
+reset,126,Batch Coconut Sweetened Flake,FEB 06 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L102
+reset,126,Batch Coconut Sweetened Flake,FEB 09 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L118
+reset,126,Batch Coconut Sweetened Flake,FEB 10 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L131
+reset,126,Batch Coconut Sweetened Flake,FEB 12 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L139
+reset,126,Batch Coconut Sweetened Flake,FEB 11 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L141
+reset,126,Batch Coconut Sweetened Flake,B26-0212-001,lb,0,0,0,0,0,0,COVERAGE-P126-L162
+reset,126,Batch Coconut Sweetened Flake,FEB 13 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L169
+reset,126,Batch Coconut Sweetened Flake,TEST-WATER-3,lb,0,0,0,0,0,0,COVERAGE-P126-L177
+reset,126,Batch Coconut Sweetened Flake,FEB 16 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L183
+reset,126,Batch Coconut Sweetened Flake,FEB 17 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L187
+reset,126,Batch Coconut Sweetened Flake,FEB 18 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L197
+reset,126,Batch Coconut Sweetened Flake,FEB 19 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L212
+reset,126,Batch Coconut Sweetened Flake,FEB 20 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L218
+reset,126,Batch Coconut Sweetened Flake,FEB 24 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L229
+reset,126,Batch Coconut Sweetened Flake,FEB 25 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L241
+reset,126,Batch Coconut Sweetened Flake,MAR 09 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L282
+reset,126,Batch Coconut Sweetened Flake,MAR 10 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L288
+reset,126,Batch Coconut Sweetened Flake,MAR 11 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L296
+reset,126,Batch Coconut Sweetened Flake,MAR 12 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L307
+reset,126,Batch Coconut Sweetened Flake,MAR 25 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L362
+reset,126,Batch Coconut Sweetened Flake,MAR 03 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L381
+reset,126,Batch Coconut Sweetened Flake,MAR 31 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L386
+reset,126,Batch Coconut Sweetened Flake,APR 13 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L402
+reset,126,Batch Coconut Sweetened Flake,2026-04-14,lb,0,0,0,0,0,0,COVERAGE-P126-L407
+reset,126,Batch Coconut Sweetened Flake,2026-04-15,lb,0,0,0,0,0,0,COVERAGE-P126-L413
+reset,126,Batch Coconut Sweetened Flake,2026-04-16,lb,0,0,0,0,0,0,COVERAGE-P126-L418
+reset,126,Batch Coconut Sweetened Flake,2026-04-21,lb,0,0,0,0,0,0,COVERAGE-P126-L443
+reset,126,Batch Coconut Sweetened Flake,APR 22 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L451
+reset,126,Batch Coconut Sweetened Flake,APR 23 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L457
+reset,126,Batch Coconut Sweetened Flake,ABR 24 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L466
+reset,126,Batch Coconut Sweetened Flake,APR 28 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L493
+reset,126,Batch Coconut Sweetened Flake,APR 29 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L504
+reset,126,Batch Coconut Sweetened Flake,B26-0430-001,lb,0,0,0,0,0,0,COVERAGE-P126-L509
+reset,126,Batch Coconut Sweetened Flake,26-05-04-COCO-001,lb,0,0,0,0,0,0,COVERAGE-P126-L528
+reset,126,Batch Coconut Sweetened Flake,26-05-05-COCO-002,lb,0,0,0,0,0,0,COVERAGE-P126-L545
+reset,126,Batch Coconut Sweetened Flake,26-05-06-COCO-003,lb,0,0,0,0,0,0,COVERAGE-P126-L558
+reset,126,Batch Coconut Sweetened Flake,MAY 07 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L563
+reset,126,Batch Coconut Sweetened Flake,MAY 11 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L575
+reset,126,Batch Coconut Sweetened Flake,MAY 12 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L589
+reset,126,Batch Coconut Sweetened Flake,MAY 13 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L593
+reset,126,Batch Coconut Sweetened Flake,MAY 14 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L632
+reset,126,Batch Coconut Sweetened Flake,MAY 18 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L644
+reset,126,Batch Coconut Sweetened Flake,MAY 19 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L649
+reset,126,Batch Coconut Sweetened Flake,MAY 20 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L656
+reset,126,Batch Coconut Sweetened Flake,MAY 26 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L675
+reset,126,Batch Coconut Sweetened Flake,MAY 27 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L688
+reset,126,Batch Coconut Sweetened Flake,MAY 28 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L699
+reset,126,Batch Coconut Sweetened Flake,MAY 29 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L705
+reset,126,Batch Coconut Sweetened Flake,MAY 31 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L708
+reset,126,Batch Coconut Sweetened Flake,JUN 01 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L721
+reset,126,Batch Coconut Sweetened Flake,JUN 02 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L729
+reset,126,Batch Coconut Sweetened Flake,JUN 03 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L735
+reset,126,Batch Coconut Sweetened Flake,JUN 04 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L744
+reset,126,Batch Coconut Sweetened Flake,JUN 08 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L758
+reset,126,Batch Coconut Sweetened Flake,JUN 09 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L792
+reset,126,Batch Coconut Sweetened Flake,JUN 10 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L799
+reset,126,Batch Coconut Sweetened Flake,JUN 11 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L806
+reset,126,Batch Coconut Sweetened Flake,JUN 12 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L812
+reset,126,Batch Coconut Sweetened Flake,JUN 15 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L817
+reset,126,Batch Coconut Sweetened Flake,JUN 16 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L822
+reset,126,Batch Coconut Sweetened Flake,JUN 17 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L826
+reset,126,Batch Coconut Sweetened Flake,JUN 18 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L833
+reset,126,Batch Coconut Sweetened Flake,JUN 19 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L838
+reset,126,Batch Coconut Sweetened Flake,JUN 22 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L852
+reset,126,Batch Coconut Sweetened Flake,JUN 23 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L864
+reset,126,Batch Coconut Sweetened Flake,JUN 24 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L873
+reset,126,Batch Coconut Sweetened Flake,JUN 25 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L879
+reset,126,Batch Coconut Sweetened Flake,JUN 29 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L904
+reset,126,Batch Coconut Sweetened Flake,JUN 30 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L919
+reset,126,Batch Coconut Sweetened Flake,JUL 01 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L930
+reset,126,Batch Coconut Sweetened Flake,JUL 02 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L937
+reset,126,Batch Coconut Sweetened Flake,JUL 06 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L946
+reset,126,Batch Coconut Sweetened Flake,JUL 07 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L955
+reset,126,Batch Coconut Sweetened Flake,JUL 13 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L986
+reset,126,Batch Coconut Sweetened Flake,JUL 21 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1030
+reset,126,Batch Coconut Sweetened Flake,JUL 20 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1031
+reset,126,Batch Coconut Sweetened Flake,JUL 22 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1040
+reset,126,Batch Coconut Sweetened Flake,JUL 27 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1065
+reset,126,Batch Coconut Sweetened Flake,JUL 28 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1072
+reset,126,Batch Coconut Sweetened Flake,JUL 30 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1084
+reset,126,Batch Coconut Sweetened Flake,AUG 03 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1105
+reset,126,Batch Coconut Sweetened Flake,AUG 04 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1117
+reset,126,Batch Coconut Sweetened Flake,AUG 05 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1128
+reset,126,Batch Coconut Sweetened Flake,AUG 06 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1135
+reset,126,Batch Coconut Sweetened Flake,AUG 07 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1140
+reset,126,Batch Coconut Sweetened Flake,AUG 10 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1145
+reset,126,Batch Coconut Sweetened Flake,AUG 11 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1154
+reset,126,Batch Coconut Sweetened Flake,AUG 12 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1157
+reset,126,Batch Coconut Sweetened Flake,AUG 13 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1167
+reset,126,Batch Coconut Sweetened Flake,AUG 14 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1177
+reset,126,Batch Coconut Sweetened Flake,AUG 17 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1292
+reset,126,Batch Coconut Sweetened Flake,AUG 18 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1297
+reset,126,Batch Coconut Sweetened Flake,AUG 20 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1313
+reset,126,Batch Coconut Sweetened Flake,AUG 24 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1330
+reset,126,Batch Coconut Sweetened Flake,AUG 25 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1339
+reset,126,Batch Coconut Sweetened Flake,AUG 26 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1353
+reset,126,Batch Coconut Sweetened Flake,AUG 27 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1361
+reset,126,Batch Coconut Sweetened Flake,AUG 31 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1371
+reset,126,Batch Coconut Sweetened Flake,SEP 01 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1380
+reset,126,Batch Coconut Sweetened Flake,SEP 02 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1388
+reset,126,Batch Coconut Sweetened Flake,SEP 08 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1403
+reset,126,Batch Coconut Sweetened Flake,SEP 09 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1415
+reset,126,Batch Coconut Sweetened Flake,SEP 10 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1426
+reset,126,Batch Coconut Sweetened Flake,SEP 11 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1431
+reset,126,Batch Coconut Sweetened Flake,SEP 16 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1458
+reset,126,Batch Coconut Sweetened Flake,SEP 17 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1465
+reset,126,Batch Coconut Sweetened Flake,SEP 22 2026,lb,0,-15,0,0,0,0,COVERAGE-P126-L1478
+reset,126,Batch Coconut Sweetened Flake,SEP 23 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1486
+reset,126,Batch Coconut Sweetened Flake,SEP 24 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1500
+reset,126,Batch Coconut Sweetened Flake,SEP 25 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1504
+reset,126,Batch Coconut Sweetened Flake,SEP 28 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1516
+reset,126,Batch Coconut Sweetened Flake,SEP 30 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1535
+reset,126,Batch Coconut Sweetened Flake,OCT 05 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1548
+reset,126,Batch Coconut Sweetened Flake,OCT 06 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1558
+reset,126,Batch Coconut Sweetened Flake,OCT 13 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1595
+reset,126,Batch Coconut Sweetened Flake,OCT 15 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1607
+reset,126,Batch Coconut Sweetened Flake,OCT 16 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1612
+reset,126,Batch Coconut Sweetened Flake,OCT 20 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1622
+reset,126,Batch Coconut Sweetened Flake,OCT 21 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1633
+reset,126,Batch Coconut Sweetened Flake,OCT 23 2026,lb,0,0,0,0,0,0,COVERAGE-P126-L1645
+reset,127,Batch Coconut Sweetened Medium,FEB 24 2026,lb,0,0,0,0,0,0,COVERAGE-P127-L228
+reset,127,Batch Coconut Sweetened Medium,MAR 26 2026,lb,0,0,0,0,0,0,COVERAGE-P127-L366
+reset,127,Batch Coconut Sweetened Medium,MAR 27 2026,lb,0,0,0,0,0,0,COVERAGE-P127-L374
+reset,127,Batch Coconut Sweetened Medium,2026-04-17,lb,0,0,0,0,0,0,COVERAGE-P127-L424
+reset,127,Batch Coconut Sweetened Medium,APR 27 2026,lb,0,0,0,0,0,0,COVERAGE-P127-L480
+reset,127,Batch Coconut Sweetened Medium,MAY 21 2026,lb,0,0,0,0,0,0,COVERAGE-P127-L665
+reset,127,Batch Coconut Sweetened Medium,JUN 02 2026,lb,0,0,0,0,0,0,COVERAGE-P127-L728
+reset,127,Batch Coconut Sweetened Medium,JUN 08 2026,lb,0,0,0,0,0,0,COVERAGE-P127-L760
+reset,127,Batch Coconut Sweetened Medium,JUL 08 2026,lb,0,0,0,0,0,0,COVERAGE-P127-L965
+reset,127,Batch Coconut Sweetened Medium,AUG 03 2026,lb,0,0,0,0,0,0,COVERAGE-P127-L1106
+reset,127,Batch Coconut Sweetened Medium,AUG 04 2026,lb,0,0,0,0,0,0,COVERAGE-P127-L1116
+reset,127,Batch Coconut Sweetened Medium,AUG 13 2026,lb,0,0,0,0,0,0,COVERAGE-P127-L1166
+reset,127,Batch Coconut Sweetened Medium,SEP 01 2026,lb,0,0,0,0,0,0,COVERAGE-P127-L1382
+reset,127,Batch Coconut Sweetened Medium,SEP 23 2026,lb,0,0,0,0,0,0,COVERAGE-P127-L1487
+reset,127,Batch Coconut Sweetened Medium,SEP 29 2026,lb,0,0,0,0,0,0,COVERAGE-P127-L1526
+reset,127,Batch Coconut Sweetened Medium,SEP 30 2026,lb,0,0,0,0,0,0,COVERAGE-P127-L1534
+reset,128,Batch Coconut Toasted Sweetened Flake,MAR 17 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L323
+reset,128,Batch Coconut Toasted Sweetened Flake,APR 10 2026 Lot,lb,0,0,0,0,0,0,COVERAGE-P128-L391
+reset,128,Batch Coconut Toasted Sweetened Flake,2026-04-17,lb,0,0,0,0,0,0,COVERAGE-P128-L425
+reset,128,Batch Coconut Toasted Sweetened Flake,APR 24 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L468
+reset,128,Batch Coconut Toasted Sweetened Flake,MAY 01 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L518
+reset,128,Batch Coconut Toasted Sweetened Flake,MAY 08 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L567
+reset,128,Batch Coconut Toasted Sweetened Flake,MAY 15 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L640
+reset,128,Batch Coconut Toasted Sweetened Flake,MAY 21 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L668
+reset,128,Batch Coconut Toasted Sweetened Flake,MAY 25 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L676
+reset,128,Batch Coconut Toasted Sweetened Flake,JUN 05 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L749
+reset,128,Batch Coconut Toasted Sweetened Flake,JUN 12 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L811
+reset,128,Batch Coconut Toasted Sweetened Flake,JUN 18 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L834
+reset,128,Batch Coconut Toasted Sweetened Flake,JUN 19 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L842
+reset,128,Batch Coconut Toasted Sweetened Flake,JUN 21 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L846
+reset,128,Batch Coconut Toasted Sweetened Flake,JUN 26 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L882
+reset,128,Batch Coconut Toasted Sweetened Flake,JUN 28 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L889
+reset,128,Batch Coconut Toasted Sweetened Flake,JUN 30 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L918
+reset,128,Batch Coconut Toasted Sweetened Flake,JUL 09 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L975
+reset,128,Batch Coconut Toasted Sweetened Flake,JUL 10 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L979
+reset,128,Batch Coconut Toasted Sweetened Flake,JUL 17 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L1011
+reset,128,Batch Coconut Toasted Sweetened Flake,JUL 19 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L1014
+reset,128,Batch Coconut Toasted Sweetened Flake,JUL 21 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L1026
+reset,128,Batch Coconut Toasted Sweetened Flake,JUL 22 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L1038
+reset,128,Batch Coconut Toasted Sweetened Flake,JUL 23 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L1048
+reset,128,Batch Coconut Toasted Sweetened Flake,JUL 24 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L1054
+reset,128,Batch Coconut Toasted Sweetened Flake,JUL 26 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L1061
+reset,128,Batch Coconut Toasted Sweetened Flake,OCT 01 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L1543
+reset,128,Batch Coconut Toasted Sweetened Flake,OCT 06 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L1559
+reset,128,Batch Coconut Toasted Sweetened Flake,OCT 07 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L1572
+reset,128,Batch Coconut Toasted Sweetened Flake,OCT 08 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L1576
+reset,128,Batch Coconut Toasted Sweetened Flake,OCT 09 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L1580
+reset,128,Batch Coconut Toasted Sweetened Flake,OCT 12 2026,lb,0,0,0,0,0,0,COVERAGE-P128-L1588
+reset,129,Granola Setton Good Ol 25 LB,OCT 13 2026,lb,0,0,0,0,0,0,COVERAGE-P129-L1605
+reset,132,Granola Setton Cocoa Crunch 25 LB,MAY 05 2026,lb,0,0,0,0,0,0,COVERAGE-P132-L556
+reset,133,Granola Setton French Vanilla 25 LB,FEB 16 2026,lb,0,0,0,0,0,0,COVERAGE-P133-L198
+reset,133,Granola Setton French Vanilla 25 LB,FEB 17 2026,lb,0,0,0,0,0,0,COVERAGE-P133-L199
+reset,133,Granola Setton French Vanilla 25 LB,MAY 05 2026,lb,0,0,0,0,0,0,COVERAGE-P133-L555
+reset,133,Granola Setton French Vanilla 25 LB,JUL 21 2026,lb,0,0,0,0,0,0,COVERAGE-P133-L1035
+reset,134,Granola Vanilla Crisp 25 LB (French Vanilla),FEB 18 2026,lb,0,0,0,0,0,0,COVERAGE-P134-L210
+reset,134,Granola Vanilla Crisp 25 LB (French Vanilla),APR 27 2026,lb,0,0,0,0,0,0,COVERAGE-P134-L522
+reset,134,Granola Vanilla Crisp 25 LB (French Vanilla),JUN 29 2026,lb,0,0,0,0,0,0,COVERAGE-P134-L916
+reset,134,Granola Vanilla Crisp 25 LB (French Vanilla),SEP 14 2026,lb,0,0,0,0,0,0,COVERAGE-P134-L1452
+reset,134,Granola Vanilla Crisp 25 LB (French Vanilla),SEP 17 2026,lb,0,0,0,0,0,0,COVERAGE-P134-L1472
+reset,135,Granola Vanilla Almond 25 LB,JAN 20 2026,lb,0,0,0,0,0,0,COVERAGE-P135-L277
+reset,135,Granola Vanilla Almond 25 LB,APR 27 2026,lb,0,0,0,0,0,0,COVERAGE-P135-L499
+reset,135,Granola Vanilla Almond 25 LB,MAY 12 2026,lb,0,0,0,0,0,0,COVERAGE-P135-L587
+reset,135,Granola Vanilla Almond 25 LB,JUN 29 2026,lb,0,0,0,0,0,0,COVERAGE-P135-L917
+reset,135,Granola Vanilla Almond 25 LB,SEP 14 2026,lb,0,0,0,0,0,0,COVERAGE-P135-L1453
+reset,136,Granola Classic 25 LB,FEB 06 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L211
+reset,136,Granola Classic 25 LB,FEB 09 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L255
+reset,136,Granola Classic 25 LB,B26-0304-001,lb,0,0,0,0,0,0,COVERAGE-P136-L269
+reset,136,Granola Classic 25 LB,MAR 18 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L347
+reset,136,Granola Classic 25 LB,MAR 23 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L355
+reset,136,Granola Classic 25 LB,MAR 24 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L356
+reset,136,Granola Classic 25 LB,MAR 26 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L373
+reset,136,Granola Classic 25 LB,2026-04-13,lb,0,0,0,0,0,0,COVERAGE-P136-L435
+reset,136,Granola Classic 25 LB,2026-04-17,lb,0,0,0,0,0,0,COVERAGE-P136-L447
+reset,136,Granola Classic 25 LB,ABR 15 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L464
+reset,136,Granola Classic 25 LB,APR 29 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L521
+reset,136,Granola Classic 25 LB,MAY 05 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L552
+reset,136,Granola Classic 25 LB,MAY 12 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L588
+reset,136,Granola Classic 25 LB,MAY 08 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L596
+reset,136,Granola Classic 25 LB,MAY 13 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L597
+reset,136,Granola Classic 25 LB,MAY 19 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L653
+reset,136,Granola Classic 25 LB,JUN 01 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L753
+reset,136,Granola Classic 25 LB,JUN 29 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L900
+reset,136,Granola Classic 25 LB,JUL 07 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L952
+reset,136,Granola Classic 25 LB,JUL 17 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L1023
+reset,136,Granola Classic 25 LB,JUL 21 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L1024
+reset,136,Granola Classic 25 LB,AUG 03 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L1103
+reset,136,Granola Classic 25 LB,AUG 11 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L1163
+reset,136,Granola Classic 25 LB,AUG 12 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L1312
+reset,136,Granola Classic 25 LB,AUG 21 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L1326
+reset,136,Granola Classic 25 LB,AUG 24 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L1350
+reset,136,Granola Classic 25 LB,SEP 02 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L1438
+reset,136,Granola Classic 25 LB,SEP 11 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L1471
+reset,136,Granola Classic 25 LB,SEP 14 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L1475
+reset,136,Granola Classic 25 LB,SEP 15 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L1476
+reset,136,Granola Classic 25 LB,SEP 16 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L1489
+reset,136,Granola Classic 25 LB,SEP 28 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L1545
+reset,136,Granola Classic 25 LB,SEP 29 2026,lb,0,0,0,0,0,0,COVERAGE-P136-L1552
+reset,136,Granola Classic 25 LB,OCT 12 2026,lb,3250,0,0,0,3250,0,A06-136-R5-1
+reset,136,Granola Classic 25 LB,OCT 13 2026,lb,1500,0,0,0,1500,0,A06-136-R5-2
+reset,136,Granola Classic 25 LB,OCT 15 2026,lb,3000,0,0,0,3000,0,A06-136-R5-3
+reset,137,Granola Crunchy CNS 10 LB Case,FEB 09 2026,lb,0,0,0,0,0,0,COVERAGE-P137-L275
+reset,137,Granola Crunchy CNS 10 LB Case,FEB 06 2026,lb,0,0,0,0,0,0,COVERAGE-P137-L285
+reset,137,Granola Crunchy CNS 10 LB Case,MAR 11 2026,lb,0,0,0,0,0,0,COVERAGE-P137-L342
+reset,137,Granola Crunchy CNS 10 LB Case,MAR 16 2026,lb,0,0,0,0,0,0,COVERAGE-P137-L357
+reset,137,Granola Crunchy CNS 10 LB Case,MAR 24 2026,lb,0,0,0,0,0,0,COVERAGE-P137-L358
+reset,137,Granola Crunchy CNS 10 LB Case,APR 29 2026,lb,0,0,0,0,0,0,COVERAGE-P137-L549
+reset,137,Granola Crunchy CNS 10 LB Case,MAY 05 2026,lb,0,0,0,0,0,0,COVERAGE-P137-L554
+reset,137,Granola Crunchy CNS 10 LB Case,MAY 08 2026,lb,0,0,0,0,0,0,COVERAGE-P137-L636
+reset,137,Granola Crunchy CNS 10 LB Case,MAY 19 2026,lb,0,0,0,0,0,0,COVERAGE-P137-L652
+reset,137,Granola Crunchy CNS 10 LB Case,MAY 14 2026,lb,0,0,0,0,0,0,COVERAGE-P137-L661
+reset,137,Granola Crunchy CNS 10 LB Case,MAY 21 2026,lb,0,0,0,0,0,0,COVERAGE-P137-L717
+reset,137,Granola Crunchy CNS 10 LB Case,JUN 02 2026,lb,0,0,0,0,0,0,COVERAGE-P137-L754
+reset,137,Granola Crunchy CNS 10 LB Case,JUL 07 2026,lb,0,0,0,0,0,0,COVERAGE-P137-L953
+reset,137,Granola Crunchy CNS 10 LB Case,AUG 03 2026,lb,0,0,0,0,0,0,COVERAGE-P137-L1123
+reset,137,Granola Crunchy CNS 10 LB Case,AUG 10 2026,lb,0,0,0,0,0,0,COVERAGE-P137-L1152
+reset,137,Granola Crunchy CNS 10 LB Case,AUG 11 2026,lb,0,0,0,0,0,0,COVERAGE-P137-L1174
+reset,137,Granola Crunchy CNS 10 LB Case,AUG 14 2026,lb,0,0,0,0,0,0,COVERAGE-P137-L1306
+reset,137,Granola Crunchy CNS 10 LB Case,AUG 13 2026,lb,0,0,0,0,0,0,COVERAGE-P137-L1335
+reset,137,Granola Crunchy CNS 10 LB Case,AUG 24 2026,lb,0,0,0,0,0,0,COVERAGE-P137-L1370
+reset,137,Granola Crunchy CNS 10 LB Case,AUG 31 2026,lb,100,100,0,0,100,0,A06-137-1
+reset,137,Granola Crunchy CNS 10 LB Case,SEP 17 2026,lb,440,-500,0,0,440,0,A06-137-2
+reset,137,Granola Crunchy CNS 10 LB Case,OCT 15 2026,lb,1400,0,0,0,1400,0,A06-137-3
+reset,138,Granola Wheat Free 25 LB,MAR 18 2026,lb,0,0,0,0,0,0,COVERAGE-P138-L348
+reset,138,Granola Wheat Free 25 LB,MAR 24 2026,lb,0,0,0,0,0,0,COVERAGE-P138-L378
+reset,138,Granola Wheat Free 25 LB,MAR 27 2026,lb,0,0,0,0,0,0,COVERAGE-P138-L434
+reset,138,Granola Wheat Free 25 LB,MAY 12 2026,lb,0,0,0,0,0,0,COVERAGE-P138-L595
+reset,138,Granola Wheat Free 25 LB,MAY 13 2026,lb,0,0,0,0,0,0,COVERAGE-P138-L670
+reset,138,Granola Wheat Free 25 LB,MAY 21 2026,lb,0,0,0,0,0,0,COVERAGE-P138-L716
+reset,138,Granola Wheat Free 25 LB,JUN 02 2026,lb,0,0,0,0,0,0,COVERAGE-P138-L844
+reset,138,Granola Wheat Free 25 LB,JUL 17 2026,lb,0,0,0,0,0,0,COVERAGE-P138-L1015
+reset,138,Granola Wheat Free 25 LB,AUG 14 2026,lb,0,0,0,0,0,0,COVERAGE-P138-L1305
+reset,138,Granola Wheat Free 25 LB,SEP 22 2026,lb,0,0,0,0,0,0,COVERAGE-P138-L1525
+reset,139,Granola Cocoa Vibes 25 LB,FEB 19 2026,lb,0,0,0,0,0,0,COVERAGE-P139-L209
+reset,139,Granola Cocoa Vibes 25 LB,JUN 30 2026,lb,0,0,0,0,0,0,COVERAGE-P139-L913
+reset,140,Granola Cinnamon Almond 25 LB,APR 27 2026,lb,0,0,0,0,0,0,COVERAGE-P140-L497
+reset,140,Granola Cinnamon Almond 25 LB,MAY 11 2026,lb,0,0,0,0,0,0,COVERAGE-P140-L585
+reset,140,Granola Cinnamon Almond 25 LB,JUN 30 2026,lb,0,0,0,0,0,0,COVERAGE-P140-L914
+reset,141,Granola Honey Nut 25 LB,MAR 12 2026,lb,0,0,0,0,0,0,COVERAGE-P141-L306
+reset,141,Granola Honey Nut 25 LB,2026-04-17,lb,0,0,0,0,0,0,COVERAGE-P141-L487
+reset,141,Granola Honey Nut 25 LB,APR 24 2026,lb,0,0,0,0,0,0,COVERAGE-P141-L498
+reset,141,Granola Honey Nut 25 LB,JUN 29 2026,lb,0,0,0,0,0,0,COVERAGE-P141-L915
+reset,141,Granola Honey Nut 25 LB,AUG 19 2026,lb,0,0,0,0,0,0,COVERAGE-P141-L1351
+reset,141,Granola Honey Nut 25 LB,SEP 14 2026,lb,0,0,0,0,0,0,COVERAGE-P141-L1454
+reset,141,Granola Honey Nut 25 LB,OCT 14 2026,lb,1250,0,0,0,1250,0,A06-141-R5-1
+reset,142,Granola Fruit Nut 25 LB,FN-0219,lb,0,0,0,0,0,0,COVERAGE-P142-L214
+reset,142,Granola Fruit Nut 25 LB,MAY 12 2026,lb,0,0,0,0,0,0,COVERAGE-P142-L604
+reset,142,Granola Fruit Nut 25 LB,JUN 29 2026,lb,0,0,0,0,0,0,COVERAGE-P142-L903
+reset,142,Granola Fruit Nut 25 LB,SEP 16 2026,lb,0,0,0,0,0,0,COVERAGE-P142-L1456
+reset,142,Granola Fruit Nut 25 LB,OCT 06 2026,lb,550,0,0,0,550,0,A06-142-R5-1
+reset,143,Granola Chocolate Chip 25 LB,ABR 24 2026,lb,0,0,0,0,0,0,COVERAGE-P143-L465
+reset,143,Granola Chocolate Chip 25 LB,MAY 11 2026,lb,0,0,0,0,0,0,COVERAGE-P143-L586
+reset,144,CQ Granola 10 LB,26-02-05-FOUND-007,lb,0,0,0,0,0,0,COVERAGE-P144-L86
+reset,144,CQ Granola 10 LB,26-02-06-FOUND-009,lb,0,0,0,0,0,0,COVERAGE-P144-L103
+reset,144,CQ Granola 10 LB,26-02-09-FOUND-006,lb,0,0,0,0,0,0,COVERAGE-P144-L114
+reset,144,CQ Granola 10 LB,26-02-09-FOUND-007,lb,0,0,0,0,0,0,COVERAGE-P144-L115
+reset,144,CQ Granola 10 LB,26-02-09-FOUND-008,lb,0,0,0,0,0,0,COVERAGE-P144-L116
+reset,144,CQ Granola 10 LB,26-02-09-FOUND-009,lb,0,0,0,0,0,0,COVERAGE-P144-L117
+reset,144,CQ Granola 10 LB,26-02-10-FOUND-006,lb,0,0,0,0,0,0,COVERAGE-P144-L132
+reset,144,CQ Granola 10 LB,26-02-10-FOUND-007,lb,0,0,0,0,0,0,COVERAGE-P144-L133
+reset,144,CQ Granola 10 LB,26-02-13-FOUND-001,lb,0,0,0,0,0,0,COVERAGE-P144-L166
+reset,144,CQ Granola 10 LB,FEB 06 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L178
+reset,144,CQ Granola 10 LB,FEB 09 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L295
+reset,144,CQ Granola 10 LB,MAR 03 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L308
+reset,144,CQ Granola 10 LB,MAR 10 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L309
+reset,144,CQ Granola 10 LB,MAR 11 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L314
+reset,144,CQ Granola 10 LB,MAR 16 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L321
+reset,144,CQ Granola 10 LB,26-03-23-PHYS-002,lb,0,0,0,0,0,0,COVERAGE-P144-L350
+reset,144,CQ Granola 10 LB,MAR 24 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L503
+reset,144,CQ Granola 10 LB,ABR 23 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L516
+reset,144,CQ Granola 10 LB,MAY 19 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L672
+reset,144,CQ Granola 10 LB,MAY 20 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L673
+reset,144,CQ Granola 10 LB,MAY 21 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L712
+reset,144,CQ Granola 10 LB,MAY 28 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L743
+reset,144,CQ Granola 10 LB,JUN 01 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L750
+reset,144,CQ Granola 10 LB,JUN 02 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L869
+reset,144,CQ Granola 10 LB,JUN 25 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L885
+reset,144,CQ Granola 10 LB,JUN 26 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L894
+reset,144,CQ Granola 10 LB,JUN 28 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L895
+reset,144,CQ Granola 10 LB,JUN 29 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L927
+reset,144,CQ Granola 10 LB,JUN 30 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L928
+reset,144,CQ Granola 10 LB,JUL 01 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L929
+reset,144,CQ Granola 10 LB,JUL 02 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L936
+reset,144,CQ Granola 10 LB,JUL 06 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L945
+reset,144,CQ Granola 10 LB,JUL 10 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L993
+reset,144,CQ Granola 10 LB,JUL 13 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L995
+reset,144,CQ Granola 10 LB,JUL 14 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L1001
+reset,144,CQ Granola 10 LB,JUL 15 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L1002
+reset,144,CQ Granola 10 LB,JUL 16 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L1007
+reset,144,CQ Granola 10 LB,JUL 21 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L1075
+reset,144,CQ Granola 10 LB,JUL 27 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L1077
+reset,144,CQ Granola 10 LB,JUL 28 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L1078
+reset,144,CQ Granola 10 LB,JUL 29 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L1087
+reset,144,CQ Granola 10 LB,JUL 30 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L1088
+reset,144,CQ Granola 10 LB,JUL 31 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L1093
+reset,144,CQ Granola 10 LB,AUG 04 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L1139
+reset,144,CQ Granola 10 LB,AUG 10 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L1149
+reset,144,CQ Granola 10 LB,AUG 12 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L1320
+reset,144,CQ Granola 10 LB,AUG 13 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L1337
+reset,144,CQ Granola 10 LB,AUG 20 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L1338
+reset,144,CQ Granola 10 LB,AUG 31 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L1390
+reset,144,CQ Granola 10 LB,SEP 17,lb,0,0,0,0,0,0,COVERAGE-P144-L1515
+reset,144,CQ Granola 10 LB,SEP 22 2026,lb,0,0,0,0,0,0,COVERAGE-P144-L1524
+reset,144,CQ Granola 10 LB,SEP 29 2026,lb,4200,0,0,0,4200,0,A06-144-R5-1
+reset,144,CQ Granola 10 LB,OCT 05 2026,lb,2800,0,0,0,2800,0,A06-144-R5-2
+reset,144,CQ Granola 10 LB,OCT 12 2026,lb,1400,0,0,0,1400,0,A06-144-R5-3
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB021627,lb,0,0,0,0,0,0,COVERAGE-P145-L191
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,FEB 13 2026,lb,0,0,0,0,0,0,COVERAGE-P145-L200
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB022427 Lot,lb,0,0,0,0,0,0,COVERAGE-P145-L226
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,FEB 18 2026,lb,0,0,0,0,0,0,COVERAGE-P145-L249
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB030327,lb,0,0,0,0,0,0,COVERAGE-P145-L263
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,26-02-25,lb,0,0,0,0,0,0,COVERAGE-P145-L267
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB041327 Lot,lb,0,0,0,0,0,0,COVERAGE-P145-L401
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB041327,lb,0,0,0,0,0,0,COVERAGE-P145-L410
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,MAY 01 2026,lb,0,0,0,0,0,0,COVERAGE-P145-L520
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB050427,lb,0,0,0,0,0,0,COVERAGE-P145-L534
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB052627,lb,0,0,0,0,0,0,COVERAGE-P145-L703
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB060127,lb,0,0,0,0,0,0,COVERAGE-P145-L720
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB060827,lb,0,0,0,0,0,0,COVERAGE-P145-L809
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB061527,lb,0,0,0,0,0,0,COVERAGE-P145-L831
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB062227,lb,0,0,0,0,0,0,COVERAGE-P145-L849
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB070827,lb,0,0,0,0,0,0,COVERAGE-P145-L974
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB071327,lb,0,0,0,0,0,0,COVERAGE-P145-L989
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB072027,lb,0,0,0,0,0,0,COVERAGE-P145-L1025
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB080327,lb,0,0,0,0,0,0,COVERAGE-P145-L1104
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB081027,lb,0,0,0,0,0,0,COVERAGE-P145-L1159
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB081727 USA,lb,0,-2850,0,0,0,0,COVERAGE-P145-L1291
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB081727,lb,0,-7012.5,0,0,0,0,COVERAGE-P145-L1298
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB082427,lb,0,-2287.5,0,0,0,0,COVERAGE-P145-L1327
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB090827,lb,0,-7252.5,0,0,0,0,COVERAGE-P145-L1402
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB091427,lb,0,-6217.5,0,0,0,0,COVERAGE-P145-L1440
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB092827,lb,0,-2167.5,0,0,0,0,COVERAGE-P145-L1536
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB093027,lb,2272.5,-285,0,0,2272.5,0,A06B-145-R6-3
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB100527,lb,1597.5,0,0,0,1597.5,0,A06B-145-R6-2
+reset,145,Granola SS Chocolate Chip 12x10 OZ Case,BB101227,lb,1755,0,0,0,1755,0,A06B-145-R6-1
+reset,146,Granola SS Original 12x10 OZ Case,FEB 16 2026,lb,0,0,0,0,0,0,COVERAGE-P146-L201
+reset,146,Granola SS Original 12x10 OZ Case,BB022427,lb,0,0,0,0,0,0,COVERAGE-P146-L227
+reset,146,Granola SS Original 12x10 OZ Case,BB030327,lb,0,0,0,0,0,0,COVERAGE-P146-L262
+reset,146,Granola SS Original 12x10 OZ Case,BB041327,lb,0,0,0,0,0,0,COVERAGE-P146-L416
+reset,146,Granola SS Original 12x10 OZ Case,BB061527,lb,0,0,0,0,0,0,COVERAGE-P146-L820
+reset,146,Granola SS Original 12x10 OZ Case,BB070827,lb,0,0,0,0,0,0,COVERAGE-P146-L973
+reset,146,Granola SS Original 12x10 OZ Case,BB081027,lb,0,0,0,0,0,0,COVERAGE-P146-L1176
+reset,146,Granola SS Original 12x10 OZ Case,BB081727,lb,0,0,0,0,0,0,COVERAGE-P146-L1302
+reset,146,Granola SS Original 12x10 OZ Case,BB082427,lb,0,0,0,0,0,0,COVERAGE-P146-L1367
+reset,146,Granola SS Original 12x10 OZ Case,BB083127,lb,0,0,0,0,0,0,COVERAGE-P146-L1369
+reset,146,Granola SS Original 12x10 OZ Case,BB090827,lb,0,-780,0,0,0,0,COVERAGE-P146-L1424
+reset,146,Granola SS Original 12x10 OZ Case,BB091427,lb,0,-1177.5,0,0,0,0,COVERAGE-P146-L1439
+reset,146,Granola SS Original 12x10 OZ Case,BB092427,lb,0,-6075,0,0,0,0,COVERAGE-P146-L1499
+reset,146,Granola SS Original 12x10 OZ Case,BB100527,lb,0,-5482.5,0,0,0,0,COVERAGE-P146-L1570
+reset,146,Granola SS Original 12x10 OZ Case,BB101227,lb,450,-720,0,0,450,0,A06B-146-R6-2
+reset,146,Granola SS Original 12x10 OZ Case,BB101927,lb,4567.5,0,0,0,4567.5,0,A06B-146-R6-1
+reset,147,Granola SS Cranberry 12x10 OZ Case,BB070827,lb,0,0,0,0,0,0,COVERAGE-P147-L963
+reset,147,Granola SS Cranberry 12x10 OZ Case,BB081727,lb,0,-1852.5,0,0,0,0,COVERAGE-P147-L1322
+reset,147,Granola SS Cranberry 12x10 OZ Case,BB082427,lb,0,-172.5,0,0,0,0,COVERAGE-P147-L1328
+reset,147,Granola SS Cranberry 12x10 OZ Case,BB101927,lb,675,0,0,0,675,0,A06B-147-R6-1
+reset,148,Granola SS Chocolate Chip Low Carb 12x10 OZ Case,B26-0302-003,lb,0,0,0,0,0,0,COVERAGE-P148-L271
+reset,148,Granola SS Chocolate Chip Low Carb 12x10 OZ Case,BB070827,lb,0,0,0,0,0,0,COVERAGE-P148-L962
+reset,148,Granola SS Chocolate Chip Low Carb 12x10 OZ Case,BB082427,lb,0,-1365,0,0,0,0,COVERAGE-P148-L1359
+reset,148,Granola SS Chocolate Chip Low Carb 12x10 OZ Case,BB101927,lb,0,0,0,727.5,727.5,0,COVERAGE-P148-L1644
+reset,149,Granola SS Original Low Carb 12x10 OZ Case,B26-0302-002,lb,0,0,0,0,0,0,COVERAGE-P149-L268
+reset,149,Granola SS Original Low Carb 12x10 OZ Case,BB070827,lb,0,0,0,0,0,0,COVERAGE-P149-L961
+reset,149,Granola SS Original Low Carb 12x10 OZ Case,BB082427,lb,0,-2032.5,0,0,0,0,COVERAGE-P149-L1360
+reset,149,Granola SS Original Low Carb 12x10 OZ Case,BB101927,lb,0,0,0,667.5,667.5,0,COVERAGE-P149-L1642
+reset,150,BS Granola – Dark Chocolate – 6x7 OZ Case,SW2607890,lb,0,0,0,0,0,0,COVERAGE-P150-L346
+reset,150,BS Granola – Dark Chocolate – 6x7 OZ Case,SW2611090,lb,0,0,0,0,0,0,COVERAGE-P150-L433
+reset,150,BS Granola – Dark Chocolate – 6x7 OZ Case,MAR 20 2026,lb,0,0,0,0,0,0,COVERAGE-P150-L452
+reset,150,BS Granola – Dark Chocolate – 6x7 OZ Case,SW2620590,lb,0,0,0,0,0,0,COVERAGE-P150-L1057
+reset,151,BS Granola – Peanut Butter Banana – 6x7 OZ Case,26-02-10-FOUND-005,lb,0,0,0,0,0,0,COVERAGE-P151-L130
+reset,151,BS Granola – Peanut Butter Banana – 6x7 OZ Case,26-02-12-FOUND-001,lb,0,0,0,0,0,0,COVERAGE-P151-L137
+reset,151,BS Granola – Peanut Butter Banana – 6x7 OZ Case,SW2607708,lb,0,0,0,0,0,0,COVERAGE-P151-L336
+reset,151,BS Granola – Peanut Butter Banana – 6x7 OZ Case,SW2620891,lb,0,0,0,0,0,0,COVERAGE-P151-L1080
+reset,152,BS Almond Butter Granola – 6x7 OZ Case,B26-0305-001,lb,0,0,0,0,0,0,COVERAGE-P152-L281
+reset,152,BS Almond Butter Granola – 6x7 OZ Case,SW2607593,lb,0,0,0,0,0,0,COVERAGE-P152-L319
+reset,153,BS Granola – Hazelnut Butter – 6x7 OZ Case,SW2606892,lb,0,0,0,0,0,0,COVERAGE-P153-L318
+reset,153,BS Granola – Hazelnut Butter – 6x7 OZ Case,SW2612692,lb,0,0,0,0,0,0,COVERAGE-P153-L569
+reset,154,Coconut Sweetened Fancy CNS 10 LB,APR 10 2026 Lot,lb,0,0,0,0,0,0,COVERAGE-P154-L515
+reset,155,Coconut Sweetened Fancy CNS 25 LB,26-02-12-FOUND-014,lb,0,0,0,0,0,0,COVERAGE-P155-L154
+reset,156,Coconut Sweetened Flake CNS 10 LB,26-02-10-FOUND-001,lb,0,0,0,0,0,0,COVERAGE-P156-L119
+reset,156,Coconut Sweetened Flake CNS 10 LB,26-02-10-FOUND-002,lb,0,0,0,0,0,0,COVERAGE-P156-L120
+reset,156,Coconut Sweetened Flake CNS 10 LB,26-02-10-FOUND-003,lb,0,0,0,0,0,0,COVERAGE-P156-L121
+reset,156,Coconut Sweetened Flake CNS 10 LB,26-02-12-FOUND-012,lb,0,0,0,0,0,0,COVERAGE-P156-L152
+reset,156,Coconut Sweetened Flake CNS 10 LB,26-02-12-FOUND-013,lb,0,0,0,0,0,0,COVERAGE-P156-L153
+reset,156,Coconut Sweetened Flake CNS 10 LB,LOT FEB 24 2026,lb,0,0,0,0,0,0,COVERAGE-P156-L231
+reset,156,Coconut Sweetened Flake CNS 10 LB,FEB 25 2026,lb,0,0,0,0,0,0,COVERAGE-P156-L243
+reset,156,Coconut Sweetened Flake CNS 10 LB,APR 28 2026,lb,0,0,0,0,0,0,COVERAGE-P156-L494
+reset,156,Coconut Sweetened Flake CNS 10 LB,MAY 13 2026,lb,0,0,0,0,0,0,COVERAGE-P156-L601
+reset,156,Coconut Sweetened Flake CNS 10 LB,MAY 18 2026,lb,0,0,0,0,0,0,COVERAGE-P156-L646
+reset,156,Coconut Sweetened Flake CNS 10 LB,JUN 10 2026,lb,0,0,0,0,0,0,COVERAGE-P156-L801
+reset,156,Coconut Sweetened Flake CNS 10 LB,JUN 19 2026,lb,0,0,0,0,0,0,COVERAGE-P156-L859
+reset,156,Coconut Sweetened Flake CNS 10 LB,JUL 09 2026,lb,0,0,0,0,0,0,COVERAGE-P156-L971
+reset,156,Coconut Sweetened Flake CNS 10 LB,JUL 22 2026,lb,0,0,0,0,0,0,COVERAGE-P156-L1044
+reset,156,Coconut Sweetened Flake CNS 10 LB,JUL 27 2026,lb,0,0,0,0,0,0,COVERAGE-P156-L1067
+reset,156,Coconut Sweetened Flake CNS 10 LB,AUG 05 2026,lb,0,0,0,0,0,0,COVERAGE-P156-L1131
+reset,156,Coconut Sweetened Flake CNS 10 LB,AUG 20 2026,lb,0,0,0,0,0,0,COVERAGE-P156-L1314
+reset,156,Coconut Sweetened Flake CNS 10 LB,AUG 31 2026,lb,0,0,0,0,0,0,COVERAGE-P156-L1372
+reset,156,Coconut Sweetened Flake CNS 10 LB,SEP 17 2026,lb,0,0,0,0,0,0,COVERAGE-P156-L1466
+reset,156,Coconut Sweetened Flake CNS 10 LB,SEP 30 2026,lb,0,0,0,0,0,0,COVERAGE-P156-L1539
+reset,156,Coconut Sweetened Flake CNS 10 LB,OCT 05 2026,lb,0,0,0,0,0,0,COVERAGE-P156-L1550
+reset,156,Coconut Sweetened Flake CNS 10 LB,OCT 06 2026,lb,1150,0,0,0,1150,0,A06-156-R5-1
+reset,157,Coconut Sweetened Flake CNS 25 LB,26-02-04-VINN-001,lb,0,0,0,0,0,0,COVERAGE-P157-L62
+reset,157,Coconut Sweetened Flake CNS 25 LB,26-02-12-FOUND-010,lb,0,0,0,0,0,0,COVERAGE-P157-L150
+reset,157,Coconut Sweetened Flake CNS 25 LB,26-02-12-FOUND-011,lb,0,0,0,0,0,0,COVERAGE-P157-L151
+reset,157,Coconut Sweetened Flake CNS 25 LB,2026-04-21,lb,0,0,0,0,0,0,COVERAGE-P157-L444
+reset,157,Coconut Sweetened Flake CNS 25 LB,MAY 20 2026,lb,0,0,0,0,0,0,COVERAGE-P157-L659
+reset,157,Coconut Sweetened Flake CNS 25 LB,MAY 28 2026,lb,0,0,0,0,0,0,COVERAGE-P157-L701
+reset,157,Coconut Sweetened Flake CNS 25 LB,JUN 09 2026,lb,0,0,0,0,0,0,COVERAGE-P157-L793
+reset,157,Coconut Sweetened Flake CNS 25 LB,JUL 09 2026,lb,0,0,0,0,0,0,COVERAGE-P157-L976
+reset,157,Coconut Sweetened Flake CNS 25 LB,JUL 13 2026,lb,0,0,0,0,0,0,COVERAGE-P157-L990
+reset,157,Coconut Sweetened Flake CNS 25 LB,JUL 27 2026,lb,0,0,0,0,0,0,COVERAGE-P157-L1066
+reset,157,Coconut Sweetened Flake CNS 25 LB,AUG 06 2026,lb,0,0,0,0,0,0,COVERAGE-P157-L1136
+reset,157,Coconut Sweetened Flake CNS 25 LB,AUG 27 2026,lb,0,0,0,0,0,0,COVERAGE-P157-L1364
+reset,157,Coconut Sweetened Flake CNS 25 LB,SEP 03 2026,lb,0,0,0,0,0,0,COVERAGE-P157-L1408
+reset,157,Coconut Sweetened Flake CNS 25 LB,SEP 04 2026,lb,0,0,0,0,0,0,COVERAGE-P157-L1409
+reset,157,Coconut Sweetened Flake CNS 25 LB,SEP 16 2026,lb,0,0,0,0,0,0,COVERAGE-P157-L1459
+reset,157,Coconut Sweetened Flake CNS 25 LB,SEP 17 2026,lb,450,0,0,-450,0,0,A06-157-R5-3
+reset,157,Coconut Sweetened Flake CNS 25 LB,SEP 28 2026,lb,1100,0,0,-1100,0,0,A06-157-R5-4
+reset,157,Coconut Sweetened Flake CNS 25 LB,OCT 20 2026,lb,725,0,0,-725,0,0,A06-157-R5-1
+reset,157,Coconut Sweetened Flake CNS 25 LB,OCT 21 2026,lb,725,0,0,-225,500,0,A06-157-R5-2
+reset,157,Coconut Sweetened Flake CNS 25 LB,OCT 22 2026,lb,0,0,0,1100,1100,0,COVERAGE-P157-L1646
+reset,157,Coconut Sweetened Flake CNS 25 LB,OCT 23 2026,lb,0,0,0,1100,1100,0,COVERAGE-P157-L1647
+reset,158,Coconut Sweetened Medium CNS 10 LB,26-02-12-FOUND-015,lb,0,0,0,0,0,0,COVERAGE-P158-L155
+reset,158,Coconut Sweetened Medium CNS 10 LB,MAR 26 2026,lb,0,0,0,0,0,0,COVERAGE-P158-L368
+reset,158,Coconut Sweetened Medium CNS 10 LB,AUG 04 2026,lb,0,0,0,0,0,0,COVERAGE-P158-L1119
+reset,158,Coconut Sweetened Medium CNS 10 LB,AGO 19 2026,lb,160,0,0,0,160,0,A06-158-R5-1
+reset,159,Coconut Toasted Sweetened Flake CNS 10 LB,MAR 18 2026,lb,0,0,0,0,0,0,COVERAGE-P159-L333
+reset,159,Coconut Toasted Sweetened Flake CNS 10 LB,MAY 18 2026,lb,0,0,0,0,0,0,COVERAGE-P159-L740
+reset,159,Coconut Toasted Sweetened Flake CNS 10 LB,JUN 19 2026,lb,0,0,0,0,0,0,COVERAGE-P159-L840
+reset,159,Coconut Toasted Sweetened Flake CNS 10 LB,JUL 01 2026,lb,0,0,0,0,0,0,COVERAGE-P159-L923
+reset,159,Coconut Toasted Sweetened Flake CNS 10 LB,JUL 20 2026,lb,0,0,0,0,0,0,COVERAGE-P159-L1017
+reset,159,Coconut Toasted Sweetened Flake CNS 10 LB,JUL 26 2026,lb,0,0,0,0,0,0,COVERAGE-P159-L1060
+reset,159,Coconut Toasted Sweetened Flake CNS 10 LB,JUL 27 2026,lb,0,0,0,0,0,0,COVERAGE-P159-L1153
+reset,159,Coconut Toasted Sweetened Flake CNS 10 LB,AUG 21 2026,lb,110,0,0,0,110,0,A06-159-R5-1
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,26-02-12-FOUND-016,lb,0,0,0,0,0,0,COVERAGE-P160-L156
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,MAR 18 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L334
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,2026-04-20,lb,0,0,0,0,0,0,COVERAGE-P160-L436
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,MAY 04 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L535
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,MAY 11 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L576
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,MAY 15 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L643
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,MAY 25 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L669
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,MAY 26 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L677
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,MAY 18 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L678
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,JUN 05 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L757
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,JUN 15 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L816
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,JUN 19 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L841
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,JUN 21 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L845
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,JUN 22 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L851
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,JUN 28 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L888
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,JUN 29 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L892
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,JUL 01 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L924
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,APR 24 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L933
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,JUL 10 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L981
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,JUL 13 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L987
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,JUL 19 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L1012
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,JUL 20 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L1016
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,JAN 18 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L1020
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,JUL 23 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L1046
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,JUL 24 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L1052
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,JUL 26 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L1058
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,JUL 27 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L1062
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,OCT 02 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L1546
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,OCT 07 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L1571
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,OCT 09 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L1575
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,OCT 08 2026,lb,0,0,0,0,0,0,COVERAGE-P160-L1579
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,OCT 12 2026,lb,1375,0,0,0,1375,0,A06-160-R5-1
+reset,160,Coconut Toasted Sweetened Flake CNS 25 LB,OCT 13 2026,lb,1000,0,0,0,1000,0,A06-160-R5-2
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,26-02-12-FOUND-019,lb,0,0,0,0,0,0,COVERAGE-P161-L159
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,FEB 25 2026,lb,0,0,0,0,0,0,COVERAGE-P161-L240
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,MAR 13 2026,lb,0,0,0,0,0,0,COVERAGE-P161-L315
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,MAR 25 2026,lb,0,0,0,0,0,0,COVERAGE-P161-L365
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,MAR 26 2026,lb,0,0,0,0,0,0,COVERAGE-P161-L371
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,MAR 30 2026,lb,0,0,0,0,0,0,COVERAGE-P161-L384
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,MAR 31 2026,lb,0,0,0,0,0,0,COVERAGE-P161-L387
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,2026-04-20,lb,0,0,0,0,0,0,COVERAGE-P161-L438
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,APR 27 2026,lb,0,0,0,0,0,0,COVERAGE-P161-L483
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,APR 10 2026 Lot,lb,0,0,0,0,0,0,COVERAGE-P161-L513
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,MAY 21 2026,lb,0,0,0,0,0,0,COVERAGE-P161-L667
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,MAY 28 2026,lb,0,0,0,0,0,0,COVERAGE-P161-L704
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,MAY 29 2026,lb,0,0,0,0,0,0,COVERAGE-P161-L719
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,JUN 02 2026,lb,0,0,0,0,0,0,COVERAGE-P161-L730
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,JUN 08 2026,lb,0,0,0,0,0,0,COVERAGE-P161-L762
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,JUL 13 2026,lb,0,0,0,0,0,0,COVERAGE-P161-L985
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,JUL 22 2026,lb,0,0,0,0,0,0,COVERAGE-P161-L1042
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,AUG 04 2026,lb,0,0,0,0,0,0,COVERAGE-P161-L1121
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,AUG 13 2026,lb,0,0,0,0,0,0,COVERAGE-P161-L1172
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,AUG 05 2026,lb,0,0,0,0,0,0,COVERAGE-P161-L1344
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,SEP 01 2026,lb,0,0,0,0,0,0,COVERAGE-P161-L1386
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,SEP 08 2026,lb,0,0,0,0,0,0,COVERAGE-P161-L1407
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,SEP 09 2026,lb,0,0,0,0,0,0,COVERAGE-P161-L1419
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,SEP 29 2026,lb,0,0,0,0,0,0,COVERAGE-P161-L1527
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,SEP 30 2026,lb,690,0,0,0,690,0,A06-161-R5-2
+reset,161,Coconut Sweetened Fancy UNIPRO 10 LB,OCT 20 2026,lb,1260,0,0,0,1260,0,A06-161-R5-1
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,26-02-12-FOUND-017,lb,0,0,0,0,0,0,COVERAGE-P162-L157
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,26-02-12-FOUND-018,lb,0,0,0,0,0,0,COVERAGE-P162-L158
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,LOT FEB 24 2026,lb,0,0,0,0,0,0,COVERAGE-P162-L230
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,FEB 24 2026,lb,0,0,0,0,0,0,COVERAGE-P162-L242
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,MAR 25 2026,lb,0,0,0,0,0,0,COVERAGE-P162-L364
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,MAR 03 2026,lb,0,0,0,0,0,0,COVERAGE-P162-L383
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,MAR 31 2026,lb,0,0,0,0,0,0,COVERAGE-P162-L388
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,APR 13 2026 lot,lb,0,0,0,0,0,0,COVERAGE-P162-L403
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,2026-04-17,lb,0,0,0,0,0,0,COVERAGE-P162-L426
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,APR 28 2026,lb,0,0,0,0,0,0,COVERAGE-P162-L495
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,MAY 28 2026,lb,0,0,0,0,0,0,COVERAGE-P162-L700
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,JUN 02 2026,lb,0,0,0,0,0,0,COVERAGE-P162-L732
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,JUN 08 2026,lb,0,0,0,0,0,0,COVERAGE-P162-L761
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,JUN 09 2026,lb,0,0,0,0,0,0,COVERAGE-P162-L794
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,JUN 10 2026,lb,0,0,0,0,0,0,COVERAGE-P162-L800
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,JUL 08 2026,lb,0,0,0,0,0,0,COVERAGE-P162-L966
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,JUL 20 2026,lb,0,0,0,0,0,0,COVERAGE-P162-L1032
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,JUL 21 2026,lb,0,0,0,0,0,0,COVERAGE-P162-L1033
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,AUG 03 2026,lb,0,0,0,0,0,0,COVERAGE-P162-L1108
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,AUG 04 2026,lb,0,0,0,0,0,0,COVERAGE-P162-L1120
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,AUG 05 2026,lb,0,0,0,0,0,0,COVERAGE-P162-L1130
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,AUG 06 2026,lb,0,0,0,0,0,0,COVERAGE-P162-L1137
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,STAGED-FEESERS-67476,lb,0,0,0,0,0,0,COVERAGE-P162-L1287
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,SEP 17 2026,lb,0,0,0,0,0,0,COVERAGE-P162-L1467
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,SEP 22 2026,lb,0,0,0,0,0,0,COVERAGE-P162-L1479
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,SEP 30 2026,lb,0,0,0,0,0,0,COVERAGE-P162-L1540
+reset,162,Coconut Sweetened Flake UNIPRO 10 LB,OCT 05 2026,lb,830,0,0,0,830,0,A06-162-R5-1
+reset,163,Coconut Sweetened Medium UNIPRO 10 LB,26-02-12-FOUND-020,lb,0,0,0,0,0,0,COVERAGE-P163-L160
+reset,163,Coconut Sweetened Medium UNIPRO 10 LB,FEB 24 2026,lb,0,0,0,0,0,0,COVERAGE-P163-L232
+reset,163,Coconut Sweetened Medium UNIPRO 10 LB,MAR 26 2026,lb,0,0,0,0,0,0,COVERAGE-P163-L370
+reset,163,Coconut Sweetened Medium UNIPRO 10 LB,MAR 27 2026,lb,0,0,0,0,0,0,COVERAGE-P163-L377
+reset,163,Coconut Sweetened Medium UNIPRO 10 LB,2026-04-17,lb,0,0,0,0,0,0,COVERAGE-P163-L437
+reset,163,Coconut Sweetened Medium UNIPRO 10 LB,APR 27 2026,lb,0,0,0,0,0,0,COVERAGE-P163-L484
+reset,163,Coconut Sweetened Medium UNIPRO 10 LB,MAY 21 2026,lb,0,0,0,0,0,0,COVERAGE-P163-L666
+reset,163,Coconut Sweetened Medium UNIPRO 10 LB,JUN 02 2026,lb,0,0,0,0,0,0,COVERAGE-P163-L731
+reset,163,Coconut Sweetened Medium UNIPRO 10 LB,JUN 08 2026,lb,0,0,0,0,0,0,COVERAGE-P163-L763
+reset,163,Coconut Sweetened Medium UNIPRO 10 LB,JUL 09 2026,lb,0,0,0,0,0,0,COVERAGE-P163-L970
+reset,163,Coconut Sweetened Medium UNIPRO 10 LB,JUL 13 2026,lb,0,0,0,0,0,0,COVERAGE-P163-L984
+reset,163,Coconut Sweetened Medium UNIPRO 10 LB,JUL 22 2026,lb,0,0,0,0,0,0,COVERAGE-P163-L1041
+reset,163,Coconut Sweetened Medium UNIPRO 10 LB,AUG 03 2026,lb,0,0,0,0,0,0,COVERAGE-P163-L1109
+reset,163,Coconut Sweetened Medium UNIPRO 10 LB,AUG 13 2026,lb,0,0,0,0,0,0,COVERAGE-P163-L1171
+reset,163,Coconut Sweetened Medium UNIPRO 10 LB,SEP 01 2026,lb,0,0,0,0,0,0,COVERAGE-P163-L1385
+reset,163,Coconut Sweetened Medium UNIPRO 10 LB,SEP 23 2026,lb,0,0,0,0,0,0,COVERAGE-P163-L1492
+reset,163,Coconut Sweetened Medium UNIPRO 10 LB,SEP 29 2026,lb,1280,0,0,0,1280,0,A06-163-R5-1
+reset,163,Coconut Sweetened Medium UNIPRO 10 LB,SEP 30 2026,lb,1090,0,0,0,1090,0,A06-163-R5-2
+reset,164,CQ Coconut Sweetened Flake 10 LB,FEB-04-2026,lb,0,0,0,0,0,0,COVERAGE-P164-L76
+reset,164,CQ Coconut Sweetened Flake 10 LB,FEB-03-2026,lb,0,0,0,0,0,0,COVERAGE-P164-L77
+reset,164,CQ Coconut Sweetened Flake 10 LB,26-02-05-FOUND-008,lb,0,0,0,0,0,0,COVERAGE-P164-L88
+reset,164,CQ Coconut Sweetened Flake 10 LB,26-02-05-FOUND-009,lb,0,0,0,0,0,0,COVERAGE-P164-L89
+reset,164,CQ Coconut Sweetened Flake 10 LB,26-02-06-FOUND-010,lb,0,0,0,0,0,0,COVERAGE-P164-L104
+reset,164,CQ Coconut Sweetened Flake 10 LB,26-02-06-FOUND-011,lb,0,0,0,0,0,0,COVERAGE-P164-L105
+reset,164,CQ Coconut Sweetened Flake 10 LB,26-02-10-FOUND-008,lb,0,0,0,0,0,0,COVERAGE-P164-L134
+reset,164,CQ Coconut Sweetened Flake 10 LB,26-02-11-FOUND-001,lb,0,0,0,0,0,0,COVERAGE-P164-L135
+reset,164,CQ Coconut Sweetened Flake 10 LB,FEB 10 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L138
+reset,164,CQ Coconut Sweetened Flake 10 LB,26-02-12-FOUND-002,lb,0,0,0,0,0,0,COVERAGE-P164-L140
+reset,164,CQ Coconut Sweetened Flake 10 LB,26-02-12-FOUND-003,lb,0,0,0,0,0,0,COVERAGE-P164-L142
+reset,164,CQ Coconut Sweetened Flake 10 LB,26-02-12-FOUND-004,lb,0,0,0,0,0,0,COVERAGE-P164-L144
+reset,164,CQ Coconut Sweetened Flake 10 LB,26-02-12-FOUND-005,lb,0,0,0,0,0,0,COVERAGE-P164-L145
+reset,164,CQ Coconut Sweetened Flake 10 LB,26-02-12-FOUND-006,lb,0,0,0,0,0,0,COVERAGE-P164-L146
+reset,164,CQ Coconut Sweetened Flake 10 LB,26-02-12-FOUND-007,lb,0,0,0,0,0,0,COVERAGE-P164-L147
+reset,164,CQ Coconut Sweetened Flake 10 LB,26-02-12-FOUND-008,lb,0,0,0,0,0,0,COVERAGE-P164-L148
+reset,164,CQ Coconut Sweetened Flake 10 LB,26-02-16-FOUND-001,lb,0,0,0,0,0,0,COVERAGE-P164-L180
+reset,164,CQ Coconut Sweetened Flake 10 LB,FEB 16 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L184
+reset,164,CQ Coconut Sweetened Flake 10 LB,FEB 16 2026-A,lb,0,0,0,0,0,0,COVERAGE-P164-L189
+reset,164,CQ Coconut Sweetened Flake 10 LB,FEB 17 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L190
+reset,164,CQ Coconut Sweetened Flake 10 LB,FEB 18 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L203
+reset,164,CQ Coconut Sweetened Flake 10 LB,FEB 19 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L216
+reset,164,CQ Coconut Sweetened Flake 10 LB,FEB 20 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L221
+reset,164,CQ Coconut Sweetened Flake 10 LB,MAR 09 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L283
+reset,164,CQ Coconut Sweetened Flake 10 LB,MAR 10 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L291
+reset,164,CQ Coconut Sweetened Flake 10 LB,MAR 11 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L298
+reset,164,CQ Coconut Sweetened Flake 10 LB,MAR 12 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L311
+reset,164,CQ Coconut Sweetened Flake 10 LB,26-03-23-PHYS-001,lb,0,0,0,0,0,0,COVERAGE-P164-L349
+reset,164,CQ Coconut Sweetened Flake 10 LB,APR 13 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L404
+reset,164,CQ Coconut Sweetened Flake 10 LB,2026-04-13,lb,0,0,0,0,0,0,COVERAGE-P164-L408
+reset,164,CQ Coconut Sweetened Flake 10 LB,2026-04-14,lb,0,0,0,0,0,0,COVERAGE-P164-L409
+reset,164,CQ Coconut Sweetened Flake 10 LB,2026-04-15,lb,0,0,0,0,0,0,COVERAGE-P164-L415
+reset,164,CQ Coconut Sweetened Flake 10 LB,2026-04-16,lb,0,0,0,0,0,0,COVERAGE-P164-L420
+reset,164,CQ Coconut Sweetened Flake 10 LB,2026-04-21,lb,0,0,0,0,0,0,COVERAGE-P164-L446
+reset,164,CQ Coconut Sweetened Flake 10 LB,ABR 21 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L454
+reset,164,CQ Coconut Sweetened Flake 10 LB,ABR 22 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L455
+reset,164,CQ Coconut Sweetened Flake 10 LB,ABR 23 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L459
+reset,164,CQ Coconut Sweetened Flake 10 LB,APR 23 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L496
+reset,164,CQ Coconut Sweetened Flake 10 LB,APR 28 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L505
+reset,164,CQ Coconut Sweetened Flake 10 LB,APR 29 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L506
+reset,164,CQ Coconut Sweetened Flake 10 LB,APR 30 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L510
+reset,164,CQ Coconut Sweetened Flake 10 LB,ABR 30 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L536
+reset,164,CQ Coconut Sweetened Flake 10 LB,MAY 04 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L537
+reset,164,CQ Coconut Sweetened Flake 10 LB,MAY 05 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L547
+reset,164,CQ Coconut Sweetened Flake 10 LB,MAY 06 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L560
+reset,164,CQ Coconut Sweetened Flake 10 LB,MAY 07 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L565
+reset,164,CQ Coconut Sweetened Flake 10 LB,MAY 011 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L578
+reset,164,CQ Coconut Sweetened Flake 10 LB,MAY 11 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L590
+reset,164,CQ Coconut Sweetened Flake 10 LB,MAY 12 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L591
+reset,164,CQ Coconut Sweetened Flake 10 LB,MAY 13 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L600
+reset,164,CQ Coconut Sweetened Flake 10 LB,MAY 14 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L634
+reset,164,CQ Coconut Sweetened Flake 10 LB,MAY 18 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L647
+reset,164,CQ Coconut Sweetened Flake 10 LB,MAY 19 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L651
+reset,164,CQ Coconut Sweetened Flake 10 LB,MAY 20 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L658
+reset,164,CQ Coconut Sweetened Flake 10 LB,MAY 26 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L680
+reset,164,CQ Coconut Sweetened Flake 10 LB,MAY 27 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L690
+reset,164,CQ Coconut Sweetened Flake 10 LB,MAY 29 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L707
+reset,164,CQ Coconut Sweetened Flake 10 LB,MAY 31 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L710
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUN 01 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L723
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUN 03 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L736
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUN 04 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L746
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUN 10 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L802
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUN 11 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L808
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUN 12 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L815
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUN 15 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L819
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUN 16 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L824
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUN 17 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L828
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUN 18 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L836
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUN 19 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L839
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUN 22 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L854
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUN 23 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L866
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUN 24 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L875
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUN 25 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L881
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUN 29 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L906
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUN 30 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L921
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUL 01 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L932
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUL 02 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L939
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUL 06 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L948
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUL 07 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L957
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUL 27 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1069
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUL 28 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1074
+reset,164,CQ Coconut Sweetened Flake 10 LB,JUL 30 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1090
+reset,164,CQ Coconut Sweetened Flake 10 LB,AUG 07 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1142
+reset,164,CQ Coconut Sweetened Flake 10 LB,AUG 10 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1147
+reset,164,CQ Coconut Sweetened Flake 10 LB,AUG 11 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1156
+reset,164,CQ Coconut Sweetened Flake 10 LB,AUG 12 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1162
+reset,164,CQ Coconut Sweetened Flake 10 LB,AUG 13 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1170
+reset,164,CQ Coconut Sweetened Flake 10 LB,AUG 14 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1179
+reset,164,CQ Coconut Sweetened Flake 10 LB,AUG 17 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1294
+reset,164,CQ Coconut Sweetened Flake 10 LB,AUG 18 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1300
+reset,164,CQ Coconut Sweetened Flake 10 LB,AUG 20 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1316
+reset,164,CQ Coconut Sweetened Flake 10 LB,AUG 24 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1332
+reset,164,CQ Coconut Sweetened Flake 10 LB,AUG 25 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1341
+reset,164,CQ Coconut Sweetened Flake 10 LB,AUG 26 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1355
+reset,164,CQ Coconut Sweetened Flake 10 LB,AUG 26 2027,lb,0,0,0,0,0,0,COVERAGE-P164-L1362
+reset,164,CQ Coconut Sweetened Flake 10 LB,AUG 27 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1363
+reset,164,CQ Coconut Sweetened Flake 10 LB,AUG 31 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1374
+reset,164,CQ Coconut Sweetened Flake 10 LB,SEP 01 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1384
+reset,164,CQ Coconut Sweetened Flake 10 LB,SEP 02 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1392
+reset,164,CQ Coconut Sweetened Flake 10 LB,SEP 08 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1406
+reset,164,CQ Coconut Sweetened Flake 10 LB,SEP 09 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1418
+reset,164,CQ Coconut Sweetened Flake 10 LB,SEP 10 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1428
+reset,164,CQ Coconut Sweetened Flake 10 LB,SEP 11 2026,lb,0,0,0,0,0,0,COVERAGE-P164-L1432
+reset,164,CQ Coconut Sweetened Flake 10 LB,SEP 22 2026,lb,1400,0,0,0,1400,0,A06-164-R5-6
+reset,164,CQ Coconut Sweetened Flake 10 LB,SEP 23 2026,lb,4200,0,0,0,4200,0,A06-164-R5-7
+reset,164,CQ Coconut Sweetened Flake 10 LB,SEP 24 2026,lb,4200,0,0,0,4200,0,A06-164-R5-8
+reset,164,CQ Coconut Sweetened Flake 10 LB,SEP 25 2026,lb,3740,0,0,0,3740,0,A06-164-R5-9
+reset,164,CQ Coconut Sweetened Flake 10 LB,SEP 28 2026,lb,3260,0,0,0,3260,0,A06-164-R5-10
+reset,164,CQ Coconut Sweetened Flake 10 LB,OCT 13 2026,lb,1400,0,0,0,1400,0,A06-164-R5-1
+reset,164,CQ Coconut Sweetened Flake 10 LB,OCT 15 2026,lb,4200,0,0,0,4200,0,A06-164-R5-2
+reset,164,CQ Coconut Sweetened Flake 10 LB,OCT 16 2026,lb,2800,0,0,0,2800,0,A06-164-R5-3
+reset,164,CQ Coconut Sweetened Flake 10 LB,OCT 20 2026,lb,1400,0,0,0,1400,0,A06-164-R5-4
+reset,164,CQ Coconut Sweetened Flake 10 LB,OCT 21 2026,lb,1000,0,0,0,1000,0,A06-164-R5-5
+reset,165,Graham Cracker Crumbs – 10 LB,26-02-12-FOUND-009,lb,0,0,0,0,0,0,COVERAGE-P165-L149
+reset,165,Graham Cracker Crumbs – 10 LB,602271,lb,0,0,0,0,0,0,COVERAGE-P165-L258
+reset,165,Graham Cracker Crumbs – 10 LB,26-03-12-FOUN-001,lb,0,0,0,0,0,0,COVERAGE-P165-L300
+reset,165,Graham Cracker Crumbs – 10 LB,603061,lb,0,0,0,0,0,0,COVERAGE-P165-L325
+reset,165,Graham Cracker Crumbs – 10 LB,601141,lb,0,0,0,0,0,0,COVERAGE-P165-L353
+reset,165,Graham Cracker Crumbs – 10 LB,603231,lb,0,0,0,0,0,0,COVERAGE-P165-L379
+reset,165,Graham Cracker Crumbs – 10 LB,26-02-06-CREA-001,lb,0,0,0,0,0,0,COVERAGE-P165-L450
+reset,165,Graham Cracker Crumbs – 10 LB,604171,lb,0,0,0,0,0,0,COVERAGE-P165-L460
+reset,165,Graham Cracker Crumbs – 10 LB,26-04-16-UNKN-001,lb,0,0,0,0,0,0,COVERAGE-P165-L485
+reset,165,Graham Cracker Crumbs – 10 LB,605081,lb,0,0,0,0,0,0,COVERAGE-P165-L574
+reset,165,Graham Cracker Crumbs – 10 LB,605291,lb,0,0,0,0,0,0,COVERAGE-P165-L718
+reset,165,Graham Cracker Crumbs – 10 LB,606011,lb,0,0,0,0,0,0,COVERAGE-P165-L738
+reset,165,Graham Cracker Crumbs – 10 LB,606051,lb,0,0,0,0,0,0,COVERAGE-P165-L803
+reset,165,Graham Cracker Crumbs – 10 LB,606121,lb,0,0,0,0,0,0,COVERAGE-P165-L830
+reset,165,Graham Cracker Crumbs – 10 LB,606261,lb,0,0,0,0,0,0,COVERAGE-P165-L907
+reset,165,Graham Cracker Crumbs – 10 LB,607021,lb,0,0,0,0,0,0,COVERAGE-P165-L954
+reset,165,Graham Cracker Crumbs – 10 LB,607011,lb,0,0,0,0,0,0,COVERAGE-P165-L958
+reset,165,Graham Cracker Crumbs – 10 LB,607101,lb,0,0,0,0,0,0,COVERAGE-P165-L980
+reset,165,Graham Cracker Crumbs – 10 LB,607231,lb,0,0,0,0,0,0,COVERAGE-P165-L1049
+reset,165,Graham Cracker Crumbs – 10 LB,607311,lb,0,0,0,0,0,0,COVERAGE-P165-L1107
+reset,165,Graham Cracker Crumbs – 10 LB,608041,lb,0,0,0,0,0,0,COVERAGE-P165-L1124
+reset,165,Graham Cracker Crumbs – 10 LB,608101,lb,0,0,0,0,0,0,COVERAGE-P165-L1144
+reset,165,Graham Cracker Crumbs – 10 LB,608261,lb,0,0,0,0,0,0,COVERAGE-P165-L1352
+reset,165,Graham Cracker Crumbs – 10 LB,608281,lb,0,0,0,0,0,0,COVERAGE-P165-L1376
+reset,165,Graham Cracker Crumbs – 10 LB,609111,lb,0,0,0,0,0,0,COVERAGE-P165-L1433
+reset,165,Graham Cracker Crumbs – 10 LB,609221,lb,0,0,0,0,0,0,COVERAGE-P165-L1443
+reset,165,Graham Cracker Crumbs – 10 LB,6091511,lb,0,0,0,0,0,0,COVERAGE-P165-L1444
+reset,165,Graham Cracker Crumbs – 10 LB,609151,lb,0,0,0,0,0,0,COVERAGE-P165-L1503
+reset,165,Graham Cracker Crumbs – 10 LB,609051,lb,0,0,0,0,0,0,COVERAGE-P165-L1520
+reset,165,Graham Cracker Crumbs – 10 LB,610021,lb,0,0,0,0,0,0,COVERAGE-P165-L1522
+reset,165,Graham Cracker Crumbs – 10 LB,610071,lb,0,0,0,0,0,0,COVERAGE-P165-L1565
+reset,165,Graham Cracker Crumbs – 10 LB,610161,lb,0,0,0,0,0,0,COVERAGE-P165-L1591
+reset,166,Sweetened Flake Coconut,26-01-30-PH-001,lb,0,-3975,0,0,0,0,COVERAGE-P166-L5
+reset,166,Sweetened Flake Coconut,FEB-04-2026,lb,0,0,0,0,0,0,COVERAGE-P166-L73
+reset,169,Organic Madagascar Vanilla Extract,26-02-04-ACME-001,lb,0,-50,0,0,0,0,COVERAGE-P169-L63
+reset,171,Classic Granola 25 LB,26-02-06-FOUND-001,lb,0,0,0,0,0,0,COVERAGE-P171-L90
+reset,171,Classic Granola 25 LB,26-02-06-FOUND-002,lb,0,0,0,0,0,0,COVERAGE-P171-L91
+reset,171,Classic Granola 25 LB,26-02-09-FOUND-001,lb,0,0,0,0,0,0,COVERAGE-P171-L108
+reset,171,Classic Granola 25 LB,26-02-09-FOUND-002,lb,0,0,0,0,0,0,COVERAGE-P171-L109
+reset,171,Classic Granola 25 LB,26-02-09-FOUND-003,lb,0,0,0,0,0,0,COVERAGE-P171-L110
+reset,171,Classic Granola 25 LB,26-02-09-FOUND-004,lb,5,0,0,0,5,0,A06C-171-1
+reset,173,Kookies & Kreme – 25 LB,26-02-10-CREA-001,lb,0,0,0,0,0,0,COVERAGE-P173-L122
+reset,173,Kookies & Kreme – 25 LB,26-02-10-CREA-002,lb,0,0,0,0,0,0,COVERAGE-P173-L123
+reset,173,Kookies & Kreme – 25 LB,26-06-02-CREA-001,lb,0,0,0,0,0,0,COVERAGE-P173-L724
+reset,173,Kookies & Kreme – 25 LB,26-06-02-CREA-002,lb,0,-600,0,0,0,0,COVERAGE-P173-L725
+reset,173,Kookies & Kreme – 25 LB,26-09-23-CREA-001,lb,34375,-5875,0,0,34375,0,A06C-173-1
+reset,174,Sprinkles Chocolate 10 LB,25132,lb,12050,1640,0,0,12050,0,A06C-174-1
+reset,174,Sprinkles Chocolate 10 LB,25114,lb,0,-1760,0,0,0,0,COVERAGE-P174-L654
+reset,175,Sprinkles Rainbow 10 LB,26-02-16-EURO-001,lb,0,0,0,0,0,0,COVERAGE-P175-L179
+reset,175,Sprinkles Rainbow 10 LB,26-03-03-INVE-001,lb,0,0,0,0,0,0,COVERAGE-P175-L259
+reset,175,Sprinkles Rainbow 10 LB,26-03-03-INVE-002,lb,0,0,0,0,0,0,COVERAGE-P175-L260
+reset,175,Sprinkles Rainbow 10 LB,26-03-10-FOUN-001,lb,0,0,0,0,0,0,COVERAGE-P175-L286
+reset,175,Sprinkles Rainbow 10 LB,26-04-17-EURO-001,lb,0,0,0,0,0,0,COVERAGE-P175-L421
+reset,175,Sprinkles Rainbow 10 LB,26054,lb,0,0,0,0,0,0,COVERAGE-P175-L598
+reset,175,Sprinkles Rainbow 10 LB,261212585122,lb,0,0,0,0,0,0,COVERAGE-P175-L681
+reset,175,Sprinkles Rainbow 10 LB,261222585122,lb,0,0,0,0,0,0,COVERAGE-P175-L682
+reset,175,Sprinkles Rainbow 10 LB,26-06-10-TRIS-001,lb,4650,-2620,0,0,4650,0,A06C-175-1
+reset,175,Sprinkles Rainbow 10 LB,26-09-24-TRIS-001,lb,28600,0,0,0,28600,0,"A06C-175-2, A06C-175-3"
+reset,178,Kookies & Kreme – 10 LB,601262,lb,0,0,0,0,0,0,COVERAGE-P178-L354
+reset,178,Kookies & Kreme – 10 LB,26-02-10-CREA-002,lb,0,0,0,0,0,0,COVERAGE-P178-L486
+reset,178,Kookies & Kreme – 10 LB,605182,lb,0,0,0,0,0,0,COVERAGE-P178-L739
+reset,178,Kookies & Kreme – 10 LB,26-06-02-CREA-001,lb,0,0,0,0,0,0,COVERAGE-P178-L1101
+reset,178,Kookies & Kreme – 10 LB,605192,lb,0,0,0,0,0,0,COVERAGE-P178-L1420
+reset,178,Kookies & Kreme – 10 LB,610211,lb,0,-50,0,0,0,0,COVERAGE-P178-L1638
+reset,179,Granola Fruit Nut Batch,FN-0219,lb,0,0,0,0,0,0,COVERAGE-P179-L213
+reset,179,Granola Fruit Nut Batch,MAY 12 2026,lb,0,0,0,0,0,0,COVERAGE-P179-L602
+reset,179,Granola Fruit Nut Batch,JUN 29 2026,lb,0,0,0,0,0,0,COVERAGE-P179-L902
+reset,179,Granola Fruit Nut Batch,SEP 16 2026,lb,0,0,0,0,0,0,COVERAGE-P179-L1455
+reset,179,Granola Fruit Nut Batch,OCT 06 2026,lb,0,-219.04,0,0,0,0,COVERAGE-P179-L1560
+reset,183,Granola SS Original Bulk per/lb,BULK-#1-YTD,lb,0,0,0,0,0,0,COVERAGE-P183-L1223
+reset,189,Desiccated Fancy Bakers 50 LB,6036,lb,0,0,0,0,0,0,COVERAGE-P189-L1412
+reset,190,Desiccated Flake 50 LB,26-04-22-FRAN-001,lb,0,-100700,0,0,0,0,COVERAGE-P190-L453
+reset,194,Desiccated Medium Bakers 50 LB,6020,lb,0,0,0,0,0,0,COVERAGE-P194-L1620
+reset,196,Desiccated Macaroon Bakers 25 LB,6086,lb,11375,325,0,0,11375,0,A06-196
+reset,202,Sprinkles Rainbow 25 LB,26-02-27-EURO-001,lb,0,0,0,0,0,0,COVERAGE-P202-L248
+reset,202,Sprinkles Rainbow 25 LB,26-03-20-INVE-001,lb,0,0,0,0,0,0,COVERAGE-P202-L344
+reset,202,Sprinkles Rainbow 25 LB,26-05-01-EURO-001,lb,0,0,0,0,0,0,COVERAGE-P202-L514
+reset,202,Sprinkles Rainbow 25 LB,26054,lb,0,0,0,0,0,0,COVERAGE-P202-L641
+reset,202,Sprinkles Rainbow 25 LB,550075853,lb,0,0,0,0,0,0,COVERAGE-P202-L660
+reset,202,Sprinkles Rainbow 25 LB,261222444122,lb,0,0,0,0,0,0,COVERAGE-P202-L683
+reset,202,Sprinkles Rainbow 25 LB,26-06-10-TRIS-002,lb,0,0,0,0,0,0,COVERAGE-P202-L796
+reset,202,Sprinkles Rainbow 25 LB,26-08-03-EURO-001,lb,0,0,0,0,0,0,COVERAGE-P202-L1095
+reset,202,Sprinkles Rainbow 25 LB,26-08-04-EURO-001,lb,1300,-425,0,0,1300,0,A06C-202-2
+reset,202,Sprinkles Rainbow 25 LB,26-09-24-TRIS-002,lb,12600,-2100,0,0,12600,0,A06C-202-1
+reset,203,Sprinkles Chocolate 25 LB,26-03-12-FOUN-002,lb,0,0,0,0,0,0,COVERAGE-P203-L301
+reset,203,Sprinkles Chocolate 25 LB,25216,lb,0,0,0,0,0,0,COVERAGE-P203-L324
+reset,203,Sprinkles Chocolate 25 LB,25114,lb,0,0,0,0,0,0,COVERAGE-P203-L741
+reset,203,Sprinkles Chocolate 25 LB,26-06-05-EURO-001,lb,0,0,0,0,0,0,COVERAGE-P203-L748
+reset,203,Sprinkles Chocolate 25 LB,26-08-14-EURO-001,lb,3625,-575,0,0,3625,0,A06C-203-1
+reset,206,BS Granola – Hazelnut Butter – 6x8 OZ Case,SW2605619,lb,0,0,0,0,0,0,COVERAGE-P206-L331
+reset,209,BS Granola – Peanut Butter Banana – 6x8 OZ Case,SW2607708,lb,0,0,0,0,0,0,COVERAGE-P209-L343
+reset,285,Granola SS Classic #9 Bulk per/lb — EXTRA-KOSHER (SS),BULK-#9-YTD,lb,0,0,0,0,0,0,COVERAGE-P285-L1207
+reset,286,Granola SS Classic #9 25 LB — EXTRA-KOSHER (SS),AUG 11 2026,lb,0,0,0,0,0,0,COVERAGE-P286-L1160
+reset,291,WIP Banana / PB-chip mix (for PBB),AUG 14 MIX,container,1,0,0,0,1,0,A03-291-R5-1
+found,73,"Chocolate Chips – Real – 1,000 CT",26-10-27-FOUND-004,lb,1250,0,1250,0,1250,0,OPEN-73
+found,7,Cinnamon Ground,26-10-27-FOUND-001,lb,20,0,20,0,20,0,OPEN-7
+found,16,Corn Starch,26-10-27-FOUND-005,lb,1365,0,1365,0,1365,0,OPEN-16
+found,29,Glycol,26-10-27-FOUND-003,lb,972,0,972,0,972,0,OPEN-29
+found,30,Honey,26-10-27-FOUND-006,lb,1558.2,0,1558.2,0,1558.2,0,OPEN-30
+found,40,Sugar – 6X,26-10-27-FOUND-002,lb,152.49,0,152.49,0,152.49,0,OPEN-40
+found,12,Coconut Flake Desiccated,26-10-27-FOUND-011,lb,159250,0,159250,0,159250,0,OPEN-12
+found,10,Coconut Fancy Desiccated,26-10-27-FOUND-007,lb,1600,0,1600,0,1600,0,E3
+found,10,Coconut Fancy Desiccated,26-10-27-FOUND-008,lb,9900,0,9900,0,9900,0,E4
+found,10,Coconut Fancy Desiccated,26-10-27-FOUND-009,lb,8050,0,8050,0,8050,0,E5
+found,10,Coconut Fancy Desiccated,26-10-27-FOUND-010,lb,2250,0,2250,0,2250,0,E6
