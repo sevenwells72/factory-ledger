@@ -1,5 +1,54 @@
 # Change Log
 
+## 2026-10-28 19:03 — Home Mac setup: fresh clone, office-only change-log entries restored (no production change)
+- **File(s) changed:** `CHANGE_LOG.md` (branch `home-handoff`, local only); outside the repo: `~/.claude/CLAUDE.md` (copied from handoff `CLAUDE-global.md`), `~/.claude/projects/-Users-michaelgross-dev-factory-ledger-home/memory/` (5 notes copied from handoff `claude-memory/`; office paths in `cutover-master-handoff.md` and `global-changelog-symlink.md` changed to home-Mac paths)
+- **What changed:** Fresh clone of sevenwells72/factory-ledger at `~/dev/factory-ledger-home` (outside iCloud; the older `~/dev/factory-ledger` clone has unpushed home work and was left alone). Branch `home-handoff` from main `a5179555` adds the 67 office-only change-log entries (Oct 19–28) at their dated positions; no existing line changed. AGENTS.md and CLAUDE.md needed nothing: main already matches the office copies. The iCloud-synced `~/Documents/factory-ledger`, the handoff folder, the bundle and tarballs were not touched. Nothing pushed, merged or deployed; Railway untouched.
+- **Why:** Michael is continuing Plan A from the home Mac; the synced Documents checkout shares one live `.git` with the office Mac and is unsafe to work in.
+
+---
+
+## 2026-10-28 18:46 — Saved office-Mac-only work to iCloud handoff folder (no repo/production change)
+- **File(s) changed:** iCloud `Claude Logs/factory-ledger-handoff-2026-10-28/` (added `HANDOFF-ADDENDUM-local-work.md`, `main-checkout*.{txt,patch,tar.gz}`, `countday-wt*`, `replay-guard-wt*`, `unpushed-branches.bundle`, `claude-memory/` copy); deleted `p2demo.log` (failed temp log from P2 testing)
+- **What changed:** Copied uncommitted work from the office checkout, the count-day worktree and the replay-guard worktree as patches/tarballs, bundled six local branches with unpushed commits, and wrote an addendum explaining how to restore each at home. Secret-scanned; no credentials copied. Nothing pushed, merged or deployed; office files left as they were.
+- **Why:** Owner is moving work from the office Mac to the home Mac.
+
+---
+
+## 2026-10-28 18:41 — Handoff folder for moving Plan A work to home Mac
+- **File(s) changed:** `~/Library/Mobile Documents/com~apple~CloudDocs/Claude Logs/factory-ledger-handoff-2026-10-28/` (HANDOFF.md, backup-script/, CLAUDE-global.md, CLAUDE-project-uncommitted.md, claude-memory/)
+- **What changed:** Created an iCloud handoff folder with Plan A status and next steps, home-Mac setup, copies of the backup script and its verify SQL, CLAUDE.md files and memory notes. No secrets or production data copied (scanned). No repo files changed besides this log.
+- **Why:** Michael is continuing the production OpenAI-key rollout from his home Mac.
+
+---
+
+## 2026-10-28 15:03 — Draft PR #156 opened for P2 (not merged, not deployed)
+- **File(s) changed:** `docs/operating-model/07-issues-and-recommendations.md`, `docs/operating-model/08-standard-operating-procedures.md` (local copies synced with the PR versions)
+- **What changed:** Docs now record that both custom GPTs stay working as fallbacks until Michael decides otherwise (§5 operating model, primary/backup table, SOP-10); original recommendation kept as a marked note. Branch `feat/p2-slip-banner-nav` rebased onto main a5179555, committed as 683893a5 (33 files: P2 code, tests, branch CHANGE_LOG, 4 corrected docs), pushed; draft PR #156 opened. Verified before opening: HTML changes are cache versions only; key-literal guard 0 findings; no temp files. Tests on the rebased branch: Python 7,126 + 7,126, Node 586/586.
+- **Why:** Michael asked for a draft PR including the corrected switch-on plan, without merging or deploying.
+
+---
+
+## 2026-10-28 14:30 — Switch-on plan revised to owner's P2 conditions; P2 staged (no production change)
+- **File(s) changed:** `docs/operating-model/09-switch-on-plan.md`, `docs/operating-model/07-issues-and-recommendations.md`, `docs/operating-model/README.md`; `.claude/launch.json` (temporary local-check entry added then removed; file back to original)
+- **What changed:** Removed the two-working-day deadline for read-only GPTs (now a separate owner decision after the new workflow is proven); OpenAI step uses the existing CNS project; G7 keeps GPTs as fallback with one-place-per-entry rule; P2 status recorded; F-10 corrected (Assistant fallback links already work). P2 code is on branch `feat/p2-slip-banner-nav` (~/dev/fl-p2-wt), uploaded to FastAPI-staging only. Note: PR #155 (another session) merged earlier drafts of these docs to main; the versions here are newer.
+- **Why:** Michael's 2026-10-28 conditions for P2.
+
+---
+
+## 2026-10-28 13:55 — PR #155 merged (docs only); production unchanged
+- **File(s) changed:** none locally beyond this log; main now a5179555 with the master handoff, v3 records, `docs/operating-model/`, CLAUDE/AGENTS pointer and regression row 236
+- **What changed:** Owner approved; checks passed (guard ×2, Netlify preview); all 47 files Markdown/CSV/JSON documentation. Squash-merged → a5179555. Verified on main: handoff present, 10 operating-model guides, CLAUDE.md and AGENTS.md link `audits/fresh-start/v3/MASTER-HANDOFF-2026-10-28.md`. Production: Railway FastAPI SKIPPED for a5179555 (still 9a01f022 on 9a9a9536), /health healthy; Netlify build canceled (no content change), published d7bf203a; fingerprints vs pre-#154 posttest differ only by the 10 approved corrections (TX2882–2891, 3 new lots, −5,593 lb). Observed: FastAPI-staging had a deploy started 13:30 (not from this session) and one queued for a5179555.
+- **Why:** Owner approval to merge the documentation-only closeout PR.
+
+---
+
+## 2026-10-28 13:50 — Docs-only PR #155 opened (cutover closeout records); not merged
+- **File(s) changed:** `MASTER-HANDOFF-2026-10-28.md` (location line → repo path; register items 17/18 updated, item 20 operating-model findings added) synced to the branch copy; repo checkout `CLAUDE.md`/`AGENTS.md` notice made identical to the PR version (repo-relative handoff link); `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md` pointer now names the repo path
+- **What changed:** Branch `docs/cutover-closeout-2026-10-28` (worktree `~/dev/fl-closeout-wt`, from main 9a9a9536), commit 5803f3e2, 47 files docs-only, draft PR https://github.com/sevenwells72/factory-ledger/pull/155. Secret/PII scan clean.
+- **Why:** Owner asked to preserve closeout records in GitHub for review.
+
+---
+
 ## 2026-10-28 13:45 — Cutover closeout records saved to the repo (docs only)
 - **File(s) changed:** new `audits/fresh-start/v3/MASTER-HANDOFF-2026-10-28.md` and the other v3 Markdown records (ARTURO-OCT27-CORRECTIONS, CUTOVER-FINISH-CHECKLIST, FINISH-SEQUENCE, FREEZE-LIFT-PLAN, HANDOFF-2026-10-27, ROLLOUT-PLAN, TRACEABILITY-EXCEPTIONS, UNVERIFIED-BALANCES); key evidence `final-reconciliation-complete/`, `whole-reset-oct26/README.md` + `proof-final/` (without the 3.7 MB reset-verification JSON), `found-oct26/` approval, posting steps, signed found rows and lot notes; `docs/operating-model/` (architecture review session's staff guides, unchanged); `CLAUDE.md`, `AGENTS.md` (cutover-closed notice + handoff pointer + operating principles); `FACTORY_LEDGER_CHANGELOG.md` row 236 (deploy record)
 - **What changed:** Documentation only; no code, migrations or config. Files scanned for credential values, database URLs, key/token patterns, emails and phone numbers: none found. Full 136 MB evidence stays in `~/Backups/fl/2026-10-28-cutover-evidence/` and the count-day worktree.
@@ -7,10 +56,101 @@
 
 ---
 
+## 2026-10-28 13:25 — Session closeout: master handoff, verified state, notices updated
+- **File(s) changed:** new `audits/fresh-start/v3/MASTER-HANDOFF-2026-10-28.md`; `audits/fresh-start/v3/HANDOFF-2026-10-27.md` and `FREEZE-LIFT-PLAN.md` (superseded/done banners prepended, bodies unchanged); `CLAUDE.md` and `AGENTS.md` (repo checkout), `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md` (freeze notice → cutover closed + master-handoff pointer + operating principles); memory `cutover-master-handoff.md` + `MEMORY.md` pointer; new backup `~/Backups/fl/2026-10-28-cutover-evidence/` (tgz of untracked v3 folder + count-day tool diffs, SHA256SUMS)
+- **What changed:** Read-only verification: Railway FastAPI 9a01f022 SUCCESS on 9a9a9536, workers and staging on 9a9a9536, both /health healthy; Netlify published d7bf203a with dashboard identical to main; PRs #142/#145/#146/#153/#154 MERGED; 088 present; 0 negative lots on posted transactions (six apparent negatives were voided history); balances 107=1,682, 113=475, 121=1,078, 27=50, 45=55, 122=0, 12=166,150; open exceptions 66/67 only; no held tickets. Outstanding-work register (20 items) and risks recorded. Nothing committed or pushed; no production writes.
+- **Why:** Owner requested a formal closeout and handoff for future sessions.
+
+---
+
+## 2026-10-28 13:11 — Drafted production switch-on plan (docs only, nothing executed)
+- **File(s) changed:** `docs/operating-model/09-switch-on-plan.md` (new), `docs/operating-model/README.md` (index row)
+- **What changed:** Ordered owner-approval plan: preparation (Oct 24–28 gap, packing-slip button + staging banner + menu links PR, OpenAI key, FORWARDED_ALLOW_IPS, readiness checker, fresh actor keys, staging rehearsal), go-live (backup, KEY_SESSIONS_ENABLED, ASSISTANT_ENABLED, supervised entries), then within two days master/dashboard key rotation + READONLY_API_KEY + read-only GPT paste. Read-only checks: actors all have key hashes; assistant/session tables present in production.
+- **Why:** Michael asked for a step-by-step switch-on plan for approval. No code, data, GPT or production setting changed.
+
+---
+
+## 2026-10-28 13:06 — PR #154 prepared: on current main, tests pass (not merged)
+- **File(s) changed:** none here; branch `fix/pooled-lot-identity-guard` (~/dev/fl-pooled-wt) now 9ca615a1 (merge of main into the tested replay, no force-push)
+- **What changed:** Python 7,121 + 7,121, JS 577 pass; no migration; production read-only: pooled lot 1658 note has POOLED marker. Merge awaits owner approval.
+- **Why:** FREEZE-LIFT-PLAN step 6 preparation.
+
+---
+
 ## 2026-10-28 13:05 — PR #154 brought onto current main and revalidated (not merged)
 - **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md` (conflicts resolved: #154 entries above main's; row 235 unchanged); branch = main b02982b4 + the single #154 commit replayed (same 5 files, +102)
 - **What changed:** Python 7,121 passed with key sessions off and 7,121 on (fresh local PostgreSQL 17 per mode; zero failures/skips); JavaScript 577 passed. No migration. Production read-only check: pooled lot 26-10-27-FOUND-011 (id 1658) entry note contains POOLED, so the guard applies; the six other opening-stock lots start "Opening stock" (documented-code rule applies); lot 6013 (id 624) is a May reconciliation lot and is not covered by this guard.
 - **Why:** Owner request 2026-10-28 to prepare #154 (FREEZE-LIFT-PLAN step 6).
+
+---
+
+## 2026-10-28 12:59 — Operating-model review docs (read-only research, no system changes)
+- **File(s) changed:** `docs/operating-model/README.md`, `01-architecture.md`, `02-capability-matrix.md`, `03-guide-arturo.md`, `04-guide-liz.md`, `05-guide-michael.md`, `06-access-reference.md`, `07-issues-and-recommendations.md`, `08-standard-operating-procedures.md` (all new, uncommitted)
+- **What changed:** Added owner-facing architecture review, capability matrix, per-person workflow guides, access reference, prioritised issues and SOPs. Verified against deployed main 9a9a9536 and read-only production checks: KEY_SESSIONS off and FL Assistant disabled in production; actors Arturo/Luz/Miriam never used; routine entries recorded as legacy-shared-key; no receive/make/pack/ship entries after Oct 23.
+- **Why:** Michael requested a full read-only review of how the interfaces fit together and how staff should use them. No code, data, GPT or production setting was changed.
+
+---
+
+## 2026-10-28 12:50 — PR #153 deployed (duplicate-shipment guard on); checks passed
+- **File(s) changed:** `audits/fresh-start/v3/FREEZE-LIFT-PLAN.md` (step 5 DONE); new backup `~/Backups/fl/2026-10-28-pre153/` (+ `verify/prod_keys_postdeploy.txt`)
+- **What changed:** Owner approved. Backup verified (KEY CHECKS ALL MATCH). Guard checks passed; PR marked ready and squash-merged with a custom subject (no skip marker) → main b02982b4. Railway FastAPI 1e84a828 SUCCESS on b02982b4; /health healthy; deployment logs: 0 SHIP_ORDER_RETRY_GUARD_UNAVAILABLE, no errors; keys.sql fingerprints identical to the pre-merge backup (088 table already present, 0 rows). No dashboard files changed. Still to confirm on the first real shipment: one `ship_order_commit_receipts` row per shipment. Rollback: revert the merge (route works unguarded), then `migrations/down/088_ship_order_idempotency_down.sql` if needed.
+- **Why:** FREEZE-LIFT-PLAN step 5; required before regular GPT shipping.
+
+---
+
+## 2026-10-28 12:45 — PR #154 deployed (pooled-lot identity safeguard); checks passed — all FREEZE-LIFT-PLAN deployments done
+- **File(s) changed:** `audits/fresh-start/v3/FREEZE-LIFT-PLAN.md` (step 6 DONE); new backup `~/Backups/fl/2026-10-28-pre154/` (+ `verify/prod_keys_postdeploy.txt`, `prod_keys_posttest.txt`)
+- **What changed:** Owner approved. Guard checks passed; backup verified (KEY CHECKS ALL MATCH). Squash-merged with custom subject (no skip marker) → main 9a9a9536. Railway FastAPI 9a01f022 SUCCESS on 9a9a9536; /health healthy; fingerprints identical. Deploy check via the supplier-lot correction ticket prepare (owner key) on pooled lot 1658: first try with reason count_correction → 422 REASON_CODE_INVALID (not valid for this action; nothing stored). Then codes 6161 and 6013 with reason wrong_lot → HTTP 200 drafts write_tickets 205 and 206, status prepared, each with blocker POOLED_LOT_NOT_IDENTIFIABLE (commit refuses blocked drafts with 409 DRAFT_BLOCKED); not committed; expire 12:52 ET. Lot 1658 still no supplier lot / unidentified; inventory/transaction fingerprints unchanged. Direct PATCH route not exercised on production (it writes when allowed). Rollback: revert the merge.
+- **Why:** FREEZE-LIFT-PLAN step 6.
+
+---
+
+## 2026-10-28 12:40 — Migration 088 applied to production (owner-approved); verified
+- **File(s) changed:** `audits/fresh-start/v3/FREEZE-LIFT-PLAN.md` (step 5 migration done); new backup `~/Backups/fl/2026-10-28-pre088/` (+ `verify/prod_keys_post088.txt`)
+- **What changed:** Backup verified (dump OK, 6 Storage files, KEY CHECKS ALL MATCH). Pre-check: table absent, no 088 marker. Applied `migrations/088_ship_order_idempotency.sql` (sha256 642a50b2…, branch baa32b5a) via the port-5432 session pooler in one transaction with `SET LOCAL lock_timeout='5s'`, `statement_timeout='60s'`: CREATE TABLE, CREATE INDEX, ENABLE RLS, marker INSERT, COMMIT. Verified read-only: `ship_order_commit_receipts` exists, RLS on, index `ship_order_commit_receipts_recent_idx`, marker `088_ship_order_idempotency`, 0 rows. keys.sql: only obj_constraints 381→385, obj_indexes 245→247 and the public column hash changed (the new table); every data/balance fingerprint identical. /health healthy. Live code (97674c0a) does not use the table yet. Down: `migrations/down/088_ship_order_idempotency_down.sql`.
+- **Why:** FREEZE-LIFT-PLAN step 5 (#153 deploy order step 2–3); merge of #153 still needs separate owner approval.
+
+---
+
+## 2026-10-28 12:27 — PR #153 prepared: on current main, tests pass, staging rehearsal passed (production untouched)
+- **File(s) changed:** none here; branch `fix/ship-order-idempotency` (~/dev/fl-shipidem-wt) now baa32b5a (merge of main into the tested replay, no force-push); staging database got migration 088; FastAPI-staging runs the branch (deployment c7f2a6fa)
+- **What changed:** Python 7,112 + 7,112 pass. Staging: 088 verified; identical commit twice on SO-261015-003 → one shipment (21), second reply `idempotent_replay: true`; signed packing-slip link from #146 opened as PDF on staging. Production: no migration, no merge. Next (each needs owner approval): apply 088 to production via port 5432 and verify; then merge.
+- **Why:** FREEZE-LIFT-PLAN step 5 preparation.
+
+---
+
+## 2026-10-28 12:05 — PR #146 deployed (signed packing-slip links on Floor GPT shipments); checks passed
+- **File(s) changed:** `audits/fresh-start/v3/FREEZE-LIFT-PLAN.md` (step 4 DONE); new backup `~/Backups/fl/2026-10-28-pre146/` (+ `verify/prod_keys_postdeploy.txt`)
+- **What changed:** Owner approved (conditional on GitHub checks: guard passed twice; main has no required checks). Backup verified (dump OK, 6 Storage files, KEY CHECKS ALL MATCH). PR marked ready and squash-merged → main 97674c0a (custom message, no skip markers). Railway FastAPI 51519cdf SUCCESS on 97674c0a; /health healthy; keys.sql fingerprints identical to backup. Netlify build for 97674c0a canceled "no content change" (#146 touches no dashboard files; live dashboard d7bf203a = main for dashboard/); pages 200. Packing-slip checks without any shipment: forged signature, over-long expiry and missing signature for real shipment 421/order 375 → 401 PACKING_SLIP_SIGNATURE_INVALID. Valid-link path covered by tests; first real Floor GPT order shipment is the live test. Observed (pre-existing, not #146): the Blubber actor key gets 403 "not authorized for this endpoint" on the header-key packing-slip route. Rollback: `railway redeploy --service FastAPI --commit d7bf203a88eab6cc3c4a42da484b9df000d074f2`.
+- **Why:** FREEZE-LIFT-PLAN step 4.
+
+---
+
+## 2026-10-28 11:27 — Office GPT re-pasted for #145 (owner); preview test passed
+- **File(s) changed:** new `~/Backups/fl/2026-10-27-pre145/verify/prod_keys_postgpt.txt` (no repo files)
+- **What changed:** Michael pasted Office GPT (Factory-Ledger 2.0) instructions v3.8.2 (was v3.7.0) and schema 3.5.1 (30 actions, API-key auth unchanged) and clicked Update. First instructions paste had mis-encoded dashes (clipboard not UTF-8); re-copied with UTF-8 and re-pasted before saving. Test in GPT preview: oats/Quali Pack/BOL TEST-145/no lot on label → "Preview successful — Not recorded", supplier lot No lot on label, status Unidentified, identify by Nov 6 2026. Data fingerprints still identical to the pre-#145 backup.
+- **Why:** FREEZE-LIFT-PLAN step 3 follow-up (Office GPT must know `no_supplier_lot`).
+
+---
+
+## 2026-10-27 15:32 — PR #145 deployed (supplier lot required on ingredient receipts); checks passed
+- **File(s) changed:** `audits/fresh-start/v3/FREEZE-LIFT-PLAN.md` (step 3 marked DONE); also logged in ~/dev/fl-countday-wt. New backup `~/Backups/fl/2026-10-27-pre145/` (+ `verify/prod_keys_postdeploy.txt`, `prod_keys_posttest.txt`); Office GPT paste copies in the session notes folder `office-gpt-paste-2026-10-27/`.
+- **What changed:** Owner approved. Fresh backup verified (dump OK, 6 Storage files, local restore KEY CHECKS ALL MATCH). PR #145 squash-merged → main d7bf203a. Railway FastAPI ea92fdf6 SUCCESS on d7bf203a; /health healthy. The squash message carried `[skip netlify]` from a PR commit, so Netlify skipped it; production build of main triggered via Netlify API (deploy 6ae0fc0c, ready, d7bf203a; entry/receipt/ledger-ui JS identical to main, entry.js?v=10). Receive checks on production in PREVIEW only (nothing posted): Oats/Quali Pack with supplier lot → 200 identified; no lot, no flag → 422 SUPPLIER_LOT_REQUIRED (EN/ES); no_supplier_lot=true → 200 unidentified. keys.sql fingerprints identical before deploy, after deploy and after tests. Rollback: `railway redeploy --service FastAPI --commit 4150434b1bf34efbd50484cb3d6236a48187d44a` + Netlify publish of deploy for 4150434b.
+- **Why:** FREEZE-LIFT-PLAN step 3. Office GPT re-paste (v3.8.2 instructions, schema 3.5.1, 30 ops) is the owner's remaining action.
+
+---
+
+## 2026-10-27 15:07 — Backend deployed to main 4150434b (ships #142); checks passed
+- **File(s) changed:** none in the repo; new `~/Backups/fl/2026-10-27/verify/prod_keys_postdeploy.txt`
+- **What changed:** Railway FastAPI deployment 71f7551d SUCCESS on 4150434b (15:06 ET). Checks: /health healthy; GET /entry/lots now exists (401 without key); with the owner key it returns lots with correct balances (oats 4 lots; Coconut Flake pooled 26-10-27-FOUND-011 159,250 lb + lot 6013 6,900 lb); /dashboard/api/product/12/lots shows the pooled lot; 0 open exceptions. Data fingerprints (keys.sql: lot balances hash, posted balances, max ids, schema hash) identical to the pre-deploy backup — no data changed. Rollback path: `railway redeploy --service FastAPI --commit 9d5e888b17ac6da9afe4631ea124c9bd8a5d9098` (old deployment de15fd84 is now REMOVED, so rollback rebuilds from source; database untouched).
+- **Why:** Owner-approved freeze-lift plan step 2.
+
+---
+
+## 2026-10-27 15:05 — Production freeze lifted (owner-approved); verified backup; backend deploy of main started
+- **File(s) changed:** `CLAUDE.md`, `AGENTS.md` (this checkout, uncommitted, as when the freeze was set); outside the repo: `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/dev/fl-countday-wt/audits/fresh-start/v3/count-inputs/COUNT-DAY-RULES.md`; new backup `~/Backups/fl/2026-10-27/`
+- **What changed:** Freeze block replaced by "Production freeze: LIFTED (Michael, 2026-10-27)" keeping per-step owner approval for #145, #146, #153 (migration 088 first), #154. Before deploying: production backup via fl-backup-and-verify.sh (dump 1,199,089 bytes SHA OK; 6/6 Storage files, sizes match; local restore: counts match except expected vault.secrets, all key checks match); reset intact (final reconciliation RESET COMPLETE, 128 reset adjustments, 11 opening entries, last transaction 2881); rollback path checked (9d5e888b→4150434b backend diff = one SELECT-only route + lookup, no migrations). Started Railway deploy 71f7551d of main 4150434b (`railway redeploy --commit`).
+- **Why:** Owner approved freeze-lift plan steps 1–2 on 2026-10-27 after confirming the reset complete.
 
 ---
 
@@ -39,6 +179,13 @@
 - **File(s) changed:** `CHANGE_LOG.md` (conflict resolved: #146 entry kept above main's entries); branch `feat/floor-signed-packing-slip` rebuilt as main d7bf203a + the single #146 commit (cherry-pick of 282204be); same 9 files / +232 −25 as before
 - **What changed:** #145 was squash-merged, so the old stacked history conflicted; replaying the one #146 commit onto main left only the change-log conflict. No migration; production `PACKING_SLIP_SIGNING_KEY` variable confirmed present (name only). Floor schema 4.3.0 = what the live Floor GPT already has (22 operations). Tests on a fresh throwaway local PostgreSQL 17 per mode: Python 7,103 passed with key sessions off and 7,103 on (zero failures/skips); JavaScript 577 passed. (A first key-sessions-on pass reusing the off-pass database had 6 failures in `test_seed_staging.py` from leftover rows; clean on a fresh database.)
 - **Why:** Owner request 2026-10-28 to prepare #146 for deployment approval (FREEZE-LIFT-PLAN step 4).
+
+---
+
+## 2026-10-21 15:12 — Production freeze rules recorded (until whole-reset proof passes)
+- **File(s) changed:** `CLAUDE.md`, `AGENTS.md` (this checkout, uncommitted: committing would need a merge to main, which the freeze forbids); also outside the repo: `~/dev/fl-countday-wt/audits/fresh-start/v3/count-inputs/COUNT-DAY-RULES.md`, `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md` (new)
+- **What changed:** Added the "PRODUCTION FREEZE: ACTIVE" block: no merges to main, no prod Railway variable/setting changes, no manual prod deploys; staging stays approved; check that prod is still 9d5e888b when Railway builds resume. Added a post-reset work list to the count-day rules, including the commitShipOrder duplicate-on-retry fix before regular GPT shipping.
+- **Why:** Owner decision 2026-10-21. Use a strict freeze instead of changing Railway settings, so the undeployed #142 cannot ship during the physical count or reset.
 
 ---
 
@@ -763,6 +910,279 @@
 
 ---
 
+## 2026-10-20 13:50 — Posted PR 141 bb8c0d3 re-check verdict and fix-round label
+- **File(s) changed:** `/private/tmp/fl_pr141rc3_review/verification-summary.json`; GitHub PR 141 comment 6297413580 and labels
+- **What changed:** Posted two remaining blockers and completed validation evidence; replaced recheck-ready label with review:fix-round; confirmed PR open/unmerged at reviewed SHA and all local review DBs dropped.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 13:49 — Prepared PR 141 final fix-round verdict
+- **File(s) changed:** `/private/tmp/fl_pr141rc3_review/review.md`, `verification-summary.json`
+- **What changed:** Wrote concrete review with two independently reproduced blockers, completed both-mode validation, older cached-403 impact assessment and clean disposable DB shutdown.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 13:49 — Completed PR 141 bb8c0d3 full local validation and database cleanup
+- **File(s) changed:** `/private/tmp/fl_pr141rc3_review/review_python/`, `review_frontend/`, `verification-summary.json`, `cleanup.json`, `fl_pr141rc3_pg.log`
+- **What changed:** Both full Python modes passed 6930 tests with no skips; Node 445 each mode; core browser matrix passed, independent Retry blocker confirmed, extra legacy SO mode-on failures proven unchanged from base. Verified zero review databases/client sessions and stopped disposable PG; no production changes.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 13:46 — Recorded PR 141 deadline and assistant re-check evidence
+- **File(s) changed:** `/private/tmp/fl_pr141rc3_review/review_pool/`, `review_stream/`, `review_frontend/`
+- **What changed:** Verified both remaining blockers with real local PostgreSQL and browser probes: unchecked idle deadline return, and timeout during assistant lease cleanup preventing genuine Retry or reporting saved turns busy. Standard timing, FIFO, route sweep, real 500, ticket idempotency and recovered Retry checks passed in both modes; pool/stream DBs dropped.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 13:42 — Completed PR 141 fresh-venv test dependencies
+- **File(s) changed:** `review_python_collection_setup/`, `.venv-test/`, `fl_pr141rc3_pip_test.log`
+- **What changed:** Added jsonschema test-only dependency after collection identified its missing import; retained setup logs and restarted both full fresh-DB suites.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 13:42 — Prepared PR 141 re-check test and independent probes
+- **File(s) changed:** `/private/tmp/fl_pr141rc3_review/run_python_review.py`, `review_python/`, `review_pool/`, `review_stream/`, `review_frontend/`, `.venv-test/`, `fl_pr141rc3_pip.log`, `fl_pr141rc3_pg.log`
+- **What changed:** Installed requirements.txt with pydantic 2.14.1; prepared fresh local Python suites, deadline/assistant probes, Node and browser evidence in both session modes.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 13:41 — Started PR 141 bb8c0d3 isolated re-check
+- **File(s) changed:** `/private/tmp/fl_pr141rc3_review`, `/private/tmp/fl_pr141rc3_pg`, `fl_pr141rc3_initdb.log`
+- **What changed:** Created exact-commit local clone, fresh test venv and disposable PostgreSQL cluster; shared checkout code untouched.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:11 — Post PR 141 fix-round verdict and verify final review state
+- **File(s) changed:** `verification-summary.json`
+- **What changed:** Publish verified comment6294160112 with three remaining pool/error/stream findings; apply review:fix-round and remove recheck label. Confirm exact tested head5b399150, open/unmerged PR, clean application source and completed local DB teardown.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:10 — Complete PR 141 review validation and clean every review database
+- **File(s) changed:** `verification-summary.json`, `cleanup.json`, `review.md`
+- **What changed:** Verify6917 Python identities per mode with zero failures/skips,440 Node, core both-mode browser coverage and documented legacy SO limitations. Save three remaining findings and positive FIFO/release/write safety evidence. Verify zero fl_pr141rc_ DBs/client sessions and stop owned localPG17. Source unchanged; no merge/deployment/hosted changes.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:09 — Complete PR 141 Python regressions in both modes
+- **File(s) changed:** `/private/tmp/fl_pr141rc_20261020/python-suite/python_0/*`, `/private/tmp/fl_pr141rc_20261020/python-suite/python_1/*`, `/private/tmp/fl_pr141rc_20261020/python-suite/pytest-{0,1}/*`
+- **What changed:** Full unchanged Python suite passed all 6917 unique identities per key-session mode across 23 fresh local DB groups each: 13834 clean outcomes with no failures, errors, skips, xfails or xpasses. Identical coverage asserted; both owned fl_pr141rc_python_0 and fl_pr141rc_python_1 DBs dropped and absence verified. Venv uses requirements.txt pydantic 2.14.1 and passes pip check.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:08 — Finalized PR 141 browser cleanup evidence
+- **File(s) changed:** /private/tmp/fl_pr141rc_20261020/browser/verification-summary.json
+- **What changed:** Updated final local catalog to sole parent python_1 database; no browser-owned databases or active verification/bridge processes remain.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:08 — Saved positive real local PostgreSQL PR141 pool evidence
+- **File(s) changed:** /private/tmp/fl_pr141rc_20261020/pool-contract/real-pg-results.json
+- **What changed:** Recorded three six-second opens all completing in about six seconds, pool mutex available during slow opens, one eleven-second open timing out at ten seconds then cleaning up, and zero remaining or idle-in-transaction local sessions.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:08 — Saved PR 141 browser recheck evidence and cleanup summary
+- **File(s) changed:** /private/tmp/fl_pr141rc_20261020/browser/verification-summary.json, session-matrix-results.json, session-on-office-navigation/results.json, *.log, screenshots
+- **What changed:** Recorded Node440 pass, requested dashboard/assistant/pilot both-mode passes, legacy sales off-mode passes and exact true-on fixture/containment gaps; separate signed-in Office probe16/16 with zero writes. All browser-owned local DBs dropped and browser harnesses exited.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:08 — Added real local PostgreSQL PR141 open-deadline probes
+- **File(s) changed:** /private/tmp/fl_pr141rc_20261020/pool-contract/real_pg_probe.py
+- **What changed:** Added read-only local PostgreSQL tests for three simultaneous six-second connection opens under the default ten-second deadline and one eleven-second open with eventual abandoned-connection cleanup.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:07 — Added explicit session-on Office navigation probe
+- **File(s) changed:** /private/tmp/fl_pr141rc_20261020/browser/probe-session-on-office-navigation.mjs
+- **What changed:** Added clearly separate local-fixture probe for actual session-on list/detail close/cancel/reopen Office navigation at desktop and phone widths; asserts navigation posts no writes and leaves legacy runner assertions untouched.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:06 — Added synthetic actor fixture for session-on sales checks
+- **File(s) changed:** /private/tmp/fl_pr141rc_20261020/browser/session-mode-auth-stub.mjs, *-authenticated-session.mjs
+- **What changed:** Added only synthetic local session-token/owner-actor fixture inputs to session-on scratch copies so sales assertions can run beyond the sign-in gate; no application or assertion changes.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:06 — Saved measured PR141 pool and disconnect evidence
+- **File(s) changed:** /private/tmp/fl_pr141rc_20261020/pool-contract/results.json
+- **What changed:** Saved exact observed timings and outcomes from independent FIFO, default deadline, open cleanup, shutdown race, and streaming disconnect success/error/cancellation probes.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:06 — Complete PR 141 all-route and eventual disconnect cleanup checks in both modes
+- **File(s) changed:** `supplemental/routes-result-0.json`, `supplemental/routes-result-1.json`, `supplemental/routes-0.log`, `supplemental/routes-1.log`
+- **What changed:** Final probes pass both modes: 208 route/method pairs, all13 first-load busy503s, zero checked-out after cancellation and after in-flight disconnected stream query finishes (~0.2s), zero idle-in-transaction sessions. Both fresh DBs dropped.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:05 — Correct PR 141 disconnect probe to wait for active work cleanup
+- **File(s) changed:** `supplemental/routes_release.py`, `supplemental/routes-initial-0.json`, `supplemental/routes-initial-1.json`
+- **What changed:** Correct prior log: all-route and panel checks passed, but initial immediate disconnect-release assertion found one still-active query; it did not yet establish a leak or complete cleanup. Preserve initial evidence and add bounded two-second wait to verify eventual release after in-flight work.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:05 — Completed primary PR 141 Node and browser matrix
+- **File(s) changed:** /private/tmp/fl_pr141rc_20261020/browser/*.log, matrix-results.json, */results.json, *.png
+- **What changed:** Current PR Node 440/440; all 18 primary browser invocations passed, including both-mode assistant and pilot suites, real local DB B/C bridges, WebKit/Chromium phone checks, and sales layout/list/exit/detail. Generated scratch-only logs and screenshots; no application edits.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:05 — Verify every PR 141 route under pool saturation and cancellation cleanup
+- **File(s) changed:** `supplemental/routes-result-0.json`, `supplemental/routes-0.log`, `supplemental/routes-schema-0.log`
+- **What changed:** All 208 method/path pairs avoid unclassified 5xx under real pool saturation; all 13 exact dashboard first-load paths answer retryable DATABASE_BUSY 503. Cancellation and client disconnect return every connection, zero idle-in-transaction sessions; fresh DB dropped.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:04 — Run PR 141 complete fresh Python suites in both modes
+- **File(s) changed:** `/private/tmp/fl_pr141rc_20261020/python-suite/python_0/*`, `/private/tmp/fl_pr141rc_20261020/python-suite/python_1/*`, `/private/tmp/fl_pr141rc_20261020/python-suite/pytest-{0,1}/*`
+- **What changed:** Started corrected full 6917-identity runs for each KEY_SESSIONS_ENABLED mode with independent fresh local prefixed databases and unchanged test assertions; mode-0 pool tests have passed before concurrent mode-1 start.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:04 — Add exhaustive held-pool routes and cancellation cleanup probes
+- **File(s) changed:** `supplemental/routes_release.py`
+- **What changed:** Replay current PR all-route enumeration plus 13 exact dashboard first-load URLs under real pool saturation, and check connection release on cancellation and NDJSON client disconnect with a real local query.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:04 — Added explicit browser session matrix harness
+- **File(s) changed:** /private/tmp/fl_pr141rc_20261020/browser/run_sessions_matrix.py
+- **What changed:** Runs unchanged dashboard/sales assertions against both config inputs, captures expected cutover differences separately, uses only local fixture HTTP and scratch evidence.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:04 — Prepared explicit two-mode dashboard and sales browser inputs
+- **File(s) changed:** /private/tmp/fl_pr141rc_20261020/browser/*-session-matrix.mjs, session-mode-stub.mjs, session-mode-adaptations.json
+- **What changed:** Added scratch copies with config fixture input controlled by PILOT_SESSIONS and wrapper for absent config fixtures; every original assertion preserved, including legacy-native-dialog assertions expected to expose session-cutover coverage limitations.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:03 — Verify PR 141 supplemental behavior with sessions enabled
+- **File(s) changed:** `supplemental/result-1.json`, `supplemental/run-1.log`, `supplemental/schema-1.log`
+- **What changed:** Repeat held-pool handler/NDJSON and real ticket timeout/replay probes in sessions-on mode. Same false503 and streaming500 findings; no duplicate writes, no leaked connections; local scratch DB dropped.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:03 — Preserve interrupted PR 141 harness diagnosis
+- **File(s) changed:** `/private/tmp/fl_pr141rc_20261020/python-suite/aborted_0_bad_basetemp/*`
+- **What changed:** Preserved interrupted run logs identifying only missing scratch basetemp setup errors; the harness cleanup dropped its database and the corrected full fresh run supersedes these results.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:03 — Reproduce PR 141 false busy response and streaming timeout gap
+- **File(s) changed:** `supplemental/result-0.json`, `supplemental/run-0.log`, `supplemental/schema-0.log`
+- **What changed:** Real held pool confirms unrelated 500 after handled timeout is rewritten as DATABASE_BUSY; assistant NDJSON returns HTTP 200 with an error event status 500. Ticket timeout performs one acquisition and no ledger writes; retry plus replay creates one transaction/receipt; no checked-out or idle-in-transaction connections; scratch DB dropped.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:03 — Correct PR 141 Python scratch temporary-directory path
+- **File(s) changed:** `/private/tmp/fl_pr141rc_20261020/python-suite/full-suite-runner.py`
+- **What changed:** Corrected a date substitution in the external harness basetemp path; stopped the affected ordinary-shard run to rerun from a fresh DB with scratch files under the owned PR 141 review directory.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:02 — Add PR 141 mixed-error, streaming and real-write verification probes
+- **File(s) changed:** `supplemental/recheck.py`
+- **What changed:** Add isolated probes using a held real pool to distinguish handled timeout then unrelated failure, exercise NDJSON timeout behavior, and verify timeout plus same-ticket write replay without duplicate ledger rows.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:02 — Recorded initial PR 141 local test evidence
+- **File(s) changed:** /private/tmp/fl_pr141rc_20261020/browser/*.log, matrix-progress.json, matrix-results.json
+- **What changed:** Node suite passed 440 tests; initial browser attempts hit sandbox loopback EPERM; restarted unchanged harness with authorized local-server execution.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:02 — Added independent PR141 pool contract probes
+- **File(s) changed:** /private/tmp/fl_pr141rc_20261020/pool-contract/probe.py
+- **What changed:** Added DB-free fake-connection checks for strict FIFO holder re-asks, orphan-open cleanup, network I/O outside the mutex, actual 10-second retry budget, deadline mutex reacquisition, and late grants.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:02 — Added PR 141 browser verification harness
+- **File(s) changed:** /private/tmp/fl_pr141rc_20261020/browser/run_matrix.py, *.log, *results.json, browser screenshots
+- **What changed:** Added isolated harness for unchanged current-PR Node and browser suites, deterministic fixture modes, scratch evidence outputs, local fl_pr141rc_ DBs only, no hosted credentials or model calls.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:01 — Created isolated PR141 pool audit workspace
+- **File(s) changed:** /private/tmp/fl_pr141rc_20261020/pool-contract/
+- **What changed:** Created a scratch directory for DB-free independent FIFO, deadline, and resource-lifecycle verification.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:01 — Prepared PR 141 local browser runner copies
+- **File(s) changed:** /private/tmp/fl_pr141rc_20261020/browser/*.mjs, adapted-runners.json, node_modules symlink
+- **What changed:** Copied current PR browser runners into scratch; adjusted only root/import/output paths and local PG port; assertions and application sources unchanged.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:01 — Start PR 141 fresh Python suite mode 0
+- **File(s) changed:** `/private/tmp/fl_pr141rc_20261020/python-suite/python_0/*`
+- **What changed:** Created mode-0 isolated full-suite collection and run artifacts using the pinned requirements venv against fresh local PostgreSQL database fl_pr141rc_python_0.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:01 — Install pinned PR 141 dependencies and initialize disposable PostgreSQL
+- **File(s) changed:** `venv/`, `venv-install.log`, `pgdata/`, `initdb.log`, `postgres.log`, `log_change.py`
+- **What changed:** Install requirements.txt and test requirements in fresh venv, prepare dedicated loopback PG17 cluster, and serialize concurrent review log updates with a file lock.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 11:00 — Prepare PR 141 complete Python suite runner
+- **File(s) changed:** `/private/tmp/fl_pr141rc_20261020/python-suite/full-suite-runner.py`
+- **What changed:** Adapted prior reviewed isolated local fresh-database suite allocation harness for PR 141 port 57641, fl_pr141rc_ database names and both key-session modes; production sources and assertions unchanged.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
+## 2026-10-20 10:59 — Prepare isolated exact-head PR 141 review environment
+- **File(s) changed:** `/private/tmp/fl_pr141rc_20261020/repo/`, `venv/`, `log_change.py`
+- **What changed:** Fetch exact head 5b399150, create a fresh Python 3.12 venv and review logging helper. Leave shared source checkout and existing changes intact.
+- **Why:** Authorized production-impact PR #141 review; isolated local verification only, no merge or hosted changes.
+
+---
+
 ## 2026-10-19 21:20 — Record final pilot-screen validation and regression guard
 - **File(s) changed:** FACTORY_LEDGER_CHANGELOG.md, docs/validation/pilot-screens/verification.json, /tmp/fl_pilot_pr_body.md
 - **What changed:** Add row 219 and final source-hashed evidence: 6,909 fresh Python tests in each session mode, 440 Node and 60 phone/desktop browser checks, existing runners both modes; all six disposable local pilot databases dropped. Prepare draft PR text; no model calls, settings/hosted data changes, migration or deployment.
@@ -1019,6 +1439,62 @@
 - **File(s) changed:** `main.py`, `dashboard/dashboard.js`, `dashboard/index.html`, `tests/test_sales_order_state_model.py`, `tests/visual/run-sales-orders-interactions.mjs`, `tests/visual/run-so-detail-interactions.mjs`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** `GET /sales/orders/counts` `open` and `ready_to_ship` now skip state-open orders whose fulfillment is `shipped`; dashboard Open / Ready to ship tab filter does the same; dashboard.js cache-bust v76→v77. Counts test adds a ready+shipped order (open +2, shipped +2); Playwright list runner asserts order 109 (open, shipped, Ready checked) is only on Shipped; detail runner Open count after close 8→7. FL changelog row 218.
 - **Why:** Open tab (56) and Ready to ship (46) filtered on state only, so physically shipped but not-yet-closed orders appeared there. Display/filter only; no order state or data changed. Branch fix/open-tab-excludes-shipped, not merged/pushed/deployed.
+
+---
+
+## 2026-10-19 12:19 — Complete PR 138 review verification and drop every review database
+- **File(s) changed:** `/private/tmp/fl_pr138rc_20261019/verification-summary.json`, `cleanup.json`, `pool-contract-default-10s.json`
+- **What changed:** Verify all 6,872 Python test identities per mode (initial archive-only Git guard failure resolved by exact-index rerun), 411 Node tests and complete browser matrix. Save default deadline counterexample (17.991 s versus 10 s), FIFO overtaking, nine dashboard timeout-500 paths and positive write/release audits. Verify zero fl_pr138rc_ DBs/sessions and stop the disposable local cluster.
+- **Why:** Finish the authorized review with reproducible evidence and clean local DB teardown; recommend review:fix-round, no merge/deployment or hosted settings/data changes.
+
+---
+
+## 2026-10-19 12:18 — Save reproducible PR 138 FIFO and acquisition-deadline counterexamples
+- **File(s) changed:** `/private/tmp/fl_pr138rc_20261019/pool-contract-repro.py`, `pool-contract-repro.json`
+- **What changed:** Replay the exact PR pool class with the actual psycopg2 base and in-memory connection doubles: a newcomer overtakes an older waiter; serialized slow opens exceed the configured deadline. Script also supports the default 10-second limit.
+- **Why:** Make the two pool contract findings independently reviewable without hosted access.
+
+---
+
+## 2026-10-19 12:17 — Record completed PR 138 browser matrix and remaining Python groups
+- **File(s) changed:** `/private/tmp/fl_pr138rc_20261019/browser/verification-summary.json`, `remaining_python_1/`, `remaining-on.log`
+- **What changed:** Record all 411 Node checks, dashboard and Assistant off/on browser checks, A60/B18/B-page68/C36; continue fresh sessions-on migration/race groups. The completed local baseline DB was dropped; browser and release-audit DBs also dropped.
+- **Why:** Finish independent review evidence and track cleanup without changing hosted services.
+
+---
+
+## 2026-10-19 12:16 — Complete PR 138 regression harness metadata and both session modes
+- **File(s) changed:** `/private/tmp/fl_pr138rc_20261019/pr/.git/`, `python_1/`, `full-suite-on.log`, `remaining-suite-runner.py`, `remaining_python_0/`, `remaining-off.log`, `guard-off.log`, `guard-on.log`, `browser/`
+- **What changed:** Add exact-head isolated Git index so tracked-file key guard works; rerun that guard both modes after export-only failure. Continue all fresh migration/race groups with unchanged tests and capture completed Node/browser matrix.
+- **Why:** Ensure every requested Python test runs and infrastructure failures remain explicit in evidence.
+
+---
+
+## 2026-10-19 12:15 — Capture PR 138 load baseline and browser regression evidence
+- **File(s) changed:** `/private/tmp/fl_pr138rc_20261019/load-main.log`, `load-main-schema.log`, `load-main-pytest/`, `browser/`
+- **What changed:** Main reproduces 15/25 burst failures with pool exhausted. Capture Node 411 passes, dashboard/Assistant browser results and runner copies with only local path/port adaptations; browser checks continue across both session modes.
+- **Why:** Independently validate PR 138 against exact main and collect production-safety review evidence.
+
+---
+
+## 2026-10-19 12:13 — Prepare PR 138 main load-test reproduction and browser matrix
+- **File(s) changed:** `/private/tmp/fl_pr138rc_20261019/main/tests/test_db_pool_wait.py`, `pr/node_modules`, `browser/`
+- **What changed:** Transplant the unchanged new PR load test onto the main export and prepare local-only Node/browser dependencies and evidence output.
+- **Why:** Confirm the original pool failure and run both authentication modes without hosted access.
+
+---
+
+## 2026-10-19 12:13 — Prepare PR 138 local regression harness and disposable PostgreSQL
+- **File(s) changed:** `/private/tmp/fl_pr138rc_20261019/pgdata/`, `postgres.log`, `full-suite-runner.py`, `python_0/`, `full-suite-off.log`
+- **What changed:** Initialize isolated loopback PostgreSQL 17 at port 57638 and adapt the existing fresh-schema suite runner to fl_pr138rc_ names and review evidence paths; start sessions-off suite with unchanged tests.
+- **Why:** Execute the requested production-safety regression matrix locally.
+
+---
+
+## 2026-10-19 12:12 — Create isolated PR 138 review snapshots
+- **File(s) changed:** `/private/tmp/fl_pr138rc_20261019/pr/`, `/private/tmp/fl_pr138rc_20261019/main/`
+- **What changed:** Export exact PR b03521c8 and main 37593630 into isolated temporary source copies for review and local validation.
+- **Why:** Review production pool behavior without changing the shared checkout or hosted services.
 
 ---
 
