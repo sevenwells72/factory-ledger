@@ -1,0 +1,33 @@
+product_id,SKU,name,quantity,unit,category,status,exclusion_reason
+76,21001,Bag Blue #10,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+77,21002,Bag Blue #25,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+78,21003,Bag Clear #10,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+79,21004,Bag Clear #25,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+80,21005,Bag – Printed – SS Chocolate Chip Granola,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+81,21006,Bag – Printed – SS Cranberry Granola,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+82,21007,Bag – Printed – SS Original Granola,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+83,21024,Bag – Printed – BS Almond Butter 7 oz,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+84,21025,Bag – Printed – BS Dark Chocolate 7 oz,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+85,21026,Bag – Printed – BS Hazelnut Butter 7 oz,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+86,21028,Bag – Printed – BS Peanut Butter 7 oz,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+87,21061,Bag – Printed – SS Chocolate Chip Granola Low Carb,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+88,21060,Bag – Printed – SS Original Granola Low Carb,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+89,21008,Box 10 LB White Plain #13,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+90,21009,Box 10 LB White Plain #13 Flat,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+91,21010,Box 14 12,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+92,21011,Box 24,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+93,21012,Box 24 Flat,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+94,21013,Box 38F Toasted 25 LB,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+95,21014,Box F28,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+96,21015,Box PL9 Crumb,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+97,21016,Box Unipro Printed 10 LB,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+98,21017,Box Unipro Printed 10 LB Flat,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+99,21018,Box – CQ – Printed – Coconut,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+100,21019,Box – CQ – Printed – Granola,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+101,21020,Box – CQ – Printed – Granola – Flat,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+102,21021,Pallets,,unit,billing item,NOT COUNTED,Billing item; excluded from the reset by owner decision.
+103,21022,Tape – 48mmx100m – Case 36,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+104,21023,Tape – 48mmx914m – Case 6,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+105,21029,Case – Generic – 7 OZ Master,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+106,21030,Case – Generic – 7 OZ Master – Flat,,unit,packaging,NOT COUNTED,Packaging is information only; FL does not deduct packaging on pack.
+176,,Pallet Charge,,each,billing item,NOT COUNTED,Billing item; excluded from the reset by owner decision.

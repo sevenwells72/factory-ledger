@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-28 13:45 — Cutover closeout records saved to the repo (docs only)
+- **File(s) changed:** new `audits/fresh-start/v3/MASTER-HANDOFF-2026-10-28.md` and the other v3 Markdown records (ARTURO-OCT27-CORRECTIONS, CUTOVER-FINISH-CHECKLIST, FINISH-SEQUENCE, FREEZE-LIFT-PLAN, HANDOFF-2026-10-27, ROLLOUT-PLAN, TRACEABILITY-EXCEPTIONS, UNVERIFIED-BALANCES); key evidence `final-reconciliation-complete/`, `whole-reset-oct26/README.md` + `proof-final/` (without the 3.7 MB reset-verification JSON), `found-oct26/` approval, posting steps, signed found rows and lot notes; `docs/operating-model/` (architecture review session's staff guides, unchanged); `CLAUDE.md`, `AGENTS.md` (cutover-closed notice + handoff pointer + operating principles); `FACTORY_LEDGER_CHANGELOG.md` row 236 (deploy record)
+- **What changed:** Documentation only; no code, migrations or config. Files scanned for credential values, database URLs, key/token patterns, emails and phone numbers: none found. Full 136 MB evidence stays in `~/Backups/fl/2026-10-28-cutover-evidence/` and the count-day worktree.
+- **Why:** Owner asked to preserve the closeout and handoff records in GitHub so any session or computer can find them.
+
+---
+
 ## 2026-10-28 13:05 — PR #154 brought onto current main and revalidated (not merged)
 - **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md` (conflicts resolved: #154 entries above main's; row 235 unchanged); branch = main b02982b4 + the single #154 commit replayed (same 5 files, +102)
 - **What changed:** Python 7,121 passed with key sessions off and 7,121 on (fresh local PostgreSQL 17 per mode; zero failures/skips); JavaScript 577 passed. No migration. Production read-only check: pooled lot 26-10-27-FOUND-011 (id 1658) entry note contains POOLED, so the guard applies; the six other opening-stock lots start "Opening stock" (documented-code rule applies); lot 6013 (id 624) is a May reconciliation lot and is not covered by this guard.
