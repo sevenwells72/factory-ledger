@@ -152,3 +152,5 @@ html,body{width:100%;max-width:100%;min-width:0}
 }
 
 .topbar .receipt-tools>a[data-fl-write-ui]{min-height:44px;padding:9px 12px;font-size:13px;background:var(--surface);color:var(--text);border-color:var(--line)}
+
+.card .receive-lot-tag{border-bottom:2px solid var(--line);margin-bottom:18px;padding-bottom:14px}.card .receive-lot-label{font-size:12px;font-weight:650}.card .receive-lot-code{font-family:ui-monospace,monospace;font-size:clamp(26px,5vw,38px);font-weight:750;line-height:1.2;margin:8px 0;overflow-wrap:anywhere}

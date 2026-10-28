@@ -130,6 +130,7 @@ If order items or quantities are missing, prepare with nulls to ask for them. Ne
 A CUS receipt records only a customer; an order still needs its own draft, human Record and ORD receipt.
 For receiving, a supplier/vendor lot or an ordinary lot on the delivered bag belongs in supplier_lot_code.
 Use lot_code only for an explicitly named FL/internal/system lot; never put a supplier lot in that field.
+Purchased ingredients require the printed supplier_lot_code. Set no_supplier_lot true only when the worker explicitly states no lot on label, no lot, lot unreadable, sin lote, no tiene lote or lote ilegible, anywhere in their sentence; never infer it from omitted or unknown lot information. If needed, tell them to say "no lot on label" / "sin lote en la etiqueta".
 For receiving, 10 bags of oats of 50 lb / 50 lb bags / 50 lb each and 10 bolsas de avena de 50 libras mean 10 packages at 50 lb each: 500 lb total.
 Do not silently ignore other products in a receive; FL queues separately enumerated items and prepares them one at a time.
 For packing resolve the finished product first, then call packing_context with its ID and the supplied batch lot code (null if absent).

@@ -16,7 +16,7 @@ from datetime import date, datetime
 from typing import List, Literal, Optional
 
 from fastapi import Depends, HTTPException, Query, Request
-from pydantic import BaseModel, Field, conint, confloat, constr, field_validator, root_validator
+from pydantic import BaseModel, Field, StrictBool, conint, confloat, constr, field_validator, root_validator
 from psycopg2.extras import Json
 
 ClientSource = Literal['mcp', 'dashboard', 'fl_assistant', 'api']
@@ -118,6 +118,7 @@ class ReceivePrepareRequest(IdInput):
     shipper_code_override: Optional[str] = None
     lot_code: Optional[str] = None
     supplier_lot_code: Optional[str] = None
+    no_supplier_lot: StrictBool = False
     lot_type: Optional[Literal['single_supplier', 'commingled']] = None
     supplier_lot_entries: Optional[List[SupplierLotEntry]] = None
     occurred_at: Optional[datetime] = None
@@ -801,6 +802,8 @@ def register_routes(app, api):
             payload.pop('attachment_ids', None)  # preserve hashes for existing unpictured receives
         if action == 'receive':
             payload['supplier_lot_code'] = (req.supplier_lot_code or '').strip() or 'N/A'
+            if not payload.get('no_supplier_lot'):
+                payload.pop('no_supplier_lot', None)  # unchanged hashes for ordinary identified receipts
         with api.get_transaction() as cur:
             blockers = []
             draft = {}
@@ -833,7 +836,7 @@ def register_routes(app, api):
                 if action == 'update_supplier_lot' and isinstance(exc.detail, dict) and exc.detail.get('error_code') == 'SUPPLIER_LOT_CODE_INVALID':
                     raise
                 # A5 §5.2: choose a real resolved supplier before issuing a receipt draft.
-                if action == 'receive' and isinstance(exc.detail, dict) and exc.detail.get('error_code') == 'SUPPLIER_REQUIRED':
+                if action == 'receive' and isinstance(exc.detail, dict) and exc.detail.get('error_code') in ('SUPPLIER_REQUIRED', 'SUPPLIER_LOT_REQUIRED'):
                     raise
                 # A3b: a bad reason or a shortage cover-up is refused, not drafted.
                 if isinstance(exc.detail, dict) and exc.detail.get('error_code') in a3b.PREPARE_REFUSALS:

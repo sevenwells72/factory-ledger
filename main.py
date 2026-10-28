@@ -3805,6 +3805,7 @@ class ReceiveRequest(InventoryWriteRequest):
     lot_code: Optional[str] = None
     # LAT Code Policy v1.1 fields
     supplier_lot_code: Optional[str] = None
+    no_supplier_lot: StrictBool = False
     lot_type: Optional[str] = None  # "single_supplier" or "commingled"
     supplier_lot_entries: Optional[List[Dict]] = None  # For commingled receipts
 
@@ -5860,6 +5861,7 @@ def _receive_preview_core(cur, req: ReceiveRequest, *, product=None):
     """Read-only receive draft, shared by legacy preview and A1 prepare."""
     product = product if product is not None else resolve_product_full(cur, req.product_name)
     kosher_tiers.refuse_receive(product)
+    lot_confirmation.require_receive_supplier_lot(cur, req.dict(), product['id'])
 
     # Lot Identity Policy: honor physical lot code if provided
     if req.lot_code:
@@ -5915,6 +5917,7 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
     cur.execute("SELECT pg_advisory_xact_lock(1)")
     product = product if product is not None else resolve_product_full(cur, req.product_name)
     kosher_tiers.refuse_receive(product)
+    lot_confirmation.require_receive_supplier_lot(cur, req.dict(), product['id'])
 
     if req.lot_code:
         lot_code = normalize_lot_code_input(req.lot_code)
@@ -6007,7 +6010,8 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
     date_str, time_str = format_timestamp(now)
     supplier_codes = [entry.get('supplier_lot_code') for entry in (req.supplier_lot_entries or []) if entry.get('supplier_lot_code')]
     supplier_label = ", ".join(supplier_codes) or req.supplier_lot_code or "N/A"
-    receipt = f"RECEIVED: {req.cases} cases ({_fmt_quantity(total_lb)} lb) {product['name']}\nLot: {lot_code}\nSupplier lot: {supplier_label}\nBOL: {req.bol_reference}\n{date_str} {time_str}"
+    receipt = f"CNS lot: {lot_code}\nWrite this on the pallet tag\nRECEIVED: {req.cases} cases ({_fmt_quantity(total_lb)} lb) {product['name']}\nSupplier lot: {supplier_label}\nBOL: {req.bol_reference}\n{date_str} {time_str}"
+    receipt_es = f"Lote CNS: {lot_code}\nEscribe esto en la etiqueta del pallet\nRECIBIDO: {req.cases} cajones ({_fmt_quantity(total_lb)} lb) de {product['name']}\nLote del proveedor: {supplier_label}\nBOL: {req.bol_reference}\n{date_str} {time_str}"
 
     lot_verb = "created" if is_new_lot else "found existing"
     logger.info(f"Receive committed: {lot_code} ({lot_verb}) - {_fmt_quantity(total_lb)} lb of {product['name']}")
@@ -6027,6 +6031,9 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
         "bol_reference": req.bol_reference,
         "total_lb": total_lb,
         "receipt_text": receipt,
+        "receipt_text_es": receipt_es,
+        "lot_tag_instruction": "Write this on the pallet tag",
+        "lot_tag_instruction_es": "Escribe esto en la etiqueta del pallet",
         "message": f"Received {_fmt_quantity(total_lb)} lb as lot {lot_code}" + ("" if is_new_lot else " (existing lot)")
     }
     if code_similarity:
@@ -6050,17 +6057,38 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key), request: Req
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at, req.backfill, request
     )
-    # Fallback: use lot_code if supplier_lot_code not provided, then 'N/A'
-    supplier_lot = (req.supplier_lot_code or "").strip()
-    if not supplier_lot:
-        supplier_lot = (req.lot_code or "").strip() or "N/A"
-    req.supplier_lot_code = supplier_lot
+    if not req.shipper_name.strip():
+        lot_confirmation.fail(
+            "SUPPLIER_REQUIRED", "Enter the supplier name.", "Ingresa el nombre del proveedor.")
+    req.supplier_lot_code = (req.supplier_lot_code or "").strip() or "N/A"
 
     try:
         with get_transaction() as cur:
+            product = resolve_product_full(cur, req.product_name)
+            kosher_tiers.refuse_receive(product)
+            # Legacy receives require the supplied vendor name, but historically
+            # accept a vendor without an active catalog record. Preserve that
+            # behavior and link active catalog suppliers when available.
+            supplier = resolve_supplier(cur, req.shipper_name)
+            supplier_id = supplier['id'] if supplier and supplier['active'] else None
+            for entry in req.supplier_lot_entries or []:
+                party_name = entry.get('supplier_name') or req.shipper_name
+                party = resolve_supplier(cur, party_name)
+                entry.update(supplier_id=party['id'] if party and party['active'] else None,
+                             supplier_name=party_name)
+            payload = req.dict() | {'product_id': product['id'], 'supplier_id': supplier_id}
+            draft = _receive_preview_core(cur, req, product=product)
+            if req.mode == 'commit' and draft.get('existing_lot_id'):
+                cur.execute('SELECT id FROM lots WHERE id=%s FOR UPDATE', (draft['existing_lot_id'],))
+            lot_confirmation.identity_draft(sys.modules[__name__], cur, payload, draft)
             if req.mode == "preview":
-                return _receive_preview_core(cur, req)
-            return _receive_commit_core(cur, req, request, occurred_at, created_at_source)
+                return draft
+            response = _receive_commit_core(cur, req, request, occurred_at, created_at_source,
+                                            product=product, supplier_id=supplier_id)
+            lot_confirmation.record_identity(cur, payload, response, None, None)
+            if supplier_id is not None:
+                lot_confirmation.supplier_receipt(cur, response)
+            return response
     except HTTPException:
         raise
     except Exception as e:
@@ -8524,7 +8552,7 @@ def _ship_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
     return response
 
 
-def _ship_order_commit_core(cur, request, order_id, req, occurred_at, created_at_source, *, ticket_id=None, receipt_number=None, bol_reference=None, lot_allocations_by_line=None):
+def _ship_order_commit_core(cur, request, order_id, req, occurred_at, created_at_source, *, ticket_id=None, receipt_number=None, bol_reference=None, lot_allocations_by_line=None, retry_guard=None):
     """Existing ship commit body; caller owns the transaction (A6)."""
     cur.execute(
         "SELECT so.id, so.order_number, so.status, so.state, so.customer_id, c.name "
@@ -8536,6 +8564,13 @@ def _ship_order_commit_core(cur, request, order_id, req, occurred_at, created_at
     order_row = cur.fetchone()
     if not order_row:
         raise HTTPException(404, f"Order #{order_id} not found")
+    if retry_guard:
+        # Under the order row lock: a concurrent identical retry waits for the first
+        # commit, then finds its receipt. Before the state checks, so a retry after the
+        # first commit closed the order still gets that receipt.
+        prior = _ship_order_prior_receipt(cur, order_id, retry_guard["request_hash"])
+        if prior:
+            return _ship_order_replay(prior)
     _require_open_state(order_row['state'], order_row['order_number'],
                         order_id, "shipping")
     # Step 2 of the normative lock order: the order's line rows,
@@ -16503,6 +16538,68 @@ def _pending_order_ship_counts(cur, order_id):
     return cur.fetchone()
 
 
+# A GPT action that times out after the server committed resends the identical
+# body, and an operator may say "try again" a few minutes later. Inside this window
+# an identical commit on the same order replays the first receipt instead of shipping
+# again (PR #146 review). A different body (other lines or quantities) always ships.
+SHIP_ORDER_RETRY_WINDOW_MINUTES = 10
+
+
+def _ship_order_request_hash(order_id, req):
+    """What the commit asks for; ship_all wins over lines, exactly as the core reads them."""
+    ship_all = bool(req.ship_all)
+    lines = None if ship_all else sorted((int(l.line_id), round(float(l.quantity_lb), 4)) for l in (req.lines or []))
+    body = {"order_id": int(order_id), "ship_all": ship_all, "lines": lines,
+            "occurred_at": str(req.occurred_at) if req.occurred_at else None, "backfill": bool(req.backfill)}
+    return hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()
+
+
+def _ship_order_prior_receipt(cur, order_id, request_hash):
+    """The receipt this commit repeats, or None. Caller holds the order row lock, so a
+    concurrent identical retry waits for the first commit and then sees its receipt.
+    A receipt whose shipment was since voided is not replayed: that order ships again."""
+    cur.execute("""SELECT r.shipment_id, r.response_json, r.created_at
+                     FROM ship_order_commit_receipts r
+                    WHERE r.sales_order_id = %s AND r.request_hash = %s
+                      AND r.created_at > clock_timestamp() - make_interval(mins => %s)
+                      AND EXISTS (SELECT 1 FROM shipment_lines sl
+                                    JOIN ledger_current_transactions t ON t.id = sl.transaction_id
+                                   WHERE sl.shipment_id = r.shipment_id AND t.effective_status = 'posted')
+                    ORDER BY r.created_at DESC LIMIT 1""",
+                (order_id, request_hash, SHIP_ORDER_RETRY_WINDOW_MINUTES))
+    return cur.fetchone()
+
+
+def _ship_order_replay(row):
+    response = dict(row['response_json'])
+    at = row['created_at'].astimezone(PLANT_TIMEZONE)
+    until = (at + timedelta(minutes=SHIP_ORDER_RETRY_WINDOW_MINUTES)).strftime("%-I:%M %p")
+    logger.warning("SHIP_ORDER_REPLAYED: order %s shipment %s", response.get("order_number"), row['shipment_id'])
+    response["idempotent_replay"] = True
+    response["message"] = (f"Already recorded as shipment {row['shipment_id']} at {at.strftime('%-I:%M %p')} — "
+                           f"nothing new was shipped. If this really is a second shipment of the same quantities, "
+                           f"send it after {until}. " + str(response.get("message") or ""))
+    return response
+
+
+def _ship_order_store_receipt(cur, order_id, request_hash, response):
+    if not response.get("shipment_id"):
+        return  # nothing shipped (legacy partial repair): no receipt to replay
+    cur.execute("INSERT INTO ship_order_commit_receipts (sales_order_id, request_hash, shipment_id, response_json) "
+                "VALUES (%s, %s, %s, %s)",
+                (order_id, request_hash, response["shipment_id"], json.dumps(jsonable_encoder(response))))
+
+
+def _ship_order_retry_guard(cur, order_id, req):
+    """Retry protection for a direct ship commit; takes no lock. None before migration
+    088 is applied: the receipts table is absent and the commit runs exactly as before."""
+    cur.execute("SELECT to_regclass('public.ship_order_commit_receipts') IS NOT NULL AS ready")
+    if not cur.fetchone()['ready']:
+        logger.error("SHIP_ORDER_RETRY_GUARD_UNAVAILABLE: migration 088 not applied; ship commit unguarded")
+        return None
+    return {"request_hash": _ship_order_request_hash(order_id, req)}
+
+
 @app.post("/sales/orders/{order_id}/ship")
 def ship_order(
     request: Request,
@@ -16616,7 +16713,12 @@ def ship_order(
                     # lock a concurrent close/cancel could commit between this
                     # eligibility read and the shipment write, shipping stock
                     # against an order that is no longer on the board.
-                    return _ship_order_commit_core(cur, request, order_id, req, occurred_at, created_at_source)
+                    guard = _ship_order_retry_guard(cur, order_id, req)
+                    result = _ship_order_commit_core(cur, request, order_id, req, occurred_at, created_at_source,
+                                                     retry_guard=guard)
+                    if guard and not result.get("idempotent_replay"):
+                        _ship_order_store_receipt(cur, order_id, guard["request_hash"], result)
+                    return result
         except HTTPException:
             raise
         except Exception as e:
@@ -16708,7 +16810,38 @@ def commit_ship_order(
         occurred_at=req.occurred_at,
         backfill=req.backfill,
     )
-    return ship_order(request, order_id, commit_req, _)
+    result = ship_order(request, order_id, commit_req, _)
+    if isinstance(result, dict) and result.get("shipment_id"):
+        result.update(_floor_packing_slip(request, order_id, result["shipment_id"]))
+    return result
+
+
+def _public_api_base(request: Request) -> str:
+    configured = os.environ.get("PUBLIC_API_BASE_URL", "").strip().rstrip("/")
+    if configured:
+        return configured
+    railway = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "").strip()
+    if railway:
+        return f"https://{railway}"
+    host = request.headers.get("host") or "localhost"
+    local = host.split(":")[0] in ("localhost", "127.0.0.1", "testserver")
+    return f"{'http' if local else 'https'}://{host}"
+
+
+def _floor_packing_slip(request: Request, order_id: int, shipment_id: int) -> dict:
+    """10-minute signed packing-slip link for a commitShipOrder shipment, so the
+    Floor GPT never needs an API key in a URL. The shipment is already committed
+    here: a signing failure only drops the link, never turns the commit into an
+    error the operator might retry (a second shipment)."""
+    try:
+        path, expires = ship_tickets.shipment_packing_link(order_id, shipment_id)
+    except HTTPException as exc:
+        logger.warning("Packing slip link unavailable for shipment %s: %s", shipment_id, exc.detail)
+        return {"packing_slip_url": None, "packing_slip_expires_at": None}
+    return {
+        "packing_slip_url": _public_api_base(request) + path,
+        "packing_slip_expires_at": datetime.fromtimestamp(expires, timezone.utc).isoformat(),
+    }
 
 
 # ═══════════════════════════════════════════════════════════════

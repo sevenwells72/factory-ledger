@@ -391,3 +391,5 @@ for (const language of ['en', 'es']) test(`Round D open order remaining uses exa
   assert.equal(sections[0].rows[0][4], language === 'en' ? '1 case (50 lb)' : '1 caja (50 lb)');
   assert.equal(sections[0].rows[1][4], language === 'en' ? '1.5 cases (37.5 lb)' : '1.5 cajas (37.5 lb)');
 });
+
+test('receive pallet tag uses CNS codes from live response, lot rows and transaction lines, never supplier lots or other actions',()=>{const r={action:'receive',receipt_number:'RCV-261021-001',supplier_lot_code:'SUP-ONLY',response:{lot_code:'CNS-A'},lots:[{lot_code:'CNS-A'},{lot_code:'CNS-B'}],transactions:[{lines:[{lot_code:'CNS-B'}]}]};assert.deepEqual(display.receiveLotCodes(r),['CNS-A','CNS-B']);assert.deepEqual(ledger.receiveLotCodes(r),['CNS-A','CNS-B']);assert.deepEqual(display.receiveLotCodes({action:'make',lot_code:'MAKE-A'}),[]);assert.deepEqual(display.receiveLotCodes({receipt_number:'RCV-261021-001',lot_code:'CNS-A'}),['CNS-A']);ledger.lang='en';assert.ok(!ledger.receiveLotHtml({...r,lot_code:'<script>'}).includes('><script>'));});

@@ -347,6 +347,15 @@ def supplier_lot_identity_applies(cur, product_id):
     return bool(row and row['applies'])
 
 
+def require_receive_supplier_lot(cur, payload, product_id):
+    """Purchased ingredient receipts need a label code or an explicit exception."""
+    if (supplier_lot_identity_applies(cur, product_id) and unidentified(payload)
+            and payload.get('no_supplier_lot') is not True):
+        fail('SUPPLIER_LOT_REQUIRED',
+             'Enter the supplier lot code from the label, or select "No lot on label" if the label has no lot code.',
+             'Ingresa el lote del proveedor que aparece en la etiqueta, o selecciona "Sin lote en la etiqueta" si la etiqueta no tiene código de lote.')
+
+
 def identity_draft(api, cur, payload, draft):
     if not supplier_lot_identity_applies(cur, draft['product_id']):
         return

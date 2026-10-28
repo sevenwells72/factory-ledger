@@ -144,23 +144,27 @@ def test_spoken_make_records_only_after_physical_tags(client, chat, voice_catalo
 def test_misheard_receive_supplier_keeps_spoken_quantity_and_bol(client, chat, voice_catalog, db_cursor,
                                                                monkeypatch, text, product_query, bol_word, lang):
     product = voice_catalog['seeds']
+    supplier_lot = 'SUP-VOICE-5521'
+    lot_evidence = ('Lote del proveedor ' if lang == 'es' else 'Supplier lot ') + supplier_lot + '.'
     requests = model(monkeypatch, ('resolve', {'kind': 'product', 'query': product_query, 'context': {'action': 'receive'}}),
                      ('resolve', {'kind': 'supplier', 'query': 'Green Supply', 'context': {'action': 'receive'}}))
-    choices = card(turn(client, chat, text), 'choices')
+    choices = card(turn(client, chat, text + ' ' + lot_evidence), 'choices')
     assert choices['resolution_kind'] == 'supplier' and choices['language'] == lang
     grain = next(row for row in choices['result']['candidates'] if row['name'] == 'Grain Supply')
     assert 'Grain Supply' not in choices['message'], 'Names appear on buttons only'
     normalized = supplied_text(requests)
     assert '4' in normalized and '50 lb' in normalized and 'BOL 5521' in normalized
     body = {'product_id': product['id'], 'supplier_id': grain['id'], 'cases': 4, 'case_size_lb': 50,
-            'bol_reference': '5521'}
+            'bol_reference': '5521', 'supplier_lot_code': supplier_lot}
     model(monkeypatch, ('prepare_receive', body))
     draft = card(turn(client, chat, choice_id=choices['id'], selected_id=grain['id']), 'draft')
     assert draft['prepared']['draft']['total_lb'] == 200
+    assert draft['prepared']['draft']['supplier_lot_code'] == supplier_lot
     committed = record(client, chat, draft)
     assert committed.status_code == 200, committed.text
     result = committed.json()['result']
     assert result['receipt_number'].startswith('RCV-')
+    assert result['supplier_lot_code'] == supplier_lot
     db_cursor.execute('SELECT supplier_id,bol_reference FROM transactions WHERE id=%s', (result['transaction_id'],))
     assert dict(db_cursor.fetchone()) == {'supplier_id': grain['id'], 'bol_reference': '5521'}
 
