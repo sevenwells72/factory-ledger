@@ -111,7 +111,7 @@ def _payload(cur, route, seed):
     base = {'mode': 'commit'}
     if route == '/receive':
         base.update(product_name=seed['product_name'], cases=2, case_size_lb=25,
-                    shipper_name='Actor Test Supplier', bol_reference='ACTOR-TEST')
+                    shipper_name='Actor Test Supplier', bol_reference='ACTOR-TEST', supplier_lot_code='ACTOR-SUP-LOT')
     elif route == '/ship':
         base.update(product_name=seed['product_name'], quantity_lb=10,
                     customer_name=seed['customer_name'], order_reference='ACTOR-TEST',

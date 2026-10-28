@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Factory Ledger System
-  version: 3.5.0
+  version: 3.5.1
   description: Inventory management, production tracking, and sales order fulfillment for food manufacturing.
 servers:
   - url: https://fastapi-production-b73a.up.railway.app
@@ -69,7 +69,11 @@ components:
           type: string
         supplier_lot_code:
           type: string
-          description: "Supplier's printed lot code. Defaults to lot_code if omitted, or 'N/A' if neither is provided."
+          description: "Printed supplier lot; required for purchased ingredients unless no_supplier_lot is explicitly true. Internal lot_code is not a substitute."
+        no_supplier_lot:
+          type: boolean
+          default: false
+          description: 'Set true only when the operator explicitly confirms "No lot on label" / "Sin lote en la etiqueta". The ingredient lot remains unidentified with the existing 7-business-day exception. Never infer this from a blank lot.'
         lot_type:
           type: string
           enum: [single_supplier, commingled]

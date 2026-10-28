@@ -3805,6 +3805,7 @@ class ReceiveRequest(InventoryWriteRequest):
     lot_code: Optional[str] = None
     # LAT Code Policy v1.1 fields
     supplier_lot_code: Optional[str] = None
+    no_supplier_lot: StrictBool = False
     lot_type: Optional[str] = None  # "single_supplier" or "commingled"
     supplier_lot_entries: Optional[List[Dict]] = None  # For commingled receipts
 
@@ -5852,6 +5853,7 @@ def _receive_preview_core(cur, req: ReceiveRequest, *, product=None):
     """Read-only receive draft, shared by legacy preview and A1 prepare."""
     product = product if product is not None else resolve_product_full(cur, req.product_name)
     kosher_tiers.refuse_receive(product)
+    lot_confirmation.require_receive_supplier_lot(cur, req.dict(), product['id'])
 
     # Lot Identity Policy: honor physical lot code if provided
     if req.lot_code:
@@ -5907,6 +5909,7 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
     cur.execute("SELECT pg_advisory_xact_lock(1)")
     product = product if product is not None else resolve_product_full(cur, req.product_name)
     kosher_tiers.refuse_receive(product)
+    lot_confirmation.require_receive_supplier_lot(cur, req.dict(), product['id'])
 
     if req.lot_code:
         lot_code = normalize_lot_code_input(req.lot_code)
@@ -5999,7 +6002,8 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
     date_str, time_str = format_timestamp(now)
     supplier_codes = [entry.get('supplier_lot_code') for entry in (req.supplier_lot_entries or []) if entry.get('supplier_lot_code')]
     supplier_label = ", ".join(supplier_codes) or req.supplier_lot_code or "N/A"
-    receipt = f"RECEIVED: {req.cases} cases ({_fmt_quantity(total_lb)} lb) {product['name']}\nLot: {lot_code}\nSupplier lot: {supplier_label}\nBOL: {req.bol_reference}\n{date_str} {time_str}"
+    receipt = f"CNS lot: {lot_code}\nWrite this on the pallet tag\nRECEIVED: {req.cases} cases ({_fmt_quantity(total_lb)} lb) {product['name']}\nSupplier lot: {supplier_label}\nBOL: {req.bol_reference}\n{date_str} {time_str}"
+    receipt_es = f"Lote CNS: {lot_code}\nEscribe esto en la etiqueta del pallet\nRECIBIDO: {req.cases} cajones ({_fmt_quantity(total_lb)} lb) de {product['name']}\nLote del proveedor: {supplier_label}\nBOL: {req.bol_reference}\n{date_str} {time_str}"
 
     lot_verb = "created" if is_new_lot else "found existing"
     logger.info(f"Receive committed: {lot_code} ({lot_verb}) - {_fmt_quantity(total_lb)} lb of {product['name']}")
@@ -6019,6 +6023,9 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
         "bol_reference": req.bol_reference,
         "total_lb": total_lb,
         "receipt_text": receipt,
+        "receipt_text_es": receipt_es,
+        "lot_tag_instruction": "Write this on the pallet tag",
+        "lot_tag_instruction_es": "Escribe esto en la etiqueta del pallet",
         "message": f"Received {_fmt_quantity(total_lb)} lb as lot {lot_code}" + ("" if is_new_lot else " (existing lot)")
     }
     if code_similarity:
@@ -6042,17 +6049,38 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key), request: Req
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at, req.backfill, request
     )
-    # Fallback: use lot_code if supplier_lot_code not provided, then 'N/A'
-    supplier_lot = (req.supplier_lot_code or "").strip()
-    if not supplier_lot:
-        supplier_lot = (req.lot_code or "").strip() or "N/A"
-    req.supplier_lot_code = supplier_lot
+    if not req.shipper_name.strip():
+        lot_confirmation.fail(
+            "SUPPLIER_REQUIRED", "Enter the supplier name.", "Ingresa el nombre del proveedor.")
+    req.supplier_lot_code = (req.supplier_lot_code or "").strip() or "N/A"
 
     try:
         with get_transaction() as cur:
+            product = resolve_product_full(cur, req.product_name)
+            kosher_tiers.refuse_receive(product)
+            # Legacy receives require the supplied vendor name, but historically
+            # accept a vendor without an active catalog record. Preserve that
+            # behavior and link active catalog suppliers when available.
+            supplier = resolve_supplier(cur, req.shipper_name)
+            supplier_id = supplier['id'] if supplier and supplier['active'] else None
+            for entry in req.supplier_lot_entries or []:
+                party_name = entry.get('supplier_name') or req.shipper_name
+                party = resolve_supplier(cur, party_name)
+                entry.update(supplier_id=party['id'] if party and party['active'] else None,
+                             supplier_name=party_name)
+            payload = req.dict() | {'product_id': product['id'], 'supplier_id': supplier_id}
+            draft = _receive_preview_core(cur, req, product=product)
+            if req.mode == 'commit' and draft.get('existing_lot_id'):
+                cur.execute('SELECT id FROM lots WHERE id=%s FOR UPDATE', (draft['existing_lot_id'],))
+            lot_confirmation.identity_draft(sys.modules[__name__], cur, payload, draft)
             if req.mode == "preview":
-                return _receive_preview_core(cur, req)
-            return _receive_commit_core(cur, req, request, occurred_at, created_at_source)
+                return draft
+            response = _receive_commit_core(cur, req, request, occurred_at, created_at_source,
+                                            product=product, supplier_id=supplier_id)
+            lot_confirmation.record_identity(cur, payload, response, None, None)
+            if supplier_id is not None:
+                lot_confirmation.supplier_receipt(cur, response)
+            return response
     except HTTPException:
         raise
     except Exception as e:
@@ -16774,7 +16802,38 @@ def commit_ship_order(
         occurred_at=req.occurred_at,
         backfill=req.backfill,
     )
-    return ship_order(request, order_id, commit_req, _)
+    result = ship_order(request, order_id, commit_req, _)
+    if isinstance(result, dict) and result.get("shipment_id"):
+        result.update(_floor_packing_slip(request, order_id, result["shipment_id"]))
+    return result
+
+
+def _public_api_base(request: Request) -> str:
+    configured = os.environ.get("PUBLIC_API_BASE_URL", "").strip().rstrip("/")
+    if configured:
+        return configured
+    railway = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "").strip()
+    if railway:
+        return f"https://{railway}"
+    host = request.headers.get("host") or "localhost"
+    local = host.split(":")[0] in ("localhost", "127.0.0.1", "testserver")
+    return f"{'http' if local else 'https'}://{host}"
+
+
+def _floor_packing_slip(request: Request, order_id: int, shipment_id: int) -> dict:
+    """10-minute signed packing-slip link for a commitShipOrder shipment, so the
+    Floor GPT never needs an API key in a URL. The shipment is already committed
+    here: a signing failure only drops the link, never turns the commit into an
+    error the operator might retry (a second shipment)."""
+    try:
+        path, expires = ship_tickets.shipment_packing_link(order_id, shipment_id)
+    except HTTPException as exc:
+        logger.warning("Packing slip link unavailable for shipment %s: %s", shipment_id, exc.detail)
+        return {"packing_slip_url": None, "packing_slip_expires_at": None}
+    return {
+        "packing_slip_url": _public_api_base(request) + path,
+        "packing_slip_expires_at": datetime.fromtimestamp(expires, timezone.utc).isoformat(),
+    }
 
 
 # ═══════════════════════════════════════════════════════════════

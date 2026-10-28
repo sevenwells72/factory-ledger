@@ -1,9 +1,37 @@
 # Change Log
 
+## 2026-10-28 12:25 — PR #153 brought onto current main, tested, staging rehearsal passed (not merged; production untouched)
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md` (conflicts resolved: #153 entries kept above main's #145/#146 entries; row 234 unchanged); branch = main 97674c0a + the single #153 commit replayed (same 6 files, +248 −2)
+- **What changed:** Python 7,112 passed with key sessions off and 7,112 on (fresh local PostgreSQL 17 per mode; zero failures/skips). Staging rehearsal: migration 088 applied to the staging database only (port 5432, one transaction, lock_timeout 5s) and verified (table, RLS on, index, marker, 0 rows); branch uploaded to FastAPI-staging (deployment c7f2a6fa SUCCESS, /health healthy, no SHIP_ORDER_RETRY_GUARD_UNAVAILABLE). Same commit sent twice to staging order SO-261015-003 (line 1000000040, 10 lb): first recorded shipment 21; second returned `idempotent_replay: true` with "nothing new was shipped"; staging shows 1 shipment, 1 receipt row, 10 lb shipped. A third identical call also replayed and its signed packing-slip link (#146) opened as a PDF (200). Note: staging now runs this branch until the next main deploy.
+- **Why:** Owner request 2026-10-28 to prepare #153 (FREEZE-LIFT-PLAN step 5); production migration and merge still need separate approval.
+
+---
+
 ## 2026-10-26 14:05 — Sales-order ship commit retry protection (draft PR, not deployed)
 - **File(s) changed:** `main.py`, `migrations/088_ship_order_idempotency.sql` (new), `migrations/down/088_ship_order_idempotency_down.sql` (new), `tests/test_ship_order_idempotency.py` (new), `FACTORY_LEDGER_CHANGELOG.md` (row 234)
 - **What changed:** Direct ship commits (`commitShipOrder` and `shipOrder` mode=commit) store a receipt; an identical commit on the same order within 10 minutes returns the first receipt (`idempotent_replay: true`) instead of posting a second shipment. The check runs inside `_ship_order_commit_core` right after its existing order-row lock (lock sequence unchanged). Different lines/quantities always ship; voided shipments are never replayed; refused commits store nothing; without migration 088 the route runs exactly as before. Full Python suite on fresh local PostgreSQL 17: 6,925 passed with key sessions off and 6,925 with them on, zero failures/skips.
 - **Why:** A GPT retry after a timeout could record a second shipment (PR #146 review; owner post-reset work list item 2). Production freeze active: branch and draft PR only.
+
+---
+
+## 2026-10-28 11:55 — PR #146 replayed onto current main and revalidated (not merged)
+- **File(s) changed:** `CHANGE_LOG.md` (conflict resolved: #146 entry kept above main's entries); branch `feat/floor-signed-packing-slip` rebuilt as main d7bf203a + the single #146 commit (cherry-pick of 282204be); same 9 files / +232 −25 as before
+- **What changed:** #145 was squash-merged, so the old stacked history conflicted; replaying the one #146 commit onto main left only the change-log conflict. No migration; production `PACKING_SLIP_SIGNING_KEY` variable confirmed present (name only). Floor schema 4.3.0 = what the live Floor GPT already has (22 operations). Tests on a fresh throwaway local PostgreSQL 17 per mode: Python 7,103 passed with key sessions off and 7,103 on (zero failures/skips); JavaScript 577 passed. (A first key-sessions-on pass reusing the off-pass database had 6 failures in `test_seed_staging.py` from leftover rows; clean on a fresh database.)
+- **Why:** Owner request 2026-10-28 to prepare #146 for deployment approval (FREEZE-LIFT-PLAN step 4).
+
+---
+
+## 2026-10-21 14:31 — Floor GPT signed packing-slip links and schema description limits
+- **File(s) changed:** `main.py`, `ship_tickets.py`, `gpt-configs/schemas/openapi-floor.yaml`, `gpt-configs/sources/floor-specific.md`, `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`, `tests/test_floor_packing_slip.py`, `tests/test_floor_gpt_receive_contract.py`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** commitShipOrder returns a 10-minute signed `packing_slip_url` + `packing_slip_expires_at` (existing PACKING_SLIP_SIGNING_KEY HMAC, `shipment-<id>` receipt bound to the order); link failure never fails the committed shipment. Floor schema v4.3.0 trims five >300-char descriptions and documents the link; PACKING SLIP rule relays it or says ask the office. FL row 230.
+- **Why:** Owner decision 2026-10-21: no master key in GPT instructions or links; the repo schema was rejected by the GPT editor.
+
+---
+
+## 2026-10-27 15:16 — PR #145 updated to current main and revalidated (not merged)
+- **File(s) changed:** merge `16af6180` (dashboard HTML cache versions, `dashboard/ledger-forms.css`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`)
+- **What changed:** Merged main (#142, #149): pages keep main's wallpaper structure with this branch's cache bumps; `ledger-forms.css` = main's file plus this branch's receive-lot-tag rule, referenced as v=10 on all 12 pages. Python 7,094 passed with key sessions off and on; JavaScript 577; receiving and supplier-lot tests 316. No migration or startup change.
+- **Why:** Owner request 2026-10-27 to prepare #145 for deployment approval.
 
 ---
 
@@ -130,6 +158,265 @@
 - **File(s) changed:** `dashboard/wallpaper.css`, `dashboard/assets/wallpaper.svg`, `dashboard/assets/wallpaper.webp`, `tests/visual/run-wallpaper-refresh.mjs`, `audits/screenshots/wallpaper-refresh/`
 - **What changed:** Created original vector sunrise and 44,524-byte WebP, shared wallpaper/theme styling, and local fixture-only before/after visual verification runner and baseline captures. Isolated local test tooling under `/tmp/fl_wallpaper_tests_20261022`; no deployment.
 - **Why:** Requested visual refresh with unchanged application behavior, preserved contrast and swappable wallpaper.
+## 2026-10-21 13:59 — Verify final Floor GPT unreadable-lot wording and artifact budget
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/receive-lot-required/README.md`
+- **What changed:** Record five passing Floor contract tests, independently verified exact review wording, source/dist equality, 7,860 body characters and 7,990 full-file characters. Floor remains22/office30 operations. Keep the earlier full Python/JS/browser results explicitly attributed to 59cad84d.
+- **Why:** Close the remaining re-review blocker without changing runtime or unrelated review notes.
+
+---
+
+## 2026-10-21 13:58 — Cover unreadable lots in the exact reviewed Floor GPT receive rule
+- **File(s) changed:** `gpt-configs/sources/floor-specific.md`, `gpt-configs/schemas/openapi-floor.yaml`, `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`, `tests/test_floor_gpt_receive_contract.py`
+- **What changed:** Replace the RECEIVE rule and no_supplier_lot description with the exact text in re-review 6322849012, update both pinned contract-test strings, and rebuild Floor instructions. Shorten the non-rule introduction so the generator accepts the full artifact; body is 7,860 characters, full file 7,990, both below 8,000.
+- **Why:** An operator reporting an unreadable lot must use the same explicit unidentified receive path as no lot on label.
+
+---
+
+## 2026-10-21 13:47 — Close PR145 review findings with correct Floor contract and full validation
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/receive-lot-required/README.md`
+- **What changed:** Renumber receipt row 225→229 on explicit request after checking PR144 (225) and PR143 (226–228). Record 7,094 Python, 577 JS and 12 browser passes; office 30→30 versus Floor 22→22, Floor body/full 7,837/7,967 and office 7,485 characters. Document legacy identity behavior and future paste-before-deploy/open-draft checks without executing them.
+- **Why:** Resolve the review's Floor contract blocker, Assistant phrase/copy issues, row collision, headroom and Spanish register while protecting count work and production.
+
+---
+
+## 2026-10-21 13:45 — Refresh receive browser evidence after informal Spanish fixes
+- **File(s) changed:** `docs/validation/receive-lot-required/entry-success-en-390.png`, `docs/validation/receive-lot-required/receipt-es-390.png`, `docs/validation/receive-lot-required/browser-checks.json`
+- **What changed:** Re-run 12 mocked local Chromium receive receipt, read-back and Assistant checks at 390/1440 pixels in EN/ES; refresh changed screenshots and measured JSON with the informal Escribe pallet instruction. All external requests blocked; zero attempted external calls, console/page errors or horizontal overflow.
+- **Why:** Keep PR #145 review evidence current after the tú wording correction. No hosted environment, production writes or count/reset edits.
+
+---
+
+## 2026-10-21 13:42 — Preserve Assistant quantities and verify no-lot supplier-choice custody
+- **File(s) changed:** `fl_assistant.py`, `tests/test_assistant_no_lot_review.py`
+- **What changed:** Limit the receive execution hook to worker lot facts, leaving established package and total semantics untouched. Add real supplier-choice/record and explicit supplier-code priority regressions in both languages.
+- **Why:** Keep the PR #145 review fix scoped to lot capture while proving supplier linkage and identified receiving remain intact.
+
+---
+
+## 2026-10-21 13:42 — Bind bare Assistant receiving descriptions at real prepare execution
+- **File(s) changed:** `fl_assistant.py`, `assistant_receive.py`, `tests/test_assistant_receive_lot_round_e.py`
+- **What changed:** Capture current worker lot/package facts when the selected tool is receive, even without a received prefix; retain missing-code tombstones for uncertain phrases and Spanish question-about wording. Move the newly accepted explicit sin-lote statement out of the obsolete uncertainty fixture.
+- **Why:** Real Assistant tests exposed an additional receive-prefix gate after parser recognition; keep human facts ahead of model arguments.
+
+---
+
+## 2026-10-21 13:42 — Scope the Floor schema description guard to receiving
+- **File(s) changed:** `tests/test_floor_gpt_receive_contract.py`
+- **What changed:** Check the receive operation and ReceiveRequest descriptions against the 300-character limit while retaining the complete 22-operation guard.
+- **Why:** Five unrelated legacy shipping/production descriptions already exceed 300 characters; this receive-only fix must not rewrite their contracts.
+
+---
+
+
+## 2026-10-21 13:41 — Complete office GPT headroom correction
+- **File(s) changed:** `gpt-instructions-v3.md`
+- **What changed:** Complete the preceding office-guidance update at 7,485 characters (515 characters headroom), retaining all routing and transaction rule areas and informal receive Spanish.
+- **Why:** Ensure the completed artifact, rather than the earlier pending edit, has a comfortable editor margin.
+
+---
+
+## 2026-10-21 13:41 — Recognize sentence-level Assistant no-lot facts and use spoken exception guidance
+- **File(s) changed:** `assistant_receive.py`, `assistant_replies.py`, `assistant_tools.py`, `tests/test_receive_lot_facts_required.py`, `tests/test_assistant_no_lot_review.py`
+- **What changed:** Accept explicit no-lot and unreadable assertions in English and Spanish anywhere in receiving sentences; preserve question, hypothetical, meta and denial guards, supplier code priority and model flag refusal. Use say/di exception guidance and add parser plus real Assistant draft/record/deadline regression coverage.
+- **Why:** Resolve PR #145 review without accessing hosted data, count/reset paths or other worktrees.
+
+---
+
+## 2026-10-21 13:41 — Cover the deployable Floor GPT no-label receive path
+- **File(s) changed:** `tests/test_floor_gpt_receive_contract.py`
+- **What changed:** Add schema and compiled-source guards for the exact receive rule, optional supplier lot, strict boolean flag, 22 operations and instruction limits; add real API preview/commit tests using schema-valid omitted and blank lot payloads, supplier links and the existing seven-business-day exception.
+- **Why:** Prevent the GPT contract from drifting away from the working legacy receive API again.
+
+---
+
+
+## 2026-10-21 13:41 — Create comfortable office GPT instruction headroom for PR145 review
+- **File(s) changed:** `gpt-instructions-v3.md`
+- **What changed:** Condense wording while preserving routing, transaction, safety and receipt rules; advance v3.8.2 and use informal Spanish pallet-tag copy. Instructions now 7,997 characters, comfortably below 8,000.
+- **Why:** Review found the prior office instructions left only three characters of editor headroom.
+
+---
+
+## 2026-10-21 13:40 — Repair Floor GPT receive lot contract and pallet-tag read-back
+- **File(s) changed:** `gpt-configs/schemas/openapi-floor.yaml`, `gpt-configs/sources/floor-specific.md`, `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`
+- **What changed:** Advance Floor schema to 4.2.0, allow an omitted supplier lot only via the existing explicit boolean exception, remove placeholder advice, copy the review's exact RECEIVE rule, and rebuild the compiled instructions with CNS-first bilingual pallet-tag read-back. Retain all 22 operations.
+- **Why:** PR #145 review found that the actual Floor GPT contract still blocked the supported no-label receive path. No hosted access or deployment.
+
+---
+
+
+## 2026-10-21 13:40 — Use informal Spanish for receive lot prompts and pallet tags
+- **File(s) changed:** `main.py`, `lot_confirmation.py`, `dashboard/ledger-ui.js`, `dashboard/fl-assistant.js`, `tests/test_background_startup_ui.js`, `tests/test_fl_assistant_ui.js`, `tests/test_pilot_ticket_ui.js`, `tests/test_receive_lot_required.py`, `tests/test_assistant_mobile_ux.js`, `dashboard/fl-assistant.html`, `dashboard/entry.html`, `dashboard/office.html`, `dashboard/exceptions.html`, `dashboard/receipt.html`
+- **What changed:** Use tú forms in the new receive supplier and lot errors and CNS pallet-tag instructions; update receipt expectations and bump all ledger-ui cache references to v19 and FL Assistant to v17.
+- **Why:** Resolve PR #145 review wording inconsistency without changing other established Spanish workflows. No production access, migration or count/reset edits.
+
+---
+
+## 2026-10-21 13:18 — Verify required receive lots and CNS pallet-tag read-back before PR
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/validation/receive-lot-required/README.md`
+- **What changed:** Add undeployed regression-guard row 225 and owner-review validation report. Final frozen source passes 7,044 Python tests, 577 JavaScript tests and 12 local EN/ES browser checks with no failures/skips. GPT schema remains 30→30 operations; instructions are 7,997 characters; cache references and prior log history verified.
+- **Why:** Record the tested receipt policy and UI evidence before opening an unmerged PR. No production/staging access, schema migration or count/reset changes.
+
+---
+
+## 2026-10-21 13:14 — Require an exact missing-label assertion and revoke explicitly denied exceptions
+- **File(s) changed:** `assistant_receive.py`, `tests/test_receive_lot_facts_required.py`
+- **What changed:** Restrict no-label facts to direct English/Spanish assertions or receiving statements, reject meta and conditional lead-ins across commas, and clear a previous exception flag when its assertion is explicitly denied while preserving the missing-code tombstone.
+- **Why:** Discussion or correction of No lot on label must never leave an unauthorized unidentified receipt available to the model.
+
+---
+
+## 2026-10-21 13:13 — Save bilingual phone receipt validation evidence
+- **File(s) changed:** `docs/validation/receive-lot-required/browser-checks.json`, `entry-success-en-390.png`, `receipt-es-390.png`
+- **What changed:** Save 12 local mocked Chromium assertions across EN/ES at 390/1440 pixels and two phone screenshots showing the CNS lot first at 26px. Zero external requests, console errors or horizontal overflow.
+- **Why:** Give the owner reviewable evidence of receiving receipt readability without accessing a hosted environment.
+
+---
+
+## 2026-10-21 13:12 — Keep supplier names required and preserve correction-only lot identification
+- **File(s) changed:** `main.py`, `tests/test_receive_lot_required.py`, `tests/test_supplier_lot_tickets.py`
+- **What changed:** Reject blank legacy supplier names with EN/ES 422; add endpoint regressions. Update existing legacy top-up preview test to expect the existing correction-only identity refusal and retain its unchanged-exception assertions.
+- **Why:** Supplier remains required and a receipt cannot identify an already unidentified lot outside the correction workflow.
+
+---
+
+## 2026-10-21 13:11 — Preserve legacy supplier behavior and provide receipt labels in regression fixtures
+- **File(s) changed:** `main.py`, `gpt-instructions-v3.md`, `tests/test_expected_receipts.py`, `tests/test_lot_identity_047.py`, `tests/test_audit_savepoints_lotcodes.py`, `tests/test_named_actor_writes.py`, `tests/test_roles_a2.py`, `tests/test_trace_emission.py`
+- **What changed:** Keep legacy named-vendor acceptance and expected-receipt matching unchanged while linking active catalog supplier FKs. Supply real fixture lot labels in unrelated sequence/UUID/attribution/trace/expected-receipt tests. Floor GPT reads the CNS lot as its first heading.
+- **Why:** The new lot requirement must not impose new supplier catalog restrictions or make unrelated regression tests rely on a forbidden blank lot.
+
+---
+
+## 2026-10-21 13:11 — Validate receive lot UI with full Node suite and local phone/desktop browser checks
+- **File(s) changed:** Local evidence `/private/tmp/fl-receive-js-full.log`, `/private/tmp/fl-receive-ui-smoke.json`, `/private/tmp/fl-receive-{entry,readback,assistant}-{390,1440}-{en,es}.png`
+- **What changed:** Full Node suite passed 577/577 with zero failures/skips. Local intercepted Chrome passed 12 receive success/read-back/Assistant checks across 390/1440px and EN/ES, including required flag toggle, minimum 26px CNS code, CNS-before-receipt order and no overflow. Inspected phone success, Spanish Assistant and Spanish receipt screenshots; zero browser errors or external requests.
+- **Why:** Verify deliberate supplier-lot capture and legible pallet-tag instructions without hosted API calls or database writes.
+
+---
+
+## 2026-10-21 13:11 — Supply printed supplier-lot evidence in the five voice receipt regressions
+- **File(s) changed:** `tests/test_assistant_voice_e2e_round_c.py`
+- **What changed:** Append deterministic English/Spanish supplier-lot evidence to the original five misheard supplier/BOL transcripts, pass the same code to prepare, and verify it survives the supplier choice, draft and receipt.
+- **Why:** Keep the original spoken quantity, misheard supplier and BOL cases valid under required purchased-ingredient lot capture.
+
+---
+
+## 2026-10-21 13:11 — Make existing unidentified receipt fixtures explicitly choose no lot on label
+- **File(s) changed:** `tests/test_supplier_lot_tickets.py`, `tests/test_lot_confirmation.py`, `tests/test_shift_summary.py`
+- **What changed:** Add no_supplier_lot=True only at eight intentional unidentified receive fixture call sites; retain found and noningredient exemption behavior.
+- **Why:** Keep existing deadline, supplier correction, concurrency and shift-summary regressions testing the explicit no-label exception under required lot capture.
+
+---
+
+## 2026-10-21 13:10 — Refuse questions and negated missing-label phrases as receive evidence
+- **File(s) changed:** `assistant_receive.py`, `tests/test_receive_lot_facts_required.py`
+- **What changed:** Require a physical-label assertion before preserving the unidentified-receive flag; reject English/Spanish questions, negations, hypotheticals and discussion of the UI phrase while retaining ordinary receiving assertions.
+- **Why:** Mentioning No lot on label must not silently authorize its exception.
+
+---
+
+## 2026-10-21 13:10 — Update mobile cache guard to receipt display asset versions
+- **File(s) changed:** `tests/test_assistant_mobile_ux.js`
+- **What changed:** Advanced the existing asset cache assertions to Assistant JS v16 and CSS v9.
+- **Why:** Full Node suite caught stale cache-version expectations after the required bump.
+
+---
+
+## 2026-10-21 13:09 — Cover legacy commingled receive compatibility and component supplier links
+- **File(s) changed:** `tests/test_receive_lot_required.py`
+- **What changed:** Exercise valid commingled supplier lot capture through ticket prepare, legacy receive and legacy commit; check both component codes and supplier IDs.
+- **Why:** Ensure existing multi-code receipts remain identified without requiring a duplicate top-level supplier lot.
+
+---
+
+## 2026-10-21 13:09 — Preserve extra-tier receive refusal before supplier resolution
+- **File(s) changed:** `main.py`
+- **What changed:** Apply the existing kosher-tier receive refusal immediately after resolving a legacy receive product.
+- **Why:** Keep protected extra-tier receive error precedence while adding required supplier-lot capture.
+
+---
+
+## 2026-10-21 13:09 — Use existing business-day identification deadline in receive form help
+- **File(s) changed:** `dashboard/entry.js`
+- **What changed:** Clarified the unidentified-lot follow-up window as 7 business days in English and Spanish.
+- **Why:** Match the existing exception deadline exactly.
+
+---
+
+## 2026-10-21 13:09 — Expose exact receiving lot policy to dashboard product choices
+- **File(s) changed:** `resolution.py`, `tests/test_receive_resolution_policy.py`, `gpt-instructions-v3.md`
+- **What changed:** Add supplier_lot_required metadata only to receive product resolution, using the existing purchased-ingredient predicate; cover ingredient and exemption responses. Align Spanish pallet-tag wording across GPT/API/UI.
+- **Why:** Native form validation must preserve service, formula-output and other existing supplier-lot exemptions.
+
+---
+
+## 2026-10-21 13:09 — Lock existing legacy receipt lots before supplier identity revalidation
+- **File(s) changed:** `main.py`
+- **What changed:** Hold an existing lot row lock before validating legacy receive identity through the receipt transaction.
+- **Why:** Prevent a concurrent supplier-lot correction from being overwritten after identity validation.
+
+---
+
+## 2026-10-21 13:08 — Keep purchased-ingredient validation authoritative and align bilingual pallet instructions
+- **File(s) changed:** `dashboard/entry.js`, `tests/test_pilot_entry_ui.js`, `dashboard/ledger-ui.js`, `dashboard/fl-assistant.js`, `tests/test_pilot_ticket_ui.js`, `tests/test_fl_assistant_ui.js`, `tests/test_background_startup_ui.js`
+- **What changed:** Client required validation now follows server supplier_lot_required metadata; non-purchased ingredients remain optional. Unified Spanish pallet-tag wording and completed receipt harness setup.
+- **Why:** Ingredient type alone does not distinguish purchased materials from formula outputs and excluded inputs.
+
+---
+
+## 2026-10-21 13:08 — Verify receive card restoration and put CNS lot before read-back headings
+- **File(s) changed:** `dashboard/fl-assistant.js`, `tests/test_fl_assistant_ui.js`, `tests/test_background_startup_ui.js`
+- **What changed:** Moved Assistant receive read-back lot tag ahead of headings, exercised actual saved-receipt restore, and verified receipt-page CNS priority in both languages.
+- **Why:** The first focused run exposed fixture routing and read-back heading placement gaps.
+
+---
+
+## 2026-10-21 13:08 — Add receive lot-capture regressions for every route, explicit exception and preserved provenance
+- **File(s) changed:** `tests/test_receive_lot_required.py`
+- **What changed:** Cover bilingual missing-lot refusals, strict flag handling, unidentified identity deadlines, normal receipts, non-purchased exemptions, commingled receipts and commit revalidation.
+- **Why:** Prove lot capture cannot be bypassed through a legacy route or a previously prepared draft.
+
+---
+
+## 2026-10-21 13:07 — Preserve an actual supplier code alongside a missing-label statement
+- **File(s) changed:** `assistant_receive.py`
+- **What changed:** Parse the explicit missing-label phrase separately from supplier identifiers so a supplied supplier code in the same message clears the unidentified exception.
+- **Why:** The physical label exception must never override an actual supplier code supplied by the worker.
+
+---
+
+## 2026-10-21 13:07 — Finish explicit lot-exception GPT guidance within editor limit
+- **File(s) changed:** `gpt-instructions-v3.md`, `assistant_tools.py`
+- **What changed:** Completed receive no_supplier_lot instructions and CNS lot-first pallet-tag read-back; condensed existing wording to preserve all rule areas within 7,996 characters.
+- **Why:** Floor GPT must expose the explicit exception without exceeding its 8,000-character editor limit.
+
+---
+
+## 2026-10-21 13:07 — Require ingredient lot capture in entry form and put CNS lot first on receive cards
+- **File(s) changed:** `dashboard/entry.js`, `dashboard/ledger-ui.js`, `dashboard/ledger-ticket.js`, `dashboard/receipt.js`, `dashboard/assistant-display.js`, `dashboard/fl-assistant.js`, `dashboard/ledger-forms.css`, `dashboard/fl-assistant.css`, `dashboard/receipt.html`, `dashboard/runs.html`, `dashboard/index.html`, `dashboard/process-flow.html`, `dashboard/fl-assistant.html`, `dashboard/traceability.html`, `dashboard/exceptions.html`, `dashboard/shift-summary.html`, `dashboard/sankey.html`, `dashboard/history.html`, `dashboard/office.html`, `dashboard/entry.html`, `tests/test_pilot_entry_ui.js`, `tests/test_pilot_ticket_ui.js`, `tests/test_assistant_display.js`, `tests/test_fl_assistant_ui.js`
+- **What changed:** Added explicit bilingual no-label flag, ingredient-only form validation, prominent CNS pallet-tag instructions on success and read-back, regression tests and cache version bumps.
+- **Why:** Ingredient receipts need deliberate supplier lot capture and an unmistakable CNS code for pallet tags.
+
+---
+
+## 2026-10-21 13:07 — Bind the missing-label receive exception to the worker's explicit statement
+- **File(s) changed:** `assistant_receive.py`, `tests/test_receive_lot_facts_required.py`
+- **What changed:** Preserve explicit English/Spanish No lot on label facts across supplier choices, discard model-invented exception flags, clear the exception when a supplier code is supplied, and add focused fact-binding regressions.
+- **Why:** Purchased ingredients require a supplier lot unless the worker explicitly confirms that the physical label has none.
+
+---
+
+## 2026-10-21 13:07 — Require explicit missing-label choice in receiving GPT guidance
+- **File(s) changed:** `openapi-gpt-v3.yaml`, `gpt-instructions-v3.md`, `assistant_tools.py`
+- **What changed:** Document required purchased-ingredient supplier lots and explicit no_supplier_lot choice; make Floor GPT receive read-back lead with the internal CNS lot and pallet-tag instruction in EN/ES. Schema remains 30 operations and GPT instructions stay under 8,000 characters.
+- **Why:** Prevent silent blank/UNKNOWN receipt fallback while preserving an explicit unidentified exception.
+
+---
+
+## 2026-10-21 13:07 — Require receipt supplier lot capture or explicit no-label exception across ticket and legacy paths
+- **File(s) changed:** `main.py`, `write_tickets.py`, `lot_confirmation.py`
+- **What changed:** Require purchased ingredient supplier lots with a strict no_supplier_lot flag; reuse existing unidentified deadlines and supplier links for legacy receives; lead EN/ES read-backs with the CNS lot and pallet-tag instruction.
+- **Why:** Prevent uncaptured supplier lots while keeping the explicit no-label exception and physical tagging workflow.
 
 ---
 

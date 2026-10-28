@@ -112,6 +112,7 @@ def _receive(client, product_name, shipper_name, cases, case_size_lb, lot_code=N
         "case_size_lb": case_size_lb,
         "shipper_name": shipper_name,
         "bol_reference": "BOL-FR2",
+        "supplier_lot_code": "FR2-SUPPLIER-LOT",
     }
     if lot_code:
         body["lot_code"] = lot_code
@@ -344,7 +345,7 @@ def test_receive_preview_reports_match_without_linking(client, cur):
     er = _create_er(client, pid, "Preview Fruit", 40, "2026-09-05")
     r = client.post("/receive", json={
         "mode": "preview", "product_name": pname, "cases": 1, "case_size_lb": 10,
-        "shipper_name": "preview fruit", "bol_reference": "B",
+        "shipper_name": "preview fruit", "bol_reference": "B", "supplier_lot_code": "PREVIEW-LOT",
     })
     assert r.status_code == 200, r.text
     assert r.json()["expected_receipt_match"]["id"] == er["id"]
@@ -576,7 +577,7 @@ def test_inactive_supplier_is_excluded_from_resolution_and_auto_match(client, cu
 
     # 2) receiving: preview shows no match, commit posts unlinked, the open record is untouched
     prev = client.post("/receive", json={"mode": "preview", "product_name": pname, "cases": 1, "case_size_lb": 25,
-                                         "shipper_name": "Soon Inactive Co", "bol_reference": "B"}).json()
+                                         "shipper_name": "Soon Inactive Co", "bol_reference": "B", "supplier_lot_code": "INACTIVE-LOT"}).json()
     assert prev["expected_receipt_match"] is None
     resp = _receive(client, pname, "Soon Inactive Co", cases=4, case_size_lb=25)
     assert resp["expected_receipt"] is None

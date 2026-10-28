@@ -100,7 +100,6 @@ def test_button_turn_keeps_all_receive_facts_and_internal_ambiguity_is_separate(
     'supplier lot N/A.',
     'El lote del proveedor es desconocido.',
     'lote del proveedor desconocido.',
-    'Sin lote del proveedor.',
 ])
 def test_explicit_absence_persistently_blocks_old_supplier_scalar(text):
     assert lot_facts_from_text(text) == {}

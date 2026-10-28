@@ -236,7 +236,7 @@ def test_receive_commit_emits_event(client, _db_connection):
     shipper = f"Trace Emit Supplier {_token()}"
     resp = client.post("/receive", json={
         "mode": "commit", "product_name": product["name"], "cases": 4,
-        "case_size_lb": 25.0, "shipper_name": shipper, "bol_reference": "TE-BOL-1",
+        "case_size_lb": 25.0, "shipper_name": shipper, "bol_reference": "TE-BOL-1", "supplier_lot_code": "TRACE-SUP-LOT",
     })
     assert resp.status_code == 200, resp.text
     body = resp.json()
@@ -258,7 +258,7 @@ def test_receive_preview_emits_nothing(client, _db_connection):
     resp = client.post("/receive", json={
         "mode": "preview", "product_name": product["name"], "cases": 4,
         "case_size_lb": 25.0, "shipper_name": "Preview Supplier",
-        "bol_reference": "TE-BOL-2",
+        "bol_reference": "TE-BOL-2", "supplier_lot_code": "TRACE-SUP-LOT",
     })
     assert resp.status_code == 200, resp.text
     with _cur(_db_connection) as cur:
@@ -568,7 +568,7 @@ def test_receive_fail_hard_rolls_back_whole_commit(client, _db_connection, monke
                         _breaking_emit(main.emit_trace_event))
     resp = client.post("/receive", json={
         "mode": "commit", "product_name": product["name"], "cases": 2,
-        "case_size_lb": 25.0, "shipper_name": shipper, "bol_reference": "TE-FH-1",
+        "case_size_lb": 25.0, "shipper_name": shipper, "bol_reference": "TE-FH-1", "supplier_lot_code": "TRACE-SUP-LOT",
     })
     # Error surfaced — no silent success.
     assert resp.status_code == 500, resp.text
@@ -627,7 +627,7 @@ def test_flag_off_commit_succeeds_with_zero_trace_rows(client, _db_connection, m
     resp = client.post("/receive", json={
         "mode": "commit", "product_name": product["name"], "cases": 3,
         "case_size_lb": 20.0, "shipper_name": f"Flag Off Supplier {_token()}",
-        "bol_reference": "TE-FLAG-1",
+        "bol_reference": "TE-FLAG-1", "supplier_lot_code": "TRACE-SUP-LOT",
     })
     assert resp.status_code == 200, resp.text
     txn_id = resp.json()["transaction_id"]
@@ -688,7 +688,7 @@ def test_amend_appends_marker(client, _db_connection):
     resp = client.post("/receive", json={
         "mode": "commit", "product_name": product["name"], "cases": 1,
         "case_size_lb": 25.0, "shipper_name": f"Amend Supplier {_token()}",
-        "bol_reference": "TE-AM-1",
+        "bol_reference": "TE-AM-1", "supplier_lot_code": "TRACE-SUP-LOT",
     })
     assert resp.status_code == 200, resp.text
     txn_id = resp.json()["transaction_id"]
