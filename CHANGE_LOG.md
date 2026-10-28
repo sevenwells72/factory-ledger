@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-10-28 11:55 — PR #146 replayed onto current main and revalidated (not merged)
+- **File(s) changed:** `CHANGE_LOG.md` (conflict resolved: #146 entry kept above main's entries); branch `feat/floor-signed-packing-slip` rebuilt as main d7bf203a + the single #146 commit (cherry-pick of 282204be); same 9 files / +232 −25 as before
+- **What changed:** #145 was squash-merged, so the old stacked history conflicted; replaying the one #146 commit onto main left only the change-log conflict. No migration; production `PACKING_SLIP_SIGNING_KEY` variable confirmed present (name only). Floor schema 4.3.0 = what the live Floor GPT already has (22 operations). Tests on a fresh throwaway local PostgreSQL 17 per mode: Python 7,103 passed with key sessions off and 7,103 on (zero failures/skips); JavaScript 577 passed. (A first key-sessions-on pass reusing the off-pass database had 6 failures in `test_seed_staging.py` from leftover rows; clean on a fresh database.)
+- **Why:** Owner request 2026-10-28 to prepare #146 for deployment approval (FREEZE-LIFT-PLAN step 4).
+
+---
+
+## 2026-10-21 14:31 — Floor GPT signed packing-slip links and schema description limits
+- **File(s) changed:** `main.py`, `ship_tickets.py`, `gpt-configs/schemas/openapi-floor.yaml`, `gpt-configs/sources/floor-specific.md`, `gpt-configs/dist/GPT_FLOOR_INSTRUCTIONS.md`, `tests/test_floor_packing_slip.py`, `tests/test_floor_gpt_receive_contract.py`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** commitShipOrder returns a 10-minute signed `packing_slip_url` + `packing_slip_expires_at` (existing PACKING_SLIP_SIGNING_KEY HMAC, `shipment-<id>` receipt bound to the order); link failure never fails the committed shipment. Floor schema v4.3.0 trims five >300-char descriptions and documents the link; PACKING SLIP rule relays it or says ask the office. FL row 230.
+- **Why:** Owner decision 2026-10-21: no master key in GPT instructions or links; the repo schema was rejected by the GPT editor.
+
+---
+
 ## 2026-10-27 15:16 — PR #145 updated to current main and revalidated (not merged)
 - **File(s) changed:** merge `16af6180` (dashboard HTML cache versions, `dashboard/ledger-forms.css`, `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`)
 - **What changed:** Merged main (#142, #149): pages keep main's wallpaper structure with this branch's cache bumps; `ledger-forms.css` = main's file plus this branch's receive-lot-tag rule, referenced as v=10 on all 12 pages. Python 7,094 passed with key sessions off and on; JavaScript 577; receiving and supplier-lot tests 316. No migration or startup change.

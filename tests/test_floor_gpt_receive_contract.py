@@ -24,7 +24,7 @@ def floor_schema():
 
 def test_floor_receive_schema_exposes_the_explicit_no_label_path(floor_schema):
     schema = floor_schema['components']['schemas']['ReceiveRequest']
-    assert floor_schema['info']['version'] == '4.2.0'
+    assert floor_schema['info']['version'] == '4.3.0'
     assert 'supplier_lot_code' not in schema['required']
     assert 'shipper_name' in schema['required']
     assert schema['properties']['no_supplier_lot']['type'] == 'boolean'
@@ -123,3 +123,41 @@ def test_floor_gpt_no_label_preview_and_commit_with_deployable_schema(
     exception = db_cursor.fetchone()
     assert exception['kind'] == 'UNIDENTIFIED_LOT'
     assert exception['due_at'] == deadline
+
+
+def _all_descriptions(value):
+    if isinstance(value, dict):
+        for key, child in value.items():
+            if key in ('description', 'summary') and isinstance(child, str):
+                yield child
+            else:
+                yield from _all_descriptions(child)
+    elif isinstance(value, list):
+        for child in value:
+            yield from _all_descriptions(child)
+
+
+def test_every_floor_schema_description_fits_the_gpt_editor(floor_schema):
+    # The ChatGPT Actions editor rejects any description over 300 chars.
+    assert max(len(text) for text in _all_descriptions(floor_schema)) <= 300
+
+
+def test_every_floor_operation_is_served_by_the_api(floor_schema):
+    import main
+    served = {(method, route.path) for route in main.app.routes
+              for method in getattr(route, 'methods', ()) or ()}
+    ops = [(method.upper(), path) for path, item in floor_schema['paths'].items()
+           for method in item if method in ('get', 'post', 'put', 'patch', 'delete')]
+    assert len(ops) == 22
+    assert [op for op in ops if op not in served] == []
+
+
+def test_floor_packing_slip_rule_relays_the_signed_link_and_never_a_key(floor_schema):
+    floor = (ROOT / 'gpt-configs/sources/floor-specific.md').read_text()
+    section = floor.split('## PACKING SLIP\n', 1)[1].split('\n## ', 1)[0]
+    assert 'packing_slip_url' in section and '10 min' in section
+    assert 'Ask the office for the packing slip' in section
+    assert 'Pide el packing slip a la oficina' in section
+    assert 'key=' not in floor and 'railway.app' not in section
+    commit = floor_schema['paths']['/sales/orders/{order_id}/ship/commit']['post']
+    assert 'packing_slip_url' in commit['responses']['200']['description']

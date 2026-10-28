@@ -6,6 +6,7 @@ are deliberately absent. Quantities/customer/BOL/time stay in the signed draft.
 import hashlib
 import hmac
 import os
+import re
 import time
 from datetime import date, datetime, time as day_time
 from typing import List, Optional
@@ -243,18 +244,35 @@ def _sign(order_id,receipt,expires):
     if not key: wt.fail(503,'SIGNING_NOT_CONFIGURED','Packing slip signing is unavailable.')
     return hmac.new(key.encode(),f'{order_id}:{receipt}:{expires}'.encode(),hashlib.sha256).hexdigest()
 
+PACKING_LINK_SECONDS=600
+# Legacy commitShipOrder shipments have no write ticket, so their links sign
+# 'shipment-<id>' in the receipt slot. Ticket receipts look like SHP-YYMMDD-NNN
+# and can never take this form.
+_SHIPMENT_RECEIPT=re.compile(r'shipment-([1-9][0-9]{0,17})')
+
+def signed_packing_path(order_id,receipt):
+    expires=int(time.time())+PACKING_LINK_SECONDS
+    return f'/sales/orders/{order_id}/packing-slip?'+urlencode({'receipt':receipt,'expires':expires,'sig':_sign(order_id,receipt,expires)}),expires
+
 def packing_link(order_id,receipt):
-    expires=int(time.time())+600
-    return f'/sales/orders/{order_id}/packing-slip?'+urlencode({'receipt':receipt,'expires':expires,'sig':_sign(order_id,receipt,expires)})
+    return signed_packing_path(order_id,receipt)[0]
+
+def shipment_packing_link(order_id,shipment_id):
+    """(path, expires) for a shipment recorded without a ticket (Floor GPT commitShipOrder)."""
+    return signed_packing_path(order_id,f'shipment-{int(shipment_id)}')
 
 def verify_packing_link(api,request,receipt,expires,sig):
     try: order_id=int(request.path_params['order_id'])
     except (ValueError,KeyError): wt.fail(401,'PACKING_SLIP_SIGNATURE_INVALID','Invalid packing slip link.')
-    if expires is None or not int(time.time())<=expires<=int(time.time())+600 or not hmac.compare_digest(sig or '',_sign(order_id,receipt,expires)):
+    if expires is None or not int(time.time())<=expires<=int(time.time())+PACKING_LINK_SECONDS or not hmac.compare_digest(sig or '',_sign(order_id,receipt,expires)):
         wt.fail(401,'PACKING_SLIP_SIGNATURE_INVALID','Packing slip link is invalid or expired.')
+    shipment=_SHIPMENT_RECEIPT.fullmatch(receipt or '')
     with api.get_transaction() as cur:
-        cur.execute('''SELECT s.id FROM shipments s JOIN write_tickets t ON t.id=s.ticket_id
-                       WHERE s.sales_order_id=%s AND t.receipt_number=%s AND t.status='committed' ''',(order_id,receipt))
+        if shipment:
+            cur.execute('SELECT id FROM shipments WHERE id=%s AND sales_order_id=%s',(int(shipment.group(1)),order_id))
+        else:
+            cur.execute('''SELECT s.id FROM shipments s JOIN write_tickets t ON t.id=s.ticket_id
+                           WHERE s.sales_order_id=%s AND t.receipt_number=%s AND t.status='committed' ''',(order_id,receipt))
         if not cur.fetchone(): wt.fail(401,'PACKING_SLIP_SIGNATURE_INVALID','Receipt does not identify this order shipment.')
     return True
 
