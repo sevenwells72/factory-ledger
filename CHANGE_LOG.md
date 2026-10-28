@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-10-28 13:05 — PR #154 brought onto current main and revalidated (not merged)
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md` (conflicts resolved: #154 entries above main's; row 235 unchanged); branch = main b02982b4 + the single #154 commit replayed (same 5 files, +102)
+- **What changed:** Python 7,121 passed with key sessions off and 7,121 on (fresh local PostgreSQL 17 per mode; zero failures/skips); JavaScript 577 passed. No migration. Production read-only check: pooled lot 26-10-27-FOUND-011 (id 1658) entry note contains POOLED, so the guard applies; the six other opening-stock lots start "Opening stock" (documented-code rule applies); lot 6013 (id 624) is a May reconciliation lot and is not covered by this guard.
+- **Why:** Owner request 2026-10-28 to prepare #154 (FREEZE-LIFT-PLAN step 6).
+
+---
+
+## 2026-10-27 15:00 — Pooled opening-stock lots cannot be identified by one supplier code (draft PR, not deployed)
+- **File(s) changed:** `supplier_lot_tickets.py`, `main.py`, `tests/test_supplier_lot_tickets.py`, `FACTORY_LEDGER_CHANGELOG.md` (row 235)
+- **What changed:** Supplier-lot identification (ticket and legacy PATCH route) refuses POOLED lots and accepts on opening-stock lots only a supplier code their entry note documents. Full Python suite on fresh local PostgreSQL 17: 6,925 passed with key sessions off and 6,925 on; the 6 new guard tests fail without the change.
+- **Why:** Owner request 2026-10-27: prevent pooled inventory from being identified as one supplier lot without evidence. Production freeze: branch and draft PR only.
+
+---
+
 ## 2026-10-28 12:25 — PR #153 brought onto current main, tested, staging rehearsal passed (not merged; production untouched)
 - **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md` (conflicts resolved: #153 entries kept above main's #145/#146 entries; row 234 unchanged); branch = main 97674c0a + the single #153 commit replayed (same 6 files, +248 −2)
 - **What changed:** Python 7,112 passed with key sessions off and 7,112 on (fresh local PostgreSQL 17 per mode; zero failures/skips). Staging rehearsal: migration 088 applied to the staging database only (port 5432, one transaction, lock_timeout 5s) and verified (table, RLS on, index, marker, 0 rows); branch uploaded to FastAPI-staging (deployment c7f2a6fa SUCCESS, /health healthy, no SHIP_ORDER_RETRY_GUARD_UNAVAILABLE). Same commit sent twice to staging order SO-261015-003 (line 1000000040, 10 lb): first recorded shipment 21; second returned `idempotent_replay: true` with "nothing new was shipped"; staging shows 1 shipment, 1 receipt row, 10 lb shipped. A third identical call also replayed and its signed packing-slip link (#146) opened as a PDF (200). Note: staging now runs this branch until the next main deploy.

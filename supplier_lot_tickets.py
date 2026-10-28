@@ -21,6 +21,33 @@ def supplier_code(value):
     return code
 
 
+def _norm(code):
+    return re.sub(r'[^A-Z0-9]', '', code.upper())
+
+
+def opening_stock_identity(entry_note, code):
+    """Evidence rule for lots created as opening stock from a physical count (their entry note
+    says how they were made). A POOLED lot holds several supplier lots and never takes one code:
+    split it with Found/adjust corrections instead. Any other opening-stock lot only takes a supplier
+    code its own entry note documents as a possible source ("supplier lot X")."""
+    note = (entry_note or '').upper()
+    if 'POOLED' in note:
+        a5.fail('POOLED_LOT_NOT_IDENTIFIABLE',
+                'This lot pools several supplier lots; one supplier code cannot identify it. '
+                'Split it with Found and adjust corrections, each with its own supplier lot.',
+                'Este lote combina varios lotes de proveedor; un solo código no lo identifica. '
+                'Divídalo con correcciones de Encontrado y Ajuste, cada una con su lote de proveedor.')
+    if not note.startswith(('OPENING STOCK', 'OPENING BALANCE')):
+        return
+    documented = {_norm(x) for x in re.findall(r'SUPPLIER LOT ([^,;|]+)', note)} - {''}
+    if _norm(code) not in documented:
+        a5.fail('OPENING_LOT_CODE_NOT_DOCUMENTED',
+                'This opening-stock lot lists its possible supplier lots, and this code is not one of them. '
+                'Record different evidence with a Found or adjust correction instead.',
+                'Este lote de inventario inicial enumera sus posibles lotes de proveedor y este código no está '
+                'entre ellos. Registre otra evidencia con una corrección de Encontrado o Ajuste.')
+
+
 def validate(api, cur, payload, lock=False):
     import ticket_actions as actions
     occurred_at, source = api.validate_inventory_occurred_at(
@@ -47,6 +74,8 @@ def validate(api, cur, payload, lock=False):
     cur.execute('SELECT id FROM lot_supplier_codes WHERE lot_id=%s ORDER BY id', (lot['id'],))
     if lot['lot_type'] == 'commingled' or cur.fetchall():
         a5.fail('COMMINGLED_LOT_REQUIRES_REVIEW', 'This lot has component supplier codes; one code cannot identify all components.')
+    cur.execute('SELECT entry_source_notes FROM lots WHERE id=%s', (lot['id'],))
+    opening_stock_identity(cur.fetchone()['entry_source_notes'], code)
     # Pin what the operator saw, including an event version to detect A→B→A.
     cur.execute("SELECT max(id) AS version FROM lot_events WHERE lot_id=%s AND event IN ('supplier_lot','identified')", (lot['id'],))
     state = api_value(api, dict(lot, identity_version=cur.fetchone()['version']))
