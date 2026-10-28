@@ -3275,7 +3275,30 @@
     return `${escHtml(SOList.date(order.requested_ship_date))} <span class="so-relative">${relative}</span>`;
   }
 
+  // The slip needs the signed-in person's session, which FL.fetchWithTimeout
+  // attaches to GET requests; the PDF is opened from memory, never via a key in a URL.
+  async function openPackingSlip(order, button, container) {
+    const slipWindow = window.open('', '_blank');
+    button.disabled = true;
+    setOrderDetailMessage(container, '');
+    try {
+      const response = await FL.fetchWithTimeout(SALES_API_BASE + '/sales/orders/' + encodeURIComponent(order.order_id) + '/packing-slip', { headers: { 'X-API-Key': await FLDashboard.key() }, timeoutMs: 30000 });
+      if (!response.ok) throw Object.assign(new Error('Packing slip unavailable'), { status: response.status });
+      const url = URL.createObjectURL(await response.blob());
+      if (slipWindow) slipWindow.location.href = url; else location.assign(url);
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch (error) {
+      slipWindow?.close();
+      // A refused read surfaces as the runtime's generic access error, so name the fix instead.
+      setOrderDetailMessage(container, [401, 403].includes(error.status) || error.accessUnavailable ? 'Couldn’t open the packing slip. Sign in with your personal key, then try again.' : 'Couldn’t open the packing slip. Please try again.', 'error');
+    } finally {
+      button.disabled = false;
+    }
+  }
+
   function bindOrderDetailActions(container, order) {
+    const slipButton = container.querySelector('.so-packing-slip-btn');
+    slipButton?.addEventListener('click', () => openPackingSlip(order, slipButton, container));
     container.querySelectorAll('.so-detail-exit-action').forEach(button => button.addEventListener('click', () => {
       SOList.closeExplanation();
       SOListActions.open(order, {
@@ -3341,6 +3364,7 @@
     html += `<h2 class="order-number">${escHtml(data.order_number || 'Sales order')}</h2>`;
     if (data.customer) html += `<p class="order-customer">${escHtml(data.customer)}</p>`;
     html += '</div><div class="so-case-actions">';
+    if (data.state !== 'cancelled') html += `<button type="button" data-fl-write-ui class="btn-secondary so-packing-slip-btn" title="Opens a printable PDF. Before shipping it lists the oldest lots first; after shipping, the lots actually shipped.">Packing slip</button>`;
     for (const action of (data.state === 'open' ? ['close', 'cancel'] : ['reopen'])) html += `<button type="button" class="btn-secondary so-detail-exit-action so-exit-action" data-action="${action}" data-order-id="${escAttr(data.order_id)}">${action[0].toUpperCase() + action.slice(1)}</button>`;
     html += '</div></div><div class="so-case-facts">';
     html += `<span class="so-ordered-total">${SOList.number(ordered)} lb ordered</span>`;

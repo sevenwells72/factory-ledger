@@ -77,6 +77,8 @@
     const more=document.createElement('details');more.className='mobile-more';const summary=document.createElement('summary');summary.textContent='More';more.append(summary);
     const menu=document.createElement('div');menu.className='mobile-more-menu';
     [['recent','Recent Entries'],['notes','Notes'],['expected','Expected Receipts']].forEach(([key,label])=>menu.append(destination(key,label)));
+    // Sibling pages resolve next to this page, so they also work where the dashboard is served under /dashboard/.
+    [['shift-summary.html','Shift Summary',false],['fl-assistant.html','FL Assistant',true]].forEach(([url,label,signedIn])=>{const a=document.createElement('a');a.href=new URL(url,location.href).href;a.textContent=label;if(signedIn)a.dataset.flWriteUi='';menu.append(a);});
     [['history.html?v=1','Ledger History'],['sankey.html?v=3','Material Flow'],['process-flow.html?v=4','Production Lines'],['traceability.html?v=4','Traceability']].forEach(([url,label])=>{const a=document.createElement('a');a.href='/'+url;a.textContent=label;menu.append(a);});
     more.append(menu);nav.append(more);document.body.append(nav);
     function sync(key){nav.querySelectorAll('[data-section]').forEach(a=>{if(a.dataset.section===key)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');});summary.classList.toggle('active',!dashboard || ['recent','notes','expected'].includes(key));more.open=false;}

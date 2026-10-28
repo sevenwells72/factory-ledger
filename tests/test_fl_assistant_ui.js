@@ -547,3 +547,38 @@ for(const language of ['en','es'])for(const readback of [false,true])test(`recei
  const h=readback?await resumedCard({kind:'read',tool:'receipt_lookup',result},language):await resumedCard(card,language,{savedDrafts:[{id:card.id,card,status:'committed',result}]});
  const first=h.card.children[0];assert.equal(first.className,'receive-lot-tag');const nodes=descendants(first);assert.ok(nodes.some(node=>node.className==='receive-lot-code'&&node.textContent==='26-10-21-OATS-001'));assert.ok(nodes.some(node=>node.textContent===(language==='en'?'Write this on the pallet tag':'Escribe esto en la etiqueta del pallet')));await h.get('language').listeners.click();assert.ok(descendants(first).some(node=>node.textContent===(language==='es'?'Write this on the pallet tag':'Escribe esto en la etiqueta del pallet')));
 });
+
+for (const language of ['en', 'es']) for (const fresh of [true, false]) test(`ship receipt ${fresh ? 'offers the signed packing slip' : 'explains an expired packing slip'} in ${language}`, async () => {
+  const expires = Math.floor(Date.now() / 1000) + (fresh ? 600 : -5);
+  const slip = `/sales/orders/31/packing-slip?receipt=SHP-261028-001&expires=${expires}&sig=abc123`;
+  const prepared = { action: 'create_order', can_commit: true, blockers: [], actor: { name: 'Arturo' },
+    draft: { customer: 'New Market', lines: [{ product: 'Granola', quantity: 2, unit: 'cases', quantity_lb: 50 }] } };
+  const h = await resumedCard({ kind: 'draft', id: 'ship-draft', prepared }, language, {
+    onRequest: async path => { assert.equal(path, '/assistant/record');
+      return { kind: 'receipt', result: { success: true, receipt_number: 'SHP-261028-001', order_number: 'SO-261028-001', packing_slip_url: slip } }; } });
+  const record = descendants(h.card).find(node => node.tag === 'button' && node.textContent === (language === 'en' ? 'Record' : 'Registrar'));
+  await record.listeners.click();
+  for (let i = 0; i < 6; i++) await new Promise(resolve => setImmediate(resolve));
+  const nodes = descendants(h.card), link = nodes.find(node => node.tag === 'a' && /packing-slip-link/.test(node.className));
+  if (fresh) {
+    assert.equal(link.href, 'https://fl.local' + slip);
+    assert.equal(link.target, '_blank');
+    assert.equal(link.textContent, language === 'en' ? 'Open packing slip (valid 10 minutes)' : 'Abrir hoja de empaque (válida 10 minutos)');
+  } else {
+    assert.equal(link, undefined);
+    assert.ok(nodes.some(node => node.className === 'packing-slip-expired' && /dashboard/.test(node.textContent)));
+  }
+  assert.doesNotMatch(nodes.map(node => node.href || '').join(' '), /key=/);
+});
+
+test('receipts without a packing slip, or with a foreign link, show no slip button', async () => {
+  for (const packing_slip_url of [undefined, 'https://evil.example/sales/orders/1/packing-slip']) {
+    const prepared = { action: 'create_order', can_commit: true, blockers: [], actor: { name: 'Arturo' }, draft: { customer: 'X', lines: [] } };
+    const h = await resumedCard({ kind: 'draft', id: 'd', prepared }, 'en', { onRequest: async () =>
+      ({ kind: 'receipt', result: { success: true, receipt_number: 'SHP-261028-002', packing_slip_url } }) });
+    await descendants(h.card).find(node => node.tag === 'button' && node.textContent === 'Record').listeners.click();
+    for (let i = 0; i < 6; i++) await new Promise(resolve => setImmediate(resolve));
+    assert.equal(h.card.className, 'card receipt');
+    assert.equal(descendants(h.card).some(node => /packing-slip/.test(node.className)), false);
+  }
+});

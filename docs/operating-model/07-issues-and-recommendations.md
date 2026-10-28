@@ -24,7 +24,7 @@ No new development is needed for the core switch-on. In order, each step approve
 4. **Turn on the FL Assistant** in production.
 5. **Hand out personal keys** to Arturo and Luz, plus Liz if she is a different person.
 6. **Supervised first day:** one receive, one make, one pack, one ship (this also checks the #146 slip link and the #153 one-row-per-shipment guard), one Found and one Adjust under 500 lb. Michael approves one held correction.
-7. **Same week: make both GPTs read-only.**
+7. **Later, as a separate decision once the new workflow is proven reliable (no deadline; Michael, 2026-10-28): make both GPTs read-only.**
    - Set the read-only key.
    - Paste `gpt-configs/readonly/` into both GPTs (click-by-click instructions in `CUTOVER_CHECKLIST.md`).
 8. **Rotate the master key** once nothing depends on it.
@@ -51,7 +51,7 @@ No new development is needed for the core switch-on. In order, each step approve
 | # | Issue | Recommendation |
 |---|---|---|
 | F-9 | **"Liz" vs "Luz".** There is no Liz account; Luz and Miriam are office accounts. | Confirm. If Liz is a separate person, create her an office account. Deactivate any account nobody uses (Miriam?). |
-| F-10 | **Hidden pages.** FL Assistant is reachable only from a small "FL" link on Record entry and Office. Shift Summary is linked from nowhere. The Assistant's fallback buttons point at `/dashboard/entry.html`, which likely doesn't exist on Netlify (**unverified**). | **Small:** add FL Assistant and Shift Summary to the menu and the mobile bar; fix the fallback links. Meanwhile, use phone home-screen bookmarks. |
+| F-10 | **Hidden pages.** FL Assistant is reachable only from a small "FL" link on Record entry and Office. Shift Summary is linked from nowhere. (Correction 2026-10-28: the Assistant's fallback buttons are rewritten to the right page when shown, so they work.) | **Small:** add FL Assistant and Shift Summary to the tool bar and the mobile menu. **Built in P2 (branch `feat/p2-slip-banner-nav`, not merged).** Meanwhile, use phone home-screen bookmarks. |
 | F-11 | **No physical count feature.** Counts are entered as Adjust "physical count", one lot at a time. Count day needed a Google Form plus owner-loaded corrections. | Fine for spot counts. For the next full count, decide in advance (FOLLOWUPS P1.21 asks for an owner-approved count-loading path). Don't build it until a second full count is planned. |
 | F-12 | **The production plan is not in Factory Ledger.** The schedule is empty and the Runs page has never been used. The "production board" scheduler is an offline simulator with July sample data. | Decide: either plan in **Runs** (live, links runs to order lines) or keep planning outside Factory Ledger. Hide the offline scheduler to avoid confusion. |
 | F-13 | **Owner alerts are pull-only.** Nothing emails or texts you; you must open Exceptions. Corrections over 500 lb that include a photo post without approval (only highlighted). | Daily habit (guide D3). Decide whether over-500 lb-with-photo should also wait for you. |
@@ -111,7 +111,7 @@ Chat is poor at all three.
 **Can the same transaction be recorded twice through two interfaces?** Yes, today:
 - Arturo records a receipt in the Floor GPT and Luz records it again in the Office GPT: nothing stops it. Direct-route entries only have a duplicate guard for order shipments (#153).
 - On the draft route, a second similar receive, make, pack, ship or found triggers a must-acknowledge "possible duplicate" warning. That warning compares against the ledger, so it should also catch an earlier GPT entry (**likely, not tested across interfaces ❓**).
-- **Safeguard in practice:** one owner per kind of entry (see the SOPs in [08](08-standard-operating-procedures.md)), plus read-only GPTs.
+- **Safeguard in practice:** one owner per kind of entry (see the SOPs in [08](08-standard-operating-procedures.md)). Read-only GPTs would close the gap fully; that is a later decision (§5).
 
 **Do all interfaces enforce the same validation, permissions, lot tracking and approvals?**
 - **Lot tracking and core validation:** yes. That includes supplier lot required, kosher, pooled lot, no shipping beyond stock, shortages and unidentified-lot exceptions.
@@ -149,13 +149,13 @@ Chat is poor at all three.
 2. **FL Assistant**: Arturo's primary tool, with the **Record entry form** as its built-in fallback.
 3. **One read-only chat** (read-only GPT now, the connector later), for questions only.
 
-**Retire as write tools:** both custom GPTs, as soon as switch-on is proven. Don't keep "both, just in case": that is exactly what creates unnamed duplicates.
+**The custom GPTs: decided (Michael, 2026-10-28).** Both GPTs **stay fully operational as fallback options** while the new workflow is tested. Whether and when they become read-only is a separate decision, made only after the new workflow has proven reliable; there is no deadline. Until then, the safeguard is the one-place-per-entry rule (SOP-2): a GPT is used for an entry only when the new path fails, and the same event is never recorded in both. *My original recommendation, kept for the record:* retire them as write tools once switch-on is proven, because writable GPTs record no name and skip the owner-approval rule.
 
 **Primary and backup per person:**
 
 | Person | Primary | Backup | Never |
 |---|---|---|---|
-| Arturo | FL Assistant (phone) | Record entry form | Writing GPTs after cutover |
+| Arturo | FL Assistant (phone) | Record entry form; Floor GPT only if both fail | The same entry in two places |
 | Luz/Liz | Dashboard + Office screen | FL Assistant for a quick order | Office GPT for adjustments, ever |
 | Michael | Dashboard (Needs Attention, Exceptions, History) | Read-only chat | Routine entries |
 
@@ -167,7 +167,7 @@ Chat is poor at all three.
 **Standardise before full staff adoption:**
 - one account per person;
 - the switch-on (§1);
-- read-only GPTs and the master-key rotation;
+- the one-place-per-entry rule while the GPTs remain writable fallbacks (read-only GPTs and the master-key rotation are a later decision);
 - a staging banner;
 - menu links for the Assistant and Shift Summary;
 - a packing-slip button;
@@ -175,7 +175,7 @@ Chat is poor at all three.
 - a one-page bilingual card for Arturo (adapt PR #113).
 
 **Greatest benefit for least work:**
-1. Switch-on plus read-only GPTs. This gives names on every entry, owner approvals that really apply, and duplicate warnings.
+1. Switch-on of personal sign-in and the FL Assistant. This gives names on every entry made the new way, owner approvals that really apply, and duplicate warnings. Read-only GPTs, later, would extend that to every entry.
 2. Packing-slip button and Assistant slip link.
 3. Staging banner and menu links.
 4. Daily Shift Summary sign-off, with a 15-minute owner review.
