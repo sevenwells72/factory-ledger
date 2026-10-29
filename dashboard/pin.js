@@ -4,14 +4,14 @@
   const ui = FLLedger; ui.bind();
   const content = document.getElementById('content');
   const session = ui.session;
-  const PIN = /^[0-9]{6}$/;
+  const PIN = /^[0-9]{4}$/;
 
   function pinInput(host, en, es, id) {
     const label = ui.el('label', undefined, host), text = ui.el('span', ui.t(en, es), label);
     text.className = 'pin-label';
     const input = ui.el('input', undefined, label);
-    Object.assign(input, { type: 'password', inputMode: 'numeric', autocomplete: 'off', required: true, maxLength: 6, id });
-    input.pattern = '[0-9]{6}';
+    Object.assign(input, { type: 'password', inputMode: 'numeric', autocomplete: 'off', required: true, maxLength: 4, id });
+    input.pattern = '[0-9]{4}';
     return input;
   }
   function pinForm(host, fields, submitText, action) {
@@ -21,7 +21,7 @@
     form.onsubmit = async event => {
       event.preventDefault();
       const values = inputs.map(input => input.value); inputs.forEach(input => { input.value = ''; });
-      if (!values.every(value => PIN.test(value))) return ui.notice(ui.t('Use exactly 6 digits.', 'Usa exactamente 6 dígitos.'));
+      if (!values.every(value => PIN.test(value))) return ui.notice(ui.t('Use exactly 4 digits.', 'Usa exactamente 4 dígitos.'));
       button.disabled = true;
       // PIN messages are not entries, so no "NOT recorded" prefix here.
       try { await action(values); } catch (error) { ui.notice(error.labels ? ui.t(...error.labels) : error.message); } finally { button.disabled = false; }
@@ -50,8 +50,8 @@
             await session.resetPin(pin); done(ui.t('New PIN saved. You are signed in.', 'PIN nuevo guardado. Sesión iniciada.'));
           });
       } else {
-        ui.el('p', ui.t('Sign in above with your personal key once. Then choose a 6-digit PIN for this phone.',
-          'Inicia sesión arriba con tu clave personal una vez. Luego elige un PIN de 6 dígitos para este teléfono.'), content);
+        ui.el('p', ui.t('Sign in above with your personal key once. Then choose a 4-digit PIN for this phone.',
+          'Inicia sesión arriba con tu clave personal una vez. Luego elige un PIN de 4 dígitos para este teléfono.'), content);
       }
       return ui.relabel();
     }
@@ -88,7 +88,7 @@
     const name = ui.el('input', undefined, nameLabel); Object.assign(name, { id: 'phone-name', maxLength: 60, value: `${actor.name}'s phone` });
     const keyLabel = ui.el('label', undefined, content); ui.el('span', ui.t('Your personal key (once more, to confirm it is you)', 'Tu clave personal (otra vez, para confirmar que eres tú)'), keyLabel);
     const key = ui.el('input', undefined, keyLabel); Object.assign(key, { id: 'enroll-key', type: 'password', autocomplete: 'off' });
-    pinForm(content, [['Choose a 6-digit PIN', 'Elige un PIN de 6 dígitos', 'enroll-pin'], ['Same PIN again', 'Repite el PIN', 'enroll-pin-2']],
+    pinForm(content, [['Choose a 4-digit PIN', 'Elige un PIN de 4 dígitos', 'enroll-pin'], ['Same PIN again', 'Repite el PIN', 'enroll-pin-2']],
       ui.t('Save PIN for this phone', 'Guardar PIN para este teléfono'), async ([pin, again]) => {
         const personalKey = key.value.trim(); key.value = '';
         if (pin !== again) throw ui.problem(ui.t('The two PINs do not match.', 'Los dos PIN no coinciden.'));

@@ -2,7 +2,7 @@
 
 A phone is enrolled once from a personal-key session. It then holds a random
 32-byte device secret; the server stores only its sha256. Everyday sign-in
-sends that secret plus a 6-digit PIN and opens a 12-hour session on that phone
+sends that secret plus a 4-digit PIN and opens a 12-hour session on that phone
 only. The PIN hash is PBKDF2 salted with a random salt AND the device secret,
 so the database alone cannot be brute-forced back to a PIN.
 
@@ -79,17 +79,11 @@ def problem(status, code, en, es, **extra):
     return HTTPException(status, {'error_code': code, 'message': f'{en} / {es}', **extra})
 
 
-def weak(pin):
-    steps = {int(pin[i + 1]) - int(pin[i]) for i in range(5)}
-    return len(set(pin)) == 1 or steps in ({1}, {-1}) or pin[:3] == pin[3:] or pin[:2] * 3 == pin
-
-
 def new_pin_problem(pin):
-    if not re.fullmatch(r'[0-9]{6}', pin):
-        return problem(422, 'PIN_FORMAT', 'Use exactly 6 digits.', 'Usa exactamente 6 dígitos.')
-    if weak(pin):
-        return problem(422, 'PIN_TOO_SIMPLE', 'Choose a PIN that is not a repeat or a simple sequence.',
-                       'Elige un PIN que no sea repetido ni una secuencia simple.')
+    # Owner decision 2026-10-29: the PIN identifies who is entering, it is not a
+    # security control, so any 4 digits are fine (1111, 2222 …).
+    if not re.fullmatch(r'[0-9]{4}', pin):
+        return problem(422, 'PIN_FORMAT', 'Use exactly 4 digits.', 'Usa exactamente 4 dígitos.')
     return None
 
 
@@ -104,7 +98,7 @@ def pin_columns(secret, pin):
 
 
 def pin_matches(device, secret, pin):
-    if not device['pin_hash'] or not re.fullmatch(r'[0-9]{6}', pin):
+    if not device['pin_hash'] or not re.fullmatch(r'[0-9]{4}', pin):
         return False
     return hmac.compare_digest(pin_hash(secret, pin, device['pin_salt'], device['pin_iterations']), device['pin_hash'])
 
