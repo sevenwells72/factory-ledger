@@ -82,8 +82,8 @@
     if (device && device.actor.id !== actor.id)
       ui.el('p', ui.t(`This phone is set up for ${device.actor.name}. Setting it up for you replaces that on this phone.`,
         `Este teléfono es de ${device.actor.name}. Configurarlo para ti lo reemplaza en este teléfono.`), content);
-    ui.el('p', ui.t('Use this only on your own phone. Avoid repeats (111111) and sequences (123456).',
-      'Úsalo solo en tu propio teléfono. Evita repeticiones (111111) y secuencias (123456).'), content);
+    ui.el('p', ui.t('Use this only on your own phone or computer. Any 4 digits are fine, for example 1111.',
+      'Úsalo solo en tu propio teléfono o computadora. Cualquier número de 4 dígitos sirve, por ejemplo 1111.'), content);
     const nameLabel = ui.el('label', undefined, content); ui.el('span', ui.t('Name of this phone', 'Nombre de este teléfono'), nameLabel);
     const name = ui.el('input', undefined, nameLabel); Object.assign(name, { id: 'phone-name', maxLength: 60, value: `${actor.name}'s phone` });
     const keyLabel = ui.el('label', undefined, content); ui.el('span', ui.t('Your personal key (once more, to confirm it is you)', 'Tu clave personal (otra vez, para confirmar que eres tú)'), keyLabel);

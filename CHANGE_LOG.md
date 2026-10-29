@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-29 11:48 — My PIN page: remove leftover "avoid repeats" advice
+- **File(s) changed:** `dashboard/pin.js`, `dashboard/pin.html` (`pin.js?v=3`)
+- **What changed:** The setup hint said "Avoid repeats (111111) and sequences (123456)", contradicting #159. It now reads "Use this only on your own phone or computer. Any 4 digits are fine, for example 1111." (EN/ES).
+- **Why:** Owner: PINs identify, not secure; the old line confused the desktop setup instructions.
+
+---
+
 ## 2026-10-29 11:15 — Simple 4-digit phone PINs (owner decision)
 - **File(s) changed:** `device_pins.py`, `dashboard/pin.js`, `dashboard/key-session.js`, 10 dashboard HTML pages (`key-session.js?v=6`, `pin.js?v=2`), `docs/contracts/device-pins.md`, `tests/test_device_pins.py`, `tests/test_pin_client.js`
 - **What changed:** Phone PINs are now exactly 4 digits and simple PINs (1111, 2222, 1234 …) are accepted: removed the weak-PIN refusal (`PIN_TOO_SIMPLE`), format check and sign-in match now `[0-9]{4}`, all on-screen text says 4 digits (EN/ES). Per-phone lockouts (5 wrong → 15 min, 10 → owner reset), the device secret and PBKDF2 hashing are unchanged. Tests updated (simple PINs accepted; 3/5/6-digit and non-digit PINs refused; PIN-not-echoed checks made robust for 4-digit values).
