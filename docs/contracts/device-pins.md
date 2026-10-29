@@ -4,7 +4,7 @@ Branch `feat/pin-device-signin`. Builds on the live key sessions ([key-sessions.
 
 ## What staff do
 
-1. **Once per phone:** sign in with the personal key, open **My PIN**, type the personal key once more and choose a 6-digit PIN. The phone is now "enrolled" to that person.
+1. **Once per phone:** sign in with the personal key, open **My PIN**, type the personal key once more and choose a 4-digit PIN. The phone is now "enrolled" to that person.
 2. **Every shift:** open Factory Ledger on that phone, type the PIN in the usual sign-in field. The sign-in lasts **12 hours** and survives closing the browser.
 3. **Change PIN:** My PIN → Change my PIN (needs the current PIN, on that phone).
 4. **Forgot / locked:** the owner presses **Reset PIN** on *Staff & phones*; the person chooses a new PIN on My PIN within 60 minutes.
@@ -24,7 +24,7 @@ The personal key keeps working everywhere ("Use personal key instead" under the 
 
 - **Device secret.** Enrollment returns 32 random bytes (`device_secret`) once; the phone keeps it in `localStorage` (`fl-device`). The server stores only its SHA-256 (`key_devices.secret_hash`). A PIN is useless without this secret, so a PIN only works on the enrolled phone.
 - **PIN hash.** PBKDF2-SHA256, 200,000 rounds, random 16-byte salt **plus the device secret** as salt material. The database alone cannot be brute-forced back to PINs. PINs are never stored in the browser.
-- **Weak PINs refused:** all-same (000000), straight sequences (123456/654321), repeated halves (437437) and pairs (121212).
+- **Simple 4-digit PINs allowed** (owner decision 2026-10-29, e.g. 1111, 2222). The PIN's job is to say *who* is entering on a phone, not to keep people out; there is no PIN-strength requirement. A PIN still only works on its own enrolled phone (device secret), and the per-phone lockouts are unchanged.
 - **Enrollment** requires a session opened with the personal key (`POST /auth/session`), not a PIN session, a raw actor key, or any shared key, **and the personal key typed again** (checked against that person, counted in the personal-key sign-in limits), so a signed-in screen left open cannot be used to add a phone. That key session becomes the phone's 12-hour session. At most 3 phones per person; re-enrolling the same phone replaces it.
 - **Rate limits per phone, never shared between people:** 5 wrong PINs in a row lock that phone for 15 minutes; 10 block it (and sign it out) until the owner resets the PIN. A correct PIN resets the count. Requests with unknown, revoked or malformed device secrets go into one separate bucket (30 per 10 minutes for all such phones together); that bucket never touches an enrolled phone. The personal-key exchange keeps its existing limits.
 - **Sessions.** PIN sessions are rows in `key_actor_sessions` with `device_id`, a fixed 12-hour `expires_at` (activity does not extend it), the same token format (`fls_`), the same role and attribution as the personal key. They end at once when the phone is revoked/reset/blocked, when the person is deactivated, when their personal key is rotated (the phone is retired too) or when `PIN_SIGNIN_ENABLED` is turned off.

@@ -6,7 +6,7 @@
   // A PIN session lasts the shift (12 h) and survives closing the browser, so it
   // lives in localStorage next to the phone's device secret.
   const PIN_STORE = 'fl-pin-session-token', DEVICE = 'fl-device';
-  const PIN = /^[0-9]{6}$/, SECRET = /^[A-Za-z0-9_-]{43}$/;
+  const PIN = /^[0-9]{4}$/, SECRET = /^[A-Za-z0-9_-]{43}$/;
   function create({ base, fetch: transport, storage, config: sharedConfig, changed = () => {},
                     deviceStorage = (typeof root.localStorage !== 'undefined' ? root.localStorage : null) }) {
     let enabled = false, pinEnabled = false, token = '', actor = null, revision = 0, device = null;
@@ -150,8 +150,8 @@
       const enrolled = client.pinEnabled && !!client.device;
       if (enrolled && !useKey) {
         const name = client.device.actor.name;
-        relabel('PIN for ' + name + ' (6 digits)', 'PIN de ' + name + ' (6 dígitos)');
-        input.inputMode = 'numeric'; input.placeholder = es() ? 'PIN de 6 dígitos' : '6-digit PIN'; swapped = true;
+        relabel('PIN for ' + name + ' (4 digits)', 'PIN de ' + name + ' (4 dígitos)');
+        input.inputMode = 'numeric'; input.placeholder = es() ? 'PIN de 4 dígitos' : '4-digit PIN'; swapped = true;
       } else if (swapped) {
         // Hand the field back to the page as it was; untouched unless we changed it.
         if (original.en !== undefined) relabel(original.en, original.es);
@@ -160,7 +160,7 @@
       toggle.hidden = !enrolled;
       toggle.textContent = useKey ? (es() ? 'Usar mi PIN' : 'Use my PIN') : (es() ? 'Usar clave personal' : 'Use personal key instead');
       offer.hidden = !(client.pinEnabled && client.actor && !client.phoneSession);
-      link.textContent = es() ? 'Configura un PIN de 6 dígitos en este teléfono' : 'Set up a 6-digit PIN on this phone';
+      link.textContent = es() ? 'Configura un PIN de 4 dígitos en este teléfono' : 'Set up a 4-digit PIN on this phone';
     }
     toggle.onclick = () => { useKey = !useKey; paint(); input.focus(); };
     input.after(toggle);
