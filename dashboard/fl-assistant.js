@@ -117,6 +117,7 @@
       }
     }); return node;
   }
+  let paintPin = () => {};
   function applyLanguage() {
     document.documentElement.lang = language;
     document.querySelectorAll('[data-en]').forEach(node => node.textContent = node.dataset[language]);
@@ -126,6 +127,7 @@
     if (actor) { delete $('identity').dataset.en; delete $('identity').dataset.es; }
     if (actor) $('identity').textContent = `${t('Signed in as', 'Sesión de')} ${actor.name} · ${actor.role}`;
     renderAttachments();
+    paintPin();
   }
   function notice(message, tone = 'error') { if (tone === 'neutral') $('composer').after($('notice')); $('notice').textContent = message; $('notice').hidden = !message; $('notice').className = tone === 'neutral' ? 'notice neutral-notice' : 'notice'; $('notice').setAttribute('role', tone === 'neutral' ? 'status' : 'alert'); }
   function handoffActions(node, actions) {
@@ -775,12 +777,15 @@
       if (draft.status === 'cancelled') node.replaceChildren(el('p', t('Cancelled · NOT recorded', 'Cancelado · NO registrado')));
     }
   }
-  const pilot = root.FLKeySessions.create({ base: root.FLDashboard?.base||location.origin, fetch: root.fetch.bind(root), storage: sessionStorage });
+  const pilot = root.FLKeySessions.create({ base: root.FLDashboard?.base||location.origin, fetch: root.fetch.bind(root), storage: sessionStorage, changed: () => paintPin() });
   const authReady = pilot.init().then(enabled => {
+    paintPin = root.FLKeySessions.pinField?.(pilot, $('actor-key'), { after: $('chat-panel').firstElementChild || undefined }) || paintPin;
     if (enabled) {
       const hint = $('signin-hint');
-      hint.dataset.en = 'Sign in once per shift. Your key is exchanged for a session. Sign out before handing over this device.';
-      hint.dataset.es = 'Inicia sesión una vez por turno. Tu clave se cambia por una sesión. Cierra sesión antes de entregar este dispositivo.';
+      hint.dataset.en = pilot.pinEnabled && pilot.device ? 'Your PIN signs you in for the shift (12 hours) on this phone. Sign out before handing over this device.'
+        : 'Sign in once per shift. Your key is exchanged for a session. Sign out before handing over this device.';
+      hint.dataset.es = pilot.pinEnabled && pilot.device ? 'Tu PIN abre tu sesión por el turno (12 horas) en este teléfono. Cierra sesión antes de entregar este dispositivo.'
+        : 'Inicia sesión una vez por turno. Tu clave se cambia por una sesión. Cierra sesión antes de entregar este dispositivo.';
       applyLanguage();
     }
     return enabled;

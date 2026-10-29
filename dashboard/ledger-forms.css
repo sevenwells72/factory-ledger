@@ -50,6 +50,9 @@
 
 /* Hidden before config loads as well as when cutover is off or unavailable. */
 :root:not([data-fl-write-ui="on"]) [data-fl-write-ui]{display:none!important}
+:root:not([data-fl-pin="on"]) [data-fl-pin-ui]{display:none!important}
+.fl-pin-toggle{background:none;border:0;padding:6px 0;color:var(--primary-text);text-decoration:underline;font:inherit;font-size:14px;cursor:pointer;min-height:44px}
+.fl-pin-offer{margin:6px 0;font-size:14px}.fl-pin-offer a{color:var(--primary-text);font-weight:650}
 
 .ledger-page .opening-stock>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:650}
 .ledger-page .receipt-photos{display:flex;flex-wrap:wrap;gap:12px}.ledger-page .receipt-photos h3{flex-basis:100%}
@@ -77,3 +80,6 @@
 .ledger-page .picker-options hr{border:0;border-top:1px solid var(--border);width:100%;margin:16px 0 4px}.ledger-page .picker-options button.new-customer-option{margin-top:0;padding:10px 12px;background:var(--bg);font-size:14px;font-weight:500;color:var(--text-secondary)}.ledger-page .today-entry{padding:12px 0;border-top:1px solid var(--border)}.ledger-page .today-entry p{margin:4px 0}
 
 .ledger-page .receive-lot-tag{border-bottom:2px solid #98b5a3;margin-bottom:18px;padding-bottom:16px}.ledger-page .receive-lot-label{margin:0;font-size:14px;font-weight:650}.ledger-page .receive-lot-code{font-family:ui-monospace,monospace;font-size:clamp(26px,5vw,38px);font-weight:800;line-height:1.2;margin:8px 0;overflow-wrap:anywhere}
+.ledger-page .pin-form,.ledger-page .staff-device,.ledger-page .staff-tools{display:grid;gap:10px;margin:12px 0;max-width:420px}
+.ledger-page .pin-form input{font-size:22px;letter-spacing:6px;text-align:center}
+.ledger-page .staff-card{border-top:1px solid var(--border);padding:14px 0}.ledger-page .staff-device{border-left:3px solid var(--border);padding-left:12px}

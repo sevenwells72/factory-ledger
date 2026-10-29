@@ -150,12 +150,12 @@
   api.notice=(message,kind='bad')=>{const box=document.getElementById('notice');box.hidden=false;box.className=kind;api.setText(box,message);};
   api.failure=error=>api.notice(api.t(...['en','es'].map(lang=>error?.accessUnavailable?root.FLDashboard.accessMessage(lang):error?.transport?(transportText(error.cause,lang)||error.message):(lang==='es'?'NO registrado — ':'NOT recorded — ')+(error?.result?errorText(error.result,lang):error?.labels?.[lang==='es'?1:0]||error.message||String(error)))));
   api.base=root.FLDashboard.base;
-  let actor=null;
+  let actor=null,paintPin=()=>{};
   api.session=FLKeySessions.create({base:api.base,fetch:root.fetch.bind(root),storage:root.sessionStorage,config:root.FLDashboard.config,changed:()=>paintIdentity()});
   function paintIdentity(){actor=api.session.actor||actor;const identity=document.getElementById('identity');if(!identity)return;const current=api.session.actor;
     identity.hidden=!root.FLDashboard.writesEnabled;if(identity.hidden){identity.textContent='';document.getElementById('sign-in-form').hidden=true;document.getElementById('sign-out').hidden=true;return;}
     api.setText(identity,current?api.t('Signed in as '+current.name,'Sesión de '+current.name):api.t('Sign in before recording','Inicia sesión antes de registrar'));
-    document.getElementById('sign-in-form').hidden=!!current;document.getElementById('sign-out').hidden=!current;
+    document.getElementById('sign-in-form').hidden=!!current;document.getElementById('sign-out').hidden=!current;paintPin();
   }
   api.ready=root.FLDashboard.ready.then(async on=>{if(!on){api.session.clear();return false;}await api.session.init();return true;}).catch(error=>{api.failure(error);throw error;});api.ready.catch(()=>{});
   api.request=async(path,body,{read=false,form=false,background=false,binary=false}={})=>{
@@ -173,6 +173,7 @@
   };
   api.upload=async(file,kind)=>{const body=new FormData();body.append('file',file);body.append('kind',kind);return api.request('/attachments',body,{form:true});};
   api.bind=()=>{
+    paintPin=FLKeySessions.pinField(api.session,document.getElementById('actor-key'),{after:document.getElementById('identity')});
     api.translate();document.getElementById('language').onclick=()=>{api.lang=api.lang==='en'?'es':'en';sessionStorage.setItem('fl-ledger-language',api.lang);api.translate();paintIdentity();root.dispatchEvent(new Event('ledger-language'));};
     document.getElementById('sign-in-form').onsubmit=async e=>{e.preventDefault();const input=document.getElementById('actor-key'),value=input.value;input.value='';const submit=e.submitter;submit.disabled=true;
       try{await api.ready;if(!root.FLDashboard.writesEnabled)throw Error('Recording is unavailable / El registro no está disponible');await api.session.signIn(value);paintIdentity();root.dispatchEvent(new Event('ledger-auth'));}catch(error){actor=null;paintIdentity();api.failure(error);}finally{submit.disabled=false;}};

@@ -46,6 +46,7 @@ import resolution
 import permissions
 import fl_assistant
 import key_sessions
+import device_pins
 import sys
 from staging_safety import assert_staging_database
 from decimal import Decimal, ROUND_HALF_UP
@@ -335,6 +336,10 @@ async def request_validation_handler(request: Request, exc: RequestValidationErr
         # Pydantic v2 includes offending input in errors; keys must never echo.
         return JSONResponse(status_code=422, content={"detail": {
             "error_code": "INVALID_SESSION_REQUEST", "message": "Supply a personal actor key."}})
+    if request.url.path.startswith(("/auth/pin", "/auth/device")):
+        # Same for PINs and device secrets.
+        return JSONResponse(status_code=422, content={"detail": {
+            "error_code": "INVALID_PIN_REQUEST", "message": "Check the PIN and try again. / Revisa el PIN e intenta otra vez."}})
     # Same body as FastAPI's default ({"detail": errors}), but a body that carried
     # NaN / Infinity (json.loads accepts them) must still get its 422: the default
     # handler echoes the offending `input` and the strict encoder then raises → 500
@@ -3501,12 +3506,14 @@ class _VerifiedApiIdentity:
         self.kind = request.state.key_kind
         self.session_id = getattr(request.state, 'actor_session_id', None)
         self.expires_at = getattr(request.state, 'session_expires_at', None)
+        self.device_id = getattr(request.state, 'session_device_id', None)
 
     def authorize(self, request):
         request.state.actor = dict(self.actor)
         request.state.key_kind = self.kind
         request.state.actor_session_id = self.session_id
         request.state.session_expires_at = self.expires_at
+        request.state.session_device_id = self.device_id
         route_key = _route_key(request)
         if self.kind == 'session' and route_key in key_sessions.ROUTES:
             return True
@@ -3543,6 +3550,7 @@ def verify_api_key_flexible(
 
 
 key_sessions.register_routes(app, sys.modules[__name__])
+device_pins.register_routes(app, sys.modules[__name__])
 
 
 # O-7: the browser dashboard reads its SCOPED key from here instead of a

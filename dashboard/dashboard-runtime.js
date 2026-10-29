@@ -104,9 +104,11 @@
     if(!response.ok)throw Error('Session configuration unavailable');
     return response.json();
   }).finally(()=>clearTimeout(timer));
-  api.ready=api.config.then(config=>enabled(config),()=>false).then(on=>{
-    api.writesEnabled=on;
+  api.ready=api.config.then(config=>({on:enabled(config),pin:config?.pin_sign_in===true}),()=>({on:false,pin:false})).then(({on,pin})=>{
+    api.writesEnabled=on;api.pinEnabled=on&&pin;
     document.documentElement.dataset.flWriteUi=on?'on':'off';
+    // Phone PIN links ([data-fl-pin-ui]) show only while the server has PINs on.
+    document.documentElement.dataset.flPin=api.pinEnabled?'on':'off';
     return on;
   });
 })(typeof window==='undefined'?globalThis:window);

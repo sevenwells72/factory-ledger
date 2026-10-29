@@ -11,11 +11,42 @@ from pydantic import BaseModel, Field, StrictStr
 
 PREFIX = 'fls_'
 IDLE_MINUTES = 180
-ROUTES = frozenset({('POST', '/auth/session/logout')})
+PIN_SESSION_HOURS = 12
+# Session-only routes. The phone PIN routes (device_pins.py) live here too so
+# that a personal key, the dashboard key and the shared GPT keys never reach them.
+ROUTES = frozenset({('POST', '/auth/session/logout'),
+                    ('POST', '/auth/device/enroll'), ('POST', '/auth/pin/change'),
+                    ('POST', '/auth/device/forget'), ('GET', '/auth/devices'),
+                    ('POST', '/auth/devices/{device_id}/revoke'),
+                    ('POST', '/auth/devices/{device_id}/reset-pin'),
+                    ('POST', '/auth/actors/{actor_id}/remove-access'),
+                    ('POST', '/auth/actors/{actor_id}/active')})
 
 
 def enabled():
     return os.getenv('KEY_SESSIONS_ENABLED', '0') == '1'
+
+
+_PINS_MIGRATED = set()
+
+
+def pin_enabled(api=None):
+    """Phone PINs need key sessions too; either flag at 0 turns them off. Given
+    the app, they also stay off until migration 089 exists, so switching the
+    flag on early cannot break ordinary sign-ins."""
+    if not (enabled() and os.getenv('PIN_SIGNIN_ENABLED', '0') == '1'):
+        return False
+    if api is None:
+        return True
+    source = (api.get_db_connection, os.getenv('DATABASE_URL'))
+    if source in _PINS_MIGRATED:
+        return True
+    with api.get_transaction() as cur:
+        cur.execute("SELECT to_regclass('public.key_devices') IS NOT NULL AS ready")
+        ready = cur.fetchone()['ready']
+    if ready:
+        _PINS_MIGRATED.add(source)
+    return ready
 
 
 def require_enabled():
@@ -43,6 +74,7 @@ def resolve(api, token, request):
     if not enabled() or not token.startswith(PREFIX):
         return None
     actor = None
+    pins = pin_enabled(api)
     with api.get_transaction() as cur:
         cur.execute('SELECT actor_id FROM key_actor_sessions WHERE token_hash=%s', (digest(token),))
         owner = cur.fetchone()
@@ -50,17 +82,30 @@ def resolve(api, token, request):
             # A revoked key may end several sessions. Serialize by actor first
             # to avoid two session requests locking each other's rows.
             cur.execute('SELECT pg_advisory_xact_lock(770181,%s)', (owner['actor_id'],))
+        # Migration 089 adds key_devices; only read it while phone PINs are on.
         cur.execute("""SELECT s.*, a.name, a.role, a.active,
-                              a.key_hash AS current_key_hash
-                       FROM key_actor_sessions s JOIN actors a ON a.id=s.actor_id
+                              a.key_hash AS current_key_hash""" +
+                    (", d.revoked_at AS device_revoked_at" if pins else "") + """
+                       FROM key_actor_sessions s JOIN actors a ON a.id=s.actor_id""" +
+                    (" LEFT JOIN key_devices d ON d.id=s.device_id" if pins else "") + """
                        WHERE s.token_hash=%s FOR UPDATE OF s FOR SHARE OF a""", (digest(token),))
         row = cur.fetchone()
         cur.execute('SELECT clock_timestamp() AS now')
         now = cur.fetchone()['now']
+        device_id = row.get('device_id') if row else None
         if row and row['ended_at'] is None:
-            reason = ('revoked' if not row['active'] or row['actor_key_hash'] != row['current_key_hash']
+            # A phone session ends with its phone, and with the PIN switch.
+            device_gone = device_id is not None and (not pins or row.get('device_revoked_at') is not None)
+            reason = ('revoked' if not row['active'] or row['actor_key_hash'] != row['current_key_hash'] or device_gone
                       else 'idle' if now >= row['expires_at'] else None)
-            if reason:
+            if reason == 'revoked' and device_gone and row['active'] and row['actor_key_hash'] == row['current_key_hash']:
+                # Only this phone's sessions end; the person's other sign-ins stay.
+                cur.execute("""UPDATE key_actor_sessions SET ended_at=%s, ended_reason='revoked'
+                               WHERE ended_at IS NULL AND device_id=%s""", (now, device_id))
+                reason = 'handled'
+            if reason == 'handled':
+                pass
+            elif reason:
                 # End all sessions issued against the revoked key on detection.
                 cur.execute("""UPDATE key_actor_sessions SET ended_at=%s, ended_reason=%s
                                WHERE ended_at IS NULL AND """ +
@@ -70,10 +115,13 @@ def resolve(api, token, request):
             else:
                 expiry = row['expires_at']
                 if request.headers.get('X-FL-Background') != '1':
-                    expiry = now + timedelta(minutes=IDLE_MINUTES)
+                    if device_id is None:
+                        expiry = now + timedelta(minutes=IDLE_MINUTES)
+                    # A phone session keeps its fixed 12-hour end; activity only marks it seen.
                     cur.execute('UPDATE key_actor_sessions SET last_seen_at=%s,expires_at=%s WHERE id=%s',
                                 (now, expiry, row['id']))
                 request.state.actor_session_id = row['id']
+                request.state.session_device_id = device_id
                 request.state.session_expires_at = expiry
                 actor = {'id': row['actor_id'], 'name': row['name'], 'role': row['role']}
     if actor is None:
@@ -85,7 +133,8 @@ def register_routes(app, api):
     @app.get('/auth/session/config')
     def config(response: Response):
         response.headers['Cache-Control'] = 'no-store'
-        return {'key_sessions_enabled': enabled(), 'idle_minutes': IDLE_MINUTES}
+        return {'key_sessions_enabled': enabled(), 'idle_minutes': IDLE_MINUTES,
+                'pin_sign_in': pin_enabled(api), 'pin_session_hours': PIN_SESSION_HOURS}
 
     @app.post('/auth/session', dependencies=[Depends(require_enabled)])
     def exchange(body: Exchange, request: Request, response: Response):
