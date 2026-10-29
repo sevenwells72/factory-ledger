@@ -43,9 +43,11 @@ NOT_AUTHORIZED = "API key not authorized for this endpoint"
 _HTTP_METHODS = {"get", "post", "put", "patch", "delete"}
 # The one POST the read-only key reaches: a product lookup that writes nothing.
 READ_POSTS = {("POST", "/products/resolve")}
-# The only non-GET route without the API-key dependency: the key-to-session
-# exchange, which authenticates the body's actor key itself (key_sessions.py).
-UNAUTHENTICATED_WRITES = {("POST", "/auth/session")}
+# The only non-GET routes without the API-key dependency: the key-to-session
+# exchange, which authenticates the body's actor key itself (key_sessions.py),
+# and the phone PIN sign-in/reset, which authenticate the body's device secret
+# and PIN (device_pins.py).
+UNAUTHENTICATED_WRITES = {("POST", "/auth/session"), ("POST", "/auth/pin"), ("POST", "/auth/pin/reset")}
 
 
 def _operations(path):
@@ -220,6 +222,11 @@ def _client(_db_connection, monkeypatch, readonly_key):
     # Feature-flagged routes 404 before auth when off; switch them on so the
     # sweep below tests the key decision, not the flag.
     monkeypatch.setenv("KEY_SESSIONS_ENABLED", "1")
+    monkeypatch.setenv("PIN_SIGNIN_ENABLED", "1")
+    # PIN routes also need their tables (migration 089) before they answer at all;
+    # applied inside this test's transaction, rolled back with it.
+    with _db_connection.cursor() as cur:
+        cur.execute((Path(__file__).resolve().parents[1] / "migrations/089_device_pins.sql").read_text())
     return TestClient(main.app)
 
 

@@ -171,12 +171,15 @@
   let session = null, sharedMode = false;
   // Same token store and exchange as the dashboard/office pages; personal keys
   // are never retained after a session-enabled sign-in.
+  let paintPin = () => {};
   const sessionReady = root.FLKeySessions ? (async () => {
     session = root.FLKeySessions.create({ base: API, fetch: root.fetch.bind(root), storage: root.sessionStorage,
       config: root.FLDashboard?.config, changed: state => {
         if (sharedMode && !state.signedIn && key) resetView();
+        paintPin();
       } });
     sharedMode = await session.init();
+    paintPin = root.FLKeySessions.pinField?.(session, $('actor-key'), { after: $('summary-panel') }) || paintPin;
     return sharedMode;
   })() : Promise.resolve(false);
   sessionReady.catch(() => {});
@@ -191,6 +194,7 @@
     if (actor) $('identity').textContent = `${t('Signed in as', 'Sesión de')} ${actor.name} · ${actor.role}`;
     else if (key) $('identity').textContent = t('Read-only view of all actors (shared key).', 'Vista de solo lectura de todos (clave compartida).');
     else $('identity').textContent = t('Sign in with your personal key, or continue read-only.', 'Inicia sesión con tu clave personal o continúa en modo lectura.');
+    paintPin();
   }
   function notice(message, ok) { $('notice').textContent = message || ''; $('notice').hidden = !message; $('notice').classList.toggle('ok', !!ok); }
 
