@@ -4,7 +4,7 @@ on the rolled-back test transaction; every section is exercised with a ticketed
 receipt, the hash rules of §1.3 are asserted directly, and the permission matrix
 of §1.1 / §3 is walked key by key."""
 from concurrent.futures import ThreadPoolExecutor
-from datetime import timedelta
+from datetime import timedelta, timezone
 from pathlib import Path
 from uuid import uuid4
 
@@ -279,9 +279,16 @@ def test_large_correction_flag_from_the_review(client, db_cursor, items, actors)
     assert flag['message_en'] == 'LARGE CORRECTION −150 lb (15% of lot)' and flag['message_es'] == 'CORRECCIÓN GRANDE −150 lb (15% del lote)'
 
 
+def hours_ago(hours):
+    """ISO time `hours` of real elapsed time ago; subtracting from the aware
+    plant time would move the wall clock and be an hour off across DST."""
+    now = main.get_plant_now().astimezone(timezone.utc)
+    return (now - timedelta(hours=hours)).astimezone(main.PLANT_TIMEZONE).isoformat()
+
+
 def test_late_entries_section_flag_and_hours(client, db_cursor, items, actors):
     key = actors['floor']['key']
-    late, p = posted(client, 'make', body('make', items) | {'occurred_at': (main.get_plant_now() - timedelta(hours=49)).isoformat()}, key)
+    late, p = posted(client, 'make', body('make', items) | {'occurred_at': hours_ago(49)}, key)
     recent, _ = posted(client, 'adjust', adjust(items, 1), key)
     doc = summary(client, key)
     assert doc['receipts_today'] == 2   # the late make is counted once although it is listed twice
@@ -303,7 +310,7 @@ def test_late_entries_section_flag_and_hours(client, db_cursor, items, actors):
     assert section(then, 'late_entries')['count'] == 0 and section(then, 'late_entries')['rows'] == []
     assert then['receipts_today'] == 1
     # The owner's late entry opens no exception → late_entry true, no LATE_ENTRY flag.
-    owner_late, _ = posted(client, 'adjust', adjust(items, 2) | {'occurred_at': (main.get_plant_now() - timedelta(hours=60)).isoformat()}, actors['owner']['key'])
+    owner_late, _ = posted(client, 'adjust', adjust(items, 2) | {'occurred_at': hours_ago(60)}, actors['owner']['key'])
     [o] = section(summary(client, actors['owner']['key']), 'late_entries')['rows']
     assert o['late_entry'] is True and o['flags'] == [] and o['days_late'] == 2
 
