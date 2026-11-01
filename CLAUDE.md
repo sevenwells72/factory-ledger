@@ -6,6 +6,8 @@ The Oct 21 freeze ended 2026-10-27 (RESET COMPLETE). All FREEZE-LIFT-PLAN deploy
 
 Operating principles (owner, 2026-10-28): accurate inventory and traceability going forward over reconstructing history; label historical assumptions as assumptions, never as physically verified; never edit or delete transactions — correct with new records carrying a reason, receipt and named actor; record supplier lots exactly or explicitly "No lot on label"; never identify pooled inventory as one supplier lot; staff use their own production accounts; keep daily workflows simple. Inventory queries must sum only `transactions.status='posted'` lines (voided history otherwise shows false negative lots).
 
+**Finding code:** `docs/ARCHITECTURE-MAP.md` maps each module (inventory, receiving, production, packing, shipping, sales orders, dashboard, auth, Assistant, database, deployment) to its files, `main.py` section anchors and tests. Open it when a task needs code. It is deliberately not loaded into every session. Then follow "Working efficiently" below.
+
 ## Change Log Protocol
 
 You must maintain TWO change logs every time you create, edit, or delete any file on my behalf:
@@ -75,6 +77,11 @@ Rules:
 * Update the logs immediately after making the changes, not before.
 * If you are working outside of a project directory (e.g. directly in `~`), still log to `~/change-log.md` and skip the project-level log.
 * Use the current date and time for each entry.
+* Write both entries with `python3 scripts/log_change.py --summary "..." --files "a.py, b.js" --what "..." --why "..."`, not by reading or editing the logs. `CHANGE_LOG.md` is about 1 MB.
+  * The script enforces the rules above: top-of-file and below-separator placement, the symlink and its canonical target, no duplicates.
+  * It locks each file while writing and restores the original if a write fails.
+  * Add `--dry-run` to validate first, or `--project-only` when working outside the Mac that has the global log.
+  * If it refuses, fix the cause, or stop and report it. Never bypass it by hand-editing.
 * HARD RULE: openapi-gpt-v3.yaml has a 30-operation limit. Count operations before and after any schema change. Never exceed 30.
 * HARD RULE: never use `set_session(readonly=True)` or any other session-level readonly setting (`SET SESSION CHARACTERISTICS`, `default_transaction_read_only`, `PGOPTIONS`) against the port-6543 pooler URL. It poisons shared pooled connections and breaks production writes. For read-only safety, connect via port 5432 (session pooler) or wrap every query in an explicit transaction: `BEGIN TRANSACTION READ ONLY; ... COMMIT;` With psycopg2, run `SET TRANSACTION READ ONLY` immediately after each `BEGIN` instead.
 
@@ -83,13 +90,55 @@ Rules:
 * NEVER push to origin/main or merge into main without an explicit, per-action approval in the current session. Deploy sequences are confirmed one discrete step at a time.
 * This checkout is shared by concurrent sessions: stage hunks (`git add -p`) or HEAD-based staged blobs, never whole files or `git add -A`, and re-read `git status`/`git log -3` immediately before every commit and push.
 
+## Working efficiently (risk tiers)
+
+Classify each task before reading code. The tier depends on what the change can break, not on the size of the diff. When unsure, pick the higher tier. Saving tokens never relaxes any rule in this file.
+
+* **Small:** wording, CSS, docs, test-only changes, or one dashboard view that does not write.
+  * Open only the files `docs/ARCHITECTURE-MAP.md` names and their tests.
+  * Run those test files: `node --test tests/<file>.js` or `scripts/run_tests.sh tests/<file>.py -x`.
+* **Medium:** logic inside one module, a dashboard flow that calls write endpoints, an Assistant intent, or sales-order editing.
+  * Also search for callers of every changed function, including `api.<name>` calls from feature modules (`grep -n '<name>' *.py`).
+  * Run the module's tests from the map, plus any test that mentions the changed code (`grep -l '<name>' tests/`).
+* **High:** anything touching:
+  * inventory postings (`transactions`, `transaction_lines`), lot or supplier-lot identity, make/pack consumption;
+  * shipping, sales-order allocation or close, voids and corrections;
+  * authentication, keys, roles or PINs;
+  * migrations or startup DDL, idempotency, or helpers shared across modules;
+  * GPT schema or instructions;
+  * deploy config (`railway.json`, `Procfile`, `netlify.toml`, `requirements.txt`).
+
+  For High changes:
+  * Trace dependencies both ways.
+  * Read the related runbooks (`VOID_SEMANTICS_RUNBOOK.md`, `IDEMPOTENCY_KEY_PLAN.md`, `docs/named-actor-writes.md`).
+  * Run the full Python suite against the local test database, plus the JS tests, plus the visual tests if the UI changed.
+  * Prove it on staging before any production step.
+
+Saving context without cutting corners:
+* **Map first, search second, never scan.**
+* **Search code, not evidence:** `git grep -n 'term' -- ':!docs' ':!audits' ':!archive' ':!*.md'`. Open `docs/validation/`, `docs/design/audit/`, `audits/` and `archive/` only when the task is about that evidence.
+* **Never read large files whole:** this covers `main.py`, `CHANGE_LOG.md` and `FACTORY_LEDGER_CHANGELOG.md`. Find the spot with `grep -n`, then read about 200 lines around it.
+* **Reuse what this session already established** unless `git log` or `git diff` shows the code changed since.
+* **Smaller models are fine for locating code:** for "where is X" questions across many files, an Explore subagent on Haiku or Sonnet is fine. Design, review, safety checks and High-tier work stay on the main model.
+* **Tests:**
+  * Start narrow (`-x`, then `--lf` on re-runs) and widen by tier.
+  * Tests use only the local `factory_ledger_test` database; `tests/conftest.py` refuses production hosts.
+  * Never point tests at production or staging.
+* **Keep the map current:** if a map pointer is wrong, or you add a module or a `main.py` section, update `docs/ARCHITECTURE-MAP.md` in the same change. Then run `python3 scripts/check_architecture_map.py`.
+
 ## Regression Guard
 
 Before making ANY changes to `main.py`, GPT instructions, migrations, or the dashboard:
 
-1. **Read `FACTORY_LEDGER_CHANGELOG.md`** — scan the "Breaks If Reverted" column for the area you're touching
+1. **Search `FACTORY_LEDGER_CHANGELOG.md` for the area you're touching. Don't read the whole file (about 450 KB).**
+   * Search, for example: `grep -n -i -E 'ship|allocation' FACTORY_LEDGER_CHANGELOG.md | cut -c1-400`.
+   * Use the area's terms: module, route, table, function and file names.
+   * Read the full "Breaks If Reverted" text of every matching row.
+   * Medium and High tiers (see "Working efficiently"): also search the names of every function, table and route the change touches.
+   * High tier: also read the matching rows in full, and widen the search until no new related rows appear.
 2. **Check "Known Root Causes"** section — your fix might be a symptom of a deeper issue
 3. **Check "Permanent Rules"** section — if editing GPT instructions, all 10 rules must survive
+   * Steps 2–3 are mandatory for every change in scope. Both sections together are about 2 KB. This command prints exactly those two sections and stops at the next `## ` heading: `awk '/^## /{p=($0 ~ /^## (Known Root Causes|Permanent Rules)/)} p' FACTORY_LEDGER_CHANGELOG.md`.
 4. **After deploying** — add a new row to the changelog immediately. Format:
    `| # | Date | Area | What Changed | Problem It Solved | Breaks If Reverted | Migration/File |`
 
