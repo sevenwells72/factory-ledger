@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-11-01 14:44 — PR #167 fix 2: reword the 14:43 log entry's quoted header text
+- **File(s) changed:** `CHANGE_LOG.md`
+- **What changed:** In the unmerged 14:43 entry (branch docs/record-notes-security-deploy only), replaced the quoted header-form text with a plain description; no other entry touched.
+- **Why:** The quoted text itself tripped the CI key-literal guard (false positive, not a key).
+
+---
+
+## 2026-11-01 14:43 — PR #167 fix: reword changelog row 239 to pass the key-literal guard
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Row 239 text naming the header and FLDashboard.key() in header form rephrased to 'sends the dashboard key (from FLDashboard.key()) in the X-API-Key header'; no meaning change.
+- **Why:** CI key-literal guard flagged the header-shaped text as a possible key literal (it was not a key).
+
+---
+
+## 2026-11-01 14:42 — Record Notes security production deploy (#165, #166) in FACTORY_LEDGER_CHANGELOG rows 239-240
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added regression rows 239 (#165 dashboard sends key on Notes list read, Netlify v81) and 240 (#166 Notes list requires a key; personal-key Notes writes attributed; Railway FastAPI 74bc0094) with staging, test, backup and post-deploy evidence and Breaks If Reverted guards.
+- **Why:** Regression Guard requires a changelog row after each production deploy; owner approved the #166 merge on 2026-11-01.
+
+---
+
 ## 2026-11-01 14:18 — PR #166 updated against main after #165 merge; CHANGE_LOG conflict resolved
 - **File(s) changed:** `CHANGE_LOG.md`
 - **What changed:** Merged main (39988d1, #165 Notes dashboard key) into fix/notes-api-auth. Only conflict was CHANGE_LOG.md: kept both the step 2 (12:29) and step 1 (12:28) entries, newest first. No code changes beyond PR #166's approved Notes security scope.
