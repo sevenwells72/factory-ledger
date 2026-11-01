@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-31 20:45 — Claude Code token optimization: architecture map, change-log helper, risk-tier workflow
+- **File(s) changed:** `docs/ARCHITECTURE-MAP.md`, `scripts/check_architecture_map.py`, `scripts/log_change.py`, `tests/test_architecture_map.py`, `tests/test_log_change.py`, `CLAUDE.md`
+- **What changed:** Added a 156-line code locator map with a validator (paths, file::text anchors, test globs, unmapped main.py sections or root modules); added a locked, validating change-log helper with tests; CLAUDE.md now points to the map, uses the helper, adds Small/Medium/High risk tiers, and replaces reading all of FACTORY_LEDGER_CHANGELOG.md with an area search plus the always-read Known Root Causes and Permanent Rules (about 2 KB)
+- **Why:** Cut repeated whole-repo and whole-log reading in Claude Code sessions without relaxing any safety rule; no application, database or deployment change
+
+---
+
 ## 2026-10-31 20:30 — Preserve home-handoff and office-only change-log entries; add MCP migration plan (docs only)
 - **File(s) changed:** `CHANGE_LOG.md`, `docs/mcp-migration-plan.md` (new; branch `docs/preserve-home-handoff-changelog`, worktree `~/dev/fl-docs-preserve-wt` from `origin/main` `aaf99b23`)
 - **What changed:** Added the 68 entries from unpushed home-handoff commit `29903f7` (67 office-Mac entries Oct 19–28 plus the Oct 28 19:03 home-setup entry) and the Oct 28 22:10 PR #158 entry found only in `~/Documents/factory-ledger`, each between the neighbours it had in its source copy (dated order where main added entries in the same place). No existing line changed; a script check confirmed every entry in main, `29903f7` and the Documents copy appears word for word. Added `docs/mcp-migration-plan.md` (Sept 28 planning doc, previously untracked in `~/Documents/factory-ledger`), unchanged.
