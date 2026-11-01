@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-01 15:33 — Production deploy of PR #168 (Notes extraction): merged, verified, changelog row 241
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Owner-approved: verified backup ~/Backups/fl/2026-11-01-pre-notes168 (KEY CHECKS: ALL MATCH); squash-merged #168 (head 68c7916) to main 82306af; Railway FastAPI 0f1cedf2, expire-tickets 0cb69260, exceptions-sweep 4a39bf59 SUCCESS. Post-deploy: /health 200, /openapi.json byte-identical to pre-deploy, Notes no key 401 / bogus 403, live signed-out dashboard loads Notes (13 items), logs clean. Added FACTORY_LEDGER_CHANGELOG row 241 with Breaks If Reverted guard.
+- **Why:** Record the first main.py modularization extraction in production; no behaviour change
+
+---
+
 ## 2026-11-01 15:02 — main.py modularization PR1: extract Notes routes into notes_api.py
 - **File(s) changed:** `main.py`, `notes_api.py`, `docs/ARCHITECTURE-MAP.md`, `docs/security/notes-endpoints.md`
 - **What changed:** Moved the five /dashboard/api/notes routes, _note_row_to_dict and the NoteCreate/NoteUpdate models from main.py into new root module notes_api.py (register_routes(app, api); shared helpers reached as api.<name> at call time). main.py imports notes_api, re-exports NoteCreate/NoteUpdate, and calls notes_api.register_routes at the old section spot before the /dashboard static mount. Auth (verify_api_key, DASHBOARD_KEY_ALLOWLIST), actor attribution and permissions.py unchanged. Route table, raw OpenAPI and route-contract fixtures unchanged; no test files changed. Full suite 7242 passed in both KEY_SESSIONS_ENABLED modes; JS 599 passed. Architecture map and Notes security doc point at notes_api.py.
