@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-01 12:28 — Notes security step 1: dashboard sends the key on the Notes list read
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/index.html`, `tests/test_notes_dashboard_key.js`
+- **What changed:** refreshNotes now sends X-API-Key with the dashboard key (fetch-timeout.js swaps in the session token when signed in) and keeps the background marker; dashboard.js cache-buster v=80 -> v=81; new JS test (5 cases) runs the real refreshNotes, fetch-timeout.js and key-session.js against a fake API
+- **Why:** GET /dashboard/api/notes is unauthenticated; the API fix (step 2) will require a key, so the dashboard must send one and be live on Netlify first so no user loses the Notes panel during separate Netlify/Railway deploys
+
+---
+
 ## 2026-11-01 09:52 — PR0 (#163) updated against main after #164 merge; CHANGE_LOG conflict resolved
 - **File(s) changed:** `CHANGE_LOG.md`
 - **What changed:** Merged main (0f2852c, #164) into test/pr0-route-contract-harness. Only conflict was CHANGE_LOG.md (both PRs prepended an entry); kept both verbatim, newest first, verified each side byte-identical. Route/OpenAPI fixtures regenerate byte-identical; full suite both KEY_SESSIONS modes 7236/7236 passed, 0 skipped; JS 594/594; key-literal guard and map check clean. #163 not merged; nothing deployed by this update.
