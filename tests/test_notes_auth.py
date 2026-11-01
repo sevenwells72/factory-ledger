@@ -127,7 +127,7 @@ def test_notes_create_rejected_without_key_leaves_no_row(client):
     resp = client.post("/dashboard/api/notes",
                        json={"category": "note", "title": title})
     assert resp.status_code == 401
-    listing = client.get("/dashboard/api/notes")  # list endpoint is read-only, still no auth
+    listing = client.get("/dashboard/api/notes", headers={"X-API-Key": main.API_KEY})
     assert listing.status_code == 200
     assert all(n["title"] != title for n in listing.json()["notes"])
 

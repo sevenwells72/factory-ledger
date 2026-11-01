@@ -1,15 +1,15 @@
 """Characterization of the dashboard Notes endpoints (main.py modularization PR0).
 
 PR1 moves `# DASHBOARD API — Notes / To-Dos / Reminders` and its two models out
-of main.py. These tests pin what the five routes do TODAY, so the move can be
-proven behaviour-neutral. They describe current behaviour, not desired
-behaviour: two pinned facts are known gaps, documented in
-docs/security/notes-endpoints.md, and must only change in their own reviewed PR:
+of main.py. These tests pin what the five routes do, so the move can be proven
+behaviour-neutral. The access rules (docs/security/notes-endpoints.md) changed
+in their own reviewed PR and must only change that way again:
 
-  * GET /dashboard/api/notes has no authentication at all (any key, a bogus
-    key or no key gets every note);
-  * Notes writes record an actor_write_audit row only for a SESSION token; a
-    personal actor key used directly writes with no attribution row.
+  * GET /dashboard/api/notes needs a key, like the writes: master, the
+    dashboard key, a personal actor key or a session. The read-only GPT key is
+    refused;
+  * every Notes write by a named person (personal actor key or session) records
+    an actor_write_audit row; the shared master and dashboard keys name no one.
 
 Already covered elsewhere and not repeated here: 401/403 without/with a wrong
 key and the 404s (test_notes_auth.py), session attribution of actor id and
@@ -128,11 +128,12 @@ def test_notes_route_contracts():
         assert route.status_code is None and route.response_model is None
         assert route.response_class is main.DecimalSafeJSONResponse
     get = routes[("GET", NOTES)]
-    # The list endpoint takes four optional filters and NO auth dependency.
+    # The list endpoint takes four optional filters; its key arrives through the
+    # same dependency as the writes.
     assert [p.name for p in get.dependant.query_params] == ["category", "status", "entity_type", "entity_id"]
     assert not any(p.required for p in get.dependant.query_params)
-    assert get.dependant.dependencies == [] and get.dependant.header_params == []
-    for method, path, _ in WRITE_ROUTES:
+    assert get.dependant.header_params == []
+    for method, path, _ in NOTES_ROUTES:
         deps = [d.call for d in routes[(method, path)].dependant.dependencies]
         assert deps == [main.verify_api_key], (method, path)
     assert routes[("POST", NOTES)].dependant.body_params[0].field_info.annotation is main.NoteCreate
@@ -153,17 +154,33 @@ def test_note_models_contract():
 # ─────────────────────────────────────────────────────────────────
 
 @pytest.mark.db
-@pytest.mark.parametrize("which", ["none", "bogus", "readonly", "dashboard", "master"])
-def test_get_notes_is_unauthenticated(client, readonly_key, which):
-    """PINNED GAP (docs/security/notes-endpoints.md): every caller reads every note."""
-    keys = {"none": {}, "bogus": _key("not-a-key"), "readonly": _key(readonly_key),
-            "dashboard": _key(main.DASHBOARD_API_KEY), "master": _master()}
-    note = _create(client, title="visible to all " + uuid4().hex[:6])
-    resp = client.get(NOTES, headers=keys[which])
+@pytest.mark.parametrize("which", ["master", "dashboard", "actor_floor", "actor_office", "session"])
+def test_get_notes_accepted(client, actors, sessions_on, which):
+    keys = {"master": _master(), "dashboard": _key(main.DASHBOARD_API_KEY),
+            "actor_floor": _key(actors["floor"]["key"]), "actor_office": _key(actors["office"]["key"])}
+    h = _session_headers(client, actors["office"]) if which == "session" else keys[which]
+    note = _create(client, title="listed " + uuid4().hex[:6])
+    resp = client.get(NOTES, headers=h)
     assert resp.status_code == 200, resp.text
     body = resp.json()
     assert set(body) == {"notes"}  # no write envelope on the read
     assert any(n["id"] == note["id"] for n in body["notes"])
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("which,status,detail", [
+    ("none", 401, "API key required"),
+    ("bogus", 403, "Invalid API key"),
+    ("readonly", 403, "API key not authorized for this endpoint"),
+    ("retired_actor", 403, "Invalid API key"),
+])
+def test_get_notes_rejected(client, actors, readonly_key, which, status, detail):
+    keys = {"none": {}, "bogus": _key("not-a-key"), "readonly": _key(readonly_key),
+            "retired_actor": _key(actors["retired"]["key"])}
+    _create(client, title="hidden " + uuid4().hex[:6])
+    resp = client.get(NOTES, headers=keys[which])
+    assert resp.status_code == status, resp.text
+    assert resp.json() == {"detail": detail}  # reads carry no write envelope
 
 
 @pytest.mark.db
@@ -205,8 +222,9 @@ def test_writes_rejected_and_nothing_changes(client, actors, readonly_key, db_cu
 # ─────────────────────────────────────────────────────────────────
 
 @pytest.mark.db
-def test_session_writes_record_method_route_and_target(client, actors, sessions_on, db_cursor):
-    h = _session_headers(client, actors["office"])
+@pytest.mark.parametrize("which", ["session", "actor_key"])
+def test_named_writes_record_method_route_and_target(client, actors, sessions_on, db_cursor, which):
+    h = _session_headers(client, actors["office"]) if which == "session" else _key(actors["office"]["key"])
     created = client.post(NOTES, json={"category": "todo", "title": "attributed"}, headers=h)
     assert created.status_code == 200, created.text
     nid = created.json()["id"]
@@ -223,12 +241,24 @@ def test_session_writes_record_method_route_and_target(client, actors, sessions_
 
 
 @pytest.mark.db
-@pytest.mark.parametrize("which", ["master", "dashboard", "actor_floor"])
-def test_non_session_writes_record_no_attribution(client, actors, sessions_on, db_cursor, which):
-    """PINNED GAP for actor_floor (docs/security/notes-endpoints.md): a personal
-    key used directly is not attributed on Notes; only session tokens are."""
-    h = {"master": _master(), "dashboard": _key(main.DASHBOARD_API_KEY),
-         "actor_floor": _key(actors["floor"]["key"])}[which]
+def test_floor_actor_key_writes_are_attributed(client, actors, sessions_on, db_cursor):
+    floor = actors["floor"]
+    h = _key(floor["key"])
+    created = client.post(NOTES, json={"category": "note", "title": "floor note"}, headers=h)
+    assert created.status_code == 200, created.text
+    nid = created.json()["id"]
+    for method, url, body in _write_calls(nid)[1:]:
+        assert client.request(method, url, json=body, headers=h).status_code == 200
+    rows = _audit_rows(db_cursor, nid)
+    assert len(rows) == 4
+    assert all((r["actor_id"], r["operator_id"]) == (floor["id"], floor["name"]) for r in rows)
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("which", ["master", "dashboard"])
+def test_shared_key_writes_record_no_attribution(client, actors, sessions_on, db_cursor, which):
+    """The shared keys name a surface, not a person (`_record_actor_write` is a no-op)."""
+    h = {"master": _master(), "dashboard": _key(main.DASHBOARD_API_KEY)}[which]
     created = client.post(NOTES, json={"category": "note", "title": "unattributed"}, headers=h)
     assert created.status_code == 200, created.text
     nid = created.json()["id"]
@@ -337,14 +367,15 @@ def test_list_filters_and_ordering(client):
     client.put(f"{NOTES}/{made['done_high']}/toggle", headers=_master())
     _create(client, category="note", title="other category", entity_type="lot", entity_id=tag)
 
-    listed = client.get(NOTES, params={"category": "todo", "entity_type": "lot", "entity_id": tag}).json()["notes"]
+    listed = client.get(NOTES, params={"category": "todo", "entity_type": "lot", "entity_id": tag},
+                        headers=_master()).json()["notes"]
     # open before closed; then high, normal, low; then due date ascending, undated last
     assert [n["title"] for n in listed] == [
         "open_high", "open_normal_soon", "open_normal_late", "open_normal_nodate", "open_low", "done_high"]
     assert all(set(n) == NOTE_KEYS for n in listed)
-    only_done = client.get(NOTES, params={"status": "done", "entity_id": tag}).json()["notes"]
+    only_done = client.get(NOTES, params={"status": "done", "entity_id": tag}, headers=_master()).json()["notes"]
     assert [n["title"] for n in only_done] == ["done_high"]
-    assert client.get(NOTES, params={"entity_id": "no-such-" + tag}).json() == {"notes": []}
+    assert client.get(NOTES, params={"entity_id": "no-such-" + tag}, headers=_master()).json() == {"notes": []}
 
 
 # ─────────────────────────────────────────────────────────────────
