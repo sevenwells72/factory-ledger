@@ -96,8 +96,10 @@ Pointer syntax: file::text means search that file for that exact text (a section
 - Shell: `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/shell.js`, `dashboard/dashboard-runtime.js`, `dashboard/ledger-ui.js`
 - Pages: `dashboard/history.js`, `dashboard/entry.js`, `dashboard/office.js`, `dashboard/exceptions.js`, `dashboard/pin.js`
 - Backend for the pages: `main.py::# DASHBOARD ENDPOINTS` and `/dashboard/api/*` routes (`grep -n '"/dashboard/api' main.py`)
+- Notes panel: `main.py::# DASHBOARD API — Notes / To-Dos / Reminders (NO AUTH)`. The GET has no auth and only session writes are attributed; see `docs/security/notes-endpoints.md`.
 - Tests:
   - `tests/test_dashboard_*`, `tests/test_*_ui.js`, `tests/test_nav_links.js`
+  - Notes: `tests/test_notes_characterization.py`, `tests/test_notes_auth.py`
   - Visual: `tests/visual/` (Playwright, `package.json`)
 - Run JS tests with `node --test tests/<file>.js`.
 - Risk: Low for wording or CSS; Medium for flows that write
@@ -144,6 +146,17 @@ Pointer syntax: file::text means search that file for that exact text (a section
 
 - **Python:** `scripts/run_tests.sh tests/test_x.py -x -q`. It uses the `.venv-test` interpreter and the LOCAL database `factory_ledger_test` (`scripts/setup_test_db.sh`). `tests/conftest.py` refuses production hosts. Tests marked `db` skip when no test database is set.
 - **Choosing tests:** run the module's tests above first, then `grep -l '<function or route>' tests/` for anything else that calls the changed code. The full suite (about 6,300 tests in each of two modes) is for High-risk changes and pre-merge only.
+- **API contract snapshot:** `tests/test_route_contract.py` compares the live route table and a normalized OpenAPI document with `tests/fixtures/route_contract/`. It covers route order, methods, paths, names, parameters, dependencies, status codes and response models. It needs no database. A change that is not meant to alter the API must leave it green without regenerating. Regenerate only for a deliberate API change (`FL_UPDATE_ROUTE_CONTRACT=1`), and review the fixture diff line by line.
+
+## Moving code out of main.py
+
+The plan is to extract one section per PR. For each extraction:
+
+- **New module at the repo root.** Railway's `watchPatterns` only watch `/*.py`, so code in a subfolder would merge but never deploy.
+- **Same interface as the existing modules.** Expose `register_routes(app, api)` and call it from `main.py` at the exact spot the section occupied, so route order does not change. Routes under `/dashboard/*` must register before the static mount.
+- **Never import main.** Reach it as `api.<name>` at call time. `tests/test_feature_module_imports.py` enforces this and also checks that every `register_routes` is actually called.
+- **Prove it changed nothing.** `tests/test_route_contract.py` must stay green without regenerating. Also run the section's characterization tests (Notes: `tests/test_notes_characterization.py`).
+- **Update this map in the same PR**, then run `python3 scripts/check_architecture_map.py`.
 
 ## Where not to search by default
 

@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-01 09:07 — main.py modularization PR0: route/OpenAPI contract harness, import guard, Notes characterization tests (tests/docs only)
+- **File(s) changed:** `tests/test_route_contract.py`, `tests/fixtures/route_contract/routes.jsonl`, `tests/fixtures/route_contract/openapi.jsonl`, `tests/test_feature_module_imports.py`, `tests/test_notes_characterization.py`, `docs/security/notes-endpoints.md`, `docs/ARCHITECTURE-MAP.md`
+- **What changed:** Added an ordered route-table snapshot and a normalized OpenAPI snapshot (fixtures in tests/fixtures/route_contract, regenerate only with FL_UPDATE_ROUTE_CONTRACT=1), a static guard that no root module imports main and every register_routes is called, and 43 characterization tests pinning the five /dashboard/api/notes routes (order, auth matrix, readonly, actor attribution, request/response contracts, tripwire). Documented the unauthenticated Notes GET and session-only attribution in docs/security/notes-endpoints.md; added the contract test and a main.py extraction checklist to the architecture map. No application code, migrations, deploy config or GPT files changed. Full suite both KEY_SESSIONS modes: 7236 tests, 7226 passed, 10 failed (pre-existing DST-date failures in test_roles_a2/test_shift_summary, identical on pristine origin/main cb168a8), 0 skipped; JS 594/594.
+- **Why:** Safety harness so later main.py extractions (PR1 Notes) can prove the API, auth and route order are unchanged.
+
+---
+
 ## 2026-10-31 20:54 — PR #162 corrections: retry-safe change-log helper, bounded safety-rules read, no map line limit
 - **File(s) changed:** `scripts/log_change.py`, `tests/test_log_change.py`, `CLAUDE.md`, `scripts/check_architecture_map.py`, `tests/test_architecture_map.py`
 - **What changed:** log_change.py now leaves an identical existing entry untouched and reports a global-log failure after a project write as PARTIAL (exit 1) with the exact retry command, so a re-run adds only the missing row; conflicting text under an existing heading or row key is still refused; tests reproduce partial failure plus retry. CLAUDE.md reads Known Root Causes and Permanent Rules with a bounded awk command instead of an open-ended sed range. Removed the 160-line limit from the map validator.
