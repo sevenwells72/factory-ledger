@@ -1,8 +1,15 @@
 # Change Log
 
+## 2026-11-01 14:44 — PR #167 fix 2: reword the 14:43 log entry's quoted header text
+- **File(s) changed:** `CHANGE_LOG.md`
+- **What changed:** In the unmerged 14:43 entry (branch docs/record-notes-security-deploy only), replaced the quoted header-form text with a plain description; no other entry touched.
+- **Why:** The quoted text itself tripped the CI key-literal guard (false positive, not a key).
+
+---
+
 ## 2026-11-01 14:43 — PR #167 fix: reword changelog row 239 to pass the key-literal guard
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
-- **What changed:** Row 239 text 'sends X-API-Key: FLDashboard.key()' rephrased to 'sends the dashboard key (from FLDashboard.key()) in the X-API-Key header'; no meaning change.
+- **What changed:** Row 239 text naming the header and FLDashboard.key() in header form rephrased to 'sends the dashboard key (from FLDashboard.key()) in the X-API-Key header'; no meaning change.
 - **Why:** CI key-literal guard flagged the header-shaped text as a possible key literal (it was not a key).
 
 ---
