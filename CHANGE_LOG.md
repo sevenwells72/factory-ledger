@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-01 15:48 — main.py modularization PR2: extract Supplies routes into supplies.py
+- **File(s) changed:** `main.py`, `supplies.py`, `docs/ARCHITECTURE-MAP.md`, `FOLLOWUPS.md`
+- **What changed:** Moved the five Supplies routes (GET /supplies/inventory, GET /supplies/inventory/{product_id}/lots, POST/GET/PATCH /supply-requests), their helpers (PRODUCT_CATEGORIES, SUPPLIES_INVENTORY_SQL, _serialize_supplies_item, SUPPLY_REQUEST_SELECT_SQL, _serialize_supply_request, fetch_supply_request) and the SupplyRequestCreate/SupplyRequestUpdate models from main.py into new root module supplies.py (register_routes(app, api); main reached as api.<name> at call time). main.py imports supplies, re-exports the two models, keeps ledger_quantity_unit (used by other dashboards and exceptions_enforcement.py) and calls supplies.register_routes at the old section spot before the ship endpoints. Raw OpenAPI byte-identical and route table identical before/after; route-contract fixtures and all tests unchanged. Full suite 7242 passed in both KEY_SESSIONS_ENABLED modes; JS 599 passed. Architecture map updated; FOLLOWUPS.md records the architecture-map validator gap (a bare *.py token covers every root module) as a separate follow-up.
+- **Why:** Second extraction of the main.py modularization plan (after Notes PR1 #168); no behaviour change
+
+---
+
 ## 2026-11-01 15:33 — Production deploy of PR #168 (Notes extraction): merged, verified, changelog row 241
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Owner-approved: verified backup ~/Backups/fl/2026-11-01-pre-notes168 (KEY CHECKS: ALL MATCH); squash-merged #168 (head 68c7916) to main 82306af; Railway FastAPI 0f1cedf2, expire-tickets 0cb69260, exceptions-sweep 4a39bf59 SUCCESS. Post-deploy: /health 200, /openapi.json byte-identical to pre-deploy, Notes no key 401 / bogus 403, live signed-out dashboard loads Notes (13 items), logs clean. Added FACTORY_LEDGER_CHANGELOG row 241 with Breaks If Reverted guard.
