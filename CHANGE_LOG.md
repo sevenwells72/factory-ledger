@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-01 15:02 — main.py modularization PR1: extract Notes routes into notes_api.py
+- **File(s) changed:** `main.py`, `notes_api.py`, `docs/ARCHITECTURE-MAP.md`, `docs/security/notes-endpoints.md`
+- **What changed:** Moved the five /dashboard/api/notes routes, _note_row_to_dict and the NoteCreate/NoteUpdate models from main.py into new root module notes_api.py (register_routes(app, api); shared helpers reached as api.<name> at call time). main.py imports notes_api, re-exports NoteCreate/NoteUpdate, and calls notes_api.register_routes at the old section spot before the /dashboard static mount. Auth (verify_api_key, DASHBOARD_KEY_ALLOWLIST), actor attribution and permissions.py unchanged. Route table, raw OpenAPI and route-contract fixtures unchanged; no test files changed. Full suite 7242 passed in both KEY_SESSIONS_ENABLED modes; JS 599 passed. Architecture map and Notes security doc point at notes_api.py.
+- **Why:** First extraction of the main.py modularization plan (after PR0 harness #163 and Notes security #165/#166); no behaviour change
+
+---
+
 ## 2026-11-01 14:44 — PR #167 fix 2: reword the 14:43 log entry's quoted header text
 - **File(s) changed:** `CHANGE_LOG.md`
 - **What changed:** In the unmerged 14:43 entry (branch docs/record-notes-security-deploy only), replaced the quoted header-form text with a plain description; no other entry touched.

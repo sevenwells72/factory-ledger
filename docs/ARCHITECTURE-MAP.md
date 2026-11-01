@@ -6,7 +6,7 @@ Pointer syntax: file::text means search that file for that exact text (a section
 
 ## Runtime shape
 
-- **Backend:** one FastAPI app in `main.py`, about 21.5k lines, deployed to Railway. Railway redeploys only when root `*.py`, `Procfile`, `requirements.txt`, `runtime.txt`, `railway.json` or `dashboard/dashboard_config.json` change (`railway.json` watchPatterns).
+- **Backend:** one FastAPI app in `main.py`, about 21.3k lines, deployed to Railway. Railway redeploys only when root `*.py`, `Procfile`, `requirements.txt`, `runtime.txt`, `railway.json` or `dashboard/dashboard_config.json` change (`railway.json` watchPatterns).
 - **Feature modules:** files at the repo root expose `register_routes(app, api)`. Here `api` is the `main` module itself, so a feature module calls back into `main` as `api.<name>`. Before changing a `main.py` helper, run `grep -n 'api\.<name>' *.py`. Registration happens in `main.py::key_sessions.register_routes(app` and in the block near the end, `main.py::write_tickets.register_routes(app`.
 - **Dashboard:** static HTML/JS in `dashboard/`, served by Netlify (`netlify.toml`, base `dashboard`). `dashboard/dashboard-runtime.js` picks the production or staging API.
 - **Database:** Supabase Postgres. Changes go through `migrations/` (numbered NNN_name.sql files, reverts in `migrations/down/`). Older DDL still runs at startup, gated by marker rows: `main.py::# Connection pool (initialized on startup)`.
@@ -96,7 +96,7 @@ Pointer syntax: file::text means search that file for that exact text (a section
 - Shell: `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/shell.js`, `dashboard/dashboard-runtime.js`, `dashboard/ledger-ui.js`
 - Pages: `dashboard/history.js`, `dashboard/entry.js`, `dashboard/office.js`, `dashboard/exceptions.js`, `dashboard/pin.js`
 - Backend for the pages: `main.py::# DASHBOARD ENDPOINTS` and `/dashboard/api/*` routes (`grep -n '"/dashboard/api' main.py`)
-- Notes panel: `main.py::# DASHBOARD API — Notes / To-Dos / Reminders`. Every route needs a key (the GET too) and writes by a named person are attributed; see `docs/security/notes-endpoints.md`.
+- Notes panel: `notes_api.py` (the five `/dashboard/api/notes` routes and the `NoteCreate` / `NoteUpdate` models; first module moved out of `main.py`, PR1). It is registered at `main.py::notes_api.register_routes(app`, the spot the section used to occupy, before the `/dashboard` static mount. It uses `api.verify_api_key`, `api.get_transaction`, `api._record_actor_write`, `api._is_readonly_error`, `api.format_timestamp` and `api.logger`; the key allowlist (`main.py::# Dashboard notes (the dashboard's own list and CRUD)`) and `permissions.py` stay where they were. Every route needs a key (the GET too) and writes by a named person are attributed; see `docs/security/notes-endpoints.md`.
 - Tests:
   - `tests/test_dashboard_*`, `tests/test_*_ui.js`, `tests/test_nav_links.js`
   - Notes: `tests/test_notes_characterization.py`, `tests/test_notes_auth.py`
@@ -150,7 +150,7 @@ Pointer syntax: file::text means search that file for that exact text (a section
 
 ## Moving code out of main.py
 
-The plan is to extract one section per PR. For each extraction:
+The plan is to extract one section per PR. Done so far: Notes (`notes_api.py`, PR1). For each extraction:
 
 - **New module at the repo root.** Railway's `watchPatterns` only watch `/*.py`, so code in a subfolder would merge but never deploy.
 - **Same interface as the existing modules.** Expose `register_routes(app, api)` and call it from `main.py` at the exact spot the section occupied, so route order does not change. Routes under `/dashboard/*` must register before the static mount.
