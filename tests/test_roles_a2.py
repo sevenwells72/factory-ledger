@@ -80,8 +80,15 @@ def key_for(which, actors):
     return {'legacy_ledger': main.API_KEY, 'legacy_dashboard': main.DASHBOARD_API_KEY}.get(which) or actors[which]['key']
 
 
+def real_shift(moment, **delta):
+    """`moment` moved by real elapsed time. `aware + timedelta` moves the wall
+    clock instead, which is an hour off across a DST change (see the DST tests
+    near the end of this file)."""
+    return (moment.astimezone(timezone.utc) + timedelta(**delta)).astimezone(main.PLANT_TIMEZONE)
+
+
 def at(hours=0, days=0):
-    return (main.get_plant_now() - timedelta(hours=hours, days=days)).isoformat()
+    return real_shift(main.get_plant_now(), hours=-hours, days=-days).isoformat()
 
 
 def blocked_commit(client, prepared, key):
@@ -212,7 +219,7 @@ def test_commit_checks_the_stored_action_not_the_route(client, db_cursor, items,
                                           (14*24 - 1, 'late'), (14*24 + 1, 'backfill')])
 def test_timing_classification(hours, status):
     now = main.get_plant_now()
-    info = permissions.timing(now - timedelta(hours=hours), now)
+    info = permissions.timing(real_shift(now, hours=-hours), now)
     assert info['status'] == status
     assert info['days_late'] == int(hours // 24)
 
@@ -337,7 +344,7 @@ def test_commit_reclassifies_against_the_commit_clock(client, db_cursor, items, 
     prepared = prepare(client, 'make', body('make', items) | {'occurred_at': at(hours=47)}, key)
     assert prepared['draft']['entry_timing']['status'] == 'normal' and prepared['warnings'] == []
     real_now = main.get_plant_now()
-    monkeypatch.setattr(main, 'get_plant_now', lambda: real_now + timedelta(hours=2))
+    monkeypatch.setattr(main, 'get_plant_now', lambda: real_shift(real_now, hours=2))
     posted = commit(client, prepared, key)
     assert posted.status_code == 200, posted.text
     assert posted.json()['entry_timing']['status'] == 'late'
@@ -349,7 +356,7 @@ def test_commit_denies_over_14d_against_the_commit_clock(client, db_cursor, item
     prepared = prepare(client, 'make', body('make', items) | {'occurred_at': at(days=13)}, key)
     assert prepared['can_commit'] and prepared['draft']['entry_timing']['status'] == 'late'
     real_now = main.get_plant_now()
-    monkeypatch.setattr(main, 'get_plant_now', lambda: real_now + timedelta(days=2))
+    monkeypatch.setattr(main, 'get_plant_now', lambda: real_shift(real_now, days=2))
     error(commit(client, prepared, key), 403, 'BACKFILL_OWNER_ONLY')
     assert ticket_row(db_cursor, prepared)['status'] == 'prepared'
     assert posted_count(db_cursor, prepared) == 0
