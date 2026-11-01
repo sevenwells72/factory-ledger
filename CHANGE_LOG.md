@@ -1,9 +1,23 @@
 # Change Log
 
+## 2026-11-01 09:52 — PR0 (#163) updated against main after #164 merge; CHANGE_LOG conflict resolved
+- **File(s) changed:** `CHANGE_LOG.md`
+- **What changed:** Merged main (0f2852c, #164) into test/pr0-route-contract-harness. Only conflict was CHANGE_LOG.md (both PRs prepended an entry); kept both verbatim, newest first, verified each side byte-identical. Route/OpenAPI fixtures regenerate byte-identical; full suite both KEY_SESSIONS modes 7236/7236 passed, 0 skipped; JS 594/594; key-literal guard and map check clean. #163 not merged; nothing deployed by this update.
+- **Why:** Owner asked to merge #164 and bring #163 current with main without losing either change-log entry.
+
+---
+
 ## 2026-11-01 09:24 — Fix DST-dependent entry-timing tests (real elapsed time, test-only)
 - **File(s) changed:** `tests/test_roles_a2.py`, `tests/test_shift_summary.py`
 - **What changed:** Test helpers computed 'N hours ago' as aware plant time minus timedelta, which moves the wall clock and is an hour off across DST; added real_shift() (test_roles_a2) and hours_ago() (test_shift_summary) that shift via UTC, used by at(), test_timing_classification, the two commit-clock tests and the 49h/60h late entries. Fixes 10 tests that failed in both modes on 2026-11-01 on pristine origin/main cb168a8. Full suite both KEY_SESSIONS modes: 7184/7184 passed, 0 skipped. No application code changed.
 - **Why:** Tests failed on the DST change day (and would again each March/November); production compares in UTC and was correct.
+
+---
+
+## 2026-11-01 09:07 — main.py modularization PR0: route/OpenAPI contract harness, import guard, Notes characterization tests (tests/docs only)
+- **File(s) changed:** `tests/test_route_contract.py`, `tests/fixtures/route_contract/routes.jsonl`, `tests/fixtures/route_contract/openapi.jsonl`, `tests/test_feature_module_imports.py`, `tests/test_notes_characterization.py`, `docs/security/notes-endpoints.md`, `docs/ARCHITECTURE-MAP.md`
+- **What changed:** Added an ordered route-table snapshot and a normalized OpenAPI snapshot (fixtures in tests/fixtures/route_contract, regenerate only with FL_UPDATE_ROUTE_CONTRACT=1), a static guard that no root module imports main and every register_routes is called, and 43 characterization tests pinning the five /dashboard/api/notes routes (order, auth matrix, readonly, actor attribution, request/response contracts, tripwire). Documented the unauthenticated Notes GET and session-only attribution in docs/security/notes-endpoints.md; added the contract test and a main.py extraction checklist to the architecture map. No application code, migrations, deploy config or GPT files changed. Full suite both KEY_SESSIONS modes: 7236 tests, 7226 passed, 10 failed (pre-existing DST-date failures in test_roles_a2/test_shift_summary, identical on pristine origin/main cb168a8), 0 skipped; JS 594/594.
+- **Why:** Safety harness so later main.py extractions (PR1 Notes) can prove the API, auth and route order are unchanged.
 
 ---
 
