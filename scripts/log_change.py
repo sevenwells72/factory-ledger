@@ -7,7 +7,11 @@ Follows the Change Log Protocol in CLAUDE.md:
   - global row goes directly below the '|------|' separator row;
   - ~/change-log.md must be a symlink to the canonical iCloud file and stays one
     (the file it points to is rewritten in place, never replaced).
-Refuses (exit 2, nothing written) on a bad structure, a wrong symlink or a duplicate entry.
+Refuses (exit 2, nothing written) on a bad structure, a wrong symlink, or an entry whose
+heading or row key already exists with different text.
+Retry-safe: a log that already holds the identical entry is left untouched, so re-running the
+same command (same --when) after a partial failure only adds what is missing (exit 0).
+If the global write fails after the project entry was written, it exits 1 and prints that command.
 Each file is locked with flock while it is read, checked and written, so two runs of this
 helper cannot interleave; tools that do not lock (the Edit tool, other agents) are not blocked.
 If a write fails or reads back wrong, the original bytes are restored.
@@ -32,6 +36,10 @@ class Refused(Exception):
     pass
 
 
+class PartialWrite(Exception):
+    pass
+
+
 def project_entry(when, summary, files, what, why):
     listed = ', '.join(f'`{f}`' for f in files)
     return (f'## {when} — {summary}\n'
@@ -46,15 +54,19 @@ def global_row(when, project_root, summary, files):
 
 
 def add_project_entry(text, entry):
+    """Return (new_text, added). An identical existing entry is kept as is (retry)."""
     if not text.startswith(HEADER):
         raise Refused('project log does not start with "# Change Log" and a blank line')
+    if '\n' + entry in text:
+        return text, False
     heading = entry.split('\n', 1)[0]
-    if heading + '\n' in text:
-        raise Refused(f'project log already has: {heading}')
-    return HEADER + entry + text[len(HEADER):]
+    if '\n' + heading + '\n' in text:
+        raise Refused(f'project log already has this heading with different text: {heading}')
+    return HEADER + entry + text[len(HEADER):], True
 
 
 def add_global_row(text, row):
+    """Return (new_text, added). An identical existing row is kept as is (retry)."""
     lines = text.split('\n')
     if lines.count(GLOBAL_SEPARATOR) != 1:
         raise Refused('global log must contain exactly one table separator row')
@@ -62,9 +74,12 @@ def add_global_row(text, row):
     if i == 0 or lines[i - 1] != GLOBAL_HEADER_ROW:
         raise Refused('global log separator row is not directly below the table header row')
     if row in lines:
-        raise Refused('global log already has this row')
+        return text, False
+    key = row.rsplit(' | ', 1)[0] + ' | '  # date, project and summary columns
+    if any(line.startswith(key) for line in lines):
+        raise Refused('global log already has a row for this date, project and summary with different files')
     lines.insert(i + 1, row)
-    return '\n'.join(lines)
+    return '\n'.join(lines), True
 
 
 def resolve_global(link, canonical):
@@ -79,14 +94,18 @@ def resolve_global(link, canonical):
 
 
 def rewrite_locked(path, transform, dry_run):
-    """Read, transform and rewrite `path` in place while holding an exclusive flock."""
+    """Read, transform and rewrite `path` in place while holding an exclusive flock.
+
+    `transform` returns (new_text, added); nothing is written when added is False.
+    Returns added.
+    """
     with open(path, 'r+', encoding='utf-8', newline='') as f:
         fcntl.flock(f, fcntl.LOCK_EX)
         try:
             old = f.read()
-            new = transform(old)
-            if dry_run:
-                return
+            new, added = transform(old)
+            if dry_run or not added:
+                return added
             try:
                 f.seek(0)
                 f.write(new)
@@ -103,6 +122,7 @@ def rewrite_locked(path, transform, dry_run):
                 f.flush()
                 os.fsync(f.fileno())
                 raise
+            return True
         finally:
             fcntl.flock(f, fcntl.LOCK_UN)
 
@@ -131,17 +151,21 @@ def run(args):
         with open(target, encoding='utf-8') as f:
             add_global_row(f.read(), row)  # validate before touching either file
 
-    rewrite_locked(project_log, lambda text: add_project_entry(text, entry), args.dry_run)
+    def report(added, what):
+        verb = ('would add' if args.dry_run else 'added') if added else 'already present, unchanged'
+        print(f'{verb}: {what}')
+
+    report(rewrite_locked(project_log, lambda text: add_project_entry(text, entry), args.dry_run),
+           f'project entry {entry.splitlines()[0]}')
     if target:
         try:
-            rewrite_locked(target, lambda text: add_global_row(text, row), args.dry_run)
-        except Exception as exc:
-            print(f'WARNING: project entry was written but the global row was not: {exc}', file=sys.stderr)
-            raise
-    verb = 'would add' if args.dry_run else 'added'
-    print(f'{verb} project entry: {entry.splitlines()[0]}')
-    if target:
-        print(f'{verb} global row in {target}')
+            added = rewrite_locked(target, lambda text: add_global_row(text, row), args.dry_run)
+        except (OSError, Refused) as exc:
+            raise PartialWrite(
+                f'project entry is in {project_log} but the global row was NOT written ({exc}). '
+                f'Fix the cause, then re-run the same command with --when "{when}"; '
+                'the existing project entry is kept and only the global row is added.') from exc
+        report(added, f'global row in {target}')
 
 
 def main(argv=None):
@@ -162,6 +186,9 @@ def main(argv=None):
     except (Refused, ValueError) as exc:
         print(f'REFUSED: {exc}', file=sys.stderr)
         return 2
+    except PartialWrite as exc:
+        print(f'PARTIAL: {exc}', file=sys.stderr)
+        return 1
     return 0
 
 

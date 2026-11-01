@@ -15,7 +15,6 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MAP = os.path.join(ROOT, 'docs', 'ARCHITECTURE-MAP.md')
-MAX_LINES = 160
 
 TOKEN_RE = re.compile(r'`([^`]+)`')
 PATH_RE = re.compile(r'^[\w.*?\[\]/-]+$')
@@ -39,9 +38,6 @@ def matches(token):
 def check(map_text):
     problems = []
     covered = set()
-    lines = map_text.count('\n') + 1
-    if lines > MAX_LINES:
-        problems.append(f'map is {lines} lines; keep it under {MAX_LINES}')
     for token in TOKEN_RE.findall(map_text):
         if '::' in token:
             path, text = token.split('::', 1)

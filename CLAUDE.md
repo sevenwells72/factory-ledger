@@ -138,7 +138,7 @@ Before making ANY changes to `main.py`, GPT instructions, migrations, or the das
    * High tier: also read the matching rows in full, and widen the search until no new related rows appear.
 2. **Check "Known Root Causes"** section — your fix might be a symptom of a deeper issue
 3. **Check "Permanent Rules"** section — if editing GPT instructions, all 10 rules must survive
-   * Steps 2–3 are mandatory for every change in scope. Both sections together are about 2 KB: `sed -n '/^## Known Root Causes/,$p' FACTORY_LEDGER_CHANGELOG.md`.
+   * Steps 2–3 are mandatory for every change in scope. Both sections together are about 2 KB. This command prints exactly those two sections and stops at the next `## ` heading: `awk '/^## /{p=($0 ~ /^## (Known Root Causes|Permanent Rules)/)} p' FACTORY_LEDGER_CHANGELOG.md`.
 4. **After deploying** — add a new row to the changelog immediately. Format:
    `| # | Date | Area | What Changed | Problem It Solved | Breaks If Reverted | Migration/File |`
 

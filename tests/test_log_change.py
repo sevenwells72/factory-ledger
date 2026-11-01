@@ -52,12 +52,50 @@ def test_adds_entry_and_row_and_preserves_existing_text(logs):
     assert link.is_symlink() and os.path.realpath(link) == str(canonical)
 
 
-def test_duplicate_is_refused_and_nothing_changes(logs):
+def test_identical_rerun_adds_nothing(logs):
     root, link, canonical = logs
     assert log_change.main(args(root, link, canonical)) == 0
     before = ((root / 'CHANGE_LOG.md').read_bytes(), canonical.read_bytes())
-    assert log_change.main(args(root, link, canonical)) == 2
+    assert log_change.main(args(root, link, canonical)) == 0
     assert ((root / 'CHANGE_LOG.md').read_bytes(), canonical.read_bytes()) == before
+
+
+def test_same_heading_with_different_text_is_refused_and_nothing_changes(logs):
+    root, link, canonical = logs
+    assert log_change.main(args(root, link, canonical)) == 0
+    before = ((root / 'CHANGE_LOG.md').read_bytes(), canonical.read_bytes())
+    changed = args(root, link, canonical)
+    changed[changed.index('Did it')] = 'Did something else'
+    assert log_change.main(changed) == 2
+    changed_files = args(root, link, canonical)
+    changed_files[changed_files.index('main.py, tests/test_x.py')] = 'main.py'
+    assert log_change.main(changed_files) == 2
+    assert ((root / 'CHANGE_LOG.md').read_bytes(), canonical.read_bytes()) == before
+
+
+def test_global_failure_after_project_write_then_retry_completes_without_duplicates(logs, capsys):
+    root, link, canonical = logs
+    canonical.chmod(0o444)  # readable for validation, but the in-place write fails
+    try:
+        assert log_change.main(args(root, link, canonical)) == 1
+    finally:
+        canonical.chmod(0o644)
+    err = capsys.readouterr().err
+    assert 'PARTIAL' in err and '--when "2026-10-31 21:00"' in err
+    after_failure = (root / 'CHANGE_LOG.md').read_text()
+    assert after_failure.count('## 2026-10-31 21:00 — New thing\n') == 1
+    assert canonical.read_text() == GLOBAL  # global untouched by the failed attempt
+
+    assert log_change.main(args(root, link, canonical)) == 0  # retry with the same command
+    assert (root / 'CHANGE_LOG.md').read_text() == after_failure  # project log not touched again
+    assert after_failure.endswith(PROJECT[len('# Change Log\n\n'):])  # history intact
+    glob_text = canonical.read_text()
+    assert glob_text.count('| New thing |') == 1
+    assert glob_text.replace(f'| 2026-10-31 21:00 | `{root}` | New thing | `main.py`, `test_x.py` |\n', '', 1) == GLOBAL
+    assert link.is_symlink()
+
+    assert log_change.main(args(root, link, canonical)) == 0  # a third run is a no-op
+    assert (root / 'CHANGE_LOG.md').read_text() == after_failure and canonical.read_text() == glob_text
 
 
 @pytest.mark.parametrize('breakage', ['regular_file', 'wrong_target', 'missing_separator', 'separator_above_header'])
@@ -81,6 +119,27 @@ def test_bad_global_log_is_refused_before_any_write(logs, tmp_path, breakage):
     assert ((root / 'CHANGE_LOG.md').read_bytes(), canonical.read_bytes()) == before
     if breakage == 'regular_file':
         assert not link.is_symlink()
+
+
+def test_global_log_broken_after_precheck_is_reported_as_partial(logs, monkeypatch, capsys):
+    root, link, canonical = logs
+    real = log_change.add_global_row
+    calls = []
+
+    def broken_on_write(text, row):
+        calls.append(row)
+        if len(calls) == 2:  # the pre-check passes; the locked write sees a broken table
+            raise log_change.Refused('global log must contain exactly one table separator row')
+        return real(text, row)
+
+    monkeypatch.setattr(log_change, 'add_global_row', broken_on_write)
+    assert log_change.main(args(root, link, canonical)) == 1
+    assert 'PARTIAL' in capsys.readouterr().err
+    assert canonical.read_text() == GLOBAL
+    monkeypatch.setattr(log_change, 'add_global_row', real)
+    assert log_change.main(args(root, link, canonical)) == 0
+    assert (root / 'CHANGE_LOG.md').read_text().count('— New thing\n') == 1
+    assert canonical.read_text().count('| New thing |') == 1
 
 
 def test_bad_project_log_and_inputs_are_refused(logs):

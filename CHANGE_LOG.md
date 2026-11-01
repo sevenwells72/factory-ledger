@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-10-31 20:54 — PR #162 corrections: retry-safe change-log helper, bounded safety-rules read, no map line limit
+- **File(s) changed:** `scripts/log_change.py`, `tests/test_log_change.py`, `CLAUDE.md`, `scripts/check_architecture_map.py`, `tests/test_architecture_map.py`
+- **What changed:** log_change.py now leaves an identical existing entry untouched and reports a global-log failure after a project write as PARTIAL (exit 1) with the exact retry command, so a re-run adds only the missing row; conflicting text under an existing heading or row key is still refused; tests reproduce partial failure plus retry. CLAUDE.md reads Known Root Causes and Permanent Rules with a bounded awk command instead of an open-ended sed range. Removed the 160-line limit from the map validator.
+- **Why:** Owner review of PR #162: make partial failures recoverable without duplicates, keep the mandatory read bounded, let the map grow with real modules
+
+---
+
 ## 2026-10-31 20:45 — Claude Code token optimization: architecture map, change-log helper, risk-tier workflow
 - **File(s) changed:** `docs/ARCHITECTURE-MAP.md`, `scripts/check_architecture_map.py`, `scripts/log_change.py`, `tests/test_architecture_map.py`, `tests/test_log_change.py`, `CLAUDE.md`
 - **What changed:** Added a 156-line code locator map with a validator (paths, file::text anchors, test globs, unmapped main.py sections or root modules); added a locked, validating change-log helper with tests; CLAUDE.md now points to the map, uses the helper, adds Small/Medium/High risk tiers, and replaces reading all of FACTORY_LEDGER_CHANGELOG.md with an area search plus the always-read Known Root Causes and Permanent Rules (about 2 KB)
