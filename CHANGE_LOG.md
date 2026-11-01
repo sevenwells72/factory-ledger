@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-01 14:42 — Record Notes security production deploy (#165, #166) in FACTORY_LEDGER_CHANGELOG rows 239-240
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added regression rows 239 (#165 dashboard sends key on Notes list read, Netlify v81) and 240 (#166 Notes list requires a key; personal-key Notes writes attributed; Railway FastAPI 74bc0094) with staging, test, backup and post-deploy evidence and Breaks If Reverted guards.
+- **Why:** Regression Guard requires a changelog row after each production deploy; owner approved the #166 merge on 2026-11-01.
+
+---
+
 ## 2026-11-01 14:18 — PR #166 updated against main after #165 merge; CHANGE_LOG conflict resolved
 - **File(s) changed:** `CHANGE_LOG.md`
 - **What changed:** Merged main (39988d1, #165 Notes dashboard key) into fix/notes-api-auth. Only conflict was CHANGE_LOG.md: kept both the step 2 (12:29) and step 1 (12:28) entries, newest first. No code changes beyond PR #166's approved Notes security scope.
