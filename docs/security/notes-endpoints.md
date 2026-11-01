@@ -2,7 +2,7 @@
 
 Status: **remediated in the Notes auth PR (2026-11-01)**: the list now needs a key and every write by a named person is attributed. First documented, unchanged, in the main.py modularization PR0 (#163). `tests/test_notes_characterization.py` pins the rules below, so they can only change in their own reviewed PR.
 
-Code: `main.py::# DASHBOARD API — Notes / To-Dos / Reminders` (5 routes) and the `NoteCreate` / `NoteUpdate` models. UI: the Notes panel in `dashboard/dashboard.js` (`refreshNotes`, and the save, toggle and delete handlers).
+Code: `notes_api.py` (5 routes and the `NoteCreate` / `NoteUpdate` models, moved unchanged out of `main.py` in modularization PR1; auth, the key allowlist and attribution still come from `main.py`). UI: the Notes panel in `dashboard/dashboard.js` (`refreshNotes`, and the save, toggle and delete handlers).
 
 ## What the endpoints do
 
