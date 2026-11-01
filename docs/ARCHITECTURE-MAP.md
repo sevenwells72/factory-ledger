@@ -96,7 +96,7 @@ Pointer syntax: file::text means search that file for that exact text (a section
 - Shell: `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/shell.js`, `dashboard/dashboard-runtime.js`, `dashboard/ledger-ui.js`
 - Pages: `dashboard/history.js`, `dashboard/entry.js`, `dashboard/office.js`, `dashboard/exceptions.js`, `dashboard/pin.js`
 - Backend for the pages: `main.py::# DASHBOARD ENDPOINTS` and `/dashboard/api/*` routes (`grep -n '"/dashboard/api' main.py`)
-- Notes panel: `main.py::# DASHBOARD API — Notes / To-Dos / Reminders (NO AUTH)`. The GET has no auth and only session writes are attributed; see `docs/security/notes-endpoints.md`.
+- Notes panel: `main.py::# DASHBOARD API — Notes / To-Dos / Reminders`. Every route needs a key (the GET too) and writes by a named person are attributed; see `docs/security/notes-endpoints.md`.
 - Tests:
   - `tests/test_dashboard_*`, `tests/test_*_ui.js`, `tests/test_nav_links.js`
   - Notes: `tests/test_notes_characterization.py`, `tests/test_notes_auth.py`

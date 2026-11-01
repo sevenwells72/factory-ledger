@@ -3024,7 +3024,8 @@ DASHBOARD_KEY_ALLOWLIST = frozenset({
     ("POST", "/production/runs/{run_id}/complete"),
     ("GET", "/production/runs/{run_id}/evidence"),
     ("PUT", "/production/runs/{run_id}/coverage"),
-    # Dashboard notes (the dashboard's own CRUD; GET is public)
+    # Dashboard notes (the dashboard's own list and CRUD)
+    ("GET", "/dashboard/api/notes"),
     ("POST", "/dashboard/api/notes"),
     ("PUT", "/dashboard/api/notes/{note_id}"),
     ("PUT", "/dashboard/api/notes/{note_id}/toggle"),
@@ -18495,7 +18496,7 @@ def dashboard_api_search(q: str = Query(min_length=1)):
 
 
 # ═══════════════════════════════════════════════════════════════
-# DASHBOARD API — Notes / To-Dos / Reminders (NO AUTH)
+# DASHBOARD API — Notes / To-Dos / Reminders
 # ═══════════════════════════════════════════════════════════════
 
 def _note_row_to_dict(row):
@@ -18516,8 +18517,9 @@ def dashboard_api_notes(
     status: Optional[str] = Query(default=None),
     entity_type: Optional[str] = Query(default=None),
     entity_id: Optional[str] = Query(default=None),
+    _: bool = Depends(verify_api_key),
 ):
-    """List notes/todos/reminders with optional filters. NO AUTH."""
+    """List notes/todos/reminders with optional filters."""
     try:
         with get_transaction() as cur:
             clauses = []
@@ -18571,8 +18573,7 @@ def dashboard_api_notes_create(req: NoteCreate, request: Request, _: bool = Depe
             """, (req.category, req.title, req.body or "", req.priority, due,
                   req.entity_type, req.entity_id))
             row = cur.fetchone()
-            if request.state.key_kind == "session":
-                _record_actor_write(cur, request, "notes", row['id'])
+            _record_actor_write(cur, request, "notes", row['id'])
             return _note_row_to_dict(row)
     except ValueError as e:
         return JSONResponse(status_code=400, content={"error": str(e)})
@@ -18616,8 +18617,7 @@ def dashboard_api_notes_update(note_id: int, req: NoteUpdate, request: Request, 
             row = cur.fetchone()
             if not row:
                 return JSONResponse(status_code=404, content={"error": "Note not found"})
-            if request.state.key_kind == "session":
-                _record_actor_write(cur, request, "notes", row['id'])
+            _record_actor_write(cur, request, "notes", row['id'])
             return _note_row_to_dict(row)
     except ValueError as e:
         return JSONResponse(status_code=400, content={"error": str(e)})
@@ -18636,8 +18636,7 @@ def dashboard_api_notes_delete(note_id: int, request: Request, _: bool = Depends
             row = cur.fetchone()
             if not row:
                 return JSONResponse(status_code=404, content={"error": "Note not found"})
-            if request.state.key_kind == "session":
-                _record_actor_write(cur, request, "notes", note_id)
+            _record_actor_write(cur, request, "notes", note_id)
             return {"deleted": True, "id": note_id}
     except Exception as e:
         if _is_readonly_error(e): raise
@@ -18660,8 +18659,7 @@ def dashboard_api_notes_toggle(note_id: int, request: Request, _: bool = Depends
                 WHERE id = %s RETURNING *
             """, (new_status, note_id))
             row = cur.fetchone()
-            if request.state.key_kind == "session":
-                _record_actor_write(cur, request, "notes", row['id'])
+            _record_actor_write(cur, request, "notes", row['id'])
             return _note_row_to_dict(row)
     except Exception as e:
         if _is_readonly_error(e): raise

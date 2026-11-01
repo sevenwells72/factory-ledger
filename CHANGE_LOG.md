@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-01 12:29 — Notes security step 2: require a key on the Notes list and attribute personal-key writes
+- **File(s) changed:** `main.py`, `tests/test_notes_characterization.py`, `tests/test_notes_auth.py`, `tests/fixtures/route_contract/routes.jsonl`, `tests/fixtures/route_contract/openapi.jsonl`, `docs/security/notes-endpoints.md`, `docs/ARCHITECTURE-MAP.md`
+- **What changed:** GET /dashboard/api/notes now uses Depends(verify_api_key) and is on DASHBOARD_KEY_ALLOWLIST (no key 401, bogus/retired 403, read-only GPT key 403); the four Notes writes call _record_actor_write for every request (named actors attributed, shared keys no-op) instead of sessions only; characterization tests and both route-contract snapshot lines updated deliberately; security doc rewritten with the exposure review of the 18 other unauthenticated routes (unchanged)
+- **Why:** Close the unauthenticated Notes read and the personal-key attribution gap flagged in PR0 (#163); deploy only after step 1 is live
+
+---
+
 ## 2026-11-01 09:52 — PR0 (#163) updated against main after #164 merge; CHANGE_LOG conflict resolved
 - **File(s) changed:** `CHANGE_LOG.md`
 - **What changed:** Merged main (0f2852c, #164) into test/pr0-route-contract-harness. Only conflict was CHANGE_LOG.md (both PRs prepended an entry); kept both verbatim, newest first, verified each side byte-identical. Route/OpenAPI fixtures regenerate byte-identical; full suite both KEY_SESSIONS modes 7236/7236 passed, 0 skipped; JS 594/594; key-literal guard and map check clean. #163 not merged; nothing deployed by this update.
