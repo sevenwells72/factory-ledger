@@ -1875,7 +1875,9 @@
       if (state.notesFilter !== 'all') params.push('category=' + state.notesFilter);
       if (!state.notesShowDone) params.push('status=open');
       if (params.length) url += '?' + params.join('&');
-      const data = await fetchAPI(url, { headers });
+      // The list needs the dashboard key (or the signed-in session, which
+      // fetch-timeout.js swaps in), the same as the Notes writes.
+      const data = await fetchAPI(url, { headers: { 'X-API-Key': await FLDashboard.key(), ...(headers || {}) } });
       state.notesData = data.notes || [];
       state.notesLoaded = true;
       renderNotes(container);

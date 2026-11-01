@@ -1,9 +1,23 @@
 # Change Log
 
+## 2026-11-01 14:18 — PR #166 updated against main after #165 merge; CHANGE_LOG conflict resolved
+- **File(s) changed:** `CHANGE_LOG.md`
+- **What changed:** Merged main (39988d1, #165 Notes dashboard key) into fix/notes-api-auth. Only conflict was CHANGE_LOG.md: kept both the step 2 (12:29) and step 1 (12:28) entries, newest first. No code changes beyond PR #166's approved Notes security scope.
+- **Why:** Owner asked to bring #166 current with main after #165 shipped, preserving both changelog entries, before the production approval gate.
+
+---
+
 ## 2026-11-01 12:29 — Notes security step 2: require a key on the Notes list and attribute personal-key writes
 - **File(s) changed:** `main.py`, `tests/test_notes_characterization.py`, `tests/test_notes_auth.py`, `tests/fixtures/route_contract/routes.jsonl`, `tests/fixtures/route_contract/openapi.jsonl`, `docs/security/notes-endpoints.md`, `docs/ARCHITECTURE-MAP.md`
 - **What changed:** GET /dashboard/api/notes now uses Depends(verify_api_key) and is on DASHBOARD_KEY_ALLOWLIST (no key 401, bogus/retired 403, read-only GPT key 403); the four Notes writes call _record_actor_write for every request (named actors attributed, shared keys no-op) instead of sessions only; characterization tests and both route-contract snapshot lines updated deliberately; security doc rewritten with the exposure review of the 18 other unauthenticated routes (unchanged)
 - **Why:** Close the unauthenticated Notes read and the personal-key attribution gap flagged in PR0 (#163); deploy only after step 1 is live
+
+---
+
+## 2026-11-01 12:28 — Notes security step 1: dashboard sends the key on the Notes list read
+- **File(s) changed:** `dashboard/dashboard.js`, `dashboard/index.html`, `tests/test_notes_dashboard_key.js`
+- **What changed:** refreshNotes now sends X-API-Key with the dashboard key (fetch-timeout.js swaps in the session token when signed in) and keeps the background marker; dashboard.js cache-buster v=80 -> v=81; new JS test (5 cases) runs the real refreshNotes, fetch-timeout.js and key-session.js against a fake API
+- **Why:** GET /dashboard/api/notes is unauthenticated; the API fix (step 2) will require a key, so the dashboard must send one and be live on Netlify first so no user loses the Notes panel during separate Netlify/Railway deploys
 
 ---
 
