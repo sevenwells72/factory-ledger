@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-01 16:22 — Record Supplies extraction production deploy (#170): changelog row 242
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added FACTORY_LEDGER_CHANGELOG row 242: #170 (head 806e4d0) squash-merged to production main a4a5c99; Railway FastAPI 5e17b70d, expire-tickets a080fd5e, exceptions-sweep 18c5a500 SUCCESS; previous build 0f1cedf2. Records the verified backup 2026-11-01-pre-supplies170, the staging proof (FastAPI-staging e39166fa vs pre-extraction c3747d73: OpenAPI byte-identical, 0 response differences, inventory/FIFO equal to posted-only SQL, floor/office supply-request writes and 409 on repeat completion), and the production checks (OpenAPI byte-identical sha256 7a5120bf, Supplies auth 401/403, 210 products and 276 FIFO lot lists equal to posted-only SQL, signed-out dashboard Supplies tab OK, logs clean). Staging probe requests #1/#2 left done.
+- **Why:** Regression Guard: record every production deploy with what breaks if reverted; Michael approved the backup and merge of #170 on 2026-11-01
+
+---
+
 ## 2026-11-01 15:48 — main.py modularization PR2: extract Supplies routes into supplies.py
 - **File(s) changed:** `main.py`, `supplies.py`, `docs/ARCHITECTURE-MAP.md`, `FOLLOWUPS.md`
 - **What changed:** Moved the five Supplies routes (GET /supplies/inventory, GET /supplies/inventory/{product_id}/lots, POST/GET/PATCH /supply-requests), their helpers (PRODUCT_CATEGORIES, SUPPLIES_INVENTORY_SQL, _serialize_supplies_item, SUPPLY_REQUEST_SELECT_SQL, _serialize_supply_request, fetch_supply_request) and the SupplyRequestCreate/SupplyRequestUpdate models from main.py into new root module supplies.py (register_routes(app, api); main reached as api.<name> at call time). main.py imports supplies, re-exports the two models, keeps ledger_quantity_unit (used by other dashboards and exceptions_enforcement.py) and calls supplies.register_routes at the old section spot before the ship endpoints. Raw OpenAPI byte-identical and route table identical before/after; route-contract fixtures and all tests unchanged. Full suite 7242 passed in both KEY_SESSIONS_ENABLED modes; JS 599 passed. Architecture map updated; FOLLOWUPS.md records the architecture-map validator gap (a bare *.py token covers every root module) as a separate follow-up.
