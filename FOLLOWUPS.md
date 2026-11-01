@@ -1,5 +1,16 @@
 # Followups
 
+## Architecture-map validator misses new root modules (2026-11-01; found in modularization PR1)
+
+- `scripts/check_architecture_map.py` counts a root module as covered when any
+  backticked path in `docs/ARCHITECTURE-MAP.md` globs to it. The Runtime shape
+  line names root `*.py` (the Railway watch pattern), which matches every root
+  module, so the "root module not in map" check never fires: a new module such
+  as `notes_api.py` (PR1) or `supplies.py` (PR2) passes even if the map never
+  names it. Fix in its own PR: ignore bare wildcard tokens like `*.py` when
+  computing module coverage (or require each root module to be named
+  literally), and add a test for it. Not part of PR2.
+
 ## Resolution receipts coordination (2026-10-13; draft backend work)
 
 - ~~PR #107: consume the exact receipt and `allowed_actions` contract~~ DONE in

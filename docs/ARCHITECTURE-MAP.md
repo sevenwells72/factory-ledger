@@ -6,7 +6,7 @@ Pointer syntax: file::text means search that file for that exact text (a section
 
 ## Runtime shape
 
-- **Backend:** one FastAPI app in `main.py`, about 21.3k lines, deployed to Railway. Railway redeploys only when root `*.py`, `Procfile`, `requirements.txt`, `runtime.txt`, `railway.json` or `dashboard/dashboard_config.json` change (`railway.json` watchPatterns).
+- **Backend:** one FastAPI app in `main.py`, about 21.1k lines, deployed to Railway. Railway redeploys only when root `*.py`, `Procfile`, `requirements.txt`, `runtime.txt`, `railway.json` or `dashboard/dashboard_config.json` change (`railway.json` watchPatterns).
 - **Feature modules:** files at the repo root expose `register_routes(app, api)`. Here `api` is the `main` module itself, so a feature module calls back into `main` as `api.<name>`. Before changing a `main.py` helper, run `grep -n 'api\.<name>' *.py`. Registration happens in `main.py::key_sessions.register_routes(app` and in the block near the end, `main.py::write_tickets.register_routes(app`.
 - **Dashboard:** static HTML/JS in `dashboard/`, served by Netlify (`netlify.toml`, base `dashboard`). `dashboard/dashboard-runtime.js` picks the production or staging API.
 - **Database:** Supabase Postgres. Changes go through `migrations/` (numbered NNN_name.sql files, reverts in `migrations/down/`). Older DDL still runs at startup, gated by marker rows: `main.py::# Connection pool (initialized on startup)`.
@@ -19,6 +19,7 @@ Pointer syntax: file::text means search that file for that exact text (a section
   - `main.py::# PRODUCT SEARCH ENDPOINTS`, `main.py::# QUICK-CREATE PRODUCT ENDPOINTS`, `main.py::# PRODUCT VERIFICATION ENDPOINTS`
   - `main.py::# ADMIN PRODUCT & BOM MANAGEMENT`, `main.py::# REASON CODES ENDPOINT`
   - `main.py::# HEALTH & ROOT ENDPOINTS`, `main.py::# AUDIT / INTEGRITY CHECK ENDPOINT`
+  - Supplies: `supplies.py` (`/supplies/inventory`, `/supplies/inventory/{product_id}/lots`, `/supply-requests` GET/POST/PATCH and the `SupplyRequestCreate` / `SupplyRequestUpdate` models; moved out of `main.py` in PR2). It is registered at `main.py::supplies.register_routes(app`, between the sales-order routes and `main.py::# SHIP ENDPOINTS`. It uses `api.verify_api_key`, `api.get_transaction`, `api.POSTED_LINES`, `api.fifo_lot_balances`, `api.ledger_quantity_unit` and `api.logger`. `main.py::def ledger_quantity_unit` stays in `main.py` because other dashboards and `exceptions_enforcement.py` use it. Inventory is read-only here; the supply-request writes touch only `supply_requests`, never transactions, lots or allocations.
 - Tests: `tests/test_archived_products_dashboard*`, `tests/test_supplies.py`, `tests/test_health_v3.py`
 - Risk: Medium; **High** for product flags used by ship or pack (case size, service lines)
 
@@ -150,12 +151,12 @@ Pointer syntax: file::text means search that file for that exact text (a section
 
 ## Moving code out of main.py
 
-The plan is to extract one section per PR. Done so far: Notes (`notes_api.py`, PR1). For each extraction:
+The plan is to extract one section per PR. Done so far: Notes (`notes_api.py`, PR1), Supplies (`supplies.py`, PR2). For each extraction:
 
 - **New module at the repo root.** Railway's `watchPatterns` only watch `/*.py`, so code in a subfolder would merge but never deploy.
 - **Same interface as the existing modules.** Expose `register_routes(app, api)` and call it from `main.py` at the exact spot the section occupied, so route order does not change. Routes under `/dashboard/*` must register before the static mount.
 - **Never import main.** Reach it as `api.<name>` at call time. `tests/test_feature_module_imports.py` enforces this and also checks that every `register_routes` is actually called.
-- **Prove it changed nothing.** `tests/test_route_contract.py` must stay green without regenerating. Also run the section's characterization tests (Notes: `tests/test_notes_characterization.py`).
+- **Prove it changed nothing.** `tests/test_route_contract.py` must stay green without regenerating. Also run the section's characterization tests (Notes: `tests/test_notes_characterization.py`; Supplies: `tests/test_supplies.py`).
 - **Update this map in the same PR**, then run `python3 scripts/check_architecture_map.py`.
 
 ## Where not to search by default
