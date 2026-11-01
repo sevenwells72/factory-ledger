@@ -1,5 +1,26 @@
 # Followups
 
+## Packing slip PDF: existing behaviour noted during modularization PR3 (2026-11-01; not changed)
+
+Found while moving `GET /sales/orders/{order_id}/packing-slip` into
+`packing_slip.py`. PR3 moved the code unchanged; each item needs its own PR and
+an owner decision.
+
+- The pre-shipment FIFO preview inlines its own lot query instead of calling
+  `fifo_lot_balances()`, and orders by `COALESCE(received_at, created_at)` with
+  no `l.id` tie-break, so for lots with identical timestamps the preview order
+  may differ from what the allocation paths pick.
+- The footer always prints "Page 1 of 1"; an order long enough to spill onto a
+  second page would be mislabelled.
+- Any unexpected render error returns 500 with the raw exception text
+  (`{"error": "..."}`) to the caller.
+- Voided (correction) shipments: the slip reads effective views, but that is
+  only pinned by a source-text check
+  (`tests/test_batch1_correctness_security.py`); there is no behavioural test of
+  a slip for an order whose shipment was voided.
+- `FACTORY_LEDGER_SYSTEM_KNOWLEDGE.md` names the query-key dependency
+  `verify_api_key_query`; the code calls it `verify_api_key_flexible`.
+
 ## Architecture-map validator misses new root modules (2026-11-01; found in modularization PR1)
 
 - `scripts/check_architecture_map.py` counts a root module as covered when any

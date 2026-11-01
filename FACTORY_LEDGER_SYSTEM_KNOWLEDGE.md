@@ -146,7 +146,7 @@ Netlify static HTML/CSS/JS <--------+
 | Backend | FastAPI 0.104.1, Pydantic request models, one large application module | `main.py`; `requirements.txt` |
 | Database | Supabase-hosted PostgreSQL | `DATABASE_URL`; SQL schema/migrations |
 | Access layer | Raw psycopg2 SQL; no ORM | `psycopg2-binary`, `ThreadedConnectionPool`, helpers in `main.py` |
-| Files/export | `reportlab` PDF packing slips; `openpyxl` order matrix; CSV late-record export | `main.py:generate_packing_slip`, `export_orders_matrix`, `export_late_records_csv` |
+| Files/export | `reportlab` PDF packing slips; `openpyxl` order matrix; CSV late-record export | `packing_slip.py:generate_packing_slip` (moved from `main.py`, PR3), `export_orders_matrix`, `export_late_records_csv` |
 | Static serving | Netlify publishes `dashboard/`; FastAPI also mounts the same directory | `netlify.toml`; `main.py` final `StaticFiles` mount |
 | Authentication | Shared `X-API-Key`; packing slip also accepts a key query parameter | `main.py:verify_api_key`, `verify_api_key_query` |
 | CORS | All origins, methods, and headers allowed | `main.py` CORS middleware |

@@ -6,7 +6,7 @@ Pointer syntax: file::text means search that file for that exact text (a section
 
 ## Runtime shape
 
-- **Backend:** one FastAPI app in `main.py`, about 21.1k lines, deployed to Railway. Railway redeploys only when root `*.py`, `Procfile`, `requirements.txt`, `runtime.txt`, `railway.json` or `dashboard/dashboard_config.json` change (`railway.json` watchPatterns).
+- **Backend:** one FastAPI app in `main.py`, about 20.6k lines, deployed to Railway. Railway redeploys only when root `*.py`, `Procfile`, `requirements.txt`, `runtime.txt`, `railway.json` or `dashboard/dashboard_config.json` change (`railway.json` watchPatterns).
 - **Feature modules:** files at the repo root expose `register_routes(app, api)`. Here `api` is the `main` module itself, so a feature module calls back into `main` as `api.<name>`. Before changing a `main.py` helper, run `grep -n 'api\.<name>' *.py`. Registration happens in `main.py::key_sessions.register_routes(app` and in the block near the end, `main.py::write_tickets.register_routes(app`.
 - **Dashboard:** static HTML/JS in `dashboard/`, served by Netlify (`netlify.toml`, base `dashboard`). `dashboard/dashboard-runtime.js` picks the production or staging API.
 - **Database:** Supabase Postgres. Changes go through `migrations/` (numbered NNN_name.sql files, reverts in `migrations/down/`). Older DDL still runs at startup, gated by marker rows: `main.py::# Connection pool (initialized on startup)`.
@@ -71,7 +71,8 @@ Pointer syntax: file::text means search that file for that exact text (a section
   - `main.py::# SHIP ENDPOINTS`, `main.py::def _ship_order_commit_core`
   - Retry guard: `main.py::def _ship_order_retry_guard` (migration `migrations/088_ship_order_idempotency.sql`)
   - `ship_tickets.py`
-- Tests: `tests/test_ship_*`
+  - Packing slip PDF: `packing_slip.py` (`GET /sales/orders/{order_id}/packing-slip`, the reportlab document; moved out of `main.py` in PR3). It is registered at `main.py::packing_slip.register_routes(app`, between the ship routes and `main.py::# SALES DASHBOARD (v2.3.0)`, and `main.generate_packing_slip` still names the handler. It uses `api.resolve_order_id`, `api.verify_api_key_flexible`, `api.get_transaction`, `api.POSTED_LINES`, `api.get_plant_now` and `api.logger`. Auth stays in `main.py`: `main.py::def verify_api_key_flexible` (header, `?key=`, or a signed link checked by `ship_tickets.py`), the dashboard-key refusal (`main.py::# Dashboard "Packing slip" button: named staff only.`) and the `key=` access-log redaction (`main.py::# ACCESS-LOG REDACTION`). The commitShipOrder link is `main.py::def _floor_packing_slip`.
+- Tests: `tests/test_ship_*`, `tests/test_packing_slip_characterization.py` (whole-page PDF text), `tests/test_floor_packing_slip.py` (signed links), `tests/test_dashboard_packing_slip.py` (staff keys)
 - Risk: **High**
 
 ### Sales orders and customers
@@ -151,12 +152,12 @@ Pointer syntax: file::text means search that file for that exact text (a section
 
 ## Moving code out of main.py
 
-The plan is to extract one section per PR. Done so far: Notes (`notes_api.py`, PR1), Supplies (`supplies.py`, PR2). For each extraction:
+The plan is to extract one section per PR. Done so far: Notes (`notes_api.py`, PR1), Supplies (`supplies.py`, PR2), Packing slip PDF (`packing_slip.py`, PR3). For each extraction:
 
 - **New module at the repo root.** Railway's `watchPatterns` only watch `/*.py`, so code in a subfolder would merge but never deploy.
 - **Same interface as the existing modules.** Expose `register_routes(app, api)` and call it from `main.py` at the exact spot the section occupied, so route order does not change. Routes under `/dashboard/*` must register before the static mount.
 - **Never import main.** Reach it as `api.<name>` at call time. `tests/test_feature_module_imports.py` enforces this and also checks that every `register_routes` is actually called.
-- **Prove it changed nothing.** `tests/test_route_contract.py` must stay green without regenerating. Also run the section's characterization tests (Notes: `tests/test_notes_characterization.py`; Supplies: `tests/test_supplies.py`).
+- **Prove it changed nothing.** `tests/test_route_contract.py` must stay green without regenerating. Also run the section's characterization tests (Notes: `tests/test_notes_characterization.py`; Supplies: `tests/test_supplies.py`; Packing slip: `tests/test_packing_slip_characterization.py`, plus a byte comparison of the PDFs with `reportlab.rl_config.invariant = 1`).
 - **Update this map in the same PR**, then run `python3 scripts/check_architecture_map.py`.
 
 ## Where not to search by default
