@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-01 09:24 — Fix DST-dependent entry-timing tests (real elapsed time, test-only)
+- **File(s) changed:** `tests/test_roles_a2.py`, `tests/test_shift_summary.py`
+- **What changed:** Test helpers computed 'N hours ago' as aware plant time minus timedelta, which moves the wall clock and is an hour off across DST; added real_shift() (test_roles_a2) and hours_ago() (test_shift_summary) that shift via UTC, used by at(), test_timing_classification, the two commit-clock tests and the 49h/60h late entries. Fixes 10 tests that failed in both modes on 2026-11-01 on pristine origin/main cb168a8. Full suite both KEY_SESSIONS modes: 7184/7184 passed, 0 skipped. No application code changed.
+- **Why:** Tests failed on the DST change day (and would again each March/November); production compares in UTC and was correct.
+
+---
+
 ## 2026-10-31 20:54 — PR #162 corrections: retry-safe change-log helper, bounded safety-rules read, no map line limit
 - **File(s) changed:** `scripts/log_change.py`, `tests/test_log_change.py`, `CLAUDE.md`, `scripts/check_architecture_map.py`, `tests/test_architecture_map.py`
 - **What changed:** log_change.py now leaves an identical existing entry untouched and reports a global-log failure after a project write as PARTIAL (exit 1) with the exact retry command, so a re-run adds only the missing row; conflicting text under an existing heading or row key is still refused; tests reproduce partial failure plus retry. CLAUDE.md reads Known Root Causes and Permanent Rules with a bounded awk command instead of an open-ended sed range. Removed the 160-line limit from the map validator.
