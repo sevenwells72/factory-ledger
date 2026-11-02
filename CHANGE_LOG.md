@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-02 10:40 — PR #173 (formula-driven entry, bb48cb8) deployed to FastAPI-staging only
+- **File(s) changed:** none in repo (FastAPI-staging deployment 292367b0; this log entry only)
+- **What changed:** Uploaded exact PR #173 head bb48cb8 (clean detached checkout ~/dev/fl-formula-stage-wt, linked to FastAPI-staging only) with `railway up`. Two earlier attempts (5cbc68f2, 3d04f256) FAILED in Railway's build service ("frontend grpc server closed unexpectedly", before any repo code built); the third, 292367b0, SUCCEEDED. Previous good deployment: e39166fa. Read-only checks: /health 200 (database connected); /dashboard/entry.html serves make-formula.js v3 and ledger-ticket.js v12; served make-formula.js identical to bb48cb8; OpenAPI has formula_entry and ingredient_lines; startup log has no errors. No staging data written. Production untouched (/health 200); nothing merged to main.
+- **Why:** Blubber approved a staging deploy of PR #173 for owner testing before production.
+
+---
+
 ## 2026-11-02 10:30 — Fix re-review N1: no reason prompt on a 0 lb rolled-oats card the recipe does not use
 - **File(s) changed:** `formula_entry.py`, `dashboard/make-formula.js`, `dashboard/entry.html` (cache-bust make-formula.js v3), `tests/test_formula_entry.py`, `tests/test_formula_entry_ui.js`, `FACTORY_LEDGER_CHANGELOG.md`; also commits the pending `reviews/formula-entry-f8ba30d.md` re-review sections and the earlier CHANGE_LOG entries
 - **What changed:** A 0 lb line whose recipe standard is 0 lb (rolled oats offered only for the automatic oat-bran swap, e.g. a recipe with oat bran but no rolled oats line, or oats manually swapped out) no longer needs a reason: the server skips the reason blocker and the card is not marked not-used; the Make screen hides the reason box and sends no reason. Reasons are still required when the worker zeroes or swaps a recipe ingredient. Regression tests: recipe with bran and no oats line, exact recipe → no reason, records cleanly (bran 30 posted, shortage flagged, no review rows); UI card shows "Using 0 lb" with no reason box. Affected Python files 298/298 in both key-session modes, Node 610/610, Playwright pass.
