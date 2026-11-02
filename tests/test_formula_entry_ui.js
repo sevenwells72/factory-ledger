@@ -36,8 +36,8 @@ test('pans summary and recipe pounds come from FL, with every FIFO bag pre-fille
   assert.equal(h.find(n=>n.dataset.formulaSummary==='').textContent.startsWith('2 pans × 100 lb = 200 lb'),true);
   assert.deepEqual(h.bags(10).map(b=>[h.field(b,'bag_lot').value,h.field(b,'bag_lb').value]),[['1','50'],['2','110']]);
   assert.equal(h.find(n=>n.dataset.standard==='160').textContent,'Recipe: 160 lb');
-  assert.equal(h.bags(10)[0].children.find(n=>n.dataset.bagState==='').textContent,'✓ Confirmed');
-  assert.equal(h.bags(10)[1].children.find(n=>n.dataset.bagState==='').textContent,'Not confirmed yet — type the code on the bag.');
+  assert.equal(h.bags(10)[0].children.flatMap(descendants).find(n=>n.dataset.bagState==='').textContent,'✓ Confirmed');
+  assert.equal(h.bags(10)[1].children.flatMap(descendants).find(n=>n.dataset.bagState==='').textContent,'Not confirmed — type the code');
   assert.equal(h.field(h.bags(10)[0],'bag_code').value,'OATS-OLD-0001');
   assert.deepEqual(h.field(h.bags(10)[0],'bag_lot').children.slice(1).map(o=>o.textContent),['OATS-OLD-0001 · 2026-10-01 · 50 lb','OATS-NEW-0002 · 2026-10-20 · 500 lb','OATS-SPR-1002 · 2026-10-30 · 300 lb']);
 });
@@ -60,7 +60,7 @@ test('changing pounds keeps the confirmation; changing the bag clears it',()=>{
   assert.equal(h.field(first,'bag_code').value,'OATS-OLD-0001');
   h.field(first,'bag_lot').value='3';h.field(first,'bag_lot').onchange();
   assert.equal(h.field(first,'bag_code').value,'');
-  assert.equal(first.children.find(n=>n.dataset.bagState==='').textContent,'Not confirmed yet — type the code on the bag.');
+  assert.equal(first.children.flatMap(descendants).find(n=>n.dataset.bagState==='').textContent,'Not confirmed — type the code');
   h.submit();assert.ok(!h.calls[0].next.some(c=>c.lot_id===3));
 });
 

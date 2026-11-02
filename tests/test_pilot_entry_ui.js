@@ -20,7 +20,7 @@ async function harness(action='ship',language='en',{role='floor'}={}){
   const root=new Element('document');root.root=true;
   for(const id of ['content','resolution','notice','language','sign-out']){const node=new Element('div');node.id=id;root.append(node);}
   const find=(predicate,scope=root)=>descendants(scope).find(predicate),all=(predicate,scope=root)=>descendants(scope).filter(predicate),byId=id=>find(node=>node.id===id);
-  const tickets=[],requests=[],failures=[],uploads=[],timers=new Map();let nextTimer=0,resolver=null;
+  const tickets=[],requests=[],failures=[],uploads=[],timers=new Map(),delays=[];let nextTimer=0,resolver=null;
   const lots=[{lot_id:11,lot_code:'OPEN261014-P1561',available_lb:50},{lot_id:12,lot_code:'PACK261019-001',available_lb:80}];
   let stock=async()=>({product_id:1561,product:'Classic Granola',lots});
   const order={order_id:5,order_number:'SO-PILOT',lines:[{line_id:101,product_id:1561,product:'Classic Granola',remaining_lb:60,line_status:'open'},{line_id:102,product_id:9,product:'Pallet',remaining_lb:0,is_service:true,line_status:'open'},{line_id:103,product_id:1561,product:'Cancelled',remaining_lb:10,line_status:'cancelled'},{line_id:104,product_id:1561,product:'Fulfilled',remaining_lb:0,line_status:'fulfilled'}]};
@@ -30,7 +30,7 @@ async function harness(action='ship',language='en',{role='floor'}={}){
     ticketCard(host,path,body,options){const ticket={host,path,body:plain(body),options};tickets.push(ticket);return {invalidate(){ticket.invalidated=true;}};}
   };
   vm.runInNewContext(fs.readFileSync('dashboard/make-formula.js','utf8'),{window:{FLLedger:ui}});
-  vm.runInNewContext(source,{setTimeout(callback){const id=++nextTimer;timers.set(id,callback);return id;},clearTimeout(id){timers.delete(id);},FLLedger:ui,FLDashboard:{writesEnabled:true},URL,URLSearchParams,location:{search:'?action='+action,href:'https://example.test/entry.html?action='+action},history:{replaceState(){}},document:{getElementById:byId},window:{addEventListener(name,callback){events[name]=callback;}}});await flush();
+  vm.runInNewContext(source,{setTimeout(callback,ms){const id=++nextTimer;timers.set(id,callback);delays.push(ms);return id;},clearTimeout(id){timers.delete(id);},FLLedger:ui,FLDashboard:{writesEnabled:true},URL,URLSearchParams,location:{search:'?action='+action,href:'https://example.test/entry.html?action='+action},history:{replaceState(){}},document:{getElementById:byId},window:{addEventListener(name,callback){events[name]=callback;}}});await flush();
   const shipMode=find(node=>node.name==='ship_mode');if(shipMode)shipMode.value='order';
   const field=(name,scope=root)=>find(node=>node.name===name,scope),button=(text,scope=root)=>find(node=>node.tag==='button'&&node.textContent===text,scope);
   async function pick(name){const scope=find(node=>node.dataset.picker===name);find(node=>node.tag==='input',scope).value=name;await find(node=>node.tag==='button',scope).onclick();find(node=>node.className==='picker-options',scope).children[0].onclick();if(name==='supplier')field('supplier_lot_code').value='SUP-LOT-123';await flush();}
@@ -38,7 +38,7 @@ async function harness(action='ship',language='en',{role='floor'}={}){
   async function standalone(){field('ship_mode').value='standalone';field('ship_mode').onchange();await pick('customer');await pick('ship_product');field('quantity_lb').value='40';field('order_reference').value='PO-100';field('bol_reference').value='BOL-1';}
   function manual(scope){const mode=field('shipment_lot_mode',scope);mode.value='manual';mode.onchange();return scope;}
   function selectLot(id,quantity,scope){const select=field('shipment_lot_id',scope);select.value=String(id);select.onchange();field('shipment_lot_quantity',scope).value=String(quantity);}
-  return {root,find,all,byId,field,button,pick,switchLanguage(lang){ui.lang=lang;events['ledger-language']();},submit,standalone,manual,selectLot,tickets,requests,failures,uploads,timers,async runTimers(){const pending=[...timers.values()];timers.clear();pending.forEach(callback=>callback());await flush();},setResolver(fn){resolver=fn;},setUpload(fn){ui.upload=fn;},order,lots,setStock(fn){stock=fn;}};
+  return {root,find,all,byId,field,button,pick,switchLanguage(lang){ui.lang=lang;events['ledger-language']();},submit,standalone,manual,selectLot,tickets,requests,failures,uploads,timers,delays,async runTimers(){const pending=[...timers.values()];timers.clear();pending.forEach(callback=>callback());await flush();},setResolver(fn){resolver=fn;},setUpload(fn){ui.upload=fn;},order,lots,setStock(fn){stock=fn;}};
 }
 for(const action of ['receive','make','pack'])test(`${action} optional note is sent verbatim with its draft`,async()=>{
   const h=await harness(action);if(action==='pack'){await h.pick('source');await h.pick('target');}else await h.pick('product');if(action==='receive')await h.pick('supplier');
@@ -281,4 +281,48 @@ test('make search with no recipe match explains how to search',async()=>{
   const h=await harness('make'),scope=h.find(node=>node.dataset.picker==='product');h.setResolver(()=>({products:[],has_more:false}));
   h.find(node=>node.tag==='input',scope).value='clasic';await h.find(node=>node.tag==='button',scope).onclick();
   assert.match(scope.children.find(node=>node.tag==='p').textContent,/No product with a recipe matches/);
+});
+
+// Search failures and timeouts on every entry-screen picker (PR #173 staging follow-up).
+const pickerOf=(h,name)=>{const scope=h.find(node=>node.dataset.picker===name);return {scope,input:h.find(node=>node.tag==='input',scope),search:h.find(node=>node.tag==='button',scope),status:()=>scope.children.find(node=>node.tag==='p'),options:()=>h.find(node=>node.className==='picker-options',scope).children};};
+for(const [action,name,feed] of [['make','product','resolver'],['receive','product','resolver'],['receive','supplier','resolver'],['adjust','lot','stock']])test(`${action} ${name} search is capped at 25 s and ends in its own field`,async()=>{
+  const h=await harness(action),p=pickerOf(h,name);const never=()=>new Promise(()=>{});if(feed==='stock')h.setStock(never);else h.setResolver(never);
+  p.input.value='classic';const pending=p.search.onclick();await flush();assert.equal(String(p.status().textContent),'Searching…');assert.ok(h.delays.includes(25000),JSON.stringify(h.delays));
+  await h.runTimers();await pending;assert.match(String(p.status().textContent),/^Search failed: The search took too long/);assert.equal(p.search.disabled,false);
+  assert.equal(String(p.options()[0].textContent),'Try again');assert.deepEqual(h.failures,[],'no page-level error for a search');
+});
+test('lot search failure offers Try again and the retry lists lots',async()=>{
+  const h=await harness('adjust'),p=pickerOf(h,'lot');let calls=0;h.setStock(async()=>{if(++calls===1)throw Object.assign(Error('HTTP 500'),{labels:['FL had a problem reading lots.','FL tuvo un problema leyendo los lotes.']});return {lots:h.lots};});
+  p.input.value='OPEN';await p.search.onclick();assert.equal(String(p.status().textContent),'Search failed: FL had a problem reading lots.');assert.equal(p.status().className,'notice');
+  await p.options()[0].onclick();assert.equal(p.status().className,'');assert.equal(p.options().length,2);assert.match(String(p.options()[0].textContent),/^OPEN261014-P1561/);
+});
+test('a server error message is shown in Spanish when the page is in Spanish',async()=>{
+  const h=await harness('make','es'),p=pickerOf(h,'product');h.setResolver(()=>{throw Object.assign(Error('500'),{labels:['FL had a problem.','FL tuvo un problema.']});});
+  p.input.value='clasico';await p.search.onclick();assert.equal(String(p.status().textContent),'La búsqueda falló: FL tuvo un problema.');assert.equal(String(p.options()[0].textContent),'Intentar de nuevo');
+});
+test('autocomplete while typing fails quietly into the field, never a page error',async()=>{
+  const h=await harness('make'),p=pickerOf(h,'product');h.setResolver(()=>{throw Object.assign(Error('offline'),{transport:true});});
+  p.input.value='clas';p.input.oninput();await h.runTimers();
+  assert.equal(String(p.status().textContent),'Search failed: Could not reach FL. Check the connection, then tap Try again.');assert.deepEqual(h.failures,[]);
+  assert.equal(h.requests.at(-1).options.background,true);
+});
+test('a late answer to a timed-out search never replaces the newer result',async()=>{
+  const h=await harness('make'),p=pickerOf(h,'product');let late;let calls=0;
+  h.setResolver(()=>++calls===1?new Promise(resolve=>{late=resolve;}):{products:[{id:2,label:'Batch Vanilla Almond (90010)',default_batch_lb:380}],has_more:false});
+  p.input.value='batch';const first=p.search.onclick();await flush();await h.runTimers();await first;assert.match(String(p.status().textContent),/took too long/);
+  await p.options()[0].onclick();assert.match(String(p.options()[0].textContent),/^Batch Vanilla Almond/);
+  late({products:[{id:1,label:'Batch Classic Granola #9 (90002)',default_batch_lb:323}],has_more:false});await flush();
+  assert.equal(p.options().length,1);assert.match(String(p.options()[0].textContent),/^Batch Vanilla Almond/);assert.doesNotMatch(String(p.status().textContent),/failed/);
+});
+test('typing during a search abandons it; its later failure is not shown',async()=>{
+  const h=await harness('make'),p=pickerOf(h,'product');let fail;h.setResolver(()=>new Promise((_,reject)=>{fail=reject;}));
+  p.input.value='classic';const pending=p.search.onclick();await flush();
+  p.input.value='vanilla';p.input.oninput();fail(Error('Server error'));await pending;await flush();
+  assert.doesNotMatch(String(p.status().textContent),/failed/);assert.deepEqual(h.failures,[]);
+});
+test('a server error (5xx) shows plain wording in the field, never the database text',async()=>{
+  for(const [lang,expected] of [['en','Search failed: FL had a problem answering. Tap Try again; if it keeps failing, tell the office.'],['es','La búsqueda falló: FL tuvo un problema al responder. Toca Intentar de nuevo; si sigue fallando, avisa a la oficina.']]){
+    const h=await harness('make',lang),p=pickerOf(h,'product');h.setResolver(()=>{throw Object.assign(Error('canceling statement due to statement timeout'),{status:500});});
+    p.input.value='classic';await p.search.onclick();assert.equal(String(p.status().textContent),expected);assert.doesNotMatch(String(p.status().textContent),/statement/);
+  }
 });

@@ -111,3 +111,43 @@ test('a formula draft that FL refused keeps the last ingredient cards to fix',as
   assert.ok(h.find(node=>node.name==='bag_code'),'cards are still shown');assert.ok(h.find(node=>String(node.textContent).includes('does not match')));
   assert.equal(h.button('Record').disabled,true);
 });
+// PR #173 staging test (390 × 844): fewer repeated blockers, no tick for notes, re-check from the record bar.
+const bagBlockers=[{code:'LOT_NOT_CONFIRMED',message:'Confirm Oats lot OATS-A-001: type last four characters, full code, or record a pallet move.'},{code:'LOT_NOT_CONFIRMED',message:'Confirm Oats lot OATS-B-001: type last four characters, full code, or record a pallet move.'},{code:'MAKE_REASON_REQUIRED',message:'Choose a reason for Salt.'}];
+test('unconfirmed Make bags are one blocker line; every other blocker still shows',async()=>{
+  const h=await harness({formula:true,draft:formulaDraft(false),canCommit:false,payload:{formula_entry:true},onPrepare:()=>({blockers:bagBlockers})});
+  const shown=h.all(node=>node.dataset.blocker!==undefined);
+  assert.deepEqual(shown.map(node=>node.dataset.blocker),['MAKE_REASON_REQUIRED','LOT_NOT_CONFIRMED']);
+  assert.match(String(shown[1].textContent),/^2 bags still need the code from their label/);
+  assert.equal(h.button('Record').disabled,true,'Record stays off while FL reports blockers');
+});
+test('outside the Make bag cards each confirmation blocker is still listed',async()=>{
+  const h=await harness({draft:makeDraft,canCommit:false,onPrepare:()=>({blockers:bagBlockers})});
+  assert.equal(h.all(node=>node.dataset.blocker==='LOT_NOT_CONFIRMED').length,2);
+});
+test('Make warnings that need no tick are notes; ticked warnings and FL shortage text are unchanged',async()=>{
+  const warnings=[{code:'INGREDIENT_OFF_RECIPE',requires_ack:true,message:'More than 10% off the recipe.'},{code:'INGREDIENT_CHANGED',requires_ack:false,message:'Not used or swapped.'},{code:'WILL_CREATE_SHORTAGE',requires_ack:false,message:'Honey lot H-1 has 30 lb; posting 40 lb leaves it short 10 lb.'}];
+  const h=await harness({formula:true,draft:{...formulaDraft(true),shortages:[{product_name:'Honey',on_hand_lb:30,short_lb:10}]},payload:{formula_entry:true},onPrepare:()=>({warnings})});
+  assert.deepEqual(h.all(node=>node.dataset.warning!==undefined).map(node=>node.dataset.warning),['INGREDIENT_OFF_RECIPE']);
+  assert.deepEqual(h.all(node=>node.dataset.warningInfo!==undefined).map(node=>node.dataset.warningInfo),['INGREDIENT_CHANGED','WILL_CREATE_SHORTAGE']);
+  const shortage=h.all(node=>node.dataset.shortageWarning!==undefined);assert.equal(shortage.length,1);assert.match(String(shortage[0].textContent),/short 10 lb/);
+  h.find(node=>node.dataset.warning==='INGREDIENT_OFF_RECIPE').checked=true;await h.button('Record').onclick();
+  assert.deepEqual(h.requests.at(-1).body.acknowledged_warnings,['INGREDIENT_OFF_RECIPE']);
+});
+test('the re-check button sits in the record bar and appears only after an edit',async()=>{
+  const h=await harness({formula:true,draft:formulaDraft(true),payload:{formula_entry:true}});
+  const bar=h.find(node=>node.className==='record-bar sticky'),check=h.button('Check bags and pounds → new draft'),hint=h.find(node=>node.dataset.updateHint!==undefined);
+  assert.ok(bar.children.includes(check)&&bar.children.includes(h.button('Record')));
+  assert.equal(check.hidden,true);assert.equal(hint.hidden,true);assert.equal(h.button('Record').disabled,false);
+  h.find(node=>node.name==='bag_lb').value='120';h.find(node=>node.name==='bag_lb').oninput();
+  assert.equal(check.hidden,false);assert.equal(check.className,'primary');assert.equal(hint.hidden,false);assert.equal(h.button('Record').disabled,true);
+});
+test('re-checking keeps the draft on screen, and a failed re-check keeps it with Record off',async()=>{
+  let calls=0,release;const h=await harness({formula:true,draft:formulaDraft(true),payload:{formula_entry:true},onPrepare:()=>{calls++;return {};}});
+  const original=h.ui.request;h.ui.request=(url,body)=>url==='/make/prepare'?new Promise((resolve,reject)=>{release=reject;}):original(url,body);
+  h.find(node=>node.name==='bag_lb').value='120';h.find(node=>node.name==='bag_lb').oninput();
+  h.button('Check bags and pounds → new draft').onclick();await flush();
+  assert.equal(h.host.children[0]['aria-busy'],'true');assert.ok(h.find(node=>node.name==='bag_lb'),'cards stay while FL checks');assert.equal(h.find(node=>node.textContent==='Preparing…'),undefined);
+  release(Error('Could not reach FL'));await flush();
+  assert.equal(h.host.children[0]['aria-busy'],'false');assert.equal(h.find(node=>node.name==='bag_lb').value,'120');assert.equal(h.button('Record').disabled,true);
+  assert.equal(h.button('Try prepare again'),undefined);
+});
