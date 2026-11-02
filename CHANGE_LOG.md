@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-01 20:18 — Spec: record Blubber's decisions on Formula-Driven Production Entry (docs only)
+- **File(s) changed:** `docs/production/formula-driven-entry.md`
+- **What changed:** Recorded decisions D2–D7 and the phasing: keep oldest-first-then-next lot plan with every spill lot shown as an editable row; fixed reason list (Out of stock, Not used, Substituted, Quality problem, Owner instruction, Other + note); oat bran → rolled oats for every recipe with oat bran; per-ingredient 10% warning shown on the owner's weekly view; changing pounds keeps a lot confirmation, changing the lot clears it; Phase A (no DB change) first, Phase B (recipe versions) as a separate PR. Updated §3.3–3.9, §4.2–4.3; §5 now lists decided items and the one open question (D1, lb per pan).
+- **Why:** Blubber answered the spec's open questions; D1's answer was still a placeholder, so it stays open.
+
+---
+
 ## 2026-11-01 20:14 — Spec: Formula-Driven Production Entry (docs only)
 - **File(s) changed:** `docs/production/formula-driven-entry.md`
 - **What changed:** New draft spec for pan-based make entry: current make flow (entry.js → /make/prepare → ticket_actions/_make_preview_core → ticket commit), where recipes/batch weight/lot balances/FIFO live, the new behaviour (pans × recipe, tap-to-confirm oldest-lot pick-list, editable pounds and lot splits, fixed reason list, oat bran swap, shortages post and flag, >10% warning, recipe version, one record per run, deduct only on confirm), reuse vs new, size estimate, owner decisions D1–D7. Read-only investigation; no code, DB or deploy.

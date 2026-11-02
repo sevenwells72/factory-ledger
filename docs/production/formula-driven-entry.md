@@ -1,6 +1,6 @@
 # Formula-Driven Production Entry — spec (draft)
 
-**Status:** draft for owner review, 2026-11-01. Docs only: no code, no migration, no deploy.
+**Status:** draft, 2026-11-01. Revision 2 (2026-11-01): Blubber's decisions D2–D7 and the phasing are recorded (§5); D1 (pan weight) is still open. Docs only: no code, no migration, no deploy.
 **Branch:** `docs/formula-driven-entry` (from `origin/main` `87f500f`).
 **Screen:** Entry → **Make** (`dashboard/entry.html` + `dashboard/entry.js`, draft card `dashboard/ledger-ticket.js`).
 
@@ -69,7 +69,7 @@ The worker picks a product and types **how many pans**. FL fills in every ingred
 ### 3.2 Worker flow
 
 1. **Pick product** (same picker as today; batch products only).
-2. **Enter number of pans** (whole number ≥ 1). One pan = one FL batch = `default_batch_lb` (see decision D1).
+2. **Enter number of pans** (whole number ≥ 1). Assumed one pan = one FL batch = `default_batch_lb`, pending decision D1 (still open).
 3. FL shows an **ingredient list**, one card per recipe line:
    - ingredient name, **standard pounds** = recipe qty × pans;
    - **suggested lot** pre-filled (see 3.3), shown as a pick-list of every in-stock lot, oldest first, each with code, received date and lb on hand;
@@ -83,9 +83,9 @@ The worker picks a product and types **how many pans**. FL fills in every ingred
 
 ### 3.3 Lot suggestion
 
-- Suggest the **oldest lot that alone has enough stock** for the line's pounds (by `COALESCE(received_at, created_at), id`).
-- If no single lot has enough, suggest the oldest lot and add a second row for the remainder from the next-oldest lot, and so on, the same as `choose_inputs` today. (Decision D2: this is a change from today's pure oldest-first spill.)
-- If total stock is short, pre-fill as above and show the shortage (3.6).
+- **Decided (D2): keep today's rule**, `ticket_actions.choose_inputs`: take from the oldest lot first (by `COALESCE(received_at, created_at), id`), and when it runs out continue with the next-oldest, and so on.
+- The form shows **every lot the spill uses** as its own row, pre-filled with the pounds FL plans to take from it. Each row's pounds are editable and each row needs its own confirmation.
+- If total stock is short, pre-fill as above and show the shortage (3.7).
 - A suggestion is only a suggestion: `confirmed:false` until the worker taps and types the code (2026-10-06 rule R4).
 - Pooled opening-stock lots are shown by FL lot code only, never as a supplier lot.
 
@@ -94,18 +94,31 @@ The worker picks a product and types **how many pans**. FL fills in every ingred
 - Any line's pounds may be edited. The split rows must add up to the pounds the worker entered for that ingredient; FL shows the running total.
 - Each lot row carries its own pounds. FL posts exactly those pounds per lot.
 - Removing a split row puts its pounds back on the row above.
+- **Decided (D7):** changing a row's **pounds** keeps its lot confirmation. Changing a row's **lot** clears the confirmation; the new lot must be confirmed before Record is enabled.
 
 ### 3.5 Zero or substituted ingredient: reason required
 
 - Setting a line to **0** or **substituting** a product requires a reason picked from a **fixed list** (no free text for the reason; optional note).
-- Proposed list (decision D3): `out_of_stock`, `quality_hold`, `customer_request`, `equivalent_spec` (e.g. 1,000 CT ↔ 4,000 CT chips), `owner_instruction`, `other` (note required).
+- **Decided list (D3):**
+
+  | Code | English | Note |
+  |---|---|---|
+  | `out_of_stock` | Out of stock | |
+  | `not_used` | Not used | |
+  | `substituted` | Substituted | |
+  | `quality_problem` | Quality problem | |
+  | `owner_instruction` | Owner instruction | |
+  | `other` | Other | note required |
+
+  Spanish labels to be written at build time and checked by Liz/Arturo.
 - `oat_bran_auto_substitute` stays a system reason, not on the worker's list.
 - The **master recipe is never changed** by an entry. Substitutions and zeroes are stored on this run only (`transaction_substitutions` / excluded lines).
 
 ### 3.6 Oat bran
 
-- Unchanged rule: when oat bran is short, FL auto-substitutes rolled oats **pound-for-pound for the missing part**, recorded with `oat_bran_auto_substitute`.
-- Today this applies only to SS products 90016 / 90011 / 90013. Decision D4: keep it SS-only, or apply to every recipe containing oat bran 11031.
+- When oat bran is short, FL auto-substitutes rolled oats **pound-for-pound for the missing part**, recorded with `oat_bran_auto_substitute`.
+- **Decided (D4): apply to every recipe containing oat bran (11031)**, not only the SS products 90016 / 90011 / 90013. This replaces the earlier SS-only rule written in `oat_bran_substitution.py` (`SS_CODES`, `eligible()`), so that rule changes in the build PR and its tests (`tests/test_oat_bran_*`) are updated to match.
+- Because the swap lives in the shared make code, it then applies to every make (Entry screen and FL Assistant), not only this screen.
 - The swapped oats line still needs its lot confirmed like any other line.
 
 ### 3.7 Short stock never blocks
@@ -120,12 +133,13 @@ The worker picks a product and types **how many pans**. FL fills in every ingred
 - **Warn only when the difference is more than 10%** of the standard, in either direction. At 10% or less: no warning.
 - A zeroed line (−100%) and a substituted line count as "more than 10%" and already carry a reason; they show in the warning list without a second acknowledgement.
 - A warning does not block; it needs one tap to acknowledge (existing `acknowledged_warnings` mechanism) and is stored on the record.
-- Decision D5: should the warning compare per ingredient only, or also flag total input weight off by more than 10%?
+- **Decided (D5): per ingredient only.** No check on total input weight.
+- **Decided (D6):** every ingredient difference over 10% appears on the **owner's weekly review list**, next to corrections over 10% (R2): product, run receipt, ingredient, standard lb, used lb, % difference, reason if any, who recorded it.
 
 ### 3.9 What is saved
 
 - **One record per run** (one make transaction, one output lot), never one per pan. Pans are stored on the record as the count entered.
-- **Recipe version used**: the record stores which recipe version it was made against (new, 4.2), plus the standard pounds per line, so later recipe changes never rewrite what this run "should" have used.
+- **Recipe used**: Phase A stores the standard pounds per line as read at save time, so later recipe changes never rewrite what this run "should" have used. Phase B adds the recipe **version** reference (4.2 item 6).
 - Per ingredient: standard lb, entered lb, lot rows (lot, lb, confirmation method), reason if 0/substituted, warning acknowledged.
 - **Lots re-checked at save**: on Record, FL re-reads every chosen lot under lock (exists, not merged, right product, balance) and re-validates confirmations. If something changed since the draft (lot merged, recipe changed), the save stops with "Prepare again". A balance drop only changes the shortage amount; it never blocks.
 - **Inventory deducted only on final confirm.** Draft, edits and confirmations post nothing. Abandoning the draft leaves no trace in inventory.
@@ -160,10 +174,12 @@ The worker picks a product and types **how many pans**. FL fills in every ingred
 
 1. **Per-lot pounds and splits in the request**: `MakePrepareRequest` gains per-ingredient `{ingredient_product_id, lines:[{lot_id, quantity_lb}]}`; replaces the one-lot-per-ingredient override for this screen. Validation: lots belong to the ingredient, pounds > 0.
 2. **Edited pounds**: requirements come from what the worker entered, not only recipe × batches; `_post_prepared_inputs` checks against entered totals.
-3. **"Oldest lot with enough stock" suggestion** (small change to `choose_inputs`, behind a flag so pack/assistant keep today's behaviour unless decided otherwise).
-4. **Fixed substitution/zero reason list**: a lookup table (or `correction_reasons` rows with `applies_to` including `make`) + validation; the current free-text reason input becomes a select.
-5. **10% deviation warning** with `requires_ack`.
-6. **Recipe versions**: new migration, e.g. `recipe_versions (id, product_id, version, created_at, created_by, note)` + `recipe_version_lines`, or a `version`/`valid_from` on `batch_formulas`, and a `recipe_version_id` + standard-lb snapshot on the make record. Admin recipe edits (`/admin/bom/...`) must create a new version instead of editing rows in place. **Production migration: needs Michael's approval, backup first.**
+3. **Lot rows from the existing spill plan**: no change to `choose_inputs` (D2); the form renders each planned lot as an editable, separately confirmed row.
+4. **Fixed substitution/zero reason list** (D3): kept as a code constant in Phase A (no DB change), validated at prepare and commit; the current free-text reason input becomes a select.
+5. **10% deviation warning** per ingredient (D5) with `requires_ack`, and the same facts fed to the owner's weekly view (D6), using the review-facts pattern corrections already use (`exceptions_enforcement.py:227`). Build-time check: confirm where that weekly view is rendered today; if it has no screen yet, list these rows wherever the correction highlights appear.
+5a. **Oat bran for every recipe** (D4): widen `oat_bran_substitution.eligible()` from `SS_CODES` to any batch whose recipe has an inventory-deducted oat bran 11031 line; update its tests.
+5b. **Lot confirmation follows the lot, not the pounds** (D7).
+6. **Recipe versions (Phase B, separate PR)**: new migration, e.g. `recipe_versions (id, product_id, version, created_at, created_by, note)` + `recipe_version_lines`, or a `version`/`valid_from` on `batch_formulas`, and a `recipe_version_id` + standard-lb snapshot on the make record. Admin recipe edits (`/admin/bom/...`) must create a new version instead of editing rows in place. **Production migration: needs Michael's approval, backup first.**
 7. **Pans label and count stored on the record** (the "batches" field relabelled "Pans", with the count kept explicit).
 8. **New Make form UI**: ingredient cards, tap-to-confirm lot pick-list, pounds fields, add-lot, reason select, running totals, bilingual EN/ES, phone-width layout.
 9. **Tests**: split lots, edited pounds, 10% boundary (exactly 10% = no warning), zero/substitute needs reason, oat bran, shortage posts, re-check-at-save failures, recipe-version snapshot, no posting before commit.
@@ -175,22 +191,30 @@ The worker picks a product and types **how many pans**. FL fills in every ingred
 - per-lot/pound request + validation changes in `ticket_actions` / `write_tickets` / `main`,
 - recipe versioning (migration + admin edit path + snapshot), which is what pushes it from medium toward large.
 
-Suggested phasing:
-- **Phase A (medium):** pans + editable pounds + split lots + tap-to-confirm pick-list + reason list + 10% warning. No migration if the reason list reuses `correction_reasons`.
-- **Phase B (small-medium, migration):** recipe versions and the snapshot on each record.
+**Phasing (decided):**
+- **Phase A first (medium), one PR, no DB change:** pans form, editable pounds, lot rows from the spill plan with add/remove, tap-to-confirm, reason list (code constant), per-ingredient 10% warning + weekly view, oat bran for every recipe. Per-ingredient standard vs used pounds and reasons are kept in the ticket's stored payload/specification and the existing `transaction_substitutions`, so no new table or column is needed. Until Phase B, the record shows the recipe as it was read at save time, not a version number.
+- **Phase B later, separate PR (small-medium, migration):** recipe versions, admin edits creating a new version, and the version reference on each record. Needs Michael's approval and a backup before the migration.
 
 Staging first; production only with Michael's per-step approval, backup and verification.
 
 ---
 
-## 5. Decisions for the owner
+## 5. Decisions
 
-| # | Question | Default proposed |
+### 5.1 Decided (Blubber, 2026-11-01)
+
+| # | Decision |
+|---|---|
+| D2 | Keep today's lot rule: oldest first, then the next (`choose_inputs`). The form shows every lot the spill uses, pre-filled with its pounds, each editable. |
+| D3 | Reason list: Out of stock, Not used, Substituted, Quality problem, Owner instruction, Other (note required). |
+| D4 | Oat bran → rolled oats pound-for-pound applies to **every recipe containing oat bran**, not only SS. |
+| D5 | 10% warning is per ingredient only. |
+| D6 | Ingredient differences over 10% appear on the owner's weekly review list. |
+| D7 | Changing pounds does not require re-confirming the lot; changing the lot does. |
+| Phasing | Phase A (form + rules, no DB change) first; Phase B (recipe versions) later, in a separate PR. |
+
+### 5.2 Still open
+
+| # | Question | Why it matters |
 |---|---|---|
-| D1 | Is **1 pan = 1 FL batch** (`default_batch_lb`) for every product, granola included? Today only coconut (360 lb) is confirmed as a pan. | Yes; check each granola batch weight before launch |
-| D2 | Suggest the **oldest lot that alone has enough** (new), or keep today's **oldest first, then the next** (spill)? | Oldest with enough; spill only if none has enough |
-| D3 | Approve the **fixed reason list** for 0/substituted ingredients | List in 3.5 |
-| D4 | Oat bran → rolled oats: **SS products only** (today) or every recipe with oat bran? | Keep SS-only |
-| D5 | 10% warning: per ingredient only, or also on total input weight? | Per ingredient only |
-| D6 | Should the 10% warning go on the owner's weekly view like corrections over 10% (R2)? | Yes, list it there |
-| D7 | Can the worker change the pounds of a lot after confirming it, or must they re-confirm? | Re-confirm only if the lot changes; pounds may change freely |
+| D1 | **How many pounds is one pan, per product?** Is 1 pan = 1 FL batch (`default_batch_lb`) for every granola, or does a product need its own lb-per-pan? Today only coconut 90003/90004/90005 is confirmed (360 lb). | Every ingredient amount on the new screen is recipe × pans. If a pan is not one FL batch, every number on the screen is wrong. Must be answered before Phase A ships. |
