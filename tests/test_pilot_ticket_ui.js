@@ -151,3 +151,17 @@ test('re-checking keeps the draft on screen, and a failed re-check keeps it with
   assert.equal(h.host.children[0]['aria-busy'],'false');assert.equal(h.find(node=>node.name==='bag_lb').value,'120');assert.equal(h.button('Record').disabled,true);
   assert.equal(h.button('Try prepare again'),undefined);
 });
+// Oct 29 2026: a blank lot-code row reached FL as "" and Arturo saw "NOT recorded — String should have at least 1 character".
+const multiLotDraft={input_plan:[{product_id:1,product_name:'Oats',lot_id:11,lot_code:'OATS-A-001'},{product_id:1,product_name:'Oats',lot_id:12,lot_code:'OATS-B-002'},{product_id:2,product_name:'Salt',lot_id:31,lot_code:'SALT-0440'}],lot_confirmation_group:{ingredients:[{product_id:1,candidates:[{lot_id:11,lot_code:'OATS-A-001'},{lot_id:12,lot_code:'OATS-B-002'}]},{product_id:2,candidates:[{lot_id:31,lot_code:'SALT-0440'}]}]}};
+for(const language of ['en','es'])for(const path of ['/make/prepare','/pack/prepare'])test(`${path} blank lot code is blocked in the form and named in ${language}, never sent as ""`,async()=>{
+  const h=await harness({language,path,draft:multiLotDraft,canCommit:false});const inputs=h.all(node=>node.tag==='input'&&node.autocomplete==='off');
+  inputs[0].value='-001';inputs[0].oninput();inputs[2].value='0440';inputs[2].oninput();
+  await h.button(language==='es'?'Verificar confirmaciones → nuevo borrador':'Check confirmations → new draft').onclick();await flush();
+  assert.equal(h.requests.length,1);
+  const messages=h.all(node=>node.dataset.blankConfirmation!==undefined).map(node=>node.textContent);
+  assert.deepEqual(messages,[language==='es'?'Escribe el código de la etiqueta para Oats · OATS-B-002.':'Type the code from the lot label for Oats · OATS-B-002.']);
+  inputs[1].value='-002';inputs[1].oninput();
+  await h.button(language==='es'?'Verificar confirmaciones → nuevo borrador':'Check confirmations → new draft').onclick();await flush();
+  assert.equal(h.requests.length,2);const sent=h.requests[1].body.lot_confirmations;
+  assert.deepEqual(sent.map(c=>c.lot_id),[11,12,31]);assert.ok(sent.every(c=>c.value.trim()!==''));
+});

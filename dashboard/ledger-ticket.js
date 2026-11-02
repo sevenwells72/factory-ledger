@@ -54,6 +54,9 @@
       if(lots.size){const check=ui.el('button',ui.t('Check confirmations → new draft','Verificar confirmaciones → nuevo borrador'),card);check.type='button';check.onclick=async()=>{
         // Make bags (and their ambiguous last-4 check) live in make-formula.js; this list only sends typed codes.
         if(busy||finished||uploading)return;
+        // Every listed lot needs its typed code; a blank row would reach FL as "" (422).
+        const blank=inputs.filter(input=>!input.value.value.trim());
+        if(blank.length){for(const input of blank){input.choices.replaceChildren();const name=(input.lot.product_name?input.lot.product_name+' · ':'')+input.lot.lot_code;const p=ui.el('p',ui.t('Type the code from the lot label for '+name+'.','Escribe el código de la etiqueta para '+name+'.'),input.choices);p.className='bad';p.dataset.blankConfirmation='';}blank[0].value.focus?.();return;}
         confirmations=inputs.map(input=>input.read());prepare();
       };}
       if(allowPhoto){
