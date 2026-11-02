@@ -118,7 +118,7 @@
       field('ship_all','Ship all remaining lines','Enviar todo lo pendiente','checkbox',false,order);order.append(lines);
       choose('customer','Customer','Cliente','customer',undefined,undefined,standalone);
       const standaloneLotArea=ui.el('section');standaloneLotArea.className='wide';
-      choose('ship_product','Product to ship','Producto a enviar','product',undefined,selected=>{standaloneLots=null;standaloneLotArea.replaceChildren();if(selected)standaloneLots=shippedLots(standaloneLotArea,selected.id,null);},standalone);field('quantity_lb','lb to ship','lb a enviar','number',false,standalone);standalone.append(standaloneLotArea);field('order_reference','Shipment reference','Referencia de envío','text',true,standalone);
+      choose('ship_product','Product to ship','Producto a enviar','product',undefined,selected=>{standaloneLots=null;standaloneLotArea.replaceChildren();if(selected)standaloneLots=shippedLots(standaloneLotArea,selected.id,null);},standalone);field('quantity_lb','lb to ship','lb a enviar','number',false,standalone);standalone.append(standaloneLotArea);field('order_reference','Shipment reference','Referencia de envío','text',false,standalone);
       mode.onchange=()=>{order.hidden=mode.value!=='order';standalone.hidden=mode.value!=='standalone';shipmentLotSelectors.forEach(selector=>selector.syncEnabled());invalidate();};field('bol_reference','BOL number','Número BOL','text',true);
       ui.el('p',ui.t('Attach the signed BOL photo here or on the draft. FL shows any pending-photo deadline.','Adjunta la foto del BOL firmado aquí o en el borrador. FL muestra el plazo de la foto pendiente.'),fields).className='wide';
     }

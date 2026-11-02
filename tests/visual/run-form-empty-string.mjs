@@ -41,13 +41,18 @@ try{
  await page.getByRole('button',{name:'Record another entry',exact:true}).click();await page.locator('#entry-action').selectOption('pack');await choose('source','D1290');await choose('target','D1270');await page.locator('[name=cases]').fill('1');await prepare();
  const packBefore=posts('/pack/prepare');await check();await page.locator('#resolution [data-blank-confirmation]').first().waitFor();assert.equal(posts('/pack/prepare'),packBefore);await noRawPydantic();
  for(const row of await rows().all()){await row.locator('select').selectOption('full_code');await row.locator('input').fill(await codeOf(row));}await check();await recordable();const packed=await record();assert.match(packed,/^[A-Z]+-\d{6}-\d+$/);
- // Standalone ship: the reference FL requires is required in the form; spaces alone are refused by name.
+ // Ship as Owner: sales-order mode first, then standalone, where a blank or spaces-only reference is refused by name.
  await page.getByRole('button',{name:'Sign out',exact:true}).click();await page.locator('#actor-key').fill('d12-local-owner');await page.locator('#sign-in-form button[type=submit]').click();await page.getByText('Signed in as Owner D12',{exact:true}).waitFor();
- await page.locator('#entry-action').selectOption('ship');await page.locator('[name=ship_mode]').selectOption('standalone');await choose('customer','D12 Test Customer');await choose('ship_product','D1270');await page.locator('[name=quantity_lb]').fill('1');await page.locator('[name=bol_reference]').fill('Empty-string BOL');
- assert.equal(await page.locator('[name=order_reference]').evaluate(input=>input.required),true);
- await page.getByRole('button',{name:'Prepare draft',exact:true}).click();assert.equal(await page.locator('[name=order_reference]').evaluate(input=>input.validity.valueMissing),true);
+ // Sales-order Ship (the default mode): the hidden standalone reference must not block Prepare draft.
+ await page.locator('#entry-action').selectOption('ship');assert.equal(await page.locator('[name=ship_mode]').inputValue(),'order');await choose('order','SO-D12-BROWSER');
+ await page.locator('[data-shipment-line-id] input[type=number]').first().fill('1');await page.locator('[name=bol_reference]').fill('Empty-string order BOL');
+ const orderShip='/sales/orders/'+fixture.order+'/ship/prepare';await prepare();assert.equal(posts(orderShip),1,'sales-order Ship sends one prepare request');
+ assert.equal(requests.filter(r=>r.path===orderShip).at(-1).body.order_reference,undefined,'order mode sends no standalone reference');await noRawPydantic();
+ await page.screenshot({path:out+'/ship-sales-order-draft-390.png',fullPage:true});await page.locator('#resolution').getByRole('button',{name:'Cancel',exact:true}).click();
+ await page.locator('[name=ship_mode]').selectOption('standalone');await choose('customer','D12 Test Customer');await choose('ship_product','D1270');await page.locator('[name=quantity_lb]').fill('1');await page.locator('[name=bol_reference]').fill('Empty-string BOL');
+ await page.getByRole('button',{name:'Prepare draft',exact:true}).click();await page.getByText('Enter the shipment reference.',{exact:false}).first().waitFor();
  await page.locator('[name=order_reference]').fill('   ');await page.getByRole('button',{name:'Prepare draft',exact:true}).click();await page.getByText('Enter the shipment reference.',{exact:false}).first().waitFor();
  assert.equal(posts('/ship/prepare'),0,'blank reference never sent');await noRawPydantic();await page.screenshot({path:out+'/ship-blank-reference-390.png',fullPage:true});
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
- console.log(`Form empty-string browser run passed: multi-lot Make ${made} (blank bag code never sent as \"\", plain blocker; blank optional fields omitted), Pack ${packed}, standalone Ship reference required — 390 px, real local FastAPI.`);
+ console.log(`Form empty-string browser run passed: multi-lot Make ${made} (blank bag code never sent as \"\", plain blocker; blank optional fields omitted), Pack ${packed}, sales-order Ship draft prepared (1 request), standalone Ship blank reference refused by name — 390 px, real local FastAPI.`);
 }catch(error){await page.screenshot({path:out+'/failure.png',fullPage:true});console.error('Visible result:',await page.locator('#notice').textContent().catch(()=>''));console.error('Page errors:',errors);throw error;}finally{await browser.close();}
