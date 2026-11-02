@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-01 20:14 — Spec: Formula-Driven Production Entry (docs only)
+- **File(s) changed:** `docs/production/formula-driven-entry.md`
+- **What changed:** New draft spec for pan-based make entry: current make flow (entry.js → /make/prepare → ticket_actions/_make_preview_core → ticket commit), where recipes/batch weight/lot balances/FIFO live, the new behaviour (pans × recipe, tap-to-confirm oldest-lot pick-list, editable pounds and lot splits, fixed reason list, oat bran swap, shortages post and flag, >10% warning, recipe version, one record per run, deduct only on confirm), reuse vs new, size estimate, owner decisions D1–D7. Read-only investigation; no code, DB or deploy.
+- **Why:** Michael asked for an investigation and spec before building formula-driven production entry.
+
+---
+
 ## 2026-11-01 16:22 — Record Supplies extraction production deploy (#170): changelog row 242
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added FACTORY_LEDGER_CHANGELOG row 242: #170 (head 806e4d0) squash-merged to production main a4a5c99; Railway FastAPI 5e17b70d, expire-tickets a080fd5e, exceptions-sweep 18c5a500 SUCCESS; previous build 0f1cedf2. Records the verified backup 2026-11-01-pre-supplies170, the staging proof (FastAPI-staging e39166fa vs pre-extraction c3747d73: OpenAPI byte-identical, 0 response differences, inventory/FIFO equal to posted-only SQL, floor/office supply-request writes and 409 on repeat completion), and the production checks (OpenAPI byte-identical sha256 7a5120bf, Supplies auth 401/403, 210 products and 276 FIFO lot lists equal to posted-only SQL, signed-out dashboard Supplies tab OK, logs clean). Staging probe requests #1/#2 left done.
