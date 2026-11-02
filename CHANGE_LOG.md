@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-01 20:25 — Daily Verification module scope (read-only audit)
+- **File(s) changed:** `docs/verification/daily-verification-scope.md` (new)
+- **What changed:** Scoping doc for a 5-part Daily Verification module (blind spot count, QBO cross-check, end-of-day closeout, 2x/week trace challenge, daily owner email): reusable code per part, gaps, smallest build with S/M/L size, and conflicts with the 30-op OpenAPI cap, feat/planner-v2, the three changelogs and the Render/Railway hosting changes. Based on origin/main 87f500f plus read-only production queries (port 5432, BEGIN TRANSACTION READ ONLY). Findings include: QBO not connected in code; shift_confirmations has 0 rows; 18 of 36 postings since Oct 28 came from legacy-shared-key with no named actor; office schema at 30/30 ops; no email infrastructure.
+- **Why:** Michael asked for a read-only scope before any build. No code, no DB writes, not committed.
+
+---
+
 ## 2026-11-01 16:22 — Record Supplies extraction production deploy (#170): changelog row 242
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added FACTORY_LEDGER_CHANGELOG row 242: #170 (head 806e4d0) squash-merged to production main a4a5c99; Railway FastAPI 5e17b70d, expire-tickets a080fd5e, exceptions-sweep 18c5a500 SUCCESS; previous build 0f1cedf2. Records the verified backup 2026-11-01-pre-supplies170, the staging proof (FastAPI-staging e39166fa vs pre-extraction c3747d73: OpenAPI byte-identical, 0 response differences, inventory/FIFO equal to posted-only SQL, floor/office supply-request writes and 409 on repeat completion), and the production checks (OpenAPI byte-identical sha256 7a5120bf, Supplies auth 401/403, 210 products and 276 FIFO lot lists equal to posted-only SQL, signed-out dashboard Supplies tab OK, logs clean). Staging probe requests #1/#2 left done.
