@@ -1,5 +1,61 @@
 # Change Log
 
+## 2026-10-14 19:48 — Save final F1 verification manifest
+- **File(s) changed:** ignored `.venv-test/f1-final-verification-evidence.json`
+- **What changed:** Save complete source-bound verification manifest: 5,682 Python / 207 Node passed, 20 of 21 browser files passed (only baseline P1.27), both final F1 modes passed, full visual audit capture/error/rule totals, staging deployment source equality and confirmed owned-runtime cleanup.
+- **Why:** Complete isolated local baseline/final regression verification for the F1 unsupported-request fix.
+
+---
+
+## 2026-10-14 19:48 — Complete all F1 browser checks and clean owned runtimes
+- **File(s) changed:** ignored `.venv-test/` browser evidence, runtime cleanup
+- **What changed:** All 21 local browser files executed in 26 modes: 25 modes pass, only baseline-reproduced integrated-intake P1.27 fails. Corrected final F1 modes also both pass. Full audit: 388 captures, zero capture errors, rule counts PASS 3257/FAIL 419/WARN 64/N-A 1304/ERROR 0; informational findings preserved and tracked report restored byte-for-byte. Both void modes pass. Verify no owned DBs remain, stop private PostgreSQL cluster, remove only temporary Node dependency link.
+- **Why:** Complete isolated local baseline/final regression verification for the F1 unsupported-request fix.
+
+---
+
+## 2026-10-14 19:46 — Link final F1 neutral-outcome screenshot evidence
+- **File(s) changed:** ignored `.venv-test/f1-evidence.py`
+- **What changed:** Add the screenshot path from the corrected final browser run alongside EN/ES outcome assertions and mode exit codes.
+- **Why:** Complete isolated local baseline/final regression verification for the F1 unsupported-request fix.
+
+---
+
+## 2026-10-14 19:44 — Complete clean F1 Python and focused browser verification
+- **File(s) changed:** ignored `.venv-test/f1-final-head-python/`, `.venv-test/f1-final-head-node.log`, `.venv-test/f1-final-fixed-browser-*`
+- **What changed:** All 5,682 Python tests pass across 21 fresh private-database groups with zero failures/errors/skips; all 207 Node tests and corrected F1 browser session ON/OFF modes pass. Initial IPv6 setup error is preserved separately; explicit IPv4 rerun has no suppressed tests and dropped the sole suite DB.
+- **Why:** Complete isolated local baseline/final regression verification for the F1 unsupported-request fix.
+
+---
+
+## 2026-10-14 19:42 — Preserve failed setup attempt and deployment equality evidence
+- **File(s) changed:** ignored `.venv-test/f1-evidence.py`
+- **What changed:** Include the resolved IPv6 infrastructure failure and explicit clean full-run assertions, plus application/browser/deployment commit equality and complete visual-audit capture/error counters.
+- **Why:** Complete isolated local baseline/final regression verification for the F1 unsupported-request fix.
+
+---
+
+## 2026-10-14 19:41 — Retry complete Python verification over explicit loopback IPv4
+- **File(s) changed:** ignored `.venv-test/f1-final-head-suite.py` and Python evidence
+- **What changed:** Preserve initial full-run setup failure evidence (5,600 passes, one localhost IPv6 SSL-negotiation connection error); confirm only owned PostgreSQL listens on 127.0.0.1:55471 and no suite DB remains; rerun all tests with explicit IPv4 and no test suppression.
+- **Why:** Complete isolated local baseline/final regression verification for the F1 unsupported-request fix.
+
+---
+
+## 2026-10-14 19:39 — Record test-only final commit equivalence
+- **File(s) changed:** ignored `.venv-test/f1-evidence.py`
+- **What changed:** Bind complete Python and Node results to f08a214 with source equality to fb2492d, and replace the failed synthetic-pointer F1 attempts with both corrected browser reruns.
+- **Why:** Complete isolated local baseline/final regression verification for the F1 unsupported-request fix.
+
+---
+
+## 2026-10-14 19:39 — Rerun final F1 browser modes after pointer fixture fix
+- **File(s) changed:** ignored `.venv-test/` final F1 browser evidence
+- **What changed:** Switch to fb2492d after proving only the browser fixture, diagnosis evidence and changelog differ from f08a214; in-flight full Python application/test sources remain byte-identical. Rerun both F1 modes with active pointer ID 1.
+- **Why:** Complete isolated local baseline/final regression verification for the F1 unsupported-request fix.
+
+---
+
 ## [2026-10-14 19:38] — Use active pointer in dictation failure browser regression
 - **File(s) changed:** tests/visual/run-fl-assistant.mjs
 - **What changed:** Reused the browser mouse pointer ID for the second synthetic hold-to-talk attempt so setPointerCapture accepts the test input.
