@@ -26,7 +26,7 @@ async function harness(action='ship',language='en',{role='floor'}={}){
   const order={order_id:5,order_number:'SO-PILOT',lines:[{line_id:101,product_id:1561,product:'Classic Granola',remaining_lb:60,line_status:'open'},{line_id:102,product_id:9,product:'Pallet',remaining_lb:0,is_service:true,line_status:'open'},{line_id:103,product_id:1561,product:'Cancelled',remaining_lb:10,line_status:'cancelled'},{line_id:104,product_id:1561,product:'Fulfilled',remaining_lb:0,line_status:'fulfilled'}]};
   const labelled=new Set(),events={};const label=(node,value)=>{node.textContent=String(value??'');if(value?.en!==undefined){node.labels=[value.en,value.es];labelled.add(node);}else{delete node.labels;labelled.delete(node);}return node;};
   const ui={problem:value=>Error(String(value)),lang:language,correctionReasons:require('../dashboard/ledger-ui.js').correctionReasons,session:{actor:{role}},async upload(file,kind){const attached={attachment_id:88,kind};uploads.push({file,kind,attached});return attached;},formatNumber:require('../dashboard/ledger-ui.js').formatNumber,bind(){},ready:Promise.resolve(true),setText:label,relabel(){for(const node of labelled)if(node.isConnected)node.textContent=node.labels[ui.lang==='es'?1:0];},t:(en,es)=>Object.assign(new String(ui.lang==='es'?es:en),{en,es}),el(tag,text,parent){const node=label(new Element(tag),text);parent?.append(node);return node;},failure(error){failures.push(error.message);},
-    async request(path,body,options){requests.push({path,body,options});if(path==='/entry/lots?'+new URLSearchParams({product_id:'1561'}))return stock(path);if(path.startsWith('/entry/lots?'))return stock(path);if(path==='/resolve'){if(resolver)return resolver(body);return {outcome:'match',match:{id:body.kind==='order'?5:body.kind==='customer'?7:body.kind==='supplier'?8:1561,label:body.kind,type:body.kind==='product'?'ingredient':undefined,supplier_lot_required:body.kind==='product',case_size_lb:25}};}if(path.startsWith('/sales/orders/'))return order;if(path.startsWith('/ship/lots?'))return stock(path);throw Error('Unexpected request '+path);},
+    async request(path,body,options){requests.push({path,body,options});if(path==='/entry/lots?'+new URLSearchParams({product_id:'1561'}))return stock(path);if(path.startsWith('/entry/lots?'))return stock(path);if(path.startsWith('/entry/make-products?')){if(resolver)return resolver({kind:'make_product',query:new URLSearchParams(path.split('?')[1]).get('query')});return {products:[{id:1561,name:'make_product',label:'make_product',type:'batch',default_batch_lb:323}],has_more:false};}if(path==='/resolve'){if(resolver)return resolver(body);return {outcome:'match',match:{id:body.kind==='order'?5:body.kind==='customer'?7:body.kind==='supplier'?8:1561,label:body.kind,type:body.kind==='product'?'ingredient':undefined,supplier_lot_required:body.kind==='product',case_size_lb:25}};}if(path.startsWith('/sales/orders/'))return order;if(path.startsWith('/ship/lots?'))return stock(path);throw Error('Unexpected request '+path);},
     ticketCard(host,path,body,options){const ticket={host,path,body:plain(body),options};tickets.push(ticket);return {invalidate(){ticket.invalidated=true;}};}
   };
   vm.runInNewContext(fs.readFileSync('dashboard/make-formula.js','utf8'),{window:{FLLedger:ui}});
@@ -244,3 +244,41 @@ test('packaging receipt keeps supplier lot optional and no-label flag hidden aft
 test('language switch retains supplier lot and explicit no-label decision',async()=>{const h=await harness('receive');await h.pick('product');await h.pick('supplier');const flag=h.field('no_supplier_lot');flag.checked=true;flag.onchange();h.switchLanguage('es');assert.ok(h.find(node=>node.textContent==='Sin lote en la etiqueta'));assert.equal(flag.checked,true);assert.equal(h.field('supplier_lot_code').value,'SUP-LOT-123');});
 
 test('non-purchased ingredient does not acquire a client supplier-lot requirement',async()=>{const h=await harness('receive');h.setResolver(body=>({outcome:'match',match:{id:body.kind==='supplier'?8:99,label:body.kind,type:'ingredient',supplier_lot_required:false}}));await h.pick('product');await h.pick('supplier');h.field('supplier_lot_code').value='';assert.equal(h.field('supplier_lot_code').required,false);assert.equal(h.field('no_supplier_lot').parent.hidden,true);h.submit();assert.equal(h.tickets.length,1);});
+// PR #173 staging: Make search stayed on "Searching…" for a signed-out worker; the
+// real error only reached the page notice. Searches are reads and always end.
+for(const [action,picker,path] of [['make','product','/entry/make-products?'],['receive','product','/resolve'],['adjust','lot','/entry/lots?']])test(`${action} ${picker} search is a read that needs no sign-in`,async()=>{
+  const h=await harness(action),scope=h.find(node=>node.dataset.picker===picker);h.find(node=>node.tag==='input',scope).value='Classic';await h.find(node=>node.tag==='button',scope).onclick();
+  const request=h.requests.find(r=>r.path.startsWith(path));assert.ok(request,path);assert.equal(request.options.read,true);assert.deepEqual(h.failures,[]);
+});
+for(const action of ['make','receive'])test(`${action} search failure ends in the field with Try again, never "Searching…"`,async()=>{
+  const h=await harness(action),scope=h.find(node=>node.dataset.picker==='product'),input=h.find(node=>node.tag==='input',scope),search=h.find(node=>node.tag==='button',scope);
+  let calls=0;h.setResolver(()=>{calls++;if(calls===1)throw Error('Sign in before recording.');return action==='make'?{products:[{id:107,label:'Batch Classic Granola #9 (90002)',default_batch_lb:323}]}:{outcome:'match',match:{id:1,label:'Oats'}};});
+  input.value='90002';await search.onclick();const status=scope.children.find(node=>node.tag==='p');
+  assert.equal(status.textContent,'Search failed: Sign in before recording.');assert.equal(status.className,'notice');assert.equal(search.disabled,false);assert.deepEqual(h.failures,[]);
+  const options=h.find(node=>node.className==='picker-options',scope);assert.equal(options.children[0].textContent,'Try again');
+  await options.children[0].onclick();assert.notEqual(status.textContent,'Searching…');assert.equal(status.className,'');assert.equal(options.children.length,1);assert.notEqual(options.children[0].textContent,'Try again');
+});
+test('an unreachable server during search says to try again, not to press Record',async()=>{
+  const h=await harness('make'),scope=h.find(node=>node.dataset.picker==='product');h.setResolver(()=>{throw Object.assign(Error('Could not reach FL — this is NOT confirmed. Press Record again.'),{transport:true});});
+  h.find(node=>node.tag==='input',scope).value='classic';await h.find(node=>node.tag==='button',scope).onclick();const status=scope.children.find(node=>node.tag==='p');
+  assert.equal(status.textContent,'Search failed: Could not reach FL. Check the connection, then tap Try again.');assert.doesNotMatch(status.textContent,/Record/);
+});
+test('a search that never answers stops after the time limit with a clear message',async()=>{
+  const h=await harness('make'),scope=h.find(node=>node.dataset.picker==='product'),input=h.find(node=>node.tag==='input',scope),search=h.find(node=>node.tag==='button',scope);
+  h.setResolver(()=>new Promise(()=>{}));input.value='classic';const pending=search.onclick();await flush();const status=scope.children.find(node=>node.tag==='p');assert.equal(status.textContent,'Searching…');
+  await h.runTimers();await pending;assert.match(status.textContent,/took too long/);assert.equal(search.disabled,false);
+});
+for(const language of ['en','es'])test(`make product autocomplete lists recipe products with pan weight as you type in ${language}`,async()=>{
+  const h=await harness('make',language),scope=h.find(node=>node.dataset.picker==='product'),input=h.find(node=>node.tag==='input',scope);const queries=[];
+  h.setResolver(({query})=>{queries.push(query);return {products:[{id:107,name:'Batch Classic Granola #9',label:'Batch Classic Granola #9 (90002)',default_batch_lb:'323.0000',kosher_tier:'regular'},{id:283,name:'Batch Classic Granola #9 — EXTRA-KOSHER (SS)',label:'Batch Classic Granola #9 — EXTRA-KOSHER (SS) (90025)',default_batch_lb:'323.0000',kosher_tier:'extra_kosher'}],has_more:false};});
+  assert.equal(input.role,'combobox');input.onfocus();await flush();assert.deepEqual(queries,['']);
+  input.value='9';input.oninput();assert.equal(queries.length,1);await h.runTimers();assert.deepEqual(queries,['','9']);
+  const options=h.find(node=>node.className==='picker-options',scope).children;assert.equal(options.length,2);assert.equal(options[0].role,'option');
+  assert.match(options[0].textContent,language==='es'?/323 lb por bandeja/:/323 lb per pan/);assert.equal(options[1].children[0].textContent,'EXTRA-KOSHER');
+  await options[0].onclick();assert.equal(input.value,'Batch Classic Granola #9 (90002)');h.field('batches').value='2';h.submit();assert.deepEqual(h.failures,[]);assert.equal(h.tickets[0].body.product_id,107);
+});
+test('make search with no recipe match explains how to search',async()=>{
+  const h=await harness('make'),scope=h.find(node=>node.dataset.picker==='product');h.setResolver(()=>({products:[],has_more:false}));
+  h.find(node=>node.tag==='input',scope).value='clasic';await h.find(node=>node.tag==='button',scope).onclick();
+  assert.match(scope.children.find(node=>node.tag==='p').textContent,/No product with a recipe matches/);
+});

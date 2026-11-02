@@ -914,6 +914,33 @@ def entry_lots(cur, *, product_id=None, query='', include_empty=False):
     return {'lots': rows[:50], 'has_more': len(rows)>50}
 
 
+def entry_make_products(cur, *, query=''):
+    """Make screen autocomplete: active batch products that have a recipe.
+
+    Every typed word must appear in the name or start the product code, so
+    'classic 9', '900' and 'avena' (Spanish catalog words) all narrow the list.
+    An empty query lists them all. Display choices only, never a match."""
+    text = query.strip()
+    terms = [term.replace('\\', '\\\\').replace('%', '\\%').replace('_', '\\_')
+             for term in catalog_query(text).split()]
+    cur.execute("""SELECT p.id, p.name, p.odoo_code, p.type, p.kosher_tier, p.default_batch_lb,
+            p.name || COALESCE(' (' || p.odoo_code || ')', '') AS label,
+            (SELECT sum(bf.quantity_lb) FROM batch_formulas bf WHERE bf.product_id=p.id) AS recipe_lb
+        FROM products p
+        WHERE p.active IS DISTINCT FROM false AND p.type='batch'
+          AND EXISTS (SELECT 1 FROM batch_formulas bf WHERE bf.product_id=p.id)
+          AND NOT EXISTS (SELECT 1 FROM unnest(%s::text[]) w(term)
+                          WHERE NOT (p.name ILIKE '%%' || w.term || '%%'
+                                     OR COALESCE(p.odoo_code,'') ILIKE w.term || '%%'))
+        ORDER BY CASE WHEN lower(COALESCE(p.odoo_code,''))=lower(%s) THEN 0
+                      WHEN %s<>'' AND COALESCE(p.odoo_code,'') ILIKE %s || '%%' THEN 1
+                      WHEN %s<>'' AND p.name ILIKE %s || '%%' THEN 2 ELSE 3 END,
+                 p.kosher_tier IS NOT DISTINCT FROM 'extra_kosher', p.name, p.id
+        LIMIT 51""", (terms, text, text, text, text, text))
+    rows = [dict(row) for row in cur.fetchall()]
+    return {'products': rows[:50], 'has_more': len(rows)>50}
+
+
 def build_router(transaction, authenticate):
     router = APIRouter()
 
@@ -923,6 +950,12 @@ def build_router(transaction, authenticate):
                             include_empty: bool = False, _: bool = Depends(authenticate)):
         with transaction() as cur:
             return entry_lots(cur, product_id=product_id, query=query, include_empty=include_empty)
+
+    @router.get('/entry/make-products')
+    def entry_make_products_endpoint(query: str = Query('', max_length=200),
+                                     _: bool = Depends(authenticate)):
+        with transaction() as cur:
+            return entry_make_products(cur, query=query)
 
     @router.post('/resolve')
     def resolve_endpoint(req: ResolveRequest, _: bool = Depends(authenticate)):

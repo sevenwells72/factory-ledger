@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-02 12:08 — Fixed Make screen product search stuck on Searching (PR #173)
+- **File(s) changed:** `resolution.py`, `main.py`, `dashboard/entry.js`, `dashboard/entry.html`, `tests/test_pilot_entry_ui.js`, `tests/test_pilot_ux_reads.py`, `tests/fixtures/route_contract/routes.jsonl`, `tests/fixtures/route_contract/openapi.jsonl`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added read-only GET /entry/make-products (active batch products with a recipe; partial name words and code prefixes; dashboard-key allowlisted). Make product picker now autocompletes from it. All entry-screen searches are reads, capped at 25 s, and show errors with Try again in the field instead of staying on Searching. entry.js cache-bust v12. 15 new JS/Python regression tests; route-contract fixtures regenerated (new route only); FACTORY_LEDGER_CHANGELOG row 246.
+- **Why:** Owner staging test: searching 90002 or Batch Classic Granola #9 stayed on Searching… with no results. The picker required sign-in for a read and showed the error only in the page notice, leaving the field stuck; /resolve also ranked ingredients for Make and missed partial codes.
+
+---
+
 ## 2026-11-02 10:40 — PR #173 (formula-driven entry, bb48cb8) deployed to FastAPI-staging only
 - **File(s) changed:** none in repo (FastAPI-staging deployment 292367b0; this log entry only)
 - **What changed:** Uploaded exact PR #173 head bb48cb8 (clean detached checkout ~/dev/fl-formula-stage-wt, linked to FastAPI-staging only) with `railway up`. Two earlier attempts (5cbc68f2, 3d04f256) FAILED in Railway's build service ("frontend grpc server closed unexpectedly", before any repo code built); the third, 292367b0, SUCCEEDED. Previous good deployment: e39166fa. Read-only checks: /health 200 (database connected); /dashboard/entry.html serves make-formula.js v3 and ledger-ticket.js v12; served make-formula.js identical to bb48cb8; OpenAPI has formula_entry and ingredient_lines; startup log has no errors. No staging data written. Production untouched (/health 200); nothing merged to main.
