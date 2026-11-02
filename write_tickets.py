@@ -12,6 +12,7 @@ import permissions
 import ticket_actions as actions
 import lot_confirmation as a5
 import exceptions_enforcement as a3b
+import formula_entry as formula
 from datetime import date, datetime
 from typing import List, Literal, Optional
 
@@ -175,6 +176,22 @@ class SupplierLotPrepareRequest(ActionPrepareRequest):
         return supplier_lot_tickets.supplier_code(value)
 
 
+class IngredientBag(IdInput):
+    lot_id: PositiveId
+    quantity_lb: confloat(gt=0)
+
+
+class IngredientLine(IdInput):
+    """Formula-driven entry: the bags actually used for one recipe ingredient.
+
+    No bags means 0 lb (not used), which needs a fixed reason (formula_entry.REASONS).
+    """
+    ingredient_product_id: PositiveId
+    bags: List[IngredientBag] = Field(default_factory=list)
+    reason_code: Optional[Literal[formula.CODES]] = None
+    note: Optional[str] = Field(None, max_length=2000)
+
+
 class MakePrepareRequest(ActionPrepareRequest):
     substitutions: List[a5.Substitution] = Field(default_factory=list)
     reason_code: Optional[str] = None
@@ -186,6 +203,9 @@ class MakePrepareRequest(ActionPrepareRequest):
     ingredient_lots: List[IngredientLot] = Field(default_factory=list)
     excluded_ingredients: List[PositiveId] = Field(default_factory=list)
     confirmed_sku: bool = False
+    # The Make screen (pans) sets formula_entry; other callers keep today's draft.
+    formula_entry: bool = False
+    ingredient_lines: List[IngredientLine] = Field(default_factory=list)
 
 
 class LotAllocation(IdInput):
@@ -788,6 +808,9 @@ def register_routes(app, api):
         payload = json.loads(req.json(exclude={'client_source'}))
         if action == 'adjust' and not payload.get('resolves_shortage_ids'):
             payload.pop('resolves_shortage_ids', None)   # unchanged payload/hash for ordinary adjusts
+        if action == 'make' and not payload.get('formula_entry'):
+            payload.pop('formula_entry', None)     # unchanged payload/hash for other make callers
+            payload.pop('ingredient_lines', None)
         if lot_id is not None:
             payload['lot_id'] = lot_id
         event_time = req.occurred_at or api.get_plant_now()
@@ -849,6 +872,8 @@ def register_routes(app, api):
             if late:
                 warnings.append(late)
             warnings.extend(a3b.shortage_warnings(draft))   # A3b hook (R3): warns, never blocks
+            if action == 'make':
+                warnings.extend(formula.warnings(draft))     # spec 3.8: > 10% off recipe
             draft['entry_timing'] = entry_timing
             return issue_ticket(api, cur, actor=actor, action=action, payload=payload, draft=draft,
                                 state=state, warnings=warnings, blockers=blockers,

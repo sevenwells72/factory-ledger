@@ -5,28 +5,42 @@
     allowPhoto=allowPhoto&&!['/make/prepare','/pack/prepare'].includes(path);
     if(!allowPhoto)initialAttachment=null;
     if(path==='/receive/prepare')photoKind=['bol','lot_tag'].includes(initialAttachment?.kind)?initialAttachment.kind:['bol','lot_tag'].includes(photoKind)?photoKind:'lot_tag';
-    let prepared=null,busy=false,finished=false,attachment=initialAttachment,photoFile=initialPhoto,uploading=false,confirmations=[],lastLots=[];
+    let prepared=null,busy=false,finished=false,attachment=initialAttachment,photoFile=initialPhoto,uploading=false,confirmations=[],lastLots=[],lastFormula=null,anchor=null;
     const card=ui.el('section',undefined,host);card.className='panel';
     function editButton(){const cancel=ui.el('button',ui.t('Cancel','Cancelar'),card);cancel.type='button';cancel.className='secondary';cancel.onclick=()=>{if(busy||uploading||finished)return;finished=true;card.remove();document.getElementById('notice').hidden=true;if(onCancel)onCancel();else if(onEdit)onEdit();};if(onEdit){const edit=ui.el('button',ui.t('Edit entry','Editar entrada'),card);edit.type='button';edit.onclick=()=>{if(!busy&&!uploading&&!finished)onEdit();};}}
     function failure(error){ui.failure(error);onFailure(error);}
     function invalidate(){finished=true;card.replaceChildren();ui.el('p',ui.t('Draft cleared. Prepare again after signing in.','Borrador borrado. Prepara de nuevo tras iniciar sesión.'),card);}
     window.addEventListener('ledger-signout',invalidate,{once:true});
-    async function prepare(){if(busy||finished)return;busy=true;card.replaceChildren();ui.el('p',ui.t('Preparing…','Preparando…'),card);
-      try{prepared=await ui.request(path,{...payload,...(confirmations.length?{lot_confirmations:confirmations}:{})});if(finished)return;if(!prepared.ticket||!prepared.payload_hash||!prepared.draft)throw Error('FL did not return a draft / FL no devolvió un borrador');document.getElementById('notice').hidden=true;render();onPrepared(prepared);}
-      catch(error){if(finished)return;failure(error);card.replaceChildren();const retry=ui.el('button',ui.t('Try prepare again','Preparar de nuevo'),card);retry.type='button';retry.onclick=prepare;editButton();}finally{busy=false;}}
+    async function prepare({refresh=false}={}){if(busy||finished)return;busy=true;
+      // refresh: an edited Make draft stays on screen (dimmed) while FL re-checks it.
+      if(refresh){card.setAttribute('aria-busy','true');card.classList?.add('updating');}else{card.replaceChildren();ui.el('p',ui.t('Preparing…','Preparando…'),card);}
+      try{const next=await ui.request(path,{...payload,...(confirmations.length?{lot_confirmations:confirmations}:{})});if(finished)return;if(!next.ticket||!next.payload_hash||!next.draft)throw Error('FL did not return a draft / FL no devolvió un borrador');prepared=next;document.getElementById('notice').hidden=true;render();keepInView();onPrepared(prepared);}
+      catch(error){if(finished)return;failure(error);if(refresh){anchor=null;return;}card.replaceChildren();const retry=ui.el('button',ui.t('Try prepare again','Preparar de nuevo'),card);retry.type='button';retry.onclick=()=>prepare();editButton();}finally{busy=false;if(refresh){card.setAttribute('aria-busy','false');card.classList?.remove('updating');}}}
+    function keepInView(){if(!anchor)return;const box=[...(card.querySelectorAll?.('.formula-ingredient')||[])].find(b=>b.dataset.productId===anchor.id),top=box?.getBoundingClientRect?.().top;if(top!=null&&anchor.top!=null)root.scrollBy?.(0,top-anchor.top);anchor=null;}
     function render(){card.replaceChildren();editButton();ui.el('h2',ui.t('Draft — review before recording','Borrador — revisa antes de registrar'),card);ui.el('p',ui.t('Recording as '+(prepared.actor?.name||prepared.draft.actor?.name||'—'),'Registrando como '+(prepared.actor?.name||prepared.draft.actor?.name||'—')),card);ui.el('p',ui.t('Expires: '+ui.plantTime(prepared.expires_at,'en'),'Vence: '+ui.plantTime(prepared.expires_at,'es')),card);
       const view=ui.el('div',undefined,card);view.className='draft-data';view.innerHTML=path==='/make/prepare'?ui.makeDraftHtml(prepared.draft,root.matchMedia?.('(max-width: 520px)').matches!==false):ui.draftHtml(prepared.draft);
-      if(path==='/make/prepare')for(const shortage of prepared.draft.shortages||[]){
+      // Make (phone): FL's own warnings already name each short lot; a warning that needs
+      // no tick is shown as a note, never as a checkbox (commit checks only requires_ack).
+      const make=path==='/make/prepare',serverShortage=(prepared.warnings||[]).some(w=>w.code==='WILL_CREATE_SHORTAGE');
+      if(make&&!serverShortage)for(const shortage of prepared.draft.shortages||[]){
         const name=shortage.product_name||ui.t('this ingredient','este ingrediente'),amount=ui.formatNumber(shortage.on_hand_lb??shortage.available_lb??0);
         const warning=ui.el('p',ui.t('Only '+amount+' lb of '+name+' on hand — this will be recorded as a shortage.','Solo hay '+amount+' lb de '+name+' — se registrará como un faltante.'),card);warning.className='notice';warning.dataset.shortageWarning='';
       }
       const ack=[];let evidenceDirty=false;
-      (prepared.warnings||[]).forEach(w=>{const label=ui.el('label',undefined,card);label.className='check notice';const input=ui.el('input',undefined,label);input.type='checkbox';input.dataset.warning=w.code;ui.el('span',ui.t(ui.text(w,'en'),ui.text(w,'es')),label);ack.push([input,w.code]);});
+      (prepared.warnings||[]).forEach(w=>{if(make&&w.requires_ack===false){const note=ui.el('p',ui.t(ui.text(w,'en'),ui.text(w,'es')),card);note.className='notice';note.dataset.warningInfo=w.code;if(w.code==='WILL_CREATE_SHORTAGE')note.dataset.shortageWarning='';return;}const label=ui.el('label',undefined,card);label.className='check notice';const input=ui.el('input',undefined,label);input.type='checkbox';input.dataset.warning=w.code;ui.el('span',ui.t(ui.text(w,'en'),ui.text(w,'es')),label);ack.push([input,w.code]);});
       if(prepared.can_commit!==true){const state=ui.el('p',ui.t('NOT recorded — resolve the blockers below.','NO registrado — resuelve los bloqueos abajo.'),card);state.className='bad';}
-      (prepared.blockers||[]).forEach(b=>{const p=ui.el('p',ui.t(ui.text(b,'en'),ui.text(b,'es')),card);p.className='bad';});
+      // Each Make bag shows its own "Not confirmed" state, so unconfirmed bags are one line here.
+      let blockers=prepared.blockers||[];const unconfirmed=blockers.filter(b=>b.code==='LOT_NOT_CONFIRMED');
+      if(make&&prepared.draft.formula_entry&&unconfirmed.length>1)blockers=[...blockers.filter(b=>b.code!=='LOT_NOT_CONFIRMED'),{code:'LOT_NOT_CONFIRMED',message:unconfirmed.length+' bags still need the code from their label — type it on each bag marked "Not confirmed" below.',message_es:'A '+unconfirmed.length+' bolsas les falta el código de la etiqueta — escríbelo en cada bolsa marcada "Sin confirmar" abajo.'}];
+      blockers.forEach(b=>{const p=ui.el('p',ui.t(ui.text(b,'en'),ui.text(b,'es')),card);p.className='bad';p.dataset.blocker=b.code||'';});
       if(prepared.draft.input_plan?.length)lastLots=prepared.draft.input_plan;
-      const lots=new Map(lastLots.map(l=>[l.lot_id,l]));const inputs=[];
-      const ingredientGroups=prepared.draft.lot_confirmation_group?.ingredients||[];
+      // Formula-driven Make: ingredient cards replace the per-lot rows (make-formula.js).
+      if(prepared.draft.formula_entry)lastFormula=prepared.draft.formula_entry;const formula=path==='/make/prepare'&&ui.formulaEntry?lastFormula:null;
+      // The re-check button lives in the record bar (sticky on a phone) and shows once something changed.
+      const actions=ui.el('div');actions.className=formula?'record-bar sticky':'record-bar';let updateHint=null;
+      const formulaApi=formula?ui.formulaEntry(card,formula,{confirmations,checkHost:actions,dirty:()=>{evidenceDirty=true;record.disabled=true;syncUpdate();},update:(lines,next)=>{if(busy||finished||uploading)return;payload.ingredient_lines=lines;confirmations=next;const at=formulaApi.anchor();anchor=at?{id:at.dataset.productId,top:at.getBoundingClientRect?.().top}:null;prepare({refresh:true});}}):null;
+      function syncUpdate(){if(!formulaApi)return;formulaApi.check.hidden=!evidenceDirty;formulaApi.check.className=evidenceDirty?'primary':'secondary';if(updateHint)updateHint.hidden=!evidenceDirty;}
+      const lots=new Map(formula?[]:lastLots.map(l=>[l.lot_id,l]));const inputs=[];
       lots.forEach(lot=>{const field=ui.el('fieldset',undefined,card);field.className='lot-confirmation-row';field.dataset.productId=lot.product_id;
         ui.el('legend',ui.t('Confirm physical lot: '+(lot.product_name?lot.product_name+' · ':'')+lot.lot_code,'Confirma lote físico: '+(lot.product_name?lot.product_name+' · ':'')+lot.lot_code),field);
         const controls=ui.el('div',undefined,field);controls.className='lot-confirmation-controls';
@@ -38,28 +52,9 @@
         for(const control of [method,value])control.oninput=()=>{choices.replaceChildren();evidenceDirty=true;record.disabled=true;};
       });
       if(lots.size){const check=ui.el('button',ui.t('Check confirmations → new draft','Verificar confirmaciones → nuevo borrador'),card);check.type='button';check.onclick=async()=>{
-        if(busy||finished||uploading)return;let ambiguous=false;
-        for(const input of inputs){
-          if(path!=='/make/prepare'||input.method.value!=='last4'||input.value.value.trim().length!==4)continue;
-          const group=ingredientGroups.find(g=>g.product_id===input.lot.product_id);
-          const matches=(group?.candidates||[]).filter(l=>l.lot_code.toUpperCase().endsWith(input.value.value.trim().toUpperCase()));
-          if(matches.length<2)continue;ambiguous=true;input.choices.replaceChildren();
-          ui.el('p',ui.t('More than one lot matches. Choose the full code on the bag:','Coincide más de un lote. Elige el código completo de la bolsa:'),input.choices);
-          for(const candidate of matches){const choose=ui.el('button',candidate.lot_code,input.choices);choose.type='button';choose.dataset.confirmLot=candidate.lot_id;
-            choose.onclick=()=>{if(busy||finished||uploading)return;
-              if(candidate.lot_id===input.lot.lot_id){input.method.value='full_code';input.value.value=candidate.lot_code;input.choices.replaceChildren();evidenceDirty=true;record.disabled=true;return;}
-              // Selecting a different physical lot changes the reviewed plan; FL validates it again.
-              const substitutes=(payload.substitutions||[]).filter(s=>s.substitute_product_id===input.lot.product_id);
-              substitutes.forEach(substitute=>substitute.lot_id=candidate.lot_id);
-              const override=(payload.ingredient_lots||[]).find(l=>l.ingredient_product_id===input.lot.product_id);
-              if(override)override.lot_id=candidate.lot_id;
-              else if(!substitutes.length)payload.ingredient_lots=[...(payload.ingredient_lots||[]),{ingredient_product_id:input.lot.product_id,lot_id:candidate.lot_id}];
-              confirmations=inputs.filter(i=>i.lot.product_id!==input.lot.product_id).map(i=>i.read()).filter(c=>c.value.trim());
-              confirmations.push({lot_id:candidate.lot_id,method:'full_code',value:candidate.lot_code});prepare();
-            };
-          }
-        }
-        if(ambiguous)return;confirmations=inputs.map(input=>input.read());prepare();
+        // Make bags (and their ambiguous last-4 check) live in make-formula.js; this list only sends typed codes.
+        if(busy||finished||uploading)return;
+        confirmations=inputs.map(input=>input.read());prepare();
       };}
       if(allowPhoto){
       let photoType=null;if(path==='/receive/prepare'){const kindLabel=ui.el('label',ui.t('Photo type','Tipo de foto'),card);photoType=ui.el('select',undefined,kindLabel);photoType.name='draft_photo_kind';for(const [value,en,es] of [['lot_tag','Label / lot tag','Etiqueta / etiqueta de lote'],['bol','BOL','BOL']]){const option=ui.el('option',ui.t(en,es),photoType);option.value=value;}photoType.value=photoKind;}
@@ -69,7 +64,8 @@
       if(photoType)photoType.onchange=()=>{if(busy||finished||uploading)return;if(attachment){if(photoFile)return uploadPhoto(photoFile,photoType.value,{retype:true});photoType.value=photoKind;ui.setText(uploadStatus,ui.t('Choose the photo again to change its type.','Elige la foto de nuevo para cambiar su tipo.'));return;}photoKind=photoType.value;};
       photo.onchange=()=>uploadPhoto(photo.files?.[0],photoType?.value||photoKind);
       }
-      const actions=ui.el('div',undefined,card);actions.className='record-bar';const record=ui.el('button',ui.t('Record','Registrar'),actions);record.type='button';record.className='primary';record.disabled=prepared.can_commit!==true;
+      card.append(actions);if(formulaApi){updateHint=ui.el('p',ui.t('You changed bags, pounds or codes. Check them first, then Record.','Cambiaste bolsas, libras o códigos. Verifícalos primero y luego Registra.'));updateHint.className='muted';updateHint.dataset.updateHint='';actions.append(updateHint);}
+      const record=ui.el('button',ui.t('Record','Registrar'),actions);record.type='button';record.className='primary';record.disabled=prepared.can_commit!==true;syncUpdate();
       record.onclick=async()=>{if(busy||finished||uploading)return;busy=true;onBusy(true);record.disabled=true;const body={payload_hash:prepared.payload_hash,acknowledged_warnings:ack.filter(([input])=>input.checked).map(([,code])=>code)};
         if(attachment){if(path==='/receive/prepare'||photoKind==='bol')body.attachment_ids=[attachment.attachment_id];else body.attachment_id=attachment.attachment_id;}
         try{const result=await ui.request('/tickets/'+encodeURIComponent(prepared.ticket)+'/commit',body);if(finished)return;

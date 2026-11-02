@@ -4,7 +4,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT))
 url=os.environ['TEST_DATABASE_URL']; parsed=urlsplit(url)
-assert parsed.hostname in ('localhost','127.0.0.1') and parsed.path.startswith(('/fl_d12_browser', '/fl_oatbran_browser_', '/fl_cust_browser', '/fl_cust_fx_', '/fl_cust_rb_')), 'Dedicated local DB required'
+assert parsed.hostname in ('localhost','127.0.0.1') and parsed.path.startswith(('/fl_d12_browser', '/fl_oatbran_browser_', '/fl_cust_browser', '/fl_cust_fx_', '/fl_cust_rb_', '/fl_formula_browser_')), 'Dedicated local DB required'
 os.environ.update(DATABASE_URL=url,API_KEY='d12-local-master',DASHBOARD_API_KEY='d12-local-read',KEY_SESSIONS_ENABLED=os.environ.get('KEY_SESSIONS_ENABLED','1'),EVIDENCE_STORAGE_DIR=str(ROOT/'.venv-test/d12-evidence'),PACKING_SLIP_SIGNING_KEY='d12-local-signing')
 # O-7: pages read DASHBOARD_API_KEY from GET /auth/dashboard-key, so any value works.
 import psycopg2
@@ -39,6 +39,17 @@ with psycopg2.connect(url) as conn,conn.cursor(cursor_factory=RealDictCursor) as
    pid=oatbran_products[name];cur.execute('INSERT INTO lots(product_id,lot_code) VALUES(%s,%s) RETURNING id',(pid,code));lid=cur.fetchone()['id'];oatbran_lots[name]={'id':lid,'code':code}
    cur.execute("INSERT INTO transactions(type,notes) VALUES('receive','Oat bran automatic substitution browser fixture') RETURNING id");tx=cur.fetchone()['id'];cur.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES(%s,%s,%s,%s)',(tx,pid,lid,qty))
   data['oatbran']={'products':oatbran_products,'lots':oatbran_lots}
+ if os.environ.get('FORMULA_BROWSER')=='1':
+  # Formula-driven Make: a non-SS 101 lb pan with oat bran (none in stock), short honey and salt.
+  formula_products={};formula_lots={}
+  for name,kind,code,pan in [('Granola','batch','FB-90','101'),('Plain Oats','ingredient','FB-01',None),('Oat Bran','ingredient','11031',None),('Rolled Oats','ingredient','11032',None),('Honey','ingredient','FB-03',None),('Salt','ingredient','FB-04',None)]:
+   cur.execute("INSERT INTO products(name,odoo_code,type,uom,default_batch_lb,active) VALUES(%s,%s,%s,'lb',%s,true) RETURNING id",('Formula Browser '+name,code,kind,pan));formula_products[name]=cur.fetchone()['id']
+  for ingredient,lb in [('Plain Oats',75),('Oat Bran',5),('Honey',20),('Salt',1)]:
+   cur.execute('INSERT INTO batch_formulas(product_id,ingredient_product_id,quantity_lb) VALUES(%s,%s,%s)',(formula_products['Granola'],formula_products[ingredient],lb))
+  for key,name,qty,code,days in [('oats_old','Plain Oats',50,'FBOATS-OLD-0001',30),('oats_new','Plain Oats',500,'FBOATS-NEW-0002',5),('oats_spare','Plain Oats',300,'FBOATS-SPR-0003',1),('rolled','Rolled Oats',500,'FBROLL-0004',3),('honey','Honey',30,'FBHONEY-0005',3),('salt','Salt',20,'FBSALT-0006',3)]:
+   pid=formula_products[name];cur.execute("INSERT INTO lots(product_id,lot_code,received_at) VALUES(%s,%s,now()-%s*interval '1 day') RETURNING id",(pid,code,days));lid=cur.fetchone()['id'];formula_lots[key]={'id':lid,'code':code}
+   cur.execute("INSERT INTO transactions(type,notes) VALUES('receive','Formula entry browser fixture') RETURNING id");tx=cur.fetchone()['id'];cur.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES(%s,%s,%s,%s)',(tx,pid,lid,qty))
+  data['formula']={'products':formula_products,'lots':formula_lots}
  if os.environ.get('D2_OFFICE_FIXTURE')=='1':
   from tests.visual.office_seed import seed_office
   seed_office(cur,data)
