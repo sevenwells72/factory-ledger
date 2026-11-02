@@ -49,7 +49,11 @@ def response_dict(response):
     return response
 
 
-def choose_inputs(api, cur, requirements, overrides):
+def choose_inputs(api, cur, requirements, overrides, *, single_lot=False):
+    # single_lot (Make screen): suggest ONE lot per ingredient — the oldest with book
+    # stock — for the whole amount. FL never spills into a second lot on book
+    # balances alone; a real second lot is added by the worker with its pounds.
+    # Any uncovered pounds stay on that lot and post as a shortage (R3).
     # Fetch every candidate's identity and posted balance once. This preserves
     # the old per-product FIFO order, including zero/negative lots used by the
     # shortage policy, while avoiding two database trips for every lot.
@@ -87,6 +91,11 @@ def choose_inputs(api, cur, requirements, overrides):
         else:
             rows = by_product.get(pid, [])
         remaining = needed
+        if single_lot and pid not in overrides:
+            rows = [r for r in rows if float(r['on_hand_lb']) > api.BALANCE_EPSILON][:1] or rows
+            if rows and float(rows[0]['on_hand_lb']) > api.BALANCE_EPSILON:
+                plan.append({'product_id': pid, 'lot_id': rows[0]['id'], 'quantity_lb': needed})
+                continue
         for row in rows:
             take = min(max(0, float(row['on_hand_lb'])), remaining)
             if take > api.BALANCE_EPSILON:
@@ -159,7 +168,9 @@ def validate(api, cur, action, payload, lock=False):
             fail('UNUSED_LOT_SELECTION', 'An ingredient override is not part of this batch.')
         if input_plan is None:
             automatic = {pid: qty for pid, qty in requirements.items() if not formula_state or pid not in formula_state['line_pids']}
-            input_plan = choose_inputs(api, cur, automatic, overrides) + (formula_state['plan'] if formula_state else [])
+            # Make screen only: one suggested lot per ingredient; every other caller is unchanged.
+            input_plan = (choose_inputs(api, cur, automatic, overrides, single_lot=True) + formula_state['plan']
+                          if formula_state else choose_inputs(api, cur, automatic, overrides))
         output_product, output_code = p, draft['lot_code']
         options = {'product': p, 'input_plan': input_plan, 'substitutions': substitutions,
                    'auto_substitutions': auto_substitutions}

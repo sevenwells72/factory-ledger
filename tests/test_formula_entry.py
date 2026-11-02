@@ -110,15 +110,18 @@ def output(cur, transaction_id):
     return float(cur.fetchone()['lb'])
 
 
-def test_pans_multiply_the_recipe_and_prefill_the_fifo_spill_unconfirmed(client, db_cursor, actors, granola):
+def test_pans_multiply_the_recipe_and_suggest_one_lot_unconfirmed(client, db_cursor, actors, granola):
     prepared = prepare(client, actors, body(granola, pans=2))
     block = prepared['draft']['formula_entry']
     assert (block['pans'], block['pan_lb'], block['output_lb']) == (2, 100.0, 200.0)
     oats, honey = card(prepared, granola['oats']), card(prepared, granola['honey'])
     assert (oats['standard_lb'], honey['standard_lb']) == (160.0, 40.0)
-    # Oldest bag first, then the next (D2): 50 lb old bag, 110 lb from the newer one.
-    assert [(b['lot_id'], b['quantity_lb']) for b in oats['bags']] == [
-        (granola['oats_old']['id'], 50.0), (granola['oats_new']['id'], 110.0)]
+    # PR-1 (make-entry simplification): ONE suggested lot, the oldest with stock, for the
+    # whole amount. FL never spills into the newer lot on book stock alone; the
+    # uncovered 110 lb is a shortage on that lot unless the worker adds a real second lot.
+    assert [(b['lot_id'], b['quantity_lb']) for b in oats['bags']] == [(granola['oats_old']['id'], 160.0)]
+    assert [(s['lot_id'], s['short_lb']) for s in prepared['draft']['shortages']] == [(granola['oats_old']['id'], 110.0)]
+    assert 'WILL_CREATE_SHORTAGE' in {w['code'] for w in prepared['warnings']}
     assert [b['lot_id'] for b in oats['candidates']] == [
         granola['oats_old']['id'], granola['oats_new']['id'], granola['oats_spare']['id']]
     assert not any(b['confirmed'] for i in block['ingredients'] for b in i['bags'])
@@ -137,7 +140,9 @@ def test_confirmed_standard_run_posts_one_record_for_all_pans(client, db_cursor,
     result = response.json()
     assert output(db_cursor, result['transaction_id']) == 200.0
     assert consumed(db_cursor, result['transaction_id']) == {
-        granola['oats_old']['id']: 50.0, granola['oats_new']['id']: 110.0, granola['honey_bag']['id']: 40.0}
+        granola['oats_old']['id']: 160.0, granola['honey_bag']['id']: 40.0}
+    # Existing shortage policy (R3): the suggested lot goes negative and is flagged.
+    assert [(s['lot_id'], s['short_lb']) for s in result['shortages']] == [(granola['oats_old']['id'], 110.0)]
     assert result['ingredient_review'] == []
     db_cursor.execute("SELECT count(*) AS n FROM transactions WHERE ticket_id=%s AND type='make'",
                       (prepared['ticket_id'],))
@@ -162,11 +167,11 @@ def test_bag_split_posts_exact_pounds_per_bag(client, db_cursor, actors, granola
 
 
 def test_changing_pounds_keeps_confirmation_but_changing_the_bag_does_not(client, db_cursor, actors, granola):
-    first = confirmed(client, actors, body(granola))
-    evidence = confirmations(first)
-    # Same bags, different pounds (D7): the typed confirmations still count.
-    lines = [line(granola['oats'], (granola['oats_old'], 40), (granola['oats_new'], 125)),
+    lines = [line(granola['oats'], (granola['oats_old'], 40), (granola['oats_new'], 120)),
              line(granola['honey'], (granola['honey_bag'], 40))]
+    evidence = confirmations(confirmed(client, actors, body(granola, ingredient_lines=lines)))
+    # Same bags, different pounds (D7): the typed confirmations still count.
+    lines[0] = line(granola['oats'], (granola['oats_old'], 40), (granola['oats_new'], 125))
     again = prepare(client, actors, body(granola, ingredient_lines=lines), evidence)
     assert again['can_commit'] is True, again['blockers']
     # Swap the old bag for the spare bag: only the new bag needs confirming.
@@ -269,7 +274,7 @@ def test_short_stock_still_saves_and_flags_the_shortage(client, db_cursor, actor
     response = record(client, actors, prepared)
     assert response.status_code == 200, response.text
     result = response.json()
-    assert sum(s['short_lb'] for s in result['shortages']) == 30.0
+    assert sum(s['short_lb'] for s in result['shortages'] if s['product_id'] == granola['honey']) == 30.0
     assert float(main.lot_on_hand(db_cursor, granola['honey_bag']['id'])) == -30.0
     [row] = result['ingredient_review']
     assert row['kind'] == 'off_recipe' and row['product_id'] == granola['honey']
@@ -279,7 +284,7 @@ def test_lots_are_rechecked_at_record_and_nothing_posts_before(client, db_cursor
     prepared = confirmed(client, actors, body(granola))
     assert prepared['can_commit'] is True
     assert posted_count(db_cursor, prepared) == 0
-    db_cursor.execute("UPDATE lots SET status='merged' WHERE id=%s", (granola['oats_new']['id'],))
+    db_cursor.execute("UPDATE lots SET status='merged' WHERE id=%s", (granola['oats_old']['id'],))
     response = record(client, actors, prepared)
     assert response.status_code == 409 or response.status_code == 422, response.text
     assert posted_count(db_cursor, prepared) == 0

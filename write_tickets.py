@@ -206,6 +206,9 @@ class MakePrepareRequest(ActionPrepareRequest):
     # The Make screen (pans) sets formula_entry; other callers keep today's draft.
     formula_entry: bool = False
     ingredient_lines: List[IngredientLine] = Field(default_factory=list)
+    # One id per Make-screen form: re-prepares and retries of the same Make carry it,
+    # so FL refuses to record that Make twice (formula_entry.attempt_recorded).
+    entry_attempt_id: Optional[constr(strict=True, pattern=r'^[A-Za-z0-9-]{8,64}$')] = None
 
 
 class LotAllocation(IdInput):
@@ -811,6 +814,9 @@ def register_routes(app, api):
         if action == 'make' and not payload.get('formula_entry'):
             payload.pop('formula_entry', None)     # unchanged payload/hash for other make callers
             payload.pop('ingredient_lines', None)
+            payload.pop('entry_attempt_id', None)
+        if action == 'make' and not payload.get('entry_attempt_id'):
+            payload.pop('entry_attempt_id', None)
         if lot_id is not None:
             payload['lot_id'] = lot_id
         event_time = req.occurred_at or api.get_plant_now()
@@ -831,6 +837,8 @@ def register_routes(app, api):
             blockers = []
             draft = {}
             state = {}
+            if action == 'make':
+                formula.check_selections(cur, payload, actor)
             try:
                 if action == 'receive':
                     draft, state, _, _, _, _, er_id = validate_receive(api, cur, payload)
@@ -866,6 +874,12 @@ def register_routes(app, api):
                     raise
                 blockers = [blocker(exc)]
             blockers = blockers or draft.get('blockers', [])
+            if action == 'make':
+                prior = formula.attempt_recorded(cur, payload.get('entry_attempt_id'))
+                if prior:
+                    # A retry of a Make that already posted: show its receipt, never a second post.
+                    blockers = [formula.already_recorded(prior)] + blockers
+                    draft['already_recorded'] = prior
             warnings = (receive_duplicates(cur, payload) if action == 'receive' else
                         actions.duplicates(cur, action, payload, draft))
             late = permissions.late_entry_warning(actor, entry_timing)   # A2 hook
@@ -944,6 +958,17 @@ def register_routes(app, api):
             # photo it posts, without one it stays held; it never expires.
             if row['status'] not in ('prepared', a3b.HELD):
                 fail(409, 'TICKET_NOT_COMMITTABLE', 'Prepare a new ticket.', status=row['status'])
+            if row['action'] == 'make' and row['payload'].get('entry_attempt_id'):
+                # Same lock as the make post (execute_commit), so two drafts of one Make
+                # cannot both pass this check.
+                cur.execute('SELECT pg_advisory_xact_lock(3)')
+                prior = formula.attempt_recorded(cur, row['payload']['entry_attempt_id'], exclude_ticket_id=row['id'])
+                if prior:
+                    detail = formula.already_recorded(prior)
+                    cur.execute("UPDATE write_tickets SET status='rejected',reject_reason=%s WHERE id=%s",
+                                (json.dumps([detail]), row['id']))
+                    return api.JSONResponse(status_code=409, content={'detail': {
+                        **detail, 'error_code': detail['code'], 'blockers': [detail]}})
             if row['status'] == a3b.HELD and (row['response'] or {}).get('error_code') == 'KOSHER_ATTESTATION_REQUIRED':
                 cur.execute('SELECT clock_timestamp()>%s AS expired',(row['expires_at'],))
                 if cur.fetchone()['expired']:
@@ -985,6 +1010,8 @@ def register_routes(app, api):
             if body.attachment_ref and row['action'] not in ('adjust', 'found'):
                 fail(422, 'UNUSED_ATTACHMENT', 'Only corrections (adjust, found) take photo evidence.')
             effective_payload = a5.merge_confirmations(row['payload'], [e.dict() for e in body.lot_confirmations])
+            if row['action'] == 'make':
+                formula.check_selections(cur, effective_payload, actor)
             if row['action'] == 'receive':
                 effective_payload['attachment_ids'] = list(dict.fromkeys(
                     row['payload'].get('attachment_ids', []) + body.attachment_ids))
