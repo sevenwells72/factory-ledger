@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-01 15:13 — PR #168 (Notes extraction) staging verification on FastAPI-staging (production untouched)
+- **File(s) changed:** `none in repo (FastAPI-staging deployment c3747d73; staging notes rows created and deleted)`
+- **What changed:** Deployed exact PR #168 head 68c7916 (clean detached checkout ~/dev/fl-notes-extract-stage-wt) to FastAPI-staging only via railway up (deployment c3747d73 SUCCESS; previous 027e06c6). Probe 51/52 + corrected order check: health 200; staging OpenAPI byte-identical to production 205b4cc incl. path/method order; /dashboard static mount 200; Notes list no key 401, bogus/stale 403, read-only GPT 403, dashboard/master/personal 200; create/update/toggle x2/delete as dashboard key, personal key and session all 200; 400/404/422 errors unchanged; actor_write_audit: 5 rows each for personal key and session (Manuals Office (STAGING)), none for dashboard key. Signed-out dashboard served from staging loads Notes (200, no console errors). Probe notes 11-14 deleted, session logged out; 10 attribution rows kept as audit history. Production FastAPI still 74bc0094 (205b4cc), /health 200.
+- **Why:** Owner-requested staging verification of PR #168 before any production decision; no merge, no production change, no credential change
+
+---
+
 ## 2026-10-28 19:03 — Home Mac setup: fresh clone, office-only change-log entries restored (no production change)
 - **File(s) changed:** `CHANGE_LOG.md` (branch `home-handoff`, local only); outside the repo: `~/.claude/CLAUDE.md` (copied from handoff `CLAUDE-global.md`), `~/.claude/projects/-Users-michaelgross-dev-factory-ledger-home/memory/` (5 notes copied from handoff `claude-memory/`; office paths in `cutover-master-handoff.md` and `global-changelog-symlink.md` changed to home-Mac paths)
 - **What changed:** Fresh clone of sevenwells72/factory-ledger at `~/dev/factory-ledger-home` (outside iCloud; the older `~/dev/factory-ledger` clone has unpushed home work and was left alone). Branch `home-handoff` from main `a5179555` adds the 67 office-only change-log entries (Oct 19–28) at their dated positions; no existing line changed. AGENTS.md and CLAUDE.md needed nothing: main already matches the office copies. The iCloud-synced `~/Documents/factory-ledger`, the handoff folder, the bundle and tarballs were not touched. Nothing pushed, merged or deployed; Railway untouched.
