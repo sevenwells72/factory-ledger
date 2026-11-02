@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-02 13:57 — Fix blank form fields showing "String should have at least 1 character"
+- **File(s) changed:** `dashboard/ledger-ticket.js`, `dashboard/entry.js`, `dashboard/entry.html`, `dashboard/exceptions.html`, `dashboard/office.html`, `dashboard/receipt.html`, `main.py`, `validation_messages.py`, `tests/test_form_empty_string_validation.py`, `tests/test_pilot_ticket_ui.js`, `tests/visual/run-form-empty-string.mjs`, `FACTORY_LEDGER_CHANGELOG.md`; local-only branch `proposal/pr173-empty-string-patch`: `docs/proposals/make-empty-string-fix.patch`
+- **What changed:** The Make/Pack draft card no longer sends a blank lot-code row as `""`; it stops and names the lot (EN/ES). Standalone Ship "Shipment reference" is required in the form and trimmed; a blank substitution reason is refused by name. Every 422 error item now also carries plain EN/ES `message`/`message_es` naming the field (Pydantic `type`/`loc`/`msg` and the `error_detail` envelope unchanged — Notes characterization contract). Cache bust: `ledger-ticket.js` v14, `entry.js` v14. New Python, Node and Playwright tests. Separate patch file for PR #173's copy of the draft card (not pushed).
+- **Why:** Oct 29 2026 Arturo's 6-batch Make (8 lot rows) failed twice with "NOT recorded — String should have at least 1 character" because one confirmation box was blank; he then posted through the Floor GPT. Changelog row 246.
+
+---
+
 ## 2026-11-01 16:22 — Record Supplies extraction production deploy (#170): changelog row 242
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added FACTORY_LEDGER_CHANGELOG row 242: #170 (head 806e4d0) squash-merged to production main a4a5c99; Railway FastAPI 5e17b70d, expire-tickets a080fd5e, exceptions-sweep 18c5a500 SUCCESS; previous build 0f1cedf2. Records the verified backup 2026-11-01-pre-supplies170, the staging proof (FastAPI-staging e39166fa vs pre-extraction c3747d73: OpenAPI byte-identical, 0 response differences, inventory/FIFO equal to posted-only SQL, floor/office supply-request writes and 409 on repeat completion), and the production checks (OpenAPI byte-identical sha256 7a5120bf, Supplies auth 401/403, 210 products and 276 FIFO lot lists equal to posted-only SQL, signed-out dashboard Supplies tab OK, logs clean). Staging probe requests #1/#2 left done.

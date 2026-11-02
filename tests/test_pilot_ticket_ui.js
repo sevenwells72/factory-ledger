@@ -34,6 +34,20 @@ test('an unfinished draft upload disables Record and blocks Cancel until it fini
 });
 const makeDraft={input_plan:[{product_id:1,product_name:'Oats',lot_id:11,lot_code:'OATS-A-001'},{product_id:2,product_name:'Sunflower Seeds',lot_id:21,lot_code:'SUN-SUN1'}],lot_confirmation_group:{ingredients:[{product_id:1,candidates:[{lot_id:11,lot_code:'OATS-A-001'},{lot_id:12,lot_code:'OATS-B-001'}]},{product_id:2,candidates:[{lot_id:21,lot_code:'SUN-SUN1'}]}]}};
 function fillTags(h,{sun=true}={}){const methods=h.all(node=>node.tag==='select'),inputs=h.all(node=>node.tag==='input'&&node.autocomplete==='off');methods.forEach(node=>node.value='last4');inputs[0].value='-001';inputs[0].oninput();if(sun){inputs[1].value='SUN1';inputs[1].oninput();}}
+// Oct 29 2026: a blank lot-code row reached FL as "" and Arturo saw "NOT recorded — String should have at least 1 character".
+const multiLotDraft={input_plan:[{product_id:1,product_name:'Oats',lot_id:11,lot_code:'OATS-A-001'},{product_id:1,product_name:'Oats',lot_id:12,lot_code:'OATS-B-002'},{product_id:2,product_name:'Salt',lot_id:31,lot_code:'SALT-0440'}],lot_confirmation_group:{ingredients:[{product_id:1,candidates:[{lot_id:11,lot_code:'OATS-A-001'},{lot_id:12,lot_code:'OATS-B-002'}]},{product_id:2,candidates:[{lot_id:31,lot_code:'SALT-0440'}]}]}};
+for(const language of ['en','es'])for(const path of ['/make/prepare','/pack/prepare'])test(`${path} blank lot code is blocked in the form and named in ${language}, never sent as ""`,async()=>{
+  const h=await harness({language,path,draft:multiLotDraft,canCommit:false});const inputs=h.all(node=>node.tag==='input'&&node.autocomplete==='off');
+  inputs[0].value='-001';inputs[0].oninput();inputs[2].value='0440';inputs[2].oninput();
+  await h.button(language==='es'?'Verificar confirmaciones → nuevo borrador':'Check confirmations → new draft').onclick();await flush();
+  assert.equal(h.requests.length,1);
+  const messages=h.all(node=>node.dataset.blankConfirmation!==undefined).map(node=>node.textContent);
+  assert.deepEqual(messages,[language==='es'?'Escribe el código de la etiqueta para Oats · OATS-B-002.':'Type the code from the lot label for Oats · OATS-B-002.']);
+  inputs[1].value='-002';inputs[1].oninput();
+  await h.button(language==='es'?'Verificar confirmaciones → nuevo borrador':'Check confirmations → new draft').onclick();await flush();
+  assert.equal(h.requests.length,2);const sent=h.requests[1].body.lot_confirmations;
+  assert.deepEqual(sent.map(c=>c.lot_id),[11,12,31]);assert.ok(sent.every(c=>c.value.trim()!==''));
+});
 test('ambiguous suffix shows full codes and the suggested choice still needs every tag checked',async()=>{
   const h=await harness({draft:makeDraft,canCommit:false,onPrepare:body=>({can_commit:body.lot_confirmations?.length===2})});assert.equal('lot_confirmations' in h.requests[0].body,false);fillTags(h);await h.button('Check confirmations → new draft').onclick();assert.equal(h.requests.length,1);assert.ok(h.button('OATS-A-001'));assert.ok(h.button('OATS-B-001'));h.button('OATS-A-001').onclick();assert.equal(h.button('Record').disabled,true);await h.button('Check confirmations → new draft').onclick();await flush();assert.deepEqual(h.requests[1].body.lot_confirmations,[{lot_id:11,method:'full_code',value:'OATS-A-001'},{lot_id:21,method:'last4',value:'SUN1'}]);assert.equal(h.button('Record').disabled,false);
 });

@@ -51,6 +51,7 @@ import notes_api
 from notes_api import NoteCreate, NoteUpdate  # main.NoteCreate / main.NoteUpdate stay valid
 import supplies
 from supplies import SupplyRequestCreate, SupplyRequestUpdate  # main.SupplyRequestCreate / Update stay valid
+import validation_messages
 import sys
 from staging_safety import assert_staging_database
 from decimal import Decimal, ROUND_HALF_UP
@@ -348,7 +349,10 @@ async def request_validation_handler(request: Request, exc: RequestValidationErr
     # NaN / Infinity (json.loads accepts them) must still get its 422: the default
     # handler echoes the offending `input` and the strict encoder then raises → 500
     # (A3b P2, `counted_lb`). Non-finite floats are rendered as their names.
-    return DecimalSafeJSONResponse(status_code=422, content={"detail": _json_finite(jsonable_encoder(exc.errors()))})
+    # Each error also carries plain EN/ES `message` / `message_es` naming the
+    # field (validation_messages), so the dashboard never shows raw Pydantic text.
+    return DecimalSafeJSONResponse(status_code=422, content={"detail": validation_messages.with_messages(
+        _json_finite(jsonable_encoder(exc.errors())))})
 
 
 @app.exception_handler(psycopg2.Error)
