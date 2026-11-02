@@ -34,7 +34,7 @@
         ui.setText(legend,swapped?ui.t((block.swap.from_name||'oat bran')+' → '+(block.swap.to_name||'rolled oats')+' (swap)',(block.swap.from_name||'salvado de avena')+' → '+(block.swap.to_name||'avena')+' (sustitución)'):(ing.product_name||'—'));
         const amount=swapped?ui.t(ui.formatNumber(used)+' lb + '+ui.formatNumber(swap)+' lb '+(block.swap.to_name||'rolled oats')+' = '+ui.formatNumber(checked)+' lb',ui.formatNumber(used)+' lb + '+ui.formatNumber(swap)+' lb '+(block.swap.to_name||'avena')+' = '+ui.formatNumber(checked)+' lb')
           :role==='to'&&swap>0?ui.t(ui.formatNumber(used)+' lb ('+ui.formatNumber(swap)+' lb replace oat bran)',ui.formatNumber(used)+' lb ('+ui.formatNumber(swap)+' lb reemplazan salvado)'):ui.formatNumber(used)+' lb';
-        const zero=used<=0&&!swapped;
+        const zero=used<=0&&!swapped&&ing.standard_lb>0;
         ui.setText(total,zero?ui.t('Not used — 0 lb. Choose a reason.','No se usó — 0 lb. Elige un motivo.'):over?ui.t('Using '+amount+diff+' — more than 10% off the recipe; the owner will review it.','Usando '+amount+diff+' — más de 10% diferente de la receta; el dueño lo revisará.'):ui.t('Using '+amount+diff,'Usando '+amount+diff));
         total.className=!zero&&!over?'muted':'notice';total.dataset.over=String(over&&!zero);
         reasonArea.hidden=!zero;}
@@ -75,7 +75,7 @@
     function read(){const lines=[],next=[];let issue=null;
       for(const {ing,bags,reason,note} of cards){const kept=bags.filter(b=>b.lot.value&&Number(b.lb.value)>0);
         if(bags.some(b=>!b.lot.value&&Number(b.lb.value)>0))issue=issue||ui.t('Choose a bag for every pound entered ('+ing.product_name+').','Elige una bolsa para cada libra escrita ('+ing.product_name+').');
-        const zero=!kept.length&&!(ing.swap_role==='from'&&swapLb()>0);lines.push({ingredient_product_id:ing.product_id,bags:kept.map(b=>({lot_id:Number(b.lot.value),quantity_lb:Number(b.lb.value)})),reason_code:zero&&reason.value?reason.value:null,note:zero&&note.value.trim()?note.value.trim():null});
+        const zero=!kept.length&&ing.standard_lb>0&&!(ing.swap_role==='from'&&swapLb()>0);lines.push({ingredient_product_id:ing.product_id,bags:kept.map(b=>({lot_id:Number(b.lot.value),quantity_lb:Number(b.lb.value)})),reason_code:zero&&reason.value?reason.value:null,note:zero&&note.value.trim()?note.value.trim():null});
         for(const b of kept){const value=b.code.value.trim();if(!value)continue;
           if(b.method.value==='last4'&&value.length===4){const matches=ing.candidates.filter(c=>c.lot_code.toUpperCase().endsWith(value.toUpperCase()));
             if(matches.length>1){b.choices.replaceChildren();ui.el('p',ui.t('More than one bag ends with '+value+'. Type the full code from the bag.','Más de una bolsa termina en '+value+'. Escribe el código completo de la bolsa.'),b.choices);issue=issue||ui.t('Type the full code where more than one bag matches.','Escribe el código completo donde coincide más de una bolsa.');continue;}}

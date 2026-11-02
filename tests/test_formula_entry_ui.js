@@ -120,3 +120,15 @@ test('oat bran swap card: recipe bran is checked against bran + swapped oats, la
   assert.equal(legend(31),'Oat Bran → Rolled Oats (swap)');assert.equal(inBox(31,n=>n.className==='formula-reason')[0].hidden,true);
   const {lines}=api.read();assert.deepEqual(plain(lines[0]),{ingredient_product_id:31,bags:[],reason_code:null,note:null});
 });
+
+test('re-review N1: a 0 lb card the recipe does not use (rolled oats for the swap) asks for no reason',()=>{
+  const ui=load(),card=new Element('section');
+  const swapBlock={pans:1,pan_lb:100,output_lb:100,tolerance_pct:10,swap:{from_product_id:31,to_product_id:32,from_name:'Oat Bran',to_name:'Rolled Oats',swap_lb:0},ingredients:[
+    {product_id:31,product_name:'Oat Bran',standard_lb:30,swap_role:'from',bags:[{lot_id:5,lot_code:'BRAN-0005',quantity_lb:30}],candidates:[{lot_id:5,lot_code:'BRAN-0005',available_lb:10}]},
+    {product_id:32,product_name:'Rolled Oats',standard_lb:0,swap_role:'to',bags:[],candidates:[{lot_id:6,lot_code:'OATS-0006',available_lb:5000}]}]};
+  const api=ui.formulaEntry(card,swapBlock,{});
+  const box=descendants(card).find(n=>n.dataset.productId==='32'),inBox=fn=>descendants(box).filter(fn);
+  assert.equal(inBox(n=>n.className==='formula-reason')[0].hidden,true);
+  assert.equal(inBox(n=>n.dataset.total==='')[0].textContent,'Using 0 lb');
+  assert.deepEqual(plain(api.read().lines[1]),{ingredient_product_id:32,bags:[],reason_code:null,note:null});
+});

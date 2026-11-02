@@ -114,6 +114,11 @@ def prepare(api, cur, payload, draft, requirements, overrides, substitutions, au
         if swap and pid == swap['from'] and swap_lb > api.BALANCE_EPSILON:
             line_reasons.pop(pid, None)
             continue
+        # A line the recipe does not use (e.g. rolled oats offered only for the
+        # automatic oat-bran swap) is not zeroed by the worker: no reason.
+        if float(standard.get(pid, 0)) <= api.BALANCE_EPSILON:
+            line_reasons.pop(pid, None)
+            continue
         problem = _reason_blocker(line.get('reason_code'), line.get('note'), name)
         if problem:
             blockers.append(problem)
@@ -214,7 +219,8 @@ def draft_block(api, cur, product, batches, entry, requirements, input_plan, sub
             'entered_lb': round(used, 2), 'checked_lb': round(checked, 2),
             'difference_pct': round((checked - std) / std * 100, 1) if std > 0 else None,
             'over_tolerance': flagged.get(pid, {}).get('kind') == 'off_recipe',
-            'not_used': used <= api.BALANCE_EPSILON and not (role == 'from' and swap_lb > api.BALANCE_EPSILON),
+            'not_used': (used <= api.BALANCE_EPSILON and std > api.BALANCE_EPSILON
+                         and not (role == 'from' and swap_lb > api.BALANCE_EPSILON)),
             'reason_code': reason.get('reason_code'), 'note': reason.get('note'),
             'substituted_for': substituted[pid]['ingredient_product_id'] if pid in substituted else None,
             'auto_substitute': role == 'to', 'swap_role': role, 'swap_lb': round(swap_lb, 2) if role else None,

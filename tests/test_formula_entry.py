@@ -458,3 +458,32 @@ def test_finding5_and_3_swap_row_in_warnings_and_on_the_shift_summary(client, db
     flags = [f for f in shift_flags(client, actors, result['receipt_number']) if f['code'].startswith('INGREDIENT_')]
     assert [f['code'] for f in flags] == ['INGREDIENT_SWAP']
     assert flags[0]['refs']['swap_lb'] == 18.0 and flags[0]['refs']['reason_code'] == 'oat_bran_auto_substitute'
+
+
+def test_n1_bran_recipe_without_oats_line_exact_recipe_needs_no_reason(client, db_cursor, actors, sunshine):
+    """Re-review N1: rolled oats offered only for the automatic swap is not a recipe line, so 0 lb
+    of it needs no reason; the worker who used exactly the recipe records cleanly."""
+    batch, honey = product(db_cursor, 'Bran No Oats', 'batch', 100), product(db_cursor, 'N1 Honey', 'ingredient')
+    recipe_line(db_cursor, batch, BRAN, 30)
+    recipe_line(db_cursor, batch, honey, 70)
+    bran, honey_bag = stock(db_cursor, BRAN, 10), bag(db_cursor, honey, 500, 5)
+    data = {'product_id': batch, 'batches': 1, 'occurred_at': main.get_plant_now().isoformat(),
+            'confirmed_sku': True, 'formula_entry': True}
+    proposal = prepare(client, actors, data)
+    assert card(proposal, OATS)['standard_lb'] == 0.0           # offered only for the swap
+    # The Make screen sends every card: exact recipe, rolled oats left at 0 lb with no reason.
+    lines = [line(BRAN, bran_bag(bran, 30)), line(OATS), line(honey, (honey_bag, 70))]
+    prepared = confirmed(client, actors, data | {'ingredient_lines': lines})
+    assert prepared['can_commit'] is True, prepared['blockers']
+    assert not any(b['code'].startswith('MAKE_REASON') for b in prepared['blockers'])
+    oats = card(prepared, OATS)
+    assert not oats['not_used'] and not oats['over_tolerance']
+    codes = {w['code'] for w in prepared['warnings']}
+    assert formula_entry.WARNING_CODE not in codes and formula_entry.CHANGED_CODE not in codes
+    response = record(client, actors, prepared)
+    assert response.status_code == 200, response.text
+    result = response.json()
+    assert consumed(db_cursor, result['transaction_id']) == {bran['lot_id']: 30.0, honey_bag['id']: 70.0}
+    assert result['ingredient_review'] == []
+    assert [(s['lot_id'], s['short_lb']) for s in result['shortages']] == [(bran['lot_id'], 20.0)]
+    assert substitution_rows(db_cursor, result['transaction_id']) == []

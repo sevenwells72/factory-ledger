@@ -187,3 +187,80 @@ All seven findings are fixed. The probes that dead-ended before now post. Tracea
 - Bag codes, the double-check at Record and recall tracing all still work. Every automated test passes.
 
 One small fix should land before production. In a rare case FL asks for a reason on a rolled-oats card the recipe doesn't use. It happens when a recipe has bran but no oats, or someone manually swaps the oats out while bran is short. None of today's products hits it on a normal run.
+
+---
+
+# Independent re-review: 130c15a (Claude, original reviewer; did not write the fix)
+
+- **Reviewed:** `130c15a` at branch HEAD `f9574c1`, 2026-11-02. Read-only: no push, merge or deploy, and no staging or production access. Local throwaway DBs only (`fl_rr130_off`, `fl_rr130_on`, `fl_rr130_probe`, `fl_formula_browser_rr2`), all dropped afterwards. The temporary probe file was deleted and never committed.
+- **Why there are two re-reviews:** the section above was written by the session that also wrote 130c15a. This one comes from the session that wrote the original review and had no part in the fix. I read the fix diff and ran my own probes before reading that section. My conclusions agree with it.
+
+## Verdict: APPROVE (for push and staging)
+
+All seven findings are fixed. My original dead-end scenario now records. Traceability, the Record re-check and the bag-confirmation rule (D7) still hold. One latent issue remains (N1 above, which I reproduced independently). It is not a staging blocker, but it should be fixed before production.
+
+## The seven findings, re-checked independently
+
+| # | Status | Evidence (my probes or code reading) |
+|---|---|---|
+| 1 | **Fixed** | My exact f8ba30d scenario: recipe per pan 30 bran, 50 oats, 20 honey; bran bag 10 lb; entered 30/50/20. Before the fix: Record `409` on every attempt. Now: Prepare `can_commit: true` with only `WILL_CREATE_SHORTAGE`. Record **200**, posting bran 30, oats 50, honey 20 exactly, with a 20 lb SHORTAGE flag, no `transaction_substitutions` row and an empty `ingredient_review`. Bran dropping from 40 lb to 0 between Prepare and Record on a screen-shaped draft also posts and flags (30 lb short). The refusal is skipped only when the bran pounds came from the worker's own line (`ticket_actions.py`, `entered =`). |
+| 2 | **Fixed** | Cards and the signed `standard_requirements` now hold recipe × pans. The bran plus the swapped oats are checked against the recipe bran. Exact recipe on SS #1: covered by `test_finding2_exact_recipe_on_ss_product_gives_no_warning` (28/185, no warnings). My custom recipe, exact pounds: no `INGREDIENT_OFF_RECIPE`. Default proposal at 2 pans: posts bran 10, oats 150, honey 40, with one 50 lb `swap` review row. Mixed entry (bran 20 with 10 on hand, oats 60): posts 20/60/20 exactly, records a 10 lb swap ("Used 20 lb oat bran and 10 lb extra oats…") and flags 10 lb short on bran. |
+| 3 | **Fixed** | `shift_summary.py` adds `INGREDIENT_OFF_RECIPE` (warn) and `_NOT_USED` / `_SUBSTITUTED` / `_SWAP` (info) to make rows, with recipe lb, used lb, %, reason and actor. These sit next to the existing correction highlights, as spec 4.2 item 5 asks. Covered by the new shift-summary tests. |
+| 4 | **Fixed** | `formula_entry.prepare` now calls `actions.lot(...)` without a lock. The locks are taken only in the lot-ID-ordered pass. |
+| 5 | **Fixed** | New non-ack `INGREDIENT_CHANGED` warning (EN/ES) lists not-used, substituted and swap lines with their reasons. |
+| 6 | **Fixed** | Spec §3.6 records the read-only staging and production result: only SS #1/#2/#3 contain oat bran. So D4 changes no other product today. I did not re-run that query, because this review stays off staging and production. |
+| 7 | **Fixed** | The dead branch is removed. Correction to my original nit: that handler only ever ran for `/make/prepare` (`if(path!=='/make/prepare'…) continue`), so Pack loses nothing. |
+
+## Regression checks
+
+- **Traceability:** split oats 100 + 60 → `/trace/batch/{output}` lists both bags, and `/trace/ingredient/{bag}` returns the output for each.
+  - `main._make_commit_core` posts each ingredient from `required_lb`. It now also appends any entered ingredient the swap-reshaped recipe dropped.
+  - `oat_bran.formula` and `substituted_formula` still merge rows, so no ingredient posts twice. In every probe the consumed pounds exactly matched what was entered.
+- **Record re-check:** a 45 lb stock drop after Prepare posts with `state_changed: true` and a 45 lb SHORTAGE. A lot merged after Prepare is refused, and nothing posts.
+  - The signed specification still carries FL's proposal, and Record re-derives the same entered swap from it. So the specification is stable, and a recipe change still forces a new prepare.
+- **Bag confirmation (D7):** a swapped-in bag without a code → Record `422 LOT_NOT_CONFIRMED`. A wrong late code → `422 LOT_CONFIRMATION_MISMATCH`. Nothing posted either time.
+- **Standing rules:**
+  - `openapi-gpt-v3.yaml` is unchanged and has 30 operations.
+  - `origin/feat/planner-v2` is untouched (last commit 2026-06-09).
+  - No migration.
+  - Cache-bust is bumped on every page loading a changed file: `ledger-ticket.js` v12 on all 4 pages, `make-formula.js` v2 on `entry.html`.
+  - `FACTORY_LEDGER_CHANGELOG.md` has row 244, and the global log has its entry.
+
+## Remaining issue
+
+**N1 (above), confirmed independently: LOW–MEDIUM, fix before production.**
+- **Probe:** recipe with bran 30 and honey 70 and no rolled oats; bran short. The worker used exactly the recipe and removed the proposed oats bags.
+- **Result:** Prepare gives `MAKE_REASON_REQUIRED` ("Choose a reason for Rolled Oats"), and Record without a reason is refused.
+- **Not a dead end:** picking any reason lets them record, and nothing bogus is saved.
+- **Production today:** the three SS products all contain rolled oats, so a normal run there doesn't hit it.
+- **Fix:** skip the reason blocker and hide the reason box when a card's recipe pounds are 0. Optionally hide an empty 0-recipe oats card.
+
+## The remaining edge case: FL Assistant and direct API callers without a bran line
+
+**Acceptable for now; no fix needed before staging or production.**
+- **Probe:** a non-formula ticket prepared with 40 lb of bran; the bran drops to 0 before Record. Record returned `409 INPUT_PLAN_CHANGED` and posted nothing. Preparing again immediately gave a recordable draft (30 lb extra oats), which posted.
+- **It recovers in one step:** this happens only when stock moves between Prepare and Record, unlike the f8ba30d dead end, which repeated on every prepare.
+- **It isn't new:** it is the deliberate, tested behaviour from changelog row 208 (`test_ticket_rejects_depleted_bran_instead_of_silently_posting_a_bran_shortage`). It covers the same products as before: SS #1/#2/#3, which per the spec query are still the only oat-bran products.
+- **The Make screen can't reach it:** a draft only becomes recordable after "Check bags and pounds", which sends a line for every card, bran included.
+- **If it ever bothers FL Assistant users,** the fix is to treat the Assistant's frozen bran pounds as worker-entered.
+
+## Test runs (this re-review, fresh local DBs with `pg_trgm`)
+
+- **Python, key sessions off** (`fl_rr130_off`): **7,274 passed**, 0 failed.
+- **Python, key sessions on** (`fl_rr130_on`, run after the off run): **7,274 passed**, 0 failed.
+- **Node** (`node --test tests/*.js`): **609/609** (611 − 4 removed picker tests + 2 new).
+- **Playwright** `tests/visual/run-formula-entry.mjs` (local fixture server, 127.0.0.1 only, DB `fl_formula_browser_rr2`): **pass**, `{"ok":true,"receipt":"MK-261102-001"}`.
+- **Independent probes** (8 cases, separate DB): **8/8 pass**. They cover the original dead end, the default proposal at 2 pans, a mixed partial swap, bran vanishing with a line (posts and flags), bran vanishing on the API path (prepare again recovers), split trace, D7 refusals, and stock drop plus merge. N1 was confirmed by a separate observational probe.
+
+## Plain-English answer for Blubber
+
+**OK to push and put on staging? Yes.**
+
+- The oat bran dead end is gone. FL records the bran your people actually used and flags any shortage.
+- The cards show the real recipe, and using exactly the recipe raises no warning.
+- Over-10%, not-used and swapped ingredients now appear on the shift summary with the reason and who recorded it.
+- Bag codes, the double-check at Record and recall tracing all still work, and every automated test passes.
+
+Before production, fix one small thing. In a rare case FL asks for a reason on a rolled-oats card the recipe doesn't use. None of today's oat-bran products hits it on a normal run.
+
+The FL Assistant "prepare again" case is fine to leave. It only happens if bran runs out in the seconds between Prepare and Record, and preparing again fixes it.
