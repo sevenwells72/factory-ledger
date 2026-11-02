@@ -13,7 +13,7 @@ await page.route('**/*',r=>new URL(r.request().url()).origin===base?r.continue()
 const posts=path=>requests.filter(r=>r.method==='POST'&&r.path===path).length;
 async function choose(name,query,scope=page){const picker=scope.locator('[data-picker="'+name+'"]');await picker.locator('input').fill(query);await picker.getByRole('button',{name:'Search',exact:true}).click();await picker.locator('.picker-options button').first().click();}
 async function prepare(){await page.getByRole('button',{name:'Prepare draft',exact:true}).click();await page.getByRole('heading',{name:'Draft — review before recording',exact:true}).waitFor();}
-async function record(){for(const box of await page.locator('#resolution [data-warning]').all())await box.check();await page.locator('#resolution').getByRole('button',{name:'Record',exact:true}).click();await page.locator('#resolution .good').waitFor();return page.locator('#resolution .good a').textContent();}
+async function record(){for(const box of await page.locator('#resolution [data-warning]').all())await box.check();await page.locator('#resolution').getByRole('button',{name:'Record',exact:true}).click();const done=page.locator('#resolution p.good').filter({hasText:'Recorded'});await done.waitFor({timeout:90000});return done.locator('a').textContent();}
 const rows=()=>page.locator('#resolution fieldset.lot-confirmation-row');
 const codeOf=async row=>(await row.locator('legend').textContent()).split(' · ').at(-1);
 async function check(){await page.locator('#resolution').getByRole('button',{name:'Check confirmations → new draft',exact:true}).click();}
@@ -21,17 +21,21 @@ async function recordable(){await page.waitForFunction(()=>{const b=Array.from(d
 async function noRawPydantic(){assert.equal((await page.locator('body').textContent()).includes('String should have'),false,'raw Pydantic text shown');}
 try{
  await page.goto(base+'/dashboard/entry.html');await page.locator('#actor-key').fill('d12-local-floor');await page.locator('#sign-in-form button[type=submit]').click();await page.getByText('Signed in as Arturo D12',{exact:true}).waitFor();
- // Make: 15 batches over two Oat Bran lots; output lot code and note left blank.
- await page.locator('#entry-action').selectOption('make');await choose('product','D1290');await page.locator('[name=batches]').fill('15');await page.locator('[name=confirmed_sku]').check();await prepare();
+ // Make (formula cards since PR #173): 15 batches over two Oat Bran lots; output lot code and note left blank.
+ const lotCodes=Object.fromEntries(((await api('/entry/lots?product_id='+fixture.products['Oat Bran'])).lots||[]).map(l=>[String(l.lot_id||l.id),l.lot_code]));
+ await page.locator('#entry-action').selectOption('make');await choose('product','D1290');await page.locator('[name=batches]').fill('15');const sku=page.locator('[name=confirmed_sku]');if(await sku.count())await sku.check();await prepare();
  const first=requests.filter(r=>r.path==='/make/prepare').at(-1).body;assert.equal('lot_code' in first,false,'blank output lot omitted');assert.equal('note' in first,false,'blank note omitted');
- assert.equal(await rows().count(),2,'two lot rows for the split ingredient');const [codeA,codeB]=[await codeOf(rows().nth(0)),await codeOf(rows().nth(1))];
- await rows().nth(0).locator('select').selectOption('full_code');await rows().nth(0).locator('input').fill(codeA);
- const before=posts('/make/prepare');await check();
- const message=page.locator('#resolution [data-blank-confirmation]');await message.waitFor();assert.equal(await message.count(),1);
- assert.equal(await message.textContent(),'Type the code from the lot label for D12 Oat Bran · '+codeB+'.');assert.equal(posts('/make/prepare'),before,'blank row never sent');await noRawPydantic();
- await page.screenshot({path:out+'/make-blank-lot-390.png',fullPage:true});
- await rows().nth(1).locator('select').selectOption('full_code');await rows().nth(1).locator('input').fill(codeB);await check();await recordable();
- const sent=requests.filter(r=>r.path==='/make/prepare').at(-1).body.lot_confirmations;assert.deepEqual(sent.map(c=>c.value),[codeA,codeB]);
+ const bags=page.locator('#resolution .formula-bag');await bags.first().waitFor();assert.equal(await bags.count(),2,'two bags for the split ingredient');
+ const bagCode=async row=>lotCodes[await row.locator('[name=bag_lot]').inputValue()];const [codeA,codeB]=[await bagCode(bags.nth(0)),await bagCode(bags.nth(1))];assert.ok(codeA&&codeB);
+ await bags.nth(0).locator('[name=bag_method]').selectOption('full_code');await bags.nth(0).locator('[name=bag_code]').fill(codeA);
+ await page.getByRole('button',{name:'Check bags and pounds → new draft',exact:true}).click();await page.getByRole('heading',{name:'Draft — review before recording',exact:true}).waitFor();
+ const partial=requests.filter(r=>r.path==='/make/prepare').at(-1).body.lot_confirmations||[];assert.ok(partial.every(c=>c.value.trim()!==''),'blank bag code never sent as ""');
+ await page.getByText(new RegExp('Confirm D12 Oat Bran lot '+codeB)).first().waitFor();await noRawPydantic();
+ await page.screenshot({path:out+'/make-blank-bag-390.png',fullPage:true});
+ const again=page.locator('#resolution .formula-bag');await again.nth(1).locator('[name=bag_method]').selectOption('full_code');await again.nth(1).locator('[name=bag_code]').fill(codeB);
+ if(!(await again.nth(0).locator('[name=bag_code]').inputValue()))await again.nth(0).locator('[name=bag_code]').fill(codeA);
+ await page.getByRole('button',{name:'Check bags and pounds → new draft',exact:true}).click();await recordable();
+ const sent=requests.filter(r=>r.path==='/make/prepare').at(-1).body.lot_confirmations;assert.deepEqual(sent.map(c=>c.value).sort(),[codeA,codeB].sort());
  const made=await record();assert.match(made,/^[A-Z]+-\d{6}-\d+$/);
  // Pack: the same shared draft card.
  await page.getByRole('button',{name:'Record another entry',exact:true}).click();await page.locator('#entry-action').selectOption('pack');await choose('source','D1290');await choose('target','D1270');await page.locator('[name=cases]').fill('1');await prepare();
@@ -45,5 +49,5 @@ try{
  await page.locator('[name=order_reference]').fill('   ');await page.getByRole('button',{name:'Prepare draft',exact:true}).click();await page.getByText('Enter the shipment reference.',{exact:false}).first().waitFor();
  assert.equal(posts('/ship/prepare'),0,'blank reference never sent');await noRawPydantic();await page.screenshot({path:out+'/ship-blank-reference-390.png',fullPage:true});
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.deepEqual(errors,[]);
- console.log(`Form empty-string browser run passed: multi-lot Make ${made} (blank lot row blocked and named, blank optional fields omitted), Pack ${packed}, standalone Ship reference required — 390 px, real local FastAPI.`);
+ console.log(`Form empty-string browser run passed: multi-lot Make ${made} (blank bag code never sent as \"\", plain blocker; blank optional fields omitted), Pack ${packed}, standalone Ship reference required — 390 px, real local FastAPI.`);
 }catch(error){await page.screenshot({path:out+'/failure.png',fullPage:true});console.error('Visible result:',await page.locator('#notice').textContent().catch(()=>''));console.error('Page errors:',errors);throw error;}finally{await browser.close();}

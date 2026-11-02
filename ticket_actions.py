@@ -6,6 +6,7 @@ import json
 import kosher_tiers as a12
 import lot_confirmation as a5
 import exceptions_enforcement as a3b
+import formula_entry as formula
 import oat_bran_substitution as oat_bran
 
 from fastapi import HTTPException
@@ -119,6 +120,7 @@ def validate(api, cur, action, payload, lock=False):
     output_product = None
     output_code = None
     options = {}
+    formula_state = None
     if action == 'make':
         p = product(api, cur, payload['product_id'], lock)
         products.append(p)
@@ -148,16 +150,36 @@ def validate(api, cur, action, payload, lock=False):
         for ingredient in draft['ingredients']:
             pid = ingredient['ingredient_id']
             requirements[pid] = requirements.get(pid, 0) + float(api.to_decimal(ingredient['needed_lb']))
+        # Formula-driven entry (Make screen): the worker's bags/pounds replace
+        # the suggestion for the ingredients they sent; the rest stay FIFO.
+        if payload.get('formula_entry'):
+            formula_state = formula.prepare(api, cur, payload, draft, requirements, overrides,
+                                    substitutions, auto_substitutions, lock)
         if set(overrides) - set(requirements):
             fail('UNUSED_LOT_SELECTION', 'An ingredient override is not part of this batch.')
-        input_plan = input_plan if input_plan is not None else choose_inputs(api, cur, requirements, overrides)
+        if input_plan is None:
+            automatic = {pid: qty for pid, qty in requirements.items() if not formula_state or pid not in formula_state['line_pids']}
+            input_plan = choose_inputs(api, cur, automatic, overrides) + (formula_state['plan'] if formula_state else [])
         output_product, output_code = p, draft['lot_code']
         options = {'product': p, 'input_plan': input_plan, 'substitutions': substitutions,
                    'auto_substitutions': auto_substitutions}
         specification = {'requirements': requirements, 'output_lb': draft['total_output_lb'],
                          'excluded': draft.get('excluded_ingredients', []),
                          'original_requirements': {i['ingredient_id']: i['needed_lb'] for i in draft['original_ingredients']}}
-        if oat_bran.eligible(p):
+        if formula_state:
+            options['required_lb'] = dict(requirements)
+            specification['standard_requirements'] = formula_state['standard']
+            # The signed specification keeps FL's proposal; what posts (and what the
+            # draft says) is the swap the entered pounds really make.
+            options['auto_substitutions'] = formula_state['auto_rows']
+            if 'auto_substitutions' in draft:
+                for row in auto_substitutions:
+                    draft['preview_message'] = draft['preview_message'].replace(' ' + row['message_en'], '')
+                draft['auto_substitutions'] = formula_state['auto_rows']
+                if formula_state['auto_rows']:
+                    draft['preview_message'] += ' ' + ' '.join(r['message_en'] for r in formula_state['auto_rows'])
+                draft['preview_message_es'] = ' '.join(r['message_es'] for r in formula_state['auto_rows'])
+        if oat_bran.eligible(p, cur):
             specification['auto_substitutions'] = auto_substitutions
     elif action == 'pack':
         if lock:
@@ -296,11 +318,14 @@ def validate(api, cur, action, payload, lock=False):
     # at commit under FOR UPDATE — and posted + flagged instead of blocking.
     if action in ('make', 'pack'):
         draft['shortages'] = a3b.shortfalls(input_plan, states)
-        if action == 'make' and lock and oat_bran.eligible(p):
+        if action == 'make' and lock and oat_bran.eligible(p, cur):
             pair = oat_bran.identities(cur, p)
             manually_changed = {s['ingredient_product_id'] for s in substitutions}
             excluded_inputs = {i['ingredient_id'] for i in draft.get('excluded_ingredients', [])}
-            if pair and pair[0]['id'] not in manually_changed and pair[1]['id'] not in excluded_inputs and any(
+            # Formula entry: bran pounds the worker entered post and flag the
+            # shortage like any other ingredient (Blubber, 2026-11-02).
+            entered = formula_state is not None and pair is not None and pair[0]['id'] in formula_state['line_pids']
+            if pair and not entered and pair[0]['id'] not in manually_changed and pair[1]['id'] not in excluded_inputs and any(
                     shortage['product_id'] == pair[0]['id'] for shortage in draft['shortages']):
                 fail('INPUT_PLAN_CHANGED', 'The reviewed oat bran is no longer available; prepare again to use extra oats.')
     if action == 'adjust':
@@ -340,6 +365,10 @@ def validate(api, cur, action, payload, lock=False):
         options['input_plan'] = input_plan
         if action == 'make':
             draft['lot_confirmation_group'] = a5.confirmation_group(api, cur, input_plan)
+        if formula_state:
+            draft['formula_entry'] = formula.draft_block(api, cur, p, req.batches, formula_state, requirements, input_plan,
+                                                         substitutions, auto_substitutions)
+            draft['blockers'] = formula_state['blockers'] + draft['blockers']
     if action == 'found':
         a5.identity_draft(api, cur, payload, draft)
     if output_product:
@@ -384,6 +413,10 @@ def post(api, cur, action, validated, payload, request, ticket_id, receipt_numbe
                 cur, response['transaction_id'], draft['input_plan'], ticket_id=ticket_id,
                 receipt_number=receipt_number, actor_id=actor['id'] if actor else None)
             a5.record_substitutions(cur, response['transaction_id'], payload, actor['id'] if actor else None)
+            if draft.get('formula_entry'):
+                formula.record(cur, response['transaction_id'], draft['formula_entry'], actor['id'] if actor else None)
+                # Spec D6: the review facts travel on the saved receipt for the weekly view.
+                response['ingredient_review'] = draft['formula_entry']['review']
             response['substitutions'] = draft['substitutions']
             response['exclusion_reason_code'] = draft['exclusion_reason_code']
         # A3b hook (R3): shortage flag + SHORTAGE exception in the posting transaction.

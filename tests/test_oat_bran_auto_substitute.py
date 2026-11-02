@@ -244,17 +244,20 @@ def test_enough_bran_keeps_the_original_recipe(client, db_cursor, sunshine, acto
     assert not draft.get('auto_substitutions') and not made.get('auto_substitutions')
 
 
-def test_non_sunshine_recipe_with_oat_bran_keeps_its_existing_shortage(client, db_cursor, sunshine, actors):
+@pytest.mark.parametrize('path', ['direct', 'ticket', 'assistant'])
+def test_non_sunshine_recipe_with_oat_bran_uses_extra_oats(client, db_cursor, sunshine, actors, monkeypatch, path):
+    """Spec D4 (Blubber, 2026-11-01): every recipe with oat bran, not only SS #1/#2/#3."""
     db_cursor.execute("""INSERT INTO products(id,name,odoo_code,type,default_batch_lb)
                          SELECT max(id)+1,'Other oat-bran recipe','AUTO-OTHER','batch',28 FROM products RETURNING id""")
     pid = db_cursor.fetchone()['id']
     db_cursor.execute('''INSERT INTO batch_formulas(id,product_id,ingredient_product_id,quantity_lb)
                         SELECT max(id)+1,%s,%s,28 FROM batch_formulas''', (pid, BRAN))
-    prepared = ticket_prepare(client, actors, payload(pid))
-    assert not prepared['can_commit']
-    assert prepared['blockers'][0]['code'] == 'INSUFFICIENT_STOCK'
-    assert 'Oat Bran' in prepared['blockers'][0]['message']
-    assert posted_count(db_cursor, prepared) == 0
+    draft, response = run_make(path, client, db_cursor, actors, monkeypatch, payload(pid))
+    assert_notice(draft, 28, preview=True)
+    result = receipt(path, response)
+    totals, _ = consumption(db_cursor, result['transaction_id'])
+    assert totals == {OATS: 28.0}
+    assert_notice(result, 28)
 
 
 @pytest.mark.parametrize('path', ['direct', 'ticket'])

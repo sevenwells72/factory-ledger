@@ -1,25 +1,36 @@
-"""Michael's SS-only, pound-for-pound oat-bran fallback; never edits recipes."""
+"""Pound-for-pound oat-bran fallback for every recipe with oat bran; never edits recipes.
+
+Originally Michael's SS-only rule (#1/#2/#3); widened to every batch recipe that
+deducts oat bran by Blubber's decision D4 (docs/production/formula-driven-entry.md,
+2026-11-01). It lives in the shared make cores, so it applies to every make path.
+"""
 from decimal import Decimal
 import json
 
 from fastapi import HTTPException
 
 
-SS_CODES = frozenset(('90016', '90011', '90013'))
+BRAN_CODE, OATS_CODE = '11031', '11032'
 REASON = 'oat_bran_auto_substitute'
 
 
-def eligible(product):
-    return product.get('type') == 'batch' and product.get('odoo_code') in SS_CODES
+def eligible(product, cur):
+    """A batch whose recipe deducts oat bran (11031)."""
+    if product.get('type') != 'batch':
+        return False
+    cur.execute("""SELECT 1 FROM batch_formulas bf JOIN products i ON i.id=bf.ingredient_product_id
+        WHERE bf.product_id=%s AND i.odoo_code=%s AND NOT COALESCE(bf.exclude_from_inventory,false)
+        LIMIT 1""", (product['id'], BRAN_CODE))
+    return cur.fetchone() is not None
 
 
 def identities(cur, product):
-    if not eligible(product):
+    if not eligible(product, cur):
         return None
     cur.execute("SELECT id,name,odoo_code FROM products WHERE odoo_code=ANY(%s) "
-                "AND type='ingredient' AND active IS DISTINCT FROM false", (['11031', '11032'],))
+                "AND type='ingredient' AND active IS DISTINCT FROM false", ([BRAN_CODE, OATS_CODE],))
     rows = {r['odoo_code']: dict(r) for r in cur.fetchall()}
-    return (rows['11031'], rows['11032']) if len(rows) == 2 else None
+    return (rows[BRAN_CODE], rows[OATS_CODE]) if len(rows) == 2 else None
 
 
 def lots(api, cur, product_id, lot_id=None, lot_code=None):
@@ -36,7 +47,14 @@ def lots(api, cur, product_id, lot_id=None, lot_code=None):
 
 def messages(row, *, posted=False):
     extra, bran = f"{row['quantity_lb']:g}", f"{row['available_bran_lb']:g}"
-    if row['available_bran_lb'] <= 0:
+    if row.get('entered') and row['available_bran_lb'] <= 0:
+        # Formula entry: the pounds the worker entered, not FL's stock split.
+        en = f"No oat bran used — {'used' if posted else 'will use'} {extra} lb extra oats instead."
+        es = f"No se usó salvado de avena — {'se usaron' if posted else 'se usarán'} {extra} lb adicionales de avena en su lugar."
+    elif row.get('entered'):
+        en = f"{'Used' if posted else 'Will use'} {bran} lb oat bran and {extra} lb extra oats in place of the rest of the oat bran."
+        es = f"{'Se usaron' if posted else 'Se usarán'} {bran} lb de salvado de avena y {extra} lb adicionales de avena en lugar del resto del salvado."
+    elif row['available_bran_lb'] <= 0:
         en = f"No oat bran in stock — {'used' if posted else 'will use'} {extra} lb extra oats instead."
         es = f"No hay salvado de avena en inventario — {'se usaron' if posted else 'se usarán'} {extra} lb adicionales de avena en su lugar."
     else:
@@ -81,7 +99,7 @@ def apply_preview(api, cur, product, draft, *, manual=(), overrides=None, overri
     rows = plan(api, cur, product, draft['ingredients'], manual=manual,
                 excluded=[i['ingredient_id'] for i in draft.get('excluded_ingredients', [])], overrides=overrides,
                 override_codes=override_codes, frozen=frozen)
-    if not eligible(product):
+    if not eligible(product, cur):
         return rows
     draft['auto_substitutions'] = rows
     for row in rows:

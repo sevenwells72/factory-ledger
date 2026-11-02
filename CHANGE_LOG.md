@@ -1,9 +1,79 @@
 # Change Log
 
 ## 2026-11-02 13:57 — Fix blank form fields showing "String should have at least 1 character"
-- **File(s) changed:** `dashboard/ledger-ticket.js`, `dashboard/entry.js`, `dashboard/entry.html`, `dashboard/exceptions.html`, `dashboard/office.html`, `dashboard/receipt.html`, `main.py`, `validation_messages.py`, `tests/test_form_empty_string_validation.py`, `tests/test_pilot_ticket_ui.js`, `tests/visual/run-form-empty-string.mjs`, `FACTORY_LEDGER_CHANGELOG.md`; local-only branch `proposal/pr173-empty-string-patch`: `docs/proposals/make-empty-string-fix.patch`
-- **What changed:** The Make/Pack draft card no longer sends a blank lot-code row as `""`; it stops and names the lot (EN/ES). Standalone Ship "Shipment reference" is required in the form and trimmed; a blank substitution reason is refused by name. Every 422 error item now also carries plain EN/ES `message`/`message_es` naming the field (Pydantic `type`/`loc`/`msg` and the `error_detail` envelope unchanged — Notes characterization contract). Cache bust: `ledger-ticket.js` v14, `entry.js` v14. New Python, Node and Playwright tests. Separate patch file for PR #173's copy of the draft card (not pushed).
-- **Why:** Oct 29 2026 Arturo's 6-batch Make (8 lot rows) failed twice with "NOT recorded — String should have at least 1 character" because one confirmation box was blank; he then posted through the Floor GPT. Changelog row 246.
+- **File(s) changed:** `dashboard/ledger-ticket.js`, `dashboard/entry.js`, `dashboard/entry.html`, `dashboard/exceptions.html`, `dashboard/office.html`, `dashboard/receipt.html`, `main.py`, `validation_messages.py`, `tests/test_form_empty_string_validation.py`, `tests/test_pilot_ticket_ui.js`, `tests/visual/run-form-empty-string.mjs`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** The Make/Pack draft card no longer sends a blank lot-code row as `""`; it stops and names the lot (EN/ES). Standalone Ship "Shipment reference" is required in the form and trimmed; Every 422 error item now also carries plain EN/ES `message`/`message_es` naming the field (Pydantic `type`/`loc`/`msg` and the `error_detail` envelope unchanged — Notes characterization contract). Cache bust: `ledger-ticket.js` v14, `entry.js` v14. New Python, Node and Playwright tests.
+- **Why:** Oct 29 2026 Arturo's 6-batch Make (8 lot rows) failed twice with "NOT recorded — String should have at least 1 character" because one confirmation box was blank; he then posted through the Floor GPT. Changelog row 248. Updated after PR #173 merged (5ff74f0, merged into this branch); #173 already made the substitution reason a required list, so only the draft card, Ship reference and 422 messages change.
+
+---
+
+## 2026-11-02 12:08 — Fixed Make screen product search stuck on Searching (PR #173)
+- **File(s) changed:** `resolution.py`, `main.py`, `dashboard/entry.js`, `dashboard/entry.html`, `tests/test_pilot_entry_ui.js`, `tests/test_pilot_ux_reads.py`, `tests/fixtures/route_contract/routes.jsonl`, `tests/fixtures/route_contract/openapi.jsonl`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added read-only GET /entry/make-products (active batch products with a recipe; partial name words and code prefixes; dashboard-key allowlisted). Make product picker now autocompletes from it. All entry-screen searches are reads, capped at 25 s, and show errors with Try again in the field instead of staying on Searching. entry.js cache-bust v12. 15 new JS/Python regression tests; route-contract fixtures regenerated (new route only); FACTORY_LEDGER_CHANGELOG row 246.
+- **Why:** Owner staging test: searching 90002 or Batch Classic Granola #9 stayed on Searching… with no results. The picker required sign-in for a read and showed the error only in the page notice, leaving the field stuck; /resolve also ranked ingredients for Make and missed partial codes.
+
+---
+
+## 2026-11-02 10:40 — PR #173 (formula-driven entry, bb48cb8) deployed to FastAPI-staging only
+- **File(s) changed:** none in repo (FastAPI-staging deployment 292367b0; this log entry only)
+- **What changed:** Uploaded exact PR #173 head bb48cb8 (clean detached checkout ~/dev/fl-formula-stage-wt, linked to FastAPI-staging only) with `railway up`. Two earlier attempts (5cbc68f2, 3d04f256) FAILED in Railway's build service ("frontend grpc server closed unexpectedly", before any repo code built); the third, 292367b0, SUCCEEDED. Previous good deployment: e39166fa. Read-only checks: /health 200 (database connected); /dashboard/entry.html serves make-formula.js v3 and ledger-ticket.js v12; served make-formula.js identical to bb48cb8; OpenAPI has formula_entry and ingredient_lines; startup log has no errors. No staging data written. Production untouched (/health 200); nothing merged to main.
+- **Why:** Blubber approved a staging deploy of PR #173 for owner testing before production.
+
+---
+
+## 2026-11-02 10:30 — Fix re-review N1: no reason prompt on a 0 lb rolled-oats card the recipe does not use
+- **File(s) changed:** `formula_entry.py`, `dashboard/make-formula.js`, `dashboard/entry.html` (cache-bust make-formula.js v3), `tests/test_formula_entry.py`, `tests/test_formula_entry_ui.js`, `FACTORY_LEDGER_CHANGELOG.md`; also commits the pending `reviews/formula-entry-f8ba30d.md` re-review sections and the earlier CHANGE_LOG entries
+- **What changed:** A 0 lb line whose recipe standard is 0 lb (rolled oats offered only for the automatic oat-bran swap, e.g. a recipe with oat bran but no rolled oats line, or oats manually swapped out) no longer needs a reason: the server skips the reason blocker and the card is not marked not-used; the Make screen hides the reason box and sends no reason. Reasons are still required when the worker zeroes or swaps a recipe ingredient. Regression tests: recipe with bran and no oats line, exact recipe → no reason, records cleanly (bran 30 posted, shortage flagged, no review rows); UI card shows "Using 0 lb" with no reason box. Affected Python files 298/298 in both key-session modes, Node 610/610, Playwright pass.
+- **Why:** Re-review finding N1 (fix before production); Blubber's rule: an automatic swap line needs no reason, only worker-made zeroes/swaps do.
+
+---
+
+## 2026-11-02 10:24 — Independent re-review of 130c15a (formula entry review fixes): APPROVE for push + staging
+- **File(s) changed:** `reviews/formula-entry-f8ba30d.md` (independent re-review section appended; not committed)
+- **What changed:** Original reviewer (did not write the fix) re-checked all 7 findings: all fixed. My f8ba30d dead-end probe now posts 30/50/20 and flags 20 lb short. Traceability, Record re-check and D7 bag rule re-verified. N1 (reason demanded for a 0-recipe rolled-oats card) reproduced independently: fix before production, not a staging blocker. API/Assistant "prepare again" edge case judged acceptable (recovers in one step; row 208 behaviour, SS only). Python 7,274/7,274 in each KEY_SESSIONS mode (fresh DBs with pg_trgm), Node 609/609, Playwright pass, 8/8 independent probes.
+- **Why:** Requested independent re-review before push/staging. Read-only; local throwaway DBs only (dropped).
+
+---
+
+## 2026-11-02 09:27 — Re-review of 130c15a (formula entry review fixes): APPROVE for staging
+- **File(s) changed:** `reviews/formula-entry-f8ba30d.md` (re-review appended; file still not committed)
+- **What changed:** Re-review of 130c15a appended: all 7 original findings verified fixed with probes (bran over-entry posts + flags; exact recipe on SS gives no off-recipe warning; shift-summary flags; ID-order locks; INGREDIENT_CHANGED list; spec product list; dead picker removed). Traceability, Record re-check and D7 bag rule re-checked. New: N1 low–medium latent reason prompt on a 0-standard rolled-oats card (fix before production), N2/N3 low/info. API-only "prepare again" edge case judged acceptable. Python 7,274/7,274 ×2 modes (fresh DBs with pg_trgm), Node 609/609, Playwright pass.
+- **Why:** Requested re-review before push/staging. Read-only; local throwaway DBs only (dropped). Same session wrote 130c15a, so an independent agent also read the diff.
+
+---
+
+## 2026-11-02 08:42 — Formula entry review fixes (f8ba30d): oat bran never blocks, recipe-based standard + swap check, shift-summary flags, ID-order locks
+- **File(s) changed:** `formula_entry.py`, `ticket_actions.py`, `main.py`, `oat_bran_substitution.py`, `shift_summary.py`, `dashboard/make-formula.js`, `dashboard/ledger-ticket.js`, `dashboard/entry.html`, `dashboard/exceptions.html`, `dashboard/office.html`, `dashboard/receipt.html` (cache-bust: ledger-ticket.js v12, make-formula.js v2), `docs/production/formula-driven-entry.md`, `tests/test_formula_entry.py`, `tests/test_formula_entry_ui.js`, `tests/test_pilot_ticket_ui.js`, `tests/visual/run-formula-entry.mjs`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Fixes for review `reviews/formula-entry-f8ba30d.md`. (1) Oat bran entered above book stock on the Make screen is no longer refused at Record: it posts what was confirmed and flags the shortage, so Prepare and Record agree (lock-time "oat bran no longer available" refusal skipped when the bran line came from the worker). (2) Card "Recipe" lb, the 10% check and saved `standard_requirements` use the original recipe × pans; with the automatic swap, oat bran + swapped oats are checked against recipe bran, oats less the swap against recipe oats; bran card labelled "oat bran → rolled oats (swap)"; the swap that posts (`transaction_substitutions`, note, receipt) is the one the entered pounds make, not FL's stock proposal; commit core also posts any entered ingredient the reshaped recipe dropped. (3) Shift summary make rows get `INGREDIENT_OFF_RECIPE` (warn) / `INGREDIENT_NOT_USED` / `INGREDIENT_SUBSTITUTED` / `INGREDIENT_SWAP` (info) flags from `ingredient_review` with recipe lb, used lb, %, reason and who recorded it. (4) Bag lots are no longer locked in screen order in `formula_entry.prepare`; the commit's lot-ID-ordered pass takes the locks. (5) New non-ack `INGREDIENT_CHANGED` warning lists not-used, substituted and swapped lines with their reason. (6) Read-only query (BEGIN; SET TRANSACTION READ ONLY) on staging and production: only SS #1/#2/#3 (116/114/118) have oat bran — listed in spec 3.6. (7) Dead Make lot-picker (ambiguous last-4) branch removed from ledger-ticket.js; its 4 tests replaced by one. 7 Python + 1 Node regression tests; Playwright script updated for the swap card. No migration; openapi-gpt-v3.yaml unchanged (30 ops); feat/planner-v2 untouched.
+- **Why:** Review of f8ba30d requested changes; Blubber's decisions 2026-11-02 (never block on bran; show >10% differences on the shift summary now). Branch only — not pushed, merged or deployed; no staging/production writes.
+
+---
+
+## 2026-11-02 07:51 — Cross-review of f8ba30d (formula-driven Make entry, Phase A): REQUEST CHANGES
+- **File(s) changed:** `reviews/formula-entry-f8ba30d.md` (new, not committed)
+- **What changed:** Independent review: 7 numbered findings (1 High oat-bran dead end at Record, 2 Medium, 2 Low, 1 Info, 1 Nit), checklist for items 1–10, test results (Python 7,267/7,267 in each KEY_SESSIONS mode on fresh local DBs; Node 611/611; Playwright run-formula-entry pass), and a plain-English staging verdict.
+- **Why:** Requested cross-review before opening a PR; read-only, no push/merge/deploy, local throwaway DBs only (dropped afterwards).
+
+---
+
+## 2026-11-01 21:03 — Formula-Driven Production Entry, Phase A (pans, bags, reasons, 10% review; branch only, not deployed)
+- **File(s) changed:** `formula_entry.py` (new), `ticket_actions.py`, `write_tickets.py`, `main.py`, `oat_bran_substitution.py`, `assistant_tools.py`, `dashboard/make-formula.js` (new), `dashboard/entry.js`, `dashboard/ledger-ticket.js`, `dashboard/ledger-ui.js`, `dashboard/ledger-forms.css`, `dashboard/*.html` (cache-bust: ledger-forms.css v13, ledger-ui.js v21, ledger-ticket.js v11, entry.js v11, make-formula.js v1), `docs/production/formula-driven-entry.md`, `tests/test_formula_entry.py` (new), `tests/test_formula_entry_ui.js` (new), `tests/visual/run-formula-entry.mjs` (new), `tests/visual/d12_fixture.py`, `tests/test_oat_bran_auto_substitute.py`, `tests/test_pilot_entry_ui.js`, `tests/test_pilot_ticket_ui.js`, `tests/fixtures/route_contract/openapi.jsonl`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Make screen asks for pans (1 pan = 1 FL batch, D1 closed in the spec). Draft shows one card per recipe ingredient with bags pre-filled from the existing oldest-first-then-next plan; lb per bag editable, add/remove bag, typed code per bag (changing lb keeps the confirmation, changing the bag clears it), Not used (0 lb). `/make/prepare` accepts `formula_entry` + `ingredient_lines` (Make screen only; excluded from the Assistant tool schema and popped from other callers' payloads, so their hashes are unchanged); the ticket freezes the entered lb and the commit posts exactly those (`required_lb`). 0 lb or a swap needs a reason from the fixed list (Out of stock, Not used, Substituted, Quality problem, Owner instruction, Other + note); not-used reasons saved in transaction_substitutions. Ingredient > 10% off recipe × pans: one acknowledgement warning plus `ingredient_review` rows (weekly_view) on the saved ticket receipt. Oat bran → rolled oats pound-for-pound now applies to every batch recipe that deducts oat bran (all make paths, incl. FL Assistant). Short stock still posts and flags. No migration; openapi-gpt-v3.yaml unchanged (30 ops); route-contract OpenAPI snapshot regenerated (only the /make/prepare request schema changed).
+- **Why:** Phase A of the formula-driven entry spec, with Blubber's decisions D1–D7. Tests: Python 7,267/7,267 in each KEY_SESSIONS mode on fresh local DBs; Node 611/611; Playwright run-formula-entry passes (local fixture server only). Not pushed, not merged, not deployed; no staging/production DB writes.
+
+---
+
+## 2026-11-01 20:18 — Spec: record Blubber's decisions on Formula-Driven Production Entry (docs only)
+- **File(s) changed:** `docs/production/formula-driven-entry.md`
+- **What changed:** Recorded decisions D2–D7 and the phasing: keep oldest-first-then-next lot plan with every spill lot shown as an editable row; fixed reason list (Out of stock, Not used, Substituted, Quality problem, Owner instruction, Other + note); oat bran → rolled oats for every recipe with oat bran; per-ingredient 10% warning shown on the owner's weekly view; changing pounds keeps a lot confirmation, changing the lot clears it; Phase A (no DB change) first, Phase B (recipe versions) as a separate PR. Updated §3.3–3.9, §4.2–4.3; §5 now lists decided items and the one open question (D1, lb per pan).
+- **Why:** Blubber answered the spec's open questions; D1's answer was still a placeholder, so it stays open.
+
+---
+
+## 2026-11-01 20:14 — Spec: Formula-Driven Production Entry (docs only)
+- **File(s) changed:** `docs/production/formula-driven-entry.md`
+- **What changed:** New draft spec for pan-based make entry: current make flow (entry.js → /make/prepare → ticket_actions/_make_preview_core → ticket commit), where recipes/batch weight/lot balances/FIFO live, the new behaviour (pans × recipe, tap-to-confirm oldest-lot pick-list, editable pounds and lot splits, fixed reason list, oat bran swap, shortages post and flag, >10% warning, recipe version, one record per run, deduct only on confirm), reuse vs new, size estimate, owner decisions D1–D7. Read-only investigation; no code, DB or deploy.
+- **Why:** Michael asked for an investigation and spec before building formula-driven production entry.
 
 ---
 

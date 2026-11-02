@@ -45,6 +45,7 @@ from pydantic import BaseModel, Field
 
 import permissions
 import write_tickets as wt
+import formula_entry
 import kosher_tiers
 import shift_receipts
 
@@ -256,6 +257,10 @@ def _lines(receipt, sign=None, posted_only=False):
     return out
 
 
+INGREDIENT_FLAGS = {'off_recipe': ('INGREDIENT_OFF_RECIPE', 'warn'), 'not_used': ('INGREDIENT_NOT_USED', 'info'),
+                    'substituted': ('INGREDIENT_SUBSTITUTED', 'info'), 'swap': ('INGREDIENT_SWAP', 'info')}
+
+
 def _flag(code, severity, en, es, refs, due_at=None):
     flag = {'code': code, 'severity': severity, **pair(en, es, 'message'), 'refs': refs}
     if due_at is not None:
@@ -405,6 +410,20 @@ def receipt_row(api, cur, catalog, number, day, *, receipt=None, ticket=None):
                 for substitution in response['auto_substitutions']:
                     row['line_en'] += '  ' + substitution['message_en']
                     row['line_es'] += '  ' + substitution['message_es']
+            # Spec D6 / 4.2 item 5: formula-entry review rows (> 10% off recipe, not used,
+            # swapped) are highlighted here, beside the correction highlights.
+            who = row['actor']['name'] or '?'
+            for review in response.get('ingredient_review') or []:
+                code, severity = INGREDIENT_FLAGS[review['kind']]
+                row['flags'].append(_flag(code, severity,
+                                          f'{formula_entry.describe(review, "en")} — recorded by {who} — highlighted on the weekly view',
+                                          f'{formula_entry.describe(review, "es")} — registrado por {who} — resaltado en la vista semanal',
+                                          {'product_id': review['product_id'], 'kind': review['kind'],
+                                           'standard_lb': review['standard_lb'], 'used_lb': review['used_lb'],
+                                           'checked_lb': review.get('checked_lb', review['used_lb']),
+                                           'difference_pct': review['difference_pct'], 'reason_code': review['reason_code'],
+                                           'note': review['note'], 'swap_lb': review.get('swap_lb'),
+                                           'actor_id': row['actor']['id']}))
         else:
             source = payload['source_product_id']
             src = next((i for i in draft.get('input_plan') or [] if i['product_id'] == source), None)
