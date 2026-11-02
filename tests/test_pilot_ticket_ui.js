@@ -11,14 +11,14 @@ class Element{
 }
 const descendants=node=>[node,...node.children.flatMap(descendants)];
 const plain=value=>JSON.parse(JSON.stringify(value));
-async function harness({language='en',path='/make/prepare',draft={},canCommit=true,onPrepare,initialAttachment=null,initialPhoto=null,photoKind='correction_photo',payload={},result={receipt_number:'MK-261020-001',success:true}}={}){
+async function harness({formula=false,language='en',path='/make/prepare',draft={},canCommit=true,onPrepare,initialAttachment=null,initialPhoto=null,photoKind='correction_photo',payload={},result={receipt_number:'MK-261020-001',success:true}}={}){
   const host=new Element('main'),notice=new Element('div'),requests=[],failures=[],uploads=[],busy=[],attachments=[];let cancelled=0,edited=0;
   const labelled=new Set();
   const label=(node,value)=>{node.textContent=String(value??'');if(value?.en!==undefined){node.labels=[value.en,value.es];labelled.add(node);}else{delete node.labels;labelled.delete(node);}return node;};
   const ui={...ledger,lang:language,t:(en,es)=>Object.assign(new String(ui.lang==='es'?es:en),{en,es}),setText:label,relabel(){for(const node of labelled)if(descendants(host).includes(node))node.textContent=node.labels[ui.lang==='es'?1:0];},el(tag,text,parent){const node=label(new Element(tag),text);parent?.append(node);return node;},makeDraftHtml:()=>'',draftHtml:()=>'',autoSubstitutionsHtml:()=>'',plantTime:()=>'',failure(error){failures.push(error.message);},notice(){},
     async upload(file,kind){uploads.push({file,kind});return {attachment_id:91,kind};},
     async request(url,body){requests.push({url,body:plain(body)});if(url.includes('/commit'))return plain(result);return {ticket:'ticket-1',payload_hash:'hash-1',draft:plain(draft),actor:{name:'Arturo'},can_commit:canCommit,...(onPrepare?onPrepare(body):{})};}};
-  const root={FLLedger:ui,addEventListener(){},matchMedia:()=>({matches:true})};vm.runInNewContext(source,{window:root,document:{getElementById:()=>notice},FLReceipts:{link:receipt=>'receipt.html?number='+receipt,page:name=>name}});
+  const root={FLLedger:ui,addEventListener(){},matchMedia:()=>({matches:true})};if(formula)vm.runInNewContext(fs.readFileSync('dashboard/make-formula.js','utf8'),{window:root});vm.runInNewContext(source,{window:root,document:{getElementById:()=>notice},FLReceipts:{link:receipt=>'receipt.html?number='+receipt,page:name=>name}});
   const controller=ui.ticketCard(host,path,{client_source:'dashboard',...plain(payload)},{initialAttachment,initialPhoto,photoKind,onAttachment(attachment){attachments.push(attachment);},onCancel(){cancelled++;},onEdit(){edited++;},onBusy(value){busy.push(value);}});await flush();
   const all=predicate=>descendants(host).filter(predicate),find=predicate=>all(predicate)[0],button=text=>find(node=>node.tag==='button'&&node.textContent===text);
   return {host,ui,controller,requests,failures,uploads,busy,attachments,all,find,button,switchLanguage(lang){ui.lang=lang;ui.relabel();},get cancelled(){return cancelled;},get edited(){return edited;}};
@@ -100,3 +100,25 @@ test('switching language refreshes physical-tag legends, actor and photo status 
 });
 
 for(const language of ['en','es'])test(`receive success card puts the large CNS code before the receipt in ${language}`,async()=>{const h=await harness({language,path:'/receive/prepare',result:{receipt_number:'RCV-261021-001',success:true,lot_code:'26-10-21-OATS-001',supplier_lot_code:'SUP-22'}});h.ui.receiveLotHtml=receipt=>{ledger.lang=language;return ledger.receiveLotHtml(receipt);};await h.button(language==='en'?'Record':'Registrar').onclick();const card=h.host.children[0],tag=card.children[0];assert.match(tag.innerHTML,/class="receive-lot-code">26-10-21-OATS-001/);assert.match(tag.innerHTML,language==='en'?/>Write this on the pallet tag</:/>Escribe esto en la etiqueta del pallet</);assert.equal(card.children[1].className,'good');});
+// Formula-driven Make (make-formula.js): ingredient cards replace the per-lot rows.
+const formulaDraft=confirmed=>({...makeDraft,formula_entry:{pans:2,pan_lb:100,output_lb:200,tolerance_pct:10,ingredients:[{product_id:1,product_name:'Oats',standard_lb:160,bags:[{lot_id:11,lot_code:'OATS-A-001',quantity_lb:160,confirmed}],candidates:[{lot_id:11,lot_code:'OATS-A-001',available_lb:500},{lot_id:12,lot_code:'OATS-B-001',available_lb:90}]}]}});
+test('a formula-driven make draft shows ingredient cards and re-prepares with the worker lines',async()=>{
+  const h=await harness({formula:true,draft:formulaDraft(false),canCommit:false,payload:{formula_entry:true,ingredient_lines:[]},onPrepare:body=>({can_commit:!!body.lot_confirmations?.length,draft:formulaDraft(!!body.lot_confirmations?.length)})});
+  assert.equal(h.button('Check confirmations → new draft'),undefined,'per-lot rows are replaced');
+  assert.equal(h.button('Record').disabled,true);
+  const lb=h.find(node=>node.name==='bag_lb'),code=h.find(node=>node.name==='bag_code'),method=h.find(node=>node.name==='bag_method');
+  lb.value='150';lb.oninput();method.value='full_code';code.value='OATS-A-001';code.oninput();
+  await h.button('Check bags and pounds → new draft').onclick();await flush();
+  const body=h.requests[1].body;assert.equal(h.requests[1].url,'/make/prepare');assert.equal(body.formula_entry,true);
+  assert.deepEqual(body.ingredient_lines,[{ingredient_product_id:1,bags:[{lot_id:11,quantity_lb:150}],reason_code:null,note:null}]);
+  assert.deepEqual(body.lot_confirmations,[{lot_id:11,method:'full_code',value:'OATS-A-001'}]);
+  assert.equal(h.button('Record').disabled,false);
+  h.find(node=>node.name==='bag_lb').oninput();assert.equal(h.button('Record').disabled,true,'any edit needs a fresh draft before Record');
+});
+test('a formula draft that FL refused keeps the last ingredient cards to fix',async()=>{
+  let calls=0;const h=await harness({formula:true,draft:formulaDraft(false),canCommit:false,payload:{formula_entry:true},onPrepare:()=>(++calls>1?{draft:{},blockers:[{code:'LOT_CONFIRMATION_MISMATCH',message:'The entered code does not match Oats lot OATS-A-001.'}]}:{})});
+  h.find(node=>node.name==='bag_code').value='WRONG';h.find(node=>node.name==='bag_method').value='full_code';
+  await h.button('Check bags and pounds → new draft').onclick();await flush();
+  assert.ok(h.find(node=>node.name==='bag_code'),'cards are still shown');assert.ok(h.find(node=>String(node.textContent).includes('does not match')));
+  assert.equal(h.button('Record').disabled,true);
+});

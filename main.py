@@ -8898,7 +8898,7 @@ def _make_preview_core(cur, req, *, product=None, auto_substitute=True):
     return response
 
 
-def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, ticket_id=None, receipt_number=None, require_new_lot=False, input_plan=None, substitutions=None, auto_substitutions=None, kosher_attestation=None, note=None):
+def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, ticket_id=None, receipt_number=None, require_new_lot=False, input_plan=None, substitutions=None, auto_substitutions=None, kosher_attestation=None, note=None, required_lb=None):
     product = product if product is not None else resolve_product_full(cur, req.product_name)
 
     if kosher_tiers.tier(product)==kosher_tiers.EXTRA:
@@ -8963,7 +8963,7 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
     if substitutions:
         formula = lot_confirmation.substituted_formula(formula, substitutions)
 
-    if auto_substitutions is None and oat_bran_substitution.eligible(product):
+    if auto_substitutions is None and oat_bran_substitution.eligible(product, cur):
         # All make routes take advisory lock 3 before input locks. Lock the
         # candidate lots in the same ID order as tickets, then measure stock.
         # A concurrent receipt may add a new lot, but existing stock cannot be
@@ -9039,6 +9039,14 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
         needed = (float(to_decimal(Decimal(str(ing['quantity_lb'])) * to_decimal(req.batches)))
                   if auto_substitutions else float(to_decimal(ing['quantity_lb']) * to_decimal(req.batches)))
         ing_name = ing_names.get(ing_id, f"ID {ing_id}")
+        # Formula-driven entry: the ticket froze the pounds the worker entered
+        # per ingredient (bags/splits); 0 lb means not used, with its reason.
+        if required_lb is not None and input_plan is not None and ing_id not in excluded_ids:
+            recipe_lb, needed = needed, float(required_lb.get(ing_id, 0))
+            if needed <= BALANCE_EPSILON:
+                excluded_from_run.append({"ingredient_id": ing_id, "ingredient_name": ing_name,
+                                          "skipped_lb": recipe_lb, "exclusion_type": "not_used"})
+                continue
         if ing_id in excluded_ids:
             excluded_from_run.append({
                 "ingredient_id": ing_id, "ingredient_name": ing_name,
@@ -9134,7 +9142,7 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
         "ingredients_consumed_grouped": list(consumed_by_ingredient.values()),
         "message": f"Produced {_fmt_quantity(total_output)} lb as lot {lot_code}"
     }
-    if oat_bran_substitution.eligible(product):
+    if oat_bran_substitution.eligible(product, cur):
         response['auto_substitutions'] = posted_substitutions
     if posted_substitutions:
         response['message'] += ' ' + ' '.join(row['message_en'] for row in posted_substitutions)

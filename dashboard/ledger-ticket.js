@@ -5,7 +5,7 @@
     allowPhoto=allowPhoto&&!['/make/prepare','/pack/prepare'].includes(path);
     if(!allowPhoto)initialAttachment=null;
     if(path==='/receive/prepare')photoKind=['bol','lot_tag'].includes(initialAttachment?.kind)?initialAttachment.kind:['bol','lot_tag'].includes(photoKind)?photoKind:'lot_tag';
-    let prepared=null,busy=false,finished=false,attachment=initialAttachment,photoFile=initialPhoto,uploading=false,confirmations=[],lastLots=[];
+    let prepared=null,busy=false,finished=false,attachment=initialAttachment,photoFile=initialPhoto,uploading=false,confirmations=[],lastLots=[],lastFormula=null;
     const card=ui.el('section',undefined,host);card.className='panel';
     function editButton(){const cancel=ui.el('button',ui.t('Cancel','Cancelar'),card);cancel.type='button';cancel.className='secondary';cancel.onclick=()=>{if(busy||uploading||finished)return;finished=true;card.remove();document.getElementById('notice').hidden=true;if(onCancel)onCancel();else if(onEdit)onEdit();};if(onEdit){const edit=ui.el('button',ui.t('Edit entry','Editar entrada'),card);edit.type='button';edit.onclick=()=>{if(!busy&&!uploading&&!finished)onEdit();};}}
     function failure(error){ui.failure(error);onFailure(error);}
@@ -25,7 +25,10 @@
       if(prepared.can_commit!==true){const state=ui.el('p',ui.t('NOT recorded — resolve the blockers below.','NO registrado — resuelve los bloqueos abajo.'),card);state.className='bad';}
       (prepared.blockers||[]).forEach(b=>{const p=ui.el('p',ui.t(ui.text(b,'en'),ui.text(b,'es')),card);p.className='bad';});
       if(prepared.draft.input_plan?.length)lastLots=prepared.draft.input_plan;
-      const lots=new Map(lastLots.map(l=>[l.lot_id,l]));const inputs=[];
+      // Formula-driven Make: ingredient cards replace the per-lot rows (make-formula.js).
+      if(prepared.draft.formula_entry)lastFormula=prepared.draft.formula_entry;const formula=path==='/make/prepare'&&ui.formulaEntry?lastFormula:null;
+      if(formula)ui.formulaEntry(card,formula,{confirmations,dirty:()=>{evidenceDirty=true;record.disabled=true;},update:(lines,next)=>{if(busy||finished||uploading)return;payload.ingredient_lines=lines;confirmations=next;prepare();}});
+      const lots=new Map(formula?[]:lastLots.map(l=>[l.lot_id,l]));const inputs=[];
       const ingredientGroups=prepared.draft.lot_confirmation_group?.ingredients||[];
       lots.forEach(lot=>{const field=ui.el('fieldset',undefined,card);field.className='lot-confirmation-row';field.dataset.productId=lot.product_id;
         ui.el('legend',ui.t('Confirm physical lot: '+(lot.product_name?lot.product_name+' · ':'')+lot.lot_code,'Confirma lote físico: '+(lot.product_name?lot.product_name+' · ':'')+lot.lot_code),field);

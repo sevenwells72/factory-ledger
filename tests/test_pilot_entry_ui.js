@@ -29,6 +29,7 @@ async function harness(action='ship',language='en',{role='floor'}={}){
     async request(path,body,options){requests.push({path,body,options});if(path==='/entry/lots?'+new URLSearchParams({product_id:'1561'}))return stock(path);if(path.startsWith('/entry/lots?'))return stock(path);if(path==='/resolve'){if(resolver)return resolver(body);return {outcome:'match',match:{id:body.kind==='order'?5:body.kind==='customer'?7:body.kind==='supplier'?8:1561,label:body.kind,type:body.kind==='product'?'ingredient':undefined,supplier_lot_required:body.kind==='product',case_size_lb:25}};}if(path.startsWith('/sales/orders/'))return order;if(path.startsWith('/ship/lots?'))return stock(path);throw Error('Unexpected request '+path);},
     ticketCard(host,path,body,options){const ticket={host,path,body:plain(body),options};tickets.push(ticket);return {invalidate(){ticket.invalidated=true;}};}
   };
+  vm.runInNewContext(fs.readFileSync('dashboard/make-formula.js','utf8'),{window:{FLLedger:ui}});
   vm.runInNewContext(source,{setTimeout(callback){const id=++nextTimer;timers.set(id,callback);return id;},clearTimeout(id){timers.delete(id);},FLLedger:ui,FLDashboard:{writesEnabled:true},URL,URLSearchParams,location:{search:'?action='+action,href:'https://example.test/entry.html?action='+action},history:{replaceState(){}},document:{getElementById:byId},window:{addEventListener(name,callback){events[name]=callback;}}});await flush();
   const shipMode=find(node=>node.name==='ship_mode');if(shipMode)shipMode.value='order';
   const field=(name,scope=root)=>find(node=>node.name===name,scope),button=(text,scope=root)=>find(node=>node.tag==='button'&&node.textContent===text,scope);
@@ -43,6 +44,21 @@ for(const action of ['receive','make','pack'])test(`${action} optional note is s
   const h=await harness(action);if(action==='pack'){await h.pick('source');await h.pick('target');}else await h.pick('product');if(action==='receive')await h.pick('supplier');
   const note=h.field('note');assert.equal(note.tag,'textarea');assert.equal(note.required,false);assert.equal(note.maxLength,2000);note.value='Keep for Wednesday <sample>.';h.submit();
   assert.equal(h.tickets[0].body.note,note.value);assert.deepEqual(h.failures,[]);
+});
+test('make asks for pans and sends a formula-driven draft request',async()=>{
+  const h=await harness('make');await h.pick('product');const pans=h.field('batches');
+  assert.equal(String(h.find(node=>node.children.includes(pans)).textContent),'Number of pans');assert.equal(pans.min,'1');
+  assert.equal(h.button('Choose a different ingredient lot'),undefined);
+  pans.value='3';h.submit();assert.deepEqual(h.failures,[]);const body=h.tickets[0].body;
+  assert.equal(body.batches,3);assert.equal(body.formula_entry,true);assert.deepEqual(body.ingredient_lines,[]);assert.equal('ingredient_lots' in body,false);
+});
+test('make substitution reason comes from the fixed list and Other needs a note',async()=>{
+  const h=await harness('make');await h.pick('product');h.button('Add substitution').onclick();for(const name of ['original','substitute','substitute-lot'])await h.pick(name);
+  const reason=h.field('substitution_reason');assert.equal(reason.value,'substituted');
+  assert.deepEqual(reason.children.slice(1).map(o=>o.value),['out_of_stock','not_used','substituted','quality_problem','owner_instruction','other']);
+  reason.value='other';h.submit();assert.equal(h.tickets.length,0);assert.match(h.failures[0],/note/i);
+  h.field('substitution_note').value='Supplier swap approved';h.submit();
+  assert.deepEqual(h.tickets[0].body.substitutions,[{ingredient_product_id:1561,substitute_product_id:1561,lot_id:11,reason_code:'other',note:'Supplier swap approved'}]);
 });
 test('blank optional note is omitted from receive request',async()=>{const h=await harness('receive');await h.pick('product');await h.pick('supplier');h.submit();assert.equal('note' in h.tickets[0].body,false);});
 for(const language of ['en','es'])test(`standalone defaults to FIFO, exposes available lots and sends the actual chosen lot in ${language}`,async()=>{

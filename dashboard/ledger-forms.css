@@ -75,7 +75,13 @@
 .ledger-page .lot-confirmation-controls label {font-size:13px;gap:3px}
 .ledger-page .lot-confirmation-choices {display:grid;gap:6px;margin-top:8px}
 .ledger-page .lot-confirmation-choices button {text-align:left;font-size:14px}
-@media(max-width:520px){.receipt-tools>a{flex:1 1 145px}.ledger-page .lot-confirmation-row{padding:8px}.ledger-page .lot-confirmation-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.ledger-page .lot-confirmation-controls select,.ledger-page .lot-confirmation-controls input{padding:8px 6px;font-size:16px}}
+.ledger-page .formula-ingredient legend {font-weight:700;font-size:16px;overflow-wrap:anywhere}
+.ledger-page .formula-ingredient>p {margin:4px 0}
+.ledger-page .formula-ingredient>button {margin:8px 8px 0 0}
+.ledger-page .formula-bag [data-bag-state] {margin:8px 0 0;padding:6px 10px}
+.ledger-page .formula-bag>button {margin-top:8px}
+.ledger-page .formula-reason {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:8px}
+@media(max-width:520px){.receipt-tools>a{flex:1 1 145px}.ledger-page .formula-reason{grid-template-columns:minmax(0,1fr)}.ledger-page .lot-confirmation-row{padding:8px}.ledger-page .lot-confirmation-controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.ledger-page .lot-confirmation-controls select,.ledger-page .lot-confirmation-controls input{padding:8px 6px;font-size:16px}}
 
 .ledger-page .picker-options hr{border:0;border-top:1px solid var(--border);width:100%;margin:16px 0 4px}.ledger-page .picker-options button.new-customer-option{margin-top:0;padding:10px 12px;background:var(--bg);font-size:14px;font-weight:500;color:var(--text-secondary)}.ledger-page .today-entry{padding:12px 0;border-top:1px solid var(--border)}.ledger-page .today-entry p{margin:4px 0}
 

@@ -1,6 +1,6 @@
 # Formula-Driven Production Entry — spec (draft)
 
-**Status:** draft, 2026-11-01. Revision 2 (2026-11-01): Blubber's decisions D2–D7 and the phasing are recorded (§5); D1 (pan weight) is still open. Docs only: no code, no migration, no deploy.
+**Status:** Phase A built on `feat/formula-driven-entry` (not deployed), 2026-11-01. Revision 3: D1 decided — every decision is now closed (§5). Revision 2 recorded D2–D7 and the phasing. Phase B (recipe versions) is not started.
 **Branch:** `docs/formula-driven-entry` (from `origin/main` `87f500f`).
 **Screen:** Entry → **Make** (`dashboard/entry.html` + `dashboard/entry.js`, draft card `dashboard/ledger-ticket.js`).
 
@@ -69,7 +69,7 @@ The worker picks a product and types **how many pans**. FL fills in every ingred
 ### 3.2 Worker flow
 
 1. **Pick product** (same picker as today; batch products only).
-2. **Enter number of pans** (whole number ≥ 1). Assumed one pan = one FL batch = `default_batch_lb`, pending decision D1 (still open).
+2. **Enter number of pans** (whole number ≥ 1). **Decided (D1):** one pan = one FL batch = the product's existing `default_batch_lb` for all granola; the form says "Pans" and FL multiplies the recipe by the pans.
 3. FL shows an **ingredient list**, one card per recipe line:
    - ingredient name, **standard pounds** = recipe qty × pans;
    - **suggested lot** pre-filled (see 3.3), shown as a pick-list of every in-stock lot, oldest first, each with code, received date and lb on hand;
@@ -213,8 +213,20 @@ Staging first; production only with Michael's per-step approval, backup and veri
 | D7 | Changing pounds does not require re-confirming the lot; changing the lot does. |
 | Phasing | Phase A (form + rules, no DB change) first; Phase B (recipe versions) later, in a separate PR. |
 
-### 5.2 Still open
+### 5.2 Decided later (2026-11-01)
 
-| # | Question | Why it matters |
-|---|---|---|
-| D1 | **How many pounds is one pan, per product?** Is 1 pan = 1 FL batch (`default_batch_lb`) for every granola, or does a product need its own lb-per-pan? Today only coconut 90003/90004/90005 is confirmed (360 lb). | Every ingredient amount on the new screen is recipe × pans. If a pan is not one FL batch, every number on the screen is wrong. Must be answered before Phase A ships. |
+| # | Decision |
+|---|---|
+| D1 | 1 pan = 1 FL batch for all granola, using each product's existing `default_batch_lb` (read-only production check the same day: every active granola batch weight matches its recipe total and recent makes, except a pre-2026-10-13 Fruit Nut gap and Dark Chocolate 350 vs 346.2 lb recipe). |
+
+No decisions are open.
+
+## 6. Phase A as built (`feat/formula-driven-entry`)
+
+- **Screen:** Entry → Make asks for **Number of pans**; substitutions take a reason from the fixed list (note required for Other). The old "Choose a different ingredient lot" row is gone: bags are chosen per ingredient on the draft. The draft shows one card per ingredient (`dashboard/make-formula.js`): recipe lb, bags pre-filled from the oldest-first-then-next plan, editable lb per bag, Add another bag, Remove bag (its lb move to the bag above), Not used (0 lb) with the reason list, a typed code per bag, and "Check bags and pounds → new draft". Changing lb keeps a bag's confirmation; changing the bag clears it (D7).
+- **Server:** `formula_entry.py`; `/make/prepare` accepts `formula_entry: true` and `ingredient_lines[]` (`{ingredient_product_id, bags:[{lot_id, quantity_lb}], reason_code, note}`). Only the Make screen sends them; FL Assistant and the legacy routes keep their payload and draft unchanged (the fields are excluded from the Assistant's tool schema). Ingredients sent as lines use exactly those bags and pounds; others keep the FIFO plan. The ticket freezes the entered pounds and the commit posts them (`required_lb` in `main._make_commit_core`). Output stays pans × `default_batch_lb`.
+- **Reasons:** 0 lb or a swap without a fixed-list reason is a draft blocker (and refused at commit). Not-used reasons are saved in `transaction_substitutions` (substitute NULL); the recipe is never changed.
+- **10% rule:** an ingredient more than 10% from recipe × pans (exactly 10% is fine) adds one `INGREDIENT_OFF_RECIPE` warning that must be ticked before Record; each off-recipe, not-used or swapped ingredient is listed in `ingredient_review` (`weekly_view: true`) on the saved ticket receipt, for the owner's weekly review. No review screen in this PR.
+- **Oat bran:** any batch recipe that deducts oat bran 11031 now gets the pound-for-pound rolled oats (11032) swap, in every make path.
+- **Unchanged:** prepare → confirm → Record ticket flow, lot confirmations and evidence, shortage post-and-flag, one make transaction per run, nothing posts before Record, lots re-locked and re-checked at Record. No migration, no OpenAPI GPT operation added.
+- **Not in Phase A:** recipe versions (Phase B), Runs-screen hook, a weekly review screen.

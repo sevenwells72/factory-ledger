@@ -109,6 +109,8 @@
     return current(receipt);
   }
   function makeDraftHtml(draft,compact=true){
+    // Formula-driven Make: the ingredient cards (make-formula.js) show ingredients, bags and pans.
+    if(draft.formula_entry){const {ingredients,input_plan,shortages,batches,lot_confirmation_group,...rest}=draft;return draftHtml(rest,undefined,{compactLots:compact});}
     const ingredients=(draft.ingredients||[]).map(ingredient=>{
       const plan=(draft.input_plan||[]).filter(item=>item.product_id===ingredient.ingredient_id);
       const available=ingredient.lots||[];
