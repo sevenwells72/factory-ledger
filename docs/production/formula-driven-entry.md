@@ -120,6 +120,15 @@ The worker picks a product and types **how many pans**. FL fills in every ingred
 - **Decided (D4): apply to every recipe containing oat bran (11031)**, not only the SS products 90016 / 90011 / 90013. This replaces the earlier SS-only rule written in `oat_bran_substitution.py` (`SS_CODES`, `eligible()`), so that rule changes in the build PR and its tests (`tests/test_oat_bran_*`) are updated to match.
 - Because the swap lives in the shared make code, it then applies to every make (Entry screen and FL Assistant), not only this screen.
 - The swapped oats line still needs its lot confirmed like any other line.
+- **Which products this affects (read-only check, 2026-11-02):** `batch_formulas` rows with oat bran 11031, run in a `BEGIN; SET TRANSACTION READ ONLY;` transaction on staging and on production. Both return the same three products, all active, none with the bran line excluded from inventory:
+
+  | Product | Code | Oat bran lb / pan | Rolled oats lb / pan | Pan lb |
+  |---|---|---|---|---|
+  | Batch SS Original Granola #1 (id 116) | 90016 | 28 | 185 | 350 |
+  | Batch SS Chocolate Chip Granola #2 (id 114) | 90011 | 29 | 200 | 393 |
+  | Batch SS Cranberry Granola #3 (id 118) | 90013 | 28 | 185 | 379 |
+
+  So D4 starts no new product swapping today; it applies automatically to any recipe that adds oat bran later.
 
 ### 3.7 Short stock never blocks
 
@@ -226,7 +235,11 @@ No decisions are open.
 - **Screen:** Entry → Make asks for **Number of pans**; substitutions take a reason from the fixed list (note required for Other). The old "Choose a different ingredient lot" row is gone: bags are chosen per ingredient on the draft. The draft shows one card per ingredient (`dashboard/make-formula.js`): recipe lb, bags pre-filled from the oldest-first-then-next plan, editable lb per bag, Add another bag, Remove bag (its lb move to the bag above), Not used (0 lb) with the reason list, a typed code per bag, and "Check bags and pounds → new draft". Changing lb keeps a bag's confirmation; changing the bag clears it (D7).
 - **Server:** `formula_entry.py`; `/make/prepare` accepts `formula_entry: true` and `ingredient_lines[]` (`{ingredient_product_id, bags:[{lot_id, quantity_lb}], reason_code, note}`). Only the Make screen sends them; FL Assistant and the legacy routes keep their payload and draft unchanged (the fields are excluded from the Assistant's tool schema). Ingredients sent as lines use exactly those bags and pounds; others keep the FIFO plan. The ticket freezes the entered pounds and the commit posts them (`required_lb` in `main._make_commit_core`). Output stays pans × `default_batch_lb`.
 - **Reasons:** 0 lb or a swap without a fixed-list reason is a draft blocker (and refused at commit). Not-used reasons are saved in `transaction_substitutions` (substitute NULL); the recipe is never changed.
-- **10% rule:** an ingredient more than 10% from recipe × pans (exactly 10% is fine) adds one `INGREDIENT_OFF_RECIPE` warning that must be ticked before Record; each off-recipe, not-used or swapped ingredient is listed in `ingredient_review` (`weekly_view: true`) on the saved ticket receipt, for the owner's weekly review. No review screen in this PR.
-- **Oat bran:** any batch recipe that deducts oat bran 11031 now gets the pound-for-pound rolled oats (11032) swap, in every make path.
+- **10% rule:** an ingredient more than 10% from recipe × pans (exactly 10% is fine) adds one `INGREDIENT_OFF_RECIPE` warning that must be ticked before Record. Not-used, substituted and oat-bran-swap lines are listed, with their reason, in a second `INGREDIENT_CHANGED` warning that needs no tick (spec 3.8). Each such row is saved in `ingredient_review` (`weekly_view: true`) on the ticket receipt.
+- **Where the owner sees it (D6, Blubber 2026-11-02):** on the **shift summary**, where correction highlights already appear: each make row gets an `INGREDIENT_OFF_RECIPE` (warn), `INGREDIENT_NOT_USED`, `INGREDIENT_SUBSTITUTED` or `INGREDIENT_SWAP` (info) flag with ingredient, recipe lb, used lb, %, reason and who recorded it.
+- **Oat bran:** any batch recipe that deducts oat bran 11031 now gets the pound-for-pound rolled oats (11032) swap, in every make path. On the Make screen (fixes from review of f8ba30d, Blubber 2026-11-02):
+  - The card's "Recipe" lb, the 10% check and the saved `standard_requirements` are the **original recipe × pans**, never FL's stock-adjusted split. When oats replace bran, oat bran + the swapped oats are compared with the recipe bran (and oats less the swapped lb with the recipe oats); the bran card reads "oat bran → rolled oats (swap)". Using exactly the recipe gives no warning.
+  - The swap that posts is the one the entered pounds make (bran short of the recipe, oats over it), not FL's proposal. If the worker uses the real bran, no swap is recorded.
+  - **Never blocks:** if the worker enters more oat bran than FL shows on hand, Record posts what they confirmed and flags the shortage, like any other short ingredient. Prepare and Record agree. (Callers that do not send a bran line keep the old "prepare again" refusal when bran disappears between prepare and Record.)
 - **Unchanged:** prepare → confirm → Record ticket flow, lot confirmations and evidence, shortage post-and-flag, one make transaction per run, nothing posts before Record, lots re-locked and re-checked at Record. No migration, no OpenAPI GPT operation added.
-- **Not in Phase A:** recipe versions (Phase B), Runs-screen hook, a weekly review screen.
+- **Not in Phase A:** recipe versions (Phase B), Runs-screen hook, a separate weekly review screen (the shift summary carries the flags until then).

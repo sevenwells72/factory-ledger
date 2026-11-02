@@ -24,6 +24,7 @@ CODES = tuple(r[0] for r in REASONS)
 # Spec D5: per ingredient only; exactly 10% is not a warning.
 TOLERANCE = 0.10
 WARNING_CODE = 'INGREDIENT_OFF_RECIPE'
+CHANGED_CODE = 'INGREDIENT_CHANGED'
 
 
 def reasons():
@@ -42,18 +43,38 @@ def _reason_blocker(reason_code, note, name):
     return None
 
 
+def _swap_lb(api, standard, actual, swap):
+    """Pounds of rolled oats that really replaced oat bran, from what the worker entered.
+
+    Bran short of the recipe and oats over the recipe: the overlap is the swap.
+    """
+    if not swap:
+        return 0.0
+    bran, oats = swap['from'], swap['to']
+    gap = min(float(standard[bran]) - float(actual.get(bran, 0)), float(actual.get(oats, 0)) - float(standard.get(oats, 0)))
+    return max(0.0, float(api.to_decimal(gap)))
+
+
 def prepare(api, cur, payload, draft, requirements, overrides, substitutions, auto_substitutions, lock):
     """Apply the worker's ingredient lines to `requirements` in place.
 
     Returns the entry state: the recipe-standard pounds, the explicit bag plan
-    for the lines given, per-ingredient reasons and the reason blockers.
+    for the lines given, per-ingredient reasons, the reason blockers and the
+    oat-bran swap the entered pounds really make.
     """
     import ticket_actions as actions
-    standard = dict(requirements)
-    names = {i['ingredient_id']: i['ingredient_name'] for i in draft['ingredients']}
+    import oat_bran_substitution as oat_bran
+    # Spec 3.2/3.8: the standard is recipe × pans. FL's automatic oat-bran swap
+    # moved missing bran onto oats in `requirements`; undo it for the standard.
+    standard, swap, proposed = dict(requirements), None, None
+    for row in auto_substitutions:
+        bran, oats = row['ingredient_product_id'], row['substitute_product_id']
+        standard[bran] = float(api.to_decimal(row['quantity_lb']) + api.to_decimal(row['available_bran_lb']))
+        standard[oats] = float(api.to_decimal(standard.get(oats, 0)) - api.to_decimal(row['quantity_lb']))
+        swap, proposed = {'from': bran, 'to': oats}, row
+    names = {i['ingredient_id']: i['ingredient_name'] for i in draft.get('original_ingredients', []) + draft['ingredients']}
     substituted = {s['substitute_product_id']: s for s in substitutions}
-    bran_swapped = {row['ingredient_product_id'] for row in auto_substitutions}
-    blockers, plan, line_reasons, seen = [], [], {}, set()
+    blockers, plan, line_reasons, seen, zero = [], [], {}, set(), []
     for sub in payload.get('substitutions') or []:
         problem = _reason_blocker(sub.get('reason_code'), sub.get('note'),
                                   names.get(sub['substitute_product_id'], 'the substitution'))
@@ -72,7 +93,8 @@ def prepare(api, cur, payload, draft, requirements, overrides, substitutions, au
             if bag['lot_id'] in lots:
                 a5.fail('DUPLICATE_BAG', 'Choose each bag once per ingredient.', 'Elige cada bolsa una sola vez por ingrediente.')
             lots.add(bag['lot_id'])
-            actions.lot(api, cur, bag['lot_id'], pid, lock)   # right product, not merged
+            # Identity and merge checks only; the commit locks every plan lot in lot-ID order.
+            actions.lot(api, cur, bag['lot_id'], pid)
             quantity = float(api.to_decimal(bag['quantity_lb']))
             plan.append({'product_id': pid, 'lot_id': bag['lot_id'], 'quantity_lb': quantity})
             total += quantity
@@ -83,14 +105,18 @@ def prepare(api, cur, payload, draft, requirements, overrides, substitutions, au
             if pid in substituted:
                 a5.fail('INVALID_INGREDIENT_LINE', f'Remove the swap instead of using 0 lb of {name}.',
                         f'Quita la sustitución en vez de usar 0 lb de {name}.')
-            if pid in bran_swapped:
-                a5.fail('INVALID_INGREDIENT_LINE', f'{name} is already replaced by oats automatically; prepare again.',
-                        f'{name} ya se reemplaza por avena automáticamente; prepara de nuevo.')
-            problem = _reason_blocker(line.get('reason_code'), line.get('note'), name)
-            if problem:
-                blockers.append(problem)
+            zero.append((pid, line, name))
         if line.get('reason_code') or line.get('note'):
             line_reasons[pid] = {'reason_code': line.get('reason_code'), 'note': line.get('note')}
+    swap_lb = _swap_lb(api, standard, requirements, swap)
+    for pid, line, name in zero:
+        # Oat bran fully replaced by oats is the automatic swap, not "not used".
+        if swap and pid == swap['from'] and swap_lb > api.BALANCE_EPSILON:
+            line_reasons.pop(pid, None)
+            continue
+        problem = _reason_blocker(line.get('reason_code'), line.get('note'), name)
+        if problem:
+            blockers.append(problem)
     if standard and all(qty <= api.BALANCE_EPSILON for qty in requirements.values()):
         blockers.append({'code': 'NO_INGREDIENTS_USED', 'message': 'Record at least one ingredient used.',
                          'message_es': 'Registra al menos un ingrediente usado.'})
@@ -100,38 +126,57 @@ def prepare(api, cur, payload, draft, requirements, overrides, substitutions, au
         first = blockers[0]
         raise HTTPException(422, {'error_code': first['code'], 'message': first['message'],
                                   'message_es': first['message_es']})
+    # What posts: the swap the entered pounds make (none when the worker used the bran).
+    auto_rows = []
+    if swap and swap_lb > api.BALANCE_EPSILON:
+        auto_rows = [oat_bran.messages(dict(proposed, quantity_lb=swap_lb,
+                                            available_bran_lb=float(requirements.get(swap['from'], 0)), entered=True))]
+    if swap:
+        swap['lb'] = swap_lb
     return {'standard': standard, 'plan': plan, 'line_pids': seen, 'reasons': line_reasons,
-            'blockers': blockers}
+            'blockers': blockers, 'swap': swap, 'auto_rows': auto_rows}
 
 
-def review(standard, actual, substitutions, reasons_by_pid, names):
-    """Per-ingredient facts for the owner's weekly view (spec 3.8, D6)."""
+def review(standard, actual, substitutions, reasons_by_pid, names, swap=None):
+    """Per-ingredient facts for the owner's weekly view (spec 3.8, D6).
+
+    With the oat-bran swap, oat bran + the swapped oats are compared with the
+    recipe bran, and oats less the swapped pounds with the recipe oats.
+    """
+    import oat_bran_substitution as oat_bran
     substituted = {s['substitute_product_id']: s for s in substitutions}
+    swap_lb = float(swap['lb']) if swap else 0.0
     rows = []
     for pid, std in sorted(standard.items()):
         used = float(actual.get(pid, 0))
         std = float(std)
-        diff = used - std
+        role = ('from' if swap and pid == swap['from'] else 'to' if swap and pid == swap['to'] else None)
+        checked = used + swap_lb if role == 'from' else used - swap_lb if role == 'to' else used
+        diff = checked - std
         pct = round(diff / std * 100, 1) if std > 0 else None
-        over = std > 0 and abs(diff) > TOLERANCE * std + 1e-9
+        over = abs(diff) > TOLERANCE * std + 1e-9 if std > 0 else checked > 0.005
         sub = substituted.get(pid)
-        kind = ('substituted' if sub else 'not_used' if used <= 0 and std > 0 else
-                'off_recipe' if over else None)
+        swapped = role == 'from' and swap_lb > 0
+        kind = ('substituted' if sub else 'not_used' if used <= 0 and std > 0 and not swapped else
+                'off_recipe' if over else 'swap' if swapped else None)
         if not kind:
             continue
         reason = reasons_by_pid.get(pid) or {}
         rows.append({'product_id': pid, 'product_name': names.get(pid), 'kind': kind,
-                     'standard_lb': round(std, 2), 'used_lb': round(used, 2), 'difference_pct': pct,
-                     'reason_code': sub['reason_code'] if sub else reason.get('reason_code'),
-                     'note': sub.get('note') if sub else reason.get('note'),
+                     'standard_lb': round(std, 2), 'used_lb': round(used, 2), 'checked_lb': round(checked, 2),
+                     'difference_pct': pct,
+                     'reason_code': sub['reason_code'] if sub else oat_bran.REASON if swapped else reason.get('reason_code'),
+                     'note': sub.get('note') if sub else None if swapped else reason.get('note'),
                      'substituted_for': sub['ingredient_product_id'] if sub else None,
+                     'swap_lb': round(swap_lb, 2) if role and swap_lb > 0 else None,
+                     'swapped_to': names.get(swap['to']) if swapped else None,
                      'weekly_view': True})
     return rows
 
 
 def draft_block(api, cur, product, batches, entry, requirements, input_plan, substitutions, auto_substitutions):
     """Renderer-neutral ingredient cards; bags are suggestions until confirmed."""
-    standard = entry['standard']
+    standard, swap = entry['standard'], entry.get('swap')
     names = {}
     pids = sorted(set(standard) | {item['product_id'] for item in input_plan})
     if pids:
@@ -152,45 +197,96 @@ def draft_block(api, cur, product, batches, entry, requirements, input_plan, sub
                  'received_on': row['received_on'].isoformat() if row['received_on'] else None,
                  'available_lb': float(row['available_lb'])})
     substituted = {s['substitute_product_id']: s for s in substitutions}
-    auto = {row['substitute_product_id']: row for row in auto_substitutions}
-    rows = review(standard, requirements, substitutions, entry['reasons'], names)
+    rows = review(standard, requirements, substitutions, entry['reasons'], names, swap)
     flagged = {r['product_id']: r for r in rows}
+    swap_lb = float(swap['lb']) if swap else 0.0
     ingredients = []
     for pid in sorted(standard):
         std, used = float(standard[pid]), float(requirements.get(pid, 0))
+        role = ('from' if swap and pid == swap['from'] else 'to' if swap and pid == swap['to'] else None)
+        checked = used + swap_lb if role == 'from' else used - swap_lb if role == 'to' else used
         reason = entry['reasons'].get(pid) or {}
         bags = [{'lot_id': i['lot_id'], 'lot_code': i['lot_code'], 'quantity_lb': round(float(i['quantity_lb']), 2),
                  'confirmed': bool(i.get('confirmed')), 'different_lot': bool(i.get('lot_exception'))}
                 for i in input_plan if i['product_id'] == pid]
         ingredients.append({
             'product_id': pid, 'product_name': names.get(pid), 'standard_lb': round(std, 2),
-            'entered_lb': round(used, 2),
-            'difference_pct': round((used - std) / std * 100, 1) if std > 0 else None,
+            'entered_lb': round(used, 2), 'checked_lb': round(checked, 2),
+            'difference_pct': round((checked - std) / std * 100, 1) if std > 0 else None,
             'over_tolerance': flagged.get(pid, {}).get('kind') == 'off_recipe',
-            'not_used': used <= api.BALANCE_EPSILON,
+            'not_used': used <= api.BALANCE_EPSILON and not (role == 'from' and swap_lb > api.BALANCE_EPSILON),
             'reason_code': reason.get('reason_code'), 'note': reason.get('note'),
             'substituted_for': substituted[pid]['ingredient_product_id'] if pid in substituted else None,
-            'auto_substitute': pid in auto, 'bags': bags, 'candidates': candidates.get(pid, [])})
+            'auto_substitute': role == 'to', 'swap_role': role, 'swap_lb': round(swap_lb, 2) if role else None,
+            'bags': bags, 'candidates': candidates.get(pid, [])})
     pan_lb = float(product.get('default_batch_lb') or 0)
+    block_swap = None
+    if swap:
+        block_swap = {'from_product_id': swap['from'], 'to_product_id': swap['to'], 'from_name': names.get(swap['from']),
+                      'to_name': names.get(swap['to']), 'swap_lb': round(swap_lb, 2)}
     return {'pans': batches, 'pan_lb': pan_lb, 'output_lb': float(api.to_decimal(pan_lb * batches)),
-            'ingredients': ingredients, 'review': rows, 'reasons': reasons(), 'tolerance_pct': TOLERANCE * 100}
+            'ingredients': ingredients, 'review': rows, 'reasons': reasons(), 'tolerance_pct': TOLERANCE * 100,
+            'swap': block_swap}
+
+
+def reason_label(code, lang='en'):
+    import oat_bran_substitution as oat_bran
+    if code == oat_bran.REASON:
+        return 'cambio automático: falta salvado de avena' if lang == 'es' else 'automatic swap: oat bran short'
+    for c, en, es, _ in REASONS:
+        if c == code:
+            return es if lang == 'es' else en
+    return code or ('sin motivo' if lang == 'es' else 'no reason')
+
+
+def describe(row, lang='en'):
+    """One line per review row, shared by the draft warnings and the shift summary."""
+    es = lang == 'es'
+    recipe = 'receta' if es else 'recipe'
+    name = row['product_name'] or ('ingrediente' if es else 'ingredient')
+    pct = row['difference_pct']
+    pct_text = '' if pct is None else f", {'+' if pct > 0 else ''}{pct:g}%"
+    reason = ''
+    if row.get('reason_code'):
+        reason = f" — {'motivo' if es else 'reason'}: {reason_label(row['reason_code'], lang)}"
+        if row.get('note'):
+            reason += f" ({row['note']})"
+    if row.get('swap_lb') and row.get('swapped_to'):
+        swap_word = 'sustitución' if es else 'swap'
+        return (f"{name} → {row['swapped_to']} ({swap_word}): {row['used_lb']:g} lb + {row['swap_lb']:g} lb"
+                f" = {row['checked_lb']:g} lb ({recipe} {row['standard_lb']:g} lb{pct_text}){reason}")
+    if row['kind'] == 'not_used':
+        return f"{name} {'no se usó' if es else 'not used'} (0 lb; {recipe} {row['standard_lb']:g} lb){reason}"
+    if row['kind'] == 'substituted':
+        return f"{name} {'sustituto' if es else 'swapped in'}: {row['used_lb']:g} lb ({recipe} {row['standard_lb']:g} lb){reason}"
+    swapped = ''
+    if row.get('swap_lb'):
+        swapped = (f"; {row['swap_lb']:g} lb {'reemplazan salvado de avena' if es else 'replace oat bran'}")
+    return f"{name} {row['used_lb']:g} lb ({recipe} {row['standard_lb']:g} lb{pct_text}{swapped}){reason}"
 
 
 def warnings(draft):
-    """One acknowledgement for every ingredient more than 10% off recipe."""
+    """One acknowledgement for every ingredient more than 10% off recipe; zeroed and
+    swapped lines are listed without a second acknowledgement (spec 3.8)."""
     block = draft.get('formula_entry') or {}
     off = [r for r in block.get('review', []) if r['kind'] == 'off_recipe']
-    if not off:
-        return []
-    def describe(row, lang):
-        sign = '+' if row['difference_pct'] > 0 else ''
-        return f"{row['product_name']} {row['used_lb']:g} lb ({'receta' if lang == 'es' else 'recipe'} {row['standard_lb']:g} lb, {sign}{row['difference_pct']:g}%)"
-    return [{'code': WARNING_CODE, 'requires_ack': True,
+    changed = [r for r in block.get('review', []) if r['kind'] in ('not_used', 'substituted', 'swap')]
+    result = []
+    if off:
+        result.append({'code': WARNING_CODE, 'requires_ack': True,
              'message': 'More than 10% off the recipe — the owner will see this on the weekly review: '
                         + '; '.join(describe(r, 'en') for r in off) + '.',
              'message_es': 'Más de 10% diferente de la receta — el dueño lo verá en la revisión semanal: '
                            + '; '.join(describe(r, 'es') for r in off) + '.',
-             'refs': {'ingredients': [r['product_id'] for r in off]}}]
+             'refs': {'ingredients': [r['product_id'] for r in off]}})
+    if changed:
+        result.append({'code': CHANGED_CODE, 'requires_ack': False,
+             'message': 'Not used or swapped — the owner will see this on the weekly review: '
+                        + '; '.join(describe(r, 'en') for r in changed) + '.',
+             'message_es': 'No usado o sustituido — el dueño lo verá en la revisión semanal: '
+                           + '; '.join(describe(r, 'es') for r in changed) + '.',
+             'refs': {'ingredients': [r['product_id'] for r in changed]}})
+    return result
 
 
 def record(cur, transaction_id, block, actor_id):

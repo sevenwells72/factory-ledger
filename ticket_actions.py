@@ -169,6 +169,16 @@ def validate(api, cur, action, payload, lock=False):
         if formula_state:
             options['required_lb'] = dict(requirements)
             specification['standard_requirements'] = formula_state['standard']
+            # The signed specification keeps FL's proposal; what posts (and what the
+            # draft says) is the swap the entered pounds really make.
+            options['auto_substitutions'] = formula_state['auto_rows']
+            if 'auto_substitutions' in draft:
+                for row in auto_substitutions:
+                    draft['preview_message'] = draft['preview_message'].replace(' ' + row['message_en'], '')
+                draft['auto_substitutions'] = formula_state['auto_rows']
+                if formula_state['auto_rows']:
+                    draft['preview_message'] += ' ' + ' '.join(r['message_en'] for r in formula_state['auto_rows'])
+                draft['preview_message_es'] = ' '.join(r['message_es'] for r in formula_state['auto_rows'])
         if oat_bran.eligible(p, cur):
             specification['auto_substitutions'] = auto_substitutions
     elif action == 'pack':
@@ -312,7 +322,10 @@ def validate(api, cur, action, payload, lock=False):
             pair = oat_bran.identities(cur, p)
             manually_changed = {s['ingredient_product_id'] for s in substitutions}
             excluded_inputs = {i['ingredient_id'] for i in draft.get('excluded_ingredients', [])}
-            if pair and pair[0]['id'] not in manually_changed and pair[1]['id'] not in excluded_inputs and any(
+            # Formula entry: bran pounds the worker entered post and flag the
+            # shortage like any other ingredient (Blubber, 2026-11-02).
+            entered = formula_state is not None and pair is not None and pair[0]['id'] in formula_state['line_pids']
+            if pair and not entered and pair[0]['id'] not in manually_changed and pair[1]['id'] not in excluded_inputs and any(
                     shortage['product_id'] == pair[0]['id'] for shortage in draft['shortages']):
                 fail('INPUT_PLAN_CHANGED', 'The reviewed oat bran is no longer available; prepare again to use extra oats.')
     if action == 'adjust':

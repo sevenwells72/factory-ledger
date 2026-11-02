@@ -98,3 +98,25 @@ test('Spanish labels follow the language',()=>{
   const text=descendants(card).map(n=>n.textContent);
   assert.ok(text.includes('Receta: 160 lb'));assert.ok(text.includes('Agregar otra bolsa'));assert.ok(text.includes('No se usó (0 lb)'));
 });
+
+test('oat bran swap card: recipe bran is checked against bran + swapped oats, labelled as a swap, no reason or warning',()=>{
+  const ui=load(),card=new Element('section'),calls=[];
+  const swapBlock={pans:1,pan_lb:350,output_lb:350,tolerance_pct:10,swap:{from_product_id:31,to_product_id:32,from_name:'Oat Bran',to_name:'Rolled Oats',swap_lb:18},ingredients:[
+    {product_id:31,product_name:'Oat Bran',standard_lb:28,swap_role:'from',bags:[{lot_id:5,lot_code:'BRAN-0005',quantity_lb:10}],candidates:[{lot_id:5,lot_code:'BRAN-0005',available_lb:10}]},
+    {product_id:32,product_name:'Rolled Oats',standard_lb:185,swap_role:'to',bags:[{lot_id:6,lot_code:'OATS-0006',quantity_lb:203}],candidates:[{lot_id:6,lot_code:'OATS-0006',available_lb:5000}]}]};
+  const api=ui.formulaEntry(card,swapBlock,{update:(lines)=>calls.push(lines)});
+  const nodes=descendants(card),box=id=>nodes.find(n=>n.dataset.productId===String(id)),inBox=(id,fn)=>descendants(box(id)).filter(fn);
+  const legend=id=>inBox(id,n=>n.tag==='legend')[0].textContent,total=id=>inBox(id,n=>n.dataset.total==='')[0];
+  assert.equal(legend(31),'Oat Bran → Rolled Oats (swap)');
+  assert.equal(total(31).textContent,'Using 10 lb + 18 lb Rolled Oats = 28 lb');assert.equal(total(31).dataset.over,'false');
+  assert.equal(total(32).textContent,'Using 203 lb (18 lb replace oat bran)');assert.equal(total(32).dataset.over,'false');
+  assert.equal(inBox(31,n=>n.className==='formula-reason')[0].hidden,true);
+  // The worker used the real bran instead: no swap, plain label, still exactly the recipe.
+  const lb=id=>inBox(id,n=>n.name==='bag_lb')[0];
+  lb(31).value='28';lb(31).oninput();lb(32).value='185';lb(32).oninput();
+  assert.equal(legend(31),'Oat Bran');assert.equal(total(31).textContent,'Using 28 lb');assert.equal(total(32).textContent,'Using 185 lb');
+  // Bran emptied and fully covered by oats: still a swap, the 0 lb line carries no reason.
+  inBox(31,n=>n.tag==='button'&&n.textContent==='Not used (0 lb)')[0].onclick();lb(32).value='213';lb(32).oninput();
+  assert.equal(legend(31),'Oat Bran → Rolled Oats (swap)');assert.equal(inBox(31,n=>n.className==='formula-reason')[0].hidden,true);
+  const {lines}=api.read();assert.deepEqual(plain(lines[0]),{ingredient_product_id:31,bags:[],reason_code:null,note:null});
+});

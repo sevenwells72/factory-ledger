@@ -29,7 +29,6 @@
       if(prepared.draft.formula_entry)lastFormula=prepared.draft.formula_entry;const formula=path==='/make/prepare'&&ui.formulaEntry?lastFormula:null;
       if(formula)ui.formulaEntry(card,formula,{confirmations,dirty:()=>{evidenceDirty=true;record.disabled=true;},update:(lines,next)=>{if(busy||finished||uploading)return;payload.ingredient_lines=lines;confirmations=next;prepare();}});
       const lots=new Map(formula?[]:lastLots.map(l=>[l.lot_id,l]));const inputs=[];
-      const ingredientGroups=prepared.draft.lot_confirmation_group?.ingredients||[];
       lots.forEach(lot=>{const field=ui.el('fieldset',undefined,card);field.className='lot-confirmation-row';field.dataset.productId=lot.product_id;
         ui.el('legend',ui.t('Confirm physical lot: '+(lot.product_name?lot.product_name+' · ':'')+lot.lot_code,'Confirma lote físico: '+(lot.product_name?lot.product_name+' · ':'')+lot.lot_code),field);
         const controls=ui.el('div',undefined,field);controls.className='lot-confirmation-controls';
@@ -41,28 +40,9 @@
         for(const control of [method,value])control.oninput=()=>{choices.replaceChildren();evidenceDirty=true;record.disabled=true;};
       });
       if(lots.size){const check=ui.el('button',ui.t('Check confirmations → new draft','Verificar confirmaciones → nuevo borrador'),card);check.type='button';check.onclick=async()=>{
-        if(busy||finished||uploading)return;let ambiguous=false;
-        for(const input of inputs){
-          if(path!=='/make/prepare'||input.method.value!=='last4'||input.value.value.trim().length!==4)continue;
-          const group=ingredientGroups.find(g=>g.product_id===input.lot.product_id);
-          const matches=(group?.candidates||[]).filter(l=>l.lot_code.toUpperCase().endsWith(input.value.value.trim().toUpperCase()));
-          if(matches.length<2)continue;ambiguous=true;input.choices.replaceChildren();
-          ui.el('p',ui.t('More than one lot matches. Choose the full code on the bag:','Coincide más de un lote. Elige el código completo de la bolsa:'),input.choices);
-          for(const candidate of matches){const choose=ui.el('button',candidate.lot_code,input.choices);choose.type='button';choose.dataset.confirmLot=candidate.lot_id;
-            choose.onclick=()=>{if(busy||finished||uploading)return;
-              if(candidate.lot_id===input.lot.lot_id){input.method.value='full_code';input.value.value=candidate.lot_code;input.choices.replaceChildren();evidenceDirty=true;record.disabled=true;return;}
-              // Selecting a different physical lot changes the reviewed plan; FL validates it again.
-              const substitutes=(payload.substitutions||[]).filter(s=>s.substitute_product_id===input.lot.product_id);
-              substitutes.forEach(substitute=>substitute.lot_id=candidate.lot_id);
-              const override=(payload.ingredient_lots||[]).find(l=>l.ingredient_product_id===input.lot.product_id);
-              if(override)override.lot_id=candidate.lot_id;
-              else if(!substitutes.length)payload.ingredient_lots=[...(payload.ingredient_lots||[]),{ingredient_product_id:input.lot.product_id,lot_id:candidate.lot_id}];
-              confirmations=inputs.filter(i=>i.lot.product_id!==input.lot.product_id).map(i=>i.read()).filter(c=>c.value.trim());
-              confirmations.push({lot_id:candidate.lot_id,method:'full_code',value:candidate.lot_code});prepare();
-            };
-          }
-        }
-        if(ambiguous)return;confirmations=inputs.map(input=>input.read());prepare();
+        // Make bags (and their ambiguous last-4 check) live in make-formula.js; this list only sends typed codes.
+        if(busy||finished||uploading)return;
+        confirmations=inputs.map(input=>input.read());prepare();
       };}
       if(allowPhoto){
       let photoType=null;if(path==='/receive/prepare'){const kindLabel=ui.el('label',ui.t('Photo type','Tipo de foto'),card);photoType=ui.el('select',undefined,kindLabel);photoType.name='draft_photo_kind';for(const [value,en,es] of [['lot_tag','Label / lot tag','Etiqueta / etiqueta de lote'],['bol','BOL','BOL']]){const option=ui.el('option',ui.t(en,es),photoType);option.value=value;}photoType.value=photoKind;}

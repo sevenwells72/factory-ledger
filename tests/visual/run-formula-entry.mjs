@@ -1,5 +1,5 @@
 // Formula-driven Make in a real browser against a LOCAL server (tests/visual/d12_fixture.py,
-// FORMULA_BROWSER=1): pans math, FIFO bags, bag split, reason on 0 lb, oat bran → oats on a
+// FORMULA_BROWSER=1): pans math, FIFO bags, bag split, reason on 0 lb, oat bran → oats swap card on a
 // non-SS recipe, > 10% owner flag, short honey still saves, nothing posts before Record.
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
@@ -59,8 +59,13 @@ try {
   // Oat bran (none in stock) → rolled oats pound for pound on a non-SS recipe.
   assert.equal(prepared.draft.auto_substitutions[0].quantity_lb, 10);
   assert.deepEqual(await bagValues('Rolled Oats'), [[String(L.rolled.id), '10']]);
-  await ingredient('Rolled Oats').getByText('Includes rolled oats for missing oat bran (pound for pound).').waitFor();
-  assert.equal(await ingredient('Oat Bran').count(), 0);
+  // The bran card keeps the recipe (2 × 5 lb) and reads as a swap; no warning for using the recipe.
+  await ingredient('Oat Bran').locator('legend').getByText('Formula Browser Oat Bran → Formula Browser Rolled Oats (swap)', { exact: true }).waitFor();
+  await ingredient('Oat Bran').getByText('Recipe: 10 lb', { exact: true }).waitFor();
+  await ingredient('Oat Bran').getByText('Using 0 lb + 10 lb Formula Browser Rolled Oats = 10 lb', { exact: true }).waitFor();
+  await ingredient('Rolled Oats').getByText('Using 10 lb (10 lb replace oat bran)', { exact: true }).waitFor();
+  assert.equal(await ingredient('Oat Bran').locator('.formula-reason').isHidden(), true);
+  assert.equal(prepared.warnings.some(w => w.code === 'INGREDIENT_OFF_RECIPE'), false);
   // Short honey: 40 lb needed, 30 on hand — warned, not blocked.
   assert.deepEqual(await bagValues('Honey'), [[String(L.honey.id), '40']]);
   await page.locator('#resolution [data-shortage-warning]').first().waitFor();
@@ -108,6 +113,7 @@ try {
   const review = Object.fromEntries(receipt.ingredient_review.map(r => [r.product_id, r]));
   assert.equal(review[P['Plain Oats']].kind, 'off_recipe'); assert.equal(review[P['Plain Oats']].difference_pct, 13.3);
   assert.equal(review[P.Salt].kind, 'not_used'); assert.equal(review[P.Salt].reason_code, 'not_used');
+  assert.equal(review[P['Oat Bran']].kind, 'swap'); assert.equal(review[P['Oat Bran']].swap_lb, 10);
   assert.equal(receipt.shortages.reduce((n, s) => n + s.short_lb, 0), 10);
   await page.locator('#resolution .good').getByText('Recorded', { exact: false }).waitFor();
   await page.screenshot({ path: `${out}/receipt-en-390.png`, fullPage: true });

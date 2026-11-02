@@ -47,7 +47,14 @@ def lots(api, cur, product_id, lot_id=None, lot_code=None):
 
 def messages(row, *, posted=False):
     extra, bran = f"{row['quantity_lb']:g}", f"{row['available_bran_lb']:g}"
-    if row['available_bran_lb'] <= 0:
+    if row.get('entered') and row['available_bran_lb'] <= 0:
+        # Formula entry: the pounds the worker entered, not FL's stock split.
+        en = f"No oat bran used — {'used' if posted else 'will use'} {extra} lb extra oats instead."
+        es = f"No se usó salvado de avena — {'se usaron' if posted else 'se usarán'} {extra} lb adicionales de avena en su lugar."
+    elif row.get('entered'):
+        en = f"{'Used' if posted else 'Will use'} {bran} lb oat bran and {extra} lb extra oats in place of the rest of the oat bran."
+        es = f"{'Se usaron' if posted else 'Se usarán'} {bran} lb de salvado de avena y {extra} lb adicionales de avena en lugar del resto del salvado."
+    elif row['available_bran_lb'] <= 0:
         en = f"No oat bran in stock — {'used' if posted else 'will use'} {extra} lb extra oats instead."
         es = f"No hay salvado de avena en inventario — {'se usaron' if posted else 'se usarán'} {extra} lb adicionales de avena en su lugar."
     else:

@@ -311,3 +311,150 @@ def test_screen_reason_list_matches_the_server():
     source = (ROOT / 'dashboard/make-formula.js').read_text()
     listed = re.findall(r"\['(\w+)','[^']+','[^']+',(?:true|false)\]", source)
     assert tuple(listed) == formula_entry.CODES
+
+
+# --- Review fixes (reviews/formula-entry-f8ba30d.md, Blubber 2026-11-02) ---------------
+
+from tests.test_oat_bran_auto_substitute import BRAN, OATS, stock, sunshine  # noqa: E402,F401
+
+
+def ss_body(**changes):
+    # SS #1 (116): 28 lb oat bran + 185 lb rolled oats per pan (migration 081).
+    return {'product_id': 116, 'batches': 1, 'occurred_at': main.get_plant_now().isoformat(),
+            'confirmed_sku': True, 'formula_entry': True, **changes}
+
+
+def bran_bag(item, lb):
+    return {'id': item['lot_id']}, lb
+
+
+def substitution_rows(cur, transaction_id):
+    cur.execute('''SELECT ingredient_product_id,substitute_product_id,reason_code FROM transaction_substitutions
+                   WHERE transaction_id=%s ORDER BY ingredient_product_id''', (transaction_id,))
+    return [dict(r) for r in cur.fetchall()]
+
+
+def test_finding1_bran_above_book_stock_posts_what_was_confirmed_and_flags_the_shortage(
+        client, db_cursor, actors, sunshine):
+    bran = stock(db_cursor, BRAN, 10)
+    lines = [line(BRAN, bran_bag(bran, 28)), line(OATS, bran_bag(sunshine[OATS], 185))]
+    prepared = confirmed(client, actors, ss_body(ingredient_lines=lines))
+    assert prepared['can_commit'] is True, prepared['blockers']
+    codes = {w['code'] for w in prepared['warnings']}
+    assert 'WILL_CREATE_SHORTAGE' in codes and formula_entry.WARNING_CODE not in codes
+    assert prepared['draft']['auto_substitutions'] == []      # the worker used the bran: no swap
+    response = record(client, actors, prepared)
+    assert response.status_code == 200, response.text          # Prepare and Record agree
+    result = response.json()
+    taken = consumed(db_cursor, result['transaction_id'])
+    assert taken[bran['lot_id']] == 28.0 and taken[sunshine[OATS]['lot_id']] == 185.0
+    assert [(s['lot_id'], s['short_lb']) for s in result['shortages']] == [(bran['lot_id'], 18.0)]
+    assert float(main.lot_on_hand(db_cursor, bran['lot_id'])) == -18.0
+    assert result['ingredient_review'] == [] and result['auto_substitutions'] == []
+    assert substitution_rows(db_cursor, result['transaction_id']) == []
+
+
+def test_finding2_exact_recipe_on_ss_product_gives_no_warning(client, db_cursor, actors, sunshine):
+    bran = stock(db_cursor, BRAN, 100)
+    prepared = confirmed(client, actors, ss_body())
+    assert prepared['can_commit'] is True, prepared['blockers']
+    assert prepared['warnings'] == []
+    assert (card(prepared, BRAN)['standard_lb'], card(prepared, OATS)['standard_lb']) == (28.0, 185.0)
+    assert prepared['draft']['formula_entry']['review'] == []
+    result = record(client, actors, prepared).json()
+    assert consumed(db_cursor, result['transaction_id'])[bran['lot_id']] == 28.0
+    assert result['ingredient_review'] == []
+
+
+def test_finding2_swap_cards_keep_the_recipe_and_check_bran_plus_swapped_oats(client, db_cursor, actors, sunshine):
+    bran = stock(db_cursor, BRAN, 10)
+    prepared = confirmed(client, actors, ss_body())
+    assert prepared['can_commit'] is True, prepared['blockers']
+    block = prepared['draft']['formula_entry']
+    bran_card, oats_card = card(prepared, BRAN), card(prepared, OATS)
+    # Recipe × pans, never the stock-adjusted split (spec 3.2).
+    assert (bran_card['standard_lb'], bran_card['entered_lb'], bran_card['checked_lb']) == (28.0, 10.0, 28.0)
+    assert (oats_card['standard_lb'], oats_card['entered_lb'], oats_card['checked_lb']) == (185.0, 203.0, 185.0)
+    assert bran_card['swap_role'] == 'from' and oats_card['swap_role'] == 'to' and block['swap']['swap_lb'] == 18.0
+    assert not bran_card['over_tolerance'] and not oats_card['over_tolerance']
+    assert formula_entry.WARNING_CODE not in {w['code'] for w in prepared['warnings']}
+    response = record(client, actors, prepared)
+    assert response.status_code == 200, response.text
+    result = response.json()
+    [swap] = [r for r in result['ingredient_review'] if r['product_id'] == BRAN]
+    assert (swap['kind'], swap['standard_lb'], swap['used_lb'], swap['swap_lb']) == ('swap', 28.0, 10.0, 18.0)
+    db_cursor.execute("SELECT payload FROM write_tickets WHERE id=%s", (prepared['ticket_id'],))
+    standard = db_cursor.fetchone()['payload']['specification']['standard_requirements']
+    assert (standard[str(BRAN)], standard[str(OATS)]) == (28.0, 185.0)
+    assert [r['reason_code'] for r in substitution_rows(db_cursor, result['transaction_id'])] == ['oat_bran_auto_substitute']
+
+
+def test_finding2_swap_label_card_with_no_bran_in_stock(client, db_cursor, actors, sunshine):
+    prepared = confirmed(client, actors, ss_body())
+    bran_card = card(prepared, BRAN)
+    assert (bran_card['standard_lb'], bran_card['entered_lb'], bran_card['checked_lb']) == (28.0, 0.0, 28.0)
+    assert not bran_card['not_used'] and prepared['can_commit'] is True, prepared['blockers']
+    # The Make screen sends every card, so the empty bran card comes back as a 0 lb line: still no reason needed.
+    lines = [line(BRAN), line(OATS, bran_bag(sunshine[OATS], 213))]
+    again = prepare(client, actors, ss_body(ingredient_lines=lines), confirmations(prepared))
+    assert again['can_commit'] is True, again['blockers']
+    result = record(client, actors, again).json()
+    assert consumed(db_cursor, result['transaction_id'])[sunshine[OATS]['lot_id']] == 213.0
+    assert [r['kind'] for r in result['ingredient_review']] == ['swap']
+
+
+def test_finding4_bag_lots_are_locked_in_lot_id_order_at_record(client, db_cursor, actors, granola, monkeypatch):
+    import ticket_actions
+    calls, original = [], ticket_actions.lot
+
+    def spy(api, cur, lot_id, product_id=None, lock=False):
+        calls.append((lot_id, lock))
+        return original(api, cur, lot_id, product_id, lock)
+    lines = [line(granola['oats'], (granola['oats_spare'], 60), (granola['oats_new'], 100)),
+             line(granola['honey'], (granola['honey_bag'], 40))]
+    prepared = confirmed(client, actors, body(granola, ingredient_lines=lines))
+    monkeypatch.setattr(ticket_actions, 'lot', spy)
+    assert record(client, actors, prepared).status_code == 200
+    plan = {granola['oats_spare']['id'], granola['oats_new']['id'], granola['honey_bag']['id']}
+    locked = [lot_id for lot_id, lock in calls if lock and lot_id in plan]
+    assert locked[:3] == sorted(plan)          # the first lock taken on any bag is in lot-ID order
+    assert granola['oats_spare']['id'] > granola['oats_new']['id']   # screen order was the reverse
+
+
+def shift_flags(client, actors, receipt):
+    response = client.get('/reports/shift-summary', headers=headers(actors['floor']['key']))
+    assert response.status_code == 200, response.text
+    made = next(s for s in response.json()['sections'] if s['key'] == 'made')
+    return next(r for r in made['rows'] if r['receipt_number'] == receipt)['flags']
+
+
+def test_finding5_and_3_zero_lb_row_in_warnings_and_on_the_shift_summary(client, db_cursor, actors, granola):
+    lines = [line(granola['honey'], reason_code='out_of_stock'), line(granola['oats'], (granola['oats_new'], 200))]
+    prepared = confirmed(client, actors, body(granola, ingredient_lines=lines))
+    assert prepared['can_commit'] is True, prepared['blockers']
+    by_code = {w['code']: w for w in prepared['warnings']}
+    changed = by_code[formula_entry.CHANGED_CODE]
+    assert changed['requires_ack'] is False and changed['refs']['ingredients'] == [granola['honey']]
+    assert 'not used' in changed['message'] and 'Out of stock' in changed['message']
+    assert 'no se usó' in changed['message_es'] and 'Sin existencias' in changed['message_es']
+    assert by_code[formula_entry.WARNING_CODE]['requires_ack'] is True
+    result = record(client, actors, prepared).json()
+    flags = {f['code']: f for f in shift_flags(client, actors, result['receipt_number'])}
+    honey = flags['INGREDIENT_NOT_USED']
+    assert honey['severity'] == 'info' and honey['refs']['reason_code'] == 'out_of_stock'
+    assert 'Out of stock' in honey['message_en'] and 'recorded by' in honey['message_en']
+    off = flags['INGREDIENT_OFF_RECIPE']
+    assert off['severity'] == 'warn' and off['refs']['standard_lb'] == 160.0 and off['refs']['used_lb'] == 200.0
+    assert off['refs']['difference_pct'] == 25.0 and 'weekly view' in off['message_en']
+
+
+def test_finding5_and_3_swap_row_in_warnings_and_on_the_shift_summary(client, db_cursor, actors, sunshine):
+    stock(db_cursor, BRAN, 10)
+    prepared = confirmed(client, actors, ss_body())
+    changed = next(w for w in prepared['warnings'] if w['code'] == formula_entry.CHANGED_CODE)
+    assert changed['requires_ack'] is False and changed['refs']['ingredients'] == [BRAN]
+    assert '(swap)' in changed['message'] and 'automatic swap: oat bran short' in changed['message']
+    result = record(client, actors, prepared).json()
+    flags = [f for f in shift_flags(client, actors, result['receipt_number']) if f['code'].startswith('INGREDIENT_')]
+    assert [f['code'] for f in flags] == ['INGREDIENT_SWAP']
+    assert flags[0]['refs']['swap_lb'] == 18.0 and flags[0]['refs']['reason_code'] == 'oat_bran_auto_substitute'

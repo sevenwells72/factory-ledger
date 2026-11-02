@@ -8982,6 +8982,13 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
                                                        override_codes=req.get_lot_overrides())
     auto_substitutions = auto_substitutions or []
     formula = oat_bran_substitution.formula(formula, auto_substitutions, req.batches)
+    if required_lb is not None and input_plan is not None:
+        # Formula entry: every ingredient the worker entered posts, even one the
+        # reshaped recipe dropped (e.g. oats beyond the oat-bran swap).
+        present = {r['ingredient_product_id'] for r in formula}
+        formula = formula + [{'ingredient_product_id': pid, 'quantity_lb': Decimal('0'), 'exclude_from_inventory': False}
+                             for pid, qty in sorted(required_lb.items(), key=lambda kv: int(kv[0]))
+                             if int(pid) not in present and float(qty) > BALANCE_EPSILON]
 
     auto_excluded_ids = set()
     for ing in formula:
