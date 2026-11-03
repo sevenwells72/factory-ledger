@@ -41,11 +41,25 @@ def test_production_destination_rejected_before_connection(tmp_path):
 
 @pytest.mark.db
 def test_seed_is_idempotent_and_uses_no_known_actor_key(tuple_cursor):
+    # Measure the seed's own effect. Concurrency tests elsewhere in the suite
+    # intentionally COMMIT their race products (ids above FIXTURE_BASE once
+    # sequences were synced), so a global count of ids >= FIXTURE_BASE is not
+    # this seed's footprint.
+    def products():
+        tuple_cursor.execute("SELECT count(*) FROM products")
+        return tuple_cursor.fetchone()[0]
+    before = products()
     assert seed.seed_fixtures(tuple_cursor) is True
+    assert products() - before == 3
     assert seed.seed_fixtures(tuple_cursor) is False
+    assert products() - before == 3                      # the second run adds nothing
     seed.sync_sequences(tuple_cursor)
-    tuple_cursor.execute("SELECT count(*) FROM products WHERE id >= %s", (seed.FIXTURE_BASE,))
-    assert tuple_cursor.fetchone()[0] == 3
+    tuple_cursor.execute("SELECT id, name, type, is_service FROM products WHERE id BETWEEN %s AND %s ORDER BY id",
+                         (seed.FIXTURE_BASE + 1, seed.FIXTURE_BASE + 3))
+    assert tuple_cursor.fetchall() == [
+        (seed.FIXTURE_BASE + 1, 'STAGING Test Almonds', 'ingredient', False),
+        (seed.FIXTURE_BASE + 2, 'STAGING Test Batch', 'batch', False),
+        (seed.FIXTURE_BASE + 3, 'STAGING Pallet Charge', 'finished', True)]
     tuple_cursor.execute("SELECT active FROM actors WHERE id=%s", (seed.FIXTURE_BASE+1,))
     assert tuple_cursor.fetchone()[0] is False
     tuple_cursor.execute("""SELECT sum(quantity_lb) FROM transaction_lines

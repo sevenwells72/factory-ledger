@@ -301,13 +301,24 @@ def token_hash(ticket):
 
 def identity(api, request):
     actor = api.request_actor(request)
-    return {
+    result = {
         'id': actor['id'] if actor else None,
         'name': api._operator_id(request),
         'role': actor['role'] if actor else None,
         # Tickets bind to the person across actor-key/session sign-ins.
-        'key_kind': 'actor' if request.state.key_kind == 'session' else request.state.key_kind,
+        'key_kind': 'actor' if request.state.key_kind in ('session', 'selection') else request.state.key_kind,
     }
+    if api.request_identity_via(request) == 'selection':
+        # 091: a tapped name on an approved browser — identification, never proof.
+        result['via'] = 'selection'
+        result['trusted_browser_id'] = actor.get('trusted_browser_id') or getattr(request.state, 'trusted_browser_id', None)
+    return result
+
+
+def assurance(identity_or_row):
+    """'selection' or 'credential' — tickets never cross between the two."""
+    return 'selection' if (identity_or_row.get('via') == 'selection'
+                           or identity_or_row.get('identity_via') == 'selection') else 'credential'
 
 
 def blocker(exc):
@@ -793,6 +804,11 @@ def issue_ticket(api, cur, *, actor, action, payload, draft, state, warnings, bl
         (token_hash(ticket), action, actor['id'], actor['name'], actor['key_kind'], client_source,
          Json(payload), payload_hash, canonical_hash(json_value(api, state)), Json(draft), Json(warnings), ttl))
     row = cur.fetchone()
+    if assurance(actor) == 'selection':
+        # 091: saved with the ticket, so commit, approval and receipts know a
+        # name was only selected. Only issued when selection is on (091 applied).
+        cur.execute('UPDATE write_tickets SET identity_via=%s, trusted_browser_id=%s WHERE id=%s',
+                    ('selection', actor.get('trusted_browser_id'), row['id']))
     return {'ticket': ticket, 'ticket_id': row['id'], 'action': action,
             'expires_at': row['expires_at'], 'payload_hash': payload_hash, 'draft': draft,
             'warnings': warnings, 'blockers': blockers, 'can_commit': not blockers, 'actor': actor}
@@ -931,7 +947,10 @@ def register_routes(app, api):
             if not row:
                 fail(404, 'TICKET_NOT_FOUND', 'Ticket not found.')
             if row['actor_id'] is not None:
-                matches = actor['key_kind'] == 'actor' and row['actor_id'] == actor['id']
+                # Same person AND same assurance: a selected name cannot commit a
+                # credential-prepared draft (or the reverse).
+                matches = (actor['key_kind'] == 'actor' and row['actor_id'] == actor['id']
+                           and assurance(actor) == assurance(row))
             else:
                 matches = (actor['id'] is None and row['operator_id'] == actor['name'] and
                            row['key_kind'] == actor['key_kind'])

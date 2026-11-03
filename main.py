@@ -47,6 +47,7 @@ import permissions
 import fl_assistant
 import key_sessions
 import device_pins
+import trusted_browsers
 import notes_api
 from notes_api import NoteCreate, NoteUpdate  # main.NoteCreate / main.NoteUpdate stay valid
 import supplies
@@ -3155,6 +3156,35 @@ ACTOR_WRITE_ALLOWLIST = frozenset({
 }) | write_tickets.ACTOR_ROUTES | exceptions_enforcement.ACTOR_ROUTES | attachments.ROUTES | fl_assistant.ACTOR_ROUTES
 
 
+# Simple user selection (migration 091): what a person tapped on an
+# owner-approved browser may reach. The dashboard's own routes, the ticket
+# lifecycle, exceptions (owner decisions still need owner proof), evidence and
+# the Assistant — every route a human screen actually calls. NOT the legacy
+# direct inventory writes (POST /receive, /make, /pack, /adjust, /ship,
+# /void/{id}, /sales/orders/{id}/ship, /customers ...) nor the old dashboard
+# receive/ship shortcuts: those stay for the credentialed GPT/master/actor keys.
+SELECTION_EXCLUDED = frozenset({
+    ("POST", "/receive/preview"),
+    ("POST", "/receive/commit"),
+    ("POST", "/sales/orders/{order_id}/ship/commit"),
+})
+SELECTION_ALLOWLIST = ((DASHBOARD_KEY_ALLOWLIST - SELECTION_EXCLUDED) | write_tickets.ACTOR_ROUTES
+                       | exceptions_enforcement.ACTOR_ROUTES | attachments.ROUTES | fl_assistant.ACTOR_ROUTES
+                       | frozenset({("GET", "/sales/orders/{order_id}/packing-slip"), ("POST", "/products/resolve")}))
+# With selection on, the publicly served dashboard key is READ-ONLY: GETs on
+# its allowlist plus the SELECT-only resolver. Every former write needs an
+# approved browser and a chosen person (or a real credential).
+DASHBOARD_KEY_SELECTOR_READS = frozenset({("POST", "/resolve")})
+
+
+def _dashboard_key_reaches(route_key) -> bool:
+    if route_key not in DASHBOARD_KEY_ALLOWLIST:
+        return False
+    if not trusted_browsers.enabled():
+        return True
+    return route_key[0] == "GET" or route_key in DASHBOARD_KEY_SELECTOR_READS
+
+
 ACTOR_CACHE_TTL_S = 60
 # One last_used_at write per key per 10 minutes. The column answers "is this
 # key still in use", which does not need per-request resolution, and a write
@@ -3419,8 +3449,24 @@ def _actor_identity(request: Optional[Request]) -> dict:
     """`permissions` identity for the request (A2): the actor row or the shared key kind."""
     actor = request_actor(request)
     key_kind = getattr(getattr(request, "state", None), "key_kind", None)
-    return {"id": actor["id"] if actor else None, "name": actor["name"] if actor else None,
-            "role": actor["role"] if actor else None, "key_kind": "actor" if key_kind == "session" else key_kind}
+    identity = {"id": actor["id"] if actor else None, "name": actor["name"] if actor else None,
+                "role": actor["role"] if actor else None,
+                "key_kind": "actor" if key_kind in ("session", "selection") else key_kind}
+    if actor and (actor.get("via") == "selection" or key_kind == "selection"):
+        # 091: a tapped name. The marker survives role reloads; permissions caps it.
+        identity["via"] = "selection"
+        identity["trusted_browser_id"] = (actor.get("trusted_browser_id")
+                                          or getattr(request.state, "trusted_browser_id", None))
+    return identity
+
+
+def request_identity_via(request: Optional[Request]) -> Optional[str]:
+    """'selection' when the person was only tapped on an approved browser, else None."""
+    actor = request_actor(request)
+    state = getattr(request, "state", None)
+    if actor and (actor.get("via") == "selection" or getattr(state, "key_kind", None) == "selection"):
+        return "selection"
+    return None
 
 
 def actor_name(request: Optional[Request]) -> Optional[str]:
@@ -3441,6 +3487,16 @@ def _record_actor_write(cur, request: Optional[Request], target_table: str,
     if actor is None:
         return
     method, route = _route_key(request)
+    if request_identity_via(request) == "selection":
+        # 091: which approved browser the tapped person used.
+        cur.execute(
+            """INSERT INTO actor_write_audit
+                   (actor_id, operator_id, method, route, target_table, target_id, trusted_browser_id)
+               VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+            (actor["id"], actor["name"], method, route, target_table, target_id,
+             actor.get("trusted_browser_id") or request.state.trusted_browser_id),
+        )
+        return
     cur.execute(
         """INSERT INTO actor_write_audit
                (actor_id, operator_id, method, route, target_table, target_id)
@@ -3463,6 +3519,8 @@ def _authenticate_incoming_api_key(provided_key: str, request: Request, invalid_
     """
     request.state.actor = None
     request.state.key_kind = None
+    request.state.trusted_browser_id = None
+    request.state.identity_via = None
     if not provided_key:
         raise HTTPException(status_code=401, detail="API key required")
     if secrets.compare_digest(provided_key, API_KEY):
@@ -3470,14 +3528,22 @@ def _authenticate_incoming_api_key(provided_key: str, request: Request, invalid_
         return True
     if DASHBOARD_API_KEY and secrets.compare_digest(provided_key, DASHBOARD_API_KEY):
         request.state.key_kind = "legacy_dashboard"
-        if _route_key(request) in DASHBOARD_KEY_ALLOWLIST:
+        if _dashboard_key_reaches(_route_key(request)):
             return True
+        if _route_key(request) in DASHBOARD_KEY_ALLOWLIST:
+            # 091 selector mode: the public dashboard key no longer writes.
+            raise HTTPException(status_code=403, detail={
+                "error_code": "PERSON_REQUIRED",
+                "message": "Recording needs an approved browser and your name. Nothing was recorded.",
+                "message_es": "Para registrar se necesita un navegador aprobado y tu nombre. No se registró nada."})
         raise HTTPException(status_code=403, detail="API key not authorized for this endpoint")
     if READONLY_API_KEY and secrets.compare_digest(provided_key, READONLY_API_KEY):
         request.state.key_kind = "readonly"
         if _route_key(request) in READONLY_KEY_ALLOWLIST:
             return True
         raise HTTPException(status_code=403, detail="API key not authorized for this endpoint")
+    if trusted_browsers.enabled() and trusted_browsers.TOKEN.fullmatch(provided_key):
+        return _authenticate_browser(provided_key, request)
     actor = _resolve_actor(provided_key)
     kind = "actor"
     if actor is None:
@@ -3501,6 +3567,29 @@ def _authenticate_incoming_api_key(provided_key: str, request: Request, invalid_
     raise HTTPException(status_code=invalid_status, detail="Invalid API key")
 
 
+def _authorize_selection(request: Request) -> bool:
+    """Scope for a browser token: reads without a person, the selection scope with one."""
+    route_key = _route_key(request)
+    if request.state.key_kind == "browser":
+        if route_key[0] == "GET" and route_key in DASHBOARD_KEY_ALLOWLIST:
+            return True
+        if route_key in SELECTION_ALLOWLIST:
+            raise HTTPException(status_code=403, detail={
+                "error_code": "PERSON_REQUIRED",
+                "message": "Choose your name before recording. Nothing was recorded.",
+                "message_es": "Elige tu nombre antes de registrar. No se registró nada."})
+        raise HTTPException(status_code=403, detail="API key not authorized for this endpoint")
+    if route_key in SELECTION_ALLOWLIST:
+        permissions.require_route(route_key, _actor_identity(request))
+        return True
+    raise HTTPException(status_code=403, detail="API key not authorized for this endpoint")
+
+
+def _authenticate_browser(provided_key: str, request: Request) -> bool:
+    trusted_browsers.authenticate(sys.modules[__name__], provided_key, request)
+    return _authorize_selection(request)
+
+
 class _VerifiedApiIdentity:
     """A Python-only capability for internal steps of one authenticated request.
 
@@ -3513,6 +3602,7 @@ class _VerifiedApiIdentity:
         self.session_id = getattr(request.state, 'actor_session_id', None)
         self.expires_at = getattr(request.state, 'session_expires_at', None)
         self.device_id = getattr(request.state, 'session_device_id', None)
+        self.browser_id = getattr(request.state, 'trusted_browser_id', None)
 
     def authorize(self, request):
         request.state.actor = dict(self.actor)
@@ -3520,6 +3610,11 @@ class _VerifiedApiIdentity:
         request.state.actor_session_id = self.session_id
         request.state.session_expires_at = self.expires_at
         request.state.session_device_id = self.device_id
+        request.state.trusted_browser_id = self.browser_id
+        if self.kind == 'selection':
+            # Nested/internal calls (Assistant relay) keep the selection scope and cap.
+            request.state.identity_via = 'selection'
+            return _authorize_selection(request)
         route_key = _route_key(request)
         if self.kind == 'session' and route_key in key_sessions.ROUTES:
             return True
@@ -3557,6 +3652,7 @@ def verify_api_key_flexible(
 
 key_sessions.register_routes(app, sys.modules[__name__])
 device_pins.register_routes(app, sys.modules[__name__])
+trusted_browsers.register_routes(app, sys.modules[__name__])
 
 
 # O-7: the browser dashboard reads its SCOPED key from here instead of a
@@ -8904,7 +9000,7 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
 
     if kosher_tiers.tier(product)==kosher_tiers.EXTRA:
         kosher_tiers.require_ticket(ticket_id)
-        kosher_attestation = kosher_attestation or kosher_tiers.attest(cur, request_actor(request))
+        kosher_attestation = kosher_attestation or kosher_tiers.attest(cur, _actor_identity(request))
     siblings = get_sibling_skus(cur, product['id'])
     if siblings and not req.confirmed_sku:
         sibling_names = [s['name'] for s in siblings]

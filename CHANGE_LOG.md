@@ -1,5 +1,89 @@
 # Change Log
 
+## 2026-11-03 15:15 — Pending-config and foreign-origin safeguards (R13-R14); regression row 254
+- **File(s) changed:** `dashboard/shift-summary.js`, `dashboard/shift-summary.html`, `dashboard/fl-assistant.js`, `dashboard/ledger-ui.js`, `tests/visual/lib/stub.mjs`, `tests/visual/run-person-select.mjs`, `docs/security/simple-user-selection.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Codex R13: Shift Summary starts with its credential panel hidden and neutral 'Checking settings…' copy until the page's one config answers; the legacy panel shows only for known selector-off; sign-in or read-only submitted while settings are pending is dropped, not queued (Shift Summary, FL Assistant, ledger-ui); known-off behaviour is unchanged (JS 676/676). R14: Shift Summary sends a selected credential only to the issuing FLDashboard.base origin; a ?api= override to another origin is refused before any request, without redirect. Visual-audit harness: explicit known selector-OFF /auth/session/config fixture in tests/visual/lib/stub.mjs. Browser checks gain R13 delayed-config cases on 3 pages in both modes and the R14 foreign-origin case (39/39). Living doc updated (R13/R14, final counts, classic audit result, staging/production held on Michael's no-deploy instruction); regression row 254 added.
+- **Why:** FL-SIMPLE-USER-20261103 final Codex review R13-R14 under Michael's scope freeze.
+
+---
+
+## 2026-11-03 14:50 — Selector mode skips legacy key/PIN init on normal pages (R12); regression row 253
+- **File(s) changed:** `dashboard/key-session.js`, `dashboard/shift-summary.js`, `tests/visual/run-person-select.mjs`, `docs/security/simple-user-selection.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Codex R12: in selector mode the dashboard wrapper (installDashboard) and Shift Summary no longer initialise the legacy key/PIN client, so leftover key sessions, enrolled phones and PIN sessions are never sent (no legacy whoami), never restored and never offered (no PIN set-up); selected reads and writes work even when an old session's whoami fails. Owner-proof pages keep the owner sign-in. Browser runner adds R12 on 7 normal pages with a 503 legacy whoami and an owner-proof Staff check (32/32). Security doc: precise browser-token lookup statement (format check before any trusted-browser lookup; well-formed tokens read the live row every request; malformed fall through to the unchanged actor-key path), R12, final counts (Python 7373 passed in both key-session modes on fresh per-mode DBs, JS 676, browser 32). New regression row 253 records the R11-R12 safeguards; row 252 left as written.
+- **Why:** FL-SIMPLE-USER-20261103 Codex review R12 and final documentation corrections.
+
+---
+
+## 2026-11-03 14:36 — Authoritative config (R11), selected-person flow tests, docs and regression row 252
+- **File(s) changed:** `dashboard/dashboard-runtime.js`, `dashboard/key-session.js`, `dashboard/ledger-ui.js`, `dashboard/fl-assistant.js`, `dashboard/shift-summary.js`, `dashboard/person-select.js`, `tests/test_person_select.js`, `tests/visual/run-person-select.mjs`, `tests/test_trusted_browsers_flows.py`, `docs/security/simple-user-selection.md`, `docs/ARCHITECTURE-MAP.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Codex R11: the page's one /auth/session/config result is authoritative; an unreadable config sets FLDashboard.configUnknown (writes blocked, no key/PIN prompt, no old session restored) instead of meaning selection-off; key-session clients default to the shared FLDashboard.config so no second config request can restore a legacy identity (Assistant pilot included); Assistant, Office/Entry/Receipt (ledger-ui), Dashboard wrapper and Shift Summary block with plain unavailable copy (Shift Summary identity no longer asks for a personal key). Browser runner gains transient (first 503 then 200) and permanent config outages on 5 pages with leftover key/PIN identities (24/24). New tests/test_trusted_browsers_flows.py: Receive by all four people, FL Assistant selected session with mocked model prepare_receive -> Record -> DB attribution and browser id, replay, Change-user refusal, Assistant Make/Pack/adjust, Ship by Luz (10 passed; mutation of ticket assurance fails 12). Architecture map adds trusted_browsers.py, person-select.js, migration 091 and tests (map guard 0 problems). Review doc docs/security/simple-user-selection.md (integration and privileged-route matrix, evidence labels, guard inventory, rollout/rollback, acceptance). Regression row 252 recorded as NOT DEPLOYED.
+- **Why:** FL-SIMPLE-USER-20261103 Codex review R11 and validation/docs requirements.
+
+---
+
+## 2026-11-03 14:34 — Seed staging test measures its own effect, not a global count (test only)
+- **File(s) changed:** `tests/test_seed_staging.py`
+- **What changed:** test_seed_is_idempotent_and_uses_no_known_actor_key counted every product with id >= FIXTURE_BASE, which also counts products that tests/test_sales_order_state_model.py's concurrency tests intentionally commit (10 RACE FG + 2 LOCKORDER FG per run, ids above FIXTURE_BASE after sequence sync). It now asserts the seed adds exactly 3 products, the second run adds none, and the three reserved rows are exactly FIXTURE_BASE+1..3 with their names, types and service flag. Concurrency cleanup and append-only history untouched. Proven: untouched HEAD fails (15 == 3) when run after the state-model tests on a fresh DB and passes alone; the corrected test passes on both a contaminated and a clean DB.
+- **Why:** FL-SIMPLE-USER-20261103 full-suite validation; Codex-approved narrow test correction.
+
+---
+
+## 2026-11-03 14:28 — Fix flaky near-miss device secret in PIN test (test only)
+- **File(s) changed:** `tests/test_device_pins.py`
+- **What changed:** test_pin_sign_in_works_only_with_the_enrolled_phone built its wrong secret as secret[:-1]+'A', which equals the real secret whenever the random secret already ends in 'A' (about 1 in 16), so the authentic phone correctly got 200. The near-miss now uses 'B' in that case and asserts it differs; the 401 assertion is unchanged and no PIN backend code changed. Proven with a throwaway plugin forcing every secret to end in 'A': untouched HEAD fails at test_device_pins.py:79, the fixed test passes; whole file passes on a fresh local DB.
+- **Why:** FL-SIMPLE-USER-20261103 full-suite KEY_SESSIONS_ENABLED=1 run hit the pre-existing flake (Codex review).
+
+---
+
+## 2026-11-03 13:56 — Assistant hydration/storage-failure fixes and real-browser selection checks
+- **File(s) changed:** `dashboard/person-select.js`, `dashboard/fl-assistant.js`, `tests/test_person_select.js`, `tests/visual/run-person-select.mjs`, `tests/visual/fixtures/person-select-whoami.json`
+- **What changed:** Codex R10: restoring the saved name on page open is hydration and no longer fires fl-person-change; the Assistant starts the first chosen name's chat in place, reloads once only on a real switch, never initialises the legacy key/PIN client in selector mode, and on a storage write/clear failure tears the conversation, drafts and microphone down in place (no reload that could restore the uncleared name) and drops in-flight replies via an identity epoch. New real-browser runner tests/visual/run-person-select.mjs (real dashboard files, synthetic in-memory FL, grants fixture generated from permissions.py): selector-off parity, untrusted pairing, auto-open names, reload/new tab, persistent-profile close+relaunch without re-seed, Office grants via whoami + Change user, Receipt void offer, Assistant one-navigation hydration and Change user, composed storage-clear failure, cross-tab, storage write failure, missing script, unavailable mode, Shift Summary. 2 more JS tests (R10).
+- **Why:** FL-SIMPLE-USER-20261103 Codex review R10 and composed R6/R10, browser-runner review.
+
+---
+
+## 2026-11-03 13:45 — Name-selection frontend and Codex R6-R9 fixes
+- **File(s) changed:** `dashboard/person-select.js`, `dashboard/person-select.css`, `dashboard/dashboard-runtime.js`, `dashboard/ledger-ui.js`, `dashboard/key-session.js`, `dashboard/fl-assistant.js`, `dashboard/shift-summary.js`, `dashboard/staff-access.js`, `dashboard/*.html (14 pages)`, `tests/test_person_select.js`, `tests/test_assistant_mobile_ux.js`, `tests/test_pin_client.js`
+- **What changed:** Frontend for owner-approved browsers + tap your name: new person-select.js/.css (pairing code screen, four large name buttons opened automatically, prominent Entering as chip with Change user, persistent no-expiry choice bound to the browser token, cross-tab adoption, fail-closed unavailable states). Codex R6: storage write/clear/read-back failure makes selection sticky-unavailable and never restores a prior name; R7: refresh answers for an old token or an older request are ignored; R8: with selector mode configured every transport (ledger-ui, key-session dashboard wrapper, FL Assistant, Shift Summary) uses FLDashboard.person(), which refuses writes when person-select.js is missing; R9: ledger-ui exposes a selected-identity facade for ui.session token/actor so Office/Receipt/Exceptions offer actions and fetch grants via /auth/whoami, with no PIN/key offers; owner-proof pages (staff-access, pin, ?owner=1) keep Michael's own sign-in; Staff page gains approve/list/remove browsers. Change user drops drafts (ledger-signout) and resets Assistant/Shift views; prepare responses for a previous name are discarded. Cache-busters bumped; two JS source pins updated; 16 new JS tests.
+- **Why:** FL-SIMPLE-USER-20261103 frontend with Codex review R6-R9.
+
+---
+
+## 2026-11-03 13:26 — Selection eligibility (R5), trusted-browser tests and route contract
+- **File(s) changed:** `trusted_browsers.py`, `permissions.py`, `tests/test_trusted_browsers.py`, `tests/test_readonly_api_key.py`, `tests/fixtures/route_contract/routes.jsonl`, `tests/fixtures/route_contract/openapi.jsonl`
+- **What changed:** R5: person_choices configuration validity (exact Michael/Luz/Arturo/Miriam slots, roles, order, distinct actors) is separate from per-person eligibility; a deactivated actor or switched-off slot is refused (PERSON_NOT_AVAILABLE) and shown unavailable while the other three continue; malformed config still fails all closed. permissions.SELECTED_OWNER kept out of the A2 design ROLES tuple. New tests/test_trusted_browsers.py (43 DB tests: flag off parity, mode-on/unavailable, config mistakes, R5, pairing/owner proof/rate limits/expiry/revocation/audit, scope, cap, explicit allowlist + future owner-only denial, role reload/raw-actor kosher, ticket/metadata/shift attribution, cross-assurance commits, backdate/late/void, nested identity, public dashboard-key write closure, resolver no-mutation, machine keys unchanged, seed refusal, down refusal). Readonly-key sweep covers the new routes; shared-key parity test pins selector off. Route contract regenerated: exactly the five /auth/browsers routes added; pre-existing POST /resolve pattern drift (pydantic 2.13.5 shared env) left at HEAD; passes under exact requirements in a task-local venv.
+- **Why:** FL-SIMPLE-USER-20261103 Codex review R5 and validation requirements.
+
+---
+
+## 2026-11-03 13:11 — Correct backend change-log timestamp without rewriting history
+- **File(s) changed:** `CHANGE_LOG.md`
+- **What changed:** The preceding backend entry labelled 2026-11-03 13:20 was actually written at approximately 13:10 EST. Its manually supplied future timestamp was incorrect. This append-only clarification preserves the original entry; subsequent entries use the helper current-time default.
+- **Why:** Keep the project and global audit logs accurate while preserving all prior entries.
+
+---
+
+## 2026-11-03 13:20 — Trusted-browser backend and selection assurance (flag off by default)
+- **File(s) changed:** `trusted_browsers.py`, `main.py`, `key_sessions.py`, `permissions.py`, `write_tickets.py`, `exceptions_enforcement.py`, `shift_summary.py`, `scripts/seed_person_choices.py`
+- **What changed:** Trusted-browser backend (flag PERSON_SELECT_ENABLED, default off): new trusted_browsers.py (pairing request/status, owner-proof approve/list/revoke, per-request browser + X-FL-Person resolution against exactly Michael/Luz/Arturo/Miriam person_choices, fail-closed 503s); main.py flb_ branch after the legacy key checks, SELECTION_ALLOWLIST excluding legacy direct writes and old receive/ship-commit shortcuts, public dashboard key read-only in selector mode, selection marker + browser provenance in the actor dict, _actor_identity, VerifiedApiIdentity and actor_write_audit; key_sessions config reports mode (flag) separately from availability; permissions selected-owner grants are now an explicit reviewed allowlist (R1); write_tickets saves identity_via/trusted_browser_id and refuses cross-assurance commits; held approvals keep the preparer's selection; shift confirmations record selection assurance; scripts/seed_person_choices.py prints a self-checking seed transaction (no DB connection).
+- **Why:** FL-SIMPLE-USER-20261103: routine human identification by name on owner-approved browsers, with Codex review fixes R1-R3 and mode/availability separation; machine credentials unchanged.
+
+---
+
+## 2026-11-03 12:46 — Cap selected-owner identity so a tapped name never grants owner proof
+- **File(s) changed:** `permissions.py`, `kosher_tiers.py`, `main.py`, `resolution_receipts.py`, `ship_tickets.py`, `attachments.py`
+- **What changed:** permissions.py: new SELECTED_OWNER role (via='selection' on an owner actor) with owner routine grants but none of approve_exception, kosher_attestation, backdate_over_14d, close/reopen shipped-not-recorded or reopen_order; such refusals return 403 OWNER_PROOF_REQUIRED; PEOPLE set added. kosher_tiers.owner refuses selection identities; main.py make-commit kosher fallback passes _actor_identity instead of the raw actor row; require_void applies the floor own-post same-day rule to a selected owner; ship_tickets/attachments routine role tuples include the selected owner. No behaviour change for existing keys/sessions.
+- **Why:** FL-SIMPLE-USER-20261103 (Codex-approved): routine name selection on owner-approved browsers must be identification only and never confer owner authorization.
+
+---
+
+## 2026-11-03 12:43 — Add private trusted browser and person selection schema
+- **File(s) changed:** `migrations/091_trusted_browsers.sql`, `migrations/down/091_trusted_browsers_down.sql`
+- **What changed:** Added additive private browser approval, per-environment person choices, selection assurance columns, and guarded rollback preserving existing actor and ledger history.
+- **Why:** Michael approved one-time browser authorization with credential-free routine person selection.
+
+---
+
 ## 2026-11-02 20:33 — PR #176 + migration 090 deployed to production
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (row 251), `CHANGE_LOG.md` (this record only). Production changes: migration 090 on the production database; main `2030d06` (squash of #176).
 - **What changed:** Michael authorized the controlled release. Pre-checks: production Railway `111a6498` = main `5ff74f0`; main unchanged since PR base; PR head `fea6b3a` differs from staging-tested `5688bef` only in CHANGE_LOG.md; 090 absent. `fl-backup-and-verify.sh` → BACKUP OK. Applied 090 (one transaction); verified marker, CHECK and index; counts and posted-inventory hash unchanged. Squash-merged #176 → `2030d06` (tree identical to PR head). Railway FastAPI `a83274aa` SUCCESS; Netlify deploy `6ae938f1b6de5de3e034ba8f`. Read-only smoke checks: health, clean startup logs, served Make assets hash-identical to main on Railway and Netlify, OpenAPI shows attempt id / 'selected' / pounds > 0, test sign-in absent (404), no data change. No test Makes created. LEGACY_MAKE_COMMIT left unset (allow + log + unverified marker).

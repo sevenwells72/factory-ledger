@@ -47,7 +47,10 @@ READ_POSTS = {("POST", "/products/resolve")}
 # exchange, which authenticates the body's actor key itself (key_sessions.py),
 # and the phone PIN sign-in/reset, which authenticate the body's device secret
 # and PIN (device_pins.py).
-UNAUTHENTICATED_WRITES = {("POST", "/auth/session"), ("POST", "/auth/pin"), ("POST", "/auth/pin/reset")}
+# 091: a browser asks for owner approval without any credential; the token it
+# gets can do nothing until the owner approves its code (trusted_browsers.py).
+UNAUTHENTICATED_WRITES = {("POST", "/auth/session"), ("POST", "/auth/pin"), ("POST", "/auth/pin/reset"),
+                          ("POST", "/auth/browsers/request")}
 
 
 def _operations(path):
@@ -223,10 +226,12 @@ def _client(_db_connection, monkeypatch, readonly_key):
     # sweep below tests the key decision, not the flag.
     monkeypatch.setenv("KEY_SESSIONS_ENABLED", "1")
     monkeypatch.setenv("PIN_SIGNIN_ENABLED", "1")
-    # PIN routes also need their tables (migration 089) before they answer at all;
-    # applied inside this test's transaction, rolled back with it.
+    monkeypatch.setenv("PERSON_SELECT_ENABLED", "1")
+    # PIN and browser routes also need their tables (migrations 089, 091) before
+    # they answer at all; applied inside this test's transaction, rolled back with it.
     with _db_connection.cursor() as cur:
         cur.execute((Path(__file__).resolve().parents[1] / "migrations/089_device_pins.sql").read_text())
+        cur.execute((Path(__file__).resolve().parents[1] / "migrations/091_trusted_browsers.sql").read_text())
     return TestClient(main.app)
 
 
@@ -336,7 +341,11 @@ def test_readonly_key_refused_on_packing_slip_query_param(client):
 
 
 @pytest.mark.db
-def test_shared_keys_unchanged_with_readonly_key_set(client):
+def test_shared_keys_unchanged_with_readonly_key_set(client, monkeypatch):
+    # With name selection OFF the shared keys keep exactly their old reach
+    # (091 selector mode deliberately makes the public dashboard key read-only;
+    # that is covered in tests/test_trusted_browsers.py).
+    monkeypatch.setenv("PERSON_SELECT_ENABLED", "0")
     # Master: still everything (auth passes; empty write body -> 422).
     assert client.post("/make", json={}, headers=MASTER).status_code == 422
     assert client.get("/admin/lots/duplicates", headers=MASTER).status_code == 200

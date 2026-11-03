@@ -13,6 +13,7 @@
     return location.origin;
   }
   const enabled=config=>config?.key_sessions_enabled===true;
+  const personSelect=config=>config?.person_select_enabled===true;
   function accessMessage(lang='en') {
     return lang==='es' ? 'Acceso no disponible — actualiza la página o contacta al administrador' : 'Access unavailable — refresh the page or contact the administrator';
   }
@@ -84,7 +85,17 @@
     document.body.prepend(bar);
     if(!document.title.startsWith('[STAGING] '))document.title='[STAGING] '+document.title;
   }
-  const api={apiBase,enabled,route,environmentBanner,accessMessage,accessError,checkReadAccess,renderAccess,keyClient,KEY_TTL_MS,PRODUCTION,STAGING,PRODUCTION_SITE};
+  // R8: with selector mode configured, every transport asks this for the name
+  // client. If person-select.js is missing or failed, it gets a stand-in that
+  // refuses every write — never a personal key, PIN or the shared key instead.
+  const SELECT_MISSING=['Name selection did not load. Refresh the page. Nothing was recorded.','La selección de nombre no cargó. Actualiza la página. No se registró nada.'];
+  function missingClient(){
+    const fail=()=>{const error=new Error(SELECT_MISSING[0]);error.code='PERSON_SELECT_UNAVAILABLE';error.labels=SELECT_MISSING.slice();error.personSelect=true;return error;};
+    return {ready:Promise.resolve(),mode:true,person:null,revision:0,broken:true,state:{mode:true,status:'unavailable',problem:'SCRIPT_MISSING',people:[],person:null},
+      headers({write=false}={}){if(write)throw fail();return null;},observe(){return null;},open(){},on(){return()=>{};},fail};
+  }
+  function personClient(root){return root.FLPersonSelect||missingClient();}
+  const api={apiBase,enabled,personSelect,personClient,missingClient,route,environmentBanner,accessMessage,accessError,checkReadAccess,renderAccess,keyClient,KEY_TTL_MS,PRODUCTION,STAGING,PRODUCTION_SITE};
   if(typeof module!=='undefined')module.exports=api;
   root.FLDashboard=api;
   if(!root.document)return;
@@ -104,11 +115,22 @@
     if(!response.ok)throw Error('Session configuration unavailable');
     return response.json();
   }).finally(()=>clearTimeout(timer));
-  api.ready=api.config.then(config=>({on:enabled(config),pin:config?.pin_sign_in===true}),()=>({on:false,pin:false})).then(({on,pin})=>{
-    api.writesEnabled=on;api.pinEnabled=on&&pin;
+  // 091: name selection on owner-approved browsers. Exact true only; availability
+  // problems are shown by person-select.js and block writes (never a key/PIN prompt).
+  api.person=()=>personClient(root);
+  // R11: this ONE config result is authoritative for every client on the page
+  // (key sessions, PIN, name selection). If it cannot be read, the state is
+  // UNKNOWN — not "selection off": writes stay blocked, no credential prompt is
+  // offered and no old key/PIN session is restored until the page is reloaded.
+  api.configUnknown=false;
+  api.ready=api.config.then(config=>({on:enabled(config)||personSelect(config),pin:config?.pin_sign_in===true,select:personSelect(config)}),()=>{api.configUnknown=true;return {on:false,pin:false,select:false};}).then(({on,pin,select})=>{
+    api.writesEnabled=on;api.personSelect=select;api.pinEnabled=on&&pin;
+    document.documentElement.dataset.flConfig=api.configUnknown?'unknown':'ok';
     document.documentElement.dataset.flWriteUi=on?'on':'off';
-    // Phone PIN links ([data-fl-pin-ui]) show only while the server has PINs on.
-    document.documentElement.dataset.flPin=api.pinEnabled?'on':'off';
+    document.documentElement.dataset.flPersonSelect=select?'on':'off';
+    // Phone PIN links ([data-fl-pin-ui]) show only while the server has PINs on
+    // and staff are not choosing names instead.
+    document.documentElement.dataset.flPin=api.pinEnabled&&!select?'on':'off';
     return on;
   });
 })(typeof window==='undefined'?globalThis:window);

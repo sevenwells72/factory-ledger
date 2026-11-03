@@ -96,6 +96,9 @@
   let lastTurnAt = null;
   const photoUrls = new Map();
   const drafts = new Map();
+  // Bumped whenever the identity on this page is torn down: replies that were
+  // already on their way for the previous person are dropped, never rendered.
+  let identityEpoch = 0;
   const labels = new Map();
   function t(en, es) { labels.set(en, [en, es]); labels.set(es, [en, es]); return language === 'es' ? es : en; }
   function el(tag, text, className) {
@@ -178,14 +181,17 @@
       () => sendTurn({ text: `${t('The correction reason is', 'El motivo de corrección es')} ${reason.code}.` }), 'choice-button'));
   }
   async function api(path, { body, form, method = 'POST', binary = false, timeout = 95000, background = false, onProgress } = {}) {
+    const epoch = identityEpoch;
+    const stale = () => { if (epoch !== identityEpoch) throw { detail: { error_code: 'PERSON_CHANGED', message: t('The user changed. Nothing was shown.', 'Cambió el usuario. No se mostró nada.') }, httpStatus: 0 }; };
     const controller = new AbortController();
     let timedOut = false;
     const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeout);
     try {
       const response = await fetch(new URL(path, root.FLDashboard?.base||location.origin), {
-        method, headers: { 'X-API-Key': credential, ...(onProgress ? { Accept: 'application/x-ndjson' } : {}), ...(background ? { 'X-FL-Background': '1' } : {}), ...(form || !body ? {} : { 'Content-Type': 'application/json' }) },
+        method, headers: { ...authHeaders(), ...(onProgress ? { Accept: 'application/x-ndjson' } : {}), ...(background ? { 'X-FL-Background': '1' } : {}), ...(form || !body ? {} : { 'Content-Type': 'application/json' }) },
         body: form || (body ? JSON.stringify(body) : undefined), signal: controller.signal, credentials: 'same-origin', cache: 'no-store'
       });
+      stale();
       if (binary && response.ok) return response.blob();
       let data;
       if (response.ok && onProgress && response.headers.get('content-type')?.includes('application/x-ndjson')) {
@@ -209,6 +215,7 @@
         if (!finalResult) throw new SyntaxError('Missing FL result');
         data = finalResult;
       } else data = await response.json();
+      stale();
       if (!response.ok) {
         if (data.detail?.error_code === 'SESSION_EXPIRED') sessionEnded();
         throw { ...data, httpStatus: response.status };
@@ -777,8 +784,23 @@
       if (draft.status === 'cancelled') node.replaceChildren(el('p', t('Cancelled · NOT recorded', 'Cancelado · NO registrado')));
     }
   }
+  // 091: on an owner-approved browser the chosen name is the identity; FL checks
+  // it on every request. Without a name nothing is sent (no key/PIN fallback).
+  const selecting = () => root.FLDashboard?.personSelect === true;   // R8: mode, not script presence
+  function authHeaders() {
+    if (selecting()) return root.FLDashboard.person().headers({ write: true });
+    return { 'X-API-Key': credential };
+  }
   const pilot = root.FLKeySessions.create({ base: root.FLDashboard?.base||location.origin, fetch: root.fetch.bind(root), storage: sessionStorage, changed: () => paintPin() });
-  const authReady = pilot.init().then(enabled => {
+  // R10: in selector mode the legacy key/PIN client is never initialised here, so an
+  // old key session cannot restore an identity or offer PIN set-up.
+  // R11: the page's ONE config decides. Unknown config = blocked, never legacy.
+  const configUnknown = () => root.FLDashboard?.configUnknown === true;
+  // R13: a sign-in submitted before the settings are known is dropped, not queued.
+  let settingsKnown = false;
+  Promise.resolve(root.FLDashboard?.ready).catch(() => {}).then(() => { settingsKnown = true; });
+  const authReady = Promise.resolve(root.FLDashboard?.ready).catch(() => false).then(() => selecting() || configUnknown() ? false : pilot.init()).then(enabled => {
+    if (selecting() || configUnknown()) return false;
     paintPin = root.FLKeySessions.pinField?.(pilot, $('actor-key'), { after: $('chat-panel').firstElementChild || undefined }) || paintPin;
     if (enabled) {
       const hint = $('signin-hint');
@@ -803,7 +825,9 @@
     scrollToLatest(); root.requestAnimationFrame?.(scrollToLatest);
   }
   $('sign-in-form').addEventListener('submit', async event => {
-    event.preventDefault(); notice(''); const submit = event.target.querySelector('button'); setBusy(true); submit.disabled = true; submit.setAttribute('aria-busy', 'true');
+    event.preventDefault(); notice('');
+    if (!settingsKnown || selecting() || configUnknown() || $('sign-in-panel').hidden) { $('actor-key').value = ''; return; }
+    const submit = event.target.querySelector('button'); setBusy(true); submit.disabled = true; submit.setAttribute('aria-busy', 'true');
     try {
       const enabled = await authReady;
       if (enabled) {
@@ -826,11 +850,66 @@
     } catch (error) { notice(t('Sign out failed. Try again before handing over this device.', 'No se cerró la sesión. Intenta otra vez antes de entregar este dispositivo.')); }
     finally { setBusy(false); }
   });
+  let entering = null;
+  async function enterSelected() {
+    if (actor) return;                               // already in this person's chat
+    if (entering) return entering;                   // one start at a time
+    entering = startSelected().finally(() => { entering = null; });
+    return entering;
+  }
+  async function startSelected() {
+    const people = root.FLDashboard.person();
+    await people.ready;
+    const person = people.person;
+    if (people.broken) { notice(errorText({ detail: { message: people.state.problem === 'SCRIPT_MISSING' ? people.fail().message : people.fail('UNAVAILABLE').message } }, language)); return; }
+    if (!person) { people.open(); $('identity').textContent = t('Choose your name to start', 'Elige tu nombre para empezar'); return; }
+    credential = '';
+    await enterChat({ id: person.id, name: person.display_name }, { background: true });
+    $('sign-out').hidden = true;
+    $('identity').textContent = `${t('Entering as', 'Registrando como')} ${person.display_name}`;
+  }
+  // Change user (here or in another tab): this conversation, its drafts and the
+  // microphone belong to the previous person — start over cleanly for the new one.
+  root.addEventListener?.('fl-person-change', event => {
+    if (!selecting()) return;
+    // R10: the first name chosen on this page starts the chat in place; switching
+    // from one person to another (here or in another tab) drops this conversation,
+    // its drafts and the microphone by reloading once.
+    const people = root.FLDashboard.person();
+    if (people.broken || people.state.status === 'unavailable') {
+      // R6+R10: the name could not be saved or cleared. A reload would restore the
+      // uncleared previous name, so stay on this page: drop the conversation, its
+      // drafts and the microphone, ignore in-flight replies, and stay blocked.
+      stopMic(); session = ''; actor = null; credential = ''; identityEpoch += 1; drafts.clear?.();
+      $('chat-panel').hidden = true; $('sign-in-panel').hidden = true; $('sign-out').hidden = true;
+      $('messages')?.replaceChildren?.();
+      $('identity').textContent = t('Recording is not available on this device', 'El registro no está disponible en este dispositivo');
+      notice(people.fail('UNAVAILABLE').labels[language === 'es' ? 1 : 0]);
+      return;
+    }
+    if (!event.detail?.previous && !actor) { enterSelected().catch(error => notice(errorText(error, language))); return; }
+    stopMic(); session = ''; actor = null; credential = ''; location.reload();
+  });
+  function settingsUnavailable() {
+    $('sign-in-panel').hidden = true; $('chat-panel').hidden = true; $('sign-out').hidden = true;
+    $('identity').textContent = t('FL Assistant is not available right now', 'FL Assistant no está disponible ahora');
+    notice(t('Factory Ledger settings could not be loaded. Refresh the page. Nothing was recorded.',
+      'No se pudo cargar la configuración de Factory Ledger. Actualiza la página. No se registró nada.'));
+  }
   authReady.then(async enabled => {
+    if (root.FLDashboard?.ready) await root.FLDashboard.ready;
+    if (configUnknown()) { settingsUnavailable(); return; }
+    if (selecting()) { $('sign-in-panel').hidden = true; await enterSelected(); return; }
     if (enabled && pilot.actor) { credential = pilot.token; await enterChat(pilot.actor, { background: true }); }
     else $('sign-in-panel').hidden = false;
-  }).catch(error => { $('sign-in-panel').hidden = false; notice(errorText(error, language)); })
-    .finally(() => { if ($('auth-loading')) $('auth-loading').hidden = true; if (!actor) $('identity').textContent = t('Sign in to your workspace', 'Inicia sesión en tu espacio'); });
+  }).catch(error => {
+    if (configUnknown() || selecting()) { settingsUnavailable(); return; }
+    $('sign-in-panel').hidden = false; notice(errorText(error, language));
+  })
+    .finally(() => {
+      if ($('auth-loading')) $('auth-loading').hidden = true;
+      if (!actor && !configUnknown() && !selecting()) $('identity').textContent = t('Sign in to your workspace', 'Inicia sesión en tu espacio');
+    });
   $('new-chat').addEventListener('click', async () => {
     if (busy) return; setBusy(true);
     try { const result = await api('/assistant/session'); localStorage.setItem(sessionStore, result.session_id); location.reload(); }
@@ -913,7 +992,8 @@
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest(); item.xhr = xhr;
       xhr.open('POST', new URL('/assistant/attachment?session_id=' + encodeURIComponent(session), root.FLDashboard?.base || location.origin));
-      xhr.setRequestHeader('X-API-Key', credential); xhr.timeout = 120000;
+      for (const [name, value] of Object.entries(authHeaders())) xhr.setRequestHeader(name, value);
+      xhr.timeout = 120000;
       xhr.upload.onprogress = event => {
         if (!event.lengthComputable) return;
         item.progress = Math.min(99, Math.round(event.loaded / event.total * 100));

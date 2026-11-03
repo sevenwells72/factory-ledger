@@ -160,6 +160,18 @@ export async function installApiStub(context, tokens, state) {
       return;
     }
 
+    // An explicit, KNOWN selector-off configuration (key sessions, PINs and name
+    // selection all off), so the audit measures the intended legacy read-only UI.
+    // Without it the page cannot read its settings and correctly fails closed
+    // ("Recording is not available"), which would measure an outage instead.
+    // A runner may pass state.sessionConfig to audit another known mode.
+    if (url.pathname === '/auth/session/config') {
+      await route.fulfill({ json: { key_sessions_enabled: false, idle_minutes: 180, pin_sign_in: false, pin_session_hours: 12,
+                                    person_select_enabled: false, person_select_available: false, person_select_problem: null,
+                                    ...(state.sessionConfig || {}) } });
+      return;
+    }
+
     // This POST is a read-only preview. Return its representative line data
     // before the generic write acknowledgement so S-39 measures actual copy.
     if (request.method() === 'POST' && /^\/sales\/orders\/\d+\/ship\/preview$/.test(url.pathname)) {

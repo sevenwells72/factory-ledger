@@ -954,7 +954,8 @@ def confirmation_view(api, cur, catalog, row):
             'outcome': row['outcome'], 'notes': row['notes'], 'confirmed_at': confirmed.isoformat(),
             'confirmed_late': confirmed.date() != row['business_date'], 'receipts_seen': row['receipts_seen'],
             'summary_hash': row['summary_hash'],
-            'exception': {'id': row['exception_id'], 'kind': 'SHIFT_DISCREPANCY'} if row['exception_id'] else None}
+            'exception': {'id': row['exception_id'], 'kind': 'SHIFT_DISCREPANCY'} if row['exception_id'] else None,
+            **({'identity_via': 'selection'} if row.get('identity_via') == 'selection' else {})}
 
 
 def build(api, cur, *, day, actor, caller, lang='en'):
@@ -1127,9 +1128,18 @@ def register_routes(app, api):
                                 (Json({'business_date': day.isoformat(), 'actor_id': actor['id'], 'actor_name': actor['name'],
                                        'notes': notes, 'receipts_seen': body.receipts_seen, 'summary_hash': body.summary_hash}), owner_id))
                     exception_id = cur.fetchone()['id']
-            cur.execute('''INSERT INTO shift_confirmations(business_date,actor_id,outcome,notes,receipts_seen,summary_hash,summary_snapshot,exception_id)
-                           VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING *''',
-                        (day, actor['id'], body.outcome, notes, body.receipts_seen, body.summary_hash, Json(fresh['sections']), exception_id))
+            if caller.get('via') == 'selection':
+                # 091 (D5): a self-confirmation by a person who only tapped their
+                # name; recorded honestly as identification, not proof.
+                cur.execute('''INSERT INTO shift_confirmations(business_date,actor_id,outcome,notes,receipts_seen,summary_hash,summary_snapshot,exception_id,
+                                   identity_via,trusted_browser_id)
+                               VALUES (%s,%s,%s,%s,%s,%s,%s,%s,'selection',%s) RETURNING *''',
+                            (day, actor['id'], body.outcome, notes, body.receipts_seen, body.summary_hash, Json(fresh['sections']), exception_id,
+                             caller.get('trusted_browser_id')))
+            else:
+                cur.execute('''INSERT INTO shift_confirmations(business_date,actor_id,outcome,notes,receipts_seen,summary_hash,summary_snapshot,exception_id)
+                               VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING *''',
+                            (day, actor['id'], body.outcome, notes, body.receipts_seen, body.summary_hash, Json(fresh['sections']), exception_id))
             row = cur.fetchone()
             view = confirmation_view(api, cur, Catalog(cur), row)
             owner_en = owner['name'] if owner else 'The owner'

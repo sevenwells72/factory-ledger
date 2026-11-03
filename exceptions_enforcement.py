@@ -579,13 +579,22 @@ def release_hold(cur, ticket_id, *, resolution_kind, actor_id, note, response, a
     return row['id'] if row else None
 
 
-def preparer_request(actor_row):
+def preparer_request(actor_row, ticket=None):
     """A Request whose identity is the PREPARER, so an owner's approval posts with
-    entered_by = the person who prepared it (operator_id, entered_by_actor_id, trace)."""
+    entered_by = the person who prepared it (operator_id, entered_by_actor_id, trace).
+    A preparer who only selected their name (091) stays a selection here too."""
     request = Request({'type': 'http', 'method': 'POST', 'path': '/exceptions/approve', 'headers': [],
                        'query_string': b'', 'route': None})
-    request.state.actor = dict(actor_row)
+    actor = {k: actor_row[k] for k in ('id', 'name', 'role')}
+    request.state.trusted_browser_id = None
+    request.state.identity_via = None
     request.state.key_kind = 'actor'
+    if ticket is not None and ticket.get('identity_via') == 'selection':
+        actor.update(via='selection', trusted_browser_id=ticket.get('trusted_browser_id'))
+        request.state.key_kind = 'selection'
+        request.state.identity_via = 'selection'
+        request.state.trusted_browser_id = ticket.get('trusted_browser_id')
+    request.state.actor = actor
     return request
 
 
@@ -1113,6 +1122,8 @@ def register_routes(app, api):
         if not preparer_row['active']:
             return None, _stale('ACTOR_INACTIVE', 'The preparing actor is no longer active.')
         preparer = {'id': preparer_row['id'], 'name': preparer_row['name'], 'role': preparer_row['role'], 'key_kind': 'actor'}
+        if ticket.get('identity_via') == 'selection':
+            preparer.update(via='selection', trusted_browser_id=ticket.get('trusted_browser_id'))
         if not permissions.allowed(ticket['action'], permissions.role_of(preparer)):
             return None, _stale('ROLE_NOT_ALLOWED',
                                 f'{preparer_row["name"]} ({preparer_row["role"]}) is no longer allowed to {permissions.label(ticket["action"])[0]}.')
@@ -1150,7 +1161,7 @@ def register_routes(app, api):
             approval = {'kind':row['kind'], 'exception_id': exception_id, 'approved_by': {'id': owner['id'], 'name': owner['name'], 'role': owner['role']},
                         'note': body.note or None}
             result = write_tickets.execute_commit(
-                api, cur, ticket, preparer, preparer_request(preparer_row),
+                api, cur, ticket, preparer, preparer_request(preparer_row, ticket),
                 effective_payload=ticket['payload'] | ({'lot_confirmations':ticket['draft']['held_lot_confirmations']} if row['kind']=='KOSHER_ATTESTATION' else {}), acknowledged=list(ticket['acknowledged'] or []),
                 attachment_ref=body.attachment_ref or (str(body.attachment_id) if body.attachment_id else None), approval=approval)
             if hasattr(result, 'status_code'):

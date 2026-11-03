@@ -153,33 +153,80 @@
   api.failure=error=>api.notice(api.t(...['en','es'].map(lang=>error?.accessUnavailable?root.FLDashboard.accessMessage(lang):error?.transport?(transportText(error.cause,lang)||error.message):(lang==='es'?'NO registrado — ':'NOT recorded — ')+(error?.result?errorText(error.result,lang):error?.labels?.[lang==='es'?1:0]||error.message||String(error)))));
   api.base=root.FLDashboard.base;
   let actor=null,paintPin=()=>{};
-  api.session=FLKeySessions.create({base:api.base,fetch:root.fetch.bind(root),storage:root.sessionStorage,config:root.FLDashboard.config,changed:()=>paintIdentity()});
+  const legacy=FLKeySessions.create({base:api.base,fetch:root.fetch.bind(root),storage:root.sessionStorage,config:root.FLDashboard.config,changed:()=>paintIdentity()});
+  // 091: on an owner-approved browser people tap their name (person-select.js).
+  // Owner-proof pages (staff admin, My PIN, ?owner=1) keep Michael's own sign-in.
+  api.ownerProofPage=()=>document.body?.dataset.flOwnerProof==='true'||/[?&]owner=1(?:&|$)/.test(location.search);
+  api.selecting=()=>root.FLDashboard.personSelect===true&&!api.ownerProofPage();   // R8: mode, not script presence
+  const people=()=>root.FLDashboard.person();
+  // R9: pages read ui.session.token/actor to decide what to offer. In selector
+  // mode that is the CHOSEN NAME: `token` is only a truthy marker (never sent;
+  // api.request builds the real headers), `actor` is the chosen person. No PIN,
+  // no personal key, no sign-out of someone else's session. FL decides grants.
+  const selected={
+    get enabled(){return true;},
+    get token(){const c=people();return c.person&&c.state.status==='approved'&&!c.broken?'person-selected':'';},
+    get actor(){const c=people(),p=c.person;return p&&c.state.status==='approved'&&!c.broken?{id:p.id,name:p.display_name,role_label:p.role_label,selected:true}:null;},
+    pinEnabled:false,device:null,phoneSession:false,
+    async init(){return true;},clear(){},
+    async signIn(){throw api.problem(api.t('Tap your name instead.','Toca tu nombre.'));},
+    async signOut(){people().changeUser();},
+    async headers(){throw api.problem(api.t('Use the chosen name.','Usa el nombre elegido.'));},
+  };
+  Object.defineProperty(api,'session',{enumerable:true,get(){return api.selecting()?selected:legacy;}});
   function paintIdentity(){actor=api.session.actor||actor;const identity=document.getElementById('identity');if(!identity)return;const current=api.session.actor;
+    if(api.selecting()){identity.hidden=true;document.getElementById('sign-in-form').hidden=true;document.getElementById('sign-out').hidden=true;return;}
     identity.hidden=!root.FLDashboard.writesEnabled;if(identity.hidden){identity.textContent='';document.getElementById('sign-in-form').hidden=true;document.getElementById('sign-out').hidden=true;return;}
     api.setText(identity,current?api.t('Signed in as '+current.name,'Sesión de '+current.name):api.t('Sign in before recording','Inicia sesión antes de registrar'));
     document.getElementById('sign-in-form').hidden=!!current;document.getElementById('sign-out').hidden=!current;paintPin();
   }
-  api.ready=root.FLDashboard.ready.then(async on=>{if(!on){api.session.clear();return false;}await api.session.init();return true;}).catch(error=>{api.failure(error);throw error;});api.ready.catch(()=>{});
+  api.ready=root.FLDashboard.ready.then(async on=>{if(root.FLDashboard.configUnknown)return false;if(!on){legacy.clear();return false;}if(api.selecting()){await people().ready;return true;}await legacy.init();return true;}).catch(error=>{api.failure(error);throw error;});api.ready.catch(()=>{});
   api.request=async(path,body,{read=false,form=false,background=false,binary=false}={})=>{
     await api.ready;
-    if(!read&&!root.FLDashboard.writesEnabled)throw Error('Recording is unavailable / El registro no está disponible');
-    const key=api.session.token;
-    if(!key&&!read)throw api.problem(api.t('Sign in before recording.','Inicia sesión antes de registrar.'));
-    const headers={'X-API-Key':key||await root.FLDashboard.key(api.base,api.lang),...(background?{'X-FL-Background':'1'}:{})};if(body!==undefined&&!form)headers['Content-Type']='application/json';
+    if(!read&&!root.FLDashboard.writesEnabled)throw Error(root.FLDashboard.configUnknown?'Factory Ledger settings could not be loaded. Refresh the page. Nothing was recorded. / No se pudo cargar la configuración. Actualiza la página. No se registró nada.':'Recording is unavailable / El registro no está disponible');
+    let headers,revision=null;
+    if(api.selecting()){
+      // Never falls back to a personal key, PIN or the shared key for a write.
+      const client=people();await client.ready;
+      let chosen;
+      try{chosen=client.headers({write:!read});}
+      catch(error){if(!read)client.open();throw api.problem(api.t(...error.labels));}
+      revision=client.revision;
+      headers={...(chosen||{'X-API-Key':await root.FLDashboard.key(api.base,api.lang)}),...(background?{'X-FL-Background':'1'}:{})};
+    }else{
+      const key=api.session.token;
+      if(!key&&!read)throw api.problem(api.t('Sign in before recording.','Inicia sesión antes de registrar.'));
+      headers={'X-API-Key':key||await root.FLDashboard.key(api.base,api.lang),...(background?{'X-FL-Background':'1'}:{})};
+    }
+    if(body!==undefined&&!form)headers['Content-Type']='application/json';
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);let response,result;
     try{response=await fetch(api.base+path,{method:body===undefined?'GET':'POST',headers,body:body===undefined?undefined:form?body:JSON.stringify(body),signal:controller.signal,cache:'no-store'});result=await Promise.resolve().then(()=>binary&&response.ok?response.blob():response.json()).catch(error=>{if([401,403].includes(response.status))return {};throw error;});}
     catch(error){const plain=transportText(error,api.lang);if(!plain)throw error;const wrapped=Error(plain);wrapped.transport=true;wrapped.cause=error;throw wrapped;}finally{clearTimeout(timer);}
     if(response.status===401&&result.detail?.error_code==='SESSION_EXPIRED'){api.session.clear();actor=null;paintIdentity();}
+    if(revision!==null){
+      const client=people();client.observe(response.status,result);
+      // A draft prepared for the previous name is never shown after Change user
+      // (FL would refuse to commit it anyway: tickets are bound to the person).
+      if(client.revision!==revision&&!read&&/\/prepare$/.test(path.split('?')[0]))
+        throw api.problem(api.t(...client.fail('PERSON_CHANGED').labels));
+    }
     root.FLDashboard.checkReadAccess(response,{method:body===undefined?'GET':'POST',headers},api.lang,api.base);
     if(!response.ok){const error=Error(errorText(result,api.lang));error.result=result;error.status=response.status;throw error;}return result;
   };
   api.upload=async(file,kind)=>{const body=new FormData();body.append('file',file);body.append('kind',kind);return api.request('/attachments',body,{form:true});};
   api.bind=()=>{
-    paintPin=FLKeySessions.pinField(api.session,document.getElementById('actor-key'),{after:document.getElementById('identity')});
+    paintPin=FLKeySessions.pinField(legacy,document.getElementById('actor-key'),{after:document.getElementById('identity')});
+    const quietPin=paintPin;paintPin=()=>{if(api.selecting()){document.querySelectorAll('.fl-pin-toggle,.fl-pin-offer').forEach(n=>{n.hidden=true;});return;}quietPin();};
     api.translate();document.getElementById('language').onclick=()=>{api.lang=api.lang==='en'?'es':'en';sessionStorage.setItem('fl-ledger-language',api.lang);api.translate();paintIdentity();root.dispatchEvent(new Event('ledger-language'));};
-    document.getElementById('sign-in-form').onsubmit=async e=>{e.preventDefault();const input=document.getElementById('actor-key'),value=input.value;input.value='';const submit=e.submitter;submit.disabled=true;
-      try{await api.ready;if(!root.FLDashboard.writesEnabled)throw Error('Recording is unavailable / El registro no está disponible');await api.session.signIn(value);paintIdentity();root.dispatchEvent(new Event('ledger-auth'));}catch(error){actor=null;paintIdentity();api.failure(error);}finally{submit.disabled=false;}};
+    let settled=false;api.ready.catch(()=>{}).then(()=>{settled=true;});
+    document.getElementById('sign-in-form').onsubmit=async e=>{e.preventDefault();const input=document.getElementById('actor-key'),value=input.value;input.value='';
+      // R13: never queue a legacy sign-in before the settings are known, in selector mode or with unknown settings.
+      if(!settled||api.selecting()||root.FLDashboard.configUnknown||document.getElementById('sign-in-form').hidden)return;
+      const submit=e.submitter;if(submit)submit.disabled=true;
+      try{await api.ready;if(!root.FLDashboard.writesEnabled)throw Error('Recording is unavailable / El registro no está disponible');await api.session.signIn(value);paintIdentity();root.dispatchEvent(new Event('ledger-auth'));}catch(error){actor=null;paintIdentity();api.failure(error);}finally{if(submit)submit.disabled=false;}};
     document.getElementById('sign-out').onclick=async()=>{try{await api.session.signOut();actor=null;paintIdentity();root.dispatchEvent(new Event('ledger-signout'));}catch(error){api.failure(error);}};
     api.ready.then(paintIdentity).catch(()=>{});
+    // Change user (here or in another tab): drop drafts, then reload for the new name.
+    root.addEventListener('fl-person-change',event=>{if(!api.selecting())return;root.dispatchEvent(new Event('ledger-signout'));if(event.detail?.person)root.dispatchEvent(new Event('ledger-auth'));});
   };
 })(typeof window==='undefined'?globalThis:window);
