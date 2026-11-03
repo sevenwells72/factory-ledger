@@ -25,10 +25,60 @@ CODES = tuple(r[0] for r in REASONS)
 TOLERANCE = 0.10
 WARNING_CODE = 'INGREDIENT_OFF_RECIPE'
 CHANGED_CODE = 'INGREDIENT_CHANGED'
+# Make-entry simplification (PR-1): a lot tapped in the screen's list is stored as
+# transaction_lot_confirmations.method='selected', which migration 090 allows.
+SELECTION_MARKER = '090_make_lot_selection'
+ALREADY_RECORDED = 'MAKE_ALREADY_RECORDED'
 
 
 def reasons():
     return [{'code': c, 'label_en': en, 'label_es': es, 'note_required': n} for c, en, es, n in REASONS]
+
+
+def check_selections(cur, payload, actor):
+    """A tapped lot ('selected') is evidence only from the Make screen and only for a
+    named person; the commit records that person on transaction_lot_confirmations."""
+    if not any(c.get('method') == 'selected' for c in payload.get('lot_confirmations') or []):
+        return
+    if not payload.get('formula_entry'):
+        a5.fail('LOT_SELECTION_MAKE_SCREEN_ONLY', 'Choosing a lot from the list is only for the Make screen; type or scan the code.',
+                'Elegir el lote de la lista es solo para la pantalla Producir; escribe o escanea el código.')
+    if actor.get('id') is None:
+        raise HTTPException(403, {'error_code': 'ACTOR_REQUIRED',
+            'message': 'Sign in as yourself to choose lots: FL records who chose each lot.',
+            'message_es': 'Inicia sesión con tu propia cuenta para elegir lotes: FL registra quién eligió cada lote.'})
+    cur.execute('SELECT 1 FROM migration_markers WHERE name=%s', (SELECTION_MARKER,))
+    if not cur.fetchone():
+        raise HTTPException(503, {'error_code': 'LOT_SELECTION_UNAVAILABLE',
+            'message': 'Lot selection is not switched on yet (migration 090); nothing was recorded. Tell the office.',
+            'message_es': 'La selección de lotes aún no está activada (migración 090); no se registró nada. Avisa a la oficina.'})
+
+
+def attempt_recorded(cur, attempt_id, *, exclude_ticket_id=None):
+    """The make already recorded (or held for the owner) under this screen attempt.
+
+    The Make screen sends one entry_attempt_id per form; a retry after a lost answer
+    or an expired draft carries the same id, so FL can refuse a second post."""
+    if not attempt_id:
+        return None
+    cur.execute("""SELECT id,receipt_number,status FROM write_tickets
+        WHERE action='make' AND status IN ('committed','awaiting_approval')
+          AND payload->>'entry_attempt_id'=%s AND id IS DISTINCT FROM %s
+        ORDER BY id LIMIT 1""", (attempt_id, exclude_ticket_id))
+    row = cur.fetchone()
+    return dict(row) if row else None
+
+
+def already_recorded(prior):
+    receipt = prior.get('receipt_number')
+    if prior['status'] == 'committed':
+        en = f'This Make is already RECORDED as {receipt}. Nothing new was recorded. Open the receipt instead of recording again.'
+        es = f'Esta producción ya está REGISTRADA como {receipt}. No se registró nada nuevo. Abre el recibo en vez de registrar otra vez.'
+    else:
+        en = 'This Make is already waiting for owner approval. Nothing new was recorded.'
+        es = 'Esta producción ya espera la aprobación del dueño. No se registró nada nuevo.'
+    return {'code': ALREADY_RECORDED, 'message': en, 'message_es': es,
+            'receipt_number': receipt, 'status': prior['status']}
 
 
 def _reason_blocker(reason_code, note, name):
@@ -179,6 +229,19 @@ def review(standard, actual, substitutions, reasons_by_pid, names, swap=None):
     return rows
 
 
+def supplier_lot(row):
+    """What the lot list shows as the supplier lot. Pooled stock never names one
+    supplier lot; a label without a lot code says so explicitly."""
+    if (row.get('lot_type') or '') == 'commingled':
+        return {'kind': 'pooled', 'code': None}
+    code = (row.get('supplier_lot_code') or '').strip()
+    if not code:
+        return {'kind': 'not_recorded', 'code': None}   # never claim "no lot on label" for a blank
+    if code.upper() in ('N/A', 'NA', 'UNKNOWN'):
+        return {'kind': 'no_lot', 'code': None}
+    return {'kind': 'supplier', 'code': code}
+
+
 def draft_block(api, cur, product, batches, entry, requirements, input_plan, substitutions, auto_substitutions):
     """Renderer-neutral ingredient cards; bags are suggestions until confirmed."""
     standard, swap = entry['standard'], entry.get('swap')
@@ -187,20 +250,28 @@ def draft_block(api, cur, product, batches, entry, requirements, input_plan, sub
     if pids:
         cur.execute('SELECT id,name FROM products WHERE id=ANY(%s)', (pids,))
         names = {r['id']: r['name'] for r in cur.fetchall()}
-    candidates = {}
+    # Lots to choose from: book stock > 0. A lot already in this draft keeps its full
+    # identity even at zero or negative book stock (shortage policy), never "available".
+    candidates, planned_lots = {}, {}
+    planned = sorted({item['lot_id'] for item in input_plan})
     if pids:
-        cur.execute(f'''SELECT l.product_id,l.id AS lot_id,l.lot_code,
+        cur.execute(f'''SELECT l.product_id,l.id AS lot_id,l.lot_code,l.supplier_lot_code,l.lot_type,
                 (COALESCE(l.received_at,l.created_at) AT TIME ZONE 'America/New_York')::date AS received_on,
-                COALESCE(sum(tl.quantity_lb),0) AS available_lb
+                COALESCE(sum(tl.quantity_lb),0) AS book_lb
             FROM lots l LEFT JOIN {api.POSTED_LINES} tl ON tl.lot_id=l.id
             WHERE l.product_id=ANY(%s) AND l.status IS DISTINCT FROM 'merged'
-            GROUP BY l.id HAVING COALESCE(sum(tl.quantity_lb),0)>0
-            ORDER BY l.product_id,COALESCE(l.received_at,l.created_at),l.id''', (pids,))
+            GROUP BY l.id HAVING COALESCE(sum(tl.quantity_lb),0)>0 OR l.id=ANY(%s)
+            ORDER BY l.product_id,COALESCE(l.received_at,l.created_at),l.id''', (pids, planned))
         for row in cur.fetchall():
-            candidates.setdefault(row['product_id'], []).append(
-                {'lot_id': row['lot_id'], 'lot_code': row['lot_code'],
-                 'received_on': row['received_on'].isoformat() if row['received_on'] else None,
-                 'available_lb': float(row['available_lb'])})
+            book = float(row['book_lb'])
+            detail = {'lot_id': row['lot_id'], 'lot_code': row['lot_code'],
+                      'supplier_lot': supplier_lot(row),
+                      'received_on': row['received_on'].isoformat() if row['received_on'] else None,
+                      'book_lb': round(book, 2), 'available_lb': round(max(book, 0.0), 2)}
+            if book > 0:
+                candidates.setdefault(row['product_id'], []).append(detail)
+            else:
+                planned_lots.setdefault(row['product_id'], []).append(detail)
     substituted = {s['substitute_product_id']: s for s in substitutions}
     rows = review(standard, requirements, substitutions, entry['reasons'], names, swap)
     flagged = {r['product_id']: r for r in rows}
@@ -212,7 +283,8 @@ def draft_block(api, cur, product, batches, entry, requirements, input_plan, sub
         checked = used + swap_lb if role == 'from' else used - swap_lb if role == 'to' else used
         reason = entry['reasons'].get(pid) or {}
         bags = [{'lot_id': i['lot_id'], 'lot_code': i['lot_code'], 'quantity_lb': round(float(i['quantity_lb']), 2),
-                 'confirmed': bool(i.get('confirmed')), 'different_lot': bool(i.get('lot_exception'))}
+                 'confirmed': bool(i.get('confirmed')), 'different_lot': bool(i.get('lot_exception')),
+                 'confirmation_method': (i.get('confirmation') or {}).get('method')}
                 for i in input_plan if i['product_id'] == pid]
         ingredients.append({
             'product_id': pid, 'product_name': names.get(pid), 'standard_lb': round(std, 2),
@@ -224,7 +296,9 @@ def draft_block(api, cur, product, batches, entry, requirements, input_plan, sub
             'reason_code': reason.get('reason_code'), 'note': reason.get('note'),
             'substituted_for': substituted[pid]['ingredient_product_id'] if pid in substituted else None,
             'auto_substitute': role == 'to', 'swap_role': role, 'swap_lb': round(swap_lb, 2) if role else None,
-            'bags': bags, 'candidates': candidates.get(pid, [])})
+            'bags': bags, 'candidates': candidates.get(pid, []),
+            # Draft lots with no book stock: shown with their identity, not offered as stock.
+            'unstocked_lots': planned_lots.get(pid, [])})
     pan_lb = float(product.get('default_batch_lb') or 0)
     block_swap = None
     if swap:

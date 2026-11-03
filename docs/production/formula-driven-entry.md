@@ -243,3 +243,75 @@ No decisions are open.
   - **Never blocks:** if the worker enters more oat bran than FL shows on hand, Record posts what they confirmed and flags the shortage, like any other short ingredient. Prepare and Record agree. (Callers that do not send a bran line keep the old "prepare again" refusal when bran disappears between prepare and Record.)
 - **Unchanged:** prepare → confirm → Record ticket flow, lot confirmations and evidence, shortage post-and-flag, one make transaction per run, nothing posts before Record, lots re-locked and re-checked at Record. No migration, no OpenAPI GPT operation added.
 - **Not in Phase A:** recipe versions (Phase B), Runs-screen hook, a separate weekly review screen (the shift summary carries the flags until then).
+
+## 7. Make-entry simplification, PR-1 (`feat/make-entry-simplify`, 2026-11-02)
+
+Goal: Arturo's Make screen faster and more reliable, with no new guessed inventory.
+
+**Screen (390 × 844 first).** Product + **Number of pans** stay on top; output lot code, note and
+substitutions fold under "More options". "Show ingredients and lots" prepares the draft. Each
+ingredient shows recipe lb and **one big lot button** ("Tap to confirm: lot · supplier lot ·
+received date · lb"). One tap confirms that lot; nothing is ever pre-confirmed. "Change lot or
+pounds" (folded) holds the lot list (radio buttons, oldest marked), lb per lot, Add another lot,
+Remove this lot and Not used. The sticky Record bar shows "N lots still need a tap". The typed
+last-4 / full-code / pallet fields are gone from this screen (FL Assistant and the GPT keep them).
+
+**Lot evidence.** A tap is stored as `transaction_lot_confirmations.method='selected'`,
+`value` = the FL lot code shown, `actor_id` = who tapped (signed-in person only; shared keys
+get `ACTOR_REQUIRED`). FL checks the lot belongs to the ingredient, is not merged and still
+has that code, at prepare and again under lock at Record. `selected` is refused outside the
+Make screen (`LOT_SELECTION_MAKE_SCREEN_ONLY`). Needs **migration 090** (adds the method + an
+index); until it is applied FL answers `LOT_SELECTION_UNAVAILABLE` and records nothing.
+Taps that only confirm the suggested lot are sent with Record (no extra re-check); a different
+lot or changed pounds still needs "Check lots and pounds" (D7 unchanged).
+
+**One suggested lot (replaces D2's spill on this screen only).** FL suggests the oldest lot
+*with book stock* for the whole amount and never spills into a second lot on book balances.
+If that lot is short on the books, the card says so: add the real second lot with its pounds,
+or Record and the rest posts as a shortage on that lot (R3 unchanged: warning, not blocker;
+SHORTAGE flag for Arturo). Real multi-lot use with known pounds posts exactly. No new
+fallback deduction exists; zero-stock ingredients keep today's shortage pinning.
+
+**Never NOT RECORDED vs RECORDED confusion; never twice.**
+- The draft always opens with "NOT RECORDED YET — this is a draft"; Record success shows
+  "RECORDED ✓ MK-…"; any failure shows "NOT RECORDED — reason. Your lots and pounds are kept."
+  inline at the top of the draft (not only in the page notice).
+- Entries (lots, pounds, taps) survive Edit entry, Cancel, a failed prepare, a failed
+  re-check and an expired/stale draft ("Check again (keeps my entries)").
+- Each Make form carries an `entry_attempt_id`. A retry of the same ticket replays the saved
+  receipt (unchanged). A **new** draft or ticket of a Make already committed (or held for the
+  owner) gets `MAKE_ALREADY_RECORDED` with the receipt: blocked at prepare, refused at Record
+  (checked under the make posting lock, so two open drafts cannot both post).
+- No answer from FL at Record → "NOT CONFIRMED — … Tap Record again: FL will not record the
+  same Make twice." Record stays on and retries the same ticket.
+- Record ignores double taps while a request is open.
+
+**Legacy routes.** `POST /make` (mode commit) and `/make/commit` post FIFO lots with no lot
+confirmation. Read-only production check 2026-11-02: 7 such makes after cutover (shared key,
+last 2026-10-30); all makes since 2026-11-02 are tickets. So they stay **allowed** by default;
+each post is logged and its response says `lot_verification: "none"` with
+`LEGACY_MAKE_UNVERIFIED_LOTS`. `LEGACY_MAKE_COMMIT=block` (Railway variable) refuses them with
+`LEGACY_MAKE_DISABLED` (preview still works) — set it only after Arturo records every Make on
+the Make screen and the Custom GPT no longer calls `make`. Owner decision; not done here.
+
+**Unchanged:** extra-kosher hold (owner approval before anything posts), oat bran → oats
+swap, fixed reasons, 10% review, shift summary flags, ticket re-check under lock, payload hash,
+append-only evidence. No mixed-bin / unresolved-consumption model.
+
+**Deploy order (needs Michael's approval per step):** backup → apply 090 on production →
+deploy code → verify `/health`, entry.html serves `make-formula.js?v=5`, one staging Make.
+
+### 7.1 Staging acceptance fixes (ChatGPT Work report, 2026-11-02; Makes MK-261102-003…006, XR-261102-001)
+
+- **Negative pounds:** a negative or unreadable amount is kept exactly as typed or pasted, shown in red next to the lot ("…lb is not allowed: pounds cannot be negative"), and the lot row, the chosen lot and its supplier lot stay. It is never turned into 0 or "Not used". Check and Record stay off until it is fixed ("Record is off: 1 amount is negative"). The server already refuses any lot amount ≤ 0 (`quantity_lb > 0`, 422, no ticket, no ledger line); now covered by tests.
+- **0 lb vs Not used:** typing 0 on every lot no longer means "Not used". FL asks for the pounds or the explicit **Not used (0 lb)** button; only that button (or a draft FL already marked not used) shows the reason list.
+- **Lots at zero or negative book stock:** a lot already in the draft keeps FL lot, supplier lot, received date and its **signed book balance** ("on books -10 lb (none available)"); the draft sends it as `unstocked_lots`. The pick list shows "on books N lb" instead of a bare number. No lot is offered or switched to automatically; shortage posting unchanged.
+- **Wording:** "1 pan" / "1 bandeja"; "Falta tocar 1 lote".
+- **Owner hold:** after "waiting for owner approval", Record stays off but **Edit entry** still works; re-preparing the same entry says it is already waiting / already RECORDED with the receipt.
+- **Retry scenarios now tested** (pytest + Playwright with DB counts): (A) lost answer after a successful commit → NOT CONFIRMED → retry returns the same receipt; a new draft of the same entry is refused with that receipt; exactly one Make, one deduction. (B) extra-kosher held → Michael approves → retrying the original ticket replays the receipt; re-preparing the entry and a second draft opened before approval are both refused with the receipt; no new transaction, line, finished lot or ingredient deduction.
+
+### 7.2 Final acceptance fixes (ChatGPT Work, staging deployment 386c9693)
+
+- **Negative pounds:** while any amount is negative or unreadable, **both** Record and **Check lots and pounds** are disabled (and a forced click sends nothing). The row reads "Lot confirmed — pounds "-25" must be fixed", never "Confirmed — 0 lb"; the raw value, the lot and every tap stay. Fixing the value re-enables Check; Record waits for the re-check.
+- **Shortage wording** (FL warning and the card hint, EN/ES) states book balance before, pounds used, the NEW shortage and the book balance after. Example: lot at -25 lb, Make uses 25 lb → "is already at -25 lb on the books (none available); this entry uses 25 lb, adding 25 lb of shortage. Book balance after: -50 lb." Posting rules unchanged (the flag records the new 25 lb). The warning is shared by Make and Pack.
+- **Release candidate check:** `a787587` → `08e5bd2` changed only `CHANGE_LOG.md`. The tested staging build (`037cdad`) differed from the PR only by the staging-only test sign-in (`staging_test_signin.py`, its two hooks in `main.py`/`key_sessions.py`, `dashboard/key-session.js` and its `?v=7` tags).

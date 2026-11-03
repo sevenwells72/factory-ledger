@@ -12,7 +12,9 @@ from pydantic import BaseModel, conint, constr
 
 class LotConfirmation(BaseModel):
     lot_id: conint(strict=True, gt=0)
-    method: Literal['last4', 'full_code', 'scan', 'pallet', 'different_lot']
+    # 'selected': the worker tapped this lot in the Make screen's lot list
+    # (formula entry only, named person only — formula_entry.check_selections).
+    method: Literal['last4', 'full_code', 'scan', 'pallet', 'different_lot', 'selected']
     value: constr(strict=True, strip_whitespace=True, min_length=1, max_length=200)
 
     class Config:
@@ -48,6 +50,11 @@ def verify(api, cur, lot, evidence):
         if value != code:
             fail('LOT_CONFIRMATION_MISMATCH', f'The entered code does not match {label}.',
                  f'El código no coincide con el lote {lot["lot_code"]} de {lot["product_name"]}. Revise la etiqueta.')
+    elif method == 'selected':
+        # The list sends the code it showed; a lot renamed since then must be chosen again.
+        if value != code:
+            fail('LOT_CONFIRMATION_MISMATCH', f'The lot you tapped is no longer {label}; choose it again from the list.',
+                 f'El lote que tocaste ya no es {lot["lot_code"]} de {lot["product_name"]}; elígelo de nuevo en la lista.')
     if method == 'pallet':
         cur.execute('''SELECT id,to_location,lot_code,
                 moved_at <= clock_timestamp() AND moved_at >= clock_timestamp()-interval '24 hours' AS recent

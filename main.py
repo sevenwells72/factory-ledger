@@ -9732,6 +9732,22 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
     return response
 
 
+# Make-entry simplification PR-1: `POST /make` (and /make/commit) in commit mode
+# posts FIFO lots with NO lot confirmation. Production still used it after the
+# cutover (shared-key GPT makes through 2026-10-30), so it stays ALLOWED by
+# default and every post is logged and marked unverified. LEGACY_MAKE_COMMIT=block
+# refuses it (preview still works) once Arturo records every Make on the Make screen.
+def legacy_make_commit_blocked() -> bool:
+    return os.getenv("LEGACY_MAKE_COMMIT", "allow").strip().lower() == "block"
+
+
+LEGACY_MAKE_WARNING = {
+    "code": "LEGACY_MAKE_UNVERIFIED_LOTS",
+    "message": "Recorded through the old make route: FL chose the ingredient lots oldest-first and nobody confirmed them. Use the Make screen (Entry → Make) so each lot is chosen by the person who used it.",
+    "message_es": "Registrado por la ruta antigua: FL eligió los lotes de ingredientes del más antiguo y nadie los confirmó. Usa la pantalla Producir (Entrada → Producir) para que cada lote lo elija quien lo usó.",
+}
+
+
 @app.post("/make")
 def make(req: MakeRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Record batch production. mode=preview returns ingredient check; mode=commit executes."""
@@ -9749,10 +9765,20 @@ def make(req: MakeRequest, _: bool = Depends(verify_api_key), request: Request =
             return JSONResponse(status_code=500, content={"error": str(e)})
     else:
         # mode == "commit"
+        if legacy_make_commit_blocked():
+            raise HTTPException(403, {"error_code": "LEGACY_MAKE_DISABLED",
+                "message": "This make route no longer records production. Use the Make screen (Entry → Make), which checks each ingredient lot. Nothing was recorded.",
+                "message_es": "Esta ruta ya no registra producción. Usa la pantalla Producir (Entrada → Producir), que verifica cada lote. No se registró nada."})
+        logger.warning("Legacy make commit (unverified FIFO lots) by %s: %s x%s",
+                       _operator_id(request), req.product_name, req.batches)
         try:
             with get_db_connection() as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                    return _make_commit_core(cur, req, request, occurred_at, created_at_source)
+                    response = _make_commit_core(cur, req, request, occurred_at, created_at_source)
+                    if isinstance(response, dict) and response.get("success"):
+                        response["lot_verification"] = "none"
+                        response.setdefault("warnings", []).append(dict(LEGACY_MAKE_WARNING))
+                    return response
         except HTTPException:
             raise
         except Exception as e:

@@ -26,10 +26,9 @@ def test_shortage_warning_rounds_display_but_preserves_stock_evidence():
     shortage = dict(product_name='Oats', lot_code='LOT-88.80000000000001', lot_id=9,
                     on_hand_lb=88.80000000000001, needed_lb=89.12345, short_lb=0.32345)
     warning = ex.shortage_warnings({'shortages': [shortage]})[0]
-    assert 'has 88.8 lb; posting 89.12 lb' in warning['message']
-    assert 'short 0.32 lb' in warning['message']
-    assert 'tiene 88.8 lb' in warning['message_es']
-    assert 'faltante de 0.32 lb' in warning['message_es']
+    # PR #176: book before, pounds used, new shortage and book after (display rounded).
+    assert 'has 88.8 lb on the books; this entry uses 89.12 lb, 0.32 lb more than the lot has. Book balance after: -0.32 lb.' in warning['message']
+    assert 'tiene 88.8 lb en el sistema; esta entrada usa 89.12 lb, 0.32 lb más de lo que tiene el lote. Saldo en el sistema después: -0.32 lb.' in warning['message_es']
     assert shortage['lot_code'] in warning['message_es']
     assert warning['refs']['short_lb'] == 0.32345
     assert warning['refs']['on_hand_lb'] == 88.80000000000001

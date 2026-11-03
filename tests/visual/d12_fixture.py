@@ -4,7 +4,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT))
 url=os.environ['TEST_DATABASE_URL']; parsed=urlsplit(url)
-assert parsed.hostname in ('localhost','127.0.0.1') and parsed.path.startswith(('/fl_d12_browser', '/fl_oatbran_browser_', '/fl_cust_browser', '/fl_cust_fx_', '/fl_cust_rb_', '/fl_formula_browser_')), 'Dedicated local DB required'
+assert parsed.hostname in ('localhost','127.0.0.1') and parsed.path.startswith(('/fl_d12_browser', '/fl_oatbran_browser_', '/fl_cust_browser', '/fl_cust_fx_', '/fl_cust_rb_', '/fl_formula_browser_', '/fl_make_simplify_')), 'Dedicated local DB required'
 os.environ.update(DATABASE_URL=url,API_KEY='d12-local-master',DASHBOARD_API_KEY='d12-local-read',KEY_SESSIONS_ENABLED=os.environ.get('KEY_SESSIONS_ENABLED','1'),EVIDENCE_STORAGE_DIR=str(ROOT/'.venv-test/d12-evidence'),PACKING_SLIP_SIGNING_KEY='d12-local-signing')
 # O-7: pages read DASHBOARD_API_KEY from GET /auth/dashboard-key, so any value works.
 import psycopg2
@@ -50,6 +50,16 @@ with psycopg2.connect(url) as conn,conn.cursor(cursor_factory=RealDictCursor) as
    pid=formula_products[name];cur.execute("INSERT INTO lots(product_id,lot_code,received_at) VALUES(%s,%s,now()-%s*interval '1 day') RETURNING id",(pid,code,days));lid=cur.fetchone()['id'];formula_lots[key]={'id':lid,'code':code}
    cur.execute("INSERT INTO transactions(type,notes) VALUES('receive','Formula entry browser fixture') RETURNING id");tx=cur.fetchone()['id'];cur.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES(%s,%s,%s,%s)',(tx,pid,lid,qty))
   data['formula']={'products':formula_products,'lots':formula_lots}
+ if os.environ.get('MAKE_SIMPLIFY_BROWSER')=='1':
+  # Make-entry simplification PR-1: lot selection (migration 090) and an extra-kosher batch.
+  cur.execute((ROOT/'migrations/090_make_lot_selection.sql').read_text())
+  xk={}
+  for name,kind,code,pan in [('XK Granola','batch','FB-XK',10),('XK Oats','ingredient','FB-XK1',None)]:
+   cur.execute("INSERT INTO products(name,odoo_code,type,uom,default_batch_lb,active,kosher_tier) VALUES(%s,%s,%s,'lb',%s,true,'extra_kosher') RETURNING id",('Formula Browser '+name,code,kind,pan));xk[name]=cur.fetchone()['id']
+  cur.execute('INSERT INTO batch_formulas(product_id,ingredient_product_id,quantity_lb) VALUES(%s,%s,10)',(xk['XK Granola'],xk['XK Oats']))
+  cur.execute("INSERT INTO lots(product_id,lot_code,kosher_tier) VALUES(%s,'FBXK-OATS-0007','extra_kosher') RETURNING id",(xk['XK Oats'],));lid=cur.fetchone()['id']
+  cur.execute("INSERT INTO transactions(type,notes) VALUES('receive','Make simplify browser fixture') RETURNING id");tx=cur.fetchone()['id'];cur.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES(%s,%s,%s,100)',(tx,xk['XK Oats'],lid))
+  data['make_simplify']={'products':xk,'lots':{'xk_oats':{'id':lid,'code':'FBXK-OATS-0007'}}}
  if os.environ.get('D2_OFFICE_FIXTURE')=='1':
   from tests.visual.office_seed import seed_office
   seed_office(cur,data)

@@ -28,7 +28,7 @@ PREPARES = {
 }
 # These fields are UI evidence, never model assertions. Client source is server-set.
 UI_FIELDS = {'client_source', 'lot_confirmations', 'confirmed_sku', 'attachment_ref', 'attachment_id', 'attachment_ids',
-             'formula_entry', 'ingredient_lines'}
+             'formula_entry', 'ingredient_lines', 'entry_attempt_id'}
 
 
 def has_ui_fields(value):

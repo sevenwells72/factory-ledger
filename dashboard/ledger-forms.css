@@ -102,3 +102,27 @@
 .ledger-page .record-bar.sticky>p {margin:0;flex:1 1 100%;font-size:14px}
 .ledger-page .panel.updating {opacity:.6;pointer-events:none}
 @media(max-width:520px){.ledger-page .formula-ingredient{padding:8px 10px}.ledger-page .formula-ingredient>p{font-size:15px}.ledger-page .formula-bag{padding:6px 8px}}
+/* Make-entry simplification PR-1: tap-to-confirm lots, folded details, unmistakable status. */
+.ledger-page .entry-status {border-radius:6px;padding:12px 14px;margin:0 0 12px;font-size:16px;border-left:6px solid}
+.ledger-page .entry-status.draft {border-left-color:var(--fl-amber-line);background:var(--fl-amber-bg)}
+.ledger-page .entry-status.held {border-left-color:var(--fl-amber-line);background:var(--fl-amber-bg)}
+.ledger-page .entry-status.bad {border-left-color:var(--fl-danger-line);background:var(--fl-danger-bg);color:var(--fl-danger)}
+.ledger-page .entry-status.good {border-left-color:var(--fl-success-line);background:var(--fl-success-bg);color:var(--fl-success)}
+.ledger-page .entry-status button,.ledger-page .entry-status a {display:block;margin-top:8px}
+.ledger-page .pans-field input {font-size:22px;font-weight:700;max-width:10ch}
+.ledger-page .make-more>summary,.ledger-page .formula-edit>summary {cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600}
+.ledger-page .formula-picks {display:grid;gap:6px;margin:6px 0}
+.ledger-page .formula-pick>p {margin:4px 0 0;padding:4px 8px;font-size:14px}
+.ledger-page .lot-confirm {width:100%;text-align:left;min-height:52px;border:2px dashed var(--fl-amber-line);background:var(--fl-amber-bg)}
+.ledger-page .lot-confirm.confirmed {border:2px solid var(--fl-success-line);background:var(--fl-success-bg);color:var(--fl-success)}
+.ledger-page .formula-bag {padding:8px 10px;margin:8px 0}
+.ledger-page .formula-list-label {margin:0 0 4px;font-weight:600;font-size:14px}
+.ledger-page .lot-list {display:grid;gap:6px;margin-bottom:8px}
+.ledger-page .lot-choice {width:100%;text-align:left;min-height:48px}
+.ledger-page .lot-choice.selected {border:2px solid var(--fl-success-line);background:var(--fl-success-bg);font-weight:650}
+.ledger-page .formula-bag label {display:block;margin:4px 0}
+.ledger-page .formula-bag input[name=bag_lb] {width:100%;font-size:16px}
+.ledger-page .formula-tools {display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.ledger-page .record-bar.sticky>[data-pending-lots] {color:var(--text)}
+.ledger-page .formula-bag input[aria-invalid=true] {border:2px solid var(--fl-danger-line);background:var(--fl-danger-bg)}
+.ledger-page .formula-pick>[data-bag-error] {padding:8px 10px}
