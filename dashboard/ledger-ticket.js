@@ -52,11 +52,11 @@
       const actions=ui.el('div');actions.className=formula?'record-bar sticky':'record-bar';let updateHint=null;
       let record=null,pendingNote=null;
       formulaApi=formula?ui.formulaEntry(card,formula,{confirmations,checkHost:actions,changed:()=>syncRecord(),dirty:()=>{evidenceDirty=true;syncRecord();syncUpdate();},update:(lines,next)=>{if(busy||finished||uploading)return;payload.ingredient_lines=lines;confirmations=next;const at=formulaApi.anchor();anchor=at?{id:at.dataset.productId,top:at.getBoundingClientRect?.().top}:null;prepare({refresh:true});}}):null;
-      function syncUpdate(){if(!formulaApi)return;formulaApi.check.hidden=!evidenceDirty;formulaApi.check.className=evidenceDirty?'primary':'secondary';if(updateHint)updateHint.hidden=!evidenceDirty;}
+      function syncUpdate(){if(!formulaApi)return;formulaApi.check.hidden=!evidenceDirty;formulaApi.check.disabled=formulaApi.invalid()>0;formulaApi.check.className=evidenceDirty?'primary':'secondary';if(updateHint)updateHint.hidden=!evidenceDirty;}
       // Formula Make: unconfirmed lots are tapped on this screen and sent with Record, so
       // "lots not confirmed" is the only draft blocker the browser may clear (FL re-checks).
       function committable(){if(locked||(formulaApi&&formulaApi.invalid()>0))return false;if(prepared.can_commit===true)return true;if(!formulaApi||evidenceDirty||prepared.draft.already_recorded)return false;return (prepared.blockers||[]).every(b=>b.code==='LOT_NOT_CONFIRMED')&&formulaApi.pending()===0;}
-      function syncRecord(){if(!record)return;record.disabled=finished||uploading||evidenceDirty||!committable();
+      function syncRecord(){if(formulaApi)formulaApi.check.disabled=formulaApi.invalid()>0;if(!record)return;record.disabled=finished||uploading||evidenceDirty||!committable();
         if(pendingNote){const bad=formulaApi?formulaApi.invalid():0,n=formulaApi?formulaApi.pending():0;pendingNote.hidden=!bad&&(!n||evidenceDirty);pendingNote.className=bad?'bad':'muted';
           if(bad)ui.setText(pendingNote,ui.t('Record is off: '+bad+(bad===1?' amount is':' amounts are')+' negative. Fix '+(bad===1?'it':'them')+' first.','Registrar está apagado: '+bad+(bad===1?' cantidad es negativa':' cantidades son negativas')+'. Corrígelas primero.'));
           else ui.setText(pendingNote,ui.t(n+(n===1?' lot still needs a tap':' lots still need a tap')+' before Record.',(n===1?'Falta tocar 1 lote':'Falta tocar '+n+' lotes')+' antes de Registrar.'));}}

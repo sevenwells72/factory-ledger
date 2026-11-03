@@ -23,7 +23,8 @@
     const previous=new Map(confirmations.map(c=>[c.lot_id,c])),cards=[];let lastEdited=null;
     const byRole=role=>cards.find(c=>c.ing.swap_role===role);
     function swapLb(){const from=byRole('from'),to=byRole('to');if(!block.swap||!from||!to)return 0;return Math.max(0,round(Math.min(from.ing.standard_lb-from.sum(),to.sum()-to.ing.standard_lb)));}
-    function refreshAll(){cards.forEach(c=>c.refresh());changed();}
+    let check=null;
+    function refreshAll(){cards.forEach(c=>c.refresh());if(check)check.disabled=invalidCount()>0;changed();}
     for(const ing of block.ingredients){
       const box=ui.el('fieldset',undefined,card);box.className='formula-ingredient';box.dataset.productId=String(ing.product_id);
       const touch=()=>{lastEdited=box;dirty();};
@@ -89,12 +90,16 @@
           if(amount.invalid)ui.setText(error,ui.t('"'+lb.value+'" lb is not allowed: pounds cannot be negative. Enter 0 or more for this lot.','"'+lb.value+'" lb no es válido: las libras no pueden ser negativas. Escribe 0 o más para este lote.'));
           ui.setText(confirm,entry.lot.value?(ok?ui.t('✓ ','✓ '):ui.t('Tap to confirm: ','Toca para confirmar: '))+lotText(c,entry.code):ui.t('Choose a lot in "Change lot or pounds"','Elige un lote en "Cambiar lote o libras"'));
           confirm.className=ok?'lot-confirm confirmed':'lot-confirm';confirm.setAttribute('aria-pressed',String(ok));confirm.disabled=!entry.lot.value;
-          ui.setText(state,ok?ui.t('Confirmed — '+ui.formatNumber(amount.value)+' lb from this lot','Confirmado — '+ui.formatNumber(amount.value)+' lb de este lote'):ui.t('Not confirmed — tap the lot you used','Sin confirmar — toca el lote que usaste'));state.className=ok?'good':'muted';
+          // An invalid amount never reads as "Confirmed — 0 lb": the lot stays confirmed, the pounds do not.
+          if(amount.invalid){ui.setText(state,ok?ui.t('Lot confirmed — pounds "'+lb.value+'" must be fixed','Lote confirmado — corrige las libras "'+lb.value+'"'):ui.t('Not confirmed — fix the pounds and tap the lot you used','Sin confirmar — corrige las libras y toca el lote que usaste'));state.className='bad';}
+          else{ui.setText(state,ok?ui.t('Confirmed — '+ui.formatNumber(amount.value)+' lb from this lot','Confirmado — '+ui.formatNumber(amount.value)+' lb de este lote'):ui.t('Not confirmed — tap the lot you used','Sin confirmar — toca el lote que usaste'));state.className=ok?'good':'muted';}
           choices.forEach(b=>{const on=b.dataset.lotId===entry.lot.value;b.setAttribute('aria-checked',String(on));b.className=on?'lot-choice selected':'lot-choice';});
           const want=amount.value,book=c?.book_lb??c?.available_lb??(c?.zero?0:null),have=book==null?null:Math.max(book,0);
           short.hidden=!(have!=null&&want>have+0.005);
-          if(!short.hidden&&book<=0)ui.setText(short,ui.t('This lot shows '+ui.formatNumber(book)+' lb on the books — none available. If you also used another lot, open "Change lot or pounds" and add it with its pounds. Otherwise these pounds are recorded as a shortage on this lot.','Este lote tiene '+ui.formatNumber(book)+' lb en el sistema — nada disponible. Si también usaste otro lote, abre "Cambiar lote o libras" y agrégalo con sus libras. Si no, estas libras se registran como faltante en este lote.'));
-          else if(!short.hidden)ui.setText(short,ui.t('This lot shows only '+ui.formatNumber(have)+' lb on the books. If you also used another lot, open "Change lot or pounds" and add it with its pounds. Otherwise the rest is recorded as a shortage on this lot.','Este lote solo tiene '+ui.formatNumber(have)+' lb en el sistema. Si también usaste otro lote, abre "Cambiar lote o libras" y agrégalo con sus libras. Si no, lo que falta se registra como faltante en este lote.'));}
+          // Same numbers as FL's shortage warning: book before, pounds used, NEW shortage, book after.
+          const extra=round(want-(have||0)),after=book==null?null:round(book-want),f=ui.formatNumber;
+          if(!short.hidden&&book<=0)ui.setText(short,ui.t('This lot is already at '+f(book)+' lb on the books — none available. Using '+f(want)+' lb adds '+f(extra)+' lb of shortage; book balance after: '+f(after)+' lb. If you also used another lot, open "Change lot or pounds" and add it with its pounds.','Este lote ya está en '+f(book)+' lb en el sistema — nada disponible. Usar '+f(want)+' lb agrega '+f(extra)+' lb de faltante; saldo en el sistema después: '+f(after)+' lb. Si también usaste otro lote, abre "Cambiar lote o libras" y agrégalo con sus libras.'));
+          else if(!short.hidden)ui.setText(short,ui.t('This lot shows only '+f(have)+' lb on the books. Using '+f(want)+' lb is '+f(extra)+' lb more than it has (recorded as a shortage on this lot); book balance after: '+f(after)+' lb. If you also used another lot, open "Change lot or pounds" and add it with its pounds.','Este lote solo tiene '+f(have)+' lb en el sistema. Usar '+f(want)+' lb son '+f(extra)+' lb más de lo que tiene (se registra como faltante en este lote); saldo en el sistema después: '+f(after)+' lb. Si también usaste otro lote, abre "Cambiar lote o libras" y agrégalo con sus libras.'));}
         confirm.onclick=()=>{if(!entry.lot.value)return;entry.evidence=entry.evidence?null:{lot_id:Number(entry.lot.value),method:'selected',value:entry.code};refreshAll();};
         lb.oninput=lb.onchange=()=>{refreshAll();touch();};
         remove.onclick=()=>{const index=bags.indexOf(entry),moved=pounds(lb).value;bags.splice(index,1);row.remove();pick.remove();const target=bags[index-1]||bags[index];if(target&&moved&&!pounds(target.lb).invalid)target.lb.value=String(round(pounds(target.lb).value+moved));refreshAll();touch();};
@@ -123,8 +128,8 @@
         if(bags.some(b=>!b.lot.value&&pounds(b.lb).value>0))issue=issue||ui.t('Choose a lot for every pound entered ('+ing.product_name+').','Elige un lote para cada libra escrita ('+ing.product_name+').');
         const zero=!used.length&&ing.standard_lb>0&&!(ing.swap_role==='from'&&swapLb()>0);lines.push({ingredient_product_id:ing.product_id,bags:used.map(b=>({lot_id:Number(b.lot.value),quantity_lb:Number(b.lb.value)})),reason_code:zero&&reason.value?reason.value:null,note:zero&&note.value.trim()?note.value.trim():null});}
       return {lines,confirmations:selections(),issue};}
-    const check=ui.el('button',ui.t('Check lots and pounds → new draft','Verificar lotes y libras → nuevo borrador'),checkHost);check.type='button';check.dataset.formulaUpdate='';
-    check.onclick=()=>{const {lines,confirmations:next,issue}=read();if(issue){problem.hidden=false;ui.setText(problem,issue);return;}problem.hidden=true;update(lines,next);};
+    check=ui.el('button',ui.t('Check lots and pounds → new draft','Verificar lotes y libras → nuevo borrador'),checkHost);check.type='button';check.dataset.formulaUpdate='';check.disabled=invalidCount()>0;
+    check.onclick=()=>{if(check.disabled)return;const {lines,confirmations:next,issue}=read();if(issue){problem.hidden=false;ui.setText(problem,issue);return;}problem.hidden=true;update(lines,next);};
     return {read,check,selections,pending,invalid:invalidCount,anchor:()=>lastEdited};
   };
 })(window);

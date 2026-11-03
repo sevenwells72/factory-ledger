@@ -76,7 +76,7 @@ test('a second lot needs its own lot choice and pounds; both post exactly',()=>{
 });
 test('a lot with fewer book pounds explains the second-lot and shortage choice',()=>{
   const h=harness();const short=h.inBox(10,n=>n.dataset.bagShort==='')[0];
-  assert.equal(short.hidden,false);assert.match(short.textContent,/^This lot shows only 50 lb on the books\. If you also used another lot/);
+  assert.equal(short.hidden,false);assert.equal(short.textContent,'This lot shows only 50 lb on the books. Using 160 lb is 110 lb more than it has (recorded as a shortage on this lot); book balance after: -110 lb. If you also used another lot, open "Change lot or pounds" and add it with its pounds.');
   const [lb]=h.lb(10);lb.value='50';lb.oninput();assert.equal(short.hidden,true);
 });
 test('removing a lot moves its pounds to the lot above',()=>{
@@ -151,9 +151,15 @@ test('a negative amount is kept as typed, shown as an error, and never becomes N
   assert.match(h.tap(10).textContent,/^✓ OATS-OLD-0001 · supplier lot SUP-77/,'the chosen lot and its supplier lot stay');
   const error=h.inBox(10,n=>n.dataset.bagError==='')[0];assert.equal(error.hidden,false);assert.match(error.textContent,/"-25" lb is not allowed/);
   assert.equal(lb['aria-invalid'],'true');assert.equal(h.api.invalid(),1);
-  h.check();assert.equal(h.calls.length,0,'nothing is sent to FL');assert.ok(h.find(n=>n.className==='bad'&&!n.hidden&&/Pounds cannot be negative \(Plain Oats\)/.test(n.textContent)));
-  lb.value='150';lb.oninput();assert.equal(h.api.invalid(),0);assert.equal(error.hidden,true);
-  h.check();assert.deepEqual(plain(h.calls[0].lines[0].bags),[{lot_id:1,quantity_lb:150}]);
+  const checkButton=h.find(n=>n.tag==='button'&&n.textContent==='Check lots and pounds → new draft');
+  assert.equal(checkButton.disabled,true,'Check is disabled while an amount is negative');
+  h.check();assert.equal(h.calls.length,0,'nothing is sent to FL');
+  assert.equal(h.state(10).textContent,'Lot confirmed — pounds "-25" must be fixed');
+  assert.ok(!h.all(n=>/Confirmed — 0 lb/.test(n.textContent)).length,'never "Confirmed — 0 lb"');
+  lb.value='450';lb.oninput();assert.equal(h.api.invalid(),0);assert.equal(error.hidden,true);assert.equal(checkButton.disabled,false);
+  assert.equal(h.state(10).textContent,'Confirmed — 450 lb from this lot','the tap survived the invalid amount');
+  assert.deepEqual(plain(h.api.selections()).find(c=>c.lot_id===1),{lot_id:1,method:'selected',value:'OATS-OLD-0001'});
+  h.check();assert.deepEqual(plain(h.calls[0].lines[0].bags),[{lot_id:1,quantity_lb:450}]);
 });
 test('a pasted negative amount (change event) on a second lot is refused the same way',()=>{
   const h=harness();h.button(10,'Add another lot').onclick();const [,second]=h.lb(10);
@@ -183,7 +189,7 @@ test('a chosen lot with zero or negative book stock keeps its full identity and 
   assert.equal(h.tap(20).textContent,'Tap to confirm: HONEY-0008 · supplier lot HSUP-1 · received 2026-09-01 · on books -10 lb (none available)');
   assert.ok(!/available_lb|\b-10 lb available/.test(h.tap(20).textContent));
   const short=h.inBox(20,n=>n.dataset.bagShort==='')[0];assert.equal(short.hidden,false);
-  assert.match(short.textContent,/^This lot shows -10 lb on the books — none available\..*recorded as a shortage on this lot/);
+  assert.equal(short.textContent,'This lot is already at -10 lb on the books — none available. Using 40 lb adds 40 lb of shortage; book balance after: -50 lb. If you also used another lot, open "Change lot or pounds" and add it with its pounds.');
   assert.equal(h.choice(20,8)['aria-checked'],'true','FL does not switch to the lot with stock');
   h.tap(20).onclick();assert.deepEqual(plain(h.api.selections()).find(c=>c.lot_id===8),{lot_id:8,method:'selected',value:'HONEY-0008'});
 });
@@ -192,4 +198,13 @@ test('one pan reads "1 pan" / "1 bandeja"',()=>{
   assert.match(harness(data).find(n=>n.dataset.formulaSummary==='').textContent,/^1 pan × 100 lb = 100 lb\./);
   const ui=load();ui.lang='es';const card=new Element('section');ui.formulaEntry(card,data);
   assert.match(descendants(card).find(n=>n.dataset.formulaSummary==='').textContent,/^1 bandeja × 100 lb/);
+});
+test('shortage on a lot already below zero: -25 before, 25 used → 25 lb more short, -50 after (EN and ES)',()=>{
+  const data=one();data.ingredients[1]={product_id:20,product_name:'Coconut',standard_lb:25,bags:[{lot_id:8,lot_code:'COCO-0008',quantity_lb:25,confirmed:true,confirmation_method:'selected'}],candidates:[],
+    unstocked_lots:[{lot_id:8,lot_code:'COCO-0008',supplier_lot:{kind:'supplier',code:'CSUP-9'},received_on:'2026-10-14',book_lb:-25,available_lb:0}]};
+  const h=harness(data),short=h.inBox(20,n=>n.dataset.bagShort==='')[0];
+  assert.equal(short.textContent,'This lot is already at -25 lb on the books — none available. Using 25 lb adds 25 lb of shortage; book balance after: -50 lb. If you also used another lot, open "Change lot or pounds" and add it with its pounds.');
+  const ui=load();ui.lang='es';const card=new Element('section');ui.formulaEntry(card,data);
+  const es=descendants(card).find(n=>n.dataset.bagShort===''&&!n.hidden&&/COCO|ya está/.test(n.textContent));
+  assert.equal(es.textContent,'Este lote ya está en -25 lb en el sistema — nada disponible. Usar 25 lb agrega 25 lb de faltante; saldo en el sistema después: -50 lb. Si también usaste otro lote, abre "Cambiar lote o libras" y agrégalo con sus libras.');
 });

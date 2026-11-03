@@ -437,16 +437,33 @@ def shortfalls(input_plan, states):
 
 
 def shortage_warnings(draft):
-    """Prepare: "will create shortage" — a warning, never a blocker (R3)."""
+    """Prepare: "will create shortage" — a warning, never a blocker (R3).
+
+    States the book balance before, the pounds this entry uses, the NEW shortage it
+    adds and the book balance after, so a lot already below zero reads correctly
+    (e.g. -25 lb before, 25 lb used, 25 lb more short, -50 lb after)."""
     quantity = lambda value: f'{float(value):.2f}'.rstrip('0').rstrip('.')
-    return [{'code': 'WILL_CREATE_SHORTAGE', 'requires_ack': False,
-             'message': (f'{s["product_name"]} lot {s["lot_code"]} has {quantity(s["on_hand_lb"])} lb; posting {quantity(s["needed_lb"])} lb '
-                         f'leaves it short {quantity(s["short_lb"])} lb. A shortage flag opens for the floor to resolve '
-                         f'within {BUSINESS_DAYS["SHORTAGE"]} business days.'),
-             'message_es': (f'{s["product_name"]} lote {s["lot_code"]} tiene {quantity(s["on_hand_lb"])} lb; quedará con un '
-                            f'faltante de {quantity(s["short_lb"])} lb que el piso debe resolver en {BUSINESS_DAYS["SHORTAGE"]} días hábiles.'),
-             'refs': {'lot_id': s['lot_id'], 'short_lb': s['short_lb'], 'on_hand_lb': s['on_hand_lb']}}
-            for s in draft.get('shortages') or []]
+    days = BUSINESS_DAYS["SHORTAGE"]
+    result = []
+    for s in draft.get('shortages') or []:
+        before, used, short = (quantity(s[k]) for k in ('on_hand_lb', 'needed_lb', 'short_lb'))
+        after = quantity(s.get('balance_after_lb', float(s['on_hand_lb']) - float(s['needed_lb'])))
+        name, code = s['product_name'], s['lot_code']
+        if float(s['on_hand_lb']) > 0:
+            en = (f'{name} lot {code} has {before} lb on the books; this entry uses {used} lb, '
+                  f'{short} lb more than the lot has.')
+            es = (f'{name} lote {code} tiene {before} lb en el sistema; esta entrada usa {used} lb, '
+                  f'{short} lb más de lo que tiene el lote.')
+        else:
+            en = (f'{name} lot {code} is already at {before} lb on the books (none available); '
+                  f'this entry uses {used} lb, adding {short} lb of shortage.')
+            es = (f'{name} lote {code} ya está en {before} lb en el sistema (nada disponible); '
+                  f'esta entrada usa {used} lb y agrega {short} lb de faltante.')
+        result.append({'code': 'WILL_CREATE_SHORTAGE', 'requires_ack': False,
+             'message': f'{en} Book balance after: {after} lb. A shortage flag opens for the floor to resolve within {days} business days.',
+             'message_es': f'{es} Saldo en el sistema después: {after} lb. Se abre un aviso de faltante que el piso debe resolver en {days} días hábiles.',
+             'refs': {'lot_id': s['lot_id'], 'short_lb': s['short_lb'], 'on_hand_lb': s['on_hand_lb']}})
+    return result
 
 
 def record_shortages(cur, transaction_id, shortages, *, ticket_id, receipt_number, action, actor_id):

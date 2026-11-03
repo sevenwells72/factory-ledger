@@ -89,8 +89,13 @@ try {
   assert.match(await ingredient('Plain Oats').locator('[data-lot-confirm]').textContent(), /^✓ FBOATS-OLD-0001/, 'selected lot kept');
   assert.equal(await record().isDisabled(), true);
   await page.locator('#resolution [data-pending-lots]').getByText(/^Record is off: 1 amount is negative/).waitFor();
-  await page.getByRole('button', { name: 'Check lots and pounds → new draft', exact: true }).click();
-  await page.locator('#resolution .record-bar [role=alert]').getByText(/Pounds cannot be negative \(Formula Browser Plain Oats\)/).waitFor();
+  const checkButton = page.getByRole('button', { name: 'Check lots and pounds → new draft', exact: true });
+  assert.equal(await checkButton.isVisible(), true);
+  assert.equal(await checkButton.isDisabled(), true, 'Check is disabled while an amount is negative');
+  await checkButton.click({ force: true });
+  assert.equal(prepares(), before, 'a forced click sends nothing');
+  assert.equal(await ingredient('Plain Oats').locator('[data-bag-state]').textContent(), 'Lot confirmed — pounds "-25" must be fixed');
+  assert.equal(await page.locator('#resolution').getByText(/Confirmed — 0 lb/).count(), 0, 'never "Confirmed — 0 lb"');
   await page.screenshot({ path: `${out}/01b-negative-refused-390.png` });
   await oatsLb.fill(''); await page.evaluate(() => navigator.clipboard.writeText('-12')); await oatsLb.focus(); await page.keyboard.press('ControlOrMeta+v');
   assert.equal(await oatsLb.inputValue(), '-12', 'pasted value kept');
@@ -100,6 +105,8 @@ try {
   assert.equal(await ingredient('Plain Oats').locator('.formula-reason').isHidden(), true);
   await oatsLb.fill('150');
   assert.equal(await ingredient('Plain Oats').locator('[data-bag-error]').isHidden(), true);
+  assert.equal(await checkButton.isDisabled(), false, 'fixing the amount re-enables Check');
+  assert.equal(await ingredient('Plain Oats').locator('[data-bag-state]').textContent(), 'Confirmed — 150 lb from this lot');
   assert.equal(prepares(), before, 'no invalid amount was sent to FL');
 
   // 2. Real two-lot use with known pounds: 50 lb old + 100 lb new (intentional list choice).
@@ -164,7 +171,9 @@ try {
   // Honey is now at -10 lb on the books: the chosen lot keeps its full identity, never "available".
   const honeyTap = await ingredient('Honey').locator('[data-lot-confirm]').textContent();
   assert.match(honeyTap, /^Tap to confirm: FBHONEY-0005 · supplier lot not recorded · received \d{4}-\d{2}-\d{2} · on books -10 lb \(none available\)$/, honeyTap);
-  await ingredient('Honey').locator('[data-bag-short]').getByText(/^This lot shows -10 lb on the books — none available/).waitFor();
+  await ingredient('Honey').locator('[data-bag-short]').getByText('This lot is already at -10 lb on the books — none available. Using 20 lb adds 20 lb of shortage; book balance after: -30 lb.', { exact: false }).waitFor();
+  const shortageNote = await page.locator('#resolution [data-warning-info=WILL_CREATE_SHORTAGE]').first().textContent();
+  assert.match(shortageNote, /is already at -10 lb on the books \(none available\); this entry uses 20 lb, adding 20 lb of shortage\. Book balance after: -30 lb\./, shortageNote);
   await page.screenshot({ path: `${out}/05b-negative-stock-lot-390.png`, fullPage: true });
   await page.locator('#resolution [data-shortage-warning]').first().waitFor();
   await tapAll();
@@ -216,6 +225,19 @@ try {
   await page.locator('[name=batches]').fill('1'); await page.locator('[name=confirmed_sku]').check();
   await clickResponse('/make/prepare', () => page.getByRole('button', { name: 'Ver ingredientes y lotes', exact: true }).click());
   await status().getByText(/^AÚN NO REGISTRADO/).waitFor();
+  // Spanish: shortage text on a lot already below zero, and negative pounds refused with Check off.
+  await ingredient('Honey').locator('[data-bag-short]').getByText('Este lote ya está en -30 lb en el sistema — nada disponible. Usar 20 lb agrega 20 lb de faltante; saldo en el sistema después: -50 lb.', { exact: false }).waitFor();
+  assert.match(await page.locator('#resolution [data-warning-info=WILL_CREATE_SHORTAGE]').first().textContent(), /ya está en -30 lb en el sistema \(nada disponible\); esta entrada usa 20 lb y agrega 20 lb de faltante\. Saldo en el sistema después: -50 lb\./);
+  await ingredient('Plain Oats').locator('[data-lot-confirm]').click();
+  if (!(await ingredient('Plain Oats').locator('details.formula-edit').evaluate(d => d.open))) await ingredient('Plain Oats').locator('details.formula-edit > summary').click();
+  const esLb = ingredient('Plain Oats').locator('[name=bag_lb]').first();
+  await esLb.fill('-25');
+  await ingredient('Plain Oats').locator('[data-bag-error]').getByText('"-25" lb no es válido', { exact: false }).waitFor();
+  const esCheck = page.getByRole('button', { name: 'Verificar lotes y libras → nuevo borrador', exact: true });
+  assert.equal(await esCheck.isDisabled(), true); assert.equal(await page.getByRole('button', { name: 'Registrar', exact: true }).isDisabled(), true);
+  assert.equal(await ingredient('Plain Oats').locator('[data-bag-state]').textContent(), 'Lote confirmado — corrige las libras "-25"');
+  await page.screenshot({ path: `${out}/07b-negative-es-390.png` });
+  await esLb.fill('75'); assert.equal(await esCheck.isDisabled(), false);
   await noSideScroll();
   await page.screenshot({ path: `${out}/07-draft-es-390.png`, fullPage: true });
   assert.deepEqual(errors, []);

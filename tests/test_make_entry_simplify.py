@@ -372,3 +372,35 @@ def test_extra_kosher_retry_after_owner_approval_returns_the_receipt(client, db_
     assert db_cursor.fetchone()['n'] == output_lots, 'no second finished lot'
     assert float(main.lot_on_hand(db_cursor, items['ingredient']['lot_id'])) == ingredient_after
     assert makes_for_attempt(db_cursor, attempt) == 1
+
+
+def test_shortage_warning_on_a_lot_already_below_zero_states_new_shortage_and_balance_after(client, db_cursor, actors, granola, migrated):
+    """Final acceptance: -25 lb before, 25 lb used → 25 lb more short, -50 lb after (EN and ES)."""
+    honey = granola['honey_bag']
+    db_cursor.execute("INSERT INTO transactions(type,notes) VALUES ('adjust','fixture: honey to -25') RETURNING id")
+    db_cursor.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES (%s,%s,%s,-125)',
+                      (db_cursor.fetchone()['id'], granola['honey'], honey['id']))
+    lines = [line(granola['honey'], (honey, 25))]
+    prepared = prepare(client, actors, body(granola, ingredient_lines=lines))
+    [warning] = [w for w in prepared['warnings'] if w['code'] == 'WILL_CREATE_SHORTAGE' and w['refs']['lot_id'] == honey['id']]
+    assert warning['requires_ack'] is False
+    name = card(prepared, granola['honey'])['product_name']
+    assert warning['message'].startswith(
+        f"{name} lot {honey['code']} is already at -25 lb on the books (none available); this entry uses 25 lb, "
+        "adding 25 lb of shortage. Book balance after: -50 lb.")
+    assert warning['message_es'].startswith(
+        f"{name} lote {honey['code']} ya está en -25 lb en el sistema (nada disponible); esta entrada usa 25 lb "
+        "y agrega 25 lb de faltante. Saldo en el sistema después: -50 lb.")
+    assert warning['refs'] == {'lot_id': honey['id'], 'short_lb': 25.0, 'on_hand_lb': -25.0}   # refs unchanged
+    response = record(client, actors, prepared, lot_confirmations=selections(prepared))
+    assert response.status_code == 200, response.text
+    [flag] = [s for s in response.json()['shortages'] if s['lot_id'] == honey['id']]
+    assert flag['short_lb'] == 25.0   # posting rule unchanged: the new shortage only
+    assert float(main.lot_on_hand(db_cursor, honey['id'])) == -50.0
+
+
+def test_shortage_warning_on_a_lot_with_some_stock(client, db_cursor, actors, granola, migrated):
+    prepared = prepare(client, actors, body(granola, pans=2))
+    [warning] = [w for w in prepared['warnings'] if w['code'] == 'WILL_CREATE_SHORTAGE']
+    assert ' has 50 lb on the books; this entry uses 160 lb, 110 lb more than the lot has. Book balance after: -110 lb.' in warning['message']
+    assert ' tiene 50 lb en el sistema; esta entrada usa 160 lb, 110 lb más de lo que tiene el lote. Saldo en el sistema después: -110 lb.' in warning['message_es']

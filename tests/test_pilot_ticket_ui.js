@@ -155,7 +155,7 @@ test('Make warnings that need no tick are notes; ticked warnings and FL shortage
 test('a lot with fewer book pounds says how to add a second lot or record a shortage',async()=>{
   const draft=formulaDraft(true);draft.formula_entry.ingredients[0].bags[0].lot_id=12;draft.formula_entry.ingredients[0].bags[0].lot_code='OATS-B-001';
   const h=await harness({formula:true,draft,payload:{formula_entry:true}});
-  const short=h.find(node=>node.dataset.bagShort!==undefined);assert.equal(short.hidden,false);assert.match(String(short.textContent),/only 90 lb.*add it with its pounds.*shortage/);
+  const short=h.find(node=>node.dataset.bagShort!==undefined);assert.equal(short.hidden,false);assert.match(String(short.textContent),/^This lot shows only 90 lb on the books\. Using 160 lb is 70 lb more than it has \(recorded as a shortage on this lot\); book balance after: -70 lb\./);
 });
 test('the re-check button sits in the record bar and appears only after an edit',async()=>{
   const h=await harness({formula:true,draft:formulaDraft(true),payload:{formula_entry:true}});
@@ -227,7 +227,12 @@ test('Record stays off while an amount is negative, with the reason next to it',
   assert.equal(h.button('Record').disabled,true);
   assert.match(String(h.find(node=>node.dataset.pendingLots!==undefined).textContent),/^Record is off: 1 amount is negative/);
   await h.button('Record').onclick();assert.equal(h.requests.filter(r=>r.url.includes('/commit')).length,0);
-  await h.button('Check lots and pounds → new draft').onclick();assert.equal(h.requests.length,1,'no re-check is sent either');
+  const check=h.button('Check lots and pounds → new draft');
+  assert.equal(check.disabled,true,'Check is disabled too');assert.equal(check.hidden,false,'and visible, so the reason is clear');
+  await check.onclick();assert.equal(h.requests.length,1,'no re-check is sent either');
+  lb.value='450';lb.oninput();assert.equal(check.disabled,false,'fixing the amount re-enables Check');assert.equal(h.button('Record').disabled,true,'Record waits for the re-check');
+  await check.onclick();await flush();assert.equal(h.requests.at(-1).url,'/make/prepare');
+  assert.deepEqual(h.requests.at(-1).body.ingredient_lines[0].bags,[{lot_id:11,quantity_lb:450}]);
 });
 test('a Make held for the owner keeps Record off but Edit entry still works',async()=>{
   const h=await harness({formula:true,draft:formulaDraft(true),payload:{formula_entry:true},result:{receipt_number:'MK-261102-009',posted:false,held:true,status:'awaiting_approval'}});
