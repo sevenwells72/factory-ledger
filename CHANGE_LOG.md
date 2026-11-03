@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-02 19:56 — Staging only: PR #176 final candidate (5688bef) + test sign-in deployed to FastAPI-staging
+- **File(s) changed:** none in the PR (this log entry only). Deployed local staging branch `staging/make-simplify-signin` `40ac570` (`~/dev/factory-ledger-office`, worktree `~/dev/fl-staging-combo3-wt`) = PR #176 `5688bef` + local test sign-in commits; differs from the PR only by `staging_test_signin.py`, its hooks in `main.py`/`key_sessions.py`, `dashboard/key-session.js` (+ `?v=7` tags) and their tests/docs.
+- **What changed:** Michael approved ("Yes"). `railway up` to FastAPI-staging (service `0d957be1`): deployment `4ac5dfd2` SUCCESS on the first attempt; previous `386c9693` is the rollback point. No migration (090 marker present on staging). Read-only checks: staging /health healthy; entry.html serves make-formula.js v7, ledger-ticket.js v16, entry.js v14, ledger-forms.css v16, key-session.js v7, all hash-identical to the branch; `/auth/test-sign-in/users` 200 (TEST MODE kept); OpenAPI has `entry_attempt_id`; no startup errors. Production untouched: /health healthy, deployment still `111a6498`, serves make-formula.js v4, test sign-in route 404. No data written; nothing merged.
+- **Why:** Final staging acceptance of PR #176 after the ChatGPT Work final-test fixes.
+
+---
+
 ## 2026-11-02 19:41 — PR #176 final acceptance fixes: Check disabled on negative pounds, clear shortage wording
 - **File(s) changed:** `dashboard/make-formula.js` (v7), `dashboard/ledger-ticket.js` (v16), `dashboard/*.html` (cache-bust), `exceptions_enforcement.py`, `tests/test_final_exception_queue.py`, `docs/production/formula-driven-entry.md`, `FACTORY_LEDGER_CHANGELOG.md`, `tests/test_make_entry_simplify.py`, `tests/test_formula_entry_ui.js`, `tests/test_pilot_ticket_ui.js`, `tests/visual/run-make-simplify.mjs`
 - **What changed:** While any lot amount is negative/unreadable, Check lots and pounds is disabled as well as Record; the row says "Lot confirmed — pounds "-25" must be fixed" (never "Confirmed — 0 lb"); value, lot and taps kept; fixing re-enables Check. WILL_CREATE_SHORTAGE warning (shared by Make and Pack) and the Make card hint now state book balance before, pounds used, the new shortage and book balance after, in EN and ES (e.g. -25 before, 25 used → 25 lb more short, -50 after); posting rules unchanged. Verified a787587→08e5bd2 is CHANGE_LOG only and the staging build differs from the PR only by the staging test sign-in. Not deployed.
