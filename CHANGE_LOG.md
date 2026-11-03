@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-02 20:33 — PR #176 + migration 090 deployed to production
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (row 251), `CHANGE_LOG.md` (this record only). Production changes: migration 090 on the production database; main `2030d06` (squash of #176).
+- **What changed:** Michael authorized the controlled release. Pre-checks: production Railway `111a6498` = main `5ff74f0`; main unchanged since PR base; PR head `fea6b3a` differs from staging-tested `5688bef` only in CHANGE_LOG.md; 090 absent. `fl-backup-and-verify.sh` → BACKUP OK. Applied 090 (one transaction); verified marker, CHECK and index; counts and posted-inventory hash unchanged. Squash-merged #176 → `2030d06` (tree identical to PR head). Railway FastAPI `a83274aa` SUCCESS; Netlify deploy `6ae938f1b6de5de3e034ba8f`. Read-only smoke checks: health, clean startup logs, served Make assets hash-identical to main on Railway and Netlify, OpenAPI shows attempt id / 'selected' / pounds > 0, test sign-in absent (404), no data change. No test Makes created. LEGACY_MAKE_COMMIT left unset (allow + log + unverified marker).
+- **Why:** Staging acceptance of PR #176 completed; production release authorized by Michael.
+
+---
+
 ## 2026-11-02 19:56 — Staging only: PR #176 final candidate (5688bef) + test sign-in deployed to FastAPI-staging
 - **File(s) changed:** none in the PR (this log entry only). Deployed local staging branch `staging/make-simplify-signin` `40ac570` (`~/dev/factory-ledger-office`, worktree `~/dev/fl-staging-combo3-wt`) = PR #176 `5688bef` + local test sign-in commits; differs from the PR only by `staging_test_signin.py`, its hooks in `main.py`/`key_sessions.py`, `dashboard/key-session.js` (+ `?v=7` tags) and their tests/docs.
 - **What changed:** Michael approved ("Yes"). `railway up` to FastAPI-staging (service `0d957be1`): deployment `4ac5dfd2` SUCCESS on the first attempt; previous `386c9693` is the rollback point. No migration (090 marker present on staging). Read-only checks: staging /health healthy; entry.html serves make-formula.js v7, ledger-ticket.js v16, entry.js v14, ledger-forms.css v16, key-session.js v7, all hash-identical to the branch; `/auth/test-sign-in/users` 200 (TEST MODE kept); OpenAPI has `entry_attempt_id`; no startup errors. Production untouched: /health healthy, deployment still `111a6498`, serves make-formula.js v4, test sign-in route 404. No data written; nothing merged.
