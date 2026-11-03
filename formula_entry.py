@@ -250,21 +250,28 @@ def draft_block(api, cur, product, batches, entry, requirements, input_plan, sub
     if pids:
         cur.execute('SELECT id,name FROM products WHERE id=ANY(%s)', (pids,))
         names = {r['id']: r['name'] for r in cur.fetchall()}
-    candidates = {}
+    # Lots to choose from: book stock > 0. A lot already in this draft keeps its full
+    # identity even at zero or negative book stock (shortage policy), never "available".
+    candidates, planned_lots = {}, {}
+    planned = sorted({item['lot_id'] for item in input_plan})
     if pids:
         cur.execute(f'''SELECT l.product_id,l.id AS lot_id,l.lot_code,l.supplier_lot_code,l.lot_type,
                 (COALESCE(l.received_at,l.created_at) AT TIME ZONE 'America/New_York')::date AS received_on,
-                COALESCE(sum(tl.quantity_lb),0) AS available_lb
+                COALESCE(sum(tl.quantity_lb),0) AS book_lb
             FROM lots l LEFT JOIN {api.POSTED_LINES} tl ON tl.lot_id=l.id
             WHERE l.product_id=ANY(%s) AND l.status IS DISTINCT FROM 'merged'
-            GROUP BY l.id HAVING COALESCE(sum(tl.quantity_lb),0)>0
-            ORDER BY l.product_id,COALESCE(l.received_at,l.created_at),l.id''', (pids,))
+            GROUP BY l.id HAVING COALESCE(sum(tl.quantity_lb),0)>0 OR l.id=ANY(%s)
+            ORDER BY l.product_id,COALESCE(l.received_at,l.created_at),l.id''', (pids, planned))
         for row in cur.fetchall():
-            candidates.setdefault(row['product_id'], []).append(
-                {'lot_id': row['lot_id'], 'lot_code': row['lot_code'],
-                 'supplier_lot': supplier_lot(row),
-                 'received_on': row['received_on'].isoformat() if row['received_on'] else None,
-                 'available_lb': float(row['available_lb'])})
+            book = float(row['book_lb'])
+            detail = {'lot_id': row['lot_id'], 'lot_code': row['lot_code'],
+                      'supplier_lot': supplier_lot(row),
+                      'received_on': row['received_on'].isoformat() if row['received_on'] else None,
+                      'book_lb': round(book, 2), 'available_lb': round(max(book, 0.0), 2)}
+            if book > 0:
+                candidates.setdefault(row['product_id'], []).append(detail)
+            else:
+                planned_lots.setdefault(row['product_id'], []).append(detail)
     substituted = {s['substitute_product_id']: s for s in substitutions}
     rows = review(standard, requirements, substitutions, entry['reasons'], names, swap)
     flagged = {r['product_id']: r for r in rows}
@@ -289,7 +296,9 @@ def draft_block(api, cur, product, batches, entry, requirements, input_plan, sub
             'reason_code': reason.get('reason_code'), 'note': reason.get('note'),
             'substituted_for': substituted[pid]['ingredient_product_id'] if pid in substituted else None,
             'auto_substitute': role == 'to', 'swap_role': role, 'swap_lb': round(swap_lb, 2) if role else None,
-            'bags': bags, 'candidates': candidates.get(pid, [])})
+            'bags': bags, 'candidates': candidates.get(pid, []),
+            # Draft lots with no book stock: shown with their identity, not offered as stock.
+            'unstocked_lots': planned_lots.get(pid, [])})
     pan_lb = float(product.get('default_batch_lb') or 0)
     block_swap = None
     if swap:

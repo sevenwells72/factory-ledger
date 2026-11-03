@@ -220,3 +220,25 @@ test('the entries on the draft can be carried back to the form',async()=>{
   assert.deepEqual(kept.lines,[{ingredient_product_id:1,bags:[{lot_id:11,quantity_lb:160}],reason_code:null,note:null}]);
   assert.deepEqual(kept.confirmations,[{lot_id:11,method:'selected',value:'OATS-A-001'}]);
 });
+test('Record stays off while an amount is negative, with the reason next to it',async()=>{
+  const h=await harness({formula:true,draft:formulaDraft(true),payload:{formula_entry:true}});
+  assert.equal(h.button('Record').disabled,false);
+  const lb=h.find(node=>node.name==='bag_lb');lb.value='-5';lb.oninput();
+  assert.equal(h.button('Record').disabled,true);
+  assert.match(String(h.find(node=>node.dataset.pendingLots!==undefined).textContent),/^Record is off: 1 amount is negative/);
+  await h.button('Record').onclick();assert.equal(h.requests.filter(r=>r.url.includes('/commit')).length,0);
+  await h.button('Check lots and pounds → new draft').onclick();assert.equal(h.requests.length,1,'no re-check is sent either');
+});
+test('a Make held for the owner keeps Record off but Edit entry still works',async()=>{
+  const h=await harness({formula:true,draft:formulaDraft(true),payload:{formula_entry:true},result:{receipt_number:'MK-261102-009',posted:false,held:true,status:'awaiting_approval'}});
+  await h.button('Record').onclick();
+  assert.match(allText(h.find(node=>node.dataset.entryStatus==='held')),/^NOT RECORDED YET — waiting for owner approval/);
+  assert.equal(h.button('Record').disabled,true);await h.button('Record').onclick();
+  assert.equal(h.requests.filter(r=>r.url.includes('/commit')).length,1,'no second commit');
+  h.button('Edit entry').onclick();assert.equal(h.edited,1);
+});
+test('a draft of a Make already waiting for the owner says so',async()=>{
+  const h=await harness({formula:true,draft:{...formulaDraft(true),already_recorded:{receipt_number:'MK-261102-009',status:'awaiting_approval'}},canCommit:false,payload:{formula_entry:true},onPrepare:()=>({blockers:[{code:'MAKE_ALREADY_RECORDED',message:'already waiting'}]})});
+  assert.match(allText(h.find(node=>node.dataset.entryStatus==='held')),/already waiting for owner approval/);
+  assert.equal(h.button('Record').disabled,true);
+});

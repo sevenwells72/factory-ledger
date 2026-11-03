@@ -138,3 +138,58 @@ test('re-review N1: a 0 lb card the recipe does not use (rolled oats for the swa
   assert.equal(inBox(n=>n.dataset.total==='')[0].textContent,'Using 0 lb');
   assert.deepEqual(plain(api.read().lines[1]),{ingredient_product_id:32,bags:[],reason_code:null,note:null});
 });
+
+// PR #176 staging fixes (ChatGPT Work acceptance, 2026-11-02).
+test('a negative amount is kept as typed, shown as an error, and never becomes Not used',()=>{
+  const h=harness();h.tap(10).onclick();const [lb]=h.lb(10);lb.value='-25';lb.oninput();
+  const total=h.box(10).children.find(n=>n.dataset.total==='');
+  assert.equal(lb.value,'-25','the typed value stays for Arturo to fix');
+  assert.equal(total.dataset.invalid,'true');assert.match(total.textContent,/^Pounds cannot be negative/);
+  assert.notEqual(total.textContent,'Not used — 0 lb. Choose a reason.');
+  assert.equal(h.box(10).children.find(n=>n.className==='formula-reason').hidden,true,'no reason list: it was not marked Not used');
+  assert.equal(h.inBox(10,n=>n.className==='formula-bag').length,1,'the lot row stays');
+  assert.match(h.tap(10).textContent,/^✓ OATS-OLD-0001 · supplier lot SUP-77/,'the chosen lot and its supplier lot stay');
+  const error=h.inBox(10,n=>n.dataset.bagError==='')[0];assert.equal(error.hidden,false);assert.match(error.textContent,/"-25" lb is not allowed/);
+  assert.equal(lb['aria-invalid'],'true');assert.equal(h.api.invalid(),1);
+  h.check();assert.equal(h.calls.length,0,'nothing is sent to FL');assert.ok(h.find(n=>n.className==='bad'&&!n.hidden&&/Pounds cannot be negative \(Plain Oats\)/.test(n.textContent)));
+  lb.value='150';lb.oninput();assert.equal(h.api.invalid(),0);assert.equal(error.hidden,true);
+  h.check();assert.deepEqual(plain(h.calls[0].lines[0].bags),[{lot_id:1,quantity_lb:150}]);
+});
+test('a pasted negative amount (change event) on a second lot is refused the same way',()=>{
+  const h=harness();h.button(10,'Add another lot').onclick();const [,second]=h.lb(10);
+  second.value='-0.5';second.onchange();assert.equal(h.api.invalid(),1);assert.equal(second.value,'-0.5');
+  assert.equal(h.inBox(10,n=>n.className==='formula-bag').length,2);
+});
+test('removing another lot never pours pounds into an invalid amount',()=>{
+  const h=harness();const [first]=h.lb(10);first.value='-3';first.oninput();
+  h.button(10,'Add another lot').onclick();const [,second]=h.lb(10);second.value='20';second.oninput();
+  const rows=h.inBox(10,n=>n.className==='formula-bag');descendants(rows[1]).find(n=>n.tag==='button'&&n.textContent==='Remove this lot').onclick();
+  assert.equal(h.lb(10)[0].value,'-3');
+});
+test('0 lb typed is not Not used: FL asks for the pounds or the explicit Not used button',()=>{
+  const h=harness();const [lb]=h.lb(10);lb.value='0';lb.oninput();
+  const total=h.box(10).children.find(n=>n.dataset.total==='');
+  assert.match(total.textContent,/^0 lb entered\. Enter the pounds you used, or tap "Not used \(0 lb\)"/);
+  assert.equal(h.box(10).children.find(n=>n.className==='formula-reason').hidden,true);
+  h.check();assert.equal(h.calls.length,0);
+  h.button(10,'Not used (0 lb)').onclick();assert.equal(total.textContent,'Not used — 0 lb. Choose a reason.');
+  h.inBox(10,n=>n.name==='ingredient_reason')[0].value='out_of_stock';h.check();
+  assert.deepEqual(plain(h.calls[0].lines[0]),{ingredient_product_id:10,bags:[],reason_code:'out_of_stock',note:null});
+});
+test('a chosen lot with zero or negative book stock keeps its full identity and is never "available"',()=>{
+  const data=one();data.ingredients[1].bags[0]={lot_id:8,lot_code:'HONEY-0008',quantity_lb:40,confirmed:false};
+  data.ingredients[1].unstocked_lots=[{lot_id:8,lot_code:'HONEY-0008',supplier_lot:{kind:'supplier',code:'HSUP-1'},received_on:'2026-09-01',book_lb:-10,available_lb:0}];
+  const h=harness(data);
+  assert.equal(h.tap(20).textContent,'Tap to confirm: HONEY-0008 · supplier lot HSUP-1 · received 2026-09-01 · on books -10 lb (none available)');
+  assert.ok(!/available_lb|\b-10 lb available/.test(h.tap(20).textContent));
+  const short=h.inBox(20,n=>n.dataset.bagShort==='')[0];assert.equal(short.hidden,false);
+  assert.match(short.textContent,/^This lot shows -10 lb on the books — none available\..*recorded as a shortage on this lot/);
+  assert.equal(h.choice(20,8)['aria-checked'],'true','FL does not switch to the lot with stock');
+  h.tap(20).onclick();assert.deepEqual(plain(h.api.selections()).find(c=>c.lot_id===8),{lot_id:8,method:'selected',value:'HONEY-0008'});
+});
+test('one pan reads "1 pan" / "1 bandeja"',()=>{
+  const data={...one(),pans:1,output_lb:100};
+  assert.match(harness(data).find(n=>n.dataset.formulaSummary==='').textContent,/^1 pan × 100 lb = 100 lb\./);
+  const ui=load();ui.lang='es';const card=new Element('section');ui.formulaEntry(card,data);
+  assert.match(descendants(card).find(n=>n.dataset.formulaSummary==='').textContent,/^1 bandeja × 100 lb/);
+});

@@ -300,3 +300,12 @@ append-only evidence. No mixed-bin / unresolved-consumption model.
 
 **Deploy order (needs Michael's approval per step):** backup → apply 090 on production →
 deploy code → verify `/health`, entry.html serves `make-formula.js?v=5`, one staging Make.
+
+### 7.1 Staging acceptance fixes (ChatGPT Work report, 2026-11-02; Makes MK-261102-003…006, XR-261102-001)
+
+- **Negative pounds:** a negative or unreadable amount is kept exactly as typed or pasted, shown in red next to the lot ("…lb is not allowed: pounds cannot be negative"), and the lot row, the chosen lot and its supplier lot stay. It is never turned into 0 or "Not used". Check and Record stay off until it is fixed ("Record is off: 1 amount is negative"). The server already refuses any lot amount ≤ 0 (`quantity_lb > 0`, 422, no ticket, no ledger line); now covered by tests.
+- **0 lb vs Not used:** typing 0 on every lot no longer means "Not used". FL asks for the pounds or the explicit **Not used (0 lb)** button; only that button (or a draft FL already marked not used) shows the reason list.
+- **Lots at zero or negative book stock:** a lot already in the draft keeps FL lot, supplier lot, received date and its **signed book balance** ("on books -10 lb (none available)"); the draft sends it as `unstocked_lots`. The pick list shows "on books N lb" instead of a bare number. No lot is offered or switched to automatically; shortage posting unchanged.
+- **Wording:** "1 pan" / "1 bandeja"; "Falta tocar 1 lote".
+- **Owner hold:** after "waiting for owner approval", Record stays off but **Edit entry** still works; re-preparing the same entry says it is already waiting / already RECORDED with the receipt.
+- **Retry scenarios now tested** (pytest + Playwright with DB counts): (A) lost answer after a successful commit → NOT CONFIRMED → retry returns the same receipt; a new draft of the same entry is refused with that receipt; exactly one Make, one deduction. (B) extra-kosher held → Michael approves → retrying the original ticket replays the receipt; re-preparing the entry and a second draft opened before approval are both refused with the receipt; no new transaction, line, finished lot or ingredient deduction.

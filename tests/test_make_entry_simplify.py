@@ -10,7 +10,7 @@ import pytest
 
 import main
 from tests.test_actor_attribution import actors, client  # noqa: F401
-from tests.test_formula_entry import body, card, consumed, granola, line, prepare  # noqa: F401
+from tests.test_formula_entry import bag, body, card, consumed, granola, line, output, prepare  # noqa: F401
 from tests.test_kosher_tiers import approve, items  # noqa: F401
 from tests.test_write_tickets import commit, headers, posted_count, ticket_row
 from tests.test_write_tickets_part2 import body as ticket_body
@@ -257,3 +257,118 @@ def test_legacy_make_commit_can_be_blocked(client, db_cursor, granola, monkeypat
 def test_lot_list_supplier_lot_is_never_guessed(row, kind, code):
     import formula_entry
     assert formula_entry.supplier_lot(row) == {'kind': kind, 'code': code}
+
+
+# ── PR #176 staging fixes (ChatGPT Work acceptance, 2026-11-02) ─────────────
+
+def _ledger(cur):
+    cur.execute("SELECT count(*) AS n FROM transactions")
+    tx = cur.fetchone()['n']
+    cur.execute("SELECT count(*) AS n FROM transaction_lines")
+    return tx, cur.fetchone()['n']
+
+
+@pytest.mark.parametrize('pounds', [-25, -0.5, 0])
+def test_negative_or_zero_lot_pounds_are_refused_by_the_server(client, db_cursor, actors, granola, migrated, pounds):
+    before = _ledger(db_cursor)
+    data = body(granola, entry_attempt_id=uuid4().hex,
+                ingredient_lines=[line(granola['oats'], (granola['oats_old'], pounds))])
+    response = client.post('/make/prepare', json=data, headers=headers(actors['floor']['key']))
+    assert response.status_code == 422, response.text
+    db_cursor.execute("SELECT count(*) AS n FROM write_tickets WHERE payload->>'entry_attempt_id'=%s",
+                      (data['entry_attempt_id'],))
+    assert db_cursor.fetchone()['n'] == 0, 'no draft ticket for a refused amount'
+    assert _ledger(db_cursor) == before
+
+
+def test_explicit_not_used_still_records_with_a_reason(client, db_cursor, actors, granola, migrated):
+    lines = [line(granola['honey'], reason_code='out_of_stock')]
+    prepared = prepare(client, actors, body(granola, ingredient_lines=lines))
+    response = record(client, actors, prepared, lot_confirmations=selections(prepared))
+    assert response.status_code == 200, response.text
+    assert granola['honey_bag']['id'] not in consumed(db_cursor, response.json()['transaction_id'])
+
+
+def test_chosen_lot_with_negative_book_stock_keeps_identity_and_posts_a_shortage(client, db_cursor, actors, granola, migrated):
+    honey = granola['honey_bag']
+    db_cursor.execute("UPDATE lots SET supplier_lot_code='HSUP-1' WHERE id=%s", (honey['id'],))
+    db_cursor.execute("INSERT INTO transactions(type,notes) VALUES ('adjust','fixture: honey below zero') RETURNING id")
+    db_cursor.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES (%s,%s,%s,-110)',
+                      (db_cursor.fetchone()['id'], granola['honey'], honey['id']))
+    fresh = bag(db_cursor, granola['honey'], 500, 1)   # another honey lot WITH stock
+    lines = [line(granola['honey'], (honey, 40))]
+    prepared = prepare(client, actors, body(granola, ingredient_lines=lines))
+    honey_card = card(prepared, granola['honey'])
+    assert [b['lot_id'] for b in honey_card['bags']] == [honey['id']], 'FL never switches to the stocked lot'
+    [shown] = honey_card['unstocked_lots']
+    assert shown['lot_code'] == honey['code'] and shown['supplier_lot'] == {'kind': 'supplier', 'code': 'HSUP-1'}
+    assert shown['received_on'] and shown['book_lb'] == -10.0 and shown['available_lb'] == 0.0
+    assert honey['id'] not in [c['lot_id'] for c in honey_card['candidates']]
+    assert fresh['id'] in [c['lot_id'] for c in honey_card['candidates']]
+    response = record(client, actors, prepared, lot_confirmations=selections(prepared))
+    assert response.status_code == 200, response.text
+    result = response.json()
+    assert consumed(db_cursor, result['transaction_id'])[honey['id']] == 40.0
+    assert fresh['id'] not in consumed(db_cursor, result['transaction_id'])
+    assert [s['lot_id'] for s in result['shortages'] if s['product_id'] == granola['honey']] == [honey['id']]
+
+
+def test_lost_response_retries_never_double_post(client, db_cursor, actors, granola, migrated):
+    """Scenario A: FL commits, the phone never hears back. Retrying the same ticket and
+    re-preparing the same entry both lead to the one existing receipt."""
+    attempt = uuid4().hex
+    balances = lambda: {k: float(main.lot_on_hand(db_cursor, granola[k]['id'])) for k in ('oats_old', 'honey_bag')}
+    before, ledger_before = balances(), _ledger(db_cursor)
+    prepared = prepare(client, actors, body(granola, entry_attempt_id=attempt))
+    first = record(client, actors, prepared, lot_confirmations=selections(prepared))   # answer "lost"
+    assert first.status_code == 200
+    receipt, txn = first.json()['receipt_number'], first.json()['transaction_id']
+    after_one = balances()
+    ledger_after_one = _ledger(db_cursor)
+    retry = record(client, actors, prepared, lot_confirmations=selections(prepared))
+    assert retry.status_code == 200 and retry.json()['replayed'] is True
+    assert (retry.json()['receipt_number'], retry.json()['transaction_id']) == (receipt, txn)
+    again = prepare(client, actors, body(granola, entry_attempt_id=attempt))
+    assert again['blockers'][0]['code'] == 'MAKE_ALREADY_RECORDED' and again['blockers'][0]['receipt_number'] == receipt
+    refused = record(client, actors, again, lot_confirmations=selections(again))
+    assert refused.status_code == 409 and refused.json()['detail']['receipt_number'] == receipt
+    assert balances() == after_one and after_one != before, 'ingredients deducted exactly once'
+    assert _ledger(db_cursor) == ledger_after_one and ledger_after_one != ledger_before
+    assert makes_for_attempt(db_cursor, attempt) == 1
+
+
+def test_extra_kosher_retry_after_owner_approval_returns_the_receipt(client, db_cursor, items, actors, migrated):
+    """Scenario B: held for Michael, approved and posted; retrying the original entry
+    (same ticket, or a new draft of the same entry) never posts again."""
+    key, attempt = actors['floor']['key'], uuid4().hex
+    data = ticket_body('make', items) | {'confirmed_sku': True, 'formula_entry': True, 'entry_attempt_id': attempt}
+    prepared = client.post('/make/prepare', json=data, headers=headers(key)).json()
+    second_draft = client.post('/make/prepare', json=data | {'note': 'second tab'}, headers=headers(key)).json()
+    held = commit(client, prepared, key, lot_confirmations=selections(prepared))
+    assert held.status_code == 202, held.text
+    ingredient_before = float(main.lot_on_hand(db_cursor, items['ingredient']['lot_id']))
+    approved = approve(client, held.json(), actors)
+    assert approved.status_code == 200, approved.text
+    receipt, txn = approved.json()['receipt_number'], approved.json()['transaction_id']
+    ingredient_after = float(main.lot_on_hand(db_cursor, items['ingredient']['lot_id']))
+    assert ingredient_after < ingredient_before
+    ledger = _ledger(db_cursor)
+    db_cursor.execute("SELECT count(*) AS n FROM lots WHERE product_id=%s", (items['batch']['id'],))
+    output_lots = db_cursor.fetchone()['n']
+    # Same ticket again: the saved receipt, marked as a replay.
+    replay = commit(client, prepared, key, lot_confirmations=selections(prepared))
+    assert replay.status_code == 200, replay.text
+    assert (replay.json()['receipt_number'], replay.json()['transaction_id'], replay.json()['replayed']) == (receipt, txn, True)
+    # A new draft of the same entry: already recorded, with the receipt.
+    again = client.post('/make/prepare', json=data, headers=headers(key)).json()
+    assert again['can_commit'] is False and again['blockers'][0]['code'] == 'MAKE_ALREADY_RECORDED'
+    assert again['blockers'][0]['receipt_number'] == receipt
+    # A second draft opened before approval cannot post either.
+    late = commit(client, second_draft, key, lot_confirmations=selections(second_draft))
+    assert late.status_code == 409 and late.json()['detail']['error_code'] == 'MAKE_ALREADY_RECORDED'
+    assert late.json()['detail']['receipt_number'] == receipt
+    assert _ledger(db_cursor) == ledger
+    db_cursor.execute("SELECT count(*) AS n FROM lots WHERE product_id=%s", (items['batch']['id'],))
+    assert db_cursor.fetchone()['n'] == output_lots, 'no second finished lot'
+    assert float(main.lot_on_hand(db_cursor, items['ingredient']['lot_id'])) == ingredient_after
+    assert makes_for_attempt(db_cursor, attempt) == 1
