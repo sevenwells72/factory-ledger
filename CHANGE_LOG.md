@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-02 19:24 — Staging only: PR #176 fixes (a787587) + test sign-in redeployed to FastAPI-staging
+- **File(s) changed:** none in the PR (this log entry only). Deployed local staging branch `staging/make-simplify-signin` `037cdad` (`~/dev/factory-ledger-office`, worktree `~/dev/fl-staging-combo3-wt`) = PR #176 `a787587` + local test sign-in commits.
+- **What changed:** Michael approved "Yes, deploy staging". `railway up` to FastAPI-staging (service `0d957be1`): deployment `386c9693` SUCCESS on the first attempt; previous `ed976bfb` is the rollback point. No migration (090 already on staging). Read-only checks: staging /health healthy; entry.html serves make-formula.js v6, ledger-ticket.js v15, entry.js v14, ledger-forms.css v16, key-session.js v7, all hash-identical to the branch; `/auth/test-sign-in/users` 200 (TEST MODE kept); OpenAPI has `entry_attempt_id`; no startup errors. Production untouched: /health healthy, deployment still `111a6498`, serves make-formula.js v4, test sign-in route 404. No data written; nothing merged.
+- **Why:** Final acceptance test of the PR #176 staging fixes.
+
+---
+
 ## 2026-11-02 19:17 — PR #176 staging fixes: negative pounds refused in place, unstocked lot identity, 1 pan, retry scenarios tested
 - **File(s) changed:** `dashboard/make-formula.js` (v6), `dashboard/ledger-ticket.js` (v15), `dashboard/ledger-forms.css` (v16), `dashboard/*.html` (cache-bust), `formula_entry.py`, `docs/production/formula-driven-entry.md`, `FACTORY_LEDGER_CHANGELOG.md`, `tests/test_make_entry_simplify.py`, `tests/test_formula_entry_ui.js`, `tests/test_pilot_ticket_ui.js`, `tests/visual/run-make-simplify.mjs`
 - **What changed:** Negative/unreadable lot pounds stay as typed with an inline error; the lot row and chosen lot stay; never converted to 0/Not used; Check and Record off until fixed (server already refuses ≤ 0 with 422 and no ticket; now tested). Typing 0 on every lot asks for pounds or the explicit Not used button. Draft lots at zero/negative book stock keep FL lot, supplier lot, received date and signed book balance ("none available"); list shows "on books N lb". "1 pan"/"1 bandeja". After an owner hold, Edit entry still works and re-prepare shows already waiting/recorded. New tests for lost-answer retry and extra-kosher retry after approval (no duplicate Make, line, lot or deduction). Not deployed.
