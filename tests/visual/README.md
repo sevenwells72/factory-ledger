@@ -4,6 +4,8 @@ Renders every screen in [`docs/design/audit/00-screen-inventory.md`](../../docs/
 in a real browser and runs the clauses of the design standards that a rendered page can settle without
 judgement. It writes the matrix to [`docs/design/audit/06-browser-check.md`](../../docs/design/audit/06-browser-check.md).
 
+Run the setup and audit commands from the repository root of the worktree being reviewed. Install dependencies in that worktree before running the audit.
+
 ```sh
 npm install
 npx playwright install chromium

@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-03 12:10 — Clarify visual audit worktree setup
+- **File(s) changed:** `tests/visual/README.md`
+- **What changed:** Clarified that setup and audit commands run from the reviewed worktree root and dependencies are installed there.
+- **Why:** Prevent setup commands from running against a different checkout during parallel development.
+
+---
+
 ## 2026-11-02 20:33 — PR #176 + migration 090 deployed to production
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (row 251), `CHANGE_LOG.md` (this record only). Production changes: migration 090 on the production database; main `2030d06` (squash of #176).
 - **What changed:** Michael authorized the controlled release. Pre-checks: production Railway `111a6498` = main `5ff74f0`; main unchanged since PR base; PR head `fea6b3a` differs from staging-tested `5688bef` only in CHANGE_LOG.md; 090 absent. `fl-backup-and-verify.sh` → BACKUP OK. Applied 090 (one transaction); verified marker, CHECK and index; counts and posted-inventory hash unchanged. Squash-merged #176 → `2030d06` (tree identical to PR head). Railway FastAPI `a83274aa` SUCCESS; Netlify deploy `6ae938f1b6de5de3e034ba8f`. Read-only smoke checks: health, clean startup logs, served Make assets hash-identical to main on Railway and Netlify, OpenAPI shows attempt id / 'selected' / pounds > 0, test sign-in absent (404), no data change. No test Makes created. LEGACY_MAKE_COMMIT left unset (allow + log + unverified marker).
