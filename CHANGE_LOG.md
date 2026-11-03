@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-11-03 18:48 — DCC-001: public dashboard key read-only in both selection modes
+- **File(s) changed:** `main.py`, `tests/test_trusted_browsers.py`, `tests/test_direct_order_close_guard.py`, `tests/test_production_runs.py`, `tests/test_run_types.py`, `tests/test_actor_attribution.py`, `tests/test_a12_review_fixes.py`, `tests/test_roles_a2.py`, `tests/test_released_by_attribution.py`, `tests/test_notes_characterization.py`, `tests/test_sales_order_state_model.py`, `tests/test_write_tickets.py`, `tests/test_supplies.py`, `tests/test_expected_receipts.py`, `tests/test_sales_order_allocations.py`, `tests/test_sales_order_extract.py`, `tests/test_expected_receipt_extract.py`, `tests/test_shift_summary.py`, `tests/test_key_session_rebase.py`, `tests/test_readonly_api_key.py`, `docs/security/simple-user-selection.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** DCC-001 security fix: the public dashboard key is read-only in BOTH PERSON_SELECT_ENABLED modes (only GETs and the SELECT-only POST /resolve); flag-off write refusals return 403 DASHBOARD_KEY_READ_ONLY, flag on keeps PERSON_REQUIRED. Master, personal key, key session and phone-PIN session unchanged. The 253 obsolete public-write test expectations were adapted (public-key cases assert 403 and an unchanged DB; writers that only used the public key now use named actors, not the master key). New regressions: every allowlisted public-key write refused with zero DB writes in both modes, and a real ON->OFF toggle keeps every real credential working and attributed (both fail against the pre-fix code). Doc flag-off/rollback text corrected; regression row 258 added (rows 252-257 untouched). Local focused auth run 3900 passed, exit 0. Assistant files unchanged; the pre-existing Assistant lot-parsing issue is deferred by owner decision (Codex holds deferred-assistant.patch).
+- **Why:** FL-SIMPLE-USER-20261103 / DCC-001: disabling name selection must never reopen anonymous public-key writes (Michael-approved minimal fix).
+
+---
+
+## 2026-11-03 18:14 — DCC-001 checkpoint: defer Assistant experiment and retain only minimal public-key security fix
+- **File(s) changed:** `assistant_receive.py`, `fl_assistant.py`, `tests/test_assistant_receive_lot_round_e.py`, `main.py`
+- **What changed:** At Michael checkpoint, preserve the Assistant candidate as an external patch and reverse only those hunks to902596f. Keep the unconditional public-dashboard-key read-only fix. No test was running; no worker/session restart or production change. Next validation is narrow auth regression coverage; Assistant remains a separate pre-existing risk.
+- **Why:** Owner explicitly prioritized the minimum PR179 security fix and requested separation of the pre-existing parser issue.
+
+---
+
+## 2026-11-03 18:11 — DCC-001 security follow-up in progress: unconditional public read-only and bounded Receive lot custody
+- **File(s) changed:** `main.py`, `assistant_receive.py`, `fl_assistant.py`, `tests/test_assistant_receive_lot_round_e.py`
+- **What changed:** Remove selector-OFF public-write grant; preserve credentialed branches. Preserve opaque LOT-token identifiers; ask on unclear qualifiers/empty explicit labels, bind Receive drafts to current lot facts, reject stale/unverified pending drafts and preserve committed replay. Existing Assistant regression set passes after retaining quantity/commingled correction behavior; auth and new regression tests are still underway. No deployment or production changes.
+- **Why:** Michael authorized the minimal PR179 security blocker fix and smallest safe Assistant containment; maintain both change logs during the edit phase.
+
+---
+
 ## 2026-11-03 15:15 — Pending-config and foreign-origin safeguards (R13-R14); regression row 254
 - **File(s) changed:** `dashboard/shift-summary.js`, `dashboard/shift-summary.html`, `dashboard/fl-assistant.js`, `dashboard/ledger-ui.js`, `tests/visual/lib/stub.mjs`, `tests/visual/run-person-select.mjs`, `docs/security/simple-user-selection.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Codex R13: Shift Summary starts with its credential panel hidden and neutral 'Checking settings…' copy until the page's one config answers; the legacy panel shows only for known selector-off; sign-in or read-only submitted while settings are pending is dropped, not queued (Shift Summary, FL Assistant, ledger-ui); known-off behaviour is unchanged (JS 676/676). R14: Shift Summary sends a selected credential only to the issuing FLDashboard.base origin; a ?api= override to another origin is refused before any request, without redirect. Visual-audit harness: explicit known selector-OFF /auth/session/config fixture in tests/visual/lib/stub.mjs. Browser checks gain R13 delayed-config cases on 3 pages in both modes and the R14 foreign-origin case (39/39). Living doc updated (R13/R14, final counts, classic audit result, staging/production held on Michael's no-deploy instruction); regression row 254 added.

@@ -157,7 +157,10 @@ def test_prepare_enforces_the_matrix_per_key(client, db_cursor, items, actors, a
     db_cursor.execute('SELECT count(*) AS n FROM write_tickets')
     before = db_cursor.fetchone()['n']
     response = client.post(path, json=payload, headers=headers(key_for(which, actors)))
-    if which in EXPECTED[action].split():
+    if which == 'legacy_dashboard' and action == 'receive':
+        # DCC-001: the public dashboard key is read-only in both selection modes.
+        error(response, 403, 'DASHBOARD_KEY_READ_ONLY')
+    elif which in EXPECTED[action].split():
         assert response.status_code == 200, response.text
         # A5: make/pack prepares never pre-confirm lots; the matrix answered
         # 200, so re-prepare with matching evidence to reach can_commit.
@@ -215,6 +218,15 @@ def test_commit_checks_the_stored_action_not_the_route(client, db_cursor, items,
 
 # ── 4. Back-dating: 48 h / 14 d boundaries, prepare and commit ────────────
 
+def _assert_dashboard_key_prepares_nothing(client, db_cursor, payload):
+    """DCC-001: the public dashboard key's receive prepare is refused; no ticket."""
+    db_cursor.execute('SELECT count(*) AS n FROM write_tickets')
+    before = db_cursor.fetchone()['n']
+    error(client.post('/receive/prepare', json=payload, headers=headers(main.DASHBOARD_API_KEY)), 403, 'DASHBOARD_KEY_READ_ONLY')
+    db_cursor.execute('SELECT count(*) AS n FROM write_tickets')
+    assert db_cursor.fetchone()['n'] == before
+
+
 @pytest.mark.parametrize('hours,status', [(47, 'normal'), (48 - 1/60, 'normal'), (49, 'late'),
                                           (14*24 - 1, 'late'), (14*24 + 1, 'backfill')])
 def test_timing_classification(hours, status):
@@ -235,6 +247,9 @@ def test_timing_future_and_grace():
 def test_47h_is_normal_for_everyone(client, db_cursor, items, actors, which):
     action = 'receive' if which in ('office', 'legacy_dashboard') else 'make'
     payload = (seed_receive(db_cursor) if action == 'receive' else body(action, items)) | {'occurred_at': at(hours=47)}
+    if which == 'legacy_dashboard':
+        _assert_dashboard_key_prepares_nothing(client, db_cursor, payload)
+        return
     prepared = prepare(client, action, payload, key_for(which, actors))
     assert prepared['draft']['entry_timing']['status'] == 'normal'
     assert [w['code'] for w in prepared['warnings']] == []
@@ -250,6 +265,9 @@ def test_47h_is_normal_for_everyone(client, db_cursor, items, actors, which):
 def test_49h_to_14d_posts_and_opens_late_entry_for_non_owners(client, db_cursor, items, actors, which, hours):
     action = 'receive' if which in ('office', 'legacy_dashboard') else 'make'
     payload = (seed_receive(db_cursor) if action == 'receive' else body(action, items)) | {'occurred_at': at(hours=hours)}
+    if which == 'legacy_dashboard':
+        _assert_dashboard_key_prepares_nothing(client, db_cursor, payload)
+        return
     key = key_for(which, actors)
     prepared = prepare(client, action, payload, key)
     assert prepared['can_commit'], prepared
@@ -299,6 +317,12 @@ def test_over_14d_is_owner_only_at_prepare(client, db_cursor, items, actors, whi
     payload |= {'occurred_at': at(hours=14*24 + 1), 'backfill': backfill}
     path = {'receive': '/receive/prepare'}.get(action, f'/{action}/prepare')
     response = client.post(path, json=payload, headers=headers(key_for(which, actors)))
+    if which == 'legacy_dashboard':
+        # DCC-001: refused before any back-dating rule runs; nothing is prepared.
+        error(response, 403, 'DASHBOARD_KEY_READ_ONLY')
+        db_cursor.execute("SELECT count(*) AS n FROM write_tickets WHERE payload->>'occurred_at'=%s", (payload['occurred_at'],))
+        assert db_cursor.fetchone()['n'] == 0
+        return
     error(response, 403, 'BACKFILL_OWNER_ONLY')
     detail = response.json()['detail']
     assert (detail['action'], detail['role'], detail['days_late']) == ('backdate_over_14d', which, 14)
@@ -473,10 +497,12 @@ def test_close_shipped_not_recorded_is_owner_only_on_the_direct_route(client, db
     order = seed_order(db_cursor)
     path = f"/sales/orders/{order['order_id']}/close"
     body_ = {'reason': 'shipped_not_recorded', 'note': 'Historical truck log', 'mode': 'commit'}
-    for key in (actors['office']['key'], main.API_KEY, main.DASHBOARD_API_KEY):
+    for key in (actors['office']['key'], main.API_KEY):
         response = client.post(path, json=body_, headers=headers(key))
         error(response, 403, 'ROLE_NOT_ALLOWED')
         assert response.json()['detail']['action'] == 'close_order_shipped_not_recorded'
+    # DCC-001: the public dashboard key is refused before the owner check is reached.
+    error(client.post(path, json=body_, headers=headers(main.DASHBOARD_API_KEY)), 403, 'DASHBOARD_KEY_READ_ONLY')
     # Office ordinary close reaches shipment validation rather than the owner exception.
     error(client.post(path, json=body_ | {'reason': 'short_closed'},
                       headers=headers(actors['office']['key'])), 409, 'SHIPMENT_REQUIRED')
@@ -502,8 +528,8 @@ def test_shared_keys_keep_their_legacy_reach_on_direct_routes(client, db_cursor,
     assert permissions.require_route(('POST', '/sales/orders/{order_id}/cancel'), {'key_kind': 'legacy_dashboard'}) is None
     response = client.post('/make', json=LEGACY_BODIES['make'](items), headers=headers(main.API_KEY))
     assert response.status_code == 200, response.text
-    # Dashboard key: the route allowlist answers, the matrix never runs.
-    assert client.post('/sales/orders/1/cancel', json={}, headers=headers(main.DASHBOARD_API_KEY)).status_code not in (403,)
+    # DCC-001: the public dashboard key no longer has write reach in either mode.
+    error(client.post('/sales/orders/1/cancel', json={}, headers=headers(main.DASHBOARD_API_KEY)), 403, 'DASHBOARD_KEY_READ_ONLY')
 
 
 def test_every_actor_reachable_write_route_is_gated_or_named_exempt():

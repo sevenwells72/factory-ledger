@@ -8,6 +8,7 @@ import main
 from tests.test_production_runs import (
     schema, client, _seed, _product, _create, _cover, _line, _post_output,
     _production_line, _assign, DASH, PLANNED, ROOT,
+    WRITER, writer,  # DCC-001: writes by a named planner; the public key only reads
 )
 
 pytestmark = pytest.mark.db
@@ -29,14 +30,14 @@ def test_pan_yield_snapshot_and_reconversion(client, schema, kind, weight):
     assert r['uncovered_lb']==r['expected_lb']
     schema.execute('UPDATE products SET default_batch_lb=400 WHERE id=%s',(b['product_id'],))
     url=f"/production/runs/{r['id']}"
-    out=client.patch(url,json={'notes':'keep original yield'},headers=DASH).json()['run']
+    out=client.patch(url,json={'notes':'keep original yield'},headers=WRITER).json()['run']
     assert out['pan_yield_lb_used']==weight
-    out=client.patch(url,json={'planned_qty':13},headers=DASH).json()['run']
+    out=client.patch(url,json={'planned_qty':13},headers=WRITER).json()['run']
     assert out['pan_yield_lb_used']==400 and out['expected_lb']==5200
-    out=client.patch(url,json={'planned_unit':'lb'},headers=DASH).json()['run']
+    out=client.patch(url,json={'planned_unit':'lb'},headers=WRITER).json()['run']
     assert out['pan_yield_lb_used'] is None and out['expected_lb']==13
-    assert client.patch(url,json={'run_type':'pack'},headers=DASH).status_code==422
-    assert client.patch(url,json={'product_id':1},headers=DASH).status_code==422
+    assert client.patch(url,json={'run_type':'pack'},headers=WRITER).status_code==422
+    assert client.patch(url,json={'product_id':1},headers=WRITER).status_code==422
     rows=client.get('/production/runs?run_type='+kind,headers=DASH).json()['runs']
     assert r['id'] in [x['id'] for x in rows] and all(x['run_type']==kind for x in rows)
 
@@ -49,23 +50,23 @@ def test_pan_yield_snapshot_and_reconversion(client, schema, kind, weight):
 def test_native_unit_rules(client,schema,kind,unit,qty,code):
     b=batch(schema) if kind in ('bake','coconut') else _seed(schema)
     payload=dict(run_type=kind,product_id=b['product_id'],planned_qty=qty,planned_unit=unit,planned_date=str(PLANNED))
-    out=client.post('/production/runs',json=payload,headers=DASH)
+    out=client.post('/production/runs',json=payload,headers=WRITER)
     assert out.status_code==422 and out.json()['detail']['error_code']==code
     r=_create(client,b,qty=1,unit='lb',run_type=kind)
-    out=client.patch(f"/production/runs/{r['id']}",json={'planned_qty':qty,'planned_unit':unit},headers=DASH)
+    out=client.patch(f"/production/runs/{r['id']}",json={'planned_qty':qty,'planned_unit':unit},headers=WRITER)
     assert out.status_code==422 and out.json()['detail']['error_code']==code
 
 
 def test_missing_type_and_yield(client,schema):
     b=batch(schema,None)
     payload=dict(product_id=b['product_id'],planned_qty=1,planned_unit='pans',planned_date=str(PLANNED))
-    assert client.post('/production/runs',json=payload,headers=DASH).status_code==422
+    assert client.post('/production/runs',json=payload,headers=WRITER).status_code==422
     payload['run_type']='bake'
-    out=client.post('/production/runs',json=payload,headers=DASH)
+    out=client.post('/production/runs',json=payload,headers=WRITER)
     assert out.status_code==400 and out.json()['detail']['error_code']=='PAN_YIELD_REQUIRED'
     _create(client,b,qty=50,unit='lb',run_type='bake')
     payload['run_type']='typo'
-    assert client.post('/production/runs',json=payload,headers=DASH).status_code==422
+    assert client.post('/production/runs',json=payload,headers=WRITER).status_code==422
     assert client.get('/production/runs?run_type=typo',headers=DASH).status_code==422
 
 
@@ -77,7 +78,7 @@ def test_missing_type_and_yield(client,schema):
 ])
 def test_product_rules(client,schema,kind,ptype,active,service,no_production,ok):
     pid=_product(schema,uuid4().hex[:8],label='typed',ptype=ptype,active=active,is_service=service,no_production=no_production)
-    out=client.post('/production/runs',json=dict(product_id=pid,run_type=kind,planned_qty=1,planned_unit='lb',planned_date=str(PLANNED)),headers=DASH)
+    out=client.post('/production/runs',json=dict(product_id=pid,run_type=kind,planned_qty=1,planned_unit='lb',planned_date=str(PLANNED)),headers=WRITER)
     assert out.status_code==(201 if ok else 400),out.text
     if not ok: assert kind in out.json()['detail']['message']
 
@@ -103,10 +104,10 @@ def test_batch_routes_multiple_skus_and_mixed_coverage(client,schema,route):
     out=_cover(client,pack['id'],[rows[0]])
     assert out.status_code==200 and out.json()['run']['coverage'][0]['mixed_bake_pack'] is True
     # Cross-date warning is derived from all active runs, not the current week.
-    client.patch(f"/production/runs/{pack['id']}",json={'planned_date':'2026-10-01'},headers=DASH)
+    client.patch(f"/production/runs/{pack['id']}",json={'planned_date':'2026-10-01'},headers=WRITER)
     listed=client.get('/production/runs?run_type=bake',headers=DASH).json()['runs']
     assert next(x for x in listed if x['id']==r['id'])['coverage'][0]['mixed_bake_pack'] is True
-    client.post(f"/production/runs/{pack['id']}/cancel",json={},headers=DASH)
+    client.post(f"/production/runs/{pack['id']}/cancel",json={},headers=WRITER)
     listed=client.get('/production/runs?run_type=bake',headers=DASH).json()['runs']
     assert not next(x for x in listed if x['id']==r['id'])['coverage'][0]['mixed_bake_pack']
     # Coverage limits still apply at the batch level.

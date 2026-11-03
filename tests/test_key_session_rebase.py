@@ -112,7 +112,8 @@ def test_shared_summary_read_never_becomes_person_confirmation(client, actors, k
     key = main.API_KEY if kind == 'master' else main.DASHBOARD_API_KEY
     doc = summary(client, key)
     assert doc['actor'] is None and doc['confirmation']['can_confirm'] is False
-    error(confirm(client, key, doc), 403, 'ACTOR_REQUIRED')
+    # DCC-001: the public dashboard key is refused at the key check, before the handler.
+    error(confirm(client, key, doc), 403, 'ACTOR_REQUIRED' if kind == 'master' else 'DASHBOARD_KEY_READ_ONLY')
     response = client.post('/auth/session', json={'actor_key': key})
     error(response, 401, 'ACTOR_KEY_INVALID')
 

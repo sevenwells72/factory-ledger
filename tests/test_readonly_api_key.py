@@ -342,16 +342,16 @@ def test_readonly_key_refused_on_packing_slip_query_param(client):
 
 @pytest.mark.db
 def test_shared_keys_unchanged_with_readonly_key_set(client, monkeypatch):
-    # With name selection OFF the shared keys keep exactly their old reach
-    # (091 selector mode deliberately makes the public dashboard key read-only;
-    # that is covered in tests/test_trusted_browsers.py).
+    # Setting the read-only key changes neither shared key. DCC-001: the public
+    # dashboard key is read-only in BOTH selection modes (selection off here).
     monkeypatch.setenv("PERSON_SELECT_ENABLED", "0")
     # Master: still everything (auth passes; empty write body -> 422).
     assert client.post("/make", json={}, headers=MASTER).status_code == 422
     assert client.get("/admin/lots/duplicates", headers=MASTER).status_code == 200
-    # Dashboard: still its allowlist, still 403 outside it.
+    # Dashboard: reads on its allowlist, no writes, still 403 outside it.
     assert client.get("/dashboard/inventory", headers=DASH).status_code == 200
-    assert client.post("/receive/commit", json={}, headers=DASH).status_code == 422
+    r = client.post("/receive/commit", json={}, headers=DASH)
+    assert r.status_code == 403 and r.json()["detail"]["error_code"] == "DASHBOARD_KEY_READ_ONLY"
     r = client.post("/make", json={}, headers=DASH)
     assert r.status_code == 403 and r.json()["detail"] == NOT_AUTHORIZED
     # Missing / unknown keys keep their codes.

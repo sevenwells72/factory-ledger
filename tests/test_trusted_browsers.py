@@ -94,7 +94,7 @@ def code(response):
 
 # ---------------------------------------------------------------- mode vs availability
 
-def test_flag_off_is_exactly_the_old_behaviour(client, monkeypatch, people, actors):
+def test_flag_off_disables_selection_and_keeps_the_public_key_read_only(client, monkeypatch, people, actors):
     token = approved(client, actors)
     monkeypatch.setenv('PERSON_SELECT_ENABLED', '0')
     cfg = client.get('/auth/session/config').json()
@@ -102,8 +102,9 @@ def test_flag_off_is_exactly_the_old_behaviour(client, monkeypatch, people, acto
     # A browser token is just an unknown key again, and the pairing routes vanish.
     assert client.get('/auth/whoami', headers=as_person(token, people['arturo'])).status_code == 403
     assert client.post('/auth/browsers/request').status_code == 404
-    # The public dashboard key keeps its old write reach (422 = auth passed, empty body).
-    assert client.post('/receive/prepare', json={}, headers={'X-API-Key': main.DASHBOARD_API_KEY}).status_code == 422
+    # DCC-001: turning selection off does NOT reopen public dashboard-key writes.
+    r = client.post('/receive/prepare', json={}, headers={'X-API-Key': main.DASHBOARD_API_KEY})
+    assert r.status_code == 403 and code(r) == 'DASHBOARD_KEY_READ_ONLY'
 
 
 def test_flag_on_without_migration_reports_mode_on_but_unavailable_and_blocks(client, actors):
@@ -503,6 +504,87 @@ def test_credentialed_machine_keys_are_unchanged_with_selection_on(client, actor
     assert client.post('/make', json={}, headers=headers(actors['floor']['key'])).status_code == 422  # actor key
     session = owner_session(client, actors, 'floor')
     assert client.get('/auth/whoami', headers=headers(session)).json()['key_kind'] == 'session'
+
+
+# ---------------------------------------------------------------- DCC-001: public key read-only in BOTH modes
+
+def _db_writes(cur):
+    cur.execute('SELECT coalesce(sum(n_tup_ins+n_tup_upd+n_tup_del),0) AS n FROM pg_stat_xact_user_tables')
+    return cur.fetchone()['n']
+
+
+@pytest.mark.parametrize('mode', ['on', 'off'])
+def test_public_dashboard_key_is_read_only_in_both_modes(client, db_cursor, monkeypatch, migrated, mode):
+    monkeypatch.setenv('PERSON_SELECT_ENABLED', '1' if mode == 'on' else '0')
+    dash = {'X-API-Key': main.DASHBOARD_API_KEY}
+    expected = 'PERSON_REQUIRED' if mode == 'on' else 'DASHBOARD_KEY_READ_ONLY'
+    writes = sorted(k for k in main.DASHBOARD_KEY_ALLOWLIST if k[0] != 'GET' and k not in main.DASHBOARD_KEY_SELECTOR_READS)
+    # Representative real mutations are all on the list being refused.
+    for route in [('POST', '/dashboard/api/notes'), ('POST', '/receive/prepare'), ('POST', '/tickets/{ticket}/commit'),
+                  ('POST', '/receive/commit'), ('POST', '/sales/orders/{order_id}/ship/commit'),
+                  ('POST', '/sales/orders/{order_id}/close'), ('PATCH', '/sales/orders/{order_id}/status'),
+                  ('POST', '/production/runs'), ('POST', '/supply-requests'), ('POST', '/expected-receipts')]:
+        assert route in writes, route
+    before = _db_writes(db_cursor)
+    for method, path in writes:
+        url = re.sub(r'\{[^}]+\}', '1', path)
+        r = client.request(method, url, headers=dash, json={'category': 'note', 'title': 'x'})
+        assert r.status_code == 403 and code(r) == expected, (mode, method, path, r.status_code, r.text[:200])
+    assert _db_writes(db_cursor) == before, 'a refused public-key request wrote to the database'
+    # Legitimate reads and the SELECT-only resolver stay open, and write nothing.
+    for path in ('/inventory/current', '/dashboard/api/notes', '/sales/orders', '/production/runs', '/supplies/inventory'):
+        assert client.get(path, headers=dash).status_code == 200, path
+    r = client.post('/resolve', headers=dash, json={'query': 'Classic', 'kind': 'product', 'context': {'action': 'make'}})
+    assert r.status_code == 200, r.text
+    assert _db_writes(db_cursor) == before
+
+
+def test_selection_on_then_off_keeps_every_real_credential_and_no_public_writes(client, db_cursor, monkeypatch, actors, people, payload):
+    # ON: a tapped name records, attributed to that person.
+    token = approved(client, actors)
+    arturo = as_person(token, people['arturo'])
+    on = client.post('/receive/prepare', json=payload, headers=arturo)
+    assert on.status_code == 200, on.text
+    assert on.json()['actor']['id'] == people['arturo']
+    # Owner proof (Michael's own session) and the phone PIN path set up while ON.
+    owner_proof = owner_session(client, actors)
+    monkeypatch.setenv('PIN_SIGNIN_ENABLED', '1')
+    db_cursor.execute((ROOT / 'migrations/089_device_pins.sql').read_text())
+    floor_session = owner_session(client, actors, 'floor')
+    enrolled = client.post('/auth/device/enroll', headers=headers(floor_session),
+                           json={'actor_key': actors['floor']['key'], 'pin': '4829', 'label': 'Floor phone'})
+    assert enrolled.status_code == 200, enrolled.text
+
+    # OFF: selection is gone; nothing public reopens.
+    monkeypatch.setenv('PERSON_SELECT_ENABLED', '0')
+    assert client.get('/auth/whoami', headers=arturo).status_code == 403          # browser token = unknown key
+    r = client.post('/receive/prepare', json=payload, headers={'X-API-Key': main.DASHBOARD_API_KEY})
+    assert r.status_code == 403 and code(r) == 'DASHBOARD_KEY_READ_ONLY'
+    assert client.get('/inventory/current', headers={'X-API-Key': main.DASHBOARD_API_KEY}).status_code == 200
+
+    pin = client.post('/auth/pin', json={'device_secret': enrolled.json()['device_secret'], 'pin': '4829'})
+    assert pin.status_code == 200, pin.text
+    credentials = {
+        'master': (headers(main.API_KEY), 'legacy-shared-key', None),
+        'personal_key': (headers(actors['office']['key']), actors['office']['name'], actors['office']['id']),
+        'key_session': (headers(owner_proof), actors['owner']['name'], actors['owner']['id']),
+        'pin_session': (headers(pin.json()['session_token']), actors['floor']['name'], actors['floor']['id']),
+    }
+    for index, (label, (h, operator, actor_id)) in enumerate(credentials.items()):
+        body = dict(payload, lot_code=f"{payload['lot_code']}-{index}", bol_reference=f"{payload['bol_reference']}-{index}")
+        prepared = client.post('/receive/prepare', json=body, headers=h)
+        assert prepared.status_code == 200, (label, prepared.text)
+        # Repeat receives raise the existing duplicate warning; acknowledge only what the draft requires.
+        acks = [w['code'] for w in prepared.json()['warnings'] if w.get('requires_ack')]
+        done = client.post('/tickets/' + prepared.json()['ticket'] + '/commit',
+                           json={'payload_hash': prepared.json()['payload_hash'], 'acknowledged_warnings': acks}, headers=h)
+        assert done.status_code == 200, (label, done.text)
+        db_cursor.execute('SELECT operator_id, entered_by_actor_id FROM transactions WHERE id=%s', (done.json()['transaction_id'],))
+        row = db_cursor.fetchone()
+        assert (row['operator_id'], row['entered_by_actor_id']) == (operator, actor_id), label
+    # Owner-only decisions still need owner proof: the office key is refused.
+    r = client.post('/exceptions/999999/approve', headers=headers(actors['office']['key']), json={})
+    assert r.status_code == 403
 
 
 # ---------------------------------------------------------------- seed and rollback

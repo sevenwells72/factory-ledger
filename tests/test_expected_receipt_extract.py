@@ -1575,7 +1575,9 @@ class TestAllowlistAndTripwire:
         for pair in self.INTAKE_ROUTES:
             assert pair in main.DASHBOARD_KEY_ALLOWLIST, pair
 
-    def test_dashboard_key_accepted_on_match(self, client, cur):
+    def test_dashboard_key_refused_on_match(self, client, cur):
+        """DCC-001: only GETs and the SELECT-only /resolve stay open to the public
+        dashboard key; intake matching (a POST) now needs a real credential."""
         _seed_supplier(cur, "Dash Key Sup 049")
         r = client.post("/expected-receipts/match",
                         headers={"X-API-Key": main.DASHBOARD_API_KEY},
@@ -1583,7 +1585,7 @@ class TestAllowlistAndTripwire:
                                              "reference_number": None, "document_date": None,
                                              "expected_delivery_date": None,
                                              "lines": [{"vendor_description": "x", "quantity": 1, "unit": None}]}})
-        assert r.status_code == 200, r.text
+        assert r.status_code == 403 and r.json()["detail"]["error_code"] == "DASHBOARD_KEY_READ_ONLY", r.text
 
     @pytest.fixture
     def readonly_client(self, monkeypatch):

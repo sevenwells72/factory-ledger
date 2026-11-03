@@ -69,19 +69,25 @@ Evidence labels used below:
 
 The machine credentials are not changed. The master key's writes stay attributed to the shared placeholder `legacy-shared-key` exactly as before (the existing shared-attribution limitation). A selected human never falls back to it.
 
-### 4.2 Who reaches what (selector mode on)
+### 4.2 Who reaches what (selector mode on; public-key row holds in BOTH modes)
 
 | Credential | Reads | Routine writes (tickets, dashboard metadata, notes, runs, supplies, ER, orders, attachments, Assistant) | Legacy direct writes (`POST /receive`, `/make`, `/pack`, `/adjust`, `/ship`, `/void/{id}`, `/customers`, `/sales/orders`, …) and old shortcuts (`/receive/commit`, `/receive/preview`, `/sales/orders/{id}/ship/commit`) | Owner-proof actions | Admin `/admin/*`, `/auth/devices*`, `/auth/actors/*`, `/auth/browsers` list/approve/revoke |
 |---|---|---|---|---|---|
 | Master key (GPTs) | ✓ | ✓ (shared attribution) | ✓ | ✓ (shared) | ✓ |
 | Personal actor key / key session / PIN session | ✓ | ✓ (role matrix) | ✓ (role matrix) | owner role only | owner session only |
-| Public dashboard key | GETs + `POST /resolve` (SELECT-only, proven no writes) | **✗ 403 PERSON_REQUIRED** | ✗ | ✗ | ✗ |
+| Public dashboard key (flag ON **or OFF**) | GETs + `POST /resolve` (SELECT-only, proven no writes) | **✗ 403** — `PERSON_REQUIRED` (ON) / `DASHBOARD_KEY_READ_ONLY` (OFF) | ✗ | ✗ | ✗ |
 | Approved browser, no name | dashboard GETs | ✗ 403 PERSON_REQUIRED | ✗ | ✗ | ✗ |
 | Approved browser + name (Arturo/Luz/Miriam) | ✓ | ✓ (their role matrix) | ✗ | ✗ | ✗ |
 | Approved browser + **Michael** | ✓ | ✓ (`owner_selected` allowlist) | ✗ | **✗ 403 OWNER_PROOF_REQUIRED** | ✗ |
 | Pending/expired/revoked browser token | ✗ 401 | ✗ | ✗ | ✗ | ✗ |
 
-With the flag off, the dashboard key keeps its full old allowlist (compatibility, [V]).
+**DCC-001 (security fix): the public dashboard key is read-only in BOTH flag modes.** Turning `PERSON_SELECT_ENABLED` off does
+**not** restore its former business writes: every non-GET route on `DASHBOARD_KEY_ALLOWLIST` except the SELECT-only `POST /resolve`
+answers 403 `DASHBOARD_KEY_READ_ONLY` with nothing written [V: `test_public_dashboard_key_is_read_only_in_both_modes`, real
+ON→OFF toggle `test_selection_on_then_off_keeps_every_real_credential_and_no_public_writes`; both fail against the pre-fix code].
+This intentionally ends the old anonymous public-write compatibility, including the SELECT-only intake `POST /expected-receipts/match`
+and `POST /sales/orders/match` (only `/resolve` is exempt). With the flag off, writes need a real credential: master key, personal
+key, key session or phone-PIN session, all unchanged and attributed as before.
 
 Human route callers were checked in source [V]:
 - the dashboard calls only `GET /customers`, and creates customers through `/customers/prepare`;
@@ -152,7 +158,7 @@ A selected Michael's late entries (48 h to 14 d) open a LATE_ENTRY exception lik
   - shift hash contract (177);
   - ship retry guard (234);
   - supplier-lot, pooled-lot, append-only, posted-only and duplicate guards (not touched);
-  - dashboard-key writes were removed only in selector mode, and the dashboard tabs now write through selection instead (68/72 note).
+  - dashboard-key writes are removed in BOTH modes (DCC-001); the dashboard tabs write through selection (flag on) or a personal sign-in (flag off). Rows 68/72's "removing routes 403s the tab" now applies to the public key by design; staff writes go through real credentials.
 
 ## 7. Tests (local only)
 
@@ -170,6 +176,19 @@ A selected Michael's late entries (48 h to 14 d) open a LATE_ENTRY exception lik
 **Contract tests vs live GPT UI:**
 - Compatibility for the Floor/Office schemas' API auth is covered by source/contract tests: the read-only sweep, machine-key-unchanged tests and the route contract.
 - **No live Custom GPT UI test passed or was run by this work.** Codex's pre-deploy GPT UI smoke attempts failed in ChatGPT before any task deploy, and the owner skipped further GPT work.
+
+## 7a. DCC-001 follow-up (security fix) and the deferred Assistant issue
+
+- **Fixed here:** `main.py::_dashboard_key_reaches` no longer returns full allowlist reach when the flag is off. The flag-off refusal is
+  403 `DASHBOARD_KEY_READ_ONLY` (flag on keeps `PERSON_REQUIRED`). No other backend change.
+- **Obsolete public-write test expectations adapted** (253 failing cases at the pre-adaptation head, all from this one intended change):
+  public-key cases now assert the 403 and an unchanged database; write fixtures that only used the public key as a convenient writer
+  now use a named actor (office planner, office/floor person) rather than the master key; attribution tests that asserted the
+  `'dashboard'` surface tag now assert the refusal, and the "same vocabulary" checks use a named person.
+- **Assistant lot parsing (pre-existing, NOT changed by this release):** `Supplier lot exactly ABC123` keeps the word "exactly", and an
+  explicit `-LOT` suffix can be cut by the generic label. It is identical at the PR base and head, not caused or worsened by PR179, and
+  is deferred by owner decision to a separate change (Codex holds the prepared work as `deferred-assistant.patch`). Until then
+  workers must check the supplier/FL lot codes shown on the Assistant draft before Record.
 
 ## 8. Rollout (each step needs Michael's explicit approval, a verified backup first and verification after)
 
@@ -199,8 +218,9 @@ A selected Michael's late entries (48 h to 14 d) open a LATE_ENTRY exception lik
 
 ## 9. Rollback
 
-- **Fast:** set `PERSON_SELECT_ENABLED=0`. Browser tokens become unknown keys, the dashboard key regains its old reach, and personal keys/PIN work as before. Nothing is deleted.
-- **Code:** revert the merge. 091 objects are harmless while the flag is off.
+- **Fast:** set `PERSON_SELECT_ENABLED=0`. Browser tokens become unknown keys and the person picker disappears; personal keys, key sessions, phone PINs and the master key work as before. **The public dashboard key stays read-only** (DCC-001): turning the flag off does not reopen anonymous writes, so staff record by signing in with their own key or PIN. Nothing is deleted.
+- **Never** fall back to a pre-DCC-001 backend or an exposed flag-off build that still grants public dashboard-key writes; on a security failure isolate access first and keep all 091 records.
+- **Code:** before reverting to any pre-fix backend, isolate public access because that code can restore public-key writes. Preserve migration 091 and all browser/audit/attribution data; do not execute the down migration or restore a backup over new postings as ordinary rollback.
 - **Schema:** run the 091 down script only after exporting selection attribution rows; it refuses otherwise.
 
 ## 10. Acceptance checklist
@@ -209,7 +229,7 @@ A selected Michael's late entries (48 h to 14 d) open a LATE_ENTRY exception lik
 - [ ] The active name is prominent, and Change user works. A change in another tab is adopted. Drafts and the Assistant conversation from the previous name are dropped. [V locally]
 - [ ] No write without a chosen name, and no silent substitution. An inactive person is disabled while the others continue. A bad configuration blocks everyone. [V]
 - [ ] Selected Michael cannot approve, attest, backdate more than 14 days, reopen, or void others' or old posts. His own session can. [V]
-- [ ] The public dashboard key and unapproved browsers cannot write in selector mode. Origin is not trusted. [V]
+- [ ] The public dashboard key cannot write in EITHER flag mode, and unapproved browsers cannot write. Origin is not trusted. [V]
 - [ ] Master/GPT, read-only, actor key and session/PIN behaviour unchanged; packing-slip links unchanged. [V contract; live GPT UI not tested]
 - [ ] Ledger snapshots unchanged (`Blubber`); selection assurance and the browser are recorded on tickets, metadata audit and shift confirmations. [V]
 - [ ] Staging proof complete. [pending Codex targets]

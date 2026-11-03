@@ -34,6 +34,7 @@ from fastapi.testclient import TestClient
 from psycopg2.extras import RealDictCursor
 
 import main
+from tests.test_actor_attribution import actors  # noqa: F401  (DCC-001: named office writer)
 
 
 PLACEHOLDER = "legacy-shared-key"
@@ -184,6 +185,11 @@ def _released(cur, allocation_id):
     return dict(cur.fetchone())
 
 
+def _released_or_active(cur, allocation_id):
+    cur.execute("SELECT status FROM sales_order_allocations WHERE id = %s", (allocation_id,))
+    return cur.fetchone()["status"]
+
+
 def _assert_attribution(row, expected_tag):
     assert row["status"] == "released", row
     assert row["released_by"] != PLACEHOLDER, (
@@ -256,6 +262,11 @@ def test_ship_commit_records_the_caller_surface(client, db_cursor, key, expected
         json={"lines": [{"line_id": seeded["line_id"], "quantity_lb": 10}]},
         headers=_headers(key),
     )
+    if key == "dashboard":
+        # DCC-001: the public dashboard key is read-only; nothing ships or releases.
+        assert resp.status_code == 403 and resp.json()["detail"]["error_code"] == "DASHBOARD_KEY_READ_ONLY", resp.text
+        assert _released_or_active(db_cursor, stale) != "released"
+        return
     assert resp.status_code == 200, resp.text
 
     row = _released(db_cursor, stale)
@@ -278,6 +289,11 @@ def test_legacy_status_cancel_records_the_caller_surface(client, db_cursor, key,
         json={"status": "cancelled"},
         headers=_headers(key),
     )
+    if key == "dashboard":
+        # DCC-001: the public dashboard key is read-only; the order stays open.
+        assert resp.status_code == 403 and resp.json()["detail"]["error_code"] == "DASHBOARD_KEY_READ_ONLY", resp.text
+        assert _released_or_active(db_cursor, allocation_id) != "released"
+        return
     assert resp.status_code == 200, resp.text
 
     row = _released(db_cursor, allocation_id)
@@ -290,15 +306,17 @@ def test_legacy_status_cancel_records_the_caller_surface(client, db_cursor, key,
 # ─────────────────────────────────────────────────────────────────
 
 @pytest.mark.db
-def test_manual_release_and_ship_agree(client, db_cursor):
+def test_manual_release_and_ship_agree(client, db_cursor, actors):
     """The comparison that motivated the change: the manual release endpoint
-    and a ship must stamp the SAME vocabulary for the same key. Both are on
-    the dashboard allowlist, so both are reachable with the scoped key."""
+    and a ship must stamp the SAME vocabulary for the same key. DCC-001: the
+    public dashboard key no longer writes, so a named office person makes both
+    and both must record that person."""
+    office = {"X-API-Key": actors["office"]["key"]}
     manual_seed = _seed(db_cursor)
     manual_alloc = _allocate(db_cursor, manual_seed)
     resp = client.post(
         f"/sales/orders/{manual_seed['order_id']}/allocations/{manual_alloc}/release",
-        headers=_headers("dashboard"),
+        headers=office,
     )
     assert resp.status_code == 200, resp.text
 
@@ -315,13 +333,13 @@ def test_manual_release_and_ship_agree(client, db_cursor):
     resp = client.post(
         f"/sales/orders/{ship_seed['order_id']}/ship/commit",
         json={"lines": [{"line_id": ship_seed["line_id"], "quantity_lb": 10}]},
-        headers=_headers("dashboard"),
+        headers=office,
     )
     assert resp.status_code == 200, resp.text
 
     assert (_released(db_cursor, manual_alloc)["released_by"]
             == _released(db_cursor, stale)["released_by"]
-            == "dashboard")
+            == actors["office"]["name"])
 
 
 @pytest.mark.db

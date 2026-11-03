@@ -149,7 +149,7 @@ def _ticket(client, cur, oid, path, body, key, expected_status=200, code=None):
 
 
 def _close_expected(path, role, created, recorded, note, reason):
-    if _role(role) == "floor" or (path == "ticket" and role == "dashboard"):
+    if _role(role) == "floor" or role == "dashboard":
         return 403, None
     if reason == "shipped_not_recorded":
         if _role(role) != "owner":
@@ -212,7 +212,7 @@ def test_status_guard_matrix(client, db_cursor, actors, path, status, role, crea
     if note:
         body["note"] = NOTE  # An ignored/unsupported note cannot grant an exemption.
     before = _snapshot(db_cursor, oid)
-    if path == "ticket" and role == "dashboard":
+    if role == "dashboard":
         expected, code = 403, None
     elif path == "ticket" and note:
         expected, code = 422, None
@@ -256,7 +256,7 @@ def test_cancel_paths_still_obey_the_existing_policy(client, db_cursor, actors, 
     if note:
         body["note"] = NOTE
     before = _snapshot(db_cursor, oid)
-    if path.startswith("ticket") and role == "dashboard":
+    if role == "dashboard":
         expected, code = 403, None
     elif path == "ticket-status" and note:
         expected, code = 422, None
@@ -302,7 +302,7 @@ def test_ship_all_no_remaining_lines_cannot_forge_shipped(client, db_cursor, act
         body["mode"] = "commit"
     before = _snapshot(db_cursor, oid)
     response = client.post(f"/sales/orders/{oid}/ship" + ("/commit" if path == "commit" else ""), json=body, headers=headers(key))
-    if path == "legacy" and role == "dashboard":
+    if role == "dashboard":
         _assert_refused(response, 403)
     elif path == "commit" and note:
         _assert_refused(response, 422)
@@ -440,7 +440,7 @@ def _reopen(client, cur, actors, path, role, created, recorded, note, restore):
                    status='cancelled',status_before_exit=%s WHERE id=%s""", (restore, oid))
     before = _snapshot(cur, oid)
     body = {"note": NOTE} if note else {}
-    if _role(role) in ("office", "floor") or (path == "ticket" and role == "dashboard"):
+    if _role(role) in ("office", "floor") or role == "dashboard":
         expected, code = 403, None
     elif restore in ("shipped", "invoiced") and not recorded:
         expected, code = 409, "SHIPMENT_REQUIRED"
@@ -509,7 +509,7 @@ def test_recorded_partial_invoice_uses_short_close_reason_without_legacy_excepti
     body = {"status": "invoiced"}
     if note:
         body["note"] = NOTE
-    if path == "ticket" and role == "dashboard":
+    if role == "dashboard":
         expected = 403
     elif path == "ticket" and note:
         expected = 422  # Status tickets never accept a legacy-close note.

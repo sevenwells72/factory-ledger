@@ -3171,17 +3171,17 @@ SELECTION_EXCLUDED = frozenset({
 SELECTION_ALLOWLIST = ((DASHBOARD_KEY_ALLOWLIST - SELECTION_EXCLUDED) | write_tickets.ACTOR_ROUTES
                        | exceptions_enforcement.ACTOR_ROUTES | attachments.ROUTES | fl_assistant.ACTOR_ROUTES
                        | frozenset({("GET", "/sales/orders/{order_id}/packing-slip"), ("POST", "/products/resolve")}))
-# With selection on, the publicly served dashboard key is READ-ONLY: GETs on
-# its allowlist plus the SELECT-only resolver. Every former write needs an
-# approved browser and a chosen person (or a real credential).
+# DCC-001: the publicly served dashboard key is READ-ONLY whatever the
+# PERSON_SELECT_ENABLED flag says: GETs on its allowlist plus the SELECT-only
+# resolver. Turning selection off must never reopen anonymous business writes;
+# every write needs a real credential (personal key, key/PIN session, master
+# key) or, with selection on, an approved browser and a chosen person.
 DASHBOARD_KEY_SELECTOR_READS = frozenset({("POST", "/resolve")})
 
 
 def _dashboard_key_reaches(route_key) -> bool:
     if route_key not in DASHBOARD_KEY_ALLOWLIST:
         return False
-    if not trusted_browsers.enabled():
-        return True
     return route_key[0] == "GET" or route_key in DASHBOARD_KEY_SELECTOR_READS
 
 
@@ -3531,11 +3531,16 @@ def _authenticate_incoming_api_key(provided_key: str, request: Request, invalid_
         if _dashboard_key_reaches(_route_key(request)):
             return True
         if _route_key(request) in DASHBOARD_KEY_ALLOWLIST:
-            # 091 selector mode: the public dashboard key no longer writes.
+            # DCC-001: the public dashboard key never writes, in either mode.
+            if trusted_browsers.enabled():
+                raise HTTPException(status_code=403, detail={
+                    "error_code": "PERSON_REQUIRED",
+                    "message": "Recording needs an approved browser and your name. Nothing was recorded.",
+                    "message_es": "Para registrar se necesita un navegador aprobado y tu nombre. No se registró nada."})
             raise HTTPException(status_code=403, detail={
-                "error_code": "PERSON_REQUIRED",
-                "message": "Recording needs an approved browser and your name. Nothing was recorded.",
-                "message_es": "Para registrar se necesita un navegador aprobado y tu nombre. No se registró nada."})
+                "error_code": "DASHBOARD_KEY_READ_ONLY",
+                "message": "This shared view is read-only. Sign in to record. Nothing was recorded.",
+                "message_es": "Esta vista compartida es de solo lectura. Inicia sesión para registrar. No se registró nada."})
         raise HTTPException(status_code=403, detail="API key not authorized for this endpoint")
     if READONLY_API_KEY and secrets.compare_digest(provided_key, READONLY_API_KEY):
         request.state.key_kind = "readonly"
