@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-04 15:26 — Full-suite evidence keyed by files and test environment
+- **File(s) changed:** `run_full_suite.sh`, `run_tests.sh`, `CLAUDE.md`
+- **What changed:** run_full_suite.sh now keys reusable records as <files-hash>-<env-hash>.json; the environment hash covers the test interpreter's Python version, every installed package version (run_tests.sh FL_ENV_FINGERPRINT=1) and the PostgreSQL version. --verify matches both; a run whose files or environment change mid-run is not reusable; a failed fingerprint stops with exit 2 instead of hashing error text. Records in the old files-only format no longer match. CLAUDE.md wording updated.
+- **Why:** Owner review of PR #183: cached evidence must be valid only for the source and test environment it represents (e.g. the pydantic 2.13.5 -> 2.14.1 update today would otherwise have reused old results).
+
+---
+
 ## 2026-11-04 15:22 — Shared .venv-test brought up to requirements.txt pins (pydantic 2.14.1)
 - **File(s) changed:** `/Users/cns/dev/factory-ledger/.venv-test`
 - **What changed:** Ran pip install -r requirements.txt -r tests/requirements-test.txt in the main checkout's shared .venv-test. Only change: pydantic 2.13.5 -> 2.14.1 and pydantic_core 2.46.5 -> 2.50.1 (pip freeze diff). No repo code changed.

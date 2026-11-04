@@ -7,13 +7,15 @@
 # later steps and reviewers can reuse it instead of re-running the suite.
 #
 #   scripts/run_full_suite.sh              # run both modes, record the result
-#   scripts/run_full_suite.sh --verify     # exit 0 if the current files already have a passing record
+#   scripts/run_full_suite.sh --verify     # exit 0 if the current files AND test environment already have a passing record
 #   scripts/run_full_suite.sh -x           # extra pytest args are passed through (result is not reusable)
 #   FL_KEEP_DBS=1 scripts/run_full_suite.sh   # keep the databases for debugging
 #
 # Records live in <git common dir>/fl-test-evidence/ (shared by every worktree
-# of this clone, never committed): <files-hash>.json for a passing full run,
-# runs/<run-id>.* for every run's logs and summary.
+# of this clone, never committed): <files-hash>-<env-hash>.json for a passing
+# full run, runs/<run-id>.* for every run's logs and summary. The environment
+# hash covers the Python version, every installed package version of the test
+# interpreter, and the PostgreSQL version, so a changed environment needs a new run.
 set -euo pipefail
 
 repo_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -34,15 +36,26 @@ files_hash() {
     rm -rf "$tmp"
 }
 
+# Hash of the test environment: the interpreter run_tests.sh would use (Python
+# version and every installed package version) plus the PostgreSQL version.
+env_hash() {
+    local python_env pg_version
+    python_env="$(FL_ENV_FINGERPRINT=1 "$repo_dir/scripts/run_tests.sh")" || return 1
+    pg_version="$("$PG_BIN/postgres" --version)" || return 1
+    [[ -n "$python_env" && -n "$pg_version" ]] || return 1
+    printf '%s\n%s\n' "$python_env" "$pg_version" | shasum -a 256 | cut -c1-16
+}
+
 if [[ "${1:-}" == "--verify" ]]; then
     hash="$(files_hash)"
-    record="$evidence_dir/$hash.json"
+    env="$(env_hash)" || { echo "Could not fingerprint the test environment." >&2; exit 2; }
+    record="$evidence_dir/$hash-$env.json"
     if [[ -f "$record" ]]; then
-        echo "PASSING FULL-SUITE RECORD for the current files: $record"
+        echo "PASSING FULL-SUITE RECORD for the current files and test environment: $record"
         cat "$record"
         exit 0
     fi
-    echo "No passing full-suite record for the current files ($hash)."
+    echo "No passing full-suite record for the current files ($hash) and test environment ($env)."
     exit 1
 fi
 
@@ -70,7 +83,8 @@ trap cleanup EXIT
 FL_CHECK_PINS=1 "$repo_dir/scripts/run_tests.sh" --version > /dev/null
 
 hash_before="$(files_hash)"
-echo "Run $run_id: files $hash_before"
+env_before="$(env_hash)" || { echo "Could not fingerprint the test environment." >&2; exit 2; }
+echo "Run $run_id: files $hash_before, environment $env_before"
 "$repo_dir/scripts/setup_test_db.sh" --db "$db0" > "$evidence_dir/runs/$run_id-setup.log" 2>&1
 "$repo_dir/scripts/setup_test_db.sh" --db "$db1" >> "$evidence_dir/runs/$run_id-setup.log" 2>&1
 
@@ -93,6 +107,7 @@ rc0=0; wait "$pid0" || rc0=$?
 rc1=0; wait "$pid1" || rc1=$?
 seconds=$(( $(date +%s) - start ))
 hash_after="$(files_hash)"
+env_after="$(env_hash)" || env_after="unavailable"
 
 summary() { grep -E '^=*[ ]*[0-9]+ (passed|failed|errors?)\b.* in [0-9.]+s' "$1" | tail -n 1 || true; }
 sum0="$(summary "$log0")"
@@ -101,16 +116,17 @@ sum1="$(summary "$log1")"
 full=true
 [[ $# -gt 0 ]] && full=false
 reusable=false
-if [[ "$full" == true && $rc0 -eq 0 && $rc1 -eq 0 && "$hash_before" == "$hash_after" ]]; then
+if [[ "$full" == true && $rc0 -eq 0 && $rc1 -eq 0 && "$hash_before" == "$hash_after" && "$env_before" == "$env_after" ]]; then
     reusable=true
 fi
 
 RUN_ID="$run_id" FILES_HASH="$hash_before" FILES_HASH_AFTER="$hash_after" \
+ENV_HASH="$env_before" ENV_HASH_AFTER="$env_after" \
 HEAD_COMMIT="$(git rev-parse HEAD)" BRANCH="$(git rev-parse --abbrev-ref HEAD)" \
 RC0="$rc0" RC1="$rc1" SUM0="$sum0" SUM1="$sum1" SECONDS_TAKEN="$seconds" \
 FULL="$full" REUSABLE="$reusable" ARGS="$*" LOG0="$log0" LOG1="$log1" \
 OUT_RUN="$evidence_dir/runs/$run_id.json" \
-OUT_PASS="$evidence_dir/$hash_before.json" \
+OUT_PASS="$evidence_dir/$hash_before-$env_before.json" \
 /usr/bin/python3 -I - <<'PY'
 import json, os, datetime
 e = os.environ
@@ -119,6 +135,8 @@ record = {
     "finished_at": datetime.datetime.now().astimezone().isoformat(timespec="seconds"),
     "files_hash": e["FILES_HASH"],
     "files_changed_during_run": e["FILES_HASH"] != e["FILES_HASH_AFTER"],
+    "environment_hash": e["ENV_HASH"],
+    "environment_changed_during_run": e["ENV_HASH"] != e["ENV_HASH_AFTER"],
     "head_commit": e["HEAD_COMMIT"],
     "branch": e["BRANCH"],
     "full_suite": e["FULL"] == "true",
@@ -138,8 +156,8 @@ echo "key sessions OFF: exit $rc0  $sum0"
 echo "key sessions ON:  exit $rc1  $sum1"
 echo "Took ${seconds}s. Logs: $log0 $log1"
 if [[ "$reusable" == true ]]; then
-    echo "Recorded passing result for files $hash_before ($evidence_dir/$hash_before.json)."
-elif [[ "$hash_before" != "$hash_after" ]]; then
-    echo "Files changed during the run: result NOT recorded as reusable."
+    echo "Recorded passing result for files $hash_before, environment $env_before ($evidence_dir/$hash_before-$env_before.json)."
+elif [[ "$hash_before" != "$hash_after" || "$env_before" != "$env_after" ]]; then
+    echo "Files or test environment changed during the run: result NOT recorded as reusable."
 fi
 [[ $rc0 -eq 0 && $rc1 -eq 0 ]]

@@ -22,6 +22,18 @@ if [[ ! -x "$python_bin" ]]; then
     exit 1
 fi
 
+if [[ "${FL_ENV_FINGERPRINT:-0}" == "1" ]]; then
+    # Print the Python version and every installed package version, sorted, then
+    # stop. run_full_suite.sh hashes this to key reusable test evidence.
+    exec "$python_bin" -I - <<'PY'
+import sys
+from importlib import metadata
+print(sys.version)
+names = {f"{(d.metadata['Name'] or '').lower()}=={d.version}" for d in metadata.distributions()}
+print("\n".join(sorted(names)))
+PY
+fi
+
 if [[ "${FL_CHECK_PINS:-0}" == "1" ]]; then
     # Exact "name==version" pins in requirements.txt must match the interpreter.
     "$python_bin" -I - "$repo_dir/requirements.txt" <<'PY' || exit 3
