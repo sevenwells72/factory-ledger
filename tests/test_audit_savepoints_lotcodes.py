@@ -366,7 +366,10 @@ def test_make_commit_blocks_on_advisory_lock(raw_client):
         with blocker.cursor() as cur:
             cur.execute(
                 "SELECT count(*) FROM pg_locks "
-                "WHERE locktype = 'advisory' AND classid = 0 AND objid = %s AND granted",
+                "WHERE locktype = 'advisory' AND classid = 0 AND objid = %s AND granted "
+                # Advisory locks are per database; pg_locks lists every database,
+                # so a concurrent run on another database must not cause a skip.
+                "AND database = (SELECT oid FROM pg_database WHERE datname = current_database())",
                 (MAKE_LOCK_ID,),
             )
             if cur.fetchone()[0]:
@@ -393,7 +396,8 @@ def test_make_commit_blocks_on_advisory_lock(raw_client):
                 cur.execute(
                     "SELECT count(*) FROM pg_locks "
                     "WHERE locktype = 'advisory' AND classid = 0 AND objid = %s "
-                    "AND NOT granted",
+                    "AND NOT granted "
+                    "AND database = (SELECT oid FROM pg_database WHERE datname = current_database())",
                     (MAKE_LOCK_ID,),
                 )
                 if cur.fetchone()[0]:

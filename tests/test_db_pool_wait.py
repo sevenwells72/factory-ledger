@@ -142,8 +142,11 @@ async def _burst(base, paths):
 
 def _server_sessions():
     with psycopg2.connect(TEST_DATABASE_URL) as conn, conn.cursor() as cur:
+        # pg_stat_activity lists every database; count only this one, so a
+        # concurrent suite run on another database cannot leak in.
         cur.execute("SELECT state, count(*) FROM pg_stat_activity "
-                    "WHERE application_name = %s GROUP BY state", (APPLICATION_NAME,))
+                    "WHERE application_name = %s AND datname = current_database() "
+                    "GROUP BY state", (APPLICATION_NAME,))
         return dict(cur.fetchall())
 
 

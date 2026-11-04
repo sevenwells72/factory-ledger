@@ -1152,7 +1152,7 @@ class TestSalesApprovalAdvisoryLock:
                     deadline = time.time() + 15
                     with seed.cursor(cursor_factory=RealDictCursor) as sc:
                         while time.time() < deadline:
-                            sc.execute("SELECT count(*) AS n FROM pg_locks WHERE locktype = 'advisory' AND NOT granted")
+                            sc.execute("SELECT count(*) AS n FROM pg_locks WHERE locktype = 'advisory' AND NOT granted AND database = (SELECT oid FROM pg_database WHERE datname = current_database())")
                             if sc.fetchone()["n"] >= 2:
                                 break
                             time.sleep(0.05)

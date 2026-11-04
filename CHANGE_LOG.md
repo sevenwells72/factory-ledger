@@ -1,5 +1,26 @@
 # Change Log
 
+## 2026-11-04 15:26 — Full-suite evidence keyed by files and test environment
+- **File(s) changed:** `run_full_suite.sh`, `run_tests.sh`, `CLAUDE.md`
+- **What changed:** run_full_suite.sh now keys reusable records as <files-hash>-<env-hash>.json; the environment hash covers the test interpreter's Python version, every installed package version (run_tests.sh FL_ENV_FINGERPRINT=1) and the PostgreSQL version. --verify matches both; a run whose files or environment change mid-run is not reusable; a failed fingerprint stops with exit 2 instead of hashing error text. Records in the old files-only format no longer match. CLAUDE.md wording updated.
+- **Why:** Owner review of PR #183: cached evidence must be valid only for the source and test environment it represents (e.g. the pydantic 2.13.5 -> 2.14.1 update today would otherwise have reused old results).
+
+---
+
+## 2026-11-04 15:22 — Shared .venv-test brought up to requirements.txt pins (pydantic 2.14.1)
+- **File(s) changed:** `/Users/cns/dev/factory-ledger/.venv-test`
+- **What changed:** Ran pip install -r requirements.txt -r tests/requirements-test.txt in the main checkout's shared .venv-test. Only change: pydantic 2.13.5 -> 2.14.1 and pydantic_core 2.46.5 -> 2.50.1 (pip freeze diff). No repo code changed.
+- **Why:** requirements.txt has pinned pydantic 2.14.1 since Oct 15 (#132); on the stale venv 4 tests failed in both key-session modes, so agents built their own venvs. Owner approved 2026-11-04. Afterwards FL_CHECK_PINS passes and scripts/run_full_suite.sh on the shared venv: 7,394 passed in each mode concurrently in 192 s.
+
+---
+
+## 2026-11-04 15:15 — Dev efficiency: pre-allowed routine commands, concurrent fresh-DB full suite, batched reviews
+- **File(s) changed:** `.claude/settings.json`, `run_full_suite.sh`, `run_tests.sh`, `setup_test_db.sh`, `test_audit_savepoints_lotcodes.py`, `test_db_pool_wait.py`, `test_a7_review_fixes.py`, `test_expected_receipt_extract.py`, `test_sales_order_extract.py`, `CLAUDE.md`, `ARCHITECTURE-MAP.md`, `~/.codex/rules/default.rules`
+- **What changed:** Added .claude/settings.json pre-allowing tests, change-log helper, guard checks and read-only git, with ask rules for push, commit, merge, deploy, network, psql and destructive commands. Added scripts/run_full_suite.sh: checks the test interpreter against requirements.txt pins, runs both key-session modes at once on fresh disposable databases, drops them and records the result by exact file hash (--verify reuses it). run_tests.sh falls back to the main checkout's .venv-test or FL_TEST_VENV and can check pins (FL_CHECK_PINS=1); setup_test_db.sh takes --db NAME (fl_/factory_ledger_ names only). Six test catalog queries (pg_locks/pg_stat_activity) now count only the current database so concurrent runs cannot interfere. CLAUDE.md: final-candidate full suite, targeted tests during development, evidence reuse, conditional classic visual audit, Edit/Write instead of shell edits, and a Codex/Claude coordination section; map wording updated. Outside the repo: removed four Codex allow rules (blanket git push, git add ., rm -rf ~/.git, and a curl rule containing an API key literal) and added seven routine test/check rules; backup at ~/.codex/rules/default.rules.bak-2026-11-04.
+- **Why:** Nov 3 transcript analysis: ~235 commands waited for approval (est. 1.5-2 h), 11 review interruptions, 8 full-suite starts to get green on a reused database. Validation: full suite 7,394 passed in each mode concurrently in about 3 minutes on fresh databases; architecture map 0 problems; key-literal guard 0 findings. Owner approved the proposal 2026-11-04.
+
+---
+
 ## 2026-11-03 20:04 — Verify live four-name sign-in and preserve deployment evidence
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/security/simple-user-selection.md`, `.venv-test/person-selection/live`
 - **What changed:** Record all8 fresh production browser contexts passing exact4 buttons, immediate name entry, four recording forms, real named reads, reload persistence and Michael void/adjust screens with zero prompts/auth failures. Live read-only; actual records/attribution proven on staging. Post-deploy production fingerprints unchanged.
