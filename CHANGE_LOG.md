@@ -1,5 +1,40 @@
 # Change Log
 
+## 2026-11-03 20:04 — Verify live four-name sign-in and preserve deployment evidence
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/security/simple-user-selection.md`, `.venv-test/person-selection/live`
+- **What changed:** Record all8 fresh production browser contexts passing exact4 buttons, immediate name entry, four recording forms, real named reads, reload persistence and Michael void/adjust screens with zero prompts/auth failures. Live read-only; actual records/attribution proven on staging. Post-deploy production fingerprints unchanged.
+- **Why:** Complete the required live acceptance and all three standing changelogs without inventing production inventory movements.
+
+---
+
+## 2026-11-03 20:03 — Save final production browser verification digest
+- **File(s) changed:** `.venv-test/person-selection/live/verification.json`
+- **What changed:** Saved a per-person/per-viewport digest confirming real production API origins, named keyless reads, no production POSTs, owner controls and exact screenshot dimensions/pixels using the pinned test interpreter.
+- **Why:** Make the completed live acceptance evidence easy to inspect independently.
+
+---
+
+## 2026-11-03 20:03 — Verify the production four-name sign-in in eight fresh browser profiles
+- **File(s) changed:** `.venv-test/person-selection/live/results.json`, `.venv-test/person-selection/live/verification.json`, `.venv-test/person-selection/live/*.png`
+- **What changed:** Live production passed all four names at desktop1440 and mobile390: exact four-button sign-in, four record forms, actual name-only keyless API reads, persistent choice on reload and Michael void/adjustment screens. Zero authentication prompts/refusals/errors and zero production POSTs; mobile sign-in pixels exactly match reviewed local proof.
+- **Why:** Complete post-deploy verification while preserving real inventory; actual32-record workflow proof remains on reviewed staging.
+
+---
+
+## 2026-11-03 20:03 — Deploy PR 180 to production and verify initial live access
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `.venv-test/netlify-180-production.json`
+- **What changed:** Record main22c23056 Railway9128096c and Netlify6aea843ab5eac46c2072bf18 production deployment. All four names work with no key; Michael has all owner permissions; existing machine credential and seven exact dashboard assets verified. Fresh-live browser acceptance in progress.
+- **Why:** Complete the owner-authorized rollout and immediately record production deployment per standing rules.
+
+---
+
+## 2026-11-03 20:01 — Merge PR 180 and close local validation databases
+- **File(s) changed:** `local PostgreSQL test databases`, `CHANGE_LOG.md`
+- **What changed:** PR180 merged at22c23056 with Netlify auto-publish intentionally held for backend-first deployment. Existing private credential GET remains200 as Blubber. Remove only completed task-owned final-suite and focused-backend databases; saved evidence remains.
+- **Why:** Carry out the authorized rollout while preserving machine access and leaving no unused local test databases.
+
+---
+
 ## 2026-11-03 20:00 — Finish pre-release browser checks and remove temporary tooling link
 - **File(s) changed:** `tests/visual/run-person-selection-real.mjs`, `node_modules`, `.venv-test/person-selection/preview`
 - **What changed:** All8 real Netlify-preview-to-Railway browser checks pass with no prompts/auth failures/identity leakage; scope assertions to the observed API so unrelated hosting telemetry is not mistaken for a business write. Remove only the task-created Playwright symlink.
