@@ -81,7 +81,8 @@ def require_void(api, cur, actor, transaction_id):
     row = cur.fetchone()
     if not row:
         exceptions.fail(404, 'TRANSACTION_NOT_FOUND', 'Transaction not found.')
-    if permissions.role_of(actor) == permissions.FLOOR and (
+    # A selected owner (091) voids like floor: own posts, same plant day.
+    if permissions.role_of(actor) in (permissions.FLOOR, permissions.SELECTED_OWNER) and (
             row['entered_by_actor_id'] != actor['id'] or row['business_date'] != api.get_plant_now().date()):
         exceptions.fail(403, 'VOID_OWNER_REQUIRED', 'Floor may void only their own posts on the same plant day.')
     return row

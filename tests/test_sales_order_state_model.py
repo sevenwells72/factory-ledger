@@ -25,6 +25,7 @@ from fastapi.testclient import TestClient
 from psycopg2.extras import RealDictCursor
 
 import main
+from tests.test_actor_attribution import actors  # noqa: F401  (DCC-001: named writer)
 
 MIGRATION = Path(__file__).resolve().parent.parent / "migrations" / "051_sales_order_state_model.sql"
 
@@ -781,7 +782,9 @@ def test_changed_by_prefers_the_body_field_then_the_source_tag(db_cursor, client
 
 
 @pytest.mark.db
-def test_dashboard_key_is_recorded_as_the_dashboard_surface(db_cursor, client, monkeypatch):
+def test_dashboard_key_cannot_close_an_order(db_cursor, client, monkeypatch):
+    """DCC-001: the public dashboard key is read-only, so it no longer closes
+    orders (formerly recorded as the 'dashboard' surface)."""
     monkeypatch.setattr(main, "DASHBOARD_API_KEY", "sostate-dashboard-key")
     customer_id, token = _seed_customer(db_cursor)
     order_id, _ = _seed_order(db_cursor, customer_id, token)
@@ -790,8 +793,10 @@ def test_dashboard_key_is_recorded_as_the_dashboard_surface(db_cursor, client, m
     resp = client.post(f"/sales/orders/{order_id}/close",
                        json={"reason": "short_closed", "mode": "commit"},
                        headers={"X-API-Key": "sostate-dashboard-key"})
-    assert resp.status_code == 200, resp.text
-    assert resp.json()["state_changed_by"] == "dashboard"
+    assert resp.status_code == 403, resp.text
+    assert resp.json()["detail"]["error_code"] == "DASHBOARD_KEY_READ_ONLY"
+    db_cursor.execute("SELECT state, state_changed_by FROM sales_orders WHERE id = %s", (order_id,))
+    assert db_cursor.fetchone()["state"] != "closed"
 
 
 # ═════════════════════════════════════════════════════════════════
@@ -2833,10 +2838,11 @@ def test_changed_by_is_validated_in_preview_too(db_cursor, client):
 
 
 @pytest.mark.db
-def test_body_changed_by_never_becomes_released_by(db_cursor, client, monkeypatch):
+def test_body_changed_by_never_becomes_released_by(db_cursor, client, monkeypatch, actors):
     """changed_by is a claim about who asked for the exit. released_by is a
-    fact about which surface released stock. They are not the same field."""
-    monkeypatch.setattr(main, "DASHBOARD_API_KEY", "sostate-dashboard-key")
+    fact about who (authenticated) released stock. They are not the same field.
+    DCC-001: the public dashboard key no longer writes; a named office person
+    exits the order, and the body's claim never becomes released_by."""
     customer_id, token = _seed_customer(db_cursor)
     product_id, lot_id = _seed_product(db_cursor, token, with_lot=True, stock=500)
     order_id, _ = _seed_order(db_cursor, customer_id, token)
@@ -2846,15 +2852,16 @@ def test_body_changed_by_never_becomes_released_by(db_cursor, client, monkeypatc
     resp = client.post(f"/sales/orders/{order_id}/cancel",
                        json={"reason": "customer_cancelled", "mode": "commit",
                              "changed_by": "impersonated-surface"},
-                       headers={"X-API-Key": "sostate-dashboard-key"})
+                       headers={"X-API-Key": actors["office"]["key"]})
     assert resp.status_code == 200, resp.text
-    assert resp.json()["state_changed_by"] == "impersonated-surface"
 
     db_cursor.execute("SELECT released_by FROM sales_order_allocations WHERE id = %s",
                       (alloc_id,))
-    assert db_cursor.fetchone()["released_by"] == "dashboard", (
-        "released_by comes from the authenticated surface, never the body"
+    released_by = db_cursor.fetchone()["released_by"]
+    assert released_by == actors["office"]["name"], (
+        "released_by comes from the authenticated caller, never the body"
     )
+    assert released_by != "impersonated-surface"
 
 
 # ─── related_so_id ───────────────────────────────────────────────

@@ -173,6 +173,28 @@ def _expected(which, actors):
 
 
 DASH = {"X-API-Key": "test-dashboard-key"}
+# DCC-001: the public dashboard key is read-only, so planning WRITES in these
+# functional tests come from a named office planner (an actor key reaches the
+# same routes and is attributed). Reads keep using the public key.
+WRITER = {}
+
+
+@pytest.fixture(autouse=True)
+def writer(request):
+    if "schema" not in request.fixturenames:
+        yield
+        return
+    cur = request.getfixturevalue("schema")
+    token = uuid4().hex[:8].upper()
+    key = f"run-planner-key-{token}"
+    cur.execute("INSERT INTO actors (name, role, key_hash, active) VALUES (%s, 'office', %s, true)",
+                (f"RUN planner {token}", sha256(key.encode()).hexdigest()))
+    main._reset_actor_cache()
+    WRITER.clear()
+    WRITER["X-API-Key"] = key
+    yield
+    WRITER.clear()
+    main._reset_actor_cache()
 
 
 # ─────────────────────────────────────────────────────────────────
@@ -306,7 +328,7 @@ def _ship_effective(cur, seeded, qty_lb):
     return ship
 
 
-def _create(client, seeded, *, qty=10, unit="cases", headers=DASH, **extra):
+def _create(client, seeded, *, qty=10, unit="cases", headers=WRITER, **extra):
     body = {"run_type": "pack", "product_id": seeded["product_id"], "planned_qty": qty,
             "planned_unit": unit, "planned_date": PLANNED.isoformat(), **extra}
     resp = client.post("/production/runs", json=body, headers=headers)
@@ -314,7 +336,7 @@ def _create(client, seeded, *, qty=10, unit="cases", headers=DASH, **extra):
     return resp.json()["run"]
 
 
-def _cover(client, run_id, coverage, headers=DASH):
+def _cover(client, run_id, coverage, headers=WRITER):
     return client.put(f"/production/runs/{run_id}/coverage",
                       json={"coverage": coverage}, headers=headers)
 
@@ -469,7 +491,7 @@ def test_bulk_sku_with_no_case_size_must_be_planned_in_lb(client, schema):
     seeded = _seed(schema, case_size_lb=None)
     body = {"run_type": "pack", "product_id": seeded["product_id"], "planned_qty": 5,
             "planned_unit": "cases", "planned_date": PLANNED.isoformat()}
-    resp = client.post("/production/runs", json=body, headers=DASH)
+    resp = client.post("/production/runs", json=body, headers=WRITER)
     assert resp.status_code == 400, resp.text
     assert resp.json()["detail"]["error_code"] == "CASE_WEIGHT_REQUIRED"
     run = _create(client, seeded, qty=500, unit="lb")
@@ -486,7 +508,7 @@ def test_create_rejects_bad_quantity_or_unit(client, schema, qty, unit, code):
     seeded = _seed(schema)
     body = {"run_type": "pack", "product_id": seeded["product_id"], "planned_qty": qty,
             "planned_unit": unit, "planned_date": PLANNED.isoformat()}
-    resp = client.post("/production/runs", json=body, headers=DASH)
+    resp = client.post("/production/runs", json=body, headers=WRITER)
     assert resp.status_code == 422, resp.text
     assert resp.json()["detail"]["error_code"] == code
 
@@ -502,7 +524,7 @@ def test_create_rejects_products_that_are_not_finished_skus_made_here(client, sc
     product_id = _product(schema, uuid4().hex[:8], label="X", **kwargs)
     body = {"run_type": "pack", "product_id": product_id, "planned_qty": 10, "planned_unit": "lb",
             "planned_date": PLANNED.isoformat()}
-    resp = client.post("/production/runs", json=body, headers=DASH)
+    resp = client.post("/production/runs", json=body, headers=WRITER)
     assert resp.status_code == status, resp.text
     assert resp.json()["detail"]["error_code"] == code
 
@@ -511,7 +533,7 @@ def test_create_rejects_products_that_are_not_finished_skus_made_here(client, sc
 def test_create_unknown_product_is_404(client, schema):
     body = {"run_type": "pack", "product_id": 999999999, "planned_qty": 10, "planned_unit": "lb",
             "planned_date": PLANNED.isoformat()}
-    resp = client.post("/production/runs", json=body, headers=DASH)
+    resp = client.post("/production/runs", json=body, headers=WRITER)
     assert resp.status_code == 404
     assert resp.json()["detail"]["error_code"] == "PRODUCT_NOT_FOUND"
 
@@ -536,7 +558,7 @@ def test_line_defaults_from_the_single_assignment_and_only_then(client, schema):
     assert _create(client, seeded, qty=1, unit="lb", line_id=bulk)["line_id"] == bulk
     resp = client.post("/production/runs", json={
         "run_type": "pack", "product_id": seeded["product_id"], "planned_qty": 1, "planned_unit": "lb",
-        "planned_date": PLANNED.isoformat(), "line_id": 999999999}, headers=DASH)
+        "planned_date": PLANNED.isoformat(), "line_id": 999999999}, headers=WRITER)
     assert resp.status_code == 404
     assert resp.json()["detail"]["error_code"] == "PRODUCTION_LINE_NOT_FOUND"
 
@@ -552,7 +574,7 @@ def test_list_filters_by_date_status_and_product(client, schema):
     r1 = _create(client, a, qty=1, unit="lb")
     r2 = _create(client, a, qty=2, unit="lb", planned_date=(PLANNED + timedelta(days=5)).isoformat())
     r3 = _create(client, b, qty=3, unit="lb")
-    client.post(f"/production/runs/{r3['id']}/cancel", json={}, headers=DASH)
+    client.post(f"/production/runs/{r3['id']}/cancel", json={}, headers=WRITER)
 
     def ids(**params):
         resp = client.get("/production/runs", params=params, headers=DASH)
@@ -581,7 +603,7 @@ def test_patch_edits_fields_and_reconverts_quantity(client, schema):
     run = _create(client, seeded, qty=10, unit="cases")
     resp = client.patch(f"/production/runs/{run['id']}", json={
         "planned_qty": 20, "planned_date": (PLANNED + timedelta(days=1)).isoformat(),
-        "notes": "moved", "status": "in_progress"}, headers=DASH)
+        "notes": "moved", "status": "in_progress"}, headers=WRITER)
     assert resp.status_code == 200, resp.text
     out = resp.json()["run"]
     assert out["planned_qty_lb"] == 150.0 and out["planned_qty"] == 20.0
@@ -590,13 +612,13 @@ def test_patch_edits_fields_and_reconverts_quantity(client, schema):
     assert out["notes"] == "moved" and out["status"] == "in_progress"
     assert sorted(resp.json()["changed_fields"]) == ["notes", "planned_date", "planned_qty", "status"]
     # Switching the unit keeps the number and re-derives the pounds.
-    resp = client.patch(f"/production/runs/{run['id']}", json={"planned_unit": "lb"}, headers=DASH)
+    resp = client.patch(f"/production/runs/{run['id']}", json={"planned_unit": "lb"}, headers=WRITER)
     assert resp.status_code == 200, resp.text
     out = resp.json()["run"]
     assert out["planned_qty_lb"] == 20.0 and out["planned_unit"] == "lb"
     assert out["case_size_lb_used"] is None
     # Clearing notes / line with null.
-    resp = client.patch(f"/production/runs/{run['id']}", json={"notes": None, "line_id": None}, headers=DASH)
+    resp = client.patch(f"/production/runs/{run['id']}", json={"notes": None, "line_id": None}, headers=WRITER)
     assert resp.status_code == 200, resp.text
     assert resp.json()["run"]["notes"] is None
 
@@ -605,10 +627,10 @@ def test_patch_edits_fields_and_reconverts_quantity(client, schema):
 def test_patch_rejects_empty_body_and_terminal_statuses(client, schema):
     seeded = _seed(schema)
     run = _create(client, seeded, qty=1, unit="lb")
-    resp = client.patch(f"/production/runs/{run['id']}", json={}, headers=DASH)
+    resp = client.patch(f"/production/runs/{run['id']}", json={}, headers=WRITER)
     assert resp.status_code == 422 and resp.json()["detail"]["error_code"] == "NO_FIELDS"
     for status in ("done", "cancelled", "bogus"):
-        resp = client.patch(f"/production/runs/{run['id']}", json={"status": status}, headers=DASH)
+        resp = client.patch(f"/production/runs/{run['id']}", json={"status": status}, headers=WRITER)
         assert resp.status_code == 422, resp.text
         assert resp.json()["detail"]["error_code"] == "INVALID_STATUS_TRANSITION"
         assert "/complete" in resp.json()["detail"]["message"]
@@ -620,11 +642,11 @@ def test_patch_cannot_shrink_below_coverage(client, schema):
     seeded = _seed(schema, qty=100)
     run = _create(client, seeded, qty=100, unit="lb")
     assert _cover(client, run["id"], [{"sales_order_line_id": seeded["line_id"], "qty_lb": 80}]).status_code == 200
-    resp = client.patch(f"/production/runs/{run['id']}", json={"planned_qty": 79.9}, headers=DASH)
+    resp = client.patch(f"/production/runs/{run['id']}", json={"planned_qty": 79.9}, headers=WRITER)
     assert resp.status_code == 409, resp.text
     assert resp.json()["detail"]["error_code"] == "RUN_OVERCOVERED"
     assert float(_run_row(schema, run["id"])["planned_qty_lb"]) == 100.0
-    resp = client.patch(f"/production/runs/{run['id']}", json={"planned_qty": 80}, headers=DASH)
+    resp = client.patch(f"/production/runs/{run['id']}", json={"planned_qty": 80}, headers=WRITER)
     assert resp.status_code == 200, resp.text
 
 
@@ -633,7 +655,7 @@ def test_cancel_is_terminal_and_leaves_coverage_rows_in_place(client, schema):
     seeded = _seed(schema, qty=100)
     run = _create(client, seeded, qty=100, unit="lb")
     assert _cover(client, run["id"], [{"sales_order_line_id": seeded["line_id"], "qty_lb": 50}]).status_code == 200
-    resp = client.post(f"/production/runs/{run['id']}/cancel", json={"reason": "oven down"}, headers=DASH)
+    resp = client.post(f"/production/runs/{run['id']}/cancel", json={"reason": "oven down"}, headers=WRITER)
     assert resp.status_code == 200, resp.text
     out = resp.json()["run"]
     assert out["status"] == "cancelled"
@@ -641,10 +663,10 @@ def test_cancel_is_terminal_and_leaves_coverage_rows_in_place(client, schema):
     assert len(_coverage_rows(schema, run["id"])) == 1, "coverage is filtered at read time, not deleted"
     for path, body in ((f"/production/runs/{run['id']}/cancel", {}),
                        (f"/production/runs/{run['id']}/complete", {})):
-        resp = client.post(path, json=body, headers=DASH)
+        resp = client.post(path, json=body, headers=WRITER)
         assert resp.status_code == 409, resp.text
         assert resp.json()["detail"]["error_code"] == "RUN_NOT_ACTIVE"
-    resp = client.patch(f"/production/runs/{run['id']}", json={"notes": "x"}, headers=DASH)
+    resp = client.patch(f"/production/runs/{run['id']}", json={"notes": "x"}, headers=WRITER)
     assert resp.status_code == 409 and resp.json()["detail"]["error_code"] == "RUN_NOT_EDITABLE"
     resp = _cover(client, run["id"], [])
     assert resp.status_code == 409 and resp.json()["detail"]["error_code"] == "RUN_NOT_ACTIVE"
@@ -659,7 +681,8 @@ def test_unknown_run_is_404_everywhere(client, schema):
         ("put", "/production/runs/999999999/coverage", {"coverage": []}),
         ("get", "/production/runs/999999999/evidence", None),
     ):
-        resp = getattr(client, method)(path, headers=DASH, **({"json": body} if body is not None else {}))
+        resp = getattr(client, method)(path, headers=DASH if method == "get" else WRITER,
+                                       **({"json": body} if body is not None else {}))
         assert resp.status_code == 404, (method, path, resp.text)
         assert resp.json()["detail"]["error_code"] == "RUN_NOT_FOUND"
 
@@ -735,7 +758,7 @@ def test_over_coverage_is_judged_at_database_precision(client, schema):
 
     # The rounded sum exactly equals the plan: ten × 10.0001 = 100.0010 on a
     # plan whose input 100.00095 quantizes (half up) to 100.0010.
-    resp = client.patch(f"/production/runs/{run['id']}", json={"planned_qty": 100.00095}, headers=DASH)
+    resp = client.patch(f"/production/runs/{run['id']}", json={"planned_qty": 100.00095}, headers=WRITER)
     assert resp.status_code == 200, resp.text
     assert float(_run_row(schema, run["id"])["planned_qty_lb"]) == 100.001
     resp = _cover(client, run["id"], [{"sales_order_line_id": lid, "qty_lb": 10.00006} for lid in lines])
@@ -757,22 +780,22 @@ def test_patch_planned_quantity_is_judged_at_database_precision(client, schema):
     run = _create(client, seeded, qty=200, unit="lb")
     assert _cover(client, run["id"], [{"sales_order_line_id": seeded["line_id"], "qty_lb": 100.001}]).status_code == 200
     # 100.00095 → 100.0010 == covered: accepted, stored at exactly the plan validated.
-    resp = client.patch(f"/production/runs/{run['id']}", json={"planned_qty": 100.00095}, headers=DASH)
+    resp = client.patch(f"/production/runs/{run['id']}", json={"planned_qty": 100.00095}, headers=WRITER)
     assert resp.status_code == 200, resp.text
     assert float(_run_row(schema, run["id"])["planned_qty_lb"]) == 100.001
     # 100.00094 → 100.0009 < covered: rejected, plan unchanged.
-    resp = client.patch(f"/production/runs/{run['id']}", json={"planned_qty": 100.00094}, headers=DASH)
+    resp = client.patch(f"/production/runs/{run['id']}", json={"planned_qty": 100.00094}, headers=WRITER)
     assert resp.status_code == 409, resp.text
     assert resp.json()["detail"]["error_code"] == "RUN_OVERCOVERED"
     assert resp.json()["detail"]["planned_qty_lb"] == 100.0009
     assert float(_run_row(schema, run["id"])["planned_qty_lb"]) == 100.001
     # Cases convert in Decimal and quantize the same way: 13.33346 × 7.5 =
     # 100.00095 → 100.0010 (accepted); 13.33345 × 7.5 = 100.001875 → 100.0019.
-    resp = client.patch(f"/production/runs/{run['id']}", json={"planned_qty": 13.33346, "planned_unit": "cases"}, headers=DASH)
+    resp = client.patch(f"/production/runs/{run['id']}", json={"planned_qty": 13.33346, "planned_unit": "cases"}, headers=WRITER)
     assert resp.status_code == 200, resp.text
     assert float(_run_row(schema, run["id"])["planned_qty_lb"]) == 100.001
     # A quantity that rounds to 0.0000 lb cannot be stored (CHECK > 0): 422, not 500.
-    resp = client.patch(f"/production/runs/{run['id']}", json={"planned_qty": 0.00004, "planned_unit": "lb"}, headers=DASH)
+    resp = client.patch(f"/production/runs/{run['id']}", json={"planned_qty": 0.00004, "planned_unit": "lb"}, headers=WRITER)
     assert resp.status_code == 422 and resp.json()["detail"]["error_code"] == "INVALID_QUANTITY"
 
 
@@ -960,9 +983,9 @@ def test_completion_stamps_the_run_and_touches_nothing_else(client, schema, acto
 def test_completion_from_in_progress_and_evidence_after_done(client, schema):
     seeded = _seed(schema)
     run = _create(client, seeded, qty=100, unit="lb")
-    assert client.patch(f"/production/runs/{run['id']}", json={"status": "in_progress"}, headers=DASH).status_code == 200
+    assert client.patch(f"/production/runs/{run['id']}", json={"status": "in_progress"}, headers=WRITER).status_code == 200
     _post_output(schema, seeded["product_id"], 100, PLANNED)
-    resp = client.post(f"/production/runs/{run['id']}/complete", json={}, headers=DASH)
+    resp = client.post(f"/production/runs/{run['id']}/complete", json={}, headers=WRITER)
     assert resp.status_code == 200, resp.text
     assert resp.json()["evidence"]["suggested_state"] == "looks_complete"
     ev = client.get(f"/production/runs/{run['id']}/evidence", headers=DASH).json()
@@ -979,6 +1002,25 @@ def test_every_write_records_the_actor(client, schema, actors, which):
     headers = _headers(which, actors)
     expected = _expected(which, actors)
     seeded = _seed(schema, qty=100)
+    if which == DASHBOARD:
+        # DCC-001: the public dashboard key writes nothing on any run route.
+        run = _create(client, seeded, qty=100, unit="lb")
+        before = (_run_row(schema, run["id"]), _coverage_rows(schema, run["id"]))
+        schema.execute("SELECT count(*) AS n FROM production_runs")
+        runs_before = schema.fetchone()["n"]
+        for method, path, body in (
+                ("post", "/production/runs", {"product_id": seeded["product_id"], "planned_date": PLANNED.isoformat(),
+                                              "planned_quantity": 1, "planned_unit": "lb"}),
+                ("patch", f"/production/runs/{run['id']}", {"notes": "n"}),
+                ("put", f"/production/runs/{run['id']}/coverage", {"coverage": []}),
+                ("post", f"/production/runs/{run['id']}/complete", {}),
+                ("post", f"/production/runs/{run['id']}/cancel", {"reason": "r"})):
+            resp = client.request(method.upper(), path, headers=headers, json=body)
+            assert resp.status_code == 403 and resp.json()["detail"]["error_code"] == "DASHBOARD_KEY_READ_ONLY", (path, resp.text)
+        assert (_run_row(schema, run["id"]), _coverage_rows(schema, run["id"])) == before
+        schema.execute("SELECT count(*) AS n FROM production_runs")
+        assert schema.fetchone()["n"] == runs_before
+        return
 
     run = _create(client, seeded, qty=100, unit="lb", headers=headers)
     row = _run_row(schema, run["id"])
@@ -1017,6 +1059,9 @@ def test_all_three_key_kinds_reach_every_route_and_an_unknown_key_does_not(clien
     for headers in ({"X-API-Key": main.API_KEY}, DASH, {"X-API-Key": actors["key"]}):
         assert client.get("/production/runs", headers=headers).status_code == 200
         assert client.get(f"/production/runs/{run['id']}/evidence", headers=headers).status_code == 200
+    # DCC-001: reads only for the public key; its writes are refused.
+    refused = client.patch(f"/production/runs/{run['id']}", headers=DASH, json={"notes": "x"})
+    assert refused.status_code == 403 and refused.json()["detail"]["error_code"] == "DASHBOARD_KEY_READ_ONLY"
     for method, path in (("get", "/production/runs"), ("post", "/production/runs"),
                          ("patch", f"/production/runs/{run['id']}"),
                          ("put", f"/production/runs/{run['id']}/coverage")):

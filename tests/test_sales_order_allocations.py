@@ -1027,25 +1027,29 @@ def test_dashboard_scoped_key_can_use_allocation_and_received_at_routes(db_curso
     lot_id = _seed_lot(cur, product_id, "STAGED-T044-DASHBOARD-KEY")
     cur.execute("UPDATE lots SET entry_source='found_inventory' WHERE id=%s", (lot_id,))
     _post_stock(cur, product_id, lot_id, 25)
+    # DCC-001: the public dashboard key reads allocations but never writes them.
     allocation_client.headers["X-API-Key"] = main.DASHBOARD_API_KEY
+    cur.execute("SELECT count(*) AS n FROM sales_order_allocations WHERE sales_order_id=%s", (order_id,))
+    before = cur.fetchone()["n"]
+    cur.execute("SELECT received_at FROM lots WHERE id=%s", (lot_id,))
+    received_before = cur.fetchone()["received_at"]
 
     created = allocation_client.post(
         f"/sales/orders/{order_id}/allocations",
         json={"mode": "manual", "line_id": line_id, "quantity_lb": 25, "lot_id": lot_id},
     )
-    assert created.status_code == 200, created.text
-    allocation_id = created.json()["allocations"][0]["id"]
-    assert created.json()["allocations"][0]["created_by"] == "dashboard"
-    assert created.json()["allocations"][0]["source"] == "staged_lot"
+    assert created.status_code == 403 and created.json()["detail"]["error_code"] == "DASHBOARD_KEY_READ_ONLY", created.text
     assert allocation_client.get(f"/sales/orders/{order_id}/allocations").status_code == 200
     patched = allocation_client.patch(
         f"/lots/{lot_id}/received-at", json={"received_at": "2026-08-14T12:00:00-04:00"}
     )
-    assert patched.status_code == 200, patched.text
-    released = allocation_client.post(
-        f"/sales/orders/{order_id}/allocations/{allocation_id}/release"
-    )
-    assert released.status_code == 200, released.text
+    assert patched.status_code == 403 and patched.json()["detail"]["error_code"] == "DASHBOARD_KEY_READ_ONLY", patched.text
+    released = allocation_client.post(f"/sales/orders/{order_id}/allocations/999999999/release")
+    assert released.status_code == 403 and released.json()["detail"]["error_code"] == "DASHBOARD_KEY_READ_ONLY", released.text
+    cur.execute("SELECT count(*) AS n FROM sales_order_allocations WHERE sales_order_id=%s", (order_id,))
+    assert cur.fetchone()["n"] == before
+    cur.execute("SELECT received_at FROM lots WHERE id=%s", (lot_id,))
+    assert cur.fetchone()["received_at"] == received_before
 
 
 @pytest.mark.db

@@ -86,7 +86,9 @@ def fields(row):
     return {'kosher_tier': value, 'kosher_label': 'EXTRA-KOSHER (SS)' if value == EXTRA else 'Regular'}
 
 def owner(cur, identity):
-    if not identity or identity.get('id') is None:
+    # A name tapped on an approved browser is identification, never Michael's
+    # attestation (091): only his own key, session or PIN attests.
+    if not identity or identity.get('id') is None or identity.get('via') == 'selection':
         return None
     cur.execute('SELECT id,name,role,active FROM actors WHERE id=%s FOR SHARE', (identity['id'],))
     current = cur.fetchone()

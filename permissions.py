@@ -73,6 +73,36 @@ ROLE_PERMISSIONS = {
     # Back-dating > 14 days (§6.3). The master key keeps today's backfill path.
     'backdate_over_14d': frozenset({OWNER, LEGACY_LEDGER}),
 }
+# Simple user selection (migration 091): on an owner-approved browser a person
+# is IDENTIFIED by tapping their name. That is never proof. A selected owner
+# therefore gets the owner's routine work but none of the decisions that need
+# Michael's own credential (personal key, key session or phone PIN). Every
+# owner-only check elsewhere compares against OWNER, so this distinct role
+# fails those checks closed.
+SELECTED_OWNER = 'owner_selected'   # not in ROLES: the §4.3 design matrix stays as designed
+PEOPLE = NAMED | {SELECTED_OWNER}
+# EXPLICIT allowlist, reviewed one by one (Codex R1): an action added to the
+# matrix later is denied to a selected owner until someone adds it here on
+# purpose. Each entry is one the floor or office already has, i.e. routine.
+SELECTED_OWNER_ACTIONS = frozenset({
+    'receive', 'make', 'pack', 'adjust', 'found',
+    'void',                      # narrowed to own posts, same plant day (resolution_receipts.require_void)
+    'rename_lot', 'update_supplier_lot', 'move_lot',
+    'ship_order', 'ship_standalone', 'ship_bulk',
+    'create_customer', 'create_order', 'add_order_lines', 'update_order_line', 'cancel_order_line',
+    'update_order_header', 'update_order_status', 'mark_order_ready', 'cancel_order', 'close_order',
+    'create_expected_receipt', 'update_expected_receipt', 'cancel_expected_receipt', 'manage_customers',
+    'manage_aliases', 'list_exceptions',
+    'resolve_exception',         # owner kinds and waivers still need approve_exception (owner proof)
+})
+for _action in SELECTED_OWNER_ACTIONS:
+    if _action not in ROLE_PERMISSIONS or OWNER not in ROLE_PERMISSIONS[_action]:
+        raise RuntimeError(f'selected-owner allowlist names a non-owner action: {_action}')
+    ROLE_PERMISSIONS[_action] = ROLE_PERMISSIONS[_action] | {SELECTED_OWNER}
+del _action
+# Everything the owner may do that a selected owner may not: needs owner proof.
+OWNER_PROOF_ACTIONS = frozenset(a for a, r in ROLE_PERMISSIONS.items()
+                                if OWNER in r and a not in SELECTED_OWNER_ACTIONS)
 ACTIONS = tuple(ROLE_PERMISSIONS)
 
 _LABELS = {
@@ -105,17 +135,29 @@ _LABELS = {
     'backdate_over_14d': ('record an entry more than 14 days old', 'registrar una entrada de más de 14 días'),
 }
 _ROLE_NAMES = {OWNER: 'owner', FLOOR: 'floor', OFFICE: 'office',
-               LEGACY_LEDGER: 'the shared ledger key', LEGACY_DASHBOARD: 'the shared dashboard key'}
+               LEGACY_LEDGER: 'the shared ledger key', LEGACY_DASHBOARD: 'the shared dashboard key',
+               SELECTED_OWNER: 'owner, selected by name'}
 
 
 def fail(http_status, code, message, **extra):
     raise HTTPException(http_status, {'error_code': code, 'message': message, **extra})
 
 
+def selected(identity):
+    """True when the person was only tapped on an approved browser (migration 091)."""
+    return bool(identity) and identity.get('via') == 'selection'
+
+
 def role_of(identity):
-    """`write_tickets.identity()` shape: {id, name, role, key_kind}. Unknown → None (denied)."""
+    """`write_tickets.identity()` shape: {id, name, role, key_kind[, via]}. Unknown → None (denied).
+
+    A selection keeps its marker through role reloads (callers copy the dict and
+    replace only 'role'), so a selected owner stays SELECTED_OWNER everywhere."""
     if identity.get('key_kind') == 'actor':
-        return identity.get('role') if identity.get('role') in NAMED else None
+        role = identity.get('role') if identity.get('role') in NAMED else None
+        if role == OWNER and selected(identity):
+            return SELECTED_OWNER
+        return role
     return identity.get('key_kind') if identity.get('key_kind') in (LEGACY_LEDGER, LEGACY_DASHBOARD) else None
 
 
@@ -139,6 +181,11 @@ def require(action, identity):
         return role
     who = identity.get('name') or _ROLE_NAMES.get(role, 'this key')
     en, es = label(action)
+    if role == SELECTED_OWNER and allowed(action, OWNER):
+        fail(403, 'OWNER_PROOF_REQUIRED',
+             f'Choosing a name does not prove who you are. The owner must sign in with his own key or PIN to {en}.',
+             message_es=f'Elegir un nombre no prueba quién eres. El dueño debe iniciar sesión con su propia clave o PIN para {es}.',
+             action=action, role=role, actor=identity.get('name'), key_kind=identity.get('key_kind'))
     fail(403, 'ROLE_NOT_ALLOWED',
          f'{who} ({_ROLE_NAMES.get(role, "unknown role")}) is not allowed to {en}.',
          message_es=f'{who} no tiene permiso para {es}.',
@@ -302,7 +349,7 @@ def require_backdating(identity, happened_at, now):
              message_es=f'{who} no puede registrar una entrada {info["days_late"]} días después; '
                         'las entradas de más de 14 días son solo del dueño.',
              action='backdate_over_14d', role=role_of(identity), actor=identity.get('name'),
-             days_late=info['days_late'])
+             days_late=info['days_late'], owner_proof_required=role_of(identity) == SELECTED_OWNER)
     return info
 
 

@@ -521,8 +521,9 @@ def test_confirm_yesterday_is_late_and_future_is_refused(client, db_cursor, acto
 # ---------------------------------------------------------------------------
 def test_permissions_matrix(client, db_cursor, actors):
     floor, owner, office = (actors[r]['key'] for r in ('floor', 'owner', 'office'))
-    for key in (main.API_KEY, main.DASHBOARD_API_KEY):
-        error(confirm(client, key, summary(client, key)), 403, 'ACTOR_REQUIRED')
+    error(confirm(client, main.API_KEY, summary(client, main.API_KEY)), 403, 'ACTOR_REQUIRED')
+    # DCC-001: the public dashboard key still reads the summary but is refused before any confirm.
+    error(confirm(client, main.DASHBOARD_API_KEY, summary(client, main.DASHBOARD_API_KEY)), 403, 'DASHBOARD_KEY_READ_ONLY')
     error(client.get('/reports/shift-summary', params={'actor': actors['owner']['name']}, headers=headers(floor)), 403, 'ACTOR_NOT_ALLOWED')
     error(client.get('/reports/shift-summary', params={'actor': str(actors['owner']['id'])}, headers=headers(floor)), 403, 'ACTOR_NOT_ALLOWED')
     assert summary(client, floor, actor=actors['floor']['name'])['actor']['id'] == actors['floor']['id']

@@ -2,6 +2,7 @@
    four owner actions: remove a phone, reset its PIN, remove all of a person's
    sign-ins, deactivate/reactivate a person. Roles are never changed here. */
 (() => {
+  const root = window;
   const ui = FLLedger; ui.bind();
   const content = document.getElementById('content');
   const status = {
@@ -63,13 +64,52 @@
     }
     ui.relabel();
   }
+  // 091: browsers approved for one-tap name selection. Approving needs THIS page's
+  // owner sign-in (Michael's own key or PIN) — a tapped name never reaches it.
+  function renderBrowsers(host, data) {
+    const box = ui.el('section', undefined, host); box.className = 'staff-card'; box.id = 'browsers';
+    ui.el('h2', ui.t('Browsers for name selection', 'Navegadores para elegir nombre'), box);
+    ui.el('p', ui.t('Approve each browser once. Then anyone using it taps their name. A name identifies who is entering; it does not prove it. Owner decisions always need your own sign-in.',
+      'Aprueba cada navegador una vez. Luego quien lo use toca su nombre. El nombre identifica quién registra; no lo prueba. Las decisiones del dueño siempre necesitan tu propio inicio de sesión.'), box);
+    if (data.people_problem) ui.el('p', ui.t('The list of people is not set up correctly, so nobody can record by name yet.', 'La lista de personas no está bien configurada; nadie puede registrar por nombre todavía.'), box).className = 'bad';
+    else ui.el('p', data.people.map(p => `${p.display_name} (${p.available ? p.role_label : ui.t('not available', 'no disponible')})`).join(' · '), box);
+    const form = ui.el('form', undefined, box); form.className = 'staff-tools';
+    const codeLabel = ui.el('label', undefined, form); ui.el('span', ui.t('Code shown on the browser', 'Código que muestra el navegador'), codeLabel);
+    const code = ui.el('input', undefined, codeLabel); Object.assign(code, { id: 'browser-code', autocomplete: 'off', required: true, maxLength: 20 }); code.setAttribute('autocapitalize', 'characters');
+    const nameLabel = ui.el('label', undefined, form); ui.el('span', ui.t('Name this browser', 'Nombre de este navegador'), nameLabel);
+    const label = ui.el('input', undefined, nameLabel); Object.assign(label, { id: 'browser-label', required: true, maxLength: 60, placeholder: ui.t('Floor tablet', 'Tableta del piso') });
+    const submit = ui.el('button', ui.t('Approve browser', 'Aprobar navegador'), form); submit.type = 'submit'; submit.className = 'primary';
+    form.onsubmit = async event => {
+      event.preventDefault(); submit.disabled = true;
+      try { await ui.request('/auth/browsers/approve', { pairing_code: code.value.trim(), label: label.value.trim() }); code.value = ''; label.value = '';
+        ui.notice(ui.t('Browser approved. It now shows the names.', 'Navegador aprobado. Ya muestra los nombres.'), 'good'); await load(); }
+      catch (error) { ui.failure(error); } finally { submit.disabled = false; }
+    };
+    for (const browser of data.browsers.filter(b => b.status === 'approved')) {
+      const row = ui.el('div', undefined, box); row.className = 'staff-device';
+      ui.el('strong', browser.label, row);
+      ui.el('p', ui.t(`Approved ${when(browser.approved_at)} by ${browser.approved_by || '—'} · last used ${when(browser.last_seen_at)}`,
+        `Aprobado ${when(browser.approved_at)} por ${browser.approved_by || '—'} · último uso ${when(browser.last_seen_at)}`), row);
+      button(row, ui.t('Remove browser', 'Quitar navegador'), () => act(
+        ui.t(`Remove ${browser.label}? Nobody can record on it until you approve it again. Past entries stay.`, `¿Quitar ${browser.label}? Nadie podrá registrar en él hasta que lo apruebes otra vez. Los registros anteriores se mantienen.`),
+        `/auth/browsers/${browser.id}/revoke`, null, ui.t('Browser removed.', 'Navegador quitado.')));
+    }
+    const waiting = data.browsers.filter(b => b.status === 'pending').length;
+    if (waiting) ui.el('p', ui.t(`${waiting} browser(s) waiting for a code.`, `${waiting} navegador(es) esperando un código.`), box);
+  }
   async function load() {
     content.replaceChildren();
-    if (!ui.session.pinEnabled) { ui.el('p', ui.t('PIN sign-in is not switched on yet.', 'El inicio con PIN aún no está activo.'), content); return; }
-    if (!ui.session.actor) { ui.el('p', ui.t('Sign in above as the owner.', 'Inicia sesión arriba como dueño.'), content); return; }
-    if (ui.session.actor.role !== 'owner') { ui.el('p', ui.t('Only the owner can manage staff phones.', 'Solo el dueño puede administrar los teléfonos.'), content); return; }
-    try { render((await ui.request('/auth/devices', undefined, { read: true })).people); }
-    catch (error) { ui.failure(error); }
+    if (!ui.session.actor) { ui.el('p', ui.t('Sign in above as the owner (your own key or PIN).', 'Inicia sesión arriba como dueño (tu propia clave o PIN).'), content); return; }
+    if (ui.session.actor.role !== 'owner') { ui.el('p', ui.t('Only the owner can manage staff phones and browsers.', 'Solo el dueño puede administrar teléfonos y navegadores.'), content); return; }
+    if (ui.session.pinEnabled) {
+      try { render((await ui.request('/auth/devices', undefined, { read: true })).people); }   // replaces the content
+      catch (error) { ui.failure(error); }
+    } else ui.el('p', ui.t('PIN sign-in is not switched on.', 'El inicio con PIN no está activo.'), content);
+    if (root.FLDashboard?.personSelect === true) {
+      const holder = document.createElement('div');
+      try { renderBrowsers(holder, await ui.request('/auth/browsers', undefined, { read: true })); content.prepend(...holder.childNodes); ui.relabel(); }
+      catch (error) { ui.failure(error); }
+    }
   }
   window.addEventListener('ledger-auth', load);
   window.addEventListener('ledger-signout', load);

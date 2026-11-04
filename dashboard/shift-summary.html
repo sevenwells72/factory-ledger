@@ -1,13 +1,13 @@
 <!doctype html>
 <html lang="en">
-<head><script src="dashboard-runtime.js?v=6"></script>
+<head><script src="dashboard-runtime.js?v=7"></script><script src="person-select.js?v=1"></script><link rel="stylesheet" href="person-select.css?v=1">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="referrer" content="no-referrer">
   <title>Shift Summary · Factory Ledger</title>
   <link rel="stylesheet" href="shift-summary.css?v=3">
-  <script defer src="key-session.js?v=6"></script>
-  <script defer src="shift-summary.js?v=11"></script>
+  <script defer src="key-session.js?v=7"></script>
+  <script defer src="shift-summary.js?v=13"></script>
 <link rel="stylesheet" href="ledger-forms.css?v=16"><script defer src="receipt-shell.js?v=7"></script><link rel="stylesheet" href="wallpaper.css?v=2">
 </head>
 <body class="fl-summary-page">
@@ -19,11 +19,11 @@
         <button id="sign-out" type="button" hidden data-en="Sign out" data-es="Cerrar sesión">Sign out</button>
       </div>
     </div>
-    <p id="identity" class="identity" data-en="Sign in with your personal key, or continue read-only." data-es="Inicia sesión con tu clave personal o continúa en modo lectura.">Sign in with your personal key, or continue read-only.</p>
+    <p id="identity" class="identity" data-en="Checking settings…" data-es="Comprobando la configuración…">Checking settings…</p>
   </header>
 
   <main>
-    <section id="sign-in-panel" class="panel sign-in-panel">
+    <section id="sign-in-panel" class="panel sign-in-panel" hidden>
       <h2 data-en="Does today match the floor?" data-es="¿Hoy coincide con el piso?">Does today match the floor?</h2>
       <p data-en="Your sign-in shows your own receipts and lets you confirm the shift. An existing dashboard sign-in continues here automatically." data-es="Tu sesión muestra tus propios recibos y te deja confirmar el turno. Si ya iniciaste sesión en el tablero, continúa aquí automáticamente.">Your sign-in shows your own receipts and lets you confirm the shift. An existing dashboard sign-in continues here automatically.</p>
       <form id="sign-in-form">

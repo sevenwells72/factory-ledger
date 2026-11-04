@@ -167,6 +167,13 @@
   // Read-only holds this marker, never the key: every request re-reads the scoped
   // dashboard key (FLDashboard.key, 60 s cache) so a rotation reaches open views (O-7).
   const READ_ONLY = '\u0000read-only';
+  const SELECTED = '\u0000selected:';
+  const selecting = () => root.FLDashboard?.personSelect === true;   // R8: mode, not script presence
+  // R13: until the page's one config has answered, the mode is UNKNOWN: no
+  // credential panel, no personal-key copy, no legacy sign-in. The legacy panel
+  // appears only when config is known AND name selection is off.
+  let settled = !root.FLDashboard?.ready;   // no runtime config promise = nothing pending
+  const knownOff = () => settled && root.FLDashboard?.configUnknown !== true && !selecting();
   let key = '', actor = null, doc = null, busy = false, generation = 0, pendingNotes = null;
   let session = null, sharedMode = false;
   // Same token store and exchange as the dashboard/office pages; personal keys
@@ -178,6 +185,10 @@
         if (sharedMode && !state.signedIn && key) resetView();
         paintPin();
       } });
+    // R12: decide from the page's one config BEFORE touching the legacy client.
+    // Selector mode (or unknown settings): no legacy init, no restored session, no PIN offer.
+    if (root.FLDashboard?.ready) await root.FLDashboard.ready.catch(() => {});
+    if (root.FLDashboard?.personSelect === true || root.FLDashboard?.configUnknown === true) { sharedMode = false; return false; }
     sharedMode = await session.init();
     paintPin = root.FLKeySessions.pinField?.(session, $('actor-key'), { after: $('summary-panel') }) || paintPin;
     return sharedMode;
@@ -191,7 +202,11 @@
     $('language').textContent = language === 'en' ? 'ES' : 'EN';
     $('language').setAttribute('aria-label', language === 'en' ? 'Cambiar a español' : 'Switch to English');
     $('actor-key').placeholder = t('Enter your personal key', 'Escribe tu clave personal');
-    if (actor) $('identity').textContent = `${t('Signed in as', 'Sesión de')} ${actor.name} · ${actor.role}`;
+    if (!settled) $('identity').textContent = t('Checking settings…', 'Comprobando la configuración…');
+    else if (root.FLDashboard?.configUnknown === true) $('identity').textContent = t('Recording is not available: settings could not be loaded. Refresh the page.', 'El registro no está disponible: no se pudo cargar la configuración. Actualiza la página.');
+    else if (actor && selecting()) $('identity').textContent = `${t('Entering as', 'Registrando como')} ${actor.name} (${actor.role})`;
+    else if (actor) $('identity').textContent = `${t('Signed in as', 'Sesión de')} ${actor.name} · ${actor.role}`;
+    else if (selecting()) $('identity').textContent = t('Choose your name to see your shift.', 'Elige tu nombre para ver tu turno.');
     else if (key) $('identity').textContent = t('Read-only view of all actors (shared key).', 'Vista de solo lectura de todos (clave compartida).');
     else $('identity').textContent = t('Sign in with your personal key, or continue read-only.', 'Inicia sesión con tu clave personal o continúa en modo lectura.');
     paintPin();
@@ -209,11 +224,21 @@
   async function api(path, { body, method = 'GET', params, withKey, background = false } = {}) {
     const url = new URL(path, API);
     const credential = withKey === undefined ? key : withKey;
-    const requestKey = credential === READ_ONLY ? await root.FLDashboard.key(API,language) : credential;
+    let selected = null;
+    if (typeof credential === 'string' && credential.startsWith(SELECTED)) {
+      // 091: the chosen name. It must still be the person this view was opened for.
+      // R14: the browser token belongs to the API that issued it (FLDashboard.base).
+      // Never send it anywhere else — e.g. a ?api= override — and never redirect.
+      if (!root.FLDashboard?.base || url.origin !== new URL(root.FLDashboard.base).origin)
+        throw { detail: { error_code: 'API_ORIGIN_MISMATCH', message: t('This page points at a different Factory Ledger address, so your name cannot be used here. Nothing was sent.', 'Esta página apunta a otra dirección de Factory Ledger; tu nombre no se puede usar aquí. No se envió nada.') } };
+      selected = root.FLDashboard.person().headers({ write: true });
+      if (selected['X-FL-Person'] !== credential.slice(SELECTED.length)) throw { detail: { message: root.FLDashboard.person().fail('PERSON_CHANGED').labels[language === 'es' ? 1 : 0] } };
+    }
+    const requestKey = selected ? selected['X-API-Key'] : credential === READ_ONLY ? await root.FLDashboard.key(API,language) : credential;
     Object.entries(params || {}).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v); });
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 60000);
     try {
-      const response = await fetch(url, { method, headers: { 'X-API-Key': requestKey, ...(background ? { 'X-FL-Background': '1' } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      const response = await fetch(url, { method, headers: { 'X-API-Key': requestKey, ...(selected ? { 'X-FL-Person': selected['X-FL-Person'] } : {}), ...(background ? { 'X-FL-Background': '1' } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}) },
         body: body ? JSON.stringify(body) : undefined, signal: controller.signal, cache: 'no-store' });
       const data = await Promise.resolve().then(()=>response.json()).catch(error=>{if([401,403].includes(response.status))return {};throw error;});
       if (response.status === 401 && data.detail?.error_code === 'SESSION_EXPIRED' && session?.token && requestKey === session.token) {
@@ -321,7 +346,7 @@
   function resetView() {
     generation += 1;                                 // every in-flight request for the old person is dropped
     key = ''; actor = null; busy = false; clearSummary();
-    $('summary-panel').hidden = true; $('sign-in-panel').hidden = false; $('sign-out').hidden = true;
+    $('summary-panel').hidden = true; $('sign-in-panel').hidden = !knownOff(); $('sign-out').hidden = true;
     applyLanguage(); notice(''); fitFooter();
   }
 
@@ -346,6 +371,7 @@
   }
 
   async function signIn(personalKey) {
+    if (!knownOff()) return;                         // R13: pending/unknown/selector-on never sign in the old way
     resetView();
     const s = stamp();
     try {
@@ -365,6 +391,21 @@
     } catch (error) { if (!current(s)) return; key = ''; actor = null; notice(errorText(error, language)); }
   }
 
+  // 091: on an owner-approved browser the chosen name opens the person's own summary.
+  async function enterSelected() {
+    const people = root.FLDashboard.person();
+    await people.ready;
+    resetView();
+    const person = people.person;
+    $('sign-in-panel').hidden = true;
+    if (people.broken) { notice((people.state.problem === 'SCRIPT_MISSING' ? people.fail() : people.fail('UNAVAILABLE')).message); return; }
+    if (!person) { people.open(); return; }
+    showIdentity({ id: person.id, name: person.display_name, role: person.role_label }, SELECTED + person.id);
+    $('sign-out').hidden = true;
+    await load();
+  }
+  root.addEventListener?.('fl-person-change', () => { if (selecting()) enterSelected().catch(() => {}); });
+  Promise.resolve(root.FLDashboard?.ready).then(() => { if (selecting()) enterSelected().catch(() => {}); });
   $('sign-in-form').addEventListener('submit', event => { event.preventDefault(); const v = $('actor-key').value.trim(); $('actor-key').value = ''; if (v) signIn(v); else notice(t('Enter your key or choose read-only.', 'Escribe tu clave o elige solo lectura.')); });
   $('read-only').addEventListener('click', () => signIn(''));
   $('sign-out').addEventListener('click', signOut);
@@ -388,9 +429,24 @@
     sendConfirm(pendingNotes.outcome, notes);
   });
   applyLanguage(); fitFooter();
+  Promise.resolve(root.FLDashboard?.ready).catch(() => {}).then(() => {
+    settled = true;
+    if (knownOff() && !key) $('sign-in-panel').hidden = false;
+    applyLanguage();
+  });
   const initialGeneration = generation;
-  sessionReady.then(enabled => {
-    if (generation !== initialGeneration || !enabled || !session.actor) return;
+  // R11: unknown config = no key/PIN prompt and no restored session; reads only after a refresh.
+  Promise.resolve(root.FLDashboard?.ready).then(() => {
+    if (root.FLDashboard?.configUnknown !== true) return;
+    $('sign-in-panel').hidden = true; $('sign-out').hidden = true; applyLanguage();
+    notice(t('Factory Ledger settings could not be loaded. Refresh the page. Nothing was recorded.',
+      'No se pudo cargar la configuración de Factory Ledger. Actualiza la página. No se registró nada.'));
+  }).catch(() => {});
+  sessionReady.then(async enabled => {
+    if (root.FLDashboard?.ready) await root.FLDashboard.ready.catch(() => {});
+    if (root.FLDashboard?.configUnknown === true) return;
+    // In selector mode a leftover personal session never restores a different identity.
+    if (selecting() || generation !== initialGeneration || !enabled || !session.actor) return;
     showIdentity(session.actor, session.token); load({ background: true });
   }).catch(error => notice(errorText(error, language)));
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -517,18 +517,23 @@ def test_dashboard_key_can_use_expected_receipts_and_suppliers(client, cur, monk
     r = client.get("/suppliers", headers=DASH)
     assert r.status_code == 200, r.text
 
+    # DCC-001: the public dashboard key reads expected receipts but never writes them.
+    cur.execute("SELECT count(*) AS n FROM expected_receipts")
+    before = cur.fetchone()["n"]
     r = client.post("/expected-receipts", headers=DASH, json={
         "product_id": pid, "supplier_name": "DashKey Supply", "expected_qty": 25,
-        "created_by": "spoofed-user-42",   # body tag must be ignored for the dashboard key
+        "created_by": "spoofed-user-42",
     })
-    assert r.status_code == 201, r.text
-    er = r.json()["expected_receipt"]
-    assert er["created_by"] == "dashboard"
+    assert r.status_code == 403 and r.json()["detail"]["error_code"] == "DASHBOARD_KEY_READ_ONLY", r.text
+    cur.execute("SELECT count(*) AS n FROM expected_receipts")
+    assert cur.fetchone()["n"] == before
+    assert client.post("/suppliers", headers=DASH, json={"name": "DashKey New Supplier"}).status_code == 403
 
+    er = _create_er(client, pid, "DashKey Supply", 25)
     r = client.patch(f"/expected-receipts/{er['id']}", headers=DASH, json={"notes": "via dashboard key"})
-    assert r.status_code == 200, r.text
+    assert r.status_code == 403 and r.json()["detail"]["error_code"] == "DASHBOARD_KEY_READ_ONLY", r.text
     r = client.get(f"/expected-receipts/{er['id']}", headers=DASH)
-    assert r.status_code == 200 and r.json()["notes"] == "via dashboard key"
+    assert r.status_code == 200 and r.json()["notes"] != "via dashboard key"
 
     # Dashboard key still cannot reach a non-allowlisted route.
     r = client.post("/make", headers=DASH, json={})

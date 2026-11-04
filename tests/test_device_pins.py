@@ -73,8 +73,12 @@ def test_pin_sign_in_works_only_with_the_enrolled_phone(client, actors, db_curso
     office, _ = enroll(client, actors, 'office', '7305')
     ok = pin(client, floor['device_secret'], '4829')
     assert ok.status_code == 200 and ok.json()['actor']['id'] == actors['floor']['id']
-    # Right PIN, wrong or made-up phone: refused the same way.
-    for secret in [office['device_secret'], 'x' * 43, 'short', floor['device_secret'][:-1] + 'A']:
+    # Right PIN, wrong or made-up phone: refused the same way. The near-miss secret
+    # must really differ: a random secret ends in 'A' about 1 time in 16.
+    real = floor['device_secret']
+    near_miss = real[:-1] + ('B' if real.endswith('A') else 'A')
+    assert near_miss != real
+    for secret in [office['device_secret'], 'x' * 43, 'short', near_miss]:
         r = pin(client, secret, '4829')
         assert r.status_code == 401 and r.json()['detail']['error_code'] in ('DEVICE_NOT_RECOGNIZED', 'PIN_INVALID')
     assert pin(client, office['device_secret'], '4829').json()['detail']['error_code'] == 'PIN_INVALID'

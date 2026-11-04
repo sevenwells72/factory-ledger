@@ -109,11 +109,13 @@ Pointer syntax: file::text means search that file for that exact text (a section
 - Code:
   - `main.py::def _authorize_api_key`, `main.py::def verify_api_key`
   - `permissions.py`, `key_sessions.py`, `device_pins.py` (phone PIN, migration `migrations/089_device_pins.sql`), `staging_safety.py`
-- UI: `dashboard/key-session.js`, `dashboard/pin.js`
+  - `trusted_browsers.py`: owner-approved browsers + one-tap person selection (migration `migrations/091_trusted_browsers.sql`, flag `PERSON_SELECT_ENABLED`). The `flb_` branch sits in `main.py::def _authenticate_browser` after the legacy key checks; scope `main.py::SELECTION_ALLOWLIST`; a selected owner is capped by `permissions.py::SELECTED_OWNER_ACTIONS`. Seed with `scripts/seed_person_choices.py` (prints SQL, never connects). Design and route matrix: `docs/security/simple-user-selection.md`.
+- UI: `dashboard/key-session.js`, `dashboard/pin.js`, `dashboard/person-select.js` (pairing code, "Who is entering?", Change user; every transport asks `FLDashboard.person()`), `dashboard/staff-access.js` (owner approves/removes browsers)
 - CI: `.github/workflows/key-literal-guard.yml` runs `scripts/check_no_key_literals.py`
 - Tests:
   - `tests/test_key_*`, `tests/test_roles_a2.py`, `tests/test_readonly_*`, `tests/test_named_actor_writes.py`
   - `tests/test_actor_attribution.py`, `tests/test_notes_auth.py`, `tests/test_staging_safety.py`
+  - `tests/test_trusted_browsers*.py`, `tests/test_person_select.js`, browser checks `tests/visual/run-person-select.mjs`
 - Docs: `docs/operating-model/06-access-reference.md`, `docs/named-actor-writes.md`
 - Risk: **High**
 

@@ -45,6 +45,11 @@ def test_extra_batch_receive_ticket_refused_for_every_role(client, db_cursor, ac
     payload, _ = receive_payload(db_cursor, product_id)
     key = role_key(actors, role)
     response = client.post('/receive/prepare', json=payload, headers=headers(key))
+    if role == 'dashboard':
+        # DCC-001: the public dashboard key is read-only; nothing is prepared or posted.
+        error(response, 403, 'DASHBOARD_KEY_READ_ONLY')
+        no_output_lot(db_cursor, product_id, payload['lot_code'])
+        return
     assert response.status_code == 200, response.text
     prepared = response.json()
     assert prepared['can_commit'] is False
@@ -64,6 +69,8 @@ def test_extra_batch_receive_legacy_and_aliases_refused(client, db_cursor, actor
     if role == 'dashboard' and path == '/receive':
         assert response.status_code == 403, response.text
         assert response.json()['detail'] == 'API key not authorized for this endpoint'
+    elif role == 'dashboard':
+        error(response, 403, 'DASHBOARD_KEY_READ_ONLY')   # DCC-001: public key never writes
     else:
         error(response, 409, 'KOSHER_BATCH_RECEIVE_REFUSED')
     no_output_lot(db_cursor, product_id, payload['lot_code'])
@@ -86,6 +93,10 @@ def test_extra_finished_receive_cannot_skip_pack_or_approved_found(client, db_cu
             error(response, 409, 'KOSHER_ATTESTATION_REQUIRED')
     else:
         response = client.post('/receive/prepare', json=payload, headers=headers(key))
+        if role == 'dashboard':
+            error(response, 403, 'DASHBOARD_KEY_READ_ONLY')   # DCC-001: public key never writes
+            no_output_lot(db_cursor, 285, payload['lot_code'])
+            return
         assert response.status_code == 200, response.text
         prepared = response.json()
         assert not prepared['can_commit']

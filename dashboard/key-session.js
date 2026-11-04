@@ -7,7 +7,10 @@
   // lives in localStorage next to the phone's device secret.
   const PIN_STORE = 'fl-pin-session-token', DEVICE = 'fl-device';
   const PIN = /^[0-9]{4}$/, SECRET = /^[A-Za-z0-9_-]{43}$/;
-  function create({ base, fetch: transport, storage, config: sharedConfig, changed = () => {},
+  // R11: by default every client shares the page's one authoritative config
+  // (FLDashboard.config). A failed config makes init() fail, so no stored
+  // key/PIN session is restored and no second config request can "succeed" later.
+  function create({ base, fetch: transport, storage, config: sharedConfig = root.FLDashboard?.config, changed = () => {},
                     deviceStorage = (typeof root.localStorage !== 'undefined' ? root.localStorage : null) }) {
     let enabled = false, pinEnabled = false, token = '', actor = null, revision = 0, device = null;
     const publish = () => changed({ enabled, actor, signedIn: !!token, pinEnabled, device: device && { actor: device.actor, label: device.label } });
@@ -177,9 +180,14 @@
         label.textContent = state.actor ? 'Signed in as ' + state.actor.name : 'Sign in before recording an entry';
         signIn.hidden = !!state.actor; signOut.hidden = !state.actor; paintPin();
       } });
-    const initialized=runtime?runtime.ready.then(on=>{if(!on){client.clear();return false;}return client.init();}):client.init();
+    // R12: normal dashboard pages in selector mode never initialise the legacy
+    // key/PIN client: no whoami with an old token, no restored identity, no PIN offer.
+    const initialized=runtime?runtime.ready.then(on=>{if(runtime.configUnknown||runtime.personSelect===true)return false;if(!on){client.clear();return false;}return client.init();}):client.init();
+    // 091: with name selection on, the person chip (person-select.js) replaces the
+    // personal-key bar on these pages; no key/PIN prompt is offered for routine work.
+    const selecting = () => runtime?.personSelect === true;   // R8: mode, not script presence
     const ready = initialized.then(enabled => {
-      if (!enabled) return;
+      if (!enabled || selecting()) return;
       const mount = () => {
         const bar = document.createElement('div'); bar.className = 'fl-session-bar';
         label = document.createElement('span'); label.setAttribute('role', 'status');
@@ -232,6 +240,23 @@
         // reads need the same person-bound scope as writes on the pilot API.
         if (new URL(url, location.href).origin !== new URL(base).origin) return options;
         await ready;
+        if (runtime?.configUnknown && !['GET','HEAD','OPTIONS'].includes((options.method || 'GET').toUpperCase())) {
+          const error = new Error('Factory Ledger settings could not be loaded. Refresh the page. Nothing was recorded.');
+          error.code = 'CONFIG_UNKNOWN'; throw error;
+        }
+        if (selecting()) {
+          const people = runtime.person();
+          await people.ready;
+          const write = !['GET','HEAD','OPTIONS'].includes((options.method || 'GET').toUpperCase());
+          let chosen;
+          try { chosen = people.headers({ write }); }
+          catch (error) { if (write) people.open(); throw error; }
+          if (!chosen) return options;           // unapproved browser: reads keep the page's own key
+          const headers = new Headers(options.headers || {});
+          for (const [name, value] of Object.entries(chosen)) headers.set(name, value);
+          if (!chosen['X-FL-Person']) headers.delete('X-FL-Person');
+          return { ...options, headers };
+        }
         if (!client.enabled) return options;
         if (['GET','HEAD','OPTIONS'].includes((options.method || 'GET').toUpperCase())) {
           return client.actor ? { ...options, headers: await client.headers(options.headers) } : options;
@@ -246,6 +271,11 @@
         return { ...options, headers: await client.headers(options.headers) };
       },
       async observe(response) {
+        if (selecting() && response.status >= 400) {
+          const data = await response.clone().json().catch(() => ({}));
+          runtime.person().observe(response.status, data);
+          return response;
+        }
         if (client.enabled && response.status === 401) {
           const data = await response.clone().json().catch(() => ({}));
           if (data.detail?.error_code === 'SESSION_EXPIRED') client.clear();

@@ -157,7 +157,9 @@ def test_wrong_identity_including_legacy_key_kinds(client, db_cursor, payload, a
     error(commit(client, prepared), 403, 'TICKET_WRONG_USER')
     assert commit(client, prepared, actors['floor']['key']).status_code == 200
     shared = prepare(client, payload)
-    error(commit(client, shared, main.DASHBOARD_API_KEY), 403, 'TICKET_WRONG_USER')
+    # DCC-001: the public dashboard key is read-only, refused before the ticket is looked at.
+    error(commit(client, shared, main.DASHBOARD_API_KEY), 403, 'DASHBOARD_KEY_READ_ONLY')
+    assert ticket_row(db_cursor, shared)['status'] == 'prepared'
     assert ticket_row(db_cursor, prepared)['actor_id'] == actors['floor']['id']
 
 
@@ -364,6 +366,18 @@ def test_backdated_plant_day_receipt_lists_on_both_days_and_filters(client, db_c
 def test_route_auth_matrix_and_attribution(client, db_cursor, payload, actors, which):
     key = {'master': main.API_KEY, 'dashboard': main.DASHBOARD_API_KEY}.get(which)
     key = key or actors[which]['key']
+    if which == 'dashboard':
+        # DCC-001: the public dashboard key reads receipts but never prepares or commits.
+        db_cursor.execute('SELECT count(*) AS n FROM write_tickets')
+        before = db_cursor.fetchone()['n']
+        error(client.post('/receive/prepare', json=payload, headers=headers(key)), 403, 'DASHBOARD_KEY_READ_ONLY')
+        db_cursor.execute('SELECT count(*) AS n FROM write_tickets')
+        assert db_cursor.fetchone()['n'] == before
+        receipt = commit(client, prepare(client, payload)).json()
+        for path in ('/receipts', '/receipts/' + receipt['receipt_number'],
+                     '/receipts/by-transaction/' + str(receipt['transaction_id'])):
+            assert client.get(path, headers=headers(key)).status_code == 200
+        return
     prepared = prepare(client, payload, key)
     response = commit(client, prepared, key)
     assert response.status_code == 200, response.text

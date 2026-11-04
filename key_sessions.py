@@ -9,6 +9,8 @@ from datetime import timedelta
 from fastapi import Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field, StrictStr
 
+import trusted_browsers
+
 PREFIX = 'fls_'
 IDLE_MINUTES = 180
 PIN_SESSION_HOURS = 12
@@ -20,7 +22,7 @@ ROUTES = frozenset({('POST', '/auth/session/logout'),
                     ('POST', '/auth/devices/{device_id}/revoke'),
                     ('POST', '/auth/devices/{device_id}/reset-pin'),
                     ('POST', '/auth/actors/{actor_id}/remove-access'),
-                    ('POST', '/auth/actors/{actor_id}/active')})
+                    ('POST', '/auth/actors/{actor_id}/active')}) | trusted_browsers.OWNER_ROUTES
 
 
 def enabled():
@@ -133,8 +135,13 @@ def register_routes(app, api):
     @app.get('/auth/session/config')
     def config(response: Response):
         response.headers['Cache-Control'] = 'no-store'
+        # 091: MODE is the explicit flag. AVAILABILITY reports schema/choices health
+        # separately: mode on + unavailable means "blocked, show unavailable",
+        # never a fallback to personal-key or PIN prompts.
         return {'key_sessions_enabled': enabled(), 'idle_minutes': IDLE_MINUTES,
-                'pin_sign_in': pin_enabled(api), 'pin_session_hours': PIN_SESSION_HOURS}
+                'pin_sign_in': pin_enabled(api), 'pin_session_hours': PIN_SESSION_HOURS,
+                'person_select_enabled': trusted_browsers.enabled(),
+                **trusted_browsers.availability(api)}
 
     @app.post('/auth/session', dependencies=[Depends(require_enabled)])
     def exchange(body: Exchange, request: Request, response: Response):

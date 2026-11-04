@@ -184,9 +184,9 @@ def test_get_notes_rejected(client, actors, readonly_key, which, status, detail)
 
 
 @pytest.mark.db
-@pytest.mark.parametrize("which", ["master", "dashboard", "actor_floor", "actor_office", "session"])
+@pytest.mark.parametrize("which", ["master", "actor_floor", "actor_office", "session"])
 def test_writes_accepted(client, actors, sessions_on, which):
-    keys = {"master": _master(), "dashboard": _key(main.DASHBOARD_API_KEY),
+    keys = {"master": _master(),
             "actor_floor": _key(actors["floor"]["key"]), "actor_office": _key(actors["office"]["key"])}
     h = _session_headers(client, actors["floor"]) if which == "session" else keys[which]
     note = _create(client)
@@ -255,16 +255,38 @@ def test_floor_actor_key_writes_are_attributed(client, actors, sessions_on, db_c
 
 
 @pytest.mark.db
-@pytest.mark.parametrize("which", ["master", "dashboard"])
+@pytest.mark.parametrize("which", ["master"])
 def test_shared_key_writes_record_no_attribution(client, actors, sessions_on, db_cursor, which):
-    """The shared keys name a surface, not a person (`_record_actor_write` is a no-op)."""
-    h = {"master": _master(), "dashboard": _key(main.DASHBOARD_API_KEY)}[which]
+    """The shared master key names a surface, not a person (`_record_actor_write` is a no-op)."""
+    h = {"master": _master()}[which]
     created = client.post(NOTES, json={"category": "note", "title": "unattributed"}, headers=h)
     assert created.status_code == 200, created.text
     nid = created.json()["id"]
     for method, url, body in _write_calls(nid)[1:]:
         assert client.request(method, url, json=body, headers=h).status_code == 200
     assert _audit_rows(db_cursor, nid) == []
+
+
+@pytest.mark.db
+def test_public_dashboard_key_reads_notes_but_writes_nothing(client, actors, sessions_on, db_cursor):
+    """DCC-001: the public dashboard key is read-only in both selection modes.
+    Signed-out staff still read the Notes list (row 240); every write is refused."""
+    dash = _key(main.DASHBOARD_API_KEY)
+    note = _create(client, title="untouched by the public key")
+    db_cursor.execute("SELECT count(*) AS n FROM notes")
+    count = db_cursor.fetchone()["n"]
+    db_cursor.execute("SELECT * FROM notes WHERE id = %s", (note["id"],))
+    row = dict(db_cursor.fetchone())
+    for method, url, body in [("POST", NOTES, {"category": "note", "title": "public write"})] + _write_calls(note["id"]):
+        resp = client.request(method, url, json=body, headers=dash)
+        assert resp.status_code == 403, (method, url, resp.text)
+        assert resp.json()["detail"]["error_code"] == "DASHBOARD_KEY_READ_ONLY", (method, url, resp.text)
+    db_cursor.execute("SELECT count(*) AS n FROM notes")
+    assert db_cursor.fetchone()["n"] == count
+    db_cursor.execute("SELECT * FROM notes WHERE id = %s", (note["id"],))
+    assert dict(db_cursor.fetchone()) == row
+    assert _audit_rows(db_cursor, note["id"]) == []
+    assert client.get(NOTES, headers=dash).status_code == 200
 
 
 # ─────────────────────────────────────────────────────────────────

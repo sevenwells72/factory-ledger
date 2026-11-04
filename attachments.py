@@ -25,7 +25,7 @@ ROUTES = frozenset({('POST','/attachments'), ('GET','/attachments/{attachment_id
                    ('GET','/attachments/{attachment_id}/file'), ('POST','/shipments/{shipment_id}/attachments')})
 
 def named(actor):
-    if actor['id'] is None or permissions.role_of(actor) not in permissions.NAMED:
+    if actor['id'] is None or permissions.role_of(actor) not in permissions.PEOPLE:
         wt.fail(403, 'ROLE_NOT_ALLOWED', 'Evidence requires a named actor.')
 
 def validate_configuration():
@@ -138,7 +138,7 @@ def public(row):
 
 def read_allowed(actor, row):
     named(actor)
-    if row['uploaded_by_actor_id'] != actor['id'] and permissions.role_of(actor) not in ('office','owner'):
+    if row['uploaded_by_actor_id'] != actor['id'] and permissions.role_of(actor) not in ('office','owner',permissions.SELECTED_OWNER):
         wt.fail(403,'ATTACHMENT_WRONG_ACTOR','You may only read your own evidence.')
 
 class AttachRequest(BaseModel):
@@ -152,7 +152,7 @@ def attach_shipment(api, cur, shipment_id, ref, actor):
     shipment = cur.fetchone()
     if not shipment:
         wt.fail(404,'SHIPMENT_NOT_FOUND','Shipment not found.')
-    if shipment['entered_by_actor_id'] != actor['id'] and permissions.role_of(actor) not in ('office','owner'):
+    if shipment['entered_by_actor_id'] != actor['id'] and permissions.role_of(actor) not in ('office','owner',permissions.SELECTED_OWNER):
         wt.fail(403,'ROLE_NOT_ALLOWED','Only the shipping actor or office/owner may attach shipment evidence.')
     row = verified(cur,ref,actor,ticket_id=shipment['ticket_id'],kinds=('bol','truck_photo','signed_packing_slip'),claim=True)
     if row['shipment_id'] not in (None,shipment_id):

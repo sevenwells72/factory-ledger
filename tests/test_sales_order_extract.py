@@ -1207,7 +1207,9 @@ class TestSalesAllowlistAndTripwire:
         (it auto-creates customers)."""
         assert ("POST", "/sales/orders") not in main.DASHBOARD_KEY_ALLOWLIST
 
-    def test_dashboard_key_accepted_on_match(self, client, cur):
+    def test_dashboard_key_refused_on_match(self, client, cur):
+        """DCC-001: only GETs and the SELECT-only /resolve stay open to the public
+        dashboard key; intake matching (a POST) now needs a real credential."""
         _seed_customer(cur, "Dash Key Cust 050")
         r = client.post("/sales/orders/match",
                         headers={"X-API-Key": main.DASHBOARD_API_KEY},
@@ -1216,7 +1218,7 @@ class TestSalesAllowlistAndTripwire:
                                              "requested_ship_date": None,
                                              "lines": [{"customer_item_code": None, "description": "x",
                                                         "quantity": 1, "unit": None, "unit_price": None}]}})
-        assert r.status_code == 200, r.text
+        assert r.status_code == 403 and r.json()["detail"]["error_code"] == "DASHBOARD_KEY_READ_ONLY", r.text
 
     def test_dashboard_key_rejected_on_manual_create(self, client):
         r = client.post("/sales/orders",

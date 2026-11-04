@@ -168,6 +168,15 @@ ALL_KEYS = [
 ]
 
 
+# DCC-001: the public dashboard key is read-only, so these WRITE attribution
+# tests cover the master and personal keys; the dashboard key's refusal on the
+# same routes is test_public_dashboard_key_writes_nothing_on_attributed_routes.
+WRITE_KEYS = [
+    pytest.param(MASTER, id="master-key"),
+    pytest.param(ACTOR, id="actor-key"),
+]
+
+
 # The actor-key column is the floor actor by default. The order-state tests
 # pass label="office" (reopen: "owner"): they are about attribution, and §4.3
 # (A2) closes those routes to floor.
@@ -323,8 +332,52 @@ def _released_for_line(cur, line_id):
 # The write paths
 # ═════════════════════════════════════════════════════════════════
 
+def _order_snapshot(cur, seeded):
+    cur.execute("SELECT state, status, state_changed_by FROM sales_orders WHERE id = %s", (seeded["order_id"],))
+    order = dict(cur.fetchone())
+    cur.execute("SELECT ready, ready_by FROM sales_order_flags WHERE so_number = %s", (seeded["order_number"],))
+    order["flags"] = [dict(r) for r in cur.fetchall()]
+    cur.execute("SELECT id, quantity_lb, quantity_shipped_lb, line_status FROM sales_order_lines WHERE sales_order_id = %s ORDER BY id",
+                (seeded["order_id"],))
+    lines = [dict(r) for r in cur.fetchall()]
+    cur.execute("SELECT id, status, quantity_lb, released_by FROM sales_order_allocations WHERE sales_order_line_id = %s ORDER BY id",
+                (seeded["line_id"],))
+    allocations = [dict(r) for r in cur.fetchall()]
+    cur.execute("SELECT count(*) AS n FROM transactions")
+    return order, lines, allocations, cur.fetchone()["n"]
+
+
 @pytest.mark.db
-@pytest.mark.parametrize("which", ALL_KEYS)
+def test_public_dashboard_key_writes_nothing_on_attributed_routes(client, db_cursor, actors):
+    """DCC-001: every write route above refuses the public dashboard key with
+    DASHBOARD_KEY_READ_ONLY (selection off) and changes nothing."""
+    seeded = _seed(db_cursor)
+    _recorded_shipment(db_cursor, seeded)
+    allocation_id = _allocate(db_cursor, seeded)
+    dash = _headers(DASHBOARD, actors)
+    before = _order_snapshot(db_cursor, seeded)
+    oid, line = seeded["order_id"], seeded["line_id"]
+    for method, path, body in (
+            ("POST", f"/sales/orders/{oid}/close", {"reason": "short_closed", "mode": "commit"}),
+            ("POST", f"/sales/orders/{oid}/cancel", {"reason": "customer_cancelled", "mode": "commit"}),
+            ("POST", f"/sales/orders/{oid}/reopen", {"mode": "commit"}),
+            ("POST", f"/sales-orders/{seeded['order_number']}/ready", {"ready": True}),
+            ("POST", f"/sales/orders/{oid}/allocations", {"line_id": line, "mode": "manual", "quantity_lb": 25}),
+            ("POST", f"/sales/orders/{oid}/allocations/{allocation_id}/release", None),
+            ("POST", f"/sales/orders/{oid}/ship/commit", {"lines": [{"line_id": line, "quantity_lb": 10}]}),
+            ("PATCH", f"/sales/orders/{oid}/status", {"status": "cancelled"}),
+            ("PATCH", f"/sales/orders/{oid}/status", {"status": "invoiced"}),
+            ("PATCH", f"/sales/orders/{oid}/lines/{line}/update?quantity_lb=10", None)):
+        resp = client.request(method, path, headers=dash, **({"json": body} if body is not None else {}))
+        assert resp.status_code == 403, (method, path, resp.text)
+        assert resp.json()["detail"]["error_code"] == "DASHBOARD_KEY_READ_ONLY", (method, path, resp.text)
+    assert _order_snapshot(db_cursor, seeded) == before
+    # Reads stay available to the public key.
+    assert client.get(f"/sales/orders/{oid}", headers=dash).status_code == 200
+
+
+@pytest.mark.db
+@pytest.mark.parametrize("which", WRITE_KEYS)
 def test_close_records_the_actor(client, db_cursor, actors, which):
     seeded = _seed(db_cursor)
     _recorded_shipment(db_cursor, seeded)
@@ -347,7 +400,7 @@ def test_close_records_the_actor(client, db_cursor, actors, which):
 
 
 @pytest.mark.db
-@pytest.mark.parametrize("which", ALL_KEYS)
+@pytest.mark.parametrize("which", WRITE_KEYS)
 def test_cancel_records_the_actor(client, db_cursor, actors, which):
     seeded = _seed(db_cursor)
     allocation_id = _allocate(db_cursor, seeded)
@@ -366,7 +419,7 @@ def test_cancel_records_the_actor(client, db_cursor, actors, which):
 
 
 @pytest.mark.db
-@pytest.mark.parametrize("which", ALL_KEYS)
+@pytest.mark.parametrize("which", WRITE_KEYS)
 def test_reopen_records_the_actor(client, db_cursor, actors, which):
     seeded = _seed(db_cursor)
     db_cursor.execute(
@@ -388,7 +441,7 @@ def test_reopen_records_the_actor(client, db_cursor, actors, which):
 
 
 @pytest.mark.db
-@pytest.mark.parametrize("which", ALL_KEYS)
+@pytest.mark.parametrize("which", WRITE_KEYS)
 def test_ready_flag_records_the_actor(client, db_cursor, actors, which):
     seeded = _seed(db_cursor)
 
@@ -413,7 +466,7 @@ def test_ready_flag_records_the_actor(client, db_cursor, actors, which):
 
 
 @pytest.mark.db
-@pytest.mark.parametrize("which", ALL_KEYS)
+@pytest.mark.parametrize("which", WRITE_KEYS)
 def test_allocation_create_records_the_actor(client, db_cursor, actors, which):
     seeded = _seed(db_cursor)
 
@@ -433,7 +486,7 @@ def test_allocation_create_records_the_actor(client, db_cursor, actors, which):
 
 
 @pytest.mark.db
-@pytest.mark.parametrize("which", ALL_KEYS)
+@pytest.mark.parametrize("which", WRITE_KEYS)
 def test_manual_release_records_the_actor(client, db_cursor, actors, which):
     seeded = _seed(db_cursor)
     allocation_id = _allocate(db_cursor, seeded)
@@ -450,7 +503,7 @@ def test_manual_release_records_the_actor(client, db_cursor, actors, which):
 
 
 @pytest.mark.db
-@pytest.mark.parametrize("which", ALL_KEYS)
+@pytest.mark.parametrize("which", WRITE_KEYS)
 def test_ship_commit_records_the_actor(client, db_cursor, actors, which):
     """Shipping stamps released_by through _expire_auto_fifo_allocations, so
     the row that proves it is an auto-FIFO reservation whose TTL has elapsed —
@@ -490,7 +543,7 @@ def test_ship_commit_records_the_actor(client, db_cursor, actors, which):
 # ─────────────────────────────────────────────────────────────────
 
 @pytest.mark.db
-@pytest.mark.parametrize("which", ALL_KEYS)
+@pytest.mark.parametrize("which", WRITE_KEYS)
 def test_legacy_status_cancelled_records_the_actor(client, db_cursor, actors, which):
     seeded = _seed(db_cursor, status="confirmed")
     allocation_id = _allocate(db_cursor, seeded)
@@ -514,7 +567,7 @@ def test_legacy_status_cancelled_records_the_actor(client, db_cursor, actors, wh
 
 
 @pytest.mark.db
-@pytest.mark.parametrize("which", ALL_KEYS)
+@pytest.mark.parametrize("which", WRITE_KEYS)
 def test_legacy_status_invoiced_records_the_actor(client, db_cursor, actors, which):
     """'invoiced' routes through close but keeps its own mirror, so the
     persisted pair is ('invoiced', 'closed') — and the attribution has to be
@@ -558,7 +611,7 @@ def test_legacy_status_invoiced_records_the_actor(client, db_cursor, actors, whi
 # three writers have recorded since they were fixed.
 
 @pytest.mark.db
-@pytest.mark.parametrize("which", ALL_KEYS)
+@pytest.mark.parametrize("which", WRITE_KEYS)
 def test_update_line_records_the_actor_at_the_shrink_site(client, db_cursor, actors, which):
     """Site 1 of 2: _shrink_active_allocations, reached when the new quantity
     is smaller than what is already reserved against the line."""
@@ -584,7 +637,7 @@ def test_update_line_records_the_actor_at_the_shrink_site(client, db_cursor, act
 
 
 @pytest.mark.db
-@pytest.mark.parametrize("which", ALL_KEYS)
+@pytest.mark.parametrize("which", WRITE_KEYS)
 def test_update_line_records_the_actor_at_the_expiry_site(client, db_cursor, actors, which):
     """Site 2 of 2: _expire_auto_fifo_allocations, which persists elapsed
     auto-FIFO TTLs for the whole product on any product-locking write.

@@ -419,10 +419,20 @@ def test_dashboard_key_allowed_on_supplies_routes(client, cur):
     h = {"X-API-Key": main.DASHBOARD_API_KEY}
     assert client.get("/supplies/inventory", headers=h).status_code == 200
     assert client.get(f"/supplies/inventory/{pid}/lots", headers=h).status_code == 200
+    # DCC-001: the public dashboard key reads supplies but never writes requests.
+    cur.execute("SELECT count(*) AS n FROM supply_requests")
+    before = cur.fetchone()["n"]
     r = client.post("/supply-requests", json={"product_id": pid, "requested_by": "dash"}, headers=h)
-    assert r.status_code == 201, r.text
+    assert r.status_code == 403 and r.json()["detail"]["error_code"] == "DASHBOARD_KEY_READ_ONLY", r.text
     assert client.get("/supply-requests", headers=h).status_code == 200
-    assert client.patch(f"/supply-requests/{r.json()['supply_request_id']}", json={"status": "done"}, headers=h).status_code == 200
+    made = client.post("/supply-requests", json={"product_id": pid, "requested_by": "master"},
+                       headers={"X-API-Key": main.API_KEY})
+    assert made.status_code == 201, made.text
+    r = client.patch(f"/supply-requests/{made.json()['supply_request_id']}", json={"status": "done"}, headers=h)
+    assert r.status_code == 403 and r.json()["detail"]["error_code"] == "DASHBOARD_KEY_READ_ONLY", r.text
+    cur.execute("SELECT count(*) AS n, bool_and(status <> 'done') AS untouched FROM supply_requests")
+    row = cur.fetchone()
+    assert row["n"] == before + 1 and row["untouched"]
     # and a route not on the allowlist still 403s for the dashboard key
     assert client.get("/admin/readonly-probe", headers=h).status_code in (403, 404)
 
