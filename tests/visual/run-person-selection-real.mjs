@@ -80,7 +80,7 @@ async function ownerScreens(page, receive, label) {
   let receipt = receive?.receipt;
   if (!receipt) {
     const recent = await page.evaluate(() => FLLedger.request('/receipts?limit=100&summary=true', undefined, {read:true}));
-    receipt = recent.receipts?.find(r => r.status === 'committed' && ['receive', 'make', 'pack', 'adjust', 'found'].includes(r.action))?.receipt_number;
+    receipt = recent.receipts?.find(r => r.status === 'committed' && (!r.effective_status || r.effective_status === 'posted') && ['receive', 'make', 'pack', 'adjust', 'found'].includes(r.action))?.receipt_number;
   }
   if (receipt) {
     await page.goto(base + '/receipt.html?number=' + encodeURIComponent(receipt));

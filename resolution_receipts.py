@@ -82,7 +82,7 @@ def require_void(api, cur, actor, transaction_id):
     if not row:
         exceptions.fail(404, 'TRANSACTION_NOT_FOUND', 'Transaction not found.')
     # A selected owner (091) voids like floor: own posts, same plant day.
-    if permissions.role_of(actor) in (permissions.FLOOR, permissions.SELECTED_OWNER) and (
+    if permissions.role_of(actor) in (permissions.FLOOR, permissions.SELECTED_OWNER, permissions.SELECTED_STAFF) and (
             row['entered_by_actor_id'] != actor['id'] or row['business_date'] != api.get_plant_now().date()):
         exceptions.fail(403, 'VOID_OWNER_REQUIRED', 'Floor may void only their own posts on the same plant day.')
     return row
@@ -187,5 +187,5 @@ def commit(api, cur, row, body, actor, request):
     if row['action'] == 'resolve_exception':
         return exceptions.resolve_in_transaction(api, cur, payload['exception_id'], resolution, request, actor, prepared=row)
     result = api._append_transaction_correction(cur, payload['transaction_id'], 'void', payload['reason'], None,
-        actor['name'], trace_operator_id=actor['name'], entered_by_actor_id=actor['id'], receipt_ticket=row)
+        actor['name'], trace_operator_id=actor['name'], entered_by_actor_id=actor['id'], receipt_ticket=row, actor_identity=actor)
     return result

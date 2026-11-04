@@ -3587,7 +3587,7 @@ def _authorize_selection(request: Request) -> bool:
         # dashboard work, including Make/Pack/Ship regardless of their old role.
         if permissions.role_of(identity) == permissions.OWNER:
             return True
-        if route_key in (DASHBOARD_KEY_ALLOWLIST | ACTOR_WRITE_ALLOWLIST):
+        if route_key in SELECTION_ALLOWLIST:
             permissions.require_route(route_key, identity)
             return True
         raise HTTPException(status_code=403, detail="This action is available under Michael.")
@@ -10157,6 +10157,7 @@ def _append_transaction_correction(
     trace_operator_id: Optional[str] = None,
     entered_by_actor_id: Optional[int] = None,
     receipt_ticket=None,
+    actor_identity=None,
 ):
     reason = (reason or "").strip()
     if not reason:
@@ -10183,7 +10184,7 @@ def _append_transaction_correction(
 
     if event_type == 'void':
         import resolution_receipts
-        receipt_actor = resolution_receipts.correction_actor(cur, entered_by_actor_id, operator_id)
+        receipt_actor = actor_identity or resolution_receipts.correction_actor(cur, entered_by_actor_id, operator_id)
         resolution_receipts.require_void(sys.modules[__name__], cur, receipt_actor, transaction_id)
 
     restore_product_ids = []
@@ -10357,6 +10358,7 @@ def void_transaction(transaction_id: int, req: VoidRequest, _: bool = Depends(ve
                     _operator_id(request),
                     trace_operator_id=actor_name(request),
                     entered_by_actor_id=_entered_by_actor_id(request),
+                    actor_identity=_actor_identity(request) if request_identity_via(request) == "selection" else None,
                 )
 
                 logger.info(

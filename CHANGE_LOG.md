@@ -1,5 +1,110 @@
 # Change Log
 
+## 2026-11-03 19:55 — Record independent Claude approval of four-name sign-in
+- **File(s) changed:** `.venv-test/four-name-claude-review.json`, `.venv-test/four-name-claude-rereview.json`
+- **What changed:** Independent Claude Code initially blocked the overly broad staff-void scope, then reviewed the corrected identity handoff, route scope, cache versions and docs and returned PASS with no remaining blocking findings. Final full suites and staging repeat remain pending.
+- **Why:** Satisfy the required independent pre-merge review with recorded findings and resolution.
+
+---
+
+## 2026-11-03 19:55 — Choose an unvoided live receipt for owner-screen verification
+- **File(s) changed:** `tests/visual/run-person-selection-real.mjs`
+- **What changed:** Live read-only acceptance now selects a posted committed receipt rather than a previously voided receipt before asserting the owner void control.
+- **Why:** Avoid a false test failure caused by legitimate receipt history while still requiring the real void screen.
+
+---
+
+## 2026-11-03 19:55 — Compare name-selection visual audit against equivalent prior mode
+- **File(s) changed:** `.venv-test/person-selection/visual/baseline-off-report.md`, `.venv-test/person-selection/visual/baseline-off-console.log`, `.venv-test/person-selection/visual/baseline-comparison.json`, `temporary baseline visual fixture`
+- **What changed:** Unchanged HEAD classic baseline completed 388 captures with 0 errors and 431 failed rule cells; archived report, console and classification delta; prepared prior approved-Michael fixtures for targeted mode comparison. A mistaken-directory follow-up cleared temporary raw baseline results before archival, but full report and computed classification delta remain.
+- **Why:** Historical classic audit disables all human sign-in and cannot directly compare the newly always-enabled dashboard.
+
+---
+
+## 2026-11-03 19:54 — Verify Michael voids survive legacy access changes on both routes
+- **File(s) changed:** `tests/test_name_only_signin.py`
+- **What changed:** Exercise actual cross-person void via ticket and direct routes after deactivating and changing Michael legacy actor role; verify Michael remains the immutable correction operator.
+- **Why:** Regression proof for the final selected-identity handoff requested during independent review fixes.
+
+---
+
+## 2026-11-03 19:54 — Request independent Claude re-review of access corrections
+- **File(s) changed:** `.venv-test/four-name-review-followup.txt`
+- **What changed:** Document the staff-void scope and resolved-identity fix, narrower staff routes, cache refreshes and validation for independent re-review.
+- **Why:** Resolve every blocking finding before the authorized production release.
+
+---
+
+## 2026-11-03 19:53 — Preserve staging acceptance evidence before independent-review follow-up
+- **File(s) changed:** `.venv-test/person-selection/staging-before-review-fix/`
+- **What changed:** Copied the initial successful hosted browser results, attribution proof and screenshots before re-running against the upcoming reviewed backend correction.
+- **Why:** Retain the complete validation history while keeping final evidence tied to the reviewed runtime.
+
+---
+
+## 2026-11-03 19:53 — Keep shared-key direct void identity fallback unchanged
+- **File(s) changed:** `main.py`
+- **What changed:** Limit the new direct-void identity handoff to selected-name requests; legacy shared credentials continue using their existing operator fallback.
+- **Why:** Preserve the required machine-credential behavior while fixing selected-name voids.
+
+---
+
+## 2026-11-03 19:53 — Preserve selected identity through the final void correction
+- **File(s) changed:** `main.py`, `resolution_receipts.py`
+- **What changed:** Pass the already-resolved identity into the internal correction core for direct and ticket voids; legacy internal callers retain their actor-row fallback.
+- **Why:** The real staff own-void test showed the last correction step dropping selection identity and reverting Luz/Miriam to their old office role.
+
+---
+
+## 2026-11-03 19:52 — Preserve staff void limits and existing dashboard ticket scope
+- **File(s) changed:** `resolution_receipts.py`, `main.py`
+- **What changed:** Add SELECTED_STAFF to the existing own-post/same-day void rule and use SELECTION_ALLOWLIST for their name-only requests. Michael retains unrestricted owner/admin route authority.
+- **Why:** Resolve independent Claude review M1 and L1 without adding sign-in prompts or changing normal Record workflows.
+
+---
+
+## 2026-11-03 19:52 — Clarify access scope and retired credential pages after review
+- **File(s) changed:** `docs/ARCHITECTURE-MAP.md`, `docs/security/simple-user-selection.md`
+- **What changed:** Document all routine selected-staff work, own-day void scope and redirect-only legacy PIN/staff pages. Independent Claude initial review required a targeted staff-void fix and cache refresh; final review pending.
+- **Why:** Keep the current contract and code map accurate after removal of human sign-in protection.
+
+---
+
+## 2026-11-03 19:52 — Cover selected-staff void scope and ticket route boundaries
+- **File(s) changed:** `tests/test_name_only_signin.py`
+- **What changed:** Add real HTTP/DB tests for all three staff names: own same-day void succeeds, another person or prior-day posting is refused without a correction, and ordinary forms use ticket routes rather than legacy direct posts.
+- **Why:** Independent Claude review M1 found staff-selected omitted from the existing void scope rule; L1 identified unnecessary direct-write reach.
+
+---
+
+## 2026-11-03 19:52 — Refresh page asset versions after sign-in changes
+- **File(s) changed:** `dashboard/index.html`, `dashboard/receipt.html`, `dashboard/shift-summary.html`, `dashboard/dashboard.js`
+- **What changed:** Bumped dashboard, receipt and shift-summary script cache versions and removed the redundant packing-slip error branch; Assistant source remains unchanged.
+- **Why:** Independent Claude review found modified page-specific scripts still used their old cache versions.
+
+---
+
+## 2026-11-03 19:51 — Pass hosted staging fresh-browser acceptance with all four names
+- **File(s) changed:** `.venv-test/person-selection/staging/results.json`, `.venv-test/person-selection/staging/attribution.json`, `.venv-test/person-selection/staging/*.png`
+- **What changed:** The actual staging site passed eight new desktop/mobile browser contexts and 32 real Make Pack Ship Receive records using name headers only; direct read-only SQL confirmed each tapped-name operator and actor ID. Michael void/adjustment screens and viewport-only four-button sign-in passed; no prompts, auth failures, browser/session/PIN calls or JS errors.
+- **Why:** Required hosted proof before the authorized production rollout; all synthetic staging records remain clearly labeled and preserved.
+
+---
+
+## 2026-11-03 19:50 — Archive current classic visual audit and prepare unchanged baseline
+- **File(s) changed:** `.venv-test/person-selection/visual/current-report.md`, `.venv-test/person-selection/visual/current-results.json`, `docs/design/audit/06-browser-check.md`, `/tmp/fl-four-name-visual-baseline-*`
+- **What changed:** Completed388 classic captures with0 capture errors and542 failing mechanical rule cells, archived output outside commit, restored generated tracked report to HEAD, and exported unchanged HEAD dashboard/harness for comparable baseline.
+- **Why:** Owner requests smallest change; separate existing design findings from sign-in regressions before final verification.
+
+---
+
+## 2026-11-03 19:49 — Complete final local fresh-browser acceptance after sign-in geometry fix
+- **File(s) changed:** `.venv-test/person-selection/local/results.json`, `.venv-test/person-selection/local/attribution.json`, `.venv-test/person-selection/local/*.png`
+- **What changed:** Final current-backend run passed all eight fresh index-first desktop/mobile contexts, 32 actual records with matching operator snapshots and actor IDs, Michael void/adjustment screens, and exact viewport-only four-button sign-in.
+- **Why:** Verify the finished sign-in flow before staging and production rollout.
+
+---
+
 ## 2026-11-03 19:48 — Remove underlying page layout while choosing a name
 - **File(s) changed:** `dashboard/person-select.css`
 - **What changed:** Hide underlying body children with display:none during name selection, eliminating their scroll height; show them again immediately when a name is tapped.

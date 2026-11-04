@@ -111,15 +111,58 @@ def test_name_only_kosher_make_and_owner_approval_are_real_posts(client, people,
                                          'kosher_attested_by_actor_id': people['michael']}
 
 
-def test_michael_voids_another_selected_persons_post_without_credentials(client, people, payload, db_cursor):
+@pytest.mark.parametrize('route', ['ticket', 'direct'])
+def test_michael_voids_another_selected_persons_post_without_credentials(client, people, payload, db_cursor, route):
     p = client.post('/receive/prepare', json=payload, headers=named('Luz')).json()
     recorded = client.post('/tickets/' + p['ticket'] + '/commit', json={'payload_hash': p['payload_hash']}, headers=named('Luz'))
     assert recorded.status_code == 200, recorded.text
     transaction_id = recorded.json()['transaction_id']
-    draft = client.post(f'/void/{transaction_id}/prepare', json={'reason': 'Name-only test correction'}, headers=named('Michael'))
-    assert draft.status_code == 200, draft.text
-    p = draft.json()
-    void = client.post('/tickets/' + p['ticket'] + '/commit', json={'payload_hash': p['payload_hash']}, headers=named('Michael'))
+    db_cursor.execute("UPDATE actors SET active=false,role='office' WHERE id=%s", (people['michael'],))
+    if route == 'direct':
+        void = client.post(f'/void/{transaction_id}', json={'reason': 'Name-only test correction'}, headers=named('Michael'))
+    else:
+        draft = client.post(f'/void/{transaction_id}/prepare', json={'reason': 'Name-only test correction'}, headers=named('Michael'))
+        assert draft.status_code == 200, draft.text
+        p = draft.json()
+        void = client.post('/tickets/' + p['ticket'] + '/commit', json={'payload_hash': p['payload_hash']}, headers=named('Michael'))
     assert void.status_code == 200 and void.json()['receipt_number'].startswith('VD-'), void.text
     db_cursor.execute("SELECT operator_id FROM ledger_corrections WHERE target_table='transactions' AND target_id=%s", (transaction_id,))
     assert db_cursor.fetchone()['operator_id'] == 'Michael'
+
+
+@pytest.mark.parametrize('name', ['Luz', 'Arturo', 'Miriam'])
+@pytest.mark.parametrize('source', ['own_today', 'other_person', 'own_yesterday'])
+def test_selected_staff_void_scope_is_own_same_day(client, people, payload, db_cursor, name, source):
+    operator = 'Michael' if source == 'other_person' else name
+    if source == 'own_yesterday':
+        payload = payload | {'occurred_at': (main.get_plant_now() - timedelta(days=1)).isoformat()}
+    prepared = client.post('/receive/prepare', json=payload, headers=named(operator))
+    assert prepared.status_code == 200, prepared.text
+    p = prepared.json()
+    recorded = client.post('/tickets/' + p['ticket'] + '/commit', json={'payload_hash': p['payload_hash']}, headers=named(operator))
+    assert recorded.status_code == 200, recorded.text
+    transaction_id = recorded.json()['transaction_id']
+    draft = client.post(f'/void/{transaction_id}/prepare', json={'reason': 'Test staff correction'}, headers=named(name))
+    if source != 'own_today':
+        assert draft.status_code == 403, draft.text
+        assert draft.json()['detail']['error_code'] == 'VOID_OWNER_REQUIRED'
+        db_cursor.execute("SELECT count(*) AS n FROM ledger_corrections WHERE target_table='transactions' AND target_id=%s", (transaction_id,))
+        assert db_cursor.fetchone()['n'] == 0
+        return
+    assert draft.status_code == 200, draft.text
+    p = draft.json()
+    void = client.post('/tickets/' + p['ticket'] + '/commit', json={'payload_hash': p['payload_hash']}, headers=named(name))
+    assert void.status_code == 200 and void.json()['receipt_number'].startswith('VD-'), void.text
+    db_cursor.execute("SELECT operator_id FROM ledger_corrections WHERE target_table='transactions' AND target_id=%s", (transaction_id,))
+    assert db_cursor.fetchone()['operator_id'] == name
+
+
+@pytest.mark.parametrize('name', ['Luz', 'Arturo', 'Miriam'])
+def test_selected_staff_uses_dashboard_ticket_routes_not_legacy_direct_posts(client, people, name):
+    for path in ('/make', '/receive', '/pack', '/adjust', '/ship', '/customers', '/receive/commit', '/void/1'):
+        response = client.post(path, json={}, headers=named(name))
+        assert response.status_code == 403, (path, response.text)
+    # Ordinary forms still reach their actual prepare handlers.
+    for path in ('/make/prepare', '/pack/prepare', '/receive/prepare', '/sales/orders/1/ship/prepare'):
+        response = client.post(path, json={}, headers=named(name))
+        assert response.status_code not in (401, 403), (path, response.text)
