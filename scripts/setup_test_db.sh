@@ -4,6 +4,7 @@
 # Usage:
 #   scripts/setup_test_db.sh           # create DB + load schema if missing
 #   scripts/setup_test_db.sh --fresh   # drop and rebuild from schema.sql
+#   scripts/setup_test_db.sh --db NAME # use database NAME instead (fl_/factory_ledger_ names only)
 #
 # Then run tests with:
 #   TEST_DATABASE_URL=postgresql://localhost:5432/factory_ledger_test python3 -m pytest
@@ -21,6 +22,23 @@ HOST="localhost"
 PORT="5432"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SCHEMA="$ROOT/tests/schema/schema.sql"
+FRESH=0
+
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --fresh) FRESH=1; shift ;;
+        --db)
+            DB_NAME="${2:-}"; shift 2 || { echo "--db needs a name" >&2; exit 2; } ;;
+        *) echo "Unknown argument: $1" >&2; exit 2 ;;
+    esac
+done
+
+# Local disposable test databases only, named so they can never be mistaken
+# for anything else.
+if ! [[ "$DB_NAME" =~ ^(fl_|factory_ledger_)[a-z0-9_]{1,50}$ ]]; then
+    echo "Refusing database name '$DB_NAME' (must start fl_ or factory_ledger_, lowercase)" >&2
+    exit 2
+fi
 
 if [ ! -x "$PG_BIN/psql" ]; then
     echo "postgresql@17 not found — run: brew install postgresql@17" >&2
@@ -42,7 +60,7 @@ if ! "$PG_BIN/pg_isready" -q -h "$HOST" -p "$PORT"; then
     }
 fi
 
-if [ "${1:-}" = "--fresh" ]; then
+if [ "$FRESH" = 1 ]; then
     "$PG_BIN/dropdb" -h "$HOST" -p "$PORT" --if-exists "$DB_NAME"
 fi
 

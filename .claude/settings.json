@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(scripts/run_tests.sh *)",
+      "Bash(scripts/run_full_suite.sh *)",
+      "Bash(scripts/run_full_suite.sh)",
+      "Bash(node --test *)",
+      "Bash(npm run test:visual *)",
+      "Bash(npm run test:visual)",
+      "Bash(python3 scripts/log_change.py *)",
+      "Bash(python3 scripts/check_architecture_map.py *)",
+      "Bash(python3 scripts/check_architecture_map.py)",
+      "Bash(python3 scripts/check_no_key_literals.py *)",
+      "Bash(python3 scripts/check_no_key_literals.py)",
+      "Bash(git diff *)",
+      "Bash(git status *)",
+      "Bash(git log *)",
+      "Bash(git show *)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(git commit *)",
+      "Bash(git reset *)",
+      "Bash(gh pr create *)",
+      "Bash(gh pr merge *)",
+      "Bash(railway *)",
+      "Bash(npx @railway/cli *)",
+      "Bash(netlify *)",
+      "Bash(npx netlify *)",
+      "Bash(curl *)",
+      "Bash(psql *)",
+      "Bash(scripts/psql_ro.sh *)",
+      "Bash(dropdb *)",
+      "Bash(rm -rf *)",
+      "Bash(*fl-backup-and-verify.sh*)"
+    ]
+  }
+}

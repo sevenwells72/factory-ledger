@@ -147,8 +147,8 @@ Pointer syntax: file::text means search that file for that exact text (a section
 
 ## Tests
 
-- **Python:** `scripts/run_tests.sh tests/test_x.py -x -q`. It uses the `.venv-test` interpreter and the LOCAL database `factory_ledger_test` (`scripts/setup_test_db.sh`). `tests/conftest.py` refuses production hosts. Tests marked `db` skip when no test database is set.
-- **Choosing tests:** run the module's tests above first, then `grep -l '<function or route>' tests/` for anything else that calls the changed code. The full suite (about 6,300 tests in each of two modes) is for High-risk changes and pre-merge only.
+- **Python:** `scripts/run_tests.sh tests/test_x.py -x -q`. It uses the `.venv-test` interpreter (a worktree without one uses the main checkout's, or `FL_TEST_VENV`) and the LOCAL database `factory_ledger_test` (`scripts/setup_test_db.sh`). `tests/conftest.py` refuses production hosts. Tests marked `db` skip when no test database is set.
+- **Choosing tests:** run the module's tests above first, then `grep -l '<function or route>' tests/` for anything else that calls the changed code. The full suite (about 7,400 tests in each of two modes, about 3 minutes with both modes at once) is for High-risk changes and pre-merge only: `scripts/run_full_suite.sh`, then `--verify` to reuse its record.
 - **API contract snapshot:** `tests/test_route_contract.py` compares the live route table and a normalized OpenAPI document with `tests/fixtures/route_contract/`. It covers route order, methods, paths, names, parameters, dependencies, status codes and response models. It needs no database. A change that is not meant to alter the API must leave it green without regenerating. Regenerate only for a deliberate API change (`FL_UPDATE_ROUTE_CONTRACT=1`), and review the fixture diff line by line.
 
 ## Moving code out of main.py

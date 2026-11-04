@@ -104,7 +104,7 @@ def test_live_prepare_while_create_commit_is_uncommitted(isolated_database, monk
                     observer.autocommit = True
                     with observer.cursor() as cur:
                         while monotonic() < deadline:
-                            cur.execute("SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE application_name='a7_number_race' AND wait_event_type='Lock')")
+                            cur.execute("SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE application_name='a7_number_race' AND wait_event_type='Lock' AND datname=current_database())")
                             if cur.fetchone()[0]:
                                 blocked = True
                                 break

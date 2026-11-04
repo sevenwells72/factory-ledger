@@ -111,7 +111,7 @@ Classify each task before reading code. The tier depends on what the change can 
   For High changes:
   * Trace dependencies both ways.
   * Read the related runbooks (`VOID_SEMANTICS_RUNBOOK.md`, `IDEMPOTENCY_KEY_PLAN.md`, `docs/named-actor-writes.md`).
-  * Run the full Python suite against the local test database, plus the JS tests, plus the visual tests if the UI changed.
+  * On the final candidate run `scripts/run_full_suite.sh` once, plus `node --test tests/*.js`, plus browser acceptance checks for any changed UI flow (see Tests).
   * Prove it on staging before any production step.
 
 Saving context without cutting corners:
@@ -120,11 +120,18 @@ Saving context without cutting corners:
 * **Never read large files whole:** this covers `main.py`, `CHANGE_LOG.md` and `FACTORY_LEDGER_CHANGELOG.md`. Find the spot with `grep -n`, then read about 200 lines around it.
 * **Reuse what this session already established** unless `git log` or `git diff` shows the code changed since.
 * **Smaller models are fine for locating code:** for "where is X" questions across many files, an Explore subagent on Haiku or Sonnet is fine. Design, review, safety checks and High-tier work stay on the main model.
+* **Editing (Claude Code):** change files with Edit/Write, not shell or Python scripts that rewrite files. Routine test, log and check commands are pre-allowed in `.claude/settings.json`; shell edits are not, so each one waits for approval.
 * **Tests:**
-  * Start narrow (`-x`, then `--lf` on re-runs) and widen by tier.
-  * Tests use only the local `factory_ledger_test` database; `tests/conftest.py` refuses production hosts.
-  * Never point tests at production or staging.
+  * During development run targeted tests only: the map's tests plus `grep -l '<name>' tests/`. After each change rerun the affected tests (`-x`, then `--lf`).
+  * Full suite: `scripts/run_full_suite.sh` on the final candidate only. It checks the test interpreter against `requirements.txt`, runs both key-session modes at once on fresh disposable databases, drops them, and records the result by exact file contents. `scripts/run_full_suite.sh --verify` says whether the current files already have a passing record; if so, don't rerun it. After a full run, a change to non-test code in a High-risk area needs one more full run; test-only or doc-only changes need only the affected tests. Never use a shared or leftover database for a full run.
+  * Classic visual audit (`npm run test:visual`): only when a shared style or shell file changes (`dashboard.css`, `interaction.css`, `ledger-forms.css`, `shell-layout.css`, `wallpaper.css`, `shell.js`, `ledger-ui.js`) or when asked; otherwise narrow it with `--screens`. Browser acceptance checks for a changed UI flow are always required.
+  * Tests use only local databases; `tests/conftest.py` refuses production hosts. Never point tests at production or staging.
 * **Keep the map current:** if a map pointer is wrong, or you add a module or a `main.py` section, update `docs/ARCHITECTURE-MAP.md` in the same change. Then run `python3 scripts/check_architecture_map.py`.
+
+## Two-agent work (Codex manages, Claude Code implements)
+
+* **Findings:** send critical ones at once (security, data integrity, attribution or inventory, wrong design or scope). Batch everything else and send it at the next checkpoint: after the plan, after the backend slice with its targeted tests, after the frontend slice, and on the final candidate. Never interrupt a running command or test for a non-critical finding.
+* **Test evidence:** reuse a passing `scripts/run_full_suite.sh` record for the same files (`--verify`) and archived targeted-test logs. Rerun only to reproduce a specific suspected defect.
 
 ## Regression Guard
 
