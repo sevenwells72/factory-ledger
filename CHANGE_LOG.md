@@ -1,5 +1,75 @@
 # Change Log
 
+## 2026-11-03 20:00 — Finish pre-release browser checks and remove temporary tooling link
+- **File(s) changed:** `tests/visual/run-person-selection-real.mjs`, `node_modules`, `.venv-test/person-selection/preview`
+- **What changed:** All8 real Netlify-preview-to-Railway browser checks pass with no prompts/auth failures/identity leakage; scope assertions to the observed API so unrelated hosting telemetry is not mistaken for a business write. Remove only the task-created Playwright symlink.
+- **Why:** Match production cross-origin hosting and keep the worktree clean before release.
+
+---
+
+## 2026-11-03 20:00 — Complete full-suite and reviewed staging verification
+- **File(s) changed:** `docs/security/simple-user-selection.md`, `.venv-test/four-name-python-on.xml`, `.venv-test/four-name-python-off.xml`, `.venv-test/person-selection/staging`
+- **What changed:** Record 7394 Python passes in session-on mode; off mode7393 passes plus one lock-related skip resolved by16-pass module rerun;667 JS and610 focused pass. Final staging8 contexts/32 records passes with real headers and exact SQL attribution. Document advisory visual baseline and excluded Assistant count observation.
+- **Why:** Provide precise pre-release evidence for the owner-authorized rollout.
+
+---
+
+## 2026-11-03 20:00 — Clean up the disposable local browser test database
+- **File(s) changed:** `.venv-test/person-selection/database.txt`
+- **What changed:** Stopped the task-owned localhost API and dropped only fl_person_browser_20261103_194402 after successful local and hosted acceptance; all screenshots/results and staging records remain.
+- **Why:** Release temporary local test resources while preserving the review evidence.
+
+---
+
+## 2026-11-03 20:00 — Pass Netlify preview cross-origin fresh-browser verification
+- **File(s) changed:** `.venv-test/person-selection/preview/results.json`, `.venv-test/person-selection/preview/*.png`
+- **What changed:** All eight new desktop/mobile profiles on deploy-preview180 passed the four-button screen, four record forms, actual named keyless cross-origin Today reads and Michael void/adjust screens. Zero Factory Ledger POSTs, auth prompts/refusals, page errors or credential leakage; unrelated Netlify toolbar telemetry identified separately.
+- **Why:** Verify actual Netlify-to-Railway browser headers before production without adding inventory.
+
+---
+
+## 2026-11-03 19:59 — Exercise a real named read in every hosted read-only browser context
+- **File(s) changed:** `tests/visual/run-person-selection-real.mjs`
+- **What changed:** The read-only acceptance path now opens Today’s entries and waits for its loaded count after visiting the four record forms.
+- **Why:** Unfilled forms may not request data; this proves every tapped name actually reaches the hosted API with its real keyless header.
+
+---
+
+## 2026-11-03 19:58 — Scope browser header assertions to the observed Factory Ledger API origin
+- **File(s) changed:** `tests/visual/run-person-selection-real.mjs`
+- **What changed:** Record request origins and use observed FLDashboard.base for real API header and no-write assertions, while rejecting identity leakage and static-site business POSTs. Allow unrelated credential-free Netlify preview telemetry.
+- **Why:** The preview toolbar posts session telemetry to sessions.bugsnag.com and app.netlify.com; those are not Factory Ledger transactions or auth calls.
+
+---
+
+## 2026-11-03 19:57 — Reverify all hosted recording workflows after independent-review fixes
+- **File(s) changed:** `.venv-test/person-selection/staging/results.json`, `.venv-test/person-selection/staging/attribution.json`, `.venv-test/person-selection/staging/*.png`
+- **What changed:** Reviewed staging deployment97aa passed all eight fresh desktop/mobile profiles,32 real records and exact operator attribution; Michael void/adjustment screens passed with zero auth prompts, errors or rejected browser requests. Direct staff legacy receive is refused as reviewed.
+- **Why:** Tie hosted acceptance to the corrected authorization boundary before production release.
+
+---
+
+## 2026-11-03 19:57 — Clean completed disposable suite databases
+- **File(s) changed:** `local PostgreSQL test databases`
+- **What changed:** Remove only the three task-created databases from the interrupted early run and two successful pre-review-fix full runs; current final-suite and browser fixtures remain available.
+- **Why:** Keep local test data isolated and avoid leaving unused databases after validation.
+
+---
+
+## 2026-11-03 19:57 — Verify final production backup before PR 180 rollout
+- **File(s) changed:** `/Users/michaelgross/Backups/fl/2026-11-03-pre180-final`
+- **What changed:** Fresh database dump and all 24 Storage objects verified; local restore had only the three expected Supabase vault errors, row counts matched apart from unavailable empty vault table, and every key fingerprint matched.
+- **Why:** Standing rules require a verified backup immediately before the authorized production rollout.
+
+---
+
+## 2026-11-03 19:56 — Verify visual classifications against prior approved-name dashboard
+- **File(s) changed:** `.venv-test/person-selection/visual/summary.json`, `.venv-test/person-selection/visual/baseline-approved-michael-results.json`, `.venv-test/person-selection/visual/baseline-approved-michael-report.md`, `.venv-test/person-selection/visual/equivalent-comparison.json`, `.venv-test/person-selection/visual/baseline-off-classifications.json`
+- **What changed:** Archived 21 equivalent approved-Michael baseline captures: all static classifications match current, with one refresh WARN-to-PASS improvement. Current full audit has 542 failing rule cells and no errors; default-off HEAD has 431 and no errors. Corrected archive labels: full default-off raw/report were overwritten; retained console and exact classification delta reconstruct all measured baseline classifications.
+- **Why:** Distinguish existing write-enabled layout findings from this scoped sign-in change without unrelated redesign.
+
+---
+
 ## 2026-11-03 19:55 — Record independent Claude approval of four-name sign-in
 - **File(s) changed:** `.venv-test/four-name-claude-review.json`, `.venv-test/four-name-claude-rereview.json`
 - **What changed:** Independent Claude Code initially blocked the overly broad staff-void scope, then reviewed the corrected identity handoff, route scope, cache versions and docs and returned PASS with no remaining blocking findings. Final full suites and staging repeat remain pending.

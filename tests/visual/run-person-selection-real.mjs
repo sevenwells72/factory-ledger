@@ -104,7 +104,7 @@ try {
       page.on('request', request => {
         const url = new URL(request.url()), headers = request.headers();
         if (!/\.(?:html|js|css|png|svg|ico|json|woff2?)$/.test(url.pathname)) requests.push({
-          method: request.method(), path: url.pathname.replace(/\/tickets\/[^/]+\//, '/tickets/{ticket}/'),
+          method: request.method(), origin: url.origin, path: url.pathname.replace(/\/tickets\/[^/]+\//, '/tickets/{ticket}/'),
           person: headers['x-fl-person'] || null, key: !!headers['x-api-key'],
         });
       });
@@ -123,6 +123,7 @@ try {
       await noPrompt(page);
       await page.goto(base + '/entry.html');
       await page.locator('#entry-action').waitFor();
+      const apiOrigin = new URL(await page.evaluate(() => FLDashboard.base)).origin;
       await noPrompt(page);
       const records = [];
       if (live) {
@@ -131,6 +132,9 @@ try {
           await page.locator('#entry-form').waitFor();
           await noPrompt(page);
         }
+        await page.goto(base + '/receipt.html?view=today');
+        await page.getByText(/^Your entries: /).waitFor();
+        await noPrompt(page);
       } else {
         await choose(page, 'product', fixture.products.Ingredient.code);
         await choose(page, 'supplier', fixture.supplier_name || 'Person Browser Supplier');
@@ -164,14 +168,21 @@ try {
       assert.deepEqual(errors, [], label + ': page errors');
       assert.deepEqual(authFailures, [], label + ': refused real requests');
       assert.deepEqual(dialogs, [], label + ': unexpected browser prompts');
-      for (const request of requests.filter(r => r.method === 'POST' && !r.path.startsWith('/auth/'))) {
+      const apiRequests = requests.filter(r => r.origin === apiOrigin);
+      assert.ok(apiRequests.some(r => r.method === 'GET' && r.person === name && !r.key),
+        'At least one real API read must carry the tapped-name header without a key');
+      for (const request of apiRequests.filter(r => r.method === 'POST' && !r.path.startsWith('/auth/'))) {
         assert.equal(request.person, name, JSON.stringify(request));
         assert.equal(request.key, false, 'Human writes must not carry a browser/session/person key');
       }
-      assert.equal(requests.some(r => /\/auth\/(?:browsers|session|pin|devices)/.test(r.path)), false,
+      assert.equal(apiRequests.some(r => /\/auth\/(?:browsers|session|pin|devices)/.test(r.path)), false,
         'Name selection must not invoke approval/session/PIN APIs');
-      if (live) assert.equal(requests.some(r => r.method === 'POST'), false, 'Live read-only mode must not post');
-      const result = { name, viewport: viewportName, freshContext: true, records, owner, errors, authFailures,
+      const otherRequests = requests.filter(r => r.origin !== apiOrigin);
+      assert.equal(otherRequests.some(r => r.person || r.key), false, 'No selected identity or key goes to another origin');
+      assert.equal(otherRequests.some(r => r.origin === new URL(base).origin && r.method === 'POST'), false,
+        'Static dashboard forms must not submit business requests to the site host');
+      if (live) assert.equal(apiRequests.some(r => r.method === 'POST'), false, 'Live read-only mode must not post to Factory Ledger');
+      const result = { name, viewport: viewportName, freshContext: true, apiOrigin, records, owner, errors, authFailures,
         promptCount: dialogs.length, requests };
       results.push(result);
       await fs.writeFile(path.join(out, 'results.json'), JSON.stringify({ liveReadOnly: live, stagingRecords: staging, base, results }, null, 2));
