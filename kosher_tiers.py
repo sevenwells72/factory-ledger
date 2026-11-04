@@ -86,6 +86,8 @@ def fields(row):
     return {'kosher_tier': value, 'kosher_label': 'EXTRA-KOSHER (SS)' if value == EXTRA else 'Regular'}
 
 def owner(cur, identity):
+    if permissions.name_only(identity) and identity['name'] == 'Michael':
+        return dict(identity)
     # A name tapped on an approved browser is identification, never Michael's
     # attestation (091): only his own key, session or PIN attests.
     if not identity or identity.get('id') is None or identity.get('via') == 'selection':

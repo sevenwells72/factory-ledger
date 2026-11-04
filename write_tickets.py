@@ -965,7 +965,9 @@ def register_routes(app, api):
             # cannot change between this check and the post (the lock is held
             # to the end of the transaction; a concurrent UPDATE actors waits).
             current_actor = None
-            if actor['id'] is not None:
+            if permissions.name_only(actor):
+                current_actor = {'role': actor['role'], 'active': True}
+            elif actor['id'] is not None:
                 cur.execute('SELECT role, active FROM actors WHERE id=%s FOR SHARE', (actor['id'],))
                 current_actor = cur.fetchone()
                 if current_actor:

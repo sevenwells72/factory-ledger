@@ -1,4 +1,10 @@
-"""A2: roles enforced in FL — the per-action permission matrix and the back-dating rule.
+"""Roles for machine credentials and the owner's four-name dashboard policy.
+
+Name-only Michael has full owner authority. The other three fixed names have
+all routine dashboard actions, regardless of legacy actor role/active flags.
+Legacy credential and approved-browser clients keep the A2 matrix below.
+
+A2: roles enforced in FL — the per-action permission matrix and the back-dating rule.
 
 One module, no database state: the matrix is code (design rev 3.7 §4.3), the
 role comes from the authenticated identity (`actors.role` for actor keys, the
@@ -80,7 +86,8 @@ ROLE_PERMISSIONS = {
 # owner-only check elsewhere compares against OWNER, so this distinct role
 # fails those checks closed.
 SELECTED_OWNER = 'owner_selected'   # not in ROLES: the §4.3 design matrix stays as designed
-PEOPLE = NAMED | {SELECTED_OWNER}
+SELECTED_STAFF = 'staff_selected'
+PEOPLE = NAMED | {SELECTED_OWNER, SELECTED_STAFF}
 # EXPLICIT allowlist, reviewed one by one (Codex R1): an action added to the
 # matrix later is denied to a selected owner until someone adds it here on
 # purpose. Each entry is one the floor or office already has, i.e. routine.
@@ -98,7 +105,7 @@ SELECTED_OWNER_ACTIONS = frozenset({
 for _action in SELECTED_OWNER_ACTIONS:
     if _action not in ROLE_PERMISSIONS or OWNER not in ROLE_PERMISSIONS[_action]:
         raise RuntimeError(f'selected-owner allowlist names a non-owner action: {_action}')
-    ROLE_PERMISSIONS[_action] = ROLE_PERMISSIONS[_action] | {SELECTED_OWNER}
+    ROLE_PERMISSIONS[_action] = ROLE_PERMISSIONS[_action] | {SELECTED_OWNER, SELECTED_STAFF}
 del _action
 # Everything the owner may do that a selected owner may not: needs owner proof.
 OWNER_PROOF_ACTIONS = frozenset(a for a, r in ROLE_PERMISSIONS.items()
@@ -136,7 +143,7 @@ _LABELS = {
 }
 _ROLE_NAMES = {OWNER: 'owner', FLOOR: 'floor', OFFICE: 'office',
                LEGACY_LEDGER: 'the shared ledger key', LEGACY_DASHBOARD: 'the shared dashboard key',
-               SELECTED_OWNER: 'owner, selected by name'}
+               SELECTED_OWNER: 'owner, selected by name', SELECTED_STAFF: 'staff'}
 
 
 def fail(http_status, code, message, **extra):
@@ -148,12 +155,20 @@ def selected(identity):
     return bool(identity) and identity.get('via') == 'selection'
 
 
+def name_only(identity):
+    """The four-button flow has no browser credential or human proof gate."""
+    return selected(identity) and identity.get('trusted_browser_id') is None and identity.get('name') in {
+        'Michael', 'Luz', 'Arturo', 'Miriam'}
+
+
 def role_of(identity):
     """`write_tickets.identity()` shape: {id, name, role, key_kind[, via]}. Unknown → None (denied).
 
     A selection keeps its marker through role reloads (callers copy the dict and
     replace only 'role'), so a selected owner stays SELECTED_OWNER everywhere."""
     if identity.get('key_kind') == 'actor':
+        if name_only(identity):
+            return OWNER if identity['name'] == 'Michael' else SELECTED_STAFF
         role = identity.get('role') if identity.get('role') in NAMED else None
         if role == OWNER and selected(identity):
             return SELECTED_OWNER

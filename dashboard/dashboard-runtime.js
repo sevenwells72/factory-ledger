@@ -109,28 +109,17 @@
   const keys=keyClient((url,options)=>root.fetch(url,options));
   api.key=(base,lang)=>keys(base||api.base).catch(()=>{throw accessError(lang);});
   api.invalidateKey=base=>keys.invalidate(base||api.base);
-  api.writesEnabled=false;
-  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
-  api.config=root.fetch(api.base+'/auth/session/config',{cache:'no-store',signal:controller.signal}).then(async response=>{
-    if(!response.ok)throw Error('Session configuration unavailable');
-    return response.json();
-  }).finally(()=>clearTimeout(timer));
-  // 091: name selection on owner-approved browsers. Exact true only; availability
-  // problems are shown by person-select.js and block writes (never a key/PIN prompt).
-  api.person=()=>personClient(root);
-  // R11: this ONE config result is authoritative for every client on the page
-  // (key sessions, PIN, name selection). If it cannot be read, the state is
-  // UNKNOWN — not "selection off": writes stay blocked, no credential prompt is
-  // offered and no old key/PIN session is restored until the page is reloaded.
+  // Human access is always a name choice. Server settings and machine keys do
+  // not create a sign-in dependency or a legacy credential fallback.
+  api.writesEnabled=true;
+  api.personSelect=true;
+  api.pinEnabled=false;
   api.configUnknown=false;
-  api.ready=api.config.then(config=>({on:enabled(config)||personSelect(config),pin:config?.pin_sign_in===true,select:personSelect(config)}),()=>{api.configUnknown=true;return {on:false,pin:false,select:false};}).then(({on,pin,select})=>{
-    api.writesEnabled=on;api.personSelect=select;api.pinEnabled=on&&pin;
-    document.documentElement.dataset.flConfig=api.configUnknown?'unknown':'ok';
-    document.documentElement.dataset.flWriteUi=on?'on':'off';
-    document.documentElement.dataset.flPersonSelect=select?'on':'off';
-    // Phone PIN links ([data-fl-pin-ui]) show only while the server has PINs on
-    // and staff are not choosing names instead.
-    document.documentElement.dataset.flPin=api.pinEnabled&&!select?'on':'off';
-    return on;
-  });
+  api.person=()=>personClient(root);
+  api.config=Promise.resolve({key_sessions_enabled:false,pin_sign_in:false,person_select_enabled:true,person_select_available:true});
+  document.documentElement.dataset.flConfig='ok';
+  document.documentElement.dataset.flWriteUi='on';
+  document.documentElement.dataset.flPersonSelect='on';
+  document.documentElement.dataset.flPin='off';
+  api.ready=Promise.resolve(true);
 })(typeof window==='undefined'?globalThis:window);

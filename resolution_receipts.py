@@ -63,7 +63,7 @@ def record_void(api, cur, transaction_id, event, actor, reason, *, ticket=None):
 
 
 def current_actor(cur, actor):
-    if actor['id'] is not None:
+    if actor['id'] is not None and not permissions.name_only(actor):
         cur.execute('SELECT role,active FROM actors WHERE id=%s FOR SHARE', (actor['id'],))
         row = cur.fetchone()
         if not row or not row['active']:

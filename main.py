@@ -3521,6 +3521,12 @@ def _authenticate_incoming_api_key(provided_key: str, request: Request, invalid_
     request.state.key_kind = None
     request.state.trusted_browser_id = None
     request.state.identity_via = None
+    # The owner chose identification without human authentication. A tapped
+    # fixed name wins over leftover legacy credentials in an existing browser.
+    selected_name = request.headers.get(trusted_browsers.PERSON_HEADER)
+    if selected_name in {choice[0] for choice in trusted_browsers.EXPECTED_CHOICES}:
+        trusted_browsers.select_name(sys.modules[__name__], selected_name, request)
+        return _authorize_selection(request)
     if not provided_key:
         raise HTTPException(status_code=401, detail="API key required")
     if secrets.compare_digest(provided_key, API_KEY):
@@ -3575,6 +3581,16 @@ def _authenticate_incoming_api_key(provided_key: str, request: Request, invalid_
 def _authorize_selection(request: Request) -> bool:
     """Scope for a browser token: reads without a person, the selection scope with one."""
     route_key = _route_key(request)
+    identity = _actor_identity(request)
+    if permissions.name_only(identity):
+        # Michael gets every owner/admin endpoint. Other names get all normal
+        # dashboard work, including Make/Pack/Ship regardless of their old role.
+        if permissions.role_of(identity) == permissions.OWNER:
+            return True
+        if route_key in (DASHBOARD_KEY_ALLOWLIST | ACTOR_WRITE_ALLOWLIST):
+            permissions.require_route(route_key, identity)
+            return True
+        raise HTTPException(status_code=403, detail="This action is available under Michael.")
     if request.state.key_kind == "browser":
         if route_key[0] == "GET" and route_key in DASHBOARD_KEY_ALLOWLIST:
             return True

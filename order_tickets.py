@@ -598,7 +598,7 @@ def commit(api, cur, row, body, actor, request, entry_timing):
     require_reason_permissions(api, cur, action, payload, actor, lock=True)
     cur.execute('SAVEPOINT ticket_post')
     try:
-        if actor['id'] is not None:
+        if actor['id'] is not None and not permissions.name_only(actor):
             cur.execute('SELECT active FROM actors WHERE id=%s FOR SHARE', (actor['id'],))
             current = cur.fetchone()
             if not (current and current['active']):

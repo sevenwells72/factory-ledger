@@ -109,8 +109,8 @@ Pointer syntax: file::text means search that file for that exact text (a section
 - Code:
   - `main.py::def _authorize_api_key`, `main.py::def verify_api_key`
   - `permissions.py`, `key_sessions.py`, `device_pins.py` (phone PIN, migration `migrations/089_device_pins.sql`), `staging_safety.py`
-  - `trusted_browsers.py`: owner-approved browsers + one-tap person selection (migration `migrations/091_trusted_browsers.sql`, flag `PERSON_SELECT_ENABLED`). The `flb_` branch sits in `main.py::def _authenticate_browser` after the legacy key checks; scope `main.py::SELECTION_ALLOWLIST`; a selected owner is capped by `permissions.py::SELECTED_OWNER_ACTIONS`. Seed with `scripts/seed_person_choices.py` (prints SQL, never connects). Design and route matrix: `docs/security/simple-user-selection.md`.
-- UI: `dashboard/key-session.js`, `dashboard/pin.js`, `dashboard/person-select.js` (pairing code, "Who is entering?", Change user; every transport asks `FLDashboard.person()`), `dashboard/staff-access.js` (owner approves/removes browsers)
+  - `trusted_browsers.py`: four-name human identity through `X-FL-Person`, with stable actor links from migration `migrations/091_trusted_browsers.sql`; legacy browser APIs remain for compatibility. Michael selection grants owner functions directly; machine keys retain their existing paths. Current contract and historical design: `docs/security/simple-user-selection.md`.
+- UI: `dashboard/key-session.js`, `dashboard/pin.js`, `dashboard/person-select.js` (exactly four name buttons and Change user; every transport asks `FLDashboard.person()`), `dashboard/staff-access.js` (staff administration)
 - CI: `.github/workflows/key-literal-guard.yml` runs `scripts/check_no_key_literals.py`
 - Tests:
   - `tests/test_key_*`, `tests/test_roles_a2.py`, `tests/test_readonly_*`, `tests/test_named_actor_writes.py`

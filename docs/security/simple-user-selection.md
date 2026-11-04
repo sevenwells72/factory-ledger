@@ -1,3 +1,23 @@
+# Four-name sign-in — owner decision 2026-11-03
+
+This contract supersedes the approved-browser and owner-proof design recorded below.
+Michael explicitly authorized removal of all human sign-in protection and the rollout.
+
+- The sign-in screen contains exactly four buttons, in order: **Michael, Luz, Arturo, Miriam**.
+- A tap immediately selects that operator on any browser, including a new mobile browser. No key, PIN, password, browser approval, pairing code, idle timeout, session expiry or subsequent identity check is required.
+- The browser sends the chosen display name in `X-FL-Person`. This is an openly asserted operator name, not an authentication credential. The choice persists until Change user; selecting a name does not contact an approval service.
+- Michael has all owner functions directly, including voids, adjustments, approvals, extra-kosher approval and administrative screens. Other selected names can perform all routine Make, Pack, Ship and Receive work.
+- New transaction operator snapshots use the tapped name, including **Michael**. Stable actor IDs remain linked; historical `Blubber` snapshots and all existing transactions remain unchanged.
+- Machine credentials and integrations retain their existing authentication. The dashboard requires no typed key. Historical PIN/browser APIs and their audit tables may remain for compatibility, but they cannot gate the four-name dashboard flow.
+- Inventory validation, supplier-lot evidence, transaction review, receipt/idempotency protections and append-only history remain in force. Business-data validation is separate from sign-in.
+- Assistant application files and `feat/planner-v2` are outside this change.
+
+Deployment and validation evidence will be added after the independent review, local full suite, real-header browser checks, staging proof, verified production backup and live verification.
+
+---
+
+## Historical PR #179 design (superseded)
+
 # Simple user selection: owner-approved browsers + "who is entering?" (migration 091)
 
 Task marker FL-SIMPLE-USER-20261103. Branch `worktree-simple-user-20261103`, base `2e25d17`.

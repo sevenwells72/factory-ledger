@@ -1095,7 +1095,7 @@ def register_routes(app, api):
     def _current_approver(cur, owner):
         """A2 at the decision: the approver's role and active flag as they are NOW, read
         FOR SHARE inside the transaction (the auth cache may still admit a key)."""
-        if owner['id'] is not None:
+        if owner['id'] is not None and not permissions.name_only(owner):
             cur.execute('SELECT role, active FROM actors WHERE id=%s FOR SHARE', (owner['id'],))
             current = cur.fetchone()
             if not current or not current['active']:
@@ -1119,11 +1119,17 @@ def register_routes(app, api):
             preparer_row = cur.fetchone()
         if not preparer_row:
             return None, _stale('PREPARER_UNKNOWN', 'The held ticket has no named preparer; reject it and prepare again with an actor key.')
-        if not preparer_row['active']:
-            return None, _stale('ACTOR_INACTIVE', 'The preparing actor is no longer active.')
         preparer = {'id': preparer_row['id'], 'name': preparer_row['name'], 'role': preparer_row['role'], 'key_kind': 'actor'}
         if ticket.get('identity_via') == 'selection':
             preparer.update(via='selection', trusted_browser_id=ticket.get('trusted_browser_id'))
+            if ticket.get('trusted_browser_id') is None:
+                preparer['name'] = ticket['operator_id']
+        if not preparer_row['active'] and not permissions.name_only(preparer):
+            return None, _stale('ACTOR_INACTIVE', 'The preparing actor is no longer active.')
+        if permissions.name_only(preparer):
+            # _as_preparer uses this row to post the held entry: preserve the
+            # tapped-name snapshot, not a historical actor alias such as Blubber.
+            preparer_row = {**preparer_row, 'name': preparer['name']}
         if not permissions.allowed(ticket['action'], permissions.role_of(preparer)):
             return None, _stale('ROLE_NOT_ALLOWED',
                                 f'{preparer_row["name"]} ({preparer_row["role"]}) is no longer allowed to {permissions.label(ticket["action"])[0]}.')
@@ -1160,6 +1166,8 @@ def register_routes(app, api):
                     fail(409, 'TICKET_EXPIRED', 'The seven-day kosher hold expired; reject it and prepare again.')
             approval = {'kind':row['kind'], 'exception_id': exception_id, 'approved_by': {'id': owner['id'], 'name': owner['name'], 'role': owner['role']},
                         'note': body.note or None}
+            if permissions.name_only(owner):
+                approval['approved_by'].update(via='selection', trusted_browser_id=None)
             result = write_tickets.execute_commit(
                 api, cur, ticket, preparer, preparer_request(preparer_row, ticket),
                 effective_payload=ticket['payload'] | ({'lot_confirmations':ticket['draft']['held_lot_confirmations']} if row['kind']=='KOSHER_ATTESTATION' else {}), acknowledged=list(ticket['acknowledged'] or []),

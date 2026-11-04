@@ -238,7 +238,7 @@
     Object.entries(params || {}).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') url.searchParams.set(k, v); });
     const controller = new AbortController(), timer = setTimeout(() => controller.abort(), 60000);
     try {
-      const response = await fetch(url, { method, headers: { 'X-API-Key': requestKey, ...(selected ? { 'X-FL-Person': selected['X-FL-Person'] } : {}), ...(background ? { 'X-FL-Background': '1' } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}) },
+      const response = await fetch(url, { method, headers: { ...(selected || { 'X-API-Key': requestKey }), ...(background ? { 'X-FL-Background': '1' } : {}), ...(body ? { 'Content-Type': 'application/json' } : {}) },
         body: body ? JSON.stringify(body) : undefined, signal: controller.signal, cache: 'no-store' });
       const data = await Promise.resolve().then(()=>response.json()).catch(error=>{if([401,403].includes(response.status))return {};throw error;});
       if (response.status === 401 && data.detail?.error_code === 'SESSION_EXPIRED' && session?.token && requestKey === session.token) {

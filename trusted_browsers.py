@@ -1,4 +1,11 @@
-"""Owner-approved browsers and one-tap person selection (migration 091).
+"""Four-name entry plus retained legacy browser-credential compatibility.
+
+Current dashboard: X-FL-Person with Michael/Luz/Arturo/Miriam enters directly
+through select_name(), without a token, feature flag, approval or expiry.
+Migration 091 choice rows supply stable actor IDs; historical browser/audit
+records remain intact. The following contract applies ONLY to old flb_ clients:
+
+Owner-approved browsers and one-tap person selection (migration 091).
 
 Three separate things, kept separate on purpose:
 
@@ -164,6 +171,31 @@ def refused(row):
                    'Este navegador espera aprobación. No se registró nada.')
 
 
+def select_name(api, name, request):
+    """Owner-authorized name-only entry. No secret, approval, session or expiry.
+
+    The existing choice row supplies only the stable actor foreign key. Its
+    active flag and the actor's credential/role settings do not gate this path.
+    The tapped label is the new write's operator snapshot; history is untouched.
+    """
+    fixed = {display: role for display, _label, role in EXPECTED_CHOICES}
+    if name not in fixed:
+        raise problem(403, 'PERSON_NOT_SELECTABLE', 'Choose one of the four names.',
+                      'Elige uno de los cuatro nombres.')
+    with api.get_transaction() as cur:
+        cur.execute('SELECT actor_id FROM person_choices WHERE display_name=%s ORDER BY sort_order', (name,))
+        rows = cur.fetchall()
+    if len(rows) != 1:
+        raise unavailable()
+    actor = {'id': rows[0]['actor_id'], 'name': name, 'role': fixed[name],
+             'via': 'selection', 'trusted_browser_id': None}
+    request.state.actor = actor
+    request.state.key_kind = 'selection'
+    request.state.identity_via = 'selection'
+    request.state.trusted_browser_id = None
+    return actor
+
+
 def authenticate(api, token, request):
     """Resolve an `flb_` token (+ optional person) onto request.state. Returns the actor or None.
 
@@ -231,7 +263,9 @@ def no_store(response):
 
 
 def register_routes(app, api):
-    def require_ready():
+    def require_ready(request: Request):
+        if request.headers.get(PERSON_HEADER) == 'Michael':
+            return
         if not enabled():
             raise HTTPException(404, 'Not found')
         if not ready(api):
@@ -241,6 +275,8 @@ def register_routes(app, api):
         # Only the owner's own key session (personal key or phone PIN). A browser
         # token or a tapped name never reaches here (key_sessions.ROUTES is session-only).
         actor = getattr(request.state, 'actor', None)
+        if api.permissions.name_only(api._actor_identity(request)) and actor['name'] == 'Michael':
+            return actor
         if getattr(request.state, 'key_kind', None) != 'session' or not actor or actor.get('role') != 'owner':
             raise problem(403, 'OWNER_PROOF_REQUIRED', 'Only Michael, signed in with his own key or PIN, can manage browsers.',
                           'Solo Michael, con su propia clave o PIN, puede administrar navegadores.')

@@ -3292,7 +3292,7 @@
     } catch (error) {
       slipWindow?.close();
       // A refused read surfaces as the runtime's generic access error, so name the fix instead.
-      setOrderDetailMessage(container, [401, 403].includes(error.status) || error.accessUnavailable ? 'Couldn’t open the packing slip. Sign in with your personal key, then try again.' : 'Couldn’t open the packing slip. Please try again.', 'error');
+      setOrderDetailMessage(container, [401, 403].includes(error.status) || error.accessUnavailable ? 'Couldn’t open the packing slip. Please try again.' : 'Couldn’t open the packing slip. Please try again.', 'error');
     } finally {
       button.disabled = false;
     }
