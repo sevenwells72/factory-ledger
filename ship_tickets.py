@@ -94,7 +94,7 @@ def same_day(api,payload,actor):
     happened=datetime.fromisoformat(payload['occurred_at']).astimezone(api.PLANT_TIMEZONE).date()
     entered=api.get_plant_now().astimezone(api.PLANT_TIMEZONE).date()
     if happened==entered: return []
-    if permissions.role_of(actor) not in ('owner','floor',permissions.SELECTED_OWNER):
+    if permissions.role_of(actor) not in ('owner','floor',permissions.SELECTED_OWNER,permissions.SELECTED_STAFF):
         wt.fail(422,'SHIP_NOT_SAME_DAY','Only owner or floor may acknowledge a shipment outside the same America/New_York plant day.')
     return [{'code':'SHIP_NOT_SAME_DAY','requires_ack':True,
              'message':'This shipment is outside the same plant day; acknowledge before recording.',
@@ -201,7 +201,7 @@ def validate(api,cur,action,payload,actor,*,lock=False,ticket_id=None):
     if action!='ship_order':
         opened=api.check_open_orders_for_ship(cur,customer['id'],customer['name'])
         if opened:
-            if lock and permissions.role_of(actor) not in ('office','owner','legacy_ledger',permissions.SELECTED_OWNER):
+            if lock and permissions.role_of(actor) not in ('office','owner','legacy_ledger',permissions.SELECTED_OWNER,permissions.SELECTED_STAFF):
                 wt.fail(403,'ROLE_NOT_ALLOWED','Only office/owner may acknowledge open sales orders.')
             warnings.append({'code':'OPEN_SALES_ORDER_EXISTS','requires_ack':True,'message':'Customer has open orders; confirm this standalone shipment is intentional.','refs':opened})
     draft={'order_id':order['id'] if order else None,'order':order['order_number'] if order else None,
@@ -277,7 +277,7 @@ def verify_packing_link(api,request,receipt,expires,sig):
     return True
 
 def commit(api,cur,row,body,actor,request,entry_timing):
-    if actor['id'] is not None:
+    if actor['id'] is not None and not permissions.name_only(actor):
         cur.execute('SELECT active FROM actors WHERE id=%s FOR SHARE',(actor['id'],))
         if not cur.fetchone()['active']: wt.fail(403,'ACTOR_INACTIVE','Preparing actor is inactive.')
     payload=a5.merge_confirmations(row['payload'],[r.dict() for r in body.lot_confirmations])

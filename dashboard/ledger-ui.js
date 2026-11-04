@@ -154,10 +154,8 @@
   api.base=root.FLDashboard.base;
   let actor=null,paintPin=()=>{};
   const legacy=FLKeySessions.create({base:api.base,fetch:root.fetch.bind(root),storage:root.sessionStorage,config:root.FLDashboard.config,changed:()=>paintIdentity()});
-  // 091: on an owner-approved browser people tap their name (person-select.js).
-  // Owner-proof pages (staff admin, My PIN, ?owner=1) keep Michael's own sign-in.
-  api.ownerProofPage=()=>document.body?.dataset.flOwnerProof==='true'||/[?&]owner=1(?:&|$)/.test(location.search);
-  api.selecting=()=>root.FLDashboard.personSelect===true&&!api.ownerProofPage();   // R8: mode, not script presence
+  // Every page, including owner/admin screens, uses the tapped name.
+  api.selecting=()=>root.FLDashboard.personSelect===true;
   const people=()=>root.FLDashboard.person();
   // R9: pages read ui.session.token/actor to decide what to offer. In selector
   // mode that is the CHOSEN NAME: `token` is only a truthy marker (never sent;
@@ -166,7 +164,7 @@
   const selected={
     get enabled(){return true;},
     get token(){const c=people();return c.person&&c.state.status==='approved'&&!c.broken?'person-selected':'';},
-    get actor(){const c=people(),p=c.person;return p&&c.state.status==='approved'&&!c.broken?{id:p.id,name:p.display_name,role_label:p.role_label,selected:true}:null;},
+    get actor(){const c=people(),p=c.person;return p&&c.state.status==='approved'&&!c.broken?{id:p.id,name:p.display_name,role:p.role,role_label:p.role_label,selected:true}:null;},
     pinEnabled:false,device:null,phoneSession:false,
     async init(){return true;},clear(){},
     async signIn(){throw api.problem(api.t('Tap your name instead.','Toca tu nombre.'));},

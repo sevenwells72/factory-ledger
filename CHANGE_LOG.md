@@ -1,5 +1,348 @@
 # Change Log
 
+## 2026-11-03 20:00 — Finish pre-release browser checks and remove temporary tooling link
+- **File(s) changed:** `tests/visual/run-person-selection-real.mjs`, `node_modules`, `.venv-test/person-selection/preview`
+- **What changed:** All8 real Netlify-preview-to-Railway browser checks pass with no prompts/auth failures/identity leakage; scope assertions to the observed API so unrelated hosting telemetry is not mistaken for a business write. Remove only the task-created Playwright symlink.
+- **Why:** Match production cross-origin hosting and keep the worktree clean before release.
+
+---
+
+## 2026-11-03 20:00 — Complete full-suite and reviewed staging verification
+- **File(s) changed:** `docs/security/simple-user-selection.md`, `.venv-test/four-name-python-on.xml`, `.venv-test/four-name-python-off.xml`, `.venv-test/person-selection/staging`
+- **What changed:** Record 7394 Python passes in session-on mode; off mode7393 passes plus one lock-related skip resolved by16-pass module rerun;667 JS and610 focused pass. Final staging8 contexts/32 records passes with real headers and exact SQL attribution. Document advisory visual baseline and excluded Assistant count observation.
+- **Why:** Provide precise pre-release evidence for the owner-authorized rollout.
+
+---
+
+## 2026-11-03 20:00 — Clean up the disposable local browser test database
+- **File(s) changed:** `.venv-test/person-selection/database.txt`
+- **What changed:** Stopped the task-owned localhost API and dropped only fl_person_browser_20261103_194402 after successful local and hosted acceptance; all screenshots/results and staging records remain.
+- **Why:** Release temporary local test resources while preserving the review evidence.
+
+---
+
+## 2026-11-03 20:00 — Pass Netlify preview cross-origin fresh-browser verification
+- **File(s) changed:** `.venv-test/person-selection/preview/results.json`, `.venv-test/person-selection/preview/*.png`
+- **What changed:** All eight new desktop/mobile profiles on deploy-preview180 passed the four-button screen, four record forms, actual named keyless cross-origin Today reads and Michael void/adjust screens. Zero Factory Ledger POSTs, auth prompts/refusals, page errors or credential leakage; unrelated Netlify toolbar telemetry identified separately.
+- **Why:** Verify actual Netlify-to-Railway browser headers before production without adding inventory.
+
+---
+
+## 2026-11-03 19:59 — Exercise a real named read in every hosted read-only browser context
+- **File(s) changed:** `tests/visual/run-person-selection-real.mjs`
+- **What changed:** The read-only acceptance path now opens Today’s entries and waits for its loaded count after visiting the four record forms.
+- **Why:** Unfilled forms may not request data; this proves every tapped name actually reaches the hosted API with its real keyless header.
+
+---
+
+## 2026-11-03 19:58 — Scope browser header assertions to the observed Factory Ledger API origin
+- **File(s) changed:** `tests/visual/run-person-selection-real.mjs`
+- **What changed:** Record request origins and use observed FLDashboard.base for real API header and no-write assertions, while rejecting identity leakage and static-site business POSTs. Allow unrelated credential-free Netlify preview telemetry.
+- **Why:** The preview toolbar posts session telemetry to sessions.bugsnag.com and app.netlify.com; those are not Factory Ledger transactions or auth calls.
+
+---
+
+## 2026-11-03 19:57 — Reverify all hosted recording workflows after independent-review fixes
+- **File(s) changed:** `.venv-test/person-selection/staging/results.json`, `.venv-test/person-selection/staging/attribution.json`, `.venv-test/person-selection/staging/*.png`
+- **What changed:** Reviewed staging deployment97aa passed all eight fresh desktop/mobile profiles,32 real records and exact operator attribution; Michael void/adjustment screens passed with zero auth prompts, errors or rejected browser requests. Direct staff legacy receive is refused as reviewed.
+- **Why:** Tie hosted acceptance to the corrected authorization boundary before production release.
+
+---
+
+## 2026-11-03 19:57 — Clean completed disposable suite databases
+- **File(s) changed:** `local PostgreSQL test databases`
+- **What changed:** Remove only the three task-created databases from the interrupted early run and two successful pre-review-fix full runs; current final-suite and browser fixtures remain available.
+- **Why:** Keep local test data isolated and avoid leaving unused databases after validation.
+
+---
+
+## 2026-11-03 19:57 — Verify final production backup before PR 180 rollout
+- **File(s) changed:** `/Users/michaelgross/Backups/fl/2026-11-03-pre180-final`
+- **What changed:** Fresh database dump and all 24 Storage objects verified; local restore had only the three expected Supabase vault errors, row counts matched apart from unavailable empty vault table, and every key fingerprint matched.
+- **Why:** Standing rules require a verified backup immediately before the authorized production rollout.
+
+---
+
+## 2026-11-03 19:56 — Verify visual classifications against prior approved-name dashboard
+- **File(s) changed:** `.venv-test/person-selection/visual/summary.json`, `.venv-test/person-selection/visual/baseline-approved-michael-results.json`, `.venv-test/person-selection/visual/baseline-approved-michael-report.md`, `.venv-test/person-selection/visual/equivalent-comparison.json`, `.venv-test/person-selection/visual/baseline-off-classifications.json`
+- **What changed:** Archived 21 equivalent approved-Michael baseline captures: all static classifications match current, with one refresh WARN-to-PASS improvement. Current full audit has 542 failing rule cells and no errors; default-off HEAD has 431 and no errors. Corrected archive labels: full default-off raw/report were overwritten; retained console and exact classification delta reconstruct all measured baseline classifications.
+- **Why:** Distinguish existing write-enabled layout findings from this scoped sign-in change without unrelated redesign.
+
+---
+
+## 2026-11-03 19:55 — Record independent Claude approval of four-name sign-in
+- **File(s) changed:** `.venv-test/four-name-claude-review.json`, `.venv-test/four-name-claude-rereview.json`
+- **What changed:** Independent Claude Code initially blocked the overly broad staff-void scope, then reviewed the corrected identity handoff, route scope, cache versions and docs and returned PASS with no remaining blocking findings. Final full suites and staging repeat remain pending.
+- **Why:** Satisfy the required independent pre-merge review with recorded findings and resolution.
+
+---
+
+## 2026-11-03 19:55 — Choose an unvoided live receipt for owner-screen verification
+- **File(s) changed:** `tests/visual/run-person-selection-real.mjs`
+- **What changed:** Live read-only acceptance now selects a posted committed receipt rather than a previously voided receipt before asserting the owner void control.
+- **Why:** Avoid a false test failure caused by legitimate receipt history while still requiring the real void screen.
+
+---
+
+## 2026-11-03 19:55 — Compare name-selection visual audit against equivalent prior mode
+- **File(s) changed:** `.venv-test/person-selection/visual/baseline-off-report.md`, `.venv-test/person-selection/visual/baseline-off-console.log`, `.venv-test/person-selection/visual/baseline-comparison.json`, `temporary baseline visual fixture`
+- **What changed:** Unchanged HEAD classic baseline completed 388 captures with 0 errors and 431 failed rule cells; archived report, console and classification delta; prepared prior approved-Michael fixtures for targeted mode comparison. A mistaken-directory follow-up cleared temporary raw baseline results before archival, but full report and computed classification delta remain.
+- **Why:** Historical classic audit disables all human sign-in and cannot directly compare the newly always-enabled dashboard.
+
+---
+
+## 2026-11-03 19:54 — Verify Michael voids survive legacy access changes on both routes
+- **File(s) changed:** `tests/test_name_only_signin.py`
+- **What changed:** Exercise actual cross-person void via ticket and direct routes after deactivating and changing Michael legacy actor role; verify Michael remains the immutable correction operator.
+- **Why:** Regression proof for the final selected-identity handoff requested during independent review fixes.
+
+---
+
+## 2026-11-03 19:54 — Request independent Claude re-review of access corrections
+- **File(s) changed:** `.venv-test/four-name-review-followup.txt`
+- **What changed:** Document the staff-void scope and resolved-identity fix, narrower staff routes, cache refreshes and validation for independent re-review.
+- **Why:** Resolve every blocking finding before the authorized production release.
+
+---
+
+## 2026-11-03 19:53 — Preserve staging acceptance evidence before independent-review follow-up
+- **File(s) changed:** `.venv-test/person-selection/staging-before-review-fix/`
+- **What changed:** Copied the initial successful hosted browser results, attribution proof and screenshots before re-running against the upcoming reviewed backend correction.
+- **Why:** Retain the complete validation history while keeping final evidence tied to the reviewed runtime.
+
+---
+
+## 2026-11-03 19:53 — Keep shared-key direct void identity fallback unchanged
+- **File(s) changed:** `main.py`
+- **What changed:** Limit the new direct-void identity handoff to selected-name requests; legacy shared credentials continue using their existing operator fallback.
+- **Why:** Preserve the required machine-credential behavior while fixing selected-name voids.
+
+---
+
+## 2026-11-03 19:53 — Preserve selected identity through the final void correction
+- **File(s) changed:** `main.py`, `resolution_receipts.py`
+- **What changed:** Pass the already-resolved identity into the internal correction core for direct and ticket voids; legacy internal callers retain their actor-row fallback.
+- **Why:** The real staff own-void test showed the last correction step dropping selection identity and reverting Luz/Miriam to their old office role.
+
+---
+
+## 2026-11-03 19:52 — Preserve staff void limits and existing dashboard ticket scope
+- **File(s) changed:** `resolution_receipts.py`, `main.py`
+- **What changed:** Add SELECTED_STAFF to the existing own-post/same-day void rule and use SELECTION_ALLOWLIST for their name-only requests. Michael retains unrestricted owner/admin route authority.
+- **Why:** Resolve independent Claude review M1 and L1 without adding sign-in prompts or changing normal Record workflows.
+
+---
+
+## 2026-11-03 19:52 — Clarify access scope and retired credential pages after review
+- **File(s) changed:** `docs/ARCHITECTURE-MAP.md`, `docs/security/simple-user-selection.md`
+- **What changed:** Document all routine selected-staff work, own-day void scope and redirect-only legacy PIN/staff pages. Independent Claude initial review required a targeted staff-void fix and cache refresh; final review pending.
+- **Why:** Keep the current contract and code map accurate after removal of human sign-in protection.
+
+---
+
+## 2026-11-03 19:52 — Cover selected-staff void scope and ticket route boundaries
+- **File(s) changed:** `tests/test_name_only_signin.py`
+- **What changed:** Add real HTTP/DB tests for all three staff names: own same-day void succeeds, another person or prior-day posting is refused without a correction, and ordinary forms use ticket routes rather than legacy direct posts.
+- **Why:** Independent Claude review M1 found staff-selected omitted from the existing void scope rule; L1 identified unnecessary direct-write reach.
+
+---
+
+## 2026-11-03 19:52 — Refresh page asset versions after sign-in changes
+- **File(s) changed:** `dashboard/index.html`, `dashboard/receipt.html`, `dashboard/shift-summary.html`, `dashboard/dashboard.js`
+- **What changed:** Bumped dashboard, receipt and shift-summary script cache versions and removed the redundant packing-slip error branch; Assistant source remains unchanged.
+- **Why:** Independent Claude review found modified page-specific scripts still used their old cache versions.
+
+---
+
+## 2026-11-03 19:51 — Pass hosted staging fresh-browser acceptance with all four names
+- **File(s) changed:** `.venv-test/person-selection/staging/results.json`, `.venv-test/person-selection/staging/attribution.json`, `.venv-test/person-selection/staging/*.png`
+- **What changed:** The actual staging site passed eight new desktop/mobile browser contexts and 32 real Make Pack Ship Receive records using name headers only; direct read-only SQL confirmed each tapped-name operator and actor ID. Michael void/adjustment screens and viewport-only four-button sign-in passed; no prompts, auth failures, browser/session/PIN calls or JS errors.
+- **Why:** Required hosted proof before the authorized production rollout; all synthetic staging records remain clearly labeled and preserved.
+
+---
+
+## 2026-11-03 19:50 — Archive current classic visual audit and prepare unchanged baseline
+- **File(s) changed:** `.venv-test/person-selection/visual/current-report.md`, `.venv-test/person-selection/visual/current-results.json`, `docs/design/audit/06-browser-check.md`, `/tmp/fl-four-name-visual-baseline-*`
+- **What changed:** Completed388 classic captures with0 capture errors and542 failing mechanical rule cells, archived output outside commit, restored generated tracked report to HEAD, and exported unchanged HEAD dashboard/harness for comparable baseline.
+- **Why:** Owner requests smallest change; separate existing design findings from sign-in regressions before final verification.
+
+---
+
+## 2026-11-03 19:49 — Complete final local fresh-browser acceptance after sign-in geometry fix
+- **File(s) changed:** `.venv-test/person-selection/local/results.json`, `.venv-test/person-selection/local/attribution.json`, `.venv-test/person-selection/local/*.png`
+- **What changed:** Final current-backend run passed all eight fresh index-first desktop/mobile contexts, 32 actual records with matching operator snapshots and actor IDs, Michael void/adjustment screens, and exact viewport-only four-button sign-in.
+- **Why:** Verify the finished sign-in flow before staging and production rollout.
+
+---
+
+## 2026-11-03 19:48 — Remove underlying page layout while choosing a name
+- **File(s) changed:** `dashboard/person-select.css`
+- **What changed:** Hide underlying body children with display:none during name selection, eliminating their scroll height; show them again immediately when a name is tapped.
+- **Why:** Mobile full-page screenshot recheck showed hidden children retained document height despite overflow lock.
+
+---
+
+## 2026-11-03 19:47 — Prepare independent Claude review
+- **File(s) changed:** `.venv-test/four-name-review-prompt.txt`
+- **What changed:** Record the explicit new owner contract and validation context for a read-only independent Claude Code review of the current diff.
+- **Why:** The owner requires independent Claude review before merge and production rollout.
+
+---
+
+## 2026-11-03 19:47 — Guard the sign-in screen against scrolling into dashboard content
+- **File(s) changed:** `tests/visual/run-person-selection-real.mjs`
+- **What changed:** Added a viewport-height assertion so a fresh four-button sign-in cannot expose the underlying dashboard by scrolling.
+- **Why:** Visual inspection found underlying wallpaper below the initial overlay; the frontend fix now has direct browser coverage.
+
+---
+
+## 2026-11-03 19:46 — Keep four-name mobile sign-in within the viewport
+- **File(s) changed:** `dashboard/person-select.css`
+- **What changed:** Lock document/body height and scrolling only while the four-name overlay is open, preventing a mobile scroll from exposing underlying dashboard wallpaper; tapping a name restores normal page scrolling.
+- **Why:** Real mobile browser screenshots exposed scrollable content beneath the sign-in overlay.
+
+---
+
+## 2026-11-03 19:46 — Verify real fresh-browser recording and tapped-name attribution locally
+- **File(s) changed:** `.venv-test/person-selection/local/results.json`, `.venv-test/person-selection/local/attribution.json`, `.venv-test/person-selection/local/*.png`, `.venv-test/person-selection/staging-fixture.json`
+- **What changed:** All eight fresh desktop/mobile contexts passed with 32 real UI records, matching tapped-name transaction snapshots and actor IDs, no authentication prompts or rejected requests; created labeled staging-only fixtures for upcoming hosted acceptance.
+- **Why:** Provide real-header and real-database evidence before the approved rollout.
+
+---
+
+## 2026-11-03 19:46 — Record four-name access regression guard
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Add row 259 superseding the earlier human browser and owner-proof gates while preserving machine credentials, tapped-name history and inventory guards; deploy verification pending.
+- **Why:** Prevent later maintenance from restoring protection Michael explicitly removed.
+
+---
+
+## 2026-11-03 19:46 — Record intentional name-only admin dependency contract
+- **File(s) changed:** `tests/fixtures/route_contract/routes.jsonl`
+- **What changed:** Refresh the route dependency snapshot for request injection in the 15 PIN/browser availability dependencies; methods, URLs, schemas, statuses, and OpenAPI are unchanged.
+- **Why:** Existing admin routes need the tapped Michael header to bypass credential feature flags.
+
+---
+
+## 2026-11-03 19:46 — Remove remaining selected-staff active checks from commit adapters
+- **File(s) changed:** `ship_tickets.py`, `customer_tickets.py`, `order_tickets.py`, `tests/test_name_only_signin.py`
+- **What changed:** Bypass credential-era active checks for name-only shipping, order and customer commits; correct the void test ledger-correction target-column readback.
+- **Why:** Module-level checks must not reintroduce human access rechecks after the shared sign-in path accepts a name.
+
+---
+
+## 2026-11-03 19:46 — Add guarded synthetic staging fixture for name-selection acceptance
+- **File(s) changed:** `tests/visual/person_selection_staging_fixture.py`
+- **What changed:** Added explicit opt-in setup restricted to the known staging project, using existing four-person mapping and uniquely named synthetic stock without changing prior transactions.
+- **Why:** Run real hosted browser recording acceptance before the authorized production deployment.
+
+---
+
+## 2026-11-03 19:45 — Carry name-only owner authority into held posting
+- **File(s) changed:** `exceptions_enforcement.py`
+- **What changed:** Preserve selected Michael identity provenance across the approval-to-commit handoff, so extra-kosher attestation does not fall back to legacy active-role checks.
+- **Why:** A real held extra-kosher make test exposed the approval handoff dropping the name-only marker.
+
+---
+
+## 2026-11-03 19:45 — Extend name-only browser acceptance to staging and the dashboard landing page
+- **File(s) changed:** `tests/visual/run-person-selection-real.mjs`
+- **What changed:** Added exact-host staging record mode, index-page four-button checks, unique fixture references, and mandatory real receipt selection for the live owner void check.
+- **Why:** Prove fresh dashboard entry on hosted staging before production and prevent a skipped owner screen from being reported as verified.
+
+---
+
+## 2026-11-03 19:45 — Verify real selected-owner kosher approval and cross-person voids
+- **File(s) changed:** `tests/test_name_only_signin.py`
+- **What changed:** Exercise real name-only extra-kosher make, held approval after legacy deactivation, and Michael voiding another selected person transaction; verify tapped-name and approving-actor evidence.
+- **Why:** Owner actions must work through real HTTP with no credential prompt or attribution regression.
+
+---
+
+## 2026-11-03 19:44 — Use the real receipt-page query in owner browser check
+- **File(s) changed:** `tests/visual/run-person-selection-real.mjs`
+- **What changed:** Corrected owner void-screen navigation to the existing number query parameter.
+- **Why:** Exercise the actual receipt details screen during fresh-browser acceptance.
+
+---
+
+## 2026-11-03 19:44 — Include four-name staff in routine shipping and attachment access
+- **File(s) changed:** `ship_tickets.py`, `attachments.py`, `tests/test_name_only_signin.py`
+- **What changed:** Allow the routine selected-staff role in existing floor/office shipment acknowledgement and attachment checks; point the owner smoke test at the actual BOM admin endpoint.
+- **Why:** All four selected people must complete ordinary shipping without legacy role blocks.
+
+---
+
+## 2026-11-03 19:44 — Let selected Michael reach retained administration routes
+- **File(s) changed:** `device_pins.py`, `trusted_browsers.py`, `permissions.py`
+- **What changed:** Accept selected Michael for existing browser/device administration without session-only or feature-flag gates; document the current name-only path separately from retained legacy credential compatibility.
+- **Why:** Tapping Michael must grant every owner function without another human proof prompt.
+
+---
+
+## 2026-11-03 19:44 — Keep classic visual audit focused on signed-in dashboard layouts
+- **File(s) changed:** `tests/visual/lib/stub.mjs`
+- **What changed:** The existing mocked-data visual harness preloads Michael's name; real fresh-browser acceptance keeps clean profiles and real authentication headers.
+- **Why:** The four-name screen otherwise hides every dashboard layout capture.
+
+---
+
+## 2026-11-03 19:44 — Prepare isolated browser tooling and verify production backup
+- **File(s) changed:** `node_modules`, `/Users/michaelgross/Backups/fl/2026-11-03-four-name-sign-in`
+- **What changed:** Reuse existing Playwright installation via an ignored worktree symlink. Production database and all 24 Storage files backed up; local restore, file sizes and key fingerprints match.
+- **Why:** Support real-browser regression checks and the owner-authorized production rollout.
+
+---
+
+## 2026-11-03 19:43 — Test real four-name entry and owner authority
+- **File(s) changed:** `tests/test_name_only_signin.py`
+- **What changed:** Add real HTTP/Postgres tests for four names without credentials or flags, stale-header precedence, ordinary role permissions, receive attribution/replay, and Michael admin/void/adjust/kosher/backdate access.
+- **Why:** Verify the owner-requested removal of human sign-in protection without mocking authentication.
+
+---
+
+## 2026-11-03 19:43 — Add fresh-profile real-header browser acceptance checks
+- **File(s) changed:** `tests/visual/run-person-selection-real.mjs`
+- **What changed:** Added desktop and mobile checks for all four names, actual local Make Pack Ship Receive records, owner void and adjustment screens, and a separate hosted read-only verification mode.
+- **Why:** Prove the exact no-prompt sign-in contract with real backend authentication and clearly separate local recording proof from live read-only checks.
+
+---
+
+## 2026-11-03 19:43 — Test immediate operator selection without human credentials
+- **File(s) changed:** `tests/test_person_select.js`, `tests/test_dashboard_runtime.js`, `tests/test_pin_client.js`
+- **What changed:** Replaced superseded approved-browser and PIN-screen assertions with four-name, fresh storage, persistence, private-storage, identity-change and no-network-gate coverage; retained machine session compatibility tests.
+- **Why:** Tests must enforce the owner's new no-protection sign-in contract.
+
+---
+
+## 2026-11-03 19:43 — Allow four names to record without human credentials
+- **File(s) changed:** `main.py`, `trusted_browsers.py`, `permissions.py`, `write_tickets.py`, `resolution_receipts.py`, `exceptions_enforcement.py`, `kosher_tiers.py`
+- **What changed:** Accept fixed-name headers without browser tokens, flags, sessions or expiry; grant Michael owner authority and the other names routine work; preserve tapped-name attribution through commits and approvals without active-role rechecks.
+- **Why:** Michael explicitly removed all human sign-in protection while retaining machine credentials.
+
+---
+
+## 2026-11-03 19:43 — Add isolated real-auth browser fixture for four-name sign-in
+- **File(s) changed:** `tests/visual/person_selection_fixture.py`
+- **What changed:** Added a guarded localhost-only fixture with four people, synthetic inventory and the real FastAPI app for fresh-browser recording tests.
+- **Why:** Verify the owner-requested name-only flow without stubbing authentication or touching production inventory.
+
+---
+
+## 2026-11-03 19:43 — Document owner-authorized four-name sign-in contract
+- **File(s) changed:** `docs/security/simple-user-selection.md`, `docs/ARCHITECTURE-MAP.md`
+- **What changed:** Supersede browser approval and independent owner proof with direct four-name identity; document tapped-name attribution, retained machine credentials and test/deployment requirements.
+- **Why:** Michael explicitly requested removal of all human sign-in protection, including owner gates.
+
+---
+
+## 2026-11-03 19:42 — Replace human sign-in with immediate four-name selection
+- **File(s) changed:** `dashboard/person-select.js`, `dashboard/person-select.css`, `dashboard/dashboard-runtime.js`, `dashboard/ledger-ui.js`, `dashboard/receipt-shell.js`, `dashboard/shift-summary.js`, `dashboard/dashboard.js`, `dashboard/receipt.js`, `dashboard/pin.html`, `dashboard/staff-access.html`, `dashboard/*.html`
+- **What changed:** Removed browser approval, credential/owner-page fallback and config gating from human sign-in; four names select instantly and persist, including private-storage fallback; retired PIN/staff approval pages and links, kept machine key retrieval, refreshed shared asset versions.
+- **Why:** Michael explicitly requires any browser to enter by tapped name without PIN, approval, expiry or owner proof.
+
+---
+
 ## 2026-11-03 18:48 — DCC-001: public dashboard key read-only in both selection modes
 - **File(s) changed:** `main.py`, `tests/test_trusted_browsers.py`, `tests/test_direct_order_close_guard.py`, `tests/test_production_runs.py`, `tests/test_run_types.py`, `tests/test_actor_attribution.py`, `tests/test_a12_review_fixes.py`, `tests/test_roles_a2.py`, `tests/test_released_by_attribution.py`, `tests/test_notes_characterization.py`, `tests/test_sales_order_state_model.py`, `tests/test_write_tickets.py`, `tests/test_supplies.py`, `tests/test_expected_receipts.py`, `tests/test_sales_order_allocations.py`, `tests/test_sales_order_extract.py`, `tests/test_expected_receipt_extract.py`, `tests/test_shift_summary.py`, `tests/test_key_session_rebase.py`, `tests/test_readonly_api_key.py`, `docs/security/simple-user-selection.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** DCC-001 security fix: the public dashboard key is read-only in BOTH PERSON_SELECT_ENABLED modes (only GETs and the SELECT-only POST /resolve); flag-off write refusals return 403 DASHBOARD_KEY_READ_ONLY, flag on keeps PERSON_REQUIRED. Master, personal key, key session and phone-PIN session unchanged. The 253 obsolete public-write test expectations were adapted (public-key cases assert 403 and an unchanged DB; writers that only used the public key now use named actors, not the master key). New regressions: every allowlisted public-key write refused with zero DB writes in both modes, and a real ON->OFF toggle keeps every real credential working and attributed (both fail against the pre-fix code). Doc flag-off/rollback text corrected; regression row 258 added (rows 252-257 untouched). Local focused auth run 3900 passed, exit 0. Assistant files unchanged; the pre-existing Assistant lot-parsing issue is deferred by owner decision (Codex holds deferred-assistant.patch).

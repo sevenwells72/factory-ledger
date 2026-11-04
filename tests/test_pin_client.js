@@ -85,16 +85,13 @@ test('without browser storage (or key sessions off) nothing about PINs happens',
   await off.init(); assert.equal(off.pinEnabled, false); assert.equal(off.enabled, false);
 });
 
-test('pages show PIN links only while the server has PINs on', () => {
+test('human pages never offer PIN setup or owner credential entry', () => {
   const read = name => fs.readFileSync(path.join(__dirname, '../dashboard', name), 'utf8');
-  assert.match(read('ledger-forms.css'), /:root:not\(\[data-fl-pin="on"\]\) \[data-fl-pin-ui\]\{display:none!important\}/);
-  // 091: staff PIN links also hide while people choose their name instead.
-  assert.match(read('dashboard-runtime.js'), /dataset\.flPin=api\.pinEnabled&&!select\?'on':'off'/);
-  assert.match(read('receipt-shell.js'), /a\.dataset\.flWriteUi='';a\.dataset\.flPinUi='';a\.href=page\('pin\.html'\)/);
+  assert.match(read('dashboard-runtime.js'), /dataset\.flPin='off'/);
+  assert.doesNotMatch(read('receipt-shell.js'), /page\('pin\.html'\)/);
   for (const page of ['pin.html', 'staff-access.html']) {
     const html = read(page);
-    assert.match(html, /<main data-fl-write-ui>/); assert.match(html, /key-session\.js\?v=7/); assert.match(html, /id="actor-key" type="password"/);
+    assert.match(html, /location\.replace\("index\.html"\)/);
+    assert.doesNotMatch(html, /password|actor-key|key-session/);
   }
-  // The owner screen shows no secrets: it only renders labels, status and times from /auth/devices.
-  assert.doesNotMatch(read('staff-access.js'), /secret|pin_hash|key_hash/);
 });

@@ -17,10 +17,11 @@ test('write UI requires the exact existing boolean, never a local fallback',()=>
 });
 async function boot(response){let release;const pending=new Promise(r=>release=r),calls=[];const root={location:loc('preview.netlify.app'),FL_SESSION_API_BASE:runtime.PRODUCTION,document:{documentElement:{dataset:{}}},fetch:async url=>{calls.push(url);await pending;if(response instanceof Error)throw response;return response;}};
  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../dashboard/dashboard-runtime.js'),'utf8'),{window:root,document:root.document,AbortController,URL,setTimeout,clearTimeout});
- assert.equal(root.FLDashboard.writesEnabled,false);assert.equal(root.document.documentElement.dataset.flWriteUi,undefined);release();await root.FLDashboard.ready;return {root,calls};}
-test('delayed, failed and malformed config cannot expose write UI; true enables it',async()=>{
- for(const response of [new Error('offline'),{ok:false},{ok:true,json:async()=>({})},{ok:true,json:async()=>({key_sessions_enabled:'true'})}]){const {root,calls}=await boot(response);assert.equal(root.FLDashboard.writesEnabled,false);assert.equal(root.document.documentElement.dataset.flWriteUi,'off');assert.deepEqual(calls,[runtime.STAGING+'/auth/session/config']);}
- const {root}=await boot({ok:true,json:async()=>({key_sessions_enabled:true})});assert.equal(root.FLDashboard.writesEnabled,true);assert.equal(root.document.documentElement.dataset.flWriteUi,'on');
+ assert.equal(root.FLDashboard.writesEnabled,true);assert.equal(root.document.documentElement.dataset.flWriteUi,'on');release();await root.FLDashboard.ready;return {root,calls};}
+test('name selection is immediate and independent of session config or its availability',async()=>{
+ for(const response of [new Error('offline'),{ok:false},{ok:true,json:async()=>({})},{ok:true,json:async()=>({key_sessions_enabled:false})}]){
+  const {root,calls}=await boot(response);assert.equal(root.FLDashboard.writesEnabled,true);assert.equal(root.FLDashboard.personSelect,true);assert.equal(root.FLDashboard.pinEnabled,false);assert.equal(root.FLDashboard.configUnknown,false);assert.deepEqual(calls,[]);
+ }
 });
 test('every receipt-enabled page loads routing before other scripts and hides new UI initially',()=>{
  const directory=path.join(__dirname,'../dashboard');const files=[...fs.readdirSync(directory).filter(n=>n.endsWith('.html')).map(n=>path.join(directory,n)),path.join(directory,'scheduler/seven-wells-production-board.html')];

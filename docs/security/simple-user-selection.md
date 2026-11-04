@@ -1,3 +1,29 @@
+# Four-name sign-in — owner decision 2026-11-03
+
+This contract supersedes the approved-browser and owner-proof design recorded below.
+Michael explicitly authorized removal of all human sign-in protection and the rollout.
+
+- The sign-in screen contains exactly four buttons, in order: **Michael, Luz, Arturo, Miriam**.
+- A tap immediately selects that operator on any browser, including a new mobile browser. No key, PIN, password, browser approval, pairing code, idle timeout, session expiry or subsequent identity check is required.
+- The browser sends the chosen display name in `X-FL-Person`. This is an openly asserted operator name, not an authentication credential. The choice persists until Change user; selecting a name does not contact an approval service.
+- Michael has all owner functions directly, including voids, adjustments, approvals, extra-kosher approval and administrative screens. Other selected names can perform routine work across the dashboard, including Make, Pack, Ship, Receive, adjustments, found inventory, lot/order editing and exception resolution. Their voids retain the own-entry/same-plant-day rule; Michael can void any eligible posting without further sign-in.
+- New transaction operator snapshots use the tapped name, including **Michael**. Stable actor IDs remain linked; historical `Blubber` snapshots and all existing transactions remain unchanged.
+- Machine credentials and integrations retain their existing authentication. The dashboard requires no typed key. Historical PIN/browser APIs and their audit tables may remain for compatibility, but they cannot gate the four-name dashboard flow.
+- Inventory validation, supplier-lot evidence, transaction review, receipt/idempotency protections and append-only history remain in force. Business-data validation is separate from sign-in.
+- Assistant application files and `feat/planner-v2` are outside this change.
+
+Pre-release verification (2026-11-03): independent Claude Code review **PASS** after correcting selected-staff void scope and preserving the resolved identity through the final correction. Complete Python suite: **7,394 passed** with key sessions on; off run **7,393 passed / 1 skipped** because the concurrent suite held advisory lock 3, followed by the affected 16-test module **16 passed** after that run ended. JavaScript: **667 passed**. Review-focused backend tests: **610 passed**, including 29 name-only cases. Fresh local and final hosted staging acceptance each passed **8 contexts / 32 actual records** (four names × desktop/mobile), correct tapped-name SQL attribution, both Michael void/adjust screens and zero auth prompts. No auth stubs.
+
+Production backup `~/Backups/fl/2026-11-03-pre180-final` passed local restore, all 24 Storage-file size checks and matching key fingerprints. Staging deployment `97aa0c35-bfbe-48e5-a524-402a5a20bf81` ran the reviewed corrections. Production release and fresh-live verification are still pending.
+
+The classic visual audit is advisory and has existing violations: 388 captures, zero setup errors, 542 failed rule cells with selection/writes enabled. A fresh legacy-disabled baseline had 431 failures; those totals compare different modes. In 21 captures using equivalent prior approved-Michael mode, all static rule classifications matched and one refresh warning improved. No unrelated redesign was made.
+
+Assistant source files remain untouched. Its existing own-entry counter may compare numeric actor IDs with the shared selector's name marker; this excluded display-only behavior was noted by review, while new transaction attribution is verified.
+
+---
+
+## Historical PR #179 design (superseded)
+
 # Simple user selection: owner-approved browsers + "who is entering?" (migration 091)
 
 Task marker FL-SIMPLE-USER-20261103. Branch `worktree-simple-user-20261103`, base `2e25d17`.

@@ -1,31 +1,12 @@
-/* Owner-approved browser + "who is entering?" (person-select.js). Large, phone-first targets. */
-.fl-person-chip { display: inline-flex; align-items: center; gap: .5rem; flex-wrap: wrap;
-  padding: .35rem .6rem; border-radius: .6rem; background: #0b3d2e; color: #fff; font: 600 1rem/1.3 system-ui, sans-serif; }
-.fl-person-chip[hidden] { display: none; }
-.fl-person-name { font-size: 1.05rem; }
-.fl-person-change { min-height: 44px; padding: .4rem .9rem; border-radius: .5rem; border: 2px solid #fff;
-  background: transparent; color: #fff; font: inherit; cursor: pointer; }
-.fl-person-change:focus-visible, .fl-person-option:focus-visible, .fl-person-primary:focus-visible,
-.fl-person-secondary:focus-visible { outline: 3px solid #f5b700; outline-offset: 2px; }
-.fl-person-overlay { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: flex-start; justify-content: center;
-  overflow-y: auto; padding: 4vh 1rem; background: rgba(10, 20, 15, .72); }
-.fl-person-overlay[hidden] { display: none; }
-.fl-person-panel { width: min(34rem, 100%); background: #fff; color: #142019; border-radius: 1rem; padding: 1.25rem;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, .35); font: 1.05rem/1.45 system-ui, sans-serif; }
-.fl-person-panel h2 { margin: 0 0 .5rem; font-size: 1.5rem; }
-.fl-person-grid { display: grid; grid-template-columns: 1fr; gap: .75rem; margin: 1rem 0; }
-@media (min-width: 480px) { .fl-person-grid { grid-template-columns: 1fr 1fr; } }
-.fl-person-option { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: .2rem;
-  min-height: 88px; padding: .9rem 1rem; border-radius: .8rem; border: 2px solid #0b3d2e; background: #eef6f1;
-  color: #0b3d2e; text-align: left; cursor: pointer; font: inherit; }
-.fl-person-option:disabled { border-color: #8a8f8c; background: #f1f1f1; color: #4d524f; cursor: not-allowed; }
-.fl-person-option-name { font-size: 1.45rem; font-weight: 700; }
-.fl-person-option-role { font-size: 1rem; }
-.fl-person-code { font: 700 2.4rem/1.2 ui-monospace, Menlo, monospace; letter-spacing: .12em; text-align: center;
-  margin: 1rem 0; padding: .75rem; border-radius: .6rem; background: #eef6f1; color: #0b3d2e; }
-.fl-person-primary, .fl-person-secondary { display: block; width: 100%; min-height: 52px; margin-top: .75rem; border-radius: .6rem;
-  font: 600 1.1rem/1.2 system-ui, sans-serif; cursor: pointer; }
-.fl-person-primary { border: 0; background: #0b3d2e; color: #fff; }
-.fl-person-secondary { border: 2px solid #0b3d2e; background: #fff; color: #0b3d2e; }
-.fl-person-alert:empty { display: none; }
-.fl-person-alert { color: #8a1c14; font-weight: 600; }
+/* Four names fill the sign-in screen; the chosen operator stays visible afterward. */
+.fl-person-chip { display:inline-flex; align-items:center; gap:.5rem; flex-wrap:wrap; padding:.35rem .6rem; border-radius:.6rem; background:#0b3d2e; color:#fff; font:600 1rem/1.3 system-ui,sans-serif; }
+.fl-person-chip[hidden], .fl-person-overlay[hidden] { display:none; }
+.fl-person-name { font-size:1.05rem; }
+.fl-person-change { min-height:44px; padding:.4rem .9rem; border-radius:.5rem; border:2px solid #fff; background:transparent; color:#fff; font:inherit; cursor:pointer; }
+.fl-person-change:focus-visible, .fl-person-option:focus-visible { outline:3px solid #f5b700; outline-offset:2px; }
+html[data-fl-person-picker="on"], html[data-fl-person-picker="on"] body { height:100vh; height:100dvh; max-height:100dvh; overflow:hidden !important; margin:0; box-sizing:border-box; }
+html[data-fl-person-picker="on"] body > :not(.fl-person-overlay) { display:none !important; }
+.fl-person-overlay { position:fixed; inset:0; z-index:2147483647; display:flex; align-items:center; justify-content:center; overflow-y:auto; padding:1rem; box-sizing:border-box; background:#fff; }
+.fl-person-grid { display:grid; grid-template-columns:1fr; width:min(32rem,100%); gap:1rem; }
+@media (min-width:480px) { .fl-person-grid { grid-template-columns:1fr 1fr; } }
+.fl-person-option { min-height:88px; padding:1rem; border-radius:.8rem; border:2px solid #0b3d2e; background:#eef6f1; color:#0b3d2e; text-align:center; cursor:pointer; font:700 1.45rem/1.4 system-ui,sans-serif; }

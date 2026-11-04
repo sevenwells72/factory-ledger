@@ -43,7 +43,7 @@
       for(;;){const result=await ui.request('/receipts?'+new URLSearchParams({date,summary:'true',limit:'500',offset:String(offset)}),undefined,{read:true,background});if(current!==generation)return;rows.push(...(result.receipts||[]));if(!result.has_more)break;const next=result.next_offset;if(!Number.isSafeInteger(next)||next<=offset)throw Error(ui.t('Could not load the next page. Try again.','No se pudo cargar la siguiente página. Inténtalo de nuevo.'));offset=next;}
       card.replaceChildren();document.getElementById('notice').hidden=true;
       ui.el('h2',ui.t("Today's entries",'Entradas de hoy'),card);
-      const actor=ui.session.actor,own=rows.filter(row=>actor&&(String(row.actor?.id||row.actor_id||'')===String(actor.id)||(!row.actor?.id&&!row.actor_id&&(row.actor?.name||row.actor_name||row.actor)===actor.name))).length;
+      const actor=ui.session.actor,own=rows.filter(row=>actor&&(String(row.actor?.id||row.actor_id||'')===String(actor.id)||((row.actor?.name||row.actor_name||row.actor)===actor.name))).length;
       ui.el('p',ui.t('Your entries: '+own+' · Team entries: '+rows.length,'Tus entradas: '+own+' · Entradas del equipo: '+rows.length),card);
       if(!rows.length)ui.el('p',ui.t('No entries recorded today.','No hay entradas registradas hoy.'),card);
       rows.sort((a,b)=>new Date(b.entered_at||b.happened_at)-new Date(a.entered_at||a.happened_at));
