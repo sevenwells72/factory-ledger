@@ -61,6 +61,18 @@ def test_open_orders_excludes_nothing_left_without_closing_and_exposes_effective
     assert db_cursor.fetchone()['state'] == 'open'
 
 
+@pytest.mark.parametrize('spanish', [False, True])
+def test_open_orders_product_typeahead_prefix_asks_instead_of_filtering(client, chat, orders, items, monkeypatch, spanish):
+    # DCC-006: 'fi' only starts a word of 'WT2 finished ...' (prefix tier). A prefix
+    # suggestion needs a person's choice; it must never silently filter open orders.
+    model(monkeypatch, ('open_orders', {'customer': None, 'product': 'fi'}))
+    response = turn(client, chat, '¿Qué pedidos abiertos tienen fi?' if spanish else 'Which open orders have fi?')
+    assert response.status_code == 200, response.text
+    result = response.json()['cards'][0]
+    assert result['kind'] != 'read', result
+    assert items['finished']['id'] in [row['id'] for row in result.get('result', {}).get('candidates', [])]
+
+
 @pytest.mark.parametrize('text,query', [
     ('Ship S O two six one oh one five dash zero zero one.', 'S O two six one oh one five dash zero zero one'),
     ('Ship SO 261015 001.', 'SO 261015 001'),

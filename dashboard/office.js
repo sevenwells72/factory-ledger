@@ -24,12 +24,16 @@
     const list=ui.el('div',undefined,box);list.className='picker-options';const status=ui.el('p','',box);status.setAttribute('role','status');
     let value=null,generation=0,timer=null;
     const clear=()=>{clearTimeout(timer);generation++;value=null;button.disabled=false;list.replaceChildren();status.textContent='';invalidate();changed(null);};
-    input.oninput=()=>{clear();if(input.value.trim().length>=2)timer=setTimeout(()=>find(),300);};
+    // Typeahead from the first character (DCC-006). Earlier suggestions stay visible but disabled until the
+    // new ones arrive (no flicker, no stale click, including 'Add as new'); out-of-date replies are ignored.
+    input.oninput=()=>{clearTimeout(timer);generation++;value=null;button.disabled=false;status.textContent='';invalidate();changed(null);
+      if(!input.value.trim()){list.replaceChildren();return;}for(const option of list.children)option.disabled=true;list.setAttribute('aria-busy','true');timer=setTimeout(()=>find(),150);};
     function select(candidate,requestOptions={}){clearTimeout(timer);generation++;button.disabled=false;value=candidate;input.value=candidate.label||candidate.name;list.replaceChildren();ui.setText(status,ui.t('Selected: '+input.value,'Seleccionado: '+input.value));invalidate();changed(candidate,requestOptions);}
     async function find(offset=0){clearTimeout(timer);if(!input.value.trim()||!box.isConnected||input.disabled)return;const version=++generation;button.disabled=true;try{
       const result=await ui.request('/resolve',{kind,query:input.value.trim(),context:{action:'order',group:'office'},limit:8,offset});
-      if(version!==generation||!box.isConnected)return;list.replaceChildren();
-      const candidates=result.outcome==='match'?[result.match]:result.candidates||[],rows=kind==='product'?logic.productChoices(candidates):candidates.filter(Boolean);ui.setText(status,rows.length?ui.t('Choose the exact record.','Elige el registro exacto.'):ui.t('No matches. Try the full name or code.','Sin resultados. Prueba el nombre completo o código.'));
+      if(version!==generation||!box.isConnected)return;list.replaceChildren();list.setAttribute('aria-busy','false');
+      // Show every suggestion; a single confident match is still a choice the person taps.
+      const candidates=result.candidates?.length?result.candidates:result.match?[result.match]:[],rows=kind==='product'?logic.productChoices(candidates):candidates.filter(Boolean);ui.setText(status,rows.length?ui.t('Choose the exact record.','Elige el registro exacto.'):ui.t('No matches. Try the full name or code.','Sin resultados. Prueba el nombre completo o código.'));
       for(const item of rows){
         const extra=kind==='product'&&item.kosher_tier==='extra_kosher',text=item.label||item.name;
         const b=ui.el('button',extra?text.replace(/\s*[—-]\s*EXTRA-KOSHER\s*(?:\(SS\))?/gi,'').trim():text,list);b.type='button';
@@ -39,7 +43,13 @@
       if(rows.length===8){const more=ui.el('button',ui.t('More matches','Más resultados'),list);more.type='button';more.onclick=()=>find(offset+8);}
       if(offset===0&&missing)missing({query:input.value.trim(),host:list});
     }catch(error){if(version===generation)ui.failure(error);}finally{if(version===generation)button.disabled=false;}}
-    button.onclick=()=>find();input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();find();}};
+    button.onclick=()=>find();
+    const options=()=>[...list.children].filter(option=>option.type==='button'&&!option.disabled);
+    input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();find();}else if(e.key==='ArrowDown'&&options().length){e.preventDefault();options()[0].focus();}};
+    list.onkeydown=e=>{const items=options(),at=items.indexOf(document.activeElement);
+      if(e.key==='ArrowDown'&&at>=0&&at<items.length-1){e.preventDefault();items[at+1].focus();}
+      else if(e.key==='ArrowUp'&&at>=0){e.preventDefault();(at>0?items[at-1]:input).focus();}
+      else if(e.key==='Escape'){e.preventDefault();input.focus();}};
     return {input,select,clear,setDisabled(flag){input.disabled=flag;button.disabled=flag;for(const option of list.querySelectorAll?.('button')||list.children)option.disabled=flag;},get value(){return value;},id(){if(!value)throw ui.problem(ui.t('Choose '+en,'Elige '+es));return value.id;}};
   }
   function render({background=false}={}){

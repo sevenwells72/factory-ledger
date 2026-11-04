@@ -37,7 +37,7 @@ async function harness({on=true,create=true,language='en',permissions={}}={}){
  const find=(test,root=documentRoot)=>descendants(root).find(test),button=(text,root)=>find(node=>node.tag==='button'&&node.textContent===text,root);
  async function search(kind,query){const box=find(node=>node.dataset.picker===kind);find(node=>node.tag==='input',box).value=query;await button(language==='es'?'Buscar':'Search',box).onclick();return box;}
  async function open(){await search('customer','New Account');button("Add 'New Account' as a new customer").onclick();}
- return {ui,nodes,find,button,byId,tickets,requests,failures,events,search,open,timers,switchLanguage(next){language=ui.lang=next;events['ledger-language']();},async tick(){for(const [key,timer] of [...timers]){timers.delete(key);await timer.fn();}await flush();},setResolver(fn){resolveRequest=fn;}};
+ return {ui,nodes,find,button,byId,tickets,requests,failures,events,search,open,timers,context,switchLanguage(next){language=ui.lang=next;events['ledger-language']();},async tick(){for(const [key,timer] of [...timers]){timers.delete(key);await timer.fn();}await flush();},setResolver(fn){resolveRequest=fn;}};
 }
 test('customer prepare sends exactly direct-route fields through its own CUS ticket',()=>{
  const fields={name:'New Account',contact_name:'Pat',email:'pat@example.test',phone:'555-0123',address:'1 Example Road',notes:'Call first',notes_es:'Llamar primero',customer_id:99,active:true};
@@ -116,13 +116,46 @@ test('exact Setton Farms Add opens editor and duplicate refusal offers existing 
  h.button('Use existing customer: Setton Farms').onclick();assert.equal(ticket.invalidated,true);
  assert.equal(h.find(n=>n.dataset.picker==='customer').children.at(-1).textContent,'Selected: Setton Farms');assert.equal(h.tickets.length,1);
 });
-test('typing two characters debounces once; Enter cancels the queued search',async()=>{
+test('typing the first character debounces once (150 ms); Enter cancels the queued search',async()=>{
  const h=await harness(),box=h.find(n=>n.dataset.picker==='customer'),input=h.find(n=>n.tag==='input',box);
- input.value='S';input.oninput();assert.equal(h.timers.size,0);input.value='Se';input.oninput();input.value='Set';input.oninput();
- assert.equal(h.timers.size,1);assert.equal([...h.timers.values()][0].ms,300);assert.equal(h.requests.filter(r=>r.path==='/resolve').length,0);
+ input.value='S';input.oninput();assert.equal(h.timers.size,1);assert.equal([...h.timers.values()][0].ms,150);
+ input.value='Se';input.oninput();input.value='Set';input.oninput();
+ assert.equal(h.timers.size,1);assert.equal(h.requests.filter(r=>r.path==='/resolve').length,0);
  await h.tick();assert.equal(h.requests.filter(r=>r.path==='/resolve').length,1);assert.equal(h.requests.at(-1).body.query,'Set');
  input.value='Setton';input.oninput();await input.onkeydown({key:'Enter',preventDefault(){}});await flush();
  assert.equal(h.timers.size,0);assert.equal(h.requests.filter(r=>r.path==='/resolve').length,2);
+ input.value='  ';input.oninput();assert.equal(h.timers.size,0,'Blank text never searches');
+});
+test('narrowing keeps earlier suggestions visible but unclickable until new ones arrive',async()=>{
+ const h=await harness(),box=h.find(n=>n.dataset.picker==='customer'),input=h.find(n=>n.tag==='input',box);
+ const all=[{id:1,name:'Sunshine Granola'},{id:2,name:'Sunshine Bakery'},{id:3,name:'Setton Farms'}];
+ h.setResolver(body=>({outcome:'ambiguous',candidates:all.filter(c=>c.name.toLowerCase().startsWith(body.query.toLowerCase()))}));
+ input.value='S';input.oninput();await h.tick();
+ assert.ok(h.button('Setton Farms',box)&&h.button('Sunshine Bakery',box));
+ input.value='Sun';input.oninput();
+ const stale=h.button('Setton Farms',box),add=h.find(n=>n.dataset.newCustomer!==undefined,box);
+ assert.ok(stale&&stale.disabled,'Earlier suggestion stays visible but disabled');assert.ok(add&&add.disabled,'Stale Add-as-new is disabled');
+ await h.tick();assert.equal(h.button('Setton Farms',box),undefined);
+ assert.equal(h.button('Sunshine Granola',box).disabled,false);assert.ok(h.find(n=>n.dataset.newCustomer!==undefined&&!n.disabled,box));
+ input.value='';input.oninput();assert.equal(box.children.find(n=>n.className==='picker-options').children.length,0);
+});
+test('a single confident match is still listed with every other suggestion',async()=>{
+ const h=await harness(),box=h.find(n=>n.dataset.picker==='customer'),farm={id:7,name:'Big Farm Supply'};
+ h.setResolver(()=>({outcome:'match',match:farm,candidates:[farm,{id:8,name:'Farmhouse Co'}]}));
+ await h.search('customer','farm');
+ assert.ok(h.button('Big Farm Supply',box)&&h.button('Farmhouse Co',box));
+ assert.notEqual(box.children.at(-1).textContent,'Selected: Big Farm Supply','Nothing is chosen without a tap');
+});
+test('arrow keys move between suggestions and back to the search box',async()=>{
+ const h=await harness(),box=h.find(n=>n.dataset.picker==='customer'),input=h.find(n=>n.tag==='input',box),doc=h.context.document;
+ h.setResolver(()=>({outcome:'ambiguous',candidates:[{id:1,name:'Sunshine Granola'},{id:2,name:'Sunshine Bakery'}]}));
+ await h.search('customer','sun');const list=box.children.find(n=>n.className==='picker-options');
+ for(const node of [input,...list.children])node.focus=()=>{doc.activeElement=node;};
+ const key=(target,name)=>{let stopped=false;target({key:name,preventDefault(){stopped=true;}});return stopped;};
+ assert.ok(key(input.onkeydown,'ArrowDown'));assert.equal(doc.activeElement.textContent,'Sunshine Granola');
+ key(list.onkeydown,'ArrowDown');assert.equal(doc.activeElement.textContent,'Sunshine Bakery');
+ key(list.onkeydown,'ArrowUp');key(list.onkeydown,'ArrowUp');assert.equal(doc.activeElement,input);
+ key(input.onkeydown,'ArrowDown');key(list.onkeydown,'Escape');assert.equal(doc.activeElement,input);
 });
 test('a pending search cannot replace the worker selected customer',async()=>{
  const h=await harness();let finish;h.setResolver(()=>new Promise(resolve=>{finish=resolve;}));

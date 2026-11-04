@@ -22,6 +22,8 @@ MAX_PAGE_SIZE = 25
 MAX_VARIANTS = 32
 PLAUSIBLE = 0.5
 MIN_CANDIDATE = 0.25
+# Typeahead prefix candidates: shown (>= MIN_CANDIDATE), never plausible/auto-matched.
+PREFIX_SCORE = 0.45
 SENTINEL_SUPPLIERS = ('found', 'found inventory', 'inventory found', 'physical count',
                       'initial inventory', 'inventory correction', 'inventory intake', 'unknown')
 
@@ -308,20 +310,52 @@ def _fuzzy_allowed(query, aliases, *, party=False):
     return True
 
 
-def _ranked_rows(cur, scored_sql, params, *, limit=MAX_CANDIDATES, offset=0):
+def _prefix_patterns(text, aliases=(), *, party=False):
+    '''Typeahead: every typed word must begin a word of the name.
+
+    "sun gra" finds "Sunshine Granola". Matches names only. A declared alias
+    spelling stays a whole word (row 162: CLS never matches inside CLSX).
+    Returns (word patterns, name-start pattern).
+    '''
+    if party:
+        # Same fold as the party search_name: drop periods, punctuation -> space.
+        text = re.sub(r'[^a-z0-9 ]', ' ', text.replace('.', ''))
+    spans = {tuple(normalize(value).split()) for row in aliases
+             for value in (row.get('alias'), row.get('expansion')) if normalize(value)}
+    tokens, bodies, starts, ends, i = text.split(), [], [], [], 0
+    while i < len(tokens):
+        hits = [span for span in spans if tokens[i:i + len(span)] == list(span)]
+        span = max(hits, key=len) if hits else (tokens[i],)
+        terms = [term for term in (token.lstrip('#') for token in span) if term]
+        if terms:
+            # Word boundaries only beside word characters (& in Kookies & Kreme).
+            bodies.append(r'\s+'.join(re.escape(term) for term in terms))
+            starts.append(r'\m' if re.match(r'\w', terms[0]) else '')
+            ends.append(r'\M' if hits and re.search(r'\w$', terms[-1]) else '')
+        i += len(span)
+    if not bodies:
+        return [], ''
+    patterns = [s + b + e for s, b, e in zip(starts, bodies, ends)]
+    return patterns, r'^\W*' + bodies[0] + ends[0]
+
+
+def _ranked_rows(cur, scored_sql, params, *, limit=MAX_CANDIDATES, offset=0, prefix_order=False):
     '''Count every identity before paging; retain the first three for decisions.
 
     The first three preserve the global best match/near misses even on an empty
     later page. Public candidates use their global position, never a local cap.
     ``limit=None`` is internal-only, for authoritative exact-lot eligibility.
+    ``prefix_order`` breaks ties after score and context (row 162 order kept):
+    names starting with the query, then names with a word starting with it.
     '''
     page = '' if limit is None else 'WHERE _position <= 3 OR (_position > %s AND _position <= %s)'
     bounds = () if limit is None else (offset, offset + limit)
+    prefix = 'prefix_rank DESC, ' if prefix_order else ''
     cur.execute(f'''
         WITH scored AS ({scored_sql}), ranked AS (
             SELECT *, count(*) FILTER (WHERE score >= 0.25) OVER () AS candidate_count,
                       count(*) FILTER (WHERE score >= 0.5) OVER () AS plausible_count,
-                      row_number() OVER (ORDER BY score DESC, context_rank DESC,
+                      row_number() OVER (ORDER BY score DESC, context_rank DESC, {prefix}
                                           recent_activity DESC, name, id) AS _position
             FROM scored
         ) SELECT * FROM ranked {page} ORDER BY _position
@@ -330,8 +364,15 @@ def _ranked_rows(cur, scored_sql, params, *, limit=MAX_CANDIDATES, offset=0):
 
 
 def _search(cur, source, params, variants, aliases, *, keywords=True, exact_only=False,
-            limit=MAX_CANDIDATES, offset=0, name_sql='s.name', whole_words=False, party=False):
-    '''Rank the deduplicated union of spellings, then count and page in SQL.'''
+            limit=MAX_CANDIDATES, offset=0, name_sql='s.name', whole_words=False, party=False,
+            prefix=False):
+    '''Rank the deduplicated union of spellings, then count and page in SQL.
+
+    ``prefix`` (products and parties) adds typeahead: a name whose words start
+    with the typed words is a PREFIX_SCORE candidate, below PLAUSIBLE, so it is
+    always shown for a person to choose and never auto-matched or counted as a
+    known identity. Rows that already scored keyword/trigram keep their score.
+    '''
     variants = [variant for variant in variants if variant.text]
     if not variants:
         return []
@@ -340,34 +381,42 @@ def _search(cur, source, params, variants, aliases, *, keywords=True, exact_only
         patterns = _patterns(variant.text, aliases) if keywords else []
         if whole_words:
             patterns = [r'\m(?:' + pattern + r')\M' for pattern in patterns]
-        values.append('(%s::text, %s::text[], %s::boolean, %s::int, %s::int)')
+        prefixes, lead = _prefix_patterns(variant.text, aliases, party=party) if prefix and not exact_only else ([], '')
+        values.append('(%s::text, %s::text[], %s::boolean, %s::int, %s::int, %s::text[], %s::text)')
         variant_params.extend((variant.text, patterns,
                                _fuzzy_allowed(variant.text, aliases, party=party) and not exact_only,
-                               index, len(variant.expansions)))
+                               index, len(variant.expansions), prefixes, lead))
+    name = f'lower({name_sql})'
+    starts = f'(cardinality(v.prefixes) > 0 AND {name} ~ ALL(v.prefixes))'
+    prefix_rank = f"CASE WHEN {starts} AND {name} ~ v.lead THEN 2 WHEN {starts} THEN 1 ELSE 0 END"
+    similar = f'CASE WHEN v.fuzzy THEN similarity({name}, v.query) ELSE 0.0 END'
     for exact in (True, False):
         score = '1.0::float' if exact else f'''CASE
-            WHEN cardinality(v.patterns) > 0 AND lower({name_sql}) ~ ALL(v.patterns) THEN 0.8
-            WHEN v.fuzzy THEN similarity(lower({name_sql}), v.query) ELSE 0.0 END'''
+            WHEN cardinality(v.patterns) > 0 AND {name} ~ ALL(v.patterns) THEN 0.8
+            WHEN {starts} THEN GREATEST({PREFIX_SCORE}::float, {similar})
+            ELSE {similar} END'''
         where = r'''WHERE EXISTS (SELECT 1 FROM unnest(s.exact_terms) term
                     WHERE lower(btrim(regexp_replace(term, '\s+', ' ', 'g'))) = v.query)''' if exact else ''
         scored_sql = f'''
             WITH source AS ({source}),
-                 variants(query, patterns, fuzzy, variant_index, expansion_count) AS
+                 variants(query, patterns, fuzzy, variant_index, expansion_count, prefixes, lead) AS
                      (VALUES {','.join(values)}),
                  matches AS (
-                     SELECT s.*, {score} AS score, v.variant_index, v.expansion_count
+                     SELECT s.*, {score} AS score, {prefix_rank} AS prefix_rank,
+                            v.variant_index, v.expansion_count
                      FROM source s CROSS JOIN variants v {where}
                  )
             SELECT DISTINCT ON (id) * FROM matches
-            ORDER BY id, score DESC, expansion_count, variant_index
+            ORDER BY id, score DESC, prefix_rank DESC, expansion_count, variant_index
         '''
         rows = _ranked_rows(cur, scored_sql, tuple(params) + tuple(variant_params),
-                            limit=limit, offset=offset)
+                            limit=limit, offset=offset, prefix_order=prefix)
         for row in rows:
             variant = variants[row['variant_index']]
             row['score'] = float(row['score'])
             row['tier'] = ('alias' if variant.expansions else 'exact') if exact else (
-                ('alias' if variant.expansions else 'keyword') if row['score'] == 0.8 else 'trigram')
+                ('alias' if variant.expansions else 'keyword') if row['score'] == 0.8 else
+                'prefix' if row['prefix_rank'] and row['score'] == PREFIX_SCORE else 'trigram')
             row['_variant'] = variant
         if rows or exact_only:
             return rows
@@ -385,6 +434,7 @@ def _candidate(row, language='en'):
                   tier=row['tier'], why=row.get('why') or {
                       'exact': 'Exact identifier or full name', 'alias': 'Exact alias expansion',
                       'keyword': 'All query terms in the name', 'trigram': 'Similar name; confirm identity',
+                      'prefix': 'Name starts with what was typed; choose the exact record',
                       'suffix': 'Exact last four characters within this product',
                       'context': 'Open order for the specified customer'
                   }[row['tier']], context_boost=row.get('context_boost'))
@@ -394,6 +444,7 @@ def _candidate(row, language='en'):
             'alias': 'Nombre alternativo coincidente',
             'keyword': 'Todos los términos aparecen en el nombre',
             'trigram': 'Nombre parecido; confirme cuál es',
+            'prefix': 'El nombre empieza con lo escrito; elija el registro exacto',
             'suffix': 'Últimos cuatro caracteres coincidentes para este producto',
             'context': 'Pedido abierto del cliente indicado',
         }[row['tier']]
@@ -429,7 +480,7 @@ def decide(query, rows, *, truncated=False, note=None, limit=MAX_CANDIDATES, off
             if expansion not in expansions:
                 expansions.append(expansion)
     confidence = {'exact': 'high', 'alias': 'high', 'keyword': 'medium',
-                  'trigram': 'low', 'suffix': 'medium', 'context': 'medium'}
+                  'trigram': 'low', 'prefix': 'low', 'suffix': 'medium', 'context': 'medium'}
     result = dict(outcome=outcome, query_normalized=best['_variant'].text if best and '_variant' in best else normalize(query),
                   expansions_applied=expansions, candidates=displayed, candidate_count=count,
                   has_more=count > offset + limit, limit=limit, offset=offset, match=None,
@@ -550,7 +601,7 @@ def _products(cur, req, variants, aliases):
     if c.product_type:
         source += ' AND p.type=%s'
         params += (c.product_type,)
-    rows = _search(cur, source, params, variants, aliases, limit=req.limit, offset=req.offset)
+    rows = _search(cur, source, params, variants, aliases, limit=req.limit, offset=req.offset, prefix=True)
     for row in rows:
         if row['score'] == 1 and ((row['id'] in ids and not literal_ids) or row['_variant'].text not in
                                   (normalize(row['name']), normalize(row['odoo_code']), str(row['id']))):
@@ -625,7 +676,7 @@ def _parties(cur, req, variants, aliases):
     party_aliases = [row for row in aliases if row['kind'] != 'token']
     # _search accepts a private search_name override for punctuation-only folds.
     rows = _search(cur, source, params, variants, party_aliases, limit=req.limit, offset=req.offset,
-                   name_sql='s.search_name', whole_words=True, party=True)
+                   name_sql='s.search_name', whole_words=True, party=True, prefix=True)
     for row in rows:
         if row['context_rank']:
             row['context_boost'] = 'Customer address agrees; ranking only'
