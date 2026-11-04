@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-04 15:30 — DCC-006 corrected staging acceptance passed
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added regression row 263 recording the server-role correction, independent review, 203 focused JS tests, staging deployment 949ef3b8 from runtime commit 2ad5c67, Owner/Office Add-new success, Floor exclusion and customer/product smoke acceptance. Production remains not deployed; PR148 unchanged.
+- **Why:** Record the authorized staging-only deployment and acceptance receipt after the failed Assistant case was corrected.
+
+---
+
 ## 2026-11-04 15:23 — DCC-006 assert the existing background identity header
 - **File(s) changed:** `tests/test_fl_assistant_ui.js`
 - **What changed:** Allow the existing X-FL-Background header on the read-only whoami request while asserting selected-name routing and no client role credential.
