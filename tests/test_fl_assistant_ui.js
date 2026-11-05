@@ -13,7 +13,7 @@ async function resumedCard(card, language = 'en', options = {}) {
     setAttribute(name, value) { this[name] = value; }, addEventListener(name, callback) { this.listeners[name] = callback; },
     focus() {}, remove() {} });
   const get = id => { if (!elements.has(id)) elements.set(id, element(id)); return elements.get(id); };
-  const storage = new Map([['fl-assistant-language', language], ['fl-assistant-chat:7', 'saved-chat']]);
+  const storage = new Map([['fl-assistant-language', language], ['fl-assistant-chat:' + (options.selectedPerson?.id || 7), 'saved-chat']]);
   const store = { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) };
   const context = vm.createContext({ URL, crypto: require('node:crypto').webcrypto, AbortController, setTimeout, clearTimeout, console, navigator: {},
     localStorage: store, sessionStorage: store, location: { origin: 'https://fl.local' },
@@ -26,9 +26,10 @@ async function resumedCard(card, language = 'en', options = {}) {
       calls.push(new URL(url).pathname);
       const requestPath = new URL(url).pathname;
       const body = JSON.parse(fetchOptions.body || '{}');
-      requests.push({ path: requestPath, body });
+      requests.push({ path: requestPath, body, headers: fetchOptions.headers });
       if (requestPath === '/assistant/turn') bodies.push(body);
-      const response = requestPath === '/assistant/resume'
+      const response = requestPath === '/auth/whoami' ? { actor: options.verifiedActor }
+        : requestPath === '/assistant/resume'
         ? { turns: [{ text: options.turnText || '', cards: Array.isArray(card) ? card : [card] }], drafts: options.savedDrafts || [] }
         : options.onRequest
           ? await options.onRequest(requestPath, body)
@@ -38,6 +39,11 @@ async function resumedCard(card, language = 'en', options = {}) {
       assert.ok(response, `Unexpected request: ${url}`);
       return { ok: true, headers: { get: () => 'application/json' }, json: async () => response };
     }, addEventListener() {} });
+  if (options.selectedPerson) context.FLDashboard = {
+    personSelect: true, ready: Promise.resolve(true),
+    person: () => ({ ready: Promise.resolve(), person: options.selectedPerson,
+      headers: () => ({ 'X-FL-Person': options.selectedPerson.display_name }) })
+  };
   context.window = context;
   vm.runInContext(fs.readFileSync(path.join(__dirname, '../dashboard/assistant-display.js'), 'utf8'), context);
   vm.runInContext(fs.readFileSync(path.join(__dirname, '../dashboard/fl-assistant.js'), 'utf8'), context);
@@ -311,6 +317,59 @@ for (const outcome of ['ambiguous', 'match']) for (const language of ['en', 'es'
     await add.listeners.click();
     for (let i = 0; i < 6; i++) await new Promise(resolve => setImmediate(resolve));
     assert.deepEqual(h.calls, ['/assistant/resume', '/assistant/turn']);
+  });
+}
+
+const partialCustomerCard = { kind: 'choices', id: 'sun-choice', resolution_kind: 'customer', query: 'Sun',
+  result: { outcome: 'ambiguous', offset: 0, match: null, candidates: [{ id: 217, name: 'Sunshine Granola', tier: 'prefix', score: 0.45 }] } };
+for (const language of ['en', 'es']) for (const role of ['owner', 'office', 'floor', 'readonly', undefined]) {
+  test(`selected-name customer choices use server role ${role} in ${language}`, async () => {
+    const h = await resumedCard(partialCustomerCard, language, {
+      selectedPerson: { id: 'Luz', display_name: 'Luz', role: 'owner' },
+      verifiedActor: { id: 7, name: 'Luz', role }
+    });
+    const buttons = descendants(h.card).filter(node => node.tag === 'button');
+    const add = buttons.find(node => node.textContent === (language === 'en'
+      ? "Add 'Sun' as a new customer" : "Agregar 'Sun' como cliente nuevo"));
+    assert.equal(!!add, ['owner', 'office'].includes(role), 'Client role must not grant Add as new');
+    assert.deepEqual(h.calls, ['/auth/whoami', '/assistant/resume']);
+    assert.equal(h.bodies.length, 0, 'A partial customer is never selected automatically');
+    assert.deepEqual(Object.keys(h.requests[0].headers), ['X-FL-Person', 'X-FL-Background']);
+    assert.equal(h.requests[0].headers['X-FL-Person'], 'Luz');
+    await buttons.find(node => node.textContent === 'Sunshine Granola').listeners.click();
+    for (let i = 0; i < 6; i++) await new Promise(resolve => setImmediate(resolve));
+    assert.equal(h.bodies.length, 1);
+    assert.equal(h.bodies[0].choice_id, 'sun-choice');
+    assert.equal(h.bodies[0].selected_id, 217, 'Only the explicit choice selects the customer');
+  });
+}
+for (const verifiedActor of [null, { id: 7, name: 'Arturo', role: 'owner' }]) {
+  test(`selected-name roles cannot come from absent or different server actor: ${verifiedActor?.name}`, async () => {
+    const h = await resumedCard(partialCustomerCard, 'en', {
+      selectedPerson: { id: 'Luz', display_name: 'Luz', role: 'owner' }, verifiedActor
+    });
+    assert.equal(descendants(h.card).some(node => node.tag === 'button' && /new customer/.test(node.textContent)), false);
+    assert.equal(h.bodies.length, 0);
+  });
+}
+for (const role of ['owner', 'office']) {
+  test(`selected-name ${role} Add as new is explicit and exact customers stay protected`, async () => {
+    const options = { selectedPerson: { id: 'Luz', display_name: 'Luz', role: 'floor' },
+      verifiedActor: { id: 7, name: 'Luz', role } };
+    const h = await resumedCard(partialCustomerCard, 'en', options);
+    const add = descendants(h.card).find(node => node.tag === 'button' && node.textContent === "Add 'Sun' as a new customer");
+    assert.ok(add);
+    assert.equal(h.bodies.length, 0);
+    await add.listeners.click();
+    for (let i = 0; i < 6; i++) await new Promise(resolve => setImmediate(resolve));
+    assert.equal(h.bodies.length, 1);
+    assert.equal(h.bodies[0].text, 'Create a new customer named Sun first, then continue the order.');
+    assert.equal(h.bodies[0].selected_id, undefined);
+    assert.equal(h.calls.some(path => /commit/.test(path)), false);
+    const exact = await resumedCard({ ...partialCustomerCard, query: 'Sunshine Granola', existing_customer_only: true,
+      result: { outcome: 'match', candidates: [{ id: 217, name: 'Sunshine Granola', tier: 'exact', score: 1 }] } }, 'en', options);
+    assert.equal(descendants(exact.card).some(node => node.tag === 'button' && /new customer/.test(node.textContent)), false);
+    assert.equal(exact.bodies.length, 0);
   });
 }
 

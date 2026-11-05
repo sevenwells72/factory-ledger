@@ -1,5 +1,33 @@
 # Change Log
 
+## 2026-11-04 15:30 — DCC-006 corrected staging acceptance passed
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added regression row 263 recording the server-role correction, independent review, 203 focused JS tests, staging deployment 949ef3b8 from runtime commit 2ad5c67, Owner/Office Add-new success, Floor exclusion and customer/product smoke acceptance. Production remains not deployed; PR148 unchanged.
+- **Why:** Record the authorized staging-only deployment and acceptance receipt after the failed Assistant case was corrected.
+
+---
+
+## 2026-11-04 15:23 — DCC-006 assert the existing background identity header
+- **File(s) changed:** `tests/test_fl_assistant_ui.js`
+- **What changed:** Allow the existing X-FL-Background header on the read-only whoami request while asserting selected-name routing and no client role credential.
+- **Why:** Focused regression run exposed an overly strict test header expectation; production code is unchanged.
+
+---
+
+## 2026-11-04 15:22 — DCC-006 restore Assistant Add-as-new from server-resolved role
+- **File(s) changed:** `dashboard/fl-assistant.js`, `dashboard/fl-assistant.html`, `tests/test_fl_assistant_ui.js`
+- **What changed:** Read the existing selected-name identity endpoint before entering Assistant; use only the matching server actor role for UI choices, preserve name-based chat storage and all server authorization, and bump Assistant cache v21. Add 14 focused EN/ES selected-name role, explicit-choice and exact-customer regressions; they reproduce the missing-role defect before the fix.
+- **Why:** Michael authorized the narrow PR182 staging acceptance correction; no authentication policy or production changes.
+
+---
+
+## 2026-11-04 14:56 — DCC-006: Office search typeahead from the first character (branch only)
+- **File(s) changed:** `resolution.py`, `office.js`, `office.html`, `fl_assistant.py`, `test_search_typeahead.py`, `test_office_customer_ui.js`, `test_assistant_orders_round_d.py`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added a prefix tier to /resolve for products, customers and suppliers (typed words start name words; score 0.45, shown but never auto-matched or treated as a known identity; ranking score > context > prefix > recency). Office picker now searches from 1 character after 150 ms, keeps earlier suggestions visible but disabled while searching, lists all candidates, and supports arrow/Escape keys. Assistant open-orders product filter asks on prefix candidates. Added focused tests and changelog row 262. Branch fix/dcc006-search-typeahead; not deployed.
+- **Why:** DCC-006: customer search returned nothing useful until about 5 characters (whole-word matching plus a 0.25 trigram floor) and needed 2 characters; Michael asked for fast autocomplete that narrows as he types.
+
+---
+
 ## 2026-11-03 20:04 — Verify live four-name sign-in and preserve deployment evidence
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/security/simple-user-selection.md`, `.venv-test/person-selection/live`
 - **What changed:** Record all8 fresh production browser contexts passing exact4 buttons, immediate name entry, four recording forms, real named reads, reload persistence and Michael void/adjust screens with zero prompts/auth failures. Live read-only; actual records/attribution proven on staging. Post-deploy production fingerprints unchanged.

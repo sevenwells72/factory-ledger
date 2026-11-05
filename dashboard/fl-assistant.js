@@ -864,7 +864,10 @@
     if (people.broken) { notice(errorText({ detail: { message: people.state.problem === 'SCRIPT_MISSING' ? people.fail().message : people.fail('UNAVAILABLE').message } }, language)); return; }
     if (!person) { people.open(); $('identity').textContent = t('Choose your name to start', 'Elige tu nombre para empezar'); return; }
     credential = '';
-    await enterChat({ id: person.id, name: person.display_name }, { background: true });
+    // The server's selected identity supplies display permissions, never a stored/client role.
+    const who = await api('/auth/whoami', { method: 'GET', background: true });
+    const role = who.actor?.name === person.display_name ? who.actor.role : undefined;
+    await enterChat({ id: person.id, name: person.display_name, role }, { background: true });
     $('sign-out').hidden = true;
     $('identity').textContent = `${t('Entering as', 'Registrando como')} ${person.display_name}`;
   }

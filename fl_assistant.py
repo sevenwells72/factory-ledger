@@ -917,7 +917,8 @@ def register_routes(app, api):
                 if product_status != 200:
                     return product_status, products, {'kind': 'lookup_failed', 'status': product_status, 'result': products}
                 matches = [products['match']] if products.get('match') else products.get('candidates', [])
-                if not matches or (not products.get('match') and any(r.get('tier') == 'trigram' for r in matches)):
+                # Typeahead prefix suggestions (DCC-006) need a person's choice, like similar names.
+                if not matches or (not products.get('match') and any(r.get('tier') in ('trigram', 'prefix') for r in matches)):
                     return await execute_tool(request, body, actor, state, 'resolve', {'kind': 'product', 'query': args['product']})
                 product_ids = [r['id'] for r in matches]
                 with api.get_transaction() as cur:
