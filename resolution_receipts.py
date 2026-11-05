@@ -121,6 +121,10 @@ def resolution_state(api, cur, exception_id, actor, body, *, lock=False):
         draft['correction_review'] = exceptions.correction_review(api, 'adjust', product, draft['delta_lb'],
             book_balance_before=state['book_before_lb'], reason_code='physical_count')
         state['correction_review'] = draft['correction_review']
+    if body.resolution_kind == exceptions.UNVERIFIED:
+        # Note only; nothing posts (owner decision 2026-11-05). Refuse early, not at commit.
+        exceptions.require_unverified_close(cur)
+        draft.update(verified=False, inventory_changed=False)
     return draft, state
 
 

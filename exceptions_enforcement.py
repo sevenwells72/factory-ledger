@@ -71,7 +71,7 @@ ACTOR_ROUTES = frozenset({
 # pre-make-adjust tag are the owner's to close.
 OWNER_KINDS = frozenset({'KOSHER_ATTESTATION', 'LARGE_CORRECTION', 'LATE_ENTRY', 'SHIPMENT_PROOF_MISSING', 'BOL_PHOTO_MISSING', 'PRE_MAKE_ADJUST', 'ASSISTANT_OFFLINE'})
 RESOLUTION_KINDS = {
-    'SHORTAGE': ('counted', 'missing_movement', 'voided'),
+    'SHORTAGE': ('counted', 'missing_movement', 'voided', 'unverified'),
     'NEGATIVE_BALANCE': ('counted', 'missing_movement', 'voided'),
     'UNIDENTIFIED_LOT': ('identified', 'written_off'),
     'LATE_ENTRY': ('acknowledged',),
@@ -84,6 +84,13 @@ DEFAULT_RESOLUTIONS = ('resolved', 'waived')
 WAIVE_KINDS = frozenset({'waived', 'written_off'})
 OWNER_RESOLUTIONS = WAIVE_KINDS            # closing without evidence is the owner's call (any role may list)
 EVIDENCE_KINDS = frozenset({'SHORTAGE', 'NEGATIVE_BALANCE'})   # closing needs a matching correction or receipt
+# Owner decision (Michael, 2026-11-05): a SHORTAGE may also close WITHOUT a count.
+# 'unverified' needs a note, changes no stock (the lot keeps its book balance) and
+# stays marked unverified wherever the closed exception is shown. Migration 092 lets
+# shortage_flags store it; until its marker exists the option is neither offered
+# nor accepted (fail safe: nothing changes).
+UNVERIFIED = 'unverified'
+UNVERIFIED_MARKER = '092_shortage_unverified_close'
 MAX_COUNTED_LB = 100_000.0                 # a physical count above this is a typo, not a count (P2: finite, sane, 422)
 UNIT_TO_LB = {'lb': 1.0, 'lbs': 1.0, 'pound': 1.0, 'pounds': 1.0,
               'kg': 2.20462262185, 'kgs': 2.20462262185, 'kilogram': 2.20462262185, 'kilograms': 2.20462262185,
@@ -728,6 +735,9 @@ def shortage_evidence(api, cur, request, actor, row, body):
                        claimed in part and the shortage STAYS OPEN for the remainder
                        (returns closes=False). Anything else is RECEIPT_NOT_MATCHING.
     voided           — the short posting itself is no longer effective (voided).
+    unverified       — owner decision 2026-11-05: close on the note alone. No count,
+                       receipt or photo; nothing posts and the lot keeps its book
+                       balance. Recorded as verified=false.
     Returns (resolution_ticket_id, detail patch, closes).
     """
     import resolution_receipts
@@ -857,7 +867,30 @@ def shortage_evidence(api, cur, request, actor, row, body):
                  transaction_id=row['transaction_id'], effective_status=status)
         ticket_id = _receipt_ticket(cur, body.receipt_number)['id'] if body.receipt_number else None
         return ticket_id, {'resolution': {'kind': 'voided', 'transaction_id': row['transaction_id'], 'effective_status': status}}, True
+    if kind == UNVERIFIED:
+        require_unverified_close(cur)
+        if body.counted_lb is not None or body.receipt_number or body.attachment_ref:
+            fail(422, 'UNVERIFIED_NOTE_ONLY',
+                 "Resolving without a count takes only a note. To record a count use 'counted'; "
+                 "to link a receipt use 'missing_movement'.",
+                 message_es="Resolver sin conteo solo lleva una nota. Para un conteo use 'contado'; "
+                            "para vincular un recibo use 'movimiento faltante'.")
+        balance = float(api.lot_on_hand(cur, row['lot_id'])) if row['lot_id'] is not None else None
+        return None, {'resolution': {'kind': UNVERIFIED, 'verified': False, 'inventory_changed': False,
+                                     'short_lb': short_lb, 'book_balance_lb': balance}}, True
     return None, {}, True
+
+
+def unverified_close_enabled(cur):
+    cur.execute('SELECT 1 FROM migration_markers WHERE name=%s', (UNVERIFIED_MARKER,))
+    return cur.fetchone() is not None
+
+
+def require_unverified_close(cur):
+    if not unverified_close_enabled(cur):
+        fail(503, 'UNVERIFIED_CLOSE_UNAVAILABLE',
+             'Resolving without a count is not switched on yet (migration 092); nothing was recorded. Tell the office.',
+             message_es='Resolver sin conteo aún no está activado (migración 092); no se registró nada. Avisa a la oficina.')
 
 
 def identified_evidence(cur, row):
@@ -876,8 +909,9 @@ def _nest(item, id_key, name_key, out_key, name_out='name'):
     item[out_key] = {'id': id_, name_out: name} if id_ is not None else None
 
 
-def allowed_actions(row, actor):
-    """The same A2 policy as the write gate; evidence is still checked on write."""
+def allowed_actions(row, actor, *, unverified=True):
+    """The same A2 policy as the write gate; evidence is still checked on write.
+    `unverified=False` (migration 092 not applied) hides the no-count close."""
     role = permissions.role_of(actor)
     if row['status'] not in ('open', 'escalated') or not permissions.allowed('resolve_exception', role):
         return []
@@ -887,15 +921,19 @@ def allowed_actions(row, actor):
     if row['kind'] in ('LARGE_CORRECTION', 'KOSHER_ATTESTATION'):
         return ['approve', 'reject'] if row.get('ticket_status') == HELD and owner else []
     return [kind for kind in RESOLUTION_KINDS.get(row['kind'], DEFAULT_RESOLUTIONS)
-            if kind not in OWNER_RESOLUTIONS or owner]
+            if (kind not in OWNER_RESOLUTIONS or owner) and (kind != UNVERIFIED or unverified)]
 
 
-def _view(cur, row, actor=None):
+def _view(cur, row, actor=None, *, unverified=None):
     item = dict(row)
     # Only the recorded opening-balance source marks a historical stock item.
     item['is_opening_stock'] = (item.get('kind') == 'UNIDENTIFIED_LOT' and
                                 (item.get('lot_entry_source_notes') or '').upper().startswith(('OPENING BALANCE ', 'STAGING OPENING STOCK ')))
-    item['allowed_actions'] = allowed_actions(row, actor) if actor else []
+    if actor and unverified is None and row['kind'] == 'SHORTAGE':
+        unverified = unverified_close_enabled(cur)
+    item['allowed_actions'] = allowed_actions(row, actor, unverified=bool(unverified)) if actor else []
+    # Closed on a note alone (owner decision 2026-11-05): never shown as verified.
+    item['unverified'] = item.get('resolution_kind') == UNVERIFIED
     item['overdue'] = bool(item['due_at'] and item['status'] in ('open', 'escalated')
                            and item['due_at'] < datetime.now(PLANT_TIMEZONE))
     _nest(item, 'product_id', 'product_name', 'product')
@@ -986,7 +1024,8 @@ def resolve_in_transaction(api, cur, exception_id, body, request, actor, *, prep
     actor = resolution_receipts.current_actor(cur, actor)
     row = lock_resolution(cur, exception_id)
     require_resolution(row, actor, body.resolution_kind)
-    # Evidence: a shortage closes on a matching correction or receipt, never on a note alone.
+    # Evidence: a shortage closes on a matching correction or receipt, never on a note
+    # alone — except the explicit 'unverified' close (owner decision 2026-11-05).
     resolution_ticket_id, patch, closes = None, {}, True
     if row['kind'] in EVIDENCE_KINDS:
         resolution_ticket_id, patch, closes = shortage_evidence(api, cur, request, actor, row, body)
@@ -1033,6 +1072,7 @@ def register_routes(app, api):
                         status: Literal['open', 'escalated', 'resolved', 'waived', 'all'] = 'open',
                         overdue: Optional[bool] = None, owner_actor_id: Optional[int] = None,
                         product_id: Optional[int] = None, lot_id: Optional[int] = None,
+                        resolution_kind: Optional[str] = Query(None, max_length=40),
                         limit: int = Query(200, ge=1, le=1000), _: bool = Depends(api.verify_api_key)):
         permissions.require('list_exceptions', who(request))
         kinds = [k.strip().upper() for k in kind.split(',')] if kind else None
@@ -1045,7 +1085,7 @@ def register_routes(app, api):
                   AND (%s::bool IS NULL OR (%s AND e.status IN ('open','escalated') AND e.due_at < clock_timestamp())
                        OR (NOT %s AND NOT (e.status IN ('open','escalated') AND e.due_at < clock_timestamp())))
                   AND (%s::int IS NULL OR e.owner_actor_id=%s) AND (%s::int IS NULL OR e.product_id=%s)
-                  AND (%s::int IS NULL OR e.lot_id=%s)
+                  AND (%s::int IS NULL OR e.lot_id=%s) AND (%s::text IS NULL OR e.resolution_kind=%s)
                 ORDER BY (e.status IN ('open','escalated')) DESC,
                   COALESCE(e.status IN ('open','escalated') AND e.due_at < clock_timestamp(), false) DESC,
                   CASE WHEN e.status IN ('open','escalated') AND e.due_at < clock_timestamp()
@@ -1055,9 +1095,11 @@ def register_routes(app, api):
                      OR upper(COALESCE(l.entry_source_notes,'')) LIKE 'STAGING OPENING STOCK %%')) ASC,
                   e.opened_at DESC, e.id DESC LIMIT %s''',
                 (kinds, kinds, statuses, statuses, overdue, overdue, overdue, owner_actor_id, owner_actor_id,
-                 product_id, product_id, lot_id, lot_id, limit))
+                 product_id, product_id, lot_id, lot_id, resolution_kind, resolution_kind, limit))
             rows = cur.fetchall()
-            return {'count': len(rows), 'status': status, 'exceptions': [_view(cur, r, who(request)) for r in rows]}
+            unverified = unverified_close_enabled(cur)
+            return {'count': len(rows), 'status': status,
+                    'exceptions': [_view(cur, r, who(request), unverified=unverified) for r in rows]}
 
     @app.get('/exceptions/{exception_id}')
     def get_exception(exception_id: int, request: Request, _: bool = Depends(api.verify_api_key)):

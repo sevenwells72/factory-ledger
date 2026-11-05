@@ -96,6 +96,7 @@ Pointer syntax: file::text means search that file for that exact text (a section
 ### Dashboard (Netlify)
 - Shell: `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/shell.js`, `dashboard/dashboard-runtime.js`, `dashboard/ledger-ui.js`
 - Pages: `dashboard/history.js`, `dashboard/entry.js`, `dashboard/office.js`, `dashboard/exceptions.js`, `dashboard/pin.js`
+- Exceptions guidance (help panel, Explain, "Use when / Example / This will", confirmation line, Unverified badge): `dashboard/exceptions-guide.js`, `dashboard/exceptions.css`; tests `tests/test_exceptions_guide.js`. Its "This will" sentences describe `exceptions_enforcement.py::def shortage_evidence` and `supplier_lot_tickets.py::def post`; change them together.
 - Backend for the pages: `main.py::# DASHBOARD ENDPOINTS` and `/dashboard/api/*` routes (`grep -n '"/dashboard/api' main.py`)
 - Notes panel: `notes_api.py` (the five `/dashboard/api/notes` routes and the `NoteCreate` / `NoteUpdate` models; first module moved out of `main.py`, PR1). It is registered at `main.py::notes_api.register_routes(app`, the spot the section used to occupy, before the `/dashboard` static mount. It uses `api.verify_api_key`, `api.get_transaction`, `api._record_actor_write`, `api._is_readonly_error`, `api.format_timestamp` and `api.logger`; the key allowlist (`main.py::# Dashboard notes (the dashboard's own list and CRUD)`) and `permissions.py` stay where they were. Every route needs a key (the GET too) and writes by a named person are attributed; see `docs/security/notes-endpoints.md`.
 - Tests:
@@ -125,7 +126,7 @@ Pointer syntax: file::text means search that file for that exact text (a section
   - `write_tickets.py` (`/…/prepare`, `/tickets/{ticket}/commit`, `/receipts`), `ticket_actions.py`
   - `resolution.py`, `resolution_receipts.py`, `exceptions_enforcement.py`
 - UI: `dashboard/fl-assistant.js`, `dashboard/assistant-display.js`
-- Tests: `tests/test_assistant_*`, `tests/test_fl_assistant*`, `tests/test_write_tickets*`, `tests/test_resolution*`, `tests/test_exceptions_*`
+- Tests: `tests/test_assistant_*`, `tests/test_fl_assistant*`, `tests/test_write_tickets*`, `tests/test_resolution*`, `tests/test_exceptions_*`, `tests/test_shortage_unverified_close.py` (no-count close, migration 092)
 - Docs: `docs/resolution.md`
 - Risk: Medium; **High** when the commit path changes
 

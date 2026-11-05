@@ -81,7 +81,7 @@ Same sign-in, same rules, same receipts.
 | Confirm everything was recorded | **FL Assistant → "Today's entries"** (or Dashboard → Receipt → Today) | Compare with the BOLs and batch sheets in your hand. Anything missing: record it now. Entries 2–14 days late open an exception for Michael. |
 | Check inventory accuracy | **Dashboard → Operations** stock panels for what you used today | If something looks wrong, count it and enter Found or Adjust with a photo. |
 | Unfinished work | **Dashboard → Sales Orders → Ready to ship** | Orders that did not ship today stay there. |
-| Exceptions | **Dashboard → Exceptions** (button on the tool bar) | Shortages and unidentified lots are assigned to you by default. Resolve them, or write in "Confirm with notes" why you can't. |
+| Exceptions | **Dashboard → Exceptions** (button on the tool bar) | Shortages and unidentified lots are assigned to you by default. Resolve them, or write in "Confirm with notes" why you can't. **How this works** explains the page; **Explain** on each item says what happened. If you cannot count a short lot, **Resolve without count** closes it with your note: stock does not change and it is marked **Unverified** for Michael. If unsure, leave it open and tell Michael. |
 | Close the day | **Shift Summary → pick today → Confirm** (or **Confirm with notes**, or **Something is missing**) | This is the daily sign-off Michael reviews. |
 
 ---

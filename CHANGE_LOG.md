@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-05 13:42 — Exceptions guidance and resolve-without-count for shortages (branch feat/exceptions-guidance, not deployed)
+- **File(s) changed:** `exceptions_enforcement.py`, `resolution_receipts.py`, `092_shortage_unverified_close.sql`, `092_shortage_unverified_close_down.sql`, `exceptions.js`, `exceptions-guide.js`, `exceptions.css`, `exceptions.html`, `receipt.js`, `receipt.html`, `test_shortage_unverified_close.py`, `test_exceptions_guide.js`, `test_background_startup_ui.js`, `run-d12-fixes.mjs`, `openapi.jsonl`, `routes.jsonl`, `ARCHITECTURE-MAP.md`, `03-guide-arturo.md`, `08-standard-operating-procedures.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** New SHORTAGE resolution 'unverified' (Resolve without count): note required, no stock change, marked unverified (exceptions + shortage_flags resolution_kind, detail.resolution.verified=false, view field unverified); gated on migration 092 marker; GET /exceptions resolution_kind filter. Exceptions page: How this works panel, per-row Explain from real data, hover/tap tips, Use when/Example/This will box, field helper lines, one-line confirmation, Closed without a count list and Unverified badge (also on XR receipt). EN/ES. Tests: 18 Python, 7 JS; route snapshot regenerated (GET /exceptions only). Changelog row 264.
+- **Why:** Owner request 2026-11-05: allow closing a shortage that cannot be counted, and explain the Exceptions workflow in plain language.
+
+---
+
 ## 2026-11-04 15:30 — DCC-006 corrected staging acceptance passed
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added regression row 263 recording the server-role correction, independent review, 203 focused JS tests, staging deployment 949ef3b8 from runtime commit 2ad5c67, Owner/Office Add-new success, Floor exclusion and customer/product smoke acceptance. Production remains not deployed; PR148 unchanged.
