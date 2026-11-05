@@ -57,6 +57,7 @@ If the owner of an entry is absent, Michael names a stand-in for the day. The st
 - Corrections over 500 lb, or over 10% of a lot, need a photo. Without one they wait for Michael.
 - **Never** "fix" stock by recording a fake receipt, batch or shipment.
 - An open shortage must be resolved on the Exceptions page, not covered with a Found entry. The system blocks that anyway.
+- When a short lot cannot be counted, "Resolve without count" closes the shortage on a note. It changes no stock, so the lot keeps its book balance (often negative). The closed item stays marked Unverified on the Exceptions page and its receipt for the owner to review.
 
 ## SOP-7: Daily close
 

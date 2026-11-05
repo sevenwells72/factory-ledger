@@ -1,0 +1,19 @@
+/* Exceptions guidance (2026-11-05): help panel, Explain, option guide, tips, Unverified badge. */
+.ledger-page .exceptions-toolbar {display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px}
+.ledger-page .guide-panel h3 {margin:14px 0 4px;font-size:16px}
+.ledger-page .guide-panel p {margin:2px 0;max-width:68ch}
+.ledger-page .row-actions {display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ledger-page .exception-explain {margin:8px 0;max-width:72ch}
+.ledger-page .option-guide {border-left:5px solid var(--fl-neutral-line);background:var(--fl-neutral-bg);color:var(--fl-neutral);padding:10px 12px}
+.ledger-page .option-guide:empty {display:none}
+.ledger-page .option-guide p {margin:4px 0}
+.ledger-page .field-help {display:block;font-weight:400;font-size:14px;color:var(--text-muted);margin-top:4px}
+.ledger-page .confirm-line {margin:12px 0}
+.ledger-page .tip-wrap {display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px}
+.ledger-page .tip-text {flex-basis:100%;font-size:14px;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px}
+.ledger-page .tip-text[hidden] {display:none}
+/* Hover gives the title; touch screens get a "?" that shows the same text. */
+.ledger-page .tip-toggle {display:none;min-width:32px;min-height:32px;padding:0 8px;border-radius:50%;font-weight:700}
+@media (hover:none){.ledger-page .tip-toggle {display:inline-flex;align-items:center;justify-content:center}}
+.ledger-page .badge-unverified {display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--fl-amber-line);background:var(--fl-amber-bg);color:var(--fl-amber);font-size:13px;font-weight:700;vertical-align:middle}
+@media(max-width:520px){.ledger-page .row-actions button:not(.tip-toggle){min-height:44px}}

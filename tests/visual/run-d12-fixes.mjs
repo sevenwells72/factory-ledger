@@ -24,7 +24,7 @@ async function newPage(width){const context=await browser.newContext({viewport:{
  await page.route('**/*',r=>new URL(r.request().url()).origin===base?r.continue():r.abort());return page;}
 async function signIn(page,role){await page.locator('#actor-key').fill('d12-local-'+role);await page.locator('#sign-in-form button').click();await page.locator('#identity').filter({hasText:/^(Signed in as|Sesión de) /}).waitFor();}
 const section=(page,kind)=>page.locator('section.panel').filter({has:page.getByRole('heading',{name:new RegExp('^'+kind+' ')})});
-async function resolve(page,kind,id){const s=section(page,kind);await s.waitFor();const row=id?s.locator('[data-exception-id="'+id+'"]'):s.locator('.exception-row').first();const selectedId=await row.getAttribute('data-exception-id');await row.getByRole('button').click();await page.locator('#resolution h2',{hasText:new RegExp(' '+kind+' #'+selectedId+'$')}).waitFor();}
+async function resolve(page,kind,id){const s=section(page,kind);await s.waitFor();const row=id?s.locator('[data-exception-id="'+id+'"]'):s.locator('.exception-row').first();const selectedId=await row.getAttribute('data-exception-id');await row.getByRole('button',{name:'Resolve',exact:true}).click();await page.locator('#resolution h2',{hasText:new RegExp(' '+kind+' #'+selectedId+'$')}).waitFor();}
 const noGreen=async page=>assert.equal(await page.locator('.good').count(),0,'no green state');
 try{
  // Fix 2 + fix 0 + fix 1 — floor, 390 px, English.

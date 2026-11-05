@@ -32,7 +32,8 @@ function harness(search = '') {
     },
     exceptionQueue: require('../dashboard/ledger-ui.js').exceptionQueue, openingStock: require('../dashboard/ledger-ui.js').openingStock, groups: () => [], receiveLotHtml: require('../dashboard/ledger-ui.js').receiveLotHtml, receiptData: require('../dashboard/ledger-ui.js').receiptData, receiptState: () => ({ state: 'recorded', tone: 'good' }), voidChoices: () => [], draftHtml: () => '',
     notice() {}, failure(error) { throw error; }, relabel() {}, translate() {} };
-  const context = vm.createContext({ setTimeout, clearTimeout, URL, URLSearchParams, FLLedger: ui, FLReceipts: { page: name => name },
+  const context = vm.createContext({ setTimeout, clearTimeout, URL, URLSearchParams, FLLedger: ui, FLReceipts: { page: name => name, link: name => name },
+    FLExceptionsGuide: require('../dashboard/exceptions-guide.js'),
     FLDashboard: { writesEnabled: true }, location: { search, href: 'https://fl.local/entry.html' + search }, history: { replaceState() {} },
     document: { getElementById: get }, console });
   context.window = context;
@@ -54,10 +55,15 @@ test('receipt initial restoration is background; explicit sign-in reload is user
 test('exceptions restore in background while Refresh and sign-in remain user activity', async () => {
   const h = harness(); h.run('exceptions.js'); await settle();
   assert.equal(h.calls[0].options.background, true);
-  await h.get('content').children[0].onclick({ type: 'click' });
-  assert.equal(h.calls.at(-1).options.background, false);
+  // The open queue follows the trigger; the read-only "closed without a count" list is always background.
+  const openQueue = () => h.calls.filter(call => call.pathname.startsWith('/exceptions?status=open')).at(-1);
+  const refresh = descendants(h.get('content')).find(node => node.tag === 'button' && node.textContent === 'Refresh exceptions');
+  await refresh.onclick({ type: 'click' });
+  assert.equal(openQueue().options.background, false);
+  assert.equal(h.calls.at(-1).pathname, '/exceptions?status=resolved&resolution_kind=unverified&limit=50');
+  assert.equal(h.calls.at(-1).options.background, true);
   await h.fire('ledger-auth');
-  assert.equal(h.calls.at(-1).options.background, false);
+  assert.equal(openQueue().options.background, false);
 });
 
 test('shipping preload and chained detail are background; selecting another order is user activity', async () => {
