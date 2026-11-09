@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-09 12:58 — Record PR 186 dashboard shell deploy (changelog row 266)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added regression-guard row 266: PR #186 squash-merged as main 32a9182 and live on Netlify after BACKUP OK (2026-11-09-pre-pr186); verification, Breaks If Reverted coupling notes, and the un-run tests/visual suite.
+- **Why:** CLAUDE.md Regression Guard step 4: add a changelog row immediately after deploying
+
+---
+
 ## 2026-11-09 12:53 — Dashboard shell: compact section headers
 - **File(s) changed:** `app-shell.css`, `index.html`
 - **What changed:** Dashboard-only (body.fl-app) section headers shrink from ~75px to ~40px: 6px/12px padding, 22px icon circle (was 32px), 14px titles, Today So Far plant date on the title line, tighter panel and section spacing. Production Calendar controls keep 44px targets. app-shell.css bumped to v=2.
