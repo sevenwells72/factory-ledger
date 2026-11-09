@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-11-09 14:14 — PRODUCTION: 30 Blue Stripes items archived (Michael approved); regression row 268
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Michael approved 'Yes, archive 30'. scripts/archive_bs_items.py dry run found 30 (4 already archived), then --apply --expect 30: ARCHIVED 30 items (archived_by=Michael). Verified read-only: 30 products active=false with archived_by Michael, 40 inactive in total, no non-BS product attributed, Sunflower Seeds active; Sunflower 2,114 + Batch BS Dark Chocolate 1,078 = 3,192 lb unchanged. Live API: no BS panel/section/row on finished goods, batches or ingredients and none reported missing; Sunflower Seeds in Granola General Ingredients 2,114 lb; Make picker and /resolve do not offer BS items; search returns them archived=true; TX1785 lot JUL 23 2026 still shows Batch BS Dark Chocolate Granola 350. Added FACTORY_LEDGER_CHANGELOG row 268. Pre-existing, unrelated: 'Sugar – Invert (Cream)' config name vs product 'Sugar – Invert(Cream)' shows as missing.
+- **Why:** Final step of the PR #190 rollout; CLAUDE.md Regression Guard step 4.
+
+---
+
+## 2026-11-09 14:14 — PRODUCTION: PR #190 product archive merged and deployed (Michael approved)
+- **File(s) changed:** `CHANGE_LOG.md`
+- **What changed:** Michael approved 'Yes, merge + deploy'. PR #190 marked ready and squash-merged as main bacd011 (subject without skip markers). Railway FastAPI deployment f47c260b SUCCESS, /health healthy, OpenAPI has /admin/products/archive and /unarchive. Netlify serves index.html with archive.js?v=1, dashboard.js?v=84, dashboard.css?v=47; archive.js, dashboard.js and dashboard_config.json byte-identical to main. Live: Sunflower Seeds only in Granola General Ingredients at 2,114 lb; BS sections still shown (BS items not yet archived).
+- **Why:** Step 2 of the PR #190 production rollout (migration 093 already applied).
+
+---
+
 ## 2026-11-09 14:09 — PRODUCTION: migration 093_product_archive applied (Michael approved)
 - **File(s) changed:** `migrations/093_product_archive.sql`
 - **What changed:** Michael approved 'Yes, apply 093'. Backup first: ~/Backups/fl/2026-11-09-pre093 BACKUP OK, KEY CHECKS ALL MATCH. Applied to production (Supabase vrafvwcdpcijvxdvefpr) via port 5432 in one transaction (lock_timeout 5s, ON_ERROR_STOP). Verified read-only: products.archived_at timestamptz and archived_by text, both nullable, no default; marker 093_product_archive present; 0 products attributed, 10 already inactive of 211 (unchanged); /health healthy. Code (PR #190) not yet merged; BS items not yet archived.
