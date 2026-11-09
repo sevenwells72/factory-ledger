@@ -7,10 +7,24 @@
 
 ---
 
-## 2026-11-09 14:11 — Production Detail: warning icon when lot lines differ from the recorded ingredient total
+## 2026-11-09 14:20 — Production Detail: warning icon when lot lines differ from the recorded ingredient total
 - **File(s) changed:** `main.py`, `dashboard.js`, `dashboard.css`, `index.html`, `runs.html`, `test_production_trace.py`, `run-production-detail.mjs`, `run-production-trace.mjs`, `production-detail-2026-11-06.json`, `ARCHITECTURE-MAP.md`, `mismatch-example screenshots`
 - **What changed:** GET /dashboard/api/production/trace now adds recorded_inputs to each Make transaction (read-only; new main.py _recorded_make_inputs): per-ingredient totals from the signed ticket payload.specification.requirements, else ingredient_lot_consumption, null when neither. Dashboard reconcileIngredients compares them with the lot lines; Quantity stays the lots total (owner choice 2026-11-09) and a warning icon with 'Recorded X · Lots total Y' (or 'No recorded total' / 'No lot lines') shows in Summary and Full Traceability; tap opens a note row. Recorded 0 with no lots is not a row. 3 new API tests; browser test covers real data (no icons) and 3 injected mismatches; run-production-trace.mjs fixed for no-break spaces (already failing on main since #188). Cache CSS v48 / JS v85 (rebased over #190, which took v47/v84).
 - **Why:** Owner asked to resolve the missing mismatch warning from #188. All 463 posted makes reconcile today (17 ticketed, rest via consumption records).
+
+---
+
+## 2026-11-09 14:14 — PRODUCTION: 30 Blue Stripes items archived (Michael approved); regression row 268
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Michael approved 'Yes, archive 30'. scripts/archive_bs_items.py dry run found 30 (4 already archived), then --apply --expect 30: ARCHIVED 30 items (archived_by=Michael). Verified read-only: 30 products active=false with archived_by Michael, 40 inactive in total, no non-BS product attributed, Sunflower Seeds active; Sunflower 2,114 + Batch BS Dark Chocolate 1,078 = 3,192 lb unchanged. Live API: no BS panel/section/row on finished goods, batches or ingredients and none reported missing; Sunflower Seeds in Granola General Ingredients 2,114 lb; Make picker and /resolve do not offer BS items; search returns them archived=true; TX1785 lot JUL 23 2026 still shows Batch BS Dark Chocolate Granola 350. Added FACTORY_LEDGER_CHANGELOG row 268. Pre-existing, unrelated: 'Sugar – Invert (Cream)' config name vs product 'Sugar – Invert(Cream)' shows as missing.
+- **Why:** Final step of the PR #190 rollout; CLAUDE.md Regression Guard step 4.
+
+---
+
+## 2026-11-09 14:14 — PRODUCTION: PR #190 product archive merged and deployed (Michael approved)
+- **File(s) changed:** `CHANGE_LOG.md`
+- **What changed:** Michael approved 'Yes, merge + deploy'. PR #190 marked ready and squash-merged as main bacd011 (subject without skip markers). Railway FastAPI deployment f47c260b SUCCESS, /health healthy, OpenAPI has /admin/products/archive and /unarchive. Netlify serves index.html with archive.js?v=1, dashboard.js?v=84, dashboard.css?v=47; archive.js, dashboard.js and dashboard_config.json byte-identical to main. Live: Sunflower Seeds only in Granola General Ingredients at 2,114 lb; BS sections still shown (BS items not yet archived).
+- **Why:** Step 2 of the PR #190 production rollout (migration 093 already applied).
 
 ---
 
