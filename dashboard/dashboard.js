@@ -1060,10 +1060,74 @@
     return Number(item.quantity).toLocaleString('en-US', { maximumFractionDigits: 4 }) + ' ' + item.unit;
   }
 
+  // Display-only: one row per ingredient (and unit) from the lot lines the API
+  // already returns. Each consumed item is one lot's posted quantity, so the
+  // total is their plain sum; units are never mixed or converted.
+  function groupConsumedByIngredient(consumed) {
+    const groups = new Map();
+    for (const item of consumed) {
+      const key = `${item.product_id}|${item.unit}`;
+      if (!groups.has(key)) {
+        groups.set(key, { product_name: item.product_name, unit: item.unit, quantity: 0, lots: [] });
+      }
+      const group = groups.get(key);
+      group.quantity = Math.round((group.quantity + Number(item.quantity)) * 1e6) / 1e6;
+      group.lots.push(item);
+    }
+    return [...groups.values()];
+  }
+
+  function traceCell(row, tag, className, text) {
+    const cell = traceText(row, tag, text);
+    cell.className = className;
+    return cell;
+  }
+
+  function renderIngredientTable(panel, consumed) {
+    const table = document.createElement('table');
+    table.className = 'ingredient-table';
+    const colgroup = document.createElement('colgroup');
+    for (const name of ['ingredient-name-col', 'ingredient-qty-col', 'ingredient-lots-col']) {
+      const col = document.createElement('col');
+      col.className = name;
+      colgroup.appendChild(col);
+    }
+    table.appendChild(colgroup);
+    const headRow = table.createTHead().insertRow();
+    traceCell(headRow, 'th', 'ingredient-name-head', 'Ingredient').scope = 'col';
+    traceCell(headRow, 'th', 'ingredient-qty-head', 'Quantity').scope = 'col';
+    traceCell(headRow, 'th', 'ingredient-lots', 'Lot Information').scope = 'col';
+    const body = table.createTBody();
+    for (const group of groupConsumedByIngredient(consumed)) {
+      const row = body.insertRow();
+      traceCell(row, 'th', 'ingredient-name', group.product_name).scope = 'row';
+      traceCell(row, 'td', 'ingredient-qty', traceQuantity(group));
+      const lots = traceCell(row, 'td', 'ingredient-lots', '');
+      for (const lot of group.lots) {
+        const parts = [lot.lot_code];
+        // No-break spaces keep "Supplier 260901" and "80 lb" whole; lines wrap at the dots.
+        if (lot.supplier_lot_code) parts.push('Supplier\u00a0' + lot.supplier_lot_code);
+        if (group.lots.length > 1) parts.push(traceQuantity(lot).replace(' ', '\u00a0'));
+        traceText(lots, 'span', parts.join(' · ')).className = 'ingredient-lot';
+      }
+    }
+    panel.appendChild(table);
+  }
+
   function renderProductionTrace(panel, data, packedBatch) {
     panel.replaceChildren();
     if (!data.transactions.length) {
       traceText(panel, 'p', 'No posted production found for this selection.');
+      return;
+    }
+    if (data.kind === 'make' && !packedBatch) {
+      // Made rows: compact Ingredient | Quantity | Lot Information table per
+      // record. The day subtotals are not repeated; the Quantity column carries them.
+      for (const transaction of data.transactions) {
+        traceText(panel, 'h6', `Made #${transaction.transaction_id}`);
+        if (!transaction.consumed.length) traceText(panel, 'p', 'No consumed lots recorded.');
+        else renderIngredientTable(panel, transaction.consumed);
+      }
       return;
     }
     for (const transaction of data.transactions) {
@@ -1140,6 +1204,24 @@
     return html;
   }
 
+  // Summary | Full Traceability only shows or hides the Lot Information column.
+  const PRODUCTION_DETAIL_VIEW_KEY = 'fl-production-detail-view';
+
+  function readProductionDetailView() {
+    try {
+      return localStorage.getItem(PRODUCTION_DETAIL_VIEW_KEY) === 'full' ? 'full' : 'summary';
+    } catch (_) {
+      return 'summary';
+    }
+  }
+
+  function applyProductionDetailView(detail, view) {
+    detail.dataset.view = view === 'full' ? 'full' : 'summary';
+    detail.querySelectorAll('.production-view-toggle button').forEach(button => {
+      button.setAttribute('aria-pressed', String(button.dataset.view === detail.dataset.view));
+    });
+  }
+
   function updateProductionDaySelection(container, shouldScroll) {
     container.querySelectorAll('.day-card-trigger').forEach(card => {
       const isSelected = card.dataset.productionDate === state.selectedProductionDate;
@@ -1162,6 +1244,11 @@
     html += `<h3>${escHtml(productionDetailDate(model.day))}</h3></div>`;
     html += '<button type="button" class="btn-sm production-detail-close" aria-label="Close production detail">Close</button>';
     html += '</div>';
+    html += '<div class="production-view-toggle" role="group" aria-label="Made ingredient detail">';
+    for (const [view, text] of [['summary', 'Summary'], ['full', 'Full Traceability']]) {
+      html += `<button type="button" class="btn-sm" data-view="${view}" aria-pressed="false">${text}</button>`;
+    }
+    html += '</div>';
 
     html += '<div class="production-detail-grid">';
     for (const family of model.summary.families) html += renderProductionDetailFamily(family);
@@ -1169,6 +1256,13 @@
 
     detail.innerHTML = html;
     detail.classList.remove('hidden');
+    applyProductionDetailView(detail, readProductionDetailView());
+    detail.querySelectorAll('.production-view-toggle button').forEach(button => {
+      button.addEventListener('click', () => {
+        applyProductionDetailView(detail, button.dataset.view);
+        try { localStorage.setItem(PRODUCTION_DETAIL_VIEW_KEY, button.dataset.view); } catch (_) { /* view still switches */ }
+      });
+    });
     detail.querySelectorAll('.production-trace[data-product-id]').forEach(row => {
       bindProductionTrace(row, row.querySelector('.production-trace-panel'), new URLSearchParams({
         product_id: row.dataset.productId, kind: row.dataset.kind,
