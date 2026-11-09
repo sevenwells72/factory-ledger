@@ -1,0 +1,371 @@
+{
+ "kosher_tier": "regular",
+ "kosher_label": "Regular",
+ "kosher_attested_by_actor_id": null,
+ "kosher_attested_at": null,
+ "trace_type": "batch",
+ "lot_id": 1561,
+ "product_id": 142,
+ "batch_lot_code": "OCT 06 2026",
+ "product_name": "Granola Fruit Nut 25 LB",
+ "output_lb": 550.0,
+ "produced_date": "2026-10-06",
+ "produced_time": "03:15 PM ET",
+ "ingredients": [
+  {
+   "lot_id": 1560,
+   "product_id": 179,
+   "ingredient_name": "Granola Fruit Nut Batch",
+   "lot_code": "OCT 06 2026",
+   "supplier_lot_code": null,
+   "quantity_lb": 550.0
+  }
+ ],
+ "customer_shipments": [
+  {
+   "transaction_id": 2977,
+   "shipped_at": "2026-11-09T14:30:19.044482",
+   "shipped_date": "2026-11-09",
+   "shipped_time": "09:30 AM ET",
+   "quantity_lb": 550.0,
+   "customer_name": "Fauzi and Company, Inc.",
+   "order_reference": null,
+   "sales_order_id": 384,
+   "order_number": "SO-261102-003",
+   "shipment_id": 428
+  }
+ ],
+ "total_shipped_lb": 550.0,
+ "on_hand_lb": 0.0,
+ "case_size_lb": 25.0,
+ "output_units": 22,
+ "on_hand_units": 0,
+ "total_shipped_units": 22,
+ "input_tree": {
+  "kind": "made",
+  "transactions": [
+   {
+    "transaction_id": 2594,
+    "type": "pack",
+    "produced_at": "2026-10-06T19:15:19.775776+00:00",
+    "produced_date": "2026-10-06",
+    "produced_time": "03:15 PM ET",
+    "output_lb": 550.0,
+    "inputs_total_lb": 550.0,
+    "inputs_mismatch": false,
+    "inputs": [
+     {
+      "lot_id": 1560,
+      "lot_code": "OCT 06 2026",
+      "product_id": 179,
+      "product_name": "Granola Fruit Nut Batch",
+      "product_type": "batch",
+      "entry_source": "production_output",
+      "supplier_lot_code": null,
+      "quantity": 550.0,
+      "unit": "lb",
+      "origin": {
+       "kind": "made",
+       "transactions": [
+        {
+         "transaction_id": 2593,
+         "type": "make",
+         "produced_at": "2026-10-06T19:13:54.557760+00:00",
+         "produced_date": "2026-10-06",
+         "produced_time": "03:13 PM ET",
+         "output_lb": 769.04,
+         "inputs_total_lb": 50.0,
+         "inputs_mismatch": true,
+         "inputs": [
+          {
+           "lot_id": 1051,
+           "lot_code": "26-07-24-REFR-001",
+           "product_id": 3,
+           "product_name": "Almonds – Sliced",
+           "product_type": "ingredient",
+           "entry_source": "received",
+           "supplier_lot_code": "251319",
+           "quantity": 2.5,
+           "unit": "lb",
+           "origin": {
+            "kind": "received",
+            "transaction_id": 1734,
+            "received_at": "2026-07-24T15:36:36.944259+00:00",
+            "received_date": "2026-07-24",
+            "received_time": "11:36 AM ET",
+            "supplier_name": "Refrig-IT",
+            "bol_reference": "22168705",
+            "receipt_number": null,
+            "quantity_lb": 4000.0,
+            "supplier_lot_code": "251319",
+            "receipt_count": 1
+           }
+          },
+          {
+           "lot_id": 1512,
+           "lot_code": "SEP 28 2026",
+           "product_id": 107,
+           "product_name": "Batch Classic Granola #9",
+           "product_type": "batch",
+           "entry_source": "production_output",
+           "supplier_lot_code": null,
+           "quantity": 40.0,
+           "unit": "lb",
+           "origin": {
+            "kind": "made",
+            "transactions": [
+             {
+              "transaction_id": 2510,
+              "type": "make",
+              "produced_at": "2026-09-28T20:45:31.727008+00:00",
+              "produced_date": "2026-09-28",
+              "produced_time": "04:45 PM ET",
+              "output_lb": 3553.0,
+              "inputs_total_lb": 3548.6,
+              "inputs_mismatch": false,
+              "inputs": [
+               {
+                "lot_id": 616,
+                "lot_code": "25120",
+                "product_id": 13,
+                "product_name": "Coconut Macaroon Desiccated",
+                "product_type": "ingredient",
+                "entry_source": "found_inventory",
+                "supplier_lot_code": null,
+                "quantity": 137.5,
+                "unit": "lb",
+                "origin": {
+                 "kind": "found_inventory",
+                 "transaction_id": null
+                }
+               },
+               {
+                "lot_id": 439,
+                "lot_code": "26-04-21-PARK-001",
+                "product_id": 18,
+                "product_name": "Flavor – Almond",
+                "product_type": "ingredient",
+                "entry_source": "received",
+                "supplier_lot_code": "N/A",
+                "quantity": 19.8,
+                "unit": "lb",
+                "origin": {
+                 "kind": "received",
+                 "transaction_id": 666,
+                 "received_at": "2026-04-21T14:12:53.327223+00:00",
+                 "received_date": "2026-04-21",
+                 "received_time": "10:12 AM ET",
+                 "supplier_name": "Parker Flavors",
+                 "bol_reference": "1010246",
+                 "receipt_number": null,
+                 "quantity_lb": 800.0,
+                 "supplier_lot_code": "N/A",
+                 "receipt_count": 1
+                }
+               },
+               {
+                "lot_id": 1393,
+                "lot_code": "26-09-03-DUTC-001",
+                "product_id": 30,
+                "product_name": "Honey",
+                "product_type": "ingredient",
+                "entry_source": "received",
+                "supplier_lot_code": "23326D",
+                "quantity": 17.6,
+                "unit": "lb",
+                "origin": {
+                 "kind": "received",
+                 "transaction_id": 2191,
+                 "received_at": "2026-09-03T16:57:23.991651+00:00",
+                 "received_date": "2026-09-03",
+                 "received_time": "12:57 PM ET",
+                 "supplier_name": "Dutch Gold",
+                 "bol_reference": "1412736",
+                 "receipt_number": null,
+                 "quantity_lb": 6000.0,
+                 "supplier_lot_code": "23326D",
+                 "receipt_count": 1
+                }
+               },
+               {
+                "lot_id": 1365,
+                "lot_code": "26-08-28-QUAL-001",
+                "product_id": 32,
+                "product_name": "Oats",
+                "product_type": "ingredient",
+                "entry_source": "received",
+                "supplier_lot_code": "260805",
+                "quantity": 2475.0,
+                "unit": "lb",
+                "origin": {
+                 "kind": "received",
+                 "transaction_id": 2143,
+                 "received_at": "2026-08-28T13:08:31.608694+00:00",
+                 "received_date": "2026-08-28",
+                 "received_time": "09:08 AM ET",
+                 "supplier_name": "QUALI PACK",
+                 "bol_reference": "9913",
+                 "receipt_number": null,
+                 "quantity_lb": 43750.0,
+                 "supplier_lot_code": "260805",
+                 "receipt_count": 1
+                }
+               },
+               {
+                "lot_id": 1333,
+                "lot_code": "26-08-25-CBSF-001",
+                "product_id": 34,
+                "product_name": "Oil – Canola",
+                "product_type": "ingredient",
+                "entry_source": "received",
+                "supplier_lot_code": "23326",
+                "quantity": 330.0,
+                "unit": "lb",
+                "origin": {
+                 "kind": "received",
+                 "transaction_id": 2100,
+                 "received_at": "2026-08-25T12:25:47.079180+00:00",
+                 "received_date": "2026-08-25",
+                 "received_time": "08:25 AM ET",
+                 "supplier_name": "CBS Food",
+                 "bol_reference": "35146",
+                 "receipt_number": null,
+                 "quantity_lb": 6000.0,
+                 "supplier_lot_code": "23326",
+                 "receipt_count": 1
+                }
+               },
+               {
+                "lot_id": 440,
+                "lot_code": "26-04-21-ESSE-001",
+                "product_id": 39,
+                "product_name": "Salt",
+                "product_type": "ingredient",
+                "entry_source": "received",
+                "supplier_lot_code": "N/A",
+                "quantity": 18.7,
+                "unit": "lb",
+                "origin": {
+                 "kind": "received",
+                 "transaction_id": 667,
+                 "received_at": "2026-04-21T15:40:05.230373+00:00",
+                 "received_date": "2026-04-21",
+                 "received_time": "11:40 AM ET",
+                 "supplier_name": "Essex Foods",
+                 "bol_reference": "61869934",
+                 "receipt_number": null,
+                 "quantity_lb": 2450.0,
+                 "supplier_lot_code": "N/A",
+                 "receipt_count": 1
+                }
+               },
+               {
+                "lot_id": 1342,
+                "lot_code": "26-08-26-JACK-001",
+                "product_id": 44,
+                "product_name": "Sugar – Light Brown",
+                "product_type": "ingredient",
+                "entry_source": "received",
+                "supplier_lot_code": "46256",
+                "quantity": 550.0,
+                "unit": "lb",
+                "origin": {
+                 "kind": "received",
+                 "transaction_id": 2112,
+                 "received_at": "2026-08-26T13:12:48.161423+00:00",
+                 "received_date": "2026-08-26",
+                 "received_time": "09:12 AM ET",
+                 "supplier_name": "Jack’s Eggs",
+                 "bol_reference": "649356",
+                 "receipt_number": null,
+                 "quantity_lb": 7500.0,
+                 "supplier_lot_code": "46256",
+                 "receipt_count": 1
+                }
+               }
+              ]
+             }
+            ],
+            "output_lb": 3553.0,
+            "inputs_total_lb": 3548.6,
+            "inputs_mismatch": false
+           }
+          },
+          {
+           "lot_id": 1289,
+           "lot_code": "26-08-17-ABAK-002",
+           "product_id": 17,
+           "product_name": "Cranberries Dried",
+           "product_type": "ingredient",
+           "entry_source": "received",
+           "supplier_lot_code": "29997055",
+           "quantity": 2.5,
+           "unit": "lb",
+           "origin": {
+            "kind": "received",
+            "transaction_id": 2029,
+            "received_at": "2026-08-17T20:28:40.534971+00:00",
+            "received_date": "2026-08-17",
+            "received_time": "04:28 PM ET",
+            "supplier_name": "A1 Baker",
+            "bol_reference": "69383",
+            "receipt_number": null,
+            "quantity_lb": 250.0,
+            "supplier_lot_code": "29997055",
+            "receipt_count": 1
+           }
+          },
+          {
+           "lot_id": 66,
+           "lot_code": "26-02-04-FOUN-002",
+           "product_id": 36,
+           "product_name": "Raisins",
+           "product_type": "ingredient",
+           "entry_source": "received",
+           "supplier_lot_code": null,
+           "quantity": 2.5,
+           "unit": "lb",
+           "origin": {
+            "kind": "found_inventory",
+            "transaction_id": 70,
+            "recorded_shipper": "found",
+            "received_at": "2026-02-04T20:50:01.125525+00:00",
+            "received_date": "2026-02-04",
+            "received_time": "03:50 PM ET"
+           }
+          },
+          {
+           "lot_id": 65,
+           "lot_code": "26-02-04-FOUN-001",
+           "product_id": 49,
+           "product_name": "Walnuts",
+           "product_type": "ingredient",
+           "entry_source": "received",
+           "supplier_lot_code": null,
+           "quantity": 2.5,
+           "unit": "lb",
+           "origin": {
+            "kind": "found_inventory",
+            "transaction_id": 69,
+            "recorded_shipper": "found",
+            "received_at": "2026-02-04T20:49:00.919241+00:00",
+            "received_date": "2026-02-04",
+            "received_time": "03:49 PM ET"
+           }
+          }
+         ]
+        }
+       ],
+       "output_lb": 769.04,
+       "inputs_total_lb": 50.0,
+       "inputs_mismatch": true
+      }
+     }
+    ]
+   }
+  ],
+  "output_lb": 550.0,
+  "inputs_total_lb": 550.0,
+  "inputs_mismatch": false
+ }
+}

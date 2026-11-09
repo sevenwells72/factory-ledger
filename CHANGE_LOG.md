@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-11-09 15:29 — PR 194 cross-review fixes: also_received on made lots, four more placeholder shippers
+- **File(s) changed:** `main.py`, `traceability.html`, `test_trace_batch_input_tree.py`, `run-traceability-backward.mjs`, `ARCHITECTURE-MAP.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** _trace_lot_origin keeps the made origin and adds also_received (posted receipts into a made/packed lot, oldest first, classified supplier/found/unnamed with quantity_lb) via new _trace_lot_receipts/_trace_receipt_origin; traceability.html addAlsoReceived draws each as an extra origin node on that lot, found/unnamed counted as gaps; TRACE_FOUND_SHIPPERS adds initial inventory, inventory correction, inventory intake, blender warehouse; new backend test (pack lot plus later FOUND INVENTORY receipt) and browser checks; changelog row 270 and architecture map updated (still not deployed). No migration, no GPT YAML change, ingredients and existing keys unchanged.
+- **Why:** Cross-review of PR 194: prod lots 232 and 505 looked fully traced although part came from found-inventory receipts, and receipt 261 Blender Warehouse showed as a real supplier (Michael: not an outside source).
+
+---
+
+## 2026-11-09 15:04 — Traceability Backward trace: full input tree from posted ledger lines
+- **File(s) changed:** `main.py`, `traceability.html`, `test_trace_batch_input_tree.py`, `run-traceability-backward.mjs`, `trace-batch-fruit-nut-2026-10-06.json`, `trace-batch.json`, `ARCHITECTURE-MAP.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** GET /trace/batch adds input_tree (posted current-ledger lines, recursive through every posted make/pack by lot id, origins made/received/found_inventory/unknown, placeholder 'found' receipts never suppliers, display-only inputs_mismatch outside 80-120% of output); traceability.html renders the tree with a Recorded ingredients badge, detail note and text-report INPUT CHECKS, legacy one-level fallback; new pytest + visual runner on real 2026-10-06 Fruit Nut data; architecture map and changelog row 270. Branch fix/trace-backward-input-tree, PR for cross-review, not merged or deployed.
+- **Why:** Backward trace of packed lots stopped at the bulk batch, labelled it Ingredient and showed a false Supplier unknown gap (last-100-receipt browser scan).
+
+---
+
 ## 2026-11-09 14:30 — Record PR 192 production deploy (changelog row 269); merging this builds the Netlify dashboard
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added regression-guard row 269: recorded-total warning live on Railway as main 7b9deb3 (3f4767f1) after staging proof 2e3fc2d5 and BACKUP OK (2026-11-09-pre-pr192). Netlify skipped the #192 build because the squash message carried a skip marker; this PR deliberately has none so its merge builds dashboard.css v48 / dashboard.js v85.
