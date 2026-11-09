@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-11-09 14:09 — PRODUCTION: migration 093_product_archive applied (Michael approved)
+- **File(s) changed:** `migrations/093_product_archive.sql`
+- **What changed:** Michael approved 'Yes, apply 093'. Backup first: ~/Backups/fl/2026-11-09-pre093 BACKUP OK, KEY CHECKS ALL MATCH. Applied to production (Supabase vrafvwcdpcijvxdvefpr) via port 5432 in one transaction (lock_timeout 5s, ON_ERROR_STOP). Verified read-only: products.archived_at timestamptz and archived_by text, both nullable, no default; marker 093_product_archive present; 0 products attributed, 10 already inactive of 211 (unchanged); /health healthy. Code (PR #190) not yet merged; BS items not yet archived.
+- **Why:** Step 1 of the PR #190 production rollout.
+
+---
+
+## 2026-11-09 14:08 — Staging only: PR #190 product archive deployed to FastAPI-staging; migration 093 + BS archive applied on staging
+- **File(s) changed:** `CHANGE_LOG.md`
+- **What changed:** Michael asked to bring PR #190 live. Staging DB (jygmyvxnxdjiiilhxseq, confirmed not production vrafvwcdpcijvxdvefpr): migration 093 applied in one transaction (lock_timeout 5s), verified columns + marker. railway up of feature/archive-items 49312a8 to FastAPI-staging: deployment dd2c4310 SUCCESS, /health healthy; rollback point 7661b60f. Staging rehearsal: Luz archive 403; BS Oats GF blocked naming its active recipe; scripts/archive_bs_items.py dry run 30 then --apply --expect 30 → 30 archived by Michael; finished goods/batches/ingredients show no BS rows or sections, none missing; Sunflower Seeds in Granola General; search returns BS Oats GF archived=true; Make picker and resolver exclude archived; unarchive restored BS Oats GF (resolver offered it) then re-archived; archived lot lookup still shows product and history. Staging left with the 30 BS items archived. Production untouched.
+- **Why:** CLAUDE.md High tier: prove on staging before any production step.
+
+---
+
 ## 2026-11-09 13:53 — Product archive feature + BS archive prep (branch feature/archive-items, not deployed)
 - **File(s) changed:** `product_archive.py`, `main.py`, `supplies.py`, `migrations/093_product_archive.sql`, `migrations/down/093_product_archive_down.sql`, `dashboard/archive.js`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/index.html`, `dashboard/dashboard_config.json`, `scripts/archive_bs_items.py`, `tests/test_product_archive.py`, `tests/test_archive_ui.js`, `tests/test_archived_products_dashboard.js`, `tests/fixtures/route_contract/routes.jsonl`, `tests/fixtures/route_contract/openapi.jsonl`, `tests/visual/archive_fixture.py`, `tests/visual/run-archive-screenshots.mjs`, `docs/ARCHITECTURE-MAP.md`, `docs/screenshots/archive/`
 - **What changed:** Owner-only archive/unarchive (POST /admin/products/archive|unarchive) reusing products.active; migration 093 adds nullable archived_at/archived_by (no data change); on-hand lists hide archived items (include_archived=true shows them dimmed/tagged), all-archived sections drop, archived never 'missing' or low-stock; search keeps archived products flagged; block archiving an ingredient used by an active recipe; dashboard Archive/Restore row icons, bulk select, Show archived toggle, in-page bilingual confirm; Sunflower Seeds removed from BS Ingredients group (stays in Granola General); dry-run-first script to archive the 30 active BS items as Michael; tests + local end-to-end screenshots.
