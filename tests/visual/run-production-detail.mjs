@@ -21,14 +21,26 @@ const fixture = JSON.parse(await fs.readFile(new URL('./fixtures/production-deta
 const DAY = '2026-11-06';
 const GRANOLA = 114;   // Batch SS Chocolate Chip Granola #2 (Made #2965)
 const COCONUT = 125;   // Batch Coconut Sweetened Fancy (Made #2966)
+const MISMATCH = 127;  // Made #2967 with an injected recorded-total mismatch (synthetic, test only)
 
 await fs.mkdir(out, { recursive: true });
 const server = await startStaticServer(root);
 const browser = await chromium.launch(process.env.PW_CHANNEL ? { channel: process.env.PW_CHANNEL } : {});
 const tokens = buildTokenTable();
 
+// Synthetic exception on a copy of #2967: Salt recorded 8 lb (lots 7.5 lb), Glycol missing from
+// the record, and a recorded 10 lb Water with no lot lines. The real records all reconcile.
+const mismatch = structuredClone(fixture.trace[`make:${MISMATCH}`]);
+mismatch.transactions[0].recorded_inputs = [
+  ...mismatch.transactions[0].recorded_inputs
+    .filter(r => r.product_name !== 'Glycol')
+    .map(r => r.product_name === 'Salt' ? { ...r, quantity: 8 } : r),
+  { product_id: 999999, product_name: 'Water', unit: 'lb', quantity: 10, source: 'ticket' },
+];
+
 function traceFor(params) {
   if (params.get('lot_id')) return fixture.trace[`lot:${params.get('lot_id')}`];
+  if (checking && params.get('product_id') === String(MISMATCH)) return mismatch;
   return fixture.trace[`${params.get('kind') || 'make'}:${params.get('product_id')}`];
 }
 
@@ -40,9 +52,10 @@ async function openRow(page, productId) {
 }
 
 async function rowsOf(row) {
-  return row.locator('.ingredient-table tbody tr').evaluateAll(trs => trs.map(tr => ({
+  return row.locator('.ingredient-table tbody tr.ingredient-row').evaluateAll(trs => trs.map(tr => ({
     ingredient: tr.querySelector('.ingredient-name')?.textContent.trim() || '',
-    quantity: tr.querySelector('.ingredient-qty')?.textContent.trim() || '',
+    quantity: (tr.querySelector('.ingredient-qty')?.firstChild?.textContent || '').replace(/\s+/g, ' ').trim(),
+    warning: tr.querySelector('.qty-warning')?.title || null,
     lots: [...tr.querySelectorAll('.ingredient-lot')].map(lot => lot.textContent.replace(/\s+/g, ' ').trim()),
   })));
 }
@@ -95,7 +108,9 @@ try {
       assert.equal(rows.find(r => r.ingredient === 'Oats').quantity, '1,832 lb');
       assert.deepEqual(rows.find(r => r.ingredient === 'Honey').lots, ['26-10-27-FOUND-006']);
       assert.deepEqual(rows.find(r => r.ingredient.startsWith('Almonds')).lots, ['26-11-05-NATI-001 · Supplier 236268101']);
-      assert.equal(rows.length, 7, 'one row per ingredient');
+      assert.equal(rows.length, 7, 'one row per ingredient; recorded 0 lb Oat Bran with no lots is not a row');
+      assert.equal(await page.locator('.production-trace[data-product-id="114"] .qty-warning, .production-trace[data-product-id="125"] .qty-warning').count(), 0,
+        'real records reconcile with their signed tickets: no warning icons');
       const coconutRows = await rowsOf(coconut);
       assert.equal(coconutRows.find(r => r.ingredient === 'Coconut Fancy Desiccated').quantity, '600 lb');
       assert.equal(coconutRows.find(r => r.ingredient === 'Salt').quantity, '7.5 lb');
@@ -115,6 +130,32 @@ try {
         const qty = table > 760 ? table * 0.13 : 100;
         assert(Math.abs(geo[1].width - qty) < 2, 'quantity column 13%, or 6.25rem in a narrow panel');
       }
+
+      // Recorded-total exceptions: icon in both views, quantity stays the lots total, tap shows the note.
+      const odd = await openRow(page, MISMATCH);
+      for (const view of ['summary', 'full']) {
+        await detail.locator(`.production-view-toggle button[data-view="${view}"]`).click();
+        const oddRows = await rowsOf(odd);
+        const salt = oddRows.find(r => r.ingredient === 'Salt');
+        assert.equal(salt.quantity, '7.5 lb');
+        assert.equal(salt.warning, 'Recorded 8 lb · Lots total 7.5 lb');
+        assert.equal(oddRows.find(r => r.ingredient === 'Glycol').warning, 'No recorded total · Lots total 21 lb');
+        const water = oddRows.find(r => r.ingredient === 'Water');
+        assert.equal(water.quantity, '—');
+        assert.equal(water.warning, 'Recorded 10 lb · No lot lines');
+        assert.equal(oddRows.filter(r => r.warning).length, 3);
+        assert.equal(await odd.locator('.qty-warning').first().isVisible(), true, `icon visible in ${view}`);
+        const icon = odd.locator('tr.ingredient-row', { hasText: 'Salt' }).locator('.qty-warning');
+        await icon.click();
+        const note = odd.locator('.qty-warning-note', { hasText: 'Recorded 8 lb · Lots total 7.5 lb' });
+        assert.equal(await note.isVisible(), true);
+        assert.equal(await icon.getAttribute('aria-expanded'), 'true');
+        await odd.scrollIntoViewIfNeeded();
+        await odd.screenshot({ path: path.join(out, `${label}-mismatch-example-${view}-${width}.png`) });
+        await icon.click();
+        assert.equal(await note.isVisible(), false);
+      }
+      await odd.locator(':scope > summary').click();
 
       // Summary hides lots, Full shows them, the choice is remembered, data is unchanged.
       await detail.locator('.production-view-toggle button[data-view="summary"]').click();
@@ -146,7 +187,7 @@ try {
     await context.close();
   }
   console.log(checking
-    ? 'PASS: table columns/order/widths, Made #2965 304 lb = 80 + 224, coconut, Summary/Full toggle + memory, expand/collapse, Packed unchanged, no overflow at 1440/390.'
+    ? 'PASS: table columns/order/widths, Made #2965 304 lb = 80 + 224, coconut, recorded-total warnings (none on real data; 3 injected) in both views, Summary/Full toggle + memory, expand/collapse, Packed unchanged, no overflow at 1440/390.'
     : `Captured ${label} screenshots to ${out}`);
 } finally {
   await browser.close();

@@ -26,8 +26,9 @@ def product(cur, name, kind, unit='lb'):
     return pid, cur.fetchone()['id']
 
 
-def event(cur, kind, stamp, lines):
-    cur.execute("INSERT INTO transactions (type,timestamp,status) VALUES (%s,%s,'posted') RETURNING id", (kind, stamp))
+def event(cur, kind, stamp, lines, ticket_id=None):
+    cur.execute("INSERT INTO transactions (type,timestamp,status,ticket_id) VALUES (%s,%s,'posted',%s) RETURNING id",
+                (kind, stamp, ticket_id))
     tid = cur.fetchone()['id']
     ids = []
     for (pid, lid), qty in lines:
@@ -128,3 +129,61 @@ def test_amended_output_lot_uses_current_lines(trace_client, db_cursor):
     assert data['transactions'][0]['consumed'][0]['lot_id'] == oats[1]
     assert data['transactions'][0]['consumed'][0]['quantity'] == 28
     assert data['subtotals'][0]['quantity'] == 28
+
+
+def ticket(cur, requirements):
+    """A committed Make ticket whose signed specification froze per-ingredient totals."""
+    import hashlib, json, uuid
+    h = lambda: hashlib.sha256(uuid.uuid4().bytes).hexdigest()
+    payload = {'specification': {'requirements': {str(k): v for k, v in requirements.items()}}}
+    cur.execute("""INSERT INTO write_tickets (ticket_hash, action, operator_id, key_kind, client_source,
+                       payload, payload_hash, state_hash, draft, status, expires_at)
+                   VALUES (%s,'make','test','legacy_dashboard','dashboard',%s,%s,%s,'{}','committed', now())
+                   RETURNING id""", (h(), json.dumps(payload), h(), h()))
+    return cur.fetchone()['id']
+
+
+@pytest.mark.db
+def test_recorded_inputs_from_signed_ticket(trace_client, db_cursor):
+    batch = product(db_cursor, 'Recorded granola', 'batch')
+    chips = product(db_cursor, 'Recorded chips', 'ingredient')
+    db_cursor.execute("INSERT INTO lots (product_id, lot_code) VALUES (%s,'CHIPS-2') RETURNING id", (chips[0],))
+    chips_two = (chips[0], db_cursor.fetchone()['id'])
+    bran = product(db_cursor, 'Recorded bran', 'ingredient')
+    event(db_cursor, 'make', '2026-09-16 15:00', [(batch, 400), (chips, -80), (chips_two, -224)],
+          ticket_id=ticket(db_cursor, {chips[0]: 304.0, bran[0]: 0.0}))
+    made = row_trace(trace_client, batch[0])['transactions'][0]
+    assert [c['quantity'] for c in made['consumed']] == [80, 224]
+    recorded = {r['product_id']: r for r in made['recorded_inputs']}
+    assert recorded[chips[0]]['quantity'] == 304
+    assert recorded[chips[0]]['source'] == 'ticket'
+    assert recorded[chips[0]]['unit'] == 'lb'
+    assert recorded[bran[0]] == dict(product_id=bran[0], product_name='Recorded bran', unit='lb',
+                                     quantity=0, source='ticket')
+
+
+@pytest.mark.db
+def test_recorded_inputs_fall_back_to_consumption_record_and_keep_current_lines(trace_client, db_cursor):
+    batch = product(db_cursor, 'Legacy granola', 'batch')
+    oats = product(db_cursor, 'Legacy oats', 'ingredient')
+    tid, lines = event(db_cursor, 'make', '2026-09-16 15:00', [(batch, 20), (oats, -20)])
+    db_cursor.execute("""INSERT INTO ingredient_lot_consumption
+                         (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb)
+                         VALUES (%s,%s,%s,20)""", (tid, oats[0], oats[1]))
+    main._append_transaction_line_correction(db_cursor, lines[1], {'quantity_lb': -18}, 'correct usage', 'test')
+    made = row_trace(trace_client, batch[0])['transactions'][0]
+    # The quantity stays the corrected line; the original record is only the comparison figure.
+    assert made['consumed'][0]['quantity'] == 18
+    assert made['recorded_inputs'] == [dict(product_id=oats[0], product_name='Legacy oats', unit='lb',
+                                            quantity=20, source='consumption_record')]
+
+
+@pytest.mark.db
+def test_no_recorded_inputs_is_null_not_zero(trace_client, db_cursor):
+    batch = product(db_cursor, 'Bare granola', 'batch')
+    oats = product(db_cursor, 'Bare oats', 'ingredient')
+    finished = product(db_cursor, 'Bare finished', 'finished')
+    event(db_cursor, 'make', '2026-09-16 15:00', [(batch, 20), (oats, -20)])
+    event(db_cursor, 'pack', '2026-09-16 16:00', [(finished, 20), (batch, -20)])
+    assert row_trace(trace_client, batch[0])['transactions'][0]['recorded_inputs'] is None
+    assert row_trace(trace_client, finished[0], 'pack')['transactions'][0]['recorded_inputs'] is None

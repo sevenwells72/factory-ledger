@@ -47,9 +47,10 @@ try {
   await made.getByRole('button',{name:'Retry'}).click();
   await made.locator('.ingredient-table').waitFor();
   assert.equal(await made.getByText('Ingredient subtotals',{exact:true}).count(),0);
-  assert((await made.innerText()).includes('LOT<&> · Supplier SUP<&>'));
-  assert((await made.innerText()).includes('SUP<&>'));
-  assert((await made.innerText()).includes('18.1234 lb'));
+  const madeText=async()=>(await made.innerText()).replace(/\u00a0/g,' ');
+  assert((await madeText()).includes('LOT<&> · Supplier SUP<&>'));
+  assert((await madeText()).includes('SUP<&>'));
+  assert((await madeText()).includes('18.1234 lb'));
   assert.equal(await made.locator('img').count(),0);
   await summary.focus();await page.keyboard.press('Space');
   await page.waitForFunction(()=>!document.querySelector('.production-trace[data-kind="make"]').open);
