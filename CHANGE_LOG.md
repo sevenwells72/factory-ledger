@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-09 14:20 — Staging only: PR #192 (recorded-total warning, 39b22d2) deployed to FastAPI-staging and proven
+- **File(s) changed:** `none in the PR (this log entry only)`
+- **What changed:** Michael approved 'Yes, deploy staging'. railway up from a clean detached checkout of PR #192 head 39b22d2 (~/dev/fl-192-stage-wt, linked to FastAPI-staging 0d957be1 only): deployment 2e3fc2d5 SUCCESS; previous dd2c4310 is the rollback point. No migration (093 already on staging). Read-only checks: staging /health healthy; serves dashboard.css v48 / dashboard.js v85 hash-identical to the branch; for all 132 posted staging Makes the trace API's recorded_inputs equals the staging DB (128 from signed tickets, 4 from ingredient_lot_consumption; 2 tickets with empty requirements and no lot lines correctly return []); none would show a warning icon. Production untouched: /health healthy, trace has no recorded_inputs, Netlify still v47/v84. No data written; nothing merged.
+- **Why:** High-tier change (trace API in main.py) must be proven on staging before any production step.
+
+---
+
 ## 2026-11-09 14:11 — Production Detail: warning icon when lot lines differ from the recorded ingredient total
 - **File(s) changed:** `main.py`, `dashboard.js`, `dashboard.css`, `index.html`, `runs.html`, `test_production_trace.py`, `run-production-detail.mjs`, `run-production-trace.mjs`, `production-detail-2026-11-06.json`, `ARCHITECTURE-MAP.md`, `mismatch-example screenshots`
 - **What changed:** GET /dashboard/api/production/trace now adds recorded_inputs to each Make transaction (read-only; new main.py _recorded_make_inputs): per-ingredient totals from the signed ticket payload.specification.requirements, else ingredient_lot_consumption, null when neither. Dashboard reconcileIngredients compares them with the lot lines; Quantity stays the lots total (owner choice 2026-11-09) and a warning icon with 'Recorded X · Lots total Y' (or 'No recorded total' / 'No lot lines') shows in Summary and Full Traceability; tap opens a note row. Recorded 0 with no lots is not a row. 3 new API tests; browser test covers real data (no icons) and 3 injected mismatches; run-production-trace.mjs fixed for no-break spaces (already failing on main since #188). Cache CSS v48 / JS v85 (rebased over #190, which took v47/v84).
