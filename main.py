@@ -41,6 +41,7 @@ import kosher_tiers
 import shift_summary
 import lot_confirmation
 import oat_bran_substitution
+import product_archive
 import exceptions_enforcement
 import resolution
 import permissions
@@ -17511,8 +17512,12 @@ def dashboard_api_production_trace(
 
 
 @app.get("/dashboard/api/inventory/finished-goods")
-def dashboard_api_finished_goods():
-    """On-hand inventory for finished goods, grouped by panel with lot breakdown."""
+def dashboard_api_finished_goods(include_archived: bool = Query(default=False)):
+    """On-hand inventory for finished goods, grouped by panel with lot breakdown.
+
+    include_archived=true ("Show archived") also lists archived SKUs, flagged
+    `archived: true`; by default they are hidden (product_archive.py)."""
+    include_archived = include_archived is True   # a direct call passes the Query default
     config = _load_dashboard_config()
     if not config:
         return JSONResponse(status_code=500, content={"error": "Dashboard config not found"})
@@ -17535,6 +17540,8 @@ def dashboard_api_finished_goods():
             cur.execute(f"""
                 SELECT p.id, p.name, COALESCE(p.case_size_lb, p.case_size_lb) as case_size_lb,
                        COALESCE(p.active, true) AS active,
+                       (to_jsonb(p) ->> 'archived_at') AS archived_at,
+                       (to_jsonb(p) ->> 'archived_by') AS archived_by,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                 FROM products p
                 LEFT JOIN lots l ON l.product_id = p.id
@@ -17544,15 +17551,19 @@ def dashboard_api_finished_goods():
                 GROUP BY p.id
             """, (all_skus,))
             product_rows = {}
+            archived_rows = {}
             archived_names = set()
             for r in cur.fetchall():
                 if r['active']:
                     product_rows[r['name'].lower()] = dict(r)
                 else:
                     archived_names.add(r['name'].lower())
+                    archived_rows[r['name'].lower()] = dict(r)
 
             # Get lot breakdown for all matched products
             matched_ids = [r['id'] for r in product_rows.values()]
+            if include_archived:
+                matched_ids += [r['id'] for r in archived_rows.values()]
             lot_map = {}
             if matched_ids:
                 cur.execute(f"""
@@ -17579,7 +17590,8 @@ def dashboard_api_finished_goods():
 
         # Enrich lot rows with unit counts using product case_size_lb
         for pid, lots in lot_map.items():
-            prow = next((v for v in product_rows.values() if v['id'] == pid), None)
+            prow = next((v for v in list(product_rows.values()) + list(archived_rows.values())
+                         if v['id'] == pid), None)
             cs = float(prow['case_size_lb']) if prow and prow.get('case_size_lb') else None
             for lot in lots:
                 lot['case_size_lb'] = cs
@@ -17598,8 +17610,23 @@ def dashboard_api_finished_goods():
             for sku in panel.get("skus", []):
                 prow = product_rows.get(sku.lower())
                 if sku.lower() in archived_names:
-                    # Archived: never listed, never "missing".
+                    # Archived: never "missing"; listed only when asked for.
                     panel_data["archived_skus"].append(sku)
+                    if include_archived:
+                        arow = archived_rows[sku.lower()]
+                        case_wt = panel.get("case_weight_lb")
+                        if case_wt is None and arow.get('case_size_lb'):
+                            case_wt = float(arow['case_size_lb'])
+                        panel_data["products"].append({
+                            "product_id": arow['id'],
+                            "product_name": arow['name'],
+                            "on_hand_lbs": float(arow['on_hand_lbs']),
+                            "case_weight_lb": case_wt,
+                            "lots": lot_map.get(arow['id'], []),
+                            "archived": True,
+                            "archived_at": arow['archived_at'],
+                            "archived_by": arow['archived_by'],
+                        })
                 elif prow:
                     pid = prow['id']
                     on_hand = float(prow['on_hand_lbs'])
@@ -17607,6 +17634,7 @@ def dashboard_api_finished_goods():
                     if case_wt is None and prow.get('case_size_lb'):
                         case_wt = float(prow['case_size_lb'])
                     product_entry = {
+                        "product_id": pid,
                         "product_name": prow['name'],
                         "on_hand_lbs": on_hand,
                         "case_weight_lb": case_wt,
@@ -17616,11 +17644,14 @@ def dashboard_api_finished_goods():
                 else:
                     panel_data["missing_skus"].append(sku)
             # A panel whose every configured SKU is archived is dropped
-            # outright. A panel with a missing (unmatched) SKU stays, so a
-            # config typo is still surfaced rather than silently hidden.
-            if (panel_data["archived_skus"] and not panel_data["products"]
-                    and not panel_data["missing_skus"]):
-                continue
+            # (kept and marked only with include_archived). A panel with a
+            # missing (unmatched) SKU stays, so a config typo is still
+            # surfaced rather than silently hidden.
+            if (panel_data["archived_skus"] and not panel_data["missing_skus"]
+                    and not any(not x.get("archived") for x in panel_data["products"])):
+                if not include_archived:
+                    continue
+                panel_data["all_archived"] = True
             # Sort by on_hand descending
             panel_data["products"].sort(key=lambda x: x["on_hand_lbs"], reverse=True)
             result_panels.append(panel_data)
@@ -17632,14 +17663,18 @@ def dashboard_api_finished_goods():
 
 
 @app.get("/dashboard/api/inventory/batches")
-def dashboard_api_batches():
+def dashboard_api_batches(include_archived: bool = Query(default=False)):
     """Batch inventory on-hand for all active production families.
+
+    Archived batches (products.active=false) are hidden and never "missing";
+    include_archived=true lists them too, flagged `archived: true`.
 
     Includes coconut, granola, graham, chips, and sprinkles (classified from
     product name). Estimated batch/pan counts use the shared current-catalog
     yield: sweetened coconut is 360 lb at multiplier 1.0. On-hand remains a
     posted ledger SUM; historical pounds are never rebased.
     """
+    include_archived = include_archived is True   # a direct call passes the Query default
     config = _load_dashboard_config()
     if not config:
         return JSONResponse(status_code=500, content={"error": "Dashboard config not found"})
@@ -17652,18 +17687,23 @@ def dashboard_api_batches():
         with get_transaction() as cur:
             cur.execute(f"""
                 SELECT p.id, p.name, p.default_batch_lb, p.yield_multiplier,
+                       COALESCE(p.active, true) AS active,
+                       (to_jsonb(p) ->> 'archived_at') AS archived_at,
+                       (to_jsonb(p) ->> 'archived_by') AS archived_by,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                 FROM products p
                 LEFT JOIN lots l ON l.product_id = p.id
                 LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
-                WHERE COALESCE(p.active, true) = true
-                  AND p.type = 'batch'
+                WHERE p.type = 'batch'
                 GROUP BY p.id
                 ORDER BY COALESCE(SUM(tl.quantity_lb), 0) DESC
             """)
+            all_rows = cur.fetchall()
+            archived_batch_names = {r['name'].lower() for r in all_rows if not r['active']}
             product_rows = [
-                r for r in cur.fetchall()
-                if _production_family_from_name(r["name"]) in _BATCH_PANEL_FAMILIES
+                r for r in all_rows
+                if (r['active'] or include_archived)
+                and _production_family_from_name(r["name"]) in _BATCH_PANEL_FAMILIES
             ]
 
             matched_ids = [r['id'] for r in product_rows]
@@ -17691,7 +17731,8 @@ def dashboard_api_batches():
 
         family_rank = {name: i for i, name in enumerate(_BATCH_PANEL_FAMILIES)}
         found_names = {r['name'].lower() for r in product_rows}
-        missing_skus = [n for n in sku_names if n.lower() not in found_names]
+        missing_skus = [n for n in sku_names
+                        if n.lower() not in found_names and n.lower() not in archived_batch_names]
 
         batches = []
         made_unit_by_pid = {}
@@ -17706,7 +17747,8 @@ def dashboard_api_batches():
             made_unit = _made_unit_size_lbs(batch_size, yield_multiplier)
             family = _production_family_from_name(r['name'])
             made_unit_by_pid[r['id']] = (batch_size, made_unit)
-            batches.append({
+            entry = {
+                "product_id": r['id'],
                 "product_name": r['name'],
                 "on_hand_lbs": on_hand,
                 "standard_batch_size_lbs": batch_size,
@@ -17715,7 +17757,10 @@ def dashboard_api_batches():
                 "production_family": family,
                 "batch_count": round(on_hand / made_unit, 1) if made_unit else None,
                 "lots": lot_map.get(r['id'], [])
-            })
+            }
+            if not r['active']:
+                entry.update(archived=True, archived_at=r['archived_at'], archived_by=r['archived_by'])
+            batches.append(entry)
 
         for pid, lots in lot_map.items():
             batch_size, made_unit = made_unit_by_pid.get(pid, (None, None))
@@ -17731,8 +17776,14 @@ def dashboard_api_batches():
 
 
 @app.get("/dashboard/api/inventory/ingredients")
-def dashboard_api_ingredients(category: Optional[str] = Query(default=None)):
-    """Ingredient/raw material on-hand grouped by category."""
+def dashboard_api_ingredients(category: Optional[str] = Query(default=None),
+                              include_archived: bool = Query(default=False)):
+    """Ingredient/raw material on-hand grouped by category.
+
+    Archived items (products.active=false) are hidden and never "missing"; a
+    category whose every item is archived is dropped. include_archived=true
+    lists them too, flagged `archived: true` (product_archive.py)."""
+    include_archived = include_archived is True   # a direct call passes the Query default
     config = _load_dashboard_config()
     if not config:
         return JSONResponse(status_code=500, content={"error": "Dashboard config not found"})
@@ -17748,21 +17799,28 @@ def dashboard_api_ingredients(category: Optional[str] = Query(default=None)):
         with get_transaction() as cur:
             cur.execute(f"""
                 SELECT p.id, p.name, p.uom,
+                       COALESCE(p.active, true) AS active,
+                       (to_jsonb(p) ->> 'archived_at') AS archived_at,
+                       (to_jsonb(p) ->> 'archived_by') AS archived_by,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand
                 FROM products p
                 LEFT JOIN lots l ON l.product_id = p.id
                 LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
-                WHERE COALESCE(p.active, true) = true
-                  AND LOWER(p.name) = ANY(SELECT LOWER(unnest(%s::text[])))
+                WHERE LOWER(p.name) = ANY(SELECT LOWER(unnest(%s::text[])))
                 GROUP BY p.id
             """, (all_names,))
-            rows = cur.fetchall()
+            fetched = cur.fetchall()
+            archived_names = {r['name'].lower() for r in fetched if not r['active']}
+            rows = [r for r in fetched if r['active'] or include_archived]
             product_map = {
                 r['name'].lower(): {
                     "id": r['id'],
                     "name": r['name'],
                     "on_hand": float(r['on_hand']),
                     "uom": (r['uom'] or None),
+                    "archived": not r['active'],
+                    "archived_at": r['archived_at'],
+                    "archived_by": r['archived_by'],
                 }
                 for r in rows
             }
@@ -17795,30 +17853,46 @@ def dashboard_api_ingredients(category: Optional[str] = Query(default=None)):
         for cat in categories:
             items = []
             missing = []
+            archived_count = 0
             for item_name in cat.get("items", []):
                 pdata = product_map.get(item_name.lower())
+                if item_name.lower() in archived_names:
+                    archived_count += 1
                 if pdata:
                     uom = ledger_quantity_unit(pdata["uom"] or cat.get("unit"))
                     lots = lot_map.get(pdata["id"], [])
                     for lot in lots:
                         lot["uom"] = uom
-                    items.append({
+                    item = {
+                        "product_id": pdata["id"],
                         "name": pdata["name"],
                         "on_hand": pdata["on_hand"],
                         "uom": uom,
                         "lots": lots
-                    })
-                else:
+                    }
+                    if pdata["archived"]:
+                        item.update(archived=True, archived_at=pdata["archived_at"],
+                                    archived_by=pdata["archived_by"])
+                    items.append(item)
+                elif item_name.lower() not in archived_names:
                     missing.append(item_name)
+            all_archived = (archived_count > 0 and not missing
+                            and archived_count == len(cat.get("items", [])))
+            if all_archived and not include_archived:
+                continue
             # Preserve config ordering (don't sort by on_hand)
-            result.append({
+            entry = {
                 "id": cat["id"],
                 "title": cat["title"],
                 "unit": cat.get("unit", "lb"),
                 "items": items,
                 "missing_skus": missing,
-                "total_skus_expected": len(cat.get("items", []))
-            })
+                "total_skus_expected": len(cat.get("items", [])) - archived_count,
+                "archived_count": archived_count,
+            }
+            if all_archived:
+                entry["all_archived"] = True
+            result.append(entry)
 
         return {"categories": result}
     except Exception as e:
@@ -18269,14 +18343,15 @@ def dashboard_api_search(q: str = Query(min_length=1)):
             # Products
             cur.execute(f"""
                 SELECT p.id as product_id, p.name, p.type, p.odoo_code,
+                       COALESCE(p.active, true) = false AS archived,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                 FROM products p
                 LEFT JOIN lots l ON l.product_id = p.id
                 LEFT JOIN {POSTED_LINES} tl ON tl.lot_id = l.id
-                WHERE COALESCE(p.active, true) = true
-                  AND (p.name ILIKE %s OR p.odoo_code ILIKE %s)
+                WHERE (p.name ILIKE %s OR p.odoo_code ILIKE %s)
                 GROUP BY p.id
-                ORDER BY p.name
+                -- Archived products stay findable (marked), after active ones.
+                ORDER BY COALESCE(p.active, true) = false, p.name
                 LIMIT 20
             """, (term, term))
             results["products"] = [dict(r) for r in cur.fetchall()]
@@ -18286,6 +18361,7 @@ def dashboard_api_search(q: str = Query(min_length=1)):
             # Lots
             cur.execute(f"""
                 SELECT l.lot_code, l.product_id, p.name as product_name,
+                       COALESCE(p.active, true) = false AS product_archived,
                        COALESCE(SUM(tl.quantity_lb), 0) as on_hand_lbs
                 FROM lots l
                 JOIN products p ON p.id = l.product_id
@@ -18408,6 +18484,11 @@ def admin_update_product(product_id: int, req: ProductUpdate, _: bool = Depends(
         if _is_readonly_error(e): raise
         logger.error(f"Admin product update failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# Product archive (POST /admin/products/archive and /unarchive, owner only,
+# migration 093) lives in product_archive.py.
+product_archive.register_routes(app, sys.modules[__name__])
 
 
 class BomLineCreate(BaseModel):

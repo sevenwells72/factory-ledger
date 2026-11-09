@@ -1282,7 +1282,7 @@
     const container = document.getElementById('finished-goods-panels');
     container.innerHTML = '<div class="loading-indicator">Loading finished goods...</div>';
     try {
-      const data = await fetchAPI('/inventory/finished-goods', { headers });
+      const data = await fetchAPI(FLArchive.withArchivedQuery('/inventory/finished-goods', FLArchive.showArchived('finished-goods')), { headers });
       renderFinishedGoodsPanels(data, container);
     } catch (e) {
       container.innerHTML = '';
@@ -1292,10 +1292,12 @@
 
   function renderFinishedGoodsPanels(data, container) {
     const panels = data.panels || [];
-    let html = '';
+    const canArchive = FLArchive.canArchive();
+    let html = FLArchive.toolbar('finished-goods');
     for (const panel of panels) {
-      // Archived SKUs are never sent by the API; a panel left with nothing
-      // active and nothing missing is dropped rather than rendered empty.
+      // Archived SKUs are sent only with "Show archived"; a panel left with
+      // nothing active and nothing missing is dropped rather than rendered
+      // empty (with "Show archived" it is kept and marked).
       const archivedOnly = (panel.archived_skus || []).length > 0
         && (panel.products || []).length === 0
         && (panel.missing_skus || []).length === 0;
@@ -1305,7 +1307,7 @@
       html += `<div class="collapsible-header${expanded ? ' expanded' : ''}" data-panel="${panelId}">`;
       const palletRatio = CASES_PER_PALLET[panel.id];
       const ratioNote = palletRatio ? ` <span class="pallet-ratio">${palletRatio}/pallet</span>` : '';
-      html += `<h3>${escHtml(panel.title)} <span class="panel-count">(${panel.products.length} SKUs)</span>${ratioNote}</h3>`;
+      html += `<h3>${escHtml(panel.title)} <span class="panel-count">(${panel.products.filter(x => !x.archived).length} SKUs)</span>${ratioNote}${panel.all_archived ? ' ' + FLArchive.tag() : ''}</h3>`;
       html += `<span class="chevron"></span></div>`;
       html += `<div id="${panelId}" class="collapsible-body${expanded ? ' expanded' : ''}">`;
 
@@ -1315,8 +1317,9 @@
           const rowId = panelId + '-' + p.product_name.replace(/\W/g, '_');
           const caseWt = p.case_weight_lb || panel.case_weight_lb;
           const cases = inventoryUnitCount(p.on_hand_lbs, caseWt);
-          html += `<tr class="expandable" data-expand="${rowId}">`;
-          html += `<td>${escHtml(p.product_name)}</td>`;
+          const archItem = { product_id: p.product_id, name: p.product_name, archived: !!p.archived };
+          html += `<tr class="expandable${FLArchive.rowClass(archItem)}" data-expand="${rowId}">`;
+          html += `<td>${FLArchive.rowCheckbox('finished-goods', archItem, canArchive)}${escHtml(p.product_name)}${FLArchive.rowControls('finished-goods', archItem, canArchive)}</td>`;
           html += `<td class="num">${fmt(p.on_hand_lbs)} lb${cases !== null ? ` (${fmtInt(cases)} × ${fmtWt(caseWt)} lb)` : ''}</td>`;
           html += `<td>${cases !== null ? `<span class="badge ${caseBadgeClass(cases)}">${fmtInt(cases)} cases</span>` : ''}</td>`;
           html += `<td class="num">${fmtPallets(cases, panel.id, caseWt)}</td>`;
@@ -1350,6 +1353,14 @@
     bindCollapsibles(container);
     bindExpandableRows(container);
     bindLotLinks(container);
+    FLArchive.bind(container, 'finished-goods', refreshFinishedGoods, message => showArchiveError('finished-goods-error', message));
+  }
+
+  function showArchiveError(id, message) {
+    const el = document.getElementById(id);
+    if (!el) { alert(message); return; }
+    el.textContent = message;
+    el.classList.remove('hidden');
   }
 
   // ── Batch Inventory ──
@@ -1358,7 +1369,7 @@
     const container = document.getElementById('batch-inventory');
     container.innerHTML = '<div class="loading-indicator">Loading batch inventory...</div>';
     try {
-      const data = await fetchAPI('/inventory/batches', { headers });
+      const data = await fetchAPI(FLArchive.withArchivedQuery('/inventory/batches', FLArchive.showArchived('batches')), { headers });
       renderBatchInventory(data, container);
     } catch (e) {
       container.innerHTML = '';
@@ -1393,14 +1404,15 @@
     return onHand / (base * multiplier);
   }
 
-  function renderBatchFamilyTable(batches) {
+  function renderBatchFamilyTable(batches, canArchive = false) {
     let html = '<div class="table-scroll"><table class="inv-table"><thead><tr><th>Batch</th><th class="num">On Hand (lb)</th><th>Est. Batches</th></tr></thead><tbody>';
     for (const b of batches) {
       const rowId = 'batch-' + b.product_name.replace(/\W/g, '_');
       const estRaw = estimatedBatchesOnHand(b);
       const estBatches = estRaw == null ? null : Number(estRaw).toFixed(1);
-      html += `<tr class="expandable" data-expand="${rowId}">`;
-      html += `<td>${escHtml(b.product_name)}</td>`;
+      const archItem = { product_id: b.product_id, name: b.product_name, archived: !!b.archived };
+      html += `<tr class="expandable${FLArchive.rowClass(archItem)}" data-expand="${rowId}">`;
+      html += `<td>${FLArchive.rowCheckbox('batches', archItem, canArchive)}${escHtml(b.product_name)}${FLArchive.rowControls('batches', archItem, canArchive)}</td>`;
       html += `<td class="num">${fmt(b.on_hand_lbs)}</td>`;
       html += `<td>`;
       if (estBatches !== null) {
@@ -1439,7 +1451,8 @@
 
   function renderBatchInventory(data, container) {
     const batches = data.batches || [];
-    let html = '';
+    const canArchive = FLArchive.canArchive();
+    let html = FLArchive.toolbar('batches');
     if (batches.length > 0) {
       const grouped = {};
       for (const b of batches) {
@@ -1453,7 +1466,7 @@
         if (showFamilyHeadings) {
           html += `<h3 class="batch-family-heading family-${family}">${escHtml(BATCH_FAMILY_LABELS[family] || family)}</h3>`;
         }
-        html += renderBatchFamilyTable(grouped[family]);
+        html += renderBatchFamilyTable(grouped[family], canArchive);
       }
     } else {
       html += '<div class="loading-indicator">No batch inventory on hand.</div>';
@@ -1466,6 +1479,7 @@
     container.innerHTML = html;
     bindExpandableRows(container);
     bindLotLinks(container);
+    FLArchive.bind(container, 'batches', refreshBatchInventory, message => showArchiveError('batches-error', message));
   }
 
   // ── Ingredients ──
@@ -1474,7 +1488,7 @@
     const container = document.getElementById('ingredients-panels');
     container.innerHTML = '<div class="loading-indicator">Loading ingredients...</div>';
     try {
-      const data = await fetchAPI('/inventory/ingredients', { headers });
+      const data = await fetchAPI(FLArchive.withArchivedQuery('/inventory/ingredients', FLArchive.showArchived('ingredients')), { headers });
       renderIngredients(data, container);
     } catch (e) {
       container.innerHTML = '';
@@ -1484,12 +1498,13 @@
 
   function renderIngredients(data, container) {
     const categories = data.categories || [];
-    let html = '';
+    const canArchive = FLArchive.canArchive();
+    let html = FLArchive.toolbar('ingredients');
     for (const cat of categories) {
       const panelId = 'ing-' + cat.id;
       const expanded = isPanelExpanded(panelId);
       html += `<div class="collapsible-header${expanded ? ' expanded' : ''}" data-panel="${panelId}">`;
-      html += `<h3>${escHtml(cat.title)} <span class="ingredient-header-count">Total SKUs: ${cat.total_skus_expected}</span></h3>`;
+      html += `<h3>${escHtml(cat.title)} <span class="ingredient-header-count">Total SKUs: ${cat.total_skus_expected}</span>${cat.all_archived ? ' ' + FLArchive.tag() : ''}</h3>`;
       html += `<span class="chevron"></span></div>`;
       html += `<div id="${panelId}" class="collapsible-body${expanded ? ' expanded' : ''}">`;
 
@@ -1503,8 +1518,9 @@
           const rowId = panelId + '-' + item.name.replace(/\W/g, '_');
           const uom = String(item.uom || cat.unit || 'lb').trim() || 'lb';
           const qtyLabel = headerUnit ? fmt(item.on_hand) : `${fmt(item.on_hand)} ${escHtml(uom)}`;
-          html += `<tr class="expandable" data-expand="${rowId}">`;
-          html += `<td>${escHtml(item.name)}</td><td class="num">${qtyLabel}</td>`;
+          const archItem = { product_id: item.product_id, name: item.name, archived: !!item.archived };
+          html += `<tr class="expandable${FLArchive.rowClass(archItem)}" data-expand="${rowId}">`;
+          html += `<td>${FLArchive.rowCheckbox('ingredients', archItem, canArchive)}${escHtml(item.name)}${FLArchive.rowControls('ingredients', archItem, canArchive)}</td><td class="num">${qtyLabel}</td>`;
           html += `</tr>`;
           // Lot breakdown
           html += `<tbody class="lot-breakdown" id="${rowId}">`;
@@ -1535,6 +1551,7 @@
     bindCollapsibles(container);
     bindExpandableRows(container);
     bindLotLinks(container);
+    FLArchive.bind(container, 'ingredients', refreshIngredients, message => showArchiveError('ingredients-error', message));
   }
 
   // ── Activity: show-more truncation (display-only; full data already fetched) ──
@@ -5051,10 +5068,12 @@
 
   const SUPPLY_CATEGORIES = new Set(['ingredient', 'packaging', 'consumable']);
 
-  function supplyItemsForTab(tab = state.supplies.inventoryTab) {
+  function supplyItemsForTab(tab = state.supplies.inventoryTab, includeArchived = false) {
     const seen = new Set();
     return state.supplies.inventory.filter(item => {
       if (!SUPPLY_CATEGORIES.has(item.category) || seen.has(item.product_id)) return false;
+      // Archived (products.active=false): hidden and never counted as low stock.
+      if (item.active === false && !includeArchived) return false;
       seen.add(item.product_id);
       if (tab === 'ingredients') return item.category === 'ingredient';
       if (tab === 'packaging') return item.category === 'packaging' || item.category === 'consumable';
@@ -5081,8 +5100,8 @@
     const select = document.getElementById('supply-request-product');
     const selected = select.value;
     const options = state.supplies.inventory
-      .filter(item => SUPPLY_CATEGORIES.has(item.category))
-      .map(item => `<option value="${item.product_id}">${escHtml(item.name)}${item.active === false ? ' (inactive)' : ''}</option>`)
+      .filter(item => SUPPLY_CATEGORIES.has(item.category) && item.active !== false)
+      .map(item => `<option value="${item.product_id}">${escHtml(item.name)}</option>`)
       .join('');
     select.innerHTML = '<option value="">Select a product...</option>' + options +
       '<option value="__other__">Product not listed</option>';
@@ -5231,13 +5250,16 @@
     const container = document.getElementById('supplies-inventory-table');
     if (!state.supplies.inventoryLoaded) return;
     const query = document.getElementById('supplies-search').value.trim().toLowerCase();
-    const rows = supplyItemsForTab().filter(item => item.name.toLowerCase().includes(query));
+    const showArchived = FLArchive.showArchived('supplies');
+    const canArchive = FLArchive.canArchive();
+    const rows = supplyItemsForTab(undefined, showArchived).filter(item => item.name.toLowerCase().includes(query));
     if (rows.length === 0) {
-      container.innerHTML = `<div class="orders-empty">${query ? 'No products match this search.' : 'No products in this category.'}</div>`;
+      container.innerHTML = FLArchive.toolbar('supplies') + `<div class="orders-empty">${query ? 'No products match this search.' : 'No products in this category.'}</div>`;
+      FLArchive.bind(container, 'supplies', renderSuppliesInventory, message => showSupplyFeedback(message, 'error'));
       return;
     }
 
-    let html = '<div class="supplies-table-scroll"><table class="orders-table supplies-table"><thead><tr>' +
+    let html = FLArchive.toolbar('supplies') + '<div class="supplies-table-scroll"><table class="orders-table supplies-table"><thead><tr>' +
       '<th>Name</th><th class="num">On Hand</th><th>Unit</th><th class="num">Incoming</th><th>Status</th>' +
       '</tr></thead><tbody>';
     rows.forEach(item => {
@@ -5249,8 +5271,9 @@
       const incomingDisplay = state.supplies.expectedReceiptsLoaded
         ? (incomingTotal > 0 ? (unitIsPounds ? fmtWt(incomingTotal) : `${fmtWt(incomingTotal)} lb`) : '\u2014')
         : (state.supplies.expectedReceiptsError ? 'Unavailable' : 'Loading...');
-      html += `<tr class="supply-item-row${item.is_low ? ' supply-item-low' : ''}" data-product-id="${item.product_id}" tabindex="0" role="button" aria-expanded="${expanded}" aria-controls="${detailId}">`;
-      html += `<td><span class="supply-row-caret" aria-hidden="true">&#9656;</span><span class="supply-product-name">${escHtml(item.name)}</span>${item.active === false ? '<span class="supply-inactive-label">Inactive</span>' : ''}</td>`;
+      const archItem = { product_id: item.product_id, name: item.name, archived: item.active === false };
+      html += `<tr class="supply-item-row${item.is_low ? ' supply-item-low' : ''}${FLArchive.rowClass(archItem)}" data-product-id="${item.product_id}" tabindex="0" role="button" aria-expanded="${expanded}" aria-controls="${detailId}">`;
+      html += `<td>${FLArchive.rowCheckbox('supplies', archItem, canArchive)}<span class="supply-row-caret" aria-hidden="true">&#9656;</span><span class="supply-product-name">${escHtml(item.name)}</span>${FLArchive.rowControls('supplies', archItem, canArchive)}</td>`;
       html += `<td class="num">${fmtWt(item.on_hand)}</td><td>${escHtml(item.unit || '')}</td><td class="num">${incomingDisplay}</td>`;
       html += `<td>${item.is_low ? '<span class="so-badge supply-low-badge">Low Stock</span>' : ''}</td></tr>`;
       if (expanded) {
@@ -5259,6 +5282,7 @@
     });
     html += '</tbody></table></div>';
     container.innerHTML = html;
+    FLArchive.bind(container, 'supplies', () => refreshSuppliesInventory(), message => showSupplyFeedback(message, 'error'));
 
     container.querySelectorAll('.supply-item-row').forEach(row => {
       const toggle = () => toggleSupplyProduct(Number(row.dataset.productId));
