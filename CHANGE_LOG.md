@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-09 17:46 — Record PR 194 production deploy (changelog row 270)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Row 270 marked DEPLOYED to production 2026-11-09: staging proof (FastAPI-staging 9a844739, 150 lots / 193 make-pack nodes match the staging DB), BACKUP OK 2026-11-09-pre-pr194, squash-merge to main f84937e, Railway FastAPI 83dd1aae SUCCESS, Netlify serving main's trace page, live API checks for lots 232, 505 and receipt 261.
+- **Why:** Regression Guard step 4: record the deploy immediately after it.
+
+---
+
 ## 2026-11-09 15:29 — PR 194 cross-review fixes: also_received on made lots, four more placeholder shippers
 - **File(s) changed:** `main.py`, `traceability.html`, `test_trace_batch_input_tree.py`, `run-traceability-backward.mjs`, `ARCHITECTURE-MAP.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** _trace_lot_origin keeps the made origin and adds also_received (posted receipts into a made/packed lot, oldest first, classified supplier/found/unnamed with quantity_lb) via new _trace_lot_receipts/_trace_receipt_origin; traceability.html addAlsoReceived draws each as an extra origin node on that lot, found/unnamed counted as gaps; TRACE_FOUND_SHIPPERS adds initial inventory, inventory correction, inventory intake, blender warehouse; new backend test (pack lot plus later FOUND INVENTORY receipt) and browser checks; changelog row 270 and architecture map updated (still not deployed). No migration, no GPT YAML change, ingredients and existing keys unchanged.
