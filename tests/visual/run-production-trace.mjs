@@ -8,7 +8,7 @@ import { API_HOST, FIXTURE_DASHBOARD_KEY, buildTokenTable, installApiStub } from
 const out = path.resolve(process.argv[2] || 'work/production-trace');
 await fs.mkdir(out, {recursive: true});
 const server = await startStaticServer(path.resolve('dashboard'));
-const browser = await chromium.launch();
+const browser = await chromium.launch(process.env.PW_CHANNEL ? {channel: process.env.PW_CHANNEL} : {});
 const tokens = buildTokenTable();
 const day = tokens.get('{{TODAY}}');
 const ingredient = {product_id:3, product_name:'Oats <img src=x onerror=alert(1)>', lot_code:'LOT<&>', supplier_lot_code:'SUP<&>', quantity:18.1234, unit:'lb', product_type:'ingredient', lot_id:33};
@@ -40,11 +40,14 @@ try {
   await page.goto(server.origin);
   const card=page.locator(`[data-production-date="${day}"]`);
   await card.click();
+  await page.locator('.production-view-toggle button[data-view="full"]').click();
   const made=page.locator('.production-trace[data-kind="make"]');
   const summary=made.locator(':scope > summary');
   await summary.focus();await page.keyboard.press('Enter');
   await made.getByRole('button',{name:'Retry'}).click();
-  await made.getByText('Ingredient subtotals',{exact:true}).waitFor();
+  await made.locator('.ingredient-table').waitFor();
+  assert.equal(await made.getByText('Ingredient subtotals',{exact:true}).count(),0);
+  assert((await made.innerText()).includes('LOT<&> · Supplier SUP<&>'));
   assert((await made.innerText()).includes('SUP<&>'));
   assert((await made.innerText()).includes('18.1234 lb'));
   assert.equal(await made.locator('img').count(),0);

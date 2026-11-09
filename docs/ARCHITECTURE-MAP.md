@@ -88,8 +88,8 @@ Pointer syntax: file::text means search that file for that exact text (a section
 
 ### Traceability
 - Code: `main.py::# TRACE ENDPOINTS`; trace tables come from migration 048
-- UI: `dashboard/traceability.html`
-- Tests: `tests/test_trace_*`, `tests/test_production_trace.py`
+- UI: `dashboard/traceability.html`; the Production calendar's Made/Packed drill-down (`GET /dashboard/api/production/trace`) renders in `dashboard/dashboard.js::function renderProductionTrace` (Made rows: Ingredient | Quantity | Lot Information table and the Summary / Full Traceability toggle, `localStorage` `fl-production-detail-view`; Packed rows keep the text lines)
+- Tests: `tests/test_trace_*`, `tests/test_production_trace.py`, `tests/visual/run-production-trace.mjs`, `tests/visual/run-production-detail.mjs` (real 2026-11-06 data in `tests/visual/fixtures/production-detail-2026-11-06.json`)
 - Docs: `docs/traceability/`
 - Risk: **High**
 

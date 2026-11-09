@@ -1,0 +1,639 @@
+{
+ "_source": "Read-only GET captures of /dashboard/api/production?days=5 (2026-11-06 only) and /dashboard/api/production/trace from production on 2026-11-09. Used only by tests/visual/run-production-detail.mjs; the browser never contacts production.",
+ "day": {
+  "date": "2026-11-06",
+  "day_name": "Friday",
+  "batches": [
+   {
+    "product_id": 125,
+    "product_name": "Batch Coconut Sweetened Fancy",
+    "sku": "90003",
+    "total_lbs": 1080.0,
+    "product_type": "batch",
+    "transaction_type": "make",
+    "pack_format": null,
+    "standard_batch_size_lbs": 360.0,
+    "yield_multiplier": 1.0,
+    "made_unit_size_lbs": 360.0,
+    "batch_count": 3
+   },
+   {
+    "product_id": 127,
+    "product_name": "Batch Coconut Sweetened Medium",
+    "sku": "90005",
+    "total_lbs": 1080.0,
+    "product_type": "batch",
+    "transaction_type": "make",
+    "pack_format": null,
+    "standard_batch_size_lbs": 360.0,
+    "yield_multiplier": 1.0,
+    "made_unit_size_lbs": 360.0,
+    "batch_count": 3
+   },
+   {
+    "product_id": 114,
+    "product_name": "Batch SS Chocolate Chip Granola #2",
+    "sku": "90011",
+    "total_lbs": 3144.0,
+    "product_type": "batch",
+    "transaction_type": "make",
+    "pack_format": null,
+    "standard_batch_size_lbs": 393.0,
+    "yield_multiplier": 1.0,
+    "made_unit_size_lbs": 393.0,
+    "batch_count": 8
+   }
+  ],
+  "finished_goods": [
+   {
+    "product_id": 161,
+    "product_name": "Coconut Sweetened Fancy UNIPRO 10 LB",
+    "sku": "67470",
+    "total_lbs": 1080.0,
+    "product_type": "finished",
+    "transaction_type": "pack",
+    "pack_format": null,
+    "case_size_lb": 10.0,
+    "unit_count": 108
+   },
+   {
+    "product_id": 163,
+    "product_name": "Coconut Sweetened Medium UNIPRO 10 LB",
+    "sku": "67473",
+    "total_lbs": 1090.0,
+    "product_type": "finished",
+    "transaction_type": "pack",
+    "pack_format": null,
+    "case_size_lb": 10.0,
+    "unit_count": 109
+   }
+  ]
+ },
+ "trace": {
+  "make:125": {
+   "kind": "make",
+   "transactions": [
+    {
+     "transaction_id": 2966,
+     "timestamp": "2026-11-06T18:38:04.745769",
+     "consumed": [
+      {
+       "product_id": 10,
+       "product_name": "Coconut Fancy Desiccated",
+       "product_type": "ingredient",
+       "lot_id": 610,
+       "lot_code": "6012",
+       "supplier_lot_code": null,
+       "quantity": 600.0,
+       "unit": "lb"
+      },
+      {
+       "product_id": 16,
+       "product_name": "Corn Starch",
+       "product_type": "ingredient",
+       "lot_id": 982,
+       "lot_code": "26-07-13-ESSE-001",
+       "supplier_lot_code": "1246163300",
+       "quantity": 15.0,
+       "unit": "lb"
+      },
+      {
+       "product_id": 29,
+       "product_name": "Glycol",
+       "product_type": "ingredient",
+       "lot_id": 461,
+       "lot_code": "26-04-24-TILL-001",
+       "supplier_lot_code": "260416",
+       "quantity": 21.0,
+       "unit": "lb"
+      },
+      {
+       "product_id": 39,
+       "product_name": "Salt",
+       "product_type": "ingredient",
+       "lot_id": 440,
+       "lot_code": "26-04-21-ESSE-001",
+       "supplier_lot_code": "N/A",
+       "quantity": 7.5,
+       "unit": "lb"
+      },
+      {
+       "product_id": 40,
+       "product_name": "Sugar – 6X",
+       "product_type": "ingredient",
+       "lot_id": 1530,
+       "lot_code": "26-09-30-NEWE-001",
+       "supplier_lot_code": "93026",
+       "quantity": 330.0,
+       "unit": "lb"
+      }
+     ]
+    }
+   ],
+   "subtotals": [
+    {
+     "product_id": 10,
+     "product_name": "Coconut Fancy Desiccated",
+     "unit": "lb",
+     "quantity": 600.0
+    },
+    {
+     "product_id": 16,
+     "product_name": "Corn Starch",
+     "unit": "lb",
+     "quantity": 15.0
+    },
+    {
+     "product_id": 29,
+     "product_name": "Glycol",
+     "unit": "lb",
+     "quantity": 21.0
+    },
+    {
+     "product_id": 39,
+     "product_name": "Salt",
+     "unit": "lb",
+     "quantity": 7.5
+    },
+    {
+     "product_id": 40,
+     "product_name": "Sugar – 6X",
+     "unit": "lb",
+     "quantity": 330.0
+    }
+   ]
+  },
+  "make:127": {
+   "kind": "make",
+   "transactions": [
+    {
+     "transaction_id": 2967,
+     "timestamp": "2026-11-06T18:38:36.969187",
+     "consumed": [
+      {
+       "product_id": 14,
+       "product_name": "Coconut Medium Desiccated",
+       "product_type": "ingredient",
+       "lot_id": 617,
+       "lot_code": "6020",
+       "supplier_lot_code": null,
+       "quantity": 600.0,
+       "unit": "lb"
+      },
+      {
+       "product_id": 16,
+       "product_name": "Corn Starch",
+       "product_type": "ingredient",
+       "lot_id": 982,
+       "lot_code": "26-07-13-ESSE-001",
+       "supplier_lot_code": "1246163300",
+       "quantity": 15.0,
+       "unit": "lb"
+      },
+      {
+       "product_id": 29,
+       "product_name": "Glycol",
+       "product_type": "ingredient",
+       "lot_id": 461,
+       "lot_code": "26-04-24-TILL-001",
+       "supplier_lot_code": "260416",
+       "quantity": 21.0,
+       "unit": "lb"
+      },
+      {
+       "product_id": 39,
+       "product_name": "Salt",
+       "product_type": "ingredient",
+       "lot_id": 440,
+       "lot_code": "26-04-21-ESSE-001",
+       "supplier_lot_code": "N/A",
+       "quantity": 7.5,
+       "unit": "lb"
+      },
+      {
+       "product_id": 40,
+       "product_name": "Sugar – 6X",
+       "product_type": "ingredient",
+       "lot_id": 1530,
+       "lot_code": "26-09-30-NEWE-001",
+       "supplier_lot_code": "93026",
+       "quantity": 330.0,
+       "unit": "lb"
+      }
+     ]
+    }
+   ],
+   "subtotals": [
+    {
+     "product_id": 14,
+     "product_name": "Coconut Medium Desiccated",
+     "unit": "lb",
+     "quantity": 600.0
+    },
+    {
+     "product_id": 16,
+     "product_name": "Corn Starch",
+     "unit": "lb",
+     "quantity": 15.0
+    },
+    {
+     "product_id": 29,
+     "product_name": "Glycol",
+     "unit": "lb",
+     "quantity": 21.0
+    },
+    {
+     "product_id": 39,
+     "product_name": "Salt",
+     "unit": "lb",
+     "quantity": 7.5
+    },
+    {
+     "product_id": 40,
+     "product_name": "Sugar – 6X",
+     "unit": "lb",
+     "quantity": 330.0
+    }
+   ]
+  },
+  "make:114": {
+   "kind": "make",
+   "transactions": [
+    {
+     "transaction_id": 2965,
+     "timestamp": "2026-11-06T18:20:49.035484",
+     "consumed": [
+      {
+       "product_id": 3,
+       "product_name": "Almonds – Sliced",
+       "product_type": "ingredient",
+       "lot_id": 1702,
+       "lot_code": "26-11-05-NATI-001",
+       "supplier_lot_code": "236268101",
+       "quantity": 152.0,
+       "unit": "lb"
+      },
+      {
+       "product_id": 72,
+       "product_name": "Chocolate Chips – Real – 4,000 CT",
+       "product_type": "ingredient",
+       "lot_id": 1445,
+       "lot_code": "26-09-16-ABAK-001",
+       "supplier_lot_code": "260901",
+       "quantity": 80.0,
+       "unit": "lb"
+      },
+      {
+       "product_id": 72,
+       "product_name": "Chocolate Chips – Real – 4,000 CT",
+       "product_type": "ingredient",
+       "lot_id": 1553,
+       "lot_code": "26-10-06-ABAK-001",
+       "supplier_lot_code": "260914",
+       "quantity": 224.0,
+       "unit": "lb"
+      },
+      {
+       "product_id": 13,
+       "product_name": "Coconut Macaroon Desiccated",
+       "product_type": "ingredient",
+       "lot_id": 616,
+       "lot_code": "25120",
+       "supplier_lot_code": null,
+       "quantity": 152.0,
+       "unit": "lb"
+      },
+      {
+       "product_id": 30,
+       "product_name": "Honey",
+       "product_type": "ingredient",
+       "lot_id": 1653,
+       "lot_code": "26-10-27-FOUND-006",
+       "supplier_lot_code": null,
+       "quantity": 376.0,
+       "unit": "lb"
+      },
+      {
+       "product_id": 32,
+       "product_name": "Oats",
+       "product_type": "ingredient",
+       "lot_id": 1637,
+       "lot_code": "26-10-22-QUAL-001",
+       "supplier_lot_code": "261019",
+       "quantity": 1832.0,
+       "unit": "lb"
+      },
+      {
+       "product_id": 34,
+       "product_name": "Oil – Canola",
+       "product_type": "ingredient",
+       "lot_id": 1619,
+       "lot_code": "26-10-20-CBSF-001",
+       "supplier_lot_code": "288-26",
+       "quantity": 176.0,
+       "unit": "lb"
+      },
+      {
+       "product_id": 46,
+       "product_name": "Sunflower Seeds",
+       "product_type": "ingredient",
+       "lot_id": 1398,
+       "lot_code": "26-09-04-NATI-001",
+       "supplier_lot_code": "90717",
+       "quantity": 152.0,
+       "unit": "lb"
+      }
+     ]
+    }
+   ],
+   "subtotals": [
+    {
+     "product_id": 3,
+     "product_name": "Almonds – Sliced",
+     "unit": "lb",
+     "quantity": 152.0
+    },
+    {
+     "product_id": 72,
+     "product_name": "Chocolate Chips – Real – 4,000 CT",
+     "unit": "lb",
+     "quantity": 304.0
+    },
+    {
+     "product_id": 13,
+     "product_name": "Coconut Macaroon Desiccated",
+     "unit": "lb",
+     "quantity": 152.0
+    },
+    {
+     "product_id": 30,
+     "product_name": "Honey",
+     "unit": "lb",
+     "quantity": 376.0
+    },
+    {
+     "product_id": 32,
+     "product_name": "Oats",
+     "unit": "lb",
+     "quantity": 1832.0
+    },
+    {
+     "product_id": 34,
+     "product_name": "Oil – Canola",
+     "unit": "lb",
+     "quantity": 176.0
+    },
+    {
+     "product_id": 46,
+     "product_name": "Sunflower Seeds",
+     "unit": "lb",
+     "quantity": 152.0
+    }
+   ]
+  },
+  "pack:161": {
+   "kind": "pack",
+   "transactions": [
+    {
+     "transaction_id": 2968,
+     "timestamp": "2026-11-06T18:39:41.143234",
+     "consumed": [
+      {
+       "product_id": 125,
+       "product_name": "Batch Coconut Sweetened Fancy",
+       "product_type": "batch",
+       "lot_id": 1710,
+       "lot_code": "NOV 06 2026",
+       "supplier_lot_code": null,
+       "quantity": 1080.0,
+       "unit": "lb"
+      }
+     ]
+    }
+   ],
+   "subtotals": [
+    {
+     "product_id": 125,
+     "product_name": "Batch Coconut Sweetened Fancy",
+     "unit": "lb",
+     "quantity": 1080.0
+    }
+   ]
+  },
+  "pack:163": {
+   "kind": "pack",
+   "transactions": [
+    {
+     "transaction_id": 2969,
+     "timestamp": "2026-11-06T19:05:59.551770",
+     "consumed": [
+      {
+       "product_id": 127,
+       "product_name": "Batch Coconut Sweetened Medium",
+       "product_type": "batch",
+       "lot_id": 1711,
+       "lot_code": "NOV 06 2026",
+       "supplier_lot_code": null,
+       "quantity": 1090.0,
+       "unit": "lb"
+      }
+     ]
+    }
+   ],
+   "subtotals": [
+    {
+     "product_id": 127,
+     "product_name": "Batch Coconut Sweetened Medium",
+     "unit": "lb",
+     "quantity": 1090.0
+    }
+   ]
+  },
+  "lot:1710": {
+   "kind": "make",
+   "transactions": [
+    {
+     "transaction_id": 2966,
+     "timestamp": "2026-11-06T18:38:04.745769",
+     "consumed": [
+      {
+       "product_id": 10,
+       "product_name": "Coconut Fancy Desiccated",
+       "product_type": "ingredient",
+       "lot_id": 610,
+       "lot_code": "6012",
+       "supplier_lot_code": null,
+       "quantity": 600.0,
+       "unit": "lb"
+      },
+      {
+       "product_id": 16,
+       "product_name": "Corn Starch",
+       "product_type": "ingredient",
+       "lot_id": 982,
+       "lot_code": "26-07-13-ESSE-001",
+       "supplier_lot_code": "1246163300",
+       "quantity": 15.0,
+       "unit": "lb"
+      },
+      {
+       "product_id": 29,
+       "product_name": "Glycol",
+       "product_type": "ingredient",
+       "lot_id": 461,
+       "lot_code": "26-04-24-TILL-001",
+       "supplier_lot_code": "260416",
+       "quantity": 21.0,
+       "unit": "lb"
+      },
+      {
+       "product_id": 39,
+       "product_name": "Salt",
+       "product_type": "ingredient",
+       "lot_id": 440,
+       "lot_code": "26-04-21-ESSE-001",
+       "supplier_lot_code": "N/A",
+       "quantity": 7.5,
+       "unit": "lb"
+      },
+      {
+       "product_id": 40,
+       "product_name": "Sugar – 6X",
+       "product_type": "ingredient",
+       "lot_id": 1530,
+       "lot_code": "26-09-30-NEWE-001",
+       "supplier_lot_code": "93026",
+       "quantity": 330.0,
+       "unit": "lb"
+      }
+     ]
+    }
+   ],
+   "subtotals": [
+    {
+     "product_id": 10,
+     "product_name": "Coconut Fancy Desiccated",
+     "unit": "lb",
+     "quantity": 600.0
+    },
+    {
+     "product_id": 16,
+     "product_name": "Corn Starch",
+     "unit": "lb",
+     "quantity": 15.0
+    },
+    {
+     "product_id": 29,
+     "product_name": "Glycol",
+     "unit": "lb",
+     "quantity": 21.0
+    },
+    {
+     "product_id": 39,
+     "product_name": "Salt",
+     "unit": "lb",
+     "quantity": 7.5
+    },
+    {
+     "product_id": 40,
+     "product_name": "Sugar – 6X",
+     "unit": "lb",
+     "quantity": 330.0
+    }
+   ]
+  },
+  "lot:1711": {
+   "kind": "make",
+   "transactions": [
+    {
+     "transaction_id": 2967,
+     "timestamp": "2026-11-06T18:38:36.969187",
+     "consumed": [
+      {
+       "product_id": 14,
+       "product_name": "Coconut Medium Desiccated",
+       "product_type": "ingredient",
+       "lot_id": 617,
+       "lot_code": "6020",
+       "supplier_lot_code": null,
+       "quantity": 600.0,
+       "unit": "lb"
+      },
+      {
+       "product_id": 16,
+       "product_name": "Corn Starch",
+       "product_type": "ingredient",
+       "lot_id": 982,
+       "lot_code": "26-07-13-ESSE-001",
+       "supplier_lot_code": "1246163300",
+       "quantity": 15.0,
+       "unit": "lb"
+      },
+      {
+       "product_id": 29,
+       "product_name": "Glycol",
+       "product_type": "ingredient",
+       "lot_id": 461,
+       "lot_code": "26-04-24-TILL-001",
+       "supplier_lot_code": "260416",
+       "quantity": 21.0,
+       "unit": "lb"
+      },
+      {
+       "product_id": 39,
+       "product_name": "Salt",
+       "product_type": "ingredient",
+       "lot_id": 440,
+       "lot_code": "26-04-21-ESSE-001",
+       "supplier_lot_code": "N/A",
+       "quantity": 7.5,
+       "unit": "lb"
+      },
+      {
+       "product_id": 40,
+       "product_name": "Sugar – 6X",
+       "product_type": "ingredient",
+       "lot_id": 1530,
+       "lot_code": "26-09-30-NEWE-001",
+       "supplier_lot_code": "93026",
+       "quantity": 330.0,
+       "unit": "lb"
+      }
+     ]
+    }
+   ],
+   "subtotals": [
+    {
+     "product_id": 14,
+     "product_name": "Coconut Medium Desiccated",
+     "unit": "lb",
+     "quantity": 600.0
+    },
+    {
+     "product_id": 16,
+     "product_name": "Corn Starch",
+     "unit": "lb",
+     "quantity": 15.0
+    },
+    {
+     "product_id": 29,
+     "product_name": "Glycol",
+     "unit": "lb",
+     "quantity": 21.0
+    },
+    {
+     "product_id": 39,
+     "product_name": "Salt",
+     "unit": "lb",
+     "quantity": 7.5
+    },
+    {
+     "product_id": 40,
+     "product_name": "Sugar – 6X",
+     "unit": "lb",
+     "quantity": 330.0
+    }
+   ]
+  }
+ }
+}

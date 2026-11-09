@@ -3082,3 +3082,35 @@ body:has(#history-form) > main { padding:16px clamp(12px,3vw,32px); }
 .production-trace-panel p { margin: 8px 0; line-height: 1.5; }
 .production-trace-panel button { min-width: 44px; min-height: 44px; color: var(--text); background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 16px; cursor: pointer; }
 .production-trace .production-detail-sku { display: block; }
+
+/* Production detail: Summary | Full Traceability and the Made ingredient table. */
+.production-view-toggle { display: inline-flex; margin: -4px 0 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.production-view-toggle .btn-sm { min-height: 44px; border: 0; border-radius: 0; background: transparent; color: var(--text-secondary); }
+.production-view-toggle .btn-sm + .btn-sm { border-left: 1px solid var(--border); }
+.production-view-toggle .btn-sm[aria-pressed="true"] { background: var(--surface-hover); color: var(--text); font-weight: 650; }
+.production-view-toggle .btn-sm:focus-visible { outline: 2px solid var(--primary-text); outline-offset: -2px; }
+.family-coconut .production-trace[data-kind="make"] > .production-trace-panel > h6 { color: var(--category-coconut); }
+.family-granola .production-trace[data-kind="make"] > .production-trace-panel > h6 { color: var(--category-granola); }
+.family-graham .production-trace[data-kind="make"] > .production-trace-panel > h6 { color: var(--category-graham); }
+.ingredient-table { width: 100%; table-layout: fixed; border-collapse: collapse; margin: 0 0 8px; font-size: var(--fl-caption, 14px); line-height: 1.4; }
+.ingredient-table col.ingredient-name-col { width: 32%; }
+.ingredient-table col.ingredient-qty-col { width: 13%; }
+/* Family cards sit side by side, so a desktop panel can be ~520px: keep "1,832 lb" and its header on one line. */
+.production-trace[data-kind="make"] > .production-trace-panel { container-type: inline-size; }
+@container (max-width: 760px) { .ingredient-table col.ingredient-qty-col { width: 6.25rem; } }
+.ingredient-table th, .ingredient-table td { padding: 6px 8px 6px 0; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+.ingredient-table thead th { padding-bottom: 4px; white-space: nowrap; overflow-wrap: normal; color: var(--text-muted); font-size: 0.86em; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.ingredient-table tbody tr { border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent); }
+.ingredient-table .ingredient-name { color: var(--text); font-weight: 600; }
+.ingredient-table .ingredient-qty { padding-right: 12px; color: var(--text); font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; overflow-wrap: normal; }
+.ingredient-table td.ingredient-lots { color: var(--text-secondary); font-size: 0.93em; }
+.ingredient-lot { display: block; user-select: text; }
+.ingredient-lot + .ingredient-lot { margin-top: 2px; }
+.production-calendar-detail[data-view="summary"] .ingredient-table .ingredient-lots { display: none; }
+@media (max-width: 599px) {
+  /* Phone: Ingredient and Quantity side by side, lots on their own line beneath. */
+  .ingredient-table, .ingredient-table thead, .ingredient-table tbody { display: block; }
+  .ingredient-table colgroup, .ingredient-table thead th.ingredient-lots { display: none; }
+  .ingredient-table tr { display: grid; grid-template-columns: minmax(0, 64%) minmax(0, 1fr); column-gap: 8px; }
+  .ingredient-table td.ingredient-lots { grid-column: 1 / -1; padding-top: 0; }
+}
