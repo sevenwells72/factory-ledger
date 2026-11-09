@@ -20,5 +20,16 @@
     { "transaction_id": 6541, "shipped_at": "{{TODAY}}T08:40:00-04:00", "shipped_date": "{{TODAY}}", "shipped_time": "08:40 AM", "quantity_lb": 400.0, "customer_name": "Greenline Distributors", "order_reference": "SO-1423", "sales_order_id": 103, "order_number": "SO-1423", "shipment_id": 332 }
   ],
   "total_shipped_lb": 1200.0,
-  "on_hand_lb": 640.0
+  "on_hand_lb": 640.0,
+  "input_tree": {
+    "kind": "made", "output_lb": 1840.0, "inputs_total_lb": 1692.8, "inputs_mismatch": false,
+    "transactions": [
+      {"transaction_id": 6401, "type": "make", "produced_at": "{{TODAY-2}}T11:20:00+00:00", "produced_date": "{{TODAY-2}}", "produced_time": "07:20 AM ET", "output_lb": 1840.0, "inputs_total_lb": 1692.8, "inputs_mismatch": false, "inputs": [
+        {"lot_id": 2010, "lot_code": "OAT-4471", "product_id": 201, "product_name": "Rolled Oats — #1 Thick", "product_type": "ingredient", "entry_source": "received", "supplier_lot_code": "NG-22841", "quantity": 1140.8, "unit": "lb", "origin": {"kind": "received", "transaction_id": 7101, "received_at": "{{TODAY-30}}T13:00:00+00:00", "received_date": "{{TODAY-30}}", "received_time": "09:00 AM ET", "supplier_name": "Northgate Grain", "bol_reference": "BOL-5521", "receipt_number": null, "quantity_lb": 2000.0, "supplier_lot_code": "NG-22841", "receipt_count": 1}},
+        {"lot_id": 2110, "lot_code": "MPL-0912", "product_id": 211, "product_name": "Grade A Maple Syrup", "product_type": "ingredient", "entry_source": "received", "supplier_lot_code": "VMW-7731", "quantity": 331.2, "unit": "lb", "origin": {"kind": "received", "transaction_id": 7102, "received_at": "{{TODAY-30}}T13:00:00+00:00", "received_date": "{{TODAY-30}}", "received_time": "09:00 AM ET", "supplier_name": "Vermont Maple Works", "bol_reference": "BOL-5530", "receipt_number": null, "quantity_lb": 2000.0, "supplier_lot_code": "VMW-7731", "receipt_count": 1}},
+        {"lot_id": 2120, "lot_code": "SFO-3310", "product_id": 212, "product_name": "Sunflower Oil", "product_type": "ingredient", "entry_source": "received", "supplier_lot_code": null, "quantity": 202.4, "unit": "lb", "origin": {"kind": "found_inventory", "transaction_id": 7103, "received_at": "{{TODAY-30}}T13:00:00+00:00", "received_date": "{{TODAY-30}}", "received_time": "09:00 AM ET", "recorded_shipper": "found"}},
+        {"lot_id": 2240, "lot_code": "SLT-1140", "product_id": 224, "product_name": "Sea Salt — Fine", "product_type": "ingredient", "entry_source": "received", "supplier_lot_code": "CS-0041", "quantity": 18.4, "unit": "lb", "origin": {"kind": "received", "transaction_id": 7104, "received_at": "{{TODAY-30}}T13:00:00+00:00", "received_date": "{{TODAY-30}}", "received_time": "09:00 AM ET", "supplier_name": "Coastal Salt", "bol_reference": "BOL-5544", "receipt_number": null, "quantity_lb": 2000.0, "supplier_lot_code": "CS-0041", "receipt_count": 1}}
+      ]}
+    ]
+  }
 }

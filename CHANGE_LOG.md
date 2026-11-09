@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-09 15:04 — Traceability Backward trace: full input tree from posted ledger lines
+- **File(s) changed:** `main.py`, `traceability.html`, `test_trace_batch_input_tree.py`, `run-traceability-backward.mjs`, `trace-batch-fruit-nut-2026-10-06.json`, `trace-batch.json`, `ARCHITECTURE-MAP.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** GET /trace/batch adds input_tree (posted current-ledger lines, recursive through every posted make/pack by lot id, origins made/received/found_inventory/unknown, placeholder 'found' receipts never suppliers, display-only inputs_mismatch outside 80-120% of output); traceability.html renders the tree with a Recorded ingredients badge, detail note and text-report INPUT CHECKS, legacy one-level fallback; new pytest + visual runner on real 2026-10-06 Fruit Nut data; architecture map and changelog row 270. Branch fix/trace-backward-input-tree, PR for cross-review, not merged or deployed.
+- **Why:** Backward trace of packed lots stopped at the bulk batch, labelled it Ingredient and showed a false Supplier unknown gap (last-100-receipt browser scan).
+
+---
+
 ## 2026-11-09 14:30 — Record PR 192 production deploy (changelog row 269); merging this builds the Netlify dashboard
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added regression-guard row 269: recorded-total warning live on Railway as main 7b9deb3 (3f4767f1) after staging proof 2e3fc2d5 and BACKUP OK (2026-11-09-pre-pr192). Netlify skipped the #192 build because the squash message carried a skip marker; this PR deliberately has none so its merge builds dashboard.css v48 / dashboard.js v85.

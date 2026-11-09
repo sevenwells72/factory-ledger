@@ -10425,6 +10425,183 @@ def correct_transaction(
 INGREDIENT_ENTRY_SOURCES = {'received', 'found_inventory', 'adjusted', None}
 OUTPUT_ENTRY_SOURCES = {'production_output', 'pack_output'}
 
+# Backward input tree (trace_batch "input_tree"). Read-only: posted current-ledger
+# lines only, keyed by numeric lot id (changelog row 100). Never reads
+# ingredient_lot_consumption or inventory snapshots.
+TRACE_TREE_MAX_DEPTH = 6
+# Receipts whose shipper records where stock was found, not who supplied it.
+TRACE_FOUND_SHIPPERS = frozenset({
+    'found', 'found inventory', 'inventory found', 'physical count',
+    'opening balance', 'opening stock'})
+# Receipts that name no supplier at all.
+TRACE_UNNAMED_SHIPPERS = frozenset({
+    '', 'unknown', 'unknown supplier', 'n/a', 'na', 'none', '-'})
+# Display-only check: recorded inputs outside 80–120% of the output are flagged.
+TRACE_INPUT_RATIO_LOW = Decimal('0.8')
+TRACE_INPUT_RATIO_HIGH = Decimal('1.2')
+
+
+def _trace_shipper_kind(name):
+    """'found', 'unnamed' or 'supplier' for a receipt's shipper/supplier name."""
+    normalized = ' '.join((name or '').replace('’', "'").lower().split())
+    if normalized in TRACE_FOUND_SHIPPERS:
+        return 'found'
+    if normalized in TRACE_UNNAMED_SHIPPERS:
+        return 'unnamed'
+    return 'supplier'
+
+
+def _trace_stamp(prefix, value):
+    """{prefix}_at (UTC ISO) plus {prefix}_date / {prefix}_time in plant time (ET)."""
+    if value is not None and value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)   # ledger timestamps are stored as UTC
+    day, clock = format_timestamp(value)
+    return {prefix + "_at": value.isoformat() if value is not None else None,
+            prefix + "_date": day, prefix + "_time": clock}
+
+
+def _trace_lot_origin(cur, lot, depth, ancestors):
+    """Origin of one lot: made (recursing), received, found_inventory or unknown."""
+    lot_id = lot['lot_id']
+    cur.execute("""
+        SELECT t.id, t.type, t.timestamp
+        FROM ledger_current_transactions t
+        WHERE t.effective_status = 'posted' AND t.type IN ('make', 'pack')
+          AND EXISTS (
+              SELECT 1 FROM ledger_current_transaction_lines o
+              WHERE o.transaction_id = t.id AND o.lot_id = %s AND o.quantity_lb > 0)
+        ORDER BY t.timestamp, t.id
+    """, (lot_id,))
+    producing = cur.fetchall()
+    if producing:
+        return _trace_made_origin(cur, lot_id, producing, depth, ancestors)
+
+    cur.execute("""
+        SELECT t.id, t.timestamp, t.shipper_name, s.name AS supplier_name,
+               t.bol_reference, tx.receipt_number, SUM(tl.quantity_lb) AS quantity
+        FROM ledger_current_transactions t
+        JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id
+        JOIN transactions tx ON tx.id = t.id
+        LEFT JOIN suppliers s ON s.id = tx.supplier_id
+        WHERE t.type = 'receive' AND t.effective_status = 'posted'
+          AND tl.lot_id = %s AND tl.quantity_lb > 0
+        GROUP BY t.id, t.timestamp, t.shipper_name, s.name, t.bol_reference, tx.receipt_number
+        ORDER BY t.timestamp DESC, t.id DESC
+    """, (lot_id,))
+    receipts = cur.fetchall()
+    by_kind = {}
+    for row in receipts:
+        name = row['supplier_name'] or row['shipper_name']
+        by_kind.setdefault(_trace_shipper_kind(name), []).append(row)
+    if by_kind.get('supplier'):
+        row = by_kind['supplier'][0]          # latest named receipt, as _trace_ingredient_backward
+        return {
+            "kind": "received",
+            "transaction_id": row['id'],
+            **_trace_stamp("received", row['timestamp']),
+            "supplier_name": row['supplier_name'] or row['shipper_name'],
+            "bol_reference": row['bol_reference'],
+            "receipt_number": row['receipt_number'],
+            "quantity_lb": float(row['quantity']),
+            "supplier_lot_code": lot.get('supplier_lot_code'),
+            "receipt_count": len(receipts),
+        }
+    if by_kind.get('found'):
+        row = by_kind['found'][0]
+        # A placeholder receipt ("found") is kept for reference, never shown as a supplier.
+        return {"kind": "found_inventory", "transaction_id": row['id'],
+                "recorded_shipper": row['shipper_name'],
+                **_trace_stamp("received", row['timestamp'])}
+    if by_kind.get('unnamed'):
+        row = by_kind['unnamed'][0]
+        return {"kind": "unknown", "reason": "receipt_without_supplier",
+                "transaction_id": row['id'], "recorded_shipper": row['shipper_name'],
+                **_trace_stamp("received", row['timestamp'])}
+    if lot.get('entry_source') in ('found_inventory', 'adjusted'):
+        return {"kind": "found_inventory", "transaction_id": None}
+    return {"kind": "unknown", "reason": "no_posted_origin", "transaction_id": None}
+
+
+def _trace_made_origin(cur, lot_id, producing, depth, ancestors):
+    """All posted makes/packs that produced lot_id (a lot code can take several makes)."""
+    if lot_id in ancestors or depth >= TRACE_TREE_MAX_DEPTH:
+        return {"kind": "made",
+                "truncated": "cycle" if lot_id in ancestors else "depth_limit",
+                "transactions": [
+                    {"transaction_id": row['id'], "type": row['type'],
+                     **_trace_stamp("produced", row['timestamp']), "inputs": []}
+                    for row in producing]}
+    path = ancestors | {lot_id}
+    transactions = [_trace_made_transaction(cur, row, depth, path) for row in producing]
+    return {
+        "kind": "made",
+        "transactions": transactions,
+        "output_lb": float(sum(Decimal(str(t['output_lb'])) for t in transactions)),
+        "inputs_total_lb": float(sum(Decimal(str(t['inputs_total_lb'])) for t in transactions)),
+        "inputs_mismatch": any(t['inputs_mismatch'] for t in transactions),
+    }
+
+
+def _trace_made_transaction(cur, txn, depth, path):
+    """One posted make/pack: lb output, consumed lots (current lines) and the input check.
+
+    The check is display-only: inputs_mismatch is true when the recorded lb inputs
+    fall outside 80–120% of the lb output. Nothing is blocked or corrected.
+    """
+    cur.execute("""
+        SELECT tl.product_id, tl.lot_id, p.name AS product_name, p.type AS product_type, p.uom,
+               l.lot_code, l.supplier_lot_code, l.entry_source,
+               SUM(tl.quantity_lb) AS quantity
+        FROM ledger_current_transaction_lines tl
+        JOIN products p ON p.id = tl.product_id
+        JOIN lots l ON l.id = tl.lot_id
+        WHERE tl.transaction_id = %s
+        GROUP BY tl.product_id, tl.lot_id, p.name, p.type, p.uom,
+                 l.lot_code, l.supplier_lot_code, l.entry_source
+        ORDER BY p.name, tl.lot_id
+    """, (txn['id'],))
+    output_lb = Decimal(0)
+    inputs_total = Decimal(0)
+    inputs = []
+    for row in cur.fetchall():
+        quantity = Decimal(row['quantity'])
+        unit = ledger_quantity_unit(row['uom'])
+        if quantity > 0:
+            if unit == 'lb':
+                output_lb += quantity
+            continue
+        if quantity == 0:
+            continue
+        quantity = -quantity
+        if unit == 'lb':
+            inputs_total += quantity
+        node = {key: row[key] for key in (
+            'lot_id', 'lot_code', 'product_id', 'product_name', 'product_type',
+            'entry_source', 'supplier_lot_code')}
+        node.update(quantity=float(quantity), unit=unit)
+        inputs.append(node)
+    for node in inputs:
+        node["origin"] = _trace_lot_origin(cur, node, depth + 1, path)
+    mismatch = output_lb > 0 and not (
+        output_lb * TRACE_INPUT_RATIO_LOW <= inputs_total <= output_lb * TRACE_INPUT_RATIO_HIGH)
+    return {
+        "transaction_id": txn['id'],
+        "type": txn['type'],
+        **_trace_stamp("produced", txn['timestamp']),
+        "output_lb": float(output_lb),
+        "inputs_total_lb": float(inputs_total),
+        "inputs_mismatch": bool(mismatch),
+        "inputs": inputs,
+    }
+
+
+def _trace_input_tree(cur, lot_row):
+    """Backward input tree for a made/packed lot; null when no posted make/pack made it."""
+    origin = _trace_lot_origin(cur, {
+        'lot_id': lot_row['id'], 'entry_source': lot_row.get('entry_source'),
+        'supplier_lot_code': lot_row.get('supplier_lot_code')}, 0, frozenset())
+    return origin if origin['kind'] == 'made' else None
+
 @app.get("/trace/batch/{lot_code}")
 def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool = Depends(verify_api_key)):
     try:
@@ -10565,7 +10742,10 @@ def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool 
                 ],
                 "customer_shipments": customer_shipments,
                 "total_shipped_lb": total_shipped,
-                "on_hand_lb": on_hand
+                "on_hand_lb": on_hand,
+                # Full backward chain from posted current-ledger lines (dashboard
+                # Traceability). "ingredients" above is unchanged for GPT readers.
+                "input_tree": _trace_input_tree(cur, lot_row),
             }
             if cs_lb and cs_lb > 0:
                 result["case_size_lb"] = cs_lb

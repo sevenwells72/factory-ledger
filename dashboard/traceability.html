@@ -266,6 +266,11 @@ svg text { font-family: var(--font); }
 .detail-table td.name-col { font-family: var(--font); }
 .confirmed-tag { color: var(--accent); font-size:var(--fl-caption, 14px); }
 .legacy-tag { color: var(--col-gap); font-size:var(--fl-caption, 14px); }
+/* Recorded-ingredients check (display only) above the trace table; prints with the page */
+.mismatch-list { margin: 0 0 14px; padding: 10px 12px; border: 1px solid rgba(245,158,11,0.3);
+  border-radius: 6px; background: rgba(245,158,11,0.15); color: var(--badge-amber-text);
+  font-size: var(--fl-caption, 14px); }
+.mismatch-list ul { margin: 6px 0 0; padding-left: 18px; }
 
 /* Export panel */
 .export-btns {
@@ -690,6 +695,181 @@ async function traceBackward(lotCode) {
 }
 
 async function traceBackwardBatch(batchData) {
+  // input_tree: the full chain from posted current-ledger lines (trace_batch).
+  // An API without it (deploy window) keeps the previous one-level trace.
+  if (batchData.input_tree) return traceBackwardTree(batchData);
+  return traceBackwardBatchLegacy(batchData);
+}
+
+function escHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+}
+
+function fmtQty(quantity, unit) {
+  const n = Number(quantity || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  return `${n} ${unit || 'lb'}`;
+}
+
+function mismatchText(m) {
+  return `Recorded ingredients: ${fmtQty(m.inputs)} for ${fmtQty(m.output)} made`;
+}
+
+// Mark a made lot's node with its producing transactions and the display-only
+// recorded-inputs check (inputs outside 80–120% of the output). Nothing is changed.
+function applyMadeOrigin(node, origin, stats) {
+  if (!origin || origin.kind !== 'made') return;
+  const txns = origin.transactions || [];
+  if (txns.length) node.txnIds = txns.map(t => t.transaction_id);
+  if (!origin.inputs_mismatch) return;
+  node.mismatch = { inputs: origin.inputs_total_lb, output: origin.output_lb };
+  node.detail = (node.detail ? node.detail + ' | ' : '') + mismatchText(node.mismatch);
+  for (const t of txns) {
+    if (!t.inputs_mismatch || stats.mismatches.some(m => m.txn === t.transaction_id)) continue;
+    stats.mismatches.push({ txn: t.transaction_id, lot: node.label, product: node.sublabel,
+                            inputs: t.inputs_total_lb, output: t.output_lb });
+  }
+}
+
+function addLinkSum(sourceId, targetId, quantity, confidence, unit) {
+  const link = graphLinks.find(l => l.source === sourceId && l.target === targetId);
+  if (link) { link.quantity += quantity || 0; return; }
+  graphLinks.push({ source: sourceId, target: targetId, quantity: quantity || 0, confidence, unit: unit || 'lb' });
+}
+
+function addGapNode(id, label, sublabel, detail, layer, targetId, stats, txnId) {
+  addNode({ id, type: 'gap', label, sublabel, detail, layer, txnId: txnId || undefined });
+  addLink(id, targetId, 0, 'legacy');
+  stats.gaps++;
+}
+
+// Where a consumed lot came from when it was not made here.
+function addOriginNode(lotNodeId, input, origin, layer, stats) {
+  const txnRef = origin.transaction_id ? `Txn #${origin.transaction_id}` : '';
+  if (origin.kind === 'received') {
+    const parts = [`${origin.received_date || ''} ${origin.received_time || ''}`.trim(), txnRef];
+    if (origin.receipt_number) parts.push(`Receipt ${origin.receipt_number}`);
+    if (origin.supplier_lot_code) parts.push(`Supplier lot ${origin.supplier_lot_code}`);
+    const suppId = addNode({
+      id: 'supplier-txn-' + origin.transaction_id, type: 'supplier',
+      label: origin.supplier_name, sublabel: origin.bol_reference ? `BOL: ${origin.bol_reference}` : '',
+      detail: parts.filter(Boolean).join(' | '), quantity: origin.quantity_lb,
+      layer, txnId: origin.transaction_id
+    });
+    addLink(suppId, lotNodeId, origin.quantity_lb, 'confirmed');
+    stats.confirmed++;
+  } else if (origin.kind === 'found_inventory') {
+    // A placeholder receipt ("found", "inventory found") is never a supplier.
+    const recorded = origin.transaction_id
+      ? ` | Recorded as "${origin.recorded_shipper || ''}" on ${txnRef}` : '';
+    addGapNode('found-' + input.lot_id, 'Found inventory', 'No supplier receipt',
+               'Found inventory — no supplier receipt' + recorded, layer, lotNodeId, stats, origin.transaction_id);
+  } else if (origin.reason === 'receipt_without_supplier') {
+    addGapNode('unnamed-' + input.lot_id, 'Supplier not named', 'Receipt names no supplier',
+               `Receipt without a supplier name | ${txnRef}`, layer, lotNodeId, stats, origin.transaction_id);
+  } else {
+    addGapNode('noorigin-' + input.lot_id, 'No receipt recorded', 'Origin not in posted ledger',
+               'No posted receipt, make or pack created this lot', layer, lotNodeId, stats);
+  }
+}
+
+// Consumed lots of every posted make/pack in `origin`, one column further left
+// per level. A lot consumed by several makes is one node with a summed link.
+function addTreeInputs(parentId, origin, layer, stats) {
+  if (origin.truncated) {
+    addGapNode('stop-' + parentId, 'Trace stops here',
+               origin.truncated === 'cycle' ? 'Lot is its own input' : 'Too many levels',
+               origin.truncated === 'cycle' ? 'This lot appears in its own input chain' : 'Open this lot to trace further',
+               layer, parentId, stats);
+    return;
+  }
+  const byLot = new Map();
+  for (const t of origin.transactions || []) {
+    for (const input of t.inputs || []) {
+      const entry = byLot.get(input.lot_id) || { input, quantity: 0, txns: [] };
+      entry.quantity += input.quantity;
+      entry.txns.push(t.transaction_id);
+      byLot.set(input.lot_id, entry);
+    }
+  }
+  for (const { input, quantity, txns } of byLot.values()) {
+    const lotOrigin = input.origin || { kind: 'unknown' };
+    const made = lotOrigin.kind === 'made';
+    const isLb = (input.unit || 'lb') === 'lb';
+    const node = {
+      id: (made ? 'batch-' : 'ing-') + input.lot_id,
+      type: made ? 'batch' : 'ingredient',
+      label: input.lot_code, sublabel: input.product_name,
+      detail: [`${fmtQty(quantity, input.unit)} used`, `Txn #${txns.join(', #')}`,
+               input.supplier_lot_code ? `Supplier lot ${input.supplier_lot_code}` : ''].filter(Boolean).join(' | '),
+      lotCode: input.lot_code, productId: input.product_id,
+      quantity: isLb ? quantity : 0, layer
+    };
+    applyMadeOrigin(node, lotOrigin, stats);
+    const seen = graphNodes.some(n => n.id === node.id);
+    const nodeId = addNode(node);
+    addLinkSum(nodeId, parentId, quantity, 'confirmed', input.unit);
+    stats.confirmed++;
+    if (seen) continue;   // reached by two paths: expand once
+    if (made) addTreeInputs(nodeId, lotOrigin, layer - 1, stats);
+    else addOriginNode(nodeId, input, lotOrigin, layer - 1, stats);
+  }
+}
+
+function addCustomerNodes(lotNodeId, shipments, lotId, layer) {
+  const customers = {};
+  for (const sh of shipments || []) {
+    const name = sh.customer_name || 'Unknown customer';
+    const c = customers[name] || (customers[name] = { name, totalQty: 0, orders: [], txnIds: [], date: '' });
+    c.totalQty += sh.quantity_lb;
+    const order = sh.order_number || sh.order_reference;
+    if (order && !c.orders.includes(order)) c.orders.push(order);
+    c.txnIds.push(sh.transaction_id);
+    c.date = sh.shipped_date;
+  }
+  for (const c of Object.values(customers)) {
+    const custId = addNode({
+      id: 'cust-' + c.name + '-' + lotNodeId, type: 'customer', label: c.name,
+      sublabel: c.orders.join(', '),
+      detail: `${fmtQty(c.totalQty)} | ${FLDesign.date(c.date)} | Txn #${c.txnIds.join(', #')}`,
+      quantity: c.totalQty, layer, txnIds: c.txnIds
+    });
+    addLink(lotNodeId, custId, c.totalQty, 'confirmed');
+  }
+  if (!Object.keys(customers).length) {
+    const stockId = addNode({ id: 'stock-' + lotId, type: 'finished', label: 'In stock',
+                              sublabel: 'No shipments recorded', detail: '', layer });
+    addLink(lotNodeId, stockId, 0, 'confirmed');
+  }
+}
+
+async function traceBackwardTree(batchData) {
+  const stats = { confirmed: 0, gaps: 0, mismatches: [] };
+  const outputStr = batchData.output_units != null
+    ? `${batchData.output_lb} lb · ${batchData.output_units} units`
+    : (batchData.output_batches != null ? `${batchData.output_lb} lb · ${batchData.output_batches} batches` : `${batchData.output_lb} lb`);
+  const start = {
+    id: 'batch-' + batchData.lot_id, type: 'batch', label: batchData.batch_lot_code,
+    sublabel: batchData.product_name,
+    detail: `${outputStr} | ${batchData.produced_date} ${batchData.produced_time}`,
+    lotCode: batchData.batch_lot_code, productId: batchData.product_id,
+    quantity: batchData.input_tree.output_lb ?? batchData.output_lb, layer: 0
+  };
+  applyMadeOrigin(start, batchData.input_tree, stats);
+  const startId = addNode(start);
+  addTreeInputs(startId, batchData.input_tree, -1, stats);
+  addCustomerNodes(startId, batchData.customer_shipments, batchData.lot_id, 1);
+
+  currentTrace = {
+    direction: 'backward', startLot: batchData.batch_lot_code,
+    product: batchData.product_name, kosherTier: batchData.kosher_tier, outputLb: start.quantity,
+    date: batchData.produced_date, time: batchData.produced_time,
+    confirmedCount: stats.confirmed, legacyCount: 0, hasLegacy: stats.gaps > 0,
+    mismatches: stats.mismatches, batchData
+  };
+  setStatus('ok', '');
+}
+
+async function traceBackwardBatchLegacy(batchData) {
   // Center node: the batch
   const batchOutputStr = batchData.output_units != null
     ? `${batchData.output_lb} lb \u00b7 ${batchData.output_units} units`
@@ -1098,7 +1278,9 @@ function renderGraph() {
 
   // Layout: layered left-to-right
   const width = container.clientWidth;
-  const nodeW = 180, nodeH = 56, padX = 60, padY = 20;
+  const nodeW = 180, nodeH = 56, padX = 60;
+  // Room under a node for its recorded-ingredients badge (badgeH) when any node has one.
+  const badgeH = 26, padY = graphNodes.some(n => n.mismatch) ? badgeH + 12 : 20;
 
   // Group nodes by layer
   const layers = {};
@@ -1176,7 +1358,7 @@ function renderGraph() {
         .attr('text-anchor', 'middle')
         .attr('font-size', 10)
         .attr('fill', 'var(--text-dimmed)')
-        .text(`${link.quantity.toLocaleString()} lb`);
+        .text(fmtQty(link.quantity, link.unit));
     }
 
     // Confidence icon
@@ -1221,8 +1403,8 @@ function renderGraph() {
       .attr('stroke-width', node.id === ('batch-' + selectedLotCode) || node.id === ('ing-' + selectedLotCode) || node.id === ('lot-' + selectedLotCode) ? 2 : 1)
       .attr('stroke-dasharray', (node.type === 'gap' || node.isLegacy) ? '4,3' : 'none');
 
-    // Warning icon for gaps/legacy
-    if (node.type === 'gap' || node.isLegacy) {
+    // Warning icon for gaps/legacy, and for a recorded-ingredients mismatch
+    if (node.type === 'gap' || node.isLegacy || node.mismatch) {
       ng.append('text')
         .attr('x', nodeW - 16)
         .attr('y', 16)
@@ -1257,7 +1439,23 @@ function renderGraph() {
         .attr('y', 50)
         .attr('font-size', 9)
         .attr('fill', 'var(--text-dimmed)')
-        .text(`${node.quantity.toLocaleString()} lb`);
+        .text(fmtQty(node.quantity));
+    }
+
+    // Recorded-ingredients badge (display only): inputs outside 80–120% of output
+    if (node.mismatch) {
+      const badge = ng.append('g')
+        .attr('class', 'mismatch-badge')
+        .attr('transform', `translate(0, ${nodeH + 4})`);
+      badge.append('rect')
+        .attr('width', nodeW).attr('height', badgeH).attr('rx', 4)
+        .attr('fill', colorHex.gap + '1F').attr('stroke', colorHex.gap);
+      badge.append('text').attr('x', 8).attr('y', 11).attr('font-size', 9.5)
+        .attr('font-weight', 600).attr('fill', 'var(--text)')
+        .text('\u26A0 Recorded ingredients:');
+      badge.append('text').attr('x', 8).attr('y', 22).attr('font-size', 9.5)
+        .attr('fill', 'var(--text)')
+        .text(`${fmtQty(node.mismatch.inputs)} for ${fmtQty(node.mismatch.output)} made`);
     }
   }
 
@@ -1281,10 +1479,11 @@ function showTooltip(event, node) {
   const typeLabel = { supplier: 'Supplier', ingredient: 'Ingredient Lot', batch: 'Production Batch', finished: 'Finished Goods', customer: 'Customer', gap: 'Data Gap' };
 
   tt.innerHTML = `
-    <div class="tt-label">${typeLabel[node.type] || node.type}</div>
-    <div class="tt-value tt-mono" style="font-weight:600">${node.label}</div>
-    ${node.sublabel ? `<div class="tt-value">${node.sublabel}</div>` : ''}
-    ${node.detail ? `<div class="tt-value" style="color:var(--text-muted);font-size:var(--fl-caption, 14px)">${node.detail}</div>` : ''}
+    <div class="tt-label">${escHtml(typeLabel[node.type] || node.type)}</div>
+    <div class="tt-value tt-mono" style="font-weight:600">${escHtml(node.label)}</div>
+    ${node.sublabel ? `<div class="tt-value">${escHtml(node.sublabel)}</div>` : ''}
+    ${node.detail ? `<div class="tt-value" style="color:var(--text-muted);font-size:var(--fl-caption, 14px)">${escHtml(node.detail)}</div>` : ''}
+    ${node.mismatch ? `<div style="color:var(--col-gap);font-size:var(--fl-caption, 14px);margin-top:4px">\u26A0 ${escHtml(mismatchText(node.mismatch))}</div>` : ''}
     ${node.isLegacy ? '<div style="color:var(--col-gap);font-size:var(--fl-caption, 14px);margin-top:4px">\u26A0 Legacy record — ingredient lot not tracked</div>' : ''}
     ${node.txnId ? `<div class="tt-label" style="margin-top:4px">Transaction #${node.txnId}</div>` : ''}
   `;
@@ -1366,10 +1565,14 @@ function renderCompleteness() {
   } else if (hasAnyGap) {
     const details = [];
     if (legacyCount > 0) details.push(`${legacyCount} legacy lot(s)`);
-    if (gapNodes.length > 0) details.push(`${gapNodes.length} unknown supplier(s)`);
+    if (gapNodes.length > 0) details.push(`${gapNodes.length} supplier gap(s)`);
     badge = `<span class="completeness-badge badge-partial">\u26A0 Partial trace &mdash; ${details.join(', ')}</span>`;
   } else if (confirmedCount === 0) {
     badge = `<span class="completeness-badge badge-incomplete">\u2717 Incomplete &mdash; no confirmed links found</span>`;
+  }
+  const mismatches = currentTrace.mismatches || [];
+  if (mismatches.length) {
+    badge += ` <span class="completeness-badge badge-partial">\u26A0 ${mismatches.length} make(s) with recorded ingredients outside 80\u2013120% of output</span>`;
   }
   info.innerHTML = badge;
 }
@@ -1391,11 +1594,20 @@ function renderDetailPanel() {
   let html = `<h3>${dirLabel}</h3>`;
   html += `<div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:14px;font-size:var(--fl-caption, 14px);color:var(--text-muted)">`;
   html += `<span>Traced: ${traceDate}</span>`;
-  html += `<span>Start: <strong style="color:var(--text);font-family:var(--mono)">${t.startLot}</strong></span>`;
+  html += `<span>Start: <strong style="color:var(--text);font-family:var(--mono)">${escHtml(t.startLot)}</strong></span>`;
   if (t.kosherTier === 'extra_kosher') html += `<span><strong>EXTRA-KOSHER (SS)</strong></span>`;
-  if (t.product) html += `<span>Product: ${t.product}</span>`;
+  if (t.product) html += `<span>Product: ${escHtml(t.product)}</span>`;
   if (t.outputLb) html += `<span>Quantity: ${t.outputLb} lb</span>`;
   html += `</div>`;
+
+  // Display-only input check; printed with the page (Print Audit Report).
+  if ((t.mismatches || []).length) {
+    html += `<div class="mismatch-list" role="note"><strong>\u26A0 Recorded ingredients differ from the amount made</strong> (display only; nothing was changed)<ul>`;
+    for (const m of t.mismatches) {
+      html += `<li>Txn #${m.txn} &middot; ${escHtml(m.lot)} ${escHtml(m.product || '')}: ${escHtml(mismatchText(m))}</li>`;
+    }
+    html += `</ul></div>`;
+  }
 
   // Build chain table
   html += `<table class="detail-table"><thead><tr>
@@ -1410,12 +1622,12 @@ function renderDetailPanel() {
     const typeLabels = { supplier: 'Supplier', ingredient: 'Ingredient', batch: 'Batch', finished: 'Finished', customer: 'Customer', gap: 'Data Gap' };
 
     html += `<tr>
-      <td class="name-col">${typeLabels[node.type] || node.type}</td>
-      <td>${node.label}</td>
-      <td class="name-col">${node.sublabel || '-'}</td>
-      <td>${node.quantity ? node.quantity.toLocaleString() + ' lb' : '-'}</td>
+      <td class="name-col">${escHtml(typeLabels[node.type] || node.type)}</td>
+      <td>${escHtml(node.label)}</td>
+      <td class="name-col">${escHtml(node.sublabel || '-')}</td>
+      <td>${node.quantity ? fmtQty(node.quantity) : '-'}</td>
       <td>${conf === 'confirmed' ? '<span class="confirmed-tag">\u2713 Confirmed</span>' : conf === 'legacy' ? '<span class="legacy-tag">\u26A0 Legacy</span>' : '-'}</td>
-      <td class="name-col" style="font-size:var(--fl-caption, 14px)">${node.detail || '-'}</td>
+      <td class="name-col" style="font-size:var(--fl-caption, 14px)">${escHtml(node.detail || '-')}</td>
     </tr>`;
   }
   html += `</tbody></table>`;
@@ -1450,16 +1662,26 @@ function downloadAuditText() {
   text += `Legacy Gaps:     ${t.legacyCount}\n`;
   text += `Completeness:    ${!t.hasLegacy && t.confirmedCount > 0 ? 'COMPLETE' : t.hasLegacy ? 'PARTIAL' : 'INCOMPLETE'}\n`;
   if (t.note) text += `Note:            ${t.note}\n`;
+  if ((t.mismatches || []).length) {
+    text += '\n───────────────────────────────────────────────\n';
+    text += '  INPUT CHECKS (display only; nothing was changed)\n';
+    text += '───────────────────────────────────────────────\n';
+    for (const m of t.mismatches) {
+      text += `Txn #${m.txn} ${m.lot} ${m.product || ''}: ${mismatchText(m)}\n`;
+    }
+  }
   text += '\n───────────────────────────────────────────────\n';
   text += '  TRACE CHAIN\n';
   text += '───────────────────────────────────────────────\n\n';
 
   const sorted = [...graphNodes].sort((a, b) => (a.layer || 0) - (b.layer || 0));
   const typeLabels = { supplier: 'SUPPLIER', ingredient: 'INGREDIENT', batch: 'BATCH', finished: 'FINISHED', customer: 'CUSTOMER', gap: 'DATA GAP' };
-  let prevLayer = -1;
+  let prevLayer = null;
+  // Backward tree layers run negative (inputs left of the start lot).
+  const minLayer = Math.min(0, ...sorted.map(n => n.layer || 0));
 
   for (const node of sorted) {
-    const indent = '  '.repeat(node.layer || 0);
+    const indent = '  '.repeat((node.layer || 0) - minLayer);
     const link = graphLinks.find(l => l.target === node.id || l.source === node.id);
     const confLabel = link ? (link.confidence === 'confirmed' ? '[CONFIRMED]' : '[LEGACY/UNTRACKED]') : '';
 
@@ -1469,6 +1691,7 @@ function downloadAuditText() {
     text += `${indent}${confLabel} ${typeLabels[node.type] || 'NODE'}: ${node.label}\n`;
     if (node.sublabel) text += `${indent}  Product: ${node.sublabel}\n`;
     if (node.quantity > 0) text += `${indent}  Quantity: ${node.quantity} lb\n`;
+    if (node.mismatch) text += `${indent}  WARNING: ${mismatchText(node.mismatch)}\n`;
     if (node.detail) text += `${indent}  Detail: ${node.detail}\n`;
     if (node.txnId) text += `${indent}  Transaction ID: ${node.txnId}\n`;
     if (node.txnIds) text += `${indent}  Transaction IDs: ${node.txnIds.join(', ')}\n`;
