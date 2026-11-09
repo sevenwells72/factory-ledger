@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-09 13:51 — Record PR 188 production deploy (changelog row 267)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added regression-guard row 267: Production Detail Made ingredient table + Summary / Full Traceability toggle live as main 9f03f73 after BACKUP OK (2026-11-09-pre-pr188); Netlify assets verified byte-identical; what breaks if reverted.
+- **Why:** CLAUDE.md Regression Guard step 4: add a changelog row immediately after deploying.
+
+---
+
 ## 2026-11-09 13:43 — Production Detail: compact Made ingredient table with Summary / Full Traceability toggle
 - **File(s) changed:** `dashboard.js`, `dashboard.css`, `index.html`, `runs.html`, `run-production-trace.mjs`, `run-production-detail.mjs`, `production-detail-2026-11-06.json`, `ARCHITECTURE-MAP.md`, `production-detail screenshots`
 - **What changed:** Made drill-down rows on the Production calendar now render one Ingredient | Quantity | Lot Information table per Made record (one row per ingredient; total = sum of the lot lines the trace API returns; multi-lot ingredients list each lot with its quantity). The Ingredient subtotals block under Made rows is no longer drawn (API data unchanged). New Summary / Full Traceability toggle hides or shows the Lot Information column, remembered in localStorage fl-production-detail-view (default Summary). Packed rows and nested batch traces are unchanged. Cache CSS v46 / JS v83. New Playwright check with real 2026-11-06 data plus before/after screenshots at 1440/390; existing trace check updated for the table.
