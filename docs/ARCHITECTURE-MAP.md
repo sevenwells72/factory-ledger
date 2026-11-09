@@ -95,6 +95,7 @@ Pointer syntax: file::text means search that file for that exact text (a section
 
 ### Dashboard (Netlify)
 - Shell: `dashboard/index.html`, `dashboard/dashboard.js`, `dashboard/shell.js`, `dashboard/dashboard-runtime.js`, `dashboard/ledger-ui.js`
+- App shell layout (dashboard only, `html[data-fl-shell]`): sidebar / top bar / phone tab bar markup in `dashboard/index.html`, styles in `dashboard/app-shell.css`, behaviour in `dashboard/shell.js` (`initAppShell`) (collapse remembered in `localStorage` `fl-sidebar`, drawer below 900px, phone search and tab bar below 600px, user menu). The global search opens receipt numbers through `FLReceipts.open` in `dashboard/receipt-shell.js`, which draws no tool bar on the shell page. Other pages keep their own header, the receipt tool bar and the bottom mobile nav from `dashboard/shell.js`.
 - Pages: `dashboard/history.js`, `dashboard/entry.js`, `dashboard/office.js`, `dashboard/exceptions.js`, `dashboard/pin.js`
 - Exceptions guidance (help panel, Explain, "Use when / Example / This will", confirmation line, Unverified badge): `dashboard/exceptions-guide.js`, `dashboard/exceptions.css`; tests `tests/test_exceptions_guide.js`. Its "This will" sentences describe `exceptions_enforcement.py::def shortage_evidence` and `supplier_lot_tickets.py::def post`; change them together.
 - Backend for the pages: `main.py::# DASHBOARD ENDPOINTS` and `/dashboard/api/*` routes (`grep -n '"/dashboard/api' main.py`)
