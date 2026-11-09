@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-09 14:30 — Record PR 192 production deploy (changelog row 269); merging this builds the Netlify dashboard
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added regression-guard row 269: recorded-total warning live on Railway as main 7b9deb3 (3f4767f1) after staging proof 2e3fc2d5 and BACKUP OK (2026-11-09-pre-pr192). Netlify skipped the #192 build because the squash message carried a skip marker; this PR deliberately has none so its merge builds dashboard.css v48 / dashboard.js v85.
+- **Why:** CLAUDE.md Regression Guard step 4, and to publish the #192 dashboard (owner chose the docs PR route).
+
+---
+
 ## 2026-11-09 14:20 — Staging only: PR #192 (recorded-total warning, 39b22d2) deployed to FastAPI-staging and proven
 - **File(s) changed:** `none in the PR (this log entry only)`
 - **What changed:** Michael approved 'Yes, deploy staging'. railway up from a clean detached checkout of PR #192 head 39b22d2 (~/dev/fl-192-stage-wt, linked to FastAPI-staging 0d957be1 only): deployment 2e3fc2d5 SUCCESS; previous dd2c4310 is the rollback point. No migration (093 already on staging). Read-only checks: staging /health healthy; serves dashboard.css v48 / dashboard.js v85 hash-identical to the branch; for all 132 posted staging Makes the trace API's recorded_inputs equals the staging DB (128 from signed tickets, 4 from ingredient_lot_consumption; 2 tickets with empty requirements and no lot lines correctly return []); none would show a warning icon. Production untouched: /health healthy, trace has no recorded_inputs, Netlify still v47/v84. No data written; nothing merged.
