@@ -17428,6 +17428,54 @@ def dashboard_api_production(
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+def _recorded_make_inputs(cur, transaction_ids):
+    """Per-ingredient totals recorded when each Make posted (display check only).
+
+    Signed Make tickets freeze `payload.specification.requirements` (quantity per
+    ingredient). Older Makes only have `ingredient_lot_consumption`, written with
+    the lines and never amended, so a later line correction shows as a difference
+    here. The trace still reports the current lines as the quantity; this is only
+    the comparison figure. A Make with neither source is left out entirely, never
+    reported as a recorded zero. Nothing is written.
+    """
+    if not transaction_ids:
+        return {}
+    cur.execute("""
+        SELECT t.id, w.payload->'specification'->'requirements' AS requirements
+        FROM transactions t
+        JOIN write_tickets w ON w.id = t.ticket_id
+        WHERE t.id = ANY(%s)
+          AND jsonb_typeof(w.payload->'specification'->'requirements') = 'object'
+    """, (transaction_ids,))
+    recorded = {}
+    for row in cur.fetchall():
+        recorded[row['id']] = ('ticket', {int(pid): to_decimal(qty) for pid, qty in row['requirements'].items()})
+    legacy = [tid for tid in transaction_ids if tid not in recorded]
+    if legacy:
+        cur.execute("""
+            SELECT transaction_id, ingredient_product_id, SUM(quantity_lb) AS quantity
+            FROM ingredient_lot_consumption
+            WHERE transaction_id = ANY(%s)
+            GROUP BY transaction_id, ingredient_product_id
+        """, (legacy,))
+        for row in cur.fetchall():
+            source = recorded.setdefault(row['transaction_id'], ('consumption_record', {}))
+            source[1][row['ingredient_product_id']] = row['quantity']
+    product_ids = sorted({pid for _, quantities in recorded.values() for pid in quantities})
+    products = {}
+    if product_ids:
+        cur.execute("SELECT id, name, uom FROM products WHERE id = ANY(%s)", (product_ids,))
+        products = {row['id']: row for row in cur.fetchall()}
+    return {
+        tid: [dict(product_id=pid,
+                   product_name=(products.get(pid) or {}).get('name'),
+                   unit=ledger_quantity_unit((products.get(pid) or {}).get('uom')),
+                   quantity=float(quantity), source=source)
+              for pid, quantity in sorted(quantities.items())]
+        for tid, (source, quantities) in recorded.items()
+    }
+
+
 @app.get("/dashboard/api/production/trace")
 def dashboard_api_production_trace(
     product_id: Optional[int] = Query(None, ge=1),
@@ -17487,6 +17535,7 @@ def dashboard_api_production_trace(
                 ORDER BY tl.transaction_id, p.name, tl.lot_id
             """, (kind, ids))
             lines = cur.fetchall()
+        recorded = _recorded_make_inputs(cur, ids) if kind == 'make' else {}
     by_transaction = {tid: [] for tid in ids}
     totals = {}
     for row in lines:
@@ -17506,7 +17555,9 @@ def dashboard_api_production_trace(
         "kind": kind,
         "transactions": [dict(transaction_id=row['id'],
                               timestamp=row['timestamp'].isoformat(),
-                              consumed=by_transaction[row['id']]) for row in transactions],
+                              consumed=by_transaction[row['id']],
+                              # Make only: null when nothing was recorded besides the lines.
+                              recorded_inputs=recorded.get(row['id'])) for row in transactions],
         "subtotals": [dict(row, quantity=float(row['quantity'])) for row in totals.values()],
     }
 

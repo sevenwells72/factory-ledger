@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-09 14:11 — Production Detail: warning icon when lot lines differ from the recorded ingredient total
+- **File(s) changed:** `main.py`, `dashboard.js`, `dashboard.css`, `index.html`, `runs.html`, `test_production_trace.py`, `run-production-detail.mjs`, `run-production-trace.mjs`, `production-detail-2026-11-06.json`, `ARCHITECTURE-MAP.md`, `mismatch-example screenshots`
+- **What changed:** GET /dashboard/api/production/trace now adds recorded_inputs to each Make transaction (read-only; new main.py _recorded_make_inputs): per-ingredient totals from the signed ticket payload.specification.requirements, else ingredient_lot_consumption, null when neither. Dashboard reconcileIngredients compares them with the lot lines; Quantity stays the lots total (owner choice 2026-11-09) and a warning icon with 'Recorded X · Lots total Y' (or 'No recorded total' / 'No lot lines') shows in Summary and Full Traceability; tap opens a note row. Recorded 0 with no lots is not a row. 3 new API tests; browser test covers real data (no icons) and 3 injected mismatches; run-production-trace.mjs fixed for no-break spaces (already failing on main since #188). Cache CSS v48 / JS v85 (rebased over #190, which took v47/v84).
+- **Why:** Owner asked to resolve the missing mismatch warning from #188. All 463 posted makes reconcile today (17 ticketed, rest via consumption records).
+
+---
+
 ## 2026-11-09 14:09 — PRODUCTION: migration 093_product_archive applied (Michael approved)
 - **File(s) changed:** `migrations/093_product_archive.sql`
 - **What changed:** Michael approved 'Yes, apply 093'. Backup first: ~/Backups/fl/2026-11-09-pre093 BACKUP OK, KEY CHECKS ALL MATCH. Applied to production (Supabase vrafvwcdpcijvxdvefpr) via port 5432 in one transaction (lock_timeout 5s, ON_ERROR_STOP). Verified read-only: products.archived_at timestamptz and archived_by text, both nullable, no default; marker 093_product_archive present; 0 products attributed, 10 already inactive of 211 (unchanged); /health healthy. Code (PR #190) not yet merged; BS items not yet archived.

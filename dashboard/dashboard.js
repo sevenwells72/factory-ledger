@@ -1068,7 +1068,7 @@
     for (const item of consumed) {
       const key = `${item.product_id}|${item.unit}`;
       if (!groups.has(key)) {
-        groups.set(key, { product_name: item.product_name, unit: item.unit, quantity: 0, lots: [] });
+        groups.set(key, { product_id: item.product_id, product_name: item.product_name, unit: item.unit, quantity: 0, lots: [] });
       }
       const group = groups.get(key);
       group.quantity = Math.round((group.quantity + Number(item.quantity)) * 1e6) / 1e6;
@@ -1083,7 +1083,37 @@
     return cell;
   }
 
-  function renderIngredientTable(panel, consumed) {
+  // Compare each ingredient's lot lines with the total recorded when the Make
+  // posted (API `recorded_inputs`; null when nothing besides the lines was
+  // recorded, so no comparison is made). The Quantity shown is always the lots
+  // total; a difference only adds a warning. A recorded zero with no lots is not
+  // a row (e.g. oat bran not used); a recorded amount with no lot lines is.
+  function reconcileIngredients(consumed, recordedInputs) {
+    const rows = groupConsumedByIngredient(consumed);
+    if (!Array.isArray(recordedInputs)) return rows;
+    const recorded = new Map(recordedInputs.map(item => [String(item.product_id), item]));
+    const differs = (a, b) => a.unit !== b.unit || Math.abs(Number(a.quantity) - Number(b.quantity)) > 1e-4;
+    for (const row of rows) {
+      const record = recorded.get(String(row.product_id));
+      if (!record) {
+        row.warning = `No recorded total · Lots total ${traceQuantity(row)}`;
+      } else {
+        record.matched = true;
+        if (differs(record, row)) row.warning = `Recorded ${traceQuantity(record)} · Lots total ${traceQuantity(row)}`;
+      }
+    }
+    for (const record of recorded.values()) {
+      if (record.matched || Math.abs(Number(record.quantity)) <= 1e-4) continue;
+      rows.push({ product_id: record.product_id, product_name: record.product_name || `Product ${record.product_id}`,
+                  unit: record.unit, quantity: null, lots: [],
+                  warning: `Recorded ${traceQuantity(record)} · No lot lines` });
+    }
+    return rows;
+  }
+
+  let ingredientWarningId = 0;
+
+  function renderIngredientTable(panel, consumed, recordedInputs) {
     const table = document.createElement('table');
     table.className = 'ingredient-table';
     const colgroup = document.createElement('colgroup');
@@ -1098,11 +1128,35 @@
     traceCell(headRow, 'th', 'ingredient-qty-head', 'Quantity').scope = 'col';
     traceCell(headRow, 'th', 'ingredient-lots', 'Lot Information').scope = 'col';
     const body = table.createTBody();
-    for (const group of groupConsumedByIngredient(consumed)) {
+    for (const group of reconcileIngredients(consumed, recordedInputs)) {
       const row = body.insertRow();
+      row.className = 'ingredient-row';
       traceCell(row, 'th', 'ingredient-name', group.product_name).scope = 'row';
-      traceCell(row, 'td', 'ingredient-qty', traceQuantity(group));
+      const qty = traceCell(row, 'td', 'ingredient-qty', group.quantity === null ? '—' : traceQuantity(group).replace(' ', '\u00a0'));
       const lots = traceCell(row, 'td', 'ingredient-lots', '');
+      if (group.warning) {
+        // Shown in both views: hover gives the title, tap/Enter opens the note row.
+        const noteRow = body.insertRow();
+        noteRow.className = 'qty-warning-row';
+        noteRow.id = `ingredient-warning-${++ingredientWarningId}`;
+        noteRow.hidden = true;
+        const note = traceCell(noteRow, 'td', 'qty-warning-note', group.warning);
+        note.colSpan = 3;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'qty-warning';
+        button.textContent = '⚠︎';
+        button.title = group.warning;
+        button.setAttribute('aria-label', `Lots differ from the recorded total: ${group.warning}`);
+        button.setAttribute('aria-expanded', 'false');
+        button.setAttribute('aria-controls', noteRow.id);
+        button.addEventListener('click', () => {
+          noteRow.hidden = !noteRow.hidden;
+          button.setAttribute('aria-expanded', String(!noteRow.hidden));
+        });
+        qty.appendChild(button);
+      }
+      if (!group.lots.length) traceText(lots, 'span', 'No lot lines recorded').className = 'ingredient-lot';
       for (const lot of group.lots) {
         const parts = [lot.lot_code];
         // No-break spaces keep "Supplier 260901" and "80 lb" whole; lines wrap at the dots.
@@ -1126,7 +1180,7 @@
       for (const transaction of data.transactions) {
         traceText(panel, 'h6', `Made #${transaction.transaction_id}`);
         if (!transaction.consumed.length) traceText(panel, 'p', 'No consumed lots recorded.');
-        else renderIngredientTable(panel, transaction.consumed);
+        else renderIngredientTable(panel, transaction.consumed, transaction.recorded_inputs);
       }
       return;
     }
