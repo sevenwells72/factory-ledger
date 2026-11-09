@@ -66,7 +66,7 @@
     const who = doc.createElement('span'); who.className = 'fl-person-name'; who.setAttribute('role', 'status');
     const change = doc.createElement('button'); change.type = 'button'; change.className = 'fl-person-change';
     chip.append(who, change);
-    (doc.querySelector('.app-header .header-right, .runs-header, .header-right, header .toolbar, header') || doc.body).append(chip);
+    (doc.querySelector('[data-fl-person-host]') || doc.querySelector('.app-header .header-right, .runs-header, .header-right, header .toolbar, header') || doc.body).append(chip);
     const overlay = doc.createElement('div'); overlay.className = 'fl-person-overlay';
     overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true'); overlay.setAttribute('aria-label', 'Choose your name');
     const panel = doc.createElement('div'); panel.className = 'fl-person-grid'; overlay.append(panel);

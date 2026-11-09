@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-11-09 12:53 — Dashboard shell: compact section headers
+- **File(s) changed:** `app-shell.css`, `index.html`
+- **What changed:** Dashboard-only (body.fl-app) section headers shrink from ~75px to ~40px: 6px/12px padding, 22px icon circle (was 32px), 14px titles, Today So Far plant date on the title line, tighter panel and section spacing. Production Calendar controls keep 44px targets. app-shell.css bumped to v=2.
+- **Why:** Owner feedback: section header areas should be much smaller; branch feat/shell-sidebar-nav, not deployed
+
+---
+
+## 2026-11-09 12:44 — Dashboard app shell: sidebar, thin top bar and phone tab bar
+- **File(s) changed:** `index.html`, `app-shell.css`, `shell.js`, `receipt-shell.js`, `person-select.js`, `ARCHITECTURE-MAP.md`
+- **What changed:** Replaced the dashboard's four-row header (site nav, search, receipt lookup + tool links, user chip) with a collapsible left sidebar (220px / 64px rail, remembered in localStorage fl-sidebar, overlay drawer below 900px), a 56px top bar (global search, Record entry / Registrar, reference calendar, health chip, user menu with Change user) and, below 600px, a phone top bar plus a fixed bottom tab bar (Dashboard, Exceptions, Record, Shift, More). Receipt numbers typed into global search (RCV/ADJ/MK/PK/SHP/FND/VD/XR/LOT/ORD/ER/CUS-n-n) open that receipt via FLReceipts.open, replacing the separate Receipt # field on the dashboard. Sub-tabs are a slim scrollable row of page content. Phone dashboard: single-column cards, Needs Attention two per row, Production Calendar as a vertical list. Other pages unchanged. No data logic, routes or API calls changed.
+- **Why:** Owner request: hybrid sidebar + top bar layout to cut the stacked header, plus phone refinements; branch feat/shell-sidebar-nav, not deployed
+
+---
+
 ## 2026-11-05 14:04 — Record PR 184 production deploy and migration 092 (changelog row 265)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added row 265: backup OK, migration 092 applied to production, #184 merged as main 1742895, Railway 2e932c1a SUCCESS, Netlify assets match, counts and inventory hash unchanged, live read-only check.

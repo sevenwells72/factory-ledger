@@ -1,0 +1,360 @@
+/* Dashboard app shell (index.html only, `html[data-fl-shell]`): a collapsible
+   left sidebar (220px ↔ 64px rail, remembered), a ≤56px top bar, the
+   dashboard sub-tabs as a slim row of page content, an overlay drawer below
+   900px and a phone tab bar below 600px. Layout only — colours come from the
+   wallpaper.css tokens, and every control keeps its existing id and handler.
+   Load after wallpaper.css and shell-layout.css: several rules here restate
+   their header rules for the new containers. */
+
+:root[data-fl-shell] {
+  --fl-side-w: 220px;
+  --fl-topbar-h: 56px;
+  /* Opaque base under the translucent header gradient, so scrolled content
+     never shows through the sticky bar, the drawer or the phone tab bar. */
+  --fl-shell-solid: #0b2a1e;
+  /* so-list.css and dashboard.css offset sticky rows by these two. The old
+     .site-nav / .app-header are gone, so dashboard.js no longer measures them. */
+  --site-nav-h: 0px;
+  --header-h: var(--fl-topbar-h);
+}
+:root[data-fl-shell][data-fl-sidebar="collapsed"] { --fl-side-w: 64px; }
+
+body.fl-app { padding-top: 0; padding-left: var(--fl-side-w); padding-bottom: 0; }
+/* The icon sprite is an inline <svg>; out of flow it adds no line box above the top bar. */
+.fl-app .fl-icon-sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.fl-app .fl-svg { width: 20px; height: 20px; flex: none; display: block; }
+
+/* ── Sidebar ───────────────────────────────────────────────────────────── */
+.fl-sidebar {
+  position: fixed; top: 0; bottom: 0; left: 0; z-index: 210;
+  width: var(--fl-side-w);
+  display: flex; flex-direction: column;
+  background: linear-gradient(180deg, var(--fl-header-top), var(--fl-header-bottom)), var(--fl-shell-solid);
+  color: var(--fl-white);
+  border-right: 1px solid var(--fl-header-line);
+  /* No transform / filter / backdrop-filter here: any of them would make the
+     sidebar the containing block of the phone calendar's fixed sheet. */
+}
+.fl-sidebar-head {
+  display: flex; align-items: center; gap: 8px;
+  min-height: var(--fl-topbar-h); padding: 6px 10px;
+  border-bottom: 1px solid var(--fl-header-line);
+}
+.fl-brand {
+  flex: 1; min-width: 0; min-height: 44px;
+  display: flex; align-items: center; gap: 10px;
+  color: var(--fl-white); text-decoration: none; font-weight: 700; line-height: 1.2;
+}
+.fl-app .fl-brand-mark { flex: none; color: var(--fl-white); }
+.fl-sidebar-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 8px; }
+.fl-nav { display: flex; flex-direction: column; gap: 2px; }
+.fl-nav-link {
+  display: flex; align-items: center; gap: 12px;
+  min-height: 44px; padding: 8px 10px;
+  border-radius: 8px; border-left: 3px solid transparent;
+  color: var(--fl-white); text-decoration: none;
+  font-size: var(--fl-caption, 14px); font-weight: 550; line-height: 1.25;
+}
+.fl-nav-link:hover { background: var(--fl-header-hover); color: var(--fl-white); text-decoration: none; }
+.fl-nav-link.active, .fl-nav-link[aria-current="page"] {
+  background: var(--primary); border-left-color: var(--fl-header-focus); font-weight: 700;
+}
+.fl-sidebar :focus-visible, .fl-topbar :focus-visible, .fl-tabbar :focus-visible {
+  outline: 3px solid var(--fl-header-focus); outline-offset: 2px;
+}
+.fl-label { min-width: 0; overflow-wrap: anywhere; }
+.fl-sidebar-divider { border: 0; border-top: 1px solid var(--fl-header-line); margin: 10px 4px; }
+.fl-sidebar-tools:empty { display: none; }
+.fl-sidebar-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 2px 0; }
+.fl-sidebar-foot { display: grid; gap: 6px; padding: 10px 10px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--fl-header-line); }
+.fl-sidebar-foot-row { display: flex; gap: 8px; }
+.fl-sidebar :is(.btn-theme, .fl-sidebar-collapse, .fl-drawer-close) {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 44px; min-height: 44px; padding: 0;
+  color: var(--fl-white); background: var(--fl-header-control);
+  border: 1px solid var(--fl-header-line); border-radius: 8px; cursor: pointer;
+}
+.fl-sidebar :is(.btn-theme, .fl-sidebar-collapse, .fl-drawer-close):hover { background: var(--fl-header-hover); color: var(--fl-white); }
+.fl-sidebar .btn-refresh { flex: 1; border: 1px solid var(--fl-header-line); color: var(--fl-white); }
+.fl-sidebar .refresh-ts { color: var(--fl-white); line-height: 1.3; }
+.fl-drawer-close { display: none !important; }
+/* dashboard.css (≤520px) places these in the old header's named grid areas;
+   in the shell they flow normally. */
+.fl-app :is(.btn-theme, .btn-refresh, .refresh-ts, .health-badge, .reference-calendar) { grid-area: auto; justify-self: auto; }
+.fl-sidebar-collapse .fl-svg { transition: transform .15s ease; }
+
+/* 64px icon rail (desktop only; the drawer is always full width). Labels stay
+   in the accessibility tree, and every link carries a title tooltip. */
+@media (min-width: 900px) {
+  :root[data-fl-sidebar="collapsed"] .fl-sidebar :is(.fl-label, .refresh-ts, .rc-label) {
+    position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+  :root[data-fl-sidebar="collapsed"] .fl-sidebar-head { flex-direction: column; padding: 6px; gap: 6px; }
+  :root[data-fl-sidebar="collapsed"] .fl-brand { flex: none; justify-content: center; }
+  :root[data-fl-sidebar="collapsed"] .fl-sidebar-collapse .fl-svg { transform: rotate(180deg); }
+  :root[data-fl-sidebar="collapsed"] .fl-sidebar-scroll { padding: 10px 6px; }
+  :root[data-fl-sidebar="collapsed"] .fl-nav-link { justify-content: center; gap: 0; padding: 8px 0; }
+  :root[data-fl-sidebar="collapsed"] .fl-sidebar-foot { padding: 8px 6px; justify-items: center; }
+  :root[data-fl-sidebar="collapsed"] .fl-sidebar-foot-row { flex-direction: column; }
+  /* dashboard.js rewrites the button text ("Refresh" / "Refreshing..."), so
+     the rail hides the text and draws an icon; the text stays its name. */
+  :root[data-fl-sidebar="collapsed"] .fl-sidebar .btn-refresh {
+    flex: none; width: 44px; min-width: 44px; padding: 0; font-size: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  :root[data-fl-sidebar="collapsed"] .fl-sidebar .btn-refresh::before {
+    content: ""; width: 20px; height: 20px; background: currentColor;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12a9 9 0 1 1-2.6-6.4L21 8'/%3E%3Cpath d='M21 3v5h-5'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12a9 9 0 1 1-2.6-6.4L21 8'/%3E%3Cpath d='M21 3v5h-5'/%3E%3C/svg%3E") center / contain no-repeat;
+  }
+}
+
+/* ── Top bar ───────────────────────────────────────────────────────────── */
+.fl-topbar {
+  position: sticky; top: 0; z-index: 200;
+  height: var(--fl-topbar-h); box-sizing: border-box;
+  display: flex; align-items: center; gap: 10px;
+  padding: 6px 16px;
+  background: linear-gradient(115deg, var(--fl-header-top), var(--fl-header-bottom)), var(--fl-shell-solid);
+  color: var(--fl-white);
+  border-bottom: 1px solid var(--fl-header-line);
+}
+.fl-icon-btn {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 44px; height: 44px; padding: 0;
+  color: var(--fl-white); background: var(--fl-header-control);
+  border: 1px solid var(--fl-header-line); border-radius: 8px; cursor: pointer;
+}
+.fl-icon-btn:hover { background: var(--fl-header-hover); }
+.fl-menu-btn, .fl-topbar-brand, .fl-search-open, .fl-search-close { display: none; }
+.fl-topbar-brand { align-items: center; color: var(--fl-white); text-decoration: none; }
+
+.fl-search { flex: 1 1 auto; min-width: 0; max-width: 640px; display: flex; align-items: center; gap: 6px; }
+.fl-search-glyph { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; z-index: 1; }
+.fl-topbar #global-search { min-height: 44px; padding-left: 40px; color: var(--text); background: var(--surface); }
+/* design-controls.js wraps the field in a labelled row; in a 56px bar the
+   label stays the accessible name but is not drawn. */
+.fl-topbar .labelled-search { flex: 1; min-width: 0; }
+.fl-topbar .labelled-search > label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.fl-topbar .clearable-field .field-clear { min-height: 44px; }
+.fl-topbar .search-wrapper .search-dropdown { color: var(--text); background: var(--surface); }
+
+.fl-record-btn {
+  margin-left: auto; flex: none;
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 44px; padding: 0 16px;
+  border-radius: 22px; border: 1px solid transparent;
+  background: var(--fl-header-focus); color: #19372b;
+  font-weight: 700; font-size: var(--fl-caption, 14px); text-decoration: none; white-space: nowrap;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 25%);
+}
+.fl-record-btn:hover { filter: brightness(1.06); text-decoration: none; color: #19372b; }
+.fl-record-short { display: none; }
+.fl-topbar-tools { display: flex; align-items: center; gap: 8px; flex: none; }
+.fl-app .health-badge { gap: 4px; min-height: 32px; cursor: pointer; border: 1px solid var(--fl-header-line); white-space: nowrap; }
+.fl-topbar .health-badge:not([class*="health-"]), .fl-sidebar .health-badge:not([class*="health-"]) { color: var(--fl-white); background: var(--fl-header-control); }
+
+/* Reference calendar: an icon button in the top bar, labelled in the drawer. */
+.fl-app .reference-calendar > summary {
+  gap: 8px; color: var(--fl-white); background: var(--fl-header-control);
+  border: 1px solid var(--fl-header-line); border-radius: 8px; list-style: none;
+}
+.fl-app .reference-calendar > summary::-webkit-details-marker { display: none; }
+.fl-topbar .reference-calendar > summary { width: 44px; justify-content: center; padding: 0; }
+.fl-topbar .rc-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.fl-app .reference-calendar-panel { color: var(--text); background: var(--surface); }
+/* wallpaper.css styles these popovers inside .app-header; same rules here. */
+:root body.fl-app :is(.reference-calendar-panel, .search-dropdown) :is(button, a, label) { color: var(--text); background: var(--surface); border-color: var(--border); }
+:root body.fl-app :is(.reference-calendar-panel, .search-dropdown) :is(button, a):hover { color: var(--text); background: var(--surface-hover); }
+:root body.fl-app :is(.reference-calendar-panel, .search-dropdown) :is(button[aria-pressed="true"], button[aria-selected="true"], button.is-today) {
+  color: var(--text); background: var(--surface-hover); border-color: var(--primary-text); outline: 2px solid var(--primary-text); outline-offset: -2px;
+}
+:root body.fl-app :is(.reference-calendar-panel, .search-dropdown) :focus-visible { outline-color: var(--primary-text); }
+
+/* User: avatar + name button; the dropdown holds person-select's Change user. */
+.fl-user { position: relative; flex: none; }
+.fl-user .fl-person-chip { display: block; padding: 0; background: none; border-radius: 0; }
+.fl-user .fl-person-chip[hidden] { display: none; }
+.fl-user-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  min-height: 44px; padding: 0 10px 0 5px;
+  color: var(--fl-white); background: var(--fl-header-control);
+  border: 1px solid var(--fl-header-line); border-radius: 22px;
+  font-family: inherit; font-size: var(--fl-caption, 14px); font-weight: 600; line-height: 1.2; cursor: pointer;
+}
+.fl-user-btn:hover { background: var(--fl-header-hover); }
+.fl-avatar {
+  display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
+  background: var(--fl-header-focus); color: #19372b; font-weight: 800;
+}
+.fl-user-caret { width: 16px !important; height: 16px !important; }
+.fl-user-menu {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 260;
+  min-width: 200px; padding: 8px; display: grid; gap: 6px;
+  color: var(--text); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 24px rgb(0 0 0 / 25%);
+}
+.fl-user-menu-who { margin: 0; padding: 4px 6px; font-weight: 700; }
+.fl-user-menu .fl-person-change {
+  width: 100%; text-align: left; color: var(--text); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px;
+}
+.fl-user-menu .fl-person-change:hover { background: var(--surface-hover); }
+.fl-user-menu .fl-person-change:focus-visible { outline: 3px solid var(--primary-text); outline-offset: 2px; }
+
+/* ── Dashboard sub-tabs: a slim row at the top of the page content ───── */
+.fl-app .tab-bar {
+  display: flex; flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-x: contain;
+  scrollbar-width: thin; position: sticky; top: var(--fl-topbar-h); z-index: 150;
+  padding: 0 12px; border-bottom-width: 1px;
+}
+.fl-app .tab-bar :is(.tab, .tab-link) { flex: 0 0 auto; min-height: 44px; padding: 8px 14px; margin-bottom: -1px; white-space: nowrap; }
+.fl-app .tab-link {
+  display: inline-flex; align-items: center; color: var(--primary-text); font-weight: 600;
+  text-decoration: none; border-bottom: 2px solid transparent; border-right: 1px solid var(--border);
+}
+.fl-app .tab-link:hover { color: var(--text); text-decoration: underline; }
+
+/* ── Compact section headers (dashboard only) ─────────────────────────── */
+.fl-app .tab-content.active { margin-top: 12px; padding: 12px; }
+.fl-app .section { margin-bottom: 14px; }
+.fl-app .section-header { padding: 6px 12px; min-height: 40px; gap: 8px; flex-wrap: wrap; }
+.fl-app .section > h2 { padding: 6px 12px; }
+.fl-app :is(.section > h2, .section-header h2) {
+  gap: 8px; font-size: var(--fl-caption, 14px); font-weight: 650; line-height: 1.3;
+  background-image: radial-gradient(circle at 11px 50%, var(--fl-icon-bg) 11px, transparent 11.5px);
+}
+.fl-app :is(.section > h2, .section-header h2)::before {
+  flex: 0 0 22px; width: 22px; height: 22px;
+  -webkit-mask-size: 14px; mask-size: 14px;
+}
+.fl-app .section-header .section-hint { font-size: 13px; }
+/* Today So Far: plant date on the title line. */
+.fl-app .today-tile-section .section-header > div { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 10px; }
+.fl-app .today-tile-date { margin: 0; font-size: 13px; }
+
+/* ── Phone tab bar (shown <600px) ──────────────────────────────────────── */
+.fl-tabbar { display: none; }
+.fl-tabbar-item {
+  position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+  min-width: 0; min-height: 56px; padding: 4px 2px;
+  color: var(--fl-white); background: none; border: 0; border-radius: 8px;
+  font: inherit; text-decoration: none; text-align: center; cursor: pointer;
+}
+.fl-tabbar-item:hover { color: var(--fl-white); background: var(--fl-header-hover); text-decoration: none; }
+.fl-tabbar-item[aria-current="page"] { color: var(--fl-header-focus); }
+.fl-tabbar-item[aria-current="page"]::before { content: ""; position: absolute; top: 0; left: 25%; right: 25%; height: 3px; border-radius: 0 0 3px 3px; background: var(--fl-header-focus); }
+.fl-tabbar-en { font-size: 12px; font-weight: 650; line-height: 1.15; }
+.fl-tabbar-es { font-size: 11px; line-height: 1.15; opacity: .88; }
+.fl-tabbar :is(.fl-tabbar-en, .fl-tabbar-es) { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fl-tabbar-icon { position: relative; display: block; }
+.fl-tabbar-badge {
+  position: absolute; top: -6px; left: 12px; min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 9px; background: var(--fl-danger-line); color: var(--fl-white);
+  font: 700 11px/18px system-ui, sans-serif; text-align: center; box-shadow: 0 0 0 2px var(--fl-header-top);
+}
+.fl-tabbar-fab {
+  display: grid; place-items: center; width: 46px; height: 46px; margin-top: -18px;
+  border-radius: 50%; background: var(--fl-header-focus); color: #19372b;
+  box-shadow: 0 3px 10px rgb(0 0 0 / 35%), 0 0 0 3px var(--fl-header-top);
+}
+.fl-tabbar-fab .fl-svg { width: 24px; height: 24px; }
+.fl-tabbar-primary .fl-tabbar-en { font-weight: 800; }
+
+/* ── Medium widths ─────────────────────────────────────────────────────── */
+@media (max-width: 1199px) {
+  .fl-record-long { display: none; }
+  .fl-record-short { display: inline; }
+  .fl-user-name { display: none; }
+}
+
+/* ── Below 900px: overlay drawer opened from the top bar ───────────────── */
+@media (max-width: 899px) {
+  body.fl-app { padding-left: 0; }
+  .fl-sidebar {
+    width: min(300px, 86vw); left: calc(-1 * min(300px, 86vw) - 2px);
+    visibility: hidden; z-index: 320; box-shadow: 8px 0 32px rgb(0 0 0 / 35%);
+    transition: left .2s ease, visibility 0s linear .2s;
+  }
+  :root[data-fl-drawer="open"] .fl-sidebar { left: 0; visibility: visible; transition: left .2s ease; }
+  .fl-sidebar .fl-sidebar-collapse { display: none; }
+  .fl-drawer-close { display: inline-flex !important; }
+  .fl-scrim { position: fixed; inset: 0; z-index: 310; background: rgb(0 0 0 / 45%); }
+  .fl-menu-btn { display: inline-flex; }
+  :root[data-fl-drawer="open"] body.fl-app { overflow: hidden; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fl-sidebar, :root[data-fl-drawer="open"] .fl-sidebar, .fl-sidebar-collapse .fl-svg { transition: none; }
+}
+
+/* ── 600–768px: no old bottom nav (shell-layout.css reserves 76px for it). ── */
+@media (min-width: 600px) and (max-width: 768px) {
+  body.fl-app { padding-bottom: 0; }
+}
+/* Below 900px the calendar opens as a fixed sheet under the top bar instead
+   of hanging off its button (shell-layout.css sized it for the old header). */
+@media (max-width: 899px) {
+  .fl-app .reference-calendar-panel {
+    position: fixed; top: calc(var(--fl-topbar-h) + 8px); left: 8px; right: 8px;
+    width: auto; max-width: none; max-height: calc(100dvh - var(--fl-topbar-h) - 96px); z-index: 330;
+  }
+}
+
+/* ── Phones (<600px) ───────────────────────────────────────────────────── */
+@media (max-width: 599px) {
+  .fl-topbar { padding: 6px 8px; gap: 6px; }
+  .fl-topbar-brand { display: inline-flex; margin-right: auto; }
+  .fl-search, .fl-record-btn, .fl-topbar-tools, .fl-user-name, .fl-user-caret { display: none; }
+  .fl-search-open { display: inline-flex; }
+  .fl-user-btn { padding: 0 5px; min-width: 44px; justify-content: center; }
+  .fl-topbar.is-searching .fl-search {
+    display: flex; position: absolute; inset: 0; z-index: 5; max-width: none;
+    padding: 6px 8px; background: linear-gradient(115deg, var(--fl-header-top), var(--fl-header-bottom)), var(--fl-shell-solid);
+  }
+  .fl-topbar.is-searching .fl-search-glyph { left: 20px; }
+  .fl-topbar.is-searching .fl-search-close { display: inline-flex; }
+  .fl-topbar.is-searching .search-dropdown { left: 8px; right: 8px; max-height: calc(100dvh - 140px); }
+
+  /* The drawer holds the calendar and health chip here; its month opens as a
+     fixed sheet so its 44px day buttons are not squeezed by the drawer. */
+  .fl-sidebar .reference-calendar > summary { padding: 0 12px; }
+  .fl-sidebar .health-badge { min-height: 44px; }
+
+  .fl-tabbar {
+    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); align-items: center; gap: 2px;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 190;
+    height: calc(64px + env(safe-area-inset-bottom)); box-sizing: border-box;
+    padding: 0 4px env(safe-area-inset-bottom);
+    background: linear-gradient(115deg, var(--fl-header-top), var(--fl-header-bottom)), var(--fl-shell-solid);
+    border-top: 1px solid var(--fl-header-line);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  }
+  body:has(.panel-overlay:not(.hidden)) .fl-tabbar, body:has(dialog[open]) .fl-tabbar { display: none; }
+  body.fl-app { padding-bottom: calc(64px + env(safe-area-inset-bottom) + 16px); }
+
+  /* Dashboard: cards in one column, Needs Attention two per row, and the
+     production calendar as a vertical list of days. */
+  .fl-app :is(.today-tile, .order-kpi-row, .production-detail-grid) { grid-template-columns: minmax(0, 1fr); }
+  .fl-app .calendar-grid, .fl-app .calendar-grid.month-view { grid-template-columns: minmax(0, 1fr); }
+  .fl-app .calendar-grid .day-card { min-height: 0; }
+  .fl-app .attention-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding: 10px 12px 14px; }
+  .fl-app .attention-chip {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "icon count flag" "label label label";
+    row-gap: 4px; padding: 8px 10px 8px 8px; align-content: start;
+  }
+  .fl-app .attention-chip .att-icon { grid-area: icon; }
+  .fl-app .attention-chip .att-count { grid-area: count; }
+  .fl-app .attention-chip .att-flag { grid-area: flag; }
+  .fl-app .attention-chip .att-label { grid-area: label; overflow-wrap: anywhere; }
+  .fl-app .tab-bar { padding: 0 4px; }
+  /* Production Calendar: ← range → Month View wraps instead of running off. */
+  .fl-app #section-production .section-header { flex-wrap: wrap; gap: 8px; }
+  .fl-app #section-production .calendar-controls { flex-wrap: wrap; max-width: 100%; }
+  .fl-app #cal-range-label { min-width: 0; }
+}
+
+@media print {
+  .fl-sidebar, .fl-scrim, .fl-topbar, .fl-tabbar { display: none !important; }
+  body.fl-app { padding: 0; }
+}

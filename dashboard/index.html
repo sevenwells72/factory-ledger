@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html lang="en">
-<head><script src="dashboard-runtime.js?v=8"></script><script src="person-select.js?v=2"></script><link rel="stylesheet" href="person-select.css?v=2">
+<html lang="en" data-fl-shell>
+<head><script src="dashboard-runtime.js?v=8"></script><script src="person-select.js?v=3"></script><link rel="stylesheet" href="person-select.css?v=2">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Factory Dashboard</title>
@@ -12,9 +12,13 @@
   <link rel="stylesheet" href="so-list-actions.css?v=1">
   <link rel="stylesheet" href="so-detail.css?v=2">
   <script src="design-controls.js?v=3"></script>
-<link rel="stylesheet" href="ledger-forms.css?v=16"><script defer src="receipt-shell.js?v=8"></script><link rel="stylesheet" href="wallpaper.css?v=2">
+<link rel="stylesheet" href="ledger-forms.css?v=16"><script defer src="receipt-shell.js?v=9"></script><link rel="stylesheet" href="wallpaper.css?v=2">
+  <link rel="stylesheet" href="app-shell.css?v=2">
 </head>
-<body>
+<body class="fl-app">
+  <!-- Restore the collapsed sidebar before first paint. Storage can be blocked
+       (private mode, policy); the expanded default must still render. -->
+  <script>try{if(localStorage.getItem('fl-sidebar')==='collapsed')document.documentElement.dataset.flSidebar='collapsed';}catch(e){}</script>
 
   <!-- Attention-strip icons (IMP-030). Inline so the strip needs no network
        request to render its non-colour carriers; `currentColor` keeps every
@@ -47,45 +51,148 @@
     <symbol id="i-alert" viewBox="0 0 24 24" fill="currentColor">
       <path d="M12 3.2 1.6 21.2h20.8L12 3.2Zm0 5.6a1.1 1.1 0 0 1 1.1 1.2l-.3 4.6a.8.8 0 0 1-1.6 0l-.3-4.6A1.1 1.1 0 0 1 12 8.8Zm0 8.1a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3Z"/>
     </symbol>
+    <!-- App shell icons: sidebar, top bar and phone tab bar. -->
+    <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/>
+    </symbol>
+    <symbol id="i-flow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 6h5c4 0 4 12 8 12h5"/><path d="M3 18h5c2 0 3-3 4-6"/><path d="M14 8c1-1 2-2 3-2h4"/>
+    </symbol>
+    <symbol id="i-factory" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 21V10l6 4v-4l6 4V4h6v17z"/><path d="M7 17h2M12 17h2M17 17h1"/>
+    </symbol>
+    <symbol id="i-trace" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="5" cy="6" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7 6h10M6 8l5 8M18 8l-5 8"/>
+    </symbol>
+    <symbol id="i-runs" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/>
+    </symbol>
+    <symbol id="i-history" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/>
+    </symbol>
+    <symbol id="i-warning" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 3 2 21h20z"/><path d="M12 10v5M12 18h.01"/>
+    </symbol>
+    <symbol id="i-office" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M3 13h18"/>
+    </symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/>
+    </symbol>
+    <symbol id="i-clipboard" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="M9 10h6M9 14h6M9 18h3"/>
+    </symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+      <path d="M12 5v14M5 12h14"/>
+    </symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="M4 6h16M4 12h16M4 18h16"/>
+    </symbol>
+    <symbol id="i-more" viewBox="0 0 24 24" fill="currentColor">
+      <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
+    </symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>
+    </symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+      <path d="M6 6l12 12M18 6 6 18"/>
+    </symbol>
+    <symbol id="i-calendar" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>
+    </symbol>
+    <symbol id="i-collapse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M11 17l-5-5 5-5M18 17l-5-5 5-5"/>
+    </symbol>
+    <symbol id="i-chevron-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 9l6 6 6-6"/>
+    </symbol>
   </svg>
 
-  <!-- Top Nav -->
-  <nav class="site-nav" id="siteNav">
-    <div class="site-nav-left">
-      <span class="site-nav-brand">CNS Factory Ledger</span>
+  <!-- App shell (sidebar + thin top bar). Every control from the former
+       four-row header lives here; ids and classes that dashboard.js binds to
+       (#global-search, #search-results, #health-badge, #theme-toggle,
+       #refresh-btn, #last-refreshed, [data-mini-calendar]) are unchanged.
+       ≥900px: fixed sidebar, 220px or a 64px icon rail (remembered).
+       <900px: the same sidebar is an overlay drawer opened from the top bar. -->
+  <aside class="fl-sidebar" id="fl-sidebar" aria-label="Main navigation">
+    <div class="fl-sidebar-head">
+      <a class="fl-brand" href="/" title="CNS Factory Ledger">
+        <span class="fl-brand-mark" aria-hidden="true">FL</span>
+        <span class="fl-label">CNS Factory Ledger</span>
+      </a>
+      <button type="button" class="fl-sidebar-collapse" id="fl-sidebar-collapse" aria-controls="fl-sidebar" aria-expanded="true">
+        <svg class="fl-svg" aria-hidden="true" focusable="false"><use href="#i-collapse"></use></svg>
+        <span class="shell-sr">Collapse sidebar</span>
+      </button>
+      <button type="button" class="fl-drawer-close" id="fl-drawer-close">
+        <svg class="fl-svg" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg>
+        <span class="shell-sr">Close menu / Cerrar menú</span>
+      </button>
     </div>
-    <button class="site-nav-toggle" id="navToggle" aria-label="Menu">&#9776;</button>
-    <div class="site-nav-links" id="navLinks">
-      <a href="/" class="site-nav-link active">Dashboard</a>
-      <a href="/sankey.html?v=3" class="site-nav-link">Material Flow</a>
-      <a href="/process-flow.html?v=4" class="site-nav-link">Production Lines</a>
-      <a href="/traceability.html?v=4" class="site-nav-link">Traceability</a>
-      <a href="/runs.html" class="site-nav-link">Runs</a>
+    <div class="fl-sidebar-scroll">
+      <nav class="fl-nav" aria-label="Pages">
+        <a href="/" class="fl-nav-link active" aria-current="page" title="Dashboard"><svg class="fl-svg" aria-hidden="true" focusable="false"><use href="#i-home"></use></svg><span class="fl-label">Dashboard</span></a>
+        <a href="/sankey.html?v=3" class="fl-nav-link" title="Material Flow"><svg class="fl-svg" aria-hidden="true" focusable="false"><use href="#i-flow"></use></svg><span class="fl-label">Material Flow</span></a>
+        <a href="/process-flow.html?v=4" class="fl-nav-link" title="Production Lines"><svg class="fl-svg" aria-hidden="true" focusable="false"><use href="#i-factory"></use></svg><span class="fl-label">Production Lines</span></a>
+        <a href="/traceability.html?v=4" class="fl-nav-link" title="Traceability"><svg class="fl-svg" aria-hidden="true" focusable="false"><use href="#i-trace"></use></svg><span class="fl-label">Traceability</span></a>
+        <a href="/runs.html" class="fl-nav-link" title="Runs"><svg class="fl-svg" aria-hidden="true" focusable="false"><use href="#i-runs"></use></svg><span class="fl-label">Runs</span></a>
+        <a href="/history.html?v=1" class="fl-nav-link" title="Ledger History"><svg class="fl-svg" aria-hidden="true" focusable="false"><use href="#i-history"></use></svg><span class="fl-label">Ledger History</span></a>
+      </nav>
+      <hr class="fl-sidebar-divider">
+      <nav class="fl-nav" aria-label="Ledger tools / Herramientas">
+        <a data-fl-write-ui href="exceptions.html" class="fl-nav-link" title="Exceptions / Excepciones"><svg class="fl-svg" aria-hidden="true" focusable="false"><use href="#i-warning"></use></svg><span class="fl-label">Exceptions / Excepciones</span></a>
+        <a data-fl-write-ui href="office.html" class="fl-nav-link" title="Office / Oficina"><svg class="fl-svg" aria-hidden="true" focusable="false"><use href="#i-office"></use></svg><span class="fl-label">Office / Oficina</span></a>
+        <a data-fl-write-ui href="fl-assistant.html" class="fl-nav-link" title="FL Assistant / Asistente FL"><svg class="fl-svg" aria-hidden="true" focusable="false"><use href="#i-chat"></use></svg><span class="fl-label">FL Assistant / Asistente FL</span></a>
+        <!-- Read-only views of the day work without personal sign-in, so this link always shows. -->
+        <a href="shift-summary.html" class="fl-nav-link" title="Shift summary / Resumen del turno"><svg class="fl-svg" aria-hidden="true" focusable="false"><use href="#i-clipboard"></use></svg><span class="fl-label">Shift summary / Resumen del turno</span></a>
+      </nav>
+      <!-- Phone widths (<600px) move the health chip and reference calendar
+           here from the top bar (shell.js); the nodes keep their listeners. -->
+      <div class="fl-sidebar-tools" data-fl-phone-slot></div>
     </div>
-  </nav>
-
-  <!-- Header -->
-  <header class="app-header">
-    <div class="header-left">
-      <h1>Factory Dashboard</h1>
-    </div>
-    <div class="header-center">
-      <div class="search-wrapper">
-        <input type="text" id="global-search" placeholder="Search SKU, lot, SO, customer..." autocomplete="off">
-        <div id="search-results" class="search-dropdown hidden"></div>
+    <div class="fl-sidebar-foot">
+      <div class="fl-sidebar-foot-row">
+        <button id="theme-toggle" class="btn-theme" title="Toggle light/dark mode">&#9790;</button>
+        <button id="refresh-btn" class="btn-refresh" title="Refresh all data">Refresh</button>
       </div>
-    </div>
-    <div class="header-right">
-      <div data-mini-calendar aria-label="Calendar"></div>
-      <button type="button" id="health-badge" class="health-badge" aria-haspopup="dialog" aria-controls="health-dialog"><span class="health-label">Health:</span> <span class="health-score">loading</span></button>
-      <button id="theme-toggle" class="btn-theme" title="Toggle light/dark mode">&#9790;</button>
-      <button id="refresh-btn" class="btn-refresh" title="Refresh all data">Refresh</button>
       <span id="last-refreshed" class="refresh-ts"></span>
     </div>
+  </aside>
+  <div class="fl-scrim" id="fl-scrim" hidden></div>
+
+  <header class="fl-topbar" id="fl-topbar">
+    <h1 class="shell-sr">Factory Dashboard</h1>
+    <button type="button" class="fl-icon-btn fl-menu-btn" id="fl-menu-btn" aria-controls="fl-sidebar" aria-expanded="false">
+      <svg class="fl-svg" aria-hidden="true" focusable="false"><use href="#i-menu"></use></svg>
+      <span class="shell-sr">Menu / Menú</span>
+    </button>
+    <a class="fl-topbar-brand" href="/"><span class="fl-brand-mark" aria-hidden="true">FL</span><span class="shell-sr">CNS Factory Ledger</span></a>
+    <div class="search-wrapper fl-search" id="fl-search">
+      <svg class="fl-svg fl-search-glyph" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg>
+      <input type="text" id="global-search" placeholder="Search SKU, lot, SO, customer, receipt…" autocomplete="off">
+      <button type="button" class="fl-icon-btn fl-search-close" id="fl-search-close">
+        <svg class="fl-svg" aria-hidden="true" focusable="false"><use href="#i-x"></use></svg>
+        <span class="shell-sr">Close search / Cerrar búsqueda</span>
+      </button>
+      <div id="search-results" class="search-dropdown hidden"></div>
+    </div>
+    <button type="button" class="fl-icon-btn fl-search-open" id="fl-search-open" aria-controls="fl-search" aria-expanded="false">
+      <svg class="fl-svg" aria-hidden="true" focusable="false"><use href="#i-search"></use></svg>
+      <span class="shell-sr">Search / Buscar</span>
+    </button>
+    <a data-fl-write-ui class="fl-record-btn" href="entry.html">
+      <svg class="fl-svg" aria-hidden="true" focusable="false"><use href="#i-plus"></use></svg>
+      <span class="fl-record-long">Record entry / Registrar</span><span class="fl-record-short">Record / Registrar</span>
+    </a>
+    <div class="fl-topbar-tools" data-fl-wide-slot>
+      <div data-mini-calendar aria-label="Calendar"></div>
+      <button type="button" id="health-badge" class="health-badge" aria-haspopup="dialog" aria-controls="health-dialog"><span class="health-label">Health:</span> <span class="health-score">loading</span></button>
+    </div>
+    <div class="fl-user" data-fl-person-host></div>
   </header>
 
   <!-- Tabs -->
-  <nav class="tab-bar">
+  <nav class="tab-bar" aria-label="Dashboard sections">
     <a data-fl-write-ui class="tab-link" href="exceptions.html">Exceptions</a>
     <button class="tab active" data-tab="operations">Operations</button>
     <button class="tab" data-tab="recent">Recent Entries</button>
@@ -702,7 +809,17 @@
   <script src="so-list.js?v=3"></script>
   <script src="so-list-actions.js?v=4"></script>
   <script src="dashboard.js?v=82"></script>
-  <script>document.getElementById('navToggle').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));</script>
-  <script src="shell.js?v=3"></script>
+  <!-- Phone tab bar (<600px only). Short two-line bilingual labels; More
+       opens the sidebar drawer. The Exceptions badge stays hidden until a
+       page dispatches an `fl-exceptions-count` event with a known count. -->
+  <nav class="fl-tabbar" id="fl-tabbar" aria-label="Quick navigation / Navegación rápida">
+    <a href="/" class="fl-tabbar-item" data-fl-tab="dashboard" aria-current="page"><svg class="fl-svg" aria-hidden="true" focusable="false"><use href="#i-home"></use></svg><span class="fl-tabbar-en">Dashboard</span><span class="fl-tabbar-es" lang="es">Panel</span></a>
+    <a href="exceptions.html" data-fl-write-ui class="fl-tabbar-item"><span class="fl-tabbar-icon"><svg class="fl-svg" aria-hidden="true" focusable="false"><use href="#i-warning"></use></svg><span class="fl-tabbar-badge" data-fl-exceptions-count hidden></span></span><span class="fl-tabbar-en">Exceptions</span><span class="fl-tabbar-es" lang="es">Excepciones</span></a>
+    <a href="entry.html" data-fl-write-ui class="fl-tabbar-item fl-tabbar-primary"><span class="fl-tabbar-fab"><svg class="fl-svg" aria-hidden="true" focusable="false"><use href="#i-plus"></use></svg></span><span class="fl-tabbar-en">Record</span><span class="fl-tabbar-es" lang="es">Registrar</span></a>
+    <a href="shift-summary.html" class="fl-tabbar-item"><svg class="fl-svg" aria-hidden="true" focusable="false"><use href="#i-clipboard"></use></svg><span class="fl-tabbar-en">Shift</span><span class="fl-tabbar-es" lang="es">Turno</span></a>
+    <button type="button" class="fl-tabbar-item" id="fl-tabbar-more" aria-controls="fl-sidebar" aria-expanded="false"><svg class="fl-svg" aria-hidden="true" focusable="false"><use href="#i-more"></use></svg><span class="fl-tabbar-en">More</span><span class="fl-tabbar-es" lang="es">Más</span></button>
+  </nav>
+
+  <script src="shell.js?v=4"></script>
 </body>
 </html>
