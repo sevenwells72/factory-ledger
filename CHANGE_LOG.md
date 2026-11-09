@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-09 13:53 — Product archive feature + BS archive prep (branch feature/archive-items, not deployed)
+- **File(s) changed:** `product_archive.py`, `main.py`, `supplies.py`, `migrations/093_product_archive.sql`, `migrations/down/093_product_archive_down.sql`, `dashboard/archive.js`, `dashboard/dashboard.js`, `dashboard/dashboard.css`, `dashboard/index.html`, `dashboard/dashboard_config.json`, `scripts/archive_bs_items.py`, `tests/test_product_archive.py`, `tests/test_archive_ui.js`, `tests/test_archived_products_dashboard.js`, `tests/fixtures/route_contract/routes.jsonl`, `tests/fixtures/route_contract/openapi.jsonl`, `tests/visual/archive_fixture.py`, `tests/visual/run-archive-screenshots.mjs`, `docs/ARCHITECTURE-MAP.md`, `docs/screenshots/archive/`
+- **What changed:** Owner-only archive/unarchive (POST /admin/products/archive|unarchive) reusing products.active; migration 093 adds nullable archived_at/archived_by (no data change); on-hand lists hide archived items (include_archived=true shows them dimmed/tagged), all-archived sections drop, archived never 'missing' or low-stock; search keeps archived products flagged; block archiving an ingredient used by an active recipe; dashboard Archive/Restore row icons, bulk select, Show archived toggle, in-page bilingual confirm; Sunflower Seeds removed from BS Ingredients group (stays in Granola General); dry-run-first script to archive the 30 active BS items as Michael; tests + local end-to-end screenshots.
+- **Why:** Michael asked to add archiving and archive all Blue Stripes items; nothing merged, deployed or changed in production.
+
+---
+
 ## 2026-11-09 13:51 — Record PR 188 production deploy (changelog row 267)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added regression-guard row 267: Production Detail Made ingredient table + Summary / Full Traceability toggle live as main 9f03f73 after BACKUP OK (2026-11-09-pre-pr188); Netlify assets verified byte-identical; what breaks if reverted.

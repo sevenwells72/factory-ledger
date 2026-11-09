@@ -109,7 +109,10 @@ def register_routes(app, api):
             "on_hand": round(on_hand, 4),
             "low_stock_threshold": threshold,
             # is_low is false whenever no threshold is set (NULL = no alerting)
-            "is_low": bool(threshold is not None and on_hand < threshold),
+            # and for an archived product (products.active=false): archived
+            # items never raise low-stock alerts (product_archive.py).
+            "is_low": bool(threshold is not None and on_hand < threshold
+                           and row.get("active") is not False),
         }
 
 

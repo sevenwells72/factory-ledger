@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
 const dashboard = fs.readFileSync(path.join(__dirname, '../dashboard/dashboard.js'), 'utf8');
+const archive = require('../dashboard/archive.js');
 
 function fn(source, name) {
   const start = source.search(new RegExp('  (?:async )?function ' + name + '\\('));
@@ -21,6 +22,9 @@ function render(data) {
     fmt: v => String(v), fmtInt: v => String(v), fmtWt: v => String(v),
     inventoryUnitCount: () => null, caseBadgeClass: () => '', fmtPallets: () => '',
     bindCollapsibles: () => {}, bindExpandableRows: () => {}, bindLotLinks: () => {},
+    // Archive controls (dashboard/archive.js): real helpers, no person, no binding.
+    FLArchive: { ...archive, canArchive: () => false, showArchived: () => false, bind: () => {} },
+    refreshFinishedGoods: () => {}, showArchiveError: () => {},
   });
   vm.runInContext(fn(dashboard, 'renderFinishedGoodsPanels'), ctx);
   ctx.renderFinishedGoodsPanels(data, container);
