@@ -186,6 +186,43 @@ def test_placeholder_receipts_are_not_suppliers(client, db_cursor):
 
 
 @pytest.mark.db
+def test_made_lot_also_lists_its_receipts(client, db_cursor):
+    """A packed lot later topped up by receipts keeps its makes and lists every receipt."""
+    bulk = item(db_cursor, 'TT10 bulk', 'ingredient', 'TT10-BULK-001', 'received')
+    case = item(db_cursor, 'TT10 coconut 10 LB', 'finished', 'TT10-DAY', 'pack_output', '10 lb case')
+    plain = item(db_cursor, 'TT10 plain 10 LB', 'finished', 'TT10-PLAIN', 'pack_output', '10 lb case')
+    outer = item(db_cursor, 'TT10 mixed case', 'finished', 'TT10-OUTER', 'pack_output', '10 lb case')
+    receive(db_cursor, bulk, 5000, 'Franklin Baker')
+    pack, _ = post(db_cursor, 'pack', '2026-02-24 15:00', [(case, 1470), (bulk, -1470)])
+    post(db_cursor, 'pack', '2026-02-24 16:00', [(plain, 100), (bulk, -100)])
+    found = receive(db_cursor, case, 410, 'FOUND INVENTORY', stamp='2026-03-16 14:00')
+    unnamed = receive(db_cursor, case, 20, 'Unknown', stamp='2026-03-17 14:00')
+    named = receive(db_cursor, case, 30, 'Franklin Baker', stamp='2026-03-18 14:00', bol='BOL-TOPUP')
+    voided = receive(db_cursor, case, 99, 'Found', stamp='2026-03-19 14:00')
+    main._append_transaction_correction(db_cursor, voided, 'void', 'entered twice', {}, 'test')
+
+    tree = trace(client, case, 'TT10-DAY')['input_tree']
+    assert tree['kind'] == 'made'
+    assert [t['transaction_id'] for t in tree['transactions']] == [pack]      # the make stays the origin
+    assert tree['inputs_mismatch'] is False                                   # receipts never enter the check
+    assert tree['output_lb'] == 1470
+    extra = tree['also_received']
+    assert [(r['kind'], r['transaction_id'], r['quantity_lb']) for r in extra] == [
+        ('found_inventory', found, 410), ('unknown', unnamed, 20), ('received', named, 30)]
+    assert extra[0]['recorded_shipper'] == 'FOUND INVENTORY' and extra[0]['received_date'] == '2026-03-16'
+    assert 'supplier_name' not in extra[0] and 'supplier_name' not in extra[1]
+    assert extra[1]['reason'] == 'receipt_without_supplier'
+    assert (extra[2]['supplier_name'], extra[2]['bol_reference']) == ('Franklin Baker', 'BOL-TOPUP')
+
+    # A made lot with no receipts lists none, and a nested made lot carries its own.
+    assert trace(client, plain, 'TT10-PLAIN')['input_tree']['also_received'] == []
+    post(db_cursor, 'pack', '2026-03-20 15:00', [(outer, 50), (case, -50)])
+    [nested] = trace(client, outer, 'TT10-OUTER')['input_tree']['transactions'][0]['inputs']
+    assert nested['origin']['kind'] == 'made'
+    assert [r['transaction_id'] for r in nested['origin']['also_received']] == [found, unnamed, named]
+
+
+@pytest.mark.db
 def test_receipt_older_than_100_receipts_still_resolves(client, db_cursor):
     walnuts = item(db_cursor, 'TT5 walnuts', 'ingredient', 'TT5-WAL-001', 'received')
     filler = item(db_cursor, 'TT5 filler', 'ingredient', 'TT5-FIL-001', 'received')
@@ -263,6 +300,8 @@ def test_shipper_kind_normalization():
     assert main._trace_shipper_kind('found') == 'found'
     assert main._trace_shipper_kind(' Found  Inventory ') == 'found'
     assert main._trace_shipper_kind('Physical count') == 'found'
+    for placeholder in ('INITIAL INVENTORY', 'Inventory Correction', 'Inventory Intake', 'Blender Warehouse'):
+        assert main._trace_shipper_kind(placeholder) == 'found'
     assert main._trace_shipper_kind(None) == 'unnamed'
     assert main._trace_shipper_kind('Unknown') == 'unnamed'
     assert main._trace_shipper_kind('Founders Foods') == 'supplier'

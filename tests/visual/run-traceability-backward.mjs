@@ -93,6 +93,42 @@ try {
     await context.close();
   }
 
+  // Synthetic (test only): the packed lot and the Fruit Nut Batch were also topped up by
+  // receipts. The makes stay; each receipt is an extra origin, and found/unnamed ones are gaps.
+  {
+    const topped = structuredClone(fixture);
+    topped.input_tree.also_received = [
+      { kind: 'found_inventory', transaction_id: 9001, recorded_shipper: 'FOUND <b>INVENTORY</b>', quantity_lb: 410,
+        received_date: '2026-10-20', received_time: '10:00 AM ET' },
+      { kind: 'unknown', reason: 'receipt_without_supplier', transaction_id: 9002, recorded_shipper: 'Unknown',
+        quantity_lb: 20, received_date: '2026-10-21', received_time: '10:00 AM ET' }];
+    topped.input_tree.transactions[0].inputs[0].origin.also_received = [
+      { kind: 'received', transaction_id: 9003, supplier_name: 'Top-Up Supplier', bol_reference: 'BOL-TOPUP',
+        quantity_lb: 30, received_date: '2026-10-22', received_time: '10:00 AM ET' }];
+    for (const width of [1440, 390]) {
+      const { context, page, errors, scans } = await open(width, 'light', topped);
+      const texts = await svgTexts(page);
+      assert(texts.some(t => t.includes('Top-Up Supplier')), 'a named receipt into a made lot is a supplier node');
+      assert(texts.some(t => t.includes('410 lb received')) && texts.some(t => t.includes('20 lb received')));
+      assert(texts.some(t => t.includes('Granola Fruit Nut Batch')), 'the makes stay the origin');
+      const rows = await page.locator('#traceDetail tbody tr').evaluateAll(trs => trs.map(tr => tr.cells[0].textContent));
+      assert.equal(rows.filter(r => r === 'Data Gap').length, 5, 'three real gaps plus the found and unnamed receipts');
+      assert.equal(rows.filter(r => r === 'Supplier').length, 9);
+      assert.equal(rows.filter(r => r === 'Batch').length, 3);
+      const panel = (await page.locator('#traceDetail').innerText()).replace(/\u00a0/g, ' ');
+      assert(panel.includes('Found inventory added to this lot — no supplier receipt | 410 lb received into this lot | Recorded as "FOUND <b>INVENTORY</b>" on Txn #9001'));
+      assert(panel.includes('Receipt without a supplier name | 20 lb received into this lot | Txn #9002'));
+      assert(panel.includes('30 lb received into this lot'));
+      assert.equal(await page.locator('#traceDetail b, #graphSvg b').count(), 0, 'recorded shipper text is escaped');
+      assert.deepEqual(scans, []);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      assert.deepEqual(errors, []);
+      await page.locator('#graphContainer').screenshot({ path: path.join(out, `also-received-graph-${width}.png`) });
+      await page.locator('#detailPanel').screenshot({ path: path.join(out, `also-received-detail-${width}.png`) });
+      await context.close();
+    }
+  }
+
   // An API response without input_tree (deploy window) keeps the one-level trace.
   const { input_tree, ...legacy } = fixture;
   assert(input_tree);
@@ -104,5 +140,5 @@ try {
   await context.close();
 
   console.log('PASS: four viewport/theme combinations, nested makes to suppliers, placeholder receipts as gaps, '
-    + 'recorded-ingredients badge, panel and text report, no browser-side scans, no overflow or page errors, legacy fallback.');
+    + 'recorded-ingredients badge, panel and text report, receipts into made lots as extra origins, no browser-side scans, no overflow or page errors, legacy fallback.');
 } finally { await browser.close(); await server.close(); }

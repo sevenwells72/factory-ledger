@@ -10432,7 +10432,10 @@ TRACE_TREE_MAX_DEPTH = 6
 # Receipts whose shipper records where stock was found, not who supplied it.
 TRACE_FOUND_SHIPPERS = frozenset({
     'found', 'found inventory', 'inventory found', 'physical count',
-    'opening balance', 'opening stock'})
+    'opening balance', 'opening stock',
+    'initial inventory', 'inventory correction', 'inventory intake',
+    # Not an outside source (owner, 2026-11-09): stock moved in from the blender warehouse.
+    'blender warehouse'})
 # Receipts that name no supplier at all.
 TRACE_UNNAMED_SHIPPERS = frozenset({
     '', 'unknown', 'unknown supplier', 'n/a', 'na', 'none', '-'})
@@ -10460,22 +10463,8 @@ def _trace_stamp(prefix, value):
             prefix + "_date": day, prefix + "_time": clock}
 
 
-def _trace_lot_origin(cur, lot, depth, ancestors):
-    """Origin of one lot: made (recursing), received, found_inventory or unknown."""
-    lot_id = lot['lot_id']
-    cur.execute("""
-        SELECT t.id, t.type, t.timestamp
-        FROM ledger_current_transactions t
-        WHERE t.effective_status = 'posted' AND t.type IN ('make', 'pack')
-          AND EXISTS (
-              SELECT 1 FROM ledger_current_transaction_lines o
-              WHERE o.transaction_id = t.id AND o.lot_id = %s AND o.quantity_lb > 0)
-        ORDER BY t.timestamp, t.id
-    """, (lot_id,))
-    producing = cur.fetchall()
-    if producing:
-        return _trace_made_origin(cur, lot_id, producing, depth, ancestors)
-
+def _trace_lot_receipts(cur, lot_id):
+    """Posted receipts onto one lot, newest first, each with its shipper kind."""
     cur.execute("""
         SELECT t.id, t.timestamp, t.shipper_name, s.name AS supplier_name,
                t.bol_reference, tx.receipt_number, SUM(tl.quantity_lb) AS quantity
@@ -10489,12 +10478,14 @@ def _trace_lot_origin(cur, lot, depth, ancestors):
         ORDER BY t.timestamp DESC, t.id DESC
     """, (lot_id,))
     receipts = cur.fetchall()
-    by_kind = {}
     for row in receipts:
-        name = row['supplier_name'] or row['shipper_name']
-        by_kind.setdefault(_trace_shipper_kind(name), []).append(row)
-    if by_kind.get('supplier'):
-        row = by_kind['supplier'][0]          # latest named receipt, as _trace_ingredient_backward
+        row['shipper_kind'] = _trace_shipper_kind(row['supplier_name'] or row['shipper_name'])
+    return receipts
+
+
+def _trace_receipt_origin(row, lot):
+    """One receipt as an origin: a named supplier, found inventory, or no supplier named."""
+    if row['shipper_kind'] == 'supplier':
         return {
             "kind": "received",
             "transaction_id": row['id'],
@@ -10504,19 +10495,50 @@ def _trace_lot_origin(cur, lot, depth, ancestors):
             "receipt_number": row['receipt_number'],
             "quantity_lb": float(row['quantity']),
             "supplier_lot_code": lot.get('supplier_lot_code'),
-            "receipt_count": len(receipts),
         }
-    if by_kind.get('found'):
-        row = by_kind['found'][0]
+    if row['shipper_kind'] == 'found':
         # A placeholder receipt ("found") is kept for reference, never shown as a supplier.
         return {"kind": "found_inventory", "transaction_id": row['id'],
                 "recorded_shipper": row['shipper_name'],
                 **_trace_stamp("received", row['timestamp'])}
-    if by_kind.get('unnamed'):
-        row = by_kind['unnamed'][0]
-        return {"kind": "unknown", "reason": "receipt_without_supplier",
-                "transaction_id": row['id'], "recorded_shipper": row['shipper_name'],
-                **_trace_stamp("received", row['timestamp'])}
+    return {"kind": "unknown", "reason": "receipt_without_supplier",
+            "transaction_id": row['id'], "recorded_shipper": row['shipper_name'],
+            **_trace_stamp("received", row['timestamp'])}
+
+
+def _trace_lot_origin(cur, lot, depth, ancestors):
+    """Origin of one lot: made (recursing), received, found_inventory or unknown."""
+    lot_id = lot['lot_id']
+    cur.execute("""
+        SELECT t.id, t.type, t.timestamp
+        FROM ledger_current_transactions t
+        WHERE t.effective_status = 'posted' AND t.type IN ('make', 'pack')
+          AND EXISTS (
+              SELECT 1 FROM ledger_current_transaction_lines o
+              WHERE o.transaction_id = t.id AND o.lot_id = %s AND o.quantity_lb > 0)
+        ORDER BY t.timestamp, t.id
+    """, (lot_id,))
+    producing = cur.fetchall()
+    receipts = _trace_lot_receipts(cur, lot_id)
+    if producing:
+        origin = _trace_made_origin(cur, lot_id, producing, depth, ancestors)
+        # A made lot can also hold received stock (e.g. found inventory added to a
+        # packed lot). The makes stay the origin; every such receipt is listed so the
+        # trace never looks complete while part of the lot came in another way.
+        origin["also_received"] = [
+            {**_trace_receipt_origin(row, lot), "quantity_lb": float(row['quantity'])}
+            for row in reversed(receipts)]
+        return origin
+
+    by_kind = {}
+    for row in receipts:
+        by_kind.setdefault(row['shipper_kind'], []).append(row)
+    for kind in ('supplier', 'found', 'unnamed'):   # latest named receipt wins, as _trace_ingredient_backward
+        if by_kind.get(kind):
+            origin = _trace_receipt_origin(by_kind[kind][0], lot)
+            if kind == 'supplier':
+                origin["receipt_count"] = len(receipts)
+            return origin
     if lot.get('entry_source') in ('found_inventory', 'adjusted'):
         return {"kind": "found_inventory", "transaction_id": None}
     return {"kind": "unknown", "reason": "no_posted_origin", "transaction_id": None}

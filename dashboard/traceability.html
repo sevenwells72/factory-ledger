@@ -772,6 +772,38 @@ function addOriginNode(lotNodeId, input, origin, layer, stats) {
   }
 }
 
+// Receipts posted onto a lot that was also made here (e.g. found inventory added to
+// a packed lot). Each is an extra origin beside the lot's inputs; a placeholder or
+// unnamed receipt is a gap, so the trace never reads as complete to suppliers.
+function addAlsoReceived(lotNodeId, lotId, origin, layer, stats) {
+  for (const r of (origin && origin.also_received) || []) {
+    const txnRef = `Txn #${r.transaction_id}`;
+    const when = `${r.received_date || ''} ${r.received_time || ''}`.trim();
+    const qty = `${fmtQty(r.quantity_lb)} received into this lot`;
+    if (r.kind === 'received') {
+      const parts = [qty, when, txnRef];
+      if (r.receipt_number) parts.push(`Receipt ${r.receipt_number}`);
+      if (r.supplier_lot_code) parts.push(`Supplier lot ${r.supplier_lot_code}`);
+      const suppId = addNode({
+        id: 'supplier-txn-' + r.transaction_id, type: 'supplier',
+        label: r.supplier_name, sublabel: r.bol_reference ? `BOL: ${r.bol_reference}` : '',
+        detail: parts.filter(Boolean).join(' | '), quantity: r.quantity_lb,
+        layer, txnId: r.transaction_id
+      });
+      addLink(suppId, lotNodeId, r.quantity_lb, 'confirmed');
+      stats.confirmed++;
+    } else if (r.kind === 'found_inventory') {
+      addGapNode(`found-${lotId}-${r.transaction_id}`, 'Found inventory', `${fmtQty(r.quantity_lb)} received`,
+                 `Found inventory added to this lot — no supplier receipt | ${qty} | Recorded as "${r.recorded_shipper || ''}" on ${txnRef} | ${when}`,
+                 layer, lotNodeId, stats, r.transaction_id);
+    } else {
+      addGapNode(`unnamed-${lotId}-${r.transaction_id}`, 'Supplier not named', `${fmtQty(r.quantity_lb)} received`,
+                 `Receipt without a supplier name | ${qty} | ${txnRef} | ${when}`,
+                 layer, lotNodeId, stats, r.transaction_id);
+    }
+  }
+}
+
 // Consumed lots of every posted make/pack in `origin`, one column further left
 // per level. A lot consumed by several makes is one node with a summed link.
 function addTreeInputs(parentId, origin, layer, stats) {
@@ -810,8 +842,10 @@ function addTreeInputs(parentId, origin, layer, stats) {
     addLinkSum(nodeId, parentId, quantity, 'confirmed', input.unit);
     stats.confirmed++;
     if (seen) continue;   // reached by two paths: expand once
-    if (made) addTreeInputs(nodeId, lotOrigin, layer - 1, stats);
-    else addOriginNode(nodeId, input, lotOrigin, layer - 1, stats);
+    if (made) {
+      addTreeInputs(nodeId, lotOrigin, layer - 1, stats);
+      addAlsoReceived(nodeId, input.lot_id, lotOrigin, layer - 1, stats);
+    } else addOriginNode(nodeId, input, lotOrigin, layer - 1, stats);
   }
 }
 
@@ -857,6 +891,7 @@ async function traceBackwardTree(batchData) {
   applyMadeOrigin(start, batchData.input_tree, stats);
   const startId = addNode(start);
   addTreeInputs(startId, batchData.input_tree, -1, stats);
+  addAlsoReceived(startId, batchData.lot_id, batchData.input_tree, -1, stats);
   addCustomerNodes(startId, batchData.customer_shipments, batchData.lot_id, 1);
 
   currentTrace = {
