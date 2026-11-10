@@ -40,6 +40,12 @@ MARKER = '094_daily_reconciliation'
 TOLERANCE_FLOOR_LB = 5.0
 TOLERANCE_PCT = 0.02
 COCONUT_YIELD_PCT = 0.02
+# The coconut bulk batches whose small over-pack is expected yield: Batch Coconut
+# Sweetened Fancy / Flake / Medium and Toasted Sweetened Flake. An explicit list,
+# not a name match: products.product_category is empty for every product
+# (checked in the 2026-11-09 production export), and a rename must not change
+# the rule. A NEW coconut bulk batch product must be added here.
+COCONUT_YIELD_PRODUCT_IDS = frozenset({125, 126, 127, 128})
 EPS = 0.00005                                   # quantities are numeric(14,4)
 RESEND_URL = 'https://api.resend.com/emails'
 # Resend's shared test sender delivers only to the Resend account's own address.
@@ -475,7 +481,7 @@ def analyse(data):
             continue
         allowed = tolerance(made)
         totals = f'{lb(made)} made, {lb(packed)} packed ({lb(over, signed=True)}, {over / made * 100:.1f}%)'
-        if 'coconut' in product_name(lot['product_id']).lower() and over <= COCONUT_YIELD_PCT * made + EPS:
+        if lot['product_id'] in COCONUT_YIELD_PRODUCT_IDS and over <= COCONUT_YIELD_PCT * made + EPS:
             flag('COCONUT_YIELD', YIELD, f'{lot_label(lot_id)}: {totals}.', tolerance_lb=allowed, **common)
         elif over > allowed + EPS:
             added = [a for a in history['adjustments'] if a['quantity_lb'] > 0]
@@ -748,7 +754,8 @@ def run_job(cur, *, now=None, dry_run=False, sender=None, env=None, force_email=
     its date. So a missed night or a weekend needs no special handling, running
     twice in one night never moves the baseline, and a run whose email failed or
     was not sent (a second run for a day already emailed, a manual daytime run)
-    is never the baseline: the next email covers its window again and says so.
+    is never the baseline: the next email covers its window again and says so
+    (except for a repeat run that found nothing the sent email did not include).
     A second run for the same plant day saves its own snapshot and flags but
     does not email again.
 
@@ -775,6 +782,22 @@ def run_job(cur, *, now=None, dry_run=False, sender=None, env=None, force_email=
         # Nothing delivered yet: go back to where the first undelivered run began.
         start = min([run['window_start'] for run in undelivered if run['window_start'] is not None]
                     + [_start_of_plant_day(plant_day)])
+    # A run saved after that day's email had already gone out is only worth a line
+    # if it found something the sent email did not include.
+    repeats = [run['id'] for run in undelivered
+               if run['job_status'] == 'completed' and run['email_status'] == 'already_sent']
+    if repeats:
+        new_findings = {row['run_id'] for row in _rows(cur, """
+            SELECT DISTINCT f.run_id FROM reconciliation_flags f JOIN reconciliation_runs r ON r.id = f.run_id
+            WHERE f.run_id = ANY(%(ids)s::bigint[]) AND NOT EXISTS (
+                SELECT 1 FROM reconciliation_flags g JOIN reconciliation_runs s ON s.id = g.run_id
+                WHERE s.plant_date = r.plant_date AND s.email_status = 'sent' AND s.id < r.id
+                  AND g.kind = f.kind AND g.product_id IS NOT DISTINCT FROM f.product_id
+                  AND g.lot_id IS NOT DISTINCT FROM f.lot_id
+                  AND g.transaction_id IS NOT DISTINCT FROM f.transaction_id
+                  AND g.actual_lb IS NOT DISTINCT FROM f.actual_lb
+                  AND g.difference_lb IS NOT DISTINCT FROM f.difference_lb)""", {'ids': repeats})}
+        undelivered = [run for run in undelivered if run['id'] not in repeats or run['id'] in new_findings]
     data = load_window(cur, start, end, opening_run_id=baseline_id)
     data['undelivered'] = [{'run_id': run['id'], 'plant_date': run['plant_date'].isoformat(),
                             'job_status': run['job_status'], 'email_status': run['email_status'],

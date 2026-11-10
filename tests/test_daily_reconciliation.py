@@ -11,7 +11,7 @@ triggers are switched off inside the transaction, as other suites do) so a
 "night" is a fixed moment, not the wall clock.
 """
 import ast
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 import json
 from pathlib import Path
 import re
@@ -390,6 +390,81 @@ def test_an_extra_daytime_run_cannot_swallow_its_flags(kit):
     assert row['previous_run_id'] == nightly['run_id'] and row['window_start'] == night(0)
 
 
+def test_a_repeat_run_that_found_nothing_new_gets_no_note(kit):
+    kit.run(night(-1))
+    kit.post('adjust', [(kit.oats_lot, -40)], at(0, 9), named=False, reason_code='unknown')
+    sent = kit.run(night(0))
+    repeat = kit.run(night(0) + timedelta(minutes=5))                   # same findings, no second email
+    assert (sent['email_status'], repeat['email_status']) == ('sent', 'already_sent')
+    assert len(kit.flags(repeat, 'UNEXPLAINED_ADJUSTMENT')) == 1
+    quiet = kit.run(night(1))
+    assert 'NOTE:' not in kit.sent[-1]['text'] and kit.row(quiet['run_id'])['summary']['undelivered'] == []
+    assert kit.row(quiet['run_id'])['previous_run_id'] == sent['run_id']
+
+    late = kit.post('adjust', [(kit.oats_lot, -15)], night(1) + timedelta(minutes=2), named=False, reason_code='unknown')
+    again = kit.run(night(1) + timedelta(minutes=5))                    # this repeat DID find something new
+    assert again['email_status'] == 'already_sent'
+    outcome = kit.run(night(2))
+    assert [f['transaction_id'] for f in kit.flags(outcome, 'UNEXPLAINED_ADJUSTMENT')] == [late]
+    assert kit.sent[-1]['text'].count('NOTE: an extra check was saved ') == 1
+    assert [u['run_id'] for u in kit.row(outcome['run_id'])['summary']['undelivered']] == [again['run_id']]
+
+
+def _utc(year, month, day, hour, minute=0):
+    return datetime(year, month, day, hour, minute, tzinfo=timezone.utc)
+
+
+@pytest.mark.parametrize('day,hours,start,end,entries', [
+    # Sun 2026-11-01, clocks go back: 25 hours, and 1:30 AM happens twice.
+    (date(2026, 11, 1), 25, _utc(2026, 11, 1, 4), _utc(2026, 11, 2, 5), [
+        (_utc(2026, 11, 1, 3, 30), False),      # Oct 31 11:30 PM EDT
+        (_utc(2026, 11, 1, 4, 30), True),       # Nov 1 12:30 AM EDT
+        (_utc(2026, 11, 1, 5, 30), True),       # Nov 1 1:30 AM EDT (first time)
+        (_utc(2026, 11, 1, 6, 30), True),       # Nov 1 1:30 AM EST (second time)
+        (_utc(2026, 11, 2, 4, 30), True),       # Nov 1 11:30 PM EST
+        (_utc(2026, 11, 2, 5, 30), False)]),    # Nov 2 12:30 AM EST
+    # Sun 2026-03-08, clocks go forward: 23 hours, 2:00 to 3:00 AM does not exist.
+    (date(2026, 3, 8), 23, _utc(2026, 3, 8, 5), _utc(2026, 3, 9, 4), [
+        (_utc(2026, 3, 8, 4, 30), False),       # Mar 7 11:30 PM EST
+        (_utc(2026, 3, 8, 6, 30), True),        # Mar 8 1:30 AM EST
+        (_utc(2026, 3, 8, 7, 30), True),        # Mar 8 3:30 AM EDT
+        (_utc(2026, 3, 9, 3, 30), True),        # Mar 8 11:30 PM EDT
+        (_utc(2026, 3, 9, 4, 30), False)]),     # Mar 9 12:30 AM EDT
+])
+def test_daylight_saving_day_is_one_whole_eastern_day(kit, day, hours, start, end, entries):
+    posted = [(kit.post('receive', [(kit.oats_lot, 1)], when), inside) for when, inside in entries]
+    analysis = daily_reconciliation.run(kit.cur, dry_run=True, day=day)['analysis']
+    window = [datetime.fromisoformat(analysis[key]) for key in ('window_start', 'window_end')]
+    assert window == [start, end] and window[1] - window[0] == timedelta(hours=hours)
+    assert analysis['plant_date'] == day.isoformat()
+    data = reconciliation.load_window(kit.cur, start, end, reconstruct=True)
+    in_window = {t['id'] for t in data['transactions'] if t['in_window']}
+    assert [tx in in_window for tx, _ in posted] == [inside for _, inside in posted]
+    assert all(t['entered_plant_date'] == day.isoformat() for t in data['transactions'] if t['id'] in kit.txs)
+    assert kit.flags({'analysis': analysis}, 'LATE_ENTRY') == []        # each entry is on its own Eastern day
+    # the next day picks up exactly where this one ended: nothing counted twice, nothing dropped
+    following = daily_reconciliation.run(kit.cur, dry_run=True, day=day + timedelta(days=1))['analysis']
+    assert datetime.fromisoformat(following['window_start']) == end
+
+
+@pytest.mark.parametrize('run_at,plant_day,start,hours', [
+    (_utc(2026, 11, 2, 7, 30), date(2026, 11, 1), _utc(2026, 11, 1, 7, 30), 24),   # 2:30 AM EST after the 25-hour day
+    (_utc(2026, 3, 9, 7, 30), date(2026, 3, 8), _utc(2026, 3, 8, 7, 30), 24),      # 3:30 AM EDT after the 23-hour day
+])
+def test_nightly_runs_across_a_clock_change_check_the_right_day_once(kit, run_at, plant_day, start, hours):
+    before = kit.run(start)                                             # the run the night before (07:30 UTC cron)
+    inside = kit.post('receive', [(kit.oats_lot, 1)], start + timedelta(hours=1))
+    outcome = kit.run(run_at)
+    row = kit.row(outcome['run_id'])
+    assert row['plant_date'] == plant_day and kit.row(before['run_id'])['plant_date'] == plant_day - timedelta(days=1)
+    assert (row['previous_run_id'], row['window_start'], row['window_end']) == (before['run_id'], start, run_at)
+    assert row['window_end'] - row['window_start'] == timedelta(hours=hours)
+    # opening + the 1 lb receipt = closing: counted once, and this window starts where the last one ended
+    assert kit.flags(outcome, 'BALANCE_DIFFERENCE') == [] and kit.flags(outcome, 'LATE_ENTRY') == []
+    assert inside in {t['id'] for t in reconciliation.load_window(kit.cur, start, run_at, reconstruct=True)
+                      ['transactions'] if t['in_window']}
+
+
 def test_a_first_ever_send_that_fails_is_still_covered(kit):
     adjust = kit.post('adjust', [(kit.oats_lot, -40)], at(0, 9), named=False, reason_code='unknown')
     failed = kit.run(night(0), sender=_broken)
@@ -524,9 +599,13 @@ def test_unknown_or_unnamed_adjustments_are_always_listed(kit):
     assert 'ADJUSTMENTS WITH NO REASON OR NO NAMED PERSON (2)' in outcome['email']['text']
 
 
-def test_coconut_overpack_within_two_percent_is_yield_not_an_alarm(kit):
-    coconut = kit.product('Batch Coconut Sweetened Flake', 'batch', batch_lb=360)
+def test_coconut_overpack_within_two_percent_is_yield_not_an_alarm(kit, monkeypatch):
+    assert reconciliation.COCONUT_YIELD_PRODUCT_IDS == {125, 126, 127, 128}     # the four coconut bulk batches
+    coconut = kit.product('Batch Sweetened Flake', 'batch', batch_lb=360)       # on the list; the name is irrelevant
+    lookalike = kit.product('Batch Coconut Granola', 'batch', batch_lb=360)     # "Coconut" in the name, not on the list
+    monkeypatch.setattr(reconciliation, 'COCONUT_YIELD_PRODUCT_IDS', frozenset({coconut}))
     kit.recipe(coconut, {kit.honey: 100})
+    kit.recipe(lookalike, {kit.honey: 100})
     finished = kit.lot(kit.bagged)
     kit.run(night(-1))
     within, beyond = kit.lot(coconut), kit.lot(coconut)
@@ -535,10 +614,15 @@ def test_coconut_overpack_within_two_percent_is_yield_not_an_alarm(kit):
     kit.post('receive', [(kit.honey_lot, 1000)], at(0, 12))
     kit.post('make', [(beyond, 360), (kit.honey_lot, -100)], at(0, 13))
     kit.post('pack', [(beyond, -372), (finished, 372)], at(0, 14))              # +12 lb = 3.3%
+    other = kit.lot(lookalike)
+    kit.post('receive', [(kit.honey_lot, 1400)], at(0, 15))
+    kit.post('make', [(other, 5040), (kit.honey_lot, -1400)], at(0, 16))
+    kit.post('pack', [(other, -5095), (finished, 5095)], at(0, 17))             # +55 lb = 1.1%, inside tolerance
     outcome = kit.run(night(0))
     found = {(f['kind'], f['lot_id']): f for f in kit.flags(outcome)}
     assert sorted(found) == sorted([('COCONUT_YIELD', within), ('NEGATIVE_LOT', within),
-                                    ('PACK_EXCEEDS_MAKE', beyond), ('NEGATIVE_LOT', beyond)])
+                                    ('PACK_EXCEEDS_MAKE', beyond), ('NEGATIVE_LOT', beyond),
+                                    ('NEGATIVE_LOT', other)])               # no coconut line for the lookalike
     assert found[('COCONUT_YIELD', within)]['severity'] == 'yield'
     text = outcome['email']['text']
     section = text[text.index('COCONUT YIELD'):text.index('FOR INFORMATION')]

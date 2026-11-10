@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-10 08:05 — Daily reconciliation: remaining review items (DST tests, coconut ID list, fixture placeholders, quieter note, docs)
+- **File(s) changed:** `reconciliation.py`, `tests/test_daily_reconciliation.py`, `tests/fixtures/reconciliation/replay_2026-11-05.json`, `tests/fixtures/reconciliation/replay_2026-11-06.json`, `tests/fixtures/reconciliation/replay_2026-11-09.json`, `docs/deployments/daily-reconciliation.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Coconut yield is now decided by an explicit product ID list (125-128) instead of a name match, because products.product_category is empty for every product in the 2026-11-09 production export. A repeat run for a day already emailed gets no NOTE line the next night unless it found a flag the sent email did not include. Staff first names in the three replay fixtures replaced with Staff A / Staff B (lot codes and transaction numbers kept). New tests for the 25-hour and 23-hour daylight-saving days and for the quiet note. Docs now state the packed-vs-made tolerance on its own row, the 02:30 winter / 03:30 summer run time, and that the command must start after midnight Eastern. Row 273 updated (still not deployed).
+- **Why:** Michael asked to finish the remaining PR 198 review items. Not merged, not deployed, migration applied nowhere.
+
+---
+
 ## 2026-11-10 07:53 — Daily reconciliation review fixes 3-4: email step can never abort a run; test_01 safe on a re-used database
 - **File(s) changed:** `reconciliation.py`, `tests/test_daily_reconciliation.py`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** send_email now treats any exception or a non-object reply as a failed send, and run_job records a sender that raises as email_status failed so the run and flags are still saved. test_01 compares the timestamp rebuild as of now, so rows left by other tests in a re-used database no longer fail it. One new test; row 273 counts updated (still not deployed).

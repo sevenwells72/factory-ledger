@@ -30,10 +30,11 @@ It never posts, voids, adjusts or corrects anything, and it never writes to an e
 
 | Rule | Behaviour |
 | --- | --- |
-| Tolerance | The greater of **5 lb** or **2% of that day's movement for the lot** (not 2% of the balance). For a make ingredient: 2% of the recipe quantity. For packed-vs-made: 2% of the pounds made. |
+| Tolerance | The greater of **5 lb** or **2% of that day's movement for the lot** (not 2% of the balance). For a make ingredient: 2% of the recipe quantity. |
+| Tolerance for packed-vs-made | **Different on purpose:** the greater of **5 lb** or **2% of all the pounds ever made into that batch lot**, compared with all the pounds ever packed out of it. It is measured on the lot's whole life, not on one day's movement, because a lot is often made one day and packed over several. Example: 350 lb made allows 7 lb; 375 lb packed is 25 lb over and is flagged. |
 | Lot below zero | **Always** flagged, every night, until it is corrected. |
 | Adjustment with reason "unknown" (or none), or with no named person (shared key) | **Always** listed. |
-| Coconut packed above made, up to 2% | Its own "Coconut yield" section. Not an alarm. Above 2% (and above 5 lb) it is an alarm like any other product. Coconut = a batch product with "Coconut" in its name. |
+| Coconut packed above made, up to 2% | Its own "Coconut yield" section. Not an alarm. Above 2% (and above 5 lb) it is an alarm like any other product. Coconut = the four coconut bulk batch products, by product ID (125 Fancy, 126 Flake, 127 Medium, 128 Toasted Flake; `COCONUT_YIELD_PRODUCT_IDS` in `reconciliation.py`). It is a fixed list, not a name match, because `products.product_category` is empty for every product. **A new coconut bulk batch product must be added to that list**; until then a small over-pack on it is simply inside tolerance and gets no line. |
 | Voids and late entries | Listed for information. They do not change the result. |
 
 **Result** is `all_clear` or `attention` (anything over tolerance, any lot below zero, any adjustment to review).
@@ -55,7 +56,9 @@ the command again retries the send.
 saved without an email (a manual daytime run) is never the starting point: the next email covers that
 period again and says so in a `NOTE:` line near the top, for example "the email for Mon Nov 9 was not
 delivered. This email covers that day as well." Those runs are listed in `summary.undelivered` of the run
-that covered them.
+that covered them. One exception keeps the email quiet: a repeat run for a day that was already emailed
+(for example the command run twice in one night) gets no `NOTE:` line unless it found something the sent
+email did not include.
 
 | Variable | Meaning |
 | --- | --- |
@@ -72,12 +75,17 @@ python scripts/daily_reconciliation.py --dry-run                     # same chec
 python scripts/daily_reconciliation.py --dry-run --date 2026-11-09   # replay one past day; needs no migration
 ```
 
+The business day checked is always "yesterday" in Eastern time at the moment the command starts, so it
+must run after midnight Eastern (both 02:30 and 03:30 do). A manual run started before midnight would label
+the day before.
+
 It reads only environment variables (`DATABASE_URL`, `ENVIRONMENT`, `PRODUCTION_DATABASE_HOST` — the same
 guard as `scripts/exceptions_sweep.py` — plus the email variables above). `--dry-run` runs inside a
 `READ ONLY` transaction (transaction-scoped; never a session setting, so it is safe on the 6543 pooler).
 Exit codes: `0` done, `1` job failed, `2` job worked but the email did not send.
 
-**Railway today:** the existing `exceptions-sweep` cron (02:30 ET, `30 7 * * *`) keeps its start command
+**Railway today:** the existing `exceptions-sweep` cron (`30 7 * * *`, fixed in UTC: **02:30 Eastern in
+winter, 03:30 Eastern in summer**) keeps its start command
 `python scripts/exceptions_sweep.py`. When `RECONCILIATION_ENABLED=1` is set on that service, the sweep
 starts `python scripts/daily_reconciliation.py` as a separate process after it finishes. The sweep's own
 transaction is already committed, so the reconciliation cannot undo or block it. Either one failing fails
