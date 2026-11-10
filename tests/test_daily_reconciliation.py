@@ -13,8 +13,10 @@ triggers are switched off inside the transaction, as other suites do) so a
 import ast
 from datetime import date, datetime, timedelta, timezone
 import json
+import os
 from pathlib import Path
 import re
+import threading
 from uuid import uuid4
 
 import psycopg2
@@ -645,7 +647,7 @@ def test_only_one_run_at_a_time(kit, monkeypatch, capsys):
     other = psycopg2.connect(kit.cur.connection.dsn)                    # another run, inside its transaction
     try:
         with other.cursor() as cur:
-            cur.execute('SELECT pg_try_advisory_xact_lock(hashtext(%s))', (reconciliation.RUN_LOCK_NAME,))
+            cur.execute('SELECT pg_try_advisory_xact_lock(hashtext(%s))', (reconciliation.JOB_LOCK_NAME,))
             assert cur.fetchone()[0] is True
         blocked = kit.run(night(0))
         assert blocked['skipped'] == 'already_running' and blocked['run_id'] is None and blocked['analysis'] is None
@@ -664,9 +666,23 @@ def test_only_one_run_at_a_time(kit, monkeypatch, capsys):
     source = (ROOT / 'reconciliation.py').read_text() + (ROOT / 'scripts/daily_reconciliation.py').read_text()
     assert 'pg_try_advisory_xact_lock(' in source and not re.search(r'pg_(try_)?advisory_lock\(', source)
 
-    # the command says so and exits cleanly
+
+def _command_env(monkeypatch, url):
+    for key in ('ENVIRONMENT', 'PRODUCTION_DATABASE_HOST', 'PGHOSTADDR', 'PGSERVICE', 'PGSERVICEFILE'):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv('DATABASE_URL', url)
+    for key, value in EMAIL_ON.items():
+        monkeypatch.setenv(key, value)
+
+
+def test_the_job_reads_nothing_before_the_run_lock_is_held(monkeypatch, capsys):
+    """The command's order: guard connection, lock, THEN the job connection; lock released after the job commits."""
+    events, lock_free = [], [True]
+
     class Conn:
-        committed = False
+        def __init__(self, name):
+            self.name = name
+            events.append(f'{name}: connect')
 
         def cursor(self):
             return self
@@ -677,27 +693,122 @@ def test_only_one_run_at_a_time(kit, monkeypatch, capsys):
         def __exit__(self, *exc):
             return False
 
-        def execute(self, *a):
-            pass
+        def execute(self, sql, params=None):
+            events.append(f'{self.name}: {" ".join(sql.split())[:30]}')
+
+        def fetchone(self):
+            return (lock_free[0],)
 
         def commit(self):
-            self.committed = True
+            events.append(f'{self.name}: commit')
 
         def rollback(self):
-            pytest.fail('a skipped run is not a failure')
+            events.append(f'{self.name}: rollback')
 
         def close(self):
-            pass
-    conn = Conn()
-    for key in ('ENVIRONMENT', 'PGHOSTADDR', 'PGSERVICE', 'PGSERVICEFILE'):
-        monkeypatch.delenv(key, raising=False)
-    monkeypatch.setenv('DATABASE_URL', 'postgresql://localhost:5432/anything')
-    monkeypatch.setattr(daily_reconciliation.psycopg2, 'connect', lambda url: conn)
-    monkeypatch.setattr(daily_reconciliation, 'run', lambda cur, **kw: dict(blocked))
-    monkeypatch.setattr(reconciliation, 'record_failed_run', lambda *a, **k: pytest.fail('not a failed run'))
+            events.append(f'{self.name}: close')
+    names = iter(['guard', 'job', 'unexpected'])
+    _command_env(monkeypatch, 'postgresql://localhost:5432/anything')
+    monkeypatch.setattr(daily_reconciliation.psycopg2, 'connect', lambda url: Conn(next(names)))
+    analysis = {'plant_date': '2026-03-10', 'result': 'all_clear', 'flags': []}
+    monkeypatch.setattr(daily_reconciliation, 'run', lambda cur, **kw: events.append('job: run') or {
+        'analysis': analysis, 'email': {'subject': 'S', 'text': 'T'}, 'run_id': 7, 'email_status': 'sent'})
     assert daily_reconciliation.main([]) == 0
-    assert 'Another reconciliation run is in progress. This run stopped: nothing saved, nothing sent.' \
-        in capsys.readouterr().out
+    assert events == [
+        'guard: connect', 'guard: SELECT pg_try_advisory_xact_lo',
+        'job: connect', 'job: SET TRANSACTION ISOLATION LEVE', "job: SET LOCAL lock_timeout='5s'",
+        "job: SET LOCAL statement_timeout='1", 'job: run',
+        'guard: SELECT 1', 'job: commit', 'job: close',            # still locked when the run is saved
+        'guard: rollback', 'guard: close']                          # released only after the job committed
+    # the lock is a transaction-level advisory lock; no session-level one anywhere (they do not hold on the 6543 pooler)
+    source = (ROOT / 'reconciliation.py').read_text() + (ROOT / 'scripts/daily_reconciliation.py').read_text()
+    assert not re.search(r'pg_(try_)?advisory_lock\(', source)
+
+    # lock not free: the job connection is never opened, nothing runs, and the command says so
+    del events[:]
+    lock_free[0] = False
+    names = iter(['guard', 'unexpected'])
+    monkeypatch.setattr(daily_reconciliation, 'run', lambda cur, **kw: pytest.fail('must not run'))
+    capsys.readouterr()
+    assert daily_reconciliation.main([]) == 0
+    assert events == ['guard: connect', 'guard: SELECT pg_try_advisory_xact_lo', 'guard: close']
+    assert capsys.readouterr().out.strip() == daily_reconciliation.ALREADY_RUNNING
+    assert 'nothing saved, nothing sent' in daily_reconciliation.ALREADY_RUNNING
+
+    # a dry run takes no lock at all
+    del events[:]
+    names = iter(['job', 'unexpected'])
+    monkeypatch.setattr(daily_reconciliation, 'run', lambda cur, **kw: {
+        'analysis': analysis, 'email': {'subject': 'S', 'text': 'T'}, 'run_id': None, 'email_status': 'not_attempted'})
+    assert daily_reconciliation.main(['--dry-run']) == 0
+    assert events[0] == 'job: connect' and not [e for e in events if 'advisory' in e or e.startswith('guard')]
+
+
+def test_two_real_runs_racing_for_one_day_save_one_run_and_send_one_email(monkeypatch, capsys):
+    """Real connections, real commits, the real command. Run A is in the middle of sending its
+    email when run B starts; later run C starts just after A has committed.
+
+    The tables live in a throwaway schema (dropped at the end) because two connections can only
+    race over committed tables, and the shared test database must never keep migration 094."""
+    url = os.environ.get('TEST_DATABASE_URL')
+    if not url:
+        pytest.skip('needs the local test database')
+    real_connect = psycopg2.connect
+    schema = 'recon_race_' + uuid4().hex[:10]
+    admin = real_connect(url)
+    admin.autocommit = True
+    sending, release, subjects, results = threading.Event(), threading.Event(), [], {}
+
+    class Reply:
+        status_code = 200
+
+        def json(self):
+            return {'id': 'email-1'}
+
+    def post(api, **kwargs):                                            # the email service, slow on purpose
+        subjects.append(kwargs['json']['subject'])
+        sending.set()
+        assert release.wait(30)
+        return Reply()
+
+    def count(sql):
+        with admin.cursor() as cur:
+            cur.execute(f'SET search_path = {schema}, public')
+            cur.execute(sql)
+            return cur.fetchall()
+    try:
+        with admin.cursor() as cur:
+            cur.execute(f'CREATE SCHEMA {schema}')
+            cur.execute(f'SET search_path = {schema}, public')
+            cur.execute('CREATE TABLE migration_markers (LIKE public.migration_markers INCLUDING ALL)')
+            cur.execute(MIGRATION)
+        _command_env(monkeypatch, url)
+        monkeypatch.setattr(daily_reconciliation.psycopg2, 'connect',
+                            lambda dsn: real_connect(dsn, options=f'-c search_path={schema},public'))
+        monkeypatch.setattr(reconciliation.httpx, 'post', post)
+        run_a = threading.Thread(target=lambda: results.update(a=daily_reconciliation.main([])))
+        run_a.start()
+        assert sending.wait(30)                                         # A holds the lock and is sending
+        capsys.readouterr()
+        assert daily_reconciliation.main([]) == 0                       # B starts while A is in progress
+        assert capsys.readouterr().out.strip() == daily_reconciliation.ALREADY_RUNNING
+        assert count('SELECT count(*) FROM reconciliation_runs') == [(0,)]      # B saved nothing (A has not committed yet)
+        release.set()
+        run_a.join(30)
+        assert results == {'a': 0} and len(subjects) == 1
+        assert count('SELECT job_status, email_status FROM reconciliation_runs') == [('completed', 'sent')]
+        # exactly one saved run and one email for the two racing runs
+
+        # C starts once A is done: it must SEE A's committed email and stay quiet (no second email)
+        assert daily_reconciliation.main([]) == 0
+        assert len(subjects) == 1
+        assert count('SELECT email_status FROM reconciliation_runs ORDER BY id') == [('sent',), ('already_sent',)]
+        assert count("SELECT count(*) FROM reconciliation_runs WHERE email_status = 'sent'") == [(1,)]
+    finally:
+        release.set()
+        with admin.cursor() as cur:
+            cur.execute(f'DROP SCHEMA IF EXISTS {schema} CASCADE')
+        admin.close()
 
 
 def _et(month, day, hour=0, minute=0):

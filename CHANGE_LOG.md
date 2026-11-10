@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-10 11:09 — Daily reconciliation: run lock taken before the job reads anything (no duplicate same-day email)
+- **File(s) changed:** `reconciliation.py`, `scripts/daily_reconciliation.py`, `tests/test_daily_reconciliation.py`, `docs/deployments/daily-reconciliation.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** The command now takes the one-run-at-a-time advisory lock on a separate guard connection before it opens the job connection, and releases it only after the job has committed, so the REPEATABLE READ job cannot freeze a view of saved runs that predates another run's commit. run_job keeps a second in-transaction lock as a backstop. Both locks are transaction-level (hold on the 6543 pooler). Two new tests: statement order on both connections, and two real racing runs in a throwaway schema (one saved run, one email). Docs describe the guard connection. 53 tests in the file; Python 7,530 passed in both modes on fresh databases; Node 702 passed. Row 273 updated (still not deployed).
+- **Why:** P2 from Codex's review of PR 198 at 35ca81d3 (comment 6772116439): a run whose snapshot predated the first run's commit could send a second email for the same day. Not merged, not deployed, migration applied only to local scratch databases.
+
+---
+
 ## 2026-11-10 10:41 — Daily reconciliation: recovery independent of run order, and one run at a time
 - **File(s) changed:** `reconciliation.py`, `scripts/daily_reconciliation.py`, `tests/test_daily_reconciliation.py`, `docs/deployments/daily-reconciliation.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Undelivered runs are no longer found by run id order: a delivered run lists every earlier run it reported in summary.acknowledged, and any saved run not on such a list (and not itself emailed) is picked up by the next email. A real run now takes a transaction-level advisory lock (pg_try_advisory_xact_lock, which holds on the 6543 transaction pooler); a second run started meanwhile saves nothing, prints that it stopped and exits 0. Docs state the one-at-a-time rule. Two new tests (51 in the file); Python 7,528 passed in both modes on fresh databases; Node 702 passed. Row 273 updated (still not deployed).

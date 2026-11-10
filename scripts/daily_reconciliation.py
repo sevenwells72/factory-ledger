@@ -21,9 +21,12 @@ the command exits 2. It never writes to any table except the three of
 migration 094. --dry-run runs inside a READ ONLY transaction (transaction-scoped,
 never a session setting) and needs no migration when --date is given.
 
-Only one run at a time (a transaction-level advisory lock, which also holds on the
-6543 transaction pooler): a second run started meanwhile prints that it stopped,
-saves nothing and exits 0.
+Only one run at a time. The command first takes a transaction-level advisory lock
+on a separate guard connection (transaction-level, so it also holds on the 6543
+transaction pooler), and only then opens the job's connection, so the job reads
+nothing before the lock is held. The lock is released after the job has
+committed. A second run started meanwhile prints that it stopped, saves nothing
+and exits 0.
 
 Exit codes: 0 done; 1 the job failed; 2 the job worked but the email did not send.
 """
@@ -78,14 +81,11 @@ def run(cur, *, dry_run, day=None):
     return reconciliation.run_job(cur, dry_run=dry_run)
 
 
-def main(argv=None):
-    parser = argparse.ArgumentParser(description='Nightly inventory reconciliation')
-    parser.add_argument('--dry-run', action='store_true', help='print the email; write nothing, send nothing')
-    parser.add_argument('--date', type=date.fromisoformat, help='replay this plant day (YYYY-MM-DD); needs --dry-run')
-    args = parser.parse_args(argv)
-    if args.date and not args.dry_run:
-        parser.error('--date replays a past day and never saves; use it with --dry-run')
-    url = guarded_database_url()
+ALREADY_RUNNING = 'Another reconciliation run is in progress. This run stopped: nothing saved, nothing sent.'
+
+
+def _job(url, args, guard):
+    """The job in its own transaction. `guard` holds the run lock for a real run (None for a dry run)."""
     conn = psycopg2.connect(url)
     try:
         with conn.cursor() as cur:
@@ -98,6 +98,8 @@ def main(argv=None):
         if args.dry_run:
             conn.rollback()
         else:
+            with guard.cursor() as cur:
+                cur.execute('SELECT 1')         # the lock must still be held when the run is saved
             conn.commit()
     except Exception as exc:
         conn.rollback()
@@ -112,8 +114,43 @@ def main(argv=None):
         raise
     finally:
         conn.close()
+    return outcome
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description='Nightly inventory reconciliation')
+    parser.add_argument('--dry-run', action='store_true', help='print the email; write nothing, send nothing')
+    parser.add_argument('--date', type=date.fromisoformat, help='replay this plant day (YYYY-MM-DD); needs --dry-run')
+    args = parser.parse_args(argv)
+    if args.date and not args.dry_run:
+        parser.error('--date replays a past day and never saves; use it with --dry-run')
+    url = guarded_database_url()
+    guard = None
+    if not args.dry_run:
+        # The lock comes first, on its own connection, and is kept until the job has
+        # committed. The job's connection is opened only once the lock is held, so the
+        # job cannot have read anything (and frozen its view) before that moment.
+        guard = psycopg2.connect(url)
+        try:
+            with guard.cursor() as cur:
+                held = reconciliation.try_run_lock(cur)
+        except Exception:
+            guard.close()
+            raise
+        if not held:
+            guard.close()
+            print(ALREADY_RUNNING)
+            return 0
+    try:
+        outcome = _job(url, args, guard)
+    finally:
+        if guard is not None:
+            try:
+                guard.rollback()        # ends the guard transaction: the lock is released only now
+            finally:
+                guard.close()
     if outcome.get('skipped') == 'already_running':
-        print('Another reconciliation run is in progress. This run stopped: nothing saved, nothing sent.')
+        print(ALREADY_RUNNING)
         return 0
     analysis, email = outcome['analysis'], outcome['email']
     if args.dry_run:

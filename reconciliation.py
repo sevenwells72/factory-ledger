@@ -48,10 +48,28 @@ COCONUT_YIELD_PCT = 0.02
 COCONUT_YIELD_PRODUCT_IDS = frozenset({125, 126, 127, 128})
 _TICK = timedelta(microseconds=1)               # the resolution of a Postgres timestamp
 EPS = 0.00005                                   # quantities are numeric(14,4)
-# One run at a time. A TRANSACTION-level advisory lock: it is held by the job's own
+# One run at a time. TRANSACTION-level advisory locks only: each is held by one
 # transaction and released at its COMMIT or ROLLBACK, so it also holds through the
 # Supabase transaction pooler (port 6543), where a session-level lock would not.
+#
+# RUN_LOCK_NAME is taken by the command (scripts/daily_reconciliation.py) on a
+# separate GUARD connection BEFORE the job's own connection is even opened, and
+# kept until after the job has committed. The job runs REPEATABLE READ, so its
+# view of the saved runs is frozen at its first statement; taking the lock inside
+# the job transaction would freeze that view first and could miss a run that
+# committed just before the lock came free (a second email for the same day).
+# JOB_LOCK_NAME is a second line of defence inside run_job itself.
 RUN_LOCK_NAME = 'factory_ledger.daily_reconciliation'
+JOB_LOCK_NAME = 'factory_ledger.daily_reconciliation.job'
+
+
+def try_run_lock(cur):
+    """Take the one-run-at-a-time lock in the caller's transaction. False = another run holds it."""
+    cur.execute('SELECT pg_try_advisory_xact_lock(hashtext(%s)) AS held', (RUN_LOCK_NAME,))
+    row = cur.fetchone()
+    return bool(row['held'] if isinstance(row, dict) else row[0])
+
+
 RESEND_URL = 'https://api.resend.com/emails'
 # Resend's shared test sender delivers only to the Resend account's own address.
 # Set RECONCILIATION_EMAIL_FROM once sevenwellsgranola.com is verified there.
@@ -905,13 +923,16 @@ def run_job(cur, *, now=None, dry_run=False, sender=None, env=None, force_email=
 
     Only one run at a time: a second run that starts while another is still in
     its transaction returns {'skipped': 'already_running'} and saves nothing.
+    The command takes the outer lock on a guard connection before this
+    transaction exists (see RUN_LOCK_NAME), so everything read here, including
+    whether tonight's email already went out, is read after the lock is held.
 
     dry_run=True reads the same data and returns the same email, and writes
     nothing. The caller owns the transaction (commit / rollback).
     """
     env = os.environ if env is None else env
     if not dry_run:
-        cur.execute('SELECT pg_try_advisory_xact_lock(hashtext(%s)) AS held', (RUN_LOCK_NAME,))
+        cur.execute('SELECT pg_try_advisory_xact_lock(hashtext(%s)) AS held', (JOB_LOCK_NAME,))
         row = cur.fetchone()
         if not (row['held'] if isinstance(row, dict) else row[0]):
             # Another run is inside its transaction right now. Save nothing, send nothing.

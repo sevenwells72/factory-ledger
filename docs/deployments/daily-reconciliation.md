@@ -105,14 +105,25 @@ is starting, and the opening and ending balances are those just before each midn
 different on purpose: it covers everything after the previous snapshot up to and including the moment of
 tonight's, so consecutive nights meet with no gap and no overlap.
 
-**One run at a time.** A real run takes a lock as its first step and holds it until its transaction
-commits (snapshot, check, email and save are all inside that one transaction). A second run started
-while the first is still going stops at once: it prints "Another reconciliation run is in progress.
-This run stopped: nothing saved, nothing sent." and exits `0`. Start it again once the first has finished.
-The lock is a Postgres **transaction-level advisory lock** (`pg_try_advisory_xact_lock`). That kind is
-released automatically at commit or rollback, even if the process dies, and it works through the
-Supabase transaction pooler on port 6543, where a session-level advisory lock would not hold. It locks
-no table and blocks no ledger entry. `--dry-run` and the preview route read only and never take it.
+**One run at a time.** A real run takes a lock before anything else and keeps it until its results
+are committed. A second run started while the first is still going stops at once: it prints "Another
+reconciliation run is in progress. This run stopped: nothing saved, nothing sent." and exits `0`. Start
+it again once the first has finished; it will then see that tonight's email already went out and will
+not send a second one.
+
+How the lock works:
+
+- It is a Postgres **transaction-level advisory lock** (`pg_try_advisory_xact_lock`), released
+  automatically at commit or rollback, even if the process dies. That kind works through the Supabase
+  transaction pooler on port 6543, where a session-level advisory lock would not hold. It locks no table
+  and blocks no ledger entry.
+- The command takes it on a small separate **guard connection** first, and only then opens the
+  connection the job runs on. The job reads the books as of one fixed moment (its first statement), so
+  it must not read anything before the lock is held: otherwise it could miss a run that finished a
+  moment earlier and email the same day twice. The guard is released only after the job has committed.
+- So a real run uses two database connections for a few seconds. The job transaction also takes a
+  second lock of the same kind as a backstop.
+- `--dry-run` and the preview route read only and never take a lock.
 
 It reads only environment variables (`DATABASE_URL`, `ENVIRONMENT`, `PRODUCTION_DATABASE_HOST` — the same
 guard as `scripts/exceptions_sweep.py` — plus the email variables above). `--dry-run` runs inside a
