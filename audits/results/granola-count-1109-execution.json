@@ -1,0 +1,1008 @@
+{
+  "approved_by": "Michael, 2026-11-10 (\"apply\")",
+  "count": "Arturo, 11/09/26 end of day",
+  "backup": "~/Backups/fl/2026-11-10 BACKUP OK",
+  "success": true,
+  "rows": {
+    "0": {
+      "plan": {
+        "product_id": 114,
+        "lot_id": 1709,
+        "lot_code": "NOV 06 2026",
+        "before": "2956.5",
+        "change": "-1976.5",
+        "after": "980"
+      },
+      "steps": [
+        "prepare_sent",
+        "commit_sent",
+        "approve_sent"
+      ],
+      "prepare": {
+        "http": 200,
+        "ticket_id": 361,
+        "payload_hash": "38d800054494f03ed69043947dce9fc706a15936d8db677fa129c62fcf690081",
+        "warnings": [],
+        "blockers": [],
+        "draft": {
+          "product_id": 114,
+          "product_name": "Batch SS Chocolate Chip Granola #2",
+          "lot_id": 1709,
+          "lot_code": "NOV 06 2026",
+          "current_quantity_lb": 2956.5,
+          "delta_lb": -1976.5,
+          "new_balance_lb": 980.0,
+          "reason_code": "physical_count",
+          "reason": {
+            "code": "physical_count",
+            "label_en": "Physical count",
+            "label_es": "Conteo f\u00edsico",
+            "note_required": false,
+            "input": "physical_count",
+            "legacy_code": null,
+            "note": "Physical count 11/09/26 (Arturo, end of day). Approved by Michael 2026-11-10."
+          },
+          "reason_es": "Conteo f\u00edsico",
+          "note": "Physical count 11/09/26 (Arturo, end of day). Approved by Michael 2026-11-10.",
+          "resolves_shortage_ids": [],
+          "attachment_ref": null,
+          "correction_review": {
+            "action": "adjust",
+            "quantity": -1976.5,
+            "unit": "lb",
+            "lb_equivalent": -1976.5,
+            "book_balance_before": 2956.5,
+            "pct_of_book": 0.6685,
+            "rules": [
+              "OVER_10_PERCENT_OF_BOOK",
+              "OVER_500_LB"
+            ],
+            "lb_rule": "applied",
+            "highlighted": true,
+            "photo_required": true,
+            "weekly_view": true,
+            "reason_code": "physical_count",
+            "message": "Batch SS Chocolate Chip Granola #2: corrections over 500 lb need a photo; without one the entry is held for the owner to approve."
+          },
+          "input_plan": [],
+          "entry_timing": {
+            "status": "normal",
+            "hours_late": 0.0,
+            "days_late": 0,
+            "happened_at": "2026-11-10T13:43:44.175040-05:00"
+          },
+          "actor": {
+            "id": 1,
+            "name": "Blubber",
+            "role": "owner",
+            "key_kind": "actor"
+          },
+          "happened_at": "2026-11-10T13:43:44.175040-05:00",
+          "happened_vs_now_minutes": 0.0,
+          "blockers": []
+        }
+      },
+      "ticket": "REDACTED (single-use ticket token; ticket_id is in prepare)",
+      "payload_hash": "38d800054494f03ed69043947dce9fc706a15936d8db677fa129c62fcf690081",
+      "commit": {
+        "http": 202,
+        "body": {
+          "success": false,
+          "posted": false,
+          "held": true,
+          "status": "awaiting_approval",
+          "ticket_id": 361,
+          "exception_id": 80,
+          "exception_status": "open",
+          "error_code": "PHOTO_REQUIRED",
+          "message": "Corrections over 500 lb need a photo. Nothing was posted; the entry is held for the owner to approve, or commit again with attachment_ref.",
+          "message_es": "Las correcciones de m\u00e1s de 500 lb necesitan foto. No se registr\u00f3 nada; queda en espera de la aprobaci\u00f3n del due\u00f1o, o vuelva a confirmar con attachment_ref.",
+          "correction_review": {
+            "unit": "lb",
+            "rules": [
+              "OVER_10_PERCENT_OF_BOOK",
+              "OVER_500_LB"
+            ],
+            "action": "adjust",
+            "lb_rule": "applied",
+            "message": "Batch SS Chocolate Chip Granola #2: corrections over 500 lb need a photo; without one the entry is held for the owner to approve.",
+            "quantity": -1976.5,
+            "highlighted": true,
+            "pct_of_book": 0.6685,
+            "reason_code": "physical_count",
+            "weekly_view": true,
+            "lb_equivalent": -1976.5,
+            "photo_required": true,
+            "book_balance_before": 2956.5
+          }
+        }
+      },
+      "approve": {
+        "http": 200,
+        "body": {
+          "mode": "commit",
+          "success": true,
+          "transaction_id": 2991,
+          "confirmation_code": "TXN-D88886",
+          "product_id": 114,
+          "product_name": "Batch SS Chocolate Chip Granola #2",
+          "lot_code": "NOV 06 2026",
+          "adjustment_lb": -1976.5,
+          "new_balance_lb": 980.0,
+          "reason": "Physical count",
+          "reason_code": "physical_count",
+          "message": "Adjusted lot NOV 06 2026 by -1,976.5 lb (new balance: 980 lb)",
+          "reason_es": "Conteo f\u00edsico",
+          "lot_id": 1709,
+          "correction_review": {
+            "action": "adjust",
+            "quantity": -1976.5,
+            "unit": "lb",
+            "lb_equivalent": -1976.5,
+            "book_balance_before": 2956.5,
+            "pct_of_book": 0.6685,
+            "rules": [
+              "OVER_10_PERCENT_OF_BOOK",
+              "OVER_500_LB"
+            ],
+            "lb_rule": "applied",
+            "highlighted": true,
+            "photo_required": true,
+            "weekly_view": true,
+            "reason_code": "physical_count",
+            "message": "Batch SS Chocolate Chip Granola #2: corrections over 500 lb need a photo; without one the entry is held for the owner to approve.",
+            "attachment_ref": null
+          },
+          "receipt_number": "ADJ-261110-001",
+          "ticket_id": 361,
+          "replayed": false,
+          "state_changed": false,
+          "entry_timing": {
+            "status": "normal",
+            "hours_late": 0.0,
+            "days_late": 0,
+            "happened_at": "2026-11-10T13:43:44.175040-05:00",
+            "entered_at": "2026-11-10T18:43:44.960496+00:00",
+            "entered_by": {
+              "id": 1,
+              "name": "Blubber",
+              "role": "owner",
+              "key_kind": "actor"
+            },
+            "late_entry_exception_id": null
+          },
+          "approval": {
+            "kind": "LARGE_CORRECTION",
+            "exception_id": 80,
+            "approved_by": {
+              "id": 1,
+              "name": "Blubber",
+              "role": "owner"
+            },
+            "note": "Owner approval: Physical count 11/09/26 (Arturo, end of day). Approved by Michael 2026-11-10. No photo.",
+            "approved_at": "2026-11-10T18:43:44.960496+00:00"
+          },
+          "resolution_receipt_number": "XR-261110-001",
+          "kosher_lots": [
+            {
+              "lot_id": 1709,
+              "kosher_tier": "regular",
+              "kosher_attested_by_actor_id": null,
+              "kosher_attested_at": null
+            }
+          ],
+          "kosher_tier": "regular",
+          "kosher_label": "Regular",
+          "transaction_kosher_downgrade": false,
+          "kosher_attested_by_actor_id": null,
+          "kosher_attested_at": null
+        }
+      },
+      "verified": {
+        "transaction_id": 2991,
+        "receipt_number": "ADJ-261110-001",
+        "at": "2026-11-10T18:43:45.539443+00:00"
+      }
+    },
+    "1": {
+      "plan": {
+        "product_id": 108,
+        "lot_id": 1689,
+        "lot_code": "B26-1103-001",
+        "before": "1740",
+        "change": "-1740",
+        "after": "0"
+      },
+      "steps": [
+        "prepare_sent",
+        "commit_sent",
+        "approve_sent"
+      ],
+      "prepare": {
+        "http": 200,
+        "ticket_id": 363,
+        "payload_hash": "1d3d3f8902882cd47b548483e115252442e3ca8c695cb6fef61f0c153d3add09",
+        "warnings": [],
+        "blockers": [],
+        "draft": {
+          "product_id": 108,
+          "product_name": "Batch Classic Chocolate Chip Granola #9",
+          "lot_id": 1689,
+          "lot_code": "B26-1103-001",
+          "current_quantity_lb": 1740.0,
+          "delta_lb": -1740.0,
+          "new_balance_lb": 0.0,
+          "reason_code": "physical_count",
+          "reason": {
+            "code": "physical_count",
+            "label_en": "Physical count",
+            "label_es": "Conteo f\u00edsico",
+            "note_required": false,
+            "input": "physical_count",
+            "legacy_code": null,
+            "note": "Physical count 11/09/26 (Arturo, end of day). Approved by Michael 2026-11-10."
+          },
+          "reason_es": "Conteo f\u00edsico",
+          "note": "Physical count 11/09/26 (Arturo, end of day). Approved by Michael 2026-11-10.",
+          "resolves_shortage_ids": [],
+          "attachment_ref": null,
+          "correction_review": {
+            "action": "adjust",
+            "quantity": -1740.0,
+            "unit": "lb",
+            "lb_equivalent": -1740.0,
+            "book_balance_before": 1740.0,
+            "pct_of_book": 1.0,
+            "rules": [
+              "OVER_10_PERCENT_OF_BOOK",
+              "OVER_500_LB"
+            ],
+            "lb_rule": "applied",
+            "highlighted": true,
+            "photo_required": true,
+            "weekly_view": true,
+            "reason_code": "physical_count",
+            "message": "Batch Classic Chocolate Chip Granola #9: corrections over 500 lb need a photo; without one the entry is held for the owner to approve."
+          },
+          "input_plan": [],
+          "entry_timing": {
+            "status": "normal",
+            "hours_late": 0.0,
+            "days_late": 0,
+            "happened_at": "2026-11-10T13:43:46.442812-05:00"
+          },
+          "actor": {
+            "id": 1,
+            "name": "Blubber",
+            "role": "owner",
+            "key_kind": "actor"
+          },
+          "happened_at": "2026-11-10T13:43:46.442812-05:00",
+          "happened_vs_now_minutes": 0.0,
+          "blockers": []
+        }
+      },
+      "ticket": "REDACTED (single-use ticket token; ticket_id is in prepare)",
+      "payload_hash": "1d3d3f8902882cd47b548483e115252442e3ca8c695cb6fef61f0c153d3add09",
+      "commit": {
+        "http": 202,
+        "body": {
+          "success": false,
+          "posted": false,
+          "held": true,
+          "status": "awaiting_approval",
+          "ticket_id": 363,
+          "exception_id": 81,
+          "exception_status": "open",
+          "error_code": "PHOTO_REQUIRED",
+          "message": "Corrections over 500 lb need a photo. Nothing was posted; the entry is held for the owner to approve, or commit again with attachment_ref.",
+          "message_es": "Las correcciones de m\u00e1s de 500 lb necesitan foto. No se registr\u00f3 nada; queda en espera de la aprobaci\u00f3n del due\u00f1o, o vuelva a confirmar con attachment_ref.",
+          "correction_review": {
+            "unit": "lb",
+            "rules": [
+              "OVER_10_PERCENT_OF_BOOK",
+              "OVER_500_LB"
+            ],
+            "action": "adjust",
+            "lb_rule": "applied",
+            "message": "Batch Classic Chocolate Chip Granola #9: corrections over 500 lb need a photo; without one the entry is held for the owner to approve.",
+            "quantity": -1740.0,
+            "highlighted": true,
+            "pct_of_book": 1.0,
+            "reason_code": "physical_count",
+            "weekly_view": true,
+            "lb_equivalent": -1740.0,
+            "photo_required": true,
+            "book_balance_before": 1740.0
+          }
+        }
+      },
+      "approve": {
+        "http": 200,
+        "body": {
+          "mode": "commit",
+          "success": true,
+          "transaction_id": 2992,
+          "confirmation_code": "TXN-F71749",
+          "product_id": 108,
+          "product_name": "Batch Classic Chocolate Chip Granola #9",
+          "lot_code": "B26-1103-001",
+          "adjustment_lb": -1740.0,
+          "new_balance_lb": 0.0,
+          "reason": "Physical count",
+          "reason_code": "physical_count",
+          "message": "Adjusted lot B26-1103-001 by -1,740 lb (new balance: 0 lb)",
+          "reason_es": "Conteo f\u00edsico",
+          "lot_id": 1689,
+          "correction_review": {
+            "action": "adjust",
+            "quantity": -1740.0,
+            "unit": "lb",
+            "lb_equivalent": -1740.0,
+            "book_balance_before": 1740.0,
+            "pct_of_book": 1.0,
+            "rules": [
+              "OVER_10_PERCENT_OF_BOOK",
+              "OVER_500_LB"
+            ],
+            "lb_rule": "applied",
+            "highlighted": true,
+            "photo_required": true,
+            "weekly_view": true,
+            "reason_code": "physical_count",
+            "message": "Batch Classic Chocolate Chip Granola #9: corrections over 500 lb need a photo; without one the entry is held for the owner to approve.",
+            "attachment_ref": null
+          },
+          "receipt_number": "ADJ-261110-002",
+          "ticket_id": 363,
+          "replayed": false,
+          "state_changed": false,
+          "entry_timing": {
+            "status": "normal",
+            "hours_late": 0.0,
+            "days_late": 0,
+            "happened_at": "2026-11-10T13:43:46.442812-05:00",
+            "entered_at": "2026-11-10T18:43:47.333454+00:00",
+            "entered_by": {
+              "id": 1,
+              "name": "Blubber",
+              "role": "owner",
+              "key_kind": "actor"
+            },
+            "late_entry_exception_id": null
+          },
+          "approval": {
+            "kind": "LARGE_CORRECTION",
+            "exception_id": 81,
+            "approved_by": {
+              "id": 1,
+              "name": "Blubber",
+              "role": "owner"
+            },
+            "note": "Owner approval: Physical count 11/09/26 (Arturo, end of day). Approved by Michael 2026-11-10. No photo.",
+            "approved_at": "2026-11-10T18:43:47.333454+00:00"
+          },
+          "resolution_receipt_number": "XR-261110-002",
+          "kosher_lots": [
+            {
+              "lot_id": 1689,
+              "kosher_tier": "regular",
+              "kosher_attested_by_actor_id": null,
+              "kosher_attested_at": null
+            }
+          ],
+          "kosher_tier": "regular",
+          "kosher_label": "Regular",
+          "transaction_kosher_downgrade": false,
+          "kosher_attested_by_actor_id": null,
+          "kosher_attested_at": null
+        }
+      },
+      "verified": {
+        "transaction_id": 2992,
+        "receipt_number": "ADJ-261110-002",
+        "at": "2026-11-10T18:43:47.952659+00:00"
+      }
+    },
+    "2": {
+      "plan": {
+        "product_id": 108,
+        "lot_id": 1697,
+        "lot_code": "NOV 04 2026",
+        "before": "1740",
+        "change": "-1740",
+        "after": "0"
+      },
+      "steps": [
+        "prepare_sent",
+        "commit_sent",
+        "approve_sent"
+      ],
+      "prepare": {
+        "http": 200,
+        "ticket_id": 365,
+        "payload_hash": "c6071a3689be1c3739263191010e0e222fb98dd8d04c7a79df260ffca7077a4a",
+        "warnings": [],
+        "blockers": [],
+        "draft": {
+          "product_id": 108,
+          "product_name": "Batch Classic Chocolate Chip Granola #9",
+          "lot_id": 1697,
+          "lot_code": "NOV 04 2026",
+          "current_quantity_lb": 1740.0,
+          "delta_lb": -1740.0,
+          "new_balance_lb": 0.0,
+          "reason_code": "physical_count",
+          "reason": {
+            "code": "physical_count",
+            "label_en": "Physical count",
+            "label_es": "Conteo f\u00edsico",
+            "note_required": false,
+            "input": "physical_count",
+            "legacy_code": null,
+            "note": "Physical count 11/09/26 (Arturo, end of day). Approved by Michael 2026-11-10."
+          },
+          "reason_es": "Conteo f\u00edsico",
+          "note": "Physical count 11/09/26 (Arturo, end of day). Approved by Michael 2026-11-10.",
+          "resolves_shortage_ids": [],
+          "attachment_ref": null,
+          "correction_review": {
+            "action": "adjust",
+            "quantity": -1740.0,
+            "unit": "lb",
+            "lb_equivalent": -1740.0,
+            "book_balance_before": 1740.0,
+            "pct_of_book": 1.0,
+            "rules": [
+              "OVER_10_PERCENT_OF_BOOK",
+              "OVER_500_LB"
+            ],
+            "lb_rule": "applied",
+            "highlighted": true,
+            "photo_required": true,
+            "weekly_view": true,
+            "reason_code": "physical_count",
+            "message": "Batch Classic Chocolate Chip Granola #9: corrections over 500 lb need a photo; without one the entry is held for the owner to approve."
+          },
+          "input_plan": [],
+          "entry_timing": {
+            "status": "normal",
+            "hours_late": 0.0,
+            "days_late": 0,
+            "happened_at": "2026-11-10T13:43:48.889594-05:00"
+          },
+          "actor": {
+            "id": 1,
+            "name": "Blubber",
+            "role": "owner",
+            "key_kind": "actor"
+          },
+          "happened_at": "2026-11-10T13:43:48.889594-05:00",
+          "happened_vs_now_minutes": 0.0,
+          "blockers": []
+        }
+      },
+      "ticket": "REDACTED (single-use ticket token; ticket_id is in prepare)",
+      "payload_hash": "c6071a3689be1c3739263191010e0e222fb98dd8d04c7a79df260ffca7077a4a",
+      "commit": {
+        "http": 202,
+        "body": {
+          "success": false,
+          "posted": false,
+          "held": true,
+          "status": "awaiting_approval",
+          "ticket_id": 365,
+          "exception_id": 82,
+          "exception_status": "open",
+          "error_code": "PHOTO_REQUIRED",
+          "message": "Corrections over 500 lb need a photo. Nothing was posted; the entry is held for the owner to approve, or commit again with attachment_ref.",
+          "message_es": "Las correcciones de m\u00e1s de 500 lb necesitan foto. No se registr\u00f3 nada; queda en espera de la aprobaci\u00f3n del due\u00f1o, o vuelva a confirmar con attachment_ref.",
+          "correction_review": {
+            "unit": "lb",
+            "rules": [
+              "OVER_10_PERCENT_OF_BOOK",
+              "OVER_500_LB"
+            ],
+            "action": "adjust",
+            "lb_rule": "applied",
+            "message": "Batch Classic Chocolate Chip Granola #9: corrections over 500 lb need a photo; without one the entry is held for the owner to approve.",
+            "quantity": -1740.0,
+            "highlighted": true,
+            "pct_of_book": 1.0,
+            "reason_code": "physical_count",
+            "weekly_view": true,
+            "lb_equivalent": -1740.0,
+            "photo_required": true,
+            "book_balance_before": 1740.0
+          }
+        }
+      },
+      "approve": {
+        "http": 200,
+        "body": {
+          "mode": "commit",
+          "success": true,
+          "transaction_id": 2993,
+          "confirmation_code": "TXN-97FD1A",
+          "product_id": 108,
+          "product_name": "Batch Classic Chocolate Chip Granola #9",
+          "lot_code": "NOV 04 2026",
+          "adjustment_lb": -1740.0,
+          "new_balance_lb": 0.0,
+          "reason": "Physical count",
+          "reason_code": "physical_count",
+          "message": "Adjusted lot NOV 04 2026 by -1,740 lb (new balance: 0 lb)",
+          "reason_es": "Conteo f\u00edsico",
+          "lot_id": 1697,
+          "correction_review": {
+            "action": "adjust",
+            "quantity": -1740.0,
+            "unit": "lb",
+            "lb_equivalent": -1740.0,
+            "book_balance_before": 1740.0,
+            "pct_of_book": 1.0,
+            "rules": [
+              "OVER_10_PERCENT_OF_BOOK",
+              "OVER_500_LB"
+            ],
+            "lb_rule": "applied",
+            "highlighted": true,
+            "photo_required": true,
+            "weekly_view": true,
+            "reason_code": "physical_count",
+            "message": "Batch Classic Chocolate Chip Granola #9: corrections over 500 lb need a photo; without one the entry is held for the owner to approve.",
+            "attachment_ref": null
+          },
+          "receipt_number": "ADJ-261110-003",
+          "ticket_id": 365,
+          "replayed": false,
+          "state_changed": false,
+          "entry_timing": {
+            "status": "normal",
+            "hours_late": 0.0,
+            "days_late": 0,
+            "happened_at": "2026-11-10T13:43:48.889594-05:00",
+            "entered_at": "2026-11-10T18:43:49.426936+00:00",
+            "entered_by": {
+              "id": 1,
+              "name": "Blubber",
+              "role": "owner",
+              "key_kind": "actor"
+            },
+            "late_entry_exception_id": null
+          },
+          "approval": {
+            "kind": "LARGE_CORRECTION",
+            "exception_id": 82,
+            "approved_by": {
+              "id": 1,
+              "name": "Blubber",
+              "role": "owner"
+            },
+            "note": "Owner approval: Physical count 11/09/26 (Arturo, end of day). Approved by Michael 2026-11-10. No photo.",
+            "approved_at": "2026-11-10T18:43:49.426936+00:00"
+          },
+          "resolution_receipt_number": "XR-261110-003",
+          "kosher_lots": [
+            {
+              "lot_id": 1697,
+              "kosher_tier": "regular",
+              "kosher_attested_by_actor_id": null,
+              "kosher_attested_at": null
+            }
+          ],
+          "kosher_tier": "regular",
+          "kosher_label": "Regular",
+          "transaction_kosher_downgrade": false,
+          "kosher_attested_by_actor_id": null,
+          "kosher_attested_at": null
+        }
+      },
+      "verified": {
+        "transaction_id": 2993,
+        "receipt_number": "ADJ-261110-003",
+        "at": "2026-11-10T18:43:49.919502+00:00"
+      }
+    },
+    "3": {
+      "plan": {
+        "product_id": 108,
+        "lot_id": 1703,
+        "lot_code": "NOV 05 2026",
+        "before": "1392",
+        "change": "-1390",
+        "after": "2"
+      },
+      "steps": [
+        "prepare_sent",
+        "commit_sent",
+        "approve_sent"
+      ],
+      "prepare": {
+        "http": 200,
+        "ticket_id": 367,
+        "payload_hash": "f058ae66ba0658ef9fe9297bdee2827e0979554835282f8762f79d1cf1a34b19",
+        "warnings": [],
+        "blockers": [],
+        "draft": {
+          "product_id": 108,
+          "product_name": "Batch Classic Chocolate Chip Granola #9",
+          "lot_id": 1703,
+          "lot_code": "NOV 05 2026",
+          "current_quantity_lb": 1392.0,
+          "delta_lb": -1390.0,
+          "new_balance_lb": 2.0,
+          "reason_code": "physical_count",
+          "reason": {
+            "code": "physical_count",
+            "label_en": "Physical count",
+            "label_es": "Conteo f\u00edsico",
+            "note_required": false,
+            "input": "physical_count",
+            "legacy_code": null,
+            "note": "Physical count 11/09/26 (Arturo, end of day). Approved by Michael 2026-11-10."
+          },
+          "reason_es": "Conteo f\u00edsico",
+          "note": "Physical count 11/09/26 (Arturo, end of day). Approved by Michael 2026-11-10.",
+          "resolves_shortage_ids": [],
+          "attachment_ref": null,
+          "correction_review": {
+            "action": "adjust",
+            "quantity": -1390.0,
+            "unit": "lb",
+            "lb_equivalent": -1390.0,
+            "book_balance_before": 1392.0,
+            "pct_of_book": 0.9986,
+            "rules": [
+              "OVER_10_PERCENT_OF_BOOK",
+              "OVER_500_LB"
+            ],
+            "lb_rule": "applied",
+            "highlighted": true,
+            "photo_required": true,
+            "weekly_view": true,
+            "reason_code": "physical_count",
+            "message": "Batch Classic Chocolate Chip Granola #9: corrections over 500 lb need a photo; without one the entry is held for the owner to approve."
+          },
+          "input_plan": [],
+          "entry_timing": {
+            "status": "normal",
+            "hours_late": 0.0,
+            "days_late": 0,
+            "happened_at": "2026-11-10T13:43:50.884250-05:00"
+          },
+          "actor": {
+            "id": 1,
+            "name": "Blubber",
+            "role": "owner",
+            "key_kind": "actor"
+          },
+          "happened_at": "2026-11-10T13:43:50.884250-05:00",
+          "happened_vs_now_minutes": 0.0,
+          "blockers": []
+        }
+      },
+      "ticket": "REDACTED (single-use ticket token; ticket_id is in prepare)",
+      "payload_hash": "f058ae66ba0658ef9fe9297bdee2827e0979554835282f8762f79d1cf1a34b19",
+      "commit": {
+        "http": 202,
+        "body": {
+          "success": false,
+          "posted": false,
+          "held": true,
+          "status": "awaiting_approval",
+          "ticket_id": 367,
+          "exception_id": 83,
+          "exception_status": "open",
+          "error_code": "PHOTO_REQUIRED",
+          "message": "Corrections over 500 lb need a photo. Nothing was posted; the entry is held for the owner to approve, or commit again with attachment_ref.",
+          "message_es": "Las correcciones de m\u00e1s de 500 lb necesitan foto. No se registr\u00f3 nada; queda en espera de la aprobaci\u00f3n del due\u00f1o, o vuelva a confirmar con attachment_ref.",
+          "correction_review": {
+            "unit": "lb",
+            "rules": [
+              "OVER_10_PERCENT_OF_BOOK",
+              "OVER_500_LB"
+            ],
+            "action": "adjust",
+            "lb_rule": "applied",
+            "message": "Batch Classic Chocolate Chip Granola #9: corrections over 500 lb need a photo; without one the entry is held for the owner to approve.",
+            "quantity": -1390.0,
+            "highlighted": true,
+            "pct_of_book": 0.9986,
+            "reason_code": "physical_count",
+            "weekly_view": true,
+            "lb_equivalent": -1390.0,
+            "photo_required": true,
+            "book_balance_before": 1392.0
+          }
+        }
+      },
+      "approve": {
+        "http": 200,
+        "body": {
+          "mode": "commit",
+          "success": true,
+          "transaction_id": 2994,
+          "confirmation_code": "TXN-E75862",
+          "product_id": 108,
+          "product_name": "Batch Classic Chocolate Chip Granola #9",
+          "lot_code": "NOV 05 2026",
+          "adjustment_lb": -1390.0,
+          "new_balance_lb": 2.0,
+          "reason": "Physical count",
+          "reason_code": "physical_count",
+          "message": "Adjusted lot NOV 05 2026 by -1,390 lb (new balance: 2 lb)",
+          "reason_es": "Conteo f\u00edsico",
+          "lot_id": 1703,
+          "correction_review": {
+            "action": "adjust",
+            "quantity": -1390.0,
+            "unit": "lb",
+            "lb_equivalent": -1390.0,
+            "book_balance_before": 1392.0,
+            "pct_of_book": 0.9986,
+            "rules": [
+              "OVER_10_PERCENT_OF_BOOK",
+              "OVER_500_LB"
+            ],
+            "lb_rule": "applied",
+            "highlighted": true,
+            "photo_required": true,
+            "weekly_view": true,
+            "reason_code": "physical_count",
+            "message": "Batch Classic Chocolate Chip Granola #9: corrections over 500 lb need a photo; without one the entry is held for the owner to approve.",
+            "attachment_ref": null
+          },
+          "receipt_number": "ADJ-261110-004",
+          "ticket_id": 367,
+          "replayed": false,
+          "state_changed": false,
+          "entry_timing": {
+            "status": "normal",
+            "hours_late": 0.0,
+            "days_late": 0,
+            "happened_at": "2026-11-10T13:43:50.884250-05:00",
+            "entered_at": "2026-11-10T18:43:51.423499+00:00",
+            "entered_by": {
+              "id": 1,
+              "name": "Blubber",
+              "role": "owner",
+              "key_kind": "actor"
+            },
+            "late_entry_exception_id": null
+          },
+          "approval": {
+            "kind": "LARGE_CORRECTION",
+            "exception_id": 83,
+            "approved_by": {
+              "id": 1,
+              "name": "Blubber",
+              "role": "owner"
+            },
+            "note": "Owner approval: Physical count 11/09/26 (Arturo, end of day). Approved by Michael 2026-11-10. No photo.",
+            "approved_at": "2026-11-10T18:43:51.423499+00:00"
+          },
+          "resolution_receipt_number": "XR-261110-004",
+          "kosher_lots": [
+            {
+              "lot_id": 1703,
+              "kosher_tier": "regular",
+              "kosher_attested_by_actor_id": null,
+              "kosher_attested_at": null
+            }
+          ],
+          "kosher_tier": "regular",
+          "kosher_label": "Regular",
+          "transaction_kosher_downgrade": false,
+          "kosher_attested_by_actor_id": null,
+          "kosher_attested_at": null
+        }
+      },
+      "verified": {
+        "transaction_id": 2994,
+        "receipt_number": "ADJ-261110-004",
+        "at": "2026-11-10T18:43:51.926668+00:00"
+      }
+    },
+    "4": {
+      "plan": {
+        "product_id": 116,
+        "lot_id": 1720,
+        "lot_code": "NOV 09 2026",
+        "before": "1750",
+        "change": "-1375",
+        "after": "375"
+      },
+      "steps": [
+        "prepare_sent",
+        "commit_sent",
+        "approve_sent"
+      ],
+      "prepare": {
+        "http": 200,
+        "ticket_id": 369,
+        "payload_hash": "83eae916efd230d898da797c170c7a65d51f3a902c552f1f13742d95e7885db7",
+        "warnings": [],
+        "blockers": [],
+        "draft": {
+          "product_id": 116,
+          "product_name": "Batch SS Original Granola #1",
+          "lot_id": 1720,
+          "lot_code": "NOV 09 2026",
+          "current_quantity_lb": 1750.0,
+          "delta_lb": -1375.0,
+          "new_balance_lb": 375.0,
+          "reason_code": "physical_count",
+          "reason": {
+            "code": "physical_count",
+            "label_en": "Physical count",
+            "label_es": "Conteo f\u00edsico",
+            "note_required": false,
+            "input": "physical_count",
+            "legacy_code": null,
+            "note": "Physical count 11/09/26 (Arturo, end of day). Approved by Michael 2026-11-10."
+          },
+          "reason_es": "Conteo f\u00edsico",
+          "note": "Physical count 11/09/26 (Arturo, end of day). Approved by Michael 2026-11-10.",
+          "resolves_shortage_ids": [],
+          "attachment_ref": null,
+          "correction_review": {
+            "action": "adjust",
+            "quantity": -1375.0,
+            "unit": "lb",
+            "lb_equivalent": -1375.0,
+            "book_balance_before": 1750.0,
+            "pct_of_book": 0.7857,
+            "rules": [
+              "OVER_10_PERCENT_OF_BOOK",
+              "OVER_500_LB"
+            ],
+            "lb_rule": "applied",
+            "highlighted": true,
+            "photo_required": true,
+            "weekly_view": true,
+            "reason_code": "physical_count",
+            "message": "Batch SS Original Granola #1: corrections over 500 lb need a photo; without one the entry is held for the owner to approve."
+          },
+          "input_plan": [],
+          "entry_timing": {
+            "status": "normal",
+            "hours_late": 0.0,
+            "days_late": 0,
+            "happened_at": "2026-11-10T13:43:52.849951-05:00"
+          },
+          "actor": {
+            "id": 1,
+            "name": "Blubber",
+            "role": "owner",
+            "key_kind": "actor"
+          },
+          "happened_at": "2026-11-10T13:43:52.849951-05:00",
+          "happened_vs_now_minutes": 0.0,
+          "blockers": []
+        }
+      },
+      "ticket": "REDACTED (single-use ticket token; ticket_id is in prepare)",
+      "payload_hash": "83eae916efd230d898da797c170c7a65d51f3a902c552f1f13742d95e7885db7",
+      "commit": {
+        "http": 202,
+        "body": {
+          "success": false,
+          "posted": false,
+          "held": true,
+          "status": "awaiting_approval",
+          "ticket_id": 369,
+          "exception_id": 84,
+          "exception_status": "open",
+          "error_code": "PHOTO_REQUIRED",
+          "message": "Corrections over 500 lb need a photo. Nothing was posted; the entry is held for the owner to approve, or commit again with attachment_ref.",
+          "message_es": "Las correcciones de m\u00e1s de 500 lb necesitan foto. No se registr\u00f3 nada; queda en espera de la aprobaci\u00f3n del due\u00f1o, o vuelva a confirmar con attachment_ref.",
+          "correction_review": {
+            "unit": "lb",
+            "rules": [
+              "OVER_10_PERCENT_OF_BOOK",
+              "OVER_500_LB"
+            ],
+            "action": "adjust",
+            "lb_rule": "applied",
+            "message": "Batch SS Original Granola #1: corrections over 500 lb need a photo; without one the entry is held for the owner to approve.",
+            "quantity": -1375.0,
+            "highlighted": true,
+            "pct_of_book": 0.7857,
+            "reason_code": "physical_count",
+            "weekly_view": true,
+            "lb_equivalent": -1375.0,
+            "photo_required": true,
+            "book_balance_before": 1750.0
+          }
+        }
+      },
+      "approve": {
+        "http": 200,
+        "body": {
+          "mode": "commit",
+          "success": true,
+          "transaction_id": 2995,
+          "confirmation_code": "TXN-0A69B7",
+          "product_id": 116,
+          "product_name": "Batch SS Original Granola #1",
+          "lot_code": "NOV 09 2026",
+          "adjustment_lb": -1375.0,
+          "new_balance_lb": 375.0,
+          "reason": "Physical count",
+          "reason_code": "physical_count",
+          "message": "Adjusted lot NOV 09 2026 by -1,375 lb (new balance: 375 lb)",
+          "reason_es": "Conteo f\u00edsico",
+          "lot_id": 1720,
+          "correction_review": {
+            "action": "adjust",
+            "quantity": -1375.0,
+            "unit": "lb",
+            "lb_equivalent": -1375.0,
+            "book_balance_before": 1750.0,
+            "pct_of_book": 0.7857,
+            "rules": [
+              "OVER_10_PERCENT_OF_BOOK",
+              "OVER_500_LB"
+            ],
+            "lb_rule": "applied",
+            "highlighted": true,
+            "photo_required": true,
+            "weekly_view": true,
+            "reason_code": "physical_count",
+            "message": "Batch SS Original Granola #1: corrections over 500 lb need a photo; without one the entry is held for the owner to approve.",
+            "attachment_ref": null
+          },
+          "receipt_number": "ADJ-261110-005",
+          "ticket_id": 369,
+          "replayed": false,
+          "state_changed": false,
+          "entry_timing": {
+            "status": "normal",
+            "hours_late": 0.0,
+            "days_late": 0,
+            "happened_at": "2026-11-10T13:43:52.849951-05:00",
+            "entered_at": "2026-11-10T18:43:53.350968+00:00",
+            "entered_by": {
+              "id": 1,
+              "name": "Blubber",
+              "role": "owner",
+              "key_kind": "actor"
+            },
+            "late_entry_exception_id": null
+          },
+          "approval": {
+            "kind": "LARGE_CORRECTION",
+            "exception_id": 84,
+            "approved_by": {
+              "id": 1,
+              "name": "Blubber",
+              "role": "owner"
+            },
+            "note": "Owner approval: Physical count 11/09/26 (Arturo, end of day). Approved by Michael 2026-11-10. No photo.",
+            "approved_at": "2026-11-10T18:43:53.350968+00:00"
+          },
+          "resolution_receipt_number": "XR-261110-005",
+          "kosher_lots": [
+            {
+              "lot_id": 1720,
+              "kosher_tier": "regular",
+              "kosher_attested_by_actor_id": null,
+              "kosher_attested_at": null
+            }
+          ],
+          "kosher_tier": "regular",
+          "kosher_label": "Regular",
+          "transaction_kosher_downgrade": false,
+          "kosher_attested_by_actor_id": null,
+          "kosher_attested_at": null
+        }
+      },
+      "verified": {
+        "transaction_id": 2995,
+        "receipt_number": "ADJ-261110-005",
+        "at": "2026-11-10T18:43:53.83215+00:00"
+      }
+    }
+  }
+}
