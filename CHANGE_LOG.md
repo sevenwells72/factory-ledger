@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-10 18:10 — Record void VD-261110-001 and pack PK-261110-007 (changelog rows 277–278)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added row 277 (void of mistaken 1,800 lb receive TX 3005 on Coconut Flake Desiccated, receipt VD-261110-001) and row 278 (pack of 1,800 lb from pooled lot 26-10-27-FOUND-011 into Desiccated Flake 50 LB lot 6153 for SO-261027-002, receipt PK-261110-007, TX 3012), each with its backup, owner approval, read-only verification and open items. Row 276 is left for open PR #201.
+- **Why:** Regression Guard step 4: record each production change. Docs only; no code, migration or GPT YAML change.
+
+---
+
 ## 2026-11-10 12:26 — Record PR 199 production deploy (changelog row 275)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added row 275: backup OK (2026-11-10-pre-pr199), #199 squash-merged to main 291ed1f, Railway FastAPI 9c4b9034 SUCCESS (rollback a570eac6), health 200, reconciliation routes 401 without key and absent from OpenAPI; job still switched off, 094 not applied.
