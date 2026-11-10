@@ -669,12 +669,14 @@ def send_email(email, env=None):
         response = httpx.post(RESEND_URL, timeout=20.0, headers={'Authorization': f'Bearer {key}'}, json={
             'from': env.get('RECONCILIATION_EMAIL_FROM', '').strip() or DEFAULT_EMAIL_FROM,
             'to': recipients, 'subject': email['subject'], 'text': email['text'], 'html': email['html']})
-    except httpx.HTTPError as exc:
+    except Exception as exc:  # any failure here is a failed send, never a failed job; the name only, never the key
         outcome['error'] = f'Could not reach the email service ({type(exc).__name__})'
         return outcome
     try:
         body = response.json()
     except ValueError:
+        body = {}
+    if not isinstance(body, dict):
         body = {}
     if 200 <= response.status_code < 300:
         outcome.update(status='sent', provider_id=str(body.get('id') or '') or None)
@@ -790,7 +792,10 @@ def run_job(cur, *, now=None, dry_run=False, sender=None, env=None, force_email=
         if cur.fetchone() is not None and not force_email:
             delivery = {'status': 'already_sent'}
         else:
-            delivery = (sender or send_email)(email, env)
+            try:
+                delivery = (sender or send_email)(email, env)
+            except Exception as exc:  # the run and its flags are saved whatever the email step does
+                delivery = {'status': 'failed', 'error': f'Email step failed ({type(exc).__name__})'}
     outcome['run_id'] = save_run(cur, started_at=started_at, baseline_id=baseline_id, data=data,
                                  analysis=analysis, email=email, delivery=delivery)
     outcome['email_status'], outcome['email_error'] = delivery['status'], delivery.get('error')

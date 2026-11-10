@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-10 07:53 — Daily reconciliation review fixes 3-4: email step can never abort a run; test_01 safe on a re-used database
+- **File(s) changed:** `reconciliation.py`, `tests/test_daily_reconciliation.py`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** send_email now treats any exception or a non-object reply as a failed send, and run_job records a sender that raises as email_status failed so the run and flags are still saved. test_01 compares the timestamp rebuild as of now, so rows left by other tests in a re-used database no longer fail it. One new test; row 273 counts updated (still not deployed).
+- **Why:** Should-fix findings 3 and 4 from the PR 198 cross-review; Michael approved fixing both.
+
+---
+
 ## 2026-11-10 07:42 — Daily reconciliation review fix: undelivered runs are covered and named in the next email
 - **File(s) changed:** `reconciliation.py`, `tests/test_daily_reconciliation.py`, `docs/deployments/daily-reconciliation.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** run_job now takes its opening snapshot from the latest earlier run whose findings were delivered (email sent, or email off). Runs since then with a failed send, a failed job, or saved without an email are re-covered by the next window, listed in summary.undelivered and named in a NOTE line in the email. Three new tests; row 273 updated (still not deployed).

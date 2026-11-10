@@ -172,7 +172,9 @@ def test_01_snapshot_equals_the_view_and_excludes_voided(kit):
     assert snapshot == view
     assert snapshot[kit.oats_lot] == (kit.oats, 5000.0) and snapshot[kit.honey_lot] == (kit.honey, 2000.0)
     # and the timestamp rebuild used for replays agrees with the view
-    assert dict(map(tuple, reconciliation.balances_at(kit.cur, at(5, 0)))) == {k: v[1] for k, v in view.items()}
+    # (as of now, so rows other tests left in a re-used database are in both)
+    as_of = datetime.now(ET) + timedelta(days=1)
+    assert dict(map(tuple, reconciliation.balances_at(kit.cur, as_of))) == {k: v[1] for k, v in view.items()}
 
 
 def test_02_clean_day_has_zero_flags_and_still_sends_all_clear(kit):
@@ -402,6 +404,18 @@ def test_a_first_ever_send_that_fails_is_still_covered(kit):
     assert 'NOTE: the check for Thu Mar 12 did not finish' in kit.sent[-1]['text']
 
 
+def test_a_sender_that_raises_still_saves_the_run(kit):
+    kit.run(night(-1))
+    kit.post('adjust', [(kit.oats_lot, -40)], at(0, 9), named=False, reason_code='unknown')
+
+    def explodes(email, env):
+        raise KeyError('re_test')
+    outcome = kit.run(night(0), sender=explodes)
+    row = kit.row(outcome['run_id'])
+    assert (row['job_status'], row['result'], row['email_status']) == ('completed', 'attention', 'failed')
+    assert row['email_error'] == 'Email step failed (KeyError)' and row['flag_count'] >= 1
+
+
 def test_12_a_run_changes_no_existing_table(kit):
     kit.make(10, at(0, 9), oats=700)
     kit.post('adjust', [(kit.nuts_lot, -1200)], at(0, 10), named=False, reason_code='unknown')
@@ -591,6 +605,15 @@ def test_resend_delivery(monkeypatch):
     monkeypatch.setattr(reconciliation.httpx, 'post', down)
     failed = reconciliation.send_email(email, env)
     assert failed['status'] == 'failed' and 're_test' not in failed['error']
+
+    def crash(url, **kwargs):
+        raise RuntimeError('re_test must never be echoed')              # not an httpx error
+    monkeypatch.setattr(reconciliation.httpx, 'post', crash)
+    failed = reconciliation.send_email(email, env)
+    assert failed == {'status': 'failed', 'to': 'a@example.test, b@example.test', 'provider_id': None,
+                      'error': 'Could not reach the email service (RuntimeError)'}
+    monkeypatch.setattr(reconciliation.httpx, 'post', lambda url, **kw: Reply(200, ['not', 'an', 'object']))
+    assert reconciliation.send_email(email, env)['status'] == 'sent'
     assert reconciliation.send_email(email, {'RECONCILIATION_EMAIL_ENABLED': '1'})['error'] \
         == 'ALERT_EMAIL_TO or RESEND_API_KEY is not set'
 
