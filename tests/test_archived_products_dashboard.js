@@ -26,6 +26,7 @@ function render(data) {
     FLArchive: { ...archive, canArchive: () => false, showArchived: () => false, bind: () => {} },
     refreshFinishedGoods: () => {}, showArchiveError: () => {},
   });
+  vm.runInContext(fn(dashboard, 'lotHistoryLink'), ctx);
   vm.runInContext(fn(dashboard, 'renderFinishedGoodsPanels'), ctx);
   ctx.renderFinishedGoodsPanels(data, container);
   return container.innerHTML;

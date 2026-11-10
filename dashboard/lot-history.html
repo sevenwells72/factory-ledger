@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lot history — Factory Ledger</title>
+  <script src="dashboard-runtime.js?v=8"></script>
+  <script src="fetch-timeout.js?v=4"></script>
+  <script src="design-controls.js?v=3"></script>
+  <script src="trace-report.js?v=2"></script>
+  <link rel="stylesheet" href="dashboard.css?v=48">
+  <link rel="stylesheet" href="lot-history.css?v=1">
+  <script>try { document.documentElement.dataset.theme=localStorage.getItem('dashboard-theme') || 'dark'; } catch(e) {}</script>
+</head>
+<body>
+  <main class="lot-history-page">
+    <a id="backInventory" class="lot-history-action" href="index.html?section=operations#section-ingredients">Back to inventory</a>
+    <h1 id="historyTitle">Lot history</h1>
+    <p>Every recorded lot, including depleted stock. Newest first. Select a lot to open its trace report.</p>
+    <div id="historyStatus" role="status" aria-live="polite">Loading lot history…</div>
+    <button id="historyRetry" class="lot-history-action" type="button" hidden>Retry</button>
+    <div id="historyContent"></div>
+  </main>
+  <script src="lot-history.js?v=1"></script>
+</body>
+</html>

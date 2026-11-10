@@ -609,11 +609,19 @@ def test_dashboard_forward_trace_filters_same_code_shipments_by_lot_id(
     assert expected_line["product_id"] == product_ids["target"]
 
     dashboard = (ROOT / "dashboard/traceability.html").read_text(encoding="utf-8")
-    assert "if (line.lot_id === lotId)" in dashboard
+    audit = remediation_client.get(
+        f"/dashboard/api/lot-report/{shared_lot_code}",
+        params={"product_id": product_ids["source"], "direction": "forward"},
+    )
+    assert audit.status_code == 200, audit.text
+    graph = audit.json()["forward_trace"]
+    assert {n["lot_id"] for n in graph["lots"]} == {lots["source"], lots["target"]}
+    assert {sh["transaction_id"] for n in graph["lots"] for sh in n["shipments"]} == {expected_ship_id}
+    assert "findShipmentsForLot" not in dashboard
     assert "line.lot_code.toLowerCase() === lotCode.toLowerCase()" not in dashboard
     assert "line.lot_code + '|'" not in dashboard
     assert "const key = line.lot_id;" in dashboard
-    assert "id: 'batch-' + b.lot_id" in dashboard
+    assert "traceBackwardBatchLegacy" not in dashboard
 
 
 @pytest.mark.db

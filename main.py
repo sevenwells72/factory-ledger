@@ -14,6 +14,7 @@ from functools import wraps
 import psycopg2
 from psycopg2.extras import RealDictCursor
 import calendar
+import lot_trace
 from psycopg2 import pool
 import os
 import re
@@ -2988,6 +2989,8 @@ DASHBOARD_KEY_ALLOWLIST = frozenset({
     ("GET", "/bom/batches/{batch_id}/formula"),
     ("GET", "/reason-codes"),
     # History / traceability (read-only; traceability.html, process-flow.html)
+    ("GET", "/dashboard/api/inventory/{product_id}/lot-history"),
+    ("GET", "/dashboard/api/lot-report/{lot_code}"),
     ("GET", "/transactions/history"),
     # FR-12 Recent Entries: authenticated global audit feed for the dashboard.
     ("GET", "/ledger/recent"),
@@ -10420,6 +10423,35 @@ def correct_transaction(
 # ═══════════════════════════════════════════════════════════════
 # TRACE ENDPOINTS
 # ═══════════════════════════════════════════════════════════════
+
+@app.get("/dashboard/api/inventory/{product_id}/lot-history")
+def dashboard_api_lot_history(product_id: int = Path(..., ge=1), _: bool = Depends(verify_api_key)):
+    with get_transaction() as cur:
+        result = lot_trace.history(cur, product_id, sys.modules[__name__])
+        if result is None:
+            raise HTTPException(404, "Product not found")
+        return result
+
+
+@app.get("/dashboard/api/lot-report/{lot_code}")
+def dashboard_api_lot_report(lot_code: str, product_id: Optional[int] = Query(None),
+                             direction: Literal["forward", "backward"] = "forward",
+                             _: bool = Depends(verify_api_key)):
+    """Explicit complete audit report; never added to the GPT-facing trace responses."""
+    with get_transaction() as cur:
+        cur.execute("""SELECT l.*, p.name AS product_name FROM lots l
+                       JOIN products p ON p.id=l.product_id
+                       WHERE lower(l.lot_code)=lower(%s) AND (%s::integer IS NULL OR l.product_id=%s)
+                       ORDER BY l.id""", (lot_code, product_id, product_id))
+        matches=cur.fetchall()
+        if not matches:
+            raise HTTPException(404, "Lot not found")
+        if len(matches)>1:
+            return JSONResponse(status_code=409, content={"error":"ambiguous_lot_code", "matches":[
+                {"lot_id":r["id"], "product_id":r["product_id"], "product_name":r["product_name"],
+                 "entry_source":r["entry_source"]} for r in matches]})
+        return lot_trace.report(cur, matches[0], direction, sys.modules[__name__])
+
 
 # Canonical entry_source values written by lot creation endpoints
 INGREDIENT_ENTRY_SOURCES = {'received', 'found_inventory', 'adjusted', None}

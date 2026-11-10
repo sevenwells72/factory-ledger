@@ -675,7 +675,9 @@
   }
 
   async function fetchAPI(path, options) {
-    const res = await FL.fetchWithTimeout(API_BASE + path, options);
+    const headers = new Headers(options?.headers || {});
+    headers.set("X-API-Key", await FLDashboard.key());
+    const res = await FL.fetchWithTimeout(API_BASE + path, { ...options, headers });
     if (!res.ok) {
       const body = await res.text();
       throw new Error(`HTTP ${res.status}: ${body}`);
@@ -1373,7 +1375,7 @@
           const cases = inventoryUnitCount(p.on_hand_lbs, caseWt);
           const archItem = { product_id: p.product_id, name: p.product_name, archived: !!p.archived };
           html += `<tr class="expandable${FLArchive.rowClass(archItem)}" data-expand="${rowId}">`;
-          html += `<td>${FLArchive.rowCheckbox('finished-goods', archItem, canArchive)}${escHtml(p.product_name)}${FLArchive.rowControls('finished-goods', archItem, canArchive)}</td>`;
+          html += `<td>${FLArchive.rowCheckbox('finished-goods', archItem, canArchive)}${escHtml(p.product_name)} ${lotHistoryLink(p.product_id, p.product_name)}${FLArchive.rowControls('finished-goods', archItem, canArchive)}</td>`;
           html += `<td class="num">${fmt(p.on_hand_lbs)} lb${cases !== null ? ` (${fmtInt(cases)} × ${fmtWt(caseWt)} lb)` : ''}</td>`;
           html += `<td>${cases !== null ? `<span class="badge ${caseBadgeClass(cases)}">${fmtInt(cases)} cases</span>` : ''}</td>`;
           html += `<td class="num">${fmtPallets(cases, panel.id, caseWt)}</td>`;
@@ -1574,7 +1576,7 @@
           const qtyLabel = headerUnit ? fmt(item.on_hand) : `${fmt(item.on_hand)} ${escHtml(uom)}`;
           const archItem = { product_id: item.product_id, name: item.name, archived: !!item.archived };
           html += `<tr class="expandable${FLArchive.rowClass(archItem)}" data-expand="${rowId}">`;
-          html += `<td>${FLArchive.rowCheckbox('ingredients', archItem, canArchive)}${escHtml(item.name)}${FLArchive.rowControls('ingredients', archItem, canArchive)}</td><td class="num">${qtyLabel}</td>`;
+          html += `<td>${FLArchive.rowCheckbox('ingredients', archItem, canArchive)}${escHtml(item.name)} ${lotHistoryLink(item.product_id, item.name)}${FLArchive.rowControls('ingredients', archItem, canArchive)}</td><td class="num">${qtyLabel}</td>`;
           html += `</tr>`;
           // Lot breakdown
           html += `<tbody class="lot-breakdown" id="${rowId}">`;
@@ -1823,7 +1825,9 @@
     try {
       let url = API_BASE + '/lot/' + encodeURIComponent(lotCode);
       if (productId) url += '?product_id=' + encodeURIComponent(productId);
-      const res = await FL.fetchWithTimeout(url, options);
+      const headers = new Headers(options.headers || {});
+      headers.set('X-API-Key', await FLDashboard.key());
+      const res = await FL.fetchWithTimeout(url, { ...options, headers });
       if (res.status === 409) {
         // Ambiguous lot code — show disambiguation picker
         const err = await res.json();
@@ -1996,9 +2000,15 @@
     });
   }
 
+  function lotHistoryLink(productId, name) {
+    if (!productId) return '';
+    return `<a class="lot-history-action" href="lot-history.html?product_id=${encodeURIComponent(productId)}" aria-label="Lot history for ${escAttr(name)}">Lot history</a>`;
+  }
+
   function bindExpandableRows(container) {
     container.querySelectorAll('tr.expandable').forEach(row => {
-      row.addEventListener('click', () => {
+      row.addEventListener('click', event => {
+        if (event.target.closest('a, button, input, select')) return;
         const targetId = row.dataset.expand;
         const tbody = document.getElementById(targetId);
         if (tbody) {
@@ -5327,7 +5337,7 @@
         : (state.supplies.expectedReceiptsError ? 'Unavailable' : 'Loading...');
       const archItem = { product_id: item.product_id, name: item.name, archived: item.active === false };
       html += `<tr class="supply-item-row${item.is_low ? ' supply-item-low' : ''}${FLArchive.rowClass(archItem)}" data-product-id="${item.product_id}" tabindex="0" role="button" aria-expanded="${expanded}" aria-controls="${detailId}">`;
-      html += `<td>${FLArchive.rowCheckbox('supplies', archItem, canArchive)}<span class="supply-row-caret" aria-hidden="true">&#9656;</span><span class="supply-product-name">${escHtml(item.name)}</span>${FLArchive.rowControls('supplies', archItem, canArchive)}</td>`;
+      html += `<td>${FLArchive.rowCheckbox('supplies', archItem, canArchive)}<span class="supply-row-caret" aria-hidden="true">&#9656;</span><span class="supply-product-name">${escHtml(item.name)}</span> ${item.category === 'ingredient' ? lotHistoryLink(item.product_id, item.name) : ''}${FLArchive.rowControls('supplies', archItem, canArchive)}</td>`;
       html += `<td class="num">${fmtWt(item.on_hand)}</td><td>${escHtml(item.unit || '')}</td><td class="num">${incomingDisplay}</td>`;
       html += `<td>${item.is_low ? '<span class="so-badge supply-low-badge">Low Stock</span>' : ''}</td></tr>`;
       if (expanded) {
@@ -5340,8 +5350,9 @@
 
     container.querySelectorAll('.supply-item-row').forEach(row => {
       const toggle = () => toggleSupplyProduct(Number(row.dataset.productId));
-      row.addEventListener('click', toggle);
+      row.addEventListener('click', event => { if (!event.target.closest('a,button,input')) toggle(); });
       row.addEventListener('keydown', event => {
+        if (event.target !== row) return;
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
           toggle();
@@ -5617,7 +5628,9 @@
     const retry = document.getElementById('health-retry');
     retry.disabled = true;
     try {
-      const res = await FL.fetchWithTimeout('https://fastapi-production-b73a.up.railway.app/audit/integrity', { headers });
+      const requestHeaders = new Headers(headers || {});
+      requestHeaders.set('X-API-Key', await FLDashboard.key());
+      const res = await FL.fetchWithTimeout(SALES_API_BASE + '/audit/integrity', { headers: requestHeaders });
       if (!res.ok) throw new Error('Failed');
       const data = await res.json();
       if (!Number.isFinite(data.score) || !Array.isArray(data.checks)) throw new Error('Incomplete health check');

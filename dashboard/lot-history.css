@@ -1,0 +1,41 @@
+.lot-history-page { max-width: 1400px; margin: 0 auto; padding: 24px; color: var(--text); }
+.lot-history-page h1 { margin: 20px 0 12px; }
+.lot-history-page p, .audit-section p { margin: 12px 0; line-height: 1.5; }
+.lot-history-action { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--primary-text); font: inherit; text-decoration: underline; cursor: pointer; box-sizing: border-box; }
+.lot-history-action:hover { background: var(--surface2); }
+.lot-history-action:active { opacity: .8; }
+.lot-history-action:focus-visible, .audit-table-scroll:focus-visible { outline: 3px solid var(--primary-text); outline-offset: 3px; }
+.lot-history-action[hidden] { display: none; }
+.lot-history-page table { width: 100%; border-collapse: collapse; background: var(--surface); }
+.lot-history-page th, .lot-history-page td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: top; }
+.lot-history-page th { color: var(--text-muted); }
+.lot-history-page td { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.lot-history-page summary { min-height: 44px; padding: 10px 0; cursor: pointer; }
+.lot-history-page small { display: block; font-size: 14px; margin: 6px 0; }
+.lot-history-scroll, .audit-table-scroll { max-width: 100%; overflow-x: auto; }
+.audit-section { margin: 24px 0; }
+.audit-section h4 { font-size: 18px; margin-bottom: 8px; }
+.audit-section .detail-table td { white-space: normal; overflow-wrap: anywhere; min-width: 100px; }
+.audit-section .detail-table tr { break-inside: avoid; }
+@media (min-width: 701px) and (max-width: 1000px) {
+  .lot-history-page table { min-width: 960px; }
+}
+@media (max-width: 700px) {
+  .lot-history-page { padding: 16px; }
+  .lot-history-page table, .lot-history-page tbody, .lot-history-page tr, .lot-history-page td,
+  .audit-section table, .audit-section tbody, .audit-section tr, .audit-section td { display: block; width: auto; }
+  .lot-history-page thead, .audit-section thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .lot-history-page tr, .audit-section tr { margin-bottom: 16px; border: 1px solid var(--border); border-radius: 8px; }
+  .lot-history-page td::before, .audit-section td::before { content: attr(data-label); display: block; font-weight: 600; color: var(--text-muted); margin-bottom: 5px; }
+  .lot-history-page td, .audit-section .detail-table td { border: 0; white-space: normal; min-width: 0; }
+}
+@media print {
+  @page { margin: 12mm; }
+  .detail-card > .lot-history-action { display: none; }
+  .detail-card { border: 0; box-shadow: none; padding: 0; }
+  .audit-table-scroll { overflow: visible; }
+  .audit-section table { table-layout: fixed; width: 100%; }
+  .audit-section .detail-table th, .audit-section .detail-table td { min-width: 0; font-size: 9pt; white-space: normal; overflow-wrap: anywhere; padding: 6px; }
+  .audit-section thead { display: table-header-group; }
+  .audit-section h4 { break-after: avoid; }
+}

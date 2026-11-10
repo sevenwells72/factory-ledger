@@ -327,6 +327,8 @@ svg text { font-family: var(--font); }
 <link rel="stylesheet" href="interaction.css?v=2">
   <link rel="stylesheet" href="shell-layout.css?v=6">
 <script src="design-controls.js?v=3"></script>
+<script src="trace-report.js?v=2"></script>
+<link rel="stylesheet" href="lot-history.css?v=1">
 <link rel="stylesheet" href="ledger-forms.css?v=16"><script defer src="receipt-shell.js?v=8"></script><link rel="stylesheet" href="wallpaper.css?v=2">
 </head>
 <body>
@@ -404,7 +406,7 @@ svg text { font-family: var(--font); }
 <div class="detail-panel" id="detailPanel">
   <div class="detail-card" id="traceDetail"></div>
   <div class="export-btns">
-    <button class="export-btn" onclick="printAuditReport()">Print Audit Report</button>
+    <button class="export-btn" onclick="printAuditReport()">Print / Save PDF</button>
     <button class="export-btn" onclick="downloadAuditText()">Download Text Report</button>
   </div>
 </div>
@@ -433,8 +435,8 @@ let selectedLotCode = '';
 // ═══════════════════════════════════════════════════════
 // API HELPERS
 // ═══════════════════════════════════════════════════════
-async function api(path) {
-  const res = await FL.fetchWithTimeout(API_BASE + path, { headers: { 'X-Api-Key': await FLDashboard.key() } });
+async function api(path, options = {}) {
+  const res = await FL.fetchWithTimeout(API_BASE + path, { ...options, headers: { 'X-Api-Key': await FLDashboard.key() } });
   const data = await res.json();
   if (!res.ok) {
     const err = new Error(data.detail || data.error || `HTTP ${res.status}`);
@@ -600,19 +602,20 @@ async function runTrace() {
   if (!lotCode) return;
   selectedLotCode = lotCode;
 
-  setStatus('loading', `Tracing ${lotCode} ${direction === 'forward' ? 'forward' : 'backward'}...`);
+  setStatus('loading', `Building complete report for ${lotCode}… Large reports may take up to two minutes. Every recorded lot will be included.`);
+  document.getElementById('detailPanel').style.display='none';
+  document.getElementById('graphSvg').replaceChildren();
+  document.getElementById('graphControls').style.display='none';
+  document.getElementById('traceInfo').textContent='';
   graphNodes = [];
   graphLinks = [];
   currentTrace = null;
 
   try {
-    if (direction === 'backward') {
-      await traceBackward(lotCode);
-    } else {
-      await traceForward(lotCode);
-    }
-    renderGraph();
+    await loadAuditReport(lotCode);
     renderDetailPanel();
+    if (typeof d3 !== "undefined") renderGraph();
+    else document.getElementById("graphContainer").style.display = "none";
     updateURL(lotCode, direction);
   } catch (e) {
     console.error('[Trace]', e);
@@ -674,31 +677,22 @@ function pickDisambiguated(lotCode, productId) {
 }
 
 // ── BACKWARD TRACE: batch → ingredients → suppliers ──
-async function traceBackward(lotCode) {
+async function loadAuditReport(lotCode) {
+  const path=appendParam(`/dashboard/api/lot-report/${encodeURIComponent(lotCode)}?direction=${direction}`,productIdParam());
   let data;
-  try {
-    data = await api(appendParam(`/trace/batch/${encodeURIComponent(lotCode)}`, productIdParam()));
-  } catch (e) {
-    if (e.status === 409 || e.accessUnavailable) throw e;  // disambiguation — bubble up
-    if (e.message.includes('404')) {
-      throw new Error(`404 — Lot "${lotCode}" not found`);
-    }
+  try { data=await api(path,{timeoutMs:120000}); }
+  catch(e) {
+    if(e.status===404 && e.data?.detail==='Not Found')throw new Error('The audit report API is not available yet. Please retry after the API update. No legacy or partial report is shown.');
     throw e;
   }
-
-  // Route based on trace_type returned by backend
-  if (data.trace_type === 'ingredient') {
-    await traceBackwardIngredient(data);
-  } else {
-    await traceBackwardBatch(data);
-  }
-}
-
-async function traceBackwardBatch(batchData) {
-  // input_tree: the full chain from posted current-ledger lines (trace_batch).
-  // An API without it (deploy window) keeps the previous one-level trace.
-  if (batchData.input_tree) return traceBackwardTree(batchData);
-  return traceBackwardBatchLegacy(batchData);
+  if(data.report_version!==1 || !data.forward_trace || !Array.isArray(data.forward_trace.lots) || !Array.isArray(data.forward_trace.consumption) || !Array.isArray(data.forward_trace.gaps) || !data.forward_trace.lots.some(n=>n.lot_id===data.forward_trace.start_lot_id) || (direction==='backward' && !data.origin))
+    throw new Error('The API did not return the complete audit report format. Please retry after the API update. No legacy report is shown.');
+  if(data.complete!==true)throw new Error(`Incomplete report: ${data.incomplete_reason || 'the API did not confirm all lots were included'}. No partial report is shown.`);
+  if(direction==='backward' && data.input_tree)await traceBackwardTree(data);
+  else currentTrace={direction,startLot:lotCode,product:data.product_name};
+  currentTrace.audit=FLTraceReport.build(data,direction);
+  renderCompleteForward(data.forward_trace, direction==='backward' && !!data.input_tree);
+  setStatus('ok','Complete report built from the posted current ledger.');
 }
 
 function escHtml(value) {
@@ -748,7 +742,7 @@ function addOriginNode(lotNodeId, input, origin, layer, stats) {
   if (origin.kind === 'received') {
     const parts = [`${origin.received_date || ''} ${origin.received_time || ''}`.trim(), txnRef];
     if (origin.receipt_number) parts.push(`Receipt ${origin.receipt_number}`);
-    if (origin.supplier_lot_code) parts.push(`Supplier lot ${origin.supplier_lot_code}`);
+    if (origin.supplier_lot_code) parts.push(`Supplier lot ${FLTraceReport.supplierLot(input)}`);
     const suppId = addNode({
       id: 'supplier-txn-' + origin.transaction_id, type: 'supplier',
       label: origin.supplier_name, sublabel: origin.bol_reference ? `BOL: ${origin.bol_reference}` : '',
@@ -775,7 +769,7 @@ function addOriginNode(lotNodeId, input, origin, layer, stats) {
 // Receipts posted onto a lot that was also made here (e.g. found inventory added to
 // a packed lot). Each is an extra origin beside the lot's inputs; a placeholder or
 // unnamed receipt is a gap, so the trace never reads as complete to suppliers.
-function addAlsoReceived(lotNodeId, lotId, origin, layer, stats) {
+function addAlsoReceived(lotNodeId, lotId, origin, layer, stats, lotMetadata) {
   for (const r of (origin && origin.also_received) || []) {
     const txnRef = `Txn #${r.transaction_id}`;
     const when = `${r.received_date || ''} ${r.received_time || ''}`.trim();
@@ -783,7 +777,7 @@ function addAlsoReceived(lotNodeId, lotId, origin, layer, stats) {
     if (r.kind === 'received') {
       const parts = [qty, when, txnRef];
       if (r.receipt_number) parts.push(`Receipt ${r.receipt_number}`);
-      if (r.supplier_lot_code) parts.push(`Supplier lot ${r.supplier_lot_code}`);
+      if (r.supplier_lot_code) parts.push(`Supplier lot ${FLTraceReport.supplierLot({...r, ...lotMetadata})}`);
       const suppId = addNode({
         id: 'supplier-txn-' + r.transaction_id, type: 'supplier',
         label: r.supplier_name, sublabel: r.bol_reference ? `BOL: ${r.bol_reference}` : '',
@@ -831,8 +825,8 @@ function addTreeInputs(parentId, origin, layer, stats) {
       id: (made ? 'batch-' : 'ing-') + input.lot_id,
       type: made ? 'batch' : 'ingredient',
       label: input.lot_code, sublabel: input.product_name,
-      detail: [`${fmtQty(quantity, input.unit)} used`, `Txn #${txns.join(', #')}`,
-               input.supplier_lot_code ? `Supplier lot ${input.supplier_lot_code}` : ''].filter(Boolean).join(' | '),
+      detail: [`${fmtQty(quantity, input.unit)} recorded across whole make/pack transactions`, `Txn #${txns.join(', #')}`,
+               input.supplier_lot_code ? `Supplier lot ${FLTraceReport.supplierLot(input)}` : ''].filter(Boolean).join(' | '),
       lotCode: input.lot_code, productId: input.product_id,
       quantity: isLb ? quantity : 0, layer
     };
@@ -841,10 +835,15 @@ function addTreeInputs(parentId, origin, layer, stats) {
     const nodeId = addNode(node);
     addLinkSum(nodeId, parentId, quantity, 'confirmed', input.unit);
     stats.confirmed++;
-    if (seen) continue;   // reached by two paths: expand once
+    if (seen) {
+      const existing = graphNodes.find(n => n.id === nodeId);
+      existing.quantity += isLb ? quantity : 0;
+      existing.detail += ` | Also used by ${parentId}: ${fmtQty(quantity, input.unit)}; Txn #${txns.join(', #')}`;
+      continue; // origins expand once; audit report lists every transaction/path
+    }
     if (made) {
       addTreeInputs(nodeId, lotOrigin, layer - 1, stats);
-      addAlsoReceived(nodeId, input.lot_id, lotOrigin, layer - 1, stats);
+      addAlsoReceived(nodeId, input.lot_id, lotOrigin, layer - 1, stats, input);
     } else addOriginNode(nodeId, input, lotOrigin, layer - 1, stats);
   }
 }
@@ -891,347 +890,51 @@ async function traceBackwardTree(batchData) {
   applyMadeOrigin(start, batchData.input_tree, stats);
   const startId = addNode(start);
   addTreeInputs(startId, batchData.input_tree, -1, stats);
-  addAlsoReceived(startId, batchData.lot_id, batchData.input_tree, -1, stats);
+  addAlsoReceived(startId, batchData.lot_id, batchData.input_tree, -1, stats, batchData.forward_trace?.lots.find(n=>n.lot_id===batchData.lot_id));
   addCustomerNodes(startId, batchData.customer_shipments, batchData.lot_id, 1);
 
   currentTrace = {
     direction: 'backward', startLot: batchData.batch_lot_code,
     product: batchData.product_name, kosherTier: batchData.kosher_tier, outputLb: start.quantity,
     date: batchData.produced_date, time: batchData.produced_time,
-    confirmedCount: stats.confirmed, legacyCount: 0, hasLegacy: stats.gaps > 0,
+    confirmedCount: stats.confirmed, legacyCount: stats.gaps, hasLegacy: stats.gaps > 0,
     mismatches: stats.mismatches, batchData
   };
   setStatus('ok', '');
 }
 
-async function traceBackwardBatchLegacy(batchData) {
-  // Center node: the batch
-  const batchOutputStr = batchData.output_units != null
-    ? `${batchData.output_lb} lb \u00b7 ${batchData.output_units} units`
-    : (batchData.output_batches != null ? `${batchData.output_lb} lb \u00b7 ${batchData.output_batches} batches` : `${batchData.output_lb} lb`);
-  const batchId = addNode({
-    id: 'batch-' + batchData.lot_id,
-    type: 'batch', label: batchData.batch_lot_code,
-    sublabel: batchData.product_name,
-    detail: `${batchOutputStr} | ${batchData.produced_date} ${batchData.produced_time} ET`,
-    lotCode: batchData.batch_lot_code, quantity: batchData.output_lb, layer: 2
-  });
-
-  let hasLegacy = false;
-  let confirmedCount = 0;
-  let legacyCount = 0;
-
-  // Ingredient nodes
-  for (const ing of batchData.ingredients) {
-    const isLegacy = !ing.lot_code || ing.lot_code === 'UNKNOWN';
-    const ingId = addNode({
-      id: ing.lot_id ? 'ing-' + ing.lot_id : 'ing-UNKNOWN-' + ing.ingredient_name,
-      type: isLegacy ? 'gap' : 'ingredient',
-      label: isLegacy ? 'UNKNOWN' : ing.lot_code,
-      sublabel: ing.ingredient_name,
-      detail: `${ing.quantity_lb} lb` + (isLegacy ? ' | Legacy record' : ''),
-      lotCode: ing.lot_code, quantity: ing.quantity_lb, layer: 1,
-      isLegacy
-    });
-
-    addLink(ingId, batchId, ing.quantity_lb, isLegacy ? 'legacy' : 'confirmed');
-
-    if (isLegacy) { hasLegacy = true; legacyCount++; }
-    else { confirmedCount++; }
-
-    // Supplier lookup for each ingredient lot (if not legacy)
-    if (!isLegacy) {
-      await findSupplierForLot(ing.lot_id, ingId);
+function renderCompleteForward(forward, append=false) {
+  const prefix = n => (n.product_type === 'ingredient' ? 'ing-' : 'batch-') + n.lot_id;
+  const byId = new Map(forward.lots.map(n=>[n.lot_id,n]));
+  const layers = new Map([[forward.start_lot_id,append ? 0 : 1]]);
+  // API lots are breadth-first; cycles retain edges without increasing depth.
+  for (const n of forward.lots) {
+    for (const e of forward.consumption.filter(e=>e.source_lot_id===n.lot_id)) {
+      if (e.lot_id != null && !layers.has(e.lot_id)) layers.set(e.lot_id,(layers.get(n.lot_id)||0)+1);
     }
   }
-
-  // Check for shipments of this batch
-  await findShipmentsForLot(batchData.lot_id, batchId);
-
-  currentTrace = {
-    direction: 'backward', startLot: batchData.batch_lot_code,
-    product: batchData.product_name, kosherTier: batchData.kosher_tier, outputLb: batchData.output_lb,
-    date: batchData.produced_date, time: batchData.produced_time,
-    confirmedCount, legacyCount, hasLegacy,
-    batchData
-  };
-
-  setStatus('ok', '');
-}
-
-async function traceBackwardIngredient(data) {
-  // Supplier node (layer 0)
-  let confirmedCount = 0;
-  const ingId = addNode({
-    id: 'ing-' + data.lot_id,
-    type: 'ingredient', label: data.lot_code,
-    sublabel: data.product_name,
-    detail: data.supplier_lot_code ? `Supplier lot: ${data.supplier_lot_code}` : `Source: ${displaySource(data.entry_source || 'received')}`,
-    lotCode: data.lot_code, layer: 1
-  });
-
-  if (data.supplier) {
-    const s = data.supplier;
-    const suppId = addNode({
-      id: 'supplier-' + s.supplier_name + '-' + (s.bol_reference || ''),
-      type: s.supplier_name !== 'Unknown supplier' ? 'supplier' : 'gap',
-      label: s.supplier_name,
-      sublabel: s.bol_reference ? `BOL: ${s.bol_reference}` : '',
-      detail: `${s.received_date} ${s.received_time} ET | Txn #${s.transaction_id}`,
-      quantity: s.quantity_lb, layer: 0, txnId: s.transaction_id
-    });
-    addLink(suppId, ingId, s.quantity_lb, 'confirmed');
-    confirmedCount++;
-  } else {
-    const unknownId = addNode({
-      id: 'supplier-unknown-' + data.lot_id,
-      type: 'gap', label: 'Supplier unknown',
-      sublabel: 'Receipt transaction not found', detail: '', layer: 0
-    });
-    addLink(unknownId, ingId, 0, 'legacy');
-  }
-
-  // Downstream batches (layer 2) and their shipments (layer 3)
-  for (const b of data.downstream_batches) {
-    const batchId = addNode({
-      id: 'batch-' + b.lot_id,
-      type: 'batch', label: b.batch_lot_code,
-      sublabel: b.batch_product,
-      detail: `Used ${b.quantity_consumed} lb | ${b.produced_date} ${b.produced_time} ET`,
-      lotCode: b.batch_lot_code, quantity: b.quantity_consumed, layer: 2
-    });
-    addLink(ingId, batchId, b.quantity_consumed, 'confirmed');
-    confirmedCount++;
-
-    await findShipmentsForLot(b.lot_id, batchId);
-  }
-
-  const hasDownstream = data.downstream_batches.length > 0;
-  let note = null;
-  if (!hasDownstream) {
-    note = 'This ingredient lot has not been consumed in any production batches yet.';
-  }
-
-  currentTrace = {
-    direction: 'backward', startLot: data.lot_code,
-    product: data.product_name, kosherTier: data.kosher_tier,
-    confirmedCount, legacyCount: 0, hasLegacy: !data.supplier,
-    note
-  };
-  setStatus('ok', '');
-}
-
-// ── FORWARD TRACE: ingredient → batches → shipments → customers ──
-async function traceForward(lotCode) {
-  let ingData;
-  try {
-    ingData = await api(appendParam(`/trace/ingredient/${encodeURIComponent(lotCode)}`, productIdParam()));
-  } catch (e) {
-    if (e.status === 409 || e.accessUnavailable) throw e;  // disambiguation — bubble up
-    if (e.status === 400 && e.data && e.data.error === 'wrong_trace_type') {
-      // Finished goods lot called with forward trace — auto-route to batch trace (shipments)
-      await traceForwardAsBatch(lotCode);
-      return;
-    }
-    if (e.message.includes('404')) {
-      // Not found as ingredient — try as batch lot and trace shipments
-      await traceForwardAsBatch(lotCode);
-      return;
-    }
-    throw e;
-  }
-
-  // Origin node: the ingredient
-  const ingId = addNode({
-    id: 'ing-' + ingData.lot_id,
-    type: 'ingredient', label: ingData.ingredient_lot_code,
-    sublabel: ingData.ingredient_name,
-    detail: ingData.supplier_lot_code ? `Supplier lot: ${ingData.supplier_lot_code}` : '',
-    lotCode: ingData.ingredient_lot_code, layer: 1
-  });
-
-  // Find supplier
-  await findSupplierForLot(ingData.lot_id, ingId);
-
-  if (ingData.used_in_batches.length === 0) {
-    currentTrace = {
-      direction: 'forward', startLot: lotCode,
-      product: ingData.ingredient_name, kosherTier: ingData.kosher_tier,
-      note: 'This lot has not been consumed in any production batches. It may still be in raw inventory.',
-      confirmedCount: 0, legacyCount: 0, hasLegacy: false,
-      ingData
-    };
-    setStatus('ok', '');
-    return;
-  }
-
-  // Fan-out control
-  const batches = ingData.used_in_batches;
-  const showCount = (batches.length > 8 && !fullChainMode) ? 5 : batches.length;
-  const collapsed = batches.length - showCount;
-
-  for (let i = 0; i < showCount; i++) {
-    const b = batches[i];
-    const batchId = addNode({
-      id: 'batch-' + b.lot_id,
-      type: 'batch', label: b.batch_lot_code,
-      sublabel: b.batch_product,
-      detail: `Used ${b.quantity_used} lb of ingredient`,
-      lotCode: b.batch_lot_code, quantity: b.quantity_used, layer: 2
-    });
-    addLink(ingId, batchId, b.quantity_used, 'confirmed');
-
-    // Find shipments for each batch
-    await findShipmentsForLot(b.lot_id, batchId);
-  }
-
-  if (collapsed > 0) {
-    addNode({
-      id: 'collapsed-batches',
-      type: 'gap', label: `... and ${collapsed} more`,
-      sublabel: 'Click to expand', detail: '', layer: 2, isCollapsed: true
-    });
-    addLink(ingId, 'collapsed-batches', 0, 'confirmed');
-    document.getElementById('expandBtn').style.display = '';
-  }
-
-  currentTrace = {
-    direction: 'forward', startLot: lotCode,
-    product: ingData.ingredient_name, kosherTier: ingData.kosher_tier,
-    confirmedCount: batches.length, legacyCount: 0, hasLegacy: false,
-    ingData
-  };
-  setStatus('ok', '');
-}
-
-async function traceForwardAsBatch(lotCode) {
-  // It might be a batch/finished lot — trace its shipments
-  let batchData = null;
-  try {
-    batchData = await api(appendParam(`/trace/batch/${encodeURIComponent(lotCode)}`, productIdParam()));
-  } catch (e) {
-    if (e.status === 409 || e.accessUnavailable) throw e;  // disambiguation — bubble up
-    // Not a batch either — try as any lot
-  }
-
-  let lotInfo;
-  try {
-    lotInfo = await api(appendParam(`/lots/by-code/${encodeURIComponent(lotCode)}`, productIdParam()));
-  } catch (e) {
-    if (e.status === 409 || e.accessUnavailable) throw e;  // disambiguation — bubble up
-    throw new Error(`404 — Lot "${lotCode}" not found`);
-  }
-
-  const nodeType = batchData ? 'batch' : 'finished';
-  const mainId = addNode({
-    id: 'lot-' + lotInfo.id, type: nodeType,
-    label: lotCode, sublabel: lotInfo.product_name,
-    detail: `On hand: ${lotInfo.unit_count != null ? lotInfo.quantity_on_hand + ' lb \u00b7 ' + lotInfo.unit_count + ' units' : lotInfo.quantity_on_hand + ' lb'}`,
-    lotCode, quantity: parseFloat(lotInfo.quantity_on_hand) || 0, layer: 1
-  });
-
-  await findShipmentsForLot(lotInfo.id, mainId);
-
-  currentTrace = {
-    direction: 'forward', startLot: lotCode,
-    product: lotInfo.product_name, kosherTier: lotInfo.kosher_tier,
-    confirmedCount: graphLinks.filter(l => l.confidence === 'confirmed').length,
-    legacyCount: 0, hasLegacy: false
-  };
-  setStatus('ok', '');
-}
-
-// ── Supplier lookup ──
-async function findSupplierForLot(lotId, ingNodeId) {
-  try {
-    const data = await api(`/transactions/history?transaction_type=receive&limit=100`);
-    for (const txn of data.transactions) {
-      if (!txn.lines) continue;
-      for (const line of txn.lines) {
-        if (line.lot_id === lotId) {
-          const supplierName = txn.shipper_name || 'Unknown supplier';
-          const suppId = addNode({
-            id: 'supplier-' + supplierName + '-' + (txn.bol_reference || ''),
-            type: txn.shipper_name ? 'supplier' : 'gap',
-            label: supplierName,
-            sublabel: txn.bol_reference ? `BOL: ${txn.bol_reference}` : '',
-            detail: `${FLDesign.date(txn.date)} ${txn.time || ''} | Txn #${txn.id}`,
-            layer: 0, txnId: txn.id
-          });
-          addLink(suppId, ingNodeId, Math.abs(parseFloat(line.quantity_lb) || 0), 'confirmed');
-          return;
-        }
+  for (const n of forward.lots) {
+    const id=prefix(n), layer=layers.get(n.lot_id)||0;
+    addNode({id,type:n.product_type==='ingredient'?'ingredient':'batch',label:n.lot_code,
+      sublabel:n.product_name,detail:`Remaining: ${fmtQty(n.on_hand,n.unit)}`,lotCode:n.lot_code,productId:n.product_id,layer});
+    if (!append || n.lot_id!==forward.start_lot_id) {
+      for (const sh of n.shipments) {
+        const sid=`ship-${n.lot_id}-${sh.transaction_id}`;
+        addNode({id:sid,type:'customer',label:sh.customer_name||'Customer not named',
+          sublabel:sh.sales_orders.map(o=>o.order_number).join(', ')||sh.order_reference||'',
+          detail:`Txn #${sh.transaction_id} · ${fmtQty(sh.quantity_lb,n.unit)}`,quantity:sh.quantity_lb,layer:layer+1});
+        addLink(id,sid,sh.quantity_lb,'confirmed');
       }
     }
-    // No receive found
-    addNode({
-      id: 'supplier-unknown-' + lotId,
-      type: 'gap', label: 'Supplier unknown',
-      sublabel: 'Lot origin not in recent transactions',
-      detail: '', layer: 0
-    });
-    addLink('supplier-unknown-' + lotId, ingNodeId, 0, 'legacy');
-  } catch (e) {
-    if(e.accessUnavailable)throw e;
-    console.warn('[Supplier lookup failed]', e);
+    const stock=`remaining-${n.lot_id}`;
+    addNode({id:stock,type:'finished',label:'Remaining stock',sublabel:fmtQty(n.on_hand,n.unit),layer:layer+1});
+    addLink(id,stock,n.on_hand,'confirmed');
+  }
+  for (const e of forward.consumption) if (e.lot_id!=null) {
+    addLinkSum(prefix(byId.get(e.source_lot_id)),prefix(byId.get(e.lot_id)),e.quantity_used,'confirmed',e.unit);
   }
 }
 
-// ── Shipment lookup ──
-async function findShipmentsForLot(lotId, batchNodeId) {
-  try {
-    const data = await api(`/transactions/history?transaction_type=ship&limit=100`);
-    let found = false;
-    const customers = {};
-
-    for (const txn of data.transactions) {
-      if (!txn.lines) continue;
-      for (const line of txn.lines) {
-        if (line.lot_id === lotId) {
-          const custName = txn.customer_name || 'Unknown customer';
-          const qty = Math.abs(parseFloat(line.quantity_lb) || 0);
-          const key = custName;
-          if (!customers[key]) {
-            customers[key] = { name: custName, totalQty: 0, orders: [], txnIds: [] };
-          }
-          customers[key].totalQty += qty;
-          if (txn.order_reference) customers[key].orders.push(txn.order_reference);
-          customers[key].txnIds.push(txn.id);
-          customers[key].date = txn.date;
-          found = true;
-        }
-      }
-    }
-
-    for (const [key, cust] of Object.entries(customers)) {
-      const custId = addNode({
-        id: 'cust-' + key + '-' + batchNodeId,
-        type: 'customer', label: cust.name,
-        sublabel: cust.orders.length ? cust.orders.join(', ') : '',
-        detail: `${cust.totalQty} lb | ${FLDesign.date(cust.date)} | Txn #${cust.txnIds.join(', #')}`,  // unit enrichment via node detail in trace data
-        quantity: cust.totalQty, layer: 3, txnIds: cust.txnIds
-      });
-      addLink(batchNodeId, custId, cust.totalQty, 'confirmed');
-    }
-
-    if (!found) {
-      const stockId = addNode({
-        id: 'stock-' + lotId,
-        type: 'finished', label: 'In stock',
-        sublabel: 'No shipments recorded',
-        detail: '', layer: 3
-      });
-      addLink(batchNodeId, stockId, 0, 'confirmed');
-    }
-  } catch (e) {
-    if(e.accessUnavailable)throw e;
-    console.warn('[Shipment lookup failed]', e);
-  }
-}
-
-// ═══════════════════════════════════════════════════════
-// NODE / LINK MANAGEMENT
-// ═══════════════════════════════════════════════════════
 function addNode(node) {
   const existing = graphNodes.find(n => n.id === node.id);
   if (existing) return existing.id;
@@ -1581,173 +1284,32 @@ function toggleFullChain() {
 // COMPLETENESS BADGE
 // ═══════════════════════════════════════════════════════
 function renderCompleteness() {
-  const info = document.getElementById('traceInfo');
-  if (!currentTrace) { info.innerHTML = ''; return; }
-
-  const { confirmedCount, legacyCount, hasLegacy, note } = currentTrace;
-
-  // Also check for gap nodes in the graph (e.g., supplier unknown)
-  const gapNodes = graphNodes.filter(n => n.type === 'gap');
-  const legacyLinks = graphLinks.filter(l => l.confidence === 'legacy');
-  const totalGaps = gapNodes.length + legacyCount;
-  const hasAnyGap = totalGaps > 0 || hasLegacy;
-
-  let badge = '';
-  if (note) {
-    badge = `<span class="completeness-badge badge-partial">\u26A0 ${note}</span>`;
-  } else if (!hasAnyGap && confirmedCount > 0) {
-    badge = `<span class="completeness-badge badge-complete">\u2713 Complete trace &mdash; all links confirmed</span>`;
-  } else if (hasAnyGap) {
-    const details = [];
-    if (legacyCount > 0) details.push(`${legacyCount} legacy lot(s)`);
-    if (gapNodes.length > 0) details.push(`${gapNodes.length} supplier gap(s)`);
-    badge = `<span class="completeness-badge badge-partial">\u26A0 Partial trace &mdash; ${details.join(', ')}</span>`;
-  } else if (confirmedCount === 0) {
-    badge = `<span class="completeness-badge badge-incomplete">\u2717 Incomplete &mdash; no confirmed links found</span>`;
-  }
-  const mismatches = currentTrace.mismatches || [];
-  if (mismatches.length) {
-    badge += ` <span class="completeness-badge badge-partial">\u26A0 ${mismatches.length} make(s) with recorded ingredients outside 80\u2013120% of output</span>`;
-  }
-  info.innerHTML = badge;
+  const info=document.getElementById('traceInfo');
+  info.textContent=currentTrace?.audit ? `${currentTrace.audit.gaps.length} trace gap(s) · complete posted-ledger report below; estimated shares are not physically verified` : '';
 }
 
-// ═══════════════════════════════════════════════════════
-// DETAIL PANEL
-// ═══════════════════════════════════════════════════════
 function renderDetailPanel() {
-  const panel = document.getElementById('detailPanel');
-  const card = document.getElementById('traceDetail');
-  if (!currentTrace || graphNodes.length === 0) { panel.style.display = 'none'; return; }
-  panel.style.display = 'block';
-
-  const t = currentTrace;
-  const dirLabel = t.direction === 'forward' ? 'Forward Trace (Ingredient \u2192 Batches \u2192 Customers)' : (graphNodes.some(n => n.id.startsWith('ing-') && n.layer === 1 && n.id === 'ing-' + t.startLot) ? 'Backward Trace (Supplier \u2192 Ingredient \u2192 Batches \u2192 Customers)' : 'Backward Trace (Batch \u2192 Ingredients \u2192 Suppliers)');
-  const now = new Date();
-  const traceDate = FLDesign.time(now.toISOString());
-
-  let html = `<h3>${dirLabel}</h3>`;
-  html += `<div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:14px;font-size:var(--fl-caption, 14px);color:var(--text-muted)">`;
-  html += `<span>Traced: ${traceDate}</span>`;
-  html += `<span>Start: <strong style="color:var(--text);font-family:var(--mono)">${escHtml(t.startLot)}</strong></span>`;
-  if (t.kosherTier === 'extra_kosher') html += `<span><strong>EXTRA-KOSHER (SS)</strong></span>`;
-  if (t.product) html += `<span>Product: ${escHtml(t.product)}</span>`;
-  if (t.outputLb) html += `<span>Quantity: ${t.outputLb} lb</span>`;
-  html += `</div>`;
-
-  // Display-only input check; printed with the page (Print Audit Report).
-  if ((t.mismatches || []).length) {
-    html += `<div class="mismatch-list" role="note"><strong>\u26A0 Recorded ingredients differ from the amount made</strong> (display only; nothing was changed)<ul>`;
-    for (const m of t.mismatches) {
-      html += `<li>Txn #${m.txn} &middot; ${escHtml(m.lot)} ${escHtml(m.product || '')}: ${escHtml(mismatchText(m))}</li>`;
-    }
-    html += `</ul></div>`;
-  }
-
-  // Build chain table
-  html += `<table class="detail-table"><thead><tr>
-    <th>Type</th><th>Lot / Name</th><th>Product</th><th>Quantity</th><th>Link</th><th>Detail</th>
-  </tr></thead><tbody>`;
-
-  // Sort nodes by layer for the table
-  const sorted = [...graphNodes].sort((a, b) => (a.layer || 0) - (b.layer || 0));
-  for (const node of sorted) {
-    const linkConf = graphLinks.find(l => l.target === node.id || l.source === node.id);
-    const conf = linkConf ? linkConf.confidence : '-';
-    const typeLabels = { supplier: 'Supplier', ingredient: 'Ingredient', batch: 'Batch', finished: 'Finished', customer: 'Customer', gap: 'Data Gap' };
-
-    html += `<tr>
-      <td class="name-col">${escHtml(typeLabels[node.type] || node.type)}</td>
-      <td>${escHtml(node.label)}</td>
-      <td class="name-col">${escHtml(node.sublabel || '-')}</td>
-      <td>${node.quantity ? fmtQty(node.quantity) : '-'}</td>
-      <td>${conf === 'confirmed' ? '<span class="confirmed-tag">\u2713 Confirmed</span>' : conf === 'legacy' ? '<span class="legacy-tag">\u26A0 Legacy</span>' : '-'}</td>
-      <td class="name-col" style="font-size:var(--fl-caption, 14px)">${escHtml(node.detail || '-')}</td>
-    </tr>`;
-  }
-  html += `</tbody></table>`;
-
-  card.innerHTML = html;
-  card.querySelectorAll('.detail-table tbody tr').forEach(row=>[...row.cells].forEach((cell,i)=>cell.dataset.label=['Type','Lot / Name','Product','Quantity','Link','Detail'][i]));
+  const panel=document.getElementById('detailPanel'), card=document.getElementById('traceDetail');
+  if(!currentTrace?.audit){panel.style.display='none';return;}
+  panel.style.display='block';
+  card.innerHTML=`<a class="lot-history-action" href="lot-history.html?product_id=${encodeURIComponent(currentTrace.audit.productId)}">Back to lot history</a>`+FLTraceReport.html(currentTrace.audit);
+  renderCompleteness();
 }
 
-// ═══════════════════════════════════════════════════════
-// EXPORT / PRINT
-// ═══════════════════════════════════════════════════════
 function printAuditReport() {
   window.print();
 }
 
-function downloadAuditText() {
-  if (!currentTrace) return;
-  const t = currentTrace;
-  const now = new Date();
-  const traceDate = FLDesign.time(now.toISOString());
-
-  let text = '═══════════════════════════════════════════════\n';
-  text += '  LOT TRACEABILITY AUDIT REPORT\n';
-  text += '  Factory Ledger System\n';
-  text += '═══════════════════════════════════════════════\n\n';
-  text += `Trace Date:      ${traceDate} ET\n`;
-  text += `Direction:       ${t.direction === 'forward' ? 'Forward (Ingredient → Customers)' : 'Backward (Batch → Suppliers)'}\n`;
-  text += `Starting Lot:    ${t.startLot}\n`;
-  text += `Product:         ${t.product || 'N/A'}\n`;
-  if (t.outputLb) text += `Output:          ${t.outputLb} lb\n`;
-  text += `Confirmed Links: ${t.confirmedCount}\n`;
-  text += `Legacy Gaps:     ${t.legacyCount}\n`;
-  text += `Completeness:    ${!t.hasLegacy && t.confirmedCount > 0 ? 'COMPLETE' : t.hasLegacy ? 'PARTIAL' : 'INCOMPLETE'}\n`;
-  if (t.note) text += `Note:            ${t.note}\n`;
-  if ((t.mismatches || []).length) {
-    text += '\n───────────────────────────────────────────────\n';
-    text += '  INPUT CHECKS (display only; nothing was changed)\n';
-    text += '───────────────────────────────────────────────\n';
-    for (const m of t.mismatches) {
-      text += `Txn #${m.txn} ${m.lot} ${m.product || ''}: ${mismatchText(m)}\n`;
-    }
-  }
-  text += '\n───────────────────────────────────────────────\n';
-  text += '  TRACE CHAIN\n';
-  text += '───────────────────────────────────────────────\n\n';
-
-  const sorted = [...graphNodes].sort((a, b) => (a.layer || 0) - (b.layer || 0));
-  const typeLabels = { supplier: 'SUPPLIER', ingredient: 'INGREDIENT', batch: 'BATCH', finished: 'FINISHED', customer: 'CUSTOMER', gap: 'DATA GAP' };
-  let prevLayer = null;
-  // Backward tree layers run negative (inputs left of the start lot).
-  const minLayer = Math.min(0, ...sorted.map(n => n.layer || 0));
-
-  for (const node of sorted) {
-    const indent = '  '.repeat((node.layer || 0) - minLayer);
-    const link = graphLinks.find(l => l.target === node.id || l.source === node.id);
-    const confLabel = link ? (link.confidence === 'confirmed' ? '[CONFIRMED]' : '[LEGACY/UNTRACKED]') : '';
-
-    if (node.layer !== prevLayer) text += '\n';
-    prevLayer = node.layer;
-
-    text += `${indent}${confLabel} ${typeLabels[node.type] || 'NODE'}: ${node.label}\n`;
-    if (node.sublabel) text += `${indent}  Product: ${node.sublabel}\n`;
-    if (node.quantity > 0) text += `${indent}  Quantity: ${node.quantity} lb\n`;
-    if (node.mismatch) text += `${indent}  WARNING: ${mismatchText(node.mismatch)}\n`;
-    if (node.detail) text += `${indent}  Detail: ${node.detail}\n`;
-    if (node.txnId) text += `${indent}  Transaction ID: ${node.txnId}\n`;
-    if (node.txnIds) text += `${indent}  Transaction IDs: ${node.txnIds.join(', ')}\n`;
-  }
-
-  text += '\n═══════════════════════════════════════════════\n';
-  text += '  END OF REPORT\n';
-  text += '═══════════════════════════════════════════════\n';
-
-  const blob = new Blob([text], { type: 'text/plain' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `trace-${t.startLot}-${t.direction}-${now.toISOString().slice(0, 10)}.txt`;
-  a.click();
-  URL.revokeObjectURL(url);
+function saveAuditText(text) {
+  const url=URL.createObjectURL(new Blob([text],{type:'text/plain'}));
+  const a=document.createElement('a');a.href=url;
+  a.download=`trace-${currentTrace.startLot}-${currentTrace.direction}.txt`;a.click();URL.revokeObjectURL(url);
 }
 
-// ═══════════════════════════════════════════════════════
-// URL STATE
-// ═══════════════════════════════════════════════════════
+function downloadAuditText() {
+  if(currentTrace?.audit)saveAuditText(FLTraceReport.text(currentTrace.audit));
+}
+
 function updateURL(lot, dir) {
   const url = new URL(window.location);
   url.searchParams.set('lot', lot);
@@ -1768,7 +1330,7 @@ function loadFromURL() {
     selectedProductId = pid ? parseInt(pid) : null;
     document.getElementById('traceBtn').disabled = false;
     if (dir === 'backward' || dir === 'forward') setDirection(dir);
-    setTimeout(() => runTrace(), 500);  // wait for index
+    runTrace(); // a lot-history deep link does not depend on the recent-lot index
   }
 }
 
@@ -1776,8 +1338,8 @@ function loadFromURL() {
 // INIT
 // ═══════════════════════════════════════════════════════
 (async function init() {
-  await buildLotIndex();
   loadFromURL();
+  await buildLotIndex();
 })();
 </script>
 <script src="mini-calendar.js?v=10"></script>

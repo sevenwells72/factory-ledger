@@ -4,7 +4,8 @@
   "private": true,
   "description": "Node-side test tooling for the Factory Ledger dashboard (visual/mechanical design audit).",
   "scripts": {
-    "test:visual": "node tests/visual/run-visual-audit.mjs"
+    "test:visual": "node tests/visual/run-visual-audit.mjs",
+    "test": "node --test tests/*.js"
   },
   "devDependencies": {
     "playwright": "^1.47.0"

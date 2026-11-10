@@ -1,0 +1,60 @@
+{
+  "measurement": "Candidate dashboard report functions from this Mac over the production 5432 connection; explicit BEGIN / SET TRANSACTION READ ONLY / ROLLBACK; includes transaction setup, SQL/network transfer, construction and JSON serialization, excludes connection establishment. No deployment or production writes.",
+  "python_tests_passed": 7474,
+  "javascript_tests_passed": 702,
+  "real_http_requests_with_api_key": 270,
+  "results": [
+    {
+      "lot": "25120",
+      "product_id": 13,
+      "seconds": [
+        0.769,
+        0.268,
+        0.262
+      ],
+      "queries": 6,
+      "lots": 277,
+      "edges": 401,
+      "shipments": 147,
+      "bytes": 294630
+    },
+    {
+      "lot": "26-02-03-FOUND-016",
+      "product_id": 39,
+      "seconds": [
+        0.326,
+        0.325,
+        0.291
+      ],
+      "queries": 6,
+      "lots": 481,
+      "edges": 686,
+      "shipments": 376,
+      "bytes": 551283
+    },
+    {
+      "lot": "26-10-22-QUAL-001",
+      "product_id": 32,
+      "seconds": [
+        0.226
+      ],
+      "queries": 6,
+      "lots": 20,
+      "edges": 25,
+      "shipments": 3,
+      "bytes": 18339
+    },
+    {
+      "lot": "BB110927",
+      "product_id": 145,
+      "seconds": [
+        3.035
+      ],
+      "queries": 137,
+      "lots": 1,
+      "edges": 0,
+      "shipments": 0,
+      "bytes": 68290
+    }
+  ]
+}
