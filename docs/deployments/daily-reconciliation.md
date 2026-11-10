@@ -25,6 +25,7 @@ migration marker exists, and email is off until `RECONCILIATION_EMAIL_ENABLED=1`
    with the delivery result. All of it is one transaction.
 
 It never posts, voids, adjusts or corrects anything, and it never writes to an existing table.
+(Applying migration 094 adds one row to `migration_markers`, like every migration; the job itself does not.)
 
 ## Rules
 
@@ -60,6 +61,22 @@ that covered them. One exception keeps the email quiet: a repeat run for a day t
 (for example the command run twice in one night) gets no `NOTE:` line unless it found something the sent
 email did not include.
 
+**Saved findings are shown as saved.** Covering the period again is not enough by itself: a lot that was
+at −1 lb when the email failed and was corrected the next morning would no longer show. So the next email
+also lists the flags those undelivered runs *saved*, unchanged, in their own section at the top
+("FROM UNDELIVERED RUNS"), each with a line on what has happened since: still open, figures changed,
+entry voided, lot corrected, recipe changed, or no longer found. Tonight's own findings follow under
+"TONIGHT'S FINDINGS". A saved alarm or adjustment that tonight's check no longer finds still makes the
+result `attention` ("1 earlier finding not emailed before"), never "all clear". A run's flags count as
+delivered only after a send that included them succeeds; until then every later email repeats them (each
+once). They are stored in `summary.carried` of the run that showed them, not saved again as flags, so
+`flag_count` is tonight's findings only and `attention_count` also counts carried ones.
+
+**A failed job keeps its place.** When the job itself fails, the saved `failed` row records the window it
+was attempting. If nothing was ever delivered before (a failure on the very first night), the next run
+starts from the earliest undelivered day: a failed check for Nov 9 followed by the Nov 11 run covers
+Nov 9 and Nov 10.
+
 | Variable | Meaning |
 | --- | --- |
 | `RECONCILIATION_EMAIL_ENABLED` | `1` to send. **Default off** (`email_status='disabled'`). |
@@ -78,6 +95,12 @@ python scripts/daily_reconciliation.py --dry-run --date 2026-11-09   # replay on
 The business day checked is always "yesterday" in Eastern time at the moment the command starts, so it
 must run after midnight Eastern (both 02:30 and 03:30 do). A manual run started before midnight would label
 the day before.
+
+`--date` replays one calendar day as **midnight up to, but not including, the next midnight** (Eastern;
+23 or 25 hours on the two clock-change days). An entry made at exactly midnight belongs to the day that
+is starting, and the opening and ending balances are those just before each midnight. The nightly run is
+different on purpose: it covers everything after the previous snapshot up to and including the moment of
+tonight's, so consecutive nights meet with no gap and no overlap.
 
 It reads only environment variables (`DATABASE_URL`, `ENVIRONMENT`, `PRODUCTION_DATABASE_HOST` — the same
 guard as `scripts/exceptions_sweep.py` — plus the email variables above). `--dry-run` runs inside a
@@ -103,6 +126,12 @@ the office schema stays at 30 of 30). The dashboard key and the read-only GPT ke
 - `GET /verification/reconciliation/runs?limit=30` — recent runs with counts and email status.
 - `GET /verification/reconciliation/runs/{id}` — one run with its flags and stored summary.
 - `GET /verification/reconciliation/preview` — owner only. Tonight's check as of now; saves nothing, sends nothing.
+
+**What "read-only" means here.** The three handlers only read. Signing in with a named key still does its
+normal bookkeeping, exactly as on every other route: it updates `actors.last_used_at`, and a browser
+session may update `key_actor_sessions`. The owner accepts those two writes (decision 2026-11-10). Nothing
+else in any existing table changes; a test fingerprints every existing table around the three requests
+and allows only those two.
 
 ## Rollout — each step needs Michael's approval
 

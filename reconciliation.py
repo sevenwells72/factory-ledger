@@ -46,6 +46,7 @@ COCONUT_YIELD_PCT = 0.02
 # (checked in the 2026-11-09 production export), and a rename must not change
 # the rule. A NEW coconut bulk batch product must be added here.
 COCONUT_YIELD_PRODUCT_IDS = frozenset({125, 126, 127, 128})
+_TICK = timedelta(microseconds=1)               # the resolution of a Postgres timestamp
 EPS = 0.00005                                   # quantities are numeric(14,4)
 RESEND_URL = 'https://api.resend.com/emails'
 # Resend's shared test sender delivers only to the Resend account's own address.
@@ -131,7 +132,14 @@ def migration_applied(cur):
 
 
 def load_window(cur, start, end, *, opening_run_id=None, reconstruct=False):
-    """Read everything `analyse` needs for entries made in (start, end].
+    """Read everything `analyse` needs for entries made in the window.
+
+    Nightly (reconstruct=False): (start, end], where start is the moment the
+    previous snapshot was taken, so consecutive nights meet with no gap and no
+    overlap. Replay of a calendar day (reconstruct=True): [start, end), midnight
+    to the next midnight, so an entry made at exactly midnight belongs to the day
+    that is starting, and the opening and ending balances are the balances just
+    before each midnight.
 
     The window is by ENTRY time (transactions.created_at) and correction time
     (ledger_corrections.created_at), not by business date, so nothing entered
@@ -141,7 +149,10 @@ def load_window(cur, start, end, *, opening_run_id=None, reconstruct=False):
     (the nightly path). reconstruct=True rebuilds opening and ending balances
     from timestamps instead (replaying a past day; no snapshot needed).
     """
-    window = {'start': start, 'end': end}
+    # Every query below is written for (lo, hi]. Timestamps are whole microseconds,
+    # so moving both bounds back by one microsecond turns that into [start, end).
+    lo, hi = (start - _TICK, end - _TICK) if reconstruct else (start, end)
+    window = {'start': lo, 'end': hi}
     corrections = _rows(cur, """
         SELECT c.target_table, c.event_type, c.reason, c.operator_id, c.created_at, a.name AS actor_name,
                CASE WHEN c.target_table = 'transactions' THEN c.target_id::integer
@@ -161,8 +172,8 @@ def load_window(cur, start, end, *, opening_run_id=None, reconstruct=False):
                """ + _STATUS_AT.format(at='end') + """ = 'posted' AS posted_after
         FROM transactions t LEFT JOIN actors a ON a.id = t.entered_by_actor_id
         WHERE t.id = ANY(%(ids)s::integer[]) ORDER BY t.id""", {**window, 'ids': tx_ids})
-    before = _lines_at(cur, start, tx_ids)
-    after = _lines_at(cur, end, tx_ids)
+    before = _lines_at(cur, lo, tx_ids)
+    after = _lines_at(cur, hi, tx_ids)
     by_id = {t['id']: t for t in transactions}
     # Entered and voided inside the window: no balance effect, shown for information.
     voided_lines = _rows(cur, 'SELECT transaction_id, product_id, lot_id, quantity_lb FROM transaction_lines '
@@ -193,7 +204,7 @@ def load_window(cur, start, end, *, opening_run_id=None, reconstruct=False):
         JOIN transactions t ON t.id = x.transaction_id
         LEFT JOIN actors a ON a.id = t.entered_by_actor_id
         WHERE x.lot_id = ANY(%(lots)s::integer[]) ORDER BY x.transaction_id, x.line_id""",
-                         {'at': end, 'tx_ids': None, 'lots': pack_lots}) if pack_lots else []
+                         {'at': hi, 'tx_ids': None, 'lots': pack_lots}) if pack_lots else []
     histories = {lot: {'lot_id': lot, 'made_lb': 0.0, 'packed_lb': 0.0, 'used_in_makes_lb': 0.0,
                        'other_in_lb': 0.0, 'other_out_lb': 0.0, 'adjustments': []} for lot in pack_lots}
     for row in history_rows:
@@ -211,7 +222,7 @@ def load_window(cur, start, end, *, opening_run_id=None, reconstruct=False):
                     'operator_id': row['operator_id']})
 
     if reconstruct:
-        opening, ending = balances_at(cur, start), balances_at(cur, end)
+        opening, ending = balances_at(cur, lo), balances_at(cur, hi)
     else:
         ending = current_balances(cur)
         opening = None
@@ -556,6 +567,47 @@ def analyse(data):
     order = {ALARM: 0, REVIEW: 1, YIELD: 2, INFO: 3}
     flags.sort(key=lambda f: (order[f['severity']], f['kind'], f['transaction_id'] or 0, f['lot_id'] or 0))
     attention = sum(1 for f in flags if f['severity'] in (ALARM, REVIEW))
+
+    # --- findings an earlier run saved but that were never emailed ----------
+    # They are shown as they were SAVED, whatever the books say tonight, with a
+    # line on what has happened since. Nothing here is re-derived from the ledger.
+    def same(a, b):
+        return (a is None and b is None) or (a is not None and b is not None and abs(a - b) <= EPS)
+
+    tonight = defaultdict(list)
+    for f in flags:
+        tonight[(f['kind'], f['product_id'], f['lot_id'], f['transaction_id'])].append(f)
+    make_expected = {(m['transaction_id'], i['product_id']): i['expected_lb'] for m in makes for i in m['ingredients']}
+    carried, seen = [], set()
+    for old in data.get('carried') or []:
+        key = (old['kind'], old['product_id'], old['lot_id'], old['transaction_id'])
+        if (key, old['actual_lb'], old['difference_lb']) in seen:
+            continue                                # the same finding saved by more than one run: show it once
+        seen.add((key, old['actual_lb'], old['difference_lb']))
+        matches = tonight.get(key, [])
+        tx = transactions.get(old['transaction_id'])
+        now_expected = make_expected.get((old['transaction_id'], old['product_id']))
+        if any(same(m['actual_lb'], old['actual_lb']) and same(m['difference_lb'], old['difference_lb'])
+               for m in matches):
+            status, since = 'still_open', 'Still open: it is also in tonight\'s findings below.'
+        elif matches:
+            status, since = 'changed', 'Changed since: the figures are different now. See tonight\'s findings below.'
+        elif tx is not None and not tx['posted_after']:
+            status, since = 'voided', f'Since then TX{tx["id"]} was voided.'
+        elif old['kind'] == 'NEGATIVE_LOT':
+            status = 'corrected'
+            since = f'Since then the lot was corrected. It now stands at {lb(ending.get(old["lot_id"], 0.0))}.'
+        elif old['kind'].startswith('MAKE_') and now_expected is not None and not same(now_expected, old['expected_lb']):
+            status = 'recipe_changed'
+            since = f'Since then the recipe on file changed. It now calls for {lb(now_expected)}.'
+        else:
+            status = 'no_longer_found'
+            since = 'Tonight\'s check no longer finds this. It was corrected or changed since.'
+        carried.append({**old, 'status': status, 'since': since})
+    # Still-open and changed ones are already counted in tonight's own findings.
+    carried_attention = sum(1 for c in carried if c['severity'] in (ALARM, REVIEW)
+                            and c['status'] not in ('still_open', 'changed'))
+    attention += carried_attention
     return {
         'plant_date': data['plant_date'], 'window_start': data['window_start'], 'window_end': data['window_end'],
         'mode': data['mode'], 'balance_checked': opening is not None,
@@ -563,6 +615,7 @@ def analyse(data):
         'makes_checked': sum(1 for m in makes if m['checked']), 'lots_checked': len(checked),
         'result': 'attention' if attention else 'all_clear', 'attention_count': attention,
         'flags': flags, 'makes': makes, 'undelivered': data.get('undelivered') or [],
+        'carried': carried, 'carried_attention_count': carried_attention,
     }
 
 
@@ -585,13 +638,16 @@ def _plural(count, word):
     return f'{count} {word}{"" if count == 1 else "s"}'
 
 
-def _undelivered_notes(runs):
+def _undelivered_notes(runs, plant_date):
     """One plain line per earlier run whose findings never reached the owner."""
     notes = []
     for run in runs:
         day = date.fromisoformat(run['plant_date'])
         label = f'{day:%a %b} {day.day}'
-        if run['job_status'] != 'completed':
+        if run['plant_date'] == plant_date:         # an earlier attempt at this same check
+            notes.append(f'NOTE: an earlier run of this check was saved {_when(run["started_at"])} and its email '
+                         'was not delivered. What it found is listed below.')
+        elif run['job_status'] != 'completed':
             notes.append(f'NOTE: the check for {label} did not finish, so no email was sent for it. '
                          'This email covers that day as well.')
         elif run['email_status'] == 'failed':
@@ -613,9 +669,11 @@ def render_email(analysis):
         headline = 'ALL CLEAR. Nothing over tolerance, no lot below zero, no unexplained adjustment.'
         subject_tail = 'all clear'
     else:
+        earlier = analysis.get('carried_attention_count') or 0
         parts = [_plural(over, 'item') + ' over tolerance' if over else '',
                  _plural(negative, 'lot') + ' below zero' if negative else '',
-                 _plural(review, 'adjustment') + ' to review' if review else '']
+                 _plural(review, 'adjustment') + ' to review' if review else '',
+                 _plural(earlier, 'earlier finding') + ' not emailed before' if earlier else '']
         subject_tail = ', '.join(p for p in parts if p)
         headline = f'NEEDS ATTENTION: {subject_tail}.'
     subject = f'Factory Ledger daily check, {day:%a %b} {day.day}: {subject_tail}'
@@ -626,9 +684,18 @@ def render_email(analysis):
     if not analysis['balance_checked']:
         notes.append('First run: a starting snapshot of every lot was saved. The balance roll-forward '
                      'begins with the next run.')
-    notes += _undelivered_notes(analysis.get('undelivered') or [])
+    notes += _undelivered_notes(analysis.get('undelivered') or [], analysis['plant_date'])
     lines = [f'Factory Ledger daily check for {day:%A, %B} {day.day}, {day.year}', '', headline, checked, *notes]
     blocks = []
+    carried = analysis.get('carried') or []
+    if carried:
+        # Exactly as saved by the earlier run(s), then what has happened since.
+        title = f'FROM UNDELIVERED RUNS: FOUND EARLIER, NOT EMAILED UNTIL NOW ({len(carried)})'
+        items = [f'Saved {_when(c["saved_at"])}: {c["message"]} >> {c["since"]}' for c in carried]
+        blocks.append((title, items, 'None.'))
+        lines += ['', title] + [f'  {n}. {m}' for n, m in enumerate(items, 1)]
+        blocks.append(("TONIGHT'S FINDINGS", [], 'The sections below are what the check finds in the books now.'))
+        lines += ['', "TONIGHT'S FINDINGS"]
     for title, belongs, empty in _SECTIONS:
         items = [f['detail']['message'] for f in flags if belongs(f)]
         blocks.append((f'{title} ({len(items)})', items, empty))
@@ -671,23 +738,24 @@ def send_email(email, env=None):
     if not recipients or not key:
         outcome['error'] = 'ALERT_EMAIL_TO or RESEND_API_KEY is not set'
         return outcome
+    stage = 'Could not reach the email service'
     try:
         response = httpx.post(RESEND_URL, timeout=20.0, headers={'Authorization': f'Bearer {key}'}, json={
             'from': env.get('RECONCILIATION_EMAIL_FROM', '').strip() or DEFAULT_EMAIL_FROM,
             'to': recipients, 'subject': email['subject'], 'text': email['text'], 'html': email['html']})
-    except Exception as exc:  # any failure here is a failed send, never a failed job; the name only, never the key
-        outcome['error'] = f'Could not reach the email service ({type(exc).__name__})'
-        return outcome
-    try:
-        body = response.json()
-    except ValueError:
-        body = {}
-    if not isinstance(body, dict):
-        body = {}
-    if 200 <= response.status_code < 300:
-        outcome.update(status='sent', provider_id=str(body.get('id') or '') or None)
-    else:
+        stage = 'Could not read the email service answer'
+        accepted = 200 <= response.status_code < 300
+        try:
+            body = response.json()
+        except ValueError:
+            body = {}
+        if not isinstance(body, dict):
+            body = {}
+        if accepted:
+            return dict(outcome, status='sent', provider_id=str(body.get('id') or '') or None)
         outcome['error'] = f'Email service answered {response.status_code}: {str(body.get("message") or "")[:200]}'
+    except Exception as exc:  # the send AND reading the answer: a failed send, never a failed job; name only, never the key
+        outcome.update(status='failed', provider_id=None, error=f'{stage} ({type(exc).__name__})')
     return outcome
 
 
@@ -712,6 +780,66 @@ def replay(cur, day):
     return {'analysis': analysis, 'email': render_email(analysis), 'run_id': None, 'email_status': 'not_attempted'}
 
 
+def _plan(cur, end):
+    """Where a run ending at `end` starts, and what earlier runs still owe the owner.
+
+    baseline: the latest completed run for an EARLIER plant day whose findings
+    were delivered (email sent, or email switched off). Its snapshot is the
+    opening balance and its end is the window start.
+    undelivered: runs saved since then whose findings were not delivered.
+    carried: the flags those runs SAVED, as saved. A flag counts as delivered
+    only once a send that included it succeeded, so it is excluded only when a
+    sent run for the same plant day already held the same finding.
+    """
+    plant_day = end.astimezone(PLANT_TIMEZONE).date() - timedelta(days=1)
+    baseline = _rows(cur, """SELECT id, window_end FROM reconciliation_runs
+                             WHERE job_status = 'completed' AND plant_date < %(day)s
+                               AND email_status IN ('sent', 'disabled')
+                             ORDER BY window_end DESC, id DESC LIMIT 1""", {'day': plant_day})
+    baseline_id = baseline[0]['id'] if baseline else None
+    earlier = _rows(cur, """SELECT id, plant_date, job_status, email_status, started_at, window_start
+                            FROM reconciliation_runs
+                            WHERE plant_date <= %(day)s AND id > %(after)s
+                              AND NOT (job_status = 'completed' AND email_status IN ('sent', 'disabled'))
+                            ORDER BY id""", {'day': plant_day, 'after': baseline_id or 0})
+    if baseline:
+        start = baseline[0]['window_end']
+    else:
+        # Nothing delivered yet: go back to where the EARLIEST undelivered run began.
+        # A failed job saved before window bounds were recorded counts from the
+        # start of the day it was checking.
+        start = min([run['window_start'] or _start_of_plant_day(run['plant_date']) for run in earlier]
+                    + [_start_of_plant_day(plant_day)])
+    carried = _rows(cur, """
+        SELECT f.run_id, r.plant_date, r.started_at AS saved_at, f.kind, f.severity, f.product_id, f.lot_id,
+               f.transaction_id, f.expected_lb, f.actual_lb, f.difference_lb, f.detail->>'message' AS message
+        FROM reconciliation_flags f JOIN reconciliation_runs r ON r.id = f.run_id
+        WHERE f.run_id = ANY(%(ids)s::bigint[]) AND NOT EXISTS (
+            SELECT 1 FROM reconciliation_flags g JOIN reconciliation_runs s ON s.id = g.run_id
+            WHERE s.plant_date = r.plant_date AND s.email_status = 'sent' AND s.id < r.id
+              AND g.kind = f.kind AND g.product_id IS NOT DISTINCT FROM f.product_id
+              AND g.lot_id IS NOT DISTINCT FROM f.lot_id
+              AND g.transaction_id IS NOT DISTINCT FROM f.transaction_id
+              AND g.actual_lb IS NOT DISTINCT FROM f.actual_lb
+              AND g.difference_lb IS NOT DISTINCT FROM f.difference_lb)
+        ORDER BY f.run_id, f.id""", {'ids': [run['id'] for run in earlier]}) if earlier else []
+    holding = {flag['run_id'] for flag in carried}
+    # Worth a line in the email: a run that still holds an undelivered finding, or an
+    # earlier day whose email or job failed. Not a repeat run that found nothing new,
+    # and not an earlier attempt at tonight's own check that found nothing.
+    undelivered = [run for run in earlier if run['id'] in holding or (
+        run['plant_date'] < plant_day
+        and not (run['job_status'] == 'completed' and run['email_status'] == 'already_sent'))]
+    return {
+        'plant_day': plant_day, 'baseline_id': baseline_id, 'start': start,
+        'undelivered': [{'run_id': run['id'], 'plant_date': run['plant_date'].isoformat(),
+                         'job_status': run['job_status'], 'email_status': run['email_status'],
+                         'started_at': _iso(run['started_at'])} for run in undelivered],
+        'carried': [{key: (float(value) if key.endswith('_lb') and value is not None else _iso(value))
+                     for key, value in flag.items()} for flag in carried],
+    }
+
+
 def save_run(cur, *, started_at, baseline_id, data, analysis, email, delivery):
     """The ONLY writes in this module: three INSERTs into the 094 tables."""
     cur.execute("SELECT nextval(pg_get_serial_sequence('reconciliation_runs', 'id')) AS id")
@@ -728,7 +856,7 @@ def save_run(cur, *, started_at, baseline_id, data, analysis, email, delivery):
                    [(run_id, f['kind'], f['severity'], f['product_id'], f['lot_id'], f['transaction_id'],
                      f['expected_lb'], f['actual_lb'], f['difference_lb'], f['tolerance_lb'], Json(f['detail']))
                     for f in analysis['flags']])
-    summary = {key: analysis[key] for key in ('mode', 'makes', 'undelivered')}
+    summary = {key: analysis[key] for key in ('mode', 'makes', 'undelivered', 'carried')}
     summary.update(email_subject=email['subject'], email_text=email['text'],
                    snapshot_lots=len(data['ending']),
                    tolerance={'floor_lb': TOLERANCE_FLOOR_LB, 'pct_of_day_movement': TOLERANCE_PCT})
@@ -756,6 +884,9 @@ def run_job(cur, *, now=None, dry_run=False, sender=None, env=None, force_email=
     was not sent (a second run for a day already emailed, a manual daytime run)
     is never the baseline: the next email covers its window again and says so
     (except for a repeat run that found nothing the sent email did not include).
+    The flags those runs SAVED are shown again as saved, in their own section,
+    until a send succeeds: rechecking the ledger alone would lose an alarm that
+    was corrected, voided or changed in the meantime.
     A second run for the same plant day saves its own snapshot and flags but
     does not email again.
 
@@ -765,43 +896,10 @@ def run_job(cur, *, now=None, dry_run=False, sender=None, env=None, force_email=
     env = os.environ if env is None else env
     started_at = _clock(cur)
     end = now or started_at
-    plant_day = end.astimezone(PLANT_TIMEZONE).date() - timedelta(days=1)
-    baseline = _rows(cur, """SELECT id, window_end FROM reconciliation_runs
-                             WHERE job_status = 'completed' AND plant_date < %(day)s
-                               AND email_status IN ('sent', 'disabled')
-                             ORDER BY window_end DESC, id DESC LIMIT 1""", {'day': plant_day})
-    baseline_id = baseline[0]['id'] if baseline else None
-    # Earlier runs since that baseline whose findings never reached the owner.
-    undelivered = _rows(cur, """SELECT id, plant_date, job_status, email_status, started_at, window_start
-                                FROM reconciliation_runs
-                                WHERE plant_date < %(day)s AND id > %(after)s ORDER BY id""",
-                        {'day': plant_day, 'after': baseline_id or 0})
-    if baseline:
-        start = baseline[0]['window_end']
-    else:
-        # Nothing delivered yet: go back to where the first undelivered run began.
-        start = min([run['window_start'] for run in undelivered if run['window_start'] is not None]
-                    + [_start_of_plant_day(plant_day)])
-    # A run saved after that day's email had already gone out is only worth a line
-    # if it found something the sent email did not include.
-    repeats = [run['id'] for run in undelivered
-               if run['job_status'] == 'completed' and run['email_status'] == 'already_sent']
-    if repeats:
-        new_findings = {row['run_id'] for row in _rows(cur, """
-            SELECT DISTINCT f.run_id FROM reconciliation_flags f JOIN reconciliation_runs r ON r.id = f.run_id
-            WHERE f.run_id = ANY(%(ids)s::bigint[]) AND NOT EXISTS (
-                SELECT 1 FROM reconciliation_flags g JOIN reconciliation_runs s ON s.id = g.run_id
-                WHERE s.plant_date = r.plant_date AND s.email_status = 'sent' AND s.id < r.id
-                  AND g.kind = f.kind AND g.product_id IS NOT DISTINCT FROM f.product_id
-                  AND g.lot_id IS NOT DISTINCT FROM f.lot_id
-                  AND g.transaction_id IS NOT DISTINCT FROM f.transaction_id
-                  AND g.actual_lb IS NOT DISTINCT FROM f.actual_lb
-                  AND g.difference_lb IS NOT DISTINCT FROM f.difference_lb)""", {'ids': repeats})}
-        undelivered = [run for run in undelivered if run['id'] not in repeats or run['id'] in new_findings]
-    data = load_window(cur, start, end, opening_run_id=baseline_id)
-    data['undelivered'] = [{'run_id': run['id'], 'plant_date': run['plant_date'].isoformat(),
-                            'job_status': run['job_status'], 'email_status': run['email_status'],
-                            'started_at': _iso(run['started_at'])} for run in undelivered]
+    plan = _plan(cur, end)
+    plant_day, baseline_id = plan['plant_day'], plan['baseline_id']
+    data = load_window(cur, plan['start'], end, opening_run_id=baseline_id)
+    data['undelivered'], data['carried'] = plan['undelivered'], plan['carried']
     analysis = analyse(data)
     email = render_email(analysis)
     outcome = {'analysis': analysis, 'email': email, 'run_id': None, 'email_status': 'not_attempted'}
@@ -825,11 +923,24 @@ def run_job(cur, *, now=None, dry_run=False, sender=None, env=None, force_email=
     return outcome
 
 
-def record_failed_run(cur, error_name):
-    """Best-effort note that tonight's job failed (job_status is separate from the result)."""
-    cur.execute("""INSERT INTO reconciliation_runs (started_at, plant_date, job_status, job_error, email_status)
-                   VALUES (clock_timestamp(), ((clock_timestamp() AT TIME ZONE 'America/New_York')::date - 1),
-                           'failed', %s, 'not_attempted')""", (error_name[:200],))
+def record_failed_run(cur, error_name, now=None):
+    """Best-effort note that tonight's job failed (job_status is separate from the result).
+
+    The window the job was attempting is saved with it, so the next run knows
+    where the unchecked period begins even when nothing was ever delivered.
+    """
+    end = now or _clock(cur)
+    plant_day = end.astimezone(PLANT_TIMEZONE).date() - timedelta(days=1)
+    start = _start_of_plant_day(plant_day)
+    cur.execute('SAVEPOINT reconciliation_failed_run')
+    try:
+        start = _plan(cur, end)['start']
+    except Exception:  # the note matters more than the exact bound; the day's start is the safe fallback
+        cur.execute('ROLLBACK TO SAVEPOINT reconciliation_failed_run')
+    cur.execute("""INSERT INTO reconciliation_runs (started_at, plant_date, window_start, window_end, job_status,
+                                                    job_error, email_status)
+                   VALUES (%s, %s, %s, %s, 'failed', %s, 'not_attempted')""",
+                (end, plant_day, start, end, error_name[:200]))
 
 
 # ---------------------------------------------------------------------------

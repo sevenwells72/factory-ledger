@@ -491,6 +491,216 @@ def test_a_sender_that_raises_still_saves_the_run(kit):
     assert row['email_error'] == 'Email step failed (KeyError)' and row['flag_count'] >= 1
 
 
+def _carried(outcome, kind):
+    return [c for c in outcome['analysis']['carried'] if c['kind'] == kind]
+
+
+def _short_lot(kit):
+    """A lot holding 100 lb, received before the first run."""
+    lot = kit.lot(kit.nuts)
+    kit.post('receive', [(lot, 100)], at(-1, 11))
+    return lot
+
+
+def test_a_saved_alarm_corrected_before_the_next_email_is_still_shown(kit):
+    lot = _short_lot(kit)
+    kit.run(night(-1))
+    kit.post('ship', [(lot, -101)], at(0, 9))                           # the lot is at -1 lb
+    failed = kit.run(night(0), sender=_broken)
+    assert [f['actual_lb'] for f in kit.flags(failed, 'NEGATIVE_LOT')] == [-1]
+    kit.post('adjust', [(lot, 1)], at(1, 9), reason_code='physical_count')      # named, reasoned +1 lb correction
+    outcome = kit.run(night(1))
+    assert kit.flags(outcome, 'NEGATIVE_LOT') == []                     # tonight's books are clean...
+    (alarm,) = _carried(outcome, 'NEGATIVE_LOT')                        # ...but the saved alarm is not lost
+    assert (alarm['lot_id'], alarm['actual_lb'], alarm['run_id'], alarm['status']) == (lot, -1, failed['run_id'], 'corrected')
+    assert outcome['analysis']['result'] == 'attention' and outcome['analysis']['carried_attention_count'] == 1
+    email = kit.sent[-1]
+    assert 'all clear' not in email['subject'] and 'ALL CLEAR' not in email['text']
+    assert '1 earlier finding not emailed before' in email['subject']
+    text = email['text']
+    section = text[text.index('FROM UNDELIVERED RUNS'):text.index("TONIGHT'S FINDINGS")]
+    assert 'is at −1 lb.' in section and 'Since then the lot was corrected. It now stands at 0 lb.' in section
+    assert 'No lot is below zero.' in text[text.index("TONIGHT'S FINDINGS"):]
+    row = kit.row(outcome['run_id'])
+    assert (row['result'], row['email_status']) == ('attention', 'sent')
+    assert [c['status'] for c in row['summary']['carried'] if c['kind'] == 'NEGATIVE_LOT'] == ['corrected']
+    kit.cur.execute("SELECT count(*) AS n FROM reconciliation_flags WHERE run_id = %s AND kind = 'NEGATIVE_LOT'",
+                    (outcome['run_id'],))
+    assert kit.cur.fetchone()['n'] == 0                                 # carried findings are not saved a second time
+    after = kit.run(night(2))                                           # delivered: not repeated
+    assert after['analysis']['carried'] == [] and 'FROM UNDELIVERED RUNS' not in kit.sent[-1]['text']
+    assert after['analysis']['result'] == 'all_clear'
+
+
+def test_saved_flags_stay_owed_until_a_send_succeeds(kit):
+    lot = _short_lot(kit)
+    kit.run(night(-1))
+    kit.post('ship', [(lot, -101)], at(0, 9))
+    kit.run(night(0), sender=_broken)
+    kit.post('adjust', [(lot, 1)], at(1, 9), reason_code='physical_count')
+    second = kit.run(night(1), sender=_broken)                          # the email that carried it failed too
+    assert [c['status'] for c in _carried(second, 'NEGATIVE_LOT')] == ['corrected']
+    third = kit.run(night(2))
+    assert [c['actual_lb'] for c in _carried(third, 'NEGATIVE_LOT')] == [-1]    # still owed, shown once
+    assert kit.sent[-1]['text'].count('is at −1 lb.') == 1
+    assert kit.run(night(3))['analysis']['carried'] == []
+
+    # the same night: a failed send, a correction, then a retry that goes out
+    kit.post('ship', [(lot, -2)], at(4, 9))
+    kit.run(night(4), sender=_broken)
+    kit.post('adjust', [(lot, 2)], night(4) + timedelta(minutes=3), reason_code='physical_count')
+    retry = kit.run(night(4) + timedelta(minutes=10))
+    assert retry['email_status'] == 'sent' and [c['actual_lb'] for c in _carried(retry, 'NEGATIVE_LOT')] == [-2]
+    assert 'NOTE: an earlier run of this check was saved ' in kit.sent[-1]['text']
+    assert kit.run(night(5))['analysis']['carried'] == []
+
+
+def test_an_alarm_saved_by_an_extra_same_day_run_is_still_shown(kit):
+    lot = _short_lot(kit)
+    kit.run(night(-1))
+    kit.run(night(0))
+    kit.post('ship', [(lot, -101)], at(1, 9))
+    manual = kit.run(at(1, 14))                                         # saved, no email (already sent that day)
+    assert manual['email_status'] == 'already_sent' and len(kit.flags(manual, 'NEGATIVE_LOT')) == 1
+    kit.post('adjust', [(lot, 1)], at(1, 15), reason_code='physical_count')
+    outcome = kit.run(night(1))
+    assert kit.flags(outcome, 'NEGATIVE_LOT') == []
+    (alarm,) = _carried(outcome, 'NEGATIVE_LOT')
+    assert (alarm['run_id'], alarm['actual_lb'], alarm['status']) == (manual['run_id'], -1, 'corrected')
+    assert 'is at −1 lb.' in kit.sent[-1]['text'] and outcome['analysis']['result'] == 'attention'
+
+
+def test_a_saved_finding_voided_before_the_next_email_is_still_shown(kit):
+    kit.run(night(-1))
+    adjust = kit.post('adjust', [(kit.oats_lot, -40)], at(0, 9), named=False, reason_code='unknown')
+    failed = kit.run(night(0), sender=_broken)
+    kit.void(adjust, at(1, 9))
+    outcome = kit.run(night(1))
+    assert kit.flags(outcome, 'UNEXPLAINED_ADJUSTMENT') == []           # voided: tonight's check does not list it
+    (old,) = _carried(outcome, 'UNEXPLAINED_ADJUSTMENT')
+    assert (old['transaction_id'], old['run_id'], old['status']) == (adjust, failed['run_id'], 'voided')
+    assert f'Since then TX{adjust} was voided.' in kit.sent[-1]['text']
+    assert outcome['analysis']['result'] == 'attention'
+
+
+def test_a_saved_finding_removed_by_a_recipe_edit_is_still_shown(kit):
+    kit.run(night(-1))
+    make, _ = kit.make(10, at(0, 9), oats=700)                          # recipe says 600 lb
+    failed = kit.run(night(0), sender=_broken)
+    assert kit.kinds(failed) == ['BALANCE_DIFFERENCE', 'MAKE_OFF_RECIPE']
+    kit.cur.execute('UPDATE batch_formulas SET quantity_lb = 70 WHERE product_id = %s AND ingredient_product_id = %s',
+                    (kit.granola, kit.oats))                            # the recipe is edited to match
+    outcome = kit.run(night(1))
+    assert kit.flags(outcome) == []                                     # nothing is off against the NEW recipe
+    (old,) = _carried(outcome, 'MAKE_OFF_RECIPE')
+    assert (old['transaction_id'], old['expected_lb'], old['actual_lb'], old['status']) == (make, 600, 700, 'recipe_changed')
+    assert [c['status'] for c in _carried(outcome, 'BALANCE_DIFFERENCE')] == ['no_longer_found']
+    text = kit.sent[-1]['text']
+    assert 'The recipe calls for 600 lb' in text and 'Since then the recipe on file changed. It now calls for 700 lb.' in text
+    assert outcome['analysis']['result'] == 'attention' and outcome['analysis']['carried_attention_count'] == 2
+
+
+def test_a_carried_finding_that_is_still_open_is_marked_and_counted_once(kit):
+    lot = _short_lot(kit)
+    kit.run(night(-1))
+    kit.post('ship', [(lot, -101)], at(0, 9))
+    kit.run(night(0), sender=_broken)
+    outcome = kit.run(night(1))                                         # nobody corrected it
+    assert [c['status'] for c in _carried(outcome, 'NEGATIVE_LOT')] == ['still_open']
+    assert len(kit.flags(outcome, 'NEGATIVE_LOT')) == 1 and outcome['analysis']['carried_attention_count'] == 0
+    assert 'Still open: it is also in tonight' in kit.sent[-1]['text']
+    assert '1 lot below zero' in kit.sent[-1]['subject'] and 'earlier finding' not in kit.sent[-1]['subject']
+
+
+def _et(month, day, hour=0, minute=0):
+    return datetime(2026, month, day, hour, minute, tzinfo=ET)
+
+
+@pytest.mark.parametrize('legacy_row', [False, True])
+def test_a_first_ever_failed_job_does_not_lose_its_day(kit, legacy_row):
+    first = kit.post('adjust', [(kit.oats_lot, -40)], _et(11, 9, 9), named=False, reason_code='unknown')
+    if legacy_row:                                                      # a failure saved before bounds were recorded
+        kit.cur.execute("INSERT INTO reconciliation_runs (started_at, plant_date, job_status, job_error, email_status) "
+                        "VALUES (%s, %s, 'failed', 'OperationalError', 'not_attempted')", (_et(11, 10, 2, 30), date(2026, 11, 9)))
+    else:
+        reconciliation.record_failed_run(kit.cur, 'OperationalError', now=_et(11, 10, 2, 30))
+        kit.cur.execute("SELECT plant_date, window_start, window_end, job_status FROM reconciliation_runs")
+        (saved,) = kit.cur.fetchall()
+        assert (saved['plant_date'], saved['window_start'], saved['window_end'], saved['job_status']) \
+            == (date(2026, 11, 9), _et(11, 9), _et(11, 10, 2, 30), 'failed')
+    second = kit.post('adjust', [(kit.oats_lot, -15)], _et(11, 10, 9), named=False, reason_code='unknown')
+    outcome = kit.run(_et(11, 11, 2, 30))                               # nothing ran on the night of Nov 10
+    row = kit.row(outcome['run_id'])
+    assert (row['plant_date'], row['window_start'], row['previous_run_id']) == (date(2026, 11, 10), _et(11, 9), None)
+    assert [f['transaction_id'] for f in kit.flags(outcome, 'UNEXPLAINED_ADJUSTMENT')] == [first, second]
+    assert 'NOTE: the check for Mon Nov 9 did not finish' in kit.sent[-1]['text']
+
+
+def test_a_failed_job_after_a_delivered_run_saves_where_it_started(kit):
+    delivered = kit.run(night(-1))
+    reconciliation.record_failed_run(kit.cur, 'OperationalError', now=night(0))
+    kit.cur.execute("SELECT window_start, window_end FROM reconciliation_runs WHERE job_status = 'failed'")
+    assert tuple(kit.cur.fetchone().values()) == (night(-1), night(0))
+    adjust = kit.post('adjust', [(kit.oats_lot, -40)], at(0, 9), named=False, reason_code='unknown')
+    outcome = kit.run(night(1))
+    assert kit.row(outcome['run_id'])['previous_run_id'] == delivered['run_id']
+    assert [f['transaction_id'] for f in kit.flags(outcome, 'UNEXPLAINED_ADJUSTMENT')] == [adjust]
+    assert kit.row(outcome['run_id'])['window_start'] == night(-1)
+    assert 'NOTE: the check for Tue Mar 10 did not finish' in kit.sent[-1]['text']
+
+
+@pytest.mark.parametrize('day,start,end', [
+    (date(2026, 11, 1), _utc(2026, 11, 1, 4), _utc(2026, 11, 2, 5)),    # 25-hour day
+    (date(2026, 3, 8), _utc(2026, 3, 8, 5), _utc(2026, 3, 9, 4)),       # 23-hour day
+    (date(2026, 6, 15), _utc(2026, 6, 15, 4), _utc(2026, 6, 16, 4)),    # an ordinary day
+])
+def test_an_entry_at_exactly_midnight_belongs_to_the_day_that_starts(kit, day, start, end):
+    tick = timedelta(microseconds=1)
+    lot = kit.lot(kit.nuts)
+    kit.post('receive', [(lot, 1000)], start - timedelta(days=30))
+    just_before = kit.post('ship', [(lot, -1)], start - tick)           # the last instant of the day before
+    opens = kit.post('ship', [(lot, -10)], start)                       # exactly midnight: this day
+    closes = kit.post('ship', [(lot, -100)], end)                       # exactly the next midnight: the next day
+    voided = kit.post('ship', [(lot, -7)], start - timedelta(hours=1))
+    kit.void(voided, end)                                               # a void at exactly the next midnight: next day too
+
+    def replay(which):
+        data = reconciliation.load_window(kit.cur, *which, reconstruct=True)
+        entered = {t['id'] for t in data['transactions'] if t['in_window']} & {just_before, opens, closes, voided}
+        balance = lambda key: dict(map(tuple, data[key])).get(lot, 0.0)
+        analysis = reconciliation.analyse(data)
+        assert [f for f in analysis['flags'] if f['lot_id'] == lot and f['kind'] == 'BALANCE_DIFFERENCE'] == []
+        return entered, balance('opening'), balance('ending'), analysis
+
+    previous_start = datetime.combine(day - timedelta(days=1), datetime.min.time(), tzinfo=ET)
+    next_end = datetime.combine(day + timedelta(days=2), datetime.min.time(), tzinfo=ET)
+    entered, opening, ending, analysis = replay((start, end))
+    assert entered == {opens} and (opening, ending) == (992, 982)       # 1000 - 7 - 1, then - 10
+    assert (analysis['window_start'], analysis['window_end']) == (start.isoformat(), end.isoformat())
+    assert analysis['plant_date'] == day.isoformat()
+    entered, opening, ending, _ = replay((previous_start, start))
+    assert entered == {voided, just_before} and ending == 992           # the day before ends without the midnight entry
+    entered, opening, ending, analysis = replay((end, next_end))
+    assert entered == {closes} and (opening, ending) == (982, 889)      # - 100, and the 7 lb void comes back
+    assert [f['transaction_id'] for f in analysis['flags'] if f['kind'] == 'VOID_OF_EARLIER_ENTRY'
+            and f['transaction_id'] in kit.txs] == [voided]
+    # the command gives the same day
+    assert daily_reconciliation.run(kit.cur, dry_run=True, day=day)['analysis']['entries_checked'] >= 1
+
+
+def test_nightly_windows_still_meet_at_the_snapshot_moment(kit):
+    first = kit.run(night(-1))
+    on_the_dot = kit.post('receive', [(kit.oats_lot, 5)], night(-1))    # entered at the very moment of the snapshot
+    data = reconciliation.load_window(kit.cur, night(-1), night(0), opening_run_id=first['run_id'])
+    assert on_the_dot not in {t['id'] for t in data['transactions'] if t['in_window']}     # (start, end]: the run before has it
+    closing = kit.post('receive', [(kit.oats_lot, 7)], night(0))        # at the very moment of the next snapshot
+    data = reconciliation.load_window(kit.cur, night(-1), night(0), opening_run_id=first['run_id'])
+    assert closing in {t['id'] for t in data['transactions'] if t['in_window']}
+    second = kit.run(night(0))
+    assert kit.flags(second, 'BALANCE_DIFFERENCE') == []
+    assert kit.flags(kit.run(night(1)), 'BALANCE_DIFFERENCE') == []     # and it is not counted again the night after
+
+
 def test_12_a_run_changes_no_existing_table(kit):
     kit.make(10, at(0, 9), oats=700)
     kit.post('adjust', [(kit.nuts_lot, -1200)], at(0, 10), named=False, reason_code='unknown')
@@ -698,6 +908,14 @@ def test_resend_delivery(monkeypatch):
                       'error': 'Could not reach the email service (RuntimeError)'}
     monkeypatch.setattr(reconciliation.httpx, 'post', lambda url, **kw: Reply(200, ['not', 'an', 'object']))
     assert reconciliation.send_email(email, env)['status'] == 'sent'
+
+    class BadReply(Reply):
+        def json(self):
+            raise RuntimeError('re_test must never be echoed')          # reading the answer fails, not the POST
+    monkeypatch.setattr(reconciliation.httpx, 'post', lambda url, **kw: BadReply(200, None))
+    failed = reconciliation.send_email(email, env)
+    assert failed == {'status': 'failed', 'to': 'a@example.test, b@example.test', 'provider_id': None,
+                      'error': 'Could not read the email service answer (RuntimeError)'}
     assert reconciliation.send_email(email, {'RECONCILIATION_EMAIL_ENABLED': '1'})['error'] \
         == 'ALERT_EMAIL_TO or RESEND_API_KEY is not set'
 
@@ -763,6 +981,18 @@ def test_endpoints_are_read_only_and_for_owner_and_office(client, actors, db_cur
     kit.post('adjust', [(kit.oats_lot, -40)], at(0, 9), named=False, reason_code='unknown')
     run_id = kit.run(night(0))['run_id']
     counts = _fingerprint(db_cursor, NEW_TABLES)
+    # Every EXISTING table too. Signing in with a named key does its normal bookkeeping
+    # (actors.last_used_at, key_actor_sessions); the owner accepts those two and nothing else.
+    db_cursor.execute("SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename <> ALL(%s) ORDER BY 1",
+                      (list(NEW_TABLES) + ['key_actor_sessions', 'actors'],))
+    existing = [r['tablename'] for r in db_cursor.fetchall()]
+    assert {'transactions', 'transaction_lines', 'ledger_corrections', 'lots', 'products', 'batch_formulas'} <= set(existing)
+
+    def actors_without_sign_in_stamp():
+        db_cursor.execute("SELECT count(*) AS n, md5(COALESCE(string_agg((to_jsonb(a) - 'last_used_at')::text, '|' "
+                          "ORDER BY a.id), '')) AS h FROM actors a")
+        return tuple(db_cursor.fetchone().values())
+    before = _fingerprint(db_cursor, existing), actors_without_sign_in_stamp()
     for who in ('owner', 'office'):
         listed = client.get('/verification/reconciliation/runs?limit=1', headers=key(who))
         assert listed.status_code == 200, listed.text
@@ -785,3 +1015,5 @@ def test_endpoints_are_read_only_and_for_owner_and_office(client, actors, db_cur
     assert preview.status_code == 200, preview.text
     assert preview.json()['saved'] is False and 'analysis' in preview.json() and 'text' in preview.json()['email']
     assert _fingerprint(db_cursor, NEW_TABLES) == counts                # the three GETs saved nothing
+    # ...and no existing table changed, apart from the two sign-in bookkeeping writes allowed above
+    assert (_fingerprint(db_cursor, existing), actors_without_sign_in_stamp()) == before
