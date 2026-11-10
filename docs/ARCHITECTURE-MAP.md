@@ -136,6 +136,14 @@ Pointer syntax: file::text means search that file for that exact text (a section
 - Docs: `docs/resolution.md`
 - Risk: Medium; **High** when the commit path changes
 
+### Daily inventory reconciliation (nightly check and owner email)
+- Code:
+  - `reconciliation.py` (read the ledger, the checks, the email, three read-only `GET /verification/reconciliation/*` routes; its only writes are INSERTs into the three tables of `migrations/094_daily_reconciliation.sql`)
+  - `scripts/daily_reconciliation.py` (the nightly command, `--dry-run`, `--date`); hooked from `scripts/exceptions_sweep.py::def run_daily_reconciliation` behind `RECONCILIATION_ENABLED`
+- Docs: `docs/verification/daily-reconciliation-scoping.md`, `docs/deployments/daily-reconciliation.md`
+- Tests: `tests/test_daily_reconciliation.py`, `tests/fixtures/reconciliation/` (Nov 5/6/9 replay)
+- Risk: Medium (never writes to a ledger table; a test pins that). Not in either GPT schema.
+
 ### Database and migrations
 - Code: `migrations/` (numbered, idempotent, never edit an applied file), `migrations/down/`, `migrations/dry-runs/`
 - Test schema: `tests/schema/schema.sql` (refresh with `scripts/dump_prod_schema.sh`)

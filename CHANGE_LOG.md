@@ -1,5 +1,68 @@
 # Change Log
 
+## 2026-11-10 11:15 — Daily reconciliation PR 198: owner-approved merge to main, job left switched off
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `daily-reconciliation.md`
+- **What changed:** Row 273 and the deployment doc now say the reconciliation is merged to main (PR 198, squash) with the job switched off: migration 094 not applied to staging or production, RECONCILIATION_ENABLED and the email variables not set. Verified production backup taken first (~/Backups/fl/2026-11-10-pre-pr198-merge: dump checksum OK, storage all 200, restore key checks all match).
+- **Why:** Michael approved merging PR 198 without another review round. Merge only: no migration, no variables, nothing else changed.
+
+---
+
+## 2026-11-10 11:09 — Daily reconciliation: run lock taken before the job reads anything (no duplicate same-day email)
+- **File(s) changed:** `reconciliation.py`, `scripts/daily_reconciliation.py`, `tests/test_daily_reconciliation.py`, `docs/deployments/daily-reconciliation.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** The command now takes the one-run-at-a-time advisory lock on a separate guard connection before it opens the job connection, and releases it only after the job has committed, so the REPEATABLE READ job cannot freeze a view of saved runs that predates another run's commit. run_job keeps a second in-transaction lock as a backstop. Both locks are transaction-level (hold on the 6543 pooler). Two new tests: statement order on both connections, and two real racing runs in a throwaway schema (one saved run, one email). Docs describe the guard connection. 53 tests in the file; Python 7,530 passed in both modes on fresh databases; Node 702 passed. Row 273 updated (still not deployed).
+- **Why:** P2 from Codex's review of PR 198 at 35ca81d3 (comment 6772116439): a run whose snapshot predated the first run's commit could send a second email for the same day. Not merged, not deployed, migration applied only to local scratch databases.
+
+---
+
+## 2026-11-10 10:41 — Daily reconciliation: recovery independent of run order, and one run at a time
+- **File(s) changed:** `reconciliation.py`, `scripts/daily_reconciliation.py`, `tests/test_daily_reconciliation.py`, `docs/deployments/daily-reconciliation.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Undelivered runs are no longer found by run id order: a delivered run lists every earlier run it reported in summary.acknowledged, and any saved run not on such a list (and not itself emailed) is picked up by the next email. A real run now takes a transaction-level advisory lock (pg_try_advisory_xact_lock, which holds on the 6543 transaction pooler); a second run started meanwhile saves nothing, prints that it stopped and exits 0. Docs state the one-at-a-time rule. Two new tests (51 in the file); Python 7,528 passed in both modes on fresh databases; Node 702 passed. Row 273 updated (still not deployed).
+- **Why:** Remaining P1 from Codex's re-review of PR 198 (comment 6771417390): a failed run saved before an overlapping successful run could be skipped. Not merged, not deployed, migration applied only to local scratch databases.
+
+---
+
+## 2026-11-10 10:22 — Daily reconciliation: fixes for the independent (Codex) review of PR 198
+- **File(s) changed:** `reconciliation.py`, `tests/test_daily_reconciliation.py`, `docs/deployments/daily-reconciliation.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** The next email now lists the flags that undelivered runs saved, as saved, in a FROM UNDELIVERED RUNS section with what happened since (still open, changed, voided, corrected, recipe changed, no longer found); a saved alarm no longer found keeps the result at attention, and flags count as delivered only after a send succeeds. record_failed_run saves the attempted window and recovery with nothing delivered starts from the earliest undelivered day. --date replay uses midnight up to but not including the next midnight, including opening and ending balances; nightly windows unchanged. send_email catches errors while reading the answer. Docs state that named-key sign-in still updates actors.last_used_at and key_actor_sessions (owner accepted); the endpoint test now fingerprints every existing table and allows only those two. Row 273 says migration 094 is not applied to staging or production. 13 new tests (49 in the file); Python 7,526 passed in both modes on fresh databases; Node 702 passed.
+- **Why:** Michael asked to fix the six findings in Codex's independent review (PR 198 comment 6768398805). Not merged, not deployed, migration applied only to local scratch databases.
+
+---
+
+## 2026-11-10 08:05 — Daily reconciliation: remaining review items (DST tests, coconut ID list, fixture placeholders, quieter note, docs)
+- **File(s) changed:** `reconciliation.py`, `tests/test_daily_reconciliation.py`, `tests/fixtures/reconciliation/replay_2026-11-05.json`, `tests/fixtures/reconciliation/replay_2026-11-06.json`, `tests/fixtures/reconciliation/replay_2026-11-09.json`, `docs/deployments/daily-reconciliation.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Coconut yield is now decided by an explicit product ID list (125-128) instead of a name match, because products.product_category is empty for every product in the 2026-11-09 production export. A repeat run for a day already emailed gets no NOTE line the next night unless it found a flag the sent email did not include. Staff first names in the three replay fixtures replaced with Staff A / Staff B (lot codes and transaction numbers kept). New tests for the 25-hour and 23-hour daylight-saving days and for the quiet note. Docs now state the packed-vs-made tolerance on its own row, the 02:30 winter / 03:30 summer run time, and that the command must start after midnight Eastern. Row 273 updated (still not deployed).
+- **Why:** Michael asked to finish the remaining PR 198 review items. Not merged, not deployed, migration applied nowhere.
+
+---
+
+## 2026-11-10 07:53 — Daily reconciliation review fixes 3-4: email step can never abort a run; test_01 safe on a re-used database
+- **File(s) changed:** `reconciliation.py`, `tests/test_daily_reconciliation.py`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** send_email now treats any exception or a non-object reply as a failed send, and run_job records a sender that raises as email_status failed so the run and flags are still saved. test_01 compares the timestamp rebuild as of now, so rows left by other tests in a re-used database no longer fail it. One new test; row 273 counts updated (still not deployed).
+- **Why:** Should-fix findings 3 and 4 from the PR 198 cross-review; Michael approved fixing both.
+
+---
+
+## 2026-11-10 07:42 — Daily reconciliation review fix: undelivered runs are covered and named in the next email
+- **File(s) changed:** `reconciliation.py`, `tests/test_daily_reconciliation.py`, `docs/deployments/daily-reconciliation.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** run_job now takes its opening snapshot from the latest earlier run whose findings were delivered (email sent, or email off). Runs since then with a failed send, a failed job, or saved without an email are re-covered by the next window, listed in summary.undelivered and named in a NOTE line in the email. Three new tests; row 273 updated (still not deployed).
+- **Why:** Cross-review of PR 198 found that a failed send or an extra daytime run saved flags that were never emailed. Michael approved fixing both on the PR branch.
+
+---
+
+## 2026-11-09 21:46 — Daily inventory reconciliation PR 1: nightly check, owner email, migration 094 (not deployed)
+- **File(s) changed:** `reconciliation.py`, `scripts/daily_reconciliation.py`, `scripts/exceptions_sweep.py`, `main.py`, `migrations/094_daily_reconciliation.sql`, `migrations/down/094_daily_reconciliation_down.sql`, `tests/test_daily_reconciliation.py`, `tests/fixtures/reconciliation/`, `tests/fixtures/route_contract/routes.jsonl`, `tests/test_named_actor_writes.py`, `docs/deployments/daily-reconciliation.md`, `docs/ARCHITECTURE-MAP.md`, `docs/verification/daily-reconciliation-scoping.md`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Built the nightly reconciliation from the scoping doc on branch feat/daily-reconciliation (worktree ~/dev/fl-daily-recon-wt, off origin/main 4068c6a). Migration 094 adds three append-only tables and touches no existing table. reconciliation.py snapshots lot balances and checks the business day (make vs recipe, per-lot roll-forward, packed-more-than-made, pack with no make), with tolerance = greater of 5 lb or 2% of the day's movement; lots below zero and unknown/unnamed adjustments are always listed; coconut over-pack up to 2% is its own section; voids and late entries are information. Email via Resend (httpx), off by default, sent every night when enabled; job status, result and delivery are separate fields. Hooked into scripts/exceptions_sweep.py behind RECONCILIATION_ENABLED. Three read-only GET /verification/reconciliation/* routes, out of both GPT schemas (office still 30, floor 22). 27 new tests incl. the Nov 5/6/9 replay (reproduces the TX2973 flag) and the ledger-unchanged guard; full Python suite 7,504 passed on a fresh local DB. Regression row 273 added. Replay fixtures and the Nov 9 dry-run sample come from the scoping session's read-only export loaded into a local scratch database; production was not queried in this session. Migration applied only to local scratch databases.
+- **Why:** Michael asked for PR 1 of the daily reconciliation. Not merged, not deployed, migration not applied to staging or production.
+
+---
+
+## 2026-11-09 21:25 — Daily inventory reconciliation scoping (read-only)
+- **File(s) changed:** `docs/verification/daily-reconciliation-scoping.md`
+- **What changed:** Scoping doc for a nightly snapshot + roll-forward check (previous snapshot + receipts − recipe usage ± other posted movements vs ending balance), make-vs-recipe check, pack-without-make check, flags table and owner email. Covers data sources (`ledger_current_*`, no snapshot table exists), recipe completeness (all 25 batch products have recipes; gaps listed), a hand run for Nov 5/6/9 (0 balance differences; 1 flag over tolerance: TX2973 packed 375 lb from a 350 lb lot; 6 lots currently below zero), hosting (existing Railway exceptions-sweep cron now, Render Cron later; not pg_cron), email (Resend over HTTPS) and a PR plan (migration, module, endpoints, tests). Based on origin/main 4068c6a and read-only production queries (port 5432, BEGIN; SET TRANSACTION READ ONLY). Entry carried from the scoping session's uncommitted log in ~/Documents/factory-ledger; the doc is committed on branch feat/daily-reconciliation.
+- **Why:** Michael asked for a read-only scope before any build. No code, no DB writes.
+
+---
+
 ## 2026-11-09 20:06 — Record PR 196 production deploy (changelog rows 271–272)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Marked row 272 (and row 271, shipped in the same PR) as deployed: #196 squash-merged to main `ddffa71`, Railway FastAPI `d29913a8` SUCCESS, /health healthy, live lot-report for lot 25120 returns 200 with 277 lots, Netlify serves `trace-report.js?v=2` and `dashboard.js?v=86` identical to main. Backup `~/Backups/fl/2026-11-09-pre-pr196` verified before the merge.
