@@ -556,7 +556,7 @@ def analyse(data):
         'entries_checked': sum(1 for t in data['transactions'] if t['in_window'] and t['posted_after']),
         'makes_checked': sum(1 for m in makes if m['checked']), 'lots_checked': len(checked),
         'result': 'attention' if attention else 'all_clear', 'attention_count': attention,
-        'flags': flags, 'makes': makes,
+        'flags': flags, 'makes': makes, 'undelivered': data.get('undelivered') or [],
     }
 
 
@@ -577,6 +577,23 @@ _SECTIONS = (
 
 def _plural(count, word):
     return f'{count} {word}{"" if count == 1 else "s"}'
+
+
+def _undelivered_notes(runs):
+    """One plain line per earlier run whose findings never reached the owner."""
+    notes = []
+    for run in runs:
+        day = date.fromisoformat(run['plant_date'])
+        label = f'{day:%a %b} {day.day}'
+        if run['job_status'] != 'completed':
+            notes.append(f'NOTE: the check for {label} did not finish, so no email was sent for it. '
+                         'This email covers that day as well.')
+        elif run['email_status'] == 'failed':
+            notes.append(f'NOTE: the email for {label} was not delivered. This email covers that day as well.')
+        else:
+            notes.append(f'NOTE: an extra check was saved {_when(run["started_at"])} without an email. '
+                         'This email covers everything it found.')
+    return list(dict.fromkeys(notes))
 
 
 def render_email(analysis):
@@ -603,6 +620,7 @@ def render_email(analysis):
     if not analysis['balance_checked']:
         notes.append('First run: a starting snapshot of every lot was saved. The balance roll-forward '
                      'begins with the next run.')
+    notes += _undelivered_notes(analysis.get('undelivered') or [])
     lines = [f'Factory Ledger daily check for {day:%A, %B} {day.day}, {day.year}', '', headline, checked, *notes]
     blocks = []
     for title, belongs, empty in _SECTIONS:
@@ -702,7 +720,7 @@ def save_run(cur, *, started_at, baseline_id, data, analysis, email, delivery):
                    [(run_id, f['kind'], f['severity'], f['product_id'], f['lot_id'], f['transaction_id'],
                      f['expected_lb'], f['actual_lb'], f['difference_lb'], f['tolerance_lb'], Json(f['detail']))
                     for f in analysis['flags']])
-    summary = {key: analysis[key] for key in ('mode', 'makes')}
+    summary = {key: analysis[key] for key in ('mode', 'makes', 'undelivered')}
     summary.update(email_subject=email['subject'], email_text=email['text'],
                    snapshot_lots=len(data['ending']),
                    tolerance={'floor_lb': TOLERANCE_FLOOR_LB, 'pct_of_day_movement': TOLERANCE_PCT})
@@ -723,10 +741,14 @@ def save_run(cur, *, started_at, baseline_id, data, analysis, email, delivery):
 def run_job(cur, *, now=None, dry_run=False, sender=None, env=None, force_email=False):
     """Snapshot, check the business day, save the flags, email, record the send.
 
-    The opening balance is the most recent snapshot from an EARLIER plant day,
-    whatever its date, so a missed night or a weekend needs no special handling
-    and running twice in one night never moves the baseline. A second run for
-    the same plant day saves its own snapshot and flags but does not email again.
+    The opening balance is the most recent snapshot from an EARLIER plant day
+    whose findings were DELIVERED (email sent, or email switched off), whatever
+    its date. So a missed night or a weekend needs no special handling, running
+    twice in one night never moves the baseline, and a run whose email failed or
+    was not sent (a second run for a day already emailed, a manual daytime run)
+    is never the baseline: the next email covers its window again and says so.
+    A second run for the same plant day saves its own snapshot and flags but
+    does not email again.
 
     dry_run=True reads the same data and returns the same email, and writes
     nothing. The caller owns the transaction (commit / rollback).
@@ -737,10 +759,24 @@ def run_job(cur, *, now=None, dry_run=False, sender=None, env=None, force_email=
     plant_day = end.astimezone(PLANT_TIMEZONE).date() - timedelta(days=1)
     baseline = _rows(cur, """SELECT id, window_end FROM reconciliation_runs
                              WHERE job_status = 'completed' AND plant_date < %(day)s
+                               AND email_status IN ('sent', 'disabled')
                              ORDER BY window_end DESC, id DESC LIMIT 1""", {'day': plant_day})
     baseline_id = baseline[0]['id'] if baseline else None
-    start = baseline[0]['window_end'] if baseline else _start_of_plant_day(plant_day)
+    # Earlier runs since that baseline whose findings never reached the owner.
+    undelivered = _rows(cur, """SELECT id, plant_date, job_status, email_status, started_at, window_start
+                                FROM reconciliation_runs
+                                WHERE plant_date < %(day)s AND id > %(after)s ORDER BY id""",
+                        {'day': plant_day, 'after': baseline_id or 0})
+    if baseline:
+        start = baseline[0]['window_end']
+    else:
+        # Nothing delivered yet: go back to where the first undelivered run began.
+        start = min([run['window_start'] for run in undelivered if run['window_start'] is not None]
+                    + [_start_of_plant_day(plant_day)])
     data = load_window(cur, start, end, opening_run_id=baseline_id)
+    data['undelivered'] = [{'run_id': run['id'], 'plant_date': run['plant_date'].isoformat(),
+                            'job_status': run['job_status'], 'email_status': run['email_status'],
+                            'started_at': _iso(run['started_at'])} for run in undelivered]
     analysis = analyse(data)
     email = render_email(analysis)
     outcome = {'analysis': analysis, 'email': email, 'run_id': None, 'email_status': 'not_attempted'}

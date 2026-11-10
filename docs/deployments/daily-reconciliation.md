@@ -50,6 +50,13 @@ A second run for the same business day saves its results but does not send a sec
 If sending fails, the run and its flags are still saved with `email_status='failed'` and the error; running
 the command again retries the send.
 
+**Nothing saved goes unreported.** Each night starts from the last run whose findings were *delivered*
+(email sent, or email switched off). A run whose email failed, a night whose job failed, or an extra run
+saved without an email (a manual daytime run) is never the starting point: the next email covers that
+period again and says so in a `NOTE:` line near the top, for example "the email for Mon Nov 9 was not
+delivered. This email covers that day as well." Those runs are listed in `summary.undelivered` of the run
+that covered them.
+
 | Variable | Meaning |
 | --- | --- |
 | `RECONCILIATION_EMAIL_ENABLED` | `1` to send. **Default off** (`email_status='disabled'`). |

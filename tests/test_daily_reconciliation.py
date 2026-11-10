@@ -344,6 +344,64 @@ def test_11_email_failure_keeps_the_flags_and_records_the_error(kit):
     assert retry['email_status'] == 'sent' and len(kit.sent) == 2
 
 
+def _broken(email, env):
+    return {'status': 'failed', 'to': env['ALERT_EMAIL_TO'], 'provider_id': None,
+            'error': 'Email service answered 503: unavailable'}
+
+
+def test_a_failed_send_is_covered_and_named_in_the_next_email(kit):
+    baseline = kit.run(night(-1))['run_id']
+    adjust = kit.post('adjust', [(kit.oats_lot, -40)], at(0, 9), named=False, reason_code='unknown')
+    failed = kit.run(night(0), sender=_broken)
+    assert failed['email_status'] == 'failed' and len(kit.sent) == 1
+    kit.make(2, at(1, 10))
+    outcome = kit.run(night(1))                                         # nobody re-ran the failed night
+    assert outcome['email_status'] == 'sent' and len(kit.sent) == 2
+    assert [f['transaction_id'] for f in kit.flags(outcome, 'UNEXPLAINED_ADJUSTMENT')] == [adjust]
+    assert kit.flags(outcome, 'BALANCE_DIFFERENCE') == []               # rolled forward from the delivered snapshot
+    text = kit.sent[-1]['text']
+    assert 'NOTE: the email for Tue Mar 10 was not delivered. This email covers that day as well.' in text
+    row = kit.row(outcome['run_id'])
+    assert row['previous_run_id'] == baseline and row['window_start'] == night(-1)
+    assert [u['run_id'] for u in row['summary']['undelivered']] == [failed['run_id']]
+    after = kit.run(night(2))                                           # delivered: the baseline moves on, no note
+    assert kit.row(after['run_id'])['previous_run_id'] == outcome['run_id']
+    assert 'NOTE:' not in kit.sent[-1]['text'] and kit.flags(after, 'UNEXPLAINED_ADJUSTMENT') == []
+
+
+def test_an_extra_daytime_run_cannot_swallow_its_flags(kit):
+    kit.run(night(-1))
+    nightly = kit.run(night(0))
+    adjust = kit.post('adjust', [(kit.oats_lot, -40)], at(1, 9), named=False, reason_code='unknown')
+    manual = kit.run(at(1, 14))                                         # same plant day as the nightly: no email
+    assert manual['email_status'] == 'already_sent' and len(kit.sent) == 2
+    assert [f['transaction_id'] for f in kit.flags(manual, 'UNEXPLAINED_ADJUSTMENT')] == [adjust]
+    kit.make(2, at(1, 15))
+    outcome = kit.run(night(1))
+    assert outcome['email_status'] == 'sent' and len(kit.sent) == 3
+    assert [f['transaction_id'] for f in kit.flags(outcome, 'UNEXPLAINED_ADJUSTMENT')] == [adjust]
+    assert kit.flags(outcome, 'BALANCE_DIFFERENCE') == []
+    note = [line for line in kit.sent[-1]['text'].splitlines() if line.startswith('NOTE:')]
+    assert len(note) == 1 and note[0].startswith('NOTE: an extra check was saved ')
+    assert note[0].endswith(' without an email. This email covers everything it found.')
+    row = kit.row(outcome['run_id'])
+    assert row['previous_run_id'] == nightly['run_id'] and row['window_start'] == night(0)
+
+
+def test_a_first_ever_send_that_fails_is_still_covered(kit):
+    adjust = kit.post('adjust', [(kit.oats_lot, -40)], at(0, 9), named=False, reason_code='unknown')
+    failed = kit.run(night(0), sender=_broken)
+    outcome = kit.run(night(1))
+    assert [f['transaction_id'] for f in kit.flags(outcome, 'UNEXPLAINED_ADJUSTMENT')] == [adjust]
+    row = kit.row(outcome['run_id'])
+    assert row['previous_run_id'] is None and row['window_start'] == kit.row(failed['run_id'])['window_start']
+    assert 'NOTE: the email for Tue Mar 10 was not delivered.' in kit.sent[-1]['text']
+    kit.cur.execute("INSERT INTO reconciliation_runs (started_at, plant_date, job_status, job_error, email_status) "
+                    "VALUES (%s, %s, 'failed', 'OperationalError', 'not_attempted')", (night(2), date(2026, 3, 12)))
+    kit.run(night(3))                                                   # a night whose job failed is named too
+    assert 'NOTE: the check for Thu Mar 12 did not finish' in kit.sent[-1]['text']
+
+
 def test_12_a_run_changes_no_existing_table(kit):
     kit.make(10, at(0, 9), oats=700)
     kit.post('adjust', [(kit.nuts_lot, -1200)], at(0, 10), named=False, reason_code='unknown')
