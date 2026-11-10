@@ -191,7 +191,8 @@ def test_02_clean_day_has_zero_flags_and_still_sends_all_clear(kit):
     analysis = outcome['analysis']
     assert analysis['result'] == 'all_clear' and analysis['balance_checked']
     assert (analysis['entries_checked'], analysis['makes_checked'], analysis['lots_checked']) == (4, 1, 5)
-    assert len(kit.sent) == 2 and 'all clear' in kit.sent[1]['subject'] and 'ALL CLEAR' in kit.sent[1]['text']
+    assert len(kit.sent) == 2 and kit.sent[1]['subject'].endswith('Nothing new today. All clear.') \
+        and 'no action needed' in kit.sent[1]['text'] and 'NEEDS ATTENTION' not in kit.sent[1]['text']
     row = kit.row(outcome['run_id'])
     assert (row['job_status'], row['result'], row['email_status']) == ('completed', 'all_clear', 'sent')
     assert row['plant_date'] == date(2026, 3, 10) and row['email_sent_at'] is not None and row['flag_count'] == 0
@@ -230,7 +231,7 @@ def test_04_recorded_substitution_is_correct_and_an_unrecorded_one_is_flagged(ki
     assert sorted(by_kind) == ['MAKE_INGREDIENT_MISSING', 'MAKE_OFF_RECIPE']
     missing = by_kind['MAKE_INGREDIENT_MISSING']
     assert (missing['product_id'], missing['expected_lb'], missing['actual_lb']) == (bran, 112, 0)
-    assert 'no substitution was recorded' in missing['detail']['message']
+    assert 'no swap was recorded' in missing['detail']['message']
     # a recorded "not used" (no substitute) is also correct
     batches, expected = reconciliation.expected_usage(
         400, 100, [{'ingredient_product_id': 1, 'quantity_lb': 72, 'exclude_from_inventory': False},
@@ -267,7 +268,7 @@ def test_06_voids_are_listed_and_the_balance_still_reconciles(kit):
     old = kit.flags(outcome, 'VOID_OF_EARLIER_ENTRY')[0]
     assert old['transaction_id'] == earlier and old['severity'] == 'info' and 'Wrong supplier lot' in old['detail']['message']
     new = kit.flags(outcome, 'VOID_SAME_DAY')[0]
-    assert new['transaction_id'] == same_day and 'No effect on balances' in new['detail']['message']
+    assert new['transaction_id'] == same_day and 'No effect on stock' in new['detail']['message']
     assert outcome['analysis']['result'] == 'all_clear'         # information only; a voided adjustment is not listed twice
     kit.cur.execute('SELECT quantity_lb FROM inventory_snapshots WHERE job_run_id = %s AND lot_id = %s',
                     (outcome['run_id'], kit.honey_lot))
@@ -280,7 +281,7 @@ def test_07_backdated_entry_is_listed_as_late(kit):
     kit.post('receive', [(kit.oats_lot, 100)], at(0, 11))
     outcome = kit.run(night(0))
     assert [(f['kind'], f['transaction_id'], f['severity']) for f in kit.flags(outcome)] == [('LATE_ENTRY', late, 'info')]
-    assert 'business date Mar 6' in kit.flags(outcome)[0]['detail']['message']
+    assert 'for Mar 6 was entered later' in kit.flags(outcome)[0]['detail']['message']
 
 
 def test_08_pack_provenance_and_lots_below_zero(kit):
@@ -301,7 +302,7 @@ def test_08_pack_provenance_and_lots_below_zero(kit):
     assert found[('PACK_NO_MAKE', orphan)]['transaction_id'] == no_make
     over = found[('PACK_EXCEEDS_MAKE', short)]
     assert (over['transaction_id'], over['expected_lb'], over['actual_lb'], over['difference_lb']) == (exceeds, 350, 375, 25)
-    assert 'reason "unknown"' in over['detail']['message'] and 'shared key' in over['detail']['message']
+    assert 'reason "unknown"' in over['detail']['message'] and 'with no name on it' in over['detail']['message']
     negative = found[('NEGATIVE_LOT', close)]
     assert (negative['severity'], negative['actual_lb']) == ('alarm', -10)
     assert outcome['analysis']['result'] == 'attention'
@@ -364,13 +365,13 @@ def test_a_failed_send_is_covered_and_named_in_the_next_email(kit):
     assert [f['transaction_id'] for f in kit.flags(outcome, 'UNEXPLAINED_ADJUSTMENT')] == [adjust]
     assert kit.flags(outcome, 'BALANCE_DIFFERENCE') == []               # rolled forward from the delivered snapshot
     text = kit.sent[-1]['text']
-    assert 'NOTE: the email for Tue Mar 10 was not delivered. This email covers that day as well.' in text
+    assert 'Note: the email for Tue Mar 10 did not go out. This email covers that day too.' in text
     row = kit.row(outcome['run_id'])
     assert row['previous_run_id'] == baseline and row['window_start'] == night(-1)
     assert [u['run_id'] for u in row['summary']['undelivered']] == [failed['run_id']]
     after = kit.run(night(2))                                           # delivered: the baseline moves on, no note
     assert kit.row(after['run_id'])['previous_run_id'] == outcome['run_id']
-    assert 'NOTE:' not in kit.sent[-1]['text'] and kit.flags(after, 'UNEXPLAINED_ADJUSTMENT') == []
+    assert 'Note:' not in kit.sent[-1]['text'] and kit.flags(after, 'UNEXPLAINED_ADJUSTMENT') == []
 
 
 def test_an_extra_daytime_run_cannot_swallow_its_flags(kit):
@@ -385,9 +386,9 @@ def test_an_extra_daytime_run_cannot_swallow_its_flags(kit):
     assert outcome['email_status'] == 'sent' and len(kit.sent) == 3
     assert [f['transaction_id'] for f in kit.flags(outcome, 'UNEXPLAINED_ADJUSTMENT')] == [adjust]
     assert kit.flags(outcome, 'BALANCE_DIFFERENCE') == []
-    note = [line for line in kit.sent[-1]['text'].splitlines() if line.startswith('NOTE:')]
-    assert len(note) == 1 and note[0].startswith('NOTE: an extra check was saved ')
-    assert note[0].endswith(' without an email. This email covers everything it found.')
+    note = [line for line in kit.sent[-1]['text'].splitlines() if line.startswith('Note:')]
+    assert len(note) == 1 and note[0].startswith('Note: an extra check ran at ')
+    assert note[0].endswith(' without sending an email. This email includes everything it found.')
     row = kit.row(outcome['run_id'])
     assert row['previous_run_id'] == nightly['run_id'] and row['window_start'] == night(0)
 
@@ -400,7 +401,7 @@ def test_a_repeat_run_that_found_nothing_new_gets_no_note(kit):
     assert (sent['email_status'], repeat['email_status']) == ('sent', 'already_sent')
     assert len(kit.flags(repeat, 'UNEXPLAINED_ADJUSTMENT')) == 1
     quiet = kit.run(night(1))
-    assert 'NOTE:' not in kit.sent[-1]['text'] and kit.row(quiet['run_id'])['summary']['undelivered'] == []
+    assert 'Note:' not in kit.sent[-1]['text'] and kit.row(quiet['run_id'])['summary']['undelivered'] == []
     assert kit.row(quiet['run_id'])['previous_run_id'] == sent['run_id']
 
     late = kit.post('adjust', [(kit.oats_lot, -15)], night(1) + timedelta(minutes=2), named=False, reason_code='unknown')
@@ -408,7 +409,7 @@ def test_a_repeat_run_that_found_nothing_new_gets_no_note(kit):
     assert again['email_status'] == 'already_sent'
     outcome = kit.run(night(2))
     assert [f['transaction_id'] for f in kit.flags(outcome, 'UNEXPLAINED_ADJUSTMENT')] == [late]
-    assert kit.sent[-1]['text'].count('NOTE: an extra check was saved ') == 1
+    assert kit.sent[-1]['text'].count('Note: an extra check ran at ') == 1
     assert [u['run_id'] for u in kit.row(outcome['run_id'])['summary']['undelivered']] == [again['run_id']]
 
 
@@ -474,11 +475,11 @@ def test_a_first_ever_send_that_fails_is_still_covered(kit):
     assert [f['transaction_id'] for f in kit.flags(outcome, 'UNEXPLAINED_ADJUSTMENT')] == [adjust]
     row = kit.row(outcome['run_id'])
     assert row['previous_run_id'] is None and row['window_start'] == kit.row(failed['run_id'])['window_start']
-    assert 'NOTE: the email for Tue Mar 10 was not delivered.' in kit.sent[-1]['text']
+    assert 'Note: the email for Tue Mar 10 did not go out.' in kit.sent[-1]['text']
     kit.cur.execute("INSERT INTO reconciliation_runs (started_at, plant_date, job_status, job_error, email_status) "
                     "VALUES (%s, %s, 'failed', 'OperationalError', 'not_attempted')", (night(2), date(2026, 3, 12)))
     kit.run(night(3))                                                   # a night whose job failed is named too
-    assert 'NOTE: the check for Thu Mar 12 did not finish' in kit.sent[-1]['text']
+    assert 'Note: the check for Thu Mar 12 did not finish' in kit.sent[-1]['text']
 
 
 def test_a_sender_that_raises_still_saves_the_run(kit):
@@ -517,12 +518,12 @@ def test_a_saved_alarm_corrected_before_the_next_email_is_still_shown(kit):
     assert (alarm['lot_id'], alarm['actual_lb'], alarm['run_id'], alarm['status']) == (lot, -1, failed['run_id'], 'corrected')
     assert outcome['analysis']['result'] == 'attention' and outcome['analysis']['carried_attention_count'] == 1
     email = kit.sent[-1]
-    assert 'all clear' not in email['subject'] and 'ALL CLEAR' not in email['text']
-    assert '1 earlier finding not emailed before' in email['subject']
+    assert 'All clear' not in email['subject'] and 'no action needed' not in email['text']
+    assert '1 new to check.' in email['subject']
     text = email['text']
-    section = text[text.index('FROM UNDELIVERED RUNS'):text.index("TONIGHT'S FINDINGS")]
-    assert 'is at −1 lb.' in section and 'Since then the lot was corrected. It now stands at 0 lb.' in section
-    assert 'No lot is below zero.' in text[text.index("TONIGHT'S FINDINGS"):]
+    section = text[text.index('Found earlier, not emailed until now (1)'):text.index('New today (0)')]
+    assert 'shows less than zero (−1 lb)' in section and 'Since then the lot was corrected. It now shows 0 lb.' in section
+    assert 'Nothing else new today.' in text[text.index('New today (0)'):]
     row = kit.row(outcome['run_id'])
     assert (row['result'], row['email_status']) == ('attention', 'sent')
     assert [c['status'] for c in row['summary']['carried'] if c['kind'] == 'NEGATIVE_LOT'] == ['corrected']
@@ -530,7 +531,7 @@ def test_a_saved_alarm_corrected_before_the_next_email_is_still_shown(kit):
                     (outcome['run_id'],))
     assert kit.cur.fetchone()['n'] == 0                                 # carried findings are not saved a second time
     after = kit.run(night(2))                                           # delivered: not repeated
-    assert after['analysis']['carried'] == [] and 'FROM UNDELIVERED RUNS' not in kit.sent[-1]['text']
+    assert after['analysis']['carried'] == [] and 'Found earlier' not in kit.sent[-1]['text']
     assert after['analysis']['result'] == 'all_clear'
 
 
@@ -544,7 +545,7 @@ def test_saved_flags_stay_owed_until_a_send_succeeds(kit):
     assert [c['status'] for c in _carried(second, 'NEGATIVE_LOT')] == ['corrected']
     third = kit.run(night(2))
     assert [c['actual_lb'] for c in _carried(third, 'NEGATIVE_LOT')] == [-1]    # still owed, shown once
-    assert kit.sent[-1]['text'].count('is at −1 lb.') == 1
+    assert kit.sent[-1]['text'].count('shows less than zero (−1 lb)') == 1
     assert kit.run(night(3))['analysis']['carried'] == []
 
     # the same night: a failed send, a correction, then a retry that goes out
@@ -553,7 +554,7 @@ def test_saved_flags_stay_owed_until_a_send_succeeds(kit):
     kit.post('adjust', [(lot, 2)], night(4) + timedelta(minutes=3), reason_code='physical_count')
     retry = kit.run(night(4) + timedelta(minutes=10))
     assert retry['email_status'] == 'sent' and [c['actual_lb'] for c in _carried(retry, 'NEGATIVE_LOT')] == [-2]
-    assert 'NOTE: an earlier run of this check was saved ' in kit.sent[-1]['text']
+    assert 'Note: an earlier run of this check at ' in kit.sent[-1]['text']
     assert kit.run(night(5))['analysis']['carried'] == []
 
 
@@ -569,7 +570,7 @@ def test_an_alarm_saved_by_an_extra_same_day_run_is_still_shown(kit):
     assert kit.flags(outcome, 'NEGATIVE_LOT') == []
     (alarm,) = _carried(outcome, 'NEGATIVE_LOT')
     assert (alarm['run_id'], alarm['actual_lb'], alarm['status']) == (manual['run_id'], -1, 'corrected')
-    assert 'is at −1 lb.' in kit.sent[-1]['text'] and outcome['analysis']['result'] == 'attention'
+    assert 'shows less than zero (−1 lb)' in kit.sent[-1]['text'] and outcome['analysis']['result'] == 'attention'
 
 
 def test_a_saved_finding_voided_before_the_next_email_is_still_shown(kit):
@@ -581,7 +582,7 @@ def test_a_saved_finding_voided_before_the_next_email_is_still_shown(kit):
     assert kit.flags(outcome, 'UNEXPLAINED_ADJUSTMENT') == []           # voided: tonight's check does not list it
     (old,) = _carried(outcome, 'UNEXPLAINED_ADJUSTMENT')
     assert (old['transaction_id'], old['run_id'], old['status']) == (adjust, failed['run_id'], 'voided')
-    assert f'Since then TX{adjust} was voided.' in kit.sent[-1]['text']
+    assert f'Since then that entry was cancelled (TX{adjust}).' in kit.sent[-1]['text']
     assert outcome['analysis']['result'] == 'attention'
 
 
@@ -598,7 +599,7 @@ def test_a_saved_finding_removed_by_a_recipe_edit_is_still_shown(kit):
     assert (old['transaction_id'], old['expected_lb'], old['actual_lb'], old['status']) == (make, 600, 700, 'recipe_changed')
     assert [c['status'] for c in _carried(outcome, 'BALANCE_DIFFERENCE')] == ['no_longer_found']
     text = kit.sent[-1]['text']
-    assert 'The recipe calls for 600 lb' in text and 'Since then the recipe on file changed. It now calls for 700 lb.' in text
+    assert 'Recipe: 600 lb' in text and 'Since then the recipe on file changed. It now calls for 700 lb.' in text
     assert outcome['analysis']['result'] == 'attention' and outcome['analysis']['carried_attention_count'] == 2
 
 
@@ -610,8 +611,8 @@ def test_a_carried_finding_that_is_still_open_is_marked_and_counted_once(kit):
     outcome = kit.run(night(1))                                         # nobody corrected it
     assert [c['status'] for c in _carried(outcome, 'NEGATIVE_LOT')] == ['still_open']
     assert len(kit.flags(outcome, 'NEGATIVE_LOT')) == 1 and outcome['analysis']['carried_attention_count'] == 0
-    assert 'Still open: it is also in tonight' in kit.sent[-1]['text']
-    assert '1 lot below zero' in kit.sent[-1]['subject'] and 'earlier finding' not in kit.sent[-1]['subject']
+    assert 'It is still the case: it is also listed below.' in kit.sent[-1]['text']
+    assert '1 new to check.' in kit.sent[-1]['subject']                 # counted once, not twice
 
 
 def test_a_run_saved_out_of_order_is_still_picked_up(kit):
@@ -636,7 +637,7 @@ def test_a_run_saved_out_of_order_is_still_picked_up(kit):
     assert row['previous_run_id'] == a['run_id']                        # the delivered run is the baseline...
     (alarm,) = _carried(outcome, 'NEGATIVE_LOT')                        # ...and B's saved alarm is not skipped
     assert (alarm['run_id'], alarm['actual_lb'], alarm['status']) == (b['run_id'], -1, 'corrected')
-    assert outcome['analysis']['result'] == 'attention' and 'is at −1 lb.' in kit.sent[-1]['text']
+    assert outcome['analysis']['result'] == 'attention' and 'shows less than zero (−1 lb)' in kit.sent[-1]['text']
     assert kit.flags(outcome, 'BALANCE_DIFFERENCE') == []
     assert b['run_id'] in row['summary']['acknowledged']                # delivered now: acknowledged by name
     assert kit.run(night(2))['analysis']['carried'] == []
@@ -832,7 +833,7 @@ def test_a_first_ever_failed_job_does_not_lose_its_day(kit, legacy_row):
     row = kit.row(outcome['run_id'])
     assert (row['plant_date'], row['window_start'], row['previous_run_id']) == (date(2026, 11, 10), _et(11, 9), None)
     assert [f['transaction_id'] for f in kit.flags(outcome, 'UNEXPLAINED_ADJUSTMENT')] == [first, second]
-    assert 'NOTE: the check for Mon Nov 9 did not finish' in kit.sent[-1]['text']
+    assert 'Note: the check for Mon Nov 9 did not finish' in kit.sent[-1]['text']
 
 
 def test_a_failed_job_after_a_delivered_run_saves_where_it_started(kit):
@@ -845,7 +846,7 @@ def test_a_failed_job_after_a_delivered_run_saves_where_it_started(kit):
     assert kit.row(outcome['run_id'])['previous_run_id'] == delivered['run_id']
     assert [f['transaction_id'] for f in kit.flags(outcome, 'UNEXPLAINED_ADJUSTMENT')] == [adjust]
     assert kit.row(outcome['run_id'])['window_start'] == night(-1)
-    assert 'NOTE: the check for Tue Mar 10 did not finish' in kit.sent[-1]['text']
+    assert 'Note: the check for Tue Mar 10 did not finish' in kit.sent[-1]['text']
 
 
 @pytest.mark.parametrize('day,start,end', [
@@ -927,27 +928,57 @@ def test_13_replay_of_the_hand_run(day, entries, makes, lots):
     analysis = reconciliation.analyse(json.loads((FIXTURES / f'replay_{day}.json').read_text()))
     assert (analysis['entries_checked'], analysis['makes_checked'], analysis['lots_checked']) == (entries, makes, lots)
     assert all(m['checked'] and m['batches'] == round(m['batches']) for m in analysis['makes'])
-    found = {(f['kind'], f['transaction_id']) for f in analysis['flags'] if f['kind'] != 'NEGATIVE_LOT'}
+    found = {(f['kind'], f['transaction_id']) for f in analysis['flags']
+             if f['kind'] not in ('NEGATIVE_LOT', 'COCONUT_BELOW_ZERO')}
     assert not {k for k, _ in found} & {'BALANCE_DIFFERENCE', 'MAKE_OFF_RECIPE', 'MAKE_INGREDIENT_MISSING',
                                         'MAKE_UNLISTED_INGREDIENT', 'MAKE_NO_RECIPE', 'PACK_NO_MAKE', 'LATE_ENTRY'}
-    negative = sorted(f['actual_lb'] for f in analysis['flags'] if f['kind'] == 'NEGATIVE_LOT')
-    text = reconciliation.render_email(analysis)['text']
+    # Sugar 6X and Canola are real gaps, open since Nov 4 and Nov 2: listed, not new.
+    negative = sorted((f['actual_lb'], f['new'], f['detail']['days_open'])
+                      for f in analysis['flags'] if f['kind'] == 'NEGATIVE_LOT')
+    gap = (date.fromisoformat(day) - date(2026, 11, 4)).days
+    assert negative == [(-68.49, False, gap), (-14, False, gap + 2)]
+    coconut = sorted(f['actual_lb'] for f in analysis['flags'] if f['kind'] == 'COCONUT_BELOW_ZERO')
+    email = reconciliation.render_email(analysis)
+    text = email['text']
+    assert all(f'all {len(m["ingredients"])} ingredients match the recipe' in text for m in analysis['makes'])
+    assert text.count('ingredients match the recipe') == makes and 'Still not fixed (2)' in text
     if day == '2026-11-05':
-        assert found == {('COCONUT_YIELD', 2961)} and negative == [-70, -68.49, -60, -55, -14]
-        assert 'NOV 05 2026: 5,040 lb made, 5,095 lb packed (+55 lb, 1.1%)' in text
+        assert found == {('COCONUT_YIELD', 2961)} and coconut == [-70, -60]
+        assert email['subject'] == 'Factory Ledger daily check, Thu Nov 5: Nothing new today. 2 still open.'
+        assert text.splitlines()[2] == 'Nothing new today; 2 older items still need a stock count (listed below).'
+        assert 'Made: 5,040 lb. Packed: 5,095 lb. The lot now shows −55 lb; that is expected.' in text
+        assert 'Open 1 day (since Nov 4)' in text and 'Open 3 days (since Nov 2)' in text
     elif day == '2026-11-06':
-        assert found == {('COCONUT_YIELD', 2969)} and negative == [-70, -68.49, -60, -55, -14, -10]
-        assert 'NOV 06 2026: 1,080 lb made, 1,090 lb packed (+10 lb, 0.9%)' in text
+        assert found == {('COCONUT_YIELD', 2969)} and coconut == [-70, -60, -55]
+        assert email['subject'] == 'Factory Ledger daily check, Fri Nov 6: Nothing new today. 2 still open.'
+        assert 'Made: 1,080 lb. Packed: 1,090 lb.' in text
         assert [s['ingredient'] for m in analysis['makes'] for s in m['substitutions']] == ['Oat Bran']
+        assert 'Recorded swap: Oat Bran' in text
     else:
         assert found == {('PACK_EXCEEDS_MAKE', 2973), ('UNEXPLAINED_ADJUSTMENT', 2972), ('VOID_SAME_DAY', 2971)}
+        assert coconut == [-70, -60, -55, -10]
         tx2973 = next(f for f in analysis['flags'] if f['kind'] == 'PACK_EXCEEDS_MAKE')
         assert (tx2973['severity'], tx2973['expected_lb'], tx2973['actual_lb'], tx2973['difference_lb']) \
             == ('alarm', 350, 375, 25)
-        assert tx2973['tolerance_lb'] == 7 and 'adjustment TX2972 (+25 lb, reason "unknown"' in tx2973['detail']['message']
-        assert 'TX2973 packed 375 lb from Batch SS Original Granola #1 lot OCT 28 2026' in text
-        assert text.index('OVER TOLERANCE (1)') < text.index('LOTS BELOW ZERO (6)') < text.index('FOR INFORMATION')
-        assert len(negative) == 6 and analysis['result'] == 'attention'
+        assert tx2973['tolerance_lb'] == 7 and tx2973['detail']['packed_by'] == ['Staff A']
+        assert email['subject'] == 'Factory Ledger daily check, Mon Nov 9: 2 new to check. 2 still open.'
+        assert text.splitlines()[2].startswith('2 new things to check today, starting with: find out where the '
+                                               'extra 25 lb of Batch SS Original Granola #1 (lot OCT 28 2026)')
+        block = text[text.index('  1. More Batch SS Original Granola #1 was packed than was made.'):]
+        assert block.splitlines()[:7] == [
+            '  1. More Batch SS Original Granola #1 was packed than was made. '
+            'Please find out where the extra 25 lb came from. (TX2973)',
+            '     Lot: OCT 28 2026',
+            '     Made: 350 lb',
+            '     Packed: 375 lb',
+            '     Difference: 25 lb more packed than made (7.1%)',
+            '     Covered by: 25 lb added by hand at 9:27 AM, reason "unknown", with no name on it (TX2972)',
+            '     Ask Staff A (packed it) and whoever added the 25 lb (no name on it): where did the extra 25 lb '
+            'come from? If it came from another batch, record which one.']
+        assert 'This is the 25 lb that covered the extra packing' in text
+        assert (text.index('New today (2)') < text.index('Still not fixed (2)') < text.index('Normal coconut difference (4)')
+                < text.index('Cancelled or late entries (1)') < text.index('What we checked') < text.index('How to read'))
+        assert len(negative) == 2 and analysis['result'] == 'attention' and analysis['new_count'] == 2
 
 
 def test_14_gpt_schemas_are_untouched_and_the_routes_stay_out_of_openapi():
@@ -980,7 +1011,7 @@ def test_tolerance_is_measured_on_the_days_movement_not_the_balance(kit):
     (flag,) = kit.flags(outcome)
     assert (flag['kind'], flag['lot_id'], flag['severity']) == ('BALANCE_DIFFERENCE', big, 'alarm')
     assert (flag['expected_lb'], flag['actual_lb'], flag['difference_lb'], flag['tolerance_lb']) == (149900, 149850, -50, 5)
-    assert flag['detail']['unexplained_lb'] == -50 and 'outside the normal entries' in flag['detail']['message']
+    assert flag['detail']['unexplained_lb'] == -50 and 'outside the normal screens' in flag['detail']['message']
 
 
 def test_off_recipe_make_also_shows_in_the_lot_roll_forward(kit):
@@ -1005,7 +1036,9 @@ def test_unknown_or_unnamed_adjustments_are_always_listed(kit):
     assert listed[unknown]['detail']['no_reason'] and not listed[unknown]['detail']['no_named_person']
     assert listed[shared]['detail']['no_named_person'] and not listed[shared]['detail']['no_reason']
     assert all(f['severity'] == 'review' for f in listed.values()) and outcome['analysis']['result'] == 'attention'
-    assert 'ADJUSTMENTS WITH NO REASON OR NO NAMED PERSON (2)' in outcome['email']['text']
+    text = outcome['email']['text']
+    assert 'New today (2)' in text and 'Stock was changed by hand with no name on it.' in text
+    assert 'changed stock by hand without giving a reason' in text
 
 
 def test_coconut_overpack_within_two_percent_is_yield_not_an_alarm(kit, monkeypatch):
@@ -1029,21 +1062,32 @@ def test_coconut_overpack_within_two_percent_is_yield_not_an_alarm(kit, monkeypa
     kit.post('pack', [(other, -5095), (finished, 5095)], at(0, 17))             # +55 lb = 1.1%, inside tolerance
     outcome = kit.run(night(0))
     found = {(f['kind'], f['lot_id']): f for f in kit.flags(outcome)}
-    assert sorted(found) == sorted([('COCONUT_YIELD', within), ('NEGATIVE_LOT', within),
+    # The coconut lot below zero ONLY because of a <=2% over-pack is not a below-zero alarm.
+    assert sorted(found) == sorted([('COCONUT_YIELD', within),
                                     ('PACK_EXCEEDS_MAKE', beyond), ('NEGATIVE_LOT', beyond),
                                     ('NEGATIVE_LOT', other)])               # no coconut line for the lookalike
     assert found[('COCONUT_YIELD', within)]['severity'] == 'yield'
+    assert found[('COCONUT_YIELD', within)]['detail']['lot_balance_lb'] == -55
     text = outcome['email']['text']
-    section = text[text.index('COCONUT YIELD'):text.index('FOR INFORMATION')]
-    assert '5,040 lb made, 5,095 lb packed (+55 lb, 1.1%)' in section and '(1)' in section.splitlines()[0]
-    assert '5,095' not in text[text.index('OVER TOLERANCE'):text.index('LOTS BELOW ZERO')]
+    section = text[text.index('Normal coconut difference (1)'):text.index('What we checked')]
+    assert 'Made: 5,040 lb. Packed: 5,095 lb.' in section and 'The lot now shows −55 lb; that is expected' in section
+    assert '5,095' not in text[text.index('New today'):text.index('Normal coconut difference')]
+    # Next night nothing moves: the coconut lot stays in the coconut section (not new, not counted);
+    # every other lot below zero is still listed, as still open.
+    later = kit.run(night(1))
+    found = {(f['kind'], f['lot_id']): f for f in kit.flags(later)}
+    assert sorted(found) == sorted([('COCONUT_BELOW_ZERO', within), ('NEGATIVE_LOT', beyond), ('NEGATIVE_LOT', other)])
+    assert found[('COCONUT_BELOW_ZERO', within)]['severity'] == 'yield'
+    assert not found[('NEGATIVE_LOT', beyond)]['new'] and not found[('NEGATIVE_LOT', other)]['new']
+    assert later['analysis']['result'] == 'all_clear'
+    assert 'still −55 lb from packing 55 lb more than was made (1.1%)' in later['email']['text']
 
 
 def test_first_run_saves_a_baseline_and_says_so(kit):
     outcome = kit.run(night(-1))
     row = kit.row(outcome['run_id'])
     assert (row['previous_run_id'], row['balance_checked'], row['job_status']) == (None, False, 'completed')
-    assert 'First run' in outcome['email']['text'] and not kit.flags(outcome, 'BALANCE_DIFFERENCE')
+    assert 'First night' in outcome['email']['text'] and not kit.flags(outcome, 'BALANCE_DIFFERENCE')
 
 
 def test_email_is_off_by_default_and_the_run_is_still_saved(kit):
@@ -1216,3 +1260,65 @@ def test_endpoints_are_read_only_and_for_owner_and_office(client, actors, db_cur
     assert _fingerprint(db_cursor, NEW_TABLES) == counts                # the three GETs saved nothing
     # ...and no existing table changed, apart from the two sign-in bookkeeping writes allowed above
     assert (_fingerprint(db_cursor, existing), actors_without_sign_in_stamp()) == before
+
+
+# ───────────────────────── the plain-language email ─────────────────────────
+
+def test_a_lot_below_zero_is_new_once_then_still_open_with_its_days(kit):
+    lot = _short_lot(kit)
+    kit.run(night(-1))
+    kit.post('ship', [(lot, -101)], at(0, 9))                           # -1 lb on Mar 10
+    first = kit.run(night(0))
+    (flag,) = kit.flags(first, 'NEGATIVE_LOT')
+    assert flag['new'] and flag['detail']['days_open'] == 0 and first['analysis']['result'] == 'attention'
+    assert 'It went below zero today' in flag['detail']['message'] and '1 new to check.' in kit.sent[-1]['subject']
+    quiet = kit.run(night(1))                                           # nothing changed on Mar 11
+    (flag,) = kit.flags(quiet, 'NEGATIVE_LOT')
+    assert not flag['new'] and flag['detail']['days_open'] == 1
+    assert quiet['analysis']['result'] == 'all_clear' and quiet['analysis']['attention_count'] == 0
+    email = kit.sent[-1]
+    assert 'Nothing new today.' in email['subject'] and 'still open.' in email['subject']
+    assert 'NEEDS ATTENTION' not in email['text'] and 'Nothing new today; ' in email['text']
+    assert f'lot {kit.tag}' in email['text'] and 'shows −1 lb. Needs a count. Open 1 day (since Mar 10).' in email['text']
+    kit.post('ship', [(lot, -4)], at(2, 9))                             # worse on Mar 12: new again
+    worse = kit.run(night(2))
+    (flag,) = kit.flags(worse, 'NEGATIVE_LOT')
+    assert flag['new'] and flag['detail']['opening_lb'] == -1
+    assert 'It was −1 lb at the start of the day, so it went down 4 lb today' in flag['detail']['message']
+    assert kit.row(worse['run_id'])['summary']['new_count'] >= 1
+
+
+def test_every_make_is_listed_in_what_we_checked(kit):
+    kit.run(night(-1))
+    good, _ = kit.make(2, at(0, 9))
+    near, _ = kit.make(2, at(0, 10), oats=123)                          # +3 lb on 120 lb: inside the 5 lb floor
+    off, _ = kit.make(10, at(0, 11), oats=700)
+    plain = kit.product('Batch No Recipe', 'batch', batch_lb=100)
+    unchecked = kit.post('make', [(kit.lot(plain), 100), (kit.oats_lot, -60)], at(0, 12))
+    text = kit.run(night(0))['email']['text']
+    checked = text[text.index('What we checked'):text.index('How to read this')]
+    assert f'Makes (4), each compared with its recipe:' in checked
+    assert f'{kit.tag} Batch Granola, 2 batches: all 3 ingredients match the recipe. (TX{good})' in checked
+    assert (f'{kit.tag} Batch Granola, 2 batches: all 3 ingredients match the recipe ({kit.tag} Oats +3 lb, '
+            f'within the small allowed difference). (TX{near})') in checked
+    assert (f'{kit.tag} Batch Granola, 10 batches: 2 of 3 ingredients match the recipe. Different: '
+            f'{kit.tag} Oats used 700 lb, recipe 600 lb. (TX{off})') in checked
+    assert (f'{kit.tag} Batch No Recipe: could not be checked, because there is no recipe on file for it. '
+            f'(TX{unchecked})') in checked
+    new = text[text.index('New today'):text.index('What we checked')]
+    assert f'A make of {kit.tag} Batch Granola used more {kit.tag} Oats than the recipe.' in new
+    assert f'could not be checked against its recipe, because there is no recipe on file for it' in new
+
+
+@pytest.mark.parametrize('day', ['2026-11-05', '2026-11-06', '2026-11-09'])
+def test_the_email_avoids_jargon_and_puts_transaction_numbers_last(day):
+    analysis = reconciliation.analyse(json.loads((FIXTURES / f'replay_{day}.json').read_text()))
+    email = reconciliation.render_email(analysis)
+    words = email['subject'] + email['text'] + email['html']
+    for jargon in (r'\btolerance', r'reconcil', r'shared key', r'\bvoid', r'attribution', r'NEEDS ATTENTION',
+                   r'ALL CLEAR', r'roll-forward', r'\bflag'):
+        assert not re.search(jargon, words, re.I), jargon
+    for line in email['text'].splitlines():
+        if 'TX' in line:          # transaction numbers only ever close a line, in brackets
+            assert re.search(r'\(TX\d+(, TX\d+)*\)\.?$', line), line
+    assert email['text'].splitlines()[1] == '' and email['text'].splitlines()[2].endswith('.')

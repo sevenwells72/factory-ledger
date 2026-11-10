@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-10 12:17 — Daily reconciliation email: plain language, new vs still open, coconut and make list
+- **File(s) changed:** `reconciliation.py`, `tests/test_daily_reconciliation.py`, `tests/fixtures/reconciliation/replay_2026-11-05.json`, `tests/fixtures/reconciliation/replay_2026-11-06.json`, `tests/fixtures/reconciliation/replay_2026-11-09.json`, `docs/deployments/daily-reconciliation.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Email split into New today / Still not fixed (lots below zero with days open) / Normal coconut difference / Cancelled or late entries / What we checked (every make: batches and ingredient match or exact differences, or why not checked) / How to read this; subject and result count only new items; a coconut lot below zero only from a <=2% over-pack goes to the coconut section (COCONUT_BELOW_ZERO), never as an alarm; pack-above-make laid out as Made/Packed/Difference/Covered by/Ask; plain wording, transaction numbers at line end. load_window also loads histories of lots below zero and when each went below zero. Fixtures gained only the new fields (read-only from production, placeholder names). Tests updated + 9 new; rollout doc; FACTORY_LEDGER_CHANGELOG row 274. Branch feat/reconciliation-email-clarity, not merged or deployed; 094 not applied.
+- **Why:** Owner 2026-11-10: dry-run emails said NEEDS ATTENTION every day for the same old lots, hid the recipe check, and used jargon.
+
+---
+
 ## 2026-11-10 11:15 — Daily reconciliation PR 198: owner-approved merge to main, job left switched off
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `daily-reconciliation.md`
 - **What changed:** Row 273 and the deployment doc now say the reconciliation is merged to main (PR 198, squash) with the job switched off: migration 094 not applied to staging or production, RECONCILIATION_ENABLED and the email variables not set. Verified production backup taken first (~/Backups/fl/2026-11-10-pre-pr198-merge: dump checksum OK, storage all 200, restore key checks all match).
