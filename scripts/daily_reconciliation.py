@@ -21,6 +21,10 @@ the command exits 2. It never writes to any table except the three of
 migration 094. --dry-run runs inside a READ ONLY transaction (transaction-scoped,
 never a session setting) and needs no migration when --date is given.
 
+Only one run at a time (a transaction-level advisory lock, which also holds on the
+6543 transaction pooler): a second run started meanwhile prints that it stopped,
+saves nothing and exits 0.
+
 Exit codes: 0 done; 1 the job failed; 2 the job worked but the email did not send.
 """
 import argparse
@@ -108,6 +112,9 @@ def main(argv=None):
         raise
     finally:
         conn.close()
+    if outcome.get('skipped') == 'already_running':
+        print('Another reconciliation run is in progress. This run stopped: nothing saved, nothing sent.')
+        return 0
     analysis, email = outcome['analysis'], outcome['email']
     if args.dry_run:
         print(f'DRY RUN. Nothing saved, nothing sent. Subject: {email["subject"]}\n')

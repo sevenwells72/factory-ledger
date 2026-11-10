@@ -48,6 +48,10 @@ COCONUT_YIELD_PCT = 0.02
 COCONUT_YIELD_PRODUCT_IDS = frozenset({125, 126, 127, 128})
 _TICK = timedelta(microseconds=1)               # the resolution of a Postgres timestamp
 EPS = 0.00005                                   # quantities are numeric(14,4)
+# One run at a time. A TRANSACTION-level advisory lock: it is held by the job's own
+# transaction and released at its COMMIT or ROLLBACK, so it also holds through the
+# Supabase transaction pooler (port 6543), where a session-level lock would not.
+RUN_LOCK_NAME = 'factory_ledger.daily_reconciliation'
 RESEND_URL = 'https://api.resend.com/emails'
 # Resend's shared test sender delivers only to the Resend account's own address.
 # Set RECONCILIATION_EMAIL_FROM once sevenwellsgranola.com is verified there.
@@ -786,7 +790,7 @@ def _plan(cur, end):
     baseline: the latest completed run for an EARLIER plant day whose findings
     were delivered (email sent, or email switched off). Its snapshot is the
     opening balance and its end is the window start.
-    undelivered: runs saved since then whose findings were not delivered.
+    undelivered: every saved run whose findings were not delivered, in any order.
     carried: the flags those runs SAVED, as saved. A flag counts as delivered
     only once a send that included it succeeded, so it is excluded only when a
     sent run for the same plant day already held the same finding.
@@ -797,11 +801,19 @@ def _plan(cur, end):
                                AND email_status IN ('sent', 'disabled')
                              ORDER BY window_end DESC, id DESC LIMIT 1""", {'day': plant_day})
     baseline_id = baseline[0]['id'] if baseline else None
-    earlier = _rows(cur, """SELECT id, plant_date, job_status, email_status, started_at, window_start
-                            FROM reconciliation_runs
-                            WHERE plant_date <= %(day)s AND id > %(after)s
-                              AND NOT (job_status = 'completed' AND email_status IN ('sent', 'disabled'))
-                            ORDER BY id""", {'day': plant_day, 'after': baseline_id or 0})
+    # Every saved run not yet delivered, WHENEVER it started or was saved: delivered
+    # means the run's own email went out, or a later delivered run lists it in
+    # summary.acknowledged (it showed that run's saved flags). Never inferred from
+    # run ids or times, so a run saved out of order cannot be skipped.
+    earlier = _rows(cur, """SELECT r.id, r.plant_date, r.job_status, r.email_status, r.started_at, r.window_start
+                            FROM reconciliation_runs r
+                            WHERE r.plant_date <= %(day)s
+                              AND NOT (r.job_status = 'completed' AND r.email_status IN ('sent', 'disabled'))
+                              AND NOT EXISTS (
+                                  SELECT 1 FROM reconciliation_runs d
+                                  WHERE d.job_status = 'completed' AND d.email_status IN ('sent', 'disabled')
+                                    AND d.summary->'acknowledged' @> to_jsonb(r.id))
+                            ORDER BY r.started_at, r.id""", {'day': plant_day})
     if baseline:
         start = baseline[0]['window_end']
     else:
@@ -816,7 +828,7 @@ def _plan(cur, end):
         FROM reconciliation_flags f JOIN reconciliation_runs r ON r.id = f.run_id
         WHERE f.run_id = ANY(%(ids)s::bigint[]) AND NOT EXISTS (
             SELECT 1 FROM reconciliation_flags g JOIN reconciliation_runs s ON s.id = g.run_id
-            WHERE s.plant_date = r.plant_date AND s.email_status = 'sent' AND s.id < r.id
+            WHERE s.plant_date = r.plant_date AND s.email_status = 'sent' AND s.id <> r.id
               AND g.kind = f.kind AND g.product_id IS NOT DISTINCT FROM f.product_id
               AND g.lot_id IS NOT DISTINCT FROM f.lot_id
               AND g.transaction_id IS NOT DISTINCT FROM f.transaction_id
@@ -832,6 +844,7 @@ def _plan(cur, end):
         and not (run['job_status'] == 'completed' and run['email_status'] == 'already_sent'))]
     return {
         'plant_day': plant_day, 'baseline_id': baseline_id, 'start': start,
+        'acknowledged': [run['id'] for run in earlier],
         'undelivered': [{'run_id': run['id'], 'plant_date': run['plant_date'].isoformat(),
                          'job_status': run['job_status'], 'email_status': run['email_status'],
                          'started_at': _iso(run['started_at'])} for run in undelivered],
@@ -857,7 +870,7 @@ def save_run(cur, *, started_at, baseline_id, data, analysis, email, delivery):
                      f['expected_lb'], f['actual_lb'], f['difference_lb'], f['tolerance_lb'], Json(f['detail']))
                     for f in analysis['flags']])
     summary = {key: analysis[key] for key in ('mode', 'makes', 'undelivered', 'carried')}
-    summary.update(email_subject=email['subject'], email_text=email['text'],
+    summary.update(acknowledged=data.get('acknowledged') or [], email_subject=email['subject'], email_text=email['text'],
                    snapshot_lots=len(data['ending']),
                    tolerance={'floor_lb': TOLERANCE_FLOOR_LB, 'pct_of_day_movement': TOLERANCE_PCT})
     cur.execute("""INSERT INTO reconciliation_runs
@@ -890,16 +903,26 @@ def run_job(cur, *, now=None, dry_run=False, sender=None, env=None, force_email=
     A second run for the same plant day saves its own snapshot and flags but
     does not email again.
 
+    Only one run at a time: a second run that starts while another is still in
+    its transaction returns {'skipped': 'already_running'} and saves nothing.
+
     dry_run=True reads the same data and returns the same email, and writes
     nothing. The caller owns the transaction (commit / rollback).
     """
     env = os.environ if env is None else env
+    if not dry_run:
+        cur.execute('SELECT pg_try_advisory_xact_lock(hashtext(%s)) AS held', (RUN_LOCK_NAME,))
+        row = cur.fetchone()
+        if not (row['held'] if isinstance(row, dict) else row[0]):
+            # Another run is inside its transaction right now. Save nothing, send nothing.
+            return {'analysis': None, 'email': None, 'run_id': None, 'email_status': 'not_attempted',
+                    'skipped': 'already_running'}
     started_at = _clock(cur)
     end = now or started_at
     plan = _plan(cur, end)
     plant_day, baseline_id = plan['plant_day'], plan['baseline_id']
     data = load_window(cur, plan['start'], end, opening_run_id=baseline_id)
-    data['undelivered'], data['carried'] = plan['undelivered'], plan['carried']
+    data['undelivered'], data['carried'], data['acknowledged'] = plan['undelivered'], plan['carried'], plan['acknowledged']
     analysis = analyse(data)
     email = render_email(analysis)
     outcome = {'analysis': analysis, 'email': email, 'run_id': None, 'email_status': 'not_attempted'}

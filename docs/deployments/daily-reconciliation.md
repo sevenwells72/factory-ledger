@@ -57,7 +57,10 @@ the command again retries the send.
 saved without an email (a manual daytime run) is never the starting point: the next email covers that
 period again and says so in a `NOTE:` line near the top, for example "the email for Mon Nov 9 was not
 delivered. This email covers that day as well." Those runs are listed in `summary.undelivered` of the run
-that covered them. One exception keeps the email quiet: a repeat run for a day that was already emailed
+that covered them. Whether a run has been delivered is never worked out from run numbers or times: a
+delivered run lists, in `summary.acknowledged`, every earlier run it reported, and any saved run not on
+such a list (and not itself emailed) is picked up by the next email, whatever order the runs were saved in.
+One exception keeps the email quiet: a repeat run for a day that was already emailed
 (for example the command run twice in one night) gets no `NOTE:` line unless it found something the sent
 email did not include.
 
@@ -102,10 +105,19 @@ is starting, and the opening and ending balances are those just before each midn
 different on purpose: it covers everything after the previous snapshot up to and including the moment of
 tonight's, so consecutive nights meet with no gap and no overlap.
 
+**One run at a time.** A real run takes a lock as its first step and holds it until its transaction
+commits (snapshot, check, email and save are all inside that one transaction). A second run started
+while the first is still going stops at once: it prints "Another reconciliation run is in progress.
+This run stopped: nothing saved, nothing sent." and exits `0`. Start it again once the first has finished.
+The lock is a Postgres **transaction-level advisory lock** (`pg_try_advisory_xact_lock`). That kind is
+released automatically at commit or rollback, even if the process dies, and it works through the
+Supabase transaction pooler on port 6543, where a session-level advisory lock would not hold. It locks
+no table and blocks no ledger entry. `--dry-run` and the preview route read only and never take it.
+
 It reads only environment variables (`DATABASE_URL`, `ENVIRONMENT`, `PRODUCTION_DATABASE_HOST` — the same
 guard as `scripts/exceptions_sweep.py` — plus the email variables above). `--dry-run` runs inside a
 `READ ONLY` transaction (transaction-scoped; never a session setting, so it is safe on the 6543 pooler).
-Exit codes: `0` done, `1` job failed, `2` job worked but the email did not send.
+Exit codes: `0` done (or stopped because another run was in progress), `1` job failed, `2` job worked but the email did not send.
 
 **Railway today:** the existing `exceptions-sweep` cron (`30 7 * * *`, fixed in UTC: **02:30 Eastern in
 winter, 03:30 Eastern in summer**) keeps its start command

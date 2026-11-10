@@ -612,6 +612,94 @@ def test_a_carried_finding_that_is_still_open_is_marked_and_counted_once(kit):
     assert '1 lot below zero' in kit.sent[-1]['subject'] and 'earlier finding' not in kit.sent[-1]['subject']
 
 
+def test_a_run_saved_out_of_order_is_still_picked_up(kit):
+    """Two runs overlap: B starts later, finds a lot below zero, fails its email and saves
+    FIRST; A started earlier with a clean snapshot, sends, and saves SECOND (higher id)."""
+    lot = _short_lot(kit)
+    kit.run(night(-1))
+    overlapped = {}
+
+    def a_is_waiting_on_its_email(email, env):
+        kit.post('ship', [(lot, -101)], night(0) + timedelta(minutes=3))
+        overlapped['b'] = kit.run(night(0) + timedelta(minutes=5), sender=_broken)
+        return kit.sender(email, env)
+    a = kit.run(night(0), sender=a_is_waiting_on_its_email)
+    b = overlapped['b']
+    assert b['run_id'] < a['run_id'] and (a['email_status'], b['email_status']) == ('sent', 'failed')
+    assert kit.flags(a, 'NEGATIVE_LOT') == [] and len(kit.flags(b, 'NEGATIVE_LOT')) == 1
+    assert b['run_id'] not in kit.row(a['run_id'])['summary']['acknowledged']      # A never saw B
+    kit.post('adjust', [(lot, 1)], at(1, 9), reason_code='physical_count')
+    outcome = kit.run(night(1))
+    row = kit.row(outcome['run_id'])
+    assert row['previous_run_id'] == a['run_id']                        # the delivered run is the baseline...
+    (alarm,) = _carried(outcome, 'NEGATIVE_LOT')                        # ...and B's saved alarm is not skipped
+    assert (alarm['run_id'], alarm['actual_lb'], alarm['status']) == (b['run_id'], -1, 'corrected')
+    assert outcome['analysis']['result'] == 'attention' and 'is at −1 lb.' in kit.sent[-1]['text']
+    assert kit.flags(outcome, 'BALANCE_DIFFERENCE') == []
+    assert b['run_id'] in row['summary']['acknowledged']                # delivered now: acknowledged by name
+    assert kit.run(night(2))['analysis']['carried'] == []
+
+
+def test_only_one_run_at_a_time(kit, monkeypatch, capsys):
+    kit.post('adjust', [(kit.oats_lot, -40)], at(0, 9), named=False, reason_code='unknown')
+    other = psycopg2.connect(kit.cur.connection.dsn)                    # another run, inside its transaction
+    try:
+        with other.cursor() as cur:
+            cur.execute('SELECT pg_try_advisory_xact_lock(hashtext(%s))', (reconciliation.RUN_LOCK_NAME,))
+            assert cur.fetchone()[0] is True
+        blocked = kit.run(night(0))
+        assert blocked['skipped'] == 'already_running' and blocked['run_id'] is None and blocked['analysis'] is None
+        for table in NEW_TABLES:
+            kit.cur.execute(f'SELECT count(*) AS n FROM {table}')
+            assert kit.cur.fetchone()['n'] == 0, table                  # nothing saved...
+        assert kit.sent == []                                           # ...and nothing sent
+        assert 'skipped' not in kit.run(night(0), dry_run=True)         # a dry run reads only and is never blocked
+        other.commit()                                                  # the other run's transaction ends: lock gone
+        outcome = kit.run(night(0))
+        assert outcome['run_id'] is not None and len(kit.flags(outcome, 'UNEXPLAINED_ADJUSTMENT')) == 1
+        assert len(kit.sent) == 1
+    finally:
+        other.close()
+    # no session-level lock anywhere: those do not hold on the 6543 transaction pooler
+    source = (ROOT / 'reconciliation.py').read_text() + (ROOT / 'scripts/daily_reconciliation.py').read_text()
+    assert 'pg_try_advisory_xact_lock(' in source and not re.search(r'pg_(try_)?advisory_lock\(', source)
+
+    # the command says so and exits cleanly
+    class Conn:
+        committed = False
+
+        def cursor(self):
+            return self
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def execute(self, *a):
+            pass
+
+        def commit(self):
+            self.committed = True
+
+        def rollback(self):
+            pytest.fail('a skipped run is not a failure')
+
+        def close(self):
+            pass
+    conn = Conn()
+    for key in ('ENVIRONMENT', 'PGHOSTADDR', 'PGSERVICE', 'PGSERVICEFILE'):
+        monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv('DATABASE_URL', 'postgresql://localhost:5432/anything')
+    monkeypatch.setattr(daily_reconciliation.psycopg2, 'connect', lambda url: conn)
+    monkeypatch.setattr(daily_reconciliation, 'run', lambda cur, **kw: dict(blocked))
+    monkeypatch.setattr(reconciliation, 'record_failed_run', lambda *a, **k: pytest.fail('not a failed run'))
+    assert daily_reconciliation.main([]) == 0
+    assert 'Another reconciliation run is in progress. This run stopped: nothing saved, nothing sent.' \
+        in capsys.readouterr().out
+
+
 def _et(month, day, hour=0, minute=0):
     return datetime(2026, month, day, hour, minute, tzinfo=ET)
 

@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-10 10:41 — Daily reconciliation: recovery independent of run order, and one run at a time
+- **File(s) changed:** `reconciliation.py`, `scripts/daily_reconciliation.py`, `tests/test_daily_reconciliation.py`, `docs/deployments/daily-reconciliation.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Undelivered runs are no longer found by run id order: a delivered run lists every earlier run it reported in summary.acknowledged, and any saved run not on such a list (and not itself emailed) is picked up by the next email. A real run now takes a transaction-level advisory lock (pg_try_advisory_xact_lock, which holds on the 6543 transaction pooler); a second run started meanwhile saves nothing, prints that it stopped and exits 0. Docs state the one-at-a-time rule. Two new tests (51 in the file); Python 7,528 passed in both modes on fresh databases; Node 702 passed. Row 273 updated (still not deployed).
+- **Why:** Remaining P1 from Codex's re-review of PR 198 (comment 6771417390): a failed run saved before an overlapping successful run could be skipped. Not merged, not deployed, migration applied only to local scratch databases.
+
+---
+
 ## 2026-11-10 10:22 — Daily reconciliation: fixes for the independent (Codex) review of PR 198
 - **File(s) changed:** `reconciliation.py`, `tests/test_daily_reconciliation.py`, `docs/deployments/daily-reconciliation.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** The next email now lists the flags that undelivered runs saved, as saved, in a FROM UNDELIVERED RUNS section with what happened since (still open, changed, voided, corrected, recipe changed, no longer found); a saved alarm no longer found keeps the result at attention, and flags count as delivered only after a send succeeds. record_failed_run saves the attempted window and recovery with nothing delivered starts from the earliest undelivered day. --date replay uses midnight up to but not including the next midnight, including opening and ending balances; nightly windows unchanged. send_email catches errors while reading the answer. Docs state that named-key sign-in still updates actors.last_used_at and key_actor_sessions (owner accepted); the endpoint test now fingerprints every existing table and allows only those two. Row 273 says migration 094 is not applied to staging or production. 13 new tests (49 in the file); Python 7,526 passed in both modes on fresh databases; Node 702 passed.
