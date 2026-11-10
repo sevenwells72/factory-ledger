@@ -1,5 +1,250 @@
 # Change Log
 
+## 2026-11-09 19:13 — Verify regression guard 271 and complete lot-history audit workflow
+- **File(s) changed:** `audits/reports/trace-BB110927-findings.md`, `FACTORY_LEDGER_CHANGELOG.md`, `work/lot-history-python-clean-final.log`, `work/lot-history-js-final.log`, `work/lot-history-browser-final.log`, `work/lot-history-legacy-browser.log`, `work/lot-history-browser`
+- **What changed:** Record final fresh-local results: 7469 Python and 700 JavaScript passes; 138 real HTTP requests with API keys; touch/report/export and existing backward browser suites pass; PDF visually inspected; no production writes or deployment.
+- **Why:** Make the completed branch reviewable with reproducible evidence and explicit required Claude Code cross-review.
+
+---
+
+## 2026-11-09 19:08 — Document commingled-source audit semantics
+- **File(s) changed:** `audits/reports/trace-BB110927-findings.md`
+- **What changed:** Explain source-entry preservation and why recorded lot-level supplier details are separate from verified receipt allocation.
+- **Why:** Make the final review boundary explicit for pooled historical inventory.
+
+---
+
+## 2026-11-09 19:08 — Test commingled source preservation and align graph labels
+- **File(s) changed:** `tests/test_lot_history_trace.py`, `tests/test_trace_report.js`, `dashboard/traceability.html`
+- **What changed:** Add real-ledger and shared-report tests for two supplier lots; pass all lot metadata into supplier graph labels.
+- **Why:** Guard both traversal directions, history and exported evidence against false single-supplier-lot attribution.
+
+---
+
+## 2026-11-09 19:08 — Preserve commingled supplier-lot metadata in history and trace reports
+- **File(s) changed:** `lot_trace.py`, `main.py`, `dashboard/trace-report.js`, `dashboard/lot-history.js`
+- **What changed:** Read every lot_supplier_codes entry, carry commingled identity through backward/forward traces, and display source details separately from receipt and physical-allocation evidence.
+- **Why:** A pooled lot can have multiple recorded supplier lots without a pooled note; no single lot code may stand in for those sources.
+
+---
+
+## 2026-11-09 19:05 — Use the correct API roots for health and lot-panel verification
+- **File(s) changed:** `dashboard/dashboard.js`, `tests/visual/run-lot-history.mjs`
+- **What changed:** Keep integrity reads at the service root and assert the actual dashboard-prefixed lot endpoint.
+- **Why:** The inventory API base already includes /dashboard/api.
+
+---
+
+## 2026-11-09 19:05 — Make the real lot-panel check reject rendered fetch errors
+- **File(s) changed:** `tests/visual/run-lot-history.mjs`
+- **What changed:** Assert the rendered panel has no fetch or runtime error before proceeding.
+- **Why:** Diagnose the missing observed lot request and prevent silent panel failures.
+
+---
+
+## 2026-11-09 19:05 — Record regression guard 271 for lot history and complete trace reports
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Add the next sequential row with investigation findings, implementation boundaries and guards for complete posted-ledger traces, estimates, pooled lots and authentication.
+- **Why:** Document what breaks if the audit-workflow fixes are reverted; cross-review remains required before merge.
+
+---
+
+## 2026-11-09 19:04 — Scope the direct-lot browser click to finished inventory
+- **File(s) changed:** `tests/visual/run-lot-history.mjs`
+- **What changed:** Disambiguate the inventory lot link from the same lot in the shipment list.
+- **Why:** Both legitimate dashboard links are present in the real fixture.
+
+---
+
+## 2026-11-09 19:04 — Tap the inventory quantity cell to expand the browser fixture
+- **File(s) changed:** `tests/visual/run-lot-history.mjs`
+- **What changed:** Use the noninteractive quantity cell to open the lot breakdown before testing the direct lot fetch.
+- **Why:** A center-of-row tap can land on the new Lot history link.
+
+---
+
+## 2026-11-09 19:03 — Extend real HTTP header coverage to direct lot and health reads
+- **File(s) changed:** `tests/visual/lot_history_server.py`, `tests/visual/run-lot-history.mjs`
+- **What changed:** Observe keys on lot and audit endpoints and tap the real finished-lot panel before opening lot history.
+- **Why:** Verify the direct dashboard fetch fixes without stubbed routes.
+
+---
+
+## 2026-11-09 19:03 — Use resolvable lot-history paths in the architecture map
+- **File(s) changed:** `docs/ARCHITECTURE-MAP.md`
+- **What changed:** Expand abbreviated script and stylesheet names to repository paths.
+- **Why:** Keep the architecture-map path checker passing.
+
+---
+
+## 2026-11-09 19:03 — Authenticate direct lot and health dashboard reads
+- **File(s) changed:** `dashboard/dashboard.js`
+- **What changed:** Add the dashboard API key to direct lot-panel and health fetches while retaining caller headers; use configured API base for health.
+- **Why:** Final fetch audit found two direct callers bypassing the shared authenticated fetch helper.
+
+---
+
+## 2026-11-09 19:02 — Keep pooled-lot warnings in the graph and document audit entry points
+- **File(s) changed:** `dashboard/traceability.html`, `docs/ARCHITECTURE-MAP.md`
+- **What changed:** Suppress single supplier-lot attribution for recorded pooled ingredients in graph detail; map lot-history UI, shared report and real HTTP regression tests.
+- **Why:** Keep graphical and exported audit evidence consistent and discoverable.
+
+---
+
+## 2026-11-09 19:00 — Test pooled notes and same-lot rework trace boundaries
+- **File(s) changed:** `tests/test_lot_history_trace.py`, `tests/test_trace_report.js`
+- **What changed:** Added local ledger and report regressions for provisional notes, pooled supplier labels, and separate signed lines in a self-consuming make.
+- **Why:** Keep historical assumptions explicit and ensure cycle safety does not erase recorded consumption.
+
+---
+
+## 2026-11-09 18:59 — Carry historical lot assumptions and pooled identity into audit reports
+- **File(s) changed:** `main.py`, `lot_trace.py`, `dashboard/trace-report.js`, `dashboard/lot-history.js`, `dashboard/lot-history.css`
+- **What changed:** Exposed recorded origin notes, labelled them as historical claims, and displayed pooled stock as having no single supplier lot; kept positive and negative same-lot lines distinct in tree inputs.
+- **Why:** Preserve owner traceability principles and prevent pooled or provisional history from appearing physically verified.
+
+---
+
+## 2026-11-09 18:58 — Improve tablet table spacing and printed audit headers
+- **File(s) changed:** `dashboard/lot-history.css`, `work/lot-history-browser/pdf-review-1.png`, `work/lot-history-browser/pdf-review-2.png`
+- **What changed:** Removed navigation from print, added page margins and wrapping table headers, and gave tablet history tables room to scroll without breaking short words.
+- **Why:** Visual PDF and tablet inspection found crowded headers and overly narrow columns.
+
+---
+
+## 2026-11-09 18:57 — Document verified trace quantities and clarify graph quantity labels
+- **File(s) changed:** `tests/test_trace_report.js`, `dashboard/traceability.html`, `audits/reports/trace-BB110927-findings.md`, `work/lot-history-browser`
+- **What changed:** Recorded complete read-only exposure counts and the finished-UOM bug; verified proportional arithmetic, labelled graph totals as whole-transaction amounts, and generated six-theme/size browser screenshots plus PDF/text.
+- **Why:** Keep estimates distinct from recorded facts and retain successful real-header browser evidence.
+
+---
+
+## 2026-11-09 18:57 — Pin real BB110927 report evidence across screen and text
+- **File(s) changed:** `tests/test_trace_report.js`
+- **What changed:** Added regressions for seven txn 2947 inputs, all five oats associations, proportional shares, two unique found gaps, supplier spelling preservation, escaping and multi-output allocations.
+- **Why:** Prevent graph node deduplication or export changes from hiding audit evidence.
+
+---
+
+## 2026-11-09 18:57 — Verify BB110927 weight correction against read-only ledger
+- **File(s) changed:** `tests/visual/fixtures/trace-BB110927.json`
+- **What changed:** Refreshed fixture after confirming 3,855 lb tree output with finished-product weight semantics.
+- **Why:** Ground proportional report regressions in the reported real case.
+
+---
+
+## 2026-11-09 18:56 — Repair local browser setup and stale test dependencies
+- **File(s) changed:** `tests/visual/lot_history_server.py`, `tests/visual/run-lot-history.mjs`, `tests/test_archived_products_dashboard.js`, `tests/test_assistant_mobile_ux.js`
+- **What changed:** Connected key-bootstrap database reads to the local rollback fixture, restored saved-person shape, loaded the new renderer helper in archive tests, and replaced pre-existing stale v20 equality with a minimum-version guard.
+- **Why:** Exercise real auth bootstrap and let full JS validation detect behavior regressions instead of stale test harness assumptions.
+
+---
+
+## 2026-11-09 18:56 — Correct trace weight units for finished case products
+- **File(s) changed:** `main.py`, `lot_trace.py`, `tests/test_lot_history_trace.py`, `tests/visual/lot_history_server.py`, `tests/visual/run-lot-history.mjs`
+- **What changed:** Treated batch and finished ledger quantities as pounds even when catalog UOM says 12x10 oz case; added realistic-UOM regressions and corrected test panel selection.
+- **Why:** Read-only BB110927 verification exposed zero tree output and unavailable estimates caused by catalog packaging labels.
+
+---
+
+## 2026-11-09 18:55 — Refresh deliberate API contract for lot history GET
+- **File(s) changed:** `tests/fixtures/route_contract/routes.jsonl`, `tests/fixtures/route_contract/openapi.jsonl`
+- **What changed:** Added the authenticated lot-history endpoint to route/OpenAPI snapshots; GPT YAML remains untouched.
+- **Why:** Pin the intentional API addition for regression coverage.
+
+---
+
+## 2026-11-09 18:55 — Add real-HTTP Playwright coverage for API keys and audit navigation
+- **File(s) changed:** `tests/visual/lot_history_server.py`, `tests/visual/run-lot-history.mjs`
+- **What changed:** Added local FastAPI/PostgreSQL fixture server and unstubbed browser checks for actual key headers, touch inventory-to-history navigation, complete reports, text/PDF and six size/theme combinations.
+- **Why:** Verify authentication reaches the server and audit workflows work on tablets without route stubs.
+
+---
+
+## 2026-11-09 18:54 — Verify candidate trace against production with transaction-scoped read-only access
+- **File(s) changed:** `tests/visual/fixtures/trace-BB110927.json`
+- **What changed:** Captured BB110927 candidate response for report regression; independently verified oats traversal preserves all 17 posted makes.
+- **Why:** Check fixes against the reported audit case without production writes or deployment.
+
+---
+
+## 2026-11-09 18:54 — Correct package-qualified regression fixture import
+- **File(s) changed:** `tests/test_lot_history_trace.py`
+- **What changed:** Imported shared local-ledger helpers through the tests package.
+- **Why:** Allow test collection under repository pytest import mode.
+
+---
+
+## 2026-11-09 18:53 — Add database regressions for complete trace and lot history
+- **File(s) changed:** `tests/test_lot_history_trace.py`, `tests/test_batch1_correctness_security.py`
+- **What changed:** Tested repeated/corrected/voided makes, nested packs and customers, depleted/found history, auth, multi-output basis, reference fanout, cycles and missing outputs against local PostgreSQL.
+- **Why:** Prove query correctness with real ledger records rather than mocked SQL.
+
+---
+
+## 2026-11-09 18:52 — Cover historical found lots and preserve deep trace regression checks
+- **File(s) changed:** `lot_trace.py`, `tests/test_trace_batch_input_tree.py`, `tests/test_batch1_correctness_security.py`, `dashboard/dashboard.js`, `dashboard/lot-history.js`, `dashboard/lot-history.html`, `dashboard/trace-report.js`
+- **What changed:** Included found adjustment origins in lot history, added Supplies ingredient history links, repaired inventory return navigation, and updated exact-response tests for additive transaction and receipt evidence.
+- **Why:** Cover every ingredient list and genuine origin gaps without losing long input chains.
+
+---
+
+## 2026-11-09 18:52 — Connect inventory lot history and unify complete trace exports
+- **File(s) changed:** `main.py`, `dashboard/dashboard.js`, `dashboard/index.html`, `dashboard/traceability.html`
+- **What changed:** Added single-tap history links, API key on every dashboard fetchAPI call, complete forward graph and shared audit exports, consistent gap counts, immediate deep links, and dashboard JS cache version 86.
+- **Why:** Make both ingredient and finished-lot audits reachable and preserve every association in screen, PDF, and text.
+
+---
+
+## 2026-11-09 18:51 — Build complete audit report and touch-friendly lot history pages
+- **File(s) changed:** `dashboard/trace-report.js`, `dashboard/lot-history.html`, `dashboard/lot-history.css`, `dashboard/lot-history.js`
+- **What changed:** Added shared screen/text evidence model, backward recorded-versus-estimated quantities, full forward shipment/stock tables, receipt gaps, and depleted lot history navigation.
+- **Why:** Auditors need every transaction in printable reports and a single-tap path from product to lot trace.
+
+---
+
+## 2026-11-09 18:49 — Wire current-ledger trace fixes and authenticated lot history endpoint
+- **File(s) changed:** `main.py`, `docs/ARCHITECTURE-MAP.md`
+- **What changed:** Replaced legacy consumption reads, kept repeated make identities, added complete forward exposure and all receipt origins, removed six-level truncation, and added target-lot output quantities for explicit share estimates.
+- **Why:** Make both trace directions reflect posted corrected ledger evidence and support inventory click-through audits.
+
+---
+
+## 2026-11-09 18:48 — Add posted-ledger lot history and full forward traversal helpers
+- **File(s) changed:** `lot_trace.py`
+- **What changed:** Added read-only history, transaction-preserving consumption edges, deduplicated shipment references, and iterative full downstream traversal.
+- **Why:** Include depleted lots and all make/pack/customer exposure without DISTINCT or history-window omissions.
+
+---
+
+## 2026-11-09 18:48 — Select working Python 3.12 test environment
+- **File(s) changed:** `.venv-test`
+- **What changed:** Repointed only this worktree dependency link after previous environment lacked an interpreter; created local factory_ledger_test from repository schema.
+- **Why:** Enable guarded local PostgreSQL test runs.
+
+---
+
+## 2026-11-09 18:47 — Reuse isolated local test dependencies
+- **File(s) changed:** `.venv-test`, `node_modules`
+- **What changed:** Linked existing Python and Playwright dependencies for local-only validation.
+- **Why:** Run full suites without changing project dependencies.
+
+---
+
+## 2026-11-09 18:47 — Record BB110927 read-only trace investigation
+- **File(s) changed:** `audits/reports/trace-BB110927-findings.md`
+- **What changed:** Documented ledger and deployed API evidence, rendering defects, collapsed forward makes, origin gaps, and supplier naming discrepancy.
+- **Why:** Step 1 evidence before implementing trace fixes.
+
+---
+
+## 2026-11-09 18:45 — Create isolated lot history trace worktree from fresh origin main
+- **File(s) changed:** `.git`
+- **What changed:** Created feat/lot-history-trace at 4e70ae34 in isolated worktree; original checkout and planner branch untouched.
+- **Why:** Authorized audit workflow implementation after confirming November 9 traceability changes.
+
+---
+
 ## 2026-11-09 17:46 — Record PR 194 production deploy (changelog row 270)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Row 270 marked DEPLOYED to production 2026-11-09: staging proof (FastAPI-staging 9a844739, 150 lots / 193 make-pack nodes match the staging DB), BACKUP OK 2026-11-09-pre-pr194, squash-merge to main f84937e, Railway FastAPI 83dd1aae SUCCESS, Netlify serving main's trace page, live API checks for lots 232, 505 and receipt 261.

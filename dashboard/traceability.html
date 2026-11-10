@@ -327,6 +327,8 @@ svg text { font-family: var(--font); }
 <link rel="stylesheet" href="interaction.css?v=2">
   <link rel="stylesheet" href="shell-layout.css?v=6">
 <script src="design-controls.js?v=3"></script>
+<script src="trace-report.js?v=1"></script>
+<link rel="stylesheet" href="lot-history.css?v=1">
 <link rel="stylesheet" href="ledger-forms.css?v=16"><script defer src="receipt-shell.js?v=8"></script><link rel="stylesheet" href="wallpaper.css?v=2">
 </head>
 <body>
@@ -404,7 +406,7 @@ svg text { font-family: var(--font); }
 <div class="detail-panel" id="detailPanel">
   <div class="detail-card" id="traceDetail"></div>
   <div class="export-btns">
-    <button class="export-btn" onclick="printAuditReport()">Print Audit Report</button>
+    <button class="export-btn" onclick="printAuditReport()">Print / Save PDF</button>
     <button class="export-btn" onclick="downloadAuditText()">Download Text Report</button>
   </div>
 </div>
@@ -611,8 +613,9 @@ async function runTrace() {
     } else {
       await traceForward(lotCode);
     }
-    renderGraph();
     renderDetailPanel();
+    if (typeof d3 !== "undefined") renderGraph();
+    else document.getElementById("graphContainer").style.display = "none";
     updateURL(lotCode, direction);
   } catch (e) {
     console.error('[Trace]', e);
@@ -692,6 +695,10 @@ async function traceBackward(lotCode) {
   } else {
     await traceBackwardBatch(data);
   }
+  if (data.forward_trace) {
+    currentTrace.audit = FLTraceReport.build(data, "backward");
+    renderCompleteForward(data.forward_trace, true);
+  }
 }
 
 async function traceBackwardBatch(batchData) {
@@ -748,7 +755,7 @@ function addOriginNode(lotNodeId, input, origin, layer, stats) {
   if (origin.kind === 'received') {
     const parts = [`${origin.received_date || ''} ${origin.received_time || ''}`.trim(), txnRef];
     if (origin.receipt_number) parts.push(`Receipt ${origin.receipt_number}`);
-    if (origin.supplier_lot_code) parts.push(`Supplier lot ${origin.supplier_lot_code}`);
+    if (origin.supplier_lot_code) parts.push(`Supplier lot ${FLTraceReport.supplierLot(input)}`);
     const suppId = addNode({
       id: 'supplier-txn-' + origin.transaction_id, type: 'supplier',
       label: origin.supplier_name, sublabel: origin.bol_reference ? `BOL: ${origin.bol_reference}` : '',
@@ -775,7 +782,7 @@ function addOriginNode(lotNodeId, input, origin, layer, stats) {
 // Receipts posted onto a lot that was also made here (e.g. found inventory added to
 // a packed lot). Each is an extra origin beside the lot's inputs; a placeholder or
 // unnamed receipt is a gap, so the trace never reads as complete to suppliers.
-function addAlsoReceived(lotNodeId, lotId, origin, layer, stats) {
+function addAlsoReceived(lotNodeId, lotId, origin, layer, stats, lotMetadata) {
   for (const r of (origin && origin.also_received) || []) {
     const txnRef = `Txn #${r.transaction_id}`;
     const when = `${r.received_date || ''} ${r.received_time || ''}`.trim();
@@ -783,7 +790,7 @@ function addAlsoReceived(lotNodeId, lotId, origin, layer, stats) {
     if (r.kind === 'received') {
       const parts = [qty, when, txnRef];
       if (r.receipt_number) parts.push(`Receipt ${r.receipt_number}`);
-      if (r.supplier_lot_code) parts.push(`Supplier lot ${r.supplier_lot_code}`);
+      if (r.supplier_lot_code) parts.push(`Supplier lot ${FLTraceReport.supplierLot({...r, ...lotMetadata})}`);
       const suppId = addNode({
         id: 'supplier-txn-' + r.transaction_id, type: 'supplier',
         label: r.supplier_name, sublabel: r.bol_reference ? `BOL: ${r.bol_reference}` : '',
@@ -831,8 +838,8 @@ function addTreeInputs(parentId, origin, layer, stats) {
       id: (made ? 'batch-' : 'ing-') + input.lot_id,
       type: made ? 'batch' : 'ingredient',
       label: input.lot_code, sublabel: input.product_name,
-      detail: [`${fmtQty(quantity, input.unit)} used`, `Txn #${txns.join(', #')}`,
-               input.supplier_lot_code ? `Supplier lot ${input.supplier_lot_code}` : ''].filter(Boolean).join(' | '),
+      detail: [`${fmtQty(quantity, input.unit)} recorded across whole make/pack transactions`, `Txn #${txns.join(', #')}`,
+               input.supplier_lot_code ? `Supplier lot ${FLTraceReport.supplierLot(input)}` : ''].filter(Boolean).join(' | '),
       lotCode: input.lot_code, productId: input.product_id,
       quantity: isLb ? quantity : 0, layer
     };
@@ -841,10 +848,15 @@ function addTreeInputs(parentId, origin, layer, stats) {
     const nodeId = addNode(node);
     addLinkSum(nodeId, parentId, quantity, 'confirmed', input.unit);
     stats.confirmed++;
-    if (seen) continue;   // reached by two paths: expand once
+    if (seen) {
+      const existing = graphNodes.find(n => n.id === nodeId);
+      existing.quantity += isLb ? quantity : 0;
+      existing.detail += ` | Also used by ${parentId}: ${fmtQty(quantity, input.unit)}; Txn #${txns.join(', #')}`;
+      continue; // origins expand once; audit report lists every transaction/path
+    }
     if (made) {
       addTreeInputs(nodeId, lotOrigin, layer - 1, stats);
-      addAlsoReceived(nodeId, input.lot_id, lotOrigin, layer - 1, stats);
+      addAlsoReceived(nodeId, input.lot_id, lotOrigin, layer - 1, stats, input);
     } else addOriginNode(nodeId, input, lotOrigin, layer - 1, stats);
   }
 }
@@ -891,14 +903,14 @@ async function traceBackwardTree(batchData) {
   applyMadeOrigin(start, batchData.input_tree, stats);
   const startId = addNode(start);
   addTreeInputs(startId, batchData.input_tree, -1, stats);
-  addAlsoReceived(startId, batchData.lot_id, batchData.input_tree, -1, stats);
+  addAlsoReceived(startId, batchData.lot_id, batchData.input_tree, -1, stats, batchData.forward_trace?.lots.find(n=>n.lot_id===batchData.lot_id));
   addCustomerNodes(startId, batchData.customer_shipments, batchData.lot_id, 1);
 
   currentTrace = {
     direction: 'backward', startLot: batchData.batch_lot_code,
     product: batchData.product_name, kosherTier: batchData.kosher_tier, outputLb: start.quantity,
     date: batchData.produced_date, time: batchData.produced_time,
-    confirmedCount: stats.confirmed, legacyCount: 0, hasLegacy: stats.gaps > 0,
+    confirmedCount: stats.confirmed, legacyCount: stats.gaps, hasLegacy: stats.gaps > 0,
     mismatches: stats.mismatches, batchData
   };
   setStatus('ok', '');
@@ -1041,6 +1053,15 @@ async function traceForward(lotCode) {
     throw e;
   }
 
+  if (ingData.forward_trace) {
+    renderCompleteForward(ingData.forward_trace);
+    currentTrace = {direction:'forward',startLot:lotCode,product:ingData.ingredient_name,
+      confirmedCount:ingData.forward_trace.consumption.length,legacyCount:0,hasLegacy:false,
+      audit:FLTraceReport.build(ingData,'forward'),ingData};
+    setStatus('ok','');
+    return;
+  }
+
   // Origin node: the ingredient
   const ingId = addNode({
     id: 'ing-' + ingData.lot_id,
@@ -1102,6 +1123,38 @@ async function traceForward(lotCode) {
     ingData
   };
   setStatus('ok', '');
+}
+
+function renderCompleteForward(forward, append=false) {
+  const prefix = n => (n.product_type === 'ingredient' ? 'ing-' : 'batch-') + n.lot_id;
+  const byId = new Map(forward.lots.map(n=>[n.lot_id,n]));
+  const layers = new Map([[forward.start_lot_id,append ? 0 : 1]]);
+  // API lots are breadth-first; cycles retain edges without increasing depth.
+  for (const n of forward.lots) {
+    for (const e of forward.consumption.filter(e=>e.source_lot_id===n.lot_id)) {
+      if (e.lot_id != null && !layers.has(e.lot_id)) layers.set(e.lot_id,(layers.get(n.lot_id)||0)+1);
+    }
+  }
+  for (const n of forward.lots) {
+    const id=prefix(n), layer=layers.get(n.lot_id)||0;
+    addNode({id,type:n.product_type==='ingredient'?'ingredient':'batch',label:n.lot_code,
+      sublabel:n.product_name,detail:`Remaining: ${fmtQty(n.on_hand,n.unit)}`,lotCode:n.lot_code,productId:n.product_id,layer});
+    if (!append || n.lot_id!==forward.start_lot_id) {
+      for (const sh of n.shipments) {
+        const sid=`ship-${n.lot_id}-${sh.transaction_id}`;
+        addNode({id:sid,type:'customer',label:sh.customer_name||'Customer not named',
+          sublabel:sh.sales_orders.map(o=>o.order_number).join(', ')||sh.order_reference||'',
+          detail:`Txn #${sh.transaction_id} · ${fmtQty(sh.quantity_lb,n.unit)}`,quantity:sh.quantity_lb,layer:layer+1});
+        addLink(id,sid,sh.quantity_lb,'confirmed');
+      }
+    }
+    const stock=`remaining-${n.lot_id}`;
+    addNode({id:stock,type:'finished',label:'Remaining stock',sublabel:fmtQty(n.on_hand,n.unit),layer:layer+1});
+    addLink(id,stock,n.on_hand,'confirmed');
+  }
+  for (const e of forward.consumption) if (e.lot_id!=null) {
+    addLinkSum(prefix(byId.get(e.source_lot_id)),prefix(byId.get(e.lot_id)),e.quantity_used,'confirmed',e.unit);
+  }
 }
 
 async function traceForwardAsBatch(lotCode) {
@@ -1584,12 +1637,17 @@ function renderCompleteness() {
   const info = document.getElementById('traceInfo');
   if (!currentTrace) { info.innerHTML = ''; return; }
 
+  if (currentTrace.audit) {
+    const gaps=currentTrace.audit.gaps.length;
+    info.textContent=`${gaps} trace gap(s) · full posted-ledger report below; estimated shares are not physically verified`;
+    return;
+  }
   const { confirmedCount, legacyCount, hasLegacy, note } = currentTrace;
 
   // Also check for gap nodes in the graph (e.g., supplier unknown)
   const gapNodes = graphNodes.filter(n => n.type === 'gap');
   const legacyLinks = graphLinks.filter(l => l.confidence === 'legacy');
-  const totalGaps = gapNodes.length + legacyCount;
+  const totalGaps = Math.max(gapNodes.length, legacyCount);
   const hasAnyGap = totalGaps > 0 || hasLegacy;
 
   let badge = '';
@@ -1620,6 +1678,11 @@ function renderDetailPanel() {
   const card = document.getElementById('traceDetail');
   if (!currentTrace || graphNodes.length === 0) { panel.style.display = 'none'; return; }
   panel.style.display = 'block';
+  if (currentTrace.audit) {
+    card.innerHTML = `<a class="lot-history-action" href="lot-history.html?product_id=${encodeURIComponent(currentTrace.audit.productId)}">Back to lot history</a>` + FLTraceReport.html(currentTrace.audit);
+    renderCompleteness();
+    return;
+  }
 
   const t = currentTrace;
   const dirLabel = t.direction === 'forward' ? 'Forward Trace (Ingredient \u2192 Batches \u2192 Customers)' : (graphNodes.some(n => n.id.startsWith('ing-') && n.layer === 1 && n.id === 'ing-' + t.startLot) ? 'Backward Trace (Supplier \u2192 Ingredient \u2192 Batches \u2192 Customers)' : 'Backward Trace (Batch \u2192 Ingredients \u2192 Suppliers)');
@@ -1678,8 +1741,18 @@ function printAuditReport() {
   window.print();
 }
 
+function saveAuditText(text) {
+  const url=URL.createObjectURL(new Blob([text],{type:'text/plain'}));
+  const a=document.createElement('a');a.href=url;
+  a.download=`trace-${currentTrace.startLot}-${currentTrace.direction}.txt`;a.click();URL.revokeObjectURL(url);
+}
+
 function downloadAuditText() {
   if (!currentTrace) return;
+  if (currentTrace.audit) {
+    saveAuditText(FLTraceReport.text(currentTrace.audit));
+    return;
+  }
   const t = currentTrace;
   const now = new Date();
   const traceDate = FLDesign.time(now.toISOString());
@@ -1694,7 +1767,7 @@ function downloadAuditText() {
   text += `Product:         ${t.product || 'N/A'}\n`;
   if (t.outputLb) text += `Output:          ${t.outputLb} lb\n`;
   text += `Confirmed Links: ${t.confirmedCount}\n`;
-  text += `Legacy Gaps:     ${t.legacyCount}\n`;
+  text += `Legacy Gaps:     ${Math.max(t.legacyCount, graphNodes.filter(n=>n.type==='gap' && !n.isCollapsed).length)}\n`;
   text += `Completeness:    ${!t.hasLegacy && t.confirmedCount > 0 ? 'COMPLETE' : t.hasLegacy ? 'PARTIAL' : 'INCOMPLETE'}\n`;
   if (t.note) text += `Note:            ${t.note}\n`;
   if ((t.mismatches || []).length) {
@@ -1768,7 +1841,7 @@ function loadFromURL() {
     selectedProductId = pid ? parseInt(pid) : null;
     document.getElementById('traceBtn').disabled = false;
     if (dir === 'backward' || dir === 'forward') setDirection(dir);
-    setTimeout(() => runTrace(), 500);  // wait for index
+    runTrace(); // a lot-history deep link does not depend on the recent-lot index
   }
 }
 
@@ -1776,8 +1849,8 @@ function loadFromURL() {
 // INIT
 // ═══════════════════════════════════════════════════════
 (async function init() {
-  await buildLotIndex();
   loadFromURL();
+  await buildLotIndex();
 })();
 </script>
 <script src="mini-calendar.js?v=10"></script>

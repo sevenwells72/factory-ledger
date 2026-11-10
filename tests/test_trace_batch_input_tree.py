@@ -72,7 +72,7 @@ def test_packed_lot_traces_through_nested_makes_to_suppliers(client, db_cursor):
     mix_make, _ = post(db_cursor, 'make', '2026-09-03 14:00', [(mix, 450), (base, -400), (nuts, -50)])
     pack, _ = post(db_cursor, 'pack', '2026-09-03 15:00', [(case, 450), (mix, -450)])
     post(db_cursor, 'ship', '2026-09-04 15:00', [(case, -450)], customer_name='TT Customer')
-    # The pack also has a legacy consumption row: "ingredients" keeps reading it.
+    # A legacy snapshot agrees here; ingredients now reads current ledger lines.
     db_cursor.execute("""INSERT INTO ingredient_lot_consumption
         (transaction_id, ingredient_product_id, ingredient_lot_id, quantity_lb) VALUES (%s,%s,%s,450)""",
         (pack, mix[0], mix[1]))
@@ -168,7 +168,7 @@ def test_placeholder_receipts_are_not_suppliers(client, db_cursor):
 
     [txn] = trace(client, batch, 'TT4-DAY')['input_tree']['transactions']
     origins = {lot_id: node['origin'] for lot_id, node in by_lot(txn['inputs']).items()}
-    assert origins[walnuts[1]] == {
+    assert {k:v for k,v in origins[walnuts[1]].items() if k != 'receipts'} == {
         'kind': 'found_inventory', 'transaction_id': found_receipt, 'recorded_shipper': 'found',
         'received_at': origins[walnuts[1]]['received_at'], 'received_date': '2026-09-01',
         'received_time': origins[walnuts[1]]['received_time']}
@@ -263,7 +263,7 @@ def test_recorded_inputs_mismatch_flag(client, db_cursor, inputs, mismatch):
 
 
 @pytest.mark.db
-def test_cycles_and_depth_are_bounded(client, db_cursor):
+def test_cycles_stop_but_deep_acyclic_chains_remain_complete(client, db_cursor):
     a = item(db_cursor, 'TT7 a', 'batch', 'TT7-A', 'production_output')
     b = item(db_cursor, 'TT7 b', 'batch', 'TT7-B', 'production_output')
     post(db_cursor, 'make', '2026-09-02 14:00', [(a, 10), (b, -10)])
@@ -279,11 +279,12 @@ def test_cycles_and_depth_are_bounded(client, db_cursor):
         post(db_cursor, 'make', f'2026-09-{n + 10} 14:00', [(chain[n], 5), (chain[n + 1], -5)])
     node = trace(client, chain[0], 'TT8-STEP-0')['input_tree']
     depth = 0
-    while not node.get('truncated'):
+    while node.get('kind') == 'made':
+        assert not node.get('truncated')
         node = node['transactions'][0]['inputs'][0]['origin']
         depth += 1
-    assert depth == main.TRACE_TREE_MAX_DEPTH
-    assert node['truncated'] == 'depth_limit'
+    assert depth == 8
+    assert node['kind'] == 'unknown'
 
 
 @pytest.mark.db

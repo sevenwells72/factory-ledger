@@ -1,0 +1,1512 @@
+{
+  "kosher_tier": "regular",
+  "kosher_label": "Regular",
+  "kosher_attested_by_actor_id": null,
+  "kosher_attested_at": null,
+  "trace_type": "batch",
+  "lot_id": 1723,
+  "product_id": 145,
+  "batch_lot_code": "BB110927",
+  "product_name": "Granola SS Chocolate Chip 12x10 OZ Case",
+  "output_lb": 3855.0,
+  "produced_date": "2026-11-09",
+  "produced_time": "05:25 PM ET",
+  "ingredients": [
+    {
+      "lot_id": 1681,
+      "product_id": 114,
+      "ingredient_name": "Batch SS Chocolate Chip Granola #2",
+      "lot_code": "NOV 02 2026",
+      "supplier_lot_code": null,
+      "quantity_lb": 523.5
+    },
+    {
+      "lot_id": 1690,
+      "product_id": 114,
+      "ingredient_name": "Batch SS Chocolate Chip Granola #2",
+      "lot_code": "B26-1103-002",
+      "supplier_lot_code": null,
+      "quantity_lb": 786.0
+    },
+    {
+      "lot_id": 1696,
+      "product_id": 114,
+      "ingredient_name": "Batch SS Chocolate Chip Granola #2",
+      "lot_code": "NOV 04 2026",
+      "supplier_lot_code": null,
+      "quantity_lb": 2358.0
+    },
+    {
+      "lot_id": 1709,
+      "product_id": 114,
+      "ingredient_name": "Batch SS Chocolate Chip Granola #2",
+      "lot_code": "NOV 06 2026",
+      "supplier_lot_code": null,
+      "quantity_lb": 187.5
+    }
+  ],
+  "customer_shipments": [],
+  "total_shipped_lb": 0,
+  "on_hand_lb": 3855.0,
+  "forward_trace": {
+    "start_lot_id": 1723,
+    "lots": [
+      {
+        "lot_id": 1723,
+        "lot_code": "BB110927",
+        "product_id": 145,
+        "entry_source": "pack_output",
+        "supplier_lot_code": null,
+        "product_name": "Granola SS Chocolate Chip 12x10 OZ Case",
+        "product_type": "finished",
+        "case_size_lb": 7.5,
+        "unit": "lb",
+        "on_hand": 3855.0,
+        "receipts": [],
+        "shipments": []
+      }
+    ],
+    "consumption": [],
+    "gaps": [],
+    "quantity_basis": "Recorded consumption per transaction; downstream lots are potential exposure, not allocated ingredient weight."
+  },
+  "input_tree": {
+    "kind": "made",
+    "transactions": [
+      {
+        "transaction_id": 2987,
+        "type": "pack",
+        "produced_at": "2026-11-09T22:25:34.321476+00:00",
+        "produced_date": "2026-11-09",
+        "produced_time": "05:25 PM ET",
+        "output_lb": 3855.0,
+        "lot_output_lb": 3855.0,
+        "inputs_total_lb": 3855.0,
+        "inputs_mismatch": false,
+        "inputs": [
+          {
+            "lot_id": 1681,
+            "lot_code": "NOV 02 2026",
+            "product_id": 114,
+            "product_name": "Batch SS Chocolate Chip Granola #2",
+            "product_type": "batch",
+            "entry_source": "production_output",
+            "supplier_lot_code": null,
+            "quantity": 523.5,
+            "unit": "lb",
+            "origin": {
+              "kind": "made",
+              "transactions": [
+                {
+                  "transaction_id": 2926,
+                  "type": "make",
+                  "produced_at": "2026-11-02T20:22:26.158322+00:00",
+                  "produced_date": "2026-11-02",
+                  "produced_time": "03:22 PM ET",
+                  "output_lb": 786.0,
+                  "lot_output_lb": 786.0,
+                  "inputs_total_lb": 786.0,
+                  "inputs_mismatch": false,
+                  "inputs": [
+                    {
+                      "lot_id": 1477,
+                      "lot_code": "26-09-22-NATI-001",
+                      "product_id": 3,
+                      "product_name": "Almonds \u2013 Sliced",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "91431",
+                      "quantity": 38.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2442,
+                        "received_at": "2026-09-22T20:53:52.404728+00:00",
+                        "received_date": "2026-09-22",
+                        "received_time": "04:53 PM ET",
+                        "supplier_name": "Nation Harvest",
+                        "bol_reference": "S233792",
+                        "receipt_number": null,
+                        "quantity_lb": 1500.0,
+                        "supplier_lot_code": "91431",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2442,
+                            "received_at": "2026-09-22T20:53:52.404728+00:00",
+                            "received_date": "2026-09-22",
+                            "received_time": "04:53 PM ET",
+                            "supplier_name": "Nation Harvest",
+                            "bol_reference": "S233792",
+                            "receipt_number": null,
+                            "quantity_lb": 1500.0,
+                            "supplier_lot_code": "91431"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 1421,
+                      "lot_code": "26-09-10-ABAK-001",
+                      "product_id": 72,
+                      "product_name": "Chocolate Chips \u2013 Real \u2013 4,000 CT",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "260818",
+                      "quantity": 76.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2238,
+                        "received_at": "2026-09-10T17:16:52.091645+00:00",
+                        "received_date": "2026-09-10",
+                        "received_time": "01:16 PM ET",
+                        "supplier_name": "A-1 Bakery",
+                        "bol_reference": "70487",
+                        "receipt_number": null,
+                        "quantity_lb": 2000.0,
+                        "supplier_lot_code": "260818",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2238,
+                            "received_at": "2026-09-10T17:16:52.091645+00:00",
+                            "received_date": "2026-09-10",
+                            "received_time": "01:16 PM ET",
+                            "supplier_name": "A-1 Bakery",
+                            "bol_reference": "70487",
+                            "receipt_number": null,
+                            "quantity_lb": 2000.0,
+                            "supplier_lot_code": "260818"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 616,
+                      "lot_code": "25120",
+                      "product_id": 13,
+                      "product_name": "Coconut Macaroon Desiccated",
+                      "product_type": "ingredient",
+                      "entry_source": "found_inventory",
+                      "supplier_lot_code": null,
+                      "quantity": 38.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "found_inventory",
+                        "transaction_id": null
+                      }
+                    },
+                    {
+                      "lot_id": 1564,
+                      "lot_code": "26-10-06-DUTC-001",
+                      "product_id": 30,
+                      "product_name": "Honey",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "26426-D",
+                      "quantity": 94.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2600,
+                        "received_at": "2026-10-06T20:57:57.928337+00:00",
+                        "received_date": "2026-10-06",
+                        "received_time": "04:57 PM ET",
+                        "supplier_name": "Dutch Gold",
+                        "bol_reference": "091426",
+                        "receipt_number": null,
+                        "quantity_lb": 3000.0,
+                        "supplier_lot_code": "26426-D",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2600,
+                            "received_at": "2026-10-06T20:57:57.928337+00:00",
+                            "received_date": "2026-10-06",
+                            "received_time": "04:57 PM ET",
+                            "supplier_name": "Dutch Gold",
+                            "bol_reference": "091426",
+                            "receipt_number": null,
+                            "quantity_lb": 3000.0,
+                            "supplier_lot_code": "26426-D"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 1637,
+                      "lot_code": "26-10-22-QUAL-001",
+                      "product_id": 32,
+                      "product_name": "Oats",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "261019",
+                      "quantity": 458.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2719,
+                        "received_at": "2026-10-22T13:51:29.215778+00:00",
+                        "received_date": "2026-10-22",
+                        "received_time": "09:51 AM ET",
+                        "supplier_name": "Quali Pack",
+                        "bol_reference": "CV264152",
+                        "receipt_number": null,
+                        "quantity_lb": 43750.0,
+                        "supplier_lot_code": "261019",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2719,
+                            "received_at": "2026-10-22T13:51:29.215778+00:00",
+                            "received_date": "2026-10-22",
+                            "received_time": "09:51 AM ET",
+                            "supplier_name": "Quali Pack",
+                            "bol_reference": "CV264152",
+                            "receipt_number": null,
+                            "quantity_lb": 43750.0,
+                            "supplier_lot_code": "261019"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 1461,
+                      "lot_code": "26-09-17-CBSF-001",
+                      "product_id": 34,
+                      "product_name": "Oil \u2013 Canola",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "254-11",
+                      "quantity": 44.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2392,
+                        "received_at": "2026-09-17T14:28:57.853267+00:00",
+                        "received_date": "2026-09-17",
+                        "received_time": "10:28 AM ET",
+                        "supplier_name": "CBS Food",
+                        "bol_reference": "35277-101",
+                        "receipt_number": null,
+                        "quantity_lb": 6000.0,
+                        "supplier_lot_code": "254-11",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2392,
+                            "received_at": "2026-09-17T14:28:57.853267+00:00",
+                            "received_date": "2026-09-17",
+                            "received_time": "10:28 AM ET",
+                            "supplier_name": "CBS Food",
+                            "bol_reference": "35277-101",
+                            "receipt_number": null,
+                            "quantity_lb": 6000.0,
+                            "supplier_lot_code": "254-11"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 1398,
+                      "lot_code": "26-09-04-NATI-001",
+                      "product_id": 46,
+                      "product_name": "Sunflower Seeds",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "90717",
+                      "quantity": 38.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2201,
+                        "received_at": "2026-09-04T15:18:39.952744+00:00",
+                        "received_date": "2026-09-04",
+                        "received_time": "11:18 AM ET",
+                        "supplier_name": "Nation Harvest",
+                        "bol_reference": "232435",
+                        "receipt_number": null,
+                        "quantity_lb": 5500.0,
+                        "supplier_lot_code": "90717",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2201,
+                            "received_at": "2026-09-04T15:18:39.952744+00:00",
+                            "received_date": "2026-09-04",
+                            "received_time": "11:18 AM ET",
+                            "supplier_name": "Nation Harvest",
+                            "bol_reference": "232435",
+                            "receipt_number": null,
+                            "quantity_lb": 5500.0,
+                            "supplier_lot_code": "90717"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "transaction_id": 2927,
+                  "type": "make",
+                  "produced_at": "2026-11-02T21:50:13.550422+00:00",
+                  "produced_date": "2026-11-02",
+                  "produced_time": "04:50 PM ET",
+                  "output_lb": 1965.0,
+                  "lot_output_lb": 1965.0,
+                  "inputs_total_lb": 1965.0,
+                  "inputs_mismatch": false,
+                  "inputs": [
+                    {
+                      "lot_id": 1477,
+                      "lot_code": "26-09-22-NATI-001",
+                      "product_id": 3,
+                      "product_name": "Almonds \u2013 Sliced",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "91431",
+                      "quantity": 95.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2442,
+                        "received_at": "2026-09-22T20:53:52.404728+00:00",
+                        "received_date": "2026-09-22",
+                        "received_time": "04:53 PM ET",
+                        "supplier_name": "Nation Harvest",
+                        "bol_reference": "S233792",
+                        "receipt_number": null,
+                        "quantity_lb": 1500.0,
+                        "supplier_lot_code": "91431",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2442,
+                            "received_at": "2026-09-22T20:53:52.404728+00:00",
+                            "received_date": "2026-09-22",
+                            "received_time": "04:53 PM ET",
+                            "supplier_name": "Nation Harvest",
+                            "bol_reference": "S233792",
+                            "receipt_number": null,
+                            "quantity_lb": 1500.0,
+                            "supplier_lot_code": "91431"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 1421,
+                      "lot_code": "26-09-10-ABAK-001",
+                      "product_id": 72,
+                      "product_name": "Chocolate Chips \u2013 Real \u2013 4,000 CT",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "260818",
+                      "quantity": 190.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2238,
+                        "received_at": "2026-09-10T17:16:52.091645+00:00",
+                        "received_date": "2026-09-10",
+                        "received_time": "01:16 PM ET",
+                        "supplier_name": "A-1 Bakery",
+                        "bol_reference": "70487",
+                        "receipt_number": null,
+                        "quantity_lb": 2000.0,
+                        "supplier_lot_code": "260818",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2238,
+                            "received_at": "2026-09-10T17:16:52.091645+00:00",
+                            "received_date": "2026-09-10",
+                            "received_time": "01:16 PM ET",
+                            "supplier_name": "A-1 Bakery",
+                            "bol_reference": "70487",
+                            "receipt_number": null,
+                            "quantity_lb": 2000.0,
+                            "supplier_lot_code": "260818"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 616,
+                      "lot_code": "25120",
+                      "product_id": 13,
+                      "product_name": "Coconut Macaroon Desiccated",
+                      "product_type": "ingredient",
+                      "entry_source": "found_inventory",
+                      "supplier_lot_code": null,
+                      "quantity": 95.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "found_inventory",
+                        "transaction_id": null
+                      }
+                    },
+                    {
+                      "lot_id": 1564,
+                      "lot_code": "26-10-06-DUTC-001",
+                      "product_id": 30,
+                      "product_name": "Honey",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "26426-D",
+                      "quantity": 235.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2600,
+                        "received_at": "2026-10-06T20:57:57.928337+00:00",
+                        "received_date": "2026-10-06",
+                        "received_time": "04:57 PM ET",
+                        "supplier_name": "Dutch Gold",
+                        "bol_reference": "091426",
+                        "receipt_number": null,
+                        "quantity_lb": 3000.0,
+                        "supplier_lot_code": "26426-D",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2600,
+                            "received_at": "2026-10-06T20:57:57.928337+00:00",
+                            "received_date": "2026-10-06",
+                            "received_time": "04:57 PM ET",
+                            "supplier_name": "Dutch Gold",
+                            "bol_reference": "091426",
+                            "receipt_number": null,
+                            "quantity_lb": 3000.0,
+                            "supplier_lot_code": "26426-D"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 1637,
+                      "lot_code": "26-10-22-QUAL-001",
+                      "product_id": 32,
+                      "product_name": "Oats",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "261019",
+                      "quantity": 1145.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2719,
+                        "received_at": "2026-10-22T13:51:29.215778+00:00",
+                        "received_date": "2026-10-22",
+                        "received_time": "09:51 AM ET",
+                        "supplier_name": "Quali Pack",
+                        "bol_reference": "CV264152",
+                        "receipt_number": null,
+                        "quantity_lb": 43750.0,
+                        "supplier_lot_code": "261019",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2719,
+                            "received_at": "2026-10-22T13:51:29.215778+00:00",
+                            "received_date": "2026-10-22",
+                            "received_time": "09:51 AM ET",
+                            "supplier_name": "Quali Pack",
+                            "bol_reference": "CV264152",
+                            "receipt_number": null,
+                            "quantity_lb": 43750.0,
+                            "supplier_lot_code": "261019"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 1619,
+                      "lot_code": "26-10-20-CBSF-001",
+                      "product_id": 34,
+                      "product_name": "Oil \u2013 Canola",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "288-26",
+                      "quantity": 110.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2688,
+                        "received_at": "2026-10-20T13:23:16.446306+00:00",
+                        "received_date": "2026-10-20",
+                        "received_time": "09:23 AM ET",
+                        "supplier_name": "CBS Food",
+                        "bol_reference": "35423-101",
+                        "receipt_number": null,
+                        "quantity_lb": 6000.0,
+                        "supplier_lot_code": "288-26",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2688,
+                            "received_at": "2026-10-20T13:23:16.446306+00:00",
+                            "received_date": "2026-10-20",
+                            "received_time": "09:23 AM ET",
+                            "supplier_name": "CBS Food",
+                            "bol_reference": "35423-101",
+                            "receipt_number": null,
+                            "quantity_lb": 6000.0,
+                            "supplier_lot_code": "288-26"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 1398,
+                      "lot_code": "26-09-04-NATI-001",
+                      "product_id": 46,
+                      "product_name": "Sunflower Seeds",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "90717",
+                      "quantity": 95.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2201,
+                        "received_at": "2026-09-04T15:18:39.952744+00:00",
+                        "received_date": "2026-09-04",
+                        "received_time": "11:18 AM ET",
+                        "supplier_name": "Nation Harvest",
+                        "bol_reference": "232435",
+                        "receipt_number": null,
+                        "quantity_lb": 5500.0,
+                        "supplier_lot_code": "90717",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2201,
+                            "received_at": "2026-09-04T15:18:39.952744+00:00",
+                            "received_date": "2026-09-04",
+                            "received_time": "11:18 AM ET",
+                            "supplier_name": "Nation Harvest",
+                            "bol_reference": "232435",
+                            "receipt_number": null,
+                            "quantity_lb": 5500.0,
+                            "supplier_lot_code": "90717"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ],
+              "output_lb": 2751.0,
+              "inputs_total_lb": 2751.0,
+              "inputs_mismatch": false,
+              "also_received": []
+            }
+          },
+          {
+            "lot_id": 1690,
+            "lot_code": "B26-1103-002",
+            "product_id": 114,
+            "product_name": "Batch SS Chocolate Chip Granola #2",
+            "product_type": "batch",
+            "entry_source": "production_output",
+            "supplier_lot_code": null,
+            "quantity": 786.0,
+            "unit": "lb",
+            "origin": {
+              "kind": "made",
+              "transactions": [
+                {
+                  "transaction_id": 2936,
+                  "type": "make",
+                  "produced_at": "2026-11-03T21:40:41.103391+00:00",
+                  "produced_date": "2026-11-03",
+                  "produced_time": "04:40 PM ET",
+                  "output_lb": 786.0,
+                  "lot_output_lb": 786.0,
+                  "inputs_total_lb": 786.0,
+                  "inputs_mismatch": false,
+                  "inputs": [
+                    {
+                      "lot_id": 1477,
+                      "lot_code": "26-09-22-NATI-001",
+                      "product_id": 3,
+                      "product_name": "Almonds \u2013 Sliced",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "91431",
+                      "quantity": 38.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2442,
+                        "received_at": "2026-09-22T20:53:52.404728+00:00",
+                        "received_date": "2026-09-22",
+                        "received_time": "04:53 PM ET",
+                        "supplier_name": "Nation Harvest",
+                        "bol_reference": "S233792",
+                        "receipt_number": null,
+                        "quantity_lb": 1500.0,
+                        "supplier_lot_code": "91431",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2442,
+                            "received_at": "2026-09-22T20:53:52.404728+00:00",
+                            "received_date": "2026-09-22",
+                            "received_time": "04:53 PM ET",
+                            "supplier_name": "Nation Harvest",
+                            "bol_reference": "S233792",
+                            "receipt_number": null,
+                            "quantity_lb": 1500.0,
+                            "supplier_lot_code": "91431"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 1421,
+                      "lot_code": "26-09-10-ABAK-001",
+                      "product_id": 72,
+                      "product_name": "Chocolate Chips \u2013 Real \u2013 4,000 CT",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "260818",
+                      "quantity": 9.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2238,
+                        "received_at": "2026-09-10T17:16:52.091645+00:00",
+                        "received_date": "2026-09-10",
+                        "received_time": "01:16 PM ET",
+                        "supplier_name": "A-1 Bakery",
+                        "bol_reference": "70487",
+                        "receipt_number": null,
+                        "quantity_lb": 2000.0,
+                        "supplier_lot_code": "260818",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2238,
+                            "received_at": "2026-09-10T17:16:52.091645+00:00",
+                            "received_date": "2026-09-10",
+                            "received_time": "01:16 PM ET",
+                            "supplier_name": "A-1 Bakery",
+                            "bol_reference": "70487",
+                            "receipt_number": null,
+                            "quantity_lb": 2000.0,
+                            "supplier_lot_code": "260818"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 1445,
+                      "lot_code": "26-09-16-ABAK-001",
+                      "product_id": 72,
+                      "product_name": "Chocolate Chips \u2013 Real \u2013 4,000 CT",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "260901",
+                      "quantity": 67.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2372,
+                        "received_at": "2026-09-16T17:00:21.924571+00:00",
+                        "received_date": "2026-09-16",
+                        "received_time": "01:00 PM ET",
+                        "supplier_name": "A-1 Bakery",
+                        "bol_reference": "70686",
+                        "receipt_number": null,
+                        "quantity_lb": 500.0,
+                        "supplier_lot_code": "260901",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2372,
+                            "received_at": "2026-09-16T17:00:21.924571+00:00",
+                            "received_date": "2026-09-16",
+                            "received_time": "01:00 PM ET",
+                            "supplier_name": "A-1 Bakery",
+                            "bol_reference": "70686",
+                            "receipt_number": null,
+                            "quantity_lb": 500.0,
+                            "supplier_lot_code": "260901"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 616,
+                      "lot_code": "25120",
+                      "product_id": 13,
+                      "product_name": "Coconut Macaroon Desiccated",
+                      "product_type": "ingredient",
+                      "entry_source": "found_inventory",
+                      "supplier_lot_code": null,
+                      "quantity": 38.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "found_inventory",
+                        "transaction_id": null
+                      }
+                    },
+                    {
+                      "lot_id": 1564,
+                      "lot_code": "26-10-06-DUTC-001",
+                      "product_id": 30,
+                      "product_name": "Honey",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "26426-D",
+                      "quantity": 94.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2600,
+                        "received_at": "2026-10-06T20:57:57.928337+00:00",
+                        "received_date": "2026-10-06",
+                        "received_time": "04:57 PM ET",
+                        "supplier_name": "Dutch Gold",
+                        "bol_reference": "091426",
+                        "receipt_number": null,
+                        "quantity_lb": 3000.0,
+                        "supplier_lot_code": "26426-D",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2600,
+                            "received_at": "2026-10-06T20:57:57.928337+00:00",
+                            "received_date": "2026-10-06",
+                            "received_time": "04:57 PM ET",
+                            "supplier_name": "Dutch Gold",
+                            "bol_reference": "091426",
+                            "receipt_number": null,
+                            "quantity_lb": 3000.0,
+                            "supplier_lot_code": "26426-D"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 1637,
+                      "lot_code": "26-10-22-QUAL-001",
+                      "product_id": 32,
+                      "product_name": "Oats",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "261019",
+                      "quantity": 458.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2719,
+                        "received_at": "2026-10-22T13:51:29.215778+00:00",
+                        "received_date": "2026-10-22",
+                        "received_time": "09:51 AM ET",
+                        "supplier_name": "Quali Pack",
+                        "bol_reference": "CV264152",
+                        "receipt_number": null,
+                        "quantity_lb": 43750.0,
+                        "supplier_lot_code": "261019",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2719,
+                            "received_at": "2026-10-22T13:51:29.215778+00:00",
+                            "received_date": "2026-10-22",
+                            "received_time": "09:51 AM ET",
+                            "supplier_name": "Quali Pack",
+                            "bol_reference": "CV264152",
+                            "receipt_number": null,
+                            "quantity_lb": 43750.0,
+                            "supplier_lot_code": "261019"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 1619,
+                      "lot_code": "26-10-20-CBSF-001",
+                      "product_id": 34,
+                      "product_name": "Oil \u2013 Canola",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "288-26",
+                      "quantity": 44.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2688,
+                        "received_at": "2026-10-20T13:23:16.446306+00:00",
+                        "received_date": "2026-10-20",
+                        "received_time": "09:23 AM ET",
+                        "supplier_name": "CBS Food",
+                        "bol_reference": "35423-101",
+                        "receipt_number": null,
+                        "quantity_lb": 6000.0,
+                        "supplier_lot_code": "288-26",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2688,
+                            "received_at": "2026-10-20T13:23:16.446306+00:00",
+                            "received_date": "2026-10-20",
+                            "received_time": "09:23 AM ET",
+                            "supplier_name": "CBS Food",
+                            "bol_reference": "35423-101",
+                            "receipt_number": null,
+                            "quantity_lb": 6000.0,
+                            "supplier_lot_code": "288-26"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 1398,
+                      "lot_code": "26-09-04-NATI-001",
+                      "product_id": 46,
+                      "product_name": "Sunflower Seeds",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "90717",
+                      "quantity": 38.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2201,
+                        "received_at": "2026-09-04T15:18:39.952744+00:00",
+                        "received_date": "2026-09-04",
+                        "received_time": "11:18 AM ET",
+                        "supplier_name": "Nation Harvest",
+                        "bol_reference": "232435",
+                        "receipt_number": null,
+                        "quantity_lb": 5500.0,
+                        "supplier_lot_code": "90717",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2201,
+                            "received_at": "2026-09-04T15:18:39.952744+00:00",
+                            "received_date": "2026-09-04",
+                            "received_time": "11:18 AM ET",
+                            "supplier_name": "Nation Harvest",
+                            "bol_reference": "232435",
+                            "receipt_number": null,
+                            "quantity_lb": 5500.0,
+                            "supplier_lot_code": "90717"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ],
+              "output_lb": 786.0,
+              "inputs_total_lb": 786.0,
+              "inputs_mismatch": false,
+              "also_received": []
+            }
+          },
+          {
+            "lot_id": 1696,
+            "lot_code": "NOV 04 2026",
+            "product_id": 114,
+            "product_name": "Batch SS Chocolate Chip Granola #2",
+            "product_type": "batch",
+            "entry_source": "production_output",
+            "supplier_lot_code": null,
+            "quantity": 2358.0,
+            "unit": "lb",
+            "origin": {
+              "kind": "made",
+              "transactions": [
+                {
+                  "transaction_id": 2947,
+                  "type": "make",
+                  "produced_at": "2026-11-04T21:19:39.621950+00:00",
+                  "produced_date": "2026-11-04",
+                  "produced_time": "04:19 PM ET",
+                  "output_lb": 2358.0,
+                  "lot_output_lb": 2358.0,
+                  "inputs_total_lb": 2358.0,
+                  "inputs_mismatch": false,
+                  "inputs": [
+                    {
+                      "lot_id": 1477,
+                      "lot_code": "26-09-22-NATI-001",
+                      "product_id": 3,
+                      "product_name": "Almonds \u2013 Sliced",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "91431",
+                      "quantity": 114.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2442,
+                        "received_at": "2026-09-22T20:53:52.404728+00:00",
+                        "received_date": "2026-09-22",
+                        "received_time": "04:53 PM ET",
+                        "supplier_name": "Nation Harvest",
+                        "bol_reference": "S233792",
+                        "receipt_number": null,
+                        "quantity_lb": 1500.0,
+                        "supplier_lot_code": "91431",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2442,
+                            "received_at": "2026-09-22T20:53:52.404728+00:00",
+                            "received_date": "2026-09-22",
+                            "received_time": "04:53 PM ET",
+                            "supplier_name": "Nation Harvest",
+                            "bol_reference": "S233792",
+                            "receipt_number": null,
+                            "quantity_lb": 1500.0,
+                            "supplier_lot_code": "91431"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 1445,
+                      "lot_code": "26-09-16-ABAK-001",
+                      "product_id": 72,
+                      "product_name": "Chocolate Chips \u2013 Real \u2013 4,000 CT",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "260901",
+                      "quantity": 228.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2372,
+                        "received_at": "2026-09-16T17:00:21.924571+00:00",
+                        "received_date": "2026-09-16",
+                        "received_time": "01:00 PM ET",
+                        "supplier_name": "A-1 Bakery",
+                        "bol_reference": "70686",
+                        "receipt_number": null,
+                        "quantity_lb": 500.0,
+                        "supplier_lot_code": "260901",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2372,
+                            "received_at": "2026-09-16T17:00:21.924571+00:00",
+                            "received_date": "2026-09-16",
+                            "received_time": "01:00 PM ET",
+                            "supplier_name": "A-1 Bakery",
+                            "bol_reference": "70686",
+                            "receipt_number": null,
+                            "quantity_lb": 500.0,
+                            "supplier_lot_code": "260901"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 616,
+                      "lot_code": "25120",
+                      "product_id": 13,
+                      "product_name": "Coconut Macaroon Desiccated",
+                      "product_type": "ingredient",
+                      "entry_source": "found_inventory",
+                      "supplier_lot_code": null,
+                      "quantity": 114.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "found_inventory",
+                        "transaction_id": null
+                      }
+                    },
+                    {
+                      "lot_id": 1564,
+                      "lot_code": "26-10-06-DUTC-001",
+                      "product_id": 30,
+                      "product_name": "Honey",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "26426-D",
+                      "quantity": 282.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2600,
+                        "received_at": "2026-10-06T20:57:57.928337+00:00",
+                        "received_date": "2026-10-06",
+                        "received_time": "04:57 PM ET",
+                        "supplier_name": "Dutch Gold",
+                        "bol_reference": "091426",
+                        "receipt_number": null,
+                        "quantity_lb": 3000.0,
+                        "supplier_lot_code": "26426-D",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2600,
+                            "received_at": "2026-10-06T20:57:57.928337+00:00",
+                            "received_date": "2026-10-06",
+                            "received_time": "04:57 PM ET",
+                            "supplier_name": "Dutch Gold",
+                            "bol_reference": "091426",
+                            "receipt_number": null,
+                            "quantity_lb": 3000.0,
+                            "supplier_lot_code": "26426-D"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 1637,
+                      "lot_code": "26-10-22-QUAL-001",
+                      "product_id": 32,
+                      "product_name": "Oats",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "261019",
+                      "quantity": 1374.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2719,
+                        "received_at": "2026-10-22T13:51:29.215778+00:00",
+                        "received_date": "2026-10-22",
+                        "received_time": "09:51 AM ET",
+                        "supplier_name": "Quali Pack",
+                        "bol_reference": "CV264152",
+                        "receipt_number": null,
+                        "quantity_lb": 43750.0,
+                        "supplier_lot_code": "261019",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2719,
+                            "received_at": "2026-10-22T13:51:29.215778+00:00",
+                            "received_date": "2026-10-22",
+                            "received_time": "09:51 AM ET",
+                            "supplier_name": "Quali Pack",
+                            "bol_reference": "CV264152",
+                            "receipt_number": null,
+                            "quantity_lb": 43750.0,
+                            "supplier_lot_code": "261019"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 1619,
+                      "lot_code": "26-10-20-CBSF-001",
+                      "product_id": 34,
+                      "product_name": "Oil \u2013 Canola",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "288-26",
+                      "quantity": 132.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2688,
+                        "received_at": "2026-10-20T13:23:16.446306+00:00",
+                        "received_date": "2026-10-20",
+                        "received_time": "09:23 AM ET",
+                        "supplier_name": "CBS Food",
+                        "bol_reference": "35423-101",
+                        "receipt_number": null,
+                        "quantity_lb": 6000.0,
+                        "supplier_lot_code": "288-26",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2688,
+                            "received_at": "2026-10-20T13:23:16.446306+00:00",
+                            "received_date": "2026-10-20",
+                            "received_time": "09:23 AM ET",
+                            "supplier_name": "CBS Food",
+                            "bol_reference": "35423-101",
+                            "receipt_number": null,
+                            "quantity_lb": 6000.0,
+                            "supplier_lot_code": "288-26"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 1398,
+                      "lot_code": "26-09-04-NATI-001",
+                      "product_id": 46,
+                      "product_name": "Sunflower Seeds",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "90717",
+                      "quantity": 114.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2201,
+                        "received_at": "2026-09-04T15:18:39.952744+00:00",
+                        "received_date": "2026-09-04",
+                        "received_time": "11:18 AM ET",
+                        "supplier_name": "Nation Harvest",
+                        "bol_reference": "232435",
+                        "receipt_number": null,
+                        "quantity_lb": 5500.0,
+                        "supplier_lot_code": "90717",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2201,
+                            "received_at": "2026-09-04T15:18:39.952744+00:00",
+                            "received_date": "2026-09-04",
+                            "received_time": "11:18 AM ET",
+                            "supplier_name": "Nation Harvest",
+                            "bol_reference": "232435",
+                            "receipt_number": null,
+                            "quantity_lb": 5500.0,
+                            "supplier_lot_code": "90717"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ],
+              "output_lb": 2358.0,
+              "inputs_total_lb": 2358.0,
+              "inputs_mismatch": false,
+              "also_received": []
+            }
+          },
+          {
+            "lot_id": 1709,
+            "lot_code": "NOV 06 2026",
+            "product_id": 114,
+            "product_name": "Batch SS Chocolate Chip Granola #2",
+            "product_type": "batch",
+            "entry_source": "production_output",
+            "supplier_lot_code": null,
+            "quantity": 187.5,
+            "unit": "lb",
+            "origin": {
+              "kind": "made",
+              "transactions": [
+                {
+                  "transaction_id": 2965,
+                  "type": "make",
+                  "produced_at": "2026-11-06T18:20:49.035484+00:00",
+                  "produced_date": "2026-11-06",
+                  "produced_time": "01:20 PM ET",
+                  "output_lb": 3144.0,
+                  "lot_output_lb": 3144.0,
+                  "inputs_total_lb": 3144.0,
+                  "inputs_mismatch": false,
+                  "inputs": [
+                    {
+                      "lot_id": 1702,
+                      "lot_code": "26-11-05-NATI-001",
+                      "product_id": 3,
+                      "product_name": "Almonds \u2013 Sliced",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "236268101",
+                      "quantity": 152.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2955,
+                        "received_at": "2026-11-05T20:56:17.466951+00:00",
+                        "received_date": "2026-11-05",
+                        "received_time": "03:56 PM ET",
+                        "supplier_name": "National Harvest",
+                        "bol_reference": "S238549",
+                        "receipt_number": "RCV-261105-002",
+                        "quantity_lb": 1500.0,
+                        "supplier_lot_code": "236268101",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2955,
+                            "received_at": "2026-11-05T20:56:17.466951+00:00",
+                            "received_date": "2026-11-05",
+                            "received_time": "03:56 PM ET",
+                            "supplier_name": "National Harvest",
+                            "bol_reference": "S238549",
+                            "receipt_number": "RCV-261105-002",
+                            "quantity_lb": 1500.0,
+                            "supplier_lot_code": "236268101"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 1445,
+                      "lot_code": "26-09-16-ABAK-001",
+                      "product_id": 72,
+                      "product_name": "Chocolate Chips \u2013 Real \u2013 4,000 CT",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "260901",
+                      "quantity": 80.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2372,
+                        "received_at": "2026-09-16T17:00:21.924571+00:00",
+                        "received_date": "2026-09-16",
+                        "received_time": "01:00 PM ET",
+                        "supplier_name": "A-1 Bakery",
+                        "bol_reference": "70686",
+                        "receipt_number": null,
+                        "quantity_lb": 500.0,
+                        "supplier_lot_code": "260901",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2372,
+                            "received_at": "2026-09-16T17:00:21.924571+00:00",
+                            "received_date": "2026-09-16",
+                            "received_time": "01:00 PM ET",
+                            "supplier_name": "A-1 Bakery",
+                            "bol_reference": "70686",
+                            "receipt_number": null,
+                            "quantity_lb": 500.0,
+                            "supplier_lot_code": "260901"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 1553,
+                      "lot_code": "26-10-06-ABAK-001",
+                      "product_id": 72,
+                      "product_name": "Chocolate Chips \u2013 Real \u2013 4,000 CT",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "260914",
+                      "quantity": 224.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2583,
+                        "received_at": "2026-10-06T15:41:05.214842+00:00",
+                        "received_date": "2026-10-06",
+                        "received_time": "11:41 AM ET",
+                        "supplier_name": "A-1 Bakery",
+                        "bol_reference": "71348",
+                        "receipt_number": null,
+                        "quantity_lb": 500.0,
+                        "supplier_lot_code": "260914",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2583,
+                            "received_at": "2026-10-06T15:41:05.214842+00:00",
+                            "received_date": "2026-10-06",
+                            "received_time": "11:41 AM ET",
+                            "supplier_name": "A-1 Bakery",
+                            "bol_reference": "71348",
+                            "receipt_number": null,
+                            "quantity_lb": 500.0,
+                            "supplier_lot_code": "260914"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 616,
+                      "lot_code": "25120",
+                      "product_id": 13,
+                      "product_name": "Coconut Macaroon Desiccated",
+                      "product_type": "ingredient",
+                      "entry_source": "found_inventory",
+                      "supplier_lot_code": null,
+                      "quantity": 152.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "found_inventory",
+                        "transaction_id": null
+                      }
+                    },
+                    {
+                      "lot_id": 1653,
+                      "lot_code": "26-10-27-FOUND-006",
+                      "product_id": 30,
+                      "product_name": "Honey",
+                      "product_type": "ingredient",
+                      "entry_source": "found_inventory",
+                      "supplier_lot_code": null,
+                      "quantity": 376.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "found_inventory",
+                        "transaction_id": null
+                      }
+                    },
+                    {
+                      "lot_id": 1637,
+                      "lot_code": "26-10-22-QUAL-001",
+                      "product_id": 32,
+                      "product_name": "Oats",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "261019",
+                      "quantity": 1832.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2719,
+                        "received_at": "2026-10-22T13:51:29.215778+00:00",
+                        "received_date": "2026-10-22",
+                        "received_time": "09:51 AM ET",
+                        "supplier_name": "Quali Pack",
+                        "bol_reference": "CV264152",
+                        "receipt_number": null,
+                        "quantity_lb": 43750.0,
+                        "supplier_lot_code": "261019",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2719,
+                            "received_at": "2026-10-22T13:51:29.215778+00:00",
+                            "received_date": "2026-10-22",
+                            "received_time": "09:51 AM ET",
+                            "supplier_name": "Quali Pack",
+                            "bol_reference": "CV264152",
+                            "receipt_number": null,
+                            "quantity_lb": 43750.0,
+                            "supplier_lot_code": "261019"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 1619,
+                      "lot_code": "26-10-20-CBSF-001",
+                      "product_id": 34,
+                      "product_name": "Oil \u2013 Canola",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "288-26",
+                      "quantity": 176.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2688,
+                        "received_at": "2026-10-20T13:23:16.446306+00:00",
+                        "received_date": "2026-10-20",
+                        "received_time": "09:23 AM ET",
+                        "supplier_name": "CBS Food",
+                        "bol_reference": "35423-101",
+                        "receipt_number": null,
+                        "quantity_lb": 6000.0,
+                        "supplier_lot_code": "288-26",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2688,
+                            "received_at": "2026-10-20T13:23:16.446306+00:00",
+                            "received_date": "2026-10-20",
+                            "received_time": "09:23 AM ET",
+                            "supplier_name": "CBS Food",
+                            "bol_reference": "35423-101",
+                            "receipt_number": null,
+                            "quantity_lb": 6000.0,
+                            "supplier_lot_code": "288-26"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "lot_id": 1398,
+                      "lot_code": "26-09-04-NATI-001",
+                      "product_id": 46,
+                      "product_name": "Sunflower Seeds",
+                      "product_type": "ingredient",
+                      "entry_source": "received",
+                      "supplier_lot_code": "90717",
+                      "quantity": 152.0,
+                      "unit": "lb",
+                      "origin": {
+                        "kind": "received",
+                        "transaction_id": 2201,
+                        "received_at": "2026-09-04T15:18:39.952744+00:00",
+                        "received_date": "2026-09-04",
+                        "received_time": "11:18 AM ET",
+                        "supplier_name": "Nation Harvest",
+                        "bol_reference": "232435",
+                        "receipt_number": null,
+                        "quantity_lb": 5500.0,
+                        "supplier_lot_code": "90717",
+                        "receipt_count": 1,
+                        "receipts": [
+                          {
+                            "kind": "received",
+                            "transaction_id": 2201,
+                            "received_at": "2026-09-04T15:18:39.952744+00:00",
+                            "received_date": "2026-09-04",
+                            "received_time": "11:18 AM ET",
+                            "supplier_name": "Nation Harvest",
+                            "bol_reference": "232435",
+                            "receipt_number": null,
+                            "quantity_lb": 5500.0,
+                            "supplier_lot_code": "90717"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ],
+              "output_lb": 3144.0,
+              "inputs_total_lb": 3144.0,
+              "inputs_mismatch": false,
+              "also_received": []
+            }
+          }
+        ]
+      }
+    ],
+    "output_lb": 3855.0,
+    "inputs_total_lb": 3855.0,
+    "inputs_mismatch": false,
+    "also_received": []
+  },
+  "case_size_lb": 7.5,
+  "output_units": 514,
+  "on_hand_units": 514,
+  "total_shipped_units": 0
+}

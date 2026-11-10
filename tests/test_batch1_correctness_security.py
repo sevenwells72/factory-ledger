@@ -463,6 +463,7 @@ def test_output_lot_forward_trace_isolated_by_lot_id_when_codes_collide(
     assert forward.status_code == 200, forward.text
     assert forward.json()["used_in_batches"] == [
         {
+            "transaction_id": pack_id,
             "lot_id": lots["pack"]["id"],
             "product_id": product_ids["pack"],
             "batch_lot_code": lots["pack"]["code"],
@@ -564,7 +565,8 @@ def test_dashboard_forward_trace_filters_same_code_shipments_by_lot_id(
     )
     assert forward.status_code == 200, forward.text
     output = forward.json()["used_in_batches"]
-    assert output == [
+    assert all(isinstance(row["transaction_id"], int) for row in output)
+    assert [{k:v for k,v in row.items() if k != "transaction_id"} for row in output] == [
         {
             "lot_id": lots["target"],
             "product_id": product_ids["target"],
