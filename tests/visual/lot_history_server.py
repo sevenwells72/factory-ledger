@@ -27,6 +27,11 @@ from tests.test_trace_batch_input_tree import item, post, receive
 conn = psycopg2.connect(url)
 lock = threading.RLock()
 with conn.cursor(cursor_factory=RealDictCursor) as cur:
+    # Only this rolled-back connection sees the name-selection fixture.
+    cur.execute('CREATE TEMP TABLE person_choices(actor_id integer,display_name text,sort_order integer)')
+    cur.execute("INSERT INTO actors(name,role,key_hash,active) VALUES ('LH browser owner','owner',%s,true) RETURNING id",('b'*64,))
+    actor=cur.fetchone()['id']
+    cur.execute("INSERT INTO person_choices VALUES (%s,'Michael',1)",(actor,))
     oats = item(cur, 'Oats', 'ingredient', 'LH-BROWSER-OATS', 'received', supplier_lot='SUP-001')
     bulk = item(cur, 'LH browser bulk', 'batch', 'LH-BROWSER-BULK', 'production_output')
     finished = item(cur, 'Granola SS Chocolate Chip 12x10 OZ Case', 'finished', 'LH-BROWSER-FINISHED', 'pack_output', uom='12x10 oz case')
@@ -84,9 +89,10 @@ requests = []
 @main.app.middleware('http')
 async def observe_real_requests(request, call_next):
     path = request.url.path
-    if path.startswith(('/dashboard/api/', '/trace/', '/lot/', '/audit/')):
-        requests.append({'path':path, 'key_ok':request.headers.get('x-api-key') == main.DASHBOARD_API_KEY})
-    return await call_next(request)
+    response=await call_next(request)
+    if path.startswith('/dashboard/api/') or not path.startswith(('/dashboard/','/auth/','/__','/favicon')):
+        requests.append({'path':path, 'key_ok':request.headers.get('x-api-key') == main.DASHBOARD_API_KEY,'status':response.status_code})
+    return response
 
 
 @main.app.get('/__lot_history_test')

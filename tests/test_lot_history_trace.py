@@ -3,7 +3,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 import main
-from tests.test_trace_batch_input_tree import client, item, post, receive, trace
+from tests.test_trace_batch_input_tree import client, item, post, receive
+
+
+def trace(client, item, code):
+    response=client.get('/dashboard/api/lot-report/'+code,params={'product_id':item[0],'direction':'backward'})
+    assert response.status_code==200,response.text
+    return response.json()
 
 
 @pytest.mark.db
@@ -19,8 +25,8 @@ def test_repeated_makes_amendments_voids_and_complete_forward(client, db_cursor)
     main._append_transaction_line_correction(db_cursor, lines[1], {'quantity_lb':-18}, 'usage', 'test')
     packed, _ = post(db_cursor, 'pack', '2026-11-02 14:00', [(case,30),(bulk,-30)])
     shipped, _ = post(db_cursor, 'ship', '2026-11-03 14:00', [(case,-10)], customer_name='Audit Customer', order_reference='AUDIT-ORDER')
-    data=client.get('/trace/ingredient/LH-OATS',params={'product_id':oats[0]}).json()
-    assert [(r['transaction_id'],r['quantity_used']) for r in data['used_in_batches']] == [(first,18),(second,20)]
+    data=client.get('/dashboard/api/lot-report/LH-OATS',params={'product_id':oats[0]}).json()
+    assert [(r['transaction_id'],r['quantity_used']) for r in [e for e in data['forward_trace']['consumption'] if e['source_lot_id']==oats[1]]] == [(first,18),(second,20)]
     graph=data['forward_trace']
     assert [e['transaction_id'] for e in graph['consumption']] == [first,second,packed]
     nodes={n['lot_id']:n for n in graph['lots']}
@@ -28,9 +34,10 @@ def test_repeated_makes_amendments_voids_and_complete_forward(client, db_cursor)
     assert [nodes[n]['on_hand'] for n in [oats[1],bulk[1],case[1]]] == [62,10,20]
     assert nodes[case[1]]['shipments'][0]['transaction_id']==shipped
     assert nodes[case[1]]['shipments'][0]['order_reference']=='AUDIT-ORDER'
-    supplier=client.get('/trace/supplier-lot/SUP-LH',params={'product_id':oats[0]}).json()
-    assert supplier['total_exposure_summary']['total_in_production_lb']==38
-    assert supplier['matched_internal_lots'][0]['forward_trace']==graph
+    for path in ['/trace/ingredient/LH-OATS','/trace/batch/LH-BULK','/trace/supplier-lot/SUP-LH']:
+        legacy=client.get(path).json()
+        assert 'forward_trace' not in str(legacy)
+
 
 
 @pytest.mark.db
@@ -113,7 +120,7 @@ def test_forward_cycles_and_consumption_without_output_are_visible(client,db_cur
     first,_=post(db_cursor,'make','2026-11-01 14:00',[(a,10),(b,-10)])
     second,_=post(db_cursor,'make','2026-11-02 14:00',[(a,-10),(b,10)])
     orphan,_=post(db_cursor,'pack','2026-11-03 14:00',[(b,-2)])
-    data=client.get('/trace/ingredient/LH-CYCLE-A',params={'product_id':a[0]}).json()['forward_trace']
+    data=client.get('/dashboard/api/lot-report/LH-CYCLE-A',params={'product_id':a[0]}).json()['forward_trace']
     assert len(data['lots'])==2
     assert {e['transaction_id'] for e in data['consumption']}=={first,second,orphan}
     assert data['gaps']==[{'transaction_id':orphan,'lot_id':b[1],'reason':'Consumed lot has no identified output lot'}]
@@ -143,8 +150,43 @@ def test_commingled_supplier_entries_survive_history_and_both_trace_directions(c
         db_cursor.execute("INSERT INTO lot_supplier_codes(lot_id,supplier_lot_code,supplier_name,quantity_lb,notes) VALUES (%s,%s,%s,%s,'Recorded source detail')",(oats[1],code,name,q))
     post(db_cursor,'make','2026-11-01 14:00',[(bulk,50),(oats,-50)])
     history=client.get(f'/dashboard/api/inventory/{oats[0]}/lot-history').json()['lots'][0]
-    forward=client.get('/trace/ingredient/LH-POOLED',params={'product_id':oats[0]}).json()['forward_trace']['lots'][0]
+    forward=client.get('/dashboard/api/lot-report/LH-POOLED',params={'product_id':oats[0]}).json()['forward_trace']['lots'][0]
     backward=trace(client,bulk,'LH-POOLED-OUTPUT')['input_tree']['transactions'][0]['inputs'][0]
     for n in [history,forward,backward]:
         assert n['lot_type']=='commingled'
         assert [(e['supplier_name'],e['supplier_lot_code'],e['quantity_lb']) for e in n['supplier_lot_entries']]==[('Source A','SUP-A',20),('Source B','SUP-B',30)]
+
+
+@pytest.mark.db
+@pytest.mark.parametrize('fanout',[1,80,500])
+def test_forward_query_count_is_five_independent_of_reachable_lots(db_cursor,fanout):
+    import lot_trace
+    source=item(db_cursor,'LH query source','ingredient','LH-QUERY-SOURCE','received')
+    receive(db_cursor,source,fanout,'Supplier')
+    for i in range(fanout):
+        target=item(db_cursor,f'LH query output {i}','batch',f'LH-QUERY-{i}','production_output')
+        post(db_cursor,'make','2026-11-01 14:00',[(source,-1),(target,1)])
+    class Counter:
+        def __init__(self):self.count=0
+        def execute(self,*a,**kw):self.count+=1;return db_cursor.execute(*a,**kw)
+        def fetchall(self):return db_cursor.fetchall()
+    counted=Counter()
+    result=lot_trace.forward(counted,source[1],main)
+    assert len(result['lots'])==fanout+1
+    assert len(result['consumption'])==fanout
+    assert counted.count==5, 'Forward SQL count must not grow with reachable lots'
+
+
+@pytest.mark.db
+def test_gpt_ingredients_keep_legacy_source_and_report_uses_current_lines(client,db_cursor):
+    oats=item(db_cursor,'LH compatibility oats','ingredient','LH-COMPAT-OATS','received')
+    bulk=item(db_cursor,'LH compatibility bulk','batch','LH-COMPAT-BULK','production_output')
+    tid,_=post(db_cursor,'make','2026-11-01 14:00',[(oats,-20),(bulk,20)])
+    db_cursor.execute('INSERT INTO ingredient_lot_consumption(transaction_id,ingredient_product_id,ingredient_lot_id,quantity_lb) VALUES (%s,%s,%s,5)',(tid,oats[0],oats[1]))
+    legacy=client.get('/trace/batch/LH-COMPAT-BULK',params={'product_id':bulk[0]}).json()
+    assert legacy['ingredients'][0]['quantity_lb']==5
+    assert 'forward_trace' not in legacy and 'report_version' not in legacy
+    audit=trace(client,bulk,'LH-COMPAT-BULK')
+    assert audit['input_tree']['transactions'][0]['inputs'][0]['quantity']==20
+    assert audit['report_version']==1 and audit['complete'] is True
+    assert TestClient(main.app).get('/dashboard/api/lot-report/LH-COMPAT-BULK').status_code==401

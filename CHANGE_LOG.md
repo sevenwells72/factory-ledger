@@ -1,5 +1,117 @@
 # Change Log
 
+## 2026-11-09 19:45 — Remove trailing blank lines from the new backward audit reader
+- **File(s) changed:** `lot_trace_backward.py`
+- **What changed:** Normalize the new module to one final newline after staged whitespace validation.
+- **Why:** Keep the review-fix commit free of whitespace errors; runtime behavior is unchanged.
+
+---
+
+## 2026-11-09 19:44 — Verify all five PR 196 fixes with fresh suites and final production read-only timings
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `audits/reports/trace-BB110927-findings.md`, `audits/reports/lot-report-performance-2026-11-09.json`, `work/review-python-final.log`, `work/review-js-full.log`, `work/review-benchmark-final.log`, `work/review-production`, `work/lot-history-browser`, `work/traceability-backward`
+- **What changed:** Record 7474 Python/702 JS passes, 270 real API-key requests, constant-query and no-fallback checks, complete production-data verification, and worst large-report times of 0.769/0.326 seconds.
+- **Why:** Provide reviewable final evidence for the requested performance, compatibility, rendering and default-test fixes; no production writes, merge or deployment.
+
+---
+
+## 2026-11-09 19:39 — Retain lot-identity collision coverage after removing legacy scans
+- **File(s) changed:** `tests/test_batch1_correctness_security.py`
+- **What changed:** Replace assertions requiring deleted scanner code with actual new-report lot/shipments assertions for identical lot codes on different products; retain the unchanged legacy response assertion.
+- **Why:** The full suite found one obsolete implementation assertion; the regression must protect identity behavior across the new report boundary.
+
+---
+
+## 2026-11-09 19:38 — Clear previous audit evidence while building a new report
+- **File(s) changed:** `dashboard/traceability.html`, `tests/visual/run-traceability-backward.mjs`
+- **What changed:** Clear the old graph/gap badge at report start and verify a failed second request cannot retain prior results.
+- **Why:** A missing or malformed API response must show an error without stale trace evidence.
+
+---
+
+## 2026-11-09 19:36 — Record regression guard 272 and cross-review findings resolution
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `audits/reports/trace-BB110927-findings.md`
+- **What changed:** Append review fixes, measured complete-report timings, restored GPT compatibility boundary, fixed query-count invariant, default browser guard and no-fallback behavior.
+- **Why:** Supersede prior branch notes explicitly while preserving all historical change-log entries.
+
+---
+
+## 2026-11-09 19:35 — Include actual HTTP header counts in default-suite output
+- **File(s) changed:** `tests/test_lot_history_browser.js`
+- **What changed:** Emit the browser runner success evidence as a Node test diagnostic.
+- **Why:** Make the non-stubbed header assertion and request count visible in ordinary test results.
+
+---
+
+## 2026-11-09 19:34 — Reject malformed closures and verify the report can exceed 15 seconds
+- **File(s) changed:** `dashboard/traceability.html`, `tests/visual/run-traceability-backward.mjs`
+- **What changed:** Require a root lot and gap array in the versioned response; delay one browser report for 16 seconds to verify the report-only timeout and visible building state.
+- **Why:** Malformed responses must give a clear error, and complete large reports must not inherit the ordinary dashboard timeout.
+
+---
+
+## 2026-11-09 19:34 — Record the explicit audit-report route in API contracts
+- **File(s) changed:** `tests/fixtures/route_contract/routes.jsonl`, `tests/fixtures/route_contract/openapi.jsonl`
+- **What changed:** Regenerate route snapshots for the authenticated dashboard report with validated direction and optional product disambiguation.
+- **Why:** Keep existing GPT route contracts unchanged while exposing the audit-only response separately.
+
+---
+
+## 2026-11-09 19:33 — Document the restored GPT boundary and default audit regression suites
+- **File(s) changed:** `scripts/benchmark_lot_reports_readonly.py`, `docs/ARCHITECTURE-MAP.md`
+- **What changed:** Document dashboard-only report helpers, five-query closure, no-truncation/error behavior, and default browser-test wiring; require posted status in the independent 2947 ledger comparison.
+- **Why:** Make review fixes discoverable and keep production verification strictly on posted current data.
+
+---
+
+## 2026-11-09 19:33 — Verify report-format failures and make the browser guard part of npm test
+- **File(s) changed:** `tests/visual/run-traceability-backward.mjs`, `package.json`, `lot_trace.py`
+- **What changed:** Replace legacy-fallback browser expectations with explicit stale/incomplete-shape failures, validate the building state and complete BB110927 report, and expose the default JS suite through npm test.
+- **Why:** Ensure missing API rollout support cannot silently produce old trace answers and the real-header guard runs by default.
+
+---
+
+## 2026-11-09 19:32 — Run the real HTTP browser check by default and guard query count
+- **File(s) changed:** `tests/test_lot_history_trace.py`, `tests/test_trace_report.js`, `tests/test_lot_history_browser.js`, `tests/visual/run-lot-history.mjs`, `tests/visual/lot_history_server.py`, `work/review-production`
+- **What changed:** Add fixed five-query tests at 1/80/500 outputs, legacy-vs-audit ingredient coverage, explicit repeated-consumption assertions, and a default JS browser test observing all protected API requests including successful health reads; retain production benchmark evidence.
+- **Why:** Address review findings 1d, 2, 4 and 5 with real database and network regression coverage.
+
+---
+
+## 2026-11-09 19:31 — Add reproducible read-only report benchmark and ledger comparisons
+- **File(s) changed:** `scripts/benchmark_lot_reports_readonly.py`
+- **What changed:** Measure large report calls three times including SQL, transfer, construction and JSON serialization; assert constant query count and independently verify oats/BB110927 ledger facts.
+- **Why:** Replace the initial ambiguous 25120 lookup with explicit product 13; the first attempted measurement created no timing evidence.
+
+---
+
+## 2026-11-09 19:31 — Measure batched audit reports against production in read-only transactions
+- **File(s) changed:** `work/review-production-timings.json`, `work/review-production-BB110927.json`, `work/review-production-26-10-22-QUAL-001.json`
+- **What changed:** Run candidate report functions from this Mac inside explicit BEGIN/SET TRANSACTION READ ONLY/ROLLBACK and retain timings and verification responses.
+- **Why:** Verify the performance blocker and preserve read-only evidence for PR 196 review fixes.
+
+---
+
+## 2026-11-09 19:30 — Remove old trace fallbacks and prevent repeated-consumption totals
+- **File(s) changed:** `main.py`, `lot_trace.py`, `tests/test_lot_history_trace.py`, `dashboard/traceability.html`, `dashboard/trace-report.js`, `dashboard/lot-history.html`
+- **What changed:** Use only the versioned dashboard report, show building/error states with a report-only 120-second timeout, delete legacy render and history-scan paths, explicitly label repeated multi-output consumption rows, and update tests/cache versions.
+- **Why:** Address review findings 1c, 3 and 5 while keeping missing or incomplete reports visibly unavailable.
+
+---
+
+## 2026-11-09 19:29 — Replace per-lot forward reads with five set-based queries
+- **File(s) changed:** `lot_trace.py`, `/tmp/fl-forward-review.txt`
+- **What changed:** Compute complete cyclic-safe closure in a recursive CTE, then batch balances, receipts, supplier details and shipment/order references; add versioned explicit audit-report response.
+- **Why:** Address PR 196 performance blocker without depth, date or fanout truncation.
+
+---
+
+## 2026-11-09 19:29 — Isolate complete audit reports and restore existing GPT trace contracts
+- **File(s) changed:** `main.py`, `lot_trace_backward.py`, `tests/test_trace_batch_input_tree.py`, `tests/test_batch1_correctness_security.py`
+- **What changed:** Restore origin/main trace functions and legacy ingredients source verbatim; move corrected backward traversal to a dashboard-only reader and add explicit authenticated report route.
+- **Why:** Address PR 196 review findings 1b and 2 without changing existing GPT response fields or costs.
+
+---
+
 ## 2026-11-09 19:13 — Verify regression guard 271 and complete lot-history audit workflow
 - **File(s) changed:** `audits/reports/trace-BB110927-findings.md`, `FACTORY_LEDGER_CHANGELOG.md`, `work/lot-history-python-clean-final.log`, `work/lot-history-js-final.log`, `work/lot-history-browser-final.log`, `work/lot-history-legacy-browser.log`, `work/lot-history-browser`
 - **What changed:** Record final fresh-local results: 7469 Python and 700 JavaScript passes; 138 real HTTP requests with API keys; touch/report/export and existing backward browser suites pass; PDF visually inspected; no production writes or deployment.

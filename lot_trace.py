@@ -18,119 +18,162 @@ def supplier_entries(cur, lot_id):
             for r in cur.fetchall()]
 
 
-def consumption(cur, lot_id):
-    """One row per consuming transaction/output lot, including orphan consumes."""
-    cur.execute("""
-        WITH consumed AS (
-            SELECT t.id, t.type, t.timestamp, -SUM(i.quantity_lb) AS quantity_used
-            FROM ledger_current_transactions t
-            JOIN ledger_current_transaction_lines i ON i.transaction_id = t.id
-            WHERE t.effective_status = 'posted' AND t.type IN ('make', 'pack')
-              AND i.lot_id = %s AND i.quantity_lb < 0
-            GROUP BY t.id, t.type, t.timestamp
-        ), outputs AS (
-            SELECT o.transaction_id, o.lot_id, o.product_id, SUM(o.quantity_lb) AS output_quantity
-            FROM ledger_current_transaction_lines o
-            JOIN consumed c ON c.id = o.transaction_id
-            WHERE o.quantity_lb > 0
-            GROUP BY o.transaction_id, o.lot_id, o.product_id
-        )
-        SELECT c.id AS transaction_id, c.type, c.timestamp, c.quantity_used,
-               o.lot_id, o.product_id, o.output_quantity,
-               l.lot_code AS batch_lot_code, p.name AS batch_product
-        FROM consumed c
-        LEFT JOIN outputs o ON o.transaction_id = c.id
-        LEFT JOIN lots l ON l.id = o.lot_id
-        LEFT JOIN products p ON p.id = o.product_id
-        ORDER BY c.timestamp, c.id, o.lot_id
-    """, (lot_id,))
-    return cur.fetchall()
-
-
-def shipments(cur, lot_id):
-    # Aggregate ledger quantities BEFORE attaching order/shipment references.
-    # One transaction can have several reference rows; joining them directly
-    # multiplies shipped pounds. References carry no additional quantity claim.
-    cur.execute("""
-        SELECT t.id AS transaction_id, t.timestamp AS shipped_at,
-               t.customer_name, t.order_reference, i.product_id,
-               -SUM(i.quantity_lb) AS quantity_lb
-        FROM ledger_current_transactions t
-        JOIN ledger_current_transaction_lines i ON i.transaction_id = t.id
-        WHERE t.effective_status = 'posted' AND t.type = 'ship'
-          AND i.lot_id = %s AND i.quantity_lb < 0
-        GROUP BY t.id, t.timestamp, t.customer_name, t.order_reference, i.product_id
-        ORDER BY t.timestamp, t.id
-    """, (lot_id,))
-    rows = cur.fetchall()
-    for row in rows:
-        cur.execute("""
-            SELECT DISTINCT so.id AS sales_order_id, so.order_number
-            FROM sales_order_shipments sos
-            JOIN sales_order_lines sol ON sol.id = sos.sales_order_line_id
-            JOIN sales_orders so ON so.id = sol.sales_order_id
-            WHERE sos.transaction_id = %s AND sol.product_id = %s
-            UNION
-            SELECT DISTINCT so.id, so.order_number
-            FROM shipment_lines sl
-            JOIN sales_order_lines sol ON sol.id = sl.sales_order_line_id
-            JOIN sales_orders so ON so.id = sol.sales_order_id
-            WHERE sl.transaction_id = %s AND sl.product_id = %s
-            ORDER BY sales_order_id
-        """, (row['transaction_id'], row['product_id'], row['transaction_id'], row['product_id']))
-        row['sales_orders'] = [dict(r) for r in cur.fetchall()]
-        cur.execute("""SELECT DISTINCT shipment_id FROM shipment_lines
-                       WHERE transaction_id = %s AND product_id = %s ORDER BY shipment_id""",
-                    (row['transaction_id'], row['product_id']))
-        row['shipment_ids'] = [r['shipment_id'] for r in cur.fetchall()]
-        row['sales_order_id'] = row['sales_orders'][0]['sales_order_id'] if row['sales_orders'] else None
-        row['order_number'] = row['sales_orders'][0]['order_number'] if row['sales_orders'] else None
-        row['shipment_id'] = row['shipment_ids'][0] if row['shipment_ids'] else None
-        row['quantity_lb'] = float(row['quantity_lb'])
-    return rows
-
-
 def forward(cur, lot_id, api):
-    """Traverse every reachable lot once, keeping every edge and every shipment.
+    """Complete closure in exactly five set-based queries, independent of lot count.
 
-    No date window, fan-out limit, or recursion depth cutoff. The visited set
-    makes cycles finite without deleting their recorded edges.
+    Materialize current posted make/pack lines once. UNION (not UNION ALL)
+    terminates cycles without a depth/fanout cap. The other four queries fetch
+    metadata/balances, receipts, supplier entries and shipments for the closure.
     """
-    pending, visited, nodes, edges, gaps = deque([lot_id]), set(), [], [], []
+    cur.execute("""
+        WITH RECURSIVE posted AS MATERIALIZED (
+            SELECT t.id, t.type, t.timestamp, i.lot_id, i.product_id, i.quantity_lb
+            FROM ledger_current_transactions t
+            JOIN ledger_current_transaction_lines i ON i.transaction_id=t.id
+            WHERE t.effective_status='posted' AND t.type IN ('make','pack')
+        ), consumed AS MATERIALIZED (
+            SELECT id, type, timestamp, lot_id, -SUM(quantity_lb) AS quantity_used
+            FROM posted WHERE quantity_lb<0 GROUP BY id,type,timestamp,lot_id
+        ), produced AS MATERIALIZED (
+            SELECT id, lot_id, product_id, SUM(quantity_lb) AS output_quantity
+            FROM posted WHERE quantity_lb>0 GROUP BY id,lot_id,product_id
+        ), edges AS MATERIALIZED (
+            SELECT c.id AS transaction_id,c.type,c.timestamp,c.lot_id AS source_lot_id,
+                   c.quantity_used,o.lot_id,o.product_id,o.output_quantity
+            FROM consumed c LEFT JOIN produced o ON o.id=c.id
+        ), reachable(lot_id) AS (
+            SELECT %s::integer
+            UNION
+            SELECT e.lot_id FROM reachable r JOIN edges e ON e.source_lot_id=r.lot_id
+            WHERE e.lot_id IS NOT NULL
+        )
+        SELECT e.*,l.lot_code AS batch_lot_code,p.name AS batch_product
+        FROM edges e JOIN reachable r ON r.lot_id=e.source_lot_id
+        LEFT JOIN lots l ON l.id=e.lot_id LEFT JOIN products p ON p.id=e.product_id
+        ORDER BY e.timestamp,e.transaction_id,e.source_lot_id,e.lot_id
+    """, (lot_id,))
+    edges=[dict(r) for r in cur.fetchall()]
+    adjacency={}
+    for e in edges:
+        adjacency.setdefault(e['source_lot_id'],[]).append(e)
+    pending, visited, ordered = deque([lot_id]), set(), []
     while pending:
-        current = pending.popleft()
+        current=pending.popleft()
         if current in visited:
             continue
-        visited.add(current)
-        cur.execute("""SELECT l.id AS lot_id, l.lot_code, l.product_id, l.entry_source, l.entry_source_notes, l.lot_type,
-                              l.supplier_lot_code, p.name AS product_name, p.type AS product_type,
-                              p.uom, p.case_size_lb
-                       FROM lots l JOIN products p ON p.id = l.product_id WHERE l.id = %s""", (current,))
-        node = dict(cur.fetchone())
-        node['unit'] = 'lb' if node['product_type'] in ('batch', 'finished') else api.ledger_quantity_unit(node['uom'])
-        node.pop('uom')
-        node['on_hand'] = api.lot_on_hand(cur, current)
-        node['supplier_lot_entries'] = supplier_entries(cur, current)
-        node['case_size_lb'] = float(node['case_size_lb']) if node['case_size_lb'] else None
-        node['receipts'] = [dict(api._trace_receipt_origin(r, node), quantity_lb=float(r['quantity']))
-                            for r in api._trace_lot_receipts(cur, current)]
-        node['shipments'] = [dict(r, **api._trace_stamp('shipped', r['shipped_at']))
-                             for r in shipments(cur, current)]
-        nodes.append(node)
-        for row in consumption(cur, current):
-            edge = dict(row)
-            edge.update(source_lot_id=current, quantity_used=float(row['quantity_used']),
-                        output_quantity=float(row['output_quantity'] or 0),
-                        unit=node['unit'], **api._trace_stamp('produced', row['timestamp']))
-            edge.pop('timestamp')
-            edges.append(edge)
-            if row['lot_id'] is None:
-                gaps.append({'transaction_id': row['transaction_id'], 'lot_id': current,
-                             'reason': 'Consumed lot has no identified output lot'})
-            else:
-                pending.append(row['lot_id'])
-    return {'start_lot_id': lot_id, 'lots': nodes, 'consumption': edges, 'gaps': gaps,
-            'quantity_basis': 'Recorded consumption per transaction; downstream lots are potential exposure, not allocated ingredient weight.'}
+        visited.add(current); ordered.append(current)
+        pending.extend(e['lot_id'] for e in adjacency.get(current,[]) if e['lot_id'] is not None)
+    cur.execute("""
+        WITH balances AS (
+            SELECT i.lot_id,SUM(i.quantity_lb) AS on_hand
+            FROM ledger_current_transaction_lines i
+            JOIN ledger_current_transactions t ON t.id=i.transaction_id
+            WHERE t.effective_status='posted' AND i.lot_id=ANY(%s)
+            GROUP BY i.lot_id
+        )
+        SELECT l.id AS lot_id,l.lot_code,l.product_id,l.entry_source,l.entry_source_notes,
+               l.lot_type,l.supplier_lot_code,p.name AS product_name,p.type AS product_type,
+               p.uom,p.case_size_lb,COALESCE(b.on_hand,0) AS on_hand
+        FROM lots l JOIN products p ON p.id=l.product_id
+        LEFT JOIN balances b ON b.lot_id=l.id WHERE l.id=ANY(%s)
+    """, (ordered,ordered))
+    by_id={}
+    for r in cur.fetchall():
+        n=dict(r)
+        n['unit']='lb' if n['product_type'] in ('batch','finished') else api.ledger_quantity_unit(n['uom'])
+        n.pop('uom');n['on_hand']=float(n['on_hand'])
+        n['case_size_lb']=float(n['case_size_lb']) if n['case_size_lb'] else None
+        n.update(receipts=[],shipments=[],supplier_lot_entries=[])
+        by_id[n['lot_id']]=n
+    cur.execute("""
+        SELECT i.lot_id,t.id,t.timestamp,t.shipper_name,s.name AS supplier_name,
+               t.bol_reference,tx.receipt_number,SUM(i.quantity_lb) AS quantity
+        FROM ledger_current_transactions t
+        JOIN ledger_current_transaction_lines i ON i.transaction_id=t.id
+        JOIN transactions tx ON tx.id=t.id LEFT JOIN suppliers s ON s.id=tx.supplier_id
+        WHERE t.effective_status='posted' AND t.type='receive'
+          AND i.lot_id=ANY(%s) AND i.quantity_lb>0
+        GROUP BY i.lot_id,t.id,t.timestamp,t.shipper_name,s.name,t.bol_reference,tx.receipt_number
+        ORDER BY t.timestamp DESC,t.id DESC
+    """, (ordered,))
+    for r in cur.fetchall():
+        r['shipper_kind']=api._trace_shipper_kind(r['supplier_name'] or r['shipper_name'])
+        n=by_id[r['lot_id']]
+        n['receipts'].append(dict(api._trace_receipt_origin(r,n),quantity_lb=float(r['quantity'])))
+    cur.execute("""
+        SELECT e.lot_id,e.supplier_lot_code,COALESCE(s.name,e.supplier_name) AS supplier_name,
+               e.quantity_lb,e.notes FROM lot_supplier_codes e
+        LEFT JOIN suppliers s ON s.id=e.supplier_id WHERE e.lot_id=ANY(%s) ORDER BY e.id
+    """, (ordered,))
+    for r in cur.fetchall():
+        n=by_id[r.pop('lot_id')]
+        n['supplier_lot_entries'].append(dict(r,quantity_lb=float(r['quantity_lb']) if r['quantity_lb'] is not None else None))
+    cur.execute("""
+        WITH shipped AS MATERIALIZED (
+            SELECT i.lot_id,t.id AS transaction_id,t.timestamp AS shipped_at,
+                   t.customer_name,t.order_reference,i.product_id,-SUM(i.quantity_lb) AS quantity_lb
+            FROM ledger_current_transactions t
+            JOIN ledger_current_transaction_lines i ON i.transaction_id=t.id
+            WHERE t.effective_status='posted' AND t.type='ship' AND i.quantity_lb<0 AND i.lot_id=ANY(%s)
+            GROUP BY i.lot_id,t.id,t.timestamp,t.customer_name,t.order_reference,i.product_id
+        ), order_refs AS (
+            SELECT sos.transaction_id,sol.product_id,so.id AS sales_order_id,so.order_number
+            FROM sales_order_shipments sos JOIN sales_order_lines sol ON sol.id=sos.sales_order_line_id
+            JOIN sales_orders so ON so.id=sol.sales_order_id
+            WHERE sos.transaction_id IN (SELECT transaction_id FROM shipped)
+            UNION
+            SELECT sl.transaction_id,sl.product_id,so.id,so.order_number
+            FROM shipment_lines sl JOIN sales_order_lines sol ON sol.id=sl.sales_order_line_id
+            JOIN sales_orders so ON so.id=sol.sales_order_id
+            WHERE sl.transaction_id IN (SELECT transaction_id FROM shipped)
+        ), orders AS (
+            SELECT transaction_id,product_id,jsonb_agg(jsonb_build_object(
+                'sales_order_id',sales_order_id,'order_number',order_number) ORDER BY sales_order_id) AS sales_orders
+            FROM order_refs GROUP BY transaction_id,product_id
+        ), refs AS (
+            SELECT transaction_id,product_id,array_agg(DISTINCT shipment_id ORDER BY shipment_id) AS shipment_ids
+            FROM shipment_lines WHERE transaction_id IN (SELECT transaction_id FROM shipped)
+            GROUP BY transaction_id,product_id
+        )
+        SELECT sh.*,COALESCE(o.sales_orders,'[]'::jsonb) AS sales_orders,
+               COALESCE(r.shipment_ids,'{}'::integer[]) AS shipment_ids
+        FROM shipped sh LEFT JOIN orders o USING(transaction_id,product_id)
+        LEFT JOIN refs r USING(transaction_id,product_id)
+        ORDER BY sh.shipped_at,sh.transaction_id,sh.lot_id
+    """, (ordered,))
+    for r in cur.fetchall():
+        n=by_id[r.pop('lot_id')]
+        r['quantity_lb']=float(r['quantity_lb'])
+        r.update(api._trace_stamp('shipped',r['shipped_at']))
+        n['shipments'].append(dict(r))
+    result_edges,gaps=[],[]
+    for current in ordered:
+        for e in adjacency.get(current,[]):
+            e.update(quantity_used=float(e['quantity_used']),output_quantity=float(e['output_quantity'] or 0),
+                     unit=by_id[current]['unit'],**api._trace_stamp('produced',e.pop('timestamp')))
+            result_edges.append(e)
+            if e['lot_id'] is None:
+                gaps.append({'transaction_id':e['transaction_id'],'lot_id':current,'reason':'Consumed lot has no identified output lot'})
+    return {'start_lot_id':lot_id,'lots':[by_id[i] for i in ordered],'consumption':result_edges,'gaps':gaps,
+            'quantity_basis':'Recorded consumption per transaction; downstream lots are potential exposure, not allocated ingredient weight.'}
+
+
+def report(cur, lot, direction, api):
+    graph=forward(cur,lot['id'],api)
+    start=graph['lots'][0]
+    result={'report_version':1,'complete':True,'direction':direction,'lot_id':lot['id'],
+            'product_id':lot['product_id'],'batch_lot_code':lot['lot_code'],'product_name':lot['product_name'],
+            'forward_trace':graph,'customer_shipments':start['shipments'],'on_hand_lb':start['on_hand'],
+            'total_shipped_lb':sum(s['quantity_lb'] for s in start['shipments'])}
+    if direction=='backward':
+        from lot_trace_backward import BackwardTrace
+        origin=BackwardTrace(api)._trace_lot_origin(cur,dict(lot,lot_id=lot['id']),0,frozenset())
+        result['origin']=origin
+        result['input_tree']=origin if origin['kind']=='made' else None
+        result['output_lb']=origin.get('output_lb',0)
+        first=(origin.get('transactions') or [{}])[0]
+        result.update(produced_date=first.get('produced_date',''),produced_time=first.get('produced_time',''))
+    return result
 
 
 def history(cur, product_id, api):

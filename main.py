@@ -2990,6 +2990,7 @@ DASHBOARD_KEY_ALLOWLIST = frozenset({
     ("GET", "/reason-codes"),
     # History / traceability (read-only; traceability.html, process-flow.html)
     ("GET", "/dashboard/api/inventory/{product_id}/lot-history"),
+    ("GET", "/dashboard/api/lot-report/{lot_code}"),
     ("GET", "/transactions/history"),
     # FR-12 Recent Entries: authenticated global audit feed for the dashboard.
     ("GET", "/ledger/recent"),
@@ -10423,6 +10424,35 @@ def correct_transaction(
 # TRACE ENDPOINTS
 # ═══════════════════════════════════════════════════════════════
 
+@app.get("/dashboard/api/inventory/{product_id}/lot-history")
+def dashboard_api_lot_history(product_id: int = Path(..., ge=1), _: bool = Depends(verify_api_key)):
+    with get_transaction() as cur:
+        result = lot_trace.history(cur, product_id, sys.modules[__name__])
+        if result is None:
+            raise HTTPException(404, "Product not found")
+        return result
+
+
+@app.get("/dashboard/api/lot-report/{lot_code}")
+def dashboard_api_lot_report(lot_code: str, product_id: Optional[int] = Query(None),
+                             direction: Literal["forward", "backward"] = "forward",
+                             _: bool = Depends(verify_api_key)):
+    """Explicit complete audit report; never added to the GPT-facing trace responses."""
+    with get_transaction() as cur:
+        cur.execute("""SELECT l.*, p.name AS product_name FROM lots l
+                       JOIN products p ON p.id=l.product_id
+                       WHERE lower(l.lot_code)=lower(%s) AND (%s::integer IS NULL OR l.product_id=%s)
+                       ORDER BY l.id""", (lot_code, product_id, product_id))
+        matches=cur.fetchall()
+        if not matches:
+            raise HTTPException(404, "Lot not found")
+        if len(matches)>1:
+            return JSONResponse(status_code=409, content={"error":"ambiguous_lot_code", "matches":[
+                {"lot_id":r["id"], "product_id":r["product_id"], "product_name":r["product_name"],
+                 "entry_source":r["entry_source"]} for r in matches]})
+        return lot_trace.report(cur, matches[0], direction, sys.modules[__name__])
+
+
 # Canonical entry_source values written by lot creation endpoints
 INGREDIENT_ENTRY_SOURCES = {'received', 'found_inventory', 'adjusted', None}
 OUTPUT_ENTRY_SOURCES = {'production_output', 'pack_output'}
@@ -10430,6 +10460,7 @@ OUTPUT_ENTRY_SOURCES = {'production_output', 'pack_output'}
 # Backward input tree (trace_batch "input_tree"). Read-only: posted current-ledger
 # lines only, keyed by numeric lot id (changelog row 100). Never reads
 # ingredient_lot_consumption or inventory snapshots.
+TRACE_TREE_MAX_DEPTH = 6
 # Receipts whose shipper records where stock was found, not who supplied it.
 TRACE_FOUND_SHIPPERS = frozenset({
     'found', 'found inventory', 'inventory found', 'physical count',
@@ -10539,7 +10570,6 @@ def _trace_lot_origin(cur, lot, depth, ancestors):
             origin = _trace_receipt_origin(by_kind[kind][0], lot)
             if kind == 'supplier':
                 origin["receipt_count"] = len(receipts)
-            origin["receipts"] = [dict(_trace_receipt_origin(r, lot), quantity_lb=float(r["quantity"])) for r in reversed(receipts)]
             return origin
     if lot.get('entry_source') in ('found_inventory', 'adjusted'):
         return {"kind": "found_inventory", "transaction_id": None}
@@ -10548,25 +10578,25 @@ def _trace_lot_origin(cur, lot, depth, ancestors):
 
 def _trace_made_origin(cur, lot_id, producing, depth, ancestors):
     """All posted makes/packs that produced lot_id (a lot code can take several makes)."""
-    if lot_id in ancestors:
+    if lot_id in ancestors or depth >= TRACE_TREE_MAX_DEPTH:
         return {"kind": "made",
-                "truncated": "cycle",
+                "truncated": "cycle" if lot_id in ancestors else "depth_limit",
                 "transactions": [
                     {"transaction_id": row['id'], "type": row['type'],
                      **_trace_stamp("produced", row['timestamp']), "inputs": []}
                     for row in producing]}
     path = ancestors | {lot_id}
-    transactions = [_trace_made_transaction(cur, row, depth, path, lot_id) for row in producing]
+    transactions = [_trace_made_transaction(cur, row, depth, path) for row in producing]
     return {
         "kind": "made",
         "transactions": transactions,
-        "output_lb": float(sum(Decimal(str(t['lot_output_lb'])) for t in transactions)),
+        "output_lb": float(sum(Decimal(str(t['output_lb'])) for t in transactions)),
         "inputs_total_lb": float(sum(Decimal(str(t['inputs_total_lb'])) for t in transactions)),
         "inputs_mismatch": any(t['inputs_mismatch'] for t in transactions),
     }
 
 
-def _trace_made_transaction(cur, txn, depth, path, target_lot_id=None):
+def _trace_made_transaction(cur, txn, depth, path):
     """One posted make/pack: lb output, consumed lots (current lines) and the input check.
 
     The check is display-only: inputs_mismatch is true when the recorded lb inputs
@@ -10574,28 +10604,25 @@ def _trace_made_transaction(cur, txn, depth, path, target_lot_id=None):
     """
     cur.execute("""
         SELECT tl.product_id, tl.lot_id, p.name AS product_name, p.type AS product_type, p.uom,
-               l.lot_code, l.supplier_lot_code, l.entry_source, l.entry_source_notes, l.lot_type,
+               l.lot_code, l.supplier_lot_code, l.entry_source,
                SUM(tl.quantity_lb) AS quantity
         FROM ledger_current_transaction_lines tl
         JOIN products p ON p.id = tl.product_id
-        LEFT JOIN lots l ON l.id = tl.lot_id
+        JOIN lots l ON l.id = tl.lot_id
         WHERE tl.transaction_id = %s
         GROUP BY tl.product_id, tl.lot_id, p.name, p.type, p.uom,
-                 l.lot_code, l.supplier_lot_code, l.entry_source, l.entry_source_notes, l.lot_type, (tl.quantity_lb > 0)
+                 l.lot_code, l.supplier_lot_code, l.entry_source
         ORDER BY p.name, tl.lot_id
     """, (txn['id'],))
     output_lb = Decimal(0)
-    lot_output_lb = Decimal(0)
     inputs_total = Decimal(0)
     inputs = []
     for row in cur.fetchall():
         quantity = Decimal(row['quantity'])
-        unit = 'lb' if row['product_type'] in ('batch', 'finished') else ledger_quantity_unit(row['uom'])
+        unit = ledger_quantity_unit(row['uom'])
         if quantity > 0:
             if unit == 'lb':
                 output_lb += quantity
-                if row["lot_id"] == target_lot_id:
-                    lot_output_lb += quantity
             continue
         if quantity == 0:
             continue
@@ -10606,13 +10633,6 @@ def _trace_made_transaction(cur, txn, depth, path, target_lot_id=None):
             'lot_id', 'lot_code', 'product_id', 'product_name', 'product_type',
             'entry_source', 'supplier_lot_code')}
         node.update(quantity=float(quantity), unit=unit)
-        if row.get("lot_type"):
-            node["lot_type"] = row["lot_type"]
-        entries = lot_trace.supplier_entries(cur, row["lot_id"])
-        if entries:
-            node["supplier_lot_entries"] = entries
-        if row.get("entry_source_notes"):
-            node["entry_source_notes"] = row["entry_source_notes"]
         inputs.append(node)
     for node in inputs:
         node["origin"] = _trace_lot_origin(cur, node, depth + 1, path)
@@ -10623,7 +10643,6 @@ def _trace_made_transaction(cur, txn, depth, path, target_lot_id=None):
         "type": txn['type'],
         **_trace_stamp("produced", txn['timestamp']),
         "output_lb": float(output_lb),
-        "lot_output_lb": float(lot_output_lb),
         "inputs_total_lb": float(inputs_total),
         "inputs_mismatch": bool(mismatch),
         "inputs": inputs,
@@ -10636,38 +10655,6 @@ def _trace_input_tree(cur, lot_row):
         'lot_id': lot_row['id'], 'entry_source': lot_row.get('entry_source'),
         'supplier_lot_code': lot_row.get('supplier_lot_code')}, 0, frozenset())
     return origin if origin['kind'] == 'made' else None
-
-def _trace_current_inputs(cur, lot_id):
-    cur.execute("""
-        SELECT i.lot_id, i.product_id, p.name AS ingredient_name, l.lot_code,
-               l.supplier_lot_code, -SUM(i.quantity_lb) AS quantity_lb
-        FROM ledger_current_transactions t
-        JOIN ledger_current_transaction_lines i ON i.transaction_id = t.id
-        JOIN products p ON p.id = i.product_id
-        LEFT JOIN lots l ON l.id = i.lot_id
-        WHERE t.effective_status = 'posted' AND t.type IN ('make', 'pack')
-          AND i.quantity_lb < 0 AND EXISTS (
-              SELECT 1 FROM ledger_current_transaction_lines o
-              WHERE o.transaction_id = t.id AND o.lot_id = %s AND o.quantity_lb > 0)
-        GROUP BY i.lot_id, i.product_id, p.name, l.lot_code, l.supplier_lot_code
-        ORDER BY p.name, i.lot_id
-    """, (lot_id,))
-    return [dict(r, quantity_lb=float(r['quantity_lb'])) for r in cur.fetchall()]
-
-
-def _trace_shipments(cur, lot_id):
-    return [dict(r, **_trace_stamp('shipped', r['shipped_at'])) for r in lot_trace.shipments(cur, lot_id)]
-
-
-@app.get("/dashboard/api/inventory/{product_id}/lot-history")
-def dashboard_api_lot_history(product_id: int = Path(..., ge=1), _: bool = Depends(verify_api_key)):
-    """Every received/packed lot including depleted stock, newest activity first."""
-    with get_transaction() as cur:
-        result = lot_trace.history(cur, product_id, sys.modules[__name__])
-        if result is None:
-            raise HTTPException(404, "Product not found")
-        return result
-
 
 @app.get("/trace/batch/{lot_code}")
 def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool = Depends(verify_api_key)):
@@ -10699,6 +10686,9 @@ def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool 
                 })
             lot_row = rows[0]
 
+            # Ingredient lot: entry_source is received, adjusted, found_inventory (not production/pack output)
+            if lot_row['entry_source'] in INGREDIENT_ENTRY_SOURCES:
+                return _trace_ingredient_backward(cur, lot_row)
 
             # Finished goods lot: entry_source is make or pack — existing logic
             cur.execute("""
@@ -10712,20 +10702,64 @@ def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool 
                   AND t.effective_status = 'posted'
                   AND l.id = %s
                   AND tl.quantity_lb > 0
-                ORDER BY t.timestamp, t.id, tl.id
             """, (lot_row['id'],))
-            batches = cur.fetchall()
-            batch = batches[0] if batches else None
+            batch = cur.fetchone()
 
             if not batch:
                 # Lot exists but no production transaction found — treat as ingredient
                 return _trace_ingredient_backward(cur, lot_row)
 
-            ingredients = _trace_current_inputs(cur, lot_row['id'])
+            cur.execute("""
+                SELECT l.id as lot_id, p.id as product_id,
+                       p.name as ingredient_name, l.lot_code as ingredient_lot,
+                       l.supplier_lot_code, ilc.quantity_lb as quantity_consumed
+                FROM ingredient_lot_consumption ilc
+                JOIN products p ON p.id = ilc.ingredient_product_id
+                JOIN lots l ON l.id = ilc.ingredient_lot_id
+                WHERE ilc.transaction_id = %s
+            """, (batch['transaction_id'],))
+            ingredients = cur.fetchall()
 
             date_str, time_str = format_timestamp(batch['timestamp'])
 
-            customer_shipments = _trace_shipments(cur, lot_row['id'])
+            # Customer shipments for this batch lot
+            cur.execute("""
+                SELECT t.id as transaction_id, t.timestamp as shipped_at,
+                       ABS(tl.quantity_lb) as quantity_lb,
+                       t.customer_name, t.order_reference,
+                       so.id as sales_order_id,
+                       so.order_number,
+                       s.id as shipment_id
+                FROM ledger_current_transaction_lines tl
+                JOIN ledger_current_transactions t ON t.id = tl.transaction_id
+                LEFT JOIN sales_order_shipments sos ON sos.transaction_id = t.id
+                LEFT JOIN sales_order_lines sol ON sol.id = sos.sales_order_line_id
+                LEFT JOIN sales_orders so ON so.id = sol.sales_order_id
+                LEFT JOIN shipment_lines sl ON sl.transaction_id = t.id
+                LEFT JOIN shipments s ON s.id = sl.shipment_id
+                WHERE tl.lot_id = %s
+                  AND t.type = 'ship'
+                  AND tl.quantity_lb < 0
+                  AND t.effective_status = 'posted'
+                ORDER BY t.timestamp
+            """, (lot_row['id'],))
+            shipment_rows = cur.fetchall()
+
+            customer_shipments = []
+            for sh in shipment_rows:
+                sh_date, sh_time = format_timestamp(sh['shipped_at'])
+                customer_shipments.append({
+                    "transaction_id": sh['transaction_id'],
+                    "shipped_at": sh['shipped_at'].isoformat() if sh['shipped_at'] else None,
+                    "shipped_date": sh_date,
+                    "shipped_time": sh_time,
+                    "quantity_lb": float(sh['quantity_lb']),
+                    "customer_name": sh['customer_name'],
+                    "order_reference": sh['order_reference'],
+                    "sales_order_id": sh['sales_order_id'],
+                    "order_number": sh['order_number'],
+                    "shipment_id": sh['shipment_id']
+                })
 
             total_shipped = sum(s['quantity_lb'] for s in customer_shipments)
 
@@ -10737,7 +10771,7 @@ def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool 
             prod_info = cur.fetchone()
             cs_lb = float(prod_info['case_size_lb']) if prod_info and prod_info['case_size_lb'] else None
             db_lb = float(prod_info['default_batch_lb']) if prod_info and prod_info['default_batch_lb'] else None
-            output_lb = sum(float(b['output_lb']) for b in batches)
+            output_lb = float(batch['output_lb'])
             result = {
                 **kosher_tiers.fields(lot_row),
                 "kosher_attested_by_actor_id":lot_row.get("kosher_attested_by_actor_id"),
@@ -10750,12 +10784,21 @@ def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool 
                 "output_lb": output_lb,
                 "produced_date": date_str,
                 "produced_time": time_str,
-                "ingredients": ingredients,
+                "ingredients": [
+                    {
+                        "lot_id": ing['lot_id'],
+                        "product_id": ing['product_id'],
+                        "ingredient_name": ing['ingredient_name'],
+                        "lot_code": ing['ingredient_lot'],
+                        "supplier_lot_code": ing['supplier_lot_code'],
+                        "quantity_lb": float(ing['quantity_consumed'])
+                    } for ing in ingredients
+                ],
                 "customer_shipments": customer_shipments,
                 "total_shipped_lb": total_shipped,
                 "on_hand_lb": on_hand,
-                "forward_trace": lot_trace.forward(cur, lot_row["id"], sys.modules[__name__]),
-                # Recorded inputs and full origin tree from posted current lines.
+                # Full backward chain from posted current-ledger lines (dashboard
+                # Traceability). "ingredients" above is unchanged for GPT readers.
                 "input_tree": _trace_input_tree(cur, lot_row),
             }
             if cs_lb and cs_lb > 0:
@@ -10803,25 +10846,73 @@ def _trace_ingredient_backward(cur, lot_row):
             "transaction_id": recv['transaction_id']
         }
 
-    downstream = lot_trace.consumption(cur, lot_row['id'])
+    # 2. Find downstream batches that consumed this ingredient lot
+    cur.execute("""
+        SELECT DISTINCT bl.id as lot_id, bp.id as product_id,
+               bl.lot_code as batch_lot, bp.name as batch_product,
+               ilc.quantity_lb as quantity_consumed, t.timestamp
+        FROM ingredient_lot_consumption ilc
+        JOIN ledger_current_transactions t ON t.id = ilc.transaction_id
+        JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id AND tl.quantity_lb > 0
+        JOIN lots bl ON bl.id = tl.lot_id
+        JOIN products bp ON bp.id = bl.product_id
+        WHERE ilc.ingredient_lot_id = %s
+          AND t.effective_status = 'posted'
+        ORDER BY t.timestamp
+    """, (lot_row['id'],))
+    downstream = cur.fetchall()
 
     batches_out = []
     for b in downstream:
-        if b['lot_id'] is None:
-            continue
         b_date, b_time = format_timestamp(b['timestamp'])
         batches_out.append({
-            "transaction_id": b['transaction_id'],
             "lot_id": b['lot_id'],
             "product_id": b['product_id'],
-            "batch_lot_code": b['batch_lot_code'],
+            "batch_lot_code": b['batch_lot'],
             "batch_product": b['batch_product'],
-            "quantity_consumed": float(b['quantity_used']),
+            "quantity_consumed": float(b['quantity_consumed']),
             "produced_date": b_date,
             "produced_time": b_time
         })
 
-    shipments_out = _trace_shipments(cur, lot_row['id'])
+    # 3. Find direct shipments (ship transactions that deducted from this lot)
+    cur.execute("""
+        SELECT t.id as transaction_id, t.timestamp as shipped_at,
+               ABS(tl.quantity_lb) as quantity_lb,
+               t.customer_name, t.order_reference,
+               so.id as sales_order_id,
+               so.order_number,
+               s.id as shipment_id
+        FROM ledger_current_transaction_lines tl
+        JOIN ledger_current_transactions t ON t.id = tl.transaction_id
+        LEFT JOIN sales_order_shipments sos ON sos.transaction_id = t.id
+        LEFT JOIN sales_order_lines sol ON sol.id = sos.sales_order_line_id
+        LEFT JOIN sales_orders so ON so.id = sol.sales_order_id
+        LEFT JOIN shipment_lines sl ON sl.transaction_id = t.id
+        LEFT JOIN shipments s ON s.id = sl.shipment_id
+        WHERE tl.lot_id = %s
+          AND t.type = 'ship'
+          AND tl.quantity_lb < 0
+          AND t.effective_status = 'posted'
+        ORDER BY t.timestamp
+    """, (lot_row['id'],))
+    shipments = cur.fetchall()
+
+    shipments_out = []
+    for sh in shipments:
+        sh_date, sh_time = format_timestamp(sh['shipped_at'])
+        shipments_out.append({
+            "transaction_id": sh['transaction_id'],
+            "shipped_at": sh['shipped_at'].isoformat() if sh['shipped_at'] else None,
+            "shipped_date": sh_date,
+            "shipped_time": sh_time,
+            "quantity_lb": float(sh['quantity_lb']),
+            "customer_name": sh['customer_name'],
+            "order_reference": sh['order_reference'],
+            "sales_order_id": sh['sales_order_id'],
+            "order_number": sh['order_number'],
+            "shipment_id": sh['shipment_id']
+        })
 
     total_shipped = sum(s['quantity_lb'] for s in shipments_out)
 
@@ -10841,9 +10932,7 @@ def _trace_ingredient_backward(cur, lot_row):
         "downstream_batches": batches_out,
         "direct_shipments": shipments_out,
         "total_shipped_lb": total_shipped,
-        "on_hand_lb": on_hand,
-        "origin": _trace_lot_origin(cur, dict(lot_row, lot_id=lot_row["id"]), 0, frozenset()),
-        "forward_trace": lot_trace.forward(cur, lot_row["id"], sys.modules[__name__])
+        "on_hand_lb": on_hand
     }
 
 
@@ -10879,12 +10968,98 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
             # Output lot (pack/make): don't reject, provide full picture
             is_output_lot = lot['entry_source'] in OUTPUT_ENTRY_SOURCES
 
-            upstream_ingredients = _trace_current_inputs(cur, lot['id']) if is_output_lot else None
+            if is_output_lot:
+                # Find upstream ingredients: get the make/pack transaction that created this lot,
+                # then pull ingredient_lot_consumption rows for that transaction
+                cur.execute("""
+                    SELECT t.id as transaction_id
+                    FROM ledger_current_transactions t
+                    JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id
+                    WHERE t.type IN ('make', 'pack')
+                      AND t.effective_status = 'posted'
+                      AND tl.lot_id = %s
+                      AND tl.quantity_lb > 0
+                """, (lot['id'],))
+                prod_txn = cur.fetchone()
 
-            # ledger_current_transaction_lines joined to ledger_current_transactions
-            # with effective_status = 'posted'; preserves each transaction and amended inputs.
-            batches = [r for r in lot_trace.consumption(cur, lot['id']) if r['lot_id'] is not None]
-            direct_shipments = _trace_shipments(cur, lot['id'])
+                upstream_ingredients = []
+                if prod_txn:
+                    cur.execute("""
+                        SELECT l.id as lot_id, p.id as product_id,
+                               p.name as ingredient_name, l.lot_code,
+                               ilc.quantity_lb, l.supplier_lot_code
+                        FROM ingredient_lot_consumption ilc
+                        JOIN products p ON p.id = ilc.ingredient_product_id
+                        JOIN lots l ON l.id = ilc.ingredient_lot_id
+                        WHERE ilc.transaction_id = %s
+                    """, (prod_txn['transaction_id'],))
+                    upstream_ingredients = [
+                        {
+                            "lot_id": r['lot_id'],
+                            "product_id": r['product_id'],
+                            "ingredient_name": r['ingredient_name'],
+                            "lot_code": r['lot_code'],
+                            "quantity_lb": float(r['quantity_lb']),
+                            "supplier_lot_code": r['supplier_lot_code']
+                        } for r in cur.fetchall()
+                    ]
+
+            else:
+                upstream_ingredients = None
+
+            # Production/pack consumption, keyed by lot id because lot codes can collide.
+            cur.execute("""
+                SELECT DISTINCT bl.id as lot_id, bp.id as product_id,
+                       bl.lot_code as batch_lot, bp.name as batch_product,
+                       ilc.quantity_lb as quantity_consumed
+                FROM ingredient_lot_consumption ilc
+                JOIN ledger_current_transactions t ON t.id = ilc.transaction_id
+                JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id AND tl.quantity_lb > 0
+                JOIN lots bl ON bl.id = tl.lot_id
+                JOIN products bp ON bp.id = bl.product_id
+                WHERE ilc.ingredient_lot_id = %s
+                  AND t.effective_status = 'posted'
+            """, (lot['id'],))
+            batches = cur.fetchall()
+
+            # Direct shipments (ship transactions that deducted from this lot)
+            cur.execute("""
+                SELECT t.id as transaction_id, t.timestamp as shipped_at,
+                       ABS(tl.quantity_lb) as quantity_lb,
+                       t.customer_name, t.order_reference,
+                       so.id as sales_order_id,
+                       so.order_number,
+                       s.id as shipment_id
+                FROM ledger_current_transaction_lines tl
+                JOIN ledger_current_transactions t ON t.id = tl.transaction_id
+                LEFT JOIN sales_order_shipments sos ON sos.transaction_id = t.id
+                LEFT JOIN sales_order_lines sol ON sol.id = sos.sales_order_line_id
+                LEFT JOIN sales_orders so ON so.id = sol.sales_order_id
+                LEFT JOIN shipment_lines sl ON sl.transaction_id = t.id
+                LEFT JOIN shipments s ON s.id = sl.shipment_id
+                WHERE tl.lot_id = %s
+                  AND t.type = 'ship'
+                  AND tl.quantity_lb < 0
+                  AND t.effective_status = 'posted'
+                ORDER BY t.timestamp
+            """, (lot['id'],))
+            shipments = cur.fetchall()
+
+            direct_shipments = []
+            for sh in shipments:
+                sh_date, sh_time = format_timestamp(sh['shipped_at'])
+                direct_shipments.append({
+                    "transaction_id": sh['transaction_id'],
+                    "shipped_at": sh['shipped_at'].isoformat() if sh['shipped_at'] else None,
+                    "shipped_date": sh_date,
+                    "shipped_time": sh_time,
+                    "quantity_lb": float(sh['quantity_lb']),
+                    "customer_name": sh['customer_name'],
+                    "order_reference": sh['order_reference'],
+                    "sales_order_id": sh['sales_order_id'],
+                    "order_number": sh['order_number'],
+                    "shipment_id": sh['shipment_id']
+                })
 
             total_shipped = sum(s['quantity_lb'] for s in direct_shipments)
 
@@ -10900,18 +11075,16 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
                 "ingredient_name": lot['ingredient_name'],
                 "used_in_batches": [
                     {
-                        "transaction_id": b['transaction_id'],
                         "lot_id": b['lot_id'],
                         "product_id": b['product_id'],
-                        "batch_lot_code": b['batch_lot_code'],
+                        "batch_lot_code": b['batch_lot'],
                         "batch_product": b['batch_product'],
-                        "quantity_used": float(b['quantity_used'])
+                        "quantity_used": float(b['quantity_consumed'])
                     } for b in batches
                 ],
                 "direct_shipments": direct_shipments,
                 "total_shipped_lb": total_shipped,
-                "on_hand_lb": on_hand,
-                "forward_trace": lot_trace.forward(cur, lot["id"], sys.modules[__name__])
+                "on_hand_lb": on_hand
             }
 
             if is_output_lot:
@@ -10993,18 +11166,60 @@ def trace_supplier_lot(supplier_lot_code: str, product_id: Optional[int] = Query
                 """, (lot_id,))
                 received = float(cur.fetchone()['total_received'])
 
-                production = [r for r in lot_trace.consumption(cur, lot_id) if r['lot_id'] is not None]
+                # Production consumption (ingredient_lot_consumption)
+                cur.execute("""
+                    SELECT bl.id as lot_id, bp.id as product_id,
+                           bl.lot_code as batch_lot_code, bp.name as batch_product,
+                           ilc.quantity_lb as quantity_used_lb
+                    FROM ingredient_lot_consumption ilc
+                    JOIN ledger_current_transactions t ON t.id = ilc.transaction_id
+                    JOIN ledger_current_transaction_lines tl ON tl.transaction_id = t.id AND tl.quantity_lb > 0
+                    JOIN lots bl ON bl.id = tl.lot_id
+                    JOIN products bp ON bp.id = bl.product_id
+                    WHERE ilc.ingredient_lot_id = %s
+                      AND t.effective_status = 'posted'
+                    ORDER BY t.timestamp
+                """, (lot_id,))
+                production = cur.fetchall()
                 production_usage = [{
-                    "transaction_id": p['transaction_id'],
                     "lot_id": p['lot_id'],
                     "product_id": p['product_id'],
                     "batch_lot_code": p['batch_lot_code'],
                     "batch_product": p['batch_product'],
-                    "quantity_used_lb": float(p['quantity_used'])
+                    "quantity_used_lb": float(p['quantity_used_lb'])
                 } for p in production]
-                lot_production_total = sum({p['transaction_id']: p['quantity_used_lb'] for p in production_usage}.values())
+                lot_production_total = sum(p['quantity_used_lb'] for p in production_usage)
 
-                customer_shipments = _trace_shipments(cur, lot_id)
+                # Direct customer shipments
+                cur.execute("""
+                    SELECT t.id as transaction_id, t.timestamp as shipped_at,
+                           ABS(tl.quantity_lb) as quantity_lb,
+                           t.customer_name, t.order_reference,
+                           so.order_number
+                    FROM ledger_current_transaction_lines tl
+                    JOIN ledger_current_transactions t ON t.id = tl.transaction_id
+                    LEFT JOIN sales_order_shipments sos ON sos.transaction_id = t.id
+                    LEFT JOIN sales_order_lines sol ON sol.id = sos.sales_order_line_id
+                    LEFT JOIN sales_orders so ON so.id = sol.sales_order_id
+                    WHERE tl.lot_id = %s
+                      AND t.type = 'ship'
+                      AND tl.quantity_lb < 0
+                      AND t.effective_status = 'posted'
+                    ORDER BY t.timestamp
+                """, (lot_id,))
+                shipments = cur.fetchall()
+                customer_shipments = []
+                for sh in shipments:
+                    sh_date, sh_time = format_timestamp(sh['shipped_at'])
+                    customer_shipments.append({
+                        "transaction_id": sh['transaction_id'],
+                        "shipped_at": sh['shipped_at'].isoformat() if sh['shipped_at'] else None,
+                        "shipped_date": sh_date,
+                        "shipped_time": sh_time,
+                        "quantity_lb": float(sh['quantity_lb']),
+                        "customer_name": sh['customer_name'],
+                        "order_number": sh['order_number']
+                    })
                 lot_shipped_total = sum(s['quantity_lb'] for s in customer_shipments)
 
                 results.append({
@@ -11015,8 +11230,7 @@ def trace_supplier_lot(supplier_lot_code: str, product_id: Optional[int] = Query
                     "on_hand_lb": on_hand,
                     "total_received_lb": received,
                     "production_usage": production_usage,
-                    "customer_shipments": customer_shipments,
-                    "forward_trace": lot_trace.forward(cur, lot_id, sys.modules[__name__])
+                    "customer_shipments": customer_shipments
                 })
 
                 total_received += received

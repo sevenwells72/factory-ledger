@@ -41,3 +41,35 @@ Additional guard: commingled lots retain every recorded `lot_supplier_codes` ent
 Fresh disposable local PostgreSQL: **7,469 Python tests passed**, zero failures/skips. Full JavaScript suite: **700 passed**, zero failures/skips. Real HTTP/FastAPI/PostgreSQL Playwright coverage passed at 1440, 820 and 390 px in light/dark themes: **138 actual requests carried X-API-Key**, including inventory, lot history, the existing lot panel and trace endpoints; no route stubs. Both directions, zero balances, repeated makes, customer/order details, text export, browser Print/Save PDF, touch targets and responsive layouts were exercised. The existing backward-trace browser regression also passed. PDF pages were rendered and visually inspected. Architecture-map, key-literal and whitespace checks passed. Existing route contracts are unchanged except the one new authenticated GET route.
 
 The full suite was rerun on a freshly rebuilt local database after intermediate source edits and a repeat-run fixture-count failure; the final result above is from the stable final code. No production writes, merge or deploy occurred. Claude Code cross-review remains required before merge.
+
+## PR #196 cross-review fixes
+
+Review [6755271486](https://github.com/sevenwells72/factory-ledger/pull/196#issuecomment-6755271486) found correct answers but unacceptable forward-query cost. The complete report now lives only at `GET /dashboard/api/lot-report/{lot_code}` (explicit direction/product, authenticated). Existing `/trace/batch`, `/trace/ingredient`, `/trace/supplier-lot` and their helpers match `origin/main` `4e70ae34` byte-for-byte. In particular, GPT `ingredients` retains `ingredient_lot_consumption` per row 270. Earlier implementation notes describing corrected legacy responses are superseded: corrected current-ledger inputs and complete exposure are used only by the explicit audit reports.
+
+Forward closure uses a recursive CTE with cycle-safe UNION and no depth/date/fanout cap. Four further set-based queries fetch balances/lot metadata, receipts, source entries and shipments/order references: **five queries independent of lot count**, or six with endpoint lookup. Tests pin five at 1, 80 and 500 output lots. Backward audit logic is isolated in `lot_trace_backward.py`.
+
+The page accepts only the versioned complete shape. Missing or incomplete formats show clear errors without legacy answers. A visible building state and report-only 120-second timeout support large complete results; a browser check deliberately delays a report 16 seconds. Multi-output consumption is numeric only on its first row; subsequent rows say **Same consumption as above, do not add** in screen, print/PDF and text. The actual-network browser test now runs in `node --test tests/*.js` and `npm test`, observes protected API headers and requires a successful `/audit/integrity` request.
+
+Initial read-only measurements from this Mac, including transaction setup, SQL round trips/result transfer, report construction and JSON serialization (excluding connection establishment):
+
+| Lot | Reachable lots | Edges | Three measurements |
+|---|---:|---:|---|
+| Coconut 25120, product 13 | 277 | 401 | 0.371 / 0.252 / 0.238 seconds |
+| 26-02-03-FOUND-016, product 39 | 481 | 686 | 0.281 / 0.294 / 0.243 seconds |
+
+Each used six endpoint queries and included the entire result. Oats remained 17 makes / 20 lots / 25 edges / 3 shipments. BB110927 remained four batch lots with make input counts 7, 7, 8, 7, 8; all seven recorded inputs for 2947 independently matched the ledger; report model has 41 input rows, two gaps and 3,855 lb. Reproduce with `scripts/benchmark_lot_reports_readonly.py`; it uses port 5432 and explicit `BEGIN; SET TRANSACTION READ ONLY; ... ROLLBACK`, never app startup or production writes.
+
+### Final review-fix verification
+
+Both full suites ran against separately rebuilt local test databases: **7,474 Python passed** and **702 JavaScript passed**, zero failures/skips. The default JS suite includes the non-stubbed browser test: **270 actual HTTP requests carried X-API-Key**, including successful health, inventory, lot panel, history and complete report requests. The updated backward-report browser suite passed, including a 16-second response, missing/incomplete shape errors and clearing previous evidence when the next report fails. An old test that required the removed scanner implementation now checks real new-report shipment isolation for identical lot codes across products; its original GPT-response assertion remains.
+
+Final production read-only repeats, after both full suites:
+
+| Lot | Complete lots / edges | Times (seconds) | Endpoint queries |
+|---|---|---|---:|
+| 25120 / product 13 | 277 / 401 | 0.769, 0.268, 0.262 | 6 |
+| 26-02-03-FOUND-016 / product 39 | 481 / 686 | 0.326, 0.325, 0.291 | 6 |
+
+Both worst cases remain below five seconds; no results are capped or truncated. Oats again verified **17 makes / 20 lots / 25 edges / 3 shipments** (0.226 seconds). BB110927 backward again verified **four batches, full 7/7/8/7/8 make inputs, 41 associations, two gaps, 3,855 lb** (3.035 seconds); transaction 2947 matched an independent posted-ledger query. The corrected backward reader is separate and still uses recursive per-origin reads; the fixed five-query invariant applies to the forward traversal. Machine-readable evidence: `lot-report-performance-2026-11-09.json`.
+
+The existing trace section remains byte-for-byte identical to `origin/main` `4e70ae34`. Contract comparison adds only the two dashboard GET routes and removes/changes no existing routes. Architecture-map, key-literal and whitespace checks pass. All three changelogs updated (regression row 272). Claude Code re-review is still required before merge; no merge, deploy or production write was performed.

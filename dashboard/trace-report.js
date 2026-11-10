@@ -84,10 +84,13 @@
     if(sources.size) report.sections.push({title:'Recorded supplier-lot entries',note:'Lot-level source metadata as recorded, not an allocation to individual receipts or physical verification. Pooled inventory is not one supplier lot.',headers:['Lot / product','Supplier','Supplier lot','Recorded quantity','Recorded note'],rows:[...sources.values()]});
     if(notes.size) report.sections.push({title:'Recorded lot notes and assumptions',note:'Historical notes are recorded claims, not new physical verification.',headers:['Lot / product','Recorded note'],rows:[...notes.values()]});
     const byId = new Map(forward.lots.map(n=>[n.lot_id,n]));
-    report.sections.push({title:'Forward — every consuming make and pack', note:forward.quantity_basis + ' A transaction with multiple outputs repeats its input amount beside each output; do not sum those repeated amounts.',
+    const shownConsumption=new Set();
+    report.sections.push({title:'Forward — every consuming make and pack', note:forward.quantity_basis + ' Each input amount is shown once per consuming transaction; other output rows explicitly refer to that same consumption.',
       headers:['Consumed lot / product','Transaction','Date (ET)','Recorded quantity used','Output lot / product','Output quantity'],
-      rows:forward.consumption.map(e=>[lot(byId.get(e.source_lot_id)), `${e.type} #${e.transaction_id}`,date(e.produced_date),qty(e.quantity_used,e.unit),
-        e.lot_id == null ? 'No identified output lot' : lot(byId.get(e.lot_id)), qty(e.output_quantity,byId.get(e.lot_id)?.unit)])});
+      rows:forward.consumption.map(e=>{
+        const key=`${e.source_lot_id}:${e.transaction_id}`, repeated=shownConsumption.has(key);shownConsumption.add(key);
+        return [lot(byId.get(e.source_lot_id)), `${e.type} #${e.transaction_id}`,date(e.produced_date),repeated ? 'Same consumption as above, do not add' : qty(e.quantity_used,e.unit),
+        e.lot_id == null ? 'No identified output lot' : lot(byId.get(e.lot_id)), qty(e.output_quantity,byId.get(e.lot_id)?.unit)];})});
     const shipped=[];
     for (const n of forward.lots) for (const sh of n.shipments) {
       shipped.push([lot(n),`Txn #${sh.transaction_id}`, date(sh.shipped_date), sh.customer_name || 'Customer not named',

@@ -99,13 +99,15 @@ try {
   const observed=(await (await fetch(origin+'/__lot_history_test')).json()).requests;
   for(const required of ['/dashboard/api/inventory/ingredients','/dashboard/api/inventory/finished-goods',
     `/dashboard/api/inventory/${info.oats[0]}/lot-history`,`/dashboard/api/inventory/${info.finished[0]}/lot-history`,
-    '/trace/ingredient/LH-BROWSER-OATS','/trace/batch/LH-BROWSER-FINISHED','/dashboard/api/lot/LH-BROWSER-FINISHED']) {
-    assert(observed.some(r=>r.path===required),`real server saw ${required}`);
+    '/dashboard/api/lot-report/LH-BROWSER-OATS','/dashboard/api/lot-report/LH-BROWSER-FINISHED','/audit/integrity','/dashboard/api/lot/LH-BROWSER-FINISHED']) {
+    assert(observed.some(r=>r.path===required && r.status===200),`real server saw ${required}`);
   }
   assert(observed.length>20);
   assert(observed.every(r=>r.key_ok),`missing key: ${JSON.stringify(observed.filter(r=>!r.key_ok))}`);
   console.log(`PASS: ${observed.length} actual HTTP requests carried X-API-Key; touch workflows, full trace, text/PDF and responsive layouts at 1440/820/390 in both themes.`);
 } finally {
-  await browser?.close();proc.kill('SIGTERM');
+  await browser?.close();
+  const exited=new Promise(resolve=>proc.once('exit',resolve));
+  if(proc.exitCode===null){proc.kill('SIGTERM');await exited;}
   await fs.writeFile(path.join(out,'server.log'),serverLog);
 }

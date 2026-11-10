@@ -64,3 +64,11 @@ test('commingled source entries are listed separately from receipts and never re
   assert.deepEqual(entries.map(e=>e[2]),['SUP-A','SUP-B']);
   for(const output of [report.html(r),report.text(r)])for(const value of ['Source A','Source B','SUP-A','SUP-B','Pooled inventory — no single supplier lot','not an allocation to individual receipts'])assert(output.includes(value));
 });
+
+test('multi-output makes show consumption once and label every repeated row',()=>{
+  const data=structuredClone(fixture),n=data.forward_trace.lots[0];
+  data.forward_trace.consumption=[1,2].map(id=>({source_lot_id:n.lot_id,lot_id:n.lot_id,type:'make',transaction_id:99,quantity_used:80,unit:'lb',output_quantity:40,produced_date:'2026-11-09'}));
+  const r=report.build(data,'forward'),rows=r.sections.find(s=>s.title==='Forward — every consuming make and pack').rows;
+  assert.equal(rows[0][3],'80 lb');assert.equal(rows[1][3],'Same consumption as above, do not add');
+  assert(report.text(r).includes('Recorded quantity used: Same consumption as above, do not add'));
+});
