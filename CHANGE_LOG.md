@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-10 12:26 — Record PR 199 production deploy (changelog row 275)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added row 275: backup OK (2026-11-10-pre-pr199), #199 squash-merged to main 291ed1f, Railway FastAPI 9c4b9034 SUCCESS (rollback a570eac6), health 200, reconciliation routes 401 without key and absent from OpenAPI; job still switched off, 094 not applied.
+- **Why:** Regression Guard step 4: record each production deploy.
+
+---
+
 ## 2026-11-10 12:17 — Daily reconciliation email: plain language, new vs still open, coconut and make list
 - **File(s) changed:** `reconciliation.py`, `tests/test_daily_reconciliation.py`, `tests/fixtures/reconciliation/replay_2026-11-05.json`, `tests/fixtures/reconciliation/replay_2026-11-06.json`, `tests/fixtures/reconciliation/replay_2026-11-09.json`, `docs/deployments/daily-reconciliation.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Email split into New today / Still not fixed (lots below zero with days open) / Normal coconut difference / Cancelled or late entries / What we checked (every make: batches and ingredient match or exact differences, or why not checked) / How to read this; subject and result count only new items; a coconut lot below zero only from a <=2% over-pack goes to the coconut section (COCONUT_BELOW_ZERO), never as an alarm; pack-above-make laid out as Made/Packed/Difference/Covered by/Ask; plain wording, transaction numbers at line end. load_window also loads histories of lots below zero and when each went below zero. Fixtures gained only the new fields (read-only from production, placeholder names). Tests updated + 9 new; rollout doc; FACTORY_LEDGER_CHANGELOG row 274. Branch feat/reconciliation-email-clarity, not merged or deployed; 094 not applied.
