@@ -33,21 +33,52 @@ It never posts, voids, adjusts or corrects anything, and it never writes to an e
 | --- | --- |
 | Tolerance | The greater of **5 lb** or **2% of that day's movement for the lot** (not 2% of the balance). For a make ingredient: 2% of the recipe quantity. |
 | Tolerance for packed-vs-made | **Different on purpose:** the greater of **5 lb** or **2% of all the pounds ever made into that batch lot**, compared with all the pounds ever packed out of it. It is measured on the lot's whole life, not on one day's movement, because a lot is often made one day and packed over several. Example: 350 lb made allows 7 lb; 375 lb packed is 25 lb over and is flagged. |
-| Lot below zero | **Always** flagged, every night, until it is corrected. |
+| Lot below zero | **Always** listed, every night, until it is corrected: under "New today" the night it goes below zero or gets worse, then under "Still not fixed" with the number of days it has been open. The one exception is the coconut rule below. |
 | Adjustment with reason "unknown" (or none), or with no named person (shared key) | **Always** listed. |
-| Coconut packed above made, up to 2% | Its own "Coconut yield" section. Not an alarm. Above 2% (and above 5 lb) it is an alarm like any other product. Coconut = the four coconut bulk batch products, by product ID (125 Fancy, 126 Flake, 127 Medium, 128 Toasted Flake; `COCONUT_YIELD_PRODUCT_IDS` in `reconciliation.py`). It is a fixed list, not a name match, because `products.product_category` is empty for every product. **A new coconut bulk batch product must be added to that list**; until then a small over-pack on it is simply inside tolerance and gets no line. |
+| Coconut packed above made, up to 2% | Its own "Normal coconut difference" section. Not an alarm. A coconut batch lot that is below zero **only** because of such an over-pack (its minus balance is no bigger than the over-pack, and the over-pack is within 2% of what was made) is listed there too (`COCONUT_BELOW_ZERO`, yield), never as a below-zero alarm. Any other lot below zero is always listed. Above 2% (and above 5 lb) it is an alarm like any other product. Coconut = the four coconut bulk batch products, by product ID (125 Fancy, 126 Flake, 127 Medium, 128 Toasted Flake; `COCONUT_YIELD_PRODUCT_IDS` in `reconciliation.py`). It is a fixed list, not a name match, because `products.product_category` is empty for every product. **A new coconut bulk batch product must be added to that list**; until then a small over-pack on it is simply inside tolerance and gets no line. |
 | Voids and late entries | Listed for information. They do not change the result. |
 
-**Result** is `all_clear` or `attention` (anything over tolerance, any lot below zero, any adjustment to review).
+**New or still open.** Every alarm and review finding carries `new` (also `detail.new_today`). Only a lot below
+zero can be still open: it is new when it was not below zero at the start of the window (the last delivered
+snapshot at night, the start of the day in a replay) or is lower now; otherwise it is still open.
+`detail.below_zero_since` is the entry time after which the lot's current posted lines first stay below zero,
+and `detail.days_open` counts plant days from then. Every other finding comes from the window's own entries, so
+it is always new.
+
+**Result** is `attention` when there is anything **new** (over tolerance, a lot newly below zero or worse, an
+adjustment to review, or an earlier finding never emailed), otherwise `all_clear`, even when older lots are still
+below zero. `attention_count` (= `summary.new_count`) counts new items; `summary.still_open_count` the rest.
 **Job status** (`completed` / `failed`) is a separate field: a job that ran and found problems is `completed`.
 
 Flag kinds: `BALANCE_DIFFERENCE`, `MAKE_OFF_RECIPE`, `MAKE_INGREDIENT_MISSING`, `MAKE_UNLISTED_INGREDIENT`,
 `MAKE_NO_RECIPE`, `PACK_NO_MAKE`, `PACK_EXCEEDS_MAKE`, `NEGATIVE_LOT` (alarm); `UNEXPLAINED_ADJUSTMENT` (review);
-`COCONUT_YIELD` (yield); `VOID_OF_EARLIER_ENTRY`, `VOID_SAME_DAY`, `LATE_ENTRY` (info).
+`COCONUT_YIELD`, `COCONUT_BELOW_ZERO` (yield); `VOID_OF_EARLIER_ENTRY`, `VOID_SAME_DAY`, `LATE_ENTRY` (info).
 
 ## Email
 
 Sent **every night when enabled, including "all clear"**. No email means the job did not run.
+
+Written for a reader with no technical or accounting background, reading quickly on a phone. The first line is
+one sentence a person could act on ("Nothing new today; 2 older items still need a stock count (listed below)."
+or "1 new thing to check today: find out where the extra 25 lb of … came from."). The subject counts only new
+items, e.g. `Factory Ledger daily check, Fri Nov 6: Nothing new today. 2 still open.` A day with nothing new
+never says it needs attention. Sections, in order (empty ones left out, except "New today"):
+
+1. **Found earlier, not emailed until now** — saved findings of undelivered runs (below).
+2. **New today** — each item leads with what happened and what to do, then the numbers; transaction numbers at
+   the end of the line. A pack above make shows Lot / Made / Packed / Difference / Covered by (the hand stock
+   change that covered it) and an "Ask …" line naming who packed it and who added the stock.
+3. **Still not fixed** — one line each, with days open.
+4. **Normal coconut difference** — today's coconut over-packs and older coconut lots still below zero from one.
+5. **Cancelled or late entries** — information only.
+6. **What we checked** — every make with its batches and "all N ingredients match the recipe" (small
+   differences named), the exact differences, or why it could not be checked; batch lots packed from; the
+   stock add-up.
+7. **How to read this** — the plain notes ("No name on it" = made with the shared login, the allowed small
+   difference, coconut, the check cannot see the shelves, no email means no run).
+
+Each flag stores its plain parts in `detail` (`headline`, `facts`, `ask`, `refs`, `summary`) and the joined
+line in `detail.message`.
 A second run for the same business day saves its results but does not send a second email.
 If sending fails, the run and its flags are still saved with `email_status='failed'` and the error; running
 the command again retries the send.
@@ -55,22 +86,22 @@ the command again retries the send.
 **Nothing saved goes unreported.** Each night starts from the last run whose findings were *delivered*
 (email sent, or email switched off). A run whose email failed, a night whose job failed, or an extra run
 saved without an email (a manual daytime run) is never the starting point: the next email covers that
-period again and says so in a `NOTE:` line near the top, for example "the email for Mon Nov 9 was not
-delivered. This email covers that day as well." Those runs are listed in `summary.undelivered` of the run
+period again and says so in a `Note:` line near the top, for example "Note: the email for Mon Nov 9 did not
+go out. This email covers that day too." Those runs are listed in `summary.undelivered` of the run
 that covered them. Whether a run has been delivered is never worked out from run numbers or times: a
 delivered run lists, in `summary.acknowledged`, every earlier run it reported, and any saved run not on
 such a list (and not itself emailed) is picked up by the next email, whatever order the runs were saved in.
 One exception keeps the email quiet: a repeat run for a day that was already emailed
-(for example the command run twice in one night) gets no `NOTE:` line unless it found something the sent
+(for example the command run twice in one night) gets no `Note:` line unless it found something the sent
 email did not include.
 
 **Saved findings are shown as saved.** Covering the period again is not enough by itself: a lot that was
 at −1 lb when the email failed and was corrected the next morning would no longer show. So the next email
 also lists the flags those undelivered runs *saved*, unchanged, in their own section at the top
-("FROM UNDELIVERED RUNS"), each with a line on what has happened since: still open, figures changed,
-entry voided, lot corrected, recipe changed, or no longer found. Tonight's own findings follow under
-"TONIGHT'S FINDINGS". A saved alarm or adjustment that tonight's check no longer finds still makes the
-result `attention` ("1 earlier finding not emailed before"), never "all clear". A run's flags count as
+("Found earlier, not emailed until now"), each with a line on what has happened since: still the case,
+numbers changed, entry cancelled, lot corrected, recipe changed, or no longer found. Tonight's own findings
+follow. A saved alarm or adjustment counts as new (the owner has not seen it) unless tonight's own new findings
+already count it, so it makes the result `attention`, never "all clear". A run's flags count as
 delivered only after a send that included them succeeds; until then every later email repeats them (each
 once). They are stored in `summary.carried` of the run that showed them, not saved again as flags, so
 `flag_count` is tonight's findings only and `attention_count` also counts carried ones.

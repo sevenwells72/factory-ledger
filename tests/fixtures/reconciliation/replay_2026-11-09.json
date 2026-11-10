@@ -1241,9 +1241,37 @@
  "lines_before": [],
  "lot_histories": [
   {
+   "adjustments": [],
+   "lot_id": 1132,
+   "made_lb": 0.0,
+   "other_in_lb": 44000.0,
+   "other_out_lb": 0.0,
+   "packed_lb": 0.0,
+   "used_in_makes_lb": 44068.49
+  },
+  {
+   "adjustments": [
+    {
+     "actor_name": "Staff B",
+     "created_at": "2026-10-22T18:32:43.412999-04:00",
+     "operator_id": "Staff B",
+     "quantity_lb": -1260.87,
+     "reason_code": "physical_count",
+     "transaction_id": 2776
+    }
+   ],
+   "lot_id": 1461,
+   "made_lb": 0.0,
+   "other_in_lb": 6000.0,
+   "other_out_lb": 1260.87,
+   "packed_lb": 0.0,
+   "used_in_makes_lb": 4753.13
+  },
+  {
    "adjustments": [
     {
      "actor_name": null,
+     "created_at": "2026-11-09T09:27:01.627388-05:00",
      "operator_id": "legacy-shared-key",
      "quantity_lb": 25.0,
      "reason_code": "unknown",
@@ -1286,6 +1314,15 @@
   },
   {
    "adjustments": [],
+   "lot_id": 1691,
+   "made_lb": 5040.0,
+   "other_in_lb": 0.0,
+   "other_out_lb": 0.0,
+   "packed_lb": 5110.0,
+   "used_in_makes_lb": 0.0
+  },
+  {
+   "adjustments": [],
    "lot_id": 1696,
    "made_lb": 2358.0,
    "other_in_lb": 0.0,
@@ -1295,11 +1332,38 @@
   },
   {
    "adjustments": [],
+   "lot_id": 1698,
+   "made_lb": 5040.0,
+   "other_in_lb": 0.0,
+   "other_out_lb": 0.0,
+   "packed_lb": 5100.0,
+   "used_in_makes_lb": 0.0
+  },
+  {
+   "adjustments": [],
+   "lot_id": 1705,
+   "made_lb": 5040.0,
+   "other_in_lb": 0.0,
+   "other_out_lb": 0.0,
+   "packed_lb": 5095.0,
+   "used_in_makes_lb": 0.0
+  },
+  {
+   "adjustments": [],
    "lot_id": 1709,
    "made_lb": 3144.0,
    "other_in_lb": 0.0,
    "other_out_lb": 0.0,
    "packed_lb": 187.5,
+   "used_in_makes_lb": 0.0
+  },
+  {
+   "adjustments": [],
+   "lot_id": 1711,
+   "made_lb": 1080.0,
+   "other_in_lb": 0.0,
+   "other_out_lb": 0.0,
+   "packed_lb": 1090.0,
    "used_in_makes_lb": 0.0
   }
  ],
@@ -2146,6 +2210,32 @@
   }
  ],
  "mode": "replay",
+ "negative_since": [
+  [
+   1132,
+   "2026-11-04T16:42:49.932860-05:00"
+  ],
+  [
+   1461,
+   "2026-11-02T15:22:26.233885-05:00"
+  ],
+  [
+   1691,
+   "2026-11-03T16:51:21.826816-05:00"
+  ],
+  [
+   1698,
+   "2026-11-04T16:45:03.378199-05:00"
+  ],
+  [
+   1705,
+   "2026-11-05T16:49:05.999681-05:00"
+  ],
+  [
+   1711,
+   "2026-11-06T14:05:59.676302-05:00"
+  ]
+ ],
  "opening": [
   [
    11,

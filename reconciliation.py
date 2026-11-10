@@ -153,6 +153,28 @@ def migration_applied(cur):
     return cur.fetchone() is not None
 
 
+def _negative_since(history_rows, negative_lots):
+    """[[lot_id, iso]]: when each lot below zero last went below zero, by entry time.
+
+    Walks the lot's posted lines (as they stood at the window end) in entry order,
+    one transaction at a time. Lines voided since are not counted at all, so this
+    is the moment the CURRENT books first show the lot below zero for good.
+    """
+    steps = defaultdict(float)
+    for row in history_rows:
+        if row['lot_id'] in negative_lots:
+            steps[(row['lot_id'], row['created_at'], row['transaction_id'])] += float(row['quantity_lb'])
+    balance, since = defaultdict(float), {}
+    for (lot, created_at, _), quantity in sorted(steps.items(), key=lambda item: item[0]):
+        was = balance[lot]
+        balance[lot] += quantity
+        if balance[lot] < -EPS and was >= -EPS:
+            since[lot] = created_at
+        elif balance[lot] >= -EPS:
+            since.pop(lot, None)
+    return [[lot, _iso(since[lot])] for lot in sorted(since)]
+
+
 def load_window(cur, start, end, *, opening_run_id=None, reconstruct=False):
     """Read everything `analyse` needs for entries made in the window.
 
@@ -215,20 +237,34 @@ def load_window(cur, start, end, *, opening_run_id=None, reconstruct=False):
         FROM transaction_substitutions WHERE transaction_id = ANY(%(ids)s::integer[])
         ORDER BY transaction_id, ingredient_product_id""", {'ids': make_ids})
 
-    # Whole-life history of every lot a pack drew from in the window.
+    if reconstruct:
+        opening, ending = balances_at(cur, lo), balances_at(cur, hi)
+    else:
+        ending = current_balances(cur)
+        opening = None
+        if opening_run_id is not None:
+            opening = [[row['lot_id'], float(row['quantity_lb'])] for row in _rows(
+                cur, 'SELECT lot_id, quantity_lb FROM inventory_snapshots WHERE job_run_id = %(run)s ORDER BY lot_id',
+                {'run': opening_run_id})]
+
+    # Whole-life history of every lot a pack drew from in the window, and of every
+    # lot below zero tonight (to tell a normal coconut over-pack from a real gap, and
+    # to say since when the lot has been below zero).
     pack_lots = sorted({line['lot_id'] for line in after if line['quantity_lb'] < 0
                         and by_id[line['transaction_id']]['type'] == 'pack'
                         and by_id[line['transaction_id']]['in_window']})
+    negative_lots = {lot for lot, quantity in ending if quantity < -EPS}
+    history_lots = sorted(set(pack_lots) | negative_lots)
     history_rows = _rows(cur, """
         SELECT x.lot_id, x.transaction_id, x.type, x.quantity_lb, t.reason_code, t.operator_id,
-               a.name AS actor_name
+               a.name AS actor_name, t.created_at
         FROM (""" + _LINES_AT + """) x
         JOIN transactions t ON t.id = x.transaction_id
         LEFT JOIN actors a ON a.id = t.entered_by_actor_id
         WHERE x.lot_id = ANY(%(lots)s::integer[]) ORDER BY x.transaction_id, x.line_id""",
-                         {'at': hi, 'tx_ids': None, 'lots': pack_lots}) if pack_lots else []
+                         {'at': hi, 'tx_ids': None, 'lots': history_lots}) if history_lots else []
     histories = {lot: {'lot_id': lot, 'made_lb': 0.0, 'packed_lb': 0.0, 'used_in_makes_lb': 0.0,
-                       'other_in_lb': 0.0, 'other_out_lb': 0.0, 'adjustments': []} for lot in pack_lots}
+                       'other_in_lb': 0.0, 'other_out_lb': 0.0, 'adjustments': []} for lot in history_lots}
     for row in history_rows:
         history, quantity = histories[row['lot_id']], float(row['quantity_lb'])
         if row['type'] == 'make':
@@ -241,17 +277,8 @@ def load_window(cur, start, end, *, opening_run_id=None, reconstruct=False):
                 history['adjustments'].append({
                     'transaction_id': row['transaction_id'], 'quantity_lb': quantity,
                     'reason_code': row['reason_code'], 'actor_name': row['actor_name'],
-                    'operator_id': row['operator_id']})
-
-    if reconstruct:
-        opening, ending = balances_at(cur, lo), balances_at(cur, hi)
-    else:
-        ending = current_balances(cur)
-        opening = None
-        if opening_run_id is not None:
-            opening = [[row['lot_id'], float(row['quantity_lb'])] for row in _rows(
-                cur, 'SELECT lot_id, quantity_lb FROM inventory_snapshots WHERE job_run_id = %(run)s ORDER BY lot_id',
-                {'run': opening_run_id})]
+                    'operator_id': row['operator_id'], 'created_at': _iso(row['created_at'])})
+    negative_since = _negative_since(history_rows, negative_lots)
 
     lot_ids = sorted({line['lot_id'] for line in before + after + voided_lines} | {lot for lot, _ in ending}
                      | {lot for lot, _ in (opening or [])})
@@ -276,7 +303,8 @@ def load_window(cur, start, end, *, opening_run_id=None, reconstruct=False):
         'transactions': plain(transactions), 'lines_before': before, 'lines_after': after,
         'voided_lines': plain(voided_lines),
         'corrections': plain(corrections), 'recipes': plain(recipes), 'substitutions': plain(substitutions),
-        'lot_histories': [histories[lot] for lot in pack_lots],
+        'lot_histories': [histories[lot] for lot in history_lots],
+        'negative_since': negative_since,
         'opening': opening, 'ending': ending, 'lots': lots,
         'products': [dict(p, default_batch_lb=float(p['default_batch_lb']) if p['default_batch_lb'] is not None else None,
                           yield_multiplier=float(p['yield_multiplier'])) for p in products],
@@ -326,19 +354,54 @@ def _when(iso, with_date=True):
     return f'{moment:%b} {moment.day} {clock}' if with_date else clock
 
 
-def _person(actor_name, operator_id=None):
+NO_NAME = 'with no name on it'
+_TYPE_WORDS = {'adjust': 'hand stock change', 'receive': 'receiving entry', 'make': 'make entry',
+               'pack': 'packing entry', 'ship': 'shipping entry'}
+
+
+def _who(actor_name, operator_id=None):
+    """The person's name, or None when the entry carries none (made with the shared login)."""
     if actor_name:
         return actor_name
     if operator_id and operator_id != 'legacy-shared-key':
-        return f'{operator_id} (no personal sign-in)'
-    return 'the shared key (no named person)'
+        return operator_id
+    return None
+
+
+def _by(actor_name, operator_id=None):
+    name = _who(actor_name, operator_id)
+    return f'by {name}' if name else NO_NAME
+
+
+def _day(iso_date):
+    day = date.fromisoformat(iso_date[:10]) if isinstance(iso_date, str) else iso_date
+    return f'{day:%b} {day.day}'
+
+
+def _batches(count):
+    return f'{count:g} batch{"" if count == 1 else "es"}'
+
+
+def _plural(count, word, many=None):
+    return f'{count} {word if count == 1 else (many or word + "s")}'
 
 
 def analyse(data):
-    """Run every check over one window of loaded ledger data."""
+    """Run every check over one window of loaded ledger data.
+
+    Every flag carries plain-language parts in `detail`: `headline` (what happened
+    and what to do), `facts` (the numbers), `ask` (who to ask, when someone should
+    be asked), `refs` (transaction numbers), `summary` (a short to-do for the
+    email's first sentence), and `new_today`. `message` joins them into one line
+    (what the routes and a later carried-over email show).
+    """
     products = {p['id']: p for p in data['products']}
     lots = {lot['id']: lot for lot in data['lots']}
     transactions = {t['id']: t for t in data['transactions']}
+    histories = {h['lot_id']: h for h in data['lot_histories']}
+    negative_since = {lot: since for lot, since in data.get('negative_since') or []}
+    plant_day = date.fromisoformat(data['plant_date'])
+    window_start = datetime.fromisoformat(data['window_start'])
     before, after = defaultdict(list), defaultdict(list)
     for line in data['lines_before']:
         before[line['transaction_id']].append(line)
@@ -349,22 +412,31 @@ def analyse(data):
     def product_name(product_id):
         return products[product_id]['name'] if product_id in products else f'product {product_id}'
 
-    def lot_label(lot_id):
+    def lot_parts(lot_id):
         lot = lots.get(lot_id)
-        return f'{product_name(lot["product_id"])} lot {lot["lot_code"]}' if lot else f'lot {lot_id}'
+        return (product_name(lot['product_id']), lot['lot_code']) if lot else ('Unknown product', str(lot_id))
 
-    def flag(kind, severity, message, *, product_id=None, lot_id=None, transaction_id=None, expected=None,
-             actual=None, tolerance_lb=None, **detail):
+    def lot_label(lot_id):
+        product, code = lot_parts(lot_id)
+        return f'{product}, lot {code}'
+
+    def flag(kind, severity, headline, *, facts=(), ask=None, refs=(), summary=None, new_today=True,
+             product_id=None, lot_id=None, transaction_id=None, expected=None, actual=None, tolerance_lb=None,
+             **detail):
         if lot_id is not None and product_id is None and lot_id in lots:
             product_id = lots[lot_id]['product_id']
+        message = ' '.join([headline] + [fact.rstrip('.') + '.' for fact in facts] + ([ask] if ask else []))
+        if refs:
+            message += ' (' + ', '.join(refs) + ')'
         flags.append({
             'kind': kind, 'severity': severity, 'product_id': product_id, 'lot_id': lot_id,
-            'transaction_id': transaction_id,
+            'transaction_id': transaction_id, 'new': new_today,
             'expected_lb': None if expected is None else round(expected, 4),
             'actual_lb': None if actual is None else round(actual, 4),
             'difference_lb': None if expected is None or actual is None else round(actual - expected, 4),
             'tolerance_lb': None if tolerance_lb is None else round(tolerance_lb, 4),
-            'detail': {'message': message, **detail}})
+            'detail': {'message': message, 'headline': headline, 'facts': list(facts), 'ask': ask,
+                       'refs': list(refs), 'summary': summary, 'new_today': new_today, **detail}})
 
     # --- make vs recipe ----------------------------------------------------
     expected_ratio = {}        # (make id, ingredient product) -> expected / actual
@@ -384,21 +456,29 @@ def analyse(data):
         batch_lb = None
         if out_product in products and products[out_product]['default_batch_lb']:
             batch_lb = products[out_product]['default_batch_lb'] * products[out_product]['yield_multiplier']
-        label = f'Make TX{tx["id"]} ({product_name(out_product) if out_product else "no output line"}'
+        pname = product_name(out_product) if out_product else 'a product'
+        maker = _who(tx['actor_name'], tx['operator_id'])
+        ask_with = f'with {maker}' if maker else 'with whoever made it (the entry has no name on it)'
+        ref = [f'TX{tx["id"]}']
         record = {'transaction_id': tx['id'], 'product_id': out_product,
                   'product': product_name(out_product) if out_product else None,
                   'output_lb': round(sum(output.values()), 4), 'batch_lb': batch_lb, 'batches': None,
-                  'ingredients': [], 'substitutions': [], 'checked': False}
+                  'ingredients': [], 'substitutions': [], 'checked': False, 'why_not': None, 'made_by': maker}
         makes.append(record)
-        if not recipe or not batch_lb:
+        why_not = ('it records nothing made' if not out_product
+                   else 'there is no recipe on file for it' if not recipe
+                   else 'there is no batch size on file for it' if not batch_lb else None)
+        if why_not:
+            record['why_not'] = why_not
             flag('MAKE_NO_RECIPE', ALARM,
-                 f'{label}) has no recipe or batch size on file, so its ingredient use could not be checked.',
+                 f'A make of {pname} could not be checked against its recipe, because {why_not}. '
+                 'Please add the missing details so it can be checked.',
+                 refs=ref, summary=f'add the missing recipe details for {pname}',
                  product_id=out_product, transaction_id=tx['id'])
             continue
         subs = [s for s in data['substitutions'] if s['transaction_id'] == tx['id']]
         batches, expected = expected_usage(output[out_product], batch_lb, recipe, actual, subs)
         skipped = {r['ingredient_product_id'] for r in recipe if r['exclude_from_inventory']}
-        label += f', {batches:g} batch{"" if batches == 1 else "es"})'
         record.update(batches=round(batches, 4), checked=True, substitutions=[
             {'ingredient': product_name(s['ingredient_product_id']),
              'substitute': product_name(s['substitute_product_id']) if s['substitute_product_id'] else None,
@@ -408,26 +488,38 @@ def analyse(data):
                 continue
             want, used = expected.get(ingredient, 0.0), actual.get(ingredient, 0.0)
             allowed = tolerance(want)
+            unlisted = want <= EPS and used > EPS
+            matches = not unlisted and abs(used - want) <= allowed + EPS
             record['ingredients'].append({'product_id': ingredient, 'product': product_name(ingredient),
-                                          'expected_lb': round(want, 4), 'actual_lb': round(used, 4)})
+                                          'expected_lb': round(want, 4), 'actual_lb': round(used, 4),
+                                          'matches': matches, 'exact': abs(used - want) <= 0.05})
             if used > EPS:
                 expected_ratio[(tx['id'], ingredient)] = want / used
             common = dict(product_id=ingredient, transaction_id=tx['id'], expected=want, actual=used,
-                          tolerance_lb=allowed, batches=round(batches, 4), make_product=product_name(out_product))
+                          tolerance_lb=allowed, batches=round(batches, 4), make_product=pname, made_by=maker,
+                          refs=ref)
             name = product_name(ingredient)
-            if want <= EPS and used > EPS:
+            if unlisted:
                 flag('MAKE_UNLISTED_INGREDIENT', ALARM,
-                     f'{label} used {lb(used)} of {name}, which is not in the recipe.', **common)
-            elif abs(used - want) <= allowed + EPS:
+                     f'A make of {pname} used {name}, which is not in the recipe. Please check {ask_with} '
+                     'whether this was a swap that should be recorded.',
+                     facts=[_batches(batches), f'{name} used: {lb(used)}', 'In the recipe: none'],
+                     summary=f'check the {name} used in the {pname} make {ask_with}', **common)
+            elif matches:
                 continue
             elif used <= EPS:
                 flag('MAKE_INGREDIENT_MISSING', ALARM,
-                     f'{label} used no {name}. The recipe calls for {lb(want)} and no substitution was recorded.',
-                     **common)
+                     f'A make of {pname} used no {name}, and no swap was recorded. Please check {ask_with} '
+                     'whether it was left out or just not entered.',
+                     facts=[_batches(batches), f'Recipe: {lb(want)}', 'Used: none'],
+                     summary=f'check the missing {name} in the {pname} make {ask_with}', **common)
             else:
                 flag('MAKE_OFF_RECIPE', ALARM,
-                     f'{label} used {lb(used)} of {name}. The recipe calls for {lb(want)} '
-                     f'({lb(used - want, signed=True)}, {(used - want) / want * 100:+.1f}%).', **common)
+                     f'A make of {pname} used {"more" if used > want else "less"} {name} than the recipe. '
+                     f'Please check the amount {ask_with}.',
+                     facts=[_batches(batches), f'Used: {lb(used)}', f'Recipe: {lb(want)}',
+                            f'Difference: {lb(used - want, signed=True)} ({(used - want) / want * 100:+.1f}%)'],
+                     summary=f'check the {name} amount in the {pname} make {ask_with}', **common)
 
     # --- movement per lot --------------------------------------------------
     book_move, expected_move, gross = defaultdict(float), defaultdict(float), defaultdict(float)
@@ -471,13 +563,16 @@ def analyse(data):
             unexplained = end_lb - (start_lb + book_move.get(lot_id, 0.0))
             recipe_gap = book_move.get(lot_id, 0.0) - expected_move.get(lot_id, 0.0)
             if abs(unexplained) > EPS:
-                why = (f'{lb(unexplained, signed=True)} of the change is not explained by any entry or void '
-                       'made in this window. Something changed the books outside the normal entries.')
+                why = (f'{lb(unexplained, signed=True)} changed with no entry or cancellation we can see, '
+                       'so something changed the records outside the normal screens')
             else:
-                why = 'The entries add up; the gap is a make that used a different amount than its recipe.'
+                why = ('The entries add up; the gap comes from a make that used a different amount than its '
+                       'recipe (listed above)')
             flag('BALANCE_DIFFERENCE', ALARM,
-                 f'{lot_label(lot_id)}: expected to end at {lb(want)}, the books show {lb(end_lb)} '
-                 f'({lb(end_lb - want, signed=True)}; tolerance {lb(allowed)}). {why}',
+                 f'The stock for {lot_label(lot_id)} does not add up. Please ask the office to look into it.',
+                 facts=[f'Start: {lb(start_lb)}', f'Expected end: {lb(want)}', f'Records show: {lb(end_lb)}',
+                        f'Difference: {lb(end_lb - want, signed=True)}', why],
+                 summary=f'have the office look at {lot_label(lot_id)}, whose stock does not add up',
                  lot_id=lot_id, expected=want, actual=end_lb, tolerance_lb=allowed,
                  opening_lb=round(start_lb, 4), entered_movement_lb=round(book_move.get(lot_id, 0.0), 4),
                  expected_movement_lb=round(expected_move.get(lot_id, 0.0), 4),
@@ -494,105 +589,207 @@ def analyse(data):
                     if tx_id not in packs_today[line['lot_id']]:
                         packs_today[line['lot_id']].append(tx_id)
                     packed_today[line['lot_id']] += -line['quantity_lb']
+    covering = {}              # adjustment id -> the over-pack it covered
+    packs_checked = 0
     for history in data['lot_histories']:
         lot_id = history['lot_id']
         lot = lots.get(lot_id)
         if lot_id not in last_pack or not lot or products.get(lot['product_id'], {}).get('type') != 'batch':
             continue
+        packs_checked += 1
+        product, code = lot_parts(lot_id)
         made, packed = history['made_lb'], history['packed_lb']
+        refs = [f'TX{tx_id}' for tx_id in packs_today[lot_id]]
+        packers = list(dict.fromkeys(name for name in (
+            _who(transactions[t]['actor_name'], transactions[t]['operator_id']) for t in packs_today[lot_id]) if name))
+        packer_phrase = (' and '.join(packers) + ' (packed it)') if packers else \
+            'whoever packed it (no name on the entry)'
         common = dict(lot_id=lot_id, transaction_id=last_pack[lot_id], expected=made, actual=packed,
                       packed_in_window_lb=round(packed_today[lot_id], 4),
                       used_in_makes_lb=round(history['used_in_makes_lb'], 4),
-                      adjustments=history['adjustments'])
-        opener = (' and '.join(f'TX{tx_id}' for tx_id in packs_today[lot_id])
-                  + f' packed {lb(packed_today[lot_id])} from {lot_label(lot_id)}')
+                      adjustments=history['adjustments'], packed_by=packers, refs=refs)
         if made <= EPS:
-            flag('PACK_NO_MAKE', ALARM, f'{opener}, but no make was ever recorded for that lot.', **common)
+            flag('PACK_NO_MAKE', ALARM,
+                 f'{product} was packed from lot {code}, but no make was ever recorded for that lot. '
+                 'Please find out which batch it really came from and record the make.',
+                 facts=[f'Packed today: {lb(packed_today[lot_id])}', f'Packed in total: {lb(packed)}',
+                        'Made: none recorded'],
+                 ask=f'Ask {packer_phrase}: which batch did it come from?',
+                 summary=f'find out which batch the {product} packed from lot {code} came from', **common)
             continue
         over = packed - made
         if over <= EPS:
             continue
         allowed = tolerance(made)
-        totals = f'{lb(made)} made, {lb(packed)} packed ({lb(over, signed=True)}, {over / made * 100:.1f}%)'
+        share = f'{over / made * 100:.1f}%'
         if lot['product_id'] in COCONUT_YIELD_PRODUCT_IDS and over <= COCONUT_YIELD_PCT * made + EPS:
-            flag('COCONUT_YIELD', YIELD, f'{lot_label(lot_id)}: {totals}.', tolerance_lb=allowed, **common)
+            balance = ending.get(lot_id, 0.0)
+            flag('COCONUT_YIELD', YIELD,
+                 f'{product}, lot {code}: packed {lb(over)} more than was made ({share}). '
+                 'Normal for coconut; nothing to do.',
+                 facts=[f'Made: {lb(made)}', f'Packed: {lb(packed)}']
+                 + ([f'The lot now shows {lb(balance)}; that is expected'] if balance < -EPS else []),
+                 tolerance_lb=allowed, lot_balance_lb=round(balance, 4), **common)
         elif over > allowed + EPS:
             added = [a for a in history['adjustments'] if a['quantity_lb'] > 0]
-            extra = ''
+            facts = [f'Lot: {code}', f'Made: {lb(made)}', f'Packed: {lb(packed)}',
+                     f'Difference: {lb(over)} more packed than made ({share})']
+            for a in added:
+                when = ''
+                if a.get('created_at'):
+                    moment = datetime.fromisoformat(a['created_at']).astimezone(PLANT_TIMEZONE)
+                    when = f' at {_when(a["created_at"], with_date=moment.date() != plant_day)}'
+                facts.append(f'Covered by: {lb(a["quantity_lb"])} added by hand{when}, reason '
+                             f'"{a["reason_code"] or "none"}", {_by(a["actor_name"], a["operator_id"])} '
+                             f'(TX{a["transaction_id"]})')
+                covering[a['transaction_id']] = (product, over)
+            people = [packer_phrase]
+            adders = sorted({_who(a['actor_name'], a['operator_id']) for a in added} - {None} - set(packers))
+            if adders:
+                people.append(' and '.join(adders) + ' (added the extra stock)')
+            unnamed = sum(a['quantity_lb'] for a in added if not _who(a['actor_name'], a['operator_id']))
+            if unnamed > EPS:
+                people.append(f'whoever added the {lb(unnamed)} (no name on it)')
             if added:
-                extra = ' Stock was added to this lot by ' + '; '.join(
-                    f'adjustment TX{a["transaction_id"]} ({lb(a["quantity_lb"], signed=True)}, reason '
-                    f'"{a["reason_code"] or "none"}", entered by {_person(a["actor_name"], a["operator_id"])})'
-                    for a in added) + '.'
+                ask = (f'Ask {" and ".join(people)}: where did the extra {lb(over)} come from? '
+                       'If it came from another batch, record which one.')
+            else:
+                ask = (f'Ask {packer_phrase}: was {lb(over)} more really packed than was made? '
+                       'If it came from another batch, record which one.')
             flag('PACK_EXCEEDS_MAKE', ALARM,
-                 f'{opener}. Only {lb(made)} of that lot was ever made; {lb(packed)} has now been packed out '
-                 f'({lb(over, signed=True)}, {over / made * 100:.1f}%).{extra}', tolerance_lb=allowed, **common)
+                 f'More {product} was packed than was made. Please find out where the extra {lb(over)} came from.',
+                 facts=facts, ask=ask,
+                 summary=f'find out where the extra {lb(over)} of {product} (lot {code}) came from',
+                 tolerance_lb=allowed, **common)
 
-    # --- always listed -----------------------------------------------------
+    # --- lots below zero: always listed ---------------------------------------
+    coconut_today = {f['lot_id'] for f in flags if f['kind'] == 'COCONUT_YIELD'}
     for lot_id in sorted(ending):
-        if ending[lot_id] < -EPS:
-            flag('NEGATIVE_LOT', ALARM, f'{lot_label(lot_id)} is at {lb(ending[lot_id])}.',
-                 lot_id=lot_id, actual=ending[lot_id], moved_in_window=lot_id in moved)
+        balance = ending[lot_id]
+        if balance >= -EPS:
+            continue
+        product, code = lot_parts(lot_id)
+        since = negative_since.get(lot_id)
+        since_day = datetime.fromisoformat(since).astimezone(PLANT_TIMEZONE).date() if since else None
+        days_open = (plant_day - since_day).days if since_day else None
+        was = None if opening is None else opening.get(lot_id, 0.0)
+        if was is not None:          # new = went below zero, or got worse, since the last delivered check
+            new = was >= -EPS or balance < was - EPS
+        else:
+            new = since is None or datetime.fromisoformat(since) >= window_start
+        details = dict(lot_id=lot_id, actual=balance, moved_in_window=lot_id in moved,
+                       opening_lb=None if was is None else round(was, 4), below_zero_since=since,
+                       days_open=days_open)
+        # A coconut batch lot below zero ONLY because of an over-pack within the 2% yield.
+        lot, history = lots.get(lot_id), histories.get(lot_id)
+        if lot and lot['product_id'] in COCONUT_YIELD_PRODUCT_IDS and history and history['made_lb'] > EPS:
+            made, over = history['made_lb'], history['packed_lb'] - history['made_lb']
+            if over <= COCONUT_YIELD_PCT * made + EPS and -balance <= over + EPS:
+                if lot_id not in coconut_today:
+                    flag('COCONUT_BELOW_ZERO', YIELD,
+                         f'{product}, lot {code}: still {lb(balance)} from packing {lb(over)} more than was made '
+                         f'({over / made * 100:.1f}%). Normal; nothing to do.',
+                         new_today=False, expected=0.0, made_lb=round(made, 4),
+                         packed_lb=round(history['packed_lb'], 4), **details)
+                continue
+        since_text = f'since {since_day:%b} {since_day.day}' if since_day else 'since before this check'
+        if new:
+            if was is not None and was < -EPS:
+                fact = f'It was {lb(was)} at the start of the day, so it went down {lb(was - balance)} today'
+            elif since_day is not None and since_day < plant_day and was is None:
+                fact = f'It has been below zero {since_text}'
+            else:
+                fact = 'It went below zero today'
+            flag('NEGATIVE_LOT', ALARM,
+                 f'{product}, lot {code}, shows less than zero ({lb(balance)}). '
+                 'Please count it and correct the record.',
+                 facts=[fact], summary=f'count {product}, lot {code}, which shows {lb(balance)}', **details)
+        else:
+            days_text = (f'Open {_plural(days_open, "day")} ({since_text})' if days_open is not None
+                         else f'Open {since_text}')
+            flag('NEGATIVE_LOT', ALARM, f'{product}, lot {code}: shows {lb(balance)}. Needs a count.',
+                 facts=[days_text], new_today=False, **details)
 
+    # --- hand stock changes, cancellations, late entries ----------------------
     def movement_text(lines):
         return '; '.join(f'{lb(line["quantity_lb"], signed=True)} {lot_label(line["lot_id"])}' for line in lines)
 
     for tx in data['transactions']:
         if not tx['in_window']:
             continue
+        word = _TYPE_WORDS.get(tx['type'], tx['type'])
+        ref = [f'TX{tx["id"]}']
         if not tx['posted_after']:
             voids = [c for c in data['corrections'] if c['transaction_id'] == tx['id']]
             last = voids[-1] if voids else None
-            tail = (f' and voided {_when(last["created_at"], with_date=False)} by '
-                    f'{_person(last["actor_name"], last["operator_id"])}: "{last["reason"]}"') if last else \
-                ' and is not posted'
             gone = [line for line in data['voided_lines'] if line['transaction_id'] == tx['id']]
-            flag('VOID_SAME_DAY', INFO,
-                 f'TX{tx["id"]} ({tx["type"]}: {movement_text(gone) or "no lines"}) was entered '
-                 f'{_when(tx["created_at"])}{tail}. No effect on balances.',
-                 transaction_id=tx['id'], lines=gone)
+            facts = [movement_text(gone) or 'no lines']
+            if last:
+                headline = f'A {word} was entered and then cancelled. No effect on stock.'
+                facts += [f'Entered {_when(tx["created_at"])}, cancelled '
+                          f'{_when(last["created_at"], with_date=False)} {_by(last["actor_name"], last["operator_id"])}',
+                          f'Reason: "{last["reason"]}"']
+            else:
+                headline = f'A {word} was entered but is not counted. No effect on stock.'
+                facts += [f'Entered {_when(tx["created_at"])}']
+            flag('VOID_SAME_DAY', INFO, headline, facts=facts, refs=ref, transaction_id=tx['id'], lines=gone)
             continue
         if tx['business_date'] != tx['entered_plant_date']:
             flag('LATE_ENTRY', INFO,
-                 f'TX{tx["id"]} ({tx["type"]}) was entered {_when(tx["created_at"])} for business date '
-                 f'{date.fromisoformat(tx["business_date"]):%b} {date.fromisoformat(tx["business_date"]).day} '
-                 f'by {_person(tx["actor_name"], tx["operator_id"])}.',
-                 transaction_id=tx['id'], business_date=tx['business_date'])
+                 f'A {word} for {_day(tx["business_date"])} was entered later, on '
+                 f'{_day(tx["entered_plant_date"])}. Just so you know; nothing to do.',
+                 facts=[f'Entered {_when(tx["created_at"])} {_by(tx["actor_name"], tx["operator_id"])}'],
+                 refs=ref, transaction_id=tx['id'], business_date=tx['business_date'])
         if tx['type'] == 'adjust':
             reason = (tx['reason_code'] or '').strip().lower()
             no_reason, no_person = reason in ('', 'unknown'), tx['actor_id'] is None
             if no_reason or no_person:
-                problems = ' and '.join(filter(None, [
-                    f'reason "{reason or "none"}"' if no_reason else '',
-                    'no named person (shared key)' if no_person else '']))
-                reason_text = '' if no_reason else f' Reason given: "{reason}".'
-                person_text = '' if no_person else f' Entered by {tx["actor_name"]}.'
-                flag('UNEXPLAINED_ADJUSTMENT', REVIEW,
-                     f'TX{tx["id"]} at {_when(tx["created_at"], with_date=False)}: {movement_text(after[tx["id"]])} '
-                     f'with {problems}.{reason_text}{person_text}',
-                     transaction_id=tx['id'], lot_id=after[tx['id']][0]['lot_id'] if after[tx['id']] else None,
-                     actual=sum(line['quantity_lb'] for line in after[tx['id']]),
+                lines = after[tx['id']]
+                if no_person:
+                    missing = 'without a reason and with no name on it' if no_reason else 'with no name on it'
+                    headline = f'Stock was changed by hand {missing}. Please find out who did it and why.'
+                else:
+                    headline = (f'{tx["actor_name"]} changed stock by hand without giving a reason. '
+                                f'Please ask {tx["actor_name"]} why.')
+                facts = [f'{movement_text(lines)} at {_when(tx["created_at"], with_date=False)}',
+                         f'Reason given: "{reason}"' if reason else 'No reason given']
+                for line in lines:
+                    if tx['id'] in covering and line['quantity_lb'] > 0:
+                        facts.append(f'This is the {lb(line["quantity_lb"])} that covered the extra packing of '
+                                     f'{covering[tx["id"]][0]} above')
+                        break
+                first = lot_label(lines[0]['lot_id']) if lines else 'a lot'
+                flag('UNEXPLAINED_ADJUSTMENT', REVIEW, headline, facts=facts, refs=ref,
+                     summary=f'find out who changed {first} by hand, and why',
+                     transaction_id=tx['id'], lot_id=lines[0]['lot_id'] if lines else None,
+                     actual=sum(line['quantity_lb'] for line in lines),
                      reason_code=tx['reason_code'], operator_id=tx['operator_id'], notes=tx['notes'],
                      no_reason=no_reason, no_named_person=no_person)
     for correction in data['corrections']:
         tx = transactions.get(correction['transaction_id'])
         if tx is None or tx['in_window']:
             continue
-        verb = {'void': 'voided', 'restore': 'restored', 'amend': 'amended'}[correction['event_type']]
+        verb = {'void': 'cancelled', 'restore': 'brought back', 'amend': 'changed'}[correction['event_type']]
         flag('VOID_OF_EARLIER_ENTRY', INFO,
-             f'TX{tx["id"]} ({tx["type"]}, business date {date.fromisoformat(tx["business_date"]):%b} '
-             f'{date.fromisoformat(tx["business_date"]).day}) was {verb} {_when(correction["created_at"])} by '
-             f'{_person(correction["actor_name"], correction["operator_id"])}: "{correction["reason"]}". '
-             'The balance change is included in the roll-forward.',
-             transaction_id=tx['id'], event_type=correction['event_type'], business_date=tx['business_date'])
+             f'An earlier {_TYPE_WORDS.get(tx["type"], tx["type"])} (for {_day(tx["business_date"])}) was '
+             f'{verb}. Its effect on stock is included in these numbers.',
+             facts=[f'{verb.capitalize()} {_when(correction["created_at"])} '
+                    f'{_by(correction["actor_name"], correction["operator_id"])}',
+                    f'Reason: "{correction["reason"]}"'],
+             refs=[f'TX{tx["id"]}'], transaction_id=tx['id'], event_type=correction['event_type'],
+             business_date=tx['business_date'])
 
     order = {ALARM: 0, REVIEW: 1, YIELD: 2, INFO: 3}
     flags.sort(key=lambda f: (order[f['severity']], f['kind'], f['transaction_id'] or 0, f['lot_id'] or 0))
-    attention = sum(1 for f in flags if f['severity'] in (ALARM, REVIEW))
+    counted = [f for f in flags if f['severity'] in (ALARM, REVIEW)]
+    attention = sum(1 for f in counted if f['new'])
+    still_open = sum(1 for f in counted if not f['new'])
 
     # --- findings an earlier run saved but that were never emailed ----------
     # They are shown as they were SAVED, whatever the books say tonight, with a
     # line on what has happened since. Nothing here is re-derived from the ledger.
+    # The owner has not seen them, so they count as new unless tonight's own new
+    # findings already count them.
     def same(a, b):
         return (a is None and b is None) or (a is not None and b is not None and abs(a - b) <= EPS)
 
@@ -611,53 +808,54 @@ def analyse(data):
         now_expected = make_expected.get((old['transaction_id'], old['product_id']))
         if any(same(m['actual_lb'], old['actual_lb']) and same(m['difference_lb'], old['difference_lb'])
                for m in matches):
-            status, since = 'still_open', 'Still open: it is also in tonight\'s findings below.'
+            status, since = 'still_open', 'It is still the case: it is also listed below.'
         elif matches:
-            status, since = 'changed', 'Changed since: the figures are different now. See tonight\'s findings below.'
+            status, since = 'changed', 'The numbers have changed since; see below.'
         elif tx is not None and not tx['posted_after']:
-            status, since = 'voided', f'Since then TX{tx["id"]} was voided.'
+            status, since = 'voided', f'Since then that entry was cancelled (TX{tx["id"]}).'
         elif old['kind'] == 'NEGATIVE_LOT':
             status = 'corrected'
-            since = f'Since then the lot was corrected. It now stands at {lb(ending.get(old["lot_id"], 0.0))}.'
+            since = f'Since then the lot was corrected. It now shows {lb(ending.get(old["lot_id"], 0.0))}.'
         elif old['kind'].startswith('MAKE_') and now_expected is not None and not same(now_expected, old['expected_lb']):
             status = 'recipe_changed'
             since = f'Since then the recipe on file changed. It now calls for {lb(now_expected)}.'
         else:
             status = 'no_longer_found'
-            since = 'Tonight\'s check no longer finds this. It was corrected or changed since.'
-        carried.append({**old, 'status': status, 'since': since})
-    # Still-open and changed ones are already counted in tonight's own findings.
-    carried_attention = sum(1 for c in carried if c['severity'] in (ALARM, REVIEW)
-                            and c['status'] not in ('still_open', 'changed'))
+            since = 'Today\'s check no longer finds this. It was corrected or changed since.'
+        already = any(m['new'] and m['severity'] in (ALARM, REVIEW) for m in matches)
+        carried.append({**old, 'status': status, 'since': since,
+                        'counted': old['severity'] in (ALARM, REVIEW) and not already})
+    carried_attention = sum(1 for c in carried if c['counted'])
     attention += carried_attention
     return {
         'plant_date': data['plant_date'], 'window_start': data['window_start'], 'window_end': data['window_end'],
         'mode': data['mode'], 'balance_checked': opening is not None,
         'entries_checked': sum(1 for t in data['transactions'] if t['in_window'] and t['posted_after']),
         'makes_checked': sum(1 for m in makes if m['checked']), 'lots_checked': len(checked),
+        'packs_checked': packs_checked,
         'result': 'attention' if attention else 'all_clear', 'attention_count': attention,
+        'new_count': attention, 'still_open_count': still_open,
         'flags': flags, 'makes': makes, 'undelivered': data.get('undelivered') or [],
         'carried': carried, 'carried_attention_count': carried_attention,
     }
 
 
 # ---------------------------------------------------------------------------
-# The owner email: plain language, flags first.
+# The owner email: plain words, read quickly on a phone. New things first.
 # ---------------------------------------------------------------------------
 
-_SECTIONS = (
-    ('OVER TOLERANCE', lambda f: f['severity'] == ALARM and f['kind'] != 'NEGATIVE_LOT',
-     'Nothing over tolerance.'),
-    ('LOTS BELOW ZERO', lambda f: f['kind'] == 'NEGATIVE_LOT', 'No lot is below zero.'),
-    ('ADJUSTMENTS WITH NO REASON OR NO NAMED PERSON', lambda f: f['severity'] == REVIEW, 'None.'),
-    ('COCONUT YIELD (packed slightly more than made, within 2%; not an alarm)',
-     lambda f: f['severity'] == YIELD, 'None.'),
-    ('FOR INFORMATION: VOIDS AND LATE ENTRIES', lambda f: f['severity'] == INFO, 'None.'),
+HOW_TO_READ = (
+    '"New today" is anything that first showed up, or got worse, today. These are the ones to look at.',
+    '"Still not fixed" was already there before today and has not changed. It stays on the list until '
+    'someone fixes it.',
+    'Small differences are allowed: an amount counts as matching if it is within 5 lb, or within 2% when '
+    'more than 250 lb moved.',
+    'Coconut usually packs out a little more than the system expects. Up to 2% more is normal and is listed '
+    'only so you know.',
+    '"No name on it" means the entry was made with the shared login, not with someone\'s own sign-in.',
+    'This check compares the records with each other. It cannot see the shelves; only a count can.',
+    'This email comes every night, even when all is well. No email means the check did not run.',
 )
-
-
-def _plural(count, word):
-    return f'{count} {word}{"" if count == 1 else "s"}'
 
 
 def _undelivered_notes(runs, plant_date):
@@ -667,79 +865,164 @@ def _undelivered_notes(runs, plant_date):
         day = date.fromisoformat(run['plant_date'])
         label = f'{day:%a %b} {day.day}'
         if run['plant_date'] == plant_date:         # an earlier attempt at this same check
-            notes.append(f'NOTE: an earlier run of this check was saved {_when(run["started_at"])} and its email '
-                         'was not delivered. What it found is listed below.')
+            notes.append(f'Note: an earlier run of this check at {_when(run["started_at"])} saved its findings, '
+                         'but its email did not go out. They are listed below.')
         elif run['job_status'] != 'completed':
-            notes.append(f'NOTE: the check for {label} did not finish, so no email was sent for it. '
-                         'This email covers that day as well.')
+            notes.append(f'Note: the check for {label} did not finish, so no email went out for that day. '
+                         'This email covers it too.')
         elif run['email_status'] == 'failed':
-            notes.append(f'NOTE: the email for {label} was not delivered. This email covers that day as well.')
+            notes.append(f'Note: the email for {label} did not go out. This email covers that day too.')
         else:
-            notes.append(f'NOTE: an extra check was saved {_when(run["started_at"])} without an email. '
-                         'This email covers everything it found.')
+            notes.append(f'Note: an extra check ran at {_when(run["started_at"])} without sending an email. '
+                         'This email includes everything it found.')
     return list(dict.fromkeys(notes))
+
+
+def _entry(f, compact=False):
+    """(first line, more lines) for one flag. Transaction numbers go at the end of the first line."""
+    detail = f['detail']
+    if 'headline' not in detail:                    # saved before the plain-language email
+        return detail['message'], []
+    refs = f' ({", ".join(detail["refs"])})' if detail.get('refs') else ''
+    facts = list(detail.get('facts') or [])
+    if compact:
+        return ' '.join([detail['headline']] + [fact.rstrip('.') + '.' for fact in facts]) + refs, []
+    return detail['headline'] + refs, facts + ([detail['ask']] if detail.get('ask') else [])
+
+
+def _make_line(make):
+    """One line of "What we checked" for one make."""
+    tx = f' (TX{make["transaction_id"]})'
+    if not make['checked']:
+        return f'{make["product"] or "A make"}: could not be checked, because {make["why_not"]}.{tx}'
+    count = len(make['ingredients'])
+    off = [i for i in make['ingredients'] if not i.get('matches', True)]
+    near = [i for i in make['ingredients'] if i.get('matches', True) and not i.get('exact', True)]
+    if not off:
+        text = f'all {_plural(count, "ingredient")} match the recipe'
+        if near:
+            text += ' (' + '; '.join(f'{i["product"]} {lb(i["actual_lb"] - i["expected_lb"], signed=True)}'
+                                     for i in near) + ', within the small allowed difference)'
+    else:
+        text = (f'{count - len(off)} of {count} ingredients match the recipe. Different: '
+                + '; '.join(f'{i["product"]} used {lb(i["actual_lb"])}, recipe {lb(i["expected_lb"])}'
+                            for i in off))
+    if make['substitutions']:
+        text += '. Recorded swap: ' + ', '.join(
+            f'{s["ingredient"]} replaced by {s["substitute"]}' if s['substitute'] else f'{s["ingredient"]} left out'
+            for s in make['substitutions'])
+    return f'{make["product"]}, {_batches(make["batches"])}: {text}.{tx}'
 
 
 def render_email(analysis):
     """{'subject', 'text', 'html'} for one analysis. Sent every night, all-clear included."""
     day = date.fromisoformat(analysis['plant_date'])
     flags = analysis['flags']
-    over = sum(1 for f in flags if f['severity'] == ALARM and f['kind'] != 'NEGATIVE_LOT')
-    negative = sum(1 for f in flags if f['kind'] == 'NEGATIVE_LOT')
-    review = sum(1 for f in flags if f['severity'] == REVIEW)
-    if analysis['result'] == 'all_clear':
-        headline = 'ALL CLEAR. Nothing over tolerance, no lot below zero, no unexplained adjustment.'
-        subject_tail = 'all clear'
+    counted = [f for f in flags if f['severity'] in (ALARM, REVIEW)]
+    new_items = [f for f in counted if f.get('new', True)]
+    still = [f for f in counted if not f.get('new', True)]
+    coconut = [f for f in flags if f['severity'] == YIELD]
+    info = [f for f in flags if f['severity'] == INFO]
+    carried = analysis.get('carried') or []
+    new_count = analysis.get('new_count', analysis['attention_count'])
+    still_count = analysis.get('still_open_count', len(still))
+
+    # The one sentence a person could act on without reading further.
+    if carried and any(c.get('counted') for c in carried):
+        first = 'look at the findings from an earlier check that were never emailed (listed first)'
     else:
-        earlier = analysis.get('carried_attention_count') or 0
-        parts = [_plural(over, 'item') + ' over tolerance' if over else '',
-                 _plural(negative, 'lot') + ' below zero' if negative else '',
-                 _plural(review, 'adjustment') + ' to review' if review else '',
-                 _plural(earlier, 'earlier finding') + ' not emailed before' if earlier else '']
-        subject_tail = ', '.join(p for p in parts if p)
-        headline = f'NEEDS ATTENTION: {subject_tail}.'
-    subject = f'Factory Ledger daily check, {day:%a %b} {day.day}: {subject_tail}'
-    checked = (f'Checked {_plural(analysis["entries_checked"], "entry").replace("entrys", "entries")}, '
-               f'{_plural(analysis["makes_checked"], "make")} and {_plural(analysis["lots_checked"], "lot")}. '
-               f'Entries made {_when(analysis["window_start"])} to {_when(analysis["window_end"])} Eastern.')
+        first = next((f['detail'].get('summary') for f in new_items if f['detail'].get('summary')),
+                     'see "New today" below')
+    if new_count == 0 and still_count == 0:
+        summary = 'Nothing new today, and nothing is waiting to be fixed: no action needed.'
+    elif new_count == 0:
+        summary = (f'Nothing new today; {_plural(still_count, "older item")} still '
+                   f'{"needs" if still_count == 1 else "need"} a stock count (listed below).')
+    elif new_count == 1:
+        summary = f'1 new thing to check today: {first}.'
+    else:
+        summary = f'{new_count} new things to check today, starting with: {first}.'
+    status = f'New today: {new_count}. Still not fixed: {still_count}.'
+    tail = 'Nothing new today.' if new_count == 0 else f'{new_count} new to check.'
+    tail += f' {still_count} still open.' if still_count else (' All clear.' if new_count == 0 else '')
+    subject = f'Factory Ledger daily check, {day:%a %b} {day.day}: {tail}'
+
     notes = []
     if not analysis['balance_checked']:
-        notes.append('First run: a starting snapshot of every lot was saved. The balance roll-forward '
-                     'begins with the next run.')
+        notes.append('First night: today\'s stock was saved as a starting point. From the next check on, '
+                     'we also check that every lot\'s stock adds up.')
     notes += _undelivered_notes(analysis.get('undelivered') or [], analysis['plant_date'])
-    lines = [f'Factory Ledger daily check for {day:%A, %B} {day.day}, {day.year}', '', headline, checked, *notes]
+
+    # Blocks: (title, numbered entries [(first, more)], plain lines, text when empty)
     blocks = []
-    carried = analysis.get('carried') or []
     if carried:
-        # Exactly as saved by the earlier run(s), then what has happened since.
-        title = f'FROM UNDELIVERED RUNS: FOUND EARLIER, NOT EMAILED UNTIL NOW ({len(carried)})'
-        items = [f'Saved {_when(c["saved_at"])}: {c["message"]} >> {c["since"]}' for c in carried]
-        blocks.append((title, items, 'None.'))
-        lines += ['', title] + [f'  {n}. {m}' for n, m in enumerate(items, 1)]
-        blocks.append(("TONIGHT'S FINDINGS", [], 'The sections below are what the check finds in the books now.'))
-        lines += ['', "TONIGHT'S FINDINGS"]
-    for title, belongs, empty in _SECTIONS:
-        items = [f['detail']['message'] for f in flags if belongs(f)]
-        blocks.append((f'{title} ({len(items)})', items, empty))
-        lines += ['', f'{title} ({len(items)})'] + ([f'  {n}. {m}' for n, m in enumerate(items, 1)] or [f'  {empty}'])
-    footer = [
-        'How to read this',
-        '  Tolerance is the greater of 5 lb or 2% of the pounds that moved in that lot that day.',
-        '  This check compares the books with themselves. It cannot see the shelf; only a count can.',
-        '  It is sent every night, including when all is clear. No email means the job did not run.',
-    ]
-    lines += [''] + footer
+        blocks.append((f'Found earlier, not emailed until now ({len(carried)})',
+                       [(c['message'], [f'Found {_when(c["saved_at"])}. {c["since"]}']) for c in carried], [], None))
+    carried_new = any(c.get('counted') for c in carried)
+    blocks.append((f'New today ({len(new_items)})', [_entry(f) for f in new_items], [],
+                   'Nothing else new today.' if carried_new else 'Nothing new today.'))
+    if still:
+        blocks.append((f'Still not fixed ({len(still)})', [_entry(f, compact=True) for f in still], [], None))
+    if coconut:
+        blocks.append((f'Normal coconut difference ({len(coconut)})', [_entry(f, compact=True) for f in coconut],
+                       [], None))
+    if info:
+        blocks.append((f'Cancelled or late entries ({len(info)})', [_entry(f, compact=True) for f in info], [],
+                       None))
+    entries = analysis['entries_checked']
+    checked = [f'{_plural(entries, "entry", "entries")} made {_when(analysis["window_start"])} to '
+               f'{_when(analysis["window_end"])} (Eastern time).']
+    makes = analysis.get('makes') or []
+    if makes:
+        checked.append(f'Makes ({len(makes)}), each compared with its recipe:')
+        checked += [f'- {_make_line(m)}' for m in makes]
+    else:
+        checked.append('Makes: none today.')
+    packs = analysis.get('packs_checked')
+    if packs is not None:
+        checked.append(f'Packing: {_plural(packs, "batch lot")} packed from, each compared with how much '
+                       'of it was made.' if packs else 'Packing: no batch lot packed from.')
+    if not analysis['balance_checked']:
+        checked.append('Stock: today\'s stock was saved as a starting point; the add-up check starts next time.')
+    else:
+        lots_checked = analysis['lots_checked']
+        bad = sum(1 for f in flags if f['kind'] == 'BALANCE_DIFFERENCE')
+        if not lots_checked:
+            checked.append('Stock: no lot changed.')
+        elif not bad:
+            checked.append(f'Stock: all {_plural(lots_checked, "lot")} that changed add up '
+                           '(start + what came in − what went out = end).')
+        else:
+            checked.append(f'Stock: {_plural(lots_checked, "lot")} that changed were checked; {bad} '
+                           f'{"does" if bad == 1 else "do"} not add up (see "New today").')
+    blocks.append(('What we checked', [], checked, None))
+    blocks.append(('How to read this', [], [f'- {line}' for line in HOW_TO_READ], None))
+
+    title = f'Factory Ledger daily check for {day:%A, %B} {day.day}, {day.year}'
+    lines = [title, '', summary, status, *notes]
+    for heading, numbered, plain, empty in blocks:
+        lines += ['', heading]
+        for n, (first_line, more) in enumerate(numbered, 1):
+            lines.append(f'  {n}. {first_line}')
+            lines += [f'     {extra}' for extra in more]
+        lines += [f'  {line}' for line in plain]
+        if not numbered and not plain and empty:
+            lines.append(f'  {empty}')
     esc = html_lib.escape
-    html = [f'<h2 style="font:600 18px sans-serif">{esc(lines[0])}</h2>',
-            f'<p style="font:600 15px sans-serif">{esc(headline)}</p>',
-            f'<p style="font:14px sans-serif">{esc(checked)}</p>'] + [
+    html = [f'<h2 style="font:600 18px sans-serif">{esc(title)}</h2>',
+            f'<p style="font:600 16px sans-serif">{esc(summary)}</p>',
+            f'<p style="font:14px sans-serif">{esc(status)}</p>'] + [
         f'<p style="font:14px sans-serif">{esc(n)}</p>' for n in notes]
-    for title, items, empty in blocks:
-        html.append(f'<h3 style="font:600 14px sans-serif;margin-top:20px">{esc(title)}</h3>')
-        html.append('<ol style="font:14px sans-serif">' + ''.join(f'<li>{esc(m)}</li>' for m in items) + '</ol>'
-                    if items else f'<p style="font:14px sans-serif">{esc(empty)}</p>')
-    html.append('<p style="font:12px sans-serif;color:#555;margin-top:24px">'
-                + '<br>'.join(esc(line.strip()) for line in footer[1:]) + '</p>')
+    for heading, numbered, plain, empty in blocks:
+        html.append(f'<h3 style="font:600 15px sans-serif;margin-top:20px">{esc(heading)}</h3>')
+        if numbered:
+            html.append('<ol style="font:14px sans-serif;padding-left:20px">' + ''.join(
+                f'<li style="margin-bottom:8px">{esc(first_line)}'
+                + ''.join(f'<br>{esc(extra)}' for extra in more) + '</li>' for first_line, more in numbered) + '</ol>')
+        if plain:
+            html.append('<p style="font:14px sans-serif">' + '<br>'.join(esc(line) for line in plain) + '</p>')
+        if not numbered and not plain and empty:
+            html.append(f'<p style="font:14px sans-serif">{esc(empty)}</p>')
     return {'subject': subject, 'text': '\n'.join(lines) + '\n', 'html': '\n'.join(html)}
 
 
@@ -887,7 +1170,8 @@ def save_run(cur, *, started_at, baseline_id, data, analysis, email, delivery):
                    [(run_id, f['kind'], f['severity'], f['product_id'], f['lot_id'], f['transaction_id'],
                      f['expected_lb'], f['actual_lb'], f['difference_lb'], f['tolerance_lb'], Json(f['detail']))
                     for f in analysis['flags']])
-    summary = {key: analysis[key] for key in ('mode', 'makes', 'undelivered', 'carried')}
+    summary = {key: analysis[key] for key in ('mode', 'makes', 'undelivered', 'carried', 'new_count',
+                                              'still_open_count', 'packs_checked')}
     summary.update(acknowledged=data.get('acknowledged') or [], email_subject=email['subject'], email_text=email['text'],
                    snapshot_lots=len(data['ending']),
                    tolerance={'floor_lb': TOLERANCE_FLOOR_LB, 'pct_of_day_movement': TOLERANCE_PCT})
