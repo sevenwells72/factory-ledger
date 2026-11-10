@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-10 11:15 — Daily reconciliation PR 198: owner-approved merge to main, job left switched off
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `daily-reconciliation.md`
+- **What changed:** Row 273 and the deployment doc now say the reconciliation is merged to main (PR 198, squash) with the job switched off: migration 094 not applied to staging or production, RECONCILIATION_ENABLED and the email variables not set. Verified production backup taken first (~/Backups/fl/2026-11-10-pre-pr198-merge: dump checksum OK, storage all 200, restore key checks all match).
+- **Why:** Michael approved merging PR 198 without another review round. Merge only: no migration, no variables, nothing else changed.
+
+---
+
 ## 2026-11-10 11:09 — Daily reconciliation: run lock taken before the job reads anything (no duplicate same-day email)
 - **File(s) changed:** `reconciliation.py`, `scripts/daily_reconciliation.py`, `tests/test_daily_reconciliation.py`, `docs/deployments/daily-reconciliation.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** The command now takes the one-run-at-a-time advisory lock on a separate guard connection before it opens the job connection, and releases it only after the job has committed, so the REPEATABLE READ job cannot freeze a view of saved runs that predates another run's commit. run_job keeps a second in-transaction lock as a backstop. Both locks are transaction-level (hold on the 6543 pooler). Two new tests: statement order on both connections, and two real racing runs in a throwaway schema (one saved run, one email). Docs describe the guard connection. 53 tests in the file; Python 7,530 passed in both modes on fresh databases; Node 702 passed. Row 273 updated (still not deployed).

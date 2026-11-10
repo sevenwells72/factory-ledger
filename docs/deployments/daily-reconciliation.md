@@ -3,8 +3,8 @@
 Scope and hand run: [`docs/verification/daily-reconciliation-scoping.md`](../verification/daily-reconciliation-scoping.md).
 Code: `reconciliation.py`, `scripts/daily_reconciliation.py`, migration `094_daily_reconciliation.sql`.
 
-**Status: built, not deployed. Migration 094 is not applied to staging or production.**
-Merging this code changes nothing in production by itself: the job is not called until
+**Status: merged to main 2026-11-10 (PR #198), switched off. Migration 094 is not applied to staging or
+production.** The merged code changes nothing in production by itself: the job is not called until
 `RECONCILIATION_ENABLED=1` is set on the cron service, the endpoints answer 503 until the
 migration marker exists, and email is off until `RECONCILIATION_EMAIL_ENABLED=1`.
 
