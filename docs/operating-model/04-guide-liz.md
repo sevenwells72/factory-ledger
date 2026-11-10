@@ -43,6 +43,7 @@ Sign in once per day with the **personal actor key**, which is stored in the bro
 | Time | Activity | Where | How / buttons |
 |---|---|---|---|
 | Morning | **Incoming orders** | Dashboard → **Sales Orders → Open** | New PO by email: **New Sales Order** → upload the PO PDF or photo → check the extracted lines → **approve**. This opens a draft in **Office**; press Record. Watch for **"duplicate customer PO"** warnings. Phone or text order: Office → Create order (or FL Assistant). |
+| Morning | **Orders for desiccated coconut sold as-is** | Office → Create order | Use the ingredient item (Coconut Flake / Fancy / Medium Desiccated) in **bags** (50 lb each). The old "Desiccated … 50 LB" items are archived. Slips and exports show the ingredient name; QuickBooks keeps its own item (SOP-12). |
 | Morning | **Expected receipts** | Dashboard → **Expected Receipts** | Add each PO you placed with a supplier (Office → Create expected delivery, or upload the supplier confirmation and approve it). Overdue ones appear in Needs Attention. |
 | On delivery | **Supplier paperwork** | Dashboard → **Activity → Receipts**, then open the receipt | Arturo records the receipt on the floor with a BOL photo. Check the receipt against the paper BOL and invoice: product, cases, lb, supplier lot. If wrong, send the receipt number to Arturo (same day) or Michael. Keep the paper filed by receipt number (RCV-…). |
 | Anytime | **Inventory and lots** | Operations stock panels → click a product → lot detail; **Traceability** for "where did lot X go" | Read-only. |

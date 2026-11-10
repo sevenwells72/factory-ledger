@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-10 18:32 — Record SO-261027-002 shipment and desiccated coconut sold as-is (changelog rows 279-281, SOP-12)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/operating-model/08-standard-operating-procedures.md`, `docs/operating-model/03-guide-arturo.md`, `docs/operating-model/04-guide-liz.md`
+- **What changed:** Added row 279 (shipment SHP-261110-004 of the last two SO-261027-002 lines; supplier lot for lot 6153 refused by the system and not recorded), row 280 (Coconut Flake Desiccated orderable in 50 lb bags, SO-261103-001 re-pointed with ORD-261110-001/002, Desiccated Flake 50 LB archived) and row 281 (same conversion for Coconut Fancy and Medium Desiccated; 189 and 194 archived). New SOP-12 and one row each in the Arturo and Liz guides: desiccated coconut sold as-is is one item, ordered in bags, shipped from the ingredient lot, no pack step.
+- **Why:** Owner decisions and approvals 2026-11-10; Regression Guard step 4: one row per production change.
+
+---
+
 ## 2026-11-10 18:10 — Record void VD-261110-001 and pack PK-261110-007 (changelog rows 277–278)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added row 277 (void of mistaken 1,800 lb receive TX 3005 on Coconut Flake Desiccated, receipt VD-261110-001) and row 278 (pack of 1,800 lb from pooled lot 26-10-27-FOUND-011 into Desiccated Flake 50 LB lot 6153 for SO-261027-002, receipt PK-261110-007, TX 3012), each with its backup, owner approval, read-only verification and open items. Row 276 is left for open PR #201.
