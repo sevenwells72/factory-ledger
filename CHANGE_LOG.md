@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-09 20:06 — Record PR 196 production deploy (changelog rows 271–272)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Marked row 272 (and row 271, shipped in the same PR) as deployed: #196 squash-merged to main `ddffa71`, Railway FastAPI `d29913a8` SUCCESS, /health healthy, live lot-report for lot 25120 returns 200 with 277 lots, Netlify serves `trace-report.js?v=2` and `dashboard.js?v=86` identical to main. Backup `~/Backups/fl/2026-11-09-pre-pr196` verified before the merge.
+- **Why:** Michael approved the merge and asked for the deployed note after the live checks passed. No production data was written.
+
+---
+
 ## 2026-11-09 19:45 — Remove trailing blank lines from the new backward audit reader
 - **File(s) changed:** `lot_trace_backward.py`
 - **What changed:** Normalize the new module to one final newline after staged whitespace validation.
