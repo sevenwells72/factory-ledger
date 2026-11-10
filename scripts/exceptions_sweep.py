@@ -17,6 +17,7 @@ shipment at its 23:59 plant-time deadline, serialized with late uploads.
 """
 import os
 from pathlib import Path
+import subprocess
 import sys
 from urllib.parse import urlsplit
 
@@ -65,10 +66,27 @@ def main():
     print(f'Escalated {exceptions} overdue exception(s) and {flags} shortage flag(s)')
 
 
+def run_daily_reconciliation():
+    """Nightly hook: run the daily reconciliation after the sweep, as its own plain command.
+
+    Off unless RECONCILIATION_ENABLED=1 on this cron service (migration 094 must be
+    applied first). It runs as a separate process — `python scripts/daily_reconciliation.py`,
+    the exact line a Render Cron Job would use — so it shares nothing with the sweep's
+    transaction and cannot undo or block it. Returns its exit code (0 when off).
+    """
+    if os.environ.get('RECONCILIATION_ENABLED', '').strip().lower() not in ('1', 'true', 'yes', 'on'):
+        return 0
+    script = Path(__file__).resolve().parent / 'daily_reconciliation.py'
+    return subprocess.run([sys.executable, str(script)], check=False).returncode
+
+
 if __name__ == '__main__':
+    status = 0
     try:
         main()
     except Exception as exc:
         # Never print a DSN or credential-bearing driver error.
         print(f'Exceptions sweep failed ({type(exc).__name__})', file=sys.stderr)
-        sys.exit(1)
+        status = 1
+    # The reconciliation runs even when the sweep failed; either failure fails the cron run.
+    sys.exit(run_daily_reconciliation() or status)

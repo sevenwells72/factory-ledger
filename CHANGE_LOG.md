@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-11-09 21:46 — Daily inventory reconciliation PR 1: nightly check, owner email, migration 094 (not deployed)
+- **File(s) changed:** `reconciliation.py`, `scripts/daily_reconciliation.py`, `scripts/exceptions_sweep.py`, `main.py`, `migrations/094_daily_reconciliation.sql`, `migrations/down/094_daily_reconciliation_down.sql`, `tests/test_daily_reconciliation.py`, `tests/fixtures/reconciliation/`, `tests/fixtures/route_contract/routes.jsonl`, `tests/test_named_actor_writes.py`, `docs/deployments/daily-reconciliation.md`, `docs/ARCHITECTURE-MAP.md`, `docs/verification/daily-reconciliation-scoping.md`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Built the nightly reconciliation from the scoping doc on branch feat/daily-reconciliation (worktree ~/dev/fl-daily-recon-wt, off origin/main 4068c6a). Migration 094 adds three append-only tables and touches no existing table. reconciliation.py snapshots lot balances and checks the business day (make vs recipe, per-lot roll-forward, packed-more-than-made, pack with no make), with tolerance = greater of 5 lb or 2% of the day's movement; lots below zero and unknown/unnamed adjustments are always listed; coconut over-pack up to 2% is its own section; voids and late entries are information. Email via Resend (httpx), off by default, sent every night when enabled; job status, result and delivery are separate fields. Hooked into scripts/exceptions_sweep.py behind RECONCILIATION_ENABLED. Three read-only GET /verification/reconciliation/* routes, out of both GPT schemas (office still 30, floor 22). 27 new tests incl. the Nov 5/6/9 replay (reproduces the TX2973 flag) and the ledger-unchanged guard; full Python suite 7,504 passed on a fresh local DB. Regression row 273 added. Replay fixtures and the Nov 9 dry-run sample come from the scoping session's read-only export loaded into a local scratch database; production was not queried in this session. Migration applied only to local scratch databases.
+- **Why:** Michael asked for PR 1 of the daily reconciliation. Not merged, not deployed, migration not applied to staging or production.
+
+---
+
+## 2026-11-09 21:25 — Daily inventory reconciliation scoping (read-only)
+- **File(s) changed:** `docs/verification/daily-reconciliation-scoping.md`
+- **What changed:** Scoping doc for a nightly snapshot + roll-forward check (previous snapshot + receipts − recipe usage ± other posted movements vs ending balance), make-vs-recipe check, pack-without-make check, flags table and owner email. Covers data sources (`ledger_current_*`, no snapshot table exists), recipe completeness (all 25 batch products have recipes; gaps listed), a hand run for Nov 5/6/9 (0 balance differences; 1 flag over tolerance: TX2973 packed 375 lb from a 350 lb lot; 6 lots currently below zero), hosting (existing Railway exceptions-sweep cron now, Render Cron later; not pg_cron), email (Resend over HTTPS) and a PR plan (migration, module, endpoints, tests). Based on origin/main 4068c6a and read-only production queries (port 5432, BEGIN; SET TRANSACTION READ ONLY). Entry carried from the scoping session's uncommitted log in ~/Documents/factory-ledger; the doc is committed on branch feat/daily-reconciliation.
+- **Why:** Michael asked for a read-only scope before any build. No code, no DB writes.
+
+---
+
 ## 2026-11-09 20:06 — Record PR 196 production deploy (changelog rows 271–272)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Marked row 272 (and row 271, shipped in the same PR) as deployed: #196 squash-merged to main `ddffa71`, Railway FastAPI `d29913a8` SUCCESS, /health healthy, live lot-report for lot 25120 returns 200 with 277 lots, Netlify serves `trace-report.js?v=2` and `dashboard.js?v=86` identical to main. Backup `~/Backups/fl/2026-11-09-pre-pr196` verified before the merge.

@@ -43,6 +43,7 @@ import shift_summary
 import lot_confirmation
 import oat_bran_substitution
 import product_archive
+import reconciliation
 import exceptions_enforcement
 import resolution
 import permissions
@@ -3158,6 +3159,10 @@ ACTOR_WRITE_ALLOWLIST = frozenset({
     ("PATCH", "/lots/{lot_id}/rename"),
     ("PATCH", "/sales/orders/{order_id}/lines/{line_id}/cancel"),
 }) | write_tickets.ACTOR_ROUTES | exceptions_enforcement.ACTOR_ROUTES | attachments.ROUTES | fl_assistant.ACTOR_ROUTES
+# Daily reconciliation (migration 094): three read-only GETs for named owner /
+# office keys. The handlers enforce the role; the dashboard and read-only keys
+# are refused here because the routes are on neither of their allowlists.
+ACTOR_WRITE_ALLOWLIST = ACTOR_WRITE_ALLOWLIST | reconciliation.ROUTES
 
 
 # Simple user selection (migration 091): what a person tapped on an
@@ -18774,6 +18779,10 @@ def admin_update_product(product_id: int, req: ProductUpdate, _: bool = Depends(
 # Product archive (POST /admin/products/archive and /unarchive, owner only,
 # migration 093) lives in product_archive.py.
 product_archive.register_routes(app, sys.modules[__name__])
+
+# Daily inventory reconciliation: read-only results of the nightly check
+# (reconciliation.py, migration 094). Not in either GPT schema.
+reconciliation.register_routes(app, sys.modules[__name__])
 
 
 class BomLineCreate(BaseModel):

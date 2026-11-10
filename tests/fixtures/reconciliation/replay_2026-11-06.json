@@ -1,0 +1,3193 @@
+{
+ "corrections": [],
+ "ending": [
+  [
+   11,
+   484.0
+  ],
+  [
+   19,
+   1725.0
+  ],
+  [
+   23,
+   110.0
+  ],
+  [
+   37,
+   24.0
+  ],
+  [
+   41,
+   450.0
+  ],
+  [
+   50,
+   200.0
+  ],
+  [
+   51,
+   1050.0
+  ],
+  [
+   52,
+   79.0
+  ],
+  [
+   56,
+   455.0
+  ],
+  [
+   95,
+   50.0
+  ],
+  [
+   97,
+   97.0
+  ],
+  [
+   111,
+   5.0
+  ],
+  [
+   143,
+   2000.0
+  ],
+  [
+   170,
+   500.0
+  ],
+  [
+   223,
+   12050.0
+  ],
+  [
+   224,
+   242.0
+  ],
+  [
+   256,
+   3200.0
+  ],
+  [
+   335,
+   85.0
+  ],
+  [
+   360,
+   2200.0
+  ],
+  [
+   440,
+   204.34
+  ],
+  [
+   461,
+   290.0
+  ],
+  [
+   469,
+   50.0
+  ],
+  [
+   471,
+   100.0
+  ],
+  [
+   570,
+   2200.0
+  ],
+  [
+   571,
+   1400.0
+  ],
+  [
+   605,
+   12000.0
+  ],
+  [
+   606,
+   4125.0
+  ],
+  [
+   607,
+   2850.0
+  ],
+  [
+   608,
+   550.0
+  ],
+  [
+   610,
+   7800.0
+  ],
+  [
+   616,
+   2989.0
+  ],
+  [
+   617,
+   5600.0
+  ],
+  [
+   618,
+   550.0
+  ],
+  [
+   619,
+   9850.0
+  ],
+  [
+   620,
+   3000.0
+  ],
+  [
+   622,
+   13200.0
+  ],
+  [
+   635,
+   4200.0
+  ],
+  [
+   795,
+   4650.0
+  ],
+  [
+   891,
+   110.0
+  ],
+  [
+   982,
+   165.0
+  ],
+  [
+   983,
+   2450.0
+  ],
+  [
+   1028,
+   80.0
+  ],
+  [
+   1029,
+   24.0
+  ],
+  [
+   1055,
+   1078.0
+  ],
+  [
+   1125,
+   4706.7
+  ],
+  [
+   1132,
+   -68.49
+  ],
+  [
+   1173,
+   3025.0
+  ],
+  [
+   1181,
+   1.0
+  ],
+  [
+   1308,
+   160.0
+  ],
+  [
+   1321,
+   110.0
+  ],
+  [
+   1345,
+   11375.0
+  ],
+  [
+   1398,
+   2114.0
+  ],
+  [
+   1432,
+   1400.0
+  ],
+  [
+   1461,
+   -14.0
+  ],
+  [
+   1473,
+   1300.0
+  ],
+  [
+   1477,
+   49.0
+  ],
+  [
+   1481,
+   1400.0
+  ],
+  [
+   1482,
+   32375.0
+  ],
+  [
+   1491,
+   2800.0
+  ],
+  [
+   1494,
+   28600.0
+  ],
+  [
+   1495,
+   11800.0
+  ],
+  [
+   1502,
+   4200.0
+  ],
+  [
+   1506,
+   2800.0
+  ],
+  [
+   1510,
+   7680.0
+  ],
+  [
+   1513,
+   340.0
+  ],
+  [
+   1518,
+   4200.0
+  ],
+  [
+   1529,
+   450.0
+  ],
+  [
+   1530,
+   41800.0
+  ],
+  [
+   1538,
+   970.0
+  ],
+  [
+   1544,
+   2272.5
+  ],
+  [
+   1549,
+   830.0
+  ],
+  [
+   1553,
+   176.0
+  ],
+  [
+   1555,
+   8900.0
+  ],
+  [
+   1561,
+   550.0
+  ],
+  [
+   1562,
+   550.0
+  ],
+  [
+   1563,
+   1597.5
+  ],
+  [
+   1564,
+   942.0
+  ],
+  [
+   1566,
+   669.6
+  ],
+  [
+   1581,
+   59.0
+  ],
+  [
+   1582,
+   97.0
+  ],
+  [
+   1583,
+   50.0
+  ],
+  [
+   1587,
+   1375.0
+  ],
+  [
+   1589,
+   450.0
+  ],
+  [
+   1590,
+   1755.0
+  ],
+  [
+   1594,
+   1000.0
+  ],
+  [
+   1597,
+   1400.0
+  ],
+  [
+   1598,
+   4200.0
+  ],
+  [
+   1600,
+   2800.0
+  ],
+  [
+   1601,
+   1400.0
+  ],
+  [
+   1609,
+   4200.0
+  ],
+  [
+   1610,
+   182.0
+  ],
+  [
+   1611,
+   750.0
+  ],
+  [
+   1614,
+   2800.0
+  ],
+  [
+   1615,
+   4500.0
+  ],
+  [
+   1618,
+   1500.0
+  ],
+  [
+   1619,
+   5028.0
+  ],
+  [
+   1624,
+   1400.0
+  ],
+  [
+   1626,
+   750.0
+  ],
+  [
+   1629,
+   3000.0
+  ],
+  [
+   1632,
+   4567.5
+  ],
+  [
+   1635,
+   1400.0
+  ],
+  [
+   1637,
+   35317.0
+  ],
+  [
+   1640,
+   675.0
+  ],
+  [
+   1641,
+   1400.0
+  ],
+  [
+   1642,
+   667.5
+  ],
+  [
+   1644,
+   727.5
+  ],
+  [
+   1646,
+   350.0
+  ],
+  [
+   1647,
+   1100.0
+  ],
+  [
+   1648,
+   20.0
+  ],
+  [
+   1649,
+   152.49
+  ],
+  [
+   1650,
+   972.0
+  ],
+  [
+   1651,
+   1250.0
+  ],
+  [
+   1652,
+   1365.0
+  ],
+  [
+   1653,
+   1182.2
+  ],
+  [
+   1654,
+   1600.0
+  ],
+  [
+   1655,
+   9900.0
+  ],
+  [
+   1656,
+   8050.0
+  ],
+  [
+   1657,
+   2250.0
+  ],
+  [
+   1658,
+   149750.0
+  ],
+  [
+   1659,
+   50.0
+  ],
+  [
+   1660,
+   55.0
+  ],
+  [
+   1661,
+   475.0
+  ],
+  [
+   1662,
+   350.0
+  ],
+  [
+   1665,
+   5600.0
+  ],
+  [
+   1670,
+   5600.0
+  ],
+  [
+   1671,
+   145.0
+  ],
+  [
+   1672,
+   95.0
+  ],
+  [
+   1674,
+   510.0
+  ],
+  [
+   1676,
+   2425.0
+  ],
+  [
+   1677,
+   19250.0
+  ],
+  [
+   1678,
+   20350.0
+  ],
+  [
+   1679,
+   1740.0
+  ],
+  [
+   1680,
+   1938.0
+  ],
+  [
+   1681,
+   523.5
+  ],
+  [
+   1684,
+   1250.0
+  ],
+  [
+   1685,
+   1500.0
+  ],
+  [
+   1687,
+   1400.0
+  ],
+  [
+   1688,
+   4200.0
+  ],
+  [
+   1689,
+   1740.0
+  ],
+  [
+   1690,
+   786.0
+  ],
+  [
+   1691,
+   -70.0
+  ],
+  [
+   1692,
+   2227.5
+  ],
+  [
+   1694,
+   5600.0
+  ],
+  [
+   1695,
+   2000.0
+  ],
+  [
+   1696,
+   2358.0
+  ],
+  [
+   1697,
+   1740.0
+  ],
+  [
+   1698,
+   -60.0
+  ],
+  [
+   1700,
+   5600.0
+  ],
+  [
+   1701,
+   5000.0
+  ],
+  [
+   1702,
+   1348.0
+  ],
+  [
+   1703,
+   1392.0
+  ],
+  [
+   1704,
+   969.0
+  ],
+  [
+   1705,
+   -55.0
+  ],
+  [
+   1707,
+   2800.0
+  ],
+  [
+   1708,
+   1275.0
+  ],
+  [
+   1709,
+   3144.0
+  ],
+  [
+   1711,
+   -10.0
+  ],
+  [
+   1712,
+   1080.0
+  ],
+  [
+   1713,
+   1090.0
+  ]
+ ],
+ "lines_after": [
+  {
+   "line_id": 8480,
+   "lot_id": 1626,
+   "product_id": 161,
+   "quantity_lb": -400.0,
+   "transaction_id": 2962,
+   "type": "ship"
+  },
+  {
+   "line_id": 8481,
+   "lot_id": 1528,
+   "product_id": 163,
+   "quantity_lb": -1280.0,
+   "transaction_id": 2963,
+   "type": "ship"
+  },
+  {
+   "line_id": 8482,
+   "lot_id": 1538,
+   "product_id": 163,
+   "quantity_lb": -120.0,
+   "transaction_id": 2963,
+   "type": "ship"
+  },
+  {
+   "line_id": 8483,
+   "lot_id": 1562,
+   "product_id": 156,
+   "quantity_lb": -600.0,
+   "transaction_id": 2964,
+   "type": "ship"
+  },
+  {
+   "line_id": 8484,
+   "lot_id": 1709,
+   "product_id": 114,
+   "quantity_lb": 3144.0,
+   "transaction_id": 2965,
+   "type": "make"
+  },
+  {
+   "line_id": 8485,
+   "lot_id": 1702,
+   "product_id": 3,
+   "quantity_lb": -152.0,
+   "transaction_id": 2965,
+   "type": "make"
+  },
+  {
+   "line_id": 8486,
+   "lot_id": 616,
+   "product_id": 13,
+   "quantity_lb": -152.0,
+   "transaction_id": 2965,
+   "type": "make"
+  },
+  {
+   "line_id": 8487,
+   "lot_id": 1653,
+   "product_id": 30,
+   "quantity_lb": -376.0,
+   "transaction_id": 2965,
+   "type": "make"
+  },
+  {
+   "line_id": 8488,
+   "lot_id": 1637,
+   "product_id": 32,
+   "quantity_lb": -1832.0,
+   "transaction_id": 2965,
+   "type": "make"
+  },
+  {
+   "line_id": 8489,
+   "lot_id": 1619,
+   "product_id": 34,
+   "quantity_lb": -176.0,
+   "transaction_id": 2965,
+   "type": "make"
+  },
+  {
+   "line_id": 8490,
+   "lot_id": 1398,
+   "product_id": 46,
+   "quantity_lb": -152.0,
+   "transaction_id": 2965,
+   "type": "make"
+  },
+  {
+   "line_id": 8491,
+   "lot_id": 1445,
+   "product_id": 72,
+   "quantity_lb": -80.0,
+   "transaction_id": 2965,
+   "type": "make"
+  },
+  {
+   "line_id": 8492,
+   "lot_id": 1553,
+   "product_id": 72,
+   "quantity_lb": -224.0,
+   "transaction_id": 2965,
+   "type": "make"
+  },
+  {
+   "line_id": 8493,
+   "lot_id": 1710,
+   "product_id": 125,
+   "quantity_lb": 1080.0,
+   "transaction_id": 2966,
+   "type": "make"
+  },
+  {
+   "line_id": 8494,
+   "lot_id": 610,
+   "product_id": 10,
+   "quantity_lb": -600.0,
+   "transaction_id": 2966,
+   "type": "make"
+  },
+  {
+   "line_id": 8495,
+   "lot_id": 982,
+   "product_id": 16,
+   "quantity_lb": -15.0,
+   "transaction_id": 2966,
+   "type": "make"
+  },
+  {
+   "line_id": 8496,
+   "lot_id": 461,
+   "product_id": 29,
+   "quantity_lb": -21.0,
+   "transaction_id": 2966,
+   "type": "make"
+  },
+  {
+   "line_id": 8497,
+   "lot_id": 440,
+   "product_id": 39,
+   "quantity_lb": -7.5,
+   "transaction_id": 2966,
+   "type": "make"
+  },
+  {
+   "line_id": 8498,
+   "lot_id": 1530,
+   "product_id": 40,
+   "quantity_lb": -330.0,
+   "transaction_id": 2966,
+   "type": "make"
+  },
+  {
+   "line_id": 8499,
+   "lot_id": 1711,
+   "product_id": 127,
+   "quantity_lb": 1080.0,
+   "transaction_id": 2967,
+   "type": "make"
+  },
+  {
+   "line_id": 8500,
+   "lot_id": 617,
+   "product_id": 14,
+   "quantity_lb": -600.0,
+   "transaction_id": 2967,
+   "type": "make"
+  },
+  {
+   "line_id": 8501,
+   "lot_id": 982,
+   "product_id": 16,
+   "quantity_lb": -15.0,
+   "transaction_id": 2967,
+   "type": "make"
+  },
+  {
+   "line_id": 8502,
+   "lot_id": 461,
+   "product_id": 29,
+   "quantity_lb": -21.0,
+   "transaction_id": 2967,
+   "type": "make"
+  },
+  {
+   "line_id": 8503,
+   "lot_id": 440,
+   "product_id": 39,
+   "quantity_lb": -7.5,
+   "transaction_id": 2967,
+   "type": "make"
+  },
+  {
+   "line_id": 8504,
+   "lot_id": 1530,
+   "product_id": 40,
+   "quantity_lb": -330.0,
+   "transaction_id": 2967,
+   "type": "make"
+  },
+  {
+   "line_id": 8505,
+   "lot_id": 1712,
+   "product_id": 161,
+   "quantity_lb": 1080.0,
+   "transaction_id": 2968,
+   "type": "pack"
+  },
+  {
+   "line_id": 8506,
+   "lot_id": 1710,
+   "product_id": 125,
+   "quantity_lb": -1080.0,
+   "transaction_id": 2968,
+   "type": "pack"
+  },
+  {
+   "line_id": 8507,
+   "lot_id": 1713,
+   "product_id": 163,
+   "quantity_lb": 1090.0,
+   "transaction_id": 2969,
+   "type": "pack"
+  },
+  {
+   "line_id": 8508,
+   "lot_id": 1711,
+   "product_id": 127,
+   "quantity_lb": -1090.0,
+   "transaction_id": 2969,
+   "type": "pack"
+  }
+ ],
+ "lines_before": [],
+ "lot_histories": [
+  {
+   "adjustments": [],
+   "lot_id": 1710,
+   "made_lb": 1080.0,
+   "other_in_lb": 0.0,
+   "other_out_lb": 0.0,
+   "packed_lb": 1080.0,
+   "used_in_makes_lb": 0.0
+  },
+  {
+   "adjustments": [],
+   "lot_id": 1711,
+   "made_lb": 1080.0,
+   "other_in_lb": 0.0,
+   "other_out_lb": 0.0,
+   "packed_lb": 1090.0,
+   "used_in_makes_lb": 0.0
+  }
+ ],
+ "lots": [
+  {
+   "id": 11,
+   "lot_code": "26-01-30-FOUND-003",
+   "product_id": 56
+  },
+  {
+   "id": 19,
+   "lot_code": "26-01-30-FOUND-011",
+   "product_id": 66
+  },
+  {
+   "id": 23,
+   "lot_code": "26-01-30-FOUND-015",
+   "product_id": 70
+  },
+  {
+   "id": 37,
+   "lot_code": "26-02-03-FOUND-005",
+   "product_id": 21
+  },
+  {
+   "id": 41,
+   "lot_code": "26-02-03-FOUND-009",
+   "product_id": 26
+  },
+  {
+   "id": 50,
+   "lot_code": "26-02-03-FOUND-018",
+   "product_id": 41
+  },
+  {
+   "id": 51,
+   "lot_code": "26-02-03-FOUND-019",
+   "product_id": 42
+  },
+  {
+   "id": 52,
+   "lot_code": "26-02-03-FOUND-020",
+   "product_id": 43
+  },
+  {
+   "id": 56,
+   "lot_code": "26-02-03-FOUND-024",
+   "product_id": 52
+  },
+  {
+   "id": 95,
+   "lot_code": "26-02-06-FOUND-004",
+   "product_id": 8
+  },
+  {
+   "id": 97,
+   "lot_code": "26-02-06-FOUND-006",
+   "product_id": 7
+  },
+  {
+   "id": 111,
+   "lot_code": "26-02-09-FOUND-004",
+   "product_id": 171
+  },
+  {
+   "id": 143,
+   "lot_code": "26-02-12-BLUE-001",
+   "product_id": 67
+  },
+  {
+   "id": 170,
+   "lot_code": "26-02-16-DUTC-001",
+   "product_id": 43
+  },
+  {
+   "id": 223,
+   "lot_code": "25132",
+   "product_id": 174
+  },
+  {
+   "id": 224,
+   "lot_code": "INITIAL-260",
+   "product_id": 102
+  },
+  {
+   "id": 256,
+   "lot_code": "26-03-03-BLUE-001",
+   "product_id": 68
+  },
+  {
+   "id": 335,
+   "lot_code": "26-03-19-FOUN-001",
+   "product_id": 176
+  },
+  {
+   "id": 360,
+   "lot_code": "26-03-25-BLUE-001",
+   "product_id": 61
+  },
+  {
+   "id": 440,
+   "lot_code": "26-04-21-ESSE-001",
+   "product_id": 39
+  },
+  {
+   "id": 461,
+   "lot_code": "26-04-24-TILL-001",
+   "product_id": 29
+  },
+  {
+   "id": 469,
+   "lot_code": "26-04-27-DUTC-001",
+   "product_id": 7
+  },
+  {
+   "id": 471,
+   "lot_code": "26-04-27-DUTC-003",
+   "product_id": 8
+  },
+  {
+   "id": 570,
+   "lot_code": "26-05-11-BLUE-001",
+   "product_id": 61
+  },
+  {
+   "id": 571,
+   "lot_code": "26-05-11-BLUE-002",
+   "product_id": 58
+  },
+  {
+   "id": 605,
+   "lot_code": "6011",
+   "product_id": 9
+  },
+  {
+   "id": 606,
+   "lot_code": "25212",
+   "product_id": 9
+  },
+  {
+   "id": 607,
+   "lot_code": "25134",
+   "product_id": 9
+  },
+  {
+   "id": 608,
+   "lot_code": "25213",
+   "product_id": 9
+  },
+  {
+   "id": 610,
+   "lot_code": "6012",
+   "product_id": 10
+  },
+  {
+   "id": 616,
+   "lot_code": "25120",
+   "product_id": 13
+  },
+  {
+   "id": 617,
+   "lot_code": "6020",
+   "product_id": 14
+  },
+  {
+   "id": 618,
+   "lot_code": "5119",
+   "product_id": 14
+  },
+  {
+   "id": 619,
+   "lot_code": "6044",
+   "product_id": 14
+  },
+  {
+   "id": 620,
+   "lot_code": "25120",
+   "product_id": 14
+  },
+  {
+   "id": 622,
+   "lot_code": "VINA202524",
+   "product_id": 14
+  },
+  {
+   "id": 635,
+   "lot_code": "6036",
+   "product_id": 10
+  },
+  {
+   "id": 795,
+   "lot_code": "26-06-10-TRIS-001",
+   "product_id": 175
+  },
+  {
+   "id": 891,
+   "lot_code": "26-06-29-DUTC-002",
+   "product_id": 35
+  },
+  {
+   "id": 982,
+   "lot_code": "26-07-13-ESSE-001",
+   "product_id": 16
+  },
+  {
+   "id": 983,
+   "lot_code": "26-07-13-ESSE-002",
+   "product_id": 39
+  },
+  {
+   "id": 1028,
+   "lot_code": "26-07-21-PARK-002",
+   "product_id": 26
+  },
+  {
+   "id": 1029,
+   "lot_code": "26-07-21-PARK-003",
+   "product_id": 20
+  },
+  {
+   "id": 1055,
+   "lot_code": "JUL 24 2026",
+   "product_id": 121
+  },
+  {
+   "id": 1125,
+   "lot_code": "26-08-05-ESSE-001",
+   "product_id": 39
+  },
+  {
+   "id": 1132,
+   "lot_code": "26-08-06-SWEE-001",
+   "product_id": 40
+  },
+  {
+   "id": 1173,
+   "lot_code": "26-08-14-EURO-001",
+   "product_id": 203
+  },
+  {
+   "id": 1181,
+   "lot_code": "AUG 14 MIX",
+   "product_id": 291
+  },
+  {
+   "id": 1308,
+   "lot_code": "AGO 19 2026",
+   "product_id": 158
+  },
+  {
+   "id": 1321,
+   "lot_code": "AUG 21 2026",
+   "product_id": 159
+  },
+  {
+   "id": 1345,
+   "lot_code": "6086",
+   "product_id": 196
+  },
+  {
+   "id": 1398,
+   "lot_code": "26-09-04-NATI-001",
+   "product_id": 46
+  },
+  {
+   "id": 1432,
+   "lot_code": "SEP 11 2026",
+   "product_id": 164
+  },
+  {
+   "id": 1445,
+   "lot_code": "26-09-16-ABAK-001",
+   "product_id": 72
+  },
+  {
+   "id": 1461,
+   "lot_code": "26-09-17-CBSF-001",
+   "product_id": 34
+  },
+  {
+   "id": 1473,
+   "lot_code": "26-09-22-CREA-001",
+   "product_id": 75
+  },
+  {
+   "id": 1477,
+   "lot_code": "26-09-22-NATI-001",
+   "product_id": 3
+  },
+  {
+   "id": 1481,
+   "lot_code": "SEP 22 2026",
+   "product_id": 164
+  },
+  {
+   "id": 1482,
+   "lot_code": "26-09-23-CREA-001",
+   "product_id": 173
+  },
+  {
+   "id": 1491,
+   "lot_code": "SEP 23 2026",
+   "product_id": 164
+  },
+  {
+   "id": 1494,
+   "lot_code": "26-09-24-TRIS-001",
+   "product_id": 175
+  },
+  {
+   "id": 1495,
+   "lot_code": "26-09-24-TRIS-002",
+   "product_id": 202
+  },
+  {
+   "id": 1502,
+   "lot_code": "SEP 24 2026",
+   "product_id": 164
+  },
+  {
+   "id": 1506,
+   "lot_code": "SEP 25 2026",
+   "product_id": 164
+  },
+  {
+   "id": 1510,
+   "lot_code": "26-09-28-TILL-001",
+   "product_id": 29
+  },
+  {
+   "id": 1513,
+   "lot_code": "SEP 17 2026",
+   "product_id": 137
+  },
+  {
+   "id": 1518,
+   "lot_code": "SEP 28 2026",
+   "product_id": 164
+  },
+  {
+   "id": 1528,
+   "lot_code": "SEP 29 2026",
+   "product_id": 163
+  },
+  {
+   "id": 1529,
+   "lot_code": "26-09-30-JACK-001",
+   "product_id": 44
+  },
+  {
+   "id": 1530,
+   "lot_code": "26-09-30-NEWE-001",
+   "product_id": 40
+  },
+  {
+   "id": 1538,
+   "lot_code": "SEP 30 2026",
+   "product_id": 163
+  },
+  {
+   "id": 1544,
+   "lot_code": "BB093027",
+   "product_id": 145
+  },
+  {
+   "id": 1549,
+   "lot_code": "OCT 05 2026",
+   "product_id": 162
+  },
+  {
+   "id": 1553,
+   "lot_code": "26-10-06-ABAK-001",
+   "product_id": 72
+  },
+  {
+   "id": 1555,
+   "lot_code": "26-10-06-CREA-001",
+   "product_id": 75
+  },
+  {
+   "id": 1561,
+   "lot_code": "OCT 06 2026",
+   "product_id": 142
+  },
+  {
+   "id": 1562,
+   "lot_code": "OCT 06 2026",
+   "product_id": 156
+  },
+  {
+   "id": 1563,
+   "lot_code": "BB100527",
+   "product_id": 145
+  },
+  {
+   "id": 1564,
+   "lot_code": "26-10-06-DUTC-001",
+   "product_id": 30
+  },
+  {
+   "id": 1566,
+   "lot_code": "26-10-07-PARK-001",
+   "product_id": 18
+  },
+  {
+   "id": 1581,
+   "lot_code": "26-10-12-DUTC-001",
+   "product_id": 4
+  },
+  {
+   "id": 1582,
+   "lot_code": "26-10-12-DUTC-002",
+   "product_id": 2
+  },
+  {
+   "id": 1583,
+   "lot_code": "26-10-12-DUTC-003",
+   "product_id": 28
+  },
+  {
+   "id": 1587,
+   "lot_code": "OCT 12 2026",
+   "product_id": 160
+  },
+  {
+   "id": 1589,
+   "lot_code": "BB101227",
+   "product_id": 146
+  },
+  {
+   "id": 1590,
+   "lot_code": "BB101227",
+   "product_id": 145
+  },
+  {
+   "id": 1594,
+   "lot_code": "OCT 13 2026",
+   "product_id": 160
+  },
+  {
+   "id": 1597,
+   "lot_code": "OCT 13 2026",
+   "product_id": 164
+  },
+  {
+   "id": 1598,
+   "lot_code": "SEP 29 2026",
+   "product_id": 144
+  },
+  {
+   "id": 1600,
+   "lot_code": "OCT 05 2026",
+   "product_id": 144
+  },
+  {
+   "id": 1601,
+   "lot_code": "OCT 12 2026",
+   "product_id": 144
+  },
+  {
+   "id": 1609,
+   "lot_code": "OCT 15 2026",
+   "product_id": 164
+  },
+  {
+   "id": 1610,
+   "lot_code": "OCT 16 2026",
+   "product_id": 107
+  },
+  {
+   "id": 1611,
+   "lot_code": "OCT 12 2026",
+   "product_id": 136
+  },
+  {
+   "id": 1614,
+   "lot_code": "OCT 16 2026",
+   "product_id": 164
+  },
+  {
+   "id": 1615,
+   "lot_code": "26-10-19-ESSE-001",
+   "product_id": 16
+  },
+  {
+   "id": 1618,
+   "lot_code": "OCT 13 2026",
+   "product_id": 136
+  },
+  {
+   "id": 1619,
+   "lot_code": "26-10-20-CBSF-001",
+   "product_id": 34
+  },
+  {
+   "id": 1624,
+   "lot_code": "OCT 20 2026",
+   "product_id": 164
+  },
+  {
+   "id": 1626,
+   "lot_code": "OCT 20 2026",
+   "product_id": 161
+  },
+  {
+   "id": 1629,
+   "lot_code": "OCT 15 2026",
+   "product_id": 136
+  },
+  {
+   "id": 1632,
+   "lot_code": "BB101927",
+   "product_id": 146
+  },
+  {
+   "id": 1635,
+   "lot_code": "OCT 21 2026",
+   "product_id": 164
+  },
+  {
+   "id": 1637,
+   "lot_code": "26-10-22-QUAL-001",
+   "product_id": 32
+  },
+  {
+   "id": 1640,
+   "lot_code": "BB101927",
+   "product_id": 147
+  },
+  {
+   "id": 1641,
+   "lot_code": "OCT 15 2026",
+   "product_id": 137
+  },
+  {
+   "id": 1642,
+   "lot_code": "BB101927",
+   "product_id": 149
+  },
+  {
+   "id": 1644,
+   "lot_code": "BB101927",
+   "product_id": 148
+  },
+  {
+   "id": 1646,
+   "lot_code": "OCT 22 2026",
+   "product_id": 157
+  },
+  {
+   "id": 1647,
+   "lot_code": "OCT 23 2026",
+   "product_id": 157
+  },
+  {
+   "id": 1648,
+   "lot_code": "26-10-27-FOUND-001",
+   "product_id": 7
+  },
+  {
+   "id": 1649,
+   "lot_code": "26-10-27-FOUND-002",
+   "product_id": 40
+  },
+  {
+   "id": 1650,
+   "lot_code": "26-10-27-FOUND-003",
+   "product_id": 29
+  },
+  {
+   "id": 1651,
+   "lot_code": "26-10-27-FOUND-004",
+   "product_id": 73
+  },
+  {
+   "id": 1652,
+   "lot_code": "26-10-27-FOUND-005",
+   "product_id": 16
+  },
+  {
+   "id": 1653,
+   "lot_code": "26-10-27-FOUND-006",
+   "product_id": 30
+  },
+  {
+   "id": 1654,
+   "lot_code": "26-10-27-FOUND-007",
+   "product_id": 10
+  },
+  {
+   "id": 1655,
+   "lot_code": "26-10-27-FOUND-008",
+   "product_id": 10
+  },
+  {
+   "id": 1656,
+   "lot_code": "26-10-27-FOUND-009",
+   "product_id": 10
+  },
+  {
+   "id": 1657,
+   "lot_code": "26-10-27-FOUND-010",
+   "product_id": 10
+  },
+  {
+   "id": 1658,
+   "lot_code": "26-10-27-FOUND-011",
+   "product_id": 12
+  },
+  {
+   "id": 1659,
+   "lot_code": "26-10-28-FOUND-001",
+   "product_id": 27
+  },
+  {
+   "id": 1660,
+   "lot_code": "26-10-28-FOUND-002",
+   "product_id": 45
+  },
+  {
+   "id": 1661,
+   "lot_code": "26-10-28-FOUND-003",
+   "product_id": 113
+  },
+  {
+   "id": 1662,
+   "lot_code": "OCT 28 2026",
+   "product_id": 116
+  },
+  {
+   "id": 1665,
+   "lot_code": "OCT 28 2026",
+   "product_id": 164
+  },
+  {
+   "id": 1670,
+   "lot_code": "OCT 29 2026",
+   "product_id": 164
+  },
+  {
+   "id": 1671,
+   "lot_code": "26-10-30-DUTC-001",
+   "product_id": 38
+  },
+  {
+   "id": 1672,
+   "lot_code": "OCT 26 2026",
+   "product_id": 112
+  },
+  {
+   "id": 1674,
+   "lot_code": "OCT 26 2026",
+   "product_id": 113
+  },
+  {
+   "id": 1676,
+   "lot_code": "26-11-02-DUTV-001",
+   "product_id": 32
+  },
+  {
+   "id": 1677,
+   "lot_code": "26-11-02-CREA-001",
+   "product_id": 75
+  },
+  {
+   "id": 1678,
+   "lot_code": "26-11-02-CREA-002",
+   "product_id": 75
+  },
+  {
+   "id": 1679,
+   "lot_code": "OCT 28 2026",
+   "product_id": 284
+  },
+  {
+   "id": 1680,
+   "lot_code": "OCT 29 2026",
+   "product_id": 283
+  },
+  {
+   "id": 1681,
+   "lot_code": "NOV 02 2026",
+   "product_id": 114
+  },
+  {
+   "id": 1684,
+   "lot_code": "610301",
+   "product_id": 165
+  },
+  {
+   "id": 1685,
+   "lot_code": "OCT 14 2026",
+   "product_id": 136
+  },
+  {
+   "id": 1687,
+   "lot_code": "OCT 30 2026",
+   "product_id": 164
+  },
+  {
+   "id": 1688,
+   "lot_code": "NOV 02 2026",
+   "product_id": 164
+  },
+  {
+   "id": 1689,
+   "lot_code": "B26-1103-001",
+   "product_id": 108
+  },
+  {
+   "id": 1690,
+   "lot_code": "B26-1103-002",
+   "product_id": 114
+  },
+  {
+   "id": 1691,
+   "lot_code": "NOV 03 2026",
+   "product_id": 126
+  },
+  {
+   "id": 1692,
+   "lot_code": "NOV 02 2026",
+   "product_id": 145
+  },
+  {
+   "id": 1694,
+   "lot_code": "NOV 03 2026",
+   "product_id": 164
+  },
+  {
+   "id": 1695,
+   "lot_code": "26-11-04-ABAK-001",
+   "product_id": 72
+  },
+  {
+   "id": 1696,
+   "lot_code": "NOV 04 2026",
+   "product_id": 114
+  },
+  {
+   "id": 1697,
+   "lot_code": "NOV 04 2026",
+   "product_id": 108
+  },
+  {
+   "id": 1698,
+   "lot_code": "NOV 04 2026",
+   "product_id": 126
+  },
+  {
+   "id": 1700,
+   "lot_code": "NOV 04 2026",
+   "product_id": 164
+  },
+  {
+   "id": 1701,
+   "lot_code": "26-11-05-JACK-001",
+   "product_id": 44
+  },
+  {
+   "id": 1702,
+   "lot_code": "26-11-05-NATI-001",
+   "product_id": 3
+  },
+  {
+   "id": 1703,
+   "lot_code": "NOV 05 2026",
+   "product_id": 108
+  },
+  {
+   "id": 1704,
+   "lot_code": "NOV 05 2026",
+   "product_id": 107
+  },
+  {
+   "id": 1705,
+   "lot_code": "NOV 05 2026",
+   "product_id": 126
+  },
+  {
+   "id": 1707,
+   "lot_code": "NOV 05 2026",
+   "product_id": 164
+  },
+  {
+   "id": 1708,
+   "lot_code": "NOV 05 2026",
+   "product_id": 157
+  },
+  {
+   "id": 1709,
+   "lot_code": "NOV 06 2026",
+   "product_id": 114
+  },
+  {
+   "id": 1710,
+   "lot_code": "NOV 06 2026",
+   "product_id": 125
+  },
+  {
+   "id": 1711,
+   "lot_code": "NOV 06 2026",
+   "product_id": 127
+  },
+  {
+   "id": 1712,
+   "lot_code": "NOV 06 2026",
+   "product_id": 161
+  },
+  {
+   "id": 1713,
+   "lot_code": "NOV 06 2026",
+   "product_id": 163
+  }
+ ],
+ "mode": "replay",
+ "opening": [
+  [
+   11,
+   484.0
+  ],
+  [
+   19,
+   1725.0
+  ],
+  [
+   23,
+   110.0
+  ],
+  [
+   37,
+   24.0
+  ],
+  [
+   41,
+   450.0
+  ],
+  [
+   50,
+   200.0
+  ],
+  [
+   51,
+   1050.0
+  ],
+  [
+   52,
+   79.0
+  ],
+  [
+   56,
+   455.0
+  ],
+  [
+   95,
+   50.0
+  ],
+  [
+   97,
+   97.0
+  ],
+  [
+   111,
+   5.0
+  ],
+  [
+   143,
+   2000.0
+  ],
+  [
+   170,
+   500.0
+  ],
+  [
+   223,
+   12050.0
+  ],
+  [
+   224,
+   242.0
+  ],
+  [
+   256,
+   3200.0
+  ],
+  [
+   335,
+   85.0
+  ],
+  [
+   360,
+   2200.0
+  ],
+  [
+   440,
+   219.34
+  ],
+  [
+   461,
+   332.0
+  ],
+  [
+   469,
+   50.0
+  ],
+  [
+   471,
+   100.0
+  ],
+  [
+   570,
+   2200.0
+  ],
+  [
+   571,
+   1400.0
+  ],
+  [
+   605,
+   12000.0
+  ],
+  [
+   606,
+   4125.0
+  ],
+  [
+   607,
+   2850.0
+  ],
+  [
+   608,
+   550.0
+  ],
+  [
+   610,
+   8400.0
+  ],
+  [
+   616,
+   3141.0
+  ],
+  [
+   617,
+   6200.0
+  ],
+  [
+   618,
+   550.0
+  ],
+  [
+   619,
+   9850.0
+  ],
+  [
+   620,
+   3000.0
+  ],
+  [
+   622,
+   13200.0
+  ],
+  [
+   635,
+   4200.0
+  ],
+  [
+   795,
+   4650.0
+  ],
+  [
+   891,
+   110.0
+  ],
+  [
+   982,
+   195.0
+  ],
+  [
+   983,
+   2450.0
+  ],
+  [
+   1028,
+   80.0
+  ],
+  [
+   1029,
+   24.0
+  ],
+  [
+   1055,
+   1078.0
+  ],
+  [
+   1125,
+   4706.7
+  ],
+  [
+   1132,
+   -68.49
+  ],
+  [
+   1173,
+   3025.0
+  ],
+  [
+   1181,
+   1.0
+  ],
+  [
+   1308,
+   160.0
+  ],
+  [
+   1321,
+   110.0
+  ],
+  [
+   1345,
+   11375.0
+  ],
+  [
+   1398,
+   2266.0
+  ],
+  [
+   1432,
+   1400.0
+  ],
+  [
+   1445,
+   80.0
+  ],
+  [
+   1461,
+   -14.0
+  ],
+  [
+   1473,
+   1300.0
+  ],
+  [
+   1477,
+   49.0
+  ],
+  [
+   1481,
+   1400.0
+  ],
+  [
+   1482,
+   32375.0
+  ],
+  [
+   1491,
+   2800.0
+  ],
+  [
+   1494,
+   28600.0
+  ],
+  [
+   1495,
+   11800.0
+  ],
+  [
+   1502,
+   4200.0
+  ],
+  [
+   1506,
+   2800.0
+  ],
+  [
+   1510,
+   7680.0
+  ],
+  [
+   1513,
+   340.0
+  ],
+  [
+   1518,
+   4200.0
+  ],
+  [
+   1528,
+   1280.0
+  ],
+  [
+   1529,
+   450.0
+  ],
+  [
+   1530,
+   42460.0
+  ],
+  [
+   1538,
+   1090.0
+  ],
+  [
+   1544,
+   2272.5
+  ],
+  [
+   1549,
+   830.0
+  ],
+  [
+   1553,
+   400.0
+  ],
+  [
+   1555,
+   8900.0
+  ],
+  [
+   1561,
+   550.0
+  ],
+  [
+   1562,
+   1150.0
+  ],
+  [
+   1563,
+   1597.5
+  ],
+  [
+   1564,
+   942.0
+  ],
+  [
+   1566,
+   669.6
+  ],
+  [
+   1581,
+   59.0
+  ],
+  [
+   1582,
+   97.0
+  ],
+  [
+   1583,
+   50.0
+  ],
+  [
+   1587,
+   1375.0
+  ],
+  [
+   1589,
+   450.0
+  ],
+  [
+   1590,
+   1755.0
+  ],
+  [
+   1594,
+   1000.0
+  ],
+  [
+   1597,
+   1400.0
+  ],
+  [
+   1598,
+   4200.0
+  ],
+  [
+   1600,
+   2800.0
+  ],
+  [
+   1601,
+   1400.0
+  ],
+  [
+   1609,
+   4200.0
+  ],
+  [
+   1610,
+   182.0
+  ],
+  [
+   1611,
+   750.0
+  ],
+  [
+   1614,
+   2800.0
+  ],
+  [
+   1615,
+   4500.0
+  ],
+  [
+   1618,
+   1500.0
+  ],
+  [
+   1619,
+   5204.0
+  ],
+  [
+   1624,
+   1400.0
+  ],
+  [
+   1626,
+   1150.0
+  ],
+  [
+   1629,
+   3000.0
+  ],
+  [
+   1632,
+   4567.5
+  ],
+  [
+   1635,
+   1400.0
+  ],
+  [
+   1637,
+   37149.0
+  ],
+  [
+   1640,
+   675.0
+  ],
+  [
+   1641,
+   1400.0
+  ],
+  [
+   1642,
+   667.5
+  ],
+  [
+   1644,
+   727.5
+  ],
+  [
+   1646,
+   350.0
+  ],
+  [
+   1647,
+   1100.0
+  ],
+  [
+   1648,
+   20.0
+  ],
+  [
+   1649,
+   152.49
+  ],
+  [
+   1650,
+   972.0
+  ],
+  [
+   1651,
+   1250.0
+  ],
+  [
+   1652,
+   1365.0
+  ],
+  [
+   1653,
+   1558.2
+  ],
+  [
+   1654,
+   1600.0
+  ],
+  [
+   1655,
+   9900.0
+  ],
+  [
+   1656,
+   8050.0
+  ],
+  [
+   1657,
+   2250.0
+  ],
+  [
+   1658,
+   149750.0
+  ],
+  [
+   1659,
+   50.0
+  ],
+  [
+   1660,
+   55.0
+  ],
+  [
+   1661,
+   475.0
+  ],
+  [
+   1662,
+   350.0
+  ],
+  [
+   1665,
+   5600.0
+  ],
+  [
+   1670,
+   5600.0
+  ],
+  [
+   1671,
+   145.0
+  ],
+  [
+   1672,
+   95.0
+  ],
+  [
+   1674,
+   510.0
+  ],
+  [
+   1676,
+   2425.0
+  ],
+  [
+   1677,
+   19250.0
+  ],
+  [
+   1678,
+   20350.0
+  ],
+  [
+   1679,
+   1740.0
+  ],
+  [
+   1680,
+   1938.0
+  ],
+  [
+   1681,
+   523.5
+  ],
+  [
+   1684,
+   1250.0
+  ],
+  [
+   1685,
+   1500.0
+  ],
+  [
+   1687,
+   1400.0
+  ],
+  [
+   1688,
+   4200.0
+  ],
+  [
+   1689,
+   1740.0
+  ],
+  [
+   1690,
+   786.0
+  ],
+  [
+   1691,
+   -70.0
+  ],
+  [
+   1692,
+   2227.5
+  ],
+  [
+   1694,
+   5600.0
+  ],
+  [
+   1695,
+   2000.0
+  ],
+  [
+   1696,
+   2358.0
+  ],
+  [
+   1697,
+   1740.0
+  ],
+  [
+   1698,
+   -60.0
+  ],
+  [
+   1700,
+   5600.0
+  ],
+  [
+   1701,
+   5000.0
+  ],
+  [
+   1702,
+   1500.0
+  ],
+  [
+   1703,
+   1392.0
+  ],
+  [
+   1704,
+   969.0
+  ],
+  [
+   1705,
+   -55.0
+  ],
+  [
+   1707,
+   2800.0
+  ],
+  [
+   1708,
+   1275.0
+  ]
+ ],
+ "opening_run_id": null,
+ "plant_date": "2026-11-06",
+ "products": [
+  {
+   "default_batch_lb": null,
+   "id": 2,
+   "name": "Almonds \u2013 Diced",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 3,
+   "name": "Almonds \u2013 Sliced",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 4,
+   "name": "Almonds \u2013 Slivered",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 7,
+   "name": "Cinnamon Ground",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 8,
+   "name": "Cocoa Powder",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 9,
+   "name": "Coconut Chips Desiccated",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 10,
+   "name": "Coconut Fancy Desiccated",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 12,
+   "name": "Coconut Flake Desiccated",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 13,
+   "name": "Coconut Macaroon Desiccated",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 14,
+   "name": "Coconut Medium Desiccated",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 16,
+   "name": "Corn Starch",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 18,
+   "name": "Flavor \u2013 Almond",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 20,
+   "name": "Flavor \u2013 Chocolate",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 21,
+   "name": "Flavor \u2013 Cinnamon",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 26,
+   "name": "Flavor \u2013 Vanilla",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 27,
+   "name": "Flax \u2013 Ground",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 28,
+   "name": "Flax \u2013 Seed",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 29,
+   "name": "Glycol",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 30,
+   "name": "Honey",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 31,
+   "name": "Oat Bran",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 32,
+   "name": "Oats",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 34,
+   "name": "Oil \u2013 Canola",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 35,
+   "name": "Pumpkin Seeds",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 38,
+   "name": "Rice Flour",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 39,
+   "name": "Salt",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 40,
+   "name": "Sugar \u2013 6X",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 41,
+   "name": "Sugar \u2013 Cane \u2013 Organic",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 42,
+   "name": "Sugar \u2013 Granulated",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 43,
+   "name": "Sugar \u2013 Invert(Cream)",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 44,
+   "name": "Sugar \u2013 Light Brown",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 45,
+   "name": "Sugar \u2013 Monk Fruit",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 46,
+   "name": "Sunflower Seeds",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 50,
+   "name": "Water",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 52,
+   "name": "Oil \u2013 Soybean",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 56,
+   "name": "BS Banana Bites \u2013 Small",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 58,
+   "name": "BS Cacao Nibs",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 61,
+   "name": "BS Cocoa Liquor \u2013 Chips",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 66,
+   "name": "BS Hazelnuts \u2013 Diced",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 67,
+   "name": "BS Oats GF",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 68,
+   "name": "BS Oil \u2013 Almond",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 70,
+   "name": "BS Pumpkin Seeds",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 72,
+   "name": "Chocolate Chips \u2013 Real \u2013 4,000 CT",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 73,
+   "name": "Chocolate Chips \u2013 Real \u2013 1,000 CT",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 75,
+   "name": "Graham Cracker Crumbs \u2013 50 LB",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 102,
+   "name": "Pallets",
+   "type": "packaging",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": 323.0,
+   "id": 107,
+   "name": "Batch Classic Granola #9",
+   "type": "batch",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": 348.0,
+   "id": 108,
+   "name": "Batch Classic Chocolate Chip Granola #9",
+   "type": "batch",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": 370.0,
+   "id": 112,
+   "name": "Batch Vanilla Crisp Granola #16(no almonds)",
+   "type": "batch",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": 380.0,
+   "id": 113,
+   "name": "Batch Granola Vanilla Almond 380 lb",
+   "type": "batch",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": 393.0,
+   "id": 114,
+   "name": "Batch SS Chocolate Chip Granola #2",
+   "type": "batch",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": 350.0,
+   "id": 116,
+   "name": "Batch SS Original Granola #1",
+   "type": "batch",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": 350.0,
+   "id": 121,
+   "name": "Batch BS Dark Chocolate Granola 350",
+   "type": "batch",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": 360.0,
+   "id": 125,
+   "name": "Batch Coconut Sweetened Fancy",
+   "type": "batch",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": 360.0,
+   "id": 126,
+   "name": "Batch Coconut Sweetened Flake",
+   "type": "batch",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": 360.0,
+   "id": 127,
+   "name": "Batch Coconut Sweetened Medium",
+   "type": "batch",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 136,
+   "name": "Granola Classic 25 LB",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 137,
+   "name": "Granola Crunchy CNS 10 LB Case",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 142,
+   "name": "Granola Fruit Nut 25 LB",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 144,
+   "name": "CQ Granola 10 LB",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 145,
+   "name": "Granola SS Chocolate Chip 12x10 OZ Case",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 146,
+   "name": "Granola SS Original 12x10 OZ Case",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 147,
+   "name": "Granola SS Cranberry 12x10 OZ Case",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 148,
+   "name": "Granola SS Chocolate Chip Low Carb 12x10 OZ Case",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 149,
+   "name": "Granola SS Original Low Carb 12x10 OZ Case",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 156,
+   "name": "Coconut Sweetened Flake CNS 10 LB",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 157,
+   "name": "Coconut Sweetened Flake CNS 25 LB",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 158,
+   "name": "Coconut Sweetened Medium CNS 10 LB",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 159,
+   "name": "Coconut Toasted Sweetened Flake CNS 10 LB",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 160,
+   "name": "Coconut Toasted Sweetened Flake CNS 25 LB",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 161,
+   "name": "Coconut Sweetened Fancy UNIPRO 10 LB",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 162,
+   "name": "Coconut Sweetened Flake UNIPRO 10 LB",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 163,
+   "name": "Coconut Sweetened Medium UNIPRO 10 LB",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 164,
+   "name": "CQ Coconut Sweetened Flake 10 LB",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 165,
+   "name": "Graham Cracker Crumbs \u2013 10 LB",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 171,
+   "name": "Classic Granola 25 LB",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 173,
+   "name": "Kookies & Kreme \u2013 25 LB",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 174,
+   "name": "Sprinkles Chocolate 10 LB",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 175,
+   "name": "Sprinkles Rainbow 10 LB",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 176,
+   "name": "Pallet Charge",
+   "type": "packaging",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 196,
+   "name": "Desiccated Macaroon Bakers 25 LB",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 202,
+   "name": "Sprinkles Rainbow 25 LB",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 203,
+   "name": "Sprinkles Chocolate 25 LB",
+   "type": "finished",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": 323.0,
+   "id": 283,
+   "name": "Batch Classic Granola #9 \u2014 EXTRA-KOSHER (SS)",
+   "type": "batch",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": 348.0,
+   "id": 284,
+   "name": "Batch Classic Chocolate Chip Granola #9 \u2014 EXTRA-KOSHER (SS)",
+   "type": "batch",
+   "yield_multiplier": 1.0
+  },
+  {
+   "default_batch_lb": null,
+   "id": 291,
+   "name": "WIP Banana / PB-chip mix (for PBB)",
+   "type": "ingredient",
+   "yield_multiplier": 1.0
+  }
+ ],
+ "recipes": [
+  {
+   "exclude_from_inventory": false,
+   "ingredient_product_id": 3,
+   "product_id": 114,
+   "quantity_lb": 19.0
+  },
+  {
+   "exclude_from_inventory": false,
+   "ingredient_product_id": 13,
+   "product_id": 114,
+   "quantity_lb": 19.0
+  },
+  {
+   "exclude_from_inventory": false,
+   "ingredient_product_id": 30,
+   "product_id": 114,
+   "quantity_lb": 47.0
+  },
+  {
+   "exclude_from_inventory": false,
+   "ingredient_product_id": 31,
+   "product_id": 114,
+   "quantity_lb": 29.0
+  },
+  {
+   "exclude_from_inventory": false,
+   "ingredient_product_id": 32,
+   "product_id": 114,
+   "quantity_lb": 200.0
+  },
+  {
+   "exclude_from_inventory": false,
+   "ingredient_product_id": 34,
+   "product_id": 114,
+   "quantity_lb": 22.0
+  },
+  {
+   "exclude_from_inventory": false,
+   "ingredient_product_id": 46,
+   "product_id": 114,
+   "quantity_lb": 19.0
+  },
+  {
+   "exclude_from_inventory": false,
+   "ingredient_product_id": 72,
+   "product_id": 114,
+   "quantity_lb": 38.0
+  },
+  {
+   "exclude_from_inventory": false,
+   "ingredient_product_id": 10,
+   "product_id": 125,
+   "quantity_lb": 200.0
+  },
+  {
+   "exclude_from_inventory": false,
+   "ingredient_product_id": 16,
+   "product_id": 125,
+   "quantity_lb": 5.0
+  },
+  {
+   "exclude_from_inventory": false,
+   "ingredient_product_id": 29,
+   "product_id": 125,
+   "quantity_lb": 7.0
+  },
+  {
+   "exclude_from_inventory": false,
+   "ingredient_product_id": 39,
+   "product_id": 125,
+   "quantity_lb": 2.5
+  },
+  {
+   "exclude_from_inventory": false,
+   "ingredient_product_id": 40,
+   "product_id": 125,
+   "quantity_lb": 110.0
+  },
+  {
+   "exclude_from_inventory": true,
+   "ingredient_product_id": 50,
+   "product_id": 125,
+   "quantity_lb": 65.0
+  },
+  {
+   "exclude_from_inventory": false,
+   "ingredient_product_id": 14,
+   "product_id": 127,
+   "quantity_lb": 200.0
+  },
+  {
+   "exclude_from_inventory": false,
+   "ingredient_product_id": 16,
+   "product_id": 127,
+   "quantity_lb": 5.0
+  },
+  {
+   "exclude_from_inventory": false,
+   "ingredient_product_id": 29,
+   "product_id": 127,
+   "quantity_lb": 7.0
+  },
+  {
+   "exclude_from_inventory": false,
+   "ingredient_product_id": 39,
+   "product_id": 127,
+   "quantity_lb": 2.5
+  },
+  {
+   "exclude_from_inventory": false,
+   "ingredient_product_id": 40,
+   "product_id": 127,
+   "quantity_lb": 110.0
+  },
+  {
+   "exclude_from_inventory": true,
+   "ingredient_product_id": 50,
+   "product_id": 127,
+   "quantity_lb": 65.0
+  }
+ ],
+ "substitutions": [
+  {
+   "ingredient_product_id": 31,
+   "reason_code": "oat_bran_auto_substitute",
+   "substitute_product_id": 32,
+   "transaction_id": 2965
+  }
+ ],
+ "transactions": [
+  {
+   "actor_id": 2,
+   "actor_name": "Arturo",
+   "business_date": "2026-11-06",
+   "created_at": "2026-11-06T09:03:43.733711-05:00",
+   "entered_plant_date": "2026-11-06",
+   "id": 2962,
+   "in_window": true,
+   "notes": null,
+   "operator_id": "Arturo",
+   "posted_after": true,
+   "reason_code": null,
+   "receipt_number": "SHP-261106-001",
+   "type": "ship"
+  },
+  {
+   "actor_id": 2,
+   "actor_name": "Arturo",
+   "business_date": "2026-11-06",
+   "created_at": "2026-11-06T09:03:43.938148-05:00",
+   "entered_plant_date": "2026-11-06",
+   "id": 2963,
+   "in_window": true,
+   "notes": null,
+   "operator_id": "Arturo",
+   "posted_after": true,
+   "reason_code": null,
+   "receipt_number": "SHP-261106-001",
+   "type": "ship"
+  },
+  {
+   "actor_id": 2,
+   "actor_name": "Arturo",
+   "business_date": "2026-11-06",
+   "created_at": "2026-11-06T09:03:44.065632-05:00",
+   "entered_plant_date": "2026-11-06",
+   "id": 2964,
+   "in_window": true,
+   "notes": null,
+   "operator_id": "Arturo",
+   "posted_after": true,
+   "reason_code": null,
+   "receipt_number": "SHP-261106-001",
+   "type": "ship"
+  },
+  {
+   "actor_id": 2,
+   "actor_name": "Arturo",
+   "business_date": "2026-11-06",
+   "created_at": "2026-11-06T13:20:49.096607-05:00",
+   "entered_plant_date": "2026-11-06",
+   "id": 2965,
+   "in_window": true,
+   "notes": null,
+   "operator_id": "Arturo",
+   "posted_after": true,
+   "reason_code": null,
+   "receipt_number": "MK-261106-001",
+   "type": "make"
+  },
+  {
+   "actor_id": 2,
+   "actor_name": "Arturo",
+   "business_date": "2026-11-06",
+   "created_at": "2026-11-06T13:38:04.804109-05:00",
+   "entered_plant_date": "2026-11-06",
+   "id": 2966,
+   "in_window": true,
+   "notes": null,
+   "operator_id": "Arturo",
+   "posted_after": true,
+   "reason_code": null,
+   "receipt_number": "MK-261106-002",
+   "type": "make"
+  },
+  {
+   "actor_id": 2,
+   "actor_name": "Arturo",
+   "business_date": "2026-11-06",
+   "created_at": "2026-11-06T13:38:37.002134-05:00",
+   "entered_plant_date": "2026-11-06",
+   "id": 2967,
+   "in_window": true,
+   "notes": null,
+   "operator_id": "Arturo",
+   "posted_after": true,
+   "reason_code": null,
+   "receipt_number": "MK-261106-003",
+   "type": "make"
+  },
+  {
+   "actor_id": 2,
+   "actor_name": "Arturo",
+   "business_date": "2026-11-06",
+   "created_at": "2026-11-06T13:39:41.242125-05:00",
+   "entered_plant_date": "2026-11-06",
+   "id": 2968,
+   "in_window": true,
+   "notes": null,
+   "operator_id": "Arturo",
+   "posted_after": true,
+   "reason_code": null,
+   "receipt_number": "PK-261106-001",
+   "type": "pack"
+  },
+  {
+   "actor_id": 2,
+   "actor_name": "Arturo",
+   "business_date": "2026-11-06",
+   "created_at": "2026-11-06T14:05:59.676302-05:00",
+   "entered_plant_date": "2026-11-06",
+   "id": 2969,
+   "in_window": true,
+   "notes": null,
+   "operator_id": "Arturo",
+   "posted_after": true,
+   "reason_code": null,
+   "receipt_number": "PK-261106-002",
+   "type": "pack"
+  }
+ ],
+ "voided_lines": [],
+ "window_end": "2026-11-07T00:00:00-05:00",
+ "window_start": "2026-11-06T00:00:00-05:00"
+}
