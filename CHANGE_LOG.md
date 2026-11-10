@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-10 13:48 — Record granola batch physical-count write-down (changelog row 276, script and journal)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `scripts/granola_count_1109.py`, `audits/results/granola-count-1109-execution.json`
+- **What changed:** Added changelog row 276 for the 2026-11-10 production write-downs to Arturo's 11/09/26 count (TX 2991-2995, ADJ-261110-001..005: products 114, 108, 116); added the one-off posting script and its execution journal with ticket tokens redacted
+- **Why:** Michael approved recording the executed adjustments on a branch; the script and journal otherwise existed only in a temporary session folder
+
+---
+
 ## 2026-11-10 12:26 — Record PR 199 production deploy (changelog row 275)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added row 275: backup OK (2026-11-10-pre-pr199), #199 squash-merged to main 291ed1f, Railway FastAPI 9c4b9034 SUCCESS (rollback a570eac6), health 200, reconciliation routes 401 without key and absent from OpenAPI; job still switched off, 094 not applied.
