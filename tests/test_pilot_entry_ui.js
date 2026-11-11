@@ -326,3 +326,15 @@ test('a server error (5xx) shows plain wording in the field, never the database 
     p.input.value='classic';await p.search.onclick();assert.equal(String(p.status().textContent),expected);assert.doesNotMatch(String(p.status().textContent),/statement/);
   }
 });
+
+test('Pack source search falls back to batches when an older API rejects pack_source',async()=>{
+  const h=await harness('pack');const asked=[];
+  h.setResolver(async body=>{asked.push(body.context.product_type);if(body.context.product_type==='pack_source')throw Object.assign(Error('Unprocessable'),{status:422});return {outcome:'match',match:{id:1561,label:'product',type:'batch',case_size_lb:25}};});
+  await h.pick('source');assert.deepEqual(asked,['pack_source','batch']);assert.deepEqual(h.failures,[]);
+});
+test('Pack source search does not retry on other failures',async()=>{
+  const h=await harness('pack');const asked=[];
+  h.setResolver(async body=>{asked.push(body.context.product_type);throw Object.assign(Error('down'),{status:503});});
+  const scope=h.find(node=>node.dataset.picker==='source');h.find(node=>node.tag==='input',scope).value='x';await h.find(node=>node.tag==='button',scope).onclick();
+  assert.deepEqual(asked,['pack_source']);assert.ok(h.find(node=>String(node.textContent).startsWith('Search failed')));
+});

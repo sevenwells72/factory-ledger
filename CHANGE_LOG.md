@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-11 11:30 — Pack form fix: older-server fallback and end-to-end bulk repack test (PR 205 review round)
+- **File(s) changed:** `entry.js`, `test_pilot_entry_ui.js`, `test_pack_bulk_source.py`, `ARCHITECTURE-MAP.md`
+- **What changed:** Pack source search retries with product_type 'batch' when the API answers 422 to 'pack_source' (an API older than the page); two UI tests for the retry. New tests/test_pack_bulk_source.py runs resolve, /pack/prepare, tag confirmation, commit, balances and both trace directions for an ingredient-source pack under a named actor. Map pointer updated.
+- **Why:** Codex review of PR 205 asked for a compatibility fallback for the Netlify/Railway deploy order and for end-to-end coverage of the new workflow.
+
+---
+
 ## 2026-11-11 11:10 — Pack form fix: API contract snapshot updated for the new pack_source option (branch, not deployed)
 - **File(s) changed:** `openapi.jsonl`
 - **What changed:** Regenerated tests/fixtures/route_contract/openapi.jsonl: one line, POST /resolve context.product_type enum gains 'pack_source'. No other operation changed.
