@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-11 10:57 — Record 2026-11-11 archive of six zero-stock duplicate coconut items (changelog row 284, SOP-12, staff guides)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/operating-model/08-standard-operating-procedures.md`, `docs/operating-model/03-guide-arturo.md`, `docs/operating-model/04-guide-luz.md`
+- **What changed:** Added changelog row 284 for the production archive of products 187, 188, 192, 198, 199, 201 (catalog data only, no inventory posting, no code). SOP-12 and the Arturo and Luz guide rows now say Chips and Macaroon are ordered by the pound on the ingredient item, list the archived names, and tell staff to ask Michael before a macaroon order, a non-50 lb flake bag order, or a CNS desiccated item.
+- **Why:** Michael's 2026-11-11 instruction to finish removing duplicate sell-as-is items per SOP-12; docs-only record of the production change
+
+---
+
 ## 2026-11-10 19:23 — Medium coconut by the pound (correction to row 281), BOL photo on SHP-261110-004, office guide renamed to Luz (changelog rows 282-283, SOP-12)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/operating-model/08-standard-operating-procedures.md`, `docs/operating-model/03-guide-arturo.md`, `docs/operating-model/04-guide-luz.md`, `docs/operating-model/01-architecture.md`, `docs/operating-model/06-access-reference.md`, `docs/operating-model/07-issues-and-recommendations.md`, `docs/operating-model/09-switch-on-plan.md`, `docs/operating-model/README.md`
 - **What changed:** Row 282: Coconut Medium Desiccated returned to unit lb with no case size because it comes in 25 lb and 50 lb bags; ordered and shipped by the pound; proven on staging first. Row 283: copy of the SHP-261110-003 BOL photo attached to SHP-261110-004 (attachment 30), proof complete. SOP-12 and the Arturo and office guide rows now say Flake and Fancy in 50 lb bags, Medium in pounds. Office guide renamed 04-guide-liz.md to 04-guide-luz.md and every 'Liz' reference corrected: the office staff are Luz and Miriam (confirmed by Michael).

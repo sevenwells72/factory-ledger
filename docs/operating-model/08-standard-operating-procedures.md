@@ -103,15 +103,17 @@ If the owner of an entry is absent, Michael names a stand-in for the day. The st
 - New accounts and deactivations are owner actions.
 - When someone leaves, deactivate their account the same day.
 
-## SOP-12: Desiccated coconut sold as-is (owner decision, 2026-11-10)
+## SOP-12: Desiccated coconut sold as-is (owner decision, 2026-11-10; updated 2026-11-11)
 
 Desiccated coconut that we sell in the supplier's bags is **one item**: the same item is the ingredient and the thing on the order. There is no pack step and no separate "50 LB" product.
 
-- **Items set up this way:** Coconut Flake Desiccated and Coconut Fancy Desiccated are ordered in **50 lb bags** (or in lb), the same way as Graham Cracker Crumbs – 50 LB. **Coconut Medium Desiccated is ordered and shipped by the pound only**: it comes in both 25 lb and 50 lb bags, so the item has no fixed bag size and the office types the total pounds (for example three 25 lb bags = 75 lb).
-- **Office, new order:** choose the coconut item by its ingredient name (for example "Coconut Flake Desiccated"), quantity in **bags** for Flake and Fancy, in **pounds** for Medium. The old names (Desiccated Flake 50 LB, Desiccated Fancy Bakers 50 LB, Desiccated Medium Bakers 50 LB) are archived and no longer appear in search.
+- **Items set up this way:** Coconut Flake Desiccated and Coconut Fancy Desiccated are ordered in **50 lb bags** (or in lb), the same way as Graham Cracker Crumbs – 50 LB. **Coconut Medium Desiccated, Coconut Chips Desiccated and Coconut Macaroon Desiccated are ordered and shipped by the pound only**: their bags are not one fixed size (Medium comes in 25 lb and 50 lb bags), so the office types the total pounds (for example three 25 lb bags = 75 lb) and writes the bag sizes in the line note.
+- **Office, new order:** choose the coconut item by its ingredient name (for example "Coconut Flake Desiccated"), quantity in **bags** for Flake and Fancy, in **pounds** for Medium, Chips and Macaroon. The old names are archived and no longer appear in search: Desiccated Flake 50 / 55 / 80 LB, Desiccated Fancy Bakers 50 LB, Desiccated Medium Bakers 50 LB, Coconut Chips 25 LB, Desiccated Coconut Chips 25 LB, Desiccated Macaroon Bakers 50 LB, Desiccated Macaroon 55 LB.
 - **Floor, shipping:** Record entry → Ship → Sales order. Pick the lot from the list; it is the ingredient lot. Do **not** pack or receive anything first.
 - **Never record a receive for stock that is already in the building.** If the Ship screen shows no lots for a line, stop and tell Michael; do not create stock to make the screen work.
 - **Packing slip and exports:** they show the ingredient name and its item number, not the old "50 LB" name. QuickBooks keeps its own item; match by customer, order and quantity during the weekly reconciliation.
 - **Pooled opening lots** (the Oct 21–22 count lots) are not one supplier lot. Shipping from one is recorded against the pooled lot; do not write a supplier lot on it.
-- **Not set up this way yet:** Coconut Macaroon Desiccated and Coconut Chips Desiccated, and the other pack sizes (25, 55, 80, 100 LB items). Ask Michael before taking an order for those.
+- **Macaroon, one exception:** "Desiccated Macaroon Bakers 25 LB" is still an active item because about 11,375 lb (lot 6086) is recorded on it. Until Michael decides what to do with that stock, **ask Michael before taking a macaroon order** so the order is put on the item that holds the bags being shipped.
+- **Flake in a bag that is not 50 lb:** the Flake item takes whole 50 lb bags only. Ask Michael before taking an order for 55 lb or 80 lb flake bags.
+- **Still separate items, to be confirmed by Michael:** the "CNS" desiccated items (Flake CNS 25 LB, Macaroon CNS 25 LB, Medium CNS 25 LB and 100 LB). They are treated as products CNS repacks. They have no stock; ask Michael before taking an order for one.
 - **Making granola or sweetened coconut** with these ingredients is unchanged.
