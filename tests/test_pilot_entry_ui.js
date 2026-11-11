@@ -154,7 +154,7 @@ test('Adjust product-name search shows exact full lots; Found known lot fills on
   for(const action of ['adjust','found']){const h=await harness(action);h.setStock(async()=>({lots:[{id:11,lot_id:11,lot_code:'OATS-001',product_id:1561,product_name:'Oats',available_lb:12}]}));if(action==='found')await h.pick('product');const scope=h.find(node=>node.dataset.picker===(action==='found'?'known_lot':'lot'));h.find(node=>node.tag==='input',scope).value='oats';await h.find(node=>node.tag==='button',scope).onclick();const choice=h.find(node=>node.className==='picker-options',scope).children[0];assert.match(choice.textContent,/OATS-001.*Oats.*12 lb/);choice.onclick();assert.equal(new URL('https://local'+h.requests.at(-1).path).searchParams.get('include_empty'),'true');if(action==='found')assert.equal(h.field('lot_code').value,'OATS-001');else{h.submit();assert.equal(h.tickets[0].body.lot_id,11);}}
 });
 test('Pack batch search and recent lot selection pin the chosen lot but add no tag confirmation',async()=>{
-  const h=await harness('pack');h.setStock(async()=>({lots:[{id:21,lot_id:21,lot_code:'BATCH-TODAY',available_lb:323},{id:20,lot_id:20,lot_code:'BATCH-OLD',available_lb:300}]}));await h.pick('source');assert.equal(h.requests.find(r=>r.path==='/resolve').body.context.product_type,'batch');const recent=h.all(node=>node.dataset.recentLot);assert.equal(recent[0].dataset.recentLot,'21');recent[0].onclick();await h.pick('target');h.field('cases').value='4';h.submit();assert.deepEqual(h.tickets[0].body.lot_allocations,[{lot_id:21,quantity_lb:100}]);assert.equal('lot_confirmations' in h.tickets[0].body,false);h.tickets[0].options.onEdit();h.button('Use suggested FIFO (oldest first)').onclick();h.submit();assert.equal('lot_allocations' in h.tickets.at(-1).body,false);
+  const h=await harness('pack');h.setStock(async()=>({lots:[{id:21,lot_id:21,lot_code:'BATCH-TODAY',available_lb:323},{id:20,lot_id:20,lot_code:'BATCH-OLD',available_lb:300}]}));await h.pick('source');assert.equal(h.requests.find(r=>r.path==='/resolve').body.context.product_type,'pack_source');const recent=h.all(node=>node.dataset.recentLot);assert.equal(recent[0].dataset.recentLot,'21');recent[0].onclick();await h.pick('target');h.field('cases').value='4';h.submit();assert.deepEqual(h.tickets[0].body.lot_allocations,[{lot_id:21,quantity_lb:100}]);assert.equal('lot_confirmations' in h.tickets[0].body,false);h.tickets[0].options.onEdit();h.button('Use suggested FIFO (oldest first)').onclick();h.submit();assert.equal('lot_allocations' in h.tickets.at(-1).body,false);
 });
 
 test('a form photo upload finishing after changing entry type never leaks into the new form',async()=>{
@@ -325,4 +325,16 @@ test('a server error (5xx) shows plain wording in the field, never the database 
     const h=await harness('make',lang),p=pickerOf(h,'product');h.setResolver(()=>{throw Object.assign(Error('canceling statement due to statement timeout'),{status:500});});
     p.input.value='classic';await p.search.onclick();assert.equal(String(p.status().textContent),expected);assert.doesNotMatch(String(p.status().textContent),/statement/);
   }
+});
+
+test('Pack source search falls back to batches when an older API rejects pack_source',async()=>{
+  const h=await harness('pack');const asked=[];
+  h.setResolver(async body=>{asked.push(body.context.product_type);if(body.context.product_type==='pack_source')throw Object.assign(Error('Unprocessable'),{status:422});return {outcome:'match',match:{id:1561,label:'product',type:'batch',case_size_lb:25}};});
+  await h.pick('source');assert.deepEqual(asked,['pack_source','batch']);assert.deepEqual(h.failures,[]);
+});
+test('Pack source search does not retry on other failures',async()=>{
+  const h=await harness('pack');const asked=[];
+  h.setResolver(async body=>{asked.push(body.context.product_type);throw Object.assign(Error('down'),{status:503});});
+  const scope=h.find(node=>node.dataset.picker==='source');h.find(node=>node.tag==='input',scope).value='x';await h.find(node=>node.tag==='button',scope).onclick();
+  assert.deepEqual(asked,['pack_source']);assert.ok(h.find(node=>String(node.textContent).startsWith('Search failed')));
 });

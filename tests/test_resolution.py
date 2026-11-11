@@ -413,3 +413,44 @@ def test_resolver_runs_in_real_read_only_transaction(catalog):
                 r.resolve(cur, r.ResolveRequest(kind=kind, query=query), aliases=[])
             cur.execute('SHOW transaction_read_only')
             assert cur.fetchone()['transaction_read_only'] == 'on'
+
+
+def test_pack_source_lists_batches_and_linked_bulk_items_only(catalog):
+    """The Pack screen's source list: batches, plus an item a finished product is packed from."""
+    bulk = catalog['product']('A4 Graham Crumbs 50 LB', 'ingredient', case_size_lb=Decimal('50'))
+    unlinked = catalog['product']('A4 Graham Flour 50 LB', 'ingredient')
+    retired = catalog['product']('A4 Graham Dust 50 LB', 'ingredient')
+    packed = catalog['product']('A4 Graham Crumbs 10 LB', 'finished', case_size_lb=Decimal('10'),
+                                parent_batch_product_id=bulk)
+    catalog['product']('A4 Graham Dust 10 LB', 'finished', parent_batch_product_id=retired)
+    catalog['cur'].execute("UPDATE products SET active=false WHERE name='A4 Graham Dust 10 LB'")
+
+    sources = resolve(catalog, 'product', 'A4 Graham', {'action': 'pack', 'product_type': 'pack_source'})
+    assert sources['outcome'] == 'match', sources
+    assert sources['match']['id'] == bulk
+    assert unlinked not in {c['id'] for c in sources['candidates']}
+    assert retired not in {c['id'] for c in sources['candidates']}
+
+    # The finished product itself is never offered as something to pack from.
+    assert_no_pick(resolve(catalog, 'product', 'A4 Graham Crumbs 10 LB',
+                           {'action': 'pack', 'product_type': 'pack_source'}), outcome='none')
+
+    # Batches are still offered exactly as before.
+    batches = resolve(catalog, 'product', 'Batch SS Classic', {'action': 'pack', 'product_type': 'pack_source'})
+    assert {c['id'] for c in batches['candidates']} == set(catalog['batches'])
+    assert ({c['id'] for c in resolve(catalog, 'product', 'Batch SS Classic',
+                                      {'action': 'pack', 'product_type': 'batch'})['candidates']}
+            == set(catalog['batches']))
+
+    # Once the bulk item is chosen, the packed-product list offers what is linked to it.
+    targets = resolve(catalog, 'product', 'A4 Graham', {'action': 'pack', 'product_id': bulk})
+    assert targets['outcome'] == 'match', targets
+    assert targets['match']['id'] == packed
+
+
+def test_pack_source_is_refused_as_a_plain_catalog_type_elsewhere(catalog):
+    """'batch' keeps its old meaning: a bulk ingredient is not a batch."""
+    bulk = catalog['product']('A4 Graham Crumbs 50 LB', 'ingredient')
+    catalog['product']('A4 Graham Crumbs 10 LB', 'finished', parent_batch_product_id=bulk)
+    assert_no_pick(resolve(catalog, 'product', 'A4 Graham Crumbs 50 LB',
+                           {'action': 'pack', 'product_type': 'batch'}), outcome='none')

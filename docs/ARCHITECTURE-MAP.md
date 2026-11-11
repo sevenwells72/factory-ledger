@@ -63,6 +63,7 @@ Pointer syntax: file::text means search that file for that exact text (a section
 ### Packing
 - Code: `main.py::def _pack_preview_core`, `main.py::def _pack_commit_core` (inside the MAKE section), `main.py::def _post_prepared_inputs`
 - Rule: add-in ingredients are deducted at pack time.
+- Pack screen source list: every batch, plus any item an active finished product names in `parent_batch_product_id` (`resolution.py::PACK_SOURCE_FILTER`; the form asks for `product_type: 'pack_source'` in `dashboard/entry.js`). The form retries with `'batch'` when an older API answers 422. Tests: `tests/test_resolution.py`, `tests/test_pack_bulk_source.py`, `tests/test_pilot_entry_ui.js`.
 - UI: `dashboard/pallet-calculations.js`
 - Tests: `tests/test_*packing_slip*`, `tests/test_assistant_pack_review_c.py`, `tests/test_pallet_calculations.js`
 - Risk: **High** (consumption)

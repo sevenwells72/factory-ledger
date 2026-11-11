@@ -131,7 +131,9 @@ class ResolutionContext(BaseModel):
     action: Optional[Literal['make', 'pack', 'receive', 'ship', 'order', 'adjust', 'void']] = None
     group: Optional[Literal['floor', 'office']] = None
     product_id: Optional[int] = Field(None, gt=0)
-    product_type: Optional[Literal['batch', 'finished', 'ingredient', 'packaging', 'consumable']] = None
+    # 'pack_source' is not a catalog type: see PACK_SOURCE_FILTER.
+    product_type: Optional[Literal['batch', 'finished', 'ingredient', 'packaging', 'consumable',
+                                   'pack_source']] = None
     customer_id: Optional[int] = Field(None, gt=0)
     supplier_id: Optional[int] = Field(None, gt=0)
     order_id: Optional[int] = Field(None, gt=0)
@@ -551,6 +553,18 @@ PRODUCT_SOURCE = '''SELECT p.id, p.name, p.odoo_code, p.type, p.label_type,
            (p.type = 'finished' AND p.parent_batch_product_id = %s))'''
 
 
+# What the Pack screen may pack FROM: every batch, plus any other item an active
+# finished product names as its source (products.parent_batch_product_id). The
+# second half is what lets a bought-in bulk item be repacked, for example
+# Graham Cracker Crumbs 50 LB into the 10 LB case. The link is catalog data, so
+# an item becomes a pack source by a settings change, never by its name.
+PACK_SOURCE_FILTER = '''
+      AND (p.type = 'batch' OR EXISTS (
+           SELECT 1 FROM products packed
+            WHERE packed.parent_batch_product_id = p.id AND packed.type = 'finished'
+              AND packed.active IS DISTINCT FROM false))'''
+
+
 def _target_ids(aliases, kind, query):
     return [row[kind + '_id'] for row in aliases if row['kind'] == kind
             and normalize(row['alias']) == normalize(query)]
@@ -598,7 +612,9 @@ def _products(cur, req, variants, aliases):
               c.action, c.action, c.product_id, c.product_id)
     if bare:
         params += (ids,)
-    if c.product_type:
+    if c.product_type == 'pack_source':
+        source += PACK_SOURCE_FILTER
+    elif c.product_type:
         source += ' AND p.type=%s'
         params += (c.product_type,)
     rows = _search(cur, source, params, variants, aliases, limit=req.limit, offset=req.offset, prefix=True)
