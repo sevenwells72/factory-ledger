@@ -14,7 +14,7 @@ Status words used throughout:
 flowchart LR
   subgraph People
     A[Arturo<br/>plant manager<br/>phone]
-    L[Luz / Liz<br/>office<br/>desktop]
+    L[Luz and Miriam<br/>office<br/>desktop]
     M[Michael<br/>owner]
   end
 
