@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-11-11 11:10 — Pack form fix: API contract snapshot updated for the new pack_source option (branch, not deployed)
+- **File(s) changed:** `openapi.jsonl`
+- **What changed:** Regenerated tests/fixtures/route_contract/openapi.jsonl: one line, POST /resolve context.product_type enum gains 'pack_source'. No other operation changed.
+- **Why:** The route contract test pins the API shape; the added option is deliberate (branch fix/pack-ingredient-source).
+
+---
+
+## 2026-11-11 11:06 — Pack form: allow a linked bulk item as the pack source (branch, not deployed)
+- **File(s) changed:** `resolution.py`, `entry.js`, `entry.html`, `test_resolution.py`, `test_pilot_entry_ui.js`, `ARCHITECTURE-MAP.md`
+- **What changed:** Resolver gains product_type 'pack_source' (every batch, plus any item an active finished product names in parent_batch_product_id); the Pack form's source list now asks for it instead of batches only, label reads 'Source batch or bulk item', entry.js cache version 14 to 15; two resolver tests added, one UI test updated, map pointer added. Branch fix/pack-ingredient-source; no server pack rule changed; no production data changed.
+- **Why:** Graham Cracker Crumbs 50 LB to 10 LB repacks could not be entered on the dashboard under a name, so they went through the Floor GPT with the shared key (TX 3000 on 2026-11-10). Needed before the shared key can be switched off.
+
+---
+
 ## 2026-11-11 10:57 — Record 2026-11-11 archive of six zero-stock duplicate coconut items (changelog row 284, SOP-12, staff guides)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/operating-model/08-standard-operating-procedures.md`, `docs/operating-model/03-guide-arturo.md`, `docs/operating-model/04-guide-luz.md`
 - **What changed:** Added changelog row 284 for the production archive of products 187, 188, 192, 198, 199, 201 (catalog data only, no inventory posting, no code). SOP-12 and the Arturo and Luz guide rows now say Chips and Macaroon are ordered by the pound on the ingredient item, list the archived names, and tell staff to ask Michael before a macaroon order, a non-50 lb flake bag order, or a CNS desiccated item.
