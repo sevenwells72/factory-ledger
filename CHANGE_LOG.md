@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-11 11:44 — Record PR 205 production deploy and Graham source link (changelog row 285)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added row 285: PR 205 merged and deployed (989ebc8, Railway f715e1e0), product 165 linked to product 75 in production (one guarded row), backups, production verification, staging proof, review verdicts, test results, known limits and what breaks if reverted.
+- **Why:** Regression Guard step 4: record every production deploy and data change immediately.
+
+---
+
 ## 2026-11-11 11:30 — Pack form fix: older-server fallback and end-to-end bulk repack test (PR 205 review round)
 - **File(s) changed:** `entry.js`, `test_pilot_entry_ui.js`, `test_pack_bulk_source.py`, `ARCHITECTURE-MAP.md`
 - **What changed:** Pack source search retries with product_type 'batch' when the API answers 422 to 'pack_source' (an API older than the page); two UI tests for the retry. New tests/test_pack_bulk_source.py runs resolve, /pack/prepare, tag confirmation, commit, balances and both trace directions for an ingredient-source pack under a named actor. Map pointer updated.
