@@ -7,7 +7,7 @@ These SOPs apply from the **switch-on date** (see [07](07-issues-and-recommendat
 | Person | Account | Primary | Allowed backup |
 |---|---|---|---|
 | Arturo | Arturo (floor) | FL Assistant | Record entry form |
-| Luz (Liz) | Luz (office), or her own if Liz is a different person | Dashboard + Office screen | FL Assistant |
+| Luz and Miriam | Her own office account (Luz, Miriam) | Dashboard + Office screen | FL Assistant |
 | Michael | Blubber (owner) | Dashboard | Read-only chat |
 
 - **Never share keys.** Never record under someone else's sign-in.
@@ -107,8 +107,8 @@ If the owner of an entry is absent, Michael names a stand-in for the day. The st
 
 Desiccated coconut that we sell in the supplier's bags is **one item**: the same item is the ingredient and the thing on the order. There is no pack step and no separate "50 LB" product.
 
-- **Items set up this way:** Coconut Flake Desiccated, Coconut Fancy Desiccated, Coconut Medium Desiccated. Each is ordered in **50 lb bags** (or in lb). This works the same way as Graham Cracker Crumbs – 50 LB.
-- **Office, new order:** choose the coconut item by its ingredient name (for example "Coconut Flake Desiccated"), quantity in **bags**. The old names (Desiccated Flake 50 LB, Desiccated Fancy Bakers 50 LB, Desiccated Medium Bakers 50 LB) are archived and no longer appear in search.
+- **Items set up this way:** Coconut Flake Desiccated and Coconut Fancy Desiccated are ordered in **50 lb bags** (or in lb), the same way as Graham Cracker Crumbs – 50 LB. **Coconut Medium Desiccated is ordered and shipped by the pound only**: it comes in both 25 lb and 50 lb bags, so the item has no fixed bag size and the office types the total pounds (for example three 25 lb bags = 75 lb).
+- **Office, new order:** choose the coconut item by its ingredient name (for example "Coconut Flake Desiccated"), quantity in **bags** for Flake and Fancy, in **pounds** for Medium. The old names (Desiccated Flake 50 LB, Desiccated Fancy Bakers 50 LB, Desiccated Medium Bakers 50 LB) are archived and no longer appear in search.
 - **Floor, shipping:** Record entry → Ship → Sales order. Pick the lot from the list; it is the ingredient lot. Do **not** pack or receive anything first.
 - **Never record a receive for stock that is already in the building.** If the Ship screen shows no lots for a line, stop and tell Michael; do not create stock to make the screen work.
 - **Packing slip and exports:** they show the ingredient name and its item number, not the old "50 LB" name. QuickBooks keeps its own item; match by customer, order and quantity during the weekly reconciliation.

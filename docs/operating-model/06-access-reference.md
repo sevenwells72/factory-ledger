@@ -40,10 +40,10 @@ The staging server refuses to start if it is ever pointed at the production data
 |---|---|---|---|---|
 | Blubber | owner | yes | yes (last 2026-10-28 12:42 ET) | Michael |
 | Arturo | floor | yes | **never** | Arturo |
-| Luz | office | yes | **never** | Luz (Liz?) |
+| Luz | office | yes | **never** | Luz |
 | Miriam | office | yes | **never** | Miriam |
 
-- **There is no "Liz" account.** If Liz is not Luz, an owner must create one.
+- **There is no "Liz".** The office staff are Luz and Miriam (confirmed by Michael, 2026-11-10); each has her own office account.
 - No account has ever started a dashboard sign-in session or an Assistant chat in production. Every routine entry since August is recorded as **"legacy-shared-key"**: 235 entries in the last 30 days, the latest on Oct 23.
 
 ### Roles
@@ -78,5 +78,5 @@ Roles are enforced **only on the personal-sign-in routes** (dashboard forms and 
 2. **Shared dashboard key edits.** Order and expected-receipt edits on the dashboard tabs today carry no name either.
 3. **The master key has been exposed.** It appeared in GPT instructions published Aug 13 and in repository history. Rotation is planned "about two weeks after stable operation". Until then, anyone holding it can write anything as anyone.
 4. **Staging confusion.** Without a banner, someone given a preview link could record real work into the test system. That work would simply be missing from production.
-5. **Key sharing.** If Liz and Luz are different people sharing the "Luz" key, accountability is lost. Each person needs their own account.
+5. **Key sharing.** Luz and Miriam each use their own account. A shared key loses accountability.
 6. **Shared phones.** Always Sign out. The session lasts up to 3 hours idle.

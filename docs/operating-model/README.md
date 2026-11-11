@@ -1,6 +1,6 @@
 # Factory Ledger operating model review (2026-10-28)
 
-Read-only review of how Factory Ledger is built, what production actually runs today, and how Arturo, Luz/Liz and Michael should use it. Nothing in production, the code, the GPTs or any setting was changed to produce this.
+Read-only review of how Factory Ledger is built, what production actually runs today, and how Arturo, Luz, Miriam and Michael should use it. Nothing in production, the code, the GPTs or any setting was changed to produce this.
 
 ## Documents
 
@@ -10,7 +10,7 @@ Read-only review of how Factory Ledger is built, what production actually runs t
 | B | [01-architecture.md](01-architecture.md) | Every component, what it does, how data flows (diagram) |
 | C | [02-capability-matrix.md](02-capability-matrix.md) | Which interface can do each task, today and after switch-on |
 | D | [03-guide-arturo.md](03-guide-arturo.md) | Plant manager daily guide |
-| D | [04-guide-liz.md](04-guide-liz.md) | Office daily guide |
+| D | [04-guide-luz.md](04-guide-luz.md) | Office daily guide |
 | D | [05-guide-michael.md](05-guide-michael.md) | Owner daily and weekly guide |
 | E | [06-access-reference.md](06-access-reference.md) | Production and staging links, accounts, sign-in |
 | F | [07-issues-and-recommendations.md](07-issues-and-recommendations.md) | Prioritised gaps, risks, duplication, interface overlap analysis |
@@ -57,7 +57,7 @@ So yes, they are **different windows onto the same records**. A shipment recorde
 
 The main dashboard tabs **can still save office changes**, and they save them under a shared "dashboard" identity that names no one. That covers new sales orders from a PO photo, order edits, close and cancel, expected receipts, production runs, notes and supply requests.
 
-The production database agrees with this. **Arturo's and Luz's accounts have never been used.** Every routine receive, make, pack and ship entry since August was recorded under the shared GPT identity. The only named entries are Michael's ("Blubber") reset and count corrections. There is also **no "Liz" account; the office accounts are "Luz" and "Miriam"**. I assume Liz is Luz, but please confirm.
+The production database agrees with this. **Arturo's and Luz's accounts have never been used.** Every routine receive, make, pack and ship entry since August was recorded under the shared GPT identity. The only named entries are Michael's ("Blubber") reset and count corrections. The office staff are **Luz and Miriam**, each with her own office account (confirmed by Michael, 2026-11-10); there is no "Liz".
 
 ### Recommended operating model (my judgement)
 
@@ -66,7 +66,7 @@ One primary tool per person, all on personal sign-in:
 | Person | Primary | Backup | Why |
 |---|---|---|---|
 | **Arturo** (plant) | **FL Assistant** on his phone (Spanish or English, voice or typing, photos) | **Record entry** screen in the dashboard (same sign-in, same records) | Fastest on a phone; every entry carries his name; nothing posts until he presses Record |
-| **Luz/Liz** (office) | **Dashboard**: Sales Orders, Expected Receipts and Activity tabs, plus the **Office** screen for changes | FL Assistant for creating an order from a quick message | Office work is review-heavy and needs tables, filters and exports, not chat |
+| **Luz and Miriam** (office) | **Dashboard**: Sales Orders, Expected Receipts and Activity tabs, plus the **Office** screen for changes | FL Assistant for creating an order from a quick message | Office work is review-heavy and needs tables, filters and exports, not chat |
 | **Michael** (owner) | **Dashboard**: Operations "Needs Attention", **Exceptions** for approvals, History and Traceability | Office GPT or FL Assistant for ad-hoc questions | Monitoring and approving; almost no routine entry |
 
 The GPTs become **read-only, then retire**, as the October design already planned. That design was never executed: the read-only versions are written and the server supports them, but they were never pasted in. Today both GPTs are fully write-capable and share one master key, which has been exposed publicly.

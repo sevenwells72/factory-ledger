@@ -22,7 +22,7 @@ No new development is needed for the core switch-on. In order, each step approve
    - Confirm a **separate OpenAI key with a monthly cap** (FOLLOWUPS P1.18), and revoke the old proof-of-concept key before Nov 6.
 3. **Turn on personal sign-in** in production. This reveals Record entry, Office, Exceptions, Receipt void and Shift Summary confirm.
 4. **Turn on the FL Assistant** in production.
-5. **Hand out personal keys** to Arturo and Luz, plus Liz if she is a different person.
+5. **Hand out personal keys** to Arturo, Luz and Miriam.
 6. **Supervised first day:** one receive, one make, one pack, one ship (this also checks the #146 slip link and the #153 one-row-per-shipment guard), one Found and one Adjust under 500 lb. Michael approves one held correction.
 7. **Later, as a separate decision once the new workflow is proven reliable (no deadline; Michael, 2026-10-28): make both GPTs read-only.**
    - Set the read-only key.
@@ -50,7 +50,7 @@ No new development is needed for the core switch-on. In order, each step approve
 
 | # | Issue | Recommendation |
 |---|---|---|
-| F-9 | **"Liz" vs "Luz".** There is no Liz account; Luz and Miriam are office accounts. | Confirm. If Liz is a separate person, create her an office account. Deactivate any account nobody uses (Miriam?). |
+| F-9 | **"Liz" vs "Luz": settled.** The office staff are Luz and Miriam (confirmed by Michael, 2026-11-10); there is no Liz. | Nothing further on the name. Each person uses her own account. |
 | F-10 | **Hidden pages.** FL Assistant is reachable only from a small "FL" link on Record entry and Office. Shift Summary is linked from nowhere. (Correction 2026-10-28: the Assistant's fallback buttons are rewritten to the right page when shown, so they work.) | **Small:** add FL Assistant and Shift Summary to the tool bar and the mobile menu. **Built in P2 (branch `feat/p2-slip-banner-nav`, not merged).** Meanwhile, use phone home-screen bookmarks. |
 | F-11 | **No physical count feature.** Counts are entered as Adjust "physical count", one lot at a time. Count day needed a Google Form plus owner-loaded corrections. | Fine for spot counts. For the next full count, decide in advance (FOLLOWUPS P1.21 asks for an owner-approved count-loading path). Don't build it until a second full count is planned. |
 | F-12 | **The production plan is not in Factory Ledger.** The schedule is empty and the Runs page has never been used. The "production board" scheduler is an offline simulator with July sample data. | Decide: either plan in **Runs** (live, links runs to order lines) or keep planning outside Factory Ledger. Hide the offline scheduler to avoid confusion. |
@@ -156,7 +156,7 @@ Chat is poor at all three.
 | Person | Primary | Backup | Never |
 |---|---|---|---|
 | Arturo | FL Assistant (phone) | Record entry form; Floor GPT only if both fail | The same entry in two places |
-| Luz/Liz | Dashboard + Office screen | FL Assistant for a quick order | Office GPT for adjustments, ever |
+| Luz and Miriam | Dashboard + Office screen | FL Assistant for a quick order | Office GPT for adjustments, ever |
 | Michael | Dashboard (Needs Attention, Exceptions, History) | Read-only chat | Routine entries |
 
 **Does the current architecture create unnecessary complexity?**
