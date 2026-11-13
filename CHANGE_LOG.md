@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-13 08:43 — Link Kookies & Kreme 10 LB to its 25 LB pack source in production (changelog row 286)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md` (production data: `products.parent_batch_product_id` for id 178)
+- **What changed:** After a verified backup, set product 178 (Kookies & Kreme – 10 LB, 10301) `parent_batch_product_id` NULL → 173 (Kookies & Kreme – 25 LB, 10304) with a guarded one-row SQL update; verified the Pack form's resolver returns 173 as a source and 178 as its packed product. Added row 286.
+- **Why:** Arturo could not record a K&K 10 LB pack on the dashboard; the Pack source list only offers batches and linked bulk items. Michael approved the link.
+
+---
+
 ## 2026-11-11 11:44 — Record PR 205 production deploy and Graham source link (changelog row 285)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added row 285: PR 205 merged and deployed (989ebc8, Railway f715e1e0), product 165 linked to product 75 in production (one guarded row), backups, production verification, staging proof, review verdicts, test results, known limits and what breaks if reverted.
