@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-16 15:16 — Recorded PR 212 production deploy: Close order reason note optional (changelog row 292)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added row 292: PR 212 squash-merged as main 91a0906 after BACKUP OK 2026-11-16-pre-pr212; Railway FastAPI aa7c3394 SUCCESS, Netlify office.js v10 live; staging skipped by Michael during Railway incident N665TGD7.
+- **Why:** Regression Guard: record every production deploy.
+
+---
+
 ## 2026-11-16 15:06 — Close order reason note made optional for every close reason (branch only, not deployed)
 - **File(s) changed:** `office.js`, `office.html`, `main.py`, `order_tickets.py`, `test_direct_order_close_guard.py`, `test_a6_review_fixes.py`, `run-office.mjs`, `check_direct_order_close_staging.py`
 - **What changed:** Office Close order form no longer requires the Reason note (Cancel order unchanged); office.js cache version bumped to v10 in office.html. Backend no longer refuses NOTE_REQUIRED for a shipped_not_recorded close in either the shared close policy (main.py) or the order ticket layer (order_tickets.py); a blank close note is stored as NULL in sales_orders.state_note and in the SHIPPED_NOT_RECORDED policy acknowledgement. Owner-only permission, cutoff and shipment gates unchanged; reopen note requirement unchanged. No migration (state_note is nullable, no CHECK). Tests updated; new prepare+commit test for each close reason with absent/null/empty note.
