@@ -95,6 +95,7 @@
   function showOutcome(outcome,kind){
     ui.notice(ui.t('Recorded decision — receipt ','Decisión registrada — recibo '),'good');const box=document.getElementById('notice');
     const link=ui.el('a',outcome.receipt,box);link.href=FLReceipts.link(outcome.receipt);
+    const home=ui.el('p',undefined,box);ui.dashboardLink(home);
     if(outcome.postingReceipt){const p=ui.el('p',ui.t('Stock posting receipt: ','Recibo del movimiento de inventario: '),box);const a=ui.el('a',outcome.postingReceipt,p);a.href=FLReceipts.link(outcome.postingReceipt);}
     if(outcome.status==='still_open')ui.el('p',ui.t('Evidence recorded; this exception is still open.','Evidencia registrada; esta excepción sigue abierta.'),box);
     if(outcome.status==='declined')ui.el('p',ui.t('Rejected; no stock was posted.','Rechazada; no se registró movimiento de inventario.'),box);
