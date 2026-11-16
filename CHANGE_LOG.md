@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-16 14:09 — Merged duplicate customers Hialeah #33 and #61 into #57 (production data)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `customer-merge-2026-11-16-hialeah.md`
+- **What changed:** Recorded the production merge of customers #33 and #61 into #57: 7 sales orders and 10 shipments re-pointed, #57 renamed 'Hialeah / New Urban Farms' with 2 aliases, #33/#61 renamed '(merged into #57)' and archived. Changelog row 288 plus a merge record with every row ID, before/after values and reversal SQL.
+- **Why:** Michael approved a true merge 2026-11-16: one real customer had three active records, so the Office picker showed three choices.
+
+---
+
 ## 2026-11-16 12:42 — Record SS Choc Chip #2 TRIAL batch creation (changelog row 287)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added row 287: production product 295 'Batch SS Chocolate Chip Granola #2 — TRIAL' (388 lb, 7 formula lines, no oat bran) created via API after BACKUP OK; verification results; pack mismatch warning and label caveat
