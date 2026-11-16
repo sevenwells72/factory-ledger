@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-16 12:42 — Record SS Choc Chip #2 TRIAL batch creation (changelog row 287)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added row 287: production product 295 'Batch SS Chocolate Chip Granola #2 — TRIAL' (388 lb, 7 formula lines, no oat bran) created via API after BACKUP OK; verification results; pack mismatch warning and label caveat
+- **Why:** Record the 2026-11-16 owner-approved production catalog change in the regression guard
+
+---
+
 ## 2026-11-16 11:12 — Daily inventory reconciliation switched on in production (migration 094, first run emailed)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `schema.sql`, `CHANGE_LOG.md`
 - **What changed:** Recorded row 286: verified backup 2026-11-16-pre-094 (BACKUP OK); migration 094 applied to production (only the three new reconciliation tables added); RECONCILIATION_ENABLED, RECONCILIATION_EMAIL_ENABLED, ALERT_EMAIL_TO set on Railway exceptions-sweep and RESEND_API_KEY set by Michael; first run (run 1, Nov 15) all_clear, 3 still-open below-zero lots, email sent. Re-dumped tests/schema/schema.sql from production.
