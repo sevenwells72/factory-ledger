@@ -104,7 +104,10 @@ try {
   // 7. The original cannot now be cancelled as a duplicate of the cancelled copy.
   await page.goto(base + `/dashboard/office.html?action=cancel_duplicate&order=${original.order_id}`); await page.locator('#duplicate-cancel').waitFor();
   await page.locator('[data-side=duplicate]').getByText(orig, { exact: true }).waitFor();
-  await page.getByText(/^No likely original found/).waitFor();
+  // The cancelled copy is never suggested (other open orders from earlier runs may be).
+  await page.locator('[data-side=original] h3').waitFor();
+  await page.waitForFunction(() => document.querySelector('[data-side=original]')?.textContent.includes('Code') || /No likely original found/.test(document.body.textContent));
+  assert.ok(!(await page.locator('[data-side=original]').textContent()).includes(dup), 'cancelled duplicate not suggested');
   await picker('original').locator('input').fill(dup); await picker('original').locator('input').press('Enter');
   await page.locator('[data-problem=RELATED_SO_CANCELLED]').waitFor();
   assert.equal(await page.locator('[data-duplicate-confirm]').isDisabled(), true);

@@ -308,7 +308,8 @@
     const panel=ui.el('section',undefined,host);panel.id='duplicate-cancel';panel.className='panel duplicate-cancel';
     ui.el('h2',ui.t('Cancel as duplicate','Cancelar como duplicado'),panel);
     ui.el('p',ui.t('Cancels the duplicate order with reason Duplicate. The original stays as it is. The same cancel rules as Cancel order apply.','Cancela el pedido duplicado con motivo Duplicado. El original queda igual. Se aplican las mismas reglas que en Cancelar pedido.'),panel).className='muted';
-    let check=null,original=null,noteEdited=false,busy=false,done=false,generation=0;
+    // pending: a prepared ticket whose commit answer was lost; Confirm re-sends it (FL replays, never cancels twice).
+    let check=null,original=null,noteEdited=false,busy=false,done=false,orderGeneration=0,originalGeneration=0,pending=null;
     const duplicate=picker(panel,'order','Duplicate order (to cancel)','Pedido duplicado (a cancelar)','order',selected=>load(selected));
     const facts=ui.el('div',undefined,panel);facts.dataset.duplicateFacts='';
     const sides=ui.el('div',undefined,panel);sides.className='duplicate-sides';
@@ -345,46 +346,74 @@
       const blocking=check?logic.duplicateBlockers(check,original):[];
       for(const item of blocking){const p=ui.el('p',item.message,problems);p.className='bad';p.dataset.problem=item.code;}
       for(const item of original?.problems||[])if(!item.blocks){const p=ui.el('p',item.message,problems);p.className='neutral';p.dataset.problem=item.code;}
-      confirm.hidden=done;confirm.disabled=busy||!check||blocking.length>0;
+      confirm.hidden=done;confirm.disabled=busy||(!pending&&(!check||blocking.length>0));
+      if(pending){ui.setText(confirm,ui.t('Check again','Verificar otra vez'));return;}
       ui.setText(confirm,check&&original?ui.t('Confirm: cancel '+check.order.order_number+' as a duplicate of '+original.order_number,'Confirmar: cancelar '+check.order.order_number+' como duplicado de '+original.order_number):ui.t('Confirm','Confirmar'));
     }
     function presetNote(){if(!noteEdited)note.value=original?logic.duplicateNote(original.order_number):'';}
-    function setBusy(flag){busy=flag;lock(flag);note.disabled=flag||done;duplicate.setDisabled(flag||done);change.setDisabled(flag||done);draw();}
+    function setBusy(flag){busy=flag;lock(flag||!!pending);const frozen=flag||done||!!pending;note.disabled=frozen;duplicate.setDisabled(frozen);change.setDisabled(frozen);draw();}
+    // The duplicate's facts and the chosen original load independently: typing a new original
+    // never discards the duplicate's load, and a new duplicate discards any original in flight.
     async function load(selected,requestOptions={}){
-      const version=++generation;check=null;original=null;done=false;outcome.replaceChildren();presetNote();draw();if(!selected)return;
-      try{const data=await ui.request('/sales/orders/'+encodeURIComponent(selected.id)+'/duplicate-check',undefined,requestOptions);if(version!==generation||!panel.isConnected)return;
-        check=data;original=data.suggestion||null;presetNote();draw();}
-      catch(error){if(version===generation)ui.failure(error);}
+      const version=++orderGeneration;originalGeneration++;check=null;original=null;done=false;outcome.replaceChildren();presetNote();draw();if(!selected)return;
+      try{const data=await ui.request('/sales/orders/'+encodeURIComponent(selected.id)+'/duplicate-check',undefined,requestOptions);if(version!==orderGeneration||!panel.isConnected)return;
+        check=data;if(!change.value)original=data.suggestion||null;else chooseOriginal(change.value);presetNote();draw();}
+      catch(error){if(version===orderGeneration)ui.failure(error);}
     }
     async function chooseOriginal(selected){
-      const version=++generation;original=null;presetNote();draw();if(!selected||!check)return;
-      try{const data=await ui.request('/sales/orders/'+encodeURIComponent(check.order.order_id)+'/duplicate-check?original='+encodeURIComponent(selected.id));if(version!==generation||!panel.isConnected)return;
+      const version=++originalGeneration,orderVersion=orderGeneration;original=null;presetNote();draw();if(!selected||!check)return;
+      try{const data=await ui.request('/sales/orders/'+encodeURIComponent(check.order.order_id)+'/duplicate-check?original='+encodeURIComponent(selected.id));if(version!==originalGeneration||orderVersion!==orderGeneration||!panel.isConnected)return;
         check=data;original=data.original;presetNote();draw();}
-      catch(error){if(version===generation)ui.failure(error);}
+      catch(error){if(version===originalGeneration)ui.failure(error);}
+    }
+    const lbTotal=rows=>(rows||[]).reduce((sum,row)=>sum+Number(row.quantity_lb||0),0);
+    function succeeded(saved,duplicateCode,originalCode){
+      pending=null;done=true;outcome.replaceChildren();const good=ui.el('div',undefined,outcome);good.className='good';
+      const released=(saved.reservations_released||[]).length;
+      ui.el('strong',ui.t('Cancelled '+duplicateCode+' as a duplicate of '+originalCode+'.','Cancelado '+duplicateCode+' como duplicado de '+originalCode+'.'),good);
+      ui.el('p',ui.t(originalCode+' stays as it was.'+(released?' '+released+' reservation(s) on '+duplicateCode+' were released.':''),originalCode+' queda igual.'+(released?' Se liberaron '+released+' reserva(s) de '+duplicateCode+'.':'')),good);
+      const receipt=ui.el('p',ui.t('Receipt ','Recibo '),good),link=ui.el('a',saved.receipt_number,receipt);link.href=FLReceipts.link(saved.receipt_number);
+      const another=ui.el('button',ui.t('Another office action','Otra acción de oficina'),outcome);another.type='button';another.onclick=()=>render();
+    }
+    async function commitPending(){
+      const {ticket,payload_hash,duplicateCode,originalCode}=pending;
+      let saved;
+      try{saved=await ui.request('/tickets/'+encodeURIComponent(ticket)+'/commit',{payload_hash,acknowledged_warnings:[]});}
+      catch(error){
+        if(error?.status===undefined&&!error?.labels){
+          // No answer from FL: it may have been recorded. Keep the same ticket; never prepare a new one.
+          outcome.replaceChildren();ui.el('p',ui.t('NOT CONFIRMED — the connection dropped, so '+duplicateCode+' may or may not be cancelled. Press "Check again"; it re-sends the same request and cannot cancel twice.','NO CONFIRMADO — se cortó la conexión; '+duplicateCode+' puede o no estar cancelado. Presiona "Verificar otra vez"; reenvía la misma solicitud y no puede cancelar dos veces.'),outcome).className='bad';return;}
+        pending=null;throw error;}
+      if(!ui.recorded(saved)||!/^ORD-\d{6}-\d{3,}$/.test(saved.receipt_number)){pending=null;throw ui.problem(ui.t(ui.errorText(saved,'en'),ui.errorText(saved,'es')));}
+      succeeded(saved,duplicateCode,originalCode);
     }
     confirm.onclick=async()=>{
-      if(busy||done||!check||logic.duplicateBlockers(check,original).length)return;
-      const duplicateCode=check.order.order_number,originalCode=original.order_number;
+      if(busy||done)return;
+      if(pending){setBusy(true);try{await commitPending();}catch(error){ui.failure(error);showFailure(error);}finally{setBusy(false);}return;}
+      if(!check||logic.duplicateBlockers(check,original).length)return;
+      const duplicateCode=check.order.order_number,originalCode=original.order_number,shown=check.reservations||{count:0,quantity_lb:0};
       setBusy(true);outcome.replaceChildren();ui.el('p',ui.t('Cancelling '+duplicateCode+'…','Cancelando '+duplicateCode+'…'),outcome).className='neutral';
       try{
         const request=logic.build('cancel_duplicate',{order_id:check.order.order_id,related_so_id:original.order_id,note:note.value.trim()});
         const prepared=await ui.request(request.path,request.body);
         if(!prepared?.ticket||!prepared.payload_hash)throw ui.problem(ui.t('FL did not return a draft.','FL no devolvió un borrador.'));
         // FL's own refusals (shipped, not open, original cancelled…) stop here, before any commit.
-        if((prepared.blockers||[]).length||prepared.can_commit===false||(prepared.warnings||[]).some(w=>w.requires_ack)){
-          outcome.replaceChildren();const stop=ui.el('p',ui.t('NOT cancelled — '+ui.errorText({blockers:[...(prepared.blockers||[]),...(prepared.warnings||[]).filter(w=>w.requires_ack)]},'en'),'NO cancelado — '+ui.errorText({blockers:[...(prepared.blockers||[]),...(prepared.warnings||[]).filter(w=>w.requires_ack)]},'es')),outcome);stop.className='bad';return;}
-        const saved=await ui.request('/tickets/'+encodeURIComponent(prepared.ticket)+'/commit',{payload_hash:prepared.payload_hash,acknowledged_warnings:[]});
-        if(!ui.recorded(saved)||!/^ORD-\d{6}-\d{3,}$/.test(saved.receipt_number))throw ui.problem(ui.t(ui.errorText(saved,'en'),ui.errorText(saved,'es')));
-        done=true;outcome.replaceChildren();const good=ui.el('div',undefined,outcome);good.className='good';
-        const released=(saved.reservations_released||[]).length;
-        ui.el('strong',ui.t('Cancelled '+duplicateCode+' as a duplicate of '+originalCode+'.','Cancelado '+duplicateCode+' como duplicado de '+originalCode+'.'),good);
-        ui.el('p',ui.t(originalCode+' stays as it was.'+(released?' '+released+' reservation(s) on '+duplicateCode+' were released.':''),originalCode+' queda igual.'+(released?' Se liberaron '+released+' reserva(s) de '+duplicateCode+'.':'')),good);
-        const receipt=ui.el('p',ui.t('Receipt ','Recibo '),good),link=ui.el('a',saved.receipt_number,receipt);link.href=FLReceipts.link(saved.receipt_number);
-        const another=ui.el('button',ui.t('Another office action','Otra acción de oficina'),outcome);another.type='button';another.onclick=()=>render();
-      }catch(error){ui.failure(error);outcome.replaceChildren();const said=lang=>error?.labels?.[lang==='es'?1:0]||(error?.result?ui.errorText(error.result,lang):error?.message||String(error));
-        ui.el('p',ui.t('NOT cancelled — '+said('en'),'NO cancelado — '+said('es')),outcome).className='bad';}
+        const stops=[...(prepared.blockers||[]),...(prepared.warnings||[]).filter(w=>w.requires_ack)];
+        if(stops.length||prepared.can_commit===false){
+          outcome.replaceChildren();ui.el('p',ui.t('NOT cancelled — '+ui.errorText({blockers:stops},'en'),'NO cancelado — '+ui.errorText({blockers:stops},'es')),outcome).className='bad';return;}
+        // What the cancel would release must be what the screen showed; otherwise show the new facts and ask again.
+        const release=prepared.draft?.reservations_released;
+        if(!Array.isArray(release))throw ui.problem(ui.t('FL did not say which reservations the cancel releases. Nothing was cancelled.','FL no indicó qué reservas libera la cancelación. No se canceló nada.'));
+        if(release.length!==Number(shown.count||0)||Math.abs(lbTotal(release)-Number(shown.quantity_lb||0))>0.0001){
+          check={...check,reservations:{count:release.length,quantity_lb:lbTotal(release)}};outcome.replaceChildren();
+          ui.el('p',ui.t('NOT cancelled yet — stock reservations on '+duplicateCode+' changed since this screen loaded: cancelling now releases '+release.length+' reservation(s), '+lb(lbTotal(release))+'. Review, then press Confirm again.','AÚN NO cancelado — las reservas de '+duplicateCode+' cambiaron desde que se cargó esta pantalla: cancelar ahora libera '+release.length+' reserva(s), '+lb(lbTotal(release))+'. Revisa y presiona Confirmar otra vez.'),outcome).className='bad';return;}
+        pending={ticket:prepared.ticket,payload_hash:prepared.payload_hash,duplicateCode,originalCode};
+        await commitPending();
+      }catch(error){ui.failure(error);showFailure(error);}
       finally{setBusy(false);}
     };
+    function showFailure(error){outcome.replaceChildren();const said=lang=>error?.labels?.[lang==='es'?1:0]||(error?.result?ui.errorText(error.result,lang):error?.message||String(error));
+      ui.el('p',ui.t('NOT cancelled — '+said('en'),'NO cancelado — '+said('es')),outcome).className='bad';}
     draw();
     const id=initial.get('order');
     if(id){initial.delete('order');ui.request('/sales/orders/'+encodeURIComponent(id),undefined,initialRead).then(o=>{if(panel.isConnected)duplicate.select({id:o.order_id,label:o.order_number},initialRead);}).catch(ui.failure);}

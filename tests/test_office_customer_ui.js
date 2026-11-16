@@ -303,20 +303,20 @@ test('Prepare with no order chosen marks the order picker with the message',asyn
 // Cancel as duplicate panel: suggestion, both sides, one Confirm -> prepare + commit.
 // ---------------------------------------------------------------------------
 const side=(id,code,extra={})=>({order_id:id,order_number:code,customer_id:7,customer:'Hialeah',customer_po:'PO-9',state:'open',state_reason:null,created_date:'11/16/26',created_time:'9:00 AM',created_by:'Luz',fulfillment:'unshipped',shipped_lb:0,lines:[{product:'Granola',quantity:2,unit:'cases',quantity_lb:50,line_status:'pending'}],...extra});
-function duplicateHarness(h,{check,original,prepared,saved}){
+function duplicateHarness(h,{check,original,prepared,saved,delay}){
  h.context.FLReceipts={link:number=>'receipt.html?number='+number};
  h.ui.errorText=(result)=>(result.blockers||[]).map(b=>b.message).join('\n')||result.detail?.message||'failed';
  h.ui.recorded=result=>typeof result?.receipt_number==='string';
  orderResolver(h,{
-  '/sales/orders/44/duplicate-check':()=>check,
+  '/sales/orders/44/duplicate-check':()=>delay?delay.then(()=>check):check,
   '/sales/orders/44/duplicate-check?original=41':()=>({...check,original}),
   '/sales/orders/44/cancel/prepare':()=>prepared,
-  '/tickets/T1/commit':()=>saved});
+  '/tickets/T1/commit':body=>typeof saved==='function'?saved(body):saved});
 }
 test('duplicate panel suggests the original, prefills the note and confirms with prepare then commit',async()=>{
  const h=await harness({permissions:{cancel_order:true}});
  duplicateHarness(h,{check:{order:side(44,'SO-261116-004'),blockers:[],cancellable:true,reservations:{count:1,quantity_lb:50},suggestion:{...side(41,'SO-261116-001'),matches:['customer_po','lines']},candidates:[],window_days:7},
-  prepared:{ticket:'T1',payload_hash:'h',blockers:[],warnings:[],can_commit:true},
+  prepared:{ticket:'T1',payload_hash:'h',blockers:[],warnings:[],can_commit:true,draft:{reservations_released:[{id:1,quantity_lb:50}]}},
   saved:{receipt_number:'ORD-261116-009',reservations_released:[{id:1}]}});
  await officeAction(h,'cancel_duplicate');
  await h.search('order','SO-261116-004');await flush();
@@ -359,4 +359,46 @@ test('duplicate panel blocks shipped orders and a cancelled or self original, an
  assert.equal(confirm.disabled,true);
  await confirm.onclick();await flush();
  assert.ok(!h.requests.some(r=>/\/prepare$|\/commit$/.test(r.path)),'a blocked panel sends nothing');
+});
+
+const ready=(extra={})=>({order:side(44,'SO-261116-004'),blockers:[],cancellable:true,reservations:{count:0,quantity_lb:0},suggestion:{...side(41,'SO-261116-001'),matches:['customer_po']},candidates:[],window_days:7,...extra});
+test('reservations added after the panel loaded stop the cancel and ask again (no silent release)',async()=>{
+ const h=await harness({permissions:{cancel_order:true}});let commits=0;
+ duplicateHarness(h,{check:ready(),prepared:{ticket:'T1',payload_hash:'h',blockers:[],warnings:[],can_commit:true,draft:{reservations_released:[{id:9,quantity_lb:25}]}},saved:()=>{commits++;return {receipt_number:'ORD-261116-010',reservations_released:[{id:9}]};}});
+ await officeAction(h,'cancel_duplicate');await h.search('order','SO-261116-004');await flush();
+ const confirm=h.find(n=>n.dataset.duplicateConfirm!==undefined);
+ await confirm.onclick();await flush();
+ assert.equal(commits,0,'nothing committed');
+ assert.ok(h.nodes().some(n=>/^NOT cancelled yet — stock reservations on SO-261116-004 changed/.test(n.textContent)&&/releases 1 reservation\(s\), 25 lb/.test(n.textContent)));
+ assert.ok(h.nodes().some(n=>n.dataset.reservations!==undefined&&/holds 1 stock reservation\(s\), 25 lb/.test(n.textContent)),'the panel now shows the new facts');
+ await confirm.onclick();await flush();
+ assert.equal(commits,1,'the second, informed Confirm cancels');
+});
+test('a lost commit answer keeps the same ticket: Check again re-sends it and never prepares twice',async()=>{
+ const h=await harness({permissions:{cancel_order:true}});let attempts=0;
+ duplicateHarness(h,{check:ready(),prepared:{ticket:'T1',payload_hash:'h',blockers:[],warnings:[],can_commit:true,draft:{reservations_released:[]}},
+  saved:()=>{attempts++;if(attempts===1){const e=Error('Network');e.transport=true;throw e;}return {receipt_number:'ORD-261116-011',reservations_released:[],replayed:true};}});
+ await officeAction(h,'cancel_duplicate');await h.search('order','SO-261116-004');await flush();
+ const confirm=h.find(n=>n.dataset.duplicateConfirm!==undefined);
+ await confirm.onclick();await flush();
+ assert.ok(h.nodes().some(n=>/^NOT CONFIRMED — the connection dropped/.test(n.textContent)));
+ assert.ok(!h.nodes().some(n=>/^NOT cancelled/.test(n.textContent)),'never claims it failed');
+ assert.equal(confirm.textContent,'Check again');assert.equal(confirm.disabled,false);
+ assert.equal(h.find(n=>n.name==='note').disabled,true,'inputs frozen while the outcome is unknown');
+ await confirm.onclick();await flush();
+ assert.equal(h.requests.filter(r=>/\/prepare$/.test(r.path)).length,1,'prepared once');
+ assert.equal(h.requests.filter(r=>r.path==='/tickets/T1/commit').length,2,'same ticket re-sent');
+ assert.ok(h.nodes().some(n=>/^Cancelled SO-261116-004 as a duplicate of SO-261116-001\./.test(n.textContent)));
+});
+test('typing an original while the duplicate is still loading does not lose the duplicate',async()=>{
+ const h=await harness({permissions:{cancel_order:true}});let release;const delay=new Promise(r=>{release=r;});
+ duplicateHarness(h,{check:ready({suggestion:null}),delay,original:{...side(41,'SO-261116-001'),problems:[]}});
+ await officeAction(h,'cancel_duplicate');
+ const pending=h.search('order','SO-261116-004');await flush();
+ const input=h.find(n=>n.tag==='input',h.find(n=>n.dataset.picker==='original'));input.value='SO-26';input.oninput();
+ release();await pending;await flush();await flush();
+ assert.ok(h.nodes().some(n=>/^No likely original found/.test(n.textContent)),'duplicate facts arrived');
+ await h.search('original','SO-261116-001');await flush();
+ const confirm=h.find(n=>n.dataset.duplicateConfirm!==undefined);
+ assert.equal(confirm.disabled,false);assert.equal(confirm.textContent,'Confirm: cancel SO-261116-004 as a duplicate of SO-261116-001');
 });
