@@ -154,8 +154,7 @@ def _close_expected(path, role, created, recorded, note, reason):
     if reason == "shipped_not_recorded":
         if _role(role) != "owner":
             return 403, "ROLE_NOT_ALLOWED"
-        if not note:
-            return 422, "NOTE_REQUIRED"
+        # The close note is optional for every reason (Michael, 2026-11-16).
         if not recorded and created == "after":
             return 403, "LEGACY_CLOSE_CUTOFF"
     elif not recorded:
@@ -363,18 +362,44 @@ def test_service_only_shipping_records_a_header_and_can_close_after_cutoff(clien
 
 @pytest.mark.parametrize("path", ("direct-commit", "ticket"))
 @pytest.mark.parametrize("note", ("", "   ", "\t\n"))
-def test_legacy_close_rejects_blank_notes(client, db_cursor, actors, path, note):
+def test_legacy_close_accepts_blank_notes(client, db_cursor, actors, path, note):
+    # Michael, 2026-11-16: the close note is optional, shipped_not_recorded
+    # included; a blank note is stored as NULL.
     order = _seed(db_cursor)
     body = {"reason": "shipped_not_recorded", "note": note}
     key = actors["owner"]["key"]
     if path == "ticket":
-        _ticket(client, db_cursor, order["id"], "close", body, key, 422, "NOTE_REQUIRED")
+        _ticket(client, db_cursor, order["id"], "close", body, key)
     else:
         body["mode"] = "commit"
-        before = _snapshot(db_cursor, order["id"])
         response = client.post(f"/sales/orders/{order['id']}/close", json=body, headers=headers(key))
-        _assert_refused(response, 422, "NOTE_REQUIRED")
-        assert _snapshot(db_cursor, order["id"]) == before
+        assert response.status_code == 200, response.text
+    db_cursor.execute("SELECT state, state_reason, state_note FROM sales_orders WHERE id=%s", (order["id"],))
+    assert dict(db_cursor.fetchone()) == {"state": "closed", "state_reason": "shipped_not_recorded", "state_note": None}
+
+
+@pytest.mark.parametrize("reason", ("shipped_recorded", "short_closed", "shipped_not_recorded"))
+@pytest.mark.parametrize("note_field", ("absent", "null", "empty"))
+def test_close_ticket_without_note_prepares_and_commits_for_every_reason(client, db_cursor, actors, reason, note_field):
+    # Office "Close order": Prepare draft then confirm, with no reason note.
+    order = _seed(db_cursor, recorded=(reason != "shipped_not_recorded"))
+    key = actors["owner"]["key"]
+    body = {"reason": reason, "client_source": "dashboard"}
+    if note_field != "absent":
+        body["note"] = None if note_field == "null" else ""
+    result = _ticket(client, db_cursor, order["id"], "close", body, key).json()
+    assert result["success"] is True and result["receipt_number"]
+    db_cursor.execute("SELECT state, state_reason, state_note FROM sales_orders WHERE id=%s", (order["id"],))
+    assert dict(db_cursor.fetchone()) == {"state": "closed", "state_reason": reason, "state_note": None}
+    db_cursor.execute("SELECT response FROM write_tickets WHERE id=%s", (result["ticket_id"],))
+    stored = db_cursor.fetchone()["response"]
+    if reason == "shipped_not_recorded":
+        # The legacy-close audit record still saves, with the actor and no note.
+        audit = stored["policy_acknowledgements"][0]
+        assert audit["code"] == "SHIPPED_NOT_RECORDED" and audit["note"] is None
+        assert audit["actor"]["id"] == actors["owner"]["id"]
+    else:
+        assert "policy_acknowledgements" not in stored
 
 
 @pytest.mark.parametrize("path", ("direct-commit", "ticket"))

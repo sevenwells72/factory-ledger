@@ -66,9 +66,11 @@ def test_legacy_close_is_named_owner_only_when_cutoff_unset(client, db_cursor, s
     error(client.post(f'/sales/orders/{oid}/close/prepare', json={'reason':'shipped_not_recorded','note':'legacy truck log'}, headers=headers(key)), 403, 'ROLE_NOT_ALLOWED')
 
 @pytest.mark.parametrize('note', [None, '', '   '])
-def test_legacy_close_requires_a_nonblank_note(client, db_cursor, shipping, actors, note):
+def test_legacy_close_no_longer_requires_a_note(client, db_cursor, shipping, actors, note):
+    # Michael, 2026-11-16: the close note is optional for every reason.
     oid = new_order(client, shipping, actors['office']['key'])
-    error(client.post(f'/sales/orders/{oid}/close/prepare', json={'reason':'shipped_not_recorded','note':note}, headers=headers(actors['owner']['key'])), 422, 'NOTE_REQUIRED')
+    p = client.post(f'/sales/orders/{oid}/close/prepare', json={'reason':'shipped_not_recorded','note':note}, headers=headers(actors['owner']['key']))
+    assert p.status_code == 200 and p.json()['can_commit'], p.text
 
 def test_cutoff_is_rechecked_at_commit(client, db_cursor, shipping, actors, monkeypatch):
     key = actors['owner']['key']; oid = new_order(client, shipping, actors['office']['key'])

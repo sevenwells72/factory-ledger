@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-16 15:06 — Close order reason note made optional for every close reason (branch only, not deployed)
+- **File(s) changed:** `office.js`, `office.html`, `main.py`, `order_tickets.py`, `test_direct_order_close_guard.py`, `test_a6_review_fixes.py`, `run-office.mjs`, `check_direct_order_close_staging.py`
+- **What changed:** Office Close order form no longer requires the Reason note (Cancel order unchanged); office.js cache version bumped to v10 in office.html. Backend no longer refuses NOTE_REQUIRED for a shipped_not_recorded close in either the shared close policy (main.py) or the order ticket layer (order_tickets.py); a blank close note is stored as NULL in sales_orders.state_note and in the SHIPPED_NOT_RECORDED policy acknowledgement. Owner-only permission, cutoff and shipment gates unchanged; reopen note requirement unchanged. No migration (state_note is nullable, no CHECK). Tests updated; new prepare+commit test for each close reason with absent/null/empty note.
+- **Why:** Michael 2026-11-16: the Office Close order form blocked submission without a note. Reverses the note part of decision 41 (rows 202-203). Merged main (#214) into the branch.
+
+---
+
 ## 2026-11-16 15:02 — Deployed PR 214 dashboard way-home navigation to production (changelog row 291)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Recorded the production release of PR #214: BACKUP OK at ~/Backups/fl/2026-11-16-pre-pr214, squash-merged to main f6eca2e, Netlify production verified byte-identical for receipt-shell.js, ledger-ticket.js, exceptions.js, ledger-forms.css and fl-assistant.css, Today's entries label intact, Railway untouched (/health 200). Added FACTORY_LEDGER_CHANGELOG row 291.
