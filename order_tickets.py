@@ -238,8 +238,7 @@ def core_lines(payload_lines, products):
 def require_reason_permissions(api, cur, action, payload, actor, *, lock=False):
     if action == 'close_order' and payload['reason'] == 'shipped_not_recorded':
         permissions.require('close_order_shipped_not_recorded', actor)
-        if not (payload.get('note') or '').strip():
-            fail(422,'NOTE_REQUIRED','A note is required for shipped_not_recorded.')
+        # The close note is optional for every reason (Michael, 2026-11-16).
         try:
             order=load_order(cur,payload['order_id'],lock=lock)
         except HTTPException as exc:
@@ -640,7 +639,7 @@ def commit(api, cur, row, body, actor, request, entry_timing):
         if action=='close_order' and payload['reason']=='shipped_not_recorded':
             import ship_tickets
             response['policy_acknowledgements']=[{'code':'SHIPPED_NOT_RECORDED','actor':dict(actor),
-                'note':payload['note'],'acknowledged_at':response['entry_timing']['entered_at'],
+                'note':payload.get('note') if (payload.get('note') or '').strip() else None,'acknowledged_at':response['entry_timing']['entered_at'],
                 'order_created_on':ctx['order']['created_at'].astimezone(api.PLANT_TIMEZONE).date(),
                 'cutoff':ship_tickets.legacy_close_cutoff()}]
         response = wt.json_value(api, response)

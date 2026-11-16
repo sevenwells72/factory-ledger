@@ -14915,17 +14915,17 @@ def _load_so_for_state_change(cur, order_id: int) -> dict:
     return order
 
 
-def _require_order_close_policy(cur, request, order: dict, reason: str, note=None):
+def _require_order_close_policy(cur, request, order: dict, reason: str):
     """O-4: the same shipment policy for direct writes and ticket dry runs/posts.
 
     The caller holds the order row lock. Shared keys cannot stand in for the
     named owner, and a caller-supplied attribution is never authorization.
+    The close note is optional for every reason, shipped_not_recorded included
+    (Michael, 2026-11-16, reversing decision 41's note requirement); a blank
+    note is stored as NULL.
     """
     if reason == "shipped_not_recorded":
         permissions.require("close_order_shipped_not_recorded", _actor_identity(request))
-        if not (note or "").strip():
-            _so_state_error("NOTE_REQUIRED", "A note is required for shipped_not_recorded.",
-                            status_code=422, order_id=order["id"])
     blockers = ship_tickets.shipment_gate(sys.modules[__name__], cur, order, reason)
     if blockers:
         blocker = blockers[0]
@@ -15198,7 +15198,7 @@ def _close_sales_order_core(cur, request, order_id: int, req):
             status_code=409, order_id=order_id,
             state=order["state"], state_reason=order["state_reason"],
         )
-    _require_order_close_policy(cur, request, order, req.reason, req.note)
+    _require_order_close_policy(cur, request, order, req.reason)
     _validate_state_reason(req.reason, req.note, req.related_so_id,
                            cur, order_id)
 
@@ -15227,9 +15227,11 @@ def _close_sales_order_core(cur, request, order_id: int, req):
 
     released = _release_order_reservations(
         cur, order_id, "order_closed", caller_source_tag(request))
+    # The close note is optional; a blank one is stored as NULL.
+    close_note = req.note if (req.note or "").strip() else None
     updated = _apply_state_change(
         cur, order, state="closed", reason=req.reason,
-        note=req.note, related_so_id=req.related_so_id,
+        note=close_note, related_so_id=req.related_so_id,
         changed_by=changed_by)
     logger.info(
         f"Order {updated['order_number']} closed ({req.reason}); "

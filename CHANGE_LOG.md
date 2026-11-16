@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-16 14:41 — Close order reason note made optional for every close reason (branch only, not deployed)
+- **File(s) changed:** `office.js`, `main.py`, `order_tickets.py`, `test_direct_order_close_guard.py`, `test_a6_review_fixes.py`, `run-office.mjs`, `check_direct_order_close_staging.py`
+- **What changed:** Office Close order form no longer requires the Reason note (Cancel order unchanged). Backend no longer refuses NOTE_REQUIRED for a shipped_not_recorded close in either the shared close policy (main.py) or the order ticket layer (order_tickets.py); a blank close note is stored as NULL in sales_orders.state_note and in the SHIPPED_NOT_RECORDED policy acknowledgement. Owner-only permission, cutoff and shipment gates unchanged; reopen note requirement unchanged. No migration (state_note is nullable, no CHECK). Tests: blank-note refusals flipped to successes; new prepare+commit test for each close reason with absent/null/empty note; Office visual test asserts note optional on close, required on cancel; staging check drops missing-note-close case.
+- **Why:** Michael 2026-11-16: the Office Close order form blocked submission without a note. Reverses the note part of decision 41 (rows 202-203).
+
+---
+
 ## 2026-11-16 14:21 — Created SS Choc Chip #2 TRIAL 32x10 oz case (product 296) in production
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Production catalog data: new finished item 296 'Granola SS Chocolate Chip 32x10 OZ Case — TRIAL' (case 20 lb, linked to trial batch 295, Sunshine, bagged, private label, verified; recipe 20 lb batch 295 + 32 printed bags). Backup 2026-11-16-pre-ss2-32pack BACKUP OK. Changelog row 289 added. No inventory posting.
