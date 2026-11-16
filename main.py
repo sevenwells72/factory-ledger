@@ -15008,11 +15008,13 @@ def _validate_state_reason(reason: str, note, related_so_id, cur, order_id: int)
             "related_so_id cannot be the order itself",
             status_code=400, order_id=order_id,
         )
-    # A duplicate must point at the order that stays. FOR SHARE (duplicate
-    # only) waits out a concurrent exit of that order, so two orders can never
-    # both end up cancelled as duplicates of each other.
-    cur.execute("SELECT id, order_number, state FROM sales_orders WHERE id = %s"
-                + (" FOR SHARE" if reason == "duplicate" else ""), (related_so_id,))
+    # A duplicate must point at the order that stays, so an already-cancelled
+    # original is refused. Deliberately a plain read, no row lock: locking the
+    # partner here would deadlock two simultaneous reciprocal cancels, which
+    # TestNoDeadlock::test_reciprocal_duplicate_cancellations_do_not_deadlock
+    # pins as completing. Only that truly simultaneous case can still land both.
+    cur.execute("SELECT id, order_number, state FROM sales_orders WHERE id = %s",
+                (related_so_id,))
     related = cur.fetchone()
     if not related:
         _so_state_error(
