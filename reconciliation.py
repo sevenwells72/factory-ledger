@@ -46,6 +46,10 @@ COCONUT_YIELD_PCT = 0.02
 # (checked in the 2026-11-09 production export), and a rename must not change
 # the rule. A NEW coconut bulk batch product must be added here.
 COCONUT_YIELD_PRODUCT_IDS = frozenset({125, 126, 127, 128})
+# The record checks (trace, receive, ship, exact add-up) allow no difference:
+# quantities are stored to 0.0001 lb. FLOAT_SLACK only absorbs float rounding.
+EXACT_LB = 0.0001
+FLOAT_SLACK = 1e-9
 _TICK = timedelta(microseconds=1)               # the resolution of a Postgres timestamp
 EPS = 0.00005                                   # quantities are numeric(14,4)
 # One run at a time. TRANSACTION-level advisory locks only: each is held by one
@@ -175,6 +179,59 @@ def _negative_since(history_rows, negative_lots):
     return [[lot, _iso(since[lot])] for lot in sorted(since)]
 
 
+def _load_integrity(cur, transactions, after, at):
+    """The side records of the window's posted make, pack, receive and ship entries.
+
+    consumption: ingredient_lot_consumption rows (positive = pounds taken).
+    trace:       trace_event_lots input/output rows of the make/pack trace event
+                 (signed like transaction_lines: input < 0, output > 0).
+    shipped:     shipment_lines pounds per (ship entry, product) (positive).
+    supplier:    supplier lot facts of every lot a receive put stock into.
+    prior:       per (receive, lot): posted lines (as they stand at `at`) of OTHER
+                 entries on that lot entered before the receive.
+    """
+    live = {t['id']: t for t in transactions if t['in_window'] and t['posted_after']}
+    transform = sorted(i for i, t in live.items() if t['type'] in ('make', 'pack'))
+    ships = sorted(i for i, t in live.items() if t['type'] == 'ship')
+    receives = sorted(i for i, t in live.items() if t['type'] == 'receive')
+    consumption = _rows(cur, """
+        SELECT transaction_id, ingredient_product_id AS product_id, ingredient_lot_id AS lot_id, quantity_lb
+        FROM ingredient_lot_consumption WHERE transaction_id = ANY(%(ids)s::integer[]) ORDER BY id""",
+                        {'ids': transform})
+    trace = _rows(cur, """
+        SELECT e.transaction_id, l.lot_id, l.role, l.quantity_lb
+        FROM trace_events e JOIN trace_event_lots l ON l.trace_event_id = e.id
+        WHERE e.transaction_id = ANY(%(ids)s::integer[]) AND e.event_type IN ('make', 'pack')
+          AND l.role IN ('input', 'output')
+        ORDER BY l.id""", {'ids': transform})
+    shipped = _rows(cur, """
+        SELECT transaction_id, product_id, SUM(quantity_lb) AS quantity_lb
+        FROM shipment_lines WHERE transaction_id = ANY(%(ids)s::integer[])
+        GROUP BY transaction_id, product_id ORDER BY transaction_id, product_id""", {'ids': ships})
+    receive_lots = sorted({line['lot_id'] for line in after if line['transaction_id'] in live
+                           and live[line['transaction_id']]['type'] == 'receive'})
+    supplier = _rows(cur, """
+        SELECT l.id AS lot_id, l.supplier_lot_code, l.identity_status,
+               EXISTS (SELECT 1 FROM lot_supplier_codes s WHERE s.lot_id = l.id
+                         AND btrim(COALESCE(s.supplier_lot_code, '')) <> '') AS has_supplier_codes
+        FROM lots l WHERE l.id = ANY(%(ids)s::integer[]) ORDER BY l.id""", {'ids': receive_lots})
+    lot_lines = _rows(cur, """
+        SELECT x.lot_id, x.transaction_id, t.created_at
+        FROM (""" + _LINES_AT + """) x JOIN transactions t ON t.id = x.transaction_id
+        WHERE x.lot_id = ANY(%(lots)s::integer[]) ORDER BY t.created_at, t.id""",
+                      {'at': at, 'tx_ids': None, 'lots': receive_lots}) if receive_lots else []
+    prior = []
+    for receive in receives:
+        mine = live[receive]
+        for lot in sorted({line['lot_id'] for line in after if line['transaction_id'] == receive}):
+            earlier = [row for row in lot_lines if row['lot_id'] == lot and row['transaction_id'] != receive
+                       and (row['created_at'], row['transaction_id']) < (mine['created_at'], receive)]
+            if earlier:
+                prior.append({'transaction_id': receive, 'lot_id': lot, 'lines': len(earlier),
+                              'first_transaction_id': earlier[0]['transaction_id']})
+    return {'consumption': consumption, 'trace': trace, 'shipped': shipped, 'supplier': supplier, 'prior': prior}
+
+
 def load_window(cur, start, end, *, opening_run_id=None, reconstruct=False):
     """Read everything `analyse` needs for entries made in the window.
 
@@ -279,13 +336,17 @@ def load_window(cur, start, end, *, opening_run_id=None, reconstruct=False):
                     'reason_code': row['reason_code'], 'actor_name': row['actor_name'],
                     'operator_id': row['operator_id'], 'created_at': _iso(row['created_at'])})
     negative_since = _negative_since(history_rows, negative_lots)
+    integrity = _load_integrity(cur, transactions, after, hi)
 
     lot_ids = sorted({line['lot_id'] for line in before + after + voided_lines} | {lot for lot, _ in ending}
-                     | {lot for lot, _ in (opening or [])})
+                     | {lot for lot, _ in (opening or [])}
+                     | {row['lot_id'] for row in integrity['consumption'] + integrity['trace'] if row['lot_id']})
     lots = _rows(cur, 'SELECT id, lot_code, product_id FROM lots WHERE id = ANY(%(ids)s::integer[]) ORDER BY id',
                  {'ids': lot_ids})
     product_ids = sorted({lot['product_id'] for lot in lots} | {line['product_id'] for line in before + after}
                          | {r['ingredient_product_id'] for r in recipes} | set(output_products)
+                         | {row['product_id'] for row in integrity['shipped'] + integrity['consumption']
+                            if row['product_id'] is not None}
                          | {s[key] for s in substitutions
                             for key in ('ingredient_product_id', 'substitute_product_id') if s[key] is not None})
     products = _rows(cur, """SELECT id, name, type, default_batch_lb, COALESCE(yield_multiplier, 1.0) AS yield_multiplier
@@ -305,6 +366,7 @@ def load_window(cur, start, end, *, opening_run_id=None, reconstruct=False):
         'corrections': plain(corrections), 'recipes': plain(recipes), 'substitutions': plain(substitutions),
         'lot_histories': [histories[lot] for lot in history_lots],
         'negative_since': negative_since,
+        'integrity': {key: plain(rows) for key, rows in integrity.items()},
         'opening': opening, 'ending': ending, 'lots': lots,
         'products': [dict(p, default_batch_lb=float(p['default_batch_lb']) if p['default_batch_lb'] is not None else None,
                           yield_multiplier=float(p['yield_multiplier'])) for p in products],
@@ -346,6 +408,12 @@ def expected_usage(output_lb, batch_lb, recipe, actual, substitutions=()):
 def lb(value, signed=False):
     text = f'{value:+,.1f}' if signed else f'{value:,.1f}'
     return (text[:-2] if text.endswith('.0') else text).replace('-', '−') + ' lb'
+
+
+def lb_exact(value, signed=False):
+    """Pounds to the stored precision (up to 4 decimals), for differences smaller than 0.1 lb."""
+    text = f'{value:+,.4f}' if signed else f'{value:,.4f}'
+    return text.rstrip('0').rstrip('.').replace('-', '−') + ' lb'
 
 
 def _when(iso, with_date=True):
@@ -578,6 +646,27 @@ def analyse(data):
                  expected_movement_lb=round(expected_move.get(lot_id, 0.0), 4),
                  unexplained_lb=round(unexplained, 4), recipe_gap_lb=round(recipe_gap, 4))
 
+    # --- exact add-up: start + entries = end, to the ten-thousandth of a pound --
+    # Separate from BALANCE_DIFFERENCE above (which allows for the recipe and a
+    # tolerance): any pound that moved with no entry or cancellation behind it.
+    if opening is not None:
+        for lot_id in sorted(checked):
+            start_lb, end_lb = opening.get(lot_id, 0.0), ending.get(lot_id, 0.0)
+            entered = book_move.get(lot_id, 0.0)
+            unexplained = end_lb - (start_lb + entered)
+            if abs(unexplained) <= EXACT_LB + FLOAT_SLACK:
+                continue
+            product, code = lot_parts(lot_id)
+            flag('BALANCE_UNEXPLAINED', ALARM,
+                 f'{product}, lot {code}: the stock changed by {lb_exact(unexplained, signed=True)} with no entry '
+                 'or cancellation behind it. Please ask the office to look into it.',
+                 facts=[f'Start: {lb_exact(start_lb)}', f'Entries today: {lb_exact(entered, signed=True)}',
+                        f'Records show: {lb_exact(end_lb)}', f'Not explained: {lb_exact(unexplained, signed=True)}'],
+                 summary=f'have the office look at {product}, lot {code}, which changed with no entry behind it',
+                 lot_id=lot_id, expected=start_lb + entered, actual=end_lb, tolerance_lb=EXACT_LB,
+                 opening_lb=round(start_lb, 4), entered_movement_lb=round(entered, 4),
+                 unexplained_lb=round(unexplained, 4))
+
     # --- pack provenance (per batch lot packed from in the window) ---------
     last_pack, packs_today, packed_today = {}, defaultdict(list), defaultdict(float)
     for tx_id in sorted(transactions):
@@ -779,6 +868,8 @@ def analyse(data):
              refs=[f'TX{tx["id"]}'], transaction_id=tx['id'], event_type=correction['event_type'],
              business_date=tx['business_date'])
 
+    integrity_counts = _check_records(data, after, transactions, lots, product_name, lot_parts, flag)
+
     order = {ALARM: 0, REVIEW: 1, YIELD: 2, INFO: 3}
     flags.sort(key=lambda f: (order[f['severity']], f['kind'], f['transaction_id'] or 0, f['lot_id'] or 0))
     counted = [f for f in flags if f['severity'] in (ALARM, REVIEW)]
@@ -837,7 +928,198 @@ def analyse(data):
         'new_count': attention, 'still_open_count': still_open,
         'flags': flags, 'makes': makes, 'undelivered': data.get('undelivered') or [],
         'carried': carried, 'carried_attention_count': carried_attention,
+        'records_checked': integrity_counts,
     }
+
+
+def _entry_words(tx):
+    """'the make entry for Nov 16 (receipt R-123)': which entry, in plain words."""
+    text = f'the {_TYPE_WORDS.get(tx["type"], tx["type"])} for {_day(tx["business_date"])}'
+    return text + (f' (receipt {tx["receipt_number"]})' if tx.get('receipt_number') else '')
+
+
+def _differs(a, b):
+    return abs(a - b) > EXACT_LB + FLOAT_SLACK
+
+
+def _check_records(data, after, transactions, lots, product_name, lot_parts, flag):
+    """The record checks: trace, receive, ship, entry shape and pack yield.
+
+    Run only when the loaded data carries the side records (`integrity`); an
+    export saved before these checks existed replays without them. Returns the
+    counts for "What we checked", or None when the checks did not run.
+    """
+    integrity = data.get('integrity')
+    if integrity is None:
+        return None
+    live = [transactions[i] for i in sorted(transactions)
+            if transactions[i]['in_window'] and transactions[i]['posted_after']]
+    ask = 'Please have the office check it.'
+    counts = {'makes_and_packs': 0, 'receives': 0, 'ships': 0}
+
+    consumed, traced_in, traced_out = defaultdict(float), defaultdict(float), defaultdict(float)
+    for row in integrity['consumption']:
+        consumed[(row['transaction_id'], row['lot_id'])] += row['quantity_lb']
+    for row in integrity['trace']:
+        target = traced_in if row['role'] == 'input' else traced_out
+        target[(row['transaction_id'], row['lot_id'])] += abs(row['quantity_lb'])
+    shipped = defaultdict(float)
+    for row in integrity['shipped']:
+        shipped[(row['transaction_id'], row['product_id'])] += row['quantity_lb']
+    supplier = {row['lot_id']: row for row in integrity['supplier']}
+    prior = {(row['transaction_id'], row['lot_id']): row for row in integrity['prior']}
+
+    def lot_product(lot_id):
+        lot = lots.get(lot_id)
+        return lot['product_id'] if lot else None
+
+    for tx in live:
+        lines, entry, ref = after[tx['id']], _entry_words(tx), [f'TX{tx["id"]}']
+        Entry = entry[0].upper() + entry[1:]
+        if tx['type'] in ('make', 'pack'):
+            counts['makes_and_packs'] += 1
+            taken, put = defaultdict(float), defaultdict(float)
+            for line in lines:
+                (taken if line['quantity_lb'] < 0 else put)[line['lot_id']] += abs(line['quantity_lb'])
+
+            # --- shape: something out, something in, each line on its own product's lot
+            problems = []
+            if not taken:
+                problems.append('it takes nothing out of stock')
+            if not put:
+                problems.append('it puts nothing into stock')
+            wrong = [line for line in lines if lot_product(line['lot_id']) not in (None, line['product_id'])]
+            for line in wrong:
+                product, code = lot_parts(line['lot_id'])
+                problems.append(f'it books lot {code} ({product}) as {product_name(line["product_id"])}')
+            if problems:
+                shape_lot = wrong[0]['lot_id'] if wrong else (next(iter(put), None) or next(iter(taken), None))
+                flag('ENTRY_SHAPE', ALARM, f'{Entry} is not a complete entry: {"; ".join(problems)}. {ask}',
+                     facts=[f'{lb(line["quantity_lb"], signed=True)} {lot_parts(line["lot_id"])[0]}, '
+                            f'lot {lot_parts(line["lot_id"])[1]}' for line in lines] or ['No lines'],
+                     refs=ref, summary=f'have the office check {entry}, which is not a complete entry',
+                     transaction_id=tx['id'], lot_id=shape_lot, problems=problems)
+
+            # --- trace: every lot taken from is in the ingredient-use record and the lot trace
+            for lot_id in sorted(set(taken) | {lot for (t, lot) in consumed if t == tx['id']}
+                                 | {lot for (t, lot) in traced_in if t == tx['id']}):
+                product, code = lot_parts(lot_id)
+                book = taken.get(lot_id, 0.0)
+                use, trace = consumed.get((tx['id'], lot_id)), traced_in.get((tx['id'], lot_id))
+                facts = [f'Entry: {lb_exact(book)} taken', f'Ingredient-use record: '
+                         + (lb_exact(use) if use is not None else 'none'),
+                         'Lot trace: ' + (lb_exact(trace) if trace is not None else 'none')]
+                common = dict(facts=facts, refs=ref, transaction_id=tx['id'], lot_id=lot_id, actual=book,
+                              tolerance_lb=EXACT_LB, consumption_lb=use, trace_lb=trace)
+                if book > 0 and (use is None or trace is None):
+                    missing = ' and '.join(name for name, value in (('ingredient-use record', use), ('lot trace', trace))
+                                           if value is None)
+                    flag('TRACE_MISSING', ALARM,
+                         f'{product}, lot {code}: {entry} took {lb(book)} from this lot, but the {missing} '
+                         f'does not show it, so the lot cannot be traced. {ask}',
+                         summary=f'have the office fix the trace record for {product}, lot {code}', **common)
+                elif _differs(book, use or 0.0) or _differs(book, trace or 0.0):
+                    flag('TRACE_MISMATCH', ALARM,
+                         f'{product}, lot {code}: the records of {entry} do not agree on how much was taken '
+                         f'from this lot. {ask}',
+                         summary=f'have the office fix the trace record for {product}, lot {code}', **common)
+            # --- trace: every lot made or packed into is in the lot trace, with the same pounds
+            for lot_id in sorted(set(put) | {lot for (t, lot) in traced_out if t == tx['id']}):
+                product, code = lot_parts(lot_id)
+                book, trace = put.get(lot_id, 0.0), traced_out.get((tx['id'], lot_id))
+                if trace is not None and not _differs(book, trace):
+                    continue
+                flag('TRACE_MISMATCH', ALARM,
+                     f'{product}, lot {code}: {entry} put {lb(book)} into this lot, but the lot trace '
+                     + ('does not show it' if trace is None else f'shows {lb_exact(trace)}')
+                     + f', so the lot cannot be traced. {ask}',
+                     facts=[f'Entry: {lb_exact(book)} in', 'Lot trace: ' + (lb_exact(trace) if trace is not None
+                                                                           else 'none')],
+                     refs=ref, summary=f'have the office fix the trace record for {product}, lot {code}',
+                     transaction_id=tx['id'], lot_id=lot_id, actual=book, tolerance_lb=EXACT_LB, trace_lb=trace)
+
+            # --- pack yield: pounds packed out against pounds taken in
+            if tx['type'] == 'pack' and taken and put:
+                total_in, total_out = sum(taken.values()), sum(put.values())
+                over = total_out - total_in
+                allowed = tolerance(total_in)
+                coconut = all(lot_product(lot) in COCONUT_YIELD_PRODUCT_IDS for lot in taken)
+                if abs(over) > allowed + EPS and not (coconut and 0 < over <= COCONUT_YIELD_PCT * total_in + EPS):
+                    out_lot = max(put, key=put.get)
+                    product, code = lot_parts(out_lot)
+                    flag('PACK_YIELD', ALARM,
+                         f'{product}, lot {code}: {entry} packed {lb(total_out)} from {lb(total_in)} taken out of '
+                         f'stock ({lb(over, signed=True)}). Please check the case count and weights. {ask}',
+                         facts=[f'Taken out: {lb(total_in)}', f'Packed: {lb(total_out)}',
+                                f'Difference: {lb(over, signed=True)} ({over / total_in * 100:+.1f}%)',
+                                f'Allowed: {lb(allowed)}'],
+                         refs=ref, summary=f'check the pounds packed in {entry} ({product}, lot {code})',
+                         transaction_id=tx['id'], lot_id=out_lot, expected=total_in, actual=total_out,
+                         tolerance_lb=allowed)
+
+        elif tx['type'] == 'receive':
+            counts['receives'] += 1
+            for lot_id in dict.fromkeys(line['lot_id'] for line in lines):
+                product, code = lot_parts(lot_id)
+                mine = [line for line in lines if line['lot_id'] == lot_id]
+                problems = []
+                for line in mine:
+                    if line['quantity_lb'] <= EPS:
+                        problems.append(f'it records {lb_exact(line["quantity_lb"], signed=True)}, not a positive amount')
+                    if lot_product(lot_id) not in (None, line['product_id']):
+                        problems.append(f'it is booked as {product_name(line["product_id"])}, '
+                                        f'but the lot is {product}')
+                earlier = prior.get((tx['id'], lot_id))
+                if earlier:
+                    problems.append(f'the lot already had {_plural(earlier["lines"], "stock entry", "stock entries")} '
+                                    f'before this receipt (first TX{earlier["first_transaction_id"]})')
+                facts = supplier.get(lot_id) or {}
+                code_on_label = (facts.get('supplier_lot_code') or '').strip()
+                if not code_on_label and not facts.get('has_supplier_codes'):
+                    problems.append('no supplier lot code was recorded'
+                                    + (' (it was marked as having no lot on the label)'
+                                       if facts.get('identity_status') == 'unidentified' else ''))
+                if problems:
+                    flag('RECEIVE_PROBLEM', ALARM,
+                         f'{product}, lot {code}: {entry} has a problem: {"; ".join(problems)}. {ask}',
+                         facts=[f'Received: {lb(sum(line["quantity_lb"] for line in mine))}',
+                                f'Supplier lot: {code_on_label or "none"}'],
+                         refs=ref, summary=f'have the office check the receipt of {product}, lot {code}',
+                         transaction_id=tx['id'], lot_id=lot_id, actual=sum(line['quantity_lb'] for line in mine),
+                         problems=problems)
+
+        elif tx['type'] == 'ship':
+            counts['ships'] += 1
+            removed, first_lot = defaultdict(float), {}
+            for line in lines:
+                product, code = lot_parts(line['lot_id'])
+                if line['quantity_lb'] > EPS:
+                    flag('SHIP_MISMATCH', ALARM,
+                         f'{product}, lot {code}: {entry} adds {lb(line["quantity_lb"])} to stock instead of '
+                         f'taking it out. {ask}',
+                         facts=[f'Entry line: {lb_exact(line["quantity_lb"], signed=True)}'], refs=ref,
+                         summary=f'have the office check {entry}, which adds stock',
+                         transaction_id=tx['id'], lot_id=line['lot_id'], actual=line['quantity_lb'],
+                         tolerance_lb=EXACT_LB, positive_line=True)
+                else:
+                    removed[line['product_id']] += -line['quantity_lb']
+                first_lot.setdefault(line['product_id'], line['lot_id'])
+            for product_id in sorted(set(removed) | {p for (t, p) in shipped if t == tx['id']}):
+                taken, recorded = removed.get(product_id, 0.0), shipped.get((tx['id'], product_id), 0.0)
+                if not _differs(taken, recorded):
+                    continue
+                name = product_name(product_id)
+                lot_id = first_lot.get(product_id)
+                where = f'{name}, lot {lot_parts(lot_id)[1]}' if lot_id is not None else name
+                flag('SHIP_MISMATCH', ALARM,
+                     f'{where}: {entry} took {lb(taken)} out of stock, but the shipment record shows '
+                     f'{lb(recorded)}. {ask}',
+                     facts=[f'Taken out of stock: {lb_exact(taken)}', f'Shipment record: {lb_exact(recorded)}',
+                            f'Difference: {lb_exact(recorded - taken, signed=True)}'],
+                     refs=ref, summary=f'have the office check the shipment record of {entry} ({name})',
+                     transaction_id=tx['id'], product_id=product_id, lot_id=lot_id, expected=taken,
+                     actual=recorded, tolerance_lb=EXACT_LB)
+    return counts
 
 
 # ---------------------------------------------------------------------------
@@ -995,6 +1277,21 @@ def render_email(analysis):
         else:
             checked.append(f'Stock: {_plural(lots_checked, "lot")} that changed were checked; {bad} '
                            f'{"does" if bad == 1 else "do"} not add up (see "New today").')
+        if lots_checked:
+            exact = sum(1 for f in flags if f['kind'] == 'BALANCE_UNEXPLAINED')
+            checked.append('Exact add-up: every lot that changed matches its entries to the pound.' if not exact else
+                           f'Exact add-up: {exact} {"lot changed" if exact == 1 else "lots changed"} with no entry '
+                           'behind the change (see "New today").')
+    records = analysis.get('records_checked')
+    if records is not None:
+        record_kinds = ('TRACE_MISSING', 'TRACE_MISMATCH', 'ENTRY_SHAPE', 'PACK_YIELD', 'RECEIVE_PROBLEM',
+                        'SHIP_MISMATCH')
+        problems = sum(1 for f in flags if f['kind'] in record_kinds and f['severity'] == ALARM)
+        checked.append(f'Records: {_plural(records["makes_and_packs"], "make or pack entry", "make and pack entries")} '
+                       'checked against the ingredient-use record and the lot trace; '
+                       f'{_plural(records["receives"], "receipt")} and {_plural(records["ships"], "shipment")} '
+                       'checked against their lots and shipment records. '
+                       + ('All match.' if not problems else f'{problems} found (see "New today").'))
     blocks.append(('What we checked', [], checked, None))
     blocks.append(('How to read this', [], [f'- {line}' for line in HOW_TO_READ], None))
 

@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-16 15:35 — Daily reconciliation: record checks (trace, exact add-up, receive, ship, entry shape, pack yield)
+- **File(s) changed:** `reconciliation.py`, `test_daily_reconciliation.py`, `daily-reconciliation.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** load_window reads ingredient_lot_consumption, trace_event_lots, shipment_lines and receive-lot supplier facts into data['integrity']; analyse adds alarm flags TRACE_MISSING, TRACE_MISMATCH, BALANCE_UNEXPLAINED, RECEIVE_PROBLEM, SHIP_MISMATCH, ENTRY_SHAPE, PACK_YIELD; email adds two What-we-checked lines; test kit writes the app's side records; 9 new tests; doc table; changelog row 293 (not merged, not deployed)
+- **Why:** Close the gaps from the read-only review of the nightly check; existing flags, tolerances and wording unchanged
+
+---
+
 ## 2026-11-16 15:16 — Recorded PR 212 production deploy: Close order reason note optional (changelog row 292)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added row 292: PR 212 squash-merged as main 91a0906 after BACKUP OK 2026-11-16-pre-pr212; Railway FastAPI aa7c3394 SUCCESS, Netlify office.js v10 live; staging skipped by Michael during Railway incident N665TGD7.

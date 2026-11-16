@@ -54,6 +54,19 @@ Flag kinds: `BALANCE_DIFFERENCE`, `MAKE_OFF_RECIPE`, `MAKE_INGREDIENT_MISSING`, 
 `MAKE_NO_RECIPE`, `PACK_NO_MAKE`, `PACK_EXCEEDS_MAKE`, `NEGATIVE_LOT` (alarm); `UNEXPLAINED_ADJUSTMENT` (review);
 `COCONUT_YIELD`, `COCONUT_BELOW_ZERO` (yield); `VOID_OF_EARLIER_ENTRY`, `VOID_SAME_DAY`, `LATE_ENTRY` (info).
 
+**Record checks** (all alarm, all new; `load_window` reads the side records into `data['integrity']`, and an
+export saved without that key replays without these checks). Pounds must agree to **0.0001 lb** (`EXACT_LB`):
+
+| Flag | Raised when, for an entry posted in the window |
+| --- | --- |
+| `TRACE_MISSING` | A make/pack line takes from a lot that has no `ingredient_lot_consumption` row or no `trace_event_lots` input row for that entry. |
+| `TRACE_MISMATCH` | Per (entry, lot) the pounds taken differ between `transaction_lines`, `ingredient_lot_consumption` and `trace_event_lots` input, or a lot made/packed into is missing from (or differs in) the trace's output rows. |
+| `BALANCE_UNEXPLAINED` | Per lot, `ending − (opening + entries)` is not zero (the `unexplained` amount). Separate from `BALANCE_DIFFERENCE`, which is unchanged. Only when a balance is checked (nightly, against the last delivered snapshot); a timestamp replay rebuilds both balances from the same lines, so it cannot show one there. |
+| `RECEIVE_PROBLEM` | A receive line is not positive, is booked under a product other than its lot's, the lot already had posted lines from an earlier entry, or the lot has no supplier lot code (`lots.supplier_lot_code` blank and no `lot_supplier_codes` code; the message says when it was marked "no lot on label"). One flag per (receipt, lot). |
+| `SHIP_MISMATCH` | Per (ship entry, product) the `shipment_lines` pounds differ from the pounds the entry took out of stock, or a ship line adds stock. |
+| `ENTRY_SHAPE` | A make/pack has no line taking stock out or none putting stock in, or a line's product is not its lot's product. |
+| `PACK_YIELD` | A pack's pounds out differ from its pounds in (batch plus add-ins) by more than `tolerance()` of the pounds in. Coconut over-packs up to 2% are never this alarm (they stay in the coconut section). |
+
 ## Email
 
 Sent **every night when enabled, including "all clear"**. No email means the job did not run.

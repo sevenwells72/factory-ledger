@@ -80,14 +80,37 @@ class Kit:
             self.cur.execute('INSERT INTO batch_formulas (product_id, ingredient_product_id, quantity_lb, '
                              'exclude_from_inventory) VALUES (%s, %s, %s, %s)', (batch, ingredient, quantity, excluded))
 
-    def lot(self, product):
-        self.cur.execute('INSERT INTO lots (product_id, lot_code) VALUES (%s, %s) RETURNING id',
-                         (product, f'{self.tag}-{len(self.lots) + 1:03d}'))
+    def lot(self, product, supplier_lot='SUP-1'):
+        self.cur.execute('INSERT INTO lots (product_id, lot_code, supplier_lot_code) VALUES (%s, %s, %s) RETURNING id',
+                         (product, f'{self.tag}-{len(self.lots) + 1:03d}', supplier_lot))
         lot = self.cur.fetchone()['id']
         self.lots.add(lot)
         return lot
 
-    def post(self, type_, lines, when, *, business_date=None, named=True, reason_code=None):
+    def side_records(self, tx, type_, lines, when):
+        """What the app writes beside the lines: ingredient use + lot trace for make/pack, shipment lines for ship."""
+        if type_ in ('make', 'pack'):
+            self.cur.execute("""INSERT INTO trace_events (event_type, epcis_type, transaction_id, occurred_at, business_date)
+                                VALUES (%s, 'transformation', %s, %s, %s) RETURNING id""",
+                             (type_, tx, when, when.astimezone(ET).date()))
+            event = self.cur.fetchone()['id']
+            for lot, quantity in lines:
+                self.cur.execute('SELECT product_id FROM lots WHERE id = %s', (lot,))
+                product = self.cur.fetchone()['product_id']
+                if quantity < 0:
+                    self.cur.execute('INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, '
+                                     'ingredient_lot_id, quantity_lb) VALUES (%s, %s, %s, %s)', (tx, product, lot, -quantity))
+                self.cur.execute('INSERT INTO trace_event_lots (trace_event_id, lot_id, role, quantity_lb) '
+                                 'VALUES (%s, %s, %s, %s)', (event, lot, 'input' if quantity < 0 else 'output', quantity))
+        elif type_ == 'ship':
+            self.cur.execute('INSERT INTO shipments (transaction_id, shipped_at) VALUES (%s, %s) RETURNING id', (tx, when))
+            shipment = self.cur.fetchone()['id']
+            for lot, quantity in lines:
+                self.cur.execute('SELECT product_id FROM lots WHERE id = %s', (lot,))
+                self.cur.execute('INSERT INTO shipment_lines (shipment_id, transaction_id, product_id, quantity_lb) '
+                                 'VALUES (%s, %s, %s, %s)', (shipment, tx, self.cur.fetchone()['product_id'], -quantity))
+
+    def post(self, type_, lines, when, *, business_date=None, named=True, reason_code=None, side=True):
         self.cur.execute("""INSERT INTO transactions (type, timestamp, status, occurred_at, business_date, created_at,
                                                       operator_id, entered_by_actor_id, reason_code)
                             VALUES (%s, %s, 'posted', %s, %s, %s, %s, %s, %s) RETURNING id""",
@@ -100,6 +123,8 @@ class Kit:
             self.cur.execute('SELECT product_id FROM lots WHERE id = %s', (lot,))
             self.cur.execute('INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb, created_at) '
                              'VALUES (%s, %s, %s, %s, %s)', (tx, self.cur.fetchone()['product_id'], lot, quantity, when))
+        if side:
+            self.side_records(tx, type_, lines, when)
         return tx
 
     def make(self, batches, when, *, into=None, **used):
@@ -181,7 +206,7 @@ def test_01_snapshot_equals_the_view_and_excludes_voided(kit):
 
 def test_02_clean_day_has_zero_flags_and_still_sends_all_clear(kit):
     kit.run(night(-1))
-    kit.post('receive', [(kit.oats_lot, 1500)], at(0, 9))
+    kit.post('receive', [(kit.lot(kit.oats), 1500)], at(0, 9))          # a new delivery: its own lot
     _, batch = kit.make(3, at(0, 10))
     finished = kit.lot(kit.bagged)
     kit.post('pack', [(batch, -300), (finished, 300)], at(0, 13))
@@ -190,7 +215,7 @@ def test_02_clean_day_has_zero_flags_and_still_sends_all_clear(kit):
     assert kit.flags(outcome) == []
     analysis = outcome['analysis']
     assert analysis['result'] == 'all_clear' and analysis['balance_checked']
-    assert (analysis['entries_checked'], analysis['makes_checked'], analysis['lots_checked']) == (4, 1, 5)
+    assert (analysis['entries_checked'], analysis['makes_checked'], analysis['lots_checked']) == (4, 1, 6)
     assert len(kit.sent) == 2 and kit.sent[1]['subject'].endswith('Nothing new today. All clear.') \
         and 'no action needed' in kit.sent[1]['text'] and 'NEEDS ATTENTION' not in kit.sent[1]['text']
     row = kit.row(outcome['run_id'])
@@ -277,8 +302,8 @@ def test_06_voids_are_listed_and_the_balance_still_reconciles(kit):
 
 def test_07_backdated_entry_is_listed_as_late(kit):
     kit.run(night(-1))
-    late = kit.post('receive', [(kit.oats_lot, 100)], at(0, 10), business_date=date(2026, 3, 6))
-    kit.post('receive', [(kit.oats_lot, 100)], at(0, 11))
+    late = kit.post('receive', [(kit.lot(kit.oats), 100)], at(0, 10), business_date=date(2026, 3, 6))
+    kit.post('receive', [(kit.lot(kit.oats), 100)], at(0, 11))
     outcome = kit.run(night(0))
     assert [(f['kind'], f['transaction_id'], f['severity']) for f in kit.flags(outcome)] == [('LATE_ENTRY', late, 'info')]
     assert 'for Mar 6 was entered later' in kit.flags(outcome)[0]['detail']['message']
@@ -311,7 +336,7 @@ def test_08_pack_provenance_and_lots_below_zero(kit):
 def test_09_missed_night_reconciles_across_the_gap(kit):
     baseline = kit.run(night(-1))['run_id']
     kit.make(3, at(0, 10))
-    kit.post('receive', [(kit.honey_lot, 800)], at(1, 9))                # night(0) never ran
+    kit.post('receive', [(kit.lot(kit.honey), 800)], at(1, 9))           # night(0) never ran
     kit.make(2, at(1, 11))
     outcome = kit.run(night(1))
     assert kit.flags(outcome) == []
@@ -1008,8 +1033,10 @@ def test_tolerance_is_measured_on_the_days_movement_not_the_balance(kit):
     kit.cur.execute('ALTER TABLE transaction_lines DISABLE TRIGGER trg_transaction_lines_original_append_only')
     kit.cur.execute('UPDATE transaction_lines SET quantity_lb = quantity_lb - 50 WHERE lot_id = %s AND quantity_lb = 150000', (big,))
     outcome = kit.run(night(0))
-    (flag,) = kit.flags(outcome)
+    (flag,) = kit.flags(outcome, 'BALANCE_DIFFERENCE')
     assert (flag['kind'], flag['lot_id'], flag['severity']) == ('BALANCE_DIFFERENCE', big, 'alarm')
+    (exact,) = kit.flags(outcome, 'BALANCE_UNEXPLAINED')                 # the separate exact add-up sees it too
+    assert (exact['lot_id'], exact['difference_lb'], exact['tolerance_lb']) == (big, -50, 0.0001)
     assert (flag['expected_lb'], flag['actual_lb'], flag['difference_lb'], flag['tolerance_lb']) == (149900, 149850, -50, 5)
     assert flag['detail']['unexplained_lb'] == -50 and 'outside the normal screens' in flag['detail']['message']
 
@@ -1053,12 +1080,14 @@ def test_coconut_overpack_within_two_percent_is_yield_not_an_alarm(kit, monkeypa
     within, beyond = kit.lot(coconut), kit.lot(coconut)
     kit.post('make', [(within, 5040), (kit.honey_lot, -1400)], at(0, 9))
     kit.post('pack', [(within, -5095), (finished, 5095)], at(0, 11))            # +55 lb = 1.1%
-    kit.post('receive', [(kit.honey_lot, 1000)], at(0, 12))
-    kit.post('make', [(beyond, 360), (kit.honey_lot, -100)], at(0, 13))
+    honey_2 = kit.lot(kit.honey)
+    kit.post('receive', [(honey_2, 1000)], at(0, 12))
+    kit.post('make', [(beyond, 360), (honey_2, -100)], at(0, 13))
     kit.post('pack', [(beyond, -372), (finished, 372)], at(0, 14))              # +12 lb = 3.3%
     other = kit.lot(lookalike)
-    kit.post('receive', [(kit.honey_lot, 1400)], at(0, 15))
-    kit.post('make', [(other, 5040), (kit.honey_lot, -1400)], at(0, 16))
+    honey_3 = kit.lot(kit.honey)
+    kit.post('receive', [(honey_3, 1400)], at(0, 15))
+    kit.post('make', [(other, 5040), (honey_3, -1400)], at(0, 16))
     kit.post('pack', [(other, -5095), (finished, 5095)], at(0, 17))             # +55 lb = 1.1%, inside tolerance
     outcome = kit.run(night(0))
     found = {(f['kind'], f['lot_id']): f for f in kit.flags(outcome)}
@@ -1322,3 +1351,181 @@ def test_the_email_avoids_jargon_and_puts_transaction_numbers_last(day):
         if 'TX' in line:          # transaction numbers only ever close a line, in brackets
             assert re.search(r'\(TX\d+(, TX\d+)*\)\.?$', line), line
     assert email['text'].splitlines()[1] == '' and email['text'].splitlines()[2].endswith('.')
+
+
+# ───────────────────────── record checks (trace, exact add-up, receive, ship, shape) ─────────────────────────
+
+NEW_KINDS = ('TRACE_MISSING', 'TRACE_MISMATCH', 'BALANCE_UNEXPLAINED', 'RECEIVE_PROBLEM', 'SHIP_MISMATCH',
+             'ENTRY_SHAPE', 'PACK_YIELD')
+
+
+def _side(kit, tx, type_, when, consumption=(), trace=()):
+    """Hand-written side records: consumption [(lot, product, lb)], trace [(lot, role, signed lb)]."""
+    for lot, product, qty in consumption:
+        kit.cur.execute('INSERT INTO ingredient_lot_consumption (transaction_id, ingredient_product_id, ingredient_lot_id, '
+                        'quantity_lb) VALUES (%s, %s, %s, %s)', (tx, product, lot, qty))
+    if trace:
+        kit.cur.execute("INSERT INTO trace_events (event_type, epcis_type, transaction_id, occurred_at, business_date) "
+                        "VALUES (%s, 'transformation', %s, %s, %s) RETURNING id", (type_, tx, when, when.astimezone(ET).date()))
+        event = kit.cur.fetchone()['id']
+        for lot, role, qty in trace:
+            kit.cur.execute('INSERT INTO trace_event_lots (trace_event_id, lot_id, role, quantity_lb) VALUES (%s, %s, %s, %s)',
+                            (event, lot, role, qty))
+
+
+def _line(kit, tx, product, lot, quantity, when):
+    """A line booked under `product` whatever the lot's own product."""
+    kit.cur.execute('INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb, created_at) '
+                    'VALUES (%s, %s, %s, %s, %s)', (tx, product, lot, quantity, when))
+
+
+def _granola_make(kit, when, oats_used=60, oats_traced=60, trace_output=True):
+    batch = kit.lot(kit.granola)
+    tx = kit.post('make', [(batch, 100), (kit.oats_lot, -60), (kit.honey_lot, -30), (kit.nuts_lot, -10)], when, side=False)
+    _side(kit, tx, 'make', when,
+          consumption=[(kit.oats_lot, kit.oats, oats_used), (kit.honey_lot, kit.honey, 30), (kit.nuts_lot, kit.nuts, 10)],
+          trace=[(kit.oats_lot, 'input', -oats_traced), (kit.honey_lot, 'input', -30), (kit.nuts_lot, 'input', -10)]
+          + ([(batch, 'output', 100)] if trace_output else []))
+    return tx, batch
+
+
+def _new_kinds(kit, outcome):
+    return sorted((f['kind'], f['transaction_id']) for f in kit.flags(outcome) if f['kind'] in NEW_KINDS)
+
+
+def test_trace_missing(kit):
+    kit.run(night(-1))
+    good, _ = kit.make(1, at(0, 9))
+    batch = kit.lot(kit.granola)
+    bad = kit.post('make', [(batch, 100), (kit.oats_lot, -60), (kit.honey_lot, -30), (kit.nuts_lot, -10)],
+                   at(0, 10), side=False)
+    # ingredient-use rows and the trace for everything but the nuts
+    _side(kit, bad, 'make', at(0, 10), consumption=[(kit.oats_lot, kit.oats, 60), (kit.honey_lot, kit.honey, 30)],
+          trace=[(batch, 'output', 100), (kit.oats_lot, 'input', -60), (kit.honey_lot, 'input', -30)])
+    outcome = kit.run(night(0))
+    assert _new_kinds(kit, outcome) == [('TRACE_MISSING', bad)]        # the good make raises nothing
+    (flag,) = kit.flags(outcome, 'TRACE_MISSING')
+    assert (flag['lot_id'], flag['severity'], flag['actual_lb']) == (kit.nuts_lot, 'alarm', 10)
+    assert 'ingredient-use record and lot trace does not show it' in flag['detail']['message']
+    assert flag['detail']['headline'].startswith(f'{kit.tag} Nuts, lot ') and 'make entry for Mar 10' in flag['detail']['headline']
+    assert outcome['analysis']['result'] == 'attention' and flag['new']
+    assert good not in {f['transaction_id'] for f in kit.flags(outcome)}
+
+
+def test_trace_mismatch(kit):
+    kit.run(night(-1))
+    kit.make(1, at(0, 9))
+    off, batch = _granola_make(kit, at(0, 10), oats_used=59.5, trace_output=False)
+    outcome = kit.run(night(0))
+    found = sorted((f['kind'], f['lot_id']) for f in kit.flags(outcome) if f['kind'] in NEW_KINDS)
+    assert found == sorted([('TRACE_MISMATCH', kit.oats_lot), ('TRACE_MISMATCH', batch)])
+    oats = next(f for f in kit.flags(outcome, 'TRACE_MISMATCH') if f['lot_id'] == kit.oats_lot)
+    assert oats['transaction_id'] == off and oats['detail']['consumption_lb'] == 59.5 and oats['detail']['trace_lb'] == 60
+    output = next(f for f in kit.flags(outcome, 'TRACE_MISMATCH') if f['lot_id'] == batch)
+    assert 'the lot trace does not show it' in output['detail']['message']
+
+
+def test_trace_mismatch_tolerance_is_a_ten_thousandth(kit):
+    kit.run(night(-1))
+    _granola_make(kit, at(0, 10), oats_used=60.0001)
+    assert _new_kinds(kit, kit.run(night(0))) == []                     # 0.0001 lb: allowed
+    off, _ = _granola_make(kit, at(1, 10), oats_traced=60.0002)
+    assert _new_kinds(kit, kit.run(night(1))) == [('TRACE_MISMATCH', off)]
+
+
+def test_balance_unexplained_is_exact_and_separate(kit):
+    kit.run(night(-1))
+    kit.post('adjust', [(kit.oats_lot, -100)], at(0, 9), reason_code='physical_count')
+    clean = kit.run(night(0))
+    assert kit.flags(clean, 'BALANCE_UNEXPLAINED') == []
+    kit.post('adjust', [(kit.honey_lot, -10)], at(1, 9), reason_code='physical_count')
+    kit.cur.execute('ALTER TABLE transaction_lines DISABLE TRIGGER trg_transaction_lines_original_append_only')
+    kit.cur.execute('UPDATE transaction_lines SET quantity_lb = 1999.5 WHERE lot_id = %s AND quantity_lb = 2000',
+                    (kit.honey_lot,))
+    outcome = kit.run(night(1))
+    (flag,) = kit.flags(outcome, 'BALANCE_UNEXPLAINED')
+    assert (flag['lot_id'], flag['severity'], flag['detail']['unexplained_lb']) == (kit.honey_lot, 'alarm', -0.5)
+    assert kit.flags(outcome, 'BALANCE_DIFFERENCE') == []               # 0.5 lb is inside the old tolerance: unchanged
+    assert 'changed by −0.5 lb with no entry' in flag['detail']['message']
+    assert 'Exact add-up: 1 lot changed with no entry behind the change' in outcome['email']['text']
+
+
+def test_receive_problem(kit):
+    kit.run(night(-1))
+    good = kit.post('receive', [(kit.lot(kit.oats, 'SUP-9'), 500)], at(0, 8))
+    no_code = kit.post('receive', [(kit.lot(kit.oats, None), 500)], at(0, 9))
+    reused = kit.post('receive', [(kit.oats_lot, 500)], at(0, 10))
+    wrong = kit.post('receive', [], at(0, 11))
+    _line(kit, wrong, kit.oats, kit.lot(kit.honey), 0, at(0, 11))
+    outcome = kit.run(night(0))
+    flags = {f['transaction_id']: f for f in kit.flags(outcome, 'RECEIVE_PROBLEM')}
+    assert sorted(flags) == sorted([no_code, reused, wrong]) and good not in flags
+    assert flags[no_code]['detail']['problems'] == ['no supplier lot code was recorded']
+    assert flags[reused]['detail']['problems'][0].startswith('the lot already had 1 stock entry before this receipt')
+    assert flags[wrong]['detail']['problems'] == [
+        'it records +0 lb, not a positive amount', f'it is booked as {kit.tag} Oats, but the lot is {kit.tag} Honey']
+    assert all(f['severity'] == 'alarm' for f in flags.values())
+
+
+def test_ship_mismatch(kit):
+    kit.run(night(-1))
+    good = kit.post('ship', [(kit.oats_lot, -100)], at(0, 9))
+    short = kit.post('ship', [(kit.oats_lot, -100)], at(0, 10))
+    kit.cur.execute('UPDATE shipment_lines SET quantity_lb = 90 WHERE transaction_id = %s', (short,))
+    bare = kit.post('ship', [(kit.honey_lot, -50)], at(0, 11), side=False)
+    backwards = kit.post('ship', [(kit.nuts_lot, 20)], at(0, 12), side=False)
+    outcome = kit.run(night(0))
+    found = _new_kinds(kit, outcome)
+    assert ('SHIP_MISMATCH', good) not in found
+    assert found == sorted([('SHIP_MISMATCH', short), ('SHIP_MISMATCH', bare), ('SHIP_MISMATCH', backwards)])
+    by_tx = {f['transaction_id']: f for f in kit.flags(outcome, 'SHIP_MISMATCH')}
+    assert (by_tx[short]['expected_lb'], by_tx[short]['actual_lb'], by_tx[short]['product_id']) == (100, 90, kit.oats)
+    assert (by_tx[bare]['expected_lb'], by_tx[bare]['actual_lb']) == (50, 0)
+    assert by_tx[backwards]['detail']['positive_line'] and 'adds 20 lb to stock' in by_tx[backwards]['detail']['message']
+
+
+def test_entry_shape(kit):
+    kit.run(night(-1))
+    kit.make(1, at(0, 9))
+    output_only = kit.post('make', [(kit.lot(kit.granola), 100)], at(0, 10))
+    batch = kit.lot(kit.granola)
+    wrong_product = kit.post('make', [(batch, 100), (kit.honey_lot, -30), (kit.nuts_lot, -10)], at(0, 11))
+    _line(kit, wrong_product, kit.honey, kit.oats_lot, -60, at(0, 11))     # oats lot booked as honey
+    outcome = kit.run(night(0))
+    shapes = {f['transaction_id']: f for f in kit.flags(outcome, 'ENTRY_SHAPE')}
+    assert sorted(shapes) == sorted([output_only, wrong_product])
+    assert shapes[output_only]['detail']['problems'] == ['it takes nothing out of stock']
+    assert shapes[wrong_product]['lot_id'] == kit.oats_lot
+    assert shapes[wrong_product]['detail']['problems'][0].endswith(f'({kit.tag} Oats) as {kit.tag} Honey')
+
+
+def test_pack_yield(kit, monkeypatch):
+    coconut = kit.product('Batch Toasted Flake', 'batch', batch_lb=100)
+    monkeypatch.setattr(reconciliation, 'COCONUT_YIELD_PRODUCT_IDS', frozenset({coconut}))
+    kit.recipe(coconut, {kit.honey: 100})
+    kit.run(night(-1))
+    _, batch = kit.make(10, at(0, 9))
+    finished = kit.lot(kit.bagged)
+    fine = kit.post('pack', [(batch, -400), (finished, 404)], at(0, 10))          # +4 lb: inside 5 lb
+    off = kit.post('pack', [(batch, -500), (finished, 520)], at(0, 11))           # +20 lb: beyond 10 lb
+    flake = kit.lot(coconut)
+    kit.post('make', [(flake, 1000), (kit.honey_lot, -1000)], at(0, 12))
+    flake_pack = kit.post('pack', [(flake, -1000), (finished, 1015)], at(0, 13))  # coconut +1.5%: no alarm
+    outcome = kit.run(night(0))
+    (flag,) = kit.flags(outcome, 'PACK_YIELD')
+    assert (flag['transaction_id'], flag['severity'], flag['expected_lb'], flag['actual_lb'], flag['tolerance_lb']) \
+        == (off, 'alarm', 500, 520, 10)
+    assert fine != flag['transaction_id'] != flake_pack
+    assert 'Please check the case count and weights' in flag['detail']['message']
+
+
+def test_record_checks_appear_in_the_email_and_skip_old_exports(kit):
+    kit.run(night(-1))
+    kit.post('ship', [(kit.oats_lot, -100)], at(0, 9), side=False)
+    outcome = kit.run(night(0))
+    text = outcome['email']['text']
+    assert 'New today (1)' in text and 'the shipment record shows 0 lb' in text
+    assert 'Records: 0 make and pack entries checked' in text and '1 found (see "New today")' in text
+    # an export saved before these checks (no `integrity`) replays without them
+    old = json.loads((FIXTURES / 'replay_2026-11-09.json').read_text())
+    assert 'integrity' not in old and reconciliation.analyse(old)['records_checked'] is None
