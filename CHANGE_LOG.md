@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-16 14:55 — Dashboard navigation: way back to the dashboard home from every page and recorded screen
+- **File(s) changed:** `receipt-shell.js`, `ledger-ticket.js`, `exceptions.js`, `ledger-forms.css`, `fl-assistant.css`, `fl-assistant.html`, `entry.html`, `office.html`, `exceptions.html`, `receipt.html`, `history.html`, `index.html`, `lot-history.html`, `process-flow.html`, `runs.html`, `sankey.html`, `traceability.html`, `shift-summary.html`, `seven-wells-production-board.html`, `run-back-to-dashboard.mjs`, `test_back_to_dashboard_browser.js`, `test_nav_links.js`, `test_assistant_mobile_ux.js`, `ARCHITECTURE-MAP.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added an always-visible 'Dashboard / Panel' link first in the shared ledger tool bar (receipt-shell.js); pointed the FL logo/title on entry, office, exceptions, receipt, FL Assistant and the CNS Factory Ledger brand on sankey/process-flow/traceability/runs to the dashboard home; added a header 'Dashboard' button and rail link on FL Assistant and a Dashboard link on lot history; added 'Back to dashboard / Volver al panel' after the page's own 'Another ...' button on every recorded screen via ui.dashboardLink in ledger-ticket.js plus the Exceptions decision notice; replaced the straight apostrophe in 'Today's entries' with a typographic one so Netlify's HTML rewrite no longer shows 'Today\'; bumped receipt-shell.js v10, ledger-ticket.js v17, exceptions.js v9, ledger-forms.css v17, fl-assistant.css v11 on every page that loads them; new Playwright check run-back-to-dashboard.mjs (real local API + throwaway DB) and nav unit tests; map line and FACTORY_LEDGER_CHANGELOG row 290. Branch feat/back-to-dashboard, not merged or deployed. The four-name screen intentionally has no link (owner rule #180).
+- **Why:** Owner request 2026-11-16: no page or confirmation screen had an obvious way back to the dashboard, and the Today label showed a stray backslash.
+
+---
+
 ## 2026-11-16 14:21 — Created SS Choc Chip #2 TRIAL 32x10 oz case (product 296) in production
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Production catalog data: new finished item 296 'Granola SS Chocolate Chip 32x10 OZ Case — TRIAL' (case 20 lb, linked to trial batch 295, Sunshine, bagged, private label, verified; recipe 20 lb batch 295 + 32 printed bags). Backup 2026-11-16-pre-ss2-32pack BACKUP OK. Changelog row 289 added. No inventory posting.
