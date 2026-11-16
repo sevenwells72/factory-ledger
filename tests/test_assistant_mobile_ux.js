@@ -65,7 +65,7 @@ test('page: photo type is chosen after picking, jump button exists, assets re-fe
   assert.equal(html.includes('id="photo-kind"'), false, 'no hidden default evidence type');
   assert.match(html, /<button id="jump-latest"[^>]* hidden /);
   assert.ok(Number(html.match(/fl-assistant\.js\?v=(\d+)/)?.[1]) >= 20, 'cache version retains mobile UX changes');
-  assert.match(html, /fl-assistant\.css\?v=10/);
+  assert.ok(Number(html.match(/fl-assistant\.css\?v=(\d+)/)?.[1]) >= 10, 'stylesheet cache version retains mobile UX changes');
   const css = fs.readFileSync(path.join(__dirname, '../dashboard/fl-assistant.css'), 'utf8');
   assert.match(css, /\.topbar\{position:sticky;top:0/);
 });

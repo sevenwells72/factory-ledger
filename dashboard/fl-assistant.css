@@ -154,3 +154,7 @@ html,body{width:100%;max-width:100%;min-width:0}
 .topbar .receipt-tools>a{min-height:44px;padding:9px 12px;font-size:13px;background:var(--surface);color:var(--text);border-color:var(--line)}
 
 .card .receive-lot-tag{border-bottom:2px solid var(--line);margin-bottom:18px;padding-bottom:14px}.card .receive-lot-label{font-size:12px;font-weight:650}.card .receive-lot-code{font-family:ui-monospace,monospace;font-size:clamp(26px,5vw,38px);font-weight:750;line-height:1.2;margin:8px 0;overflow-wrap:anywhere}
+
+/* Dashboard link in the Assistant header: looks and sizes like the header buttons beside it. */
+.header-actions .header-home{display:inline-flex;align-items:center;white-space:nowrap;min-height:44px;padding:9px 10px;font-size:12px;border:1px solid var(--line);border-radius:9px;text-decoration:none}
+@media(max-width:600px){.header-actions .header-home{padding:7px;min-height:44px;font-size:11px}}

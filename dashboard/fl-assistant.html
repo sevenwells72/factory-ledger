@@ -7,19 +7,20 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="referrer" content="no-referrer">
   <title>FL Assistant · Factory Ledger</title>
-  <link rel="stylesheet" href="ledger-forms.css?v=16">
-  <link rel="stylesheet" href="fl-assistant.css?v=10">
+  <link rel="stylesheet" href="ledger-forms.css?v=17">
+  <link rel="stylesheet" href="fl-assistant.css?v=11">
   <script defer src="key-session.js?v=7"></script>
   <script defer src="assistant-display.js?v=12"></script>
   <script defer src="fl-assistant.js?v=21"></script>
-  <script defer src="receipt-shell.js?v=7"></script>
+  <script defer src="receipt-shell.js?v=10"></script>
 <link rel="stylesheet" href="wallpaper.css?v=2">
 </head>
 <body class="fl-assistant-page" data-fl-person-required="true">
   <aside class="rail">
-    <a class="brand" href="fl-assistant.html" aria-label="Factory Ledger Assistant"><span class="brand-mark">FL</span><span>Factory Ledger<small>Operations workspace</small></span></a>
+    <a class="brand" href="index.html" aria-label="Factory Ledger dashboard" title="Dashboard / Panel"><span class="brand-mark">FL</span><span>Factory Ledger<small>Operations workspace</small></span></a>
     <button id="new-chat" class="new-chat" disabled>＋ <span data-en="New chat" data-es="Nuevo chat">New chat</span></button>
     <div class="rail-label" data-en="YOUR WORKSPACE" data-es="TU ESPACIO">YOUR WORKSPACE</div>
+    <a class="nav-link" href="index.html" data-fl-dashboard data-en="Dashboard" data-es="Panel">Dashboard</a>
     <a class="nav-current" href="fl-assistant.html"><span>✧</span> FL Assistant</a>
     <button class="nav-link" id="today-entries" type="button" data-en="Today’s entries" data-es="Entradas de hoy">Today’s entries</button>
     <div class="rail-foot"><span class="small-mark">✓</span><p data-en="You review. You record." data-es="Tú revisas. Tú registras.">You review. You record.</p><small data-en="Every entry needs an FL receipt." data-es="Cada entrada necesita un recibo FL.">Every entry needs an FL receipt.</small></div>
@@ -27,7 +28,7 @@
   <main>
     <header class="topbar">
       <div class="header-title"><h1>FL Assistant</h1><p id="identity" data-en="Checking your session…" data-es="Comprobando tu sesión…">Checking your session…</p></div>
-      <div class="header-actions"><button id="today-entries-mobile" type="button" data-en="Today" data-es="Hoy">Today</button><button id="language" aria-label="Cambiar a español">ES</button><button id="sign-out" hidden data-en="Sign out" data-es="Cerrar sesión">Sign out</button></div>
+      <div class="header-actions"><a class="header-home nav-button" href="index.html" data-fl-dashboard data-en="Dashboard" data-es="Panel">Dashboard</a><button id="today-entries-mobile" type="button" data-en="Today" data-es="Hoy">Today</button><button id="language" aria-label="Cambiar a español">ES</button><button id="sign-out" hidden data-en="Sign out" data-es="Cerrar sesión">Sign out</button></div>
       <details id="header-menu" class="tools-menu"><summary data-en="Menu" data-es="Menú">Menu</summary><div data-receipt-tools-host></div></details>
     </header>
     <div id="auth-loading" class="auth-loading" role="status"><span class="loading-spinner" aria-hidden="true"></span><span data-en="Checking your session…" data-es="Comprobando tu sesión…">Checking your session…</span></div>

@@ -126,3 +126,8 @@
 .ledger-page .record-bar.sticky>[data-pending-lots] {color:var(--text)}
 .ledger-page .formula-bag input[aria-invalid=true] {border:2px solid var(--fl-danger-line);background:var(--fl-danger-bg)}
 .ledger-page .formula-pick>[data-bag-error] {padding:8px 10px}
+/* "Back to dashboard" on recorded screens: looks like the "Another …" button beside it. */
+.ledger-page main a.nav-button[data-fl-dashboard] {display:inline-flex;align-items:center;justify-content:center;min-height:44px;margin:0 0 0 8px;padding:9px 12px;border:1px solid var(--fl-control-line);border-radius:6px;background:var(--surface);color:var(--text);font:inherit;text-decoration:none;vertical-align:middle}
+.ledger-page main a.nav-button[data-fl-dashboard]:hover {background:var(--surface-hover);border-color:var(--primary-text)}
+.ledger-page main a.nav-button[data-fl-dashboard]:focus-visible {outline:3px solid var(--fl-focus);outline-offset:3px}
+.ledger-page #notice a.nav-button[data-fl-dashboard] {margin:8px 0 0}

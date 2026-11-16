@@ -17,6 +17,8 @@
     const input = document.createElement('input'); input.name = 'number'; input.required = true; input.autocomplete = 'off'; input.placeholder = 'RCV-261013-001'; label.append(input);
     const button = document.createElement('button'); button.type = 'submit'; button.textContent = 'Look up / Buscar';
     form.append(label, button); form.onsubmit = event => {event.preventDefault(); open(input.value);};
+    // Always first and always visible: every page's way back to the dashboard home.
+    const home=document.createElement('a');home.href=page('index.html');home.textContent='Dashboard / Panel';home.dataset.flDashboard='';bar.append(home);
     bar.append(form);
     for (const [name,text] of [['exceptions.html','Exceptions / Excepciones'],['entry.html','Record entry / Registrar'],['office.html','Office / Oficina'],['fl-assistant.html','FL Assistant / Asistente FL']]) {const a=document.createElement('a');a.dataset.flWriteUi='';a.href=page(name);a.textContent=text;bar.append(a);}
     // Read-only views of the day work without personal sign-in, so this link always shows.
