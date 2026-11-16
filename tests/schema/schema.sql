@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 9AR9WaXWTtqJkeWt7ytxJva3DsGes1kdbWi0i3dIO2bG3bXEH4KQhYlABwktO3r
+\restrict 0ACx7zU27PGugOHjikHbXNPA5ebXlzHlJfHQtYhC7JsiTYnT89tPsR0rdvRJ1zg
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.10 (Homebrew)
@@ -554,6 +554,7 @@ CREATE TABLE public.actor_write_audit (
     target_table text NOT NULL,
     target_id bigint NOT NULL,
     created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    trusted_browser_id bigint,
     CONSTRAINT actor_write_audit_method_check CHECK (((method = ANY (ARRAY['POST'::text, 'PATCH'::text])) OR (method = ANY (ARRAY['PUT'::text, 'DELETE'::text])))),
     CONSTRAINT actor_write_audit_operator_id_check CHECK ((btrim(operator_id) <> ''::text)),
     CONSTRAINT actor_write_audit_target_table_check CHECK (((target_table = ANY (ARRAY['customers'::text, 'lots'::text, 'sales_orders'::text, 'sales_order_lines'::text])) OR (target_table = 'exceptions'::text) OR (target_table = 'notes'::text)))
@@ -1048,7 +1049,8 @@ CREATE TABLE public.customers (
     active boolean DEFAULT true,
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now(),
-    notes_es text
+    notes_es text,
+    ticket_id bigint
 );
 
 
@@ -1101,7 +1103,7 @@ CREATE TABLE public.exceptions (
     resolution_receipt_number text,
     CONSTRAINT exceptions_detail_check CHECK ((jsonb_typeof(detail) = 'object'::text)),
     CONSTRAINT exceptions_escalated_needs_time CHECK (((status <> 'escalated'::text) OR (escalated_at IS NOT NULL))),
-    CONSTRAINT exceptions_kind_check CHECK (((kind = ANY (ARRAY['SHORTAGE'::text, 'UNIDENTIFIED_LOT'::text, 'LARGE_CORRECTION'::text, 'LATE_ENTRY'::text, 'SHIPMENT_PROOF_MISSING'::text, 'NEGATIVE_BALANCE'::text, 'POSSIBLE_DUPLICATE_ACK'::text, 'UNSHIPPED_PAST_DUE'::text, 'SUNSHINE_INVOICE_PENDING'::text, 'SHIFT_DISCREPANCY'::text])) OR (kind = 'PRE_MAKE_ADJUST'::text) OR (kind = 'BOL_PHOTO_MISSING'::text) OR (kind = 'KOSHER_ATTESTATION'::text))),
+    CONSTRAINT exceptions_kind_check CHECK (((kind = ANY (ARRAY['SHORTAGE'::text, 'UNIDENTIFIED_LOT'::text, 'LARGE_CORRECTION'::text, 'LATE_ENTRY'::text, 'SHIPMENT_PROOF_MISSING'::text, 'NEGATIVE_BALANCE'::text, 'POSSIBLE_DUPLICATE_ACK'::text, 'UNSHIPPED_PAST_DUE'::text, 'SUNSHINE_INVOICE_PENDING'::text, 'SHIFT_DISCREPANCY'::text])) OR (kind = 'PRE_MAKE_ADJUST'::text) OR (kind = 'BOL_PHOTO_MISSING'::text) OR (kind = 'KOSHER_ATTESTATION'::text) OR (kind = 'ASSISTANT_OFFLINE'::text))),
     CONSTRAINT exceptions_resolved_needs_time CHECK (((status <> ALL (ARRAY['resolved'::text, 'waived'::text])) OR (resolved_at IS NOT NULL))),
     CONSTRAINT exceptions_severity_check CHECK ((severity = ANY (ARRAY['info'::text, 'warn'::text, 'block'::text]))),
     CONSTRAINT exceptions_status_check CHECK ((status = ANY (ARRAY['open'::text, 'resolved'::text, 'waived'::text, 'escalated'::text])))
@@ -1244,6 +1246,35 @@ ALTER SEQUENCE public.inventory_adjustments_id_seq OWNED BY public.inventory_adj
 
 
 --
+-- Name: inventory_snapshots; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.inventory_snapshots (
+    id bigint NOT NULL,
+    taken_at timestamp with time zone NOT NULL,
+    plant_date date NOT NULL,
+    job_run_id bigint NOT NULL,
+    lot_id integer NOT NULL,
+    product_id integer NOT NULL,
+    quantity_lb numeric(14,4) NOT NULL
+);
+
+
+--
+-- Name: inventory_snapshots_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.inventory_snapshots ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.inventory_snapshots_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: inventory_summary; Type: VIEW; Schema: public; Owner: -
 --
 
@@ -1269,6 +1300,7 @@ CREATE TABLE public.key_actor_sessions (
     expires_at timestamp with time zone NOT NULL,
     ended_at timestamp with time zone,
     ended_reason text,
+    device_id bigint,
     CONSTRAINT key_actor_sessions_check CHECK (((ended_at IS NULL) = (ended_reason IS NULL))),
     CONSTRAINT key_actor_sessions_ended_reason_check CHECK ((ended_reason = ANY (ARRAY['idle'::text, 'logout'::text, 'revoked'::text])))
 );
@@ -1280,6 +1312,109 @@ CREATE TABLE public.key_actor_sessions (
 
 ALTER TABLE public.key_actor_sessions ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
     SEQUENCE NAME public.key_actor_sessions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: key_device_attempts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.key_device_attempts (
+    id bigint NOT NULL,
+    device_id bigint,
+    ok boolean NOT NULL,
+    attempted_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL
+);
+
+
+--
+-- Name: key_device_attempts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.key_device_attempts ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.key_device_attempts_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: key_device_audit; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.key_device_audit (
+    id bigint NOT NULL,
+    actor_id integer NOT NULL,
+    device_id bigint,
+    action text NOT NULL,
+    by_actor_id integer,
+    at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT key_device_audit_action_check CHECK ((action = ANY (ARRAY['enroll'::text, 'pin_change'::text, 'pin_reset'::text, 'pin_reset_set'::text, 'revoke'::text, 'remove_access'::text, 'deactivate'::text, 'reactivate'::text, 'blocked'::text])))
+);
+
+
+--
+-- Name: key_device_audit_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.key_device_audit ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.key_device_audit_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: key_devices; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.key_devices (
+    id bigint NOT NULL,
+    actor_id integer NOT NULL,
+    secret_hash text NOT NULL,
+    actor_key_hash text NOT NULL,
+    label text NOT NULL,
+    pin_hash text,
+    pin_salt text,
+    pin_iterations integer,
+    pin_set_at timestamp with time zone,
+    pin_reset_until timestamp with time zone,
+    failed_count integer DEFAULT 0 NOT NULL,
+    locked_until timestamp with time zone,
+    enrolled_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    last_used_at timestamp with time zone,
+    revoked_at timestamp with time zone,
+    revoked_reason text,
+    revoked_by integer,
+    CONSTRAINT key_devices_check CHECK (((revoked_at IS NULL) = (revoked_reason IS NULL))),
+    CONSTRAINT key_devices_check1 CHECK ((((pin_hash IS NULL) = (pin_salt IS NULL)) AND ((pin_hash IS NULL) = (pin_iterations IS NULL)))),
+    CONSTRAINT key_devices_failed_count_check CHECK ((failed_count >= 0)),
+    CONSTRAINT key_devices_label_check CHECK (((char_length(label) >= 1) AND (char_length(label) <= 60))),
+    CONSTRAINT key_devices_pin_hash_check CHECK (((pin_hash IS NULL) OR (length(pin_hash) = 64))),
+    CONSTRAINT key_devices_pin_iterations_check CHECK (((pin_iterations IS NULL) OR (pin_iterations >= 1000))),
+    CONSTRAINT key_devices_pin_salt_check CHECK (((pin_salt IS NULL) OR (length(pin_salt) = 32))),
+    CONSTRAINT key_devices_revoked_reason_check CHECK ((revoked_reason = ANY (ARRAY['owner'::text, 'self'::text, 'replaced'::text, 'key_rotated'::text, 'deactivated'::text, 'access_removed'::text]))),
+    CONSTRAINT key_devices_secret_hash_check CHECK ((length(secret_hash) = 64))
+);
+
+
+--
+-- Name: key_devices_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.key_devices ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.key_devices_id_seq
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -1906,6 +2041,8 @@ CREATE TABLE public.products (
     pack_format text,
     low_stock_threshold numeric,
     kosher_tier text DEFAULT 'regular'::text NOT NULL,
+    archived_at timestamp with time zone,
+    archived_by text,
     CONSTRAINT products_kosher_tier_check CHECK ((kosher_tier = ANY (ARRAY['regular'::text, 'extra_kosher'::text]))),
     CONSTRAINT products_low_stock_threshold_check CHECK (((low_stock_threshold IS NULL) OR (low_stock_threshold >= (0)::numeric))),
     CONSTRAINT products_pack_format_check CHECK (((pack_format IS NULL) OR (pack_format = ANY (ARRAY['10lb'::text, '25lb'::text, 'bagged'::text])))),
@@ -1997,6 +2134,21 @@ CREATE VIEW public.order_line_details AS
      JOIN public.sales_order_lines sol ON ((sol.sales_order_id = so.id)))
      JOIN public.products p ON ((p.id = sol.product_id)))
   ORDER BY so.order_number, sol.id;
+
+
+--
+-- Name: person_choices; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.person_choices (
+    actor_id integer NOT NULL,
+    display_name text NOT NULL,
+    role_label text NOT NULL,
+    sort_order integer NOT NULL,
+    active boolean DEFAULT true NOT NULL,
+    CONSTRAINT person_choices_display_name_check CHECK (((char_length(display_name) >= 1) AND (char_length(display_name) <= 40))),
+    CONSTRAINT person_choices_role_label_check CHECK (((char_length(role_label) >= 1) AND (char_length(role_label) <= 40)))
+);
 
 
 --
@@ -2363,6 +2515,98 @@ CREATE TABLE public.receipt_counters (
 
 
 --
+-- Name: reconciliation_flags; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.reconciliation_flags (
+    id bigint NOT NULL,
+    run_id bigint NOT NULL,
+    kind text NOT NULL,
+    severity text NOT NULL,
+    product_id integer,
+    lot_id integer,
+    transaction_id integer,
+    expected_lb numeric(14,4),
+    actual_lb numeric(14,4),
+    difference_lb numeric(14,4),
+    tolerance_lb numeric(14,4),
+    detail jsonb DEFAULT '{}'::jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT reconciliation_flags_detail_check CHECK ((jsonb_typeof(detail) = 'object'::text)),
+    CONSTRAINT reconciliation_flags_kind_check CHECK ((btrim(kind) <> ''::text)),
+    CONSTRAINT reconciliation_flags_severity_check CHECK ((severity = ANY (ARRAY['alarm'::text, 'review'::text, 'yield'::text, 'info'::text])))
+);
+
+
+--
+-- Name: reconciliation_flags_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.reconciliation_flags ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.reconciliation_flags_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: reconciliation_runs; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.reconciliation_runs (
+    id bigint NOT NULL,
+    started_at timestamp with time zone NOT NULL,
+    finished_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    plant_date date NOT NULL,
+    previous_run_id bigint,
+    window_start timestamp with time zone,
+    window_end timestamp with time zone,
+    job_status text NOT NULL,
+    job_error text,
+    result text,
+    balance_checked boolean DEFAULT false NOT NULL,
+    entries_checked integer DEFAULT 0 NOT NULL,
+    makes_checked integer DEFAULT 0 NOT NULL,
+    lots_checked integer DEFAULT 0 NOT NULL,
+    flag_count integer DEFAULT 0 NOT NULL,
+    attention_count integer DEFAULT 0 NOT NULL,
+    email_status text NOT NULL,
+    email_to text,
+    email_sent_at timestamp with time zone,
+    email_error text,
+    email_provider_id text,
+    summary jsonb DEFAULT '{}'::jsonb NOT NULL,
+    CONSTRAINT reconciliation_runs_attention_count_check CHECK ((attention_count >= 0)),
+    CONSTRAINT reconciliation_runs_email_status_check CHECK ((email_status = ANY (ARRAY['sent'::text, 'failed'::text, 'disabled'::text, 'already_sent'::text, 'not_attempted'::text]))),
+    CONSTRAINT reconciliation_runs_entries_checked_check CHECK ((entries_checked >= 0)),
+    CONSTRAINT reconciliation_runs_flag_count_check CHECK ((flag_count >= 0)),
+    CONSTRAINT reconciliation_runs_job_status_check CHECK ((job_status = ANY (ARRAY['completed'::text, 'failed'::text]))),
+    CONSTRAINT reconciliation_runs_lots_checked_check CHECK ((lots_checked >= 0)),
+    CONSTRAINT reconciliation_runs_makes_checked_check CHECK ((makes_checked >= 0)),
+    CONSTRAINT reconciliation_runs_result_check CHECK ((result = ANY (ARRAY['all_clear'::text, 'attention'::text]))),
+    CONSTRAINT reconciliation_runs_result_matches_job CHECK (((job_status = 'completed'::text) = (result IS NOT NULL))),
+    CONSTRAINT reconciliation_runs_summary_check CHECK ((jsonb_typeof(summary) = 'object'::text))
+);
+
+
+--
+-- Name: reconciliation_runs_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.reconciliation_runs ALTER COLUMN id ADD GENERATED BY DEFAULT AS IDENTITY (
+    SEQUENCE NAME public.reconciliation_runs_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: run_coverage; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -2642,7 +2886,10 @@ CREATE TABLE public.shift_confirmations (
     summary_snapshot jsonb NOT NULL,
     exception_id bigint,
     confirmed_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    identity_via text,
+    trusted_browser_id bigint,
     CONSTRAINT shift_confirmations_check CHECK (((outcome <> 'discrepancy'::text) OR (btrim(notes) <> ''::text))),
+    CONSTRAINT shift_confirmations_identity_via_check CHECK (((identity_via IS NULL) OR (identity_via = 'selection'::text))),
     CONSTRAINT shift_confirmations_outcome_check CHECK ((outcome = ANY (ARRAY['match'::text, 'discrepancy'::text]))),
     CONSTRAINT shift_confirmations_receipts_seen_check CHECK ((receipts_seen >= 0)),
     CONSTRAINT shift_confirmations_summary_hash_check CHECK ((length(summary_hash) = 64)),
@@ -2662,6 +2909,40 @@ ALTER TABLE public.shift_confirmations ALTER COLUMN id ADD GENERATED ALWAYS AS I
     NO MAXVALUE
     CACHE 1
 );
+
+
+--
+-- Name: ship_order_commit_receipts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.ship_order_commit_receipts (
+    id bigint NOT NULL,
+    sales_order_id integer NOT NULL,
+    request_hash text NOT NULL,
+    shipment_id integer NOT NULL,
+    response_json jsonb NOT NULL,
+    created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT ship_order_commit_receipts_request_hash_check CHECK ((length(request_hash) = 64))
+);
+
+
+--
+-- Name: ship_order_commit_receipts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.ship_order_commit_receipts_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: ship_order_commit_receipts_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.ship_order_commit_receipts_id_seq OWNED BY public.ship_order_commit_receipts.id;
 
 
 --
@@ -2794,7 +3075,7 @@ CREATE TABLE public.shortage_flags (
     resolved_at timestamp with time zone,
     resolved_by_actor_id integer,
     CONSTRAINT shortage_flags_closed_needs_time CHECK (((status <> ALL (ARRAY['resolved'::text, 'waived'::text])) OR (resolved_at IS NOT NULL))),
-    CONSTRAINT shortage_flags_resolution_kind_check CHECK ((resolution_kind = ANY (ARRAY['counted'::text, 'missing_movement'::text, 'voided'::text]))),
+    CONSTRAINT shortage_flags_resolution_kind_check CHECK ((resolution_kind = ANY (ARRAY['counted'::text, 'missing_movement'::text, 'voided'::text, 'unverified'::text]))),
     CONSTRAINT shortage_flags_resolved_needs_kind CHECK (((status = 'resolved'::text) = (resolution_kind IS NOT NULL))),
     CONSTRAINT shortage_flags_short_lb_check CHECK ((short_lb > (0)::numeric)),
     CONSTRAINT shortage_flags_status_check CHECK ((status = ANY (ARRAY['open'::text, 'resolved'::text, 'waived'::text, 'escalated'::text])))
@@ -3052,7 +3333,7 @@ CREATE TABLE public.transaction_lot_confirmations (
     move_id bigint,
     created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
     CONSTRAINT transaction_lot_confirmations_check CHECK (((method = 'pallet'::text) = (move_id IS NOT NULL))),
-    CONSTRAINT transaction_lot_confirmations_method_check CHECK ((method = ANY (ARRAY['last4'::text, 'full_code'::text, 'scan'::text, 'pallet'::text]))),
+    CONSTRAINT transaction_lot_confirmations_method_check CHECK ((method = ANY (ARRAY['last4'::text, 'full_code'::text, 'scan'::text, 'pallet'::text, 'selected'::text]))),
     CONSTRAINT transaction_lot_confirmations_value_check CHECK ((btrim(value) <> ''::text))
 );
 
@@ -3094,6 +3375,105 @@ CREATE SEQUENCE public.transactions_id_seq
 --
 
 ALTER SEQUENCE public.transactions_id_seq OWNED BY public.transactions.id;
+
+
+--
+-- Name: trusted_browser_attempts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.trusted_browser_attempts (
+    id bigint NOT NULL,
+    kind text NOT NULL,
+    ok boolean NOT NULL,
+    attempted_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT trusted_browser_attempts_kind_check CHECK ((kind = ANY (ARRAY['request'::text, 'approve'::text])))
+);
+
+
+--
+-- Name: trusted_browser_attempts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.trusted_browser_attempts ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.trusted_browser_attempts_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: trusted_browser_audit; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.trusted_browser_audit (
+    id bigint NOT NULL,
+    browser_id bigint NOT NULL,
+    action text NOT NULL,
+    by_actor_id integer NOT NULL,
+    at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    CONSTRAINT trusted_browser_audit_action_check CHECK ((action = ANY (ARRAY['approve'::text, 'revoke'::text])))
+);
+
+
+--
+-- Name: trusted_browser_audit_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.trusted_browser_audit ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.trusted_browser_audit_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- Name: trusted_browsers; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.trusted_browsers (
+    id bigint NOT NULL,
+    secret_hash text NOT NULL,
+    status text DEFAULT 'pending'::text NOT NULL,
+    pairing_code_hash text,
+    pairing_expires_at timestamp with time zone,
+    label text,
+    requested_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    approved_at timestamp with time zone,
+    approved_by_actor_id integer,
+    revoked_at timestamp with time zone,
+    revoked_by_actor_id integer,
+    revoked_reason text,
+    last_seen_at timestamp with time zone,
+    CONSTRAINT trusted_browsers_check CHECK (((status = 'approved'::text) = ((approved_at IS NOT NULL) AND (revoked_at IS NULL)))),
+    CONSTRAINT trusted_browsers_check1 CHECK (((status = 'approved'::text) <= ((approved_by_actor_id IS NOT NULL) AND (label IS NOT NULL)))),
+    CONSTRAINT trusted_browsers_check2 CHECK (((status = 'pending'::text) = (pairing_code_hash IS NOT NULL))),
+    CONSTRAINT trusted_browsers_check3 CHECK (((revoked_at IS NULL) = (revoked_reason IS NULL))),
+    CONSTRAINT trusted_browsers_label_check CHECK (((label IS NULL) OR ((char_length(label) >= 1) AND (char_length(label) <= 60)))),
+    CONSTRAINT trusted_browsers_pairing_code_hash_check CHECK (((pairing_code_hash IS NULL) OR (length(pairing_code_hash) = 64))),
+    CONSTRAINT trusted_browsers_revoked_reason_check CHECK (((revoked_reason IS NULL) OR (revoked_reason = ANY (ARRAY['owner'::text, 'expired'::text])))),
+    CONSTRAINT trusted_browsers_secret_hash_check CHECK ((length(secret_hash) = 64)),
+    CONSTRAINT trusted_browsers_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'approved'::text, 'revoked'::text, 'expired'::text])))
+);
+
+
+--
+-- Name: trusted_browsers_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.trusted_browsers ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.trusted_browsers_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
 
 
 --
@@ -3407,9 +3787,12 @@ CREATE TABLE public.write_tickets (
     response jsonb,
     acknowledged jsonb DEFAULT '[]'::jsonb NOT NULL,
     reject_reason text,
-    CONSTRAINT write_tickets_action_check CHECK (((action = ANY (ARRAY['receive'::text, 'make'::text, 'pack'::text, 'adjust'::text, 'found'::text])) OR (action = 'move_lot'::text) OR (action = ANY (ARRAY['create_order'::text, 'add_order_lines'::text, 'update_order_line'::text, 'cancel_order_line'::text, 'update_order_header'::text, 'update_order_status'::text, 'mark_order_ready'::text, 'cancel_order'::text, 'close_order'::text, 'reopen_order'::text])) OR (action = ANY (ARRAY['create_expected_receipt'::text, 'update_expected_receipt'::text, 'cancel_expected_receipt'::text])) OR (action = ANY (ARRAY['ship_order'::text, 'ship_standalone'::text, 'ship_bulk'::text])) OR (action = 'update_supplier_lot'::text) OR (action = ANY (ARRAY['resolve_exception'::text, 'void'::text])))),
+    identity_via text,
+    trusted_browser_id bigint,
+    CONSTRAINT write_tickets_action_check CHECK (((action = ANY (ARRAY['receive'::text, 'make'::text, 'pack'::text, 'adjust'::text, 'found'::text])) OR (action = 'move_lot'::text) OR (action = ANY (ARRAY['create_order'::text, 'add_order_lines'::text, 'update_order_line'::text, 'cancel_order_line'::text, 'update_order_header'::text, 'update_order_status'::text, 'mark_order_ready'::text, 'cancel_order'::text, 'close_order'::text, 'reopen_order'::text])) OR (action = ANY (ARRAY['create_expected_receipt'::text, 'update_expected_receipt'::text, 'cancel_expected_receipt'::text])) OR (action = ANY (ARRAY['ship_order'::text, 'ship_standalone'::text, 'ship_bulk'::text])) OR (action = 'update_supplier_lot'::text) OR (action = ANY (ARRAY['resolve_exception'::text, 'void'::text])) OR (action = 'create_customer'::text))),
     CONSTRAINT write_tickets_check CHECK (((key_kind = 'actor'::text) = (actor_id IS NOT NULL))),
     CONSTRAINT write_tickets_client_source_check CHECK ((client_source = ANY (ARRAY['mcp'::text, 'dashboard'::text, 'fl_assistant'::text, 'api'::text]))),
+    CONSTRAINT write_tickets_identity_via_check CHECK (((identity_via IS NULL) OR (identity_via = 'selection'::text))),
     CONSTRAINT write_tickets_key_kind_check CHECK ((key_kind = ANY (ARRAY['actor'::text, 'legacy_ledger'::text, 'legacy_dashboard'::text]))),
     CONSTRAINT write_tickets_payload_hash_check CHECK ((length(payload_hash) = 64)),
     CONSTRAINT write_tickets_state_hash_check CHECK ((length(state_hash) = 64)),
@@ -3619,6 +4002,13 @@ ALTER TABLE ONLY public.sales_order_shipments ALTER COLUMN id SET DEFAULT nextva
 --
 
 ALTER TABLE ONLY public.sales_orders ALTER COLUMN id SET DEFAULT nextval('public.sales_orders_id_seq'::regclass);
+
+
+--
+-- Name: ship_order_commit_receipts id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ship_order_commit_receipts ALTER COLUMN id SET DEFAULT nextval('public.ship_order_commit_receipts_id_seq'::regclass);
 
 
 --
@@ -3890,6 +4280,22 @@ ALTER TABLE ONLY public.inventory_adjustments
 
 
 --
+-- Name: inventory_snapshots inventory_snapshots_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_snapshots
+    ADD CONSTRAINT inventory_snapshots_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: inventory_snapshots inventory_snapshots_run_lot_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_snapshots
+    ADD CONSTRAINT inventory_snapshots_run_lot_key UNIQUE (job_run_id, lot_id);
+
+
+--
 -- Name: key_actor_sessions key_actor_sessions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -3903,6 +4309,38 @@ ALTER TABLE ONLY public.key_actor_sessions
 
 ALTER TABLE ONLY public.key_actor_sessions
     ADD CONSTRAINT key_actor_sessions_token_hash_key UNIQUE (token_hash);
+
+
+--
+-- Name: key_device_attempts key_device_attempts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.key_device_attempts
+    ADD CONSTRAINT key_device_attempts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: key_device_audit key_device_audit_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.key_device_audit
+    ADD CONSTRAINT key_device_audit_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: key_devices key_devices_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.key_devices
+    ADD CONSTRAINT key_devices_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: key_devices key_devices_secret_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.key_devices
+    ADD CONSTRAINT key_devices_secret_hash_key UNIQUE (secret_hash);
 
 
 --
@@ -4031,6 +4469,22 @@ ALTER TABLE ONLY public.oauth_tokens
 
 ALTER TABLE ONLY public.oauth_tokens
     ADD CONSTRAINT oauth_tokens_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: person_choices person_choices_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.person_choices
+    ADD CONSTRAINT person_choices_pkey PRIMARY KEY (actor_id);
+
+
+--
+-- Name: person_choices person_choices_sort_order_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.person_choices
+    ADD CONSTRAINT person_choices_sort_order_key UNIQUE (sort_order);
 
 
 --
@@ -4186,6 +4640,22 @@ ALTER TABLE ONLY public.receipt_counters
 
 
 --
+-- Name: reconciliation_flags reconciliation_flags_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reconciliation_flags
+    ADD CONSTRAINT reconciliation_flags_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: reconciliation_runs reconciliation_runs_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reconciliation_runs
+    ADD CONSTRAINT reconciliation_runs_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: run_coverage run_coverage_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4303,6 +4773,14 @@ ALTER TABLE ONLY public.search_aliases
 
 ALTER TABLE ONLY public.shift_confirmations
     ADD CONSTRAINT shift_confirmations_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: ship_order_commit_receipts ship_order_commit_receipts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ship_order_commit_receipts
+    ADD CONSTRAINT ship_order_commit_receipts_pkey PRIMARY KEY (id);
 
 
 --
@@ -4450,6 +4928,38 @@ ALTER TABLE ONLY public.transactions
 
 
 --
+-- Name: trusted_browser_attempts trusted_browser_attempts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.trusted_browser_attempts
+    ADD CONSTRAINT trusted_browser_attempts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: trusted_browser_audit trusted_browser_audit_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.trusted_browser_audit
+    ADD CONSTRAINT trusted_browser_audit_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: trusted_browsers trusted_browsers_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.trusted_browsers
+    ADD CONSTRAINT trusted_browsers_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: trusted_browsers trusted_browsers_secret_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.trusted_browsers
+    ADD CONSTRAINT trusted_browsers_secret_hash_key UNIQUE (secret_hash);
+
+
+--
 -- Name: batch_formulas unique_batch_ingredient; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4531,6 +5041,13 @@ CREATE UNIQUE INDEX customer_product_aliases_uidx ON public.customer_product_ali
 
 
 --
+-- Name: customers_ticket_id_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX customers_ticket_id_idx ON public.customers USING btree (ticket_id) WHERE (ticket_id IS NOT NULL);
+
+
+--
 -- Name: exceptions_bol_photo_shipment_uniq; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -4542,6 +5059,13 @@ CREATE UNIQUE INDEX exceptions_bol_photo_shipment_uniq ON public.exceptions USIN
 --
 
 CREATE INDEX exceptions_lot_idx ON public.exceptions USING btree (lot_id) WHERE (lot_id IS NOT NULL);
+
+
+--
+-- Name: exceptions_one_assistant_outage_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX exceptions_one_assistant_outage_idx ON public.exceptions USING btree (kind) WHERE ((kind = 'ASSISTANT_OFFLINE'::text) AND (status = ANY (ARRAY['open'::text, 'escalated'::text])));
 
 
 --
@@ -5105,6 +5629,20 @@ CREATE INDEX key_actor_sessions_open_actor ON public.key_actor_sessions USING bt
 
 
 --
+-- Name: key_device_attempts_time; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX key_device_attempts_time ON public.key_device_attempts USING btree (attempted_at);
+
+
+--
+-- Name: key_devices_open_actor; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX key_devices_open_actor ON public.key_devices USING btree (actor_id) WHERE (revoked_at IS NULL);
+
+
+--
 -- Name: key_session_attempts_time; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5151,6 +5689,20 @@ CREATE INDEX lots_unidentified_due_idx ON public.lots USING btree (identify_by) 
 --
 
 CREATE UNIQUE INDEX products_odoo_code_unique ON public.products USING btree (odoo_code) WHERE (odoo_code IS NOT NULL);
+
+
+--
+-- Name: reconciliation_flags_run_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX reconciliation_flags_run_idx ON public.reconciliation_flags USING btree (run_id, id);
+
+
+--
+-- Name: reconciliation_runs_plant_date_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX reconciliation_runs_plant_date_idx ON public.reconciliation_runs USING btree (plant_date, id DESC);
 
 
 --
@@ -5207,6 +5759,13 @@ CREATE UNIQUE INDEX search_aliases_target_uniq ON public.search_aliases USING bt
 --
 
 CREATE INDEX shift_confirmations_day_actor_idx ON public.shift_confirmations USING btree (business_date, actor_id, confirmed_at DESC);
+
+
+--
+-- Name: ship_order_commit_receipts_recent_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX ship_order_commit_receipts_recent_idx ON public.ship_order_commit_receipts USING btree (sales_order_id, request_hash, created_at DESC);
 
 
 --
@@ -5399,6 +5958,20 @@ CREATE INDEX transactions_ticket_id_idx ON public.transactions USING btree (tick
 
 
 --
+-- Name: trusted_browser_attempts_time; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX trusted_browser_attempts_time ON public.trusted_browser_attempts USING btree (attempted_at);
+
+
+--
+-- Name: trusted_browsers_pending_code; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE UNIQUE INDEX trusted_browsers_pending_code ON public.trusted_browsers USING btree (pairing_code_hash) WHERE (status = 'pending'::text);
+
+
+--
 -- Name: uq_certifications_original_business_date; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -5417,6 +5990,20 @@ CREATE INDEX write_tickets_actor_prepared_idx ON public.write_tickets USING btre
 --
 
 CREATE INDEX write_tickets_awaiting_approval_idx ON public.write_tickets USING btree (prepared_at) WHERE (status = 'awaiting_approval'::text);
+
+
+--
+-- Name: write_tickets_customer_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX write_tickets_customer_idx ON public.write_tickets USING btree ((((result_ref ->> 'customer_id'::text))::bigint)) WHERE (result_ref ? 'customer_id'::text);
+
+
+--
+-- Name: write_tickets_make_attempt_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX write_tickets_make_attempt_idx ON public.write_tickets USING btree (((payload ->> 'entry_attempt_id'::text))) WHERE ((action = 'make'::text) AND (payload ? 'entry_attempt_id'::text));
 
 
 --
@@ -5653,10 +6240,31 @@ CREATE TRIGGER attachment_provenance BEFORE UPDATE ON public.attachments FOR EAC
 
 
 --
+-- Name: inventory_snapshots inventory_snapshots_append_only; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER inventory_snapshots_append_only BEFORE DELETE OR UPDATE ON public.inventory_snapshots FOR EACH ROW EXECUTE FUNCTION public.ledger_block_append_only_change();
+
+
+--
 -- Name: lots lot_kosher_tier_guard; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER lot_kosher_tier_guard BEFORE INSERT OR UPDATE ON public.lots FOR EACH ROW EXECUTE FUNCTION public.lot_kosher_tier_guard();
+
+
+--
+-- Name: reconciliation_flags reconciliation_flags_append_only; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER reconciliation_flags_append_only BEFORE DELETE OR UPDATE ON public.reconciliation_flags FOR EACH ROW EXECUTE FUNCTION public.ledger_block_append_only_change();
+
+
+--
+-- Name: reconciliation_runs reconciliation_runs_append_only; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER reconciliation_runs_append_only BEFORE DELETE OR UPDATE ON public.reconciliation_runs FOR EACH ROW EXECUTE FUNCTION public.ledger_block_append_only_change();
 
 
 --
@@ -5856,6 +6464,13 @@ CREATE TRIGGER trg_transactions_original_append_only BEFORE DELETE OR UPDATE ON 
 
 
 --
+-- Name: trusted_browser_audit trusted_browser_audit_append_only; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER trusted_browser_audit_append_only BEFORE DELETE OR UPDATE ON public.trusted_browser_audit FOR EACH ROW EXECUTE FUNCTION public.ledger_block_append_only_change();
+
+
+--
 -- Name: write_tickets write_tickets_preserve_committed; Type: TRIGGER; Schema: public; Owner: -
 --
 
@@ -5868,6 +6483,14 @@ CREATE TRIGGER write_tickets_preserve_committed BEFORE DELETE OR UPDATE ON publi
 
 ALTER TABLE ONLY public.actor_write_audit
     ADD CONSTRAINT actor_write_audit_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: actor_write_audit actor_write_audit_trusted_browser_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.actor_write_audit
+    ADD CONSTRAINT actor_write_audit_trusted_browser_id_fkey FOREIGN KEY (trusted_browser_id) REFERENCES public.trusted_browsers(id);
 
 
 --
@@ -6047,6 +6670,14 @@ ALTER TABLE ONLY public.customer_product_aliases
 
 
 --
+-- Name: customers customers_ticket_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.customers
+    ADD CONSTRAINT customers_ticket_id_fkey FOREIGN KEY (ticket_id) REFERENCES public.write_tickets(id);
+
+
+--
 -- Name: exceptions exceptions_lot_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6183,11 +6814,75 @@ ALTER TABLE ONLY public.ingredient_lot_consumption
 
 
 --
+-- Name: inventory_snapshots inventory_snapshots_job_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.inventory_snapshots
+    ADD CONSTRAINT inventory_snapshots_job_run_id_fkey FOREIGN KEY (job_run_id) REFERENCES public.reconciliation_runs(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
 -- Name: key_actor_sessions key_actor_sessions_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.key_actor_sessions
     ADD CONSTRAINT key_actor_sessions_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: key_actor_sessions key_actor_sessions_device_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.key_actor_sessions
+    ADD CONSTRAINT key_actor_sessions_device_id_fkey FOREIGN KEY (device_id) REFERENCES public.key_devices(id);
+
+
+--
+-- Name: key_device_attempts key_device_attempts_device_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.key_device_attempts
+    ADD CONSTRAINT key_device_attempts_device_id_fkey FOREIGN KEY (device_id) REFERENCES public.key_devices(id);
+
+
+--
+-- Name: key_device_audit key_device_audit_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.key_device_audit
+    ADD CONSTRAINT key_device_audit_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: key_device_audit key_device_audit_by_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.key_device_audit
+    ADD CONSTRAINT key_device_audit_by_actor_id_fkey FOREIGN KEY (by_actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: key_device_audit key_device_audit_device_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.key_device_audit
+    ADD CONSTRAINT key_device_audit_device_id_fkey FOREIGN KEY (device_id) REFERENCES public.key_devices(id);
+
+
+--
+-- Name: key_devices key_devices_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.key_devices
+    ADD CONSTRAINT key_devices_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: key_devices key_devices_revoked_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.key_devices
+    ADD CONSTRAINT key_devices_revoked_by_fkey FOREIGN KEY (revoked_by) REFERENCES public.actors(id);
 
 
 --
@@ -6311,6 +7006,14 @@ ALTER TABLE ONLY public.lots
 
 
 --
+-- Name: person_choices person_choices_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.person_choices
+    ADD CONSTRAINT person_choices_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.actors(id);
+
+
+--
 -- Name: product_allergens product_allergens_allergen_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -6396,6 +7099,22 @@ ALTER TABLE ONLY public.production_schedule
 
 ALTER TABLE ONLY public.products
     ADD CONSTRAINT products_parent_batch_product_id_fkey FOREIGN KEY (parent_batch_product_id) REFERENCES public.products(id);
+
+
+--
+-- Name: reconciliation_flags reconciliation_flags_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reconciliation_flags
+    ADD CONSTRAINT reconciliation_flags_run_id_fkey FOREIGN KEY (run_id) REFERENCES public.reconciliation_runs(id) DEFERRABLE INITIALLY DEFERRED;
+
+
+--
+-- Name: reconciliation_runs reconciliation_runs_previous_run_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.reconciliation_runs
+    ADD CONSTRAINT reconciliation_runs_previous_run_id_fkey FOREIGN KEY (previous_run_id) REFERENCES public.reconciliation_runs(id);
 
 
 --
@@ -6636,6 +7355,30 @@ ALTER TABLE ONLY public.shift_confirmations
 
 ALTER TABLE ONLY public.shift_confirmations
     ADD CONSTRAINT shift_confirmations_exception_id_fkey FOREIGN KEY (exception_id) REFERENCES public.exceptions(id);
+
+
+--
+-- Name: shift_confirmations shift_confirmations_trusted_browser_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.shift_confirmations
+    ADD CONSTRAINT shift_confirmations_trusted_browser_id_fkey FOREIGN KEY (trusted_browser_id) REFERENCES public.trusted_browsers(id);
+
+
+--
+-- Name: ship_order_commit_receipts ship_order_commit_receipts_sales_order_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ship_order_commit_receipts
+    ADD CONSTRAINT ship_order_commit_receipts_sales_order_id_fkey FOREIGN KEY (sales_order_id) REFERENCES public.sales_orders(id);
+
+
+--
+-- Name: ship_order_commit_receipts ship_order_commit_receipts_shipment_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.ship_order_commit_receipts
+    ADD CONSTRAINT ship_order_commit_receipts_shipment_id_fkey FOREIGN KEY (shipment_id) REFERENCES public.shipments(id);
 
 
 --
@@ -7039,11 +7782,51 @@ ALTER TABLE ONLY public.transactions
 
 
 --
+-- Name: trusted_browser_audit trusted_browser_audit_browser_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.trusted_browser_audit
+    ADD CONSTRAINT trusted_browser_audit_browser_id_fkey FOREIGN KEY (browser_id) REFERENCES public.trusted_browsers(id);
+
+
+--
+-- Name: trusted_browser_audit trusted_browser_audit_by_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.trusted_browser_audit
+    ADD CONSTRAINT trusted_browser_audit_by_actor_id_fkey FOREIGN KEY (by_actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: trusted_browsers trusted_browsers_approved_by_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.trusted_browsers
+    ADD CONSTRAINT trusted_browsers_approved_by_actor_id_fkey FOREIGN KEY (approved_by_actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: trusted_browsers trusted_browsers_revoked_by_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.trusted_browsers
+    ADD CONSTRAINT trusted_browsers_revoked_by_actor_id_fkey FOREIGN KEY (revoked_by_actor_id) REFERENCES public.actors(id);
+
+
+--
 -- Name: write_tickets write_tickets_actor_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.write_tickets
     ADD CONSTRAINT write_tickets_actor_id_fkey FOREIGN KEY (actor_id) REFERENCES public.actors(id);
+
+
+--
+-- Name: write_tickets write_tickets_trusted_browser_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.write_tickets
+    ADD CONSTRAINT write_tickets_trusted_browser_id_fkey FOREIGN KEY (trusted_browser_id) REFERENCES public.trusted_browsers(id);
 
 
 --
@@ -7107,10 +7890,34 @@ ALTER TABLE public.correction_reasons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.exceptions ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: inventory_snapshots; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.inventory_snapshots ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: key_actor_sessions; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.key_actor_sessions ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: key_device_attempts; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.key_device_attempts ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: key_device_audit; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.key_device_audit ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: key_devices; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.key_devices ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: key_session_attempts; Type: ROW SECURITY; Schema: public; Owner: -
@@ -7137,10 +7944,28 @@ ALTER TABLE public.lot_moves ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.migration_markers ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: person_choices; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.person_choices ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: receipt_counters; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.receipt_counters ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: reconciliation_flags; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.reconciliation_flags ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: reconciliation_runs; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.reconciliation_runs ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: sales_order_create_receipts; Type: ROW SECURITY; Schema: public; Owner: -
@@ -7167,6 +7992,12 @@ ALTER TABLE public.search_aliases ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.shift_confirmations ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: ship_order_commit_receipts; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.ship_order_commit_receipts ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: shortage_flags; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -7191,6 +8022,24 @@ ALTER TABLE public.transaction_lot_confirmations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transaction_substitutions ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: trusted_browser_attempts; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.trusted_browser_attempts ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: trusted_browser_audit; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.trusted_browser_audit ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: trusted_browsers; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.trusted_browsers ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: write_tickets; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -7200,5 +8049,5 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 9AR9WaXWTtqJkeWt7ytxJva3DsGes1kdbWi0i3dIO2bG3bXEH4KQhYlABwktO3r
+\unrestrict 0ACx7zU27PGugOHjikHbXNPA5ebXlzHlJfHQtYhC7JsiTYnT89tPsR0rdvRJ1zg
 
