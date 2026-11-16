@@ -15008,12 +15008,25 @@ def _validate_state_reason(reason: str, note, related_so_id, cur, order_id: int)
             "related_so_id cannot be the order itself",
             status_code=400, order_id=order_id,
         )
-    cur.execute("SELECT id FROM sales_orders WHERE id = %s", (related_so_id,))
-    if not cur.fetchone():
+    # A duplicate must point at the order that stays. FOR SHARE (duplicate
+    # only) waits out a concurrent exit of that order, so two orders can never
+    # both end up cancelled as duplicates of each other.
+    cur.execute("SELECT id, order_number, state FROM sales_orders WHERE id = %s"
+                + (" FOR SHARE" if reason == "duplicate" else ""), (related_so_id,))
+    related = cur.fetchone()
+    if not related:
         _so_state_error(
             "RELATED_SO_NOT_FOUND",
             f"related_so_id #{related_so_id} does not exist",
             status_code=400, order_id=order_id,
+        )
+    if reason == "duplicate" and related["state"] == "cancelled":
+        _so_state_error(
+            "RELATED_SO_CANCELLED",
+            f"Order {related['order_number']} is already cancelled, so it cannot be "
+            f"the original this order duplicates. Choose the order that stays.",
+            status_code=409, order_id=order_id,
+            related_so_id=related["id"],
         )
 
 

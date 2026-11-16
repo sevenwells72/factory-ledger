@@ -12,6 +12,7 @@
     ['mark_order_ready','Ready to ship and note','Listo para enviar y nota'],
     ['close_order','Close order','Cerrar pedido'],
     ['cancel_order','Cancel order','Cancelar pedido'],
+    ['cancel_duplicate','Cancel as duplicate','Cancelar como duplicado'],
     ['reopen_order','Reopen order','Reabrir pedido'],
     ['create_expected_receipt','Create expected delivery','Crear entrega esperada'],
     ['update_expected_receipt','Update expected delivery','Modificar entrega esperada'],
@@ -19,13 +20,13 @@
     ['approve_so','Approve extracted customer PO','Aprobar PO de cliente extraída'],
     ['approve_er','Approve extracted supplier document','Aprobar documento de proveedor extraído']
   ];
-  const permission=action=>({approve_so:'create_order',approve_er:'create_expected_receipt'}[action]||action);
+  const permission=action=>({approve_so:'create_order',approve_er:'create_expected_receipt',cancel_duplicate:'cancel_order'}[action]||action);
   const permitted=(grants,on)=>on===true?actions.filter(([a])=>grants?.[permission(a)]===true):[];
   const id=value=>{if(!Number.isSafeInteger(Number(value))||Number(value)<=0)throw Error('Choose a record / Elige un registro');return Number(value);};
   function build(action,v){
     const body={client_source:'dashboard'},copy=names=>names.forEach(k=>{if(v[k]!==undefined&&v[k]!=='')body[k]=v[k];});
     let path,prefix='ORD',order;
-    if(['add_order_lines','update_order_line','cancel_order_line','update_order_header','update_order_status','mark_order_ready','close_order','cancel_order','reopen_order'].includes(action))order='/sales/orders/'+id(v.order_id);
+    if(['add_order_lines','update_order_line','cancel_order_line','update_order_header','update_order_status','mark_order_ready','close_order','cancel_order','cancel_duplicate','reopen_order'].includes(action))order='/sales/orders/'+id(v.order_id);
     if(action==='create_customer'){path='/customers/prepare';prefix='CUS';body.name=v.name;copy(['contact_name','email','phone','address','notes','notes_es']);}
     if(action==='create_order'){path='/sales/orders/prepare';body.customer_id=id(v.customer_id);body.customer_po=v.no_po?null:(v.customer_po||null);copy(['requested_ship_date','order_date','notes','notes_es']);body.lines=v.lines;}
     if(action==='add_order_lines'){path=order+'/lines/prepare';body.lines=v.lines;}
@@ -34,6 +35,8 @@
     if(action==='update_order_header'){path=order+'/header/prepare';body.customer_po=v.no_po?null:(v.customer_po||null);for(const k of ['requested_ship_date','notes','notes_es'])if(v[k]!==undefined)body[k]=v[k]||null;if(v.customer_id)body.customer_id=id(v.customer_id);}
     if(action==='update_order_status'){path=order+'/status/prepare';body.status=v.status;}
     if(action==='mark_order_ready'){path=order+'/ready/prepare';body.ready=Boolean(v.ready);body.note=v.note||null;}
+    // Cancel as duplicate is the ordinary cancel_order ticket with the reason fixed and the original required.
+    if(action==='cancel_duplicate'){path=order+'/cancel/prepare';body.reason='duplicate';body.related_so_id=id(v.related_so_id);if(v.note)body.note=v.note;}
     if(['close_order','cancel_order','reopen_order'].includes(action)){path=order+'/'+({close_order:'close',cancel_order:'cancel',reopen_order:'reopen'}[action])+'/prepare';copy(['reason','note']);if(v.related_so_id)body.related_so_id=id(v.related_so_id);}
     if(action.includes('expected_receipt')){
       prefix='ER';
@@ -70,6 +73,23 @@
     if(!Number.isFinite(pounds)||pounds<=0)throw Error('Enter a valid expected weight / Ingresa un peso esperado válido');
     return Number(pounds.toFixed(6));
   }
-  const api={actions,permission,permitted,build,resolvedLine,customerChoice,existingCustomer,productChoices,expectedPounds};
+  // Exact order code typed (any case, outer spaces ignored) and exactly one result carries it.
+  // Customer PO and partial codes never auto-select (row 262: a partial name never auto-selects).
+  function exactOrder(rows,query){
+    const typed=String(query??'').trim().toUpperCase();if(!typed)return null;
+    const hits=(rows||[]).filter(row=>row&&String(row.order_number??'').trim().toUpperCase()===typed);
+    return hits.length===1?hits[0]:null;
+  }
+  const duplicateNote=code=>'Duplicate of '+code;
+  // What blocks the one Confirm button, from FL's read-only duplicate-check facts.
+  function duplicateBlockers(check,original){
+    const out=[];
+    if(!check)return [{code:'LOADING',message:'Loading the order.'}];
+    for(const b of check.blockers||[])out.push(b);
+    if(!original)out.push({code:'ORIGINAL_REQUIRED',message:'Choose the original order that stays.'});
+    else for(const p of original.problems||[])if(p.blocks)out.push(p);
+    return out;
+  }
+  const api={actions,permission,permitted,build,exactOrder,duplicateNote,duplicateBlockers,resolvedLine,customerChoice,existingCustomer,productChoices,expectedPounds};
   if(typeof module!=='undefined')module.exports=api;root.FLOffice=api;
 })(typeof window==='undefined'?globalThis:window);

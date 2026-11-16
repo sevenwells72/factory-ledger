@@ -131,3 +131,14 @@
 .ledger-page main a.nav-button[data-fl-dashboard]:hover {background:var(--surface-hover);border-color:var(--primary-text)}
 .ledger-page main a.nav-button[data-fl-dashboard]:focus-visible {outline:3px solid var(--fl-focus);outline-offset:3px}
 .ledger-page #notice a.nav-button[data-fl-dashboard] {margin:8px 0 0}
+.ledger-page fieldset.picker-missing {border:2px solid var(--fl-danger-line);background:var(--fl-danger-bg)}
+.ledger-page fieldset.picker-missing input {border:2px solid var(--fl-danger-line)}
+.ledger-page .duplicate-sides {display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:12px 0}
+.ledger-page .duplicate-sides>section {border:1px solid var(--border);border-radius:var(--fl-radius);padding:12px;background:var(--surface);min-width:0}
+.ledger-page .duplicate-sides>[data-side=duplicate] {border-left:5px solid var(--fl-danger-line)}
+.ledger-page .duplicate-sides>[data-side=original] {border-left:5px solid var(--fl-success-line)}
+.ledger-page .duplicate-sides h3 {margin:0 0 8px}
+.ledger-page .duplicate-sides dl {display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0}
+.ledger-page .duplicate-sides dt {color:var(--text-secondary)}
+.ledger-page .duplicate-sides dd {margin:0;overflow-wrap:anywhere}
+.ledger-page .duplicate-lines {margin:8px 0 0;padding-left:20px}

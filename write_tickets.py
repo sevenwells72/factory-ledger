@@ -64,6 +64,7 @@ DASHBOARD_ROUTES = frozenset({
 ACTOR_ROUTES = DASHBOARD_ROUTES | frozenset({
     ('POST', '/customers/prepare'),
     ('GET', '/sales/orders/{order_id}/office-options'),
+    ('GET', '/sales/orders/{order_id}/duplicate-check'),
     ('GET', '/ship/lots'),
     ('GET', '/purchase-documents/{document_id}'),
     ('POST', '/void/{transaction_id}/prepare'),

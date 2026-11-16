@@ -191,6 +191,7 @@ def test_actor_only_scope_is_approved_writes_plus_product_resolution():
         ('POST', '/customers/prepare'),
         # D2 office: actor-scoped metadata and atomic SO document approval.
         ('GET', '/sales/orders/{order_id}/office-options'),
+        ('GET', '/sales/orders/{order_id}/duplicate-check'),
         ('GET', '/purchase-documents/{document_id}'),
         ('POST', '/sales/orders/extract/approve/prepare'),
         # A7 order tickets (actor + master keys; the dashboard key gets none)

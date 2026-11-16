@@ -23,17 +23,23 @@
     const button=ui.el('button',ui.t('Search','Buscar'),box);button.type='button';
     const list=ui.el('div',undefined,box);list.className='picker-options';const status=ui.el('p','',box);status.setAttribute('role','status');
     let value=null,generation=0,timer=null;
-    const clear=()=>{clearTimeout(timer);generation++;value=null;button.disabled=false;list.replaceChildren();status.textContent='';invalidate();changed(null);};
+    // A missing choice is marked on the picker itself, not only in the top banner.
+    function flag(message){box.classList?.add('picker-missing');input.setAttribute?.('aria-invalid','true');status.className='bad';ui.setText(status,message);box.scrollIntoView?.({block:'center'});input.focus?.();}
+    function unflag(){box.classList?.remove('picker-missing');input.removeAttribute?.('aria-invalid');status.className='';}
+    const clear=()=>{clearTimeout(timer);generation++;value=null;button.disabled=false;list.replaceChildren();unflag();status.textContent='';invalidate();changed(null);};
     // Typeahead from the first character (DCC-006). Earlier suggestions stay visible but disabled until the
     // new ones arrive (no flicker, no stale click, including 'Add as new'); out-of-date replies are ignored.
-    input.oninput=()=>{clearTimeout(timer);generation++;value=null;button.disabled=false;status.textContent='';invalidate();changed(null);
+    input.oninput=()=>{clearTimeout(timer);generation++;value=null;button.disabled=false;unflag();status.textContent='';invalidate();changed(null);
       if(!input.value.trim()){list.replaceChildren();return;}for(const option of list.children)option.disabled=true;list.setAttribute('aria-busy','true');timer=setTimeout(()=>find(),150);};
-    function select(candidate,requestOptions={}){clearTimeout(timer);generation++;button.disabled=false;value=candidate;input.value=candidate.label||candidate.name;list.replaceChildren();ui.setText(status,ui.t('Selected: '+input.value,'Seleccionado: '+input.value));invalidate();changed(candidate,requestOptions);}
+    function select(candidate,requestOptions={}){clearTimeout(timer);generation++;button.disabled=false;value=candidate;input.value=candidate.label||candidate.name;list.replaceChildren();unflag();ui.setText(status,ui.t('Selected: '+input.value,'Seleccionado: '+input.value));invalidate();changed(candidate,requestOptions);}
     async function find(offset=0){clearTimeout(timer);if(!input.value.trim()||!box.isConnected||input.disabled)return;const version=++generation;button.disabled=true;try{
       const result=await ui.request('/resolve',{kind,query:input.value.trim(),context:{action:'order',group:'office'},limit:8,offset});
       if(version!==generation||!box.isConnected)return;list.replaceChildren();list.setAttribute('aria-busy','false');
       // Show every suggestion; a single confident match is still a choice the person taps.
-      const candidates=result.candidates?.length?result.candidates:result.match?[result.match]:[],rows=kind==='product'?logic.productChoices(candidates):candidates.filter(Boolean);ui.setText(status,rows.length?ui.t('Choose the exact record.','Elige el registro exacto.'):ui.t('No matches. Try the full name or code.','Sin resultados. Prueba el nombre completo o código.'));
+      const candidates=result.candidates?.length?result.candidates:result.match?[result.match]:[],rows=kind==='product'?logic.productChoices(candidates):candidates.filter(Boolean);
+      // The exact order code typed (Search, Enter or typeahead) is the choice; a PO or part of a code never is.
+      const exact=kind==='order'&&offset===0?logic.exactOrder(rows,input.value):null;if(exact){select(exact);return;}
+      ui.setText(status,rows.length?ui.t('Choose the exact record.','Elige el registro exacto.'):ui.t('No matches. Try the full name or code.','Sin resultados. Prueba el nombre completo o código.'));
       for(const item of rows){
         const extra=kind==='product'&&item.kosher_tier==='extra_kosher',text=item.label||item.name;
         const b=ui.el('button',extra?text.replace(/\s*[—-]\s*EXTRA-KOSHER\s*(?:\(SS\))?/gi,'').trim():text,list);b.type='button';
@@ -50,8 +56,13 @@
       if(e.key==='ArrowDown'&&at>=0&&at<items.length-1){e.preventDefault();items[at+1].focus();}
       else if(e.key==='ArrowUp'&&at>=0){e.preventDefault();(at>0?items[at-1]:input).focus();}
       else if(e.key==='Escape'){e.preventDefault();input.focus();}};
-    return {input,select,clear,setDisabled(flag){input.disabled=flag;button.disabled=flag;for(const option of list.querySelectorAll?.('button')||list.children)option.disabled=flag;},get value(){return value;},id(){if(!value)throw ui.problem(ui.t('Choose '+en,'Elige '+es));return value.id;}};
+    return {input,select,clear,flag,setDisabled(flag){input.disabled=flag;button.disabled=flag;for(const option of list.querySelectorAll?.('button')||list.children)option.disabled=flag;},get value(){return value;},id(){if(!value)throw ui.problem(ui.t('Choose '+en,'Elige '+es));return value.id;}};
   }
+  const missingText={order:['Choose the sales order: tap a search result, or type its full code (for example SO-261116-004).','Elige el pedido: toca un resultado o escribe su código completo (por ejemplo SO-261116-004).'],
+    original:['Choose the original order: tap a search result, or type its full code.','Elige el pedido original: toca un resultado o escribe su código completo.'],
+    related:['Choose the related order: tap a search result, or type its full code.','Elige el pedido relacionado: toca un resultado o escribe su código completo.'],
+    customer:['Choose the customer: tap a search result.','Elige el cliente: toca un resultado.'],supplier:['Choose the supplier: tap a search result.','Elige el proveedor: toca un resultado.'],product:['Choose the product: tap a search result.','Elige el producto: toca un resultado.']};
+  function missingChoice(choice,name){const message=ui.t(...missingText[name]);choice.flag(message);throw ui.problem(message);}
   function render({background=false}={}){
     invalidate();content.replaceChildren();
     if(!FLDashboard.writesEnabled)return;
@@ -66,6 +77,7 @@
     const label=ui.el('label',ui.t('Office action','Acción de oficina'),content),selector=ui.el('select',undefined,label);selector.id='office-action';
     for(const [key,en,es] of available){ui.el('option',ui.t(en,es),selector).value=key;}
     selector.value=action;selector.onchange=()=>{action=selector.value;render();};
+    if(action==='cancel_duplicate'){duplicatePanel(content,{background},flag=>{for(const start of starts.children)start.disabled=flag;selector.disabled=flag;document.getElementById('language').disabled=flag;document.getElementById('sign-out').disabled=flag;});return;}
     const form=ui.el('form',undefined,content);form.id='office-form';form.className='panel';
     const fields=ui.el('div',undefined,form);fields.className='fields';let controls={},choices={},rows=[],orderGeneration=0,documentLoaded=null,expectedLoaded=null,readyLoaded=null,customerHost,customerController=null,customerGeneration=0,customerOpen=false,customerClose=null;
     const initialRead={background};
@@ -247,6 +259,9 @@
       try{
         const v=values(),conversions=[];
         if(action==='create_expected_receipt'&&v.expected_unit==='cases')v.expected_qty=logic.expectedPounds(v.expected_cases,v.expected_case_size);
+        const required={order:orderAction,customer:['create_order','approve_so'].includes(action),supplier:['create_expected_receipt','approve_er'].includes(action),product:action==='create_expected_receipt',
+          related:action==='cancel_order'&&['duplicate','superseded'].includes(v.reason)};
+        for(const [name,needed] of Object.entries(required))if(needed&&choices[name]&&!choices[name].value)missingChoice(choices[name],name);
         for(const name of ['customer','supplier','product','order'])if(choices[name]?.value)v[name+'_id']=choices[name].id();
         if(choices.related?.value)v.related_so_id=choices.related.id();
         if(action==='mark_order_ready'&&readyLoaded!==v.order_id)throw ui.problem(ui.t('Choose and load the sales order first.','Elige y carga el pedido primero.'));
@@ -256,6 +271,7 @@
           if(!rows.length)throw ui.problem(ui.t('Add at least one line.','Agrega al menos una línea.'));
           v.lines=[];
           for(const item of rows){
+            if(!item.product.value)missingChoice(item.product,'product');
             const value=values(item.inputs),pid=item.product.id();
             if(action==='approve_so')v.lines.push({product_id:pid,quantity_lb:value.quantity_lb,customer_description:value.description,save_alias:value.save_alias,...(value.unit_price!==''?{unit_price:value.unit_price}:{})});
             else if(action==='approve_er')v.lines.push({product_id:pid,expected_qty_lb:value.quantity_lb,vendor_description:value.description,save_alias:value.save_alias});
@@ -285,6 +301,93 @@
       use.onclick=()=>{selectedCustomer=existing;action='create_order';render();};
     }
     if(orderAction&&initial.get('order')){const id=initial.get('order');initial.delete('order');ui.request('/sales/orders/'+encodeURIComponent(id),undefined,initialRead).then(o=>{if(form.isConnected)choices.order.select({id:o.order_id,label:o.order_number},initialRead);}).catch(ui.failure);}
+  }
+  // Cancel as duplicate: one panel, both orders side by side, one Confirm that runs the ordinary
+  // cancel_order ticket (prepare, then commit). FL's cancel rules decide; this screen only reads.
+  function duplicatePanel(host,initialRead,lock){
+    const panel=ui.el('section',undefined,host);panel.id='duplicate-cancel';panel.className='panel duplicate-cancel';
+    ui.el('h2',ui.t('Cancel as duplicate','Cancelar como duplicado'),panel);
+    ui.el('p',ui.t('Cancels the duplicate order with reason Duplicate. The original stays as it is. The same cancel rules as Cancel order apply.','Cancela el pedido duplicado con motivo Duplicado. El original queda igual. Se aplican las mismas reglas que en Cancelar pedido.'),panel).className='muted';
+    let check=null,original=null,noteEdited=false,busy=false,done=false,generation=0;
+    const duplicate=picker(panel,'order','Duplicate order (to cancel)','Pedido duplicado (a cancelar)','order',selected=>load(selected));
+    const facts=ui.el('div',undefined,panel);facts.dataset.duplicateFacts='';
+    const sides=ui.el('div',undefined,panel);sides.className='duplicate-sides';
+    const left=ui.el('section',undefined,sides),right=ui.el('section',undefined,sides);left.dataset.side='duplicate';right.dataset.side='original';
+    const change=picker(panel,'original','Change the original (if the suggestion is wrong or missing)','Cambiar el original (si la sugerencia es incorrecta o falta)','order',selected=>chooseOriginal(selected));
+    const reason=ui.el('p',ui.t('Reason: Duplicate','Motivo: Duplicado'),panel);reason.dataset.reason='duplicate';
+    const noteLabel=ui.el('label',ui.t('Note','Nota'),panel),note=ui.el('textarea',undefined,noteLabel);note.name='note';note.oninput=()=>{noteEdited=true;};
+    const problems=ui.el('div',undefined,panel);problems.dataset.duplicateProblems='';
+    const confirm=ui.el('button',ui.t('Confirm','Confirmar'),panel);confirm.type='button';confirm.className='primary';confirm.dataset.duplicateConfirm='';
+    const outcome=ui.el('div',undefined,panel);outcome.dataset.duplicateResult='';outcome.setAttribute('role','status');
+    const lb=value=>Number(value||0).toLocaleString('en-US',{maximumFractionDigits:2})+' lb';
+    function side(box,en,es,order){
+      box.replaceChildren();ui.el('h3',ui.t(en,es),box);
+      if(!order){ui.el('p','—',box);return;}
+      const list=ui.el('dl',undefined,box);
+      const row=(ten,tes,value)=>{ui.el('dt',ui.t(ten,tes),list);ui.el('dd',value,list);};
+      row('Code','Código',order.order_number);row('Customer','Cliente',order.customer);
+      row('Customer PO','PO del cliente',order.customer_po||ui.t('No PO','Sin PO'));
+      const when=[order.created_date,order.created_time].filter(Boolean).join(' ');
+      row('Created','Creado',ui.t(when+' · by '+(order.created_by||'(not recorded)'),when+' · por '+(order.created_by||'(no registrado)')));
+      row('State','Estado',ui.codeText(order.state,'en')+(order.state_reason?' ('+ui.codeText(order.state_reason,'en')+')':''));
+      const lines=ui.el('ul',undefined,box);lines.className='duplicate-lines';
+      for(const line of order.lines||[]){const qty=line.quantity!=null?line.quantity+' '+(line.unit||'')+' · ':'';ui.el('li',line.product+' — '+qty+lb(line.quantity_lb)+(line.line_status==='cancelled'?' (cancelled line)':''),lines);}
+      if(!(order.lines||[]).length)ui.el('li',ui.t('No lines','Sin líneas'),lines);
+    }
+    function draw(){
+      side(left,'Cancel this order (duplicate)','Cancelar este pedido (duplicado)',check?.order);
+      side(right,'Keep this order (original)','Conservar este pedido (original)',original);
+      if(check&&original?.matches?.length){const why=ui.el('p',ui.t('Suggested: same customer and '+original.matches.map(m=>m==='customer_po'?'same customer PO':'same items and quantities').join(' and ')+', created within '+check.window_days+' days.','Sugerido: mismo cliente y '+original.matches.map(m=>m==='customer_po'?'mismo PO':'mismos productos y cantidades').join(' y ')+', creado dentro de '+check.window_days+' días.'),right);why.className='muted';why.dataset.suggested='';}
+      if(check&&!original)ui.el('p',ui.t('No likely original found: no open or closed order for this customer with the same PO or the same items within '+check.window_days+' days. Choose the original below.','No se encontró un original probable: ningún pedido abierto o cerrado de este cliente con el mismo PO o los mismos productos dentro de '+check.window_days+' días. Elige el original abajo.'),right).className='neutral';
+      facts.replaceChildren();
+      if(check?.reservations?.count){const held=ui.el('p',ui.t(check.order.order_number+' holds '+check.reservations.count+' stock reservation(s), '+lb(check.reservations.quantity_lb)+'. Cancelling releases them, as every cancel does. No inventory is moved or deleted.',check.order.order_number+' tiene '+check.reservations.count+' reserva(s), '+lb(check.reservations.quantity_lb)+'. Cancelar las libera, como cualquier cancelación. No se mueve ni borra inventario.'),facts);held.className='neutral';held.dataset.reservations='';}
+      problems.replaceChildren();
+      const blocking=check?logic.duplicateBlockers(check,original):[];
+      for(const item of blocking){const p=ui.el('p',item.message,problems);p.className='bad';p.dataset.problem=item.code;}
+      for(const item of original?.problems||[])if(!item.blocks){const p=ui.el('p',item.message,problems);p.className='neutral';p.dataset.problem=item.code;}
+      confirm.hidden=done;confirm.disabled=busy||!check||blocking.length>0;
+      ui.setText(confirm,check&&original?ui.t('Confirm: cancel '+check.order.order_number+' as a duplicate of '+original.order_number,'Confirmar: cancelar '+check.order.order_number+' como duplicado de '+original.order_number):ui.t('Confirm','Confirmar'));
+    }
+    function presetNote(){if(!noteEdited)note.value=original?logic.duplicateNote(original.order_number):'';}
+    function setBusy(flag){busy=flag;lock(flag);note.disabled=flag||done;duplicate.setDisabled(flag||done);change.setDisabled(flag||done);draw();}
+    async function load(selected,requestOptions={}){
+      const version=++generation;check=null;original=null;done=false;outcome.replaceChildren();presetNote();draw();if(!selected)return;
+      try{const data=await ui.request('/sales/orders/'+encodeURIComponent(selected.id)+'/duplicate-check',undefined,requestOptions);if(version!==generation||!panel.isConnected)return;
+        check=data;original=data.suggestion||null;presetNote();draw();}
+      catch(error){if(version===generation)ui.failure(error);}
+    }
+    async function chooseOriginal(selected){
+      const version=++generation;original=null;presetNote();draw();if(!selected||!check)return;
+      try{const data=await ui.request('/sales/orders/'+encodeURIComponent(check.order.order_id)+'/duplicate-check?original='+encodeURIComponent(selected.id));if(version!==generation||!panel.isConnected)return;
+        check=data;original=data.original;presetNote();draw();}
+      catch(error){if(version===generation)ui.failure(error);}
+    }
+    confirm.onclick=async()=>{
+      if(busy||done||!check||logic.duplicateBlockers(check,original).length)return;
+      const duplicateCode=check.order.order_number,originalCode=original.order_number;
+      setBusy(true);outcome.replaceChildren();ui.el('p',ui.t('Cancelling '+duplicateCode+'…','Cancelando '+duplicateCode+'…'),outcome).className='neutral';
+      try{
+        const request=logic.build('cancel_duplicate',{order_id:check.order.order_id,related_so_id:original.order_id,note:note.value.trim()});
+        const prepared=await ui.request(request.path,request.body);
+        if(!prepared?.ticket||!prepared.payload_hash)throw ui.problem(ui.t('FL did not return a draft.','FL no devolvió un borrador.'));
+        // FL's own refusals (shipped, not open, original cancelled…) stop here, before any commit.
+        if((prepared.blockers||[]).length||prepared.can_commit===false||(prepared.warnings||[]).some(w=>w.requires_ack)){
+          outcome.replaceChildren();const stop=ui.el('p',ui.t('NOT cancelled — '+ui.errorText({blockers:[...(prepared.blockers||[]),...(prepared.warnings||[]).filter(w=>w.requires_ack)]},'en'),'NO cancelado — '+ui.errorText({blockers:[...(prepared.blockers||[]),...(prepared.warnings||[]).filter(w=>w.requires_ack)]},'es')),outcome);stop.className='bad';return;}
+        const saved=await ui.request('/tickets/'+encodeURIComponent(prepared.ticket)+'/commit',{payload_hash:prepared.payload_hash,acknowledged_warnings:[]});
+        if(!ui.recorded(saved)||!/^ORD-\d{6}-\d{3,}$/.test(saved.receipt_number))throw ui.problem(ui.t(ui.errorText(saved,'en'),ui.errorText(saved,'es')));
+        done=true;outcome.replaceChildren();const good=ui.el('div',undefined,outcome);good.className='good';
+        const released=(saved.reservations_released||[]).length;
+        ui.el('strong',ui.t('Cancelled '+duplicateCode+' as a duplicate of '+originalCode+'.','Cancelado '+duplicateCode+' como duplicado de '+originalCode+'.'),good);
+        ui.el('p',ui.t(originalCode+' stays as it was.'+(released?' '+released+' reservation(s) on '+duplicateCode+' were released.':''),originalCode+' queda igual.'+(released?' Se liberaron '+released+' reserva(s) de '+duplicateCode+'.':'')),good);
+        const receipt=ui.el('p',ui.t('Receipt ','Recibo '),good),link=ui.el('a',saved.receipt_number,receipt);link.href=FLReceipts.link(saved.receipt_number);
+        const another=ui.el('button',ui.t('Another office action','Otra acción de oficina'),outcome);another.type='button';another.onclick=()=>render();
+      }catch(error){ui.failure(error);outcome.replaceChildren();const said=lang=>error?.labels?.[lang==='es'?1:0]||(error?.result?ui.errorText(error.result,lang):error?.message||String(error));
+        ui.el('p',ui.t('NOT cancelled — '+said('en'),'NO cancelado — '+said('es')),outcome).className='bad';}
+      finally{setBusy(false);}
+    };
+    draw();
+    const id=initial.get('order');
+    if(id){initial.delete('order');ui.request('/sales/orders/'+encodeURIComponent(id),undefined,initialRead).then(o=>{if(panel.isConnected)duplicate.select({id:o.order_id,label:o.order_number},initialRead);}).catch(ui.failure);}
   }
   async function refresh({background=false}={}){const version=++authRevision;grants={};render({background});if(!FLDashboard.writesEnabled||!ui.session.token)return;
     try{const who=await ui.request('/auth/whoami',undefined,{background});if(version!==authRevision)return;grants=who.permissions||{};render({background});}catch(error){ui.failure(error);}

@@ -85,6 +85,7 @@ Pointer syntax: file::text means search that file for that exact text (a section
 - Tests:
   - `tests/test_sales_order_*`, `tests/test_order_*`, `tests/test_customer_tickets.py`, `tests/test_resolve_customer.py`
   - `tests/test_orders_matrix_export.py`, `tests/test_direct_order_close_guard.py`, `tests/test_so_list_actions_ui.js`, `tests/test_office_*`
+- Cancel as duplicate: read-only `GET /sales/orders/{order_id}/duplicate-check` (`order_tickets.py::def duplicate_check`, `order_tickets.py::def duplicate_candidates`: same customer, not cancelled, within 7 days, customer PO then exact lines) feeds the Office panel (`dashboard/office.js::function duplicatePanel`, action `cancel_duplicate`). Confirm runs the ordinary `cancel_order` ticket (prepare, then commit). `main.py::def _validate_state_reason` refuses a duplicate whose original is cancelled (`RELATED_SO_CANCELLED`). Order pickers auto-select an exact order code (`dashboard/office-logic.js::function exactOrder`). Tests: `tests/test_cancel_duplicate.py`, `tests/test_office_ui.js`, `tests/test_office_customer_ui.js`, `tests/visual/run-cancel-duplicate.mjs` (person-selection fixture).
 - Risk: Medium; **High** when it touches allocations, ship or close
 - Contract: `docs/order-create-contract.md`
 

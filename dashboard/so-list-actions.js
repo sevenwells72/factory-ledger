@@ -73,6 +73,7 @@
       RELATED_SO_REQUIRED: t('Enter the related sales order number.', 'Ingresa el número del pedido relacionado.'),
       RELATED_SO_INVALID: t('Choose a different sales order as the related SO.', 'Elige otro pedido como el SO relacionado.'),
       RELATED_SO_NOT_FOUND: t('The related sales order was not found. Check its SO number and try again.', 'No se encontró el pedido relacionado. Revisa su número de SO e inténtalo otra vez.'),
+      RELATED_SO_CANCELLED: t('That order is already cancelled, so it cannot be the original. Enter the SO number of the order that stays.', 'Ese pedido ya está cancelado, así que no puede ser el original. Ingresa el número de SO del pedido que se queda.'),
       RELATED_SO_NOT_APPLICABLE: t('The related SO applies only to Duplicate or Superseded. Choose the reason again.', 'El SO relacionado solo corresponde a Duplicado o Reemplazado. Elige el motivo otra vez.'),
     };
     if (specific[detail.error_code]) return specific[detail.error_code];
@@ -91,9 +92,11 @@
 
   function open(order, options) {
     if(window.FLDashboard&&!document.documentElement.dataset.flWriteUi){FLDashboard.ready.then(()=>open(order,options));return null;}
+    // Cancel as duplicate: the Office panel with tickets; without tickets, the cancel dialog preset to Duplicate.
+    const duplicate=options&&options.action==='cancel_duplicate';
     if(window.FLDashboard?.writesEnabled&&order&&options){
-      const action=options.action||(order.state==='closed'||order.state==='cancelled'?'reopen':'close');
-      location.assign(FLReceipts.page('office.html',{action:action+'_order',order:order.order_id||order.id||order.order_number}));return null;
+      const action=duplicate?'cancel_duplicate':(options.action||(order.state==='closed'||order.state==='cancelled'?'reopen':'close'))+'_order';
+      location.assign(FLReceipts.page('office.html',{action,order:order.order_id||order.id||order.order_number}));return null;
     }
     if (!order || !options || typeof options.request !== 'function' || typeof options.format !== 'function') return null;
     if (currentDialog) {
@@ -109,7 +112,7 @@
     const titleFor = action => t(...TITLES[action]);
     const pastFor = action => t(...PAST[action]);
     const trigger = options.trigger || document.activeElement;
-    let action = options.action || (order.state === 'closed' || order.state === 'cancelled' ? 'reopen' : 'close');
+    let action = duplicate ? 'cancel' : options.action || (order.state === 'closed' || order.state === 'cancelled' ? 'reopen' : 'close');
     if (!TITLES[action]) return null;
     let busy = false;
     let committed = false;
@@ -382,8 +385,9 @@
       if (focusTarget && !focusTarget.disabled) focusTarget.focus({ preventScroll: true });
     }, { once: true });
     updateLabels();
+    if (duplicate) { reason.value = 'duplicate'; updateConditionalFields(); }
     dialog.showModal();
-    (action === 'reopen' ? note : reason).focus();
+    (action === 'reopen' ? note : duplicate ? related : reason).focus();
     return dialog;
   }
 

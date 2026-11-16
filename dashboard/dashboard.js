@@ -2654,6 +2654,8 @@
     let html = `<div class="so-row-actions"><button type="button" class="btn-sm so-open-detail" data-order-id="${order.order_id}">Open order details</button>`;
     if (summary.source_document_id) html += `<button type="button" class="btn-sm so-source-document" data-doc-id="${summary.source_document_id}">View customer PO</button>`;
     for (const action of (open ? ['close', 'cancel'] : ['reopen'])) html += `<button type="button" class="btn-sm so-exit-action" data-action="${action}" data-order-id="${order.order_id}">${action[0].toUpperCase() + action.slice(1)} order</button>`;
+    // Only orders the cancel rules accept today: open and nothing shipped.
+    if (open && summary.fulfillment === 'unshipped') html += `<button type="button" class="btn-sm so-exit-action" data-action="cancel_duplicate" data-order-id="${order.order_id}">Cancel as duplicate</button>`;
     html += '</div>';
     if (open) html += `<div class="order-ready-drawer"><label for="ready-note-${order.order_id}">Ready to ship note</label><div class="order-ready-note-row"><input id="ready-note-${order.order_id}" type="text" class="order-ready-note-input" data-order-id="${order.order_id}" value="${escAttr(summary.note || '')}" placeholder="Optional note for the floor"><button type="button" class="btn-sm order-ready-note-save" data-order-id="${order.order_id}">Save note</button></div></div>`;
     const lines = order.lines || [];
@@ -3542,6 +3544,7 @@
     html += '</div><div class="so-case-actions">';
     if (data.state !== 'cancelled') html += `<button type="button" data-fl-write-ui class="btn-secondary so-packing-slip-btn" title="Opens a printable PDF. Before shipping it lists the oldest lots first; after shipping, the lots actually shipped.">Packing slip</button>`;
     for (const action of (data.state === 'open' ? ['close', 'cancel'] : ['reopen'])) html += `<button type="button" class="btn-secondary so-detail-exit-action so-exit-action" data-action="${action}" data-order-id="${escAttr(data.order_id)}">${action[0].toUpperCase() + action.slice(1)}</button>`;
+    if (data.state === 'open' && data.fulfillment === 'unshipped') html += `<button type="button" class="btn-secondary so-detail-exit-action so-exit-action" data-action="cancel_duplicate" data-order-id="${escAttr(data.order_id)}">Cancel as duplicate</button>`;
     html += '</div></div><div class="so-case-facts">';
     html += `<span class="so-ordered-total">${SOList.number(ordered)} lb ordered</span>`;
     html += editMode && editableHeader ? `<label class="order-edit-field">Ship by <input type="date" class="order-edit-input order-edit-ship-date" value="${escAttr(data.requested_ship_date || '')}"></label>` : `<span class="so-case-ship-date"><span class="so-fact-label">Ship by</span> ${orderDetailShipDate(data)}</span>`;
