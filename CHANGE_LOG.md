@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-16 14:21 — Created SS Choc Chip #2 TRIAL 32x10 oz case (product 296) in production
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Production catalog data: new finished item 296 'Granola SS Chocolate Chip 32x10 OZ Case — TRIAL' (case 20 lb, linked to trial batch 295, Sunshine, bagged, private label, verified; recipe 20 lb batch 295 + 32 printed bags). Backup 2026-11-16-pre-ss2-32pack BACKUP OK. Changelog row 289 added. No inventory posting.
+- **Why:** Michael: the #2 TRIAL batch packs into a 32-bag case, not the 12x10 case 145.
+
+---
+
 ## 2026-11-16 14:09 — Merged duplicate customers Hialeah #33 and #61 into #57 (production data)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `customer-merge-2026-11-16-hialeah.md`
 - **What changed:** Recorded the production merge of customers #33 and #61 into #57: 7 sales orders and 10 shipments re-pointed, #57 renamed 'Hialeah / New Urban Farms' with 2 aliases, #33/#61 renamed '(merged into #57)' and archived. Changelog row 288 plus a merge record with every row ID, before/after values and reversal SQL.
