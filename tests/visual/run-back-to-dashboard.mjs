@@ -61,7 +61,11 @@ try {
     const box = scope.locator('[data-picker="' + picker + '"]');
     await box.locator('input').fill(query);
     await box.getByRole('button', {name: 'Search', exact: true}).click();
-    await box.locator('.picker-options button').first().click();
+    // An exact order code selects itself on Search (PR #213); anything else is a tapped result.
+    const selected = box.getByText(/^Selected: /), option = box.locator('.picker-options button').first();
+    await selected.or(option).first().waitFor();
+    if (!(await selected.isVisible())) await option.click();
+    await selected.waitFor();
   };
   async function recordOfficeAction(label) {
     await page.getByRole('button', {name: 'Prepare draft', exact: true}).click();
