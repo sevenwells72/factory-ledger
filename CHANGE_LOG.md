@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-16 11:12 — Daily inventory reconciliation switched on in production (migration 094, first run emailed)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `schema.sql`, `CHANGE_LOG.md`
+- **What changed:** Recorded row 286: verified backup 2026-11-16-pre-094 (BACKUP OK); migration 094 applied to production (only the three new reconciliation tables added); RECONCILIATION_ENABLED, RECONCILIATION_EMAIL_ENABLED, ALERT_EMAIL_TO set on Railway exceptions-sweep and RESEND_API_KEY set by Michael; first run (run 1, Nov 15) all_clear, 3 still-open below-zero lots, email sent. Re-dumped tests/schema/schema.sql from production.
+- **Why:** Owner-approved rollout of PR #198/#199 so the owner receives the nightly reconciliation email; staging step not done.
+
+---
+
 ## 2026-11-11 11:44 — Record PR 205 production deploy and Graham source link (changelog row 285)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added row 285: PR 205 merged and deployed (989ebc8, Railway f715e1e0), product 165 linked to product 75 in production (one guarded row), backups, production verification, staging proof, review verdicts, test results, known limits and what breaks if reverted.
