@@ -6,7 +6,7 @@ test('office visibility fails closed with flag off or missing FL permission',()=
   assert.equal(office.permitted(all,false).length,0);assert.equal(office.permitted({},true).length,0);
   assert.deepEqual(office.permitted({create_order:true},true).map(([a])=>a),['create_order','approve_so']);
 });
-const common={order_id:10,line_id:2,customer_id:3,product_id:4,supplier_id:5,expected_receipt_id:6,document_id:7,customer_po:'000123',lines:[{product_id:4,quantity:2,unit:'each'}],reason:'short_closed',note:'reason',status:'in_production',quantity_lb:20,unit_price:0,expected_qty:50};
+const common={order_id:10,line_id:2,customer_id:3,product_id:4,supplier_id:5,expected_receipt_id:6,document_id:7,customer_po:'000123',lines:[{product_id:4,quantity:2,unit:'each'}],reason:'short_closed',note:'reason',status:'in_production',quantity_lb:20,unit_price:0,expected_qty:50,related_so_id:11};
 for(const [action] of office.actions)test('A7 route and no direct write: '+action,()=>{
   const built=office.build(action,common);assert.ok(built.path.endsWith('/prepare'));assert.equal(built.body.client_source,'dashboard');
   assert.ok(['ORD','ER','CUS'].includes(built.prefix));assert.ok(!('mode' in built.body));assert.ok(!('created_by' in built.body));assert.ok(!('customer_name' in built.body));
@@ -61,4 +61,34 @@ for(const language of ['en','es'])test('shared Office draft and receipt keep cas
 test('product choices put regular first and preserve every explicit extra-kosher identity',()=>{
  const rows=[{id:2,kosher_tier:'extra_kosher'},{id:3,kosher_tier:'extra_kosher'},{id:1,kosher_tier:'regular'}];
  assert.deepEqual(office.productChoices(rows).map(row=>row.id),[1,2,3]);assert.equal(rows[0].id,2);
+});
+test('cancel as duplicate is the cancel_order ticket with reason Duplicate and a required original',()=>{
+ assert.equal(office.permission('cancel_duplicate'),'cancel_order');
+ assert.deepEqual(office.permitted({cancel_order:true},true).map(([a])=>a),['cancel_order','cancel_duplicate']);
+ assert.deepEqual(office.build('cancel_duplicate',{order_id:5,related_so_id:4,note:'Duplicate of SO-261116-001',reason:'other'}),
+  {path:'/sales/orders/5/cancel/prepare',prefix:'ORD',body:{client_source:'dashboard',reason:'duplicate',related_so_id:4,note:'Duplicate of SO-261116-001'}});
+ assert.throws(()=>office.build('cancel_duplicate',{order_id:5}),/Choose a record/);
+ assert.equal(office.duplicateNote('SO-261116-001'),'Duplicate of SO-261116-001');
+});
+test('exact order code selects only one exact order number, never a PO or part of a code',()=>{
+ const rows=[{id:1,order_number:'SO-261116-004',customer_po:'SO-261116-0'},{id:2,order_number:'SO-261116-0041'}];
+ assert.equal(office.exactOrder(rows,'  so-261116-004 ').id,1);
+ assert.equal(office.exactOrder(rows,'SO-261116-00'),null);
+ assert.equal(office.exactOrder(rows,'SO-261116-0'),null,'a customer PO never auto-selects');
+ assert.equal(office.exactOrder([{id:1,order_number:'SO-1'},{id:2,order_number:'so-1'}],'SO-1'),null,'two hits stay a choice');
+ assert.equal(office.exactOrder(rows,''),null);
+});
+test('duplicate confirm is blocked by shipped/closed orders, a missing original, self or a cancelled original',()=>{
+ const check={blockers:[]};
+ assert.deepEqual(office.duplicateBlockers(check,{problems:[]}),[]);
+ assert.deepEqual(office.duplicateBlockers(check,null).map(b=>b.code),['ORIGINAL_REQUIRED']);
+ assert.deepEqual(office.duplicateBlockers({blockers:[{code:'ORDER_ALREADY_SHIPPED',message:'x'}]},{problems:[]}).map(b=>b.code),['ORDER_ALREADY_SHIPPED']);
+ assert.deepEqual(office.duplicateBlockers(check,{problems:[{code:'RELATED_SO_INVALID',blocks:true},{code:'DIFFERENT_CUSTOMER',blocks:false}]}).map(b=>b.code),['RELATED_SO_INVALID']);
+ assert.deepEqual(office.duplicateBlockers(check,{problems:[{code:'RELATED_SO_CANCELLED',blocks:true}]}).map(b=>b.code),['RELATED_SO_CANCELLED']);
+ assert.equal(office.duplicateBlockers(null,null)[0].code,'LOADING');
+});
+test('order list and detail offer Cancel as duplicate only on open, unshipped orders',()=>{
+ const source=fs.readFileSync('dashboard/dashboard.js','utf8');
+ assert.match(source,/open && summary\.fulfillment === 'unshipped'\) html \+= `<button[^`]*data-action="cancel_duplicate"/);
+ assert.match(source,/data\.state === 'open' && data\.fulfillment === 'unshipped'\) html \+= `<button[^`]*so-detail-exit-action[^`]*data-action="cancel_duplicate"/);
 });

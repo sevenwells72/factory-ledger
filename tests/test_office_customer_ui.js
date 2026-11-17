@@ -250,3 +250,155 @@ for(const action of ['approve_so','approve_er'])test(action+' distinguishes extr
 test('Office selected-record status refreshes in both languages without changing the selected customer',async()=>{
  const h=await harness();h.setResolver(()=>({outcome:'match',match:{id:7,label:'Setton Farms'}}));const box=await h.search('customer','Setton');h.find(node=>node.tag==='button',h.find(node=>node.className==='picker-options',box)).onclick();assert.ok(h.find(node=>node.textContent==='Selected: Setton Farms'));h.ui.lang='es';h.events['ledger-language']();assert.ok(h.find(node=>node.textContent==='Seleccionado: Setton Farms'));h.ui.lang='en';h.events['ledger-language']();assert.ok(h.find(node=>node.textContent==='Selected: Setton Farms'));
 });
+
+// ---------------------------------------------------------------------------
+// Order picker: an exact order code selects; nothing selected marks the picker.
+// ---------------------------------------------------------------------------
+const orderRows=[{id:41,name:'SO-261116-001',label:'SO-261116-001',order_number:'SO-261116-001',customer_po:'PO-9'},{id:44,name:'SO-261116-004',label:'SO-261116-004',order_number:'SO-261116-004',customer_po:'PO-9'}];
+function orderResolver(h,extra={}){
+ const base=h.ui.request;
+ h.ui.request=async(path,body)=>{h.requests.push({path,body});
+  if(path==='/auth/whoami')return {permissions:{cancel_order:true,create_order:true}};
+  if(path==='/resolve'&&body.kind==='order')return {outcome:'ambiguous',candidates:orderRows.filter(r=>r.order_number.includes(body.query.trim().toUpperCase())||r.customer_po===body.query.trim())};
+  if(extra[path])return extra[path](body);
+  if(/^\/sales\/orders\/\d+(\/office-options)?$/.test(path))return {order_id:44,order_number:'SO-261116-004',lines:[]};
+  return base(path,body);};
+}
+async function officeAction(h,action){const selector=h.find(n=>n.id==='office-action');selector.value=action;selector.onchange();await flush();}
+test('typing an exact order code and pressing Search selects it without a click',async()=>{
+ const h=await harness({permissions:{cancel_order:true}});orderResolver(h);await officeAction(h,'cancel_order');
+ const box=await h.search('order','SO-261116-004');await flush();
+ assert.equal(h.find(n=>n.tag==='input',box).value,'SO-261116-004');
+ assert.ok(h.nodes().some(n=>n.textContent==='Selected: SO-261116-004'),'shows Selected: CODE like the related picker');
+ assert.ok(h.requests.some(r=>r.path==='/sales/orders/44'),'loads the chosen order');
+ assert.equal(h.find(n=>n.className==='picker-options',box).children.length,0,'no result left to click');
+});
+test('Enter runs Search and an exact code auto-selects; a PO or part of a code does not',async()=>{
+ const h=await harness({permissions:{cancel_order:true}});orderResolver(h);await officeAction(h,'cancel_order');
+ const box=h.find(n=>n.dataset.picker==='order'),input=h.find(n=>n.tag==='input',box);
+ input.value='SO-261116-00';input.oninput();await input.onkeydown({key:'Enter',preventDefault(){}});await flush();
+ assert.equal(h.timers.size,0,'Enter replaced the queued typeahead search');
+ assert.ok(!h.nodes().some(n=>String(n.textContent).startsWith('Selected:')),'part of a code is still a choice');
+ assert.equal(h.find(n=>n.className==='picker-options',box).children.length,2);
+ input.value='PO-9';input.oninput();await input.onkeydown({key:'Enter',preventDefault(){}});await flush();
+ assert.ok(!h.nodes().some(n=>String(n.textContent).startsWith('Selected:')),'a customer PO is never an exact order code');
+ input.value='so-261116-001';input.oninput();await input.onkeydown({key:'Enter',preventDefault(){}});await flush();
+ assert.ok(h.nodes().some(n=>n.textContent==='Selected: SO-261116-001'));
+});
+test('Prepare with no order chosen marks the order picker with the message',async()=>{
+ const h=await harness({permissions:{cancel_order:true}});orderResolver(h);await officeAction(h,'cancel_order');
+ const box=h.find(n=>n.dataset.picker==='order'),input=h.find(n=>n.tag==='input',box);
+ input.value='SO-261116-00';
+ await h.find(n=>n.id==='office-form').onsubmit({preventDefault(){}});await flush();
+ const status=box.children.find(n=>n.role==='status');
+ assert.equal(status.className,'bad');
+ assert.match(status.textContent,/^Choose the sales order: tap a search result, or type its full code/);
+ assert.equal(input['aria-invalid'],'true');
+ assert.equal(h.failures.length,1,'the banner says NOT recorded too');
+ assert.ok(!h.requests.some(r=>/\/prepare$/.test(r.path)),'nothing was prepared');
+ input.value='SO-261116-004';input.oninput();assert.equal(status.className,'','typing clears the mark');
+});
+
+// ---------------------------------------------------------------------------
+// Cancel as duplicate panel: suggestion, both sides, one Confirm -> prepare + commit.
+// ---------------------------------------------------------------------------
+const side=(id,code,extra={})=>({order_id:id,order_number:code,customer_id:7,customer:'Hialeah',customer_po:'PO-9',state:'open',state_reason:null,created_date:'11/16/26',created_time:'9:00 AM',created_by:'Luz',fulfillment:'unshipped',shipped_lb:0,lines:[{product:'Granola',quantity:2,unit:'cases',quantity_lb:50,line_status:'pending'}],...extra});
+function duplicateHarness(h,{check,original,prepared,saved,delay}){
+ h.context.FLReceipts={link:number=>'receipt.html?number='+number};
+ h.ui.errorText=(result)=>(result.blockers||[]).map(b=>b.message).join('\n')||result.detail?.message||'failed';
+ h.ui.recorded=result=>typeof result?.receipt_number==='string';
+ orderResolver(h,{
+  '/sales/orders/44/duplicate-check':()=>delay?delay.then(()=>check):check,
+  '/sales/orders/44/duplicate-check?original=41':()=>({...check,original}),
+  '/sales/orders/44/cancel/prepare':()=>prepared,
+  '/tickets/T1/commit':body=>typeof saved==='function'?saved(body):saved});
+}
+test('duplicate panel suggests the original, prefills the note and confirms with prepare then commit',async()=>{
+ const h=await harness({permissions:{cancel_order:true}});
+ duplicateHarness(h,{check:{order:side(44,'SO-261116-004'),blockers:[],cancellable:true,reservations:{count:1,quantity_lb:50},suggestion:{...side(41,'SO-261116-001'),matches:['customer_po','lines']},candidates:[],window_days:7},
+  prepared:{ticket:'T1',payload_hash:'h',blockers:[],warnings:[],can_commit:true,draft:{reservations_released:[{id:1,quantity_lb:50}]}},
+  saved:{receipt_number:'ORD-261116-009',reservations_released:[{id:1}]}});
+ await officeAction(h,'cancel_duplicate');
+ await h.search('order','SO-261116-004');await flush();
+ const panel=h.find(n=>n.id==='duplicate-cancel'),text=()=>h.nodes().map(n=>n.textContent).join('\n');
+ assert.ok(panel);
+ assert.match(text(),/Cancel this order \(duplicate\)/);assert.match(text(),/Keep this order \(original\)/);
+ assert.match(text(),/Suggested: same customer and same customer PO and same items and quantities/);
+ assert.match(text(),/SO-261116-004 holds 1 stock reservation\(s\), 50 lb\. Cancelling releases them/);
+ assert.equal(h.find(n=>n.name==='note').value,'Duplicate of SO-261116-001');
+ assert.ok(h.nodes().some(n=>n.textContent==='Reason: Duplicate'));
+ const confirm=h.find(n=>n.dataset.duplicateConfirm!==undefined);
+ assert.equal(confirm.disabled,false);assert.equal(confirm.textContent,'Confirm: cancel SO-261116-004 as a duplicate of SO-261116-001');
+ await confirm.onclick();await flush();
+ const writes=h.requests.filter(r=>r.body!==undefined&&r.path!=='/resolve');
+ assert.deepEqual(writes.map(r=>r.path),['/sales/orders/44/cancel/prepare','/tickets/T1/commit']);
+ assert.deepEqual(writes[0].body,{client_source:'dashboard',reason:'duplicate',related_so_id:41,note:'Duplicate of SO-261116-001'});
+ assert.equal(JSON.stringify(writes[1].body),JSON.stringify({payload_hash:'h',acknowledged_warnings:[]}));
+ assert.match(text(),/Cancelled SO-261116-004 as a duplicate of SO-261116-001\./);
+ assert.match(text(),/SO-261116-001 stays as it was\. 1 reservation\(s\) on SO-261116-004 were released\./);
+ assert.ok(h.nodes().some(n=>n.textContent==='ORD-261116-009'&&n.href==='receipt.html?number=ORD-261116-009'));
+ assert.equal(confirm.hidden,true,'one confirm only');
+});
+test('duplicate panel blocks shipped orders and a cancelled or self original, and never commits a blocked draft',async()=>{
+ const shipped=await harness({permissions:{cancel_order:true}});
+ duplicateHarness(shipped,{check:{order:side(44,'SO-261116-004',{fulfillment:'partial',shipped_lb:25}),blockers:[{code:'ORDER_ALREADY_SHIPPED',message:'SO-261116-004 has recorded shipments (25 lb); an order with shipped pounds cannot be cancelled. Close it instead.'}],cancellable:false,reservations:{count:0,quantity_lb:0},suggestion:{...side(41,'SO-261116-001'),matches:['lines']},candidates:[],window_days:7}});
+ await officeAction(shipped,'cancel_duplicate');await shipped.search('order','SO-261116-004');await flush();
+ assert.equal(shipped.find(n=>n.dataset.duplicateConfirm!==undefined).disabled,true);
+ assert.ok(shipped.nodes().some(n=>n.dataset.problem==='ORDER_ALREADY_SHIPPED'&&/cannot be cancelled/.test(n.textContent)));
+
+ const h=await harness({permissions:{cancel_order:true}});
+ duplicateHarness(h,{check:{order:side(44,'SO-261116-004'),blockers:[],cancellable:true,reservations:{count:0,quantity_lb:0},suggestion:null,candidates:[],window_days:7},
+  original:{...side(41,'SO-261116-001',{state:'cancelled'}),problems:[{code:'RELATED_SO_CANCELLED',blocks:true,message:'SO-261116-001 is already cancelled. Choose the order that stays.'}]},
+  prepared:{ticket:'T1',payload_hash:'h',blockers:[{code:'RELATED_SO_CANCELLED',message:'already cancelled'}],warnings:[],can_commit:false}});
+ await officeAction(h,'cancel_duplicate');await h.search('order','SO-261116-004');await flush();
+ assert.ok(h.nodes().some(n=>/^No likely original found/.test(n.textContent)));
+ const confirm=h.find(n=>n.dataset.duplicateConfirm!==undefined);
+ assert.equal(confirm.disabled,true,'no original yet');
+ await h.search('original','SO-261116-001');await flush();
+ assert.ok(h.nodes().some(n=>n.dataset.problem==='RELATED_SO_CANCELLED'));
+ assert.equal(confirm.disabled,true);
+ await confirm.onclick();await flush();
+ assert.ok(!h.requests.some(r=>/\/prepare$|\/commit$/.test(r.path)),'a blocked panel sends nothing');
+});
+
+const ready=(extra={})=>({order:side(44,'SO-261116-004'),blockers:[],cancellable:true,reservations:{count:0,quantity_lb:0},suggestion:{...side(41,'SO-261116-001'),matches:['customer_po']},candidates:[],window_days:7,...extra});
+test('reservations added after the panel loaded stop the cancel and ask again (no silent release)',async()=>{
+ const h=await harness({permissions:{cancel_order:true}});let commits=0;
+ duplicateHarness(h,{check:ready(),prepared:{ticket:'T1',payload_hash:'h',blockers:[],warnings:[],can_commit:true,draft:{reservations_released:[{id:9,quantity_lb:25}]}},saved:()=>{commits++;return {receipt_number:'ORD-261116-010',reservations_released:[{id:9}]};}});
+ await officeAction(h,'cancel_duplicate');await h.search('order','SO-261116-004');await flush();
+ const confirm=h.find(n=>n.dataset.duplicateConfirm!==undefined);
+ await confirm.onclick();await flush();
+ assert.equal(commits,0,'nothing committed');
+ assert.ok(h.nodes().some(n=>/^NOT cancelled yet — stock reservations on SO-261116-004 changed/.test(n.textContent)&&/releases 1 reservation\(s\), 25 lb/.test(n.textContent)));
+ assert.ok(h.nodes().some(n=>n.dataset.reservations!==undefined&&/holds 1 stock reservation\(s\), 25 lb/.test(n.textContent)),'the panel now shows the new facts');
+ await confirm.onclick();await flush();
+ assert.equal(commits,1,'the second, informed Confirm cancels');
+});
+test('a lost commit answer keeps the same ticket: Check again re-sends it and never prepares twice',async()=>{
+ const h=await harness({permissions:{cancel_order:true}});let attempts=0;
+ duplicateHarness(h,{check:ready(),prepared:{ticket:'T1',payload_hash:'h',blockers:[],warnings:[],can_commit:true,draft:{reservations_released:[]}},
+  saved:()=>{attempts++;if(attempts===1){const e=Error('Network');e.transport=true;throw e;}return {receipt_number:'ORD-261116-011',reservations_released:[],replayed:true};}});
+ await officeAction(h,'cancel_duplicate');await h.search('order','SO-261116-004');await flush();
+ const confirm=h.find(n=>n.dataset.duplicateConfirm!==undefined);
+ await confirm.onclick();await flush();
+ assert.ok(h.nodes().some(n=>/^NOT CONFIRMED — the connection dropped/.test(n.textContent)));
+ assert.ok(!h.nodes().some(n=>/^NOT cancelled/.test(n.textContent)),'never claims it failed');
+ assert.equal(confirm.textContent,'Check again');assert.equal(confirm.disabled,false);
+ assert.equal(h.find(n=>n.name==='note').disabled,true,'inputs frozen while the outcome is unknown');
+ await confirm.onclick();await flush();
+ assert.equal(h.requests.filter(r=>/\/prepare$/.test(r.path)).length,1,'prepared once');
+ assert.equal(h.requests.filter(r=>r.path==='/tickets/T1/commit').length,2,'same ticket re-sent');
+ assert.ok(h.nodes().some(n=>/^Cancelled SO-261116-004 as a duplicate of SO-261116-001\./.test(n.textContent)));
+});
+test('typing an original while the duplicate is still loading does not lose the duplicate',async()=>{
+ const h=await harness({permissions:{cancel_order:true}});let release;const delay=new Promise(r=>{release=r;});
+ duplicateHarness(h,{check:ready({suggestion:null}),delay,original:{...side(41,'SO-261116-001'),problems:[]}});
+ await officeAction(h,'cancel_duplicate');
+ const pending=h.search('order','SO-261116-004');await flush();
+ const input=h.find(n=>n.tag==='input',h.find(n=>n.dataset.picker==='original'));input.value='SO-26';input.oninput();
+ release();await pending;await flush();await flush();
+ assert.ok(h.nodes().some(n=>/^No likely original found/.test(n.textContent)),'duplicate facts arrived');
+ await h.search('original','SO-261116-001');await flush();
+ const confirm=h.find(n=>n.dataset.duplicateConfirm!==undefined);
+ assert.equal(confirm.disabled,false);assert.equal(confirm.textContent,'Confirm: cancel SO-261116-004 as a duplicate of SO-261116-001');
+});

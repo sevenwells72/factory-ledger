@@ -4073,6 +4073,9 @@ class TestNoDeadlock:
         UPDATE — so neither can complete step 1 until it releases, and they are
         released into that reach-across simultaneously.
 
+        Both cancels lock the pair lowest id first, so they queue on the same
+        row: exactly one completes and the other is refused with
+        RELATED_SO_CANCELLED (owner decision 2026-11-17: never cancel both).
         This test on its own establishes that the schedule COMPLETES under the
         current locking. It does not, by itself, prove the schedule would
         deadlock under FOR UPDATE — that comes from mutation (b) in the PR
@@ -4123,18 +4126,28 @@ class TestNoDeadlock:
             assert a_q, "cancel A→B never queued on the holder"
             assert b_q, "cancel B→A never queued on the holder"
 
-            for label in ("a", "b"):
-                _assert_no_deadlock(out[label], label)
-                assert out[label]["state"] == "cancelled", out[label]
+            # Exactly one wins; the other is refused because its "original"
+            # is now cancelled, so one order of the pair always stays open.
+            won = [k for k in ("a", "b") if isinstance(out[k], dict)
+                   and out[k].get("state") == "cancelled"]
+            lost = [k for k in ("a", "b") if k not in won]
+            assert len(won) == 1 and len(lost) == 1, out
+            _assert_no_deadlock(out[won[0]], won[0])
+            refused = out[lost[0]]
+            assert isinstance(refused, main.HTTPException), refused
+            assert refused.status_code == 409, refused.detail
+            assert refused.detail["error_code"] == "RELATED_SO_CANCELLED", refused.detail
 
+            ids = {"a": ids_a["order_id"], "b": ids_b["order_id"]}
             with seed.cursor(cursor_factory=RealDictCursor) as sc:
-                sc.execute("SELECT id, related_so_id FROM sales_orders WHERE id = ANY(%s)",
-                           ([ids_a["order_id"], ids_b["order_id"]],))
-                rows = {r["id"]: r["related_so_id"] for r in sc.fetchall()}
-            assert rows[ids_a["order_id"]] == ids_b["order_id"]
-            assert rows[ids_b["order_id"]] == ids_a["order_id"], (
-                "both reciprocal references survived"
-            )
+                sc.execute("SELECT id, state, related_so_id FROM sales_orders WHERE id = ANY(%s)",
+                           (list(ids.values()),))
+                rows = {r["id"]: r for r in sc.fetchall()}
+            winner, survivor = ids[won[0]], ids[lost[0]]
+            assert rows[winner]["state"] == "cancelled"
+            assert rows[winner]["related_so_id"] == survivor
+            assert rows[survivor]["state"] != "cancelled", "both orders of the pair were cancelled"
+            assert rows[survivor]["related_so_id"] is None
         finally:
             if holder is not None:
                 holder.close()

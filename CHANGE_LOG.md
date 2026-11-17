@@ -1,5 +1,16 @@
 # Change Log
 
+## 2026-11-17 11:33 — Block the second of two simultaneous reciprocal duplicate cancels (PR #213)
+- **File(s) changed:** `main.py`, `test_sales_order_state_model.py`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Cancel path now locks the order and its related order FOR NO KEY UPDATE, lowest id first, before checks (_load_so_for_state_change related_so_id); reciprocal no-deadlock test now requires exactly one cancel to win and the other to get 409 RELATED_SO_CANCELLED; changelog row 291 updated
+- **Why:** Owner decision 2026-11-17 on Codex P1: two people cancelling A as duplicate of B and B of A at the same moment must never cancel both
+
+---
+
+## 2026-11-16 15:03 — Cancel as duplicate panel and Office order picker fixes (PR #213, row 291)
+- **File(s) changed:** `order_tickets.py`, `main.py`, `write_tickets.py`, `office.js`, `office-logic.js`, `dashboard.js`, `so-list-actions.js`, `ledger-forms.css`, `index.html`, `office.html`, `11 other dashboard pages (css v18)`, `ARCHITECTURE-MAP.md`, `FACTORY_LEDGER_CHANGELOG.md`, `routes.jsonl`, `openapi.jsonl`, `test_cancel_duplicate.py`, `test_named_actor_writes.py`, `test_office_ui.js`, `test_office_customer_ui.js`, `test_so_list_actions_ui.js`, `run-cancel-duplicate.mjs`
+- **What changed:** Branch feat/cancel-duplicate-order (PR #213, not merged), rebased on main f6eca2e (#214): one-step Cancel as duplicate from the order row/detail (open+unshipped only) into an Office panel with both orders side by side, suggested original (same customer, not cancelled, within 7 days, PO then identical lines), editable original, reason Duplicate, pre-filled note; one Confirm runs the existing cancel_order prepare+commit, stops if reservations changed, keeps the ticket if the answer is lost. Read-only GET /sales/orders/{id}/duplicate-check. _validate_state_reason refuses a cancelled original (RELATED_SO_CANCELLED). Office order pickers auto-select an exact SO code and mark a missing choice on the picker. Cache-bust: ledger-forms.css v18 everywhere (#214 took v17), office.js v10, office-logic.js v6, dashboard.js v87, so-list-actions.js v5. FACTORY_LEDGER_CHANGELOG row renumbered 290 -> 291 because #214 took 290. Codex cross-review fixes applied.
+- **Why:** Michael: cancelling duplicate SO-261116-004 took ~10 steps and an exact typed code silently failed with 'Choose a record'. Approved staging deploy 2026-11-16.
 ## 2026-11-17 11:12 — Record PR 217 production deploy: daily reconciliation record checks (changelog row 294)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added changelog row 294 recording the PR 217 release (main 95c2919, backup 2026-11-17-pre-pr217, Railway FastAPI 7de3e6db and exceptions-sweep a853e8d8 SUCCESS, read-only dry run 0 new flags); row 293 annotated as merged and deployed

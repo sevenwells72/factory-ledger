@@ -74,3 +74,21 @@ for (const lang of ['en', 'es']) {
     }
   });
 }
+
+test('Cancel as duplicate opens the Office duplicate panel when tickets are on', () => {
+  const visited = [];
+  globalThis.window = { FLDashboard: { writesEnabled: true } };
+  globalThis.document = { documentElement: { dataset: { flWriteUi: 'on' } } };
+  globalThis.FLReceipts = { page: (page, params) => ({ page, params }) };
+  globalThis.location = { assign: value => visited.push(value) };
+  try {
+    assert.equal(ui.open({ order_id: 44, state: 'open' }, { action: 'cancel_duplicate' }), null);
+    assert.equal(ui.open({ order_id: 45, state: 'open' }, { action: 'cancel' }), null);
+    assert.deepEqual(visited.map(v => [v.page, v.params.action, v.params.order]),
+      [['office.html', 'cancel_duplicate', 44], ['office.html', 'cancel_order', 45]]);
+  } finally { delete globalThis.window; delete globalThis.document; delete globalThis.FLReceipts; delete globalThis.location; }
+});
+test('a cancelled original has its own plain message', () => {
+  assert.match(ui.errorMessage({ status: 409, detail: { error_code: 'RELATED_SO_CANCELLED' } }, 'preview', 'en', 'cancel', 'duplicate'), /already cancelled, so it cannot be the original/);
+  assert.match(ui.errorMessage({ status: 409, detail: { error_code: 'RELATED_SO_CANCELLED' } }, 'preview', 'es', 'cancel', 'duplicate'), /ya está cancelado/);
+});

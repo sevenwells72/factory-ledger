@@ -506,6 +506,89 @@ def draft_from(action, payload, response, ctx):
     return draft
 
 
+# ---------------------------------------------------------------------------
+# Cancel as duplicate: read-only facts and the suggested original. Nothing here
+# decides whether a cancel is allowed — the cancel_order ticket does that.
+# ---------------------------------------------------------------------------
+DUPLICATE_LOOKBACK_DAYS = 7
+
+
+def duplicate_summary(api, cur, order_id):
+    """One order as the duplicate panel shows it, or None when it does not exist."""
+    cur.execute('''SELECT so.id, so.order_number, so.customer_id, c.name AS customer, so.customer_po,
+                          so.state, so.state_reason, so.status, so.order_date, so.requested_ship_date,
+                          so.created_at, COALESCE(sof.ready, false) AS ready,
+                          CASE WHEN w.actor_id IS NOT NULL THEN COALESCE(NULLIF(w.operator_id, ''), a.name) END AS created_by
+                   FROM sales_orders so JOIN customers c ON c.id=so.customer_id
+                   LEFT JOIN sales_order_flags sof ON sof.so_number=so.order_number
+                   LEFT JOIN write_tickets w ON w.id=so.ticket_id
+                   LEFT JOIN actors a ON a.id=w.actor_id
+                   WHERE so.id=%s''', (order_id,))
+    row = cur.fetchone()
+    if not row:
+        return None
+    readiness, _ = api._load_sales_order_readiness(cur, [row])
+    order_readiness = readiness[row['id']]
+    cur.execute('''SELECT sol.product_id, p.name AS product, p.odoo_code AS sku, sol.quantity_lb,
+                          sol.ordered_quantity, sol.ordered_unit, sol.line_status
+                   FROM sales_order_lines sol JOIN products p ON p.id=sol.product_id
+                   WHERE sol.sales_order_id=%s ORDER BY sol.id''', (row['id'],))
+    lines = [{'product_id': r['product_id'], 'product': r['product'], 'sku': r['sku'],
+              'quantity_lb': float(r['quantity_lb']),
+              'quantity': float(r['ordered_quantity']) if r['ordered_quantity'] is not None else None,
+              'unit': r['ordered_unit'], 'line_status': r['line_status']} for r in cur.fetchall()]
+    created_date, created_time = api.format_timestamp(row['created_at'])
+    return {'order_id': row['id'], 'order_number': row['order_number'], 'customer_id': row['customer_id'],
+            'customer': row['customer'], 'customer_po': row['customer_po'], 'state': row['state'],
+            'state_reason': row['state_reason'], 'status': row['status'],
+            'order_date': str(row['order_date']) if row['order_date'] else None,
+            'requested_ship_date': str(row['requested_ship_date']) if row['requested_ship_date'] else None,
+            'created_at': row['created_at'].isoformat(), 'created_date': created_date,
+            'created_time': created_time, 'created_by': row['created_by'],
+            'fulfillment': api.derive_fulfillment(order_readiness),
+            'shipped_lb': float(order_readiness.get('shipped_effective_lb') or 0), 'lines': lines}
+
+
+def _line_signature(lines):
+    return sorted((l['product_id'], round(l['quantity_lb'], 3)) for l in lines if l['line_status'] != 'cancelled')
+
+
+def _po_key(value):
+    return ' '.join(value.split()).upper() if value and value.strip() else None
+
+
+def duplicate_candidates(api, cur, order):
+    """Same-customer, not-cancelled orders created within DUPLICATE_LOOKBACK_DAYS of this
+    one that share its customer PO or its exact lines. Best first: PO match, then line
+    match, then an order created before this one, then the closest in time."""
+    cur.execute('''SELECT so.id FROM sales_orders so
+                   WHERE so.customer_id=%s AND so.id<>%s AND so.state<>'cancelled'
+                     AND so.created_at BETWEEN %s::timestamptz - make_interval(secs => %s)
+                                           AND %s::timestamptz + make_interval(secs => %s)
+                   ORDER BY so.created_at, so.id''',
+                (order['customer_id'], order['order_id'], order['created_at'], DUPLICATE_LOOKBACK_DAYS * 86400,
+                 order['created_at'], DUPLICATE_LOOKBACK_DAYS * 86400))
+    ids = [r['id'] for r in cur.fetchall()]
+    po, signature = _po_key(order['customer_po']), _line_signature(order['lines'])
+    created = datetime.fromisoformat(order['created_at'])
+    found = []
+    for candidate_id in ids:
+        other = duplicate_summary(api, cur, candidate_id)
+        matches = []
+        if po and _po_key(other['customer_po']) == po:
+            matches.append('customer_po')
+        if signature and _line_signature(other['lines']) == signature:
+            matches.append('lines')
+        if not matches:
+            continue
+        other_created = datetime.fromisoformat(other['created_at'])
+        found.append(({**other, 'matches': matches},
+                      ('customer_po' not in matches, 'lines' not in matches, other_created > created,
+                       abs(other_created - created), other['order_id'])))
+    found.sort(key=lambda item: item[1])
+    return [item[0] for item in found[:5]]
+
+
 def no_po_warning():
     return {'code': 'NO_PO', 'requires_ack': False,
             'message': "This order has no customer PO; it will be flagged 'No PO'.",
@@ -780,6 +863,53 @@ def register_routes(app, api):
                     'reopen_note_required': reopen_note_required,
                     'statuses': api.MANUAL_TRANSITIONS.get(order['status'], [])
                                 if grants.get('update_order_status') else []}
+
+    @app.get('/sales/orders/{order_id}/duplicate-check')
+    def duplicate_check(request: Request, _: bool = Depends(api.verify_api_key),
+                        order_id: int = Depends(api.resolve_order_id), original: Optional[str] = None):
+        """Read-only facts for the "Cancel as duplicate" panel. Writes nothing and
+        decides nothing: the cancel itself is the cancel_order ticket, whose
+        prepare and commit apply the live cancel rules."""
+        with api.get_transaction() as cur:
+            order = duplicate_summary(api, cur, order_id)
+            if order is None:
+                fail(404, 'ORDER_NOT_FOUND', f'Order #{order_id} not found.')
+            reservations = api._preview_order_reservations(cur, order_id)
+            blockers = []
+            if order['state'] != 'open':
+                blockers.append({'code': 'ORDER_NOT_OPEN', 'message':
+                                 f"{order['order_number']} is already {order['state']}; only an open order can be cancelled."})
+            elif order['fulfillment'] != 'unshipped':
+                blockers.append({'code': 'ORDER_ALREADY_SHIPPED', 'message':
+                                 f"{order['order_number']} has recorded shipments ({_lb(order['shipped_lb'])}); "
+                                 'an order with shipped pounds cannot be cancelled. Close it instead.'})
+            candidates = duplicate_candidates(api, cur, order)
+            result = {'order': order, 'cancellable': not blockers, 'blockers': blockers,
+                      'reservations': {'count': len(reservations),
+                                       'quantity_lb': float(sum(r['quantity_lb'] for r in reservations))},
+                      'candidates': candidates, 'suggestion': candidates[0] if candidates else None,
+                      'window_days': DUPLICATE_LOOKBACK_DAYS}
+            if original:
+                chosen = None
+                cur.execute('SELECT id FROM sales_orders WHERE id::text=%s OR order_number=%s LIMIT 1',
+                            (original.strip(), original.strip()))
+                found = cur.fetchone()
+                if found:
+                    chosen = duplicate_summary(api, cur, found['id'])
+                if chosen is None:
+                    fail(404, 'RELATED_SO_NOT_FOUND', f'Order {original} was not found.')
+                problems = []
+                if chosen['order_id'] == order['order_id']:
+                    problems.append({'code': 'RELATED_SO_INVALID', 'blocks': True,
+                                     'message': 'An order cannot be a duplicate of itself. Choose the order that stays.'})
+                if chosen['state'] == 'cancelled':
+                    problems.append({'code': 'RELATED_SO_CANCELLED', 'blocks': True,
+                                     'message': f"{chosen['order_number']} is already cancelled. Choose the order that stays."})
+                if chosen['customer_id'] != order['customer_id']:
+                    problems.append({'code': 'DIFFERENT_CUSTOMER', 'blocks': False,
+                                     'message': f"{chosen['order_number']} is for {chosen['customer']}, not {order['customer']}."})
+                result['original'] = {**chosen, 'problems': problems}
+            return result
 
     er_tickets.register_routes(app, api, prepare)
     so_documents.register_routes(app, api, prepare)
