@@ -11,6 +11,45 @@
 - **File(s) changed:** `order_tickets.py`, `main.py`, `write_tickets.py`, `office.js`, `office-logic.js`, `dashboard.js`, `so-list-actions.js`, `ledger-forms.css`, `index.html`, `office.html`, `11 other dashboard pages (css v18)`, `ARCHITECTURE-MAP.md`, `FACTORY_LEDGER_CHANGELOG.md`, `routes.jsonl`, `openapi.jsonl`, `test_cancel_duplicate.py`, `test_named_actor_writes.py`, `test_office_ui.js`, `test_office_customer_ui.js`, `test_so_list_actions_ui.js`, `run-cancel-duplicate.mjs`
 - **What changed:** Branch feat/cancel-duplicate-order (PR #213, not merged), rebased on main f6eca2e (#214): one-step Cancel as duplicate from the order row/detail (open+unshipped only) into an Office panel with both orders side by side, suggested original (same customer, not cancelled, within 7 days, PO then identical lines), editable original, reason Duplicate, pre-filled note; one Confirm runs the existing cancel_order prepare+commit, stops if reservations changed, keeps the ticket if the answer is lost. Read-only GET /sales/orders/{id}/duplicate-check. _validate_state_reason refuses a cancelled original (RELATED_SO_CANCELLED). Office order pickers auto-select an exact SO code and mark a missing choice on the picker. Cache-bust: ledger-forms.css v18 everywhere (#214 took v17), office.js v10, office-logic.js v6, dashboard.js v87, so-list-actions.js v5. FACTORY_LEDGER_CHANGELOG row renumbered 290 -> 291 because #214 took 290. Codex cross-review fixes applied.
 - **Why:** Michael: cancelling duplicate SO-261116-004 took ~10 steps and an exact typed code silently failed with 'Choose a record'. Approved staging deploy 2026-11-16.
+## 2026-11-17 11:12 — Record PR 217 production deploy: daily reconciliation record checks (changelog row 294)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added changelog row 294 recording the PR 217 release (main 95c2919, backup 2026-11-17-pre-pr217, Railway FastAPI 7de3e6db and exceptions-sweep a853e8d8 SUCCESS, read-only dry run 0 new flags); row 293 annotated as merged and deployed
+- **Why:** Regression Guard step 4: record each production deploy
+
+---
+
+## 2026-11-17 11:07 — Reconciliation: accept explicit No lot on label receipts
+- **File(s) changed:** `reconciliation.py`, `test_daily_reconciliation.py`, `daily-reconciliation.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** RECEIVE_PROBLEM no longer alarms on a missing supplier lot code when staff explicitly chose No lot on label (lot identity_status unidentified or committed write ticket no_supplier_lot=true) and the receipt has its own FL lot code; blank, N/A, NA and UNKNOWN codes without that choice still alarm (N/A was previously counted as a real code); new test test_receive_no_lot_on_label; docs table and changelog row 293 updated
+- **Why:** Owner decision 2026-11-17 (Option B) on PR 217
+
+---
+
+## 2026-11-16 15:35 — Daily reconciliation: record checks (trace, exact add-up, receive, ship, entry shape, pack yield)
+- **File(s) changed:** `reconciliation.py`, `test_daily_reconciliation.py`, `daily-reconciliation.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** load_window reads ingredient_lot_consumption, trace_event_lots, shipment_lines and receive-lot supplier facts into data['integrity']; analyse adds alarm flags TRACE_MISSING, TRACE_MISMATCH, BALANCE_UNEXPLAINED, RECEIVE_PROBLEM, SHIP_MISMATCH, ENTRY_SHAPE, PACK_YIELD; email adds two What-we-checked lines; test kit writes the app's side records; 9 new tests; doc table; changelog row 293 (not merged, not deployed)
+- **Why:** Close the gaps from the read-only review of the nightly check; existing flags, tolerances and wording unchanged
+
+---
+
+## 2026-11-16 15:16 — Recorded PR 212 production deploy: Close order reason note optional (changelog row 292)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added row 292: PR 212 squash-merged as main 91a0906 after BACKUP OK 2026-11-16-pre-pr212; Railway FastAPI aa7c3394 SUCCESS, Netlify office.js v10 live; staging skipped by Michael during Railway incident N665TGD7.
+- **Why:** Regression Guard: record every production deploy.
+
+---
+
+## 2026-11-16 15:06 — Close order reason note made optional for every close reason (branch only, not deployed)
+- **File(s) changed:** `office.js`, `office.html`, `main.py`, `order_tickets.py`, `test_direct_order_close_guard.py`, `test_a6_review_fixes.py`, `run-office.mjs`, `check_direct_order_close_staging.py`
+- **What changed:** Office Close order form no longer requires the Reason note (Cancel order unchanged); office.js cache version bumped to v10 in office.html. Backend no longer refuses NOTE_REQUIRED for a shipped_not_recorded close in either the shared close policy (main.py) or the order ticket layer (order_tickets.py); a blank close note is stored as NULL in sales_orders.state_note and in the SHIPPED_NOT_RECORDED policy acknowledgement. Owner-only permission, cutoff and shipment gates unchanged; reopen note requirement unchanged. No migration (state_note is nullable, no CHECK). Tests updated; new prepare+commit test for each close reason with absent/null/empty note.
+- **Why:** Michael 2026-11-16: the Office Close order form blocked submission without a note. Reverses the note part of decision 41 (rows 202-203). Merged main (#214) into the branch.
+
+---
+
+## 2026-11-16 15:02 — Deployed PR 214 dashboard way-home navigation to production (changelog row 291)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Recorded the production release of PR #214: BACKUP OK at ~/Backups/fl/2026-11-16-pre-pr214, squash-merged to main f6eca2e, Netlify production verified byte-identical for receipt-shell.js, ledger-ticket.js, exceptions.js, ledger-forms.css and fl-assistant.css, Today's entries label intact, Railway untouched (/health 200). Added FACTORY_LEDGER_CHANGELOG row 291.
+- **Why:** Michael approved merge and deploy of PR 214 on 2026-11-16.
 
 ---
 

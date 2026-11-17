@@ -144,7 +144,7 @@ def check_browser(client, conn, keys, fixture, reference):
         ('unshipped-close', 'close', 'shipped_recorded', 'owner', 'before', None, 'SHIPMENT_REQUIRED'),
         ('after-cutoff-close', 'close', 'shipped_not_recorded', 'owner', 'on_or_after', 'Staging truck log', 'LEGACY_CLOSE_CUTOFF'),
         ('owner-only-close', 'close', 'shipped_not_recorded', 'office_session', 'before', 'Staging truck log', 'ROLE_NOT_ALLOWED'),
-        ('missing-note-close', 'close', 'shipped_not_recorded', 'owner_session', 'before', None, 'NOTE_REQUIRED'),
+        # missing-note-close removed 2026-11-16: the close note is optional for every reason (Michael).
         ('after-cutoff-reopen', 'reopen', None, 'owner_session', 'on_or_after', 'Staging correction', 'LEGACY_CLOSE_CUTOFF'),
         ('owner-only-reopen-master', 'reopen', None, 'master', 'before', 'Staging correction', 'ROLE_NOT_ALLOWED'),
         ('owner-only-reopen-session', 'reopen', None, 'office_session', 'before', 'Staging correction', 'ROLE_NOT_ALLOWED'),

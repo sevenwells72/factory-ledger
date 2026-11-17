@@ -174,7 +174,8 @@
     if(['close_order','cancel_order'].includes(action)){
       const reasons=action==='close_order'?[]:['customer_cancelled','cns_declined','duplicate','superseded','other'];
       select('reason','Reason','Motivo',reasons.map(x=>[x,...reasonText[x]])).required=true;
-      field('note','Reason note','Nota del motivo','textarea',true);
+      // Close order: the reason note is optional for every close reason (Michael, 2026-11-16).
+      field('note','Reason note','Nota del motivo','textarea',action==='cancel_order');
       if(action==='cancel_order')choices.related=picker(fields,'related','Related order (duplicate / replaced only)','Pedido relacionado (duplicado / reemplazado)','order');
     }
     if(action==='reopen_order')field('note','Reason note','Nota del motivo','textarea',true);
