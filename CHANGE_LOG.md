@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-17 11:47 — Record PR 213 production deploy: Cancel as duplicate (changelog row 296)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added row 296 recording the production release of PR #213 (main f0692da, Railway 76bee074, Netlify assets verified, backup 2026-11-17 BACKUP OK)
+- **Why:** Regression Guard: record every production deploy
+
+---
+
 ## 2026-11-17 11:33 — Block the second of two simultaneous reciprocal duplicate cancels (PR #213)
 - **File(s) changed:** `main.py`, `test_sales_order_state_model.py`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Cancel path now locks the order and its related order FOR NO KEY UPDATE, lowest id first, before checks (_load_so_for_state_change related_so_id); reciprocal no-deadlock test now requires exactly one cancel to win and the other to get 409 RELATED_SO_CANCELLED; changelog row 291 updated
