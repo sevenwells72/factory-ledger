@@ -45,7 +45,7 @@ test('unrecorded shipped close and exceptional reopen require notes; ordinary ex
   const legacy = { state: 'closed', state_reason: 'shipped_not_recorded' };
   assert.equal(ui.noteRequired({ state: 'open' }, 'close', 'shipped_not_recorded'), true);
   assert.equal(ui.noteRequired(legacy, 'reopen', ''), true);
-  assert.equal(ui.noteRequired({ state: 'open' }, 'cancel', 'other'), true);
+  for (const reason of ['customer_cancelled', 'cns_declined', 'duplicate', 'superseded', 'other']) assert.equal(ui.noteRequired({ state: 'open' }, 'cancel', reason), false);
   for (const reason of ['shipped_recorded', 'short_closed']) assert.equal(ui.noteRequired({ state: 'open' }, 'close', reason), false);
   for (const reason of ['shipped_recorded', 'short_closed', 'customer_cancelled', undefined]) {
     assert.equal(ui.noteRequired({ state: 'closed', state_reason: reason }, 'reopen', ''), false);

@@ -124,25 +124,40 @@ async function runChecks(page, variant) {
     assert.equal(test.refreshes, 1);
   });
 
-  await check('Other requires a nonblank note before any request', async () => {
+  // Michael, 2026-11-17: the reason is the only required cancel input.
+  for (const reason of ['customer_cancelled', 'cns_declined', 'duplicate', 'superseded', 'other']) {
+    await check(`${reason} cancels with the note and related SO left blank`, async () => {
+      await begin(page, 'cancel');
+      await page.getByLabel('Reason', { exact: true }).selectOption(reason);
+      const note = page.getByLabel('Note (optional)', { exact: true });
+      assert.equal(await note.getAttribute('required'), null);
+      const related = page.locator('#so-exit-related');
+      assert.equal(await related.getAttribute('required'), null);
+      assert.equal(await related.isVisible(), ['duplicate', 'superseded'].includes(reason));
+      await preview(page, 'cancel');
+      assert.equal(await page.getByRole('alert').isVisible(), false);
+      await commit(page, 'Cancel');
+      const calls = await page.evaluate(() => testState.calls);
+      assert.deepEqual(calls.map(call => call.url), ['/sales/orders/12/cancel', '/sales/orders/12/cancel']);
+      assert.deepEqual(calls.map(call => call.body), [
+        { note: null, reason, mode: 'preview' }, { note: null, reason, mode: 'commit' }]);
+    });
+  }
+
+  await check('A voluntary note is sent', async () => {
     await begin(page, 'cancel');
     await page.getByLabel('Reason', { exact: true }).selectOption('other');
-    await page.getByLabel('Note (required)', { exact: true }).fill('   ');
-    await preview(page, 'cancel');
-    assert.equal(await page.evaluate(() => testState.calls.length), 0);
-    await page.getByLabel('Note (required)', { exact: true }).fill('Requested by customer');
+    await page.getByLabel('Note (optional)', { exact: true }).fill('Requested by customer');
     await preview(page, 'cancel');
     assert.equal(await page.evaluate(() => testState.calls[0].body.note), 'Requested by customer');
     await dismiss(page);
   });
 
   for (const reason of ['duplicate', 'superseded']) {
-    await check(`${reason} requires a related SO and sends its resolved ID`, async () => {
+    await check(`${reason} sends a voluntary related SO's resolved ID`, async () => {
       await begin(page, 'cancel');
       await page.getByLabel('Reason', { exact: true }).selectOption(reason);
-      await preview(page, 'cancel');
-      assert.equal(await page.evaluate(() => testState.calls.length), 0);
-      await page.getByLabel('Related SO', { exact: true }).fill('SO-26-044');
+      await page.getByLabel('Related SO (optional)', { exact: true }).fill('SO-26-044');
       await preview(page, 'cancel');
       const calls = await page.evaluate(() => testState.calls);
       assert.equal(calls[0].url, '/sales/orders/SO-26-044');
@@ -160,7 +175,7 @@ async function runChecks(page, variant) {
     await check(`${scenario} is rejected in plain language before an exit request`, async () => {
       await begin(page, 'cancel', 'open', scenario);
       await page.getByLabel('Reason', { exact: true }).selectOption('duplicate');
-      await page.getByLabel('Related SO', { exact: true }).fill('SO-26-012');
+      await page.getByLabel('Related SO (optional)', { exact: true }).fill('SO-26-012');
       await preview(page, 'cancel');
       assert.equal(await page.evaluate(() => testState.calls.length), 1);
       assert.equal(await page.evaluate(() => testState.calls[0].body), null);

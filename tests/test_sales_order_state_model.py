@@ -553,15 +553,17 @@ def test_cancel_allowed_after_its_only_shipment_is_voided(db_cursor, client):
 
 
 @pytest.mark.db
-def test_reason_other_requires_a_note(db_cursor, client):
+def test_reason_other_no_longer_requires_a_note(db_cursor, client):
+    """Michael, 2026-11-17: the reason is the only required cancel input."""
     customer_id, token = _seed_customer(db_cursor)
     order_id, _ = _seed_order(db_cursor, customer_id, token)
+    other_id, _ = _seed_order(db_cursor, customer_id, token)
     resp = client.post(f"/sales/orders/{order_id}/cancel",
-                       json={"reason": "other", "mode": "commit"})
-    assert resp.status_code == 422, resp.text
-    assert resp.json()["detail"]["error_code"] == "STATE_NOTE_REQUIRED"
+                       json={"reason": "other", "note": "  ", "mode": "commit"})
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["state_note"] is None
 
-    ok = client.post(f"/sales/orders/{order_id}/cancel",
+    ok = client.post(f"/sales/orders/{other_id}/cancel",
                      json={"reason": "other", "note": "customer went bust",
                            "mode": "commit"})
     assert ok.status_code == 200, ok.text
@@ -570,17 +572,18 @@ def test_reason_other_requires_a_note(db_cursor, client):
 
 @pytest.mark.db
 @pytest.mark.parametrize("reason", ["duplicate", "superseded"])
-def test_duplicate_and_superseded_require_related_so_id(db_cursor, client, reason):
+def test_duplicate_and_superseded_take_an_optional_related_so_id(db_cursor, client, reason):
     customer_id, token = _seed_customer(db_cursor)
     order_id, _ = _seed_order(db_cursor, customer_id, token)
+    second_id, _ = _seed_order(db_cursor, customer_id, token)
     other_id, _ = _seed_order(db_cursor, customer_id, token)
 
-    missing = client.post(f"/sales/orders/{order_id}/cancel",
-                          json={"reason": reason, "mode": "commit"})
-    assert missing.status_code == 422, missing.text
-    assert missing.json()["detail"]["error_code"] == "RELATED_SO_REQUIRED"
+    blank = client.post(f"/sales/orders/{order_id}/cancel",
+                        json={"reason": reason, "mode": "commit"})
+    assert blank.status_code == 200, blank.text
+    assert blank.json()["related_so_id"] is None
 
-    ok = client.post(f"/sales/orders/{order_id}/cancel",
+    ok = client.post(f"/sales/orders/{second_id}/cancel",
                      json={"reason": reason, "related_so_id": other_id,
                            "mode": "commit"})
     assert ok.status_code == 200, ok.text
