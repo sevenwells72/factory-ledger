@@ -49,6 +49,8 @@ COCONUT_YIELD_PRODUCT_IDS = frozenset({125, 126, 127, 128})
 # The record checks (trace, receive, ship, exact add-up) allow no difference:
 # quantities are stored to 0.0001 lb. FLOAT_SLACK only absorbs float rounding.
 EXACT_LB = 0.0001
+# Supplier lot codes that mean "nothing was entered" (as lot_confirmation.unidentified treats them).
+BLANK_SUPPLIER_CODES = ('', 'N/A', 'NA', 'UNKNOWN')
 FLOAT_SLACK = 1e-9
 _TICK = timedelta(microseconds=1)               # the resolution of a Postgres timestamp
 EPS = 0.00005                                   # quantities are numeric(14,4)
@@ -187,6 +189,8 @@ def _load_integrity(cur, transactions, after, at):
                  (signed like transaction_lines: input < 0, output > 0).
     shipped:     shipment_lines pounds per (ship entry, product) (positive).
     supplier:    supplier lot facts of every lot a receive put stock into.
+    no_lot_choice: receives whose committed write ticket records an explicit
+                 "No lot on label" (payload no_supplier_lot = true).
     prior:       per (receive, lot): posted lines (as they stand at `at`) of OTHER
                  entries on that lot entered before the receive.
     """
@@ -211,10 +215,19 @@ def _load_integrity(cur, transactions, after, at):
     receive_lots = sorted({line['lot_id'] for line in after if line['transaction_id'] in live
                            and live[line['transaction_id']]['type'] == 'receive'})
     supplier = _rows(cur, """
-        SELECT l.id AS lot_id, l.supplier_lot_code, l.identity_status,
+        SELECT l.id AS lot_id, l.lot_code, l.supplier_lot_code, l.identity_status,
                EXISTS (SELECT 1 FROM lot_supplier_codes s WHERE s.lot_id = l.id
-                         AND btrim(COALESCE(s.supplier_lot_code, '')) <> '') AS has_supplier_codes
-        FROM lots l WHERE l.id = ANY(%(ids)s::integer[]) ORDER BY l.id""", {'ids': receive_lots})
+                         AND upper(btrim(COALESCE(s.supplier_lot_code, ''))) NOT IN %(blank)s) AS has_supplier_codes
+        FROM lots l WHERE l.id = ANY(%(ids)s::integer[]) ORDER BY l.id""",
+                     {'ids': receive_lots, 'blank': BLANK_SUPPLIER_CODES})
+    # Receipts whose committed write ticket says staff chose "No lot on label".
+    no_lot_choice = _rows(cur, """
+        SELECT DISTINCT (r.id)::integer AS transaction_id
+        FROM write_tickets w CROSS JOIN LATERAL jsonb_array_elements_text(
+                 COALESCE(w.result_ref->'transaction_ids', '[]'::jsonb)) AS r(id)
+        WHERE w.action = 'receive' AND w.status = 'committed'
+          AND w.payload->>'no_supplier_lot' = 'true'
+          AND (r.id)::integer = ANY(%(ids)s::integer[]) ORDER BY 1""", {'ids': receives}) if receives else []
     lot_lines = _rows(cur, """
         SELECT x.lot_id, x.transaction_id, t.created_at
         FROM (""" + _LINES_AT + """) x JOIN transactions t ON t.id = x.transaction_id
@@ -229,7 +242,8 @@ def _load_integrity(cur, transactions, after, at):
             if earlier:
                 prior.append({'transaction_id': receive, 'lot_id': lot, 'lines': len(earlier),
                               'first_transaction_id': earlier[0]['transaction_id']})
-    return {'consumption': consumption, 'trace': trace, 'shipped': shipped, 'supplier': supplier, 'prior': prior}
+    return {'consumption': consumption, 'trace': trace, 'shipped': shipped, 'supplier': supplier, 'prior': prior,
+            'no_lot_choice': no_lot_choice}
 
 
 def load_window(cur, start, end, *, opening_run_id=None, reconstruct=False):
@@ -967,6 +981,7 @@ def _check_records(data, after, transactions, lots, product_name, lot_parts, fla
     for row in integrity['shipped']:
         shipped[(row['transaction_id'], row['product_id'])] += row['quantity_lb']
     supplier = {row['lot_id']: row for row in integrity['supplier']}
+    no_lot_choice = {row['transaction_id'] for row in integrity.get('no_lot_choice') or ()}
     prior = {(row['transaction_id'], row['lot_id']): row for row in integrity['prior']}
 
     def lot_product(lot_id):
@@ -1075,15 +1090,23 @@ def _check_records(data, after, transactions, lots, product_name, lot_parts, fla
                                     f'before this receipt (first TX{earlier["first_transaction_id"]})')
                 facts = supplier.get(lot_id) or {}
                 code_on_label = (facts.get('supplier_lot_code') or '').strip()
+                if code_on_label.upper() in BLANK_SUPPLIER_CODES:
+                    code_on_label = ''
+                chosen = facts.get('identity_status') == 'unidentified' or tx['id'] in no_lot_choice
                 if not code_on_label and not facts.get('has_supplier_codes'):
-                    problems.append('no supplier lot code was recorded'
-                                    + (' (it was marked as having no lot on the label)'
-                                       if facts.get('identity_status') == 'unidentified' else ''))
+                    # Staff chose "No lot on label": the app marks the lot unidentified (and opens an
+                    # UNIDENTIFIED_LOT exception) or the receipt's ticket records no_supplier_lot. That is
+                    # accepted as long as the receipt still has its own Factory Ledger lot. A blank field
+                    # without that choice is still a problem.
+                    if not chosen:
+                        problems.append('no supplier lot code was recorded and "No lot on label" was not selected')
+                    elif not (facts.get('lot_code') or '').strip():
+                        problems.append('it was marked "No lot on label" but has no Factory Ledger lot code')
                 if problems:
                     flag('RECEIVE_PROBLEM', ALARM,
                          f'{product}, lot {code}: {entry} has a problem: {"; ".join(problems)}. {ask}',
                          facts=[f'Received: {lb(sum(line["quantity_lb"] for line in mine))}',
-                                f'Supplier lot: {code_on_label or "none"}'],
+                                f'Supplier lot: {code_on_label or ("No lot on label" if chosen else "none")}'],
                          refs=ref, summary=f'have the office check the receipt of {product}, lot {code}',
                          transaction_id=tx['id'], lot_id=lot_id, actual=sum(line['quantity_lb'] for line in mine),
                          problems=problems)

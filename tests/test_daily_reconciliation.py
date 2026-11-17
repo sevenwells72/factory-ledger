@@ -1460,11 +1460,55 @@ def test_receive_problem(kit):
     outcome = kit.run(night(0))
     flags = {f['transaction_id']: f for f in kit.flags(outcome, 'RECEIVE_PROBLEM')}
     assert sorted(flags) == sorted([no_code, reused, wrong]) and good not in flags
-    assert flags[no_code]['detail']['problems'] == ['no supplier lot code was recorded']
+    assert flags[no_code]['detail']['problems'] == [
+        'no supplier lot code was recorded and "No lot on label" was not selected']
     assert flags[reused]['detail']['problems'][0].startswith('the lot already had 1 stock entry before this receipt')
     assert flags[wrong]['detail']['problems'] == [
         'it records +0 lb, not a positive amount', f'it is booked as {kit.tag} Oats, but the lot is {kit.tag} Honey']
     assert all(f['severity'] == 'alarm' for f in flags.values())
+
+
+def _no_label_lot(kit, product, code='N/A'):
+    """A lot as the app leaves it after an explicit "No lot on label" receipt: unidentified, placeholder code."""
+    lot = kit.lot(product, code)
+    kit.cur.execute("UPDATE lots SET identity_status = 'unidentified' WHERE id = %s", (lot,))
+    return lot
+
+
+def _no_lot_ticket(kit, tx, chosen=True):
+    """A committed receive ticket for `tx`, with or without the explicit no_supplier_lot choice."""
+    payload = {'supplier_lot_code': 'N/A', **({'no_supplier_lot': True} if chosen else {})}
+    kit.cur.execute("""INSERT INTO write_tickets (ticket_hash, action, operator_id, key_kind, client_source, payload,
+                           payload_hash, state_hash, draft, status, expires_at, committed_at, result_ref)
+                       VALUES (%s, 'receive', 'test', 'legacy_dashboard', 'dashboard', %s, %s, %s, '{}', 'committed',
+                               now() + interval '1 hour', now(), %s)""",
+                    (f'{tx:064d}', json.dumps(payload), 'a' * 64, 'b' * 64,
+                     json.dumps({'transaction_ids': [tx]})))
+
+
+def test_receive_no_lot_on_label(kit):
+    kit.run(night(-1))
+    marked = _no_label_lot(kit, kit.oats)
+    by_status = kit.post('receive', [(marked, 500)], at(0, 8))             # chose it: lot marked unidentified
+    by_ticket = kit.post('receive', [(kit.lot(kit.nuts, None), 200)], at(0, 9))
+    _no_lot_ticket(kit, by_ticket)                                           # chose it: recorded on the ticket
+    blank = kit.post('receive', [(kit.lot(kit.oats, ''), 500)], at(0, 10))   # left blank, nothing chosen
+    placeholder = kit.post('receive', [(kit.lot(kit.oats, 'N/A'), 500)], at(0, 11))
+    unticked = kit.post('receive', [(kit.lot(kit.honey, 'n/a'), 100)], at(0, 12))
+    _no_lot_ticket(kit, unticked, chosen=False)                              # a ticket without the choice
+    reused = kit.post('receive', [(marked, 300)], at(0, 13))                 # chose it, but tops up an old lot
+    outcome = kit.run(night(0))
+    flags = {f['transaction_id']: f for f in kit.flags(outcome, 'RECEIVE_PROBLEM')}
+    assert by_status not in flags and by_ticket not in flags
+    assert sorted(flags) == sorted([blank, placeholder, unticked, reused])
+    missing = 'no supplier lot code was recorded and "No lot on label" was not selected'
+    for tx in (blank, placeholder, unticked):
+        assert flags[tx]['detail']['problems'] == [missing] and flags[tx]['severity'] == 'alarm'
+    # The choice excuses only the missing code: the receipt still needs its own Factory Ledger lot.
+    assert len(flags[reused]['detail']['problems']) == 1
+    assert flags[reused]['detail']['problems'][0].startswith('the lot already had 1 stock entry before this receipt')
+    assert 'Supplier lot: No lot on label' in flags[reused]['detail']['facts']
+    assert 'Supplier lot: none' in flags[blank]['detail']['facts']
 
 
 def test_ship_mismatch(kit):
