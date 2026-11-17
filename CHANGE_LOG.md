@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-17 12:11 — Cancel order: only the reason is required (note and related order optional)
+- **File(s) changed:** `main.py`, `office.js`, `office.html`, `so-list-actions.js`, `index.html`, `test_cancel_optional_fields.py`, `test_order_tickets.py`, `test_sales_order_state_model.py`, `test_so_list_actions_ui.js`, `test_office_customer_ui.js`, `run-so-exit-actions.mjs`, `run-cancel-optional.mjs`, `FACTORY_LEDGER_CHANGELOG.md`, `ARCHITECTURE-MAP.md`
+- **What changed:** Removed STATE_NOTE_REQUIRED and RELATED_SO_REQUIRED from _validate_state_reason (supplied related order still validated); blank cancel note stored as NULL; Office and order-detail cancel forms no longer require Reason note or Related order (unmatched typed related text is still flagged); office.js v12, so-list-actions.js v6; new Python and Playwright tests; changelog row 298; branch feat/cancel-optional-fields, not merged or deployed
+- **Why:** Michael 2026-11-17: an employee must be able to cancel an eligible order with only a reason, including Duplicate and Replaced
+
+---
+
 ## 2026-11-17 11:56 — Record SO-261116-004 cancelled as duplicate of SO-261116-001 in production (changelog row 297)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added row 297: production cancel of SO-261116-004 (reason duplicate, related SO-261116-001) via ticket ORD-261117-001 after BACKUP OK; -001 left open

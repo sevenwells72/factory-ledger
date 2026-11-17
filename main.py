@@ -4226,6 +4226,7 @@ class SalesOrderReadyFlagRequest(BaseModel):
 # The reason vocabularies themselves live on the request models below, so
 # FastAPI rejects an unknown reason before a handler runs and the DB CHECK in
 # migration 051 is the backstop rather than the first line of defence.
+# Reasons that MAY name a related order (optional since 2026-11-17).
 SO_RELATED_REQUIRED_REASONS = ('duplicate', 'superseded')
 
 SO_STATE_ATTRIBUTION_NOTE = (
@@ -14991,27 +14992,18 @@ def _shipped_close_reason(order: dict) -> str:
 
 
 def _validate_state_reason(reason: str, note, related_so_id, cur, order_id: int):
-    """reason='other' needs a note; duplicate/superseded need a real sibling SO.
+    """Check a voluntarily supplied related order; the reason is the only input.
+
+    The note and the related order are optional for every reason, duplicate and
+    superseded included (Michael, 2026-11-17, reversing the 'other needs a note'
+    and 'duplicate/superseded need related_so_id' rules). A related order that
+    IS supplied must still be a real, different order, only for duplicate or
+    superseded, and a duplicate's original must not be cancelled.
 
     Called identically from preview and commit, so a preview can never report
     success for a body the commit would reject.
     """
-    if reason == "other" and not (note or "").strip():
-        _so_state_error(
-            "STATE_NOTE_REQUIRED",
-            "reason 'other' requires a note explaining the exit",
-            status_code=422, order_id=order_id,
-        )
-
-    if reason in SO_RELATED_REQUIRED_REASONS:
-        if related_so_id is None:
-            _so_state_error(
-                "RELATED_SO_REQUIRED",
-                f"reason '{reason}' requires related_so_id — the order this one "
-                f"duplicates or was superseded by",
-                status_code=422, order_id=order_id,
-            )
-    elif related_so_id is not None:
+    if related_so_id is not None and reason not in SO_RELATED_REQUIRED_REASONS:
         # Accepting it silently for, say, customer_cancelled would store a
         # relationship nothing renders and nothing means.
         _so_state_error(
@@ -15354,9 +15346,11 @@ def _cancel_sales_order_core(cur, request, order_id: int, req):
 
     released = _release_order_reservations(
         cur, order_id, "order_cancelled", caller_source_tag(request))
+    # The cancel note is optional; a blank one is stored as NULL.
+    cancel_note = req.note if (req.note or "").strip() else None
     updated = _apply_state_change(
         cur, order, state="cancelled", reason=req.reason,
-        note=req.note, related_so_id=req.related_so_id,
+        note=cancel_note, related_so_id=req.related_so_id,
         changed_by=changed_by)
     logger.info(
         f"Order {updated['order_number']} cancelled ({req.reason}); "

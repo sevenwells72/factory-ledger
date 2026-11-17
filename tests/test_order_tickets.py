@@ -431,8 +431,9 @@ def test_cancel_close_and_reopen_follow_the_matrix(client, db_cursor, catalog, a
     owner = actors['owner']['key']
     order = create_order(client, catalog, office(actors))
     base = f"/sales/orders/{order['order_id']}"
+    # Only the reason is required, 'other' included (Michael, 2026-11-17).
     prepared = prepare(client, base + '/cancel/prepare', {'reason': 'other'}, office(actors))
-    assert prepared['blockers'][0]['code'] == 'STATE_NOTE_REQUIRED'
+    assert prepared['blockers'] == [] and prepared['can_commit']
     prepared = prepare(client, base + '/cancel/prepare', {'reason': 'other', 'note': 'typed twice'}, office(actors))
     assert prepared['draft']['summary'] == f"Cancel {order['order_number']} (Ticket customer {catalog['suffix']}) (other)"
     assert order_row(db_cursor, order['order_id'])['state'] == 'open'

@@ -20,9 +20,10 @@
   const PAST = { close: ['closed', 'cerrado'], cancel: ['cancelled', 'cancelado'], reopen: ['reopened', 'reabierto'] };
   const pick = (en, es, lang) => lang === 'es' ? es : en;
 
+  // Cancel: the reason is the only required input. The note and the related SO
+  // are optional for every cancel reason (Michael, 2026-11-17).
   function noteRequired(order, action, reason) {
-    return (action === 'cancel' && reason === 'other')
-      || (action === 'close' && reason === 'shipped_not_recorded')
+    return (action === 'close' && reason === 'shipped_not_recorded')
       || (action === 'reopen' && order.state === 'closed' && order.state_reason === 'shipped_not_recorded');
   }
 
@@ -145,7 +146,7 @@
     reasonGroup.append(reasonLabel, reason);
 
     const relatedGroup = element('div', 'so-exit-field');
-    const relatedLabel = element('label', '', t('Related SO', 'SO relacionado'));
+    const relatedLabel = element('label', '', t('Related SO (optional)', 'SO relacionado (opcional)'));
     relatedLabel.htmlFor = 'so-exit-related';
     const related = element('input');
     related.id = 'so-exit-related';
@@ -221,10 +222,10 @@
     }
 
     function updateConditionalFields() {
-      const needsRelated = action === 'cancel' && ['duplicate', 'superseded'].includes(reason.value);
-      relatedGroup.hidden = !needsRelated;
-      related.required = needsRelated;
-      related.disabled = !needsRelated || busy;
+      const showRelated = action === 'cancel' && ['duplicate', 'superseded'].includes(reason.value);
+      relatedGroup.hidden = !showRelated;
+      related.required = false;
+      related.disabled = !showRelated || busy;
       note.required = noteRequired(order, action, reason.value);
       noteLabel.textContent = note.required ? t('Note (required)', 'Nota (obligatoria)') : t('Note (optional)', 'Nota (opcional)');
     }
@@ -267,7 +268,7 @@
 
     async function performPreview() {
       if (busy || committed) return;
-      related.setCustomValidity(related.required && !related.value.trim() ? t('Enter the related SO number.', 'Ingresa el número del SO relacionado.') : '');
+      related.setCustomValidity('');
       const missingNote = note.required && !note.value.trim();
       note.setCustomValidity(missingNote ? noteMessage(action, reason.value, lang) : '');
       if (missingNote) showError({ detail: { error_code: 'NOTE_REQUIRED' } }, 'preview');
@@ -282,7 +283,7 @@
       try {
         const payload = { note: note.value.trim() || null };
         if (action !== 'reopen') payload.reason = reason.value;
-        if (related.required) {
+        if (!relatedGroup.hidden && related.value.trim()) {
           context = 'related';
           const target = await options.request(`/sales/orders/${encodeURIComponent(related.value.trim())}`);
           const targetId = Number(target.order_id || target.id);

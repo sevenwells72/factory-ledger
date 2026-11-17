@@ -402,3 +402,35 @@ test('typing an original while the duplicate is still loading does not lose the 
  const confirm=h.find(n=>n.dataset.duplicateConfirm!==undefined);
  assert.equal(confirm.disabled,false);assert.equal(confirm.textContent,'Confirm: cancel SO-261116-004 as a duplicate of SO-261116-001');
 });
+
+// Cancel order: only the reason is required (Michael, 2026-11-17).
+async function cancelWithRelated(related,reason='duplicate'){
+ const h=await harness({permissions:{cancel_order:true}});orderResolver(h);await officeAction(h,'cancel_order');
+ await h.search('order','SO-261116-004');await flush();
+ h.find(n=>n.name==='reason').value=reason;
+ assert.equal(h.find(n=>n.name==='note').required,false,'Reason note is optional');
+ const input=h.find(n=>n.tag==='input',h.find(n=>n.dataset.picker==='related'));
+ if(related!==undefined)input.value=related;
+ await h.byId('office-form').onsubmit({preventDefault(){}});await flush();
+ return h;
+}
+test('cancel order prepares with the reason alone for every reason, related order and note blank',async()=>{
+ for(const reason of ['customer_cancelled','cns_declined','duplicate','superseded','other']){
+  const h=await cancelWithRelated(undefined,reason);
+  assert.equal(h.failures.length,0,reason);assert.equal(h.tickets.length,1,reason);
+  assert.equal(h.tickets[0].path,'/sales/orders/44/cancel/prepare');
+  assert.equal(h.tickets[0].body.reason,reason);
+  assert.equal('related_so_id' in h.tickets[0].body,false,reason);
+  assert.notEqual(h.find(n=>n.tag==='input',h.find(n=>n.dataset.picker==='related'))['aria-invalid'],'true',reason);
+ }
+});
+test('typed related order text that was never matched is flagged, not silently dropped',async()=>{
+ const h=await cancelWithRelated('SO-NOT-FOUND');
+ assert.equal(h.tickets.length,0,'nothing prepared');
+ assert.equal(h.failures.length,1);
+ assert.match(String(h.failures[0].message),/related order/i);
+ assert.equal(h.find(n=>n.tag==='input',h.find(n=>n.dataset.picker==='related'))['aria-invalid'],'true');
+ // Clearing the text lets the cancel prepare with the reason alone.
+ const cleared=await cancelWithRelated('   ');
+ assert.equal(cleared.tickets.length,1);assert.equal('related_so_id' in cleared.tickets[0].body,false);
+});

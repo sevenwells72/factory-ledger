@@ -174,9 +174,10 @@
     if(['close_order','cancel_order'].includes(action)){
       const reasons=action==='close_order'?[]:['customer_cancelled','cns_declined','duplicate','superseded','other'];
       select('reason','Reason','Motivo',reasons.map(x=>[x,...reasonText[x]])).required=true;
-      // Close order: the reason note is optional for every close reason (Michael, 2026-11-16).
-      field('note','Reason note','Nota del motivo','textarea',action==='cancel_order');
-      if(action==='cancel_order')choices.related=picker(fields,'related','Related order (duplicate / replaced only)','Pedido relacionado (duplicado / reemplazado)','order');
+      // Close and cancel: only the reason is required. The reason note (every close reason, Michael 2026-11-16;
+      // every cancel reason, Michael 2026-11-17) and the related order (duplicate / replaced) are optional.
+      field('note','Reason note (optional)','Nota del motivo (opcional)','textarea');
+      if(action==='cancel_order')choices.related=picker(fields,'related','Related order (optional; duplicate / replaced only)','Pedido relacionado (opcional; duplicado / reemplazado)','order');
     }
     if(action==='reopen_order')field('note','Reason note','Nota del motivo','textarea',true);
     if(['create_expected_receipt','approve_er'].includes(action)){
@@ -261,7 +262,9 @@
         const v=values(),conversions=[];
         if(action==='create_expected_receipt'&&v.expected_unit==='cases')v.expected_qty=logic.expectedPounds(v.expected_cases,v.expected_case_size);
         const required={order:orderAction,customer:['create_order','approve_so'].includes(action),supplier:['create_expected_receipt','approve_er'].includes(action),product:action==='create_expected_receipt',
-          related:action==='cancel_order'&&['duplicate','superseded'].includes(v.reason)};
+          // Related order is optional (Michael, 2026-11-17), but typed text that was never matched to an order must be
+          // resolved or cleared — never silently dropped from the cancel.
+          related:action==='cancel_order'&&!!choices.related?.input.value.trim()};
         for(const [name,needed] of Object.entries(required))if(needed&&choices[name]&&!choices[name].value)missingChoice(choices[name],name);
         for(const name of ['customer','supplier','product','order'])if(choices[name]?.value)v[name+'_id']=choices[name].id();
         if(choices.related?.value)v.related_so_id=choices.related.id();
