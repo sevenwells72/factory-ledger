@@ -261,7 +261,10 @@
       try{
         const v=values(),conversions=[];
         if(action==='create_expected_receipt'&&v.expected_unit==='cases')v.expected_qty=logic.expectedPounds(v.expected_cases,v.expected_case_size);
-        const required={order:orderAction,customer:['create_order','approve_so'].includes(action),supplier:['create_expected_receipt','approve_er'].includes(action),product:action==='create_expected_receipt'};
+        const required={order:orderAction,customer:['create_order','approve_so'].includes(action),supplier:['create_expected_receipt','approve_er'].includes(action),product:action==='create_expected_receipt',
+          // Related order is optional (Michael, 2026-11-17), but typed text that was never matched to an order must be
+          // resolved or cleared — never silently dropped from the cancel.
+          related:action==='cancel_order'&&!!choices.related?.input.value.trim()};
         for(const [name,needed] of Object.entries(required))if(needed&&choices[name]&&!choices[name].value)missingChoice(choices[name],name);
         for(const name of ['customer','supplier','product','order'])if(choices[name]?.value)v[name+'_id']=choices[name].id();
         if(choices.related?.value)v.related_so_id=choices.related.id();
