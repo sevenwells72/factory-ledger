@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-17 11:56 — Record SO-261116-004 cancelled as duplicate of SO-261116-001 in production (changelog row 297)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added row 297: production cancel of SO-261116-004 (reason duplicate, related SO-261116-001) via ticket ORD-261117-001 after BACKUP OK; -001 left open
+- **Why:** Owner request 2026-11-17; record every production data change
+
+---
+
 ## 2026-11-17 11:47 — Record PR 213 production deploy: Cancel as duplicate (changelog row 296)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added row 296 recording the production release of PR #213 (main f0692da, Railway 76bee074, Netlify assets verified, backup 2026-11-17 BACKUP OK)
