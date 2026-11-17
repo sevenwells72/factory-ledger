@@ -14885,14 +14885,34 @@ def _so_state_error(code: str, message: str, status_code: int = 400, **extra):
     raise HTTPException(status_code=status_code, detail=detail)
 
 
-def _load_so_for_state_change(cur, order_id: int) -> dict:
+def _load_so_for_state_change(cur, order_id: int, related_so_id=None) -> dict:
     """Lock the order row, then return it with its derived fulfillment.
+
+    With related_so_id (cancel as duplicate), the partner order's row is locked
+    too, FOR NO KEY UPDATE and always lowest id first. Two simultaneous
+    reciprocal cancels (A as a duplicate of B, B as a duplicate of A) therefore
+    queue on the same first row instead of deadlocking, and the second one's
+    check sees the first one's committed cancel and is refused
+    (RELATED_SO_CANCELLED), so one of the pair always stays.
 
     FOR NO KEY UPDATE, taken before any line or product/lot lock — the head of
     the normative lock order that ship_order_commit and the allocation path
     also follow. Every state decision below is made against THIS locked read,
     so a concurrent ship cannot land between the check and the write.
     """
+    try:
+        partner = int(related_so_id) if related_so_id is not None else None
+    except (TypeError, ValueError):
+        partner = None  # the validator reports the bad value
+    if partner == int(order_id):
+        partner = None  # RELATED_SO_INVALID, reported by the validator
+
+    def _lock_partner():
+        cur.execute("SELECT id FROM sales_orders WHERE id = %s FOR NO KEY UPDATE",
+                    (partner,))
+
+    if partner is not None and partner < order_id:
+        _lock_partner()
     cur.execute(
         """SELECT so.id, so.order_number, so.status, so.state, so.state_reason,
                   so.status_before_exit, so.requested_ship_date, so.created_at,
@@ -14907,6 +14927,8 @@ def _load_so_for_state_change(cur, order_id: int) -> dict:
     if not row:
         _so_state_error("ORDER_NOT_FOUND", f"Order #{order_id} not found",
                         status_code=404, order_id=order_id)
+    if partner is not None and partner > order_id:
+        _lock_partner()
     readiness_by_order, _lines = _load_sales_order_readiness(cur, [row])
     readiness = readiness_by_order[row["id"]]
     order = dict(row)
@@ -15009,10 +15031,10 @@ def _validate_state_reason(reason: str, note, related_so_id, cur, order_id: int)
             status_code=400, order_id=order_id,
         )
     # A duplicate must point at the order that stays, so an already-cancelled
-    # original is refused. Deliberately a plain read, no row lock: locking the
-    # partner here would deadlock two simultaneous reciprocal cancels, which
-    # TestNoDeadlock::test_reciprocal_duplicate_cancellations_do_not_deadlock
-    # pins as completing. Only that truly simultaneous case can still land both.
+    # original is refused. A plain read here: the cancel path has already locked
+    # both rows lowest id first (_load_so_for_state_change), so a simultaneous
+    # reciprocal cancel waits and then reads the committed state. Locking here,
+    # after our own row, would deadlock that pair (TestNoDeadlock pins it).
     cur.execute("SELECT id, order_number, state FROM sales_orders WHERE id = %s",
                 (related_so_id,))
     related = cur.fetchone()
@@ -15284,7 +15306,7 @@ def _cancel_sales_order_core(cur, request, order_id: int, req):
     """A7 hook: the state-change handler body, verbatim (preview and commit), on
     the caller's cursor — shared by the direct route and the matching order
     ticket. Permission checks stay with the callers."""
-    order = _load_so_for_state_change(cur, order_id)
+    order = _load_so_for_state_change(cur, order_id, related_so_id=req.related_so_id)
     if order["state"] != "open":
         _so_state_error(
             "ORDER_NOT_OPEN",
