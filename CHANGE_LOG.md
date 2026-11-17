@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-17 11:12 — Record PR 217 production deploy: daily reconciliation record checks (changelog row 294)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added changelog row 294 recording the PR 217 release (main 95c2919, backup 2026-11-17-pre-pr217, Railway FastAPI 7de3e6db and exceptions-sweep a853e8d8 SUCCESS, read-only dry run 0 new flags); row 293 annotated as merged and deployed
+- **Why:** Regression Guard step 4: record each production deploy
+
+---
+
 ## 2026-11-17 11:07 — Reconciliation: accept explicit No lot on label receipts
 - **File(s) changed:** `reconciliation.py`, `test_daily_reconciliation.py`, `daily-reconciliation.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** RECEIVE_PROBLEM no longer alarms on a missing supplier lot code when staff explicitly chose No lot on label (lot identity_status unidentified or committed write ticket no_supplier_lot=true) and the receipt has its own FL lot code; blank, N/A, NA and UNKNOWN codes without that choice still alarm (N/A was previously counted as a real code); new test test_receive_no_lot_on_label; docs table and changelog row 293 updated
