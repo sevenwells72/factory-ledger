@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-17 12:22 — Record PR 221 production deploy: Cancel order needs only the reason (changelog row 299)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added row 299: #221 squash-merged as cf3a6dc after BACKUP OK 2026-11-17-pre-pr221; Railway e94f203f SUCCESS, /health 200; Netlify office.js v12 and so-list-actions.js v6 identical to main; live preview-only duplicate cancel with no related/note returned 200 and left SO-261102-004 open
+- **Why:** Michael approved going straight to production (staging skipped)
+
+---
+
 ## 2026-11-17 12:11 — Cancel order: only the reason is required (note and related order optional)
 - **File(s) changed:** `main.py`, `office.js`, `office.html`, `so-list-actions.js`, `index.html`, `test_cancel_optional_fields.py`, `test_order_tickets.py`, `test_sales_order_state_model.py`, `test_so_list_actions_ui.js`, `test_office_customer_ui.js`, `run-so-exit-actions.mjs`, `run-cancel-optional.mjs`, `FACTORY_LEDGER_CHANGELOG.md`, `ARCHITECTURE-MAP.md`
 - **What changed:** Removed STATE_NOTE_REQUIRED and RELATED_SO_REQUIRED from _validate_state_reason (supplied related order still validated); blank cancel note stored as NULL; Office and order-detail cancel forms no longer require Reason note or Related order (unmatched typed related text is still flagged); office.js v12, so-list-actions.js v6; new Python and Playwright tests; changelog row 298; branch feat/cancel-optional-fields, not merged or deployed
