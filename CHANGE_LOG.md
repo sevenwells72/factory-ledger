@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-11-17 11:07 — Reconciliation: accept explicit No lot on label receipts
+- **File(s) changed:** `reconciliation.py`, `test_daily_reconciliation.py`, `daily-reconciliation.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** RECEIVE_PROBLEM no longer alarms on a missing supplier lot code when staff explicitly chose No lot on label (lot identity_status unidentified or committed write ticket no_supplier_lot=true) and the receipt has its own FL lot code; blank, N/A, NA and UNKNOWN codes without that choice still alarm (N/A was previously counted as a real code); new test test_receive_no_lot_on_label; docs table and changelog row 293 updated
+- **Why:** Owner decision 2026-11-17 (Option B) on PR 217
+
+---
+
+## 2026-11-16 15:35 — Daily reconciliation: record checks (trace, exact add-up, receive, ship, entry shape, pack yield)
+- **File(s) changed:** `reconciliation.py`, `test_daily_reconciliation.py`, `daily-reconciliation.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** load_window reads ingredient_lot_consumption, trace_event_lots, shipment_lines and receive-lot supplier facts into data['integrity']; analyse adds alarm flags TRACE_MISSING, TRACE_MISMATCH, BALANCE_UNEXPLAINED, RECEIVE_PROBLEM, SHIP_MISMATCH, ENTRY_SHAPE, PACK_YIELD; email adds two What-we-checked lines; test kit writes the app's side records; 9 new tests; doc table; changelog row 293 (not merged, not deployed)
+- **Why:** Close the gaps from the read-only review of the nightly check; existing flags, tolerances and wording unchanged
+
+---
+
 ## 2026-11-16 15:16 — Recorded PR 212 production deploy: Close order reason note optional (changelog row 292)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added row 292: PR 212 squash-merged as main 91a0906 after BACKUP OK 2026-11-16-pre-pr212; Railway FastAPI aa7c3394 SUCCESS, Netlify office.js v10 live; staging skipped by Michael during Railway incident N665TGD7.
