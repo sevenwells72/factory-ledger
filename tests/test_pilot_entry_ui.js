@@ -180,7 +180,7 @@ test('failed form photo type change preserves the original attachment and restor
   const h=await harness('receive');await h.pick('product');await h.pick('supplier');const photo=h.field('entry_photo'),type=h.field('entry_photo_kind');photo.files=[{name:'label.png'}];await photo.onchange();h.setUpload(async()=>{throw Error('offline');});type.value='bol';await type.onchange();assert.equal(type.value,'lot_tag');h.submit();assert.deepEqual(plain(h.tickets[0].options.initialAttachment),{attachment_id:88,kind:'lot_tag'});assert.equal(h.tickets[0].options.photoKind,'lot_tag');
 });
 test('changing languages refreshes selected records and attached photo status while keeping form values',async()=>{
-  const h=await harness('receive');await h.pick('product');await h.pick('supplier');h.field('note').value='Keep this note';const photo=h.field('entry_photo');photo.files=[{name:'label.png'}];await photo.onchange();h.switchLanguage('es');assert.ok(h.find(node=>node.textContent==='Seleccionado: product'));assert.ok(h.find(node=>node.textContent==='Foto adjunta — incluida con el borrador y el recibo.'));assert.equal(h.field('note').value,'Keep this note');h.switchLanguage('en');assert.ok(h.find(node=>node.textContent==='Selected: product'));assert.ok(h.find(node=>node.textContent==='Photo attached — included with the draft and receipt.'));assert.equal(h.uploads.length,1);
+  const h=await harness('receive');await h.pick('product');await h.pick('supplier');h.field('note').value='Keep this note';const photo=h.field('entry_photo');photo.files=[{name:'label.png'}];await photo.onchange();h.switchLanguage('es');assert.ok(h.find(node=>node.textContent==='Seleccionado: product · ID 1561'));assert.ok(h.find(node=>node.textContent==='Foto adjunta — incluida con el borrador y el recibo.'));assert.equal(h.field('note').value,'Keep this note');h.switchLanguage('en');assert.ok(h.find(node=>node.textContent==='Selected: product · ID 1561'));assert.ok(h.find(node=>node.textContent==='Photo attached — included with the draft and receipt.'));assert.equal(h.uploads.length,1);
 });
 test('changing languages refreshes selected batch status without changing the selected source lot',async()=>{
   const h=await harness('pack');await h.pick('source');h.find(node=>node.dataset.recentLot==='12').onclick();h.switchLanguage('es');assert.ok(h.find(node=>node.textContent==='Lote seleccionado: PACK261019-001'));h.switchLanguage('en');assert.ok(h.find(node=>node.textContent==='Selected batch: PACK261019-001'));await h.pick('target');h.field('cases').value='4';h.submit();assert.deepEqual(h.tickets[0].body.lot_allocations,[{lot_id:12,quantity_lb:100}]);
@@ -275,7 +275,22 @@ for(const language of ['en','es'])test(`make product autocomplete lists recipe p
   input.value='9';input.oninput();assert.equal(queries.length,1);await h.runTimers();assert.deepEqual(queries,['','9']);
   const options=h.find(node=>node.className==='picker-options',scope).children;assert.equal(options.length,2);assert.equal(options[0].role,'option');
   assert.match(options[0].textContent,language==='es'?/323 lb por bandeja/:/323 lb per pan/);assert.equal(options[1].children[0].textContent,'EXTRA-KOSHER');
-  await options[0].onclick();assert.equal(input.value,'Batch Classic Granola #9 (90002)');h.field('batches').value='2';h.submit();assert.deepEqual(h.failures,[]);assert.equal(h.tickets[0].body.product_id,107);
+  assert.match(options[0].textContent,/^Batch Classic Granola #9 \(90002\) · ID 107 · /);
+  await options[0].onclick();assert.equal(input.value,'Batch Classic Granola #9 (90002) · ID 107');h.field('batches').value='2';h.submit();assert.deepEqual(h.failures,[]);assert.equal(h.tickets[0].body.product_id,107);
+});
+for(const language of ['en','es'])test(`TRIAL items carry a distinct tag and every product choice shows its ID in ${language}`,async()=>{
+  const h=await harness('make',language),scope=h.find(node=>node.dataset.picker==='product'),input=h.find(node=>node.tag==='input',scope);
+  h.setResolver(()=>({products:[{id:114,name:'Batch SS Chocolate Chip Granola #2',label:'Batch SS Chocolate Chip Granola #2 (90011)',default_batch_lb:'393.0000',kosher_tier:'regular'},{id:295,name:'Batch SS Chocolate Chip Granola #2 — TRIAL',label:'Batch SS Chocolate Chip Granola #2 — TRIAL',default_batch_lb:'388.0000',kosher_tier:'regular'}],has_more:false}));
+  input.value='ss choc';input.oninput();await h.runTimers();
+  const options=h.find(node=>node.className==='picker-options',scope).children;
+  assert.match(options[0].textContent,/ · ID 114 · /);assert.notEqual(options[0].className,'trial-choice');assert.equal(options[0].children.length,0);
+  assert.match(options[1].textContent,/ · ID 295 · /);assert.equal(options[1].className,'trial-choice');assert.equal(options[1].children[0].className,'trial-tag');assert.equal(options[1].children[0].textContent,language==='es'?'PRUEBA':'TRIAL');
+});
+test('Pack target choices show the product ID and tag a TRIAL case',async()=>{
+  const h=await harness('pack');h.setResolver(body=>body.context.product_id?{outcome:'match',match:{id:296,name:'Granola SS Chocolate Chip 32x10 OZ Case — TRIAL',label:'Granola SS Chocolate Chip 32x10 OZ Case — TRIAL'}}:{outcome:'match',match:{id:295,name:'Batch SS Chocolate Chip Granola #2 — TRIAL',label:'Batch SS Chocolate Chip Granola #2 — TRIAL'}});
+  await h.pick('source');const scope=h.find(node=>node.dataset.picker==='target');h.find(node=>node.tag==='input',scope).value='ss';await h.find(node=>node.tag==='button',scope).onclick();
+  const option=h.find(node=>node.className==='picker-options',scope).children[0];
+  assert.equal(option.textContent.startsWith('Granola SS Chocolate Chip 32x10 OZ Case — TRIAL · ID 296'),true);assert.equal(option.children[0].textContent,'TRIAL');
 });
 test('make search with no recipe match explains how to search',async()=>{
   const h=await harness('make'),scope=h.find(node=>node.dataset.picker==='product');h.setResolver(()=>({products:[],has_more:false}));
