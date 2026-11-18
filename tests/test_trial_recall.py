@@ -920,6 +920,21 @@ def test_the_recall_follows_a_form_lot_written_without_its_sequence_number(plant
     assert 'The Form gives the lot without its sequence number; it is the only FL receipt that fits.' in email['text']
 
 
+@pytest.mark.db
+def test_backward_evidence_tied_by_lot_and_date_only_is_unverified(plant):
+    chain = plant.chain()
+    # The Form's wording does not confirm the sugar; the row is linked to the receipt by lot and date.
+    read = sheet(plant.form_row(chain['on'], chain['sugar_lot'], ['Azucar morena-50lbs-225']))
+    analysis, _ = drill(plant, read)
+    backward = analysis['backward']
+    receipt, = backward['ingredients'][0]['receipts']
+    assert receipt['form_rows'][0]['basis']['product'] == 'not_confirmed'
+    assert receipt['evidence'] == 'Form row and BOL photo on file; product wording not confirmed'
+    assert backward['evidence_result'] == 'unverified' and backward['result'] == 'unverified'
+    assert any('the product wording on the Form does not confirm it' in note for note in backward['notes'])
+    assert analysis['full_recall_possible'] == 'yes'                    # the trail itself is whole
+
+
 # ───────────────────────── strictly read-only on the ledger ─────────────────────────
 
 @pytest.mark.db

@@ -366,8 +366,10 @@ def match_row(row, index, matcher, tolerance=DATE_TOLERANCE_DAYS):
         return result([], ['The Form row has no internal lot number.'])
     if not row['products']:
         return result([], ['The Form row names no product.'])
-    near, far, short_lines = [], [], set()
+    near, far, short_lines, unresolved = [], [], set(), []
     for lot in row['lots']:
+        found_near = len(near)
+        found_far = len(far)
         candidates = index.get(lot_key(lot), [])
         if not candidates:
             # The Form often leaves off the lot's trailing sequence number (261113DUTC for
@@ -378,12 +380,19 @@ def match_row(row, index, matcher, tolerance=DATE_TOLERANCE_DAYS):
         for line in candidates:
             days = (line['business_date'] - row['submitted_date']).days
             (near if abs(days) <= tolerance else far).append((line, days))
+        if len(near) == found_near:
+            # This lot code led to no receipt near the Form date. Kept, with its reason, even when
+            # another lot on the same row matches: a partly recorded delivery must not look complete.
+            if len(far) > found_far:
+                unresolved.extend(f'Lot {line["lot_code"]} is on FL receipt {_receipt_name(line)} dated '
+                                  f'{line["business_date"].isoformat()}, {abs(days)} days from the Form date '
+                                  f'{row["submitted_date"].isoformat()}.' for line, days in far[found_far:])
+            else:
+                unresolved.append(f'No FL receipt uses lot {lot}.')
     if not near:
-        if far:
-            return result([], [f'Lot {line["lot_code"]} is on FL receipt {_receipt_name(line)} dated '
-                               f'{line["business_date"].isoformat()}, {abs(days)} days from the Form date '
-                               f'{row["submitted_date"].isoformat()}.' for line, days in far])
-        return result([], ['No FL receipt uses lot ' + ', '.join(row['lots']) + '.'])
+        if not far and len(row['lots']) > 1:
+            return result([], ['No FL receipt uses lot ' + ', '.join(row['lots']) + '.'])
+        return result([], unresolved)
     # 1. Confident fits: the Form wording names the FL product.
     fits, fitted_lines = {}, set()
     for line, days in near:
@@ -445,7 +454,7 @@ def match_row(row, index, matcher, tolerance=DATE_TOLERANCE_DAYS):
                            f'{", ".join(e["text"] for e in row["products"])}.')
         for entry in open_entries:
             reasons.append(f'No FL receipt was found for "{entry["text"]}".')
-    return result(links, reasons)
+    return result(links, reasons + unresolved)
 
 
 def start_date(env=None):

@@ -186,6 +186,19 @@ def test_a_form_lot_without_its_sequence_number_is_the_same_lot_when_exactly_one
     assert outcome['links'] == [] and outcome['reasons'] == ['No FL receipt uses lot 261113DUT.']
 
 
+def test_a_lot_on_the_row_with_no_receipt_is_listed_even_when_another_lot_matches():
+    outcome = match(form_row(day(1), 'L-1, L-9', ['Sugar-50lbs-10']), line(7, 70, 'L-1', 1, day(1)))
+    assert outcome['status'] == 'partly_matched' and [l['transaction_id'] for l in outcome['links']] == [7]
+    assert outcome['reasons'] == ['No FL receipt uses lot L-9.']
+    # ...and when the other lot's receipt is dated too far from the Form.
+    outcome = match(form_row(day(1), 'L-1, L-2', ['Sugar-50lbs-10']),
+                    line(7, 70, 'L-1', 1, day(1)), line(8, 71, 'L-2', 1, day(5)))
+    assert outcome['status'] == 'partly_matched' and len(outcome['links']) == 1
+    assert 'Lot L-2 is on FL receipt RCV-8' in outcome['reasons'][0] and '4 days from the Form date' in outcome['reasons'][0]
+    # Nothing matches at all: one line, as before.
+    assert match(form_row(day(1), 'L-8, L-9', ['Sugar-50lbs-10']))['reasons'] == ['No FL receipt uses lot L-8, L-9.']
+
+
 def test_two_receipts_that_both_fit_are_not_chosen_between():
     outcome = match(form_row(day(1), 'L-1', ['Sugar-50lbs-10']),
                     line(7, 70, 'L-1', 1, day(1)), line(8, 71, 'L-1', 2, day(1)))

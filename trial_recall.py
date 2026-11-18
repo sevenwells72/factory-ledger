@@ -431,7 +431,7 @@ def load(cur, sheet, *, api=None, cutoff=CUTOFF, rng=None):
     rows_by_lot = {}
     for row in rows:
         for link in matches[row['row_number']]['links']:
-            rows_by_lot.setdefault((link['transaction_id'], link['lot_id']), []).append(row)
+            rows_by_lot.setdefault((link['transaction_id'], link['lot_id']), []).append((row, link['basis']))
     data = {'cutoff': cutoff, 'sheet': {key: sheet.get(key) for key in ('sheet_id', 'tab', 'gid')},
             'form_rows_on_or_after_cutoff': len(rows),
             'unmatched_rows': [dict(_row_facts(row, sheet), status=matches[row['row_number']]['status'],
@@ -569,7 +569,8 @@ def load(cur, sheet, *, api=None, cutoff=CUTOFF, rng=None):
                 receipt['before_cutoff'] = (receipt['business_date'] is not None
                                             and receipt['business_date'] < cutoff)
                 receipt['form_rows'] = [] if receipt['before_cutoff'] or receipt['kind'] != 'received' else [
-                    _row_facts(row, sheet) for row in rows_by_lot.get((receipt['transaction_id'], item['lot_id']), [])]
+                    dict(_row_facts(row, sheet), basis=basis)        # how the row was tied to this receipt
+                    for row, basis in rows_by_lot.get((receipt['transaction_id'], item['lot_id']), [])]
             if item['before_cutoff']:
                 continue
             tested.append(item['lot_id'])
@@ -1141,6 +1142,13 @@ def analyse(data):
                                  + ' '.join(p['problem'] or '' for p in receipt['photos'] if not p['accessible']).strip()
                                  + ').')
                     receipt['evidence'] = 'Form row, BOL photo could not be opened'
+                elif any((form_row.get('basis') or {}).get('product') == receiving_form.PRODUCT_NOT_CONFIRMED
+                         for form_row in receipt['form_rows']):
+                    # Tied to this receipt by lot and date only: the Form's product wording did not confirm it.
+                    evidence = worst(evidence, UNVERIFIED)
+                    notes.append(f'{name}, receipt {label}: its Form row was linked by lot and date; the product '
+                                 f'wording on the Form does not confirm it.')
+                    receipt['evidence'] = 'Form row and BOL photo on file; product wording not confirmed'
                 else:
                     receipt['evidence'] = 'Form row and BOL photo on file'
             if item['receipts']:

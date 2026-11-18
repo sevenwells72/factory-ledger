@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-18 14:31 — Trial recall: fixes from Codex pass on the matching change (unresolved lot codes listed; backward evidence keeps the match basis)
+- **File(s) changed:** `receiving_form.py`, `trial_recall.py`, `tests/test_receiving_form.py`, `tests/test_trial_recall.py`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Two medium review findings fixed. (1) A Form row listing more than one lot: a lot code that leads to no FL receipt near the Form date is now kept with its reason even when another lot on the row matches, so the row is partly matched and stays on the owner list. (2) Backward test: a Form row tied to a receipt by lot and date only (product wording not confirmed) now leaves that receipt's evidence UNVERIFIED instead of passing. Two new tests; 113 pass in the two new files; full Python suite alone on a freshly built scratch database on this code: 7,736 passed, 7 failed (the same 7 that fail on untouched origin/main).
+- **Why:** Codex cross-review pass 10 of PR 227 (2026-11-18), run after the short-lot matching change.
+
+---
+
 ## 2026-11-18 14:21 — Trial recall: Form lots written without the sequence number match the FL lot when only one receipt fits
 - **File(s) changed:** `receiving_form.py`, `trial_recall.py`, `tests/test_receiving_form.py`, `tests/test_trial_recall.py`, `docs/deployments/trial-recall.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Owner decision 2026-11-18 after the first read of the live Form (its rows give lots as 261113DUTC, 261116JACK, 261118STAR). receiving_form.match_row: when no FL lot has the Form's exact lot code, FL lots whose code is the Form's plus a trailing sequence number (26-11-13-DUTC-001) are considered; the link is made only when exactly one such receipt fits by date (within 1 day) and a confident product match, and records lot 'lot code without its sequence number'. An exact code always wins; -001 and -002 that both fit are listed, not chosen between; a short lot together with unconfirmed product wording is not linked; only the sequence is forgiven (the part before it must contain a letter, so a date-only code is never shortened). The recall's Internal lot row notes it. Three new tests; 111 pass in the two new files (run eight times).
