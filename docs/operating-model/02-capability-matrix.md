@@ -40,7 +40,7 @@
 ### Notes on the ⚠ marks
 
 1. **Office GPT shipping.** The new duplicate-shipment guard (#153) protects repeated "commit" calls on order shipments. That is verified for the Floor GPT's `commitShipOrder`. The Office GPT uses the same order-ship route with `mode: commit`, and the guard code sits on that shared commit path, but **this was not separately tested (❓)**.
-2. **Adjustments through the GPTs** use the older direct route. That route **does not apply** the rule "over 500 lb needs a photo or owner approval", the role limits, or the late-entry exception. With the Office GPT, the office can therefore adjust inventory, which its role would forbid on the dashboard.
+2. **Adjustments through the GPTs** use the older direct route. That route **does not apply** the destination rule for removals (migration 095), the role limits, or the late-entry exception. A correction over 500 lb made there does email the owner once migration 095 is applied. With the Office GPT, the office can therefore adjust inventory, which its role would forbid on the dashboard.
 3. **Dashboard tab edits today** are saved with the shared dashboard key, so History will not show who made them.
 4. **Packing slip:** see Issue F-6 in [07](07-issues-and-recommendations.md).
 
@@ -59,7 +59,8 @@
 | Who is recorded | `legacy-shared-key` (nobody) | The signed-in person |
 | What protects against an accidental write | The GPT's instructions ("preview, then commit"). The server does not enforce a confirmation step. | The server issues a draft; nothing posts until the same person presses Record within 10 minutes (30 on the dashboard) |
 | Role limits (floor / office / owner) | Not applied: the master key can do everything | Applied when the draft is made and again at Record |
-| Over 500 lb correction → photo or owner approval | Not applied | Applied; held for the owner if there is no photo |
+| Over 500 lb correction | Before migration 095: not applied. After: recorded, owner emailed | Before migration 095: held for the owner if there is no photo. After: recorded at once, owner emailed, photo optional |
+| Removing stock names where it went (migration 095) | Not applied | Applied: one of five destinations; "Shipped but not recorded" names the sales order |
 | Late entry (2–14 days) → owner exception | Not applied | Applied |
 | Possible-duplicate warnings that must be ticked | Order shipments only (#153 retry guard) | Receive (same product, lb or lot within 24 h), make/pack (45 min), adjust/found (2 h), shipment (24 h), orders (duplicate customer PO) |
 | A repeated "Record" press | Order shipments: replays the first receipt (#153). Other entries: **no guard (❓)** | Always returns the same receipt ("Same entry, same receipt") |

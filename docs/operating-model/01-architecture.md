@@ -101,7 +101,8 @@ flowchart LR
   - kosher tiers;
   - no shipping more than is on hand;
   - shortages and unidentified lots opening exceptions;
-  - corrections over 500 lb needing a photo or owner approval;
+  - corrections over 500 lb: recorded at once and emailed to the owner (after migration 095; before it, a photo or owner approval);
+  - where removed stock went: an adjustment that removes stock picks one destination (after migration 095);
   - roles (floor, office, owner);
   - the "draft, then Record" step;
   - duplicate-shipment protection.
@@ -224,7 +225,7 @@ flowchart LR
 - **Different:**
   - **Identity.** Dashboard forms and the FL Assistant record the named person. The GPTs record "legacy-shared-key".
   - **Route into the back end.** The GPTs use the older "direct" entry routes. The dashboard forms and Assistant use the newer **draft, then Record** route, and only that route enforces:
-    - the 500 lb / 10% correction rule (photo, or owner approval);
+    - the 500 lb / 10% correction rule (highlighted for the owner; over 500 lb also emails him; no hold after migration 095);
     - role limits (for example, office cannot adjust inventory; floor can void only its own same-day entries);
     - the 2 to 14 day late-entry exception;
     - "must acknowledge" duplicate warnings.

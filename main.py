@@ -45,6 +45,7 @@ import oat_bran_substitution
 import product_archive
 import reconciliation
 import exceptions_enforcement
+import adjustment_alerts
 import resolution
 import permissions
 import fl_assistant
@@ -9712,6 +9713,9 @@ def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, pr
     txn_row = cur.fetchone()
     txn_id = txn_row['id']
     cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, result['product_id'], result['lot_id'], req.adjustment_lb))
+    # Migration 095: over 500 lb is never held; it posts and the owner is emailed.
+    # Savepoint-guarded and never raises, so the email can never undo this post.
+    adjustment_alerts.queue_if_large(sys.modules[__name__], cur, txn_id, 'adjust', result, req.adjustment_lb)
 
     # Trace emission (§4): signed adjust, fail-hard.
     if trace_emit_enabled():
@@ -9808,6 +9812,8 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
         INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
         VALUES (%s, %s, %s, %s)
     """, (txn_id, req.product_id, lot_id, req.quantity))
+    # Migration 095: found stock over 500 lb posts and the owner is emailed (never raises).
+    adjustment_alerts.queue_if_large(sys.modules[__name__], cur, txn_id, 'found', product, req.quantity, uom=req.uom)
 
     _, audit_error = best_effort_audit_insert(
         cur, "inventory_adjustments",
@@ -12173,6 +12179,8 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                     INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb)
                     VALUES (%s, %s, %s, %s)
                 """, (txn_id, product['id'], lot_id, req.quantity))
+                # Migration 095: found stock over 500 lb posts and the owner is emailed (never raises).
+                adjustment_alerts.queue_if_large(sys.modules[__name__], cur, txn_id, 'found', product, req.quantity, uom=req.uom)
 
                 # Coverage gap closed (2026-08-25 audit): this path previously
                 # wrote no inventory_adjustments row at all, so found events

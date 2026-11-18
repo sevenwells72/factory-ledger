@@ -507,7 +507,9 @@ def receipt_row(api, cur, catalog, number, day, *, receipt=None, ticket=None):
         label_es = reason['label_es'] if reason else '?'
         row.update(pair(f'{number}  {row["product"]["name"]} lot {row["lot"]["lot_code"] if row["lot"] else "?"}  {fmt_lb(delta, signed=True)} lb  reason: {label_en}',
                         f'{number}  {row["product"]["name"]} lote {row["lot"]["lot_code"] if row["lot"] else "?"}  {fmt_lb(delta, signed=True)} lb  razón: {label_es}', 'line'))
-        if review.get('photo_required') or 'OVER_10_PERCENT_OF_BOOK' in (review.get('rules') or []):
+        # OVER_500_LB: before migration 095 it always came with photo_required; after it the
+        # correction posts unheld and the owner is emailed, and it is flagged here all the same.
+        if review.get('photo_required') or {'OVER_10_PERCENT_OF_BOOK', 'OVER_500_LB'} & set(review.get('rules') or []):
             # The hold's exception (A3b) is resolved by the approval or the photo that let this
             # receipt post, so it is read in ANY status: the reference must survive resolution.
             if hasattr(catalog, '_exceptions'):
@@ -523,6 +525,8 @@ def receipt_row(api, cur, catalog, number, day, *, receipt=None, ticket=None):
                 tail_en, tail_es = f' — approved by {approved_by.get("name")}', f' — aprobada por {approved_by.get("name")}'
             elif review.get('attachment_ref'):
                 tail_en, tail_es = ' — photo attached', ' — con foto'
+            elif review.get('owner_email'):
+                tail_en, tail_es = ' — owner emailed', ' — se avisó al dueño por correo'
             elif review.get('photo_required'):
                 tail_en, tail_es = ' — photo required', ' — requiere foto'
             else:
@@ -535,7 +539,7 @@ def receipt_row(api, cur, catalog, number, day, *, receipt=None, ticket=None):
                                        'approved_by_actor_id': approved_by.get('id') if approved_by else None}))
             if exc:
                 row['exceptions_opened'].append(exc['id'])
-        if reason and reason['code'] == 'unknown':
+        if reason and reason['code'] in ('unknown', 'count_unknown'):   # = exceptions_enforcement.UNKNOWN_REASONS
             row['flags'].append(_flag('UNKNOWN_REASON', 'warn', 'reason: unknown — highlighted on the weekly view',
                                       'razón: desconocida — resaltado en la vista semanal', {'transaction_id': txn0.get('id')}))
     else:

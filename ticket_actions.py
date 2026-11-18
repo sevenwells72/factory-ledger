@@ -113,7 +113,9 @@ def choose_inputs(api, cur, requirements, overrides, *, single_lot=False):
                      product=name, needed_lb=round(float(needed), 2), available_lb=0)
     return plan
 
-def validate(api, cur, action, payload, lock=False):
+def validate(api, cur, action, payload, lock=False, held=False):
+    # `held`: the ticket was held for owner approval before migration 095 switched the
+    # adjustment rules; its reason was accepted then and is not judged again.
     # A5 hook: non-ledger pallet evidence uses the same ticket lifecycle.
     if action == 'update_supplier_lot':
         import supplier_lot_tickets
@@ -247,7 +249,7 @@ def validate(api, cur, action, payload, lock=False):
         if closing:
             # Shortage rows first, then the lot: the resolve route's lock order.
             code = a3b.resolve_reason(cur, 'adjust', payload['reason_code'], note=payload.get('note'),
-                                      delta_lb=payload['delta_lb'])['code']
+                                      delta_lb=payload['delta_lb'], destination_exempt=True)['code']
             a3b.shortages_closed_by_count(cur, payload['lot_id'], closing, code, lock)
         current = lot(api, cur, payload['lot_id'], payload.get('product_id'), lock)
         if closing:
@@ -257,7 +259,11 @@ def validate(api, cur, action, payload, lock=False):
         p = product(api, cur, current['product_id'], lock)
         products.append(p)
         # A3b hook (R2/R3): fixed-list reason, no covering an open shortage, review facts.
-        reason = a3b.resolve_reason(cur, 'adjust', payload['reason_code'], note=payload.get('note'), delta_lb=payload['delta_lb'])
+        # Migration 095: a removal names where the stock went (and the sales order, for
+        # stock that shipped). A shortage-closing count and a pre-095 hold are exempt.
+        reason = a3b.resolve_reason(cur, 'adjust', payload['reason_code'], note=payload.get('note'), delta_lb=payload['delta_lb'],
+                                    sales_order_id=payload.get('sales_order_id'), destination_exempt=bool(closing) or held)
+        immediate = a3b.destination_rules(cur)
         a3b.refuse_cover_up(cur, 'adjust', p['id'], current['id'], payload['delta_lb'], closing)
         req = api.AdjustRequest(**common, product_name=p['name'], lot_code=current['lot_code'],
             adjustment_lb=payload['delta_lb'], reason=reason['label_en'], reason_es=payload.get('reason_es') or reason['label_es'])
@@ -272,10 +278,14 @@ def validate(api, cur, action, payload, lock=False):
                  'resolves_shortage_ids': closing,
                  'attachment_ref': payload.get('attachment_ref'),
                  'correction_review': a3b.correction_review(api, 'adjust', p, req.adjustment_lb,
-                                                            book_balance_before=current['on_hand_lb'], reason_code=reason['code'])}
+                                                            book_balance_before=current['on_hand_lb'], reason_code=reason['code'],
+                                                            immediate=immediate)}
+        if 'destination' in reason:
+            draft['destination'] = reason['destination']
         if draft['new_balance_lb'] < 0:
             draft['balance_warning'] = f'{p["name"]} lot {current["lot_code"]} will have negative inventory ({api._fmt_quantity(draft["new_balance_lb"])} lb).'
-        options = {'product': p, 'lot_id': payload['lot_id'], 'reason_code': reason['code'], 'note': reason['note']}
+        options = {'product': p, 'lot_id': payload['lot_id'], 'reason_code': reason['code'],
+                   'note': a3b.destination_note(reason)}
         specification = {'product_id': p['id'], 'lot_id': current['id'], 'delta_lb': req.adjustment_lb}
     elif action == 'found':
         p = product(api, cur, payload['product_id'], lock)
@@ -300,7 +310,8 @@ def validate(api, cur, action, payload, lock=False):
                  'notes': req.notes, 'notes_es': req.notes_es, 'found_location': req.found_location,
                  'estimated_age': req.estimated_age, 'suspected_supplier': req.suspected_supplier,
                  'attachment_ref': payload.get('attachment_ref'),
-                 'correction_review': a3b.correction_review(api, 'found', p, req.quantity, uom=req.uom, reason_code=reason['code'])}
+                 'correction_review': a3b.correction_review(api, 'found', p, req.quantity, uom=req.uom, reason_code=reason['code'],
+                                                            immediate=a3b.destination_rules(cur))}
         options = {'reason_code': reason['code']}
         specification = {'product_id': p['id'], 'quantity_lb': req.quantity}
     else:
@@ -459,6 +470,9 @@ def post(api, cur, action, validated, payload, request, ticket_id, receipt_numbe
         # A3b hook (R2): the review facts travel on the receipt for the weekly view.
         response['reason_code'] = draft['reason_code']
         response['correction_review'] = dict(draft['correction_review'], attachment_ref=draft.get('attachment_ref'))
+        if 'destination' in draft:
+            # Migration 095: where removed stock went, on the receipt.
+            response['destination'] = draft['destination']
     return response
 
 

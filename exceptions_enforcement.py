@@ -33,6 +33,17 @@ Rules (owner decisions, verbatim where it matters):
   shortage opened, `voided` needs the short posting itself voided. Writing off or
   waiving is the owner's call. A positive adjust by the same actor within 30 min
   before a make/pack on an ingredient it consumes is tagged `pre_make_adjust` (§5).
+
+Owner decision 2026-11-18 (migration 095; the paragraph above describes the rules
+that stay in force until its marker exists):
+  DESTINATION — a ticket adjustment that REMOVES stock must use one of the
+  `removal_destination` reasons (where it went, one pick): shipped but not recorded
+  (names the sales order), sent to Sunshine as bulk, used in production but not
+  recorded, damaged or thrown out, count correction — cause unknown (note required).
+  The one exception is the physical_count ticket that closes a lot's open shortages.
+  NO HOLD — a correction over 500 lb never waits for the owner and the photo is
+  optional: it posts, stays highlighted, and `adjustment_alerts` emails the owner.
+  Holds created before the switch can still be approved, rejected or committed.
 """
 import json
 from datetime import datetime, time, timedelta
@@ -56,7 +67,15 @@ EPSILON = 0.0001                # = main.BALANCE_EPSILON
 # a correction without a valid reason, or one that would cover an open shortage.
 PREPARE_REFUSALS = frozenset({'REASON_CODE_REQUIRED', 'REASON_CODE_INVALID', 'NOTE_REQUIRED',
                               'REASON_SIGN_MISMATCH', 'SHORTAGE_OPEN_RESOLVE_INSTEAD',
-                              'SHORTAGE_CLOSE_REASON', 'SHORTAGE_SET_CHANGED', 'COUNT_NEGATIVE'})
+                              'SHORTAGE_CLOSE_REASON', 'SHORTAGE_SET_CHANGED', 'COUNT_NEGATIVE',
+                              'SALES_ORDER_REQUIRED', 'SALES_ORDER_NOT_FOUND', 'SALES_ORDER_CANCELLED',
+                              'SALES_ORDER_NOT_APPLICABLE'})
+# Owner decision (Michael, 2026-11-18), switched on by migration 095's marker: a
+# removal names where the stock went, and nothing over 500 lb is held any more.
+# Until the marker exists every rule below behaves exactly as before (fail safe).
+DESTINATION_MARKER = '095_adjust_destinations'
+# "We do not know why": highlighted on the weekly view whatever the size (§5.1).
+UNKNOWN_REASONS = frozenset({'unknown', 'count_unknown'})
 
 # Named-actor routes; the two shared keys never reach them (A2: nothing new).
 ACTOR_ROUTES = frozenset({
@@ -149,7 +168,7 @@ def to_lb(product, quantity, unit):
 # ---------------------------------------------------------------------------
 # A. Reason codes (R2, §5.1)
 # ---------------------------------------------------------------------------
-_REASON_COLUMNS = 'code,label_en,label_es,applies_to,adjust_sign,note_required,active'
+_REASON_COLUMNS = '*'    # migration 095 adds removal_destination / sales_order_required; absent before it
 _COUNT_LIKE = r'(physical.*count|physical inventory|inventory count|cycle count|count correction|recon)'
 
 
@@ -157,25 +176,91 @@ def normalise(value):
     return ' '.join(str(value or '').split()).lower()
 
 
-def _valid_reasons(cur, source):
-    cur.execute(f'SELECT code,label_en,label_es,note_required,adjust_sign FROM correction_reasons '
-                f'WHERE active AND %s=ANY(applies_to) ORDER BY sort_order,code', (source,))
-    return [dict(r) for r in cur.fetchall()]
+def destination_rules(cur):
+    """True once migration 095 is applied: removals need a destination, no > 500 lb hold."""
+    cur.execute('SELECT 1 FROM migration_markers WHERE name=%s', (DESTINATION_MARKER,))
+    return cur.fetchone() is not None
 
 
-def resolve_reason(cur, source, raw, *, note=None, delta_lb=None):
+def _valid_reasons(cur, source, *, delta_lb=None, destinations=False):
+    """The reasons a client may offer. With `destinations` (095 applied, an ordinary
+    adjust) the list follows the direction: removing stock → only the destination
+    reasons; adding stock → every reason that may add; direction unknown → all, each
+    flagged so the form can filter. Before 095 the list and its keys are unchanged."""
+    cur.execute('SELECT * FROM correction_reasons WHERE active AND %s=ANY(applies_to) ORDER BY sort_order,code', (source,))
+    rows = [dict(r) for r in cur.fetchall()]
+    keys = ['code', 'label_en', 'label_es', 'note_required', 'adjust_sign']
+    if destinations:
+        keys += ['removal_destination', 'sales_order_required']
+        if delta_lb is not None and float(delta_lb) < 0:
+            rows = [r for r in rows if r['removal_destination']]
+        elif delta_lb is not None and float(delta_lb) > 0:
+            rows = [r for r in rows if r['adjust_sign'] != 'negative']
+    return [{k: r[k] for k in keys} for r in rows]
+
+
+def destination_order(cur, sales_order_id, reason):
+    """The sales order a "shipped but not recorded" removal names. It must exist and
+    not be cancelled. Naming it explains the removal; it does not ship, allocate or
+    close anything on the order."""
+    if sales_order_id is None:
+        fail(422, 'SALES_ORDER_REQUIRED', f'{reason["label_en"]} needs the sales order it shipped on.',
+             message_es=f'{reason["label_es"]} necesita el pedido de venta con el que se envió.',
+             reason_code=reason['code'])
+    cur.execute("""SELECT so.id, so.order_number, so.status, so.state, c.name AS customer_name
+                   FROM sales_orders so LEFT JOIN customers c ON c.id=so.customer_id WHERE so.id=%s""", (sales_order_id,))
+    order = cur.fetchone()
+    if not order:
+        fail(422, 'SALES_ORDER_NOT_FOUND', 'No sales order has this id; pick the order it shipped on.',
+             message_es='Ningún pedido de venta tiene ese id; elige el pedido con el que se envió.',
+             sales_order_id=sales_order_id, reason_code=reason['code'])
+    if 'cancelled' in (order['state'], order['status']):      # state is current; status is the pre-state spelling
+        fail(422, 'SALES_ORDER_CANCELLED', f'{order["order_number"]} is cancelled; pick the order it shipped on.',
+             message_es=f'{order["order_number"]} está cancelado; elige el pedido con el que se envió.',
+             sales_order_id=sales_order_id, order_number=order['order_number'], reason_code=reason['code'])
+    return {'id': order['id'], 'order_number': order['order_number'], 'customer_name': order['customer_name'],
+            'state': order['state'], 'status': order['status']}
+
+
+def destination_note(reason):
+    """The note stored on the ledger row: the named order first, then what the person wrote."""
+    order = ((reason or {}).get('destination') or {}).get('sales_order')
+    note = (reason or {}).get('note')
+    if not order:
+        return note
+    named = order['order_number'] + (f' ({order["customer_name"]})' if order.get('customer_name') else '')
+    return f'{named} — {note}' if note else named
+
+
+def resolve_reason(cur, source, raw, *, note=None, delta_lb=None, sales_order_id=None, destination_exempt=False):
     """The fixed-list reason for a ticket correction, or a 422.
 
-    `source` is 'adjust' or 'found'. The 8 codes are accepted as written
+    `source` is 'adjust' or 'found'. The codes are accepted as written
     (case/space-insensitive); a legacy value a client still sends during the
     overlap is translated through `correction_reason_legacy_codes` (§5.1) and the
-    translation is reported. `unknown` (and any future note_required reason)
+    translation is reported. `unknown` (and any other note_required reason)
     needs a note; `adjust_sign` ('positive'/'negative') is enforced on the delta.
+
+    With migration 095 applied, an adjust that REMOVES stock must use a
+    `removal_destination` reason, and one that is `sales_order_required` must name
+    an existing, uncancelled order (`sales_order_id`). `destination_exempt` marks
+    the two entries whose reason rule is unchanged: the physical_count ticket that
+    closes a lot's shortages, and a ticket held for approval before 095.
     """
+    destinations = source == 'adjust' and not destination_exempt and destination_rules(cur)
+    removing = destinations and delta_lb is not None and float(delta_lb) < 0
+
+    def valid():
+        return _valid_reasons(cur, source, delta_lb=delta_lb, destinations=destinations)
+
     if raw is None or not str(raw).strip():
+        if removing:
+            fail(422, 'REASON_CODE_REQUIRED', 'Removing stock needs a reason that says where it went.',
+                 message_es='Para quitar inventario elige un motivo que diga a dónde se fue.',
+                 destination_required=True, valid_reasons=valid())
         fail(422, 'REASON_CODE_REQUIRED', 'A correction needs a reason_code from the fixed list.',
              message_es='Una corrección necesita un reason_code de la lista fija.',
-             valid_reasons=_valid_reasons(cur, source))
+             valid_reasons=valid())
     norm = normalise(raw)
     cur.execute(f'SELECT {_REASON_COLUMNS} FROM correction_reasons WHERE code=%s', (norm.replace(' ', '_'),))
     row = cur.fetchone()
@@ -192,7 +277,12 @@ def resolve_reason(cur, source, raw, *, note=None, delta_lb=None):
         fail(422, 'REASON_CODE_INVALID',
              f'{label!r} is not a correction reason for {source}; use one of the fixed list.',
              message_es=f'{label!r} no es un motivo de corrección para {source}; use uno de la lista fija.',
-             reason_code=str(raw), valid_reasons=_valid_reasons(cur, source))
+             reason_code=str(raw), valid_reasons=valid())
+    if removing and not row.get('removal_destination'):
+        fail(422, 'REASON_CODE_INVALID',
+             f'{row["label_en"]} does not say where the stock went. Removing stock needs one of the destinations.',
+             message_es=f'{row["label_es"]} no dice a dónde se fue el inventario. Para quitar inventario elige un destino.',
+             reason_code=str(raw), destination_required=True, valid_reasons=valid())
     effective_note = (note or '').strip() or ((legacy or {}).get('note_prefill') or None)
     if row['note_required'] and not effective_note:
         fail(422, 'NOTE_REQUIRED', f'{row["label_en"]} needs a note saying what happened.',
@@ -204,9 +294,22 @@ def resolve_reason(cur, source, raw, *, note=None, delta_lb=None):
         if row['adjust_sign'] == 'negative' and float(delta_lb) > 0:
             fail(422, 'REASON_SIGN_MISMATCH', f'{row["label_en"]} only removes stock; this correction adds {float(delta_lb)}.',
                  message_es=f'{row["label_es"]} solo quita inventario.', reason_code=row['code'])
-    return {'code': row['code'], 'label_en': row['label_en'], 'label_es': row['label_es'],
-            'note_required': row['note_required'], 'input': str(raw),
-            'legacy_code': norm if legacy else None, 'note': effective_note}
+    result = {'code': row['code'], 'label_en': row['label_en'], 'label_es': row['label_es'],
+              'note_required': row['note_required'], 'input': str(raw),
+              'legacy_code': norm if legacy else None, 'note': effective_note}
+    if destinations:
+        # Only on the 095 rules, so receipts written before them keep their shape.
+        order = None
+        if row.get('sales_order_required'):
+            order = destination_order(cur, sales_order_id, row)
+        elif sales_order_id is not None:
+            fail(422, 'SALES_ORDER_NOT_APPLICABLE',
+                 f'{row["label_en"]} does not take a sales order; name one only for stock that shipped.',
+                 message_es=f'{row["label_es"]} no lleva pedido de venta; indícalo solo si el inventario se envió.',
+                 reason_code=row['code'])
+        result['destination'] = ({'code': row['code'], 'label_en': row['label_en'], 'label_es': row['label_es'],
+                                  'sales_order': order} if row.get('removal_destination') else None)
+    return result
 
 
 def legacy_reason_code(cur, source, raw):
@@ -230,18 +333,31 @@ def legacy_reason_code(cur, source, raw):
 # ---------------------------------------------------------------------------
 # A. Correction thresholds (highlight / photo) and B. cover-up refusal
 # ---------------------------------------------------------------------------
-def correction_review(api, action, product, quantity, *, book_balance_before=None, uom=None, reason_code=None):
-    """The facts the weekly view highlights on, computed from the state the caller
-    read (prepare: current; commit: under FOR UPDATE on the lot). `unknown` is
-    highlighted whatever the size (§5.1)."""
+def correction_lb(api, action, product, quantity, uom=None):
+    """(unit, pounds-equivalent or None) of a correction, for the 500 lb rule."""
     unit = uom or api.ledger_quantity_unit(product.get('uom'))
     # Adjust delta_lb and the book balance already contain pounds for weighted
     # cases. Only unweighted count-based stock retains container quantities.
     if action == 'adjust' and unit.strip().lower() in ('case', 'cases', 'cs') and (
             product.get('case_size_lb') or product.get('default_case_weight_lb')):
         unit = 'lb'
-    lb = to_lb(product, quantity, unit)
-    magnitude = abs(lb) if lb is not None else None
+    return unit, to_lb(product, quantity, unit)
+
+
+def is_large(lb):
+    return lb is not None and abs(lb) > LARGE_CORRECTION_LB + EPSILON
+
+
+def correction_review(api, action, product, quantity, *, book_balance_before=None, uom=None, reason_code=None,
+                      immediate=False):
+    """The facts the weekly view highlights on, computed from the state the caller
+    read (prepare: current; commit: under FOR UPDATE on the lot). An "unknown"
+    reason is highlighted whatever the size (§5.1).
+
+    `immediate` = `destination_rules(cur)` (migration 095): over 500 lb is still
+    highlighted, but no photo is required and nothing is held — the owner is
+    emailed instead (`owner_email`)."""
+    unit, lb = correction_lb(api, action, product, quantity, uom)
     review = {'action': action, 'quantity': float(quantity), 'unit': unit, 'lb_equivalent': lb,
               'book_balance_before': None if book_balance_before is None else float(book_balance_before),
               'pct_of_book': None, 'rules': [], 'lb_rule': 'applied' if lb is not None else 'not_applicable',
@@ -254,15 +370,23 @@ def correction_review(api, action, product, quantity, *, book_balance_before=Non
             review['pct_of_book'] = round(abs(float(quantity)) / book, 4)
             if abs(float(quantity)) > LARGE_CORRECTION_PCT * book + EPSILON:
                 review['rules'].append('OVER_10_PERCENT_OF_BOOK')
-    if magnitude is not None and magnitude > LARGE_CORRECTION_LB + EPSILON:
+    if is_large(lb):
         review['rules'].append('OVER_500_LB')
-        review['photo_required'] = True
-    if reason_code == 'unknown':
+        if immediate:
+            review['owner_email'] = True
+        else:
+            review['photo_required'] = True
+    if reason_code in UNKNOWN_REASONS:
         review['rules'].append('REASON_UNKNOWN')
     review['reason_code'] = reason_code
     review['highlighted'] = bool(review['rules'])
     review['message'] = None
-    if review['photo_required']:
+    if review.get('owner_email'):
+        review['message'] = (f'{product["name"]}: this correction is over {int(LARGE_CORRECTION_LB)} lb. It is recorded '
+                             'right away and the owner gets an email. A photo is optional.')
+        review['message_es'] = (f'{product["name"]}: esta corrección es de más de {int(LARGE_CORRECTION_LB)} lb. Se registra '
+                                'de inmediato y el dueño recibe un correo. La foto es opcional.')
+    elif review['photo_required']:
         review['message'] = (f'{product["name"]}: corrections over {int(LARGE_CORRECTION_LB)} lb need a photo; '
                              'without one the entry is held for the owner to approve.')
     elif review['highlighted']:
@@ -725,7 +849,8 @@ def shortage_evidence(api, cur, request, actor, row, body):
                        correction (reason physical_count, entered by the resolver) posts
                        HERE, in the same transaction as the close — the only way a
                        positive adjust ever reaches a lot with an open shortage. Over
-                       500 lb it needs `attachment_ref` like any correction.
+                       500 lb it needs `attachment_ref` until migration 095; after
+                       it the photo is optional and the owner is emailed.
     missing_movement — `receipt_number` of a COMMITTED receipt whose still-effective
                        posting put stock on the SAME lot after the shortage opened. Its
                        pounds are CONSUMED: `shortage_evidence_claims` (071) records how
@@ -760,7 +885,8 @@ def shortage_evidence(api, cur, request, actor, row, body):
         product = dict(cur.fetchone())
         book = float(api.lot_on_hand(cur, lot['id']))
         delta = round(float(body.counted_lb) - book, 4)
-        review = correction_review(api, 'adjust', product, delta, book_balance_before=book, reason_code='physical_count')
+        review = correction_review(api, 'adjust', product, delta, book_balance_before=book, reason_code='physical_count',
+                                   immediate=destination_rules(cur))
         resolution = {'kind': 'counted', 'counted_lb': float(body.counted_lb), 'book_before_lb': book, 'delta_lb': delta,
                       'short_lb': short_lb, 'correction_review': review, 'attachment_ref': body.attachment_ref,
                       'transaction_id': None, 'new_balance_lb': book}

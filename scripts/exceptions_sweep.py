@@ -39,7 +39,8 @@ def sweep(cur):
     return exceptions, cur.rowcount
 
 
-def main():
+def guarded_database_url():
+    """DATABASE_URL, refused unless it is local or an explicitly guarded staging/production target."""
     url = os.environ.get('DATABASE_URL', '')
     if not url:
         raise RuntimeError('DATABASE_URL is required')
@@ -59,11 +60,50 @@ def main():
             raise RuntimeError('Only a local database or explicitly guarded staging/production is supported')
         if any(os.environ.get(k) for k in ('PGHOSTADDR', 'PGSERVICE', 'PGSERVICEFILE')):
             raise RuntimeError('Connection routing overrides are not supported')
+    return url
+
+
+def main():
+    url = guarded_database_url()
     with psycopg2.connect(url) as conn, conn.cursor() as cur:
         cur.execute("SET LOCAL lock_timeout='5s'")
         cur.execute("SET LOCAL statement_timeout='60s'")
         exceptions, flags = sweep(cur)
     print(f'Escalated {exceptions} overdue exception(s) and {flags} shortage flag(s)')
+
+
+def send_adjustment_alerts():
+    """Nightly retry: owner emails for corrections over 500 lb that are still owed.
+
+    The app queues one `adjustment_alerts` row per large correction (migration 095)
+    and tries to send it itself; whatever is still pending — the app has no email
+    settings, or the send failed — goes out here, with this cron service's Resend
+    settings. Its own connections, after the sweep's transaction has ended. It never
+    raises and never changes the cron's exit status: a failed email stays pending
+    for the next run.
+    """
+    try:
+        from contextlib import contextmanager
+        from psycopg2.extras import RealDictCursor
+        import adjustment_alerts
+        url = guarded_database_url()
+
+        @contextmanager
+        def transaction():
+            conn = psycopg2.connect(url)
+            try:
+                with conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute("SET LOCAL lock_timeout='5s'")
+                    cur.execute("SET LOCAL statement_timeout='60s'")
+                    yield cur
+            finally:
+                conn.close()
+
+        result = adjustment_alerts.deliver(transaction)
+        print(f'Large-adjustment emails: {result["status"]} ({result["count"]})')
+    except Exception as exc:
+        # Never print a DSN or credential-bearing driver error.
+        print(f'Large-adjustment emails failed ({type(exc).__name__}); they stay pending', file=sys.stderr)
 
 
 def run_daily_reconciliation():
@@ -88,5 +128,6 @@ if __name__ == '__main__':
         # Never print a DSN or credential-bearing driver error.
         print(f'Exceptions sweep failed ({type(exc).__name__})', file=sys.stderr)
         status = 1
+    send_adjustment_alerts()
     # The reconciliation runs even when the sweep failed; either failure fails the cron run.
     sys.exit(run_daily_reconciliation() or status)

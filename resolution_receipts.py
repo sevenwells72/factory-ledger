@@ -119,7 +119,8 @@ def resolution_state(api, cur, exception_id, actor, body, *, lock=False):
         draft.update(counted_lb=body.counted_lb, book_before_lb=state['book_before_lb'],
                      delta_lb=round(body.counted_lb-state['book_before_lb'], 4))
         draft['correction_review'] = exceptions.correction_review(api, 'adjust', product, draft['delta_lb'],
-            book_balance_before=state['book_before_lb'], reason_code='physical_count')
+            book_balance_before=state['book_before_lb'], reason_code='physical_count',
+            immediate=exceptions.destination_rules(cur))
         state['correction_review'] = draft['correction_review']
     if body.resolution_kind == exceptions.UNVERIFIED:
         # Note only; nothing posts (owner decision 2026-11-05). Refuse early, not at commit.

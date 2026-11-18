@@ -846,16 +846,24 @@ def analyse(data):
         if tx['type'] == 'adjust':
             reason = (tx['reason_code'] or '').strip().lower()
             no_reason, no_person = reason in ('', 'unknown'), tx['actor_id'] is None
-            if no_reason or no_person:
+            # Migration 095: "Count correction — cause unknown" names a person and carries a
+            # note, but nobody knows where the stock went — the owner hears about it here too.
+            unknown_cause = reason == 'count_unknown'
+            if no_reason or no_person or unknown_cause:
                 lines = after[tx['id']]
                 if no_person:
                     missing = 'without a reason and with no name on it' if no_reason else 'with no name on it'
                     headline = f'Stock was changed by hand {missing}. Please find out who did it and why.'
+                elif unknown_cause:
+                    headline = (f'{tx["actor_name"]} removed stock after a count and could not say where it went. '
+                                f'Please ask {tx["actor_name"]} about it.')
                 else:
                     headline = (f'{tx["actor_name"]} changed stock by hand without giving a reason. '
                                 f'Please ask {tx["actor_name"]} why.')
                 facts = [f'{movement_text(lines)} at {_when(tx["created_at"], with_date=False)}',
                          f'Reason given: "{reason}"' if reason else 'No reason given']
+                if unknown_cause and (tx['notes'] or '').strip():
+                    facts.append(f'Note: {tx["notes"].strip()}')
                 for line in lines:
                     if tx['id'] in covering and line['quantity_lb'] > 0:
                         facts.append(f'This is the {lb(line["quantity_lb"])} that covered the extra packing of '

@@ -13,6 +13,9 @@
     missing_production: ['Missing production', 'Producción no registrada'], wrong_lot: ['Wrong lot used', 'Lote equivocado'], wrong_lot_used: ['Wrong lot used', 'Lote equivocado'],
     damage_disposal: ['Damage/disposal', 'Daño o desecho'], damaged: ['Damaged', 'Dañado'],
     unrecorded_usage: ['Unrecorded usage', 'Uso no registrado'], data_entry_error: ['Data-entry error', 'Error de captura'],
+    shipped_unrecorded: ['Shipped but not recorded', 'Enviado pero no registrado'], sent_to_sunshine_bulk: ['Sent to Sunshine as bulk', 'Enviado a Sunshine a granel'],
+    used_in_production: ['Used in production but not recorded', 'Usado en producción pero no registrado'], damaged_thrown_out: ['Damaged or thrown out', 'Dañado o desechado'],
+    count_unknown: ['Count correction — cause unknown', 'Corrección de conteo — causa desconocida'],
     unknown: ['Unknown', 'Desconocido'], unidentified: ['Lot identity needs to be checked', 'Hay que verificar la identidad del lote'],
     unidentified_lot: ['Lot identity needs to be checked', 'Hay que verificar la identidad del lote'],
     photo_pending: ['Photo pending', 'Foto pendiente'], pending: ['Pending', 'Pendiente'], complete: ['Complete', 'Completo'],
@@ -40,7 +43,7 @@
   const unavailable = (language = 'en') => choose(language, 'Factory Ledger is temporarily unavailable — try again in a minute.', 'Factory Ledger no está disponible temporalmente — inténtalo de nuevo en un minuto.');
   function plainMessage(value, language = 'en') {
     return scalar(value).replace(/(?:internal server error|FL returned an unreadable response(?:\. Please try again\.)?)/gi, unavailable(language)).replace(/\bUNIDENTIFIED(?:_LOT)?\b/g, plainLabel('unidentified', language))
-      .replace(/\b(?:physical_count|missing_receipt|missing_production|wrong_lot_used|wrong_lot|damage_disposal|unrecorded_usage|data_entry_error|unknown)\b/g, code => plainLabel(code, language));
+      .replace(/\b(?:physical_count|missing_receipt|missing_production|wrong_lot_used|wrong_lot|damage_disposal|unrecorded_usage|data_entry_error|shipped_unrecorded|sent_to_sunshine_bulk|used_in_production|damaged_thrown_out|count_unknown|unknown)\b/g, code => plainLabel(code, language));
   }
   function receiveLotCodes(receipt={}){
     if(receipt.action!=='receive'&&!/^RCV-/.test(receipt.receipt_number||''))return [];
