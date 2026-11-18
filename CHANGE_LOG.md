@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-18 13:20 — Rename the three Chocolate Chips Real N CT ingredients (migration 095 written, not applied) + dashboard config
+- **File(s) changed:** `migrations/095_rename_chocolate_chips.sql`, `migrations/down/095_rename_chocolate_chips_down.sql`, `dashboard/dashboard_config.json`, `tests/test_rename_chocolate_chips_095.py`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** New data migration 095 renames products 72/73/74 from 'Chocolate Chips – Real – N CT' to 'Chocolate Chips – N CT' (4,000 / 1,000 / 10,000): products.name only, same ids and odoo codes, guarded (recorded name or target, else refuses), rerunnable, strict down file, no history table touched. dashboard_config.json granola_ingredients lists the 4,000 CT and 1,000 CT chips under the new names. 18 new tests. FACTORY_LEDGER_CHANGELOG row 303 (NOT MERGED, NOT DEPLOYED, 095 NOT APPLIED). Branch chore/rename-chocolate-chips; nothing applied to any database.
+- **Why:** Owner request (Michael, 2026-11-18). No API route can rename a product, and the Inventory ingredients panel matches the config list to products.name exactly, so the rename and the config change must ship together.
+
+---
+
 ## 2026-11-18 11:32 — Recorded TRIAL make correction and PR 223 deploy (changelog rows 301-302)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Row 301: prod data correction (voids VD-261118-001/002 of TX 3060/3078; re-recorded as 295 Makes TX 3084/3085, lot 1773, same ingredient lots). Row 302: PR 223 deployed (main 51b8b2a) with live check of TRIAL tag and 296 Pack target.
