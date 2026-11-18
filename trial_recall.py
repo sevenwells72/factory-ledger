@@ -1021,7 +1021,9 @@ def analyse(data):
         bol_lines, pages, earlier, repeated = [], [], set(), []
         for document in readable:
             reading = document['extraction']
-            keys = [(line.get('description'), line.get('quantity'), line.get('unit'),
+            # Everything the line says: two photos that differ in any number are different readings.
+            keys = [(line.get('description'), line.get('quantity'), line.get('unit'), line.get('net_weight'),
+                     line.get('gross_weight'), line.get('other_weight'), line.get('weight_unit'),
                      tuple(line.get('lot_numbers') or [])) for line in reading['lines']]
             page = (reading.get('bol_number'), tuple(keys))
             if page in pages:

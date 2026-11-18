@@ -939,6 +939,31 @@ def test_a_gross_weight_is_never_compared_and_only_a_net_weight_or_a_count_can_f
 
 
 @pytest.mark.db
+def test_two_photos_that_differ_only_in_a_weight_are_not_treated_as_the_same_page(plant):
+    chain = plant.chain()
+    read = sheet(plant.form_row(chain['on'], chain['sugar_lot'], ['Sugar brown-50lbs-225'], photo=[PHOTO, PHOTO_2]))
+    google = FakeGoogle(read['values'], files={PHOTO: {'mime_type': 'image/jpeg', 'size': 9},
+                                               PHOTO_2: {'mime_type': 'image/jpeg', 'size': 9}})
+
+    def page(net):
+        return good_bol(plant, lines=[{'description': plant.name('Sugar Brown'), 'quantity': None, 'unit': None,
+                                       'net_weight': net, 'weight_unit': 'LB', 'lot_numbers': ['SUP-1']}])
+
+    pages = iter([page(11250), page(9000)])                             # same BOL number and line, a different net weight
+    analysis, _ = drill(plant, read, google=google,
+                        extractor=lambda content, mime: {'extraction': next(pages), 'extraction_model': 'test'})
+    quantity = next(f for f in analysis['forward']['comparisons'][0]['fields'] if f['field'] == 'Quantity')
+    assert quantity['bol'] == 'net 11250 LB; net 9000 LB'                # both readings are kept and shown
+    assert analysis['forward']['receiving_result'] != 'pass'
+    same = iter([page(11250), page(11250)])                             # the same page twice is still counted once
+    analysis, _ = drill(plant, read, google=google,
+                        extractor=lambda content, mime: {'extraction': next(same), 'extraction_model': 'test'})
+    quantity = next(f for f in analysis['forward']['comparisons'][0]['fields'] if f['field'] == 'Quantity')
+    assert quantity['bol'] == 'net 11250 LB' and quantity['status'] == 'agree'
+    assert analysis['forward']['receiving_result'] == 'pass'
+
+
+@pytest.mark.db
 def test_the_nov_13_honey_gross_3130_against_net_3000_is_unverified_not_fail(plant):
     """Form row 152 / RCV-261113-001: a TForce delivery receipt showing 1 skid, 3130 lb; FL and the Form say 3,000 lb."""
     honey = plant.product('Honey')

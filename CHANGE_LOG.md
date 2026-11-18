@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-18 15:18 — Trial recall: fix from the final Codex pass (weights are part of the same-page check)
+- **File(s) changed:** `trial_recall.py`, `tests/test_trial_recall.py`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Final Codex pass (covering the gross-weight rule and the comma and short-lot fixes) found one medium point: two photos of one BOL that differ only in a weight were treated as the same page and the second was dropped. The same-page check now includes the net, gross and unmarked weights and the weight unit, so both readings are kept and shown. One new test; 118 pass in the two new files; full Python suite alone on a rebuilt scratch database on this code: 7,741 passed, 7 failed (the same 7 that fail on untouched origin/main).
+- **Why:** Codex cross-review pass 11 of PR 227 (2026-11-18), the final pass the owner asked for.
+
+---
+
 ## 2026-11-18 15:12 — Trial recall: a BOL's gross weight is never compared with FL's net quantity (gross only is UNVERIFIED)
 - **File(s) changed:** `extraction.py`, `trial_recall.py`, `tests/test_trial_recall.py`, `docs/deployments/trial-recall.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Owner rule 2026-11-18, after reading the Nov 13 honey's TForce delivery receipt (3130 lb for the skid; FL and the Form 3,000 lb net). The BOL reader (extraction.extract_bol) now records a package count and three kinds of weight per line, by what the document itself says: net_weight (marked net), gross_weight (marked gross, or a carrier freight bill / delivery receipt's weight column), other_weight (no marking). trial_recall.compare_receipt holds the BOL only to a printed net weight or a package count; a gross or unmarked weight is shown and never compared with FL. Gross only: quantity UNVERIFIED with reason 'BOL shows gross weight only'. Quantity FAILs only when a printed net weight or a package count disagrees, or when the Form and FL disagree with each other. Four new tests including the Nov 13 honey; 117 pass in the two new files; full Python suite alone on a rebuilt scratch database: 7,739 passed, 8 failed = the 7 that fail on untouched origin/main plus tests/test_archived_products_dashboard.py::test_render_finished_goods_panels_js, whose node helper process was killed (exit -9) during that run and which passes when rerun alone (5 of 5).
