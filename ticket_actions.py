@@ -113,9 +113,11 @@ def choose_inputs(api, cur, requirements, overrides, *, single_lot=False):
                      product=name, needed_lb=round(float(needed), 2), available_lb=0)
     return plan
 
-def validate(api, cur, action, payload, lock=False, held=False):
-    # `held`: the ticket was held for owner approval before migration 096 switched the
-    # adjustment rules; its reason was accepted then and is not judged again.
+def validate(api, cur, action, payload, lock=False, held=False, held_reason=None):
+    # `held`: the ticket is HELD for owner approval. Its reason was accepted when the
+    # hold was made and is not judged by rules that changed since: the destination rule
+    # (migration 096) is skipped, and `held_reason` — the reason code in the hold's
+    # stored draft — stays valid even if the fixed list has retired it meanwhile.
     # A5 hook: non-ledger pallet evidence uses the same ticket lifecycle.
     if action == 'update_supplier_lot':
         import supplier_lot_tickets
@@ -249,7 +251,8 @@ def validate(api, cur, action, payload, lock=False, held=False):
         if closing:
             # Shortage rows first, then the lot: the resolve route's lock order.
             code = a3b.resolve_reason(cur, 'adjust', payload['reason_code'], note=payload.get('note'),
-                                      delta_lb=payload['delta_lb'], destination_exempt=True)['code']
+                                      delta_lb=payload['delta_lb'], destination_exempt=True,
+                                      held_reason=held_reason)['code']
             a3b.shortages_closed_by_count(cur, payload['lot_id'], closing, code, lock)
         current = lot(api, cur, payload['lot_id'], payload.get('product_id'), lock)
         if closing:
@@ -262,7 +265,8 @@ def validate(api, cur, action, payload, lock=False, held=False):
         # Migration 096: a removal names where the stock went (and the sales order, for
         # stock that shipped). A shortage-closing count and a pre-096 hold are exempt.
         reason = a3b.resolve_reason(cur, 'adjust', payload['reason_code'], note=payload.get('note'), delta_lb=payload['delta_lb'],
-                                    sales_order_id=payload.get('sales_order_id'), destination_exempt=bool(closing) or held)
+                                    sales_order_id=payload.get('sales_order_id'), destination_exempt=bool(closing) or held,
+                                    held_reason=held_reason)
         immediate = a3b.destination_rules(cur)
         a3b.refuse_cover_up(cur, 'adjust', p['id'], current['id'], payload['delta_lb'], closing)
         req = api.AdjustRequest(**common, product_name=p['name'], lot_code=current['lot_code'],
@@ -292,7 +296,8 @@ def validate(api, cur, action, payload, lock=False, held=False):
         products.append(p)
         # A3b hook (R2/R3): fixed-list reason (the note is `notes`), no found stock
         # for a product with an open shortage, 500 lb review.
-        reason = a3b.resolve_reason(cur, 'found', payload['reason_code'], note=payload.get('notes') or payload.get('notes_es'), delta_lb=payload['quantity'])
+        reason = a3b.resolve_reason(cur, 'found', payload['reason_code'], note=payload.get('notes') or payload.get('notes_es'),
+                                    delta_lb=payload['quantity'], held_reason=held_reason)
         a3b.refuse_cover_up(cur, 'found', p['id'], None, payload['quantity'])
         fields = {k: v for k, v in payload.items()
                   if k not in ('specification', 'input_plan', 'existing_output_lot_id', 'attachment_ref')}

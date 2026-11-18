@@ -91,11 +91,25 @@ UPDATE correction_reasons SET active = false
  WHERE code IN ('damage_disposal', 'unrecorded_usage') AND active;
 
 -- ---------------------------------------------------------------------------
--- 3. adjustment_alerts — one row per correction over 500 lb, written in the
---    posting transaction inside a savepoint (a failure here never undoes the
---    post). The email is built from the ledger when it is sent; the row only
---    records that an email is owed and what happened to it. Not append-only:
---    the sender updates attempts / status.
+-- 3. adjustment_alerts — one row per correction over 500 lb = one email, written
+--    in the posting transaction inside a savepoint (a failure here never undoes
+--    the post). Not append-only: the sender updates attempts / status.
+--
+--    No email is ever sent twice (adjustment_alerts.py):
+--      idempotency_key    fixed when the row is written; every attempt sends it
+--                         as Resend's Idempotency-Key header. The random part
+--                         keeps staging and production keys apart.
+--      message            subject / text / html, built from the ledger at the
+--                         FIRST attempt and never rebuilt, so every retry sends
+--                         the same body under the same key and Resend answers a
+--                         repeat with its first answer instead of sending again.
+--      status             'sent' only after Resend confirmed (2xx).
+--      unconfirmed_since  start of the earliest attempt whose answer never
+--                         arrived (the email may or may not have gone out).
+--                         Resend remembers a key for 24 hours; a row still
+--                         unconfirmed after 23 becomes 'unconfirmed' and is NOT
+--                         retried — a person checks it — rather than risk a
+--                         second copy.
 -- ---------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS adjustment_alerts (
     id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -103,14 +117,18 @@ CREATE TABLE IF NOT EXISTS adjustment_alerts (
     action text NOT NULL CHECK (action IN ('adjust', 'found')),
     lb numeric(14,4) NOT NULL,                       -- signed pounds-equivalent that crossed the line
     queued_at timestamptz NOT NULL DEFAULT clock_timestamp(),
-    status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent')),
+    idempotency_key text NOT NULL UNIQUE DEFAULT ('fl-adjustment-alert/' || gen_random_uuid()::text),
+    message jsonb,
+    status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sent', 'unconfirmed')),
     attempts integer NOT NULL DEFAULT 0 CHECK (attempts >= 0),
     last_attempt_at timestamptz,
     last_error text,
+    unconfirmed_since timestamptz,
     sent_at timestamptz,
     email_to text,
     provider_id text,
-    CONSTRAINT adjustment_alerts_sent_needs_time CHECK ((status = 'sent') = (sent_at IS NOT NULL))
+    CONSTRAINT adjustment_alerts_sent_needs_time CHECK ((status = 'sent') = (sent_at IS NOT NULL)),
+    CONSTRAINT adjustment_alerts_key_fits_resend CHECK (char_length(idempotency_key) BETWEEN 1 AND 256)
 );
 CREATE INDEX IF NOT EXISTS adjustment_alerts_pending_idx
     ON adjustment_alerts (id) WHERE status = 'pending';

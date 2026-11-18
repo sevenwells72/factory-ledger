@@ -73,10 +73,11 @@ def cursor_transaction(cur):
 
 class Mailbox:
     def __init__(self, status='sent'):
-        self.status, self.sent = status, []
+        self.status, self.sent, self.keys = status, [], []
 
-    def __call__(self, email, env=None):
+    def __call__(self, email, env=None, idempotency_key=None):
         self.sent.append(email)
+        self.keys.append(idempotency_key)
         if self.status == 'sent':
             return {'status': 'sent', 'to': 'owner@example.test', 'provider_id': 'msg_1', 'error': None}
         return {'status': 'failed', 'to': 'owner@example.test', 'provider_id': None, 'error': 'Email service answered 500: down'}
@@ -385,11 +386,14 @@ def test_email_without_photo_or_order_says_so(client, db_cursor, items, actors, 
     commit(client, prepare(client, 'adjust', adjust(items, -600, 'sent_to_sunshine_bulk'), key), key)
     commit(client, prepare(client, 'adjust', adjust(items, 800, 'missing_receipt'), key), key)
     mailbox = Mailbox()
-    assert adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV | {'ENVIRONMENT': 'staging'}, send=mailbox)['count'] == 2
-    [email] = mailbox.sent                                    # one email covers both
-    assert email['subject'] == '[staging] 2 large inventory adjustments (over 500 lb each)'
-    assert 'Destination: Sent to Sunshine as bulk' in email['text'] and 'Photo: None attached' in email['text']
-    assert 'Change: +800 lb (added)' in email['text'] and 'Destination: Not applicable: stock was added' in email['text']
+    result = adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV | {'ENVIRONMENT': 'staging'}, send=mailbox)
+    assert (result['status'], result['count'], result['sent']) == ('sent', 2, 2)
+    removed, added = mailbox.sent                             # one email per adjustment, each under its own key
+    assert removed['subject'].startswith('[staging] Large inventory adjustment: −600 lb ')
+    assert 'Destination: Sent to Sunshine as bulk' in removed['text'] and 'Photo: None attached' in removed['text']
+    assert added['subject'].startswith('[staging] Large inventory adjustment: +800 lb ')
+    assert 'Change: +800 lb (added)' in added['text'] and 'Destination: Not applicable: stock was added' in added['text']
+    assert len(set(mailbox.keys)) == 2 and mailbox.keys == [a['idempotency_key'] for a in alerts(db_cursor)]
 
 
 def test_a_failed_email_never_undoes_the_adjustment_and_is_retried(client, db_cursor, items, actors, migrated, order):
@@ -416,11 +420,13 @@ def test_a_failed_email_never_undoes_the_adjustment_and_is_retried(client, db_cu
 def test_a_sender_that_raises_leaves_the_alert_pending(client, db_cursor, items, actors, migrated, order):
     large_removal(client, db_cursor, items, actors, order)
 
-    def explode(email, env=None):
+    def explode(email, env=None, idempotency_key=None):
         raise RuntimeError('network down')
     result = adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV, send=explode)
-    assert result['status'] == 'error'
-    assert [a['status'] for a in alerts(db_cursor)] == ['pending']
+    assert result['status'] == 'error' and result['unanswered'] == 1
+    [alert] = alerts(db_cursor)
+    # Still owed, and on record as in doubt: the attempt was written down before the send.
+    assert (alert['status'], alert['attempts']) == ('pending', 1) and alert['unconfirmed_since'] is not None
 
 
 def test_without_email_settings_nothing_is_claimed_and_no_thread_starts(client, db_cursor, items, actors, migrated, order, monkeypatch):
@@ -444,6 +450,242 @@ def test_real_resend_sender_failure_is_reported_not_raised(client, db_cursor, it
     assert result['status'] == 'failed' and 'ConnectError' in result['error']
     assert [a['status'] for a in alerts(db_cursor)] == ['pending']
     assert 're_test_not_real' not in str(result)
+
+
+# ── 2c. a retry never sends a second copy (Codex review 5964179039 #2) ───────
+
+class FakeResend:
+    """Stands in for api.resend.com, with its documented Idempotency-Key behaviour: a key is
+    remembered with its body and first answer; the same key and body again gets that answer
+    and nothing is sent; the same key with another body is refused (409)."""
+
+    class Reply:
+        def __init__(self, status, body):
+            self.status_code, self._body = status, body
+
+        def json(self):
+            return self._body
+
+    def __init__(self, monkeypatch):
+        import httpx
+        self.httpx = httpx
+        self.delivered, self.requests, self.remembered = [], [], {}
+        self.lose_answers = 0          # the next N emails go out but their answer never reaches us
+        self.refuse = None             # (status, body) answered instead of accepting anything
+        monkeypatch.setattr(httpx, 'post', self.post)
+
+    def post(self, url, timeout=None, headers=None, json=None):
+        key = headers.get('Idempotency-Key')
+        self.requests.append({'key': key, 'body': json})
+        if self.refuse:
+            return self.Reply(*self.refuse)
+        if key in self.remembered:
+            body, answer = self.remembered[key]
+            if body != json:
+                return self.Reply(409, {'name': 'invalid_idempotent_request', 'message': 'same key, different payload'})
+            return self.Reply(200, answer)
+        answer = {'id': f'msg_{len(self.delivered) + 1}'}
+        self.delivered.append(json)
+        if key:
+            self.remembered[key] = (json, answer)
+        if self.lose_answers:
+            self.lose_answers -= 1
+            raise self.httpx.ReadTimeout('the answer never arrived')
+        return self.Reply(200, answer)
+
+
+def later(db_cursor, interval='10 minutes'):
+    """Time passes: the last attempt (and anything in doubt since it) is now `interval` old."""
+    db_cursor.execute('''UPDATE adjustment_alerts SET last_attempt_at = last_attempt_at - %s::interval,
+                             unconfirmed_since = unconfirmed_since - %s::interval''', (interval, interval))
+
+
+def test_every_attempt_carries_the_alerts_own_idempotency_key(client, db_cursor, items, actors, migrated, order, monkeypatch):
+    resend = FakeResend(monkeypatch)
+    large_removal(client, db_cursor, items, actors, order)
+    key = actors['floor']['key']
+    commit(client, prepare(client, 'adjust', adjust(items, 800, 'missing_receipt'), key), key)
+    first, second = alerts(db_cursor)
+    assert first['idempotency_key'] != second['idempotency_key']
+    assert all(a['idempotency_key'].startswith('fl-adjustment-alert/') and len(a['idempotency_key']) <= 256 and a['message'] is None
+               for a in (first, second))
+    assert adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV)['status'] == 'sent'
+    assert [r['key'] for r in resend.requests] == [first['idempotency_key'], second['idempotency_key']]
+    assert len(resend.delivered) == 2
+    for alert, request in zip(alerts(db_cursor), resend.requests):
+        # The body that went out is the one stored on the row.
+        assert {k: request['body'][k] for k in ('subject', 'text', 'html')} == alert['message']
+        assert (alert['status'], alert['unconfirmed_since']) == ('sent', None)
+
+
+def test_an_interrupted_delivery_retried_later_is_not_sent_twice(client, db_cursor, items, actors, migrated, order, monkeypatch):
+    """Resend accepted the email but its answer was lost. The retry repeats the same key and
+    the same body, Resend answers with the original result, and only then is the row `sent`."""
+    resend = FakeResend(monkeypatch)
+    resend.lose_answers = 1
+    large_removal(client, db_cursor, items, actors, order)
+    result = adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV)
+    assert (result['status'], result['unanswered']) == ('failed', 1) and 'ReadTimeout' in result['error']
+    [alert] = alerts(db_cursor)
+    assert (alert['status'], alert['attempts'], alert['sent_at']) == ('pending', 1, None)      # not confirmed: not marked sent
+    assert alert['unconfirmed_since'] is not None and alert['message']['subject'].startswith('Large inventory adjustment')
+    assert len(resend.delivered) == 1                                                           # the owner already has it
+    # The retry runs with different settings; a rebuilt email would differ ('[staging] …')
+    # and Resend would refuse it. The stored one goes out again, byte for byte.
+    later(db_cursor)
+    result = adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV | {'ENVIRONMENT': 'staging'})
+    assert (result['status'], result['sent'], result['unanswered']) == ('sent', 1, 0)
+    assert len(resend.delivered) == 1                                                           # still one email
+    first, retry = resend.requests
+    assert first == retry and first['key'] == alert['idempotency_key']
+    [alert] = alerts(db_cursor)
+    assert (alert['status'], alert['attempts'], alert['provider_id'], alert['unconfirmed_since'], alert['last_error']) == \
+        ('sent', 2, 'msg_1', None, None)
+    assert adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV)['status'] == 'nothing_pending'
+    assert len(resend.requests) == 2
+
+
+def test_a_send_whose_sent_status_could_not_be_saved_is_not_sent_twice(client, db_cursor, items, actors, migrated, order, monkeypatch):
+    """Resend accepted and answered, then saving 'sent' failed (crash, lost database connection)."""
+    from contextlib import contextmanager
+    resend = FakeResend(monkeypatch)
+    large_removal(client, db_cursor, items, actors, order)
+    uses = []
+
+    @contextmanager
+    def dies_saving_the_result():
+        uses.append(1)
+        if len(uses) == 3:                       # 1 table check, 2 claim, 3 record the answer
+            raise psycopg2.OperationalError('connection lost')
+        yield db_cursor
+    result = adjustment_alerts.deliver(dies_saving_the_result, env=EMAIL_ENV)
+    assert (result['status'], result['unanswered']) == ('error', 1)
+    [alert] = alerts(db_cursor)
+    assert (alert['status'], alert['attempts']) == ('pending', 1) and alert['unconfirmed_since'] is not None
+    assert len(resend.delivered) == 1
+    later(db_cursor, '2 hours')
+    assert adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV)['status'] == 'sent'
+    assert len(resend.delivered) == 1 and len(resend.requests) == 2
+    assert resend.requests[0] == resend.requests[1]
+    [alert] = alerts(db_cursor)
+    assert (alert['status'], alert['provider_id'], alert['email_to']) == ('sent', 'msg_1', 'owner@example.test')
+
+
+@pytest.mark.parametrize('age,retried', [('22 hours', True), ('23 hours 1 minute', False)])
+def test_an_email_still_unconfirmed_after_23_hours_is_left_for_a_person(client, db_cursor, items, actors, migrated, order,
+                                                                        monkeypatch, age, retried):
+    """Resend forgets a key after 24 hours, so past 23 a repeat could be a second copy: it is not sent."""
+    resend = FakeResend(monkeypatch)
+    resend.lose_answers = 1
+    large_removal(client, db_cursor, items, actors, order)
+    adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV)
+    later(db_cursor, age)
+    result = adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV)
+    [alert] = alerts(db_cursor)
+    assert len(resend.delivered) == 1
+    if retried:
+        assert result['status'] == 'sent' and (alert['status'], len(resend.requests)) == ('sent', 2)
+        return
+    assert (result['status'], result['unconfirmed'], result['sent']) == ('failed', 1, 0)
+    assert (alert['status'], alert['attempts'], alert['sent_at']) == ('unconfirmed', 1, None)
+    assert 'not sent again' in alert['last_error'] and len(resend.requests) == 1
+    later(db_cursor, '3 days')
+    assert adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV)['status'] == 'nothing_pending'
+    assert len(resend.requests) == 1
+
+
+def test_a_refused_email_is_retried_for_as_long_as_it_takes(client, db_cursor, items, actors, migrated, order, monkeypatch):
+    """Resend answered and refused (bad key, unverified domain): nothing went out, nothing is in doubt,
+    so the 23-hour limit does not apply and the retry is a first send."""
+    resend = FakeResend(monkeypatch)
+    resend.refuse = (403, {'message': 'domain is not verified'})
+    large_removal(client, db_cursor, items, actors, order)
+    for _ in range(3):
+        result = adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV)
+        assert (result['status'], result['unanswered']) == ('failed', 0) and 'answered 403' in result['error']
+        [alert] = alerts(db_cursor)
+        assert alert['status'] == 'pending' and alert['unconfirmed_since'] is None
+        later(db_cursor, '2 days')
+    resend.refuse = None
+    assert adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV)['status'] == 'sent'
+    assert len(resend.delivered) == 1
+    [alert] = alerts(db_cursor)
+    assert (alert['status'], alert['attempts']) == ('sent', 4)
+
+
+def test_a_refusal_does_not_settle_an_earlier_attempt_still_in_doubt(client, db_cursor, items, actors, migrated, order, monkeypatch):
+    """Lost answer first, a refusal (rate limit) on the retry: the first attempt may still have
+    gone out, so the row stays in doubt and the 23-hour limit keeps applying."""
+    resend = FakeResend(monkeypatch)
+    resend.lose_answers = 1
+    large_removal(client, db_cursor, items, actors, order)
+    adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV)
+    [alert] = alerts(db_cursor)
+    in_doubt_since = alert['unconfirmed_since']
+    later(db_cursor, '1 hour')
+    resend.refuse = (429, {'message': 'rate limit'})
+    assert adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV)['status'] == 'failed'
+    [alert] = alerts(db_cursor)
+    assert alert['status'] == 'pending' and alert['unconfirmed_since'] is not None
+    assert alert['unconfirmed_since'] < in_doubt_since                    # the same doubt, one hour older; not reset
+
+
+def test_a_second_worker_cannot_clear_the_doubt_of_a_send_still_in_flight(client, db_cursor, items, actors, migrated, order):
+    """Two workers on one alert (the first one stalled past the cool-down). Resend refuses the second
+    while the first is in flight; neither refusal may mark the row as settled."""
+    large_removal(client, db_cursor, items, actors, order)
+    transaction = cursor_transaction(db_cursor)
+    first = adjustment_alerts._claim(transaction, EMAIL_ENV)
+    later(db_cursor, '1 minute')
+    second = adjustment_alerts._claim(transaction, EMAIL_ENV)
+    assert (first['attempt'], first['fresh'], second['attempt'], second['fresh']) == (1, True, 2, False)
+    assert first['key'] == second['key'] and first['message'] == second['message']
+    busy = {'status': 'failed', 'http_status': 409, 'error': 'Email service answered 409: concurrent_idempotent_requests'}
+    assert adjustment_alerts._record(transaction, second, busy) == 'refused'
+    assert adjustment_alerts._record(transaction, first, dict(busy, http_status=422)) == 'refused'
+    [alert] = alerts(db_cursor)
+    assert alert['status'] == 'pending' and alert['unconfirmed_since'] is not None
+    # A confirmed answer for either attempt settles it.
+    done = {'status': 'sent', 'http_status': 200, 'to': 'owner@example.test', 'provider_id': 'msg_9', 'error': None}
+    assert adjustment_alerts._record(transaction, first, done) == 'sent'
+    [alert] = alerts(db_cursor)
+    assert (alert['status'], alert['provider_id'], alert['unconfirmed_since']) == ('sent', 'msg_9', None)
+
+
+def test_the_keyed_sender_adds_only_the_header_and_reports_the_answer(monkeypatch):
+    import reconciliation
+    resend = FakeResend(monkeypatch)
+    email = {'subject': 'S', 'text': 'T', 'html': '<p>T</p>'}
+    sent = reconciliation.send_email_once(email, EMAIL_ENV, idempotency_key='fl-adjustment-alert/abc')
+    assert sent == {'status': 'sent', 'to': 'owner@example.test', 'provider_id': 'msg_1', 'error': None, 'http_status': 200}
+    again = reconciliation.send_email_once(email, EMAIL_ENV, idempotency_key='fl-adjustment-alert/abc')
+    assert again == sent and len(resend.delivered) == 1
+    changed = reconciliation.send_email_once(dict(email, subject='Other'), EMAIL_ENV, idempotency_key='fl-adjustment-alert/abc')
+    assert (changed['status'], changed['http_status']) == ('failed', 409) and len(resend.delivered) == 1
+    resend.lose_answers = 1
+    lost = reconciliation.send_email_once(email, EMAIL_ENV, idempotency_key='fl-adjustment-alert/def')
+    assert (lost['status'], lost['http_status']) == ('failed', None)
+    # The nightly reconciliation email is unchanged: no key, no extra field.
+    plain = reconciliation.send_email(email, EMAIL_ENV)
+    assert 'http_status' not in plain and resend.requests[-1]['key'] is None
+
+
+def test_nightly_job_repeats_an_unanswered_send_in_the_same_run(monkeypatch, capsys):
+    """Tomorrow night would be past the 23 hours in which a repeat is safe."""
+    monkeypatch.setattr(exceptions_sweep, 'guarded_database_url', lambda: 'postgresql://localhost/none')
+    answers = [{'status': 'failed', 'count': 1, 'unanswered': 1}, {'status': 'sent', 'count': 1, 'unanswered': 0},
+               {'status': 'nothing_pending', 'count': 0, 'unanswered': 0}]
+    passes, slept = [], []
+    monkeypatch.setattr(adjustment_alerts, 'deliver', lambda transaction: passes.append(1) or answers[len(passes) - 1])
+    exceptions_sweep.send_adjustment_alerts(pauses=(0, 45, 90), sleep=slept.append)
+    assert len(passes) == 2 and slept == [45]
+    assert capsys.readouterr().out.splitlines() == ['Large-adjustment emails: failed (1)', 'Large-adjustment emails: sent (1)']
+    # A refusal (nothing in doubt) waits for tomorrow; an alert left for a person is named.
+    passes.clear(), slept.clear()
+    answers[0] = {'status': 'failed', 'count': 2, 'unanswered': 0, 'unconfirmed': 1}
+    exceptions_sweep.send_adjustment_alerts(pauses=(0, 45, 90), sleep=slept.append)
+    assert len(passes) == 1 and slept == []
+    assert capsys.readouterr().out.strip() == 'Large-adjustment emails: failed (2), 1 left unconfirmed for a person to check'
 
 
 def test_queue_failure_never_blocks_or_undoes_the_adjustment(client, db_cursor, items, actors, migrated, monkeypatch):
@@ -572,6 +814,99 @@ def test_a_hold_from_before_the_change_can_still_be_rejected(client, db_cursor, 
                            headers=headers(actors['owner']['key']))
     assert rejected.status_code == 200, rejected.text
     assert posted_count(db_cursor, prepared) == 0 and alerts(db_cursor) == []
+
+
+# Codex review 5964179039 #1: migration 096 retires these two for NEW entries. A removal
+# held with one of them before the switch must still be approved, committed again or
+# rejected, and post exactly as it was prepared.
+RETIRED = ['damage_disposal', 'unrecorded_usage']
+
+
+def old_removal_hold(client_, db_cursor, items_, actors_, reason, delta=-600):
+    """A removal held under the old rules (no photo); then migration 096 is applied."""
+    key = actors_['floor']['key']
+    set_balance(db_cursor, items_, 'ingredient', 2000.0)
+    prepared = prepare(client_, 'adjust', adjust(items_, delta, reason), key)
+    held = commit(client_, prepared, key)
+    assert held.status_code == 202, held.text
+    db_cursor.execute(MIGRATION.read_text())
+    db_cursor.execute('SELECT active FROM correction_reasons WHERE code=%s', (reason,))
+    assert db_cursor.fetchone()['active'] is False
+    return prepared, held.json()['exception_id']
+
+
+def posted_as_prepared(db_cursor, prepared, response, reason):
+    """The ledger row carries the reason the hold was prepared with, label included."""
+    assert response.json()['reason_code'] == reason
+    db_cursor.execute("""SELECT t.reason_code, t.adjust_reason, r.label_en FROM transactions t
+                         JOIN correction_reasons r ON r.code = t.reason_code WHERE t.id=%s""", (response.json()['transaction_id'],))
+    row = db_cursor.fetchone()
+    assert row['reason_code'] == reason and row['adjust_reason'] == row['label_en'] == prepared['draft']['reason']['label_en']
+    assert 'destination' not in response.json()                    # old-rule receipt shape, as prepared
+
+
+@pytest.mark.parametrize('reason', RETIRED)
+def test_a_hold_with_a_since_retired_reason_can_still_be_approved(client, db_cursor, items, actors, reason):
+    prepared, exception_id = old_removal_hold(client, db_cursor, items, actors, reason)
+    approved = client.post(f'/exceptions/{exception_id}/approve', json={}, headers=headers(actors['owner']['key']))
+    assert approved.status_code == 200, approved.text
+    posted_as_prepared(db_cursor, prepared, approved, reason)
+    assert main.lot_on_hand(db_cursor, items['ingredient']['lot_id']) == 1400.0
+    assert ticket_row(db_cursor, prepared)['status'] == 'committed'
+    assert len(alerts(db_cursor)) == 1                             # over 500 lb: the owner email is still queued
+    # Retired means retired for NEW entries: the same reason cannot start a new removal.
+    detail = refuse(client, adjust(items, -5, reason), actors['floor']['key'], 422, 'REASON_CODE_INVALID')
+    assert reason not in [r['code'] for r in detail['valid_reasons']]
+
+
+@pytest.mark.parametrize('reason', RETIRED)
+def test_a_hold_with_a_since_retired_reason_posts_when_committed_again(client, db_cursor, items, actors, reason):
+    prepared, exception_id = old_removal_hold(client, db_cursor, items, actors, reason)
+    released = commit(client, prepared, actors['floor']['key'])   # no photo: no longer needed
+    assert released.status_code == 200, released.text
+    posted_as_prepared(db_cursor, prepared, released, reason)
+    [exc] = exceptions_for(db_cursor, id=exception_id)
+    assert (exc['status'], exc['resolution_kind']) == ('resolved', 'hold_lifted')
+    assert main.lot_on_hand(db_cursor, items['ingredient']['lot_id']) == 1400.0
+
+
+@pytest.mark.parametrize('reason', RETIRED)
+def test_a_hold_with_a_since_retired_reason_can_still_be_rejected(client, db_cursor, items, actors, reason):
+    prepared, exception_id = old_removal_hold(client, db_cursor, items, actors, reason)
+    rejected = client.post(f'/exceptions/{exception_id}/reject', json={'resolution_kind': 'declined', 'note': 'not this lot'},
+                           headers=headers(actors['owner']['key']))
+    assert rejected.status_code == 200, rejected.text
+    assert posted_count(db_cursor, prepared) == 0 and alerts(db_cursor) == []
+    assert main.lot_on_hand(db_cursor, items['ingredient']['lot_id']) == 2000.0
+
+
+def test_a_held_found_keeps_its_reason_if_that_reason_is_retired_later(client, db_cursor, items, actors):
+    """The rule is general: a hold is judged by the reason it was held with, whichever list changes later."""
+    key = actors['floor']['key']
+    prepared = prepare(client, 'found', found(items, 600, 'missing_receipt'), key)
+    held = commit(client, prepared, key)
+    assert held.status_code == 202, held.text
+    db_cursor.execute(MIGRATION.read_text())
+    db_cursor.execute("UPDATE correction_reasons SET active = false WHERE code = 'missing_receipt'")
+    error(client.post('/inventory/found/prepare', json=found(items, 5, 'missing_receipt'), headers=headers(key)),
+          422, 'REASON_CODE_INVALID')
+    approved = client.post(f'/exceptions/{held.json()["exception_id"]}/approve', json={}, headers=headers(actors['owner']['key']))
+    assert approved.status_code == 200, approved.text
+    assert approved.json()['reason_code'] == 'missing_receipt'
+
+
+def test_a_hold_is_only_excused_for_the_reason_it_was_held_with(db_cursor, migrated):
+    """`held_reason` lets exactly that retired code through, never another retired one."""
+    kept = a3b.resolve_reason(db_cursor, 'adjust', 'damage_disposal', delta_lb=-600, destination_exempt=True,
+                              held_reason='damage_disposal')
+    assert kept['code'] == 'damage_disposal' and 'destination' not in kept
+    with pytest.raises(Exception) as refused:
+        a3b.resolve_reason(db_cursor, 'adjust', 'damage_disposal', delta_lb=-600, destination_exempt=True,
+                           held_reason='unrecorded_usage')
+    assert refused.value.detail['error_code'] == 'REASON_CODE_INVALID'
+    with pytest.raises(Exception) as refused:
+        a3b.resolve_reason(db_cursor, 'adjust', 'damage_disposal', delta_lb=-600, destination_exempt=True)
+    assert refused.value.detail['error_code'] == 'REASON_CODE_INVALID'
 
 
 # ── migration ───────────────────────────────────────────────────────────────

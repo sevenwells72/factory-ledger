@@ -237,7 +237,8 @@ def destination_note(reason):
     return f'{named} — {note}' if note else named
 
 
-def resolve_reason(cur, source, raw, *, note=None, delta_lb=None, sales_order_id=None, destination_exempt=False):
+def resolve_reason(cur, source, raw, *, note=None, delta_lb=None, sales_order_id=None, destination_exempt=False,
+                   held_reason=None):
     """The fixed-list reason for a ticket correction, or a 422.
 
     `source` is 'adjust' or 'found'. The codes are accepted as written
@@ -253,6 +254,12 @@ def resolve_reason(cur, source, raw, *, note=None, delta_lb=None, sales_order_id
     an existing, uncancelled order (`sales_order_id`). `destination_exempt` marks
     the two entries whose reason rule is unchanged: the physical_count ticket that
     closes a lot's shortages, and a ticket held for approval before 096.
+
+    `held_reason` is the reason code a HELD ticket was held with (its stored draft).
+    A hold is judged by the list as it stood when the hold was made: that one code
+    is still accepted after the list retires it (`active = false`), so the owner can
+    approve the hold and it posts as prepared. Any other retired code, and every new
+    draft, is refused as before.
     """
     destinations = source == 'adjust' and not destination_exempt and destination_rules(cur)
     removing = destinations and delta_lb is not None and float(delta_lb) < 0
@@ -279,7 +286,8 @@ def resolve_reason(cur, source, raw, *, note=None, delta_lb=None, sales_order_id
         if legacy:
             cur.execute(f'SELECT {_REASON_COLUMNS} FROM correction_reasons WHERE code=%s', (legacy['reason_code'],))
             row = cur.fetchone()
-    if row is None or not row['active'] or source not in row['applies_to']:
+    usable = row is not None and (row['active'] or (held_reason is not None and row['code'] == held_reason))
+    if not usable or source not in row['applies_to']:
         label = row['label_en'] if row else str(raw)
         fail(422, 'REASON_CODE_INVALID',
              f'{label!r} is not a correction reason for {source}; use one of the fixed list.',

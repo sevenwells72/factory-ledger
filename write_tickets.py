@@ -656,8 +656,10 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
             draft, state, req, product, occurred_at, source, er_id = validate_receive(
                 api, cur, row['payload'], lock=True)
         else:
-            validated = actions.validate(api, cur, row['action'], effective_payload, lock=True,
-                                         held=row['status'] == a3b.HELD)
+            # A hold keeps the reason it was held with, even one the list retired since.
+            held = row['status'] == a3b.HELD
+            validated = actions.validate(api, cur, row['action'], effective_payload, lock=True, held=held,
+                                         held_reason=(row['draft'] or {}).get('reason_code') if held else None)
             draft, state, _, _, occurred_at, source, _, _ = validated
         unresolved = [b for b in row['draft'].get('blockers', []) if b['code'] != 'LOT_NOT_CONFIRMED']
         if unresolved:

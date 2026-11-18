@@ -19,6 +19,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import time
 from urllib.parse import urlsplit
 
 import psycopg2
@@ -72,7 +73,7 @@ def main():
     print(f'Escalated {exceptions} overdue exception(s) and {flags} shortage flag(s)')
 
 
-def send_adjustment_alerts():
+def send_adjustment_alerts(pauses=(0, 45, 90), sleep=time.sleep):
     """Nightly retry: owner emails for corrections over 500 lb that are still owed.
 
     The app queues one `adjustment_alerts` row per large correction (migration 096)
@@ -80,7 +81,7 @@ def send_adjustment_alerts():
     settings, or the send failed — goes out here, with this cron service's Resend
     settings. Its own connections, after the sweep's transaction has ended. It never
     raises and never changes the cron's exit status: a failed email stays pending
-    for the next run.
+    for the next run. A retry never sends a second copy (see adjustment_alerts.py).
     """
     try:
         from contextlib import contextmanager
@@ -99,8 +100,18 @@ def send_adjustment_alerts():
             finally:
                 conn.close()
 
-        result = adjustment_alerts.deliver(transaction)
-        print(f'Large-adjustment emails: {result["status"]} ({result["count"]})')
+        # An attempt with no answer (timeout, dropped connection) is repeated in this same
+        # run, with the same idempotency key: Resend then returns the first answer or
+        # sends it for the first time. Waiting for tomorrow night would be past the 23
+        # hours in which a repeat is safe, and the alert would be left for a person.
+        for pause in pauses:
+            if pause:
+                sleep(pause)
+            result = adjustment_alerts.deliver(transaction)
+            print(f'Large-adjustment emails: {result["status"]} ({result["count"]})'
+                  + (f', {result["unconfirmed"]} left unconfirmed for a person to check' if result.get('unconfirmed') else ''))
+            if not result.get('unanswered'):
+                break
     except Exception as exc:
         # Never print a DSN or credential-bearing driver error.
         print(f'Large-adjustment emails failed ({type(exc).__name__}); they stay pending', file=sys.stderr)

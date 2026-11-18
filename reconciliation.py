@@ -1364,18 +1364,39 @@ def send_email(email, env=None):
 
     Returns {'status': 'sent' | 'failed', 'to', 'provider_id', 'error'}.
     """
+    outcome = send_email_once(email, env)
+    outcome.pop('http_status', None)
+    return outcome
+
+
+def send_email_once(email, env=None, idempotency_key=None):
+    """`send_email` for a caller that retries: the same POST, plus two things.
+
+    `idempotency_key` goes out as Resend's `Idempotency-Key` header. For 24 hours
+    Resend answers a repeat of the same key and body with its FIRST answer and sends
+    nothing again (a different body under the same key is refused with 409), so a
+    retry after a lost answer cannot produce a second email.
+    The outcome also carries 'http_status': the status Resend answered with, or None
+    when no answer arrived (then nobody knows whether the email went out).
+    'status' is 'sent' only on a 2xx answer. Never raises, never returns the API key.
+    """
     env = os.environ if env is None else env
     recipients = [a.strip() for a in env.get('ALERT_EMAIL_TO', '').split(',') if a.strip()]
-    outcome = {'status': 'failed', 'to': ', '.join(recipients) or None, 'provider_id': None, 'error': None}
+    outcome = {'status': 'failed', 'to': ', '.join(recipients) or None, 'provider_id': None, 'error': None,
+               'http_status': None}
     key = env.get('RESEND_API_KEY', '').strip()
     if not recipients or not key:
         outcome['error'] = 'ALERT_EMAIL_TO or RESEND_API_KEY is not set'
         return outcome
     stage = 'Could not reach the email service'
     try:
-        response = httpx.post(RESEND_URL, timeout=20.0, headers={'Authorization': f'Bearer {key}'}, json={
+        headers = {'Authorization': f'Bearer {key}'}
+        if idempotency_key:
+            headers['Idempotency-Key'] = idempotency_key
+        response = httpx.post(RESEND_URL, timeout=20.0, headers=headers, json={
             'from': env.get('RECONCILIATION_EMAIL_FROM', '').strip() or DEFAULT_EMAIL_FROM,
             'to': recipients, 'subject': email['subject'], 'text': email['text'], 'html': email['html']})
+        outcome['http_status'] = response.status_code
         stage = 'Could not read the email service answer'
         accepted = 200 <= response.status_code < 300
         try:

@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-18 15:19 — Adjustment rules: Codex review fixes (held reasons kept, owner email never sent twice)
+- **File(s) changed:** `exceptions_enforcement.py`, `ticket_actions.py`, `write_tickets.py`, `adjustment_alerts.py`, `reconciliation.py`, `scripts/exceptions_sweep.py`, `migrations/096_adjust_destinations.sql`, `tests/test_adjust_destinations.py`, `docs/deployments/adjust-destinations.md`, `docs/ARCHITECTURE-MAP.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** PR 225, Codex review 5964179039. (1) A HELD ticket is validated against the reason it was held with (held_reason, from the ticket's stored draft): holds made with damage_disposal or unrecorded_usage before migration 096 retired them can be approved, committed again or rejected and post as prepared; new drafts with a retired reason are still refused. (2) Owner email: one email per alert; adjustment_alerts gains idempotency_key (fixed per row, sent as Resend's Idempotency-Key header), message (built once at the first attempt, never rebuilt) and unconfirmed_since; a row is marked sent only on a 2xx answer; an interrupted send is retried with the same key and body; a row still unconfirmed 23 hours after an unanswered attempt becomes 'unconfirmed' and is not retried; reconciliation.send_email_once added (send_email unchanged); the nightly sweep repeats an unanswered attempt in the same run. Migration 096 edited in place (still not applied anywhere); changelog row 305 and the deployment doc updated; 18 new tests.
+- **Why:** Codex cross-review found two blockers: pre-switch holds with a retired reason answered 409 TICKET_STALE on approval, and a lost answer or failed status write could send the owner email twice.
+
+---
+
 ## 2026-11-18 13:54 — Adjustment rules PR 225: rebased again on main 7083e40 (PR 228 took row 304); row stays 305, migration 096
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** origin/main moved to 7083e40 (PR 228, deploy record for the Chocolate Chips rename, row 304) while the full suite was running on the first rebase, so the branch was rebased once more. Conflicts were again only CHANGE_LOG.md and FACTORY_LEDGER_CHANGELOG.md; both sides kept in order, and this PR's row appears once, as row 305 above rows 304 and 303. No code change: the tree differs from the previous tip only by main's two changelog additions. The full Python suite is rerun on this commit before the push; its result is in the PR 225 description.
