@@ -428,6 +428,26 @@ def test_the_product_check_uses_the_fl_names_and_never_picks_among_candidates(pl
 
 
 @pytest.mark.db
+def test_a_form_name_whose_words_are_all_in_the_fl_name_fits_and_a_thousands_comma_is_not_a_word_break(plant):
+    assert receiving_form._name_key('Chocolate Chips – 4,000 CT') == {'chocolate', 'chips', '4000', 'ct'}
+    assert receiving_form._name_key('1,5 kg, 4,00') == {'1', '5', 'kg', '4', '00'}      # only a real thousands comma
+    chips = plant.product('Chocolate Chips – 4,000 CT')
+    other = plant.product('Chocolate Chips – 1,000 CT')
+    matcher = receiving_form.ProductMatcher(plant.cur)
+    full = plant.name('Chocolate Chips – 4,000 CT')
+    assert matcher.basis(plant.name('Chocolate Chips 4000'), chips, full) in (
+        'words_in_name', 'resolver_match', 'resolver_candidate')
+    assert matcher.basis(plant.name('Chocolate Chips 4000'), other, plant.name('Chocolate Chips – 1,000 CT')) is None
+    assert matcher.basis('4000', chips, full) is None                    # a number alone names nothing
+    # The live Form's row: short lot and the short product wording, one receipt that day.
+    tag = ''.join(chr(ord('G') + int(c, 16)) for c in plant.tag[2:6])
+    lot, tx = plant.receive(chips, 2000, day(5), code=f'26-11-16-{tag}-001')
+    outcome = receiving_form.sync(plant.cur, sheet(plant.form_row(day(5), f'261116{tag}', ['Chocolate Chips 4000-25lbs-80'])),
+                                  dry_run=True)
+    assert outcome['rows_linked'] == 1 and outcome['unmatched'] == [] and outcome['product_wording_unconfirmed'] == []
+
+
+@pytest.mark.db
 def test_sync_changes_no_existing_table_and_dry_run_writes_nothing(plant):
     sugar = plant.product('Sugar Brown')
     lot, _ = plant.receive(sugar, 5000, day(1))

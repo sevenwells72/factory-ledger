@@ -297,7 +297,9 @@ def receipt_index(receipts):
 
 
 def _name_key(text):
-    return frozenset(re.findall(r'[a-z0-9]+', (text or '').lower()))
+    """The words of a product name. A thousands comma is not a word break: "4,000 CT" is 4000 ct."""
+    text = re.sub(r'(?<=\d),(?=\d{3}(?!\d))', '', (text or '').lower())
+    return frozenset(re.findall(r'[a-z0-9]+', text))
 
 
 class ProductMatcher:
@@ -310,6 +312,8 @@ class ProductMatcher:
       resolver_match     the resolver names exactly that FL product for the Form wording
       resolver_candidate the Form wording is less specific ("Sugar") and that FL
                          product is one of the products it could mean
+      words_in_name      every word on the Form is in the FL product's name and the
+                         resolver names no other product for it
     Anything else is not a confident fit (None); match_row may still link the row
     by lot and date alone, marked not_confirmed.
     """
@@ -342,6 +346,12 @@ class ProductMatcher:
             return 'resolver_match'
         if found['match_id'] is None and product_id in found['candidate_ids']:
             return 'resolver_candidate'
+        # Every word the Form wrote is in the FL product's name ("Chocolate Chips 4000" for
+        # "Chocolate Chips – 4,000 CT"): the Form is just less complete. Needs a real word, not only a number.
+        words = _name_key(form_name)
+        if words <= _name_key(product_name) and any(re.search(r'[a-z]', word) for word in words) \
+                and found['match_id'] is None:
+            return 'words_in_name'
         return None
 
 

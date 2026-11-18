@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-18 14:46 — Trial recall: product names with a thousands comma; first read-only check against production (4 of 5 live Form rows link)
+- **File(s) changed:** `receiving_form.py`, `tests/test_receiving_form.py`, `docs/deployments/trial-recall.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Owner-approved read-only check 2026-11-18: the live Form's five rows since 2026-11-11 were matched against production receipts inside one READ ONLY transaction on port 5432 (only SELECTs, rolled back, nothing written). First run linked 3 of 5; the Form's 'Chocolate Chips 4000' did not fit FL's 'Chocolate Chips – 4,000 CT' because the comma split the number. Fix in receiving_form: a thousands comma is part of the number, and a Form name whose every word is in the FL product's name is a confident fit ('words_in_name') when the resolver names no other product. Second run: 4 of 5 link (row 151 by exact lot code; 153, 154, 155 by the lot code without its sequence number); all linked quantities agree. Row 152 (honey 3,000 lb, 2026-11-13) stays unmatched on purpose: Form lot 261113DUTC, FL lot 26-11-13-DUTG-001, a one-letter difference in the supplier part. One new test; 114 pass in the two new files; full Python suite alone on a rebuilt scratch database: 7,737 passed, 7 failed (the same 7 as untouched origin/main).
+- **Why:** Owner approval 2026-11-18 ('Yes, read-only') to see how the live Form rows match; 'match generously' on product wording.
+
+---
+
 ## 2026-11-18 14:31 — Trial recall: fixes from Codex pass on the matching change (unresolved lot codes listed; backward evidence keeps the match basis)
 - **File(s) changed:** `receiving_form.py`, `trial_recall.py`, `tests/test_receiving_form.py`, `tests/test_trial_recall.py`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Two medium review findings fixed. (1) A Form row listing more than one lot: a lot code that leads to no FL receipt near the Form date is now kept with its reason even when another lot on the row matches, so the row is partly matched and stays on the owner list. (2) Backward test: a Form row tied to a receipt by lot and date only (product wording not confirmed) now leaves that receipt's evidence UNVERIFIED instead of passing. Two new tests; 113 pass in the two new files; full Python suite alone on a freshly built scratch database on this code: 7,736 passed, 7 failed (the same 7 that fail on untouched origin/main).

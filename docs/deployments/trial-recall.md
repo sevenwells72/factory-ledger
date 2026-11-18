@@ -42,7 +42,9 @@ permission beyond the two read-only ones is refused. No photo is ever copied or 
      (`DATE_TOLERANCE_DAYS`; the Form is sometimes filled the evening of or the morning after);
    - **product**: matched generously (owner, 2026-11-18). A confident fit is: same words, or the shared FL
      product resolver (names and learned aliases) names that product, or the Form wording is less specific
-     ("Sugar") and that product is one it could mean. When the wording is not a confident fit but lot and date
+     ("Sugar") and that product is one it could mean, or every word on the Form is in the FL product's name
+     ("Chocolate Chips 4000" for "Chocolate Chips – 4,000 CT"; a thousands comma is part of the number). When the
+     wording is not a confident fit but lot and date
      leave exactly **one** FL receipt line and **one** Form product unaccounted for, they are still linked, and
      the link says `product: not_confirmed`. That line is UNVERIFIED wherever it is used; wording alone never
      fails anything. With two or more left over on either side nothing is guessed. The basis is saved on the link.
@@ -310,6 +312,16 @@ entry at all, and it cannot read a BOL better than the photo allows.
 7. **Numbering:** changelog row 306, migration 097.
 8. **Short lot numbers on the Form:** a Form lot that is the FL lot code without its trailing sequence number
    is the same lot, if only one FL receipt fits by date and product.
+
+## First read-only check against production (2026-11-18, owner-approved)
+
+The live Form's five rows since 2026-11-11 against production receipts, in one `READ ONLY` transaction; nothing
+written. **Four of five link.** Row 151 by its exact lot code; rows 153, 154 and 155 (two products) by the lot
+code without its sequence number. Every linked quantity agrees between the Form and FL.
+
+Not linked, correctly: **row 152**, honey 3,000 lb on 2026-11-13. The Form says lot `261113DUTC`; FL's receipt
+`RCV-261113-001` is lot `26-11-13-DUTG-001`. One letter differs in the supplier part (DUTC / DUTG). That is a real
+difference between the two records, not a formatting one, and nothing here decides which is right.
 
 ## Still open
 
