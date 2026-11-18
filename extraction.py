@@ -468,6 +468,29 @@ Rules:
 """
 
 
+HEIC_MAX_SIDE = 3000   # pixels on the long side after conversion: ample for reading print, well under API limits
+
+
+def heic_to_jpeg(file_bytes: bytes) -> bytes:
+    """A phone HEIC/HEIF photo as JPEG bytes, in memory only (nothing is written anywhere).
+
+    Raises ExtractionError when the photo cannot be converted (the conversion library is not
+    installed, or the file is damaged); the caller treats that as UNVERIFIED, never as readable."""
+    try:
+        import io
+        import pillow_heif
+        from PIL import Image, ImageOps
+        pillow_heif.register_heif_opener()
+        with Image.open(io.BytesIO(file_bytes)) as image:
+            image = ImageOps.exif_transpose(image).convert("RGB")     # upright, as the phone showed it
+            image.thumbnail((HEIC_MAX_SIDE, HEIC_MAX_SIDE))
+            out = io.BytesIO()
+            image.save(out, format="JPEG", quality=88)
+            return out.getvalue()
+    except Exception as exc:  # any failure is "could not convert", never a guess
+        raise ExtractionError(f"HEIC photo could not be converted ({type(exc).__name__})") from exc
+
+
 def extract_bol(file_bytes: bytes, mime_type: str) -> dict:
     """Read one BOL photo with the extraction model. Returns
     {'extraction': BolExtractionResult as a dict, 'extraction_model': model}.

@@ -48,7 +48,9 @@ DEFAULT_START = date(2026, 11, 11)
 # receipt is dated in FL. More than this many days apart is not a clear match.
 DATE_TOLERANCE_DAYS = 1
 KG_TO_LB = 2.2046226218
+PRODUCT_NOT_CONFIRMED = 'not_confirmed'      # linked by lot and date; the Form wording does not confirm the product
 # What a BOL photo may be. Anything else is refused, never served.
+HEIC_TYPES = frozenset({'image/heic', 'image/heif'})
 PHOTO_TYPES = frozenset({'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif',
                          'application/pdf'})
 
@@ -284,7 +286,8 @@ class ProductMatcher:
       resolver_match     the resolver names exactly that FL product for the Form wording
       resolver_candidate the Form wording is less specific ("Sugar") and that FL
                          product is one of the products it could mean
-    Anything else is no fit (None).
+    Anything else is not a confident fit (None); match_row may still link the row
+    by lot and date alone, marked not_confirmed.
     """
 
     def __init__(self, cur):
@@ -350,37 +353,57 @@ def match_row(row, index, matcher, tolerance=DATE_TOLERANCE_DAYS):
                                f'{line["business_date"].isoformat()}, {abs(days)} days from the Form date '
                                f'{row["submitted_date"].isoformat()}.' for line, days in far])
         return result([], ['No FL receipt uses lot ' + ', '.join(row['lots']) + '.'])
-    reasons, fits = [], {}
+    # 1. Confident fits: the Form wording names the FL product.
+    fits, fitted_lines = {}, set()
     for line, days in near:
-        fitted = False
         for position, entry in enumerate(row['products']):
             basis = matcher.basis(entry['name'], line['product_id'], line['product_name'])
             if basis:
                 fits.setdefault(position, []).append((line, days, basis))
-                fitted = True
-        if not fitted:
-            reasons.append(f'Lot and date match FL receipt {_receipt_name(line)}, but the product differs: the Form '
-                           f'says {", ".join(e["text"] for e in row["products"])}; FL says {line["product_name"]}.')
-    links, linked = [], set()
+                fitted_lines.add((line['transaction_id'], line['lot_id']))
+    reasons, links, linked = [], [], set()
+
+    def link(entry, line, days, basis):
+        if (line['transaction_id'], line['lot_id']) in linked:
+            return
+        linked.add((line['transaction_id'], line['lot_id']))
+        links.append({
+            'transaction_id': line['transaction_id'], 'receipt_number': line['receipt_number'],
+            'lot_id': line['lot_id'], 'lot_code': line['lot_code'], 'product_id': line['product_id'],
+            'product_name': line['product_name'], 'business_date': line['business_date'].isoformat(),
+            'quantity': line['quantity'], 'form_product': entry['text'],
+            'basis': {'lot': 'same lot code', 'date_difference_days': days, 'product': basis}})
+
+    open_entries = []
     for position, entry in enumerate(row['products']):
         options = fits.get(position, [])
         distinct = {(line['transaction_id'], line['lot_id']) for line, _, _ in options}
         if not options:
-            reasons.append(f'No FL receipt was found for "{entry["text"]}".')
+            open_entries.append(entry)
         elif len(distinct) > 1:
             reasons.append(f'More than one FL receipt fits "{entry["text"]}" ('
                            + ', '.join(sorted({_receipt_name(line) for line, _, _ in options})) + '). Not linked.')
         else:
-            line, days, basis = options[0]
-            if (line['transaction_id'], line['lot_id']) in linked:
-                continue
-            linked.add((line['transaction_id'], line['lot_id']))
-            links.append({
-                'transaction_id': line['transaction_id'], 'receipt_number': line['receipt_number'],
-                'lot_id': line['lot_id'], 'lot_code': line['lot_code'], 'product_id': line['product_id'],
-                'product_name': line['product_name'], 'business_date': line['business_date'].isoformat(),
-                'quantity': line['quantity'], 'form_product': entry['text'],
-                'basis': {'lot': 'same lot code', 'date_difference_days': days, 'product': basis}})
+            link(entry, *options[0])
+    # 2. Generous, never a guess between receipts (owner, 2026-11-18): when lot and date leave exactly
+    # ONE FL receipt line and ONE Form product unaccounted for, they are linked even though the wording
+    # does not confirm the product. The link says so (product: not_confirmed) and that line is
+    # UNVERIFIED wherever it is used; wording alone never fails anything.
+    open_lines = {}
+    for line, days in near:
+        key = (line['transaction_id'], line['lot_id'])
+        if key not in fitted_lines:
+            open_lines[key] = (line, days)
+    if len(open_entries) == 1 and len(open_lines) == 1:
+        line, days = next(iter(open_lines.values()))
+        link(open_entries[0], line, days, PRODUCT_NOT_CONFIRMED)
+    else:
+        for line, _ in open_lines.values():
+            reasons.append(f'Lot and date match FL receipt {_receipt_name(line)} ({line["product_name"]}), but it '
+                           f'cannot be told which product on the Form it is: '
+                           f'{", ".join(e["text"] for e in row["products"])}.')
+        for entry in open_entries:
+            reasons.append(f'No FL receipt was found for "{entry["text"]}".')
     return result(links, reasons)
 
 
@@ -431,11 +454,17 @@ def sync(cur, sheet, *, env=None, sheet_id=SHEET_ID, tab=TAB, dry_run=False):
     index = receipt_index(load_receipts(cur, start - timedelta(days=DATE_TOLERANCE_DAYS)))
     matcher = ProductMatcher(cur)
     rows_new = links_new = 0
-    unmatched, linked_rows, current_links = [], 0, []
+    unmatched, unconfirmed, linked_rows, current_links = [], [], 0, []
     for row in rows:
         outcome = match_row(row, index, matcher)
         if outcome['links']:
             linked_rows += 1
+        if any(link['basis']['product'] == PRODUCT_NOT_CONFIRMED for link in outcome['links']):
+            unconfirmed.append(dict(describe_row(row, sheet_id, sheet.get('gid')),
+                                    linked=[{'receipt': link['receipt_number'] or f'#{link["transaction_id"]}',
+                                             'form_product': link['form_product'], 'fl_product': link['product_name']}
+                                            for link in outcome['links']
+                                            if link['basis']['product'] == PRODUCT_NOT_CONFIRMED]))
         if outcome['status'] != 'matched':
             unmatched.append(dict(describe_row(row, sheet_id, sheet.get('gid')), status=outcome['status'],
                                   reasons=outcome['reasons'],
@@ -484,9 +513,10 @@ def sync(cur, sheet, *, env=None, sheet_id=SHEET_ID, tab=TAB, dry_run=False):
     # voided since, all drop out here without anything being updated or deleted.
     summary = {'start_date': start.isoformat(), 'date_tolerance_days': DATE_TOLERANCE_DAYS,
                'rows_linked': linked_rows, 'gid': sheet.get('gid'), 'unmatched': unmatched,
-               'link_ids': current_links}
+               'product_wording_unconfirmed': unconfirmed, 'link_ids': current_links}
     outcome = {'run_id': None, 'rows_read': len(rows), 'rows_new': rows_new, 'links_new': links_new,
-               'rows_linked': linked_rows, 'unmatched': unmatched, 'saved': not dry_run}
+               'rows_linked': linked_rows, 'unmatched': unmatched, 'product_wording_unconfirmed': unconfirmed,
+               'saved': not dry_run}
     if not dry_run:
         cur.execute("""INSERT INTO receiving_form_sync_runs
                            (started_at, job_status, sheet_id, tab, rows_read, rows_new, links_new, unmatched_count,
@@ -630,7 +660,9 @@ def register_routes(app, api):
             done, failed = latest_sync(cur)
             if done is None:
                 return {'title': 'Receiving form row with no matching FL receipt', 'sync': None,
-                        'later_failure': failed, 'unmatched': []}
+                        'later_failure': failed, 'unmatched': [], 'product_wording_unconfirmed': []}
             summary = done.pop('summary') or {}
             return {'title': 'Receiving form row with no matching FL receipt', 'sync': done,
-                    'later_failure': failed, 'unmatched': summary.get('unmatched', [])}
+                    'later_failure': failed, 'unmatched': summary.get('unmatched', []),
+                    # Linked by lot and date, but the Form's product wording did not confirm the FL product.
+                    'product_wording_unconfirmed': summary.get('product_wording_unconfirmed', [])}

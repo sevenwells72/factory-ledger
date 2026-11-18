@@ -24,6 +24,11 @@ Rules this module keeps:
   * Never assume FL is right: where the three sources differ, all three values
     are shown and none is called the correct one.
   * A BOL photo that cannot be opened or read is UNVERIFIED, never PASS.
+  * Product wording never fails anything: a product agrees with confidence on all three
+    records or the line is UNVERIFIED.
+  * "Full recall possible" is NO only when an affected customer or shipment cannot be
+    identified (FLAGS level BLOCKS). Receiving mismatches fail the receiving section;
+    a missing BOL and shared-login entries are warnings.
   * Nothing is assumed about which stock was used first (no FIFO): the traces
     follow recorded lot lines only (lot_trace.py, lot_trace_backward.py).
   * Before the cutoff nothing is tested: an older ingredient in a chain is
@@ -75,20 +80,32 @@ WEIGHT_UNITS = {'lb': 1.0, 'lbs': 1.0, 'pound': 1.0, 'pounds': 1.0, '#': 1.0,
 COUNT_UNITS = frozenset({'case', 'cases', 'cs', 'bag', 'bags', 'box', 'boxes', 'ctn', 'ctns', 'carton', 'cartons',
                          'pail', 'pails', 'drum', 'drums', 'sack', 'sacks', 'tote', 'totes', 'pc', 'pcs', 'ea'})
 
-# The flags. `blocks` = it stands in the way of a full recall.
+# The flags, and what each one means for the answer (owner, 2026-11-18):
+#   BLOCKS     an affected customer or shipment cannot be identified -> "Full recall possible: NO"
+#   RECEIVING  a receiving-record gap: it fails the receiving check, and does not by itself make the answer NO
+#   WARNING    listed only
+BLOCKS, RECEIVING, WARNING = 'blocks', 'receiving', 'warning'
 FLAGS = {
-    'MADE_REMOVED_BY_ADJUSTMENT': (True, 'Made product removed by adjustment, never packed or shipped'),
-    'ORDER_SHIPPED_NOT_RECORDED': (True, 'Order closed "shipped, not recorded"'),
-    'SHIPMENT_NO_BOL': (False, 'Shipment with no BOL'),
-    'UNKNOWN_ADJUSTMENT_INTO_PRODUCT': (True, 'Stock added with reason "unknown" went into product'),
-    'SHARED_KEY_POSTING': (False, 'Entry made with the shared login (no named person)'),
-    'MISSING_SUPPLIER_LOT': (True, 'Ingredient lot with no supplier lot'),
-    'NEGATIVE_BALANCE': (True, 'Lot below zero'),
-    'LOT_ATTRIBUTION_UNRESOLVED': (True, 'Lot attribution not resolved'),
-    'RECEIVING_EVIDENCE_MISSING': (True, 'No receiving Form row for an ingredient lot'),
-    'TRACE_GAP': (True, 'A consumed lot has no identified output lot'),
-    'PRODUCTION_INPUTS_MISSING': (True, 'Make or pack entry with no ingredient lots recorded'),
+    'MADE_REMOVED_BY_ADJUSTMENT': (BLOCKS, 'Made product removed by adjustment, never packed or shipped'),
+    'ORDER_SHIPPED_NOT_RECORDED': (BLOCKS, 'Order closed "shipped, not recorded"'),
+    'UNKNOWN_ADJUSTMENT_INTO_PRODUCT': (BLOCKS, 'Stock added with reason "unknown" went into product'),
+    'NEGATIVE_BALANCE': (BLOCKS, 'Lot below zero'),
+    'LOT_ATTRIBUTION_UNRESOLVED': (BLOCKS, 'Lot attribution not resolved'),
+    'TRACE_GAP': (BLOCKS, 'A consumed lot has no identified output lot'),
+    'PRODUCTION_INPUTS_MISSING': (BLOCKS, 'Make or pack entry with no ingredient lots recorded'),
+    'MISSING_SUPPLIER_LOT': (RECEIVING, 'Ingredient lot with no supplier lot'),
+    'RECEIVING_EVIDENCE_MISSING': (RECEIVING, 'No receiving Form row for an ingredient lot'),
+    'SHIPMENT_NO_BOL': (WARNING, 'Shipment with no BOL'),
+    'SHARED_KEY_POSTING': (WARNING, 'Entry made with the shared login (no named person)'),
 }
+
+
+def _levelled(flags):
+    """Every flag carries its level; `blocks` is true only for the ones that make the answer NO."""
+    for flag in flags:
+        flag['level'] = FLAGS[flag['kind']][0]
+        flag['blocks'] = flag['level'] == BLOCKS
+    return flags
 
 
 class TraceApi:
@@ -253,7 +270,7 @@ def chain_facts(cur, lot_ids, cutoff):
     flags = []
 
     def flag(kind, message, **refs):
-        flags.append({'kind': kind, 'blocks': FLAGS[kind][0], 'title': FLAGS[kind][1], 'message': message,
+        flags.append({'kind': kind, 'blocks': FLAGS[kind][0] == BLOCKS, 'title': FLAGS[kind][1], 'message': message,
                       'refs': _plain(refs)})
 
     def moved(lot, kind, side):
@@ -371,7 +388,7 @@ def chain_facts(cur, lot_ids, cutoff):
     return _plain({'lots': [{key: lot[key] for key in (
         'lot_id', 'lot_code', 'product_id', 'product_name', 'product_type', 'unit', 'received', 'made', 'used',
         'shipped', 'adjusted_in', 'adjusted_out', 'on_hand', 'supplier_lots', 'identity_status')}
-        for lot in lots.values()], 'flags': flags, 'shipments': shipments})
+        for lot in lots.values()], 'flags': _levelled(flags), 'shipments': shipments})
 
 
 def _fl_receipt(line):
@@ -632,12 +649,19 @@ def gather_evidence(data, client, extractor=None):
         for file_id in forward['row']['photo_file_ids'][:MAX_PHOTOS_READ]:
             document = _photo_state(client, file_id)
             document.update(readable=False, extraction=None, model=None)
-            if document['accessible'] and document['mime_type'] not in extraction.ALLOWED_MIME_TYPES:
+            readable_type = document['mime_type']
+            if document['accessible'] and readable_type in receiving_form.HEIC_TYPES:
+                readable_type = 'image/jpeg'                # a phone HEIC photo is converted in memory first
+                document['converted_from'] = document['mime_type']
+            if document['accessible'] and readable_type not in extraction.ALLOWED_MIME_TYPES:
                 document['problem'] = (f'The photo format ({document["mime_type"]}) cannot be read by the '
                                        f'extraction model.')
             elif document['accessible']:
                 try:
-                    result = extractor(client.download(file_id), document['mime_type'])
+                    content = client.download(file_id)
+                    if document.get('converted_from'):
+                        content = extraction.heic_to_jpeg(content)
+                    result = extractor(content, readable_type)
                     document.update(extraction=result['extraction'], model=result.get('extraction_model'))
                     if result['extraction'].get('readable') and result['extraction'].get('lines'):
                         document['readable'] = True
@@ -760,21 +784,22 @@ def compare_receipt(row, receipt, bol_lines, bol_readable):
     candidate_line = (bol_lines[0] if not fitting and len(bol_lines) == 1 and len(row['product_entries']) == 1
                       and bol_lines[0].get('resolves_to') is None else None)
     out = []
-    # Product
-    if not bol_readable:
-        product_status, bol_product = NOT_COMPARABLE, 'BOL not readable'
-    elif fitting:
-        product_status, bol_product = AGREE, '; '.join(line['description'] for line in fitting)
-    elif bol_lines and all(line.get('resolves_to') not in (None, receipt['product_id']) for line in bol_lines):
-        # Every line on the BOL is clearly some other FL product: this product is not on it.
-        product_status, bol_product = DISAGREE, '; '.join(line['description'] for line in bol_lines)
+    # Product. Wording alone never fails anything (owner, 2026-11-18): the product either agrees with
+    # confidence on all three records, or the line is "cannot compare" (UNVERIFIED).
+    form_unconfirmed = (receipt.get('basis') or {}).get('product') == receiving_form.PRODUCT_NOT_CONFIRMED
+    shown = fitting or bol_lines
+    bol_product = ('BOL not readable' if not bol_readable
+                   else '; '.join(line['description'] for line in shown) or 'no product line read')
+    product_status = AGREE if bol_readable and fitting and not form_unconfirmed else NOT_COMPARABLE
+    if product_status == AGREE or not bol_readable:
+        product_note = None
+    elif form_unconfirmed:
+        product_note = 'The product wording on the Form does not confirm the FL product; linked by lot and date.'
     else:
-        product_status = NOT_COMPARABLE
-        bol_product = '; '.join(line['description'] for line in bol_lines) or 'no product line read'
+        product_note = 'The wording on the BOL could not be tied to this product with confidence.'
     out.append({'field': 'Product', 'sheet': entry.get('name') or receipt['form_product'], 'bol': bol_product,
-                'fl': receipt['product_name'], 'status': product_status,
-                'note': None if product_status != NOT_COMPARABLE or not bol_readable
-                else 'The wording on the BOL could not be tied to this product with certainty.'})
+                'fl': receipt['product_name'], 'status': product_status, 'form_unconfirmed': form_unconfirmed,
+                'note': product_note})
     # Quantity
     lines = fitting or ([candidate_line] if candidate_line else [])
     sheet_lb, sheet_cases = entry.get('total_lb'), entry.get('cases')
@@ -888,7 +913,8 @@ def compare_document(row, receipts, documents, bol_supplier, extra_lines=None):
         missing = [line for line in extra_lines if line.get('resolves_to') is not None
                    and not line.get('received_elsewhere')]
         unnamed = [line for line in extra_lines if line.get('resolves_to') is None]
-        status = DISAGREE if missing else (NOT_COMPARABLE if unnamed else AGREE)
+        # Recognising the product rests on the BOL's wording, so this is never a FAIL: unconfirmed at most.
+        status = NOT_COMPARABLE if missing or unnamed else AGREE
         fl_words = '; '.join(
             [f'{line["description"]}: on FL receipt {", ".join(line["received_elsewhere"])}' for line in elsewhere]
             + [f'{line["description"]}: no FL receipt for this product within a day of the Form date' for line in missing]
@@ -897,7 +923,7 @@ def compare_document(row, receipts, documents, bol_supplier, extra_lines=None):
                     'bol': '; '.join(line['description'] for line in extra_lines) or 'none',
                     'fl': fl_words, 'status': status,
                     'note': None if status != NOT_COMPARABLE else
-                    'The BOL has a line that could not be tied to any product received on this Form row.'})
+                    'The BOL has a line that is not accounted for by the receipts matched to this Form row.'})
     makers = sorted({e['manufacturer_name'] for e in read if e.get('manufacturer_name')})
     out.append({'field': 'Manufacturer', 'sheet': 'not asked on the Form',
                 'bol': ', '.join(makers) or ('BOL not readable' if not read else 'not printed'),
@@ -917,7 +943,8 @@ def analyse(data):
     """Verdicts for the two tests and the answer to "Full recall possible?". Pure."""
     result = {'cutoff': data['cutoff'], 'sheet': data['sheet'], 'unmatched_rows': data['unmatched_rows'],
               'form_rows_on_or_after_cutoff': data['form_rows_on_or_after_cutoff']}
-    reasons = []            # why the answer is not YES
+    reasons = []            # why the answer is NO: only what stops an affected customer or shipment being identified
+    receiving_gaps = []     # receiving checks that did not pass; shown, and never by themselves a NO
 
     # ---- Test 1 ----------------------------------------------------------
     forward = data['forward']
@@ -998,13 +1025,16 @@ def analyse(data):
                 for field in document_fields:
                     if field['field'] == 'Other products on the BOL' and field['status'] == NOT_COMPARABLE:
                         receiving = worst(receiving, UNVERIFIED)
-                        notes.append(f'The BOL lists "{field["bol"]}", which could not be tied to anything received '
-                                     f'on this Form row.')
+                        notes.append(f'The BOL also lists "{field["bol"]}", which the receipts matched to this Form '
+                                     f'row do not account for ({field["fl"]}).')
                 for comparison in comparisons:
                     by_field = {f['field']: f for f in comparison['fields']}
                     if by_field['Product']['status'] != AGREE:
                         receiving = worst(receiving, UNVERIFIED)
-                        notes.append(f'{comparison["receipt"]["product_name"]}: the BOL could not confirm the product.')
+                        notes.append(f'{comparison["receipt"]["product_name"]}: '
+                                     + ('the product wording on the Form does not confirm it.'
+                                        if by_field['Product']['form_unconfirmed'] else
+                                        'the BOL could not confirm the product.'))
                     quantity = by_field['Quantity']
                     if quantity['status'] != DISAGREE and not (
                             quantity['status'] == AGREE and quantity['bol_compared'] and quantity['fl_compared']):
@@ -1019,7 +1049,14 @@ def analyse(data):
                 flags.append({'kind': 'TRACE_GAP', 'blocks': True, 'title': FLAGS['TRACE_GAP'][1],
                               'message': f'Entry #{gap["transaction_id"]} used a lot and recorded no output lot, '
                                          f'so the trail stops there.', 'refs': gap})
-        trace_result = FAIL if any(f['blocks'] for f in flags) else PASS
+        _levelled(flags)
+        for flag in flags:
+            if flag['level'] == RECEIVING:              # e.g. the received lot has no supplier lot
+                receiving = worst(receiving, FAIL)
+                problems.append(flag['message'])
+        # The trace is judged only on what stops an affected customer or shipment being identified.
+        # With no FL receipt there was nothing to trace from: not run, rather than passed or failed.
+        trace_result = None if not receipts else (FAIL if any(f['blocks'] for f in flags) else PASS)
         overall = worst(receiving, trace_result)
         result['forward'] = {
             'result': overall, 'receiving_result': receiving, 'trace_result': trace_result,
@@ -1027,9 +1064,9 @@ def analyse(data):
             'document_fields': document_fields, 'documents': documents, 'problems': problems, 'notes': notes,
             'traces': forward['traces'], 'chain': forward['chain'], 'flags': flags,
             'customers': sorted({c for trace in forward['traces'] for c in trace['customers']})}
-        if overall != PASS:
-            reasons.extend([f'Forward test: {text}' for text in problems + notes]
-                           + [f'Forward test: {f["message"]}' for f in flags if f['blocks']])
+        reasons.extend(f'Forward test: {f["message"]}' for f in flags if f['blocks'])
+        if receiving != PASS:
+            receiving_gaps.append(f'Forward test receiving verification: {_RESULT_WORDS[receiving]}')
 
     # ---- Test 2 ----------------------------------------------------------
     backward = data['backward']
@@ -1039,7 +1076,7 @@ def analyse(data):
         flags, notes, evidence = list(backward['chain']['flags']), [], PASS
         tested = [item for item in backward['ingredients'] if not item['before_cutoff']]
         def flag(kind, message, **refs):
-            flags.append({'kind': kind, 'blocks': FLAGS[kind][0], 'title': FLAGS[kind][1], 'message': message,
+            flags.append({'kind': kind, 'blocks': FLAGS[kind][0] == BLOCKS, 'title': FLAGS[kind][1], 'message': message,
                           'refs': refs})
 
         for item in tested:
@@ -1112,32 +1149,41 @@ def analyse(data):
                           'title': FLAGS['LOT_ATTRIBUTION_UNRESOLVED'][1],
                           'message': 'Part of this finished lot was not made: stock was also received or found '
                                      'straight into it, so its ingredients are not all known.', 'refs': {}})
+        _levelled(flags)
+        if any(flag['level'] == RECEIVING for flag in flags):       # no Form row, or no supplier lot
+            evidence = worst(evidence, FAIL)
         overall = worst(FAIL if any(f['blocks'] for f in flags) else PASS, evidence)
         result['backward'] = {
             'result': overall, 'pool_size': backward['pool_size'], 'lot': backward['lot'],
             'made_lots': backward['made_lots'], 'ingredients': backward['ingredients'], 'own': backward['own'],
             'other_shipments': backward['other_shipments'], 'chain': backward['chain'], 'flags': flags,
+            'evidence_result': evidence,
             'notes': notes, 'not_tested_count': len(backward['ingredients']) - len(tested),
             'made_not_tested_count': sum(1 for made in backward['made_lots'] if made['before_cutoff']),
             'inputs_mismatch': backward['inputs_mismatch'],
             'other_customers': sorted({s['customer'] or 'customer not named on the shipment'
                                        for s in backward['other_shipments']})}
-        if overall != PASS:
-            reasons.extend([f'Backward test: {text}' for text in notes]
-                           + [f'Backward test: {f["message"]}' for f in flags if f['blocks']])
+        reasons.extend(f'Backward test: {f["message"]}' for f in flags if f['blocks'])
+        if evidence != PASS:
+            receiving_gaps.append(f'Backward test receiving evidence: {_RESULT_WORDS[evidence]}')
 
-    results = [result['forward']['result'], result['backward']['result']]
-    if all(r == NO_LOT for r in results):
-        answer = 'not_tested'
+    # Full recall possible (owner, 2026-11-18): NO when any affected customer or shipment cannot be
+    # identified (the BLOCKS flags). Receiving mismatches and unreadable evidence fail or leave
+    # unverified their own section and never by themselves make it NO. With nothing traced at all
+    # (no eligible lot, or a Form row with no FL receipt to trace from) it is NOT TESTED.
+    traced = bool(result['forward'].get('receipts')) or result['backward']['result'] != NO_LOT
+    if reasons:
+        answer = 'no'
     else:
-        answer = 'yes' if all(r in (PASS, NO_LOT) for r in results) else 'no'
+        answer = 'yes' if traced else 'not_tested'
     seen, unique = set(), []
     for text in reasons:
         if text not in seen:
             seen.add(text)
             unique.append(text)
     all_flags = (result['forward'].get('flags') or []) + (result['backward'].get('flags') or [])
-    result.update(full_recall_possible=answer, reasons=unique, flag_count=len(all_flags))
+    result.update(full_recall_possible=answer, reasons=unique, receiving_gaps=receiving_gaps,
+                  flag_count=len(all_flags))
     return result
 
 
@@ -1147,6 +1193,8 @@ def analyse(data):
 
 _RESULT_WORDS = {PASS: 'PASS', FAIL: 'FAIL', UNVERIFIED: 'UNVERIFIED', NO_LOT: 'No eligible lot'}
 _ANSWER_WORDS = {'yes': 'YES', 'no': 'NO', 'not_tested': 'NOT TESTED (no eligible lot)'}
+_FLAG_SUFFIX = {BLOCKS: '', WARNING: ' (warning only)',
+                RECEIVING: ' (a receiving-record gap: it fails the receiving check; by itself it does not make the answer NO)'}
 
 
 class _Email:
@@ -1245,7 +1293,7 @@ def render_email(analysis, run_at):
         lot = backward['lot']
         email.line(f'Backward test picked finished lot {lot["lot_code"]} ({lot["product_name"]}, first made '
                    f'{lot["first_made"]}) at random out of {backward["pool_size"]} shipped lots. Receiving evidence '
-                   f'for each ingredient lot:', bold=True)
+                   f'for each ingredient lot ({_RESULT_WORDS[backward["evidence_result"]]}):', bold=True)
         rows = []
         for item in backward['ingredients']:
             if item['before_cutoff']:
@@ -1341,8 +1389,7 @@ def render_email(analysis, run_at):
         if flags:
             any_flag = True
             email.line(f'{label}:', bold=True)
-            email.bullets([f'{f["title"]}: {f["message"]}' + ('' if f['blocks'] else ' (does not stop a recall)')
-                           for f in flags[:MAX_EMAIL_ROWS]])
+            email.bullets([f'{f["title"]}: {f["message"]}' + _FLAG_SUFFIX[f['level']] for f in flags[:MAX_EMAIL_ROWS]])
             if len(flags) > MAX_EMAIL_ROWS:
                 email.line(f'... and {len(flags) - MAX_EMAIL_ROWS} more (all saved with this run).')
     if not any_flag:
@@ -1360,15 +1407,23 @@ def render_email(analysis, run_at):
     # 5 ------------------------------------------------------------------
     email.heading(f'5. Full recall possible: {answer}')
     if analysis['full_recall_possible'] == 'yes':
-        email.line('Both tests traced their lot from receiving to customers with matching records and no blocking flag.')
+        email.line('Every affected customer and shipment in the chains tested can be identified from the records.')
     elif analysis['full_recall_possible'] == 'not_tested':
-        email.line('Neither test had an eligible lot, so nothing was proven either way.')
+        email.line('Nothing could be traced this time (no eligible lot, or no FL receipt to trace from), so nothing '
+                   'was proven either way.')
     else:
-        email.line('Why not:')
-        email.bullets(analysis['reasons'][:40])
-    email.line('The flags cover the lots in these two chains (in the backward test: everything the shared '
-               'ingredient lots went into), not the whole plant. UNVERIFIED means the '
-               'evidence could not be read; it is never counted as a pass.')
+        email.line('Why not (each of these stops an affected customer or shipment being identified):')
+        email.bullets(analysis['reasons'][:MAX_EMAIL_ROWS])
+    if analysis['receiving_gaps']:
+        email.line('Receiving checks that did not pass (section 1): ' + '; '.join(analysis['receiving_gaps'])
+                   + '. By themselves these do not change the answer above.')
+    email.line('NO means only this: somewhere in these chains a customer or shipment could not be identified '
+               '(unresolved lot attribution, made product removed with no destination, an order closed "shipped, '
+               'not recorded", an ingredient lot with no receipt, or a broken lot link). Receiving mismatches show '
+               'as FAIL in section 1. A missing BOL photo or number and entries under the shared login are '
+               'warnings. The flags cover the lots in these two chains (in the backward test: everything the '
+               'shared ingredient lots went into), not the whole plant. UNVERIFIED means the evidence could not '
+               'be read; it is never counted as a pass.')
     subject = (f'Factory Ledger trial recall, {day.strftime("%a %b")} {day.day}: Full recall possible: {answer}')
     return {'subject': subject, 'text': '\n'.join(email.text).strip() + '\n', 'html': '\n'.join(email.html)}
 

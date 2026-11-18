@@ -132,10 +132,23 @@ def test_no_receipt_no_lot_no_product_no_timestamp_are_listed_with_the_reason():
     assert 'could not be read' in match(form_row(None, 'L-1', ['Sugar-50lbs-1']))['reasons'][0]
 
 
-def test_a_different_product_on_the_same_lot_and_date_is_never_linked():
+def test_wording_that_does_not_confirm_the_product_links_generously_and_says_so():
+    # Lot and date leave one FL receipt line and one Form product: linked, marked not_confirmed.
     outcome = match(form_row(day(1), 'L-1', ['Honey-50lbs-10']), line(7, 70, 'L-1', 1, day(1), 'Sugar Brown'))
+    assert outcome['status'] == 'matched' and outcome['reasons'] == []
+    assert outcome['links'][0]['transaction_id'] == 7 and outcome['links'][0]['basis']['product'] == 'not_confirmed'
+    # Two receipt lines and two Form products that the wording cannot tell apart: never guessed.
+    outcome = match(form_row(day(1), 'L-1, L-2', ['Miel-50lbs-10', 'Avena-50lbs-4']),
+                    line(7, 70, 'L-1', 1, day(1), 'Sugar Brown'), line(8, 71, 'L-2', 2, day(1), 'Honey Clover'))
     assert outcome['status'] == 'unmatched' and outcome['links'] == []
-    assert any('the product differs' in r and 'Honey-50lbs-10' in r and 'Sugar Brown' in r for r in outcome['reasons'])
+    assert sum('cannot be told which product on the Form it is' in r for r in outcome['reasons']) == 2
+    assert sum(r.startswith('No FL receipt was found for') for r in outcome['reasons']) == 2
+    # One confident match plus exactly one left over on each side: the left-over pair is linked, marked.
+    outcome = match(form_row(day(1), 'L-1, L-2', ['Sugar-50lbs-10', 'Miel-50lbs-4']),
+                    line(7, 70, 'L-1', 1, day(1), 'Sugar 6X'), line(8, 71, 'L-2', 2, day(1), 'Honey Clover'))
+    assert outcome['status'] == 'matched'
+    assert sorted((l['transaction_id'], l['basis']['product']) for l in outcome['links']) == [
+        (7, 'same_name'), (8, 'not_confirmed')]
 
 
 def test_two_receipts_that_both_fit_are_not_chosen_between():
@@ -281,26 +294,29 @@ def test_sync_links_the_clear_match_and_lists_the_rest(plant):
     read = sheet(
         plant.form_row(day(-3), sugar_lot, ['Sugar brown-50lbs-100']),                  # before the start date: ignored
         plant.form_row(day(1), sugar_lot, ['Sugar brown-50lbs-100'], photo=[PHOTO, PHOTO_2]),
-        plant.form_row(day(1), honey_lot, ['Sugar brown-50lbs-12'], hour=12),           # right lot, wrong product
+        plant.form_row(day(1), honey_lot, ['Sugar brown-50lbs-12'], hour=12),           # right lot, other product wording
         plant.form_row(day(2), 'NO-SUCH-LOT', ['Sugar brown-50lbs-1'], hour=13),
     )
     outcome = receiving_form.sync(plant.cur, read)
-    assert (outcome['rows_read'], outcome['rows_new'], outcome['rows_linked'], outcome['links_new']) == (3, 3, 1, 2)
+    assert (outcome['rows_read'], outcome['rows_new'], outcome['rows_linked'], outcome['links_new']) == (3, 3, 2, 3)
     plant.cur.execute("""SELECT l.transaction_id, l.lot_id, l.product_id, l.drive_file_id, l.match_basis, r.row_number
                          FROM receipt_bol_links l JOIN receiving_form_rows r ON r.id = l.form_row_id
                          WHERE l.transaction_id = ANY(%s) ORDER BY l.id""", (list(plant.txs),))
     links = plant.cur.fetchall()
-    assert [(l['transaction_id'], l['lot_id'], l['product_id'], l['drive_file_id'], l['row_number']) for l in links] == [
-        (sugar_tx, sugar_lot, sugar, PHOTO, 3), (sugar_tx, sugar_lot, sugar, PHOTO_2, 3)]
-    assert links[0]['match_basis']['product'] == 'same_name' and links[0]['match_basis']['date_difference_days'] == 0
+    assert [(l['lot_id'], l['product_id'], l['drive_file_id'], l['row_number'], l['match_basis']['product']) for l in links] == [
+        (sugar_lot, sugar, PHOTO, 3, 'same_name'), (sugar_lot, sugar, PHOTO_2, 3, 'same_name'),
+        (honey_lot, honey, PHOTO, 4, 'not_confirmed')]                  # linked by lot and date; the wording did not confirm it
+    assert links[0]['transaction_id'] == sugar_tx and links[0]['match_basis']['date_difference_days'] == 0
     listed = {item['row_number']: item for item in outcome['unmatched']}
-    assert sorted(listed) == [4, 5]
-    assert 'the product differs' in listed[4]['reasons'][0] and listed[5]['reasons'] == ['No FL receipt uses lot NO-SUCH-LOT.']
-    assert listed[4]['sheet_row_url'].endswith('#gid=1234&range=A4')
+    assert sorted(listed) == [5] and listed[5]['reasons'] == ['No FL receipt uses lot NO-SUCH-LOT.']
+    assert listed[5]['sheet_row_url'].endswith('#gid=1234&range=A5')
+    unconfirmed, = outcome['product_wording_unconfirmed']
+    assert unconfirmed['row_number'] == 4 and unconfirmed['linked'][0]['fl_product'] == plant.name('Honey Clover')
     plant.cur.execute('SELECT * FROM receiving_form_sync_runs WHERE id = %s', (outcome['run_id'],))
     run = plant.cur.fetchone()
-    assert (run['job_status'], run['rows_read'], run['unmatched_count']) == ('completed', 3, 2)
-    assert [item['row_number'] for item in run['summary']['unmatched']] == [4, 5]
+    assert (run['job_status'], run['rows_read'], run['unmatched_count']) == ('completed', 3, 1)
+    assert [item['row_number'] for item in run['summary']['unmatched']] == [5]
+    assert [item['row_number'] for item in run['summary']['product_wording_unconfirmed']] == [4]
 
 
 @pytest.mark.db
@@ -563,6 +579,7 @@ def test_the_owner_list_of_form_rows_with_no_matching_receipt(client, plant, act
         assert body['title'] == 'Receiving form row with no matching FL receipt'
         assert [u['row_number'] for u in body['unmatched']] == [3] and body['unmatched'][0]['lot_text'] == 'GHOST-1'
         assert body['sync']['unmatched_count'] == 1 and body['later_failure']['job_error'] == 'AUTH_FAILED'
+        assert body['product_wording_unconfirmed'] == []
     assert client.get('/verification/receiving-form/unmatched', headers=key('floor')).status_code == 403
     assert client.get('/verification/receiving-form/unmatched').status_code == 401
     assert client.get('/verification/receiving-form/unmatched', headers={'X-API-Key': main.API_KEY}).status_code == 200

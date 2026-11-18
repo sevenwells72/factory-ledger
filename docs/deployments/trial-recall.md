@@ -34,9 +34,12 @@ permission beyond the two read-only ones is refused. No photo is ever copied or 
      `26-11-12-STAR-001` = `261112star001`);
    - **date**: the Form date and the receipt's business date are at most **1 day** apart
      (`DATE_TOLERANCE_DAYS`; the Form is sometimes filled the evening of or the morning after);
-   - **product**: the product typed on the Form fits the product on that FL receipt: same words, or the shared
-     FL product resolver (names and learned aliases) names that product, or the Form wording is less specific
-     ("Sugar") and that product is one it could mean. The basis is saved on the link.
+   - **product**: matched generously (owner, 2026-11-18). A confident fit is: same words, or the shared FL
+     product resolver (names and learned aliases) names that product, or the Form wording is less specific
+     ("Sugar") and that product is one it could mean. When the wording is not a confident fit but lot and date
+     leave exactly **one** FL receipt line and **one** Form product unaccounted for, they are still linked, and
+     the link says `product: not_confirmed`. That line is UNVERIFIED wherever it is used; wording alone never
+     fails anything. With two or more left over on either side nothing is guessed. The basis is saved on the link.
    - Only posted, not-voided receipts count (`ledger_current_transactions`, `effective_status='posted'`).
 3. **Clear match** (exactly one FL receipt line fits a Form product) → a link record in `receipt_bol_links`
    (Form row + Drive file id + what agreed).
@@ -48,7 +51,8 @@ permission beyond the two read-only ones is refused. No photo is ever copied or 
    product differs; more than one receipt fits; no lot or no product on the row; unreadable timestamp.
 
 **Owner list.** `GET /verification/receiving-form/unmatched` (owner, office, master key) returns the list from
-the latest nightly read, and says so if a later read failed. The same list is in section 4 of every trial
+the latest nightly read (plus `product_wording_unconfirmed`: rows that were linked by lot and date although the
+Form's product wording did not confirm the FL product), and says so if a later read failed. The same list is in section 4 of every trial
 recall email. The dashboard has no Weekly tab yet (design §7.2 is not built); when it is built it can read this
 route. See "Open questions".
 
@@ -86,16 +90,20 @@ failure.
    intake): product, supplier, manufacturer, carrier, quantity, lot numbers, BOL and reference numbers. Only
    what is printed; nothing inferred.
 2. **Unreadable or not openable → UNVERIFIED, never PASS** (photo gone or in the trash, a format the model
-   cannot read such as HEIC, the model says it cannot read the lines, the model call fails). A readable BOL that
+   cannot read, the model says it cannot read the lines, the model call fails). **HEIC / HEIF phone photos are
+   converted to JPEG in memory and then read** (`extraction.heic_to_jpeg`, library `pillow-heif`); if the
+   conversion fails the photo is UNVERIFIED. A readable BOL that
    cannot confirm the product or the quantity is UNVERIFIED too. **Every** photo on the Form row has to be
    readable: one good page never covers a missing or unreadable one. Up to 6 photos are read; a row with more is
    UNVERIFIED. A page photographed twice (the whole reading identical) is counted once; one line repeated on two
    different pages is kept and shown, and the row cannot pass on it.
 3. **Three-way comparison, Sheet vs BOL vs FL**: product, quantity, internal lot, supplier lot, BOL/reference
    number (whole numbers only: `4412` is found in `PO 4412`, never inside `944120`), supplier (checked on every
-   matched receipt), other products on the BOL (a product the BOL shows that FL has no receipt for within a day
-   is a disagreement; a line FL's product list does not recognise is UNVERIFIED), manufacturer, carrier. Every value from every source is shown for every field. A
-   difference is a FAIL and the email shows all three values; **FL is never assumed to be the right one**.
+   matched receipt), other products on the BOL (a product the BOL shows that FL has no receipt for within a day, or a
+   line FL's product list does not recognise, is UNVERIFIED), manufacturer, carrier. Every value from every source is shown for every field. A
+   difference in quantity, lot, reference number or supplier is a FAIL of the receiving check and the email shows
+   all three values; **FL is never assumed to be the right one**. **Product wording never fails anything**: the
+   product either agrees with confidence on all three records or the line is UNVERIFIED.
    Quantities agree within 0.5 lb, or case counts exactly. A case size written with no unit ("25") is never
    assumed to be pounds. The BOL's quantity for a product is used only when every one of its lines can be
    added up in one unit (a line in pallets, or with no quantity, leaves it unconfirmed). A quantity counts as
@@ -124,23 +132,36 @@ copied. Nothing is assumed about which stock was used first (no FIFO): the trace
 **Flags** (on the lots of the two chains; in the backward test that includes every lot the tested ingredient
 lots went into, not only the picked finished lot; lists over 40 are cut in the email and saved whole with the run):
 
-| Flag | Raised when | Stops a full recall? |
+| Flag | Raised when | Level |
 | --- | --- | --- |
-| `MADE_REMOVED_BY_ADJUSTMENT` | A made lot was taken out by adjustment and never packed, used or shipped. | Yes |
-| `ORDER_SHIPPED_NOT_RECORDED` | An order for a finished product in the chain was closed "shipped, not recorded" on/after the cutoff. | Yes |
-| `SHIPMENT_NO_BOL` | A shipment in the chain has no BOL number (the line also says if there is no photo). | No |
-| `UNKNOWN_ADJUSTMENT_INTO_PRODUCT` | Stock was added with reason "unknown" (or none) to a lot that then went into packed or shipped product. | Yes |
-| `SHARED_KEY_POSTING` | An entry in the chain (on/after the cutoff) was made with the shared login. | No |
-| `MISSING_SUPPLIER_LOT` | A received ingredient lot has no supplier lot (also when staff chose "No lot on label"). | Yes |
-| `NEGATIVE_BALANCE` | A lot in the chain is below zero. | Yes |
-| `LOT_ATTRIBUTION_UNRESOLVED` | A lot is unidentified or pooled, has an open shortage / unidentified-lot / negative-balance exception, did not come in on a supplier receipt, or a finished lot was not (only) made. | Yes |
-| `RECEIVING_EVIDENCE_MISSING` | Backward test: an ingredient lot's receipt has no Form row. | Yes |
-| `TRACE_GAP` | A consumed lot has no identified output lot. | Yes |
-| `PRODUCTION_INPUTS_MISSING` | Backward test: a make or pack entry in the chain records no ingredient lots (or leads back to itself). | Yes |
+| `LOT_ATTRIBUTION_UNRESOLVED` | A lot is unidentified or pooled; has an open shortage / unidentified-lot / negative-balance exception; an ingredient lot (or part of one) did not come in on a supplier receipt; a made lot was not only made (stock also received or found straight into it). | **Makes it NO** |
+| `MADE_REMOVED_BY_ADJUSTMENT` | A made lot was taken out by adjustment and never packed, used or shipped. | **Makes it NO** |
+| `ORDER_SHIPPED_NOT_RECORDED` | An order for a finished product in the chain was closed "shipped, not recorded" on/after the cutoff. | **Makes it NO** |
+| `UNKNOWN_ADJUSTMENT_INTO_PRODUCT` | Stock was added with reason "unknown" (or none) to a lot that then went into packed or shipped product. | **Makes it NO** |
+| `NEGATIVE_BALANCE` | A lot in the chain is below zero (more was used than the books ever held). | **Makes it NO** |
+| `TRACE_GAP` | A consumed lot has no identified output lot. | **Makes it NO** |
+| `PRODUCTION_INPUTS_MISSING` | Backward test: a make or pack entry in the chain records no ingredient lots (or leads back to itself). | **Makes it NO** |
+| `MISSING_SUPPLIER_LOT` | A received ingredient lot has no supplier lot (also when staff chose "No lot on label"). | Receiving FAIL |
+| `RECEIVING_EVIDENCE_MISSING` | Backward test: an ingredient lot's receipt has no Form row. | Receiving FAIL |
+| `SHIPMENT_NO_BOL` | A shipment in the chain has no BOL number (the line also says if there is no photo). | Warning |
+| `SHARED_KEY_POSTING` | An entry in the chain (on/after the cutoff) was made with the shared login. | Warning |
 
-**Results.** Each test is `PASS`, `FAIL`, `UNVERIFIED` or `No eligible lot`. **Full recall possible** is
-**YES** only when every test that ran is PASS; **NO** otherwise, with the reasons listed; **NOT TESTED** when
-neither test had an eligible lot.
+**Results.** Each test is `PASS`, `FAIL`, `UNVERIFIED` or `No eligible lot`.
+
+**Full recall possible** (owner, 2026-11-18):
+
+- **NO** when any affected customer or shipment cannot be identified: unresolved lot attribution, made product
+  removed with no destination, an order closed "shipped, not recorded", a consumed ingredient lot with no
+  receipt, or a broken lot link (the "Makes it NO" flags above). The reasons are listed.
+- **Receiving mismatches** (quantity, lot, reference, supplier; a missing supplier lot; a missing Form row) show
+  as **FAIL in the receiving section** and do not by themselves make it NO. Unreadable evidence is UNVERIFIED
+  and does not either. The email says which receiving checks did not pass, next to the answer.
+- **A missing BOL photo or number, and entries under the shared login, are warnings only.**
+- **YES** otherwise. **NOT TESTED** when nothing could be traced (no eligible lot, or a Form row with no FL
+  receipt to trace from and no eligible finished lot).
+
+Two readings of mine inside your rule, say if you want them moved: stock added with reason "unknown" that went
+into product, and a lot below zero, both count as unresolved lot attribution (NO).
 
 **Email** (the daily reconciliation's Resend setup: `ALERT_EMAIL_TO`, `RESEND_API_KEY`,
 `RECONCILIATION_EMAIL_FROM`), sections in order:
@@ -267,23 +288,26 @@ It tests the records, not the shelves. It reads one Form row and one finished lo
 a clean result is evidence about those two chains, not the whole plant. It cannot see product that left with no
 entry at all, and it cannot read a BOL better than the photo allows.
 
-## Open questions (also in the PR description)
+## Decisions (Michael, 2026-11-18)
 
-1. **Product check wording.** A Form row that says only "Sugar" is linked when its lot and date pin an FL
-   receipt for a sugar. Stricter (exact product only) would list more rows; say if you want that.
-2. **Date tolerance.** One day either side. Zero would list rows filled the next morning.
-3. **Start date for Part 1.** The same 2026-11-11 as the recall cutoff, so the list is not flooded with rows
-   from before Factory Ledger held the receipts. Receipts from Oct 28 – Nov 10 therefore get no button.
-4. **Owner weekly view.** It is designed (§7.2) but not built. The list is served by a route and printed in
+1. **Product wording:** match generously; a match that is not confident is UNVERIFIED for that line; never FAIL
+   on wording alone.
+2. **Date tolerance:** one day either side (the Form is sometimes submitted the next day).
+3. **Start date:** 2026-11-11, for the nightly matching and the recall cutoff.
+4. **HEIC photos:** converted and read; if conversion fails, UNVERIFIED.
+5. **Full recall possible:** NO only when an affected customer or shipment cannot be identified; receiving
+   mismatches FAIL their own section; a missing BOL photo and shared-login entries are warnings (rules above).
+6. **Anthropic key on the cron service:** reuse the existing key.
+7. **Numbering:** changelog row 306, migration 097.
+
+## Still open
+
+1. **Owner weekly view.** It is designed (§7.2) but not built. The lists are served by a route and printed in
    every recall email; a Weekly tab is a separate change.
-5. **Backward test does not read every BOL.** It checks each ingredient lot's photo is on file and openable.
+2. **Backward test does not read every BOL.** It opens each ingredient lot's photo to check it is on file.
    Reading all of them would cost one model call per ingredient lot per run.
-6. **HEIC photos.** A phone photo saved as HEIC can be opened from the receipt in Safari but cannot be read by
-   the model, so that row is UNVERIFIED. If many are HEIC, a conversion step is a follow-up.
-7. **Which flags stop a full recall.** "Shipment with no BOL" and "shared login" are listed but do not turn the
-   answer to NO; the others do. UNVERIFIED also makes the answer NO (not proven is not yes).
-8. **"NOT TESTED".** When neither test has an eligible lot the answer is neither YES nor NO.
-9. **Cron service key.** `exceptions-sweep` needs `ANTHROPIC_API_KEY`; confirm reusing the existing key (and its
-   spending cap) is acceptable.
-10. **Migration number.** 097, per the owner's numbering (095 is the Chocolate Chips rename, already on main;
-    096 is left for the adjustment-rules branch). Changelog row 306.
+3. **HEIC on the receipt page.** The model reads a converted copy; the "BOL photo" button still streams the
+   original file, which Safari shows and other browsers open as a download.
+4. **New library.** `pillow-heif==1.8.1` is added to `requirements.txt` (needs pillow 11.1 or newer, which
+   reportlab already brings in). The Railway build with it has not been run yet; prove it on staging first.
+5. **Optional Drive folder lock.** `RECEIVING_FORM_PHOTO_FOLDER_ID` limits served photos to the Form's upload folder.

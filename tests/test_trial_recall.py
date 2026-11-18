@@ -142,7 +142,8 @@ def _raises(content, mime):
     ('model call fails', 'could not read this photo'),
     ('photo gone from drive', 'no such file'),
     ('photo in the trash', 'Drive trash'),
-    ('phone format the model cannot read', 'cannot be read by the extraction model'),
+    ('phone photo that cannot be converted', 'could not be converted'),
+    ('format the model cannot read', 'cannot be read by the extraction model'),
     ('not a photo', 'not a photo or PDF'),
 ])
 def test_a_bol_that_cannot_be_opened_or_read_is_unverified_never_pass(plant, case, expected):
@@ -158,15 +159,20 @@ def test_a_bol_that_cannot_be_opened_or_read_is_unverified_never_pass(plant, cas
         google.files = {}
     elif case == 'photo in the trash':
         google.files[PHOTO]['trashed'] = True
-    elif case == 'phone format the model cannot read':
-        google.files[PHOTO]['mime_type'] = 'image/heic'
+    elif case == 'phone photo that cannot be converted':
+        google.files[PHOTO]['mime_type'] = 'image/heic'      # the fake file's bytes are not a real HEIC photo
+    elif case == 'format the model cannot read':
+        google.files[PHOTO]['mime_type'] = 'image/gif'
     else:
         google.files[PHOTO]['mime_type'] = 'text/html'
     analysis, email = drill(plant, read, bol=bol, google=google, extractor=extractor)
     forward = analysis['forward']
     assert forward['receiving_result'] == 'unverified' and forward['result'] == 'unverified'
     assert expected.lower() in ' '.join(forward['notes']).lower()
-    assert analysis['full_recall_possible'] == 'no'                     # not proven is not a yes
+    # Unreadable evidence leaves the receiving check unverified; it does not by itself make the answer NO.
+    assert analysis['full_recall_possible'] == 'yes'
+    assert 'Forward test receiving verification: UNVERIFIED' in analysis['receiving_gaps']
+    assert 'By themselves these do not change the answer above.' in email['text']
     assert 'Result: UNVERIFIED' in email['text'] and 'Result: PASS' not in email['text']
     # The trace itself still ran: the books are not what was unreadable.
     assert forward['trace_result'] == 'pass' and forward['customers'] == [plant.name('Market')]
@@ -195,8 +201,10 @@ def test_a_quantity_difference_shows_all_three_values_and_fails(plant):
     quantity = next(f for f in analysis['forward']['comparisons'][0]['fields'] if f['field'] == 'Quantity')
     assert quantity['status'] == 'disagree'
     assert (quantity['sheet'], quantity['bol'], quantity['fl']) == ('225 x 50 lb = 11,250 lb', '200 BAGS', '11,250 lb')
-    assert analysis['forward']['receiving_result'] == 'fail' and analysis['full_recall_possible'] == 'no'
+    assert analysis['forward']['receiving_result'] == 'fail'
+    assert analysis['full_recall_possible'] == 'yes'                    # a receiving mismatch alone is not a NO
     assert 'Quantity: the records disagree (Sheet: 225 x 50 lb = 11,250 lb | BOL: 200 BAGS | FL: 11,250 lb).' in email['text']
+    assert 'Receiving checks that did not pass (section 1): Forward test receiving verification: FAIL' in email['text']
     assert not re.search(r'FL is (right|correct)|correct value', email['text'], re.I)
 
 
@@ -238,7 +246,10 @@ def test_a_form_row_with_no_fl_receipt_fails_and_is_listed(plant):
     assert 'No FL receipt could be matched to this Form row' in forward['problems'][0]
     assert [row['row_number'] for row in analysis['unmatched_rows']] == [2]
     assert 'Receiving form row with no matching FL receipt: 1 of 1 row(s)' in email['text']
-    assert analysis['full_recall_possible'] == 'no'
+    assert forward['trace_result'] is None                              # nothing to trace from: not run
+    # The backward test still traced its lot, and nothing there stops a customer being identified.
+    assert analysis['backward']['result'] == 'fail' and 'RECEIVING_EVIDENCE_MISSING' in kinds(analysis['backward'])
+    assert analysis['full_recall_possible'] == 'yes'
 
 
 # ───────────────────────── the cutoff ─────────────────────────
@@ -250,7 +261,8 @@ def test_nothing_eligible_is_no_eligible_lot_not_a_failure(plant):
     analysis, email = drill(plant, read)
     assert analysis['forward']['result'] == analysis['backward']['result'] == 'no_eligible_lot'
     assert analysis['full_recall_possible'] == 'not_tested' and analysis['reasons'] == []
-    assert 'No eligible lot' in email['text'] and 'FAIL' not in email['text']
+    assert 'Forward test: No eligible lot. Backward test: No eligible lot.' in email['text']
+    assert 'Result: FAIL' not in email['text'] and 'Forward test: FAIL' not in email['text']
     assert email['subject'].endswith('Full recall possible: NOT TESTED (no eligible lot)')
 
 
@@ -372,31 +384,41 @@ def _pooled(plant, chain):
 
 
 @pytest.mark.db
-@pytest.mark.parametrize('spoil,kind,blocks', [
-    (_removed_by_adjustment, 'MADE_REMOVED_BY_ADJUSTMENT', True),
-    (_shipped_not_recorded, 'ORDER_SHIPPED_NOT_RECORDED', True),
-    (_shipment_without_bol, 'SHIPMENT_NO_BOL', False),
-    (_unknown_adjustment, 'UNKNOWN_ADJUSTMENT_INTO_PRODUCT', True),
-    (_shared_key, 'SHARED_KEY_POSTING', False),
-    (_no_supplier_lot, 'MISSING_SUPPLIER_LOT', True),
-    (_below_zero, 'NEGATIVE_BALANCE', True),
-    (_open_exception, 'LOT_ATTRIBUTION_UNRESOLVED', True),
-    (_pooled, 'LOT_ATTRIBUTION_UNRESOLVED', True),
+@pytest.mark.parametrize('spoil,kind,level', [
+    # An affected customer or shipment cannot be identified: Full recall possible is NO.
+    (_removed_by_adjustment, 'MADE_REMOVED_BY_ADJUSTMENT', 'blocks'),
+    (_shipped_not_recorded, 'ORDER_SHIPPED_NOT_RECORDED', 'blocks'),
+    (_unknown_adjustment, 'UNKNOWN_ADJUSTMENT_INTO_PRODUCT', 'blocks'),
+    (_below_zero, 'NEGATIVE_BALANCE', 'blocks'),
+    (_open_exception, 'LOT_ATTRIBUTION_UNRESOLVED', 'blocks'),
+    (_pooled, 'LOT_ATTRIBUTION_UNRESOLVED', 'blocks'),
+    # A receiving-record gap: FAIL in the receiving section, not a NO by itself.
+    (_no_supplier_lot, 'MISSING_SUPPLIER_LOT', 'receiving'),
+    # Warnings only.
+    (_shipment_without_bol, 'SHIPMENT_NO_BOL', 'warning'),
+    (_shared_key, 'SHARED_KEY_POSTING', 'warning'),
 ])
-def test_each_record_problem_is_flagged(plant, spoil, kind, blocks):
+def test_each_record_problem_is_flagged_at_its_level(plant, spoil, kind, level):
     chain, read = clean(plant)
     spoil(plant, chain)
     analysis, email = drill(plant, read)
     forward = analysis['forward']
     assert kind in kinds(forward), kinds(forward)
     flag = next(f for f in forward['flags'] if f['kind'] == kind)
-    assert flag['blocks'] is blocks and flag['title'] in email['text'] and flag['message'] in email['text']
-    if blocks:
+    assert flag['level'] == level and flag['blocks'] is (level == 'blocks')
+    assert flag['title'] in email['text'] and flag['message'] in email['text']
+    if level == 'blocks':
         assert forward['trace_result'] == 'fail' and analysis['full_recall_possible'] == 'no'
         assert any(flag['message'] in reason for reason in analysis['reasons'])
     else:
         assert forward['trace_result'] == 'pass' and analysis['full_recall_possible'] == 'yes'
-        assert '(does not stop a recall)' in email['text']
+        assert analysis['reasons'] == []
+        if level == 'receiving':
+            assert forward['receiving_result'] == 'fail' and flag['message'] in forward['problems']
+            assert 'by itself it does not make the answer NO' in email['text']
+        else:
+            assert forward['receiving_result'] == 'pass' and forward['result'] == 'pass'
+            assert '(warning only)' in email['text']
 
 
 @pytest.mark.db
@@ -470,7 +492,8 @@ def test_a_backward_photo_whose_contents_drive_refuses_is_unverified(plant):
     backward = analysis['backward']
     assert backward['ingredients'][0]['receipts'][0]['photos'][0]['accessible'] is False
     assert backward['ingredients'][0]['evidence'] == 'Form row, BOL photo could not be opened'
-    assert backward['result'] == 'unverified' and analysis['full_recall_possible'] == 'no'
+    assert backward['result'] == 'unverified' and backward['evidence_result'] == 'unverified'
+    assert analysis['full_recall_possible'] == 'yes'                     # evidence that cannot be opened is not a NO
     assert analysis['forward']['receiving_result'] == 'unverified'        # the forward read could not open it either
     opened = [call for call in google.calls if call[0] == 'media']
     assert opened                                                        # the file itself was asked for, not only its details
@@ -626,16 +649,17 @@ def test_a_make_or_pack_with_no_ingredient_lots_recorded_blocks_the_backward_tes
 
 
 @pytest.mark.db
-def test_a_product_on_the_bol_that_fl_never_received_is_a_disagreement(plant):
+def test_a_product_on_the_bol_that_fl_never_received_is_unverified_never_a_fail_on_wording(plant):
     _, read = clean(plant)
     honey = plant.product('Honey Clover')
     sugar_line = {'description': plant.name('Sugar Brown'), 'quantity': 225, 'unit': 'BAGS', 'lot_numbers': ['SUP-1']}
     honey_line = {'description': plant.name('Honey Clover'), 'quantity': 10, 'unit': 'PAILS', 'lot_numbers': []}
     analysis, email = drill(plant, read, bol=good_bol(plant, lines=[sugar_line, honey_line]))
     other = next(f for f in analysis['forward']['document_fields'] if f['field'] == 'Other products on the BOL')
-    assert other['status'] == 'disagree' and plant.name('Honey Clover') in other['bol']
+    assert other['status'] == 'cannot compare' and plant.name('Honey Clover') in other['bol']
     assert 'no FL receipt for this product within a day of the Form date' in other['fl']
-    assert analysis['forward']['receiving_result'] == 'fail' and 'Other products on the BOL: the records disagree' in email['text']
+    assert analysis['forward']['receiving_result'] == 'unverified'       # shown and not passed; wording alone never fails
+    assert 'no FL receipt for this product within a day of the Form date' in email['text']
     # The same BOL when FL did receive the honey that day, on its own receipt: accounted for.
     plant.receive(honey, 600, day(1))
     analysis, _ = drill(plant, read, bol=good_bol(plant, lines=[sugar_line, honey_line]))
@@ -763,6 +787,87 @@ def test_one_shipment_carrying_two_affected_lots_lists_the_other_lot(plant):
         other = other_cases if picked == chain['case_lot'] else chain['case_lot']
         assert [(s['transaction_id'], s['lot_id']) for s in backward['own']['shipments']] == [(both, picked)]
         assert [(s['transaction_id'], s['lot_id']) for s in backward['other_shipments']] == [(both, other)]
+
+
+@pytest.mark.db
+def test_form_wording_that_does_not_confirm_the_product_is_unverified_never_fail(plant):
+    sugar = plant.product('Sugar Brown')
+    lot, tx = plant.receive(sugar, 11250, day(1))
+    # Lot and date pin the one FL receipt; the Form calls the product something FL does not recognise as it.
+    read = sheet(plant.form_row(day(1), lot, ['Azucar morena-50lbs-225']))
+    analysis, email = drill(plant, read)
+    forward = analysis['forward']
+    receipt, = forward['receipts']
+    assert receipt['transaction_id'] == tx and receipt['basis']['product'] == 'not_confirmed'
+    product = next(f for f in forward['comparisons'][0]['fields'] if f['field'] == 'Product')
+    assert product['status'] == 'cannot compare' and product['form_unconfirmed'] is True
+    assert product['sheet'] == plant.name('Azucar morena') and product['fl'] == plant.name('Sugar Brown')
+    assert forward['receiving_result'] == 'unverified' and forward['problems'] == []     # not a FAIL
+    assert any('the product wording on the Form does not confirm it' in note for note in forward['notes'])
+    assert forward['trace_result'] == 'pass'                            # the lot is still traced
+    assert 'FAIL' not in email['text'].split('2. INVENTORY')[0]
+
+
+@pytest.mark.db
+def test_a_heic_phone_photo_is_converted_and_read_or_left_unverified(plant, monkeypatch):
+    _, read = clean(plant)
+    google = FakeGoogle(read['values'], files={PHOTO: {'mime_type': 'image/heic', 'size': 9}})
+    seen = []
+
+    def extractor(content, mime):
+        seen.append((content, mime))
+        return {'extraction': good_bol(plant), 'extraction_model': 'test-model'}
+
+    monkeypatch.setattr(extraction, 'heic_to_jpeg', lambda content: b'jpeg-made-from-' + content)
+    analysis, _ = drill(plant, read, google=google, extractor=extractor)
+    document, = analysis['forward']['documents']
+    assert seen == [(b'jpeg-made-from-photo-bytes', 'image/jpeg')]        # the model is given the converted JPEG
+    assert document['readable'] is True and document['converted_from'] == 'image/heic'
+    assert analysis['forward']['receiving_result'] == 'pass'
+
+    def broken(content):
+        raise extraction.ExtractionError('HEIC photo could not be converted (ValueError)')
+
+    monkeypatch.setattr(extraction, 'heic_to_jpeg', broken)
+    seen.clear()
+    analysis, _ = drill(plant, read, google=google, extractor=extractor)
+    assert seen == [] and analysis['forward']['receiving_result'] == 'unverified'
+    assert 'could not be converted' in analysis['forward']['documents'][0]['problem']
+
+
+def test_heic_conversion_makes_a_real_jpeg_and_fails_safely():
+    with pytest.raises(extraction.ExtractionError, match='could not be converted'):
+        extraction.heic_to_jpeg(b'this is not a photo')                 # also what happens when the library is absent
+    pillow_heif = pytest.importorskip('pillow_heif')                    # in requirements.txt; skip where not installed
+    import io
+    from PIL import Image
+    pillow_heif.register_heif_opener()
+    original = io.BytesIO()
+    Image.new('RGB', (4000, 3000), (200, 120, 40)).save(original, format='HEIF')
+    converted = extraction.heic_to_jpeg(original.getvalue())
+    with Image.open(io.BytesIO(converted)) as image:
+        assert image.format == 'JPEG' and max(image.size) == extraction.HEIC_MAX_SIDE
+        red, green, blue = image.getpixel((10, 10))
+        assert abs(red - 200) < 12 and abs(green - 120) < 12 and abs(blue - 40) < 12
+
+
+@pytest.mark.db
+def test_receiving_problems_and_warnings_never_make_the_answer_no_but_a_broken_trail_does(plant):
+    chain, read = clean(plant)
+    _shipment_without_bol(plant, chain)                                  # warning
+    _shared_key(plant, chain)                                            # warning
+    short = good_bol(plant, lines=[{'description': plant.name('Sugar Brown'), 'quantity': 200, 'unit': 'BAGS',
+                                    'lot_numbers': ['ZZ-1']}])           # quantity and supplier lot both differ
+    analysis, email = drill(plant, read, bol=short)
+    assert analysis['forward']['receiving_result'] == 'fail' and analysis['forward']['trace_result'] == 'pass'
+    assert analysis['full_recall_possible'] == 'yes' and analysis['reasons'] == []
+    assert email['subject'].endswith('Full recall possible: YES')
+    assert 'Every affected customer and shipment in the chains tested can be identified from the records.' in email['text']
+    _removed_by_adjustment(plant, chain)                                 # made product with no destination
+    analysis, email = drill(plant, read, bol=short)
+    assert analysis['full_recall_possible'] == 'no' and len(analysis['reasons']) >= 1
+    assert all('removed by adjustment' in reason for reason in analysis['reasons'])
+    assert 'Why not (each of these stops an affected customer or shipment being identified):' in email['text']
 
 
 # ───────────────────────── strictly read-only on the ledger ─────────────────────────
