@@ -736,16 +736,43 @@ def confirm_names(cur, data):
 # The comparison and the verdicts. Pure: no database, no network.
 # ---------------------------------------------------------------------------
 
-def _bol_quantity(line):
-    """A BOL line's quantity as ('lb', pounds), ('count:<package kind>', number) or (None, None)."""
+def _bol_count(line):
+    """A BOL line's package count as ('<package kind>', number), or (None, None)."""
     quantity, unit = line.get('quantity'), (line.get('unit') or '').strip().lower().rstrip('.')
-    if quantity is None:
-        return None, None
-    if unit in WEIGHT_UNITS:
-        return 'lb', quantity * WEIGHT_UNITS[unit]
-    if unit in COUNT_UNITS:
-        return 'count:' + COUNT_UNITS[unit], quantity
+    if quantity is not None and unit in COUNT_UNITS:
+        return COUNT_UNITS[unit], quantity
     return None, None
+
+
+def _bol_weights(line):
+    """A BOL line's weights in pounds: {'net': ..., 'gross': ..., 'unmarked': ...} (None where not printed).
+
+    Owner rule 2026-11-18: only a weight the BOL itself prints as NET is ever compared with FL's net
+    quantity. A gross weight (a carrier's freight weight includes tote and pallet) and a weight not marked
+    net are shown and never compared. A weight written in the count field (quantity 11250, unit LB) carries
+    no marking, so it is unmarked.
+    """
+    factor = WEIGHT_UNITS.get((line.get('weight_unit') or '').strip().lower().rstrip('.'))
+    def pounds(name):
+        value = line.get(name)
+        return value * factor if value is not None and factor else None
+    unmarked = pounds('other_weight')
+    count_unit = (line.get('unit') or '').strip().lower().rstrip('.')
+    if unmarked is None and line.get('quantity') is not None and count_unit in WEIGHT_UNITS:
+        unmarked = line['quantity'] * WEIGHT_UNITS[count_unit]
+    return {'net': pounds('net_weight'), 'gross': pounds('gross_weight'), 'unmarked': unmarked}
+
+
+def _bol_quantity_words(line):
+    """What the BOL printed for this line, each number with what it is."""
+    parts = []
+    if line.get('quantity') is not None:
+        parts.append(f'{line["quantity"]:g} {line.get("unit") or "(no unit printed)"}')
+    unit = line.get('weight_unit') or '(no unit printed)'
+    for name, label in (('net_weight', 'net'), ('gross_weight', 'gross'), ('other_weight', 'weight not marked net or gross')):
+        if line.get(name) is not None:
+            parts.append(f'{label} {line[name]:g} {unit}')
+    return ', '.join(parts)
 
 
 def _status(pairs):
@@ -810,18 +837,25 @@ def compare_receipt(row, receipt, bol_lines, bol_readable):
     lines = fitting or ([candidate_line] if candidate_line else [])
     sheet_lb, sheet_cases = entry.get('total_lb'), entry.get('cases')
     fl_lb = receipt['quantity'] if receipt['unit'] == 'lb' else None
+    # What the BOL can be held to (owner, 2026-11-18): a NET weight it prints, or a package count.
+    # Each is used only when EVERY line for this product carries it (and, for counts, in one kind of
+    # package): otherwise part of the delivery would go uncounted. A gross weight, or a weight not
+    # marked net, is shown and never compared with FL's net quantity.
     bol_lb = bol_count = None
-    kinds = {_bol_quantity(line)[0] for line in lines}
-    # The BOL's quantity for this product is used only when EVERY one of its lines can be added up in
-    # one unit. A line with no quantity, or in pallets, or pounds on one line and cases on another,
-    # leaves part of the delivery uncounted: then nothing is compared and the quantity is not confirmed.
-    bol_complete = len(kinds) == 1 and None not in kinds
-    for line in lines if bol_complete else []:
-        kind, amount = _bol_quantity(line)
-        if kind == 'lb':
-            bol_lb = (bol_lb or 0) + amount
-        else:                                   # one kind of package only (bol_complete guarantees it)
-            bol_count = (bol_count or 0) + amount
+    weights = [_bol_weights(line) for line in lines]
+    counts = [_bol_count(line) for line in lines]
+    if lines and all(w['net'] is not None for w in weights):
+        bol_lb = sum(w['net'] for w in weights)
+    if lines and all(kind is not None for kind, _ in counts) and len({kind for kind, _ in counts}) == 1:
+        bol_count = sum(amount for _, amount in counts)
+    if bol_lb is not None or bol_count is not None:
+        bol_reason = None
+    elif any(w['gross'] is not None for w in weights):
+        bol_reason = 'BOL shows gross weight only'
+    elif any(w['unmarked'] is not None for w in weights):
+        bol_reason = 'BOL shows a weight that is not marked net'
+    else:
+        bol_reason = 'BOL shows no net weight or package count for this product'
     pairs = [(sheet_lb is not None and fl_lb is not None,
               sheet_lb is not None and fl_lb is not None and abs(sheet_lb - fl_lb) <= LB_SLACK),
              (bol_lb is not None and fl_lb is not None,
@@ -835,15 +869,15 @@ def compare_receipt(row, receipt, bol_lines, bol_readable):
         sheet_quantity = f'{entry["cases"]:g} x {size}' + (f' = {lb(sheet_lb)}' if sheet_lb is not None else '')
     else:
         sheet_quantity = 'not written as size and cases'
-    bol_quantity = ('; '.join(f'{line["quantity"]:g} {line.get("unit") or "(no unit printed)"}' for line in lines
-                              if line.get('quantity') is not None) or ('BOL not readable' if not bol_readable
-                                                                       else 'no quantity read for this product'))
+    bol_quantity = ('; '.join(words for words in map(_bol_quantity_words, lines) if words)
+                    or ('BOL not readable' if not bol_readable else 'no quantity read for this product'))
     out.append({'field': 'Quantity', 'sheet': sheet_quantity, 'bol': bol_quantity,
                 'fl': f'{receipt["quantity"]:,.2f} {receipt["unit"]}'.replace('.00 ', ' '),
                 'status': _status(pairs), 'bol_compared': bool(pairs[1][0] or pairs[2][0] or pairs[3][0]),
                 # The BOL agreeing with the Form says nothing about FL: FL's own quantity must be compared too.
                 'fl_compared': bool(pairs[0][0] or pairs[1][0]),
-                'note': None})
+                'bol_reason': bol_reason if bol_readable else None,
+                'note': bol_reason if bol_readable and bol_reason else None})
     # Internal lot (the Form and FL carry it; a supplier's BOL does not)
     short_lot = (receipt.get('basis') or {}).get('lot') == receiving_form.LOT_WITHOUT_SEQUENCE
     out.append({'field': 'Internal lot', 'sheet': row['lot_text'], 'bol': 'not printed on a supplier BOL',
@@ -1066,7 +1100,8 @@ def analyse(data):
                             quantity['status'] == AGREE and quantity['bol_compared'] and quantity['fl_compared']):
                         receiving = worst(receiving, UNVERIFIED)
                         notes.append(f'{comparison["receipt"]["product_name"]}: '
-                                     + ('the BOL could not confirm the quantity.' if not quantity['bol_compared'] else
+                                     + (f'quantity not confirmed: {quantity["bol_reason"] or "the BOL quantity could not be compared"}.'
+                                        if not quantity['bol_compared'] else
                                         "FL's quantity could not be compared with the Form or the BOL (no weight "
                                         'written with a unit).'))
         flags = list(forward['chain']['flags'])

@@ -212,11 +212,11 @@ def test_a_quantity_difference_shows_all_three_values_and_fails(plant):
 def test_fl_differing_from_the_sheet_and_the_bol_is_a_disagreement_too(plant):
     chain = plant.chain(received=10000)                                 # FL says 10,000 lb; the Form and the BOL say 11,250
     read = sheet(plant.form_row(chain['on'], chain['sugar_lot'], ['Sugar brown-50lbs-225']))
-    by_weight = good_bol(plant, lines=[{'description': plant.name('Sugar Brown'), 'quantity': 11250, 'unit': 'LB',
-                                        'lot_numbers': ['SUP-1']}])
+    by_weight = good_bol(plant, lines=[{'description': plant.name('Sugar Brown'), 'quantity': None, 'unit': None,
+                                        'net_weight': 11250, 'weight_unit': 'LB', 'lot_numbers': ['SUP-1']}])
     analysis, _ = drill(plant, read, bol=by_weight)
     quantity = next(f for f in analysis['forward']['comparisons'][0]['fields'] if f['field'] == 'Quantity')
-    assert quantity['status'] == 'disagree' and quantity['fl'] == '10,000 lb' and quantity['bol'] == '11250 LB'
+    assert quantity['status'] == 'disagree' and quantity['fl'] == '10,000 lb' and quantity['bol'] == 'net 11250 LB'
     assert analysis['forward']['receiving_result'] == 'fail'
 
 
@@ -885,14 +885,87 @@ def test_a_shipment_with_no_identifiable_customer_makes_the_answer_no(plant):
 
 
 def test_bol_package_counts_are_compared_by_kind_and_never_mixed():
-    quantity = trial_recall._bol_quantity
-    assert quantity({'quantity': 225, 'unit': 'BAGS'}) == ('count:bag', 225)
-    assert quantity({'quantity': 10, 'unit': 'Drums'}) == ('count:drum', 10)
-    assert quantity({'quantity': 4, 'unit': 'ctns.'}) == ('count:case', 4) == quantity({'quantity': 4, 'unit': 'CASE'})
-    assert quantity({'quantity': 500, 'unit': 'LB'}) == ('lb', 500) and quantity({'quantity': 10, 'unit': 'KG'})[0] == 'lb'
-    for unit in ('PCS', 'EA', 'PALLETS', None, ''):                       # not a package count: never compared
-        assert quantity({'quantity': 12, 'unit': unit}) == (None, None)
-    assert quantity({'quantity': None, 'unit': 'BAGS'}) == (None, None)
+    count = trial_recall._bol_count
+    assert count({'quantity': 225, 'unit': 'BAGS'}) == ('bag', 225) and count({'quantity': 10, 'unit': 'Drums'}) == ('drum', 10)
+    assert count({'quantity': 4, 'unit': 'ctns.'}) == ('case', 4) == count({'quantity': 4, 'unit': 'CASE'})
+    for unit in ('PCS', 'EA', 'PALLETS', 'SK', 'LB', None, ''):           # not a package count: never compared
+        assert count({'quantity': 12, 'unit': unit}) == (None, None)
+    assert count({'quantity': None, 'unit': 'BAGS'}) == (None, None)
+
+
+def test_only_a_weight_the_bol_prints_as_net_counts_as_net():
+    weights = trial_recall._bol_weights
+    assert weights({'net_weight': 3000, 'gross_weight': 3130, 'weight_unit': 'LBS'}) == {'net': 3000, 'gross': 3130, 'unmarked': None}
+    assert weights({'gross_weight': 3130, 'weight_unit': 'LBS'}) == {'net': None, 'gross': 3130, 'unmarked': None}
+    assert weights({'other_weight': 500, 'weight_unit': 'lb'}) == {'net': None, 'gross': None, 'unmarked': 500}
+    assert weights({'quantity': 11250, 'unit': 'LB'}) == {'net': None, 'gross': None, 'unmarked': 11250}   # no marking
+    assert round(weights({'net_weight': 25, 'weight_unit': 'KG'})['net'], 2) == 55.12
+    assert weights({'net_weight': 25, 'weight_unit': 'STONE'})['net'] is None                               # unknown unit
+
+
+def _quantity(form, fl_lb, *lines):
+    """The Quantity row for one product: `form` as typed on the Form, FL's pounds, the BOL's lines for it."""
+    entry = receiving_form.parse_product(form)
+    row = {'product_entries': [entry], 'lot_text': 'L-1'}
+    receipt = {'form_product': entry['text'], 'product_id': 1, 'product_name': 'Honey', 'quantity': fl_lb, 'unit': 'lb',
+               'lot_code': 'L-1', 'supplier_lot_code': 'S-1', 'basis': {'product': 'same_name', 'lot': 'same lot code'}}
+    bol = [dict({'description': 'HONEY', 'lot_numbers': [], 'fits': [{'product_id': 1, 'basis': 'same_name'}]}, **line)
+           for line in lines]
+    return next(f for f in trial_recall.compare_receipt(row, receipt, bol, True) if f['field'] == 'Quantity')
+
+
+def test_a_gross_weight_is_never_compared_and_only_a_net_weight_or_a_count_can_fail_the_quantity():
+    # The Nov 13 honey: the carrier's delivery receipt prints 3130 lb for the skid; FL holds 3,000 lb net.
+    gross = _quantity('Honey-3000lbs-1', 3000, {'quantity': 1, 'unit': 'SK', 'gross_weight': 3130, 'weight_unit': 'LBS'})
+    assert gross['status'] == 'agree'                                    # the Form and FL agree; the BOL was not compared
+    assert gross['bol_compared'] is False and gross['bol_reason'] == 'BOL shows gross weight only'
+    assert gross['bol'] == '1 SK, gross 3130 LBS'                        # still shown, as what it is
+    # A printed NET weight is compared: agreeing passes, disagreeing is a real difference.
+    net = _quantity('Honey-3000lbs-1', 3000, {'net_weight': 3000, 'gross_weight': 3130, 'weight_unit': 'LBS'})
+    assert net['status'] == 'agree' and net['bol_compared'] is True and net['bol_reason'] is None
+    assert _quantity('Honey-3000lbs-1', 3000, {'net_weight': 2800, 'gross_weight': 3130, 'weight_unit': 'LBS'})['status'] == 'disagree'
+    # A package count is compared with the Form's count, whatever gross weight is printed beside it.
+    assert _quantity('Sugar-50lbs-225', 11250, {'quantity': 225, 'unit': 'BAGS', 'gross_weight': 11600, 'weight_unit': 'LB'})['status'] == 'agree'
+    short = _quantity('Sugar-50lbs-225', 11250, {'quantity': 200, 'unit': 'BAGS', 'gross_weight': 11600, 'weight_unit': 'LB'})
+    assert short['status'] == 'disagree' and short['bol_compared'] is True
+    # A weight with no marking is not net either: shown, not compared, and it says why.
+    unmarked = _quantity('Honey-3000lbs-1', 3000, {'other_weight': 3130, 'weight_unit': 'LBS'})
+    assert unmarked['bol_compared'] is False and unmarked['bol_reason'] == 'BOL shows a weight that is not marked net'
+    assert unmarked['status'] == 'agree'
+    # A gross weight far from FL's net is still not a disagreement.
+    assert _quantity('Honey-3000lbs-1', 3000, {'gross_weight': 9999, 'weight_unit': 'LBS'})['status'] == 'agree'
+    # The Form and FL disagreeing with each other is still a disagreement, with or without the BOL.
+    assert _quantity('Honey-3000lbs-1', 2500, {'gross_weight': 3130, 'weight_unit': 'LBS'})['status'] == 'disagree'
+
+
+@pytest.mark.db
+def test_the_nov_13_honey_gross_3130_against_net_3000_is_unverified_not_fail(plant):
+    """Form row 152 / RCV-261113-001: a TForce delivery receipt showing 1 skid, 3130 lb; FL and the Form say 3,000 lb."""
+    honey = plant.product('Honey')
+    tag = ''.join(chr(ord('G') + int(c, 16)) for c in plant.tag[2:6])
+    lot, tx = plant.receive(honey, 3000, day(2), code=f'26-11-13-{tag}-001', supplier_lot='30626D', bol='921736')
+    read = sheet(plant.form_row(day(2), f'261113{tag}', ['Honey-3000lbs-1'], bol='921736', carrier='Dutch Gold'))
+    delivery_receipt = good_bol(plant, supplier_name=plant.supplier_name, carrier_name='TForce Freight',
+                                bol_number='921736', reference_numbers=['042 145 106', 'PO MICHAEL 102126'],
+                                lines=[{'description': plant.name('Honey'), 'quantity': 1, 'unit': 'SK',
+                                        'net_weight': None, 'gross_weight': 3130, 'other_weight': None,
+                                        'weight_unit': 'LBS', 'lot_numbers': []}])
+    analysis, email = drill(plant, read, bol=delivery_receipt)
+    forward = analysis['forward']
+    assert forward['receipts'][0]['transaction_id'] == tx
+    quantity = next(f for f in forward['comparisons'][0]['fields'] if f['field'] == 'Quantity')
+    assert (quantity['sheet'], quantity['bol'], quantity['fl']) == ('1 x 3000 lb = 3,000 lb', '1 SK, gross 3130 LBS', '3,000 lb')
+    assert quantity['status'] == 'agree' and quantity['bol_reason'] == 'BOL shows gross weight only'
+    assert forward['receiving_result'] == 'unverified' and forward['problems'] == []      # UNVERIFIED, not FAIL
+    assert any('quantity not confirmed: BOL shows gross weight only' in note for note in forward['notes'])
+    assert 'BOL shows gross weight only' in email['text'] and 'Quantity: the records disagree' not in email['text']
+    # The same receipt when the paperwork does print a net weight that differs: that is a FAIL.
+    wrong_net = good_bol(plant, bol_number='921736', lines=[{'description': plant.name('Honey'), 'quantity': 1, 'unit': 'SK',
+                                                             'net_weight': 2900, 'gross_weight': 3130, 'weight_unit': 'LBS',
+                                                             'lot_numbers': []}])
+    analysis, _ = drill(plant, read, bol=wrong_net)
+    assert analysis['forward']['receiving_result'] == 'fail'
+    assert any('Quantity: the records disagree' in problem for problem in analysis['forward']['problems'])
 
 
 @pytest.mark.db
@@ -1098,7 +1171,8 @@ def test_the_bol_reader_uses_the_existing_extraction_model_and_never_guesses(mon
 
     read = {'readable': True, 'supplier_name': 'Jack’s Eggs', 'manufacturer_name': None, 'carrier_name': None,
             'bol_number': '632054', 'reference_numbers': ['PO 1'], 'document_date': '2026-11-12',
-            'lines': [{'description': 'SUGAR 6X 50#', 'quantity': 225, 'unit': 'BAGS', 'lot_numbers': ['L1']}]}
+            'lines': [{'description': 'SUGAR 6X 50#', 'quantity': 225, 'unit': 'BAGS', 'net_weight': None,
+                       'gross_weight': 11600.0, 'other_weight': None, 'weight_unit': 'LB', 'lot_numbers': ['L1']}]}
     answer(read)
     monkeypatch.delenv('EXTRACTION_MODEL', raising=False)
     out = extraction.extract_bol(b'jpeg', 'image/jpeg')

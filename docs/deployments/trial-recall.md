@@ -112,6 +112,13 @@ failure.
    difference in quantity, lot, reference number or supplier is a FAIL of the receiving check and the email shows
    all three values; **FL is never assumed to be the right one**. **Product wording never fails anything**: the
    product either agrees with confidence on all three records or the line is UNVERIFIED.
+   **Quantity (owner, 2026-11-18):** the BOL is held only to a **net weight it prints** or a **package count**.
+   A gross weight (a carrier's delivery receipt prints the shipping weight of the skid or tote, with packaging and
+   pallet) is shown and **never compared with FL's net quantity**; a BOL that shows only a gross weight and no
+   net weight or count is UNVERIFIED with the reason "BOL shows gross weight only", not FAIL. A weight not marked
+   net is treated the same way. Quantity FAILs only when a printed net weight or a package count disagrees (or
+   when the Form and FL disagree with each other). Example: the 2026-11-13 honey, 3130 lb on the TForce receipt
+   against 3,000 lb in FL and on the Form, is UNVERIFIED.
    Quantities agree within 0.5 lb, or case counts exactly. A case size written with no unit ("25") is never
    assumed to be pounds. The BOL's quantity for a product is used only when every one of its lines can be
    added up in one unit (a line in pallets, pieces or with no quantity, or bags on one line and drums on
@@ -312,6 +319,8 @@ entry at all, and it cannot read a BOL better than the photo allows.
 7. **Numbering:** changelog row 306, migration 097.
 8. **Short lot numbers on the Form:** a Form lot that is the FL lot code without its trailing sequence number
    is the same lot, if only one FL receipt fits by date and product.
+9. **Gross weight on a BOL:** never compared with FL's net quantity; gross only is UNVERIFIED ("BOL shows gross
+   weight only"), and quantity FAILs only on a printed net weight or a package count that disagrees.
 
 ## First read-only check against production (2026-11-18, owner-approved)
 

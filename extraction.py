@@ -354,11 +354,17 @@ def extract_purchase_document(file_bytes: bytes, mime_type: str,
 
 class BolLine(BaseModel):
     description: str
-    quantity: Optional[float] = None
+    quantity: Optional[float] = None        # a count of packages / handling units, as printed
     unit: Optional[str] = None
+    # Weights, kept apart by what the document itself says they are. A carrier's freight weight
+    # (product plus tote and pallet) is gross and is never compared with a net quantity.
+    net_weight: Optional[float] = None
+    gross_weight: Optional[float] = None
+    other_weight: Optional[float] = None    # a weight not marked net or gross
+    weight_unit: Optional[str] = None
     lot_numbers: List[str] = []
 
-    @field_validator("quantity")
+    @field_validator("quantity", "net_weight", "gross_weight", "other_weight")
     @classmethod
     def _quantity_finite_positive(cls, v: Optional[float]) -> Optional[float]:
         if v is None:
@@ -434,12 +440,35 @@ BOL_EXTRACTION_TOOL = {
                         },
                         "quantity": {
                             "type": ["number", "null"],
-                            "description": "Quantity shipped on the line, as printed. null if not readable.",
+                            "description": "The COUNT of packages or handling units on the line, as printed "
+                                           "(cases, bags, pails, drums, totes, pieces, skids, pallets). Never a "
+                                           "weight. null if no count is printed or readable.",
                         },
                         "unit": {
                             "type": ["string", "null"],
-                            "description": "Unit of that quantity as printed (e.g. CASES, BAGS, LB, KG, PALLETS). "
-                                           "null if no unit is printed.",
+                            "description": "Unit of that count as printed (e.g. CASES, BAGS, TOTES, PCS, SK, "
+                                           "PALLETS). null if no unit is printed.",
+                        },
+                        "net_weight": {
+                            "type": ["number", "null"],
+                            "description": "A weight for this line ONLY if the document itself marks it as net "
+                                           "(NET, NET WT, NET WEIGHT). null otherwise.",
+                        },
+                        "gross_weight": {
+                            "type": ["number", "null"],
+                            "description": "A weight for this line that the document marks as gross (GROSS, GROSS "
+                                           "WT), OR the shipment / handling-unit weight on a carrier's freight "
+                                           "bill or delivery receipt (the WEIGHT column of a trucking document "
+                                           "includes packaging and pallet). null otherwise.",
+                        },
+                        "other_weight": {
+                            "type": ["number", "null"],
+                            "description": "A weight for this line that is not marked net or gross and is not a "
+                                           "carrier's freight weight. null otherwise.",
+                        },
+                        "weight_unit": {
+                            "type": ["string", "null"],
+                            "description": "Unit of the weight(s) as printed (LB, LBS, KG). null if no weight.",
                         },
                         "lot_numbers": {
                             "type": "array",
@@ -447,7 +476,8 @@ BOL_EXTRACTION_TOOL = {
                             "description": "Every lot / batch number printed for this line, exactly as printed.",
                         },
                     },
-                    "required": ["description", "quantity", "unit", "lot_numbers"],
+                    "required": ["description", "quantity", "unit", "net_weight", "gross_weight", "other_weight",
+                                 "weight_unit", "lot_numbers"],
                 },
             },
         },
@@ -462,7 +492,8 @@ Rules:
 - Record ONLY what is printed or handwritten on the document. NEVER guess or infer a missing value: use null (or an empty list) for anything that is not there or cannot be read.
 - If the photo is blurred, cut off, too dark, or is not a delivery document, set readable to false and leave what you cannot read empty. Do not fill gaps from what such a document usually says.
 - description must be VERBATIM, including pack sizes, codes and abbreviations.
-- quantity is the quantity SHIPPED / DELIVERED on the line, with its unit as printed. Do not convert units and do not multiply case counts by case sizes.
+- quantity is the COUNT of packages or handling units shipped / delivered on the line, with its unit as printed. It is never a weight. Do not convert units and do not multiply case counts by case sizes.
+- Weights go in net_weight, gross_weight or other_weight according to what the document itself says: net only when it is marked net; gross when it is marked gross, or when the document is a trucking company's freight bill or delivery receipt (its weight column is the shipping weight, with packaging and pallet); other_weight for a weight with no such marking. Never decide for yourself that an unmarked weight is net.
 - lot_numbers are lot / batch numbers only. Do not put PO, order or item numbers there.
 - supplier_name is the company the goods came from. It is never Seven Wells / CNS (the receiver) and never the trucking company.
 """
