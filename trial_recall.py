@@ -77,8 +77,12 @@ ROUTES = frozenset({
 })
 WEIGHT_UNITS = {'lb': 1.0, 'lbs': 1.0, 'pound': 1.0, 'pounds': 1.0, '#': 1.0,
                 'kg': receiving_form.KG_TO_LB, 'kgs': receiving_form.KG_TO_LB, 'kilos': receiving_form.KG_TO_LB}
-COUNT_UNITS = frozenset({'case', 'cases', 'cs', 'bag', 'bags', 'box', 'boxes', 'ctn', 'ctns', 'carton', 'cartons',
-                         'pail', 'pails', 'drum', 'drums', 'sack', 'sacks', 'tote', 'totes', 'pc', 'pcs', 'ea'})
+# Package units a BOL counts in, by kind. The Form's "number of cases" is a count of whatever package the
+# product came in (staff type bags and pails there too), so one kind of package on the BOL is compared with
+# it. Different kinds are never added together, and pieces / each are not packages (they may be inner units).
+COUNT_UNITS = {**dict.fromkeys(('case', 'cases', 'cs', 'box', 'boxes', 'ctn', 'ctns', 'carton', 'cartons'), 'case'),
+               **dict.fromkeys(('bag', 'bags', 'sack', 'sacks'), 'bag'), **dict.fromkeys(('pail', 'pails'), 'pail'),
+               **dict.fromkeys(('drum', 'drums'), 'drum'), **dict.fromkeys(('tote', 'totes'), 'tote')}
 
 # The flags, and what each one means for the answer (owner, 2026-11-18):
 #   BLOCKS     an affected customer or shipment cannot be identified -> "Full recall possible: NO"
@@ -93,6 +97,7 @@ FLAGS = {
     'LOT_ATTRIBUTION_UNRESOLVED': (BLOCKS, 'Lot attribution not resolved'),
     'TRACE_GAP': (BLOCKS, 'A consumed lot has no identified output lot'),
     'PRODUCTION_INPUTS_MISSING': (BLOCKS, 'Make or pack entry with no ingredient lots recorded'),
+    'SHIPMENT_CUSTOMER_UNKNOWN': (BLOCKS, 'Shipment with no identifiable customer'),
     'MISSING_SUPPLIER_LOT': (RECEIVING, 'Ingredient lot with no supplier lot'),
     'RECEIVING_EVIDENCE_MISSING': (RECEIVING, 'No receiving Form row for an ingredient lot'),
     'SHIPMENT_NO_BOL': (WARNING, 'Shipment with no BOL'),
@@ -731,14 +736,14 @@ def confirm_names(cur, data):
 # ---------------------------------------------------------------------------
 
 def _bol_quantity(line):
-    """A BOL line's quantity as ('lb', pounds) or ('count', number) or (None, None)."""
+    """A BOL line's quantity as ('lb', pounds), ('count:<package kind>', number) or (None, None)."""
     quantity, unit = line.get('quantity'), (line.get('unit') or '').strip().lower().rstrip('.')
     if quantity is None:
         return None, None
     if unit in WEIGHT_UNITS:
         return 'lb', quantity * WEIGHT_UNITS[unit]
     if unit in COUNT_UNITS:
-        return 'count', quantity
+        return 'count:' + COUNT_UNITS[unit], quantity
     return None, None
 
 
@@ -814,7 +819,7 @@ def compare_receipt(row, receipt, bol_lines, bol_readable):
         kind, amount = _bol_quantity(line)
         if kind == 'lb':
             bol_lb = (bol_lb or 0) + amount
-        elif kind == 'count':
+        else:                                   # one kind of package only (bol_complete guarantees it)
             bol_count = (bol_count or 0) + amount
     pairs = [(sheet_lb is not None and fl_lb is not None,
               sheet_lb is not None and fl_lb is not None and abs(sheet_lb - fl_lb) <= LB_SLACK),
@@ -939,6 +944,23 @@ def compare_document(row, receipts, documents, bol_supplier, extra_lines=None):
     return out
 
 
+def _unknown_customers(shipments):
+    """A shipment whose customer the books cannot name: the one thing a recall must be able to say."""
+    flags, seen = [], set()
+    for shipment in shipments:
+        key = (shipment['transaction_id'], shipment['lot_id'])
+        if (shipment.get('customer') or '').strip() or key in seen:
+            continue
+        seen.add(key)
+        flags.append({'kind': 'SHIPMENT_CUSTOMER_UNKNOWN', 'blocks': True,
+                      'title': FLAGS['SHIPMENT_CUSTOMER_UNKNOWN'][1],
+                      'message': f'Shipment entry #{shipment["transaction_id"]} on {shipment.get("shipped_date") or "no date"} '
+                                 f'took {lb(shipment["quantity_lb"])} of {shipment["product_name"]} lot '
+                                 f'{shipment["lot_code"]}, and the books name no customer and no order for it.',
+                      'refs': {'transaction_id': shipment['transaction_id'], 'lot_id': shipment['lot_id']}})
+    return flags
+
+
 def analyse(data):
     """Verdicts for the two tests and the answer to "Full recall possible?". Pure."""
     result = {'cutoff': data['cutoff'], 'sheet': data['sheet'], 'unmatched_rows': data['unmatched_rows'],
@@ -1049,6 +1071,7 @@ def analyse(data):
                 flags.append({'kind': 'TRACE_GAP', 'blocks': True, 'title': FLAGS['TRACE_GAP'][1],
                               'message': f'Entry #{gap["transaction_id"]} used a lot and recorded no output lot, '
                                          f'so the trail stops there.', 'refs': gap})
+        flags.extend(_unknown_customers(shipment for trace in forward['traces'] for shipment in trace['shipments']))
         _levelled(flags)
         for flag in flags:
             if flag['level'] == RECEIVING:              # e.g. the received lot has no supplier lot
@@ -1149,6 +1172,7 @@ def analyse(data):
                           'title': FLAGS['LOT_ATTRIBUTION_UNRESOLVED'][1],
                           'message': 'Part of this finished lot was not made: stock was also received or found '
                                      'straight into it, so its ingredients are not all known.', 'refs': {}})
+        flags.extend(_unknown_customers([*backward['own']['shipments'], *backward['other_shipments']]))
         _levelled(flags)
         if any(flag['level'] == RECEIVING for flag in flags):       # no Form row, or no supplier lot
             evidence = worst(evidence, FAIL)

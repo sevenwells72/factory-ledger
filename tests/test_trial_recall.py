@@ -870,6 +870,42 @@ def test_receiving_problems_and_warnings_never_make_the_answer_no_but_a_broken_t
     assert 'Why not (each of these stops an affected customer or shipment being identified):' in email['text']
 
 
+@pytest.mark.db
+def test_a_shipment_with_no_identifiable_customer_makes_the_answer_no(plant):
+    chain, read = clean(plant)
+    nameless = plant.post('ship', [(chain['case_lot'], -40)], day(5), bol_reference='OUT-9')    # no customer, no order
+    plant.cur.execute("INSERT INTO shipments (transaction_id, shipped_at, bol_reference) VALUES (%s, now(), 'OUT-9')", (nameless,))
+    analysis, email = drill(plant, read)
+    for test in (analysis['forward'], analysis['backward']):
+        flag = next(f for f in test['flags'] if f['kind'] == 'SHIPMENT_CUSTOMER_UNKNOWN')
+        assert flag['blocks'] is True and f'#{nameless}' in flag['message'] and 'name no customer and no order' in flag['message']
+    assert analysis['full_recall_possible'] == 'no'
+    assert any('name no customer and no order' in reason for reason in analysis['reasons'])
+    assert 'Shipment with no identifiable customer' in email['text']
+
+
+def test_bol_package_counts_are_compared_by_kind_and_never_mixed():
+    quantity = trial_recall._bol_quantity
+    assert quantity({'quantity': 225, 'unit': 'BAGS'}) == ('count:bag', 225)
+    assert quantity({'quantity': 10, 'unit': 'Drums'}) == ('count:drum', 10)
+    assert quantity({'quantity': 4, 'unit': 'ctns.'}) == ('count:case', 4) == quantity({'quantity': 4, 'unit': 'CASE'})
+    assert quantity({'quantity': 500, 'unit': 'LB'}) == ('lb', 500) and quantity({'quantity': 10, 'unit': 'KG'})[0] == 'lb'
+    for unit in ('PCS', 'EA', 'PALLETS', None, ''):                       # not a package count: never compared
+        assert quantity({'quantity': 12, 'unit': unit}) == (None, None)
+    assert quantity({'quantity': None, 'unit': 'BAGS'}) == (None, None)
+
+
+@pytest.mark.db
+def test_bags_on_one_line_and_drums_on_another_are_not_added_up(plant):
+    _, read = clean(plant)
+    lines = [{'description': plant.name('Sugar Brown'), 'quantity': 200, 'unit': 'BAGS', 'lot_numbers': ['SUP-1']},
+             {'description': plant.name('Sugar Brown'), 'quantity': 25, 'unit': 'DRUMS', 'lot_numbers': ['SUP-1']}]
+    analysis, _ = drill(plant, read, bol=good_bol(plant, lines=lines))    # 200 + 25 would "match" the Form's 225
+    quantity = next(f for f in analysis['forward']['comparisons'][0]['fields'] if f['field'] == 'Quantity')
+    assert quantity['bol'] == '200 BAGS; 25 DRUMS' and quantity['bol_compared'] is False
+    assert analysis['forward']['receiving_result'] == 'unverified'
+
+
 # ───────────────────────── strictly read-only on the ledger ─────────────────────────
 
 @pytest.mark.db

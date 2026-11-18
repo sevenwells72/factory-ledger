@@ -4,8 +4,9 @@ Code: `google_evidence.py`, `receiving_form.py`, `trial_recall.py`, `extraction.
 `scripts/receiving_form_sync.py`, `scripts/trial_recall_drill.py`, `scripts/google_oauth_setup.py`,
 migration `097_trial_recall.sql`.
 
-**Status: built on branch `feat/trial-recall`, NOT merged, NOT deployed, switched off.** Migration 097 is not
-applied to staging or production. Merged code changes nothing by itself: the two jobs are not started until
+**Status: built on branch `feat/trial-recall`, NOT merged, NOT deployed, switched off.** Migration 097 was
+applied to **staging** on 2026-11-18 (owner-approved) and is **not applied to production**. The Google read-only
+sign-in was created on 2026-11-18 and is saved only on Michael's Mac; it is not set on any Railway service. Merged code changes nothing by itself: the two jobs are not started until
 their switches are set on the cron service, a receipt shows no "BOL photo" button and the owner routes answer
 503 until the migration marker exists, and no email is sent until `TRIAL_RECALL_EMAIL_ENABLED=1`.
 
@@ -106,7 +107,9 @@ failure.
    product either agrees with confidence on all three records or the line is UNVERIFIED.
    Quantities agree within 0.5 lb, or case counts exactly. A case size written with no unit ("25") is never
    assumed to be pounds. The BOL's quantity for a product is used only when every one of its lines can be
-   added up in one unit (a line in pallets, or with no quantity, leaves it unconfirmed). A quantity counts as
+   added up in one unit (a line in pallets, pieces or with no quantity, or bags on one line and drums on
+   another, leaves it unconfirmed). The Form's "number of cases" is a count of whatever package the product
+   came in, so one kind of package on the BOL is compared with it. A quantity counts as
    confirmed only when **FL's own quantity was compared** as well as
    the BOL's; the Form and the BOL agreeing with each other proves nothing about FL (UNVERIFIED). Supplier lots
    on the product's own BOL line must be the **same list** as FL's: a lot printed on the BOL and missing from FL
@@ -141,6 +144,7 @@ lots went into, not only the picked finished lot; lists over 40 are cut in the e
 | `NEGATIVE_BALANCE` | A lot in the chain is below zero (more was used than the books ever held). | **Makes it NO** |
 | `TRACE_GAP` | A consumed lot has no identified output lot. | **Makes it NO** |
 | `PRODUCTION_INPUTS_MISSING` | Backward test: a make or pack entry in the chain records no ingredient lots (or leads back to itself). | **Makes it NO** |
+| `SHIPMENT_CUSTOMER_UNKNOWN` | A shipment in the chain names no customer and has no order that names one. | **Makes it NO** |
 | `MISSING_SUPPLIER_LOT` | A received ingredient lot has no supplier lot (also when staff chose "No lot on label"). | Receiving FAIL |
 | `RECEIVING_EVIDENCE_MISSING` | Backward test: an ingredient lot's receipt has no Form row. | Receiving FAIL |
 | `SHIPMENT_NO_BOL` | A shipment in the chain has no BOL number (the line also says if there is no photo). | Warning |
