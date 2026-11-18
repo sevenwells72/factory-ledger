@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-18 11:32 — Recorded TRIAL make correction and PR 223 deploy (changelog rows 301-302)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Row 301: prod data correction (voids VD-261118-001/002 of TX 3060/3078; re-recorded as 295 Makes TX 3084/3085, lot 1773, same ingredient lots). Row 302: PR 223 deployed (main 51b8b2a) with live check of TRIAL tag and 296 Pack target.
+- **Why:** Record the owner-approved production correction and release per the regression-guard rule.
+
+---
+
 ## 2026-11-18 11:13 — Record entry pickers: product ID and TRIAL tag
 - **File(s) changed:** `entry.js`, `ledger-forms.css`, `entry.html`, `test_pilot_entry_ui.js`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Every product choice on the Record entry page shows ' · ID <id>' (kept in the selected text); products named TRIAL get a red-bordered choice and a TRIAL/PRUEBA tag; cache bumps entry.js v16, ledger-forms.css v19; tests for en/es and the Pack target; changelog row 300 (NOT MERGED).
