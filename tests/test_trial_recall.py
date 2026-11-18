@@ -658,6 +658,8 @@ def test_reference_numbers_are_compared_whole_never_as_part_of_a_longer_number()
     same = trial_recall._same_reference                                  # the label may be on either side
     assert same('4412', 'PO 4412') and same('PO 4412', '4412') and same('PO-4412', 'po4412') and same('0632054', '632054')
     assert not same('PO 1', 'PO 2') and not same('1234', '912345') and not same('', '') and not same('PO', 'PO')
+    assert not same('BOL-2026-001', 'BOL-2026-002') and same('BOL-2026-001', '2026-001') and same('TO306', 'to-306')
+    assert not same('2026', 'BOL-2026-001')                              # a part of a number is not the number
 
 
 @pytest.mark.db
@@ -717,6 +719,50 @@ def test_the_same_line_on_two_different_bol_pages_is_never_silently_dropped_or_p
     assert quantity['bol'] == '225 BAGS; 225 BAGS' and quantity['status'] == 'disagree'   # both are kept and shown
     assert any('Two different BOL photos on this Form row show the same line' in n for n in forward['notes'])
     assert forward['receiving_result'] != 'pass'
+
+
+@pytest.mark.db
+def test_supplier_lots_of_another_delivery_into_the_same_lot_are_not_a_disagreement(plant):
+    chain, read = clean(plant)
+    # A later truck went into the same internal lot with its own supplier lot (recorded on the lot, not the delivery).
+    plant.post('receive', [(chain['sugar_lot'], 500)], day(6), bol_reference='777', supplier_id=plant.supplier,
+               shipper_name=plant.supplier_name)
+    plant.cur.execute("INSERT INTO lot_supplier_codes (lot_id, supplier_lot_code) VALUES (%s, 'SUP-9')", (chain['sugar_lot'],))
+    analysis, _ = drill(plant, read)                                    # the first truck's BOL prints only SUP-1
+    receipt = analysis['forward']['receipts'][0]
+    lots = next(f for f in analysis['forward']['comparisons'][0]['fields'] if f['field'] == 'Supplier lot')
+    assert receipt['receipts_into_lot'] == 2 and lots['fl'] == 'SUP-1, SUP-9' and lots['bol'] == 'SUP-1'
+    assert lots['status'] == 'agree' and analysis['forward']['receiving_result'] == 'pass'
+    # With one delivery only, a code in FL that the BOL does not show IS a disagreement.
+    solo = Plant(plant.cur)
+    chain2, read2 = clean(solo)
+    solo.cur.execute("INSERT INTO lot_supplier_codes (lot_id, supplier_lot_code) VALUES (%s, 'SUP-9')", (chain2['sugar_lot'],))
+    seen = {}
+    for seed in range(12):
+        result, _ = drill(solo, read2, seed=seed)
+        row_lot = result['forward']['row']['lot_text']
+        seen[row_lot] = next(f for f in result['forward']['comparisons'][0]['fields'] if f['field'] == 'Supplier lot')
+    assert seen[solo.lots[chain2['sugar_lot']]]['status'] == 'disagree'
+
+
+@pytest.mark.db
+def test_one_shipment_carrying_two_affected_lots_lists_the_other_lot(plant):
+    chain, read = clean(plant)
+    other_batch, other_cases = plant.lot(chain['batch'], supplier_lot=None), plant.lot(chain['cases'], supplier_lot=None)
+    plant.post('make', [(other_batch, 200), (chain['sugar_lot'], -200)], day(4))
+    plant.post('pack', [(other_cases, 200), (other_batch, -200)], day(4), hour=13)
+    plant.void(chain['ship'])
+    # One truck, both finished lots.
+    both = plant.post('ship', [(chain['case_lot'], -100), (other_cases, -150)], day(5),
+                      customer_name=plant.name('Market'), bol_reference='OUT-2')
+    plant.cur.execute('INSERT INTO shipments (transaction_id, shipped_at, bol_reference) VALUES (%s, now(), %s)', (both, 'OUT-2'))
+    for seed in range(8):
+        analysis, _ = drill(plant, read, seed=seed)
+        backward = analysis['backward']
+        picked = backward['lot']['lot_id']
+        other = other_cases if picked == chain['case_lot'] else chain['case_lot']
+        assert [(s['transaction_id'], s['lot_id']) for s in backward['own']['shipments']] == [(both, picked)]
+        assert [(s['transaction_id'], s['lot_id']) for s in backward['other_shipments']] == [(both, other)]
 
 
 # ───────────────────────── strictly read-only on the ledger ─────────────────────────

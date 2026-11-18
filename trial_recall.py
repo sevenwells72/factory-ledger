@@ -433,6 +433,16 @@ def load(cur, sheet, *, api=None, cutoff=CUTOFF, rng=None):
         links = [link for link in outcome['links'] if date.fromisoformat(link['business_date']) >= cutoff]
         receipts_of_row = [dict(_fl_receipt(lines[(link['transaction_id'], link['lot_id'])]),
                                 form_product=link['form_product'], basis=link['basis']) for link in links]
+        if receipts_of_row:
+            # How many deliveries ever went into each of these internal lots (FL keeps supplier lot codes
+            # per lot, not per delivery, so with more than one the codes cannot be pinned to this BOL).
+            cur.execute("""SELECT i.lot_id, COUNT(DISTINCT t.id) AS deliveries
+                           """ + _POSTED_LINES + """ AND t.type = 'receive' AND i.quantity_lb > 0
+                             AND i.lot_id = ANY(%s) GROUP BY i.lot_id""",
+                        (sorted({receipt['lot_id'] for receipt in receipts_of_row}),))
+            deliveries = {row['lot_id']: row['deliveries'] for row in _dicts(cur)}
+            for receipt in receipts_of_row:
+                receipt['receipts_into_lot'] = deliveries.get(receipt['lot_id'], 1)
         traces, chain = [], set()
         for link in links:
             graph = lot_trace.forward(cur, link['lot_id'], api)
@@ -526,7 +536,8 @@ def load(cur, sheet, *, api=None, cutoff=CUTOFF, rng=None):
             made['before_cutoff'] = older(dated.get(made['lot_id']))
         own = lot_trace.forward(cur, lot['lot_id'], api)
         own_summary = summarize_forward(cur, own)
-        own_shipments = {s['transaction_id'] for s in own_summary['shipments']}
+        # By shipment AND lot: one truck can carry the picked lot and another lot made from the same ingredient.
+        own_shipments = {(s['transaction_id'], s['lot_id']) for s in own_summary['shipments']}
         tested, others, reached = [], {}, set()
         for item in ingredients.values():
             item['first_in'] = (dated.get(item['lot_id']) or {}).get('first_in')
@@ -548,7 +559,7 @@ def load(cur, sheet, *, api=None, cutoff=CUTOFF, rng=None):
             # finished lot: those lots are checked for flags too.
             reached.update(node['lot_id'] for node in summary['lots'])
             for shipment in summary['shipments']:
-                if shipment['transaction_id'] not in own_shipments:
+                if (shipment['transaction_id'], shipment['lot_id']) not in own_shipments:
                     others.setdefault((shipment['transaction_id'], shipment['lot_id']),
                                       dict(shipment, via_ingredient_lots=[]))['via_ingredient_lots'].append(
                                           item['lot_code'])
@@ -716,12 +727,15 @@ def _status(pairs):
 
 
 def _reference_pieces(text):
-    """The whole numbers a reference can be read as: "PO 4412", "PO-4412", "PO4412" and "4412" all
-    carry 4412. Only pieces that hold a digit count, so two "PO ..." never agree on the label alone."""
-    text = text or ''
-    pieces = {_code(text), *(_code(piece) for piece in re.findall(r'[A-Za-z0-9]+', text))}
-    # A label run into its number ("PO4412", "BOL#632054"): the number after the leading letters.
-    pieces |= {_code(match) for match in re.findall(r'[A-Za-z]+[#:]?\s*([0-9][A-Za-z0-9-]*)', text)}
+    """The whole numbers a reference can be read as: the reference itself, and the reference with
+    a leading word label taken off ("PO 4412", "PO-4412", "PO4412" all also read as 4412). Parts
+    of a number are never numbers of their own: BOL-2026-001 is not 2026. Only readings that hold
+    a digit count, so two "PO ..." never agree on the label alone."""
+    text = (text or '').strip()
+    pieces = {_code(text)}
+    label = re.match(r'[A-Za-z]+\s*[#:.\-]?\s*(.+)$', text)
+    if label:
+        pieces.add(_code(label.group(1)))
     return {piece for piece in pieces if re.search(r'\d', piece)}
 
 
@@ -812,10 +826,19 @@ def compare_receipt(row, receipt, bol_lines, bol_readable):
         lot_status = DISAGREE
     else:
         on_bol, in_fl = {_code(p) for p in printed}, {_code(code) for code in recorded}
-        # From this product's own BOL line the two lists must be the same: a lot printed on the BOL and
-        # missing from FL is a lot a supplier recall could not find. From the whole BOL (the line could
-        # not be tied to the product) only FL's lots are looked for among everything printed.
-        lot_status = AGREE if (in_fl == on_bol if fitting else in_fl <= on_bol) else DISAGREE
+        single = (receipt.get('receipts_into_lot') or 1) <= 1
+        if fitting and on_bol - in_fl:
+            # A lot printed on this product's own BOL line and missing from FL: a supplier recall could not find it.
+            lot_status = DISAGREE
+        elif single and in_fl - on_bol:
+            # FL holds a supplier lot this delivery's BOL does not show, and this is the lot's only delivery.
+            lot_status = DISAGREE
+        elif fitting or single:
+            lot_status = AGREE
+        else:
+            # Several deliveries went into this internal lot and the BOL line could not be tied to the
+            # product: FL's codes may belong to another delivery, so nothing can be said from this BOL.
+            lot_status = NOT_COMPARABLE
     out.append({'field': 'Supplier lot', 'sheet': 'not asked on the Form',
                 'bol': ', '.join(printed) or ('BOL not readable' if not bol_readable else 'none printed'),
                 'fl': ', '.join(recorded) or 'none recorded', 'status': lot_status, 'note': None})
