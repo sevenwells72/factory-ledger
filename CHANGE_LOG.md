@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-18 13:54 — Adjustment rules PR 225: rebased again on main 7083e40 (PR 228 took row 304); row stays 305, migration 096
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** origin/main moved to 7083e40 (PR 228, deploy record for the Chocolate Chips rename, row 304) while the full suite was running on the first rebase, so the branch was rebased once more. Conflicts were again only CHANGE_LOG.md and FACTORY_LEDGER_CHANGELOG.md; both sides kept in order, and this PR's row appears once, as row 305 above rows 304 and 303. No code change: the tree differs from the previous tip only by main's two changelog additions. The full Python suite is rerun on this commit before the push; its result is in the PR 225 description.
+- **Why:** Michael 2026-11-18: rebase on current origin/main and run the full Python suite on the final commit before Codex cross-review.
+
+---
+
 ## 2026-11-18 13:49 — Adjustment rules PR 225: rebased on main 2c954e2, changelog row renumbered to 305 (migration stays 096)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Rebased feat/adjust-destination onto origin/main 2c954e2 (PR 226, Chocolate Chips rename, migration 095, row 303). The only conflicts were CHANGE_LOG.md and FACTORY_LEDGER_CHANGELOG.md; both sides were kept, entries in date order. This PR's regression-guard row is now 305: row 304 is taken by PR 228 (rename deploy record). Supersedes the row number in the 13:19 and 13:26 entries; the migration number stays 096. No code change. The full Python suite is run on this commit before the push; its result is in the PR 225 description, not here.
