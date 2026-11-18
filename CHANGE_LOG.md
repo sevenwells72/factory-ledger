@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-18 13:28 — Row 303: record staging proof of the Chocolate Chips rename (095) and correct the old-wording lookup note
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Row 303 now records the staging proof (FastAPI-staging 76870d38, 095 applied to the staging DB, panel before / config-only / after, rerun no-op) and corrects one sentence: after the rename the bulk resolver POST /products/resolve answers 'none' for the old names (product search still finds them); it never picks a different chip. Staging only; production untouched.
+- **Why:** Staging proof approved by Michael 2026-11-18 showed the old-wording lookup behaves differently from what the row said.
+
+---
+
 ## 2026-11-18 13:20 — Rename the three Chocolate Chips Real N CT ingredients (migration 095 written, not applied) + dashboard config
 - **File(s) changed:** `migrations/095_rename_chocolate_chips.sql`, `migrations/down/095_rename_chocolate_chips_down.sql`, `dashboard/dashboard_config.json`, `tests/test_rename_chocolate_chips_095.py`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** New data migration 095 renames products 72/73/74 from 'Chocolate Chips – Real – N CT' to 'Chocolate Chips – N CT' (4,000 / 1,000 / 10,000): products.name only, same ids and odoo codes, guarded (recorded name or target, else refuses), rerunnable, strict down file, no history table touched. dashboard_config.json granola_ingredients lists the 4,000 CT and 1,000 CT chips under the new names. 18 new tests. FACTORY_LEDGER_CHANGELOG row 303 (NOT MERGED, NOT DEPLOYED, 095 NOT APPLIED). Branch chore/rename-chocolate-chips; nothing applied to any database.
