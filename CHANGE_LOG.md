@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-18 13:49 — Adjustment rules PR 225: rebased on main 2c954e2, changelog row renumbered to 305 (migration stays 096)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Rebased feat/adjust-destination onto origin/main 2c954e2 (PR 226, Chocolate Chips rename, migration 095, row 303). The only conflicts were CHANGE_LOG.md and FACTORY_LEDGER_CHANGELOG.md; both sides were kept, entries in date order. This PR's regression-guard row is now 305: row 304 is taken by PR 228 (rename deploy record). Supersedes the row number in the 13:19 and 13:26 entries; the migration number stays 096. No code change. The full Python suite is run on this commit before the push; its result is in the PR 225 description, not here.
+- **Why:** Michael 2026-11-18: row 304 was taken by PR 228; rebase on current main and rerun the full suite before Codex cross-review.
+
+---
+
 ## 2026-11-18 13:41 — Record PR 226 production deploy: Chocolate Chips rename, migration 095 applied (changelog row 304)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Row 304: #226 squash-merged to main 2c954e2, Railway FastAPI d59730d1 SUCCESS, migration 095 applied to production 13:41:09 ET after BACKUP OK (2026-11-18-pre-095); products 72 / 73 / 74 now 'Chocolate Chips – 4,000 / 1,000 / 10,000 CT'; panel, recipes, lots and balances verified unchanged apart from the names.
