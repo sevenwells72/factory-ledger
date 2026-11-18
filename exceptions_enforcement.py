@@ -34,12 +34,14 @@ Rules (owner decisions, verbatim where it matters):
   waiving is the owner's call. A positive adjust by the same actor within 30 min
   before a make/pack on an ingredient it consumes is tagged `pre_make_adjust` (§5).
 
-Owner decision 2026-11-18 (migration 095; the paragraph above describes the rules
+Owner decision 2026-11-18 (migration 096; the paragraph above describes the rules
 that stay in force until its marker exists):
-  DESTINATION — a ticket adjustment that REMOVES stock must use one of the
-  `removal_destination` reasons (where it went, one pick): shipped but not recorded
-  (names the sales order), sent to Sunshine as bulk, used in production but not
-  recorded, damaged or thrown out, count correction — cause unknown (note required).
+  DESTINATION — a ticket adjustment that REMOVES stock must use a `removal_allowed`
+  reason. Five say where it went (`removal_destination`, one pick): shipped but not
+  recorded (names the sales order), sent to Sunshine as bulk, used in production but
+  not recorded, damaged or thrown out, count correction — cause unknown (note
+  required). Two say it was never on this lot and need a note saying what
+  happened: wrong lot used, data-entry error.
   The one exception is the physical_count ticket that closes a lot's open shortages.
   NO HOLD — a correction over 500 lb never waits for the owner and the photo is
   optional: it posts, stays highlighted, and `adjustment_alerts` emails the owner.
@@ -70,10 +72,10 @@ PREPARE_REFUSALS = frozenset({'REASON_CODE_REQUIRED', 'REASON_CODE_INVALID', 'NO
                               'SHORTAGE_CLOSE_REASON', 'SHORTAGE_SET_CHANGED', 'COUNT_NEGATIVE',
                               'SALES_ORDER_REQUIRED', 'SALES_ORDER_NOT_FOUND', 'SALES_ORDER_CANCELLED',
                               'SALES_ORDER_NOT_APPLICABLE'})
-# Owner decision (Michael, 2026-11-18), switched on by migration 095's marker: a
+# Owner decision (Michael, 2026-11-18), switched on by migration 096's marker: a
 # removal names where the stock went, and nothing over 500 lb is held any more.
 # Until the marker exists every rule below behaves exactly as before (fail safe).
-DESTINATION_MARKER = '095_adjust_destinations'
+DESTINATION_MARKER = '096_adjust_destinations'
 # "We do not know why": highlighted on the weekly view whatever the size (§5.1).
 UNKNOWN_REASONS = frozenset({'unknown', 'count_unknown'})
 
@@ -168,7 +170,7 @@ def to_lb(product, quantity, unit):
 # ---------------------------------------------------------------------------
 # A. Reason codes (R2, §5.1)
 # ---------------------------------------------------------------------------
-_REASON_COLUMNS = '*'    # migration 095 adds removal_destination / sales_order_required; absent before it
+_REASON_COLUMNS = '*'    # migration 096 adds removal_destination / sales_order_required; absent before it
 _COUNT_LIKE = r'(physical.*count|physical inventory|inventory count|cycle count|count correction|recon)'
 
 
@@ -177,23 +179,26 @@ def normalise(value):
 
 
 def destination_rules(cur):
-    """True once migration 095 is applied: removals need a destination, no > 500 lb hold."""
+    """True once migration 096 is applied: removals need a destination, no > 500 lb hold."""
     cur.execute('SELECT 1 FROM migration_markers WHERE name=%s', (DESTINATION_MARKER,))
     return cur.fetchone() is not None
 
 
 def _valid_reasons(cur, source, *, delta_lb=None, destinations=False):
-    """The reasons a client may offer. With `destinations` (095 applied, an ordinary
-    adjust) the list follows the direction: removing stock → only the destination
-    reasons; adding stock → every reason that may add; direction unknown → all, each
-    flagged so the form can filter. Before 095 the list and its keys are unchanged."""
+    """The reasons a client may offer. With `destinations` (096 applied, an ordinary
+    adjust) the list follows the direction: removing stock → the `removal_allowed`
+    reasons, destinations first; adding stock → every reason that may add; direction
+    unknown → all, each flagged so the form can filter. Before 096 the list and its
+    keys are unchanged."""
     cur.execute('SELECT * FROM correction_reasons WHERE active AND %s=ANY(applies_to) ORDER BY sort_order,code', (source,))
     rows = [dict(r) for r in cur.fetchall()]
     keys = ['code', 'label_en', 'label_es', 'note_required', 'adjust_sign']
     if destinations:
-        keys += ['removal_destination', 'sales_order_required']
+        keys += ['removal_allowed', 'removal_destination', 'sales_order_required']
         if delta_lb is not None and float(delta_lb) < 0:
-            rows = [r for r in rows if r['removal_destination']]
+            # Wrong lot / data-entry error on a removal need a note (see resolve_reason).
+            rows = sorted((dict(r, note_required=r['note_required'] or not r['removal_destination'])
+                           for r in rows if r['removal_allowed']), key=lambda r: not r['removal_destination'])
         elif delta_lb is not None and float(delta_lb) > 0:
             rows = [r for r in rows if r['adjust_sign'] != 'negative']
     return [{k: r[k] for k in keys} for r in rows]
@@ -241,11 +246,13 @@ def resolve_reason(cur, source, raw, *, note=None, delta_lb=None, sales_order_id
     translation is reported. `unknown` (and any other note_required reason)
     needs a note; `adjust_sign` ('positive'/'negative') is enforced on the delta.
 
-    With migration 095 applied, an adjust that REMOVES stock must use a
-    `removal_destination` reason, and one that is `sales_order_required` must name
+    With migration 096 applied, an adjust that REMOVES stock must use a
+    `removal_allowed` reason (a destination, or wrong lot / data-entry error — those
+    two then need a note saying what happened), and one that is `sales_order_required`
+    must name
     an existing, uncancelled order (`sales_order_id`). `destination_exempt` marks
     the two entries whose reason rule is unchanged: the physical_count ticket that
-    closes a lot's shortages, and a ticket held for approval before 095.
+    closes a lot's shortages, and a ticket held for approval before 096.
     """
     destinations = source == 'adjust' and not destination_exempt and destination_rules(cur)
     removing = destinations and delta_lb is not None and float(delta_lb) < 0
@@ -278,13 +285,17 @@ def resolve_reason(cur, source, raw, *, note=None, delta_lb=None, sales_order_id
              f'{label!r} is not a correction reason for {source}; use one of the fixed list.',
              message_es=f'{label!r} no es un motivo de corrección para {source}; use uno de la lista fija.',
              reason_code=str(raw), valid_reasons=valid())
-    if removing and not row.get('removal_destination'):
+    if removing and not row.get('removal_allowed'):
         fail(422, 'REASON_CODE_INVALID',
-             f'{row["label_en"]} does not say where the stock went. Removing stock needs one of the destinations.',
-             message_es=f'{row["label_es"]} no dice a dónde se fue el inventario. Para quitar inventario elige un destino.',
+             f'{row["label_en"]} cannot explain a removal. Choose where the stock went, or Wrong lot used / Data-entry error.',
+             message_es=f'{row["label_es"]} no explica una salida. Elige a dónde se fue el inventario, o Lote equivocado / Error de captura.',
              reason_code=str(raw), destination_required=True, valid_reasons=valid())
     effective_note = (note or '').strip() or ((legacy or {}).get('note_prefill') or None)
-    if row['note_required'] and not effective_note:
+    # Owner, 2026-11-18: a removal explained as "wrong lot" or "data-entry error" names
+    # no destination, so the note has to say what happened. Removals only: the same
+    # reasons on an addition, a void or a lot fix keep today's optional note.
+    note_required = bool(row['note_required'] or (removing and not row.get('removal_destination')))
+    if note_required and not effective_note:
         fail(422, 'NOTE_REQUIRED', f'{row["label_en"]} needs a note saying what happened.',
              message_es=f'{row["label_es"]} necesita una nota que explique qué pasó.', reason_code=row['code'])
     if delta_lb is not None:
@@ -295,10 +306,10 @@ def resolve_reason(cur, source, raw, *, note=None, delta_lb=None, sales_order_id
             fail(422, 'REASON_SIGN_MISMATCH', f'{row["label_en"]} only removes stock; this correction adds {float(delta_lb)}.',
                  message_es=f'{row["label_es"]} solo quita inventario.', reason_code=row['code'])
     result = {'code': row['code'], 'label_en': row['label_en'], 'label_es': row['label_es'],
-              'note_required': row['note_required'], 'input': str(raw),
+              'note_required': note_required, 'input': str(raw),
               'legacy_code': norm if legacy else None, 'note': effective_note}
     if destinations:
-        # Only on the 095 rules, so receipts written before them keep their shape.
+        # Only on the 096 rules, so receipts written before them keep their shape.
         order = None
         if row.get('sales_order_required'):
             order = destination_order(cur, sales_order_id, row)
@@ -354,7 +365,7 @@ def correction_review(api, action, product, quantity, *, book_balance_before=Non
     read (prepare: current; commit: under FOR UPDATE on the lot). An "unknown"
     reason is highlighted whatever the size (§5.1).
 
-    `immediate` = `destination_rules(cur)` (migration 095): over 500 lb is still
+    `immediate` = `destination_rules(cur)` (migration 096): over 500 lb is still
     highlighted, but no photo is required and nothing is held — the owner is
     emailed instead (`owner_email`)."""
     unit, lb = correction_lb(api, action, product, quantity, uom)
@@ -849,7 +860,7 @@ def shortage_evidence(api, cur, request, actor, row, body):
                        correction (reason physical_count, entered by the resolver) posts
                        HERE, in the same transaction as the close — the only way a
                        positive adjust ever reaches a lot with an open shortage. Over
-                       500 lb it needs `attachment_ref` until migration 095; after
+                       500 lb it needs `attachment_ref` until migration 096; after
                        it the photo is optional and the owner is emailed.
     missing_movement — `receipt_number` of a COMMITTED receipt whose still-effective
                        posting put stock on the SAME lot after the shortage opened. Its

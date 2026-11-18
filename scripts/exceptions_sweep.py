@@ -75,7 +75,7 @@ def main():
 def send_adjustment_alerts():
     """Nightly retry: owner emails for corrections over 500 lb that are still owed.
 
-    The app queues one `adjustment_alerts` row per large correction (migration 095)
+    The app queues one `adjustment_alerts` row per large correction (migration 096)
     and tries to send it itself; whatever is still pending — the app has no email
     settings, or the send failed — goes out here, with this cron service's Resend
     settings. Its own connections, after the sweep's transaction has ended. It never

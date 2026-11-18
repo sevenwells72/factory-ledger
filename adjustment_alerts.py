@@ -1,4 +1,4 @@
-"""Owner email for corrections over 500 lb (owner decision 2026-11-18, migration 095).
+"""Owner email for corrections over 500 lb (owner decision 2026-11-18, migration 096).
 
 Nothing over 500 lb is held for approval any more: the correction posts and the
 owner is told by email. The email must never get in the way of the correction, so
@@ -44,7 +44,7 @@ def queue_if_large(api, cur, transaction_id, action, product, quantity, uom=None
     """Queue the owner email when this correction is over 500 lb. Returns True when queued.
 
     Called by the adjust and found posting cores right after the ledger rows are
-    written. Off until migration 095's marker exists. Everything happens inside a
+    written. Off until migration 096's marker exists. Everything happens inside a
     savepoint: whatever goes wrong here, the correction itself is untouched."""
     queued = False
     try:
@@ -124,7 +124,7 @@ def facts(cur, alert, env=None):
     elif tx['removal_destination']:
         destination = reason
     else:
-        destination = 'Not recorded'
+        destination = 'None: recorded as ' + reason
     base = (env.get('DASHBOARD_URL', '').strip() or DEFAULT_DASHBOARD_URL).rstrip('/')
     link = f'{base}/receipt.html?number={tx["receipt_number"]}' if tx['receipt_number'] else None
     note = (tx['notes'] or '').strip()

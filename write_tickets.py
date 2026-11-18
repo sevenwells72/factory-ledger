@@ -240,7 +240,7 @@ class AdjustPrepareRequest(ActionPrepareRequest):
     # Cutover reset (Michael, 2026-10-13): the lot's open SHORTAGE exceptions this
     # physical_count correction closes as 'counted' when it posts. Omitted = none.
     resolves_shortage_ids: List[PositiveId] = Field(default_factory=list)
-    # Migration 095: the sales order a "shipped but not recorded" removal names.
+    # Migration 096: the sales order a "shipped but not recorded" removal names.
     # An explanation only — it ships, allocates and closes nothing. Omitted = none.
     sales_order_id: Optional[PositiveId] = None
 
@@ -682,7 +682,7 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
         # A3b hook (R2, owner decision 7): > 500 lb corrections need a photo. With
         # one (prepared or attached now) they post, highlighted; without one the
         # ticket is HELD — nothing posts until the owner approves or a photo arrives.
-        # Owner decision 2026-11-18: once migration 095 is applied `photo_required`
+        # Owner decision 2026-11-18: once migration 096 is applied `photo_required`
         # is never set, so nothing is held here; the photo is optional evidence and
         # the posting core queues the owner's email (adjustment_alerts).
         photo = attachment_ref or row['payload'].get('attachment_ref')
@@ -744,7 +744,7 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
             response['approval'] = {**approval, 'approved_at': entered_at}
         if approval or row['status'] == a3b.HELD:
             resolver = ({**approval['approved_by'], 'key_kind': 'actor'} if approval else actor)
-            # 'hold_lifted': a pre-095 hold committed again after the rules changed —
+            # 'hold_lifted': a pre-096 hold committed again after the rules changed —
             # it posts without the photo the hold was waiting for.
             kind = 'approved' if approval else 'photo_attached' if photo else 'hold_lifted'
             closed_id = a3b.release_hold(cur, row['id'], resolution_kind=kind, actor_id=resolver['id'],

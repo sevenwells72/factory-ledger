@@ -507,7 +507,7 @@ def receipt_row(api, cur, catalog, number, day, *, receipt=None, ticket=None):
         label_es = reason['label_es'] if reason else '?'
         row.update(pair(f'{number}  {row["product"]["name"]} lot {row["lot"]["lot_code"] if row["lot"] else "?"}  {fmt_lb(delta, signed=True)} lb  reason: {label_en}',
                         f'{number}  {row["product"]["name"]} lote {row["lot"]["lot_code"] if row["lot"] else "?"}  {fmt_lb(delta, signed=True)} lb  razón: {label_es}', 'line'))
-        # OVER_500_LB: before migration 095 it always came with photo_required; after it the
+        # OVER_500_LB: before migration 096 it always came with photo_required; after it the
         # correction posts unheld and the owner is emailed, and it is flagged here all the same.
         if review.get('photo_required') or {'OVER_10_PERCENT_OF_BOOK', 'OVER_500_LB'} & set(review.get('rules') or []):
             # The hold's exception (A3b) is resolved by the approval or the photo that let this

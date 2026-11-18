@@ -26,7 +26,7 @@ async function harness(action='ship',language='en',{role='floor'}={}){
   const order={order_id:5,order_number:'SO-PILOT',lines:[{line_id:101,product_id:1561,product:'Classic Granola',remaining_lb:60,line_status:'open'},{line_id:102,product_id:9,product:'Pallet',remaining_lb:0,is_service:true,line_status:'open'},{line_id:103,product_id:1561,product:'Cancelled',remaining_lb:10,line_status:'cancelled'},{line_id:104,product_id:1561,product:'Fulfilled',remaining_lb:0,line_status:'fulfilled'}]};
   const labelled=new Set(),events={};const label=(node,value)=>{node.textContent=String(value??'');if(value?.en!==undefined){node.labels=[value.en,value.es];labelled.add(node);}else{delete node.labels;labelled.delete(node);}return node;};
   const shared=require('../dashboard/ledger-ui.js');
-  const ui={problem:value=>Error(String(value)),lang:language,correctionReasons:shared.correctionReasons,adjustReasons:shared.adjustReasons,orderDestination:shared.orderDestination,noteRequiredReasons:shared.noteRequiredReasons,session:{actor:{role}},async upload(file,kind){const attached={attachment_id:88,kind};uploads.push({file,kind,attached});return attached;},formatNumber:require('../dashboard/ledger-ui.js').formatNumber,bind(){},ready:Promise.resolve(true),setText:label,relabel(){for(const node of labelled)if(node.isConnected)node.textContent=node.labels[ui.lang==='es'?1:0];},t:(en,es)=>Object.assign(new String(ui.lang==='es'?es:en),{en,es}),el(tag,text,parent){const node=label(new Element(tag),text);parent?.append(node);return node;},failure(error){failures.push(error.message);},
+  const ui={problem:value=>Error(String(value)),lang:language,correctionReasons:shared.correctionReasons,adjustReasons:shared.adjustReasons,adjustNoteRequired:shared.adjustNoteRequired,orderDestination:shared.orderDestination,noteRequiredReasons:shared.noteRequiredReasons,session:{actor:{role}},async upload(file,kind){const attached={attachment_id:88,kind};uploads.push({file,kind,attached});return attached;},formatNumber:require('../dashboard/ledger-ui.js').formatNumber,bind(){},ready:Promise.resolve(true),setText:label,relabel(){for(const node of labelled)if(node.isConnected)node.textContent=node.labels[ui.lang==='es'?1:0];},t:(en,es)=>Object.assign(new String(ui.lang==='es'?es:en),{en,es}),el(tag,text,parent){const node=label(new Element(tag),text);parent?.append(node);return node;},failure(error){failures.push(error.message);},
     async request(path,body,options){requests.push({path,body,options});if(path==='/entry/lots?'+new URLSearchParams({product_id:'1561'}))return stock(path);if(path.startsWith('/entry/lots?'))return stock(path);if(path.startsWith('/entry/make-products?')){if(resolver)return resolver({kind:'make_product',query:new URLSearchParams(path.split('?')[1]).get('query')});return {products:[{id:1561,name:'make_product',label:'make_product',type:'batch',default_batch_lb:323}],has_more:false};}if(path==='/resolve'){if(resolver)return resolver(body);return {outcome:'match',match:{id:body.kind==='order'?5:body.kind==='customer'?7:body.kind==='supplier'?8:1561,label:body.kind,type:body.kind==='product'?'ingredient':undefined,supplier_lot_required:body.kind==='product',case_size_lb:25}};}if(path.startsWith('/sales/orders/'))return order;if(path.startsWith('/ship/lots?'))return stock(path);throw Error('Unexpected request '+path);},
     ticketCard(host,path,body,options){const ticket={host,path,body:plain(body),options};tickets.push(ticket);return {invalidate(){ticket.invalidated=true;}};}
   };
@@ -188,10 +188,12 @@ test('changing languages refreshes selected batch status without changing the se
 });
 
 const reasons=[['physical_count','Physical count','Conteo físico'],['missing_receipt','Missing receipt','Recepción no registrada'],['missing_production','Missing production','Producción no registrada'],['wrong_lot','Wrong lot used','Lote equivocado'],['damage_disposal','Damage/disposal','Daño o desecho'],['unrecorded_usage','Unrecorded usage','Uso no registrado'],['data_entry_error','Data-entry error','Error de captura'],['unknown','Unknown','Desconocido']];
-// Migration 095 (owner, 2026-11-18): where removed stock went. The two old removal-only
+// Migration 096 (owner, 2026-11-18): where removed stock went. The two old removal-only
 // reasons are retired for new entries but keep their labels for old receipts.
 const destinations=[['shipped_unrecorded','Shipped but not recorded','Enviado pero no registrado'],['sent_to_sunshine_bulk','Sent to Sunshine as bulk','Enviado a Sunshine a granel'],['used_in_production','Used in production but not recorded','Usado en producción pero no registrado'],['damaged_thrown_out','Damaged or thrown out','Dañado o desechado'],['count_unknown','Count correction — cause unknown','Corrección de conteo — causa desconocida']];
 const retired=['damage_disposal','unrecorded_usage'],additions=reasons.filter(([code])=>!retired.includes(code));
+// On a removal the five destinations come first, then the two "never on this lot" reasons (note required).
+const neverThere=reasons.filter(([code])=>['wrong_lot','data_entry_error'].includes(code)),removals=[...destinations,...neverThere];
 const offered=h=>h.field('reason_code').children.slice(1).map(option=>option.value);
 const setDelta=(h,value)=>{const delta=h.field('delta_lb');delta.value=String(value);delta.oninput();};
 for(const language of ['en','es'])for(const [code,en,es] of [...reasons,...destinations])test(`correction reason ${code} agrees on the form and draft in ${language}`,async()=>{
@@ -215,10 +217,11 @@ for(const language of ['en','es'])test(`Adjust reasons follow the direction of t
   const h=await harness('adjust',language),pair=([code,en,es])=>[code,language==='es'?es:en],shown=()=>h.field('reason_code').children.slice(1).map(option=>[option.value,option.textContent]);
   // Nothing typed yet: no reason can be picked, and the placeholder says what to do first.
   assert.deepEqual(shown(),[]);assert.equal(h.field('reason_code').children[0].textContent,language==='es'?'Primero escribe el cambio en lb':'Enter the change in lb first');
-  // Removing stock: exactly the five destinations, in the owner's order — the pick IS where it went.
-  setDelta(h,-40);assert.deepEqual(shown(),destinations.map(pair));
+  // Removing stock: the five destinations in the owner's order — the pick IS where it went —
+  // then Wrong lot used and Data-entry error for stock that was never on this lot.
+  setDelta(h,-40);assert.deepEqual(shown(),removals.map(pair));
   assert.equal(h.field('reason_code').children[0].textContent,language==='es'?'Elige motivo':'Choose reason');
-  assert.equal(h.find(node=>node.dataset.adjustHint==='').textContent,language==='es'?'Para quitar inventario: elige a dónde se fue.':'Removing stock: choose where it went.');
+  assert.equal(h.find(node=>node.dataset.adjustHint==='').textContent,language==='es'?'Para quitar inventario: elige a dónde se fue. Si en realidad nunca estuvo en este lote, elige Lote equivocado o Error de captura y escribe una nota.':'Removing stock: choose where it went. If it was never really on this lot, choose Wrong lot used or Data-entry error and write a note.');
   // Adding stock: the reasons that can add; never a destination.
   setDelta(h,40);assert.deepEqual(shown(),additions.map(pair));
   assert.equal(h.find(node=>node.dataset.adjustHint==='').textContent,language==='es'?'Para agregar inventario: elige el motivo.':'Adding stock: choose why.');
@@ -244,15 +247,19 @@ test('Count correction — cause unknown makes the note required; other destinat
   reason.value='count_unknown';reason.onchange();assert.equal(note.required,true);
   setDelta(h,3);reason.value='unknown';reason.onchange();assert.equal(note.required,true);
   reason.value='physical_count';reason.onchange();assert.equal(note.required,false);
+  // Wrong lot used / Data-entry error: the note is required when they remove stock, optional when they add it.
+  for(const code of ['wrong_lot','data_entry_error']){reason.value=code;reason.onchange();assert.equal(note.required,false);}
+  setDelta(h,-3);for(const code of ['wrong_lot','data_entry_error']){reason.value=code;reason.onchange();assert.equal(note.required,true);}
+  setDelta(h,-4);assert.equal(reason.value,'data_entry_error');assert.equal(note.required,true);
 });
 test('when FL refuses the reason and sends its own list, the form offers exactly that list',async()=>{
-  // An API still on the old rules (migration 095 not applied yet) answers with the old reasons.
+  // An API still on the old rules (migration 096 not applied yet) answers with the old reasons.
   const h=await harness('adjust');await h.pick('lot');setDelta(h,-5);h.field('reason_code').value='damaged_thrown_out';h.submit();
   const form=h.byId('entry-form');form.hidden=true;
   h.tickets[0].options.onFailure({result:{detail:{error_code:'REASON_CODE_INVALID',valid_reasons:[{code:'physical_count',label_en:'Physical count',label_es:'Conteo físico'},{code:'damage_disposal',label_en:'Damage/disposal',label_es:'Daño o desecho'}]}}});
   assert.deepEqual(offered(h),['physical_count','damage_disposal']);assert.equal(h.field('reason_code').value,'');assert.equal(form.hidden,false);
   // Any other failure leaves the list alone.
-  setDelta(h,-5);h.tickets[0].options.onFailure({result:{detail:{error_code:'LOT_NOT_FOUND'}}});assert.deepEqual(offered(h),destinations.map(([code])=>code));
+  setDelta(h,-5);h.tickets[0].options.onFailure({result:{detail:{error_code:'LOT_NOT_FOUND'}}});assert.deepEqual(offered(h),removals.map(([code])=>code));
 });
 for(const language of ['en','es'])test(`Found offers exactly its four supported translated reasons in ${language}`,async()=>{
   const h=await harness('found',language),allowed=['physical_count','missing_receipt','missing_production','unknown'];

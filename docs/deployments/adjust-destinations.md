@@ -2,16 +2,16 @@
 
 Owner decision 2026-11-18. Code: `exceptions_enforcement.py`, `adjustment_alerts.py`, `ticket_actions.py`,
 `write_tickets.py`, `main.py` (two posting cores), `scripts/exceptions_sweep.py`, `dashboard/entry.js`,
-`dashboard/ledger-ui.js`. Migration: `migrations/095_adjust_destinations.sql`.
+`dashboard/ledger-ui.js`. Migration: `migrations/096_adjust_destinations.sql`.
 
-**Status: branch `feat/adjust-destination`, not merged, not deployed. Migration 095 is not applied to staging or
+**Status: branch `feat/adjust-destination`, not merged, not deployed. Migration 096 is not applied to staging or
 production.** It has only been applied to throwaway local test databases.
 
 ## What changes
 
-| Rule | Before | After migration 095 |
+| Rule | Before | After migration 096 |
 | --- | --- | --- |
-| Adjustment that removes stock | Any of the eight reasons | Must pick where it went, one pick: Shipped but not recorded (also the sales order), Sent to Sunshine as bulk, Used in production but not recorded, Damaged or thrown out, Count correction — cause unknown (note required) |
+| Adjustment that removes stock | Any of the eight reasons | Must pick where it went, one pick: Shipped but not recorded (also the sales order), Sent to Sunshine as bulk, Used in production but not recorded, Damaged or thrown out, Count correction — cause unknown (note required). Also accepted, each with a required note: Wrong lot used, Data-entry error (the stock was never on this lot) |
 | Over 500 lb (adjust, Found, counted shortage close) | Photo, or held for the owner | Recorded at once. Photo optional. The owner gets an email |
 | Adding stock, Found | Unchanged | Unchanged (the two retired reasons were removal-only) |
 
@@ -22,12 +22,16 @@ shortages keeps the reason *physical count*.
 Retired for new entries only: `damage_disposal` and `unrecorded_usage`. Their rows, labels and every old
 transaction that carries them are untouched.
 
+Wrong lot used and Data-entry error keep their rows unchanged apart from the new `removal_allowed` flag. The
+required note applies only when they remove stock; on an addition, a void or a lot fix the note stays optional.
+Physical count, Missing production and Unknown are not accepted on a removal.
+
 "Shipped but not recorded" names the order as the explanation. It does not ship, allocate or close the order;
 closing the order stays the office's step.
 
 ## The switch is the migration marker
 
-Everything is gated on the marker `095_adjust_destinations`:
+Everything is gated on the marker `096_adjust_destinations`:
 
 - code deployed, migration not applied: the old rules stay in force, whole (old reasons, photo-or-hold);
 - migration applied, old code: the old code ignores the new columns and table.
@@ -61,16 +65,16 @@ posts without the photo and the exception closes as `hold_lifted`.
 ## Deploy order (each step needs Michael's approval; staging first)
 
 1. Verified backup (`~/Backups/fl/fl-backup-and-verify.sh`, must end `BACKUP OK`).
-2. Apply `migrations/095_adjust_destinations.sql` on port 5432 in one transaction (header of the file).
-   Check: 13 rows in `correction_reasons`, 5 with `removal_destination`, 2 inactive, table `adjustment_alerts`
-   empty, marker present.
+2. Apply `migrations/096_adjust_destinations.sql` on port 5432 in one transaction (header of the file).
+   Check: 13 rows in `correction_reasons`, 7 with `removal_allowed`, 5 of those with `removal_destination`,
+   2 inactive, table `adjustment_alerts` empty, marker present.
 3. Merge. Railway and Netlify deploy.
 4. Optional, for email within seconds: set `RESEND_API_KEY` and `ALERT_EMAIL_TO` on the FastAPI service.
-5. Verify: a small removal lists the five destinations; `GET /exceptions?kind=LARGE_CORRECTION` shows no new holds.
+5. Verify: a small removal lists the five destinations, then Wrong lot used and Data-entry error; `GET /exceptions?kind=LARGE_CORRECTION` shows no new holds.
 
 ## Rollback
 
-Delete the marker (or run `migrations/down/095_adjust_destinations_down.sql`) and the old rules are back at
+Delete the marker (or run `migrations/down/096_adjust_destinations_down.sql`) and the old rules are back at
 once, no deploy needed. The down file refuses while any transaction carries a destination reason or an owner
 email is still pending.
 

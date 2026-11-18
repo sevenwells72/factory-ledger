@@ -52,8 +52,8 @@
     const form=ui.el('form',undefined,content);form.id='entry-form';form.className='panel';const fields=ui.el('div',undefined,form);fields.className='fields';const values={},choices={};
     function field(name,en,es,type='text',required=false,parent=fields){const label=ui.el('label',ui.t(en,es),parent),input=ui.el(type==='textarea'?'textarea':'input',undefined,label);input.name=name;if(type!=='textarea')input.type=type;input.required=required;if(type==='number')input.step='any';values[name]=input;return input;}
     function choose(name,en,es,kind='product',context,changed,parent=fields){return choices[name]=picker(parent,name,en,es,kind,context,changed);}
-    // Found keeps its four reasons. Adjust follows the direction of the change (migration 095):
-    // removing stock offers only the destinations, adding stock the reasons that can add, and the
+    // Found keeps its four reasons. Adjust follows the direction of the change (migration 096):
+    // removing stock offers the destinations plus wrong lot / data-entry error, adding stock the reasons that can add, and the
     // list is refilled whenever the pounds change. `fill` also takes FL's own list after a refusal.
     function reason(){const label=ui.el('label',ui.t('Reason','Motivo'),fields),s=ui.el('select',undefined,label);s.name='reason_code';s.required=true;
       const fill=list=>{const keep=s.value;s.replaceChildren();ui.el('option',list.length||action==='found'?ui.t('Choose reason','Elige motivo'):ui.t('Enter the change in lb first','Primero escribe el cambio en lb'),s).value='';list.forEach(([v,en,es])=>{const o=ui.el('option',ui.t(en,es),s);o.value=v;});s.value=list.some(([v])=>v===keep)?keep:'';};
@@ -68,8 +68,8 @@
       const orderBox=ui.el('div',undefined,fields);orderBox.className='wide fields';orderBox.hidden=true;orderBox.dataset.destinationOrder='';
       choose('destination_order','Sales order it shipped on','Pedido de venta con el que se envió','order',undefined,undefined,orderBox);
       const note=field('note','Note','Nota','textarea');
-      const syncAdjust=()=>{const n=Number(delta.value),code=values.reason_code.value;orderBox.hidden=!(n<0&&code===ui.orderDestination);note.required=ui.noteRequiredReasons.includes(code);
-        ui.setText(hint,n<0?ui.t('Removing stock: choose where it went.','Para quitar inventario: elige a dónde se fue.'):n>0?ui.t('Adding stock: choose why.','Para agregar inventario: elige el motivo.'):'');};
+      const syncAdjust=()=>{const n=Number(delta.value),code=values.reason_code.value;orderBox.hidden=!(n<0&&code===ui.orderDestination);note.required=ui.adjustNoteRequired(code,delta.value);
+        ui.setText(hint,n<0?ui.t('Removing stock: choose where it went. If it was never really on this lot, choose Wrong lot used or Data-entry error and write a note.','Para quitar inventario: elige a dónde se fue. Si en realidad nunca estuvo en este lote, elige Lote equivocado o Error de captura y escribe una nota.'):n>0?ui.t('Adding stock: choose why.','Para agregar inventario: elige el motivo.'):'');};
       delta.oninput=()=>{fillReasons(ui.adjustReasons(delta.value));syncAdjust();};values.reason_code.onchange=syncAdjust;
       // FL refused the reason and sent its own list (for example an API still on the old rules): offer exactly that list.
       adjustRefused=error=>{const list=error?.result?.detail?.valid_reasons;if(!Array.isArray(list)||!list.length)return;fillReasons(list.map(r=>[r.code,r.label_en,r.label_es]));syncAdjust();form.hidden=false;};}

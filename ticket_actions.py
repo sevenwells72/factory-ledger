@@ -114,7 +114,7 @@ def choose_inputs(api, cur, requirements, overrides, *, single_lot=False):
     return plan
 
 def validate(api, cur, action, payload, lock=False, held=False):
-    # `held`: the ticket was held for owner approval before migration 095 switched the
+    # `held`: the ticket was held for owner approval before migration 096 switched the
     # adjustment rules; its reason was accepted then and is not judged again.
     # A5 hook: non-ledger pallet evidence uses the same ticket lifecycle.
     if action == 'update_supplier_lot':
@@ -259,8 +259,8 @@ def validate(api, cur, action, payload, lock=False, held=False):
         p = product(api, cur, current['product_id'], lock)
         products.append(p)
         # A3b hook (R2/R3): fixed-list reason, no covering an open shortage, review facts.
-        # Migration 095: a removal names where the stock went (and the sales order, for
-        # stock that shipped). A shortage-closing count and a pre-095 hold are exempt.
+        # Migration 096: a removal names where the stock went (and the sales order, for
+        # stock that shipped). A shortage-closing count and a pre-096 hold are exempt.
         reason = a3b.resolve_reason(cur, 'adjust', payload['reason_code'], note=payload.get('note'), delta_lb=payload['delta_lb'],
                                     sales_order_id=payload.get('sales_order_id'), destination_exempt=bool(closing) or held)
         immediate = a3b.destination_rules(cur)
@@ -471,7 +471,7 @@ def post(api, cur, action, validated, payload, request, ticket_id, receipt_numbe
         response['reason_code'] = draft['reason_code']
         response['correction_review'] = dict(draft['correction_review'], attachment_ref=draft.get('attachment_ref'))
         if 'destination' in draft:
-            # Migration 095: where removed stock went, on the receipt.
+            # Migration 096: where removed stock went, on the receipt.
             response['destination'] = draft['destination']
     return response
 

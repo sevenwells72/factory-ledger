@@ -1,7 +1,8 @@
-"""Adjustment rules, owner decision 2026-11-18 (migration 095).
+"""Adjustment rules, owner decision 2026-11-18 (migration 096).
 
 1. A ticket adjustment that REMOVES stock names where it went — one pick from the
    five destination reasons; "Shipped but not recorded" also names the sales order.
+   "Wrong lot used" and "Data-entry error" are also accepted, each with a note.
 2. Over 500 lb: never held, photo optional, posts at once; the owner is emailed,
    and the email can neither block nor undo the adjustment.
 3. Unchanged: named-actor attribution, the 10 % / weekly-view highlighting, "never
@@ -26,9 +27,11 @@ from tests.test_exceptions_enforcement import (adjust, found, exceptions_for, se
 
 pytestmark = pytest.mark.db
 ROOT = Path(__file__).resolve().parents[1]
-MIGRATION = ROOT / 'migrations/095_adjust_destinations.sql'
-DOWN = ROOT / 'migrations/down/095_adjust_destinations_down.sql'
+MIGRATION = ROOT / 'migrations/096_adjust_destinations.sql'
+DOWN = ROOT / 'migrations/down/096_adjust_destinations_down.sql'
 DESTINATIONS = ['shipped_unrecorded', 'sent_to_sunshine_bulk', 'used_in_production', 'damaged_thrown_out', 'count_unknown']
+NEVER_THERE = ['wrong_lot', 'data_entry_error']        # accepted on a removal too, with a required note
+REMOVAL_REASONS = DESTINATIONS + NEVER_THERE
 EMAIL_ENV = {'RESEND_API_KEY': 're_test_not_real', 'ALERT_EMAIL_TO': 'owner@example.test', 'ENVIRONMENT': 'production'}
 
 
@@ -79,9 +82,9 @@ class Mailbox:
         return {'status': 'failed', 'to': 'owner@example.test', 'provider_id': None, 'error': 'Email service answered 500: down'}
 
 
-# ── gate: without migration 095 nothing changes ─────────────────────────────
+# ── gate: without migration 096 nothing changes ─────────────────────────────
 
-def test_without_migration_095_the_old_rules_hold(client, db_cursor, items, actors):
+def test_without_migration_096_the_old_rules_hold(client, db_cursor, items, actors):
     key = actors['floor']['key']
     assert a3b.destination_rules(db_cursor) is False
     # A removal still takes the old reasons, and the receipt has no destination.
@@ -103,7 +106,7 @@ def test_without_migration_095_the_old_rules_hold(client, db_cursor, items, acto
 
 def test_migration_adds_five_destinations_and_keeps_the_old_reasons(db_cursor, migrated):
     db_cursor.execute('SELECT code, label_en, label_es, adjust_sign, note_required, active, removal_destination, '
-                      'sales_order_required, applies_to FROM correction_reasons ORDER BY sort_order')
+                      'removal_allowed, sales_order_required, applies_to FROM correction_reasons ORDER BY sort_order')
     rows = {r['code']: r for r in db_cursor.fetchall()}
     assert [c for c in rows if rows[c]['removal_destination']] == DESTINATIONS
     assert {c: (rows[c]['label_en'], rows[c]['label_es']) for c in DESTINATIONS} == {
@@ -116,6 +119,12 @@ def test_migration_adds_five_destinations_and_keeps_the_old_reasons(db_cursor, m
                for c in DESTINATIONS)
     assert [c for c in DESTINATIONS if rows[c]['sales_order_required']] == ['shipped_unrecorded']
     assert [c for c in DESTINATIONS if rows[c]['note_required']] == ['count_unknown']
+    # Allowed on a removal: the five destinations plus the two "never on this lot" reasons,
+    # whose own row is otherwise unchanged (any direction, no blanket note requirement).
+    assert sorted(c for c in rows if rows[c]['removal_allowed']) == sorted(REMOVAL_REASONS)
+    assert all((rows[c]['adjust_sign'], rows[c]['note_required'], rows[c]['removal_destination'], rows[c]['active']) ==
+               ('any', False, False, True) for c in NEVER_THERE)
+    assert (rows['wrong_lot']['label_en'], rows['data_entry_error']['label_en']) == ('Wrong lot used', 'Data-entry error')
     # The eight original rows are all still there, labels untouched; only the two
     # removal-only reasons a destination replaces are retired for new entries.
     assert (rows['damage_disposal']['label_en'], rows['unrecorded_usage']['label_en']) == ('Damage/disposal', 'Unrecorded usage')
@@ -123,11 +132,14 @@ def test_migration_adds_five_destinations_and_keeps_the_old_reasons(db_cursor, m
     assert len(rows) == 13
 
 
-@pytest.mark.parametrize('reason', ['physical_count', 'missing_production', 'wrong_lot', 'data_entry_error', 'unknown',
+@pytest.mark.parametrize('reason', ['physical_count', 'missing_production', 'unknown',
                                     'damage_disposal', 'unrecorded_usage', 'count_correction', 'damage'])
 def test_a_removal_must_say_where_the_stock_went(client, db_cursor, items, actors, migrated, reason):
     detail = refuse(client, adjust(items, -5, reason, note='n'), actors['floor']['key'], 422, 'REASON_CODE_INVALID')
-    assert [r['code'] for r in detail['valid_reasons']] == DESTINATIONS
+    # Destinations first, then the two "never on this lot" reasons, which need a note here.
+    assert [r['code'] for r in detail['valid_reasons']] == REMOVAL_REASONS
+    assert [r['code'] for r in detail['valid_reasons'] if r['note_required']] == ['count_unknown'] + NEVER_THERE
+    assert [r['code'] for r in detail['valid_reasons'] if r['removal_destination']] == DESTINATIONS
     assert detail['valid_reasons'][0]['sales_order_required'] is True
     db_cursor.execute('SELECT count(*) AS n FROM write_tickets WHERE action=%s', ('adjust',))
     assert db_cursor.fetchone()['n'] == 0                    # refused at prepare: no ticket exists
@@ -136,7 +148,40 @@ def test_a_removal_must_say_where_the_stock_went(client, db_cursor, items, actor
 def test_a_removal_without_any_reason_lists_the_destinations(client, items, actors, migrated):
     payload = adjust(items, -5, ' ')
     detail = refuse(client, payload, actors['floor']['key'], 422, 'REASON_CODE_REQUIRED')
-    assert detail['destination_required'] is True and [r['code'] for r in detail['valid_reasons']] == DESTINATIONS
+    assert detail['destination_required'] is True and [r['code'] for r in detail['valid_reasons']] == REMOVAL_REASONS
+
+
+@pytest.mark.parametrize('reason,label', [('wrong_lot', 'Wrong lot used'), ('data_entry_error', 'Data-entry error')])
+def test_wrong_lot_and_data_entry_error_remove_stock_only_with_a_note(client, db_cursor, items, actors, migrated, reason, label):
+    key = actors['floor']['key']
+    for blank in ({}, {'note': ''}, {'note': '   '}):
+        detail = refuse(client, adjust(items, -8, reason, **blank), key, 422, 'NOTE_REQUIRED')
+        assert detail['reason_code'] == reason
+    prepared = prepare(client, 'adjust', adjust(items, -8, reason, note='Used lot B by mistake; moved to lot B'), key)
+    assert prepared['draft']['reason']['note_required'] is True
+    assert prepared['draft']['destination'] is None               # it names no destination: the note explains it
+    receipt = commit(client, prepared, key).json()
+    assert receipt['reason_code'] == reason and receipt['destination'] is None
+    assert main.lot_on_hand(db_cursor, items['ingredient']['lot_id']) == 92.0
+    db_cursor.execute('SELECT reason_code, adjust_reason, notes, entered_by_actor_id FROM transactions WHERE id=%s', (receipt['transaction_id'],))
+    txn = db_cursor.fetchone()
+    assert (txn['reason_code'], txn['adjust_reason'], txn['entered_by_actor_id']) == (reason, label, actors['floor']['id'])
+    assert 'Used lot B by mistake' in txn['notes']
+    # A sales order does not belong on these, and the note rule is for removals only:
+    refuse(client, adjust(items, -8, reason, note='n', sales_order_id=1), key, 422, 'SALES_ORDER_NOT_APPLICABLE')
+    added = prepare(client, 'adjust', adjust(items, 8, reason), key)             # adding stock: note still optional
+    assert added['can_commit'] and added['draft']['reason']['note_required'] is False
+
+
+def test_large_wrong_lot_removal_emails_the_owner_with_the_note(client, db_cursor, items, actors, migrated):
+    key = actors['floor']['key']
+    set_balance(db_cursor, items, 'ingredient', 2000.0)
+    commit(client, prepare(client, 'adjust', adjust(items, -700, 'wrong_lot', note='Belongs to lot B'), key), key)
+    mailbox = Mailbox()
+    assert adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV, send=mailbox)['status'] == 'sent'
+    text = mailbox.sent[0]['text']
+    assert 'Reason: Wrong lot used' in text and 'Destination: None: recorded as Wrong lot used' in text
+    assert 'Belongs to lot B' in text
 
 
 @pytest.mark.parametrize('reason', ['sent_to_sunshine_bulk', 'used_in_production', 'damaged_thrown_out'])
@@ -531,7 +576,7 @@ def test_a_hold_from_before_the_change_can_still_be_rejected(client, db_cursor, 
 
 # ── migration ───────────────────────────────────────────────────────────────
 
-def test_migration_095_is_rerunnable_and_touches_no_ledger_row(client, db_cursor, items, actors):
+def test_migration_096_is_rerunnable_and_touches_no_ledger_row(client, db_cursor, items, actors):
     key = actors['floor']['key']
     old = commit(client, prepare(client, 'adjust', adjust(items, -5, 'damage_disposal'), key), key).json()
     db_cursor.execute('SELECT id, reason_code, adjust_reason, notes, status FROM transactions ORDER BY id')
@@ -546,19 +591,19 @@ def test_migration_095_is_rerunnable_and_touches_no_ledger_row(client, db_cursor
     assert tuple(db_cursor.fetchone().values()) == ('Damage/disposal', False)
     db_cursor.execute('SELECT count(*) AS n FROM correction_reasons')
     assert db_cursor.fetchone()['n'] == 13
-    db_cursor.execute("SELECT count(*) AS n FROM migration_markers WHERE name='095_adjust_destinations'")
+    db_cursor.execute("SELECT count(*) AS n FROM migration_markers WHERE name='096_adjust_destinations'")
     assert db_cursor.fetchone()['n'] == 1
 
 
-def test_migration_095_down_refuses_while_used_and_restores_when_unused(client, db_cursor, items, actors, migrated):
+def test_migration_096_down_refuses_while_used_and_restores_when_unused(client, db_cursor, items, actors, migrated):
     key = actors['floor']['key']
-    db_cursor.execute('SAVEPOINT clean095')
+    db_cursor.execute('SAVEPOINT clean096')
     commit(client, prepare(client, 'adjust', adjust(items, -5, 'damaged_thrown_out'), key), key)
-    db_cursor.execute('SAVEPOINT down095')
-    with pytest.raises(psycopg2.Error, match='keep migration 095'):
+    db_cursor.execute('SAVEPOINT down096')
+    with pytest.raises(psycopg2.Error, match='keep migration 096'):
         db_cursor.execute(DOWN.read_text())
-    db_cursor.execute('ROLLBACK TO SAVEPOINT down095')
-    db_cursor.execute('ROLLBACK TO SAVEPOINT clean095')
+    db_cursor.execute('ROLLBACK TO SAVEPOINT down096')
+    db_cursor.execute('ROLLBACK TO SAVEPOINT clean096')
     db_cursor.execute(DOWN.read_text())
     assert a3b.destination_rules(db_cursor) is False
     db_cursor.execute("SELECT to_regclass('public.adjustment_alerts') AS relation")
@@ -567,7 +612,7 @@ def test_migration_095_down_refuses_while_used_and_restores_when_unused(client, 
     assert [r['code'] for r in db_cursor.fetchall()] == ['physical_count', 'missing_receipt', 'missing_production', 'wrong_lot',
                                                          'damage_disposal', 'unrecorded_usage', 'data_entry_error', 'unknown']
     db_cursor.execute("SELECT count(*) AS n FROM information_schema.columns WHERE table_name='correction_reasons' "
-                      "AND column_name IN ('removal_destination','sales_order_required')")
+                      "AND column_name IN ('removal_destination','removal_allowed','sales_order_required')")
     assert db_cursor.fetchone()['n'] == 0
     # Back on the old rules.
     assert prepare(client, 'adjust', adjust(items, -5, 'physical_count'), key)['can_commit']

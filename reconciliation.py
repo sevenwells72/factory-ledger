@@ -846,7 +846,7 @@ def analyse(data):
         if tx['type'] == 'adjust':
             reason = (tx['reason_code'] or '').strip().lower()
             no_reason, no_person = reason in ('', 'unknown'), tx['actor_id'] is None
-            # Migration 095: "Count correction — cause unknown" names a person and carries a
+            # Migration 096: "Count correction — cause unknown" names a person and carries a
             # note, but nobody knows where the stock went — the owner hears about it here too.
             unknown_cause = reason == 'count_unknown'
             if no_reason or no_person or unknown_cause:

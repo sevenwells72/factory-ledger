@@ -1,15 +1,16 @@
-// Adjustment rules (owner decision 2026-11-18, migration 095), on the real Adjust form in a real
+// Adjustment rules (owner decision 2026-11-18, migration 096), on the real Adjust form in a real
 // browser at phone width, as Arturo:
 //   1. Before the pounds are typed no reason can be picked.
-//   2. Removing stock offers exactly the five destinations ("where it went") as one pick, EN and ES;
-//      adding stock offers the reasons that can add and never a destination.
+//   2. Removing stock offers the five destinations ("where it went") as one pick, then Wrong lot used
+//      and Data-entry error (note required), EN and ES; adding stock offers the reasons that can add
+//      and never a destination.
 //   3. "Shipped but not recorded" asks for the sales order in the same step; without one nothing is
 //      prepared; with one the draft and the receipt name the order.
 //   4. A 600 lb removal with NO photo is RECORDED at once: no "waiting for owner approval", no held
 //      exception. The owner email is queued (adjustment_alerts) and the stock is already changed.
 //   5. "Count correction — cause unknown" needs a note.
 // Real local FastAPI over a throwaway local PostgreSQL DB (fl_person_browser_adjust_<pid>), seeded by
-// tests/visual/person_selection_fixture.py, with migration 095 applied to that throwaway DB only, and
+// tests/visual/person_selection_fixture.py, with migration 096 applied to that throwaway DB only, and
 // dropped afterwards. No route stubs, no email settings (nothing is sent), never staging or production.
 import assert from 'node:assert/strict';
 import {execFileSync, spawn} from 'node:child_process';
@@ -32,6 +33,8 @@ const DESTINATIONS = [
   ['damaged_thrown_out', 'Damaged or thrown out', 'Dañado o desechado'],
   ['count_unknown', 'Count correction — cause unknown', 'Corrección de conteo — causa desconocida'],
 ];
+const NEVER_THERE = [['wrong_lot', 'Wrong lot used', 'Lote equivocado'], ['data_entry_error', 'Data-entry error', 'Error de captura']];
+const REMOVALS = [...DESTINATIONS, ...NEVER_THERE];
 const ADDITIONS = ['physical_count', 'missing_receipt', 'missing_production', 'wrong_lot', 'data_entry_error', 'unknown'];
 await fs.mkdir(out, {recursive: true});
 
@@ -54,7 +57,7 @@ try {
     await new Promise(r => setTimeout(r, 500));
   }
   // The migration under test, on the throwaway database only (one transaction, as its header says).
-  sh('psql', ['-h', '127.0.0.1', '-d', db, '-v', 'ON_ERROR_STOP=1', '-q', '-1', '-f', 'migrations/095_adjust_destinations.sql']);
+  sh('psql', ['-h', '127.0.0.1', '-d', db, '-v', 'ON_ERROR_STOP=1', '-q', '-1', '-f', 'migrations/096_adjust_destinations.sql']);
   const fixture = JSON.parse(await fs.readFile(path.join(root, '.venv-test/person-selection/fixture.json'), 'utf8'));
   const lot = fixture.lots.Ingredient;
 
@@ -97,13 +100,13 @@ try {
   // 2. Removing stock: exactly the five destinations, in order.
   await choose('lot', lot.code);
   await delta.fill('-600');
-  assert.deepEqual(await offered(), DESTINATIONS.map(([code, en]) => [code, en]));
-  assert.equal(await page.locator('[data-adjust-hint]').textContent(), 'Removing stock: choose where it went.');
+  assert.deepEqual(await offered(), REMOVALS.map(([code, en]) => [code, en]));
+  assert.equal(await page.locator('[data-adjust-hint]').textContent(), 'Removing stock: choose where it went. If it was never really on this lot, choose Wrong lot used or Data-entry error and write a note.');
   assert.ok(await orderBox.isHidden());
   await page.screenshot({path: out + '/removal-reasons-en-390.png', fullPage: true});
   await page.locator('#language').click();
-  assert.deepEqual(await offered(), DESTINATIONS.map(([code, , es]) => [code, es]));
-  assert.equal(await page.locator('[data-adjust-hint]').textContent(), 'Para quitar inventario: elige a dónde se fue.');
+  assert.deepEqual(await offered(), REMOVALS.map(([code, , es]) => [code, es]));
+  assert.equal(await page.locator('[data-adjust-hint]').textContent(), 'Para quitar inventario: elige a dónde se fue. Si en realidad nunca estuvo en este lote, elige Lote equivocado o Error de captura y escribe una nota.');
   await page.screenshot({path: out + '/removal-reasons-es-390.png', fullPage: true});
   await page.locator('#language').click();
   // Adding stock: the reasons that can add, never a destination.
@@ -116,6 +119,15 @@ try {
   assert.equal(await page.locator('#entry-form [name=note]').getAttribute('required'), '');
   await reason.selectOption('damaged_thrown_out');
   assert.equal(await page.locator('#entry-form [name=note]').getAttribute('required'), null);
+  // Wrong lot used / Data-entry error on a removal: note required, and FL refuses the draft without one.
+  for (const code of ['wrong_lot', 'data_entry_error']) {
+    await reason.selectOption(code);
+    assert.equal(await page.locator('#entry-form [name=note]').getAttribute('required'), '');
+  }
+  const refused = await fetch(origin + '/adjust/prepare', {method: 'POST', headers: {'X-FL-Person': person, 'Content-Type': 'application/json'},
+    body: JSON.stringify({client_source: 'dashboard', occurred_at: new Date().toISOString(), lot_id: lot.id, delta_lb: -5, reason_code: 'wrong_lot'})});
+  assert.equal(refused.status, 422);
+  assert.equal((await refused.json()).detail.error_code, 'NOTE_REQUIRED');
 
   // 3. Shipped but not recorded: the sales order is asked for in the same step.
   await reason.selectOption('shipped_unrecorded');
@@ -161,7 +173,7 @@ try {
   assert.equal(sql('SELECT count(*) FROM shipments'), '0');
 
   assert.deepEqual(errors, []);
-  console.log('PASS: Adjust form offers the five destinations on a removal, names the sales order for shipped stock, and records 600 lb at once with no photo and no hold (' + receipt.receipt_number + ')');
+  console.log('PASS: Adjust form offers the five destinations (plus wrong lot / data-entry error with a note) on a removal, names the sales order for shipped stock, and records 600 lb at once with no photo and no hold (' + receipt.receipt_number + ')');
 } catch (error) {
   await page?.screenshot({path: out + '/failure.png', fullPage: true}).catch(() => {});
   console.error('Page errors:', errors);
