@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-18 11:13 — Record entry pickers: product ID and TRIAL tag
+- **File(s) changed:** `entry.js`, `ledger-forms.css`, `entry.html`, `test_pilot_entry_ui.js`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Every product choice on the Record entry page shows ' · ID <id>' (kept in the selected text); products named TRIAL get a red-bordered choice and a TRIAL/PRUEBA tag; cache bumps entry.js v16, ledger-forms.css v19; tests for en/es and the Pack target; changelog row 300 (NOT MERGED).
+- **Why:** Arturo recorded the SS Choc Chip #2 TRIAL recipe as regular #2 (TX 3060/3078) because the two Make choices looked alike; read-only checks showed 295/296 were already selectable, so the fix is making them distinguishable.
+
+---
+
 ## 2026-11-17 12:22 — Record PR 221 production deploy: Cancel order needs only the reason (changelog row 299)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added row 299: #221 squash-merged as cf3a6dc after BACKUP OK 2026-11-17-pre-pr221; Railway e94f203f SUCCESS, /health 200; Netlify office.js v12 and so-list-actions.js v6 identical to main; live preview-only duplicate cancel with no related/note returned 200 and left SO-261102-004 open

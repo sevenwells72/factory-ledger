@@ -68,6 +68,8 @@
 .ledger-page .new-customer-option {border-top:1px solid var(--border);margin-top:18px;padding-top:16px}
 .ledger-page .new-customer-option button,.ledger-page button.secondary {background:var(--bg);font-weight:500;color:var(--text-secondary)}
 .ledger-page .product-tier,.ledger-page .tier-tag {display:inline-block;margin-left:8px;border:1px solid var(--fl-amber-line);border-radius:4px;padding:2px 6px;background:var(--fl-amber-bg);color:var(--fl-amber);font-size:12px;font-weight:800;letter-spacing:.02em}
+.ledger-page .trial-tag {display:inline-block;margin-left:8px;border:1px solid var(--fl-danger-line,var(--fl-danger));border-radius:4px;padding:2px 6px;background:var(--fl-danger-bg);color:var(--fl-danger);font-size:12px;font-weight:800;letter-spacing:.02em}
+.ledger-page .picker-options button.trial-choice {border-left:5px solid var(--fl-danger-line,var(--fl-danger))}
 .ledger-page .recent-batches {grid-column:1/-1;border-top:1px solid var(--border);padding-top:12px;display:grid;gap:8px}
 .ledger-page .lot-confirmation-row {padding:10px 12px;margin:8px 0}
 .ledger-page .lot-confirmation-row legend {font-weight:650;font-size:14px;overflow-wrap:anywhere}
