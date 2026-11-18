@@ -44,6 +44,8 @@ import lot_confirmation
 import oat_bran_substitution
 import product_archive
 import reconciliation
+import receiving_form
+import trial_recall
 import exceptions_enforcement
 import adjustment_alerts
 import resolution
@@ -3164,6 +3166,12 @@ ACTOR_WRITE_ALLOWLIST = frozenset({
 # office keys. The handlers enforce the role; the dashboard and read-only keys
 # are refused here because the routes are on neither of their allowlists.
 ACTOR_WRITE_ALLOWLIST = ACTOR_WRITE_ALLOWLIST | reconciliation.ROUTES
+# Trial recall and BOL photo links (migration 095): read-only GETs. The two BOL
+# photo routes are for any signed-in named person (the handler refuses a key
+# with no person behind it); the lists are for the owner and the office (the
+# handlers enforce the role). The dashboard and read-only keys are refused
+# because the routes are on neither of their allowlists.
+ACTOR_WRITE_ALLOWLIST = ACTOR_WRITE_ALLOWLIST | receiving_form.ROUTES | trial_recall.ROUTES
 
 
 # Simple user selection (migration 091): what a person tapped on an
@@ -3181,6 +3189,8 @@ SELECTION_EXCLUDED = frozenset({
 SELECTION_ALLOWLIST = ((DASHBOARD_KEY_ALLOWLIST - SELECTION_EXCLUDED) | write_tickets.ACTOR_ROUTES
                        | exceptions_enforcement.ACTOR_ROUTES | attachments.ROUTES | fl_assistant.ACTOR_ROUTES
                        | frozenset({("GET", "/sales/orders/{order_id}/packing-slip"), ("POST", "/products/resolve")}))
+# A person tapped on an approved browser may open the BOL photo linked to a receipt.
+SELECTION_ALLOWLIST = SELECTION_ALLOWLIST | receiving_form.PHOTO_ROUTES
 # DCC-001: the publicly served dashboard key is READ-ONLY whatever the
 # PERSON_SELECT_ENABLED flag says: GETs on its allowlist plus the SELECT-only
 # resolver. Turning selection off must never reopen anonymous business writes;
@@ -18824,6 +18834,11 @@ product_archive.register_routes(app, sys.modules[__name__])
 # Daily inventory reconciliation: read-only results of the nightly check
 # (reconciliation.py, migration 094). Not in either GPT schema.
 reconciliation.register_routes(app, sys.modules[__name__])
+
+# Trial recall (trial_recall.py) and the receiving Form / BOL photo links
+# (receiving_form.py), migration 095: read-only GETs. Not in either GPT schema.
+receiving_form.register_routes(app, sys.modules[__name__])
+trial_recall.register_routes(app, sys.modules[__name__])
 
 
 class BomLineCreate(BaseModel):

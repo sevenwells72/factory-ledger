@@ -174,6 +174,12 @@ def test_actor_only_scope_is_approved_writes_plus_product_resolution():
         # Daily reconciliation (094): three read-only GETs; the handlers allow owner / office only.
         ('GET', '/verification/reconciliation/runs'), ('GET', '/verification/reconciliation/runs/{run_id}'),
         ('GET', '/verification/reconciliation/preview'),
+        # Trial recall and BOL photo links (095): five read-only GETs. The two BOL photo routes need a
+        # named person; the three lists allow owner / office only (the handlers enforce both).
+        ('GET', '/receipts/{receipt_number}/bol-photos'),
+        ('GET', '/receipts/{receipt_number}/bol-photos/{photo_id}/file'),
+        ('GET', '/verification/receiving-form/unmatched'),
+        ('GET', '/verification/trial-recall/runs'), ('GET', '/verification/trial-recall/runs/{run_id}'),
         # A3b: the exceptions queue is named-actor only (shared keys get nothing new).
         ('GET', '/exceptions'), ('GET', '/exceptions/{exception_id}'),
         ('POST', '/exceptions/{exception_id}/resolve'),

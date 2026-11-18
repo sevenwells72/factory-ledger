@@ -131,6 +131,33 @@ def run_daily_reconciliation():
     return subprocess.run([sys.executable, str(script)], check=False).returncode
 
 
+def _run_when_on(switch, script_name, *args):
+    """Start one of the other nightly commands as its own process when its switch is on."""
+    if os.environ.get(switch, '').strip().lower() not in ('1', 'true', 'yes', 'on'):
+        return 0
+    script = Path(__file__).resolve().parent / script_name
+    return subprocess.run([sys.executable, str(script), *args], check=False).returncode
+
+
+def run_receiving_form_sync():
+    """Nightly hook: read the receiving Form and link BOL photos to receipts (migration 095).
+
+    Off unless RECEIVING_FORM_SYNC_ENABLED=1 on this cron service. A separate process,
+    like the reconciliation. Returns its exit code (0 when off).
+    """
+    return _run_when_on('RECEIVING_FORM_SYNC_ENABLED', 'receiving_form_sync.py')
+
+
+def run_trial_recall():
+    """Nightly hook: the trial recall drill (migration 095), which itself runs only on
+    Monday / Wednesday / Friday plant time and once per day (`--scheduled`).
+
+    Off unless TRIAL_RECALL_ENABLED=1 on this cron service. A separate process.
+    Returns its exit code (0 when off or not a recall day).
+    """
+    return _run_when_on('TRIAL_RECALL_ENABLED', 'trial_recall_drill.py', '--scheduled')
+
+
 if __name__ == '__main__':
     status = 0
     try:
@@ -140,5 +167,7 @@ if __name__ == '__main__':
         print(f'Exceptions sweep failed ({type(exc).__name__})', file=sys.stderr)
         status = 1
     send_adjustment_alerts()
-    # The reconciliation runs even when the sweep failed; either failure fails the cron run.
-    sys.exit(run_daily_reconciliation() or status)
+    # Each of the other commands runs even when an earlier one failed; any failure fails the cron run.
+    # The reconciliation's exit code still comes first, then the sweep's, as before.
+    codes = [run_daily_reconciliation(), status, run_receiving_form_sync(), run_trial_recall()]
+    sys.exit(next((code for code in codes if code), 0))

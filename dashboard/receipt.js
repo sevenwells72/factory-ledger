@@ -1,5 +1,5 @@
 (() => {
-  const ui=FLLedger,initial=new URLSearchParams(location.search);if(['en','es'].includes(initial.get('lang'))){ui.lang=initial.get('lang');sessionStorage.setItem('fl-ledger-language',ui.lang);}ui.bind();let receipt,generation=0,ticket=null,busy=false,missing=false;const voidNotes=new Map();
+  const ui=FLLedger,initial=new URLSearchParams(location.search);if(['en','es'].includes(initial.get('lang'))){ui.lang=initial.get('lang');sessionStorage.setItem('fl-ledger-language',ui.lang);}ui.bind();let bolPhotos=[];let receipt,generation=0,ticket=null,busy=false,missing=false;const voidNotes=new Map();
   const content=document.getElementById('content');
   const resolution=document.getElementById('resolution');
   function render(){if(!receipt)return;content.replaceChildren();const card=ui.el('section',undefined,content);card.className='panel';const tag=ui.el('div',undefined,card);tag.innerHTML=ui.receiveLotHtml(receipt);ui.el('h2',receipt.receipt_number,card);const state=ui.receiptState(receipt);
@@ -15,6 +15,15 @@
     if(photos.length){const section=ui.el('section',undefined,card);section.className='receipt-photos';ui.el('h3',ui.t('Receipt photos','Fotos del recibo'),section);
       const names={lot_tag:['Lot tag','Etiqueta de lote'],bol:['BOL','BOL'],truck_photo:['Truck','Camión'],signed_packing_slip:['Signed packing slip','Nota de empaque firmada'],correction_photo:['Correction','Corrección']};
       for(const photo of photos){const id=photo.id||photo.attachment_id;if(!Number.isSafeInteger(id))continue;const name=ui.t(...(names[photo.kind]||['Attached photo','Foto adjunta']));const button=ui.el('button',ui.t('View ','Ver ')+name,section);button.type='button';button.onclick=async()=>{button.disabled=true;try{const blob=await ui.request('/attachments/'+id+'/file',undefined,{read:true,binary:true});const url=URL.createObjectURL(blob),dialog=ui.el('dialog',undefined,document.body),image=ui.el('img',undefined,dialog);image.src=url;image.alt=String(name);image.style.maxWidth='min(85vw,800px)';image.style.maxHeight='75vh';const close=ui.el('button',ui.t('Close','Cerrar'),dialog);close.onclick=()=>dialog.close();dialog.addEventListener('close',()=>{URL.revokeObjectURL(url);dialog.remove();});dialog.showModal();}catch(error){ui.failure(error);}finally{button.disabled=false;}};}
+    }
+    // BOL photos from the receiving Form (Google Drive), linked to this receipt by the nightly match.
+    // Streamed through the API for a signed-in, named person; nothing is stored.
+    if(bolPhotos.length){const section=ui.el('section',undefined,card);section.className='receipt-photos';section.dataset.bolPhotos='';ui.el('h3',ui.t('From the receiving form','Del formulario de recepción'),section);
+      bolPhotos.forEach((photo,index)=>{if(!Number.isSafeInteger(photo.photo_id))return;const name=ui.t('BOL photo','Foto del BOL')+(bolPhotos.length>1?' '+(index+1):'');const button=ui.el('button',name,section);button.type='button';button.dataset.bolPhoto=String(photo.photo_id);
+        button.onclick=async()=>{button.disabled=true;try{const blob=await ui.request('/receipts/'+encodeURIComponent(receipt.receipt_number)+'/bol-photos/'+photo.photo_id+'/file',undefined,{read:true,binary:true});const url=URL.createObjectURL(blob);
+          // A PDF (or a phone format the page cannot draw) opens in its own tab instead of the picture box.
+          if(!/^image\/(jpeg|png|webp|gif)$/.test(String(blob.type||''))){window.open(url,'_blank','noopener');setTimeout(()=>URL.revokeObjectURL(url),60000);return;}
+          const dialog=ui.el('dialog',undefined,document.body),image=ui.el('img',undefined,dialog);image.src=url;image.alt=String(name);image.style.maxWidth='min(85vw,800px)';image.style.maxHeight='75vh';const close=ui.el('button',ui.t('Close','Cerrar'),dialog);close.onclick=()=>dialog.close();dialog.addEventListener('close',()=>{URL.revokeObjectURL(url);dialog.remove();});dialog.showModal();}catch(error){ui.failure(error);}finally{button.disabled=false;}};});
     }
     if(ui.session.token)for(const txn of ui.voidChoices(receipt,FLDashboard.writesEnabled)){
       const controls=ui.el('div',undefined,card);controls.dataset.flWriteUi='';
@@ -52,12 +61,20 @@
       for(const row of rows){const item=ui.el('article',undefined,card);item.className='today-entry';const link=ui.el('a',row.receipt_number,item);link.href=FLReceipts.link(row.receipt_number);ui.el('p',ui.plantTime(row.entered_at||row.happened_at,ui.lang),item);const person=typeof row.actor==='string'?row.actor:row.actor?.name||row.actor_name;if(person)ui.el('p',person,item);const draft=row.draft||{},names={receive:['Received','Recibido'],make:['Made','Producido'],pack:['Packed','Empacado'],adjust:['Adjusted','Ajustado'],found:['Found inventory','Inventario encontrado'],ship_order:['Shipped order','Pedido enviado'],ship_standalone:['Shipped','Enviado'],ship_bulk:['Shipped','Enviado'],create_order:['New order','Pedido nuevo'],create_customer:['New customer','Cliente nuevo'],create_expected_receipt:['Expected delivery','Entrega esperada'],void:['Voided entry','Entrada anulada']};const action=names[row.action]||['Entry recorded','Entrada registrada'];const subject=draft.product_name||draft.target_product||draft.customer?.name||(typeof draft.customer==='string'?draft.customer:'')||draft.product;const summary=ui.lang==='es'?(row.summary_es||draft.summary_es||row.summary||draft.summary):(row.summary||draft.summary||row.summary_es||draft.summary_es);ui.el('p',summary||ui.t(...action)+(typeof subject==='string'?' · '+subject:''),item);if(['voided','partially_voided'].includes(row.effective_status)){const state=ui.el('p',row.effective_status==='voided'?ui.t('VOIDED — no longer counts in stock.','ANULADO — ya no cuenta en el inventario.'):ui.t('PARTLY VOIDED','ANULADO EN PARTE'),item);state.className='voided';}}
     }catch(error){if(current!==generation)return;card.replaceChildren();ui.el('p',error.message||String(error),card);const retry=ui.el('button',ui.t('Try again','Intentar de nuevo'),card);retry.type='button';retry.onclick=()=>today();}
   }
+  // Which BOL photos the receiving Form holds for this receipt. Asked quietly after the receipt is shown;
+  // when the answer is no (not signed in as a person, nothing linked, not switched on) there is simply no button.
+  async function loadBolPhotos(current){
+    if(!receipt||receipt.action!=='receive'||!receipt.receipt_number)return;
+    try{const result=await ui.request('/receipts/'+encodeURIComponent(receipt.receipt_number)+'/bol-photos',undefined,{read:true,background:true});
+      if(current!==generation||!receipt)return;bolPhotos=Array.isArray(result?.photos)?result.photos:[];if(bolPhotos.length)render();
+    }catch(error){bolPhotos=[];}
+  }
   async function load({background=false}={}){
     if(initial.get('view')==='today')return today({background});
     const current=++generation,number=new URLSearchParams(location.search).get('number');
     if(!number){ui.notice(ui.t('Enter a Receipt # above.','Ingresa un número de recibo arriba.'),'notice');return;}
     try{const data=await ui.request('/receipts/'+encodeURIComponent(number),undefined,{read:true,background});
-      if(current!==generation)return;receipt=data;missing=false;document.getElementById('notice').hidden=true;render();
+      if(current!==generation)return;receipt=data;missing=false;bolPhotos=[];document.getElementById('notice').hidden=true;render();loadBolPhotos(current);
     }catch(error){if(current!==generation)return;receipt=null;content.replaceChildren();
       missing=error.status===404&&error.result?.detail?.error_code==='RECEIPT_NOT_FOUND';
       if(missing)ui.notice(ui.t('No receipt with this number','No hay recibo con este número'),'neutral');
@@ -65,7 +82,7 @@
       else ui.notice(error.message,'neutral');
     }
   }
-  function authChanged(){ticket?.invalidate();ticket=null;resolution.replaceChildren();receipt=null;content.replaceChildren();load();}
+  function authChanged(){ticket?.invalidate();ticket=null;resolution.replaceChildren();receipt=null;bolPhotos=[];content.replaceChildren();load();}
   window.addEventListener('ledger-language',()=>{if(!receipt&&!missing)load();render();ui.relabel();ui.translate();if(missing)ui.notice(ui.t('No receipt with this number','No hay recibo con este número'),'neutral');});
   window.addEventListener('ledger-auth',authChanged);window.addEventListener('ledger-signout',authChanged);load({background:true});
 })();
