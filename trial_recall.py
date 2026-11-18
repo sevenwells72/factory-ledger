@@ -1,4 +1,4 @@
-"""Trial recall (migration 095; docs/deployments/trial-recall.md).
+"""Trial recall (migration 097; docs/deployments/trial-recall.md).
 
 A scheduled drill, Monday / Wednesday / Friday: could we run a real recall
 today from the records we have? Two tests, each on one randomly picked lot.
@@ -18,7 +18,7 @@ Rules this module keeps:
   * STRICTLY READ-ONLY on the ledger. It reads posted current-ledger data only
     (ledger_current_transactions + ledger_current_transaction_lines with
     effective_status = 'posted'), in transactions that are READ ONLY. Its only
-    write is one INSERT per run into trial_recall_runs (migration 095).
+    write is one INSERT per run into trial_recall_runs (migration 097).
   * The Google Sheet and the Drive photos are independent evidence; they are
     read, never changed (google_evidence.py can only read).
   * Never assume FL is right: where the three sources differ, all three values
@@ -715,21 +715,25 @@ def _status(pairs):
     return AGREE if all(compared) else DISAGREE
 
 
-def _numbers_agree(reference, printed):
-    """Is the number written on the Form / in FL among the numbers printed on the BOL?
+def _reference_pieces(text):
+    """The whole numbers a reference can be read as: "PO 4412", "PO-4412", "PO4412" and "4412" all
+    carry 4412. Only pieces that hold a digit count, so two "PO ..." never agree on the label alone."""
+    text = text or ''
+    pieces = {_code(text), *(_code(piece) for piece in re.findall(r'[A-Za-z0-9]+', text))}
+    # A label run into its number ("PO4412", "BOL#632054"): the number after the leading letters.
+    pieces |= {_code(match) for match in re.findall(r'[A-Za-z]+[#:]?\s*([0-9][A-Za-z0-9-]*)', text)}
+    return {piece for piece in pieces if re.search(r'\d', piece)}
 
-    Whole numbers only: "4412" is found in "PO 4412" and in "PO-4412", never inside "944120".
-    """
-    wanted = _code(reference)
-    if not wanted:
-        return False
-    for text in printed:
-        pieces = {_code(text), *(_code(piece) for piece in re.findall(r'[A-Za-z0-9]+', text or ''))}
-        # A label run into its number ("PO4412", "BOL#632054"): the number after the leading letters.
-        pieces |= {_code(match) for match in re.findall(r'[A-Za-z]+[#:]?\s*([0-9][A-Za-z0-9-]*)', text or '')}
-        if wanted in pieces:
-            return True
-    return False
+
+def _same_reference(one, other):
+    """Do two references name the same number? Whole numbers only, on both sides:
+    "4412" = "PO 4412"; "1234" is never found inside "912345"."""
+    return bool(_reference_pieces(one) & _reference_pieces(other))
+
+
+def _numbers_agree(reference, printed):
+    """Is the number written on the Form / in FL among the numbers printed on the BOL?"""
+    return any(_same_reference(reference, text) for text in printed)
 
 
 def compare_receipt(row, receipt, bol_lines, bol_readable):
@@ -762,7 +766,12 @@ def compare_receipt(row, receipt, bol_lines, bol_readable):
     sheet_lb, sheet_cases = entry.get('total_lb'), entry.get('cases')
     fl_lb = receipt['quantity'] if receipt['unit'] == 'lb' else None
     bol_lb = bol_count = None
-    for line in lines:
+    kinds = {_bol_quantity(line)[0] for line in lines}
+    # The BOL's quantity for this product is used only when EVERY one of its lines can be added up in
+    # one unit. A line with no quantity, or in pallets, or pounds on one line and cases on another,
+    # leaves part of the delivery uncounted: then nothing is compared and the quantity is not confirmed.
+    bol_complete = len(kinds) == 1 and None not in kinds
+    for line in lines if bol_complete else []:
         kind, amount = _bol_quantity(line)
         if kind == 'lb':
             bol_lb = (bol_lb or 0) + amount
@@ -819,7 +828,7 @@ def compare_document(row, receipts, documents, bol_supplier, extra_lines=None):
     printed = [n for e in read for n in [e.get('bol_number'), *e.get('reference_numbers', [])] if n]
     fl_numbers = sorted({r['bol_reference'] for r in receipts if (r['bol_reference'] or '').strip()})
     sheet_number = (row['bol_number'] or '').strip()
-    pairs = [(bool(sheet_number and fl_numbers), all(_code(n) == _code(sheet_number) for n in fl_numbers))]
+    pairs = [(bool(sheet_number and fl_numbers), all(_same_reference(n, sheet_number) for n in fl_numbers))]
     if printed:
         pairs.append((bool(sheet_number), _numbers_agree(sheet_number, printed)))
         pairs.extend((True, _numbers_agree(n, printed)) for n in fl_numbers)

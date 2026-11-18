@@ -2,9 +2,9 @@
 
 Code: `google_evidence.py`, `receiving_form.py`, `trial_recall.py`, `extraction.py::def extract_bol`,
 `scripts/receiving_form_sync.py`, `scripts/trial_recall_drill.py`, `scripts/google_oauth_setup.py`,
-migration `095_trial_recall.sql`.
+migration `097_trial_recall.sql`.
 
-**Status: built on branch `feat/trial-recall`, NOT merged, NOT deployed, switched off.** Migration 095 is not
+**Status: built on branch `feat/trial-recall`, NOT merged, NOT deployed, switched off.** Migration 097 is not
 applied to staging or production. Merged code changes nothing by itself: the two jobs are not started until
 their switches are set on the cron service, a receipt shows no "BOL photo" button and the owner routes answer
 503 until the migration marker exists, and no email is sent until `TRIAL_RECALL_EMAIL_ENABLED=1`.
@@ -97,7 +97,9 @@ failure.
    is a disagreement; a line FL's product list does not recognise is UNVERIFIED), manufacturer, carrier. Every value from every source is shown for every field. A
    difference is a FAIL and the email shows all three values; **FL is never assumed to be the right one**.
    Quantities agree within 0.5 lb, or case counts exactly. A case size written with no unit ("25") is never
-   assumed to be pounds. A quantity counts as confirmed only when **FL's own quantity was compared** as well as
+   assumed to be pounds. The BOL's quantity for a product is used only when every one of its lines can be
+   added up in one unit (a line in pallets, or with no quantity, leaves it unconfirmed). A quantity counts as
+   confirmed only when **FL's own quantity was compared** as well as
    the BOL's; the Form and the BOL agreeing with each other proves nothing about FL (UNVERIFIED). Supplier lots
    on the product's own BOL line must be the **same list** as FL's: a lot printed on the BOL and missing from FL
    is a disagreement.
@@ -229,20 +231,20 @@ fail with `AUTH_FAILED`, the failure is saved, and step 15–16 are repeated. To
 ## Rollout — each step needs Michael's approval
 
 1. **Google** steps A–E above.
-2. **Staging:** apply `migrations/095_trial_recall.sql` (port 5432, one transaction); set the Google variables on
+2. **Staging:** apply `migrations/097_trial_recall.sql` (port 5432, one transaction); set the Google variables on
    the staging services; `python scripts/receiving_form_sync.py --dry-run`, then a real run; then
    `python scripts/trial_recall_drill.py --dry-run`, then a real run with `TRIAL_RECALL_EMAIL_ENABLED=1` and a
    test address. (Staging has no real receipts for these lots, so expect "no matching FL receipt" and
    "No eligible lot": that proves the plumbing, not the matching.)
 3. **Production:** verified backup (`~/Backups/fl/fl-backup-and-verify.sh`, must end `BACKUP OK`) → merge →
-   apply migration 095 → set the Google variables on `FastAPI` and `exceptions-sweep`, `ANTHROPIC_API_KEY` on
+   apply migration 097 → set the Google variables on `FastAPI` and `exceptions-sweep`, `ANTHROPIC_API_KEY` on
    `exceptions-sweep` → a production `--dry-run` of each command (reads only) → `RECEIVING_FORM_SYNC_ENABLED=1`
    → after the first night's list looks right, `TRIAL_RECALL_ENABLED=1` and `TRIAL_RECALL_EMAIL_ENABLED=1`.
 4. Record the deploy in `FACTORY_LEDGER_CHANGELOG.md`.
 
 Rollback: unset the two `*_ENABLED` switches (the button disappears when no link is found; to hide it at once,
 unset `GOOGLE_OAUTH_REFRESH_TOKEN` on `FastAPI`, which makes the photo route answer 503). The tables can stay;
-`migrations/down/095_trial_recall_down.sql` refuses to drop them while they hold rows.
+`migrations/down/097_trial_recall_down.sql` refuses to drop them while they hold rows.
 
 ## The commands
 
@@ -283,5 +285,5 @@ entry at all, and it cannot read a BOL better than the photo allows.
 8. **"NOT TESTED".** When neither test has an eligible lot the answer is neither YES nor NO.
 9. **Cron service key.** `exceptions-sweep` needs `ANTHROPIC_API_KEY`; confirm reusing the existing key (and its
    spending cap) is acceptable.
-10. **Migration number.** 095 was free on `origin/main` at `fa91d30`. If another branch lands a 095 first, this
-    one is renumbered before merge.
+10. **Migration number.** 097, per the owner's numbering (095 is the Chocolate Chips rename, already on main;
+    096 is left for the adjustment-rules branch). Changelog row 306.

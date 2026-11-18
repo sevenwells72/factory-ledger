@@ -1,4 +1,4 @@
-"""A tiny plant, a fake receiving Form and a fake Google for the 095 tests
+"""A tiny plant, a fake receiving Form and a fake Google for the 097 tests
 (tests/test_receiving_form.py, tests/test_trial_recall.py). Not a test file."""
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -8,8 +8,8 @@ import google_evidence
 import receiving_form
 
 ROOT = Path(__file__).resolve().parents[1]
-MIGRATION = (ROOT / 'migrations/095_trial_recall.sql').read_text()
-DOWN = (ROOT / 'migrations/down/095_trial_recall_down.sql').read_text()
+MIGRATION = (ROOT / 'migrations/097_trial_recall.sql').read_text()
+DOWN = (ROOT / 'migrations/down/097_trial_recall_down.sql').read_text()
 NEW_TABLES = ('receiving_form_sync_runs', 'receiving_form_rows', 'receipt_bol_links', 'trial_recall_runs')
 ET = receiving_form.PLANT_TIMEZONE
 CUTOFF = date(2026, 11, 11)

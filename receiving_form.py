@@ -1,4 +1,4 @@
-"""Receiving Form rows and BOL photos, linked to FL receipts (migration 095;
+"""Receiving Form rows and BOL photos, linked to FL receipts (migration 097;
 docs/deployments/trial-recall.md).
 
 The receiving Form's answers (Google Sheet "Receiving# (Responses)", tab
@@ -18,7 +18,7 @@ On a receipt page, "BOL photo" streams the linked photo from Drive through the
 API to a signed-in, named person. No copy of a photo is stored anywhere.
 
 READ-ONLY toward the ledger. The only statements that write are INSERTs into
-three tables of migration 095 (receiving_form_sync_runs, receiving_form_rows,
+three tables of migration 097 (receiving_form_sync_runs, receiving_form_rows,
 receipt_bol_links), all append-only; a test pins that. Feature-module rule:
 never imports main; routes reach it via `api`.
 """
@@ -38,7 +38,7 @@ import permissions
 import resolution
 
 PLANT_TIMEZONE = ZoneInfo('America/New_York')   # = main.PLANT_TIMEZONE
-MARKER = '095_trial_recall'
+MARKER = '097_trial_recall'
 SHEET_ID = '1_zHWbCa0SHlmqVFhI07qxcD9ea35T66iHMMDJIapXJs'
 TAB = 'Form Responses 1'
 # Form rows before this plant date are not matched or listed (same day as the
@@ -523,7 +523,7 @@ _CURRENT_LINK = """l.id IN (SELECT (jsonb_array_elements_text(s.summary -> 'link
 
 
 def photos_for_receipt(cur, receipt_number):
-    """The linked BOL photos of one receipt, one entry per Drive file. [] until migration 095 exists."""
+    """The linked BOL photos of one receipt, one entry per Drive file. [] until migration 097 exists."""
     if not migration_applied(cur):
         return []
     cur.execute("""

@@ -140,7 +140,7 @@ def _run_when_on(switch, script_name, *args):
 
 
 def run_receiving_form_sync():
-    """Nightly hook: read the receiving Form and link BOL photos to receipts (migration 095).
+    """Nightly hook: read the receiving Form and link BOL photos to receipts (migration 097).
 
     Off unless RECEIVING_FORM_SYNC_ENABLED=1 on this cron service. A separate process,
     like the reconciliation. Returns its exit code (0 when off).
@@ -149,7 +149,7 @@ def run_receiving_form_sync():
 
 
 def run_trial_recall():
-    """Nightly hook: the trial recall drill (migration 095), which itself runs only on
+    """Nightly hook: the trial recall drill (migration 097), which itself runs only on
     Monday / Wednesday / Friday plant time and once per day (`--scheduled`).
 
     Off unless TRIAL_RECALL_ENABLED=1 on this cron service. A separate process.

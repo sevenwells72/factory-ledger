@@ -156,8 +156,8 @@ Pointer syntax: file::text means search that file for that exact text (a section
   - `trial_recall.py` (the Mon/Wed/Fri drill: `trial_recall.py::def load` reads the books, `trial_recall.py::def gather_evidence` reads Drive and the BOL photo, `trial_recall.py::def analyse` is pure, `trial_recall.py::def render_email`; flags in `trial_recall.py::def chain_facts`; routes `GET /verification/trial-recall/runs`, `/runs/{run_id}`). Reuses `lot_trace.py::def forward` and `lot_trace_backward.py::class BackwardTrace`; `trial_recall.py::class TraceApi` stands in for the few `main` helpers they call. Its only write is one INSERT into `trial_recall_runs`.
   - `extraction.py::def extract_bol` (the BOL reader; separate from `extract_purchase_document` so document intake cannot reach it)
   - Commands: `scripts/receiving_form_sync.py`, `scripts/trial_recall_drill.py` (`--dry-run`, `--scheduled`), hooked from `scripts/exceptions_sweep.py::def run_receiving_form_sync` and `scripts/exceptions_sweep.py::def run_trial_recall` behind `RECEIVING_FORM_SYNC_ENABLED` / `TRIAL_RECALL_ENABLED`. One-time Google sign-in: `scripts/google_oauth_setup.py`.
-  - Registered at `main.py::receiving_form.register_routes(app`; allowlists at `main.py::# Trial recall and BOL photo links (migration 095)`.
-  - Migration: `migrations/095_trial_recall.sql` (four append-only tables, no foreign key to a ledger table).
+  - Registered at `main.py::receiving_form.register_routes(app`; allowlists at `main.py::# Trial recall and BOL photo links (migration 097)`.
+  - Migration: `migrations/097_trial_recall.sql` (four append-only tables, no foreign key to a ledger table).
 - UI: the "BOL photo" button on a receive receipt, `dashboard/receipt.js` (`loadBolPhotos`).
 - Docs: `docs/deployments/trial-recall.md` (rules, variables, the Google steps, rollout, open questions)
 - Tests: `tests/test_receiving_form.py`, `tests/test_trial_recall.py`, `tests/test_receipt_bol_photo_ui.js`, helper `tests/trial_recall_kit.py`

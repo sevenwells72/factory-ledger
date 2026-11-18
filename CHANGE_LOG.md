@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-18 13:51 — Trial recall: rebased on main, renumbered to changelog row 306 and migration 097, Codex round 7 fixes
+- **File(s) changed:** `migrations/097_trial_recall.sql`, `migrations/down/097_trial_recall_down.sql`, `receiving_form.py`, `trial_recall.py`, `main.py`, `scripts/receiving_form_sync.py`, `scripts/trial_recall_drill.py`, `scripts/exceptions_sweep.py`, `tests/test_receiving_form.py`, `tests/test_trial_recall.py`, `tests/trial_recall_kit.py`, `tests/test_named_actor_writes.py`, `tests/test_receipt_bol_photo_ui.js`, `docs/deployments/trial-recall.md`, `docs/ARCHITECTURE-MAP.md`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Branch feat/trial-recall squashed to one commit and rebased onto origin/main 7083e40 (which added the Chocolate Chips rename as migration 095 and changelog rows 303-304). Per the owner's numbering: this PR's changelog row is now 306 (was 303) and its migration is 097_trial_recall (was 095_trial_recall; marker, file names and every reference updated; earlier CHANGE_LOG entries of this branch that say 095 or row 303 mean this same migration and row). CHANGE_LOG.md conflict resolved by keeping every entry from both sides, newest first. Codex round 7: the BOL's quantity for a product is used only when every one of its lines adds up in one unit (otherwise not confirmed), and reference numbers are compared as whole numbers on both sides so 'PO 4412' equals '4412'. Three new tests.
+- **Why:** Owner instruction 2026-11-18 (rows 303-305 taken, use 306; rebase before the final push); Codex cross-review round 7 (two medium findings, both confirmed).
+
+---
+
 ## 2026-11-18 13:48 — Trial recall: fix from Codex cross-review round 6 (branch feat/trial-recall)
 - **File(s) changed:** `trial_recall.py`, `tests/test_trial_recall.py`, `docs/deployments/trial-recall.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** BOL photos of one Form row: only a photo whose whole reading equals an earlier photo's (same BOL number and lines) is treated as the same page and counted once. A single line repeated on two different pages is kept and shown, and the row is UNVERIFIED because the photos cannot say whether it is one delivery or two. One new test; 96 pass in the two new files.

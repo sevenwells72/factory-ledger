@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Trial recall drill (trial_recall.py, migration 095).
+"""Trial recall drill (trial_recall.py, migration 097).
 
     python scripts/trial_recall_drill.py               run the drill now and save it
     python scripts/trial_recall_drill.py --scheduled   the cron form: only Monday / Wednesday / Friday
@@ -113,7 +113,7 @@ def main(argv=None):
         ready, done = read_only(url, lambda cur: (trial_recall.migration_applied(cur),
                                                   trial_recall.migration_applied(cur) and trial_recall.ran_today(cur, now)))
         if not ready:
-            raise RuntimeError('Migration 095 is not applied')
+            raise RuntimeError('Migration 097 is not applied')
         if args.scheduled and done:
             print('Today\'s trial recall already ran. Nothing run.')
             return 0

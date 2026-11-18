@@ -1,5 +1,5 @@
 // Receipt page: the "BOL photo" button for photos the receiving Form holds in Google Drive
-// (receiving_form.py, migration 095). The photo is streamed through the API for a named person.
+// (receiving_form.py, migration 097). The photo is streamed through the API for a named person.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');

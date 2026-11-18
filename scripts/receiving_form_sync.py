@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Nightly read of the receiving Form (receiving_form.py, migration 095).
+"""Nightly read of the receiving Form (receiving_form.py, migration 097).
 
     python scripts/receiving_form_sync.py             the nightly run
     python scripts/receiving_form_sync.py --dry-run   same read and matching; prints the result; writes nothing
@@ -9,7 +9,7 @@ seen, links every row that clearly matches an FL receipt (date + internal lot
 + product) and lists the rest for the owner as "Receiving form row with no
 matching FL receipt". It never guesses a match and never changes the sheet,
 the photos or any ledger table: its only writes are INSERTs into the three
-receiving tables of migration 095.
+receiving tables of migration 097.
 
 A plain command that reads only environment variables, started by the Railway
 exceptions-sweep cron when RECEIVING_FORM_SYNC_ENABLED=1:
@@ -54,7 +54,7 @@ def run(url, sheet, *, dry_run):
             cur.execute("SET LOCAL statement_timeout='120s'")
             if not dry_run:
                 if not receiving_form.migration_applied(cur):
-                    raise RuntimeError('Migration 095 is not applied')
+                    raise RuntimeError('Migration 097 is not applied')
                 # Transaction-level, so it also holds on the 6543 transaction pooler.
                 cur.execute('SELECT pg_try_advisory_xact_lock(hashtext(%s)) AS held', (LOCK_NAME,))
                 if not cur.fetchone()['held']:

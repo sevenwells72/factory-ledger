@@ -1,9 +1,9 @@
-"""Receiving Form rows and BOL photo links (receiving_form.py, google_evidence.py, migration 095).
+"""Receiving Form rows and BOL photo links (receiving_form.py, google_evidence.py, migration 097).
 
 The Form sheet and the Drive photos are independent evidence: these tests pin
 that they are only read, that a link is stored only for a clear match (date +
 internal lot + product), that everything else is listed and never guessed, and
-that the job writes to nothing except the three receiving tables of 095.
+that the job writes to nothing except the three receiving tables of 097.
 """
 import ast
 from datetime import date
@@ -367,13 +367,13 @@ def test_sync_changes_no_existing_table_and_dry_run_writes_nothing(plant):
     assert not re.search(r'\b(UPDATE\s+\w+\s+SET|DELETE\s+FROM|TRUNCATE|DROP\s+TABLE|ALTER\s+TABLE|FOR\s+UPDATE)\b', sql, re.I)
 
 
-# ───────────────────────── migration 095 ─────────────────────────
+# ───────────────────────── migration 097 ─────────────────────────
 
 @pytest.mark.db
-def test_migration_095_is_additive_append_only_and_reruns(plant):
+def test_migration_097_is_additive_append_only_and_reruns(plant):
     cur = plant.cur
     cur.execute(MIGRATION)                                               # a second apply changes nothing
-    cur.execute("SELECT count(*) AS n FROM migration_markers WHERE name = '095_trial_recall'")
+    cur.execute("SELECT count(*) AS n FROM migration_markers WHERE name = '097_trial_recall'")
     assert cur.fetchone()['n'] == 1
     cur.execute("""SELECT c.relname, c.relrowsecurity,
                           (SELECT count(*) FROM pg_policy p WHERE p.polrelid = c.oid) AS policies,
@@ -403,7 +403,7 @@ def test_migration_095_is_additive_append_only_and_reruns(plant):
     with pytest.raises(psycopg2.Error, match='holds rows'):               # the down file never discards saved rows
         cur.execute(DOWN)
     cur.execute('ROLLBACK TO SAVEPOINT down')
-    for file in ('migrations/095_trial_recall.sql', 'migrations/down/095_trial_recall_down.sql'):
+    for file in ('migrations/097_trial_recall.sql', 'migrations/down/097_trial_recall_down.sql'):
         text = (ROOT / file).read_text().lower()
         code = '\n'.join(l for l in text.splitlines() if not l.strip().startswith('--'))
         for table in ('transactions', 'transaction_lines', 'lots ', 'ledger_corrections', 'products'):
@@ -537,7 +537,7 @@ def test_photo_folder_lock_and_google_not_set_up(client, linked, actors, monkeyp
 
 
 @pytest.mark.db
-def test_before_migration_095_the_receipt_simply_has_no_bol_photo(client, linked, actors, monkeypatch):
+def test_before_migration_097_the_receipt_simply_has_no_bol_photo(client, linked, actors, monkeypatch):
     monkeypatch.setattr(receiving_form, 'migration_applied', lambda cur: False)
     key = {'X-API-Key': actors['floor']['key']}
     assert client.get(f'/receipts/{linked["receipt"]}/bol-photos', headers=key).json()['photos'] == []

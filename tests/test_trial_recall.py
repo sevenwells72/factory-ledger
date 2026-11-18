@@ -1,4 +1,4 @@
-"""Trial recall (trial_recall.py, scripts/trial_recall_drill.py, migration 095).
+"""Trial recall (trial_recall.py, scripts/trial_recall_drill.py, migration 097).
 
 Pins the rules of the drill: strictly read-only on the ledger; posted
 current-ledger data only; an unreadable BOL is UNVERIFIED, never PASS; all three
@@ -655,6 +655,31 @@ def test_reference_numbers_are_compared_whole_never_as_part_of_a_longer_number()
     assert agree('0632054', ['632054']) and agree('TO306', ['to-306']) and agree('632054', ['BOL: 632054', 'PO 1'])
     assert not agree('1234', ['BOL 912345']) and not agree('1234', ['12345']) and not agree('4412', ['944120'])
     assert not agree('', ['632054']) and not agree('632054', [])
+    same = trial_recall._same_reference                                  # the label may be on either side
+    assert same('4412', 'PO 4412') and same('PO 4412', '4412') and same('PO-4412', 'po4412') and same('0632054', '632054')
+    assert not same('PO 1', 'PO 2') and not same('1234', '912345') and not same('', '') and not same('PO', 'PO')
+
+
+@pytest.mark.db
+def test_a_label_on_the_reference_in_fl_is_not_a_disagreement(plant):
+    sugar = plant.product('Sugar Brown')
+    lot, _ = plant.receive(sugar, 11250, day(1), bol='BOL 632054')       # FL wrote the label, the Form did not
+    analysis, _ = drill(plant, sheet(plant.form_row(day(1), lot, ['Sugar brown-50lbs-225'])))
+    reference = next(f for f in analysis['forward']['document_fields'] if f['field'] == 'BOL / reference number')
+    assert (reference['sheet'], reference['fl'], reference['status']) == ('632054', 'BOL 632054', 'agree')
+    assert analysis['forward']['receiving_result'] == 'pass'
+
+
+@pytest.mark.db
+def test_a_bol_quantity_that_cannot_all_be_added_up_is_not_confirmed(plant):
+    _, read = clean(plant)
+    lines = [{'description': plant.name('Sugar Brown'), 'quantity': 11250, 'unit': 'LB', 'lot_numbers': ['SUP-1']},
+             {'description': plant.name('Sugar Brown'), 'quantity': 1, 'unit': 'PALLETS', 'lot_numbers': ['SUP-1']}]
+    analysis, _ = drill(plant, read, bol=good_bol(plant, lines=lines))
+    quantity = next(f for f in analysis['forward']['comparisons'][0]['fields'] if f['field'] == 'Quantity')
+    assert quantity['bol'] == '11250 LB; 1 PALLETS' and quantity['bol_compared'] is False   # shown, not added up
+    assert quantity['status'] == 'agree' and quantity['fl_compared'] is True                # Form and FL agree with each other
+    assert analysis['forward']['receiving_result'] == 'unverified'       # but the BOL did not confirm the quantity
 
 
 @pytest.mark.db

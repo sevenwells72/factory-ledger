@@ -125,5 +125,5 @@ BEGIN
     END LOOP;
 END $$;
 
-INSERT INTO migration_markers (name) VALUES ('095_trial_recall')
+INSERT INTO migration_markers (name) VALUES ('097_trial_recall')
 ON CONFLICT (name) DO NOTHING;
