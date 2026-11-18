@@ -906,6 +906,20 @@ def test_bags_on_one_line_and_drums_on_another_are_not_added_up(plant):
     assert analysis['forward']['receiving_result'] == 'unverified'
 
 
+@pytest.mark.db
+def test_the_recall_follows_a_form_lot_written_without_its_sequence_number(plant):
+    sugar = plant.product('Sugar Brown')
+    tag = ''.join(chr(ord('G') + int(c, 16)) for c in plant.tag[2:6])    # four letters, like a real supplier code; this test's own
+    lot, tx = plant.receive(sugar, 11250, day(1), code=f'26-11-12-{tag}-001')
+    read = sheet(plant.form_row(day(1), f'261112{tag}', ['Sugar brown-50lbs-225']))
+    analysis, email = drill(plant, read)
+    forward = analysis['forward']
+    assert forward['receipts'][0]['transaction_id'] == tx and forward['receiving_result'] == 'pass'
+    internal = next(f for f in forward['comparisons'][0]['fields'] if f['field'] == 'Internal lot')
+    assert (internal['sheet'], internal['fl'], internal['status']) == (f'261112{tag}', f'26-11-12-{tag}-001', 'agree')
+    assert 'The Form gives the lot without its sequence number; it is the only FL receipt that fits.' in email['text']
+
+
 # ───────────────────────── strictly read-only on the ledger ─────────────────────────
 
 @pytest.mark.db

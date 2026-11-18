@@ -32,7 +32,12 @@ permission beyond the two read-only ones is refused. No photo is ever copied or 
    a new version; nothing is ever updated.
 2. Match each row to its FL receipt by **date + internal lot + product**:
    - **lot**: the lot typed on the Form equals the FL lot code (letters and digits only, so
-     `26-11-12-STAR-001` = `261112star001`);
+     `26-11-12-STAR-001` = `261112star001`). The Form often leaves off the trailing sequence number
+     (`261113DUTC` for `26-11-13-DUTC-001`): that counts as the same lot (owner, 2026-11-18) **only when exactly
+     one FL receipt fits by date and product**. An exact lot code always wins; `-001` and `-002` that both fit
+     are not chosen between; and a short lot together with product wording that does not confirm the product is
+     not linked (two leniencies on one link). Only the sequence is forgiven, never the date or supplier part;
+     the link records `lot: lot code without its sequence number`;
    - **date**: the Form date and the receipt's business date are at most **1 day** apart
      (`DATE_TOLERANCE_DAYS`; the Form is sometimes filled the evening of or the morning after);
    - **product**: matched generously (owner, 2026-11-18). A confident fit is: same words, or the shared FL
@@ -303,6 +308,8 @@ entry at all, and it cannot read a BOL better than the photo allows.
    mismatches FAIL their own section; a missing BOL photo and shared-login entries are warnings (rules above).
 6. **Anthropic key on the cron service:** reuse the existing key.
 7. **Numbering:** changelog row 306, migration 097.
+8. **Short lot numbers on the Form:** a Form lot that is the FL lot code without its trailing sequence number
+   is the same lot, if only one FL receipt fits by date and product.
 
 ## Still open
 

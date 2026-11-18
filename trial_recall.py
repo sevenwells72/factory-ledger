@@ -844,8 +844,11 @@ def compare_receipt(row, receipt, bol_lines, bol_readable):
                 'fl_compared': bool(pairs[0][0] or pairs[1][0]),
                 'note': None})
     # Internal lot (the Form and FL carry it; a supplier's BOL does not)
+    short_lot = (receipt.get('basis') or {}).get('lot') == receiving_form.LOT_WITHOUT_SEQUENCE
     out.append({'field': 'Internal lot', 'sheet': row['lot_text'], 'bol': 'not printed on a supplier BOL',
-                'fl': receipt['lot_code'], 'status': AGREE, 'note': None})
+                'fl': receipt['lot_code'], 'status': AGREE,
+                'note': 'The Form gives the lot without its sequence number; it is the only FL receipt that fits.'
+                if short_lot else None})
     # Supplier lot numbers
     printed = sorted({lot for line in (fitting or bol_lines) for lot in line.get('lot_numbers', []) if lot.strip()})
     recorded = [] if _blank_supplier_lot(receipt['supplier_lot_code']) else [receipt['supplier_lot_code']]
@@ -1308,6 +1311,8 @@ def render_email(analysis, run_at):
             email.line(f'FL receipt {receipt["receipt_number"] or "#" + str(receipt["transaction_id"])}, dated '
                        f'{receipt["business_date"]}: {receipt["product_name"]}, lot {receipt["lot_code"]}.')
             email.table(header, [[f['field'], f['sheet'], f['bol'], f['fl'], f['status']] for f in comparison['fields']])
+            email.bullets([f'{f["field"]}: {f["note"]}' for f in comparison['fields']
+                           if f['status'] == AGREE and f.get('note')])
         if forward['document_fields']:
             email.table(header, [[f['field'], f['sheet'], f['bol'], f['fl'], f['status']]
                                  for f in forward['document_fields']])

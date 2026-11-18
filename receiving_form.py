@@ -49,6 +49,7 @@ DEFAULT_START = date(2026, 11, 11)
 DATE_TOLERANCE_DAYS = 1
 KG_TO_LB = 2.2046226218
 PRODUCT_NOT_CONFIRMED = 'not_confirmed'      # linked by lot and date; the Form wording does not confirm the product
+LOT_WITHOUT_SEQUENCE = 'lot code without its sequence number'   # Form 261113DUTC = FL 26-11-13-DUTC-001
 # What a BOL photo may be. Anything else is refused, never served.
 HEIC_TYPES = frozenset({'image/heic', 'image/heif'})
 PHOTO_TYPES = frozenset({'image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/heic', 'image/heif',
@@ -264,10 +265,33 @@ def load_receipts(cur, since):
     return receipts
 
 
+class ReceiptIndex(dict):
+    """Receipt lines by lot key. `.short` holds the same lines by the lot key WITHOUT its trailing
+    sequence number (26-11-13-DUTC-001 -> 261113DUTC), for Form rows that leave the sequence off."""
+
+    def __init__(self):
+        super().__init__()
+        self.short = {}
+
+
+def short_lot_key(code):
+    """The lot key without its trailing sequence number, or None when the code has none.
+    Only a number that follows a letter is a sequence (…DUTC-001); a code made of a date alone is left whole."""
+    text = (code or '').strip().upper()
+    separated = re.fullmatch(r'(.*[A-Z0-9])[-\s_.]+(\d{1,4})', text)   # ...-DUTC-001: the last segment is the sequence
+    if separated and re.search(r'[A-Z]', separated.group(1)):
+        return lot_key(separated.group(1))
+    found = re.fullmatch(r'(.*[A-Z])(\d{1,4})', lot_key(code))           # 261113DUTC001: digits after the letters
+    return found.group(1) if found else None
+
+
 def receipt_index(receipts):
-    index = {}
+    index = ReceiptIndex()
     for line in receipts:
         index.setdefault(lot_key(line['lot_code']), []).append(line)
+        short = short_lot_key(line['lot_code'])
+        if short:
+            index.short.setdefault(short, []).append(line)
     index.pop('', None)
     return index
 
@@ -342,9 +366,16 @@ def match_row(row, index, matcher, tolerance=DATE_TOLERANCE_DAYS):
         return result([], ['The Form row has no internal lot number.'])
     if not row['products']:
         return result([], ['The Form row names no product.'])
-    near, far = [], []
+    near, far, short_lines = [], [], set()
     for lot in row['lots']:
-        for line in index.get(lot_key(lot), []):
+        candidates = index.get(lot_key(lot), [])
+        if not candidates:
+            # The Form often leaves off the lot's trailing sequence number (261113DUTC for
+            # 26-11-13-DUTC-001). Owner, 2026-11-18: that counts as the same lot when exactly one FL
+            # receipt fits by date and product. Such a line needs a confident product fit below.
+            candidates = getattr(index, 'short', {}).get(lot_key(lot), [])
+            short_lines.update((line['transaction_id'], line['lot_id']) for line in candidates)
+        for line in candidates:
             days = (line['business_date'] - row['submitted_date']).days
             (near if abs(days) <= tolerance else far).append((line, days))
     if not near:
@@ -372,7 +403,9 @@ def match_row(row, index, matcher, tolerance=DATE_TOLERANCE_DAYS):
             'lot_id': line['lot_id'], 'lot_code': line['lot_code'], 'product_id': line['product_id'],
             'product_name': line['product_name'], 'business_date': line['business_date'].isoformat(),
             'quantity': line['quantity'], 'form_product': entry['text'],
-            'basis': {'lot': 'same lot code', 'date_difference_days': days, 'product': basis}})
+            'basis': {'lot': (LOT_WITHOUT_SEQUENCE if (line['transaction_id'], line['lot_id']) in short_lines
+                              else 'same lot code'),
+                      'date_difference_days': days, 'product': basis}})
 
     open_entries = []
     for position, entry in enumerate(row['products']):
@@ -392,7 +425,15 @@ def match_row(row, index, matcher, tolerance=DATE_TOLERANCE_DAYS):
     open_lines = {}
     for line, days in near:
         key = (line['transaction_id'], line['lot_id'])
-        if key not in fitted_lines:
+        if key in fitted_lines:
+            continue
+        if key in short_lines:
+            # A lot matched without its sequence number AND a product the wording does not confirm
+            # would be two leniencies on one link: not linked.
+            reasons.append(f'Lot {line["lot_code"]} on FL receipt {_receipt_name(line)} ({line["product_name"]}) is the '
+                           f"Form's lot with a sequence number added, but the product wording on the Form does not "
+                           f'confirm it. Not linked.')
+        else:
             open_lines[key] = (line, days)
     if len(open_entries) == 1 and len(open_lines) == 1:
         line, days = next(iter(open_lines.values()))

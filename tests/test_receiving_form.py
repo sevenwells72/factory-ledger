@@ -151,6 +151,41 @@ def test_wording_that_does_not_confirm_the_product_links_generously_and_says_so(
         (7, 'same_name'), (8, 'not_confirmed')]
 
 
+def test_a_form_lot_without_its_sequence_number_is_the_same_lot_when_exactly_one_receipt_fits():
+    assert receiving_form.short_lot_key('26-11-13-DUTC-001') == '261113DUTC' == receiving_form.short_lot_key('261113dutc7')
+    assert receiving_form.short_lot_key('261113DUTC') is None and receiving_form.short_lot_key('26-11-13') is None
+    assert receiving_form.short_lot_key('122023') is None                # a date alone has no sequence to drop
+    assert receiving_form.short_lot_key('26-11-13-A1B2-001') == '261113A1B2'   # the last segment is the sequence
+    assert receiving_form.short_lot_key('26-11-13') is None and receiving_form.short_lot_key('2026-11-13') is None
+    # The Form says 261113DUTC; FL holds 26-11-13-DUTC-001.
+    outcome = match(form_row(day(1), '261113DUTC', ['Sugar-3000lbs-1']), line(7, 70, '26-11-13-DUTC-001', 1, day(1)))
+    assert outcome['status'] == 'matched' and outcome['links'][0]['transaction_id'] == 7
+    assert outcome['links'][0]['basis'] == {'lot': 'lot code without its sequence number',
+                                            'date_difference_days': 0, 'product': 'same_name'}
+    # -001 and -002 of the same product that day: more than one fits, so nothing is linked.
+    outcome = match(form_row(day(1), '261113DUTC', ['Sugar-3000lbs-1']),
+                    line(7, 70, '26-11-13-DUTC-001', 1, day(1)), line(8, 71, '26-11-13-DUTC-002', 1, day(1)))
+    assert outcome['links'] == [] and 'More than one FL receipt fits' in outcome['reasons'][0]
+    # -001 sugar and -002 honey: the product tells them apart, each Form product gets its one receipt.
+    outcome = match(form_row(day(1), '261113DUTC', ['Sugar-50lbs-10', 'Honey-60lbs-4']),
+                    line(7, 70, '26-11-13-DUTC-001', 1, day(1), 'Sugar 6X'), line(8, 71, '26-11-13-DUTC-002', 2, day(1), 'Honey Clover'))
+    assert outcome['status'] == 'matched' and sorted(l['transaction_id'] for l in outcome['links']) == [7, 8]
+    # The exact lot code always wins over a sequence-less reading.
+    outcome = match(form_row(day(1), '261113DUTC', ['Sugar-50lbs-10']),
+                    line(7, 70, '261113DUTC', 1, day(1)), line(8, 71, '26-11-13-DUTC-001', 1, day(1)))
+    assert [l['transaction_id'] for l in outcome['links']] == [7] and outcome['links'][0]['basis']['lot'] == 'same lot code'
+    # A short lot AND wording that does not confirm the product: two leniencies, not linked.
+    outcome = match(form_row(day(1), '261113DUTC', ['Miel-60lbs-4']), line(7, 70, '26-11-13-DUTC-001', 1, day(1), 'Sugar Brown'))
+    assert outcome['status'] == 'unmatched' and outcome['links'] == []
+    assert "is the Form's lot with a sequence number added" in outcome['reasons'][0]
+    # The date still has to be within a day.
+    outcome = match(form_row(day(4), '261113DUTC', ['Sugar-50lbs-10']), line(7, 70, '26-11-13-DUTC-001', 1, day(1)))
+    assert outcome['links'] == [] and '3 days from the Form date' in outcome['reasons'][0]
+    # Only a missing SEQUENCE is forgiven: a different supplier code is a different lot.
+    outcome = match(form_row(day(1), '261113DUT', ['Sugar-50lbs-10']), line(7, 70, '26-11-13-DUTC-001', 1, day(1)))
+    assert outcome['links'] == [] and outcome['reasons'] == ['No FL receipt uses lot 261113DUT.']
+
+
 def test_two_receipts_that_both_fit_are_not_chosen_between():
     outcome = match(form_row(day(1), 'L-1', ['Sugar-50lbs-10']),
                     line(7, 70, 'L-1', 1, day(1)), line(8, 71, 'L-1', 2, day(1)))
@@ -317,6 +352,25 @@ def test_sync_links_the_clear_match_and_lists_the_rest(plant):
     assert (run['job_status'], run['rows_read'], run['unmatched_count']) == ('completed', 3, 1)
     assert [item['row_number'] for item in run['summary']['unmatched']] == [5]
     assert [item['row_number'] for item in run['summary']['product_wording_unconfirmed']] == [4]
+
+
+@pytest.mark.db
+def test_sync_links_the_live_forms_short_lot_numbers(plant):
+    """The lots as the real Form writes them (261113DUTC) against FL's full codes (26-11-13-DUTC-001)."""
+    honey, sugar = plant.product('Honey Clover'), plant.product('Sugar Brown')
+    tag = ''.join(chr(ord('G') + int(c, 16)) for c in plant.tag[2:6])    # four letters, like a real supplier code; this test's own
+    honey_lot, honey_tx = plant.receive(honey, 3000, day(2), code=f'26-11-13-{tag}-001')
+    plant.receive(sugar, 5000, day(5), code=f'26-11-16-{tag}-001')
+    plant.receive(sugar, 2500, day(5), code=f'26-11-16-{tag}-002')       # a second sugar lot that day
+    outcome = receiving_form.sync(plant.cur, sheet(
+        plant.form_row(day(2), f'261113{tag}', ['Honey clover-3000lbs-1']),
+        plant.form_row(day(5), f'261116{tag}', ['Sugar brown-50lbs-100'], hour=12)))
+    assert outcome['rows_linked'] == 1 and outcome['links_new'] == 1
+    plant.cur.execute('SELECT transaction_id, lot_id, match_basis FROM receipt_bol_links WHERE transaction_id = %s', (honey_tx,))
+    link = plant.cur.fetchone()
+    assert link['lot_id'] == honey_lot and link['match_basis']['lot'] == 'lot code without its sequence number'
+    listed, = outcome['unmatched']                                       # two sugar receipts fit: not chosen between
+    assert listed['row_number'] == 3 and 'More than one FL receipt fits' in listed['reasons'][0]
 
 
 @pytest.mark.db
