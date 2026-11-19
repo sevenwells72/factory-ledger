@@ -57,6 +57,7 @@ from pydantic import model_validator, BaseModel, Field, field_validator
 from psycopg2.extras import Json
 
 import permissions
+import stock_by_hand
 
 PLANT_TIMEZONE = ZoneInfo('America/New_York')
 LARGE_CORRECTION_LB = 500.0     # |Δ lb| above this → highlighted AND photo required
@@ -71,7 +72,8 @@ PREPARE_REFUSALS = frozenset({'REASON_CODE_REQUIRED', 'REASON_CODE_INVALID', 'NO
                               'REASON_SIGN_MISMATCH', 'SHORTAGE_OPEN_RESOLVE_INSTEAD',
                               'SHORTAGE_CLOSE_REASON', 'SHORTAGE_SET_CHANGED', 'COUNT_NEGATIVE',
                               'SALES_ORDER_REQUIRED', 'SALES_ORDER_NOT_FOUND', 'SALES_ORDER_CANCELLED',
-                              'SALES_ORDER_NOT_APPLICABLE'})
+                              'SALES_ORDER_NOT_APPLICABLE', 'USE_RECEIVE', 'NO_STOCK_BY_HAND', 'PAIRED_MOVE_REQUIRED',
+                              'WRONG_LOT_SAME_PRODUCT', 'INVALID_PAIRED_MOVE', 'LOT_ALREADY_HAS_STOCK', 'BOL_REQUIRED', 'INVALID_QUANTITY'})
 # Owner decision (Michael, 2026-11-18), switched on by migration 096's marker: a
 # removal names where the stock went, and nothing over 500 lb is held any more.
 # Until the marker exists every rule below behaves exactly as before (fail safe).
@@ -201,6 +203,10 @@ def _valid_reasons(cur, source, *, delta_lb=None, destinations=False):
                            for r in rows if r['removal_allowed']), key=lambda r: not r['removal_destination'])
         elif delta_lb is not None and float(delta_lb) > 0:
             rows = [r for r in rows if r['adjust_sign'] != 'negative']
+    if source == 'adjust' and stock_by_hand.live_at(cur):
+        keys += ['addition_allowed', 'addition_label_en', 'addition_label_es']
+        if delta_lb is not None and float(delta_lb)>0:
+            rows = [r for r in rows if r.get('addition_allowed')]
     return [{k: r[k] for k in keys} for r in rows]
 
 
@@ -276,6 +282,10 @@ def resolve_reason(cur, source, raw, *, note=None, delta_lb=None, sales_order_id
              message_es='Una corrección necesita un reason_code de la lista fija.',
              valid_reasons=valid())
     norm = normalise(raw)
+    additions = source == 'adjust' and stock_by_hand.live_at(cur) and not held_reason
+    adding = additions and delta_lb is not None and float(delta_lb) > 0
+    if additions and norm.replace(' ', '_') == 'missing_receipt':
+        fail(422, 'USE_RECEIVE', 'This is a delivery; record it on Receive.', message_es='Esto es una entrega; regístrala en Recibir.')
     cur.execute(f'SELECT {_REASON_COLUMNS} FROM correction_reasons WHERE code=%s', (norm.replace(' ', '_'),))
     row = cur.fetchone()
     legacy = None
@@ -287,12 +297,15 @@ def resolve_reason(cur, source, raw, *, note=None, delta_lb=None, sales_order_id
             cur.execute(f'SELECT {_REASON_COLUMNS} FROM correction_reasons WHERE code=%s', (legacy['reason_code'],))
             row = cur.fetchone()
     usable = row is not None and (row['active'] or (held_reason is not None and row['code'] == held_reason))
-    if not usable or source not in row['applies_to']:
+    if not usable or (source not in row['applies_to'] and row['code'] != held_reason):
         label = row['label_en'] if row else str(raw)
         fail(422, 'REASON_CODE_INVALID',
              f'{label!r} is not a correction reason for {source}; use one of the fixed list.',
              message_es=f'{label!r} no es un motivo de corrección para {source}; use uno de la lista fija.',
              reason_code=str(raw), valid_reasons=valid())
+    if adding and not row.get('addition_allowed'):
+        fail(422, 'REASON_CODE_INVALID', 'Choose where this stock came from. Unknown stock goes through Found as a new lot.',
+             message_es='Elige de dónde vino el inventario. El inventario desconocido entra por Encontrado como lote nuevo.')
     if removing and not row.get('removal_allowed'):
         fail(422, 'REASON_CODE_INVALID',
              f'{row["label_en"]} cannot explain a removal. Choose where the stock went, or Wrong lot used / Data-entry error.',
@@ -302,7 +315,7 @@ def resolve_reason(cur, source, raw, *, note=None, delta_lb=None, sales_order_id
     # Owner, 2026-11-18: a removal explained as "wrong lot" or "data-entry error" names
     # no destination, so the note has to say what happened. Removals only: the same
     # reasons on an addition, a void or a lot fix keep today's optional note.
-    note_required = bool(row['note_required'] or (removing and not row.get('removal_destination')))
+    note_required = bool(row['note_required'] or (removing and not row.get('removal_destination')) or (adding and row['code'] in ('wrong_lot', 'data_entry_error')))
     if note_required and not effective_note:
         fail(422, 'NOTE_REQUIRED', f'{row["label_en"]} needs a note saying what happened.',
              message_es=f'{row["label_es"]} necesita una nota que explique qué pasó.', reason_code=row['code'])
@@ -930,7 +943,7 @@ def shortage_evidence(api, cur, request, actor, row, body):
                  'lot_code': lot['lot_code'], 'delta_lb': delta, 'correction_review': review, 'exception_id': row['id']})
             posted = api._adjust_commit_core(cur, req, request, api.get_plant_now(), 'database', product=product,
                                              lot_id=lot['id'], **adjustment, reason_code='physical_count',
-                                             note=f'Shortage #{row["id"]} counted {float(body.counted_lb)} lb: {body.note}')
+                                             note=f'Shortage #{row["id"]} counted {float(body.counted_lb)} lb: {body.note}', count_to=body.counted_lb)
             if hasattr(posted, 'status_code'):
                 fail(409, 'CORRECTION_BLOCKED', 'The counted correction is blocked by the product rules.',
                      blocked=json.loads(bytes(posted.body).decode()))

@@ -1,5 +1,33 @@
 # Change Log
 
+## 2026-11-19 15:49 — Record rule-by-rule draft enforcement and unfinished validation
+- **File(s) changed:** `docs/validation/no-stock-by-hand-draft.md`
+- **What changed:** Document the exact compatibility proof, enforcement/test matrix, actual pass/fail counts and blocked cross-review.
+- **Why:** Make the stopped draft concrete and reviewable without presenting incomplete checks as release evidence.
+
+---
+
+## 2026-11-19 15:47 — Record the blocked draft in the regression changelog
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Add next-free row 310 after rechecking freshly fetched origin/main; state unresolved compatibility/review/test blockers and actual revert risks.
+- **Why:** Preserve the owner-requested regression record without claiming completion or deployment.
+
+---
+
+## 2026-11-19 15:46 — Keep picker search tests independent of the rules lookup
+- **File(s) changed:** `tests/test_pilot_entry_ui.js`
+- **What changed:** Return marker-off metadata separately from picker requests in the DOM harness.
+- **Why:** The initial SELECT-only rules lookup is not a user search and must not count as one.
+
+---
+
+## 2026-11-19 15:46 — Use the named owner for the browser receipt void fixture
+- **File(s) changed:** `tests/visual/run-no-stock-by-hand.mjs`
+- **What changed:** Void the synthetic receipt under Michael before testing Receive again.
+- **Why:** The real old void route is owner-only for selected names; the fixture must use its authorized actor.
+
+---
+
 ## 2026-11-20 09:50 — Preserve complete changelog entry separators after main rebase
 - **File(s) changed:** `CHANGE_LOG.md`
 - **What changed:** Rebuild the union of main and auth-branch entries verbatim by heading, retaining both histories and each separator.

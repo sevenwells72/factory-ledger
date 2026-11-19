@@ -978,6 +978,12 @@ def entry_lots(cur, *, product_id=None, query='', include_empty=False):
         ORDER BY COALESCE(l.received_at,l.created_at) DESC,l.id DESC LIMIT 51""",
         (product_id,product_id,include_empty,pattern,pattern))
     rows = [dict(row) for row in cur.fetchall()]
+    import stock_by_hand
+    if stock_by_hand.live_at(cur):
+        import lot_confirmation
+        policies = {r['product_id']: lot_confirmation.supplier_lot_identity_applies(cur, r['product_id']) for r in rows}
+        for row in rows:
+            row['purchased_ingredient'] = policies[row['product_id']]
     return {'lots': rows[:50], 'has_more': len(rows)>50}
 
 
@@ -1014,8 +1020,11 @@ def build_router(transaction, authenticate):
     @router.get('/entry/lots')
     def entry_lots_endpoint(product_id: Optional[int] = Query(None, gt=0),
                             query: str = Query('', max_length=500),
-                            include_empty: bool = False, _: bool = Depends(authenticate)):
+                            include_empty: bool = False, rules_only: bool = False, _: bool = Depends(authenticate)):
         with transaction() as cur:
+            if rules_only:
+                import stock_by_hand
+                return {'no_stock_by_hand': bool(stock_by_hand.live_at(cur))}
             return entry_lots(cur, product_id=product_id, query=query, include_empty=include_empty)
 
     @router.get('/entry/make-products')

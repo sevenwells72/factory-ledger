@@ -6,6 +6,7 @@ import json
 import kosher_tiers as a12
 import lot_confirmation as a5
 import exceptions_enforcement as a3b
+import stock_by_hand
 import formula_entry as formula
 import oat_bran_substitution as oat_bran
 
@@ -254,6 +255,9 @@ def validate(api, cur, action, payload, lock=False, held=False, held_reason=None
                                       delta_lb=payload['delta_lb'], destination_exempt=True,
                                       held_reason=held_reason)['code']
             a3b.shortages_closed_by_count(cur, payload['lot_id'], closing, code, lock)
+        pair_id = payload.get('paired_lot_id') if stock_by_hand.live_at(cur) else None
+        if pair_id is not None and lock:
+            cur.execute('SELECT id FROM lots WHERE id=ANY(%s) ORDER BY id FOR UPDATE', ([payload['lot_id'], pair_id],))
         current = lot(api, cur, payload['lot_id'], payload.get('product_id'), lock)
         if closing:
             # Again under the lot lock: no shortage opened meanwhile, no negative count.
@@ -268,7 +272,15 @@ def validate(api, cur, action, payload, lock=False, held=False, held_reason=None
                                     sales_order_id=payload.get('sales_order_id'), destination_exempt=bool(closing) or held,
                                     held_reason=held_reason)
         immediate = a3b.destination_rules(cur)
-        a3b.refuse_cover_up(cur, 'adjust', p['id'], current['id'], payload['delta_lb'], closing)
+        paired = None
+        if pair_id is not None:
+            paired = stock_by_hand.validate_pair(api, cur, p, current['id'], pair_id, payload['delta_lb'], reason['code'], reason['note'])
+        if paired is None and reason['code'] == 'wrong_lot' and payload['delta_lb'] > 0:
+            stock_by_hand.addition(cur, p['id'], current['id'], payload['delta_lb'], reason='wrong_lot')
+        if paired is None:
+            a3b.refuse_cover_up(cur, 'adjust', p['id'], current['id'], payload['delta_lb'], closing)
+        count_to = round(float(current['on_hand_lb']) + float(payload['delta_lb']), 4) if closing else None
+        stock_by_hand.addition(cur, p['id'], current['id'], payload['delta_lb'], count_to=count_to, reason=reason['code'], paired=paired is not None)
         req = api.AdjustRequest(**common, product_name=p['name'], lot_code=current['lot_code'],
             adjustment_lb=payload['delta_lb'], reason=reason['label_en'], reason_es=payload.get('reason_es') or reason['label_es'])
         api.validate_bilingual(req.reason, req.reason_es, 'reason')
@@ -289,8 +301,16 @@ def validate(api, cur, action, payload, lock=False, held=False, held_reason=None
         if draft['new_balance_lb'] < 0:
             draft['balance_warning'] = f'{p["name"]} lot {current["lot_code"]} will have negative inventory ({api._fmt_quantity(draft["new_balance_lb"])} lb).'
         options = {'product': p, 'lot_id': payload['lot_id'], 'reason_code': reason['code'],
-                   'note': a3b.destination_note(reason)}
+                   'note': a3b.destination_note(reason), 'count_to': count_to, 'paired_lot_id': pair_id,
+                   'sales_order_id': payload.get('sales_order_id'), 'held_reason': held_reason}
+        if paired:
+            draft['move'] = dict(restored_lot_id=current['id'], restored_lot_code=current['lot_code'],
+                restored_before_lb=current['on_hand_lb'], restored_after_lb=draft['new_balance_lb'],
+                used_lot_id=pair_id, used_lot_code=paired['lot_code'], used_before_lb=paired['on_hand_lb'],
+                used_after_lb=float(paired['on_hand_lb'])-req.adjustment_lb, lb=req.adjustment_lb)
         specification = {'product_id': p['id'], 'lot_id': current['id'], 'delta_lb': req.adjustment_lb}
+        if paired:
+            specification['paired_lot_id'] = pair_id
     elif action == 'found':
         p = product(api, cur, payload['product_id'], lock)
         products.append(p)
@@ -371,6 +391,10 @@ def validate(api, cur, action, payload, lock=False, held=False, held_reason=None
             if action in ('make', 'found') and a12.tier(output_product)==a12.EXTRA:
                 fail('KOSHER_NEW_BATCH_LOT_REQUIRED', 'Every extra-kosher make or found entry needs a new lot and its own attestation.')
             states.append(lot(api, cur, existing['id'], output_product['id'], lock))
+            if action == 'found' and stock_by_hand.live_at(cur):
+                if reason['code'] == 'missing_receipt':
+                    stock_by_hand.fail('LOT_CODE_TAKEN', 'Use Found as a new lot, or Receive this delivery.', 'Usa Encontrado como lote nuevo, o Recibe esta entrega.', 409)
+                stock_by_hand.addition(cur, output_product['id'], existing['id'], req.quantity, reason=reason['code'])
         if action == 'pack':
             req.target_lot_code = output_code
         else:

@@ -229,6 +229,7 @@ class PackPrepareRequest(ActionPrepareRequest):
 
 
 class AdjustPrepareRequest(ActionPrepareRequest):
+    paired_lot_id: Optional[PositiveId] = None
     lot_id: PositiveId
     delta_lb: float
     reason_code: str = Field(min_length=1)
@@ -839,6 +840,8 @@ def register_routes(app, api):
         payload = json.loads(req.json(exclude={'client_source'}))
         if action == 'adjust' and not payload.get('resolves_shortage_ids'):
             payload.pop('resolves_shortage_ids', None)   # unchanged payload/hash for ordinary adjusts
+        if action == 'adjust' and payload.get('paired_lot_id') is None:
+            payload.pop('paired_lot_id', None)
         if action == 'adjust' and payload.get('sales_order_id') is None:
             payload.pop('sales_order_id', None)          # same: only a named order is part of the payload
         if action == 'make' and not payload.get('formula_entry'):
