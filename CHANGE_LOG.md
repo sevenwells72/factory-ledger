@@ -32,6 +32,20 @@
 - **File(s) changed:** `main.py`, `tests/test_shared_key_shutdown.py`, `tests/fixtures/route_contract/routes.jsonl`
 - **What changed:** create_certification, correct_certification, reassign_lot, merge_lots, add_found_inventory and add_found_inventory_with_new_product now take the Request and pass it to _operator_id / _entered_by_actor_id, so a named owner key is stored as the person (name and actor id) instead of 'legacy-shared-key'. Found-with-new-product now writes operator_id and entered_by_actor_id on its ledger row. The two direct Found lines match PR #232's text. Added 10 HTTP tests (owner key stores the person; shared key under SHARED_KEY_WRITES=allow keeps the old stamp) and regenerated 6 route-contract lines (request false to true). No migration, no schema or GPT change.
 - **Why:** Cross-review of PR #234 (comment 7043947718, finding 1): the owner key reaches these routes after the shared key becomes read-only, but they still recorded the shared-key placeholder and no person. Michael approved preparing the fix on 2026-11-23.
+## 2026-11-19 18:34 — Record next-free cleanup row for PR preview and review blocker
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Append the next free row with the unintended preview, its verified deletion, title protection and Claude Code authentication failure; preserve prior rows.
+- **Why:** The audit trail must disclose the workflow error and current external blocker accurately.
+
+---
+
+## 2026-11-19 18:33 — Disclose and remove unintended PR preview; record Claude authentication blocker
+- **File(s) changed:** `docs/validation/no-stock-by-hand-review-fixes.md`
+- **What changed:** Record the automatic preview, verified preview-only deletion with 204 then 404, required PR-title skip marker, and actual Claude Code expired-login error.
+- **Why:** Owner prohibited deployment and requires Claude Code, so the record must disclose the workflow mistake and the still-pending independent review accurately.
+
+---
+
 ## 2026-11-19 18:20 — Allocate PR 232 review-fix changelog row after refreshing main
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Append the next free numbered row for final fixes and verified test/baseline results, preserving every prior row.

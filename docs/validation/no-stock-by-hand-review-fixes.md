@@ -1,6 +1,6 @@
 # PR 232 — review fixes and local verification (2026-11-19)
 
-Branch: `feat/no-stock-by-hand`. Draft only. No merge, deploy, staging/production query or hosted inventory write was performed. The owner-approved cumulative under-one-pack cap is retained unchanged.
+Branch: `feat/no-stock-by-hand`. Draft only. No merge or staging/production deployment, database query or inventory write was performed. An unintended automatic Netlify PR preview was created and removed, as recorded below. The owner-approved cumulative under-one-pack cap is retained unchanged.
 
 ## Five review findings
 
@@ -75,6 +75,18 @@ Historical shared-key contract/fault-injection tests explicitly request `legacy_
 
 Shared-key shutdown remains isolated in commit `b18a6c4`, independently revertible. Checked-in scheduled reconciliation, exception sweep and expiry jobs use database connections, not the shared HTTP key. No live scheduler configuration was queried.
 
-## Independent review
+## Automatic PR preview — removed
 
-Claude Code cross-review is the next step after publishing these fixes. This document is implementation/verification evidence, not a Codex approval. Keep PR 232 draft. Any future staging/production action requires its own owner authorization; none is authorized here.
+Pushing commit `628c94c` caused Netlify to create preview `6aff85398ecc3d97d4530c5d` at 2026-11-19 23:24 UTC. I used `[skip netlify]` in the commit message, but Netlify requires the marker in the **PR title** for Deploy Previews. This was an implementation-workflow mistake, not an authorized deployment. [Netlify's skip-deploy documentation](https://docs.netlify.com/deploy/manage-deploys/manage-deploys-overview/).
+
+The PR title now begins `[skip netlify]`. Before deletion, the metadata was verified as `context=deploy-preview`, `review_id=232`, branch `feat/no-stock-by-hand`, commit `628c94c258b6dbba2d0c7d8e83c74dcad62b4734`, and `published_at=null`. Only that unintended preview was deleted (Netlify API HTTP 204); a subsequent GET of its metadata returned **404**. No production/staging deployment or site build configuration was changed. No application/database request was made to the preview, staging or production.
+
+## Independent review — waiting for Claude Code authentication
+
+After all verification completed and commit `628c94c` was published, the requested read-only Claude Code review was attempted on that exact PR head. Its CLI returned:
+
+> Failed to authenticate: this login reached its time limit and cannot be renewed.
+
+It requested `claude auth login`. No model review ran (zero API/model tokens); no independent verdict exists yet. No stale Claude/Anthropic environment token override was set. The user has been asked to renew the local CLI login or identify the different signed-in configuration. No Codex review was substituted.
+
+This document is implementation/verification evidence, not a Codex approval. Keep PR 232 draft. The next review must use the then-current PR head; subsequent cleanup-record changes are documentation only. Any future staging/production action requires separate owner authorization.
