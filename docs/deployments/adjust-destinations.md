@@ -4,8 +4,10 @@ Owner decision 2026-11-18. Code: `exceptions_enforcement.py`, `adjustment_alerts
 `write_tickets.py`, `main.py` (two posting cores), `scripts/exceptions_sweep.py`, `dashboard/entry.js`,
 `dashboard/ledger-ui.js`. Migration: `migrations/096_adjust_destinations.sql`.
 
-**Status: branch `feat/adjust-destination`, not merged, not deployed. Migration 096 is not applied to staging or
-production.** It has only been applied to throwaway local test databases.
+**Status: LIVE IN PRODUCTION since 2026-11-19.** PR #225 squash-merged to main `c267b64` (13:42 ET); migration 096
+applied to production at 13:42:20 ET after a verified backup (`~/Backups/fl/2026-11-19-pre-096`); `RESEND_API_KEY`
+and `ALERT_EMAIL_TO` set on the FastAPI service as references to the `exceptions-sweep` values (step 4 below).
+Staging was skipped by the owner: migration 096 is **not** applied to staging. Record: changelog row 307.
 
 ## What changes
 
