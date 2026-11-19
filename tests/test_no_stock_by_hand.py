@@ -7,6 +7,7 @@ from tests.test_actor_attribution import client, actors
 from tests.test_write_tickets_part2 import items, prepare, body, isolated_database
 from tests.test_write_tickets import headers, commit, error, isolated_database as a1_isolated_database
 from tests.test_exceptions_enforcement import adjust, found, resolve
+from tests.test_ship_tickets import shipping, prepared as prepare_ship, upload as upload_ship
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -110,6 +111,29 @@ def test_give_back_and_pair(client,db_cursor,items,actors,rules):
     assert [(r['lot_id'],float(r['quantity_lb'])) for r in db_cursor.fetchall()]==[(b,-10),(a,10)]
     db_cursor.execute('SELECT count(*) AS n FROM shortage_flags WHERE transaction_id=%s',(move.json()['transaction_id'],))
     assert db_cursor.fetchone()['n']==1
+    result=move.json()
+    history=client.get(f"/dashboard/api/inventory/{items['ingredient']['id']}/lot-history",headers=headers(actors['owner']['key']))
+    assert history.status_code==200,history.text
+    lots={lot['lot_id']:lot for lot in history.json()['lots']}
+    for lot_id in (a,b):
+        [entry]=[entry for entry in lots[lot_id]['moves'] if entry['transaction_id']==result['transaction_id']]
+        assert entry['receipt_number']==result['receipt_number']
+        assert {(line['lot_id'],line['quantity_lb']) for line in entry['lines']}=={(a,10),(b,-10)}
+    summary=client.get('/reports/shift-summary',headers=headers(key))
+    assert summary.status_code==200,summary.text
+    sections={section['key']:section for section in summary.json()['sections']}
+    [row]=[row for row in sections['adjusted']['rows'] if row['receipt_number']==result['receipt_number']]
+    assert (row['detail']['lot_on_hand_before'],row['detail']['lot_on_hand_after'],row['detail']['delta_lb'])==(1000,1010,10)
+    assert row['detail']['move']['used_lot_id']==b and 'product total unchanged' in row['line_en']
+    balances={row['lot']['id']:row for row in sections['lot_balances_touched']['rows']}
+    assert balances[a]['after_lb']==1010 and balances[b]['after_lb']==-10
+    from datetime import timedelta
+    import reconciliation
+    now=main.get_plant_now()
+    report=reconciliation.analyse(reconciliation.load_window(db_cursor,now-timedelta(hours=1),now+timedelta(minutes=1),reconstruct=True))
+    [flag]=[flag for flag in report['flags'] if flag['kind']=='INGREDIENT_HAND_ADDITION' and flag['transaction_id']==result['transaction_id']]
+    assert flag['detail']['paired_move'] and result['receipt_number'] in flag['detail']['message']
+    assert lots[a]['lot_code'] in flag['detail']['message'] and lots[b]['lot_code'] in flag['detail']['message']
 
 
 def test_shared_key_default_and_owner_scope(client,db_cursor,items,actors,rules,monkeypatch):
@@ -251,7 +275,10 @@ def test_found_new_lot_and_count_born_topups(client,db_cursor,items,actors,rules
     made=commit(client,prepare(client,'found',found(items,10,'missing_receipt'),key),key)
     assert made.status_code==200,made.text
     lot=made.json()
-    error(client.post('/inventory/found/prepare',json=found(items,1,'missing_receipt',lot_code=lot['lot_code']),headers=headers(key)),409,'LOT_CODE_TAKEN')
+    blocked=client.post('/inventory/found/prepare',json=found(items,1,'missing_receipt',lot_code=lot['lot_code']),headers=headers(key))
+    assert blocked.status_code==200,blocked.text
+    assert not blocked.json()['can_commit']
+    assert blocked.json()['blockers'][0]['code']=='LOT_CODE_TAKEN'
     error(client.post('/inventory/found/prepare',json=found(items,1,lot_code=lot['lot_code']),headers=headers(key)),422,'NO_STOCK_BY_HAND')
     error(client.post('/adjust/prepare',json=adjust(items,1)|{'lot_id':lot['lot_id']},headers=headers(key)),422,'NO_STOCK_BY_HAND')
     db_cursor.execute('SELECT identity_status FROM lots WHERE id=%s',(lot['lot_id'],))
@@ -265,7 +292,10 @@ def test_named_owner_reaches_maintenance_but_floor_does_not(client,actors):
     assert client.get('/admin/lots/duplicates',headers=headers(actors['floor']['key'])).status_code==403
 
 
-def test_every_authenticated_write_refuses_shared_key_without_rows(client,db_cursor,actors):
+def test_every_authenticated_write_refuses_shared_key_without_rows(client,db_cursor,actors,monkeypatch):
+    monkeypatch.setenv("KEY_SESSIONS_ENABLED", "1")
+    monkeypatch.setenv("PIN_SIGNIN_ENABLED", "1")
+    monkeypatch.setenv("PERSON_SELECT_ENABLED", "1")
     from fastapi.routing import APIRoute
     import re
     tables=['transactions','transaction_lines','write_tickets','lots','exceptions','actor_write_audit','customers','sales_orders']
@@ -363,3 +393,140 @@ def test_nightly_review_lists_named_ingredient_additions_only(client,db_cursor,i
     assert [f['transaction_id'] for f in flags]==[added.json()['transaction_id']]
     text=flags[0]['detail']['message']
     assert actors['floor']['name'] in text and added.json()['receipt_number'] in text and 'physical_count' in text
+
+
+@pytest.mark.parametrize('new_product',[False,True])
+def test_direct_found_named_identity_and_trace(client,db_cursor,items,actors,rules,new_product,monkeypatch):
+    monkeypatch.setenv('TRACE_EMIT_ENABLED','1')
+    data=dict(quantity=3,reason_code='physical_count',notes='Counted sealed bags')
+    if new_product:
+        path='/inventory/found-with-new-product'
+        data.update(product_name='Reviewed '+uuid4().hex,product_type='ingredient')
+    else:
+        path='/inventory/found';data['product_id']=items['ingredient']['id']
+    response=client.post(path,json=data,headers=headers(actors['owner']['key']))
+    assert response.status_code==200,response.text
+    receipt=response.json()
+    db_cursor.execute('SELECT entered_by_actor_id,operator_id FROM transactions WHERE id=%s',(receipt['transaction_id'],))
+    row=db_cursor.fetchone();assert row['entered_by_actor_id']==actors['owner']['id']
+    assert row['operator_id']!='legacy-shared-key'
+    db_cursor.execute('SELECT operator_id FROM trace_events WHERE transaction_id=%s',(receipt['transaction_id'],))
+    assert db_cursor.fetchone()['operator_id']==actors['owner']['name']
+    db_cursor.execute('SELECT identity_status,identify_by FROM lots WHERE id=%s',(receipt['lot_id'],))
+    row=db_cursor.fetchone();assert row['identity_status']=='unidentified' and row['identify_by']
+    db_cursor.execute("SELECT count(*) AS n FROM exceptions WHERE kind='UNIDENTIFIED_LOT' AND lot_id=%s AND due_at IS NOT NULL",(receipt['lot_id'],))
+    assert db_cursor.fetchone()['n']==1
+
+
+@pytest.mark.parametrize('reason,note,code',[('invented_source',None,'REASON_CODE_INVALID'),('unknown',None,'NOTE_REQUIRED')])
+def test_direct_new_product_found_refusal_is_atomic(client,db_cursor,items,actors,rules,reason,note,code):
+    name='Rejected '+uuid4().hex
+    db_cursor.execute('SELECT count(*) AS n FROM transactions');before=db_cursor.fetchone()['n']
+    response=client.post('/inventory/found-with-new-product',json=dict(product_name=name,product_type='ingredient',quantity=3,reason_code=reason,notes=note),headers=headers(actors['owner']['key']))
+    error(response,422,code)
+    db_cursor.execute('SELECT 1 FROM products WHERE name=%s',(name,));assert db_cursor.fetchone() is None
+    db_cursor.execute('SELECT count(*) AS n FROM transactions');assert db_cursor.fetchone()['n']==before
+
+
+@pytest.mark.parametrize('kind',['unknown','inactive','sentinel'])
+@pytest.mark.parametrize('mode',['preview','commit'])
+def test_direct_commingled_receive_refuses_unregistered_secondary(client,db_cursor,items,actors,rules,kind,mode):
+    name='Secondary '+uuid4().hex
+    if kind!='unknown':
+        if kind=='sentinel':name='UNKNOWN'
+        db_cursor.execute('INSERT INTO suppliers(name,active) VALUES (%s,%s)',(name,kind=='sentinel'))
+    primary='Primary '+uuid4().hex
+    db_cursor.execute('INSERT INTO suppliers(name) VALUES (%s)',(primary,))
+    db_cursor.execute('SELECT count(*) AS n FROM transactions');before=db_cursor.fetchone()['n']
+    data=dict(mode=mode,product_name=items['ingredient']['name'],shipper_name=primary,cases=1,case_size_lb=50,bol_reference='TEST',supplier_lot_code='SUP-1',supplier_lot_entries=[dict(supplier_name=name,supplier_lot_code='SUP-2',quantity_lb=50)])
+    response=client.post('/receive',json=data,headers=headers(actors['owner']['key']))
+    error(response,422,'SUPPLIER_REQUIRED')
+    db_cursor.execute('SELECT count(*) AS n FROM transactions');assert db_cursor.fetchone()['n']==before
+
+
+def test_marker_off_and_migration_leave_old_reason_policy_unchanged(db_cursor):
+    import exceptions_enforcement as policy
+    db_cursor.execute("DELETE FROM migration_markers WHERE name='098_no_stock_by_hand'")
+    def catalog():
+        db_cursor.execute('SELECT * FROM correction_reasons ORDER BY code');return [dict(r) for r in db_cursor.fetchall()]
+    before=catalog()
+    def answers(module):
+        return [module._valid_reasons(db_cursor,'adjust',delta_lb=delta,destinations=True) for delta in (-1,0,1,None)]
+    original=answers(policy)
+    assert policy.resolve_reason(db_cursor,'adjust','missing_receipt',delta_lb=1)['code']=='missing_receipt'
+    sql=(ROOT/'migrations/098_no_stock_by_hand.sql').read_text()
+    db_cursor.execute(sql);db_cursor.execute(sql)
+    assert catalog()==before
+    with pytest.raises(main.HTTPException) as refused:
+        policy.resolve_reason(db_cursor,'adjust','missing_receipt',delta_lb=1)
+    assert refused.value.detail['error_code']=='USE_RECEIVE'
+    live=policy._valid_reasons(db_cursor,'adjust',delta_lb=1,destinations=True)
+    assert {r['code'] for r in live}=={'physical_count','missing_production','wrong_lot','data_entry_error'}
+    db_cursor.execute("DELETE FROM migration_markers WHERE name='098_no_stock_by_hand'")
+    assert answers(policy)==original
+    db_cursor.execute(sql)
+    db_cursor.execute((ROOT/'migrations/down/098_no_stock_by_hand_down.sql').read_text())
+    assert catalog()==before and answers(policy)==original
+
+
+def test_disabled_session_route_keeps_404_before_auth(client,monkeypatch):
+    monkeypatch.setenv('KEY_SESSIONS_ENABLED','0')
+    assert client.post('/auth/session/logout',headers=headers(main.API_KEY)).status_code==404
+
+
+def test_normal_make_pack_and_count_down_with_marker(client,db_cursor,items,actors,rules):
+    key=actors['floor']['key']
+    for action in ('make','pack'):
+        posted=commit(client,prepare(client,action,body(action,items),key),key)
+        assert posted.status_code==200,posted.text
+    posted=commit(client,prepare(client,'adjust',adjust(items,-1,'damaged_thrown_out'),key),key)
+    assert posted.status_code==200,posted.text
+
+
+@pytest.mark.parametrize('action',['ship_order','ship_standalone','ship_bulk'])
+def test_normal_ship_with_marker(client,db_cursor,shipping,actors,rules,action,tmp_path,monkeypatch):
+    monkeypatch.setenv('EVIDENCE_STORAGE_DIR',str(tmp_path/'evidence'))
+    key=actors['office']['key'];photo=upload_ship(client,key)
+    draft=prepare_ship(client,shipping,key,action,attachment_ids=[photo['id']])
+    assert draft['can_commit'],draft
+    posted=commit(client,draft,key)
+    assert posted.status_code==200,posted.text
+    assert main.lot_on_hand(db_cursor,shipping['lot_id'])==1950
+
+
+@pytest.mark.parametrize('route,existing',[
+    ('/inventory/found',False),('/inventory/found',True),
+    ('/inventory/found/prepare',False),('/inventory/found/prepare',True),
+    ('/inventory/found-with-new-product',False)])
+def test_found_wrong_lot_always_requires_net_zero_pair(client,db_cursor,items,actors,rules,route,existing):
+    def snapshot():
+        rows=[]
+        for table in ('products','lots','transactions','transaction_lines','write_tickets','exceptions'):
+            db_cursor.execute('SELECT count(*) AS n FROM '+table);rows.append(db_cursor.fetchone()['n'])
+        return rows
+    before=snapshot()
+    data=dict(quantity=3,reason_code='wrong_lot',notes='The other tag was used')
+    if route.endswith('with-new-product'):
+        data.update(product_name='Wrong lot '+uuid4().hex,product_type='ingredient')
+    else:
+        data['product_id']=items['ingredient']['id']
+    if existing:data['lot_code']=items['ingredient']['lot_code']
+    response=client.post(route,json=data,headers=headers(actors['owner']['key']))
+    error(response,422,'PAIRED_MOVE_REQUIRED')
+    assert snapshot()==before
+
+
+def test_nightly_review_includes_unnamed_and_keeps_existing_checks(client,db_cursor,items,actors,rules,monkeypatch):
+    from datetime import timedelta
+    import reconciliation
+    # Explicit emergency fallback only: the default shutdown is proved separately.
+    monkeypatch.setenv('SHARED_KEY_WRITES','allow')
+    posted=client.post('/inventory/found',json=dict(product_id=items['ingredient']['id'],quantity=3,reason_code='physical_count'),headers=headers(main.API_KEY))
+    assert posted.status_code==200,posted.text
+    now=main.get_plant_now()
+    report=reconciliation.analyse(reconciliation.load_window(db_cursor,now-timedelta(hours=1),now+timedelta(minutes=1),reconstruct=True))
+    flags=[flag for flag in report['flags'] if flag['transaction_id']==posted.json()['transaction_id']]
+    [addition]=[flag for flag in flags if flag['kind']=='INGREDIENT_HAND_ADDITION']
+    assert 'legacy-shared-key' in addition['detail']['message'] and 'physical_count' in addition['detail']['message']
+    assert posted.json()['lot_code'] in addition['detail']['message']
+    assert any(flag['kind']=='UNEXPLAINED_ADJUSTMENT' and flag['detail']['no_named_person'] for flag in flags)

@@ -4,7 +4,12 @@
   const content=document.getElementById('content'),draft=document.getElementById('resolution');
   const actions=[['receive','Receive','Recibir'],['adjust','Adjust','Ajustar'],['found','Found inventory','Inventario encontrado'],['make','Make','Producir'],['pack','Pack','Empacar'],['ship','Ship','Enviar']];
   const reasonLabels=ui.correctionReasons;
-  let stockRules=false;
+  let stockRules=false,stockRulesRequest=null;
+  async function loadStockRules(){
+    if(!['receive','adjust','found'].includes(action))return;
+    if(!stockRulesRequest)stockRulesRequest=ui.request('/entry/lots?rules_only=true',undefined,{read:true,background:true}).then(data=>{stockRules=!!data.no_stock_by_hand;}).catch(()=>{});
+    await stockRulesRequest;
+  }
   let controller=null,revision=0,syncOwnerControl=()=>{},makeCarry=null,makeKey=null,attemptId=null;
   // Make: lots, pounds and taps entered on a draft survive "Edit entry", Cancel and a
   // failed prepare; they are reused when the product and pans are unchanged.
@@ -49,7 +54,7 @@
     return {set(candidate,settings={}){clearTimeout(timer);generation++;value=candidate;input.value=candidate.label;ui.setText(status,ui.t('Selected: '+candidate.label,'Seleccionado: '+candidate.label));show([]);changed(candidate,settings);},get value(){return value;},id(){if(!value)throw ui.problem(ui.t('Choose '+en,'Elige '+es));return value.id;},clear(){input.value='';reset();},input};
   }
   function render(){if(!FLDashboard.writesEnabled)return;invalidate();makeCarry=null;makeKey=null;attemptId=newAttempt();content.replaceChildren();const toolbar=ui.el('div',undefined,content);toolbar.className='toolbar';
-    const l=ui.el('label',ui.t('Entry type','Tipo de entrada'),toolbar),select=ui.el('select',undefined,l);select.id='entry-action';actions.forEach(([v,en,es])=>{const o=ui.el('option',ui.t(en,es),select);o.value=v;});select.value=action;select.onchange=()=>{action=select.value;const url=new URL(location.href);url.searchParams.set('action',action);history.replaceState({},'',url);render();};
+    const l=ui.el('label',ui.t('Entry type','Tipo de entrada'),toolbar),select=ui.el('select',undefined,l);select.id='entry-action';actions.forEach(([v,en,es])=>{const o=ui.el('option',ui.t(en,es),select);o.value=v;});select.value=action;select.onchange=async()=>{action=select.value;invalidate();content.replaceChildren();const url=new URL(location.href);url.searchParams.set('action',action);history.replaceState({},'',url);await loadStockRules();render();};
     const form=ui.el('form',undefined,content);form.id='entry-form';form.className='panel';const fields=ui.el('div',undefined,form);fields.className='fields';const values={},choices={};
     function field(name,en,es,type='text',required=false,parent=fields){const label=ui.el('label',ui.t(en,es),parent),input=ui.el(type==='textarea'?'textarea':'input',undefined,label);input.name=name;if(type!=='textarea')input.type=type;input.required=required;if(type==='number')input.step='any';values[name]=input;return input;}
     function choose(name,en,es,kind='product',context,changed,parent=fields){return choices[name]=picker(parent,name,en,es,kind,context,changed);}
@@ -193,5 +198,5 @@
   }
   function syncTodayLink(){const link=document.getElementById('today-entries-link');if(link)link.href='receipt.html?view=today&lang='+ui.lang;}syncTodayLink();
   // Relabel in place: a language switch never clears the half-filled form or an open draft.
-  window.addEventListener('ledger-auth',()=>syncOwnerControl());window.addEventListener('ledger-language',()=>{ui.relabel();syncTodayLink();});window.addEventListener('ledger-signout',render);ui.ready.then(async on=>{if(on){try{stockRules=!!(await ui.request('/entry/lots?rules_only=true',undefined,{read:true,background:true})).no_stock_by_hand;}catch(_){}render();}}).catch(()=>{});
+  window.addEventListener('ledger-auth',()=>syncOwnerControl());window.addEventListener('ledger-language',()=>{ui.relabel();syncTodayLink();});window.addEventListener('ledger-signout',render);ui.ready.then(async on=>{if(on){await loadStockRules();render();}}).catch(()=>{});
 })();

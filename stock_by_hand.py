@@ -38,6 +38,16 @@ def receive(cur, req, product_id, lot_id=None):
                  'Cada entrega tiene su propio lote. Deja vacío el código de lote FL y FL crea uno nuevo.', 409)
 
 
+def require_paired_move(cur, product_id, delta, reason, *, paired=False):
+    """The wrong-lot rule also covers a new Found lot, unlike the give-back cap."""
+    reason = '_'.join(str(reason or '').lower().split())
+    if reason != 'wrong_lot' or paired or Decimal(str(delta)) <= 0:
+        return
+    if live_at(cur) and lot_confirmation.supplier_lot_identity_applies(cur, product_id):
+        fail('PAIRED_MOVE_REQUIRED', 'Choose the lot that was really used on the Adjust screen. FL moves the pounds between the two lots.',
+             'Elige el lote que se usó realmente en Ajustar. FL mueve las libras entre los dos lotes.')
+
+
 def addition(cur, product_id, lot_id, delta, *, count_to=None, reason=None, paired=False):
     """Return the allowance pounds to record atomically with the posting, or zero."""
     at = live_at(cur)
@@ -50,8 +60,7 @@ def addition(cur, product_id, lot_id, delta, *, count_to=None, reason=None, pair
     if reason == 'wrong_lot':
         if paired:
             return Decimal(0)
-        fail('PAIRED_MOVE_REQUIRED', 'Choose the lot that was really used on the Adjust screen. FL moves the pounds between the two lots.',
-             'Elige el lote que se usó realmente en Ajustar. FL mueve las libras entre los dos lotes.')
+        require_paired_move(cur, product_id, delta, reason)
     cur.execute("""SELECT COALESCE(sum(l.quantity_lb),0) AS lb
         FROM ledger_current_transaction_lines l JOIN ledger_current_transactions t ON t.id=l.transaction_id
         WHERE l.lot_id=%s AND t.effective_status='posted' AND t.type='adjust' AND t.created_at >= %s

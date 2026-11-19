@@ -316,8 +316,10 @@ def validate(api, cur, action, payload, lock=False, held=False, held_reason=None
         products.append(p)
         # A3b hook (R2/R3): fixed-list reason (the note is `notes`), no found stock
         # for a product with an open shortage, 500 lb review.
+        stock_by_hand.require_paired_move(cur, p['id'], payload['quantity'], payload['reason_code'])
         reason = a3b.resolve_reason(cur, 'found', payload['reason_code'], note=payload.get('notes') or payload.get('notes_es'),
                                     delta_lb=payload['quantity'], held_reason=held_reason)
+        stock_by_hand.require_paired_move(cur, p['id'], payload['quantity'], reason['code'])
         a3b.refuse_cover_up(cur, 'found', p['id'], None, payload['quantity'])
         fields = {k: v for k, v in payload.items()
                   if k not in ('specification', 'input_plan', 'existing_output_lot_id', 'attachment_ref')}

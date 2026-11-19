@@ -20,6 +20,7 @@ function harness(search = '') {
   const els = new Map(), events = new Map(), calls = [];
   const get = id => { if (!els.has(id)) els.set(id, element(id)); return els.get(id); };
   const ui = { bind() {}, ready: Promise.resolve(true), session: { token: 'fls_test-startup', actor: { id: 7 } },
+    adjustReasons: require('../dashboard/ledger-ui.js').adjustReasons,
     problem: value => Error(String(value)),
     setText: (node, value) => { node.textContent = String(value); },
     t: en => en, el: (tag, value, parent) => { const node = element(tag); if (value !== undefined) node.textContent = String(value); parent?.append(node); return node; },
@@ -104,4 +105,23 @@ for (const savedChat of [true, false]) test(`Assistant automatic ${savedChat ? '
 
 for(const language of ['en','es'])test(`receipt lookup puts the CNS code and pallet-tag instruction before receipt number in ${language}`,async()=>{
  const h=harness('?number=RCV-261021-001'),ledger=require('../dashboard/ledger-ui.js');h.ui.lang=language;h.ui.receiveLotHtml=receipt=>{ledger.lang=language;return ledger.receiveLotHtml(receipt);};h.ui.request=async()=>({action:'receive',receipt_number:'RCV-261021-001',status:'committed',lot_code:'26-10-21-OATS-001',supplier_lot_code:'SUP-22',transactions:[]});h.run('receipt.js');await settle();const card=h.get('content').children[0];assert.match(card.children[0].innerHTML,/class="receive-lot-code">26-10-21-OATS-001/);assert.match(card.children[0].innerHTML,language==='en'?/>Write this on the pallet tag</:/>Escribe esto en la etiqueta del pallet</);assert.equal(card.children[1].textContent,'RCV-261021-001');
+});
+
+
+test('stock-rule lookup is a background read only for stock entry screens', async () => {
+  for (const action of ['receive','adjust','found','make','pack']) {
+    const h=harness('?action='+action); h.run('entry.js'); await settle();
+    const reads=h.calls.filter(call=>call.pathname==='/entry/lots?rules_only=true');
+    assert.equal(reads.length,['receive','adjust','found'].includes(action)?1:0);
+    assert.ok(reads.every(call=>call.options.read && call.options.background));
+  }
+  const h=harness('?action=ship&order=17');h.run('entry.js');await settle();
+  for(const action of ['receive','make','adjust']){
+    const select=descendants(h.get('content')).find(node=>node.id==='entry-action');
+    select.value=action;await select.onchange();await settle();
+    assert.equal(descendants(h.get('content')).find(node=>node.id==='entry-action').value,action);
+  }
+  const reads=h.calls.filter(call=>call.pathname==='/entry/lots?rules_only=true');
+  assert.equal(reads.length,1,'switching from shipping loads stock rules once, then reuses them');
+  assert.ok(reads[0].options.read && reads[0].options.background);
 });
