@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-19 15:52 — Record passing real Chrome screens and completed JavaScript baseline
+- **File(s) changed:** `docs/validation/no-stock-by-hand-draft.md`
+- **What changed:** Update the four-screen Chrome PASS and origin/main JavaScript baseline (741 passed, 3 browser-executable failures).
+- **Why:** Keep the blocked draft validation record accurate after the completed rerun.
+
+---
+
 ## 2026-11-19 15:49 — Record rule-by-rule draft enforcement and unfinished validation
 - **File(s) changed:** `docs/validation/no-stock-by-hand-draft.md`
 - **What changed:** Document the exact compatibility proof, enforcement/test matrix, actual pass/fail counts and blocked cross-review.
