@@ -10,13 +10,14 @@ from uuid import uuid4
 import pytest
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 from tests.test_actor_attribution import client, actors  # noqa: F401
 from tests.test_write_tickets import commit, headers
 
 pytestmark = pytest.mark.db
 CUTOFF = "2026-11-20"
 CREATED = {"before": "2026-11-20 04:59:59+00", "after": "2026-11-20 05:00:00+00"}
-ROLES = ("owner", "office", "floor", "master", "dashboard", "owner_session", "office_session")
+ROLES = ("owner", "office", "floor", "dashboard", "owner_session", "office_session")
 CLOSE_PATHS = ("direct-preview", "direct-commit", "ticket")
 STATUS_PATHS = ("direct", "ticket")
 NOTE = "Michael confirmed the historical truck log"
@@ -669,7 +670,7 @@ def test_legacy_reopen_ticket_commit_rechecks_policy_without_mutation(client, db
     assert _snapshot(db_cursor, order["id"]) == before
 
 
-@pytest.mark.parametrize("role", ("master", "owner", "owner_session"))
+@pytest.mark.parametrize("role", ("owner", "owner_session"))
 @pytest.mark.parametrize("recorded", (False, True))
 @pytest.mark.parametrize("change", ("legacy_reason", "missing_note"))
 def test_ordinary_reopen_ticket_rechecks_new_legacy_reason(client, db_cursor, actors,

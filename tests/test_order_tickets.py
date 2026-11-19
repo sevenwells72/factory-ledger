@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 import pytest
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 import order_tickets
 import permissions
 import write_tickets as tickets
@@ -383,7 +384,7 @@ def test_status_invoiced_without_recorded_shipment_is_refused(client, db_cursor,
     order = create_order(client, catalog, office(actors))
     db_cursor.execute("UPDATE sales_orders SET status='shipped' WHERE id=%s", (order['order_id'],))
     base = f"/sales/orders/{order['order_id']}/status/prepare"
-    key = (main.API_KEY if which == 'master' else main.DASHBOARD_API_KEY if which == 'dashboard'
+    key = (NAMED_OWNER_KEY if which == 'master' else main.DASHBOARD_API_KEY if which == 'dashboard'
            else actors[which]['key'])
     if which == 'dashboard':
         refused = prepare_raw(client, base, {'status': 'invoiced'}, key)

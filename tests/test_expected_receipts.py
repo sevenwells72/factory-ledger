@@ -24,6 +24,7 @@ except Exception:  # pragma: no cover
     pytest.skip("fastapi/httpx not installed", allow_module_level=True)
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 
 
 class _ConnProxy:
@@ -61,7 +62,7 @@ def client(_db_connection, monkeypatch):
 
     monkeypatch.setattr(main, "get_db_connection", _fake_get_conn)
     with TestClient(main.app) as c:
-        c.headers["X-API-Key"] = main.API_KEY
+        c.headers["X-API-Key"] = NAMED_OWNER_KEY
         yield c
     _db_connection.rollback()
 
@@ -547,7 +548,7 @@ def test_created_by_is_caller_source_tag_never_a_fake_user_id(client, cur):
 
     # master key, no tag → NULL (not 'legacy-shared-key' or any placeholder)
     er = _create_er(client, pid, "CreatedBy Supply", 10)
-    assert er["created_by"] is None
+    assert er["created_by"] == "Test named owner"
 
     # master key + caller tag (what the office GPT schema defaults to)
     er = _create_er(client, pid, "CreatedBy Supply", 10, created_by="gpt-sales-admin")

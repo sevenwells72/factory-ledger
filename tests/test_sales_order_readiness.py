@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 
 
 class _ConnProxy:
@@ -44,7 +45,7 @@ def client(_db_connection, monkeypatch):
 
     monkeypatch.setattr(main, "get_db_connection", _fake_get_conn)
     with TestClient(main.app) as test_client:
-        test_client.headers["X-API-Key"] = main.API_KEY
+        test_client.headers["X-API-Key"] = NAMED_OWNER_KEY
         yield test_client
 
 

@@ -34,6 +34,7 @@ from fastapi.testclient import TestClient
 from psycopg2.extras import RealDictCursor
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 from tests.test_actor_attribution import actors  # noqa: F401  (DCC-001: named office writer)
 
 
@@ -92,7 +93,7 @@ KEYS = [
 
 
 def _headers(which):
-    key = main.DASHBOARD_API_KEY if which == "dashboard" else main.API_KEY
+    key = main.DASHBOARD_API_KEY if which == "dashboard" else NAMED_OWNER_KEY
     return {"X-API-Key": key}
 
 

@@ -25,6 +25,7 @@ from fastapi.testclient import TestClient
 from psycopg2.extras import RealDictCursor
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 from tests.test_actor_attribution import actors  # noqa: F401  (DCC-001: named writer)
 
 MIGRATION = Path(__file__).resolve().parent.parent / "migrations" / "051_sales_order_state_model.sql"
@@ -65,7 +66,7 @@ def client(_db_connection, monkeypatch):
 
     monkeypatch.setattr(main, "get_db_connection", _fake_get_conn)
     with TestClient(main.app) as test_client:
-        test_client.headers["X-API-Key"] = main.API_KEY
+        test_client.headers["X-API-Key"] = NAMED_OWNER_KEY
         yield test_client
 
 

@@ -29,6 +29,7 @@ from fastapi.testclient import TestClient
 from starlette.routing import Mount
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 from tests.test_actor_attribution import actors, client  # noqa: F401  (fixtures)
 from tests.test_readonly_tripwire import _ReadOnlyError, _make_raising_get_db_connection
 
@@ -54,12 +55,12 @@ def _key(key):
 
 
 def _master():
-    return _key(main.API_KEY)
+    return _key(NAMED_OWNER_KEY)
 
 
 def _create(client, key=None, **fields):
     body = {"category": "note", "title": "char " + uuid4().hex[:8], **fields}
-    resp = client.post(NOTES, json=body, headers=_key(key or main.API_KEY))
+    resp = client.post(NOTES, json=body, headers=_key(key or NAMED_OWNER_KEY))
     assert resp.status_code == 200, resp.text
     return resp.json()
 

@@ -19,6 +19,7 @@ import pytest
 from tests.conftest import scratch_database_prefix
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 import write_tickets as tickets
 from scripts.expire_tickets import expire
 from tests.test_actor_attribution import client, actors  # noqa: F401
@@ -44,7 +45,7 @@ def payload(db_cursor):
 
 
 def headers(key=None):
-    return {'X-API-Key': key or main.API_KEY}
+    return {'X-API-Key': key or NAMED_OWNER_KEY}
 
 
 def prepare(client, payload, key=None):
@@ -364,7 +365,7 @@ def test_backdated_plant_day_receipt_lists_on_both_days_and_filters(client, db_c
 
 @pytest.mark.parametrize('which', ['master', 'dashboard', 'floor', 'office'])
 def test_route_auth_matrix_and_attribution(client, db_cursor, payload, actors, which):
-    key = {'master': main.API_KEY, 'dashboard': main.DASHBOARD_API_KEY}.get(which)
+    key = {'master': NAMED_OWNER_KEY, 'dashboard': main.DASHBOARD_API_KEY}.get(which)
     key = key or actors[which]['key']
     if which == 'dashboard':
         # DCC-001: the public dashboard key reads receipts but never prepares or commits.

@@ -13,6 +13,7 @@ import pytest
 from fastapi import HTTPException
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 import ship_tickets
 from tests.test_released_by_attribution import client, _seed  # noqa: F401
 
@@ -23,7 +24,7 @@ def _commit(client, seeded, qty=10):
     return client.post(
         f"/sales/orders/{seeded['order_id']}/ship/commit",
         json={"lines": [{"line_id": seeded["line_id"], "quantity_lb": qty}]},
-        headers={"X-API-Key": main.API_KEY},
+        headers={"X-API-Key": NAMED_OWNER_KEY},
     )
 
 
@@ -54,7 +55,7 @@ def test_commit_returns_working_signed_link_and_still_ships(client, db_cursor, m
     assert (parts.scheme, parts.netloc, parts.path) == ("http", "testserver", f"/sales/orders/{seeded['order_id']}/packing-slip")
     query = parse_qs(parts.query)
     assert set(query) == {"receipt", "expires", "sig"} and query["receipt"] == [f"shipment-{sid}"]
-    assert main.API_KEY not in url and "key=" not in url
+    assert NAMED_OWNER_KEY not in url and "key=" not in url
     expires = int(query["expires"][0])
     assert before + 590 <= expires <= time.time() + 600
     assert datetime.fromisoformat(body["packing_slip_expires_at"]) == datetime.fromtimestamp(expires, timezone.utc)
@@ -107,12 +108,12 @@ def test_public_base_comes_from_configuration_not_the_host_header(client, db_cur
         monkeypatch.setenv(k, v)
     r = client.post(
         f"/sales/orders/{_seed(db_cursor)['order_id']}/ship/commit",
-        json={"ship_all": True}, headers={"X-API-Key": main.API_KEY, "Host": "evil.example"})
+        json={"ship_all": True}, headers={"X-API-Key": NAMED_OWNER_KEY, "Host": "evil.example"})
     assert r.status_code == 200, r.text
     assert r.json()["packing_slip_url"].startswith(expected)
 
 
 def test_preview_and_nothing_shipped_return_no_link(client, db_cursor):
     seeded = _seed(db_cursor, stock=0)
-    r = client.post(f"/sales/orders/{seeded['order_id']}/ship/preview", json={}, headers={"X-API-Key": main.API_KEY})
+    r = client.post(f"/sales/orders/{seeded['order_id']}/ship/preview", json={}, headers={"X-API-Key": NAMED_OWNER_KEY})
     assert r.status_code == 200 and "packing_slip_url" not in r.json()

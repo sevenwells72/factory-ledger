@@ -441,6 +441,7 @@ from datetime import date
 from fastapi.testclient import TestClient
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 
 
 class _ConnProxy:
@@ -480,7 +481,7 @@ def client(_db_connection, monkeypatch):
 
     monkeypatch.setattr(main, "get_db_connection", _fake_get_conn)
     with TestClient(main.app) as c:
-        c.headers["X-API-Key"] = main.API_KEY
+        c.headers["X-API-Key"] = NAMED_OWNER_KEY
         yield c
     _db_connection.rollback()
 
@@ -1630,7 +1631,7 @@ class TestAllowlistAndTripwire:
         monkeypatch.setattr(extraction, "extract_purchase_document",
                             lambda *a, **kw: {"extraction": dict(GOOD_EXTRACTION), "extraction_model": "m"})
         with TestClient(main.app, raise_server_exceptions=False) as c:
-            c.headers["X-API-Key"] = main.API_KEY
+            c.headers["X-API-Key"] = NAMED_OWNER_KEY
             c.storage_uploads = uploads
             yield c
 

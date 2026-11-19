@@ -4,6 +4,7 @@ from pathlib import Path
 import re
 import pytest
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 import key_sessions
 import device_pins
 from tests.test_actor_attribution import actors, client  # noqa: F401
@@ -191,7 +192,7 @@ def test_enrollment_needs_a_personal_key_session(client, actors):
     # Not from a PIN session, not with the personal key directly, not with shared keys.
     r = client.post('/auth/device/enroll', headers=headers(phone['session_token']), json=body)
     assert r.status_code == 403 and r.json()['detail']['error_code'] == 'PERSONAL_KEY_REQUIRED'
-    for key in [actors['floor']['key'], main.API_KEY, main.DASHBOARD_API_KEY]:
+    for key in [actors['floor']['key'], NAMED_OWNER_KEY, main.DASHBOARD_API_KEY]:
         assert client.post('/auth/device/enroll', headers=headers(key), json=body).status_code == 403
     assert client.post('/auth/device/enroll', json=body).status_code == 401
 
@@ -256,7 +257,7 @@ def test_owner_screen_lists_without_secrets_and_refuses_everyone_else(client, ac
     assert person['devices'][0]['status'] == 'active' and person['devices'][0]['label'] == 'Phone'
     assert client.get('/auth/devices', headers=headers(floor['session_token'])).json()['detail']['error_code'] == 'OWNER_REQUIRED'
     # The owner's personal key, the master (GPT) key and the dashboard key are not sessions.
-    for key in [actors['owner']['key'], main.API_KEY, main.DASHBOARD_API_KEY]:
+    for key in [actors['owner']['key'], NAMED_OWNER_KEY, main.DASHBOARD_API_KEY]:
         assert client.get('/auth/devices', headers=headers(key)).status_code == 403
 
 
@@ -317,7 +318,7 @@ def test_pin_switch_off_hides_routes_and_ends_phone_sessions_only(client, actors
     assert pin(client, phone['device_secret'], '4829').status_code == 404
     assert client.get('/auth/whoami', headers=headers(phone['session_token'])).status_code == 401
     assert client.get('/auth/whoami', headers=headers(personal)).status_code == 200
-    assert client.get('/auth/whoami', headers=headers(main.API_KEY)).json()['key_kind'] == 'legacy_ledger'
+    assert client.get('/auth/whoami', headers=headers(NAMED_OWNER_KEY)).json()['key_kind'] == 'legacy_ledger'
 
 
 def test_config_reports_pin_sign_in(client):
@@ -343,7 +344,7 @@ def test_migration_rerun_and_down_keep_personal_sessions(client, actors, db_curs
 def test_enrollment_asks_for_the_personal_key_again(client, actors, db_cursor):
     # A signed-in screen left open is not enough to add a phone.
     token = key_session(client, actors)
-    for wrong in ['not-my-key', actors['office']['key'], main.API_KEY]:
+    for wrong in ['not-my-key', actors['office']['key'], NAMED_OWNER_KEY]:
         r = client.post('/auth/device/enroll', headers=headers(token), json={'actor_key': wrong, 'pin': '4829', 'label': 'Phone'})
         assert r.status_code == 401 and r.json()['detail']['error_code'] == 'ACTOR_KEY_INVALID' and wrong not in r.text
     db_cursor.execute('SELECT count(*) AS n FROM key_devices WHERE actor_id=%s', (actors['floor']['id'],))

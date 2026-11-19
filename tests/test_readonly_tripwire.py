@@ -110,10 +110,12 @@ async def client():
 
 @pytest.fixture
 def api_key(monkeypatch):
-    """Ensure main.API_KEY is set (it normally comes from env at startup)."""
-    if not main.API_KEY:
-        monkeypatch.setattr(main, "API_KEY", "test-key")
-    return main.API_KEY or "test-key"
+    """The unit tests stub DB failures, so supply the named actor at the auth boundary."""
+    from tests.named_key import KEY, NAME
+    actor = {'id': 1, 'name': NAME, 'role': 'owner'}
+    monkeypatch.setattr(main, '_resolve_actor', lambda key: actor if key == KEY else None)
+    monkeypatch.setattr(main, '_touch_actor_last_used', lambda actor: None)
+    return KEY
 
 
 @pytest.fixture

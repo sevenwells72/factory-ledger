@@ -39,6 +39,7 @@ except ImportError:  # pragma: no cover
 from psycopg2.extras import RealDictCursor
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 
 
 LONG_NAME = "x" * 150      # > varchar(100) performed_by/adjusted_by columns
@@ -83,7 +84,7 @@ def client(_db_connection, monkeypatch):
 
     monkeypatch.setattr(main, "get_db_connection", _fake_get_conn)
     with TestClient(main.app) as c:
-        c.headers["X-API-Key"] = main.API_KEY
+        c.headers["X-API-Key"] = NAMED_OWNER_KEY
         yield c
     _db_connection.rollback()
 
@@ -309,7 +310,7 @@ def raw_client(monkeypatch):
 
     monkeypatch.setattr(main, "get_db_connection", _fake_get_conn)
     with TestClient(main.app) as c:
-        c.headers["X-API-Key"] = main.API_KEY
+        c.headers["X-API-Key"] = NAMED_OWNER_KEY
         yield c, conn
     conn.rollback()
     conn.close()

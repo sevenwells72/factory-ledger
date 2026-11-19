@@ -15,7 +15,7 @@ pytestmark = pytest.mark.db
 def role_key(actors, role):
     if role == 'dashboard':
         return main.DASHBOARD_API_KEY
-    return None if role == 'shared' else actors[role]['key']
+    return main.API_KEY if role == 'shared' else actors[role]['key']
 
 
 def receive_payload(cur, product_id):
@@ -206,6 +206,8 @@ def test_extra_found_legacy_refused_even_for_owner(client, db_cursor, items, act
     payload = found_payload(items, product_key)
     response = client.post('/inventory/found', json=payload, headers=headers(role_key(actors, role)))
     if role == 'shared':
+        error(response, 403, 'SHARED_KEY_READ_ONLY')
+    elif role == 'owner':
         error(response, 403, 'KOSHER_ATTESTATION_REQUIRED')
     else:
         # This legacy route already excludes named actor keys. The shared

@@ -14,6 +14,7 @@ from psycopg2.extras import RealDictCursor
 import pytest
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 import shift_summary
 import write_tickets as wt
 from scripts.exceptions_sweep import sweep
@@ -32,7 +33,7 @@ KEYS = [s[0] for s in shift_summary.SECTIONS]
 
 
 def summary(client, key=None, **params):
-    r = client.get('/reports/shift-summary', params=params, headers=headers(key))
+    r = client.get('/reports/shift-summary', params=params, headers=headers(key or main.API_KEY))
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -151,7 +152,7 @@ def test_unidentified_receive_flag_and_open_exception_rollup(client, db_cursor, 
     assert 'SIN IDENTIFICAR' in e['summary_es'] and ' lote ' in e['summary_es']
     # The owner does not own it: his summary lists no exception; the all-actors view lists every owner's.
     assert section(summary(client, actors['owner']['key']), 'open_exceptions')['rows'] == []
-    assert [e['exception_id'] for e in section(summary(client, main.API_KEY), 'open_exceptions')['rows']] == [exc['id']]
+    assert [e['exception_id'] for e in section(summary(client, NAMED_OWNER_KEY), 'open_exceptions')['rows']] == [exc['id']]
 
 
 def test_made_short_flag_balances_and_escalation_never_moves_the_hash(client, db_cursor, items, actors):
@@ -372,9 +373,9 @@ def test_rejected_ticket_with_a_receipt_number_is_not_a_receipt(client, db_curso
 
 
 def test_legacy_key_receipts_and_all_actors_view(client, db_cursor, actors):
-    result, payload, p = receive(client, db_cursor, main.API_KEY)
+    result, payload, p = receive(client, db_cursor, NAMED_OWNER_KEY)
     floor, _, _ = receive(client, db_cursor, actors['floor']['key'])
-    for key in (main.API_KEY, main.DASHBOARD_API_KEY):
+    for key in (NAMED_OWNER_KEY, main.DASHBOARD_API_KEY):
         doc = summary(client, key)
         assert doc['actor'] is None and doc['title_en'].endswith('— all') and doc['title_es'].endswith('— todos')
         assert doc['confirmation'] == {'status': 'unconfirmed', 'latest': None, 'can_confirm': False,
@@ -389,7 +390,7 @@ def test_legacy_key_receipts_and_all_actors_view(client, db_cursor, actors):
     named = summary(client, main.DASHBOARD_API_KEY, actor=actors['floor']['name'])
     assert named['actor']['id'] == actors['floor']['id'] and named['confirmation']['can_confirm'] is False
     assert [r['receipt_number'] for r in section(named, 'received')['rows']] == [floor['receipt_number']]
-    by_id = summary(client, main.API_KEY, actor=str(actors['floor']['id']))
+    by_id = summary(client, NAMED_OWNER_KEY, actor=str(actors['floor']['id']))
     assert by_id['summary_hash'] == named['summary_hash'] == summary(client, actors['floor']['key'])['summary_hash']
 
 
@@ -521,7 +522,7 @@ def test_confirm_yesterday_is_late_and_future_is_refused(client, db_cursor, acto
 # ---------------------------------------------------------------------------
 def test_permissions_matrix(client, db_cursor, actors):
     floor, owner, office = (actors[r]['key'] for r in ('floor', 'owner', 'office'))
-    error(confirm(client, main.API_KEY, summary(client, main.API_KEY)), 403, 'ACTOR_REQUIRED')
+    error(confirm(client, NAMED_OWNER_KEY, summary(client, NAMED_OWNER_KEY)), 403, 'ACTOR_REQUIRED')
     # DCC-001: the public dashboard key still reads the summary but is refused before any confirm.
     error(confirm(client, main.DASHBOARD_API_KEY, summary(client, main.DASHBOARD_API_KEY)), 403, 'DASHBOARD_KEY_READ_ONLY')
     error(client.get('/reports/shift-summary', params={'actor': actors['owner']['name']}, headers=headers(floor)), 403, 'ACTOR_NOT_ALLOWED')
@@ -530,7 +531,7 @@ def test_permissions_matrix(client, db_cursor, actors):
     assert summary(client, owner, actor=actors['floor']['name'])['actor']['id'] == actors['floor']['id']
     assert summary(client, office, actor=str(actors['floor']['id']))['actor']['id'] == actors['floor']['id']
     assert summary(client, owner, actor=actors['retired']['name'])['actor']['id'] == actors['retired']['id']
-    for key in (floor, owner, main.API_KEY, main.DASHBOARD_API_KEY):
+    for key in (floor, owner, NAMED_OWNER_KEY, main.DASHBOARD_API_KEY):
         error(client.get('/reports/shift-summary', params={'actor': 'nobody ' + uuid4().hex}, headers=headers(key)), 422, 'ACTOR_UNKNOWN')
         error(client.get('/reports/shift-summary', params={'actor': '999999999'}, headers=headers(key)), 422, 'ACTOR_UNKNOWN')
     assert client.get('/reports/shift-summary', headers=headers('not-a-key')).status_code == 403

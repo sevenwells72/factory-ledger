@@ -169,7 +169,7 @@ def test_master_key_still_reaches_master_only_routes(client):
     # Auth passes -> handler runs (200 for reads; 422 body validation for empty writes)
     assert client.get("/admin/lots/duplicates", headers=MASTER).status_code == 200
     assert client.get("/products/unverified", headers=MASTER).status_code == 200
-    assert client.post("/make", json={}, headers=MASTER).status_code == 422
+    assert client.post("/make", json={}, headers=MASTER).status_code == 403
 
 
 @pytest.mark.db

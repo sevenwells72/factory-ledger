@@ -42,6 +42,7 @@ from psycopg2 import errors as pg_errors
 from psycopg2.extras import RealDictCursor
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 
 ROOT = Path(__file__).resolve().parent.parent
 SCHEMA = ROOT / "tests" / "schema" / "schema.sql"
@@ -100,7 +101,7 @@ def client(_db_connection, monkeypatch):
 
     monkeypatch.setattr(main, "get_db_connection", _fake_get_conn)
     with TestClient(main.app) as c:
-        c.headers["X-API-Key"] = main.API_KEY
+        c.headers["X-API-Key"] = NAMED_OWNER_KEY
         yield c
     _db_connection.rollback()
 

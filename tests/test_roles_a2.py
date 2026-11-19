@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 import pytest
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 import permissions
 import ticket_actions
 import write_tickets
@@ -77,7 +78,7 @@ def identity_for(role):
 
 
 def key_for(which, actors):
-    return {'legacy_ledger': main.API_KEY, 'legacy_dashboard': main.DASHBOARD_API_KEY}.get(which) or actors[which]['key']
+    return {'legacy_ledger': NAMED_OWNER_KEY, 'legacy_dashboard': main.DASHBOARD_API_KEY}.get(which) or actors[which]['key']
 
 
 def real_shift(moment, **delta):
@@ -497,7 +498,7 @@ def test_close_shipped_not_recorded_is_owner_only_on_the_direct_route(client, db
     order = seed_order(db_cursor)
     path = f"/sales/orders/{order['order_id']}/close"
     body_ = {'reason': 'shipped_not_recorded', 'note': 'Historical truck log', 'mode': 'commit'}
-    for key in (actors['office']['key'], main.API_KEY):
+    for key in (actors['office']['key'], NAMED_OWNER_KEY):
         response = client.post(path, json=body_, headers=headers(key))
         error(response, 403, 'ROLE_NOT_ALLOWED')
         assert response.json()['detail']['action'] == 'close_order_shipped_not_recorded'
@@ -526,7 +527,7 @@ def test_shared_keys_keep_their_legacy_reach_on_direct_routes(client, db_cursor,
     """Only the master key keeps today's reach until A10; the gate is for named actors."""
     assert permissions.require_route(('POST', '/make'), {'key_kind': 'legacy_ledger'}) is None
     assert permissions.require_route(('POST', '/sales/orders/{order_id}/cancel'), {'key_kind': 'legacy_dashboard'}) is None
-    response = client.post('/make', json=LEGACY_BODIES['make'](items), headers=headers(main.API_KEY))
+    response = client.post('/make', json=LEGACY_BODIES['make'](items), headers=headers(NAMED_OWNER_KEY))
     assert response.status_code == 200, response.text
     # DCC-001: the public dashboard key no longer has write reach in either mode.
     error(client.post('/sales/orders/1/cancel', json={}, headers=headers(main.DASHBOARD_API_KEY)), 403, 'DASHBOARD_KEY_READ_ONLY')

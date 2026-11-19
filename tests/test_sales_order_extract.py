@@ -450,6 +450,7 @@ from contextlib import contextmanager
 from fastapi.testclient import TestClient
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 
 
 class _ConnProxy:
@@ -489,7 +490,7 @@ def client(_db_connection, monkeypatch):
 
     monkeypatch.setattr(main, "get_db_connection", _fake_get_conn)
     with TestClient(main.app) as c:
-        c.headers["X-API-Key"] = main.API_KEY
+        c.headers["X-API-Key"] = NAMED_OWNER_KEY
         yield c
     _db_connection.rollback()
 
@@ -1137,7 +1138,7 @@ class TestSalesApprovalAdvisoryLock:
                     hc.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", (LOCK_KEY % cust_id,))
 
                 with TC(main.app) as tc:
-                    tc.headers["X-API-Key"] = main.API_KEY
+                    tc.headers["X-API-Key"] = NAMED_OWNER_KEY
 
                     def _approve(doc_id):
                         r = tc.post("/sales/orders/extract/approve", json=_approve_payload(
@@ -1265,7 +1266,7 @@ class TestSalesAllowlistAndTripwire:
         monkeypatch.setattr(main, "storage_upload_purchase_document",
                             lambda *a, **kw: uploads.append(a))
         with TestClient(main.app, raise_server_exceptions=False) as c:
-            c.headers["X-API-Key"] = main.API_KEY
+            c.headers["X-API-Key"] = NAMED_OWNER_KEY
             c.storage_uploads = uploads
             yield c
 

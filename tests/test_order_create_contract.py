@@ -10,6 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 from tests.test_sales_order_line_fields import client  # noqa: F401
 from tests.test_named_actor_writes import named_actors  # noqa: F401
 
@@ -429,7 +430,7 @@ def test_concurrent_requests_commit_exactly_one_order(_db_connection, monkeypatc
     try:
         with TestClient(main.app) as http:
             with ThreadPoolExecutor(max_workers=2) as executor:
-                futures = [executor.submit(http.post, '/sales/orders', json=body, headers={'X-API-Key': main.API_KEY})
+                futures = [executor.submit(http.post, '/sales/orders', json=body, headers={'X-API-Key': NAMED_OWNER_KEY})
                            for body in (first, second)]
                 responses = [f.result(timeout=20) for f in futures]
         assert sorted(r.status_code for r in responses) == ([200, 200] if mode == 'same' else [200, 409]), [r.text for r in responses]

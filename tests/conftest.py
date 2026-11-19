@@ -138,7 +138,8 @@ def reference_seed_sql():
     end = text.index("-- 3. transactions.reason_code")
     section = text[start:end]
     assert "correction_reason_legacy_codes" in section
-    return section
+    from tests.named_key import SEED_SQL
+    return section + "\n" + SEED_SQL
 
 
 def _seed_reference_data(url):
@@ -195,3 +196,13 @@ def db_cursor(_db_connection):
     finally:
         cur.execute("ROLLBACK TO SAVEPOINT test_savepoint")
         cur.close()
+
+
+@pytest.fixture(autouse=True)
+def _isolate_actor_snapshot():
+    # Default HTTP work now uses an actor key. A cache from another rolled-back
+    # test or disposable database must not authenticate (or reject) that key.
+    import main
+    main._reset_actor_cache()
+    yield
+    main._reset_actor_cache()

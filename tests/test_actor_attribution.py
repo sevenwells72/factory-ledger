@@ -114,11 +114,17 @@ def actors(db_cursor):
     for label, role, active in seeds:
         name = f"ACT {label} {token}"
         key = f"actor-key-{label}-{token}"
-        db_cursor.execute(
-            "INSERT INTO actors (name, role, key_hash, active) "
-            "VALUES (%s, %s, %s, %s) RETURNING id",
-            (name, role, sha256(key.encode()).hexdigest(), active),
-        )
+        if label == 'owner':
+            from tests.named_key import KEY
+            key = KEY
+            db_cursor.execute('UPDATE actors SET name=%s WHERE key_hash=%s RETURNING id',
+                              (name, sha256(key.encode()).hexdigest()))
+        else:
+            db_cursor.execute(
+                "INSERT INTO actors (name, role, key_hash, active) "
+                "VALUES (%s, %s, %s, %s) RETURNING id",
+                (name, role, sha256(key.encode()).hexdigest(), active),
+            )
         made[label] = {
             "id": db_cursor.fetchone()["id"],
             "name": name,
@@ -162,7 +168,7 @@ def client(db_cursor, monkeypatch):
 MASTER, DASHBOARD, ACTOR = "master", "dashboard", "actor"
 
 ALL_KEYS = [
-    pytest.param(MASTER, id="master-key"),
+    pytest.param(MASTER, id="named-owner-key"),
     pytest.param(DASHBOARD, id="dashboard-key"),
     pytest.param(ACTOR, id="actor-key"),
 ]
@@ -172,7 +178,7 @@ ALL_KEYS = [
 # tests cover the master and personal keys; the dashboard key's refusal on the
 # same routes is test_public_dashboard_key_writes_nothing_on_attributed_routes.
 WRITE_KEYS = [
-    pytest.param(MASTER, id="master-key"),
+    pytest.param(MASTER, id="named-owner-key"),
     pytest.param(ACTOR, id="actor-key"),
 ]
 
@@ -185,7 +191,7 @@ ACTOR_LABEL = "floor"
 
 def _headers(which, actors, label=ACTOR_LABEL):
     if which == MASTER:
-        return {"X-API-Key": main.API_KEY}
+        return {"X-API-Key": actors["owner"]["key"]}
     if which == DASHBOARD:
         return {"X-API-Key": main.DASHBOARD_API_KEY}
     return {"X-API-Key": actors[label]["key"]}
@@ -193,7 +199,7 @@ def _headers(which, actors, label=ACTOR_LABEL):
 
 def _expected(which, actors, label=ACTOR_LABEL):
     if which == MASTER:
-        return None
+        return actors["owner"]["name"]
     if which == DASHBOARD:
         return "dashboard"
     return actors[label]["name"]
@@ -462,7 +468,7 @@ def test_ready_flag_records_the_actor(client, db_cursor, actors, which):
         assert row["ready_by"] == actors[ACTOR_LABEL]["name"]
     else:
         # Untouched legacy behaviour: the body's `by`, defaulting to 'floor'.
-        assert row["ready_by"] == "floor"
+        assert row["ready_by"] == actors["owner"]["name"]
 
 
 @pytest.mark.db
@@ -754,7 +760,7 @@ def test_body_changed_by_still_wins_for_the_master_key(client, db_cursor, actors
     assert resp.status_code == 200, resp.text
 
     order = _state_changed_by(db_cursor, seeded["order_id"])
-    assert order["state_changed_by"] == "gpt-sales-admin"
+    assert order["state_changed_by"] == actors["owner"]["name"]
 
 
 @pytest.mark.db
@@ -981,7 +987,7 @@ def test_whoami_for_the_dashboard_key(client, actors):
 
 @pytest.mark.db
 def test_whoami_for_the_master_key(client, actors):
-    resp = client.get("/auth/whoami", headers=_headers(MASTER, actors))
+    resp = client.get("/auth/whoami", headers={"X-API-Key": main.API_KEY})
     assert resp.status_code == 200, resp.text
     body = resp.json()
     assert (body["actor"], body["key_kind"]) == (None, "legacy_ledger")
@@ -1280,7 +1286,7 @@ def test_a_slow_FAILING_load_is_not_retried(client, actors, monkeypatch):
     assert loads == [0], f"a failed load must not be retried (attempts: {len(loads)})"
 
     # ...and the legacy keys are untouched by any of it.
-    assert client.get("/auth/whoami", headers=_headers(MASTER, actors)).status_code == 200
+    assert client.get("/auth/whoami", headers={"X-API-Key": main.API_KEY}).status_code == 200
     assert client.get("/auth/whoami", headers=_headers(DASHBOARD, actors)).status_code == 200
 
 
@@ -1535,7 +1541,7 @@ def test_legacy_keys_never_touch_the_actors_table(client, actors):
     absence, or a failed load."""
     main._reset_actor_cache()
     for which in (MASTER, DASHBOARD):
-        resp = client.get("/auth/whoami", headers=_headers(which, actors))
+        resp = client.get("/auth/whoami", headers={"X-API-Key": main.API_KEY} if which == MASTER else _headers(which, actors))
         assert resp.status_code == 200, resp.text
         assert resp.json()["actor"] is None
     assert main._actor_cache_loads == 0, (
@@ -1553,7 +1559,7 @@ def test_a_failed_actor_load_degrades_to_pre_fr15_behaviour(client, actors, monk
     main._reset_actor_cache()
     monkeypatch.setattr(main, "_load_actors", _boom)
 
-    assert client.get("/auth/whoami", headers=_headers(MASTER, actors)).status_code == 200
+    assert client.get("/auth/whoami", headers={"X-API-Key": main.API_KEY}).status_code == 200
     assert client.get("/auth/whoami", headers=_headers(DASHBOARD, actors)).status_code == 200
     resp = client.get("/auth/whoami", headers=_headers(ACTOR, actors))
     assert resp.status_code == 403, "no actor is resolvable, so the key is unknown"

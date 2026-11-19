@@ -16,6 +16,7 @@ from psycopg2.extras import RealDictCursor
 from starlette.routing import Match
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -56,7 +57,7 @@ def remediation_client(_db_connection, monkeypatch):
 
     monkeypatch.setattr(main, "get_db_connection", _fake_get_conn)
     with TestClient(main.app) as client:
-        client.headers["X-API-Key"] = main.API_KEY
+        client.headers["X-API-Key"] = NAMED_OWNER_KEY
         yield client
     _db_connection.rollback()
 
