@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict 0ACx7zU27PGugOHjikHbXNPA5ebXlzHlJfHQtYhC7JsiTYnT89tPsR0rdvRJ1zg
+\restrict k3kynlX1Al32KqME7duiMGuj41NDGOf3cfDPeRQT5lD94TybfeeaV8pTHX7TZvC
 
 -- Dumped from database version 17.6
 -- Dumped by pg_dump version 17.10 (Homebrew)
@@ -612,6 +612,48 @@ ALTER SEQUENCE public.actors_id_seq OWNED BY public.actors.id;
 
 
 --
+-- Name: adjustment_alerts; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.adjustment_alerts (
+    id bigint NOT NULL,
+    transaction_id integer NOT NULL,
+    action text NOT NULL,
+    lb numeric(14,4) NOT NULL,
+    queued_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    idempotency_key text DEFAULT ('fl-adjustment-alert/'::text || (gen_random_uuid())::text) NOT NULL,
+    message jsonb,
+    status text DEFAULT 'pending'::text NOT NULL,
+    attempts integer DEFAULT 0 NOT NULL,
+    last_attempt_at timestamp with time zone,
+    last_error text,
+    unconfirmed_since timestamp with time zone,
+    sent_at timestamp with time zone,
+    email_to text,
+    provider_id text,
+    CONSTRAINT adjustment_alerts_action_check CHECK ((action = ANY (ARRAY['adjust'::text, 'found'::text]))),
+    CONSTRAINT adjustment_alerts_attempts_check CHECK ((attempts >= 0)),
+    CONSTRAINT adjustment_alerts_key_fits_resend CHECK (((char_length(idempotency_key) >= 1) AND (char_length(idempotency_key) <= 256))),
+    CONSTRAINT adjustment_alerts_sent_needs_time CHECK (((status = 'sent'::text) = (sent_at IS NOT NULL))),
+    CONSTRAINT adjustment_alerts_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'sent'::text, 'unconfirmed'::text])))
+);
+
+
+--
+-- Name: adjustment_alerts_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+ALTER TABLE public.adjustment_alerts ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.adjustment_alerts_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
 -- Name: adjustment_reason_codes; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -941,11 +983,18 @@ CREATE TABLE public.correction_reasons (
     active boolean DEFAULT true NOT NULL,
     sort_order smallint NOT NULL,
     created_at timestamp with time zone DEFAULT clock_timestamp() NOT NULL,
+    removal_allowed boolean DEFAULT false NOT NULL,
+    removal_destination boolean DEFAULT false NOT NULL,
+    sales_order_required boolean DEFAULT false NOT NULL,
     CONSTRAINT correction_reasons_adjust_sign_check CHECK ((adjust_sign = ANY (ARRAY['any'::text, 'positive'::text, 'negative'::text]))),
     CONSTRAINT correction_reasons_applies_to_check CHECK (((cardinality(applies_to) > 0) AND (applies_to <@ ARRAY['adjust'::text, 'found'::text, 'void'::text, 'rename_lot'::text, 'update_supplier_lot'::text, 'resolve_exception'::text]))),
     CONSTRAINT correction_reasons_code_check CHECK ((code ~ '^[a-z][a-z0-9_]{1,39}$'::text)),
+    CONSTRAINT correction_reasons_destination_is_allowed CHECK (((NOT removal_destination) OR removal_allowed)),
+    CONSTRAINT correction_reasons_destination_removes CHECK (((NOT removal_destination) OR ((adjust_sign = 'negative'::text) AND ('adjust'::text = ANY (applies_to))))),
     CONSTRAINT correction_reasons_label_en_check CHECK ((btrim(label_en) <> ''::text)),
-    CONSTRAINT correction_reasons_label_es_check CHECK ((btrim(label_es) <> ''::text))
+    CONSTRAINT correction_reasons_label_es_check CHECK ((btrim(label_es) <> ''::text)),
+    CONSTRAINT correction_reasons_order_needs_destination CHECK (((NOT sales_order_required) OR removal_destination)),
+    CONSTRAINT correction_reasons_removal_can_remove CHECK (((NOT removal_allowed) OR ((adjust_sign <> 'positive'::text) AND ('adjust'::text = ANY (applies_to)))))
 );
 
 
@@ -4072,6 +4121,30 @@ ALTER TABLE ONLY public.actors
 
 
 --
+-- Name: adjustment_alerts adjustment_alerts_idempotency_key_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.adjustment_alerts
+    ADD CONSTRAINT adjustment_alerts_idempotency_key_key UNIQUE (idempotency_key);
+
+
+--
+-- Name: adjustment_alerts adjustment_alerts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.adjustment_alerts
+    ADD CONSTRAINT adjustment_alerts_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: adjustment_alerts adjustment_alerts_transaction_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.adjustment_alerts
+    ADD CONSTRAINT adjustment_alerts_transaction_id_key UNIQUE (transaction_id);
+
+
+--
 -- Name: adjustment_reason_codes adjustment_reason_codes_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -4996,6 +5069,13 @@ ALTER TABLE ONLY public.write_tickets
 --
 
 CREATE INDEX actor_write_audit_target_idx ON public.actor_write_audit USING btree (target_table, target_id, id);
+
+
+--
+-- Name: adjustment_alerts_pending_idx; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX adjustment_alerts_pending_idx ON public.adjustment_alerts USING btree (id) WHERE (status = 'pending'::text);
 
 
 --
@@ -7836,6 +7916,12 @@ ALTER TABLE ONLY public.write_tickets
 ALTER TABLE public.actor_write_audit ENABLE ROW LEVEL SECURITY;
 
 --
+-- Name: adjustment_alerts; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.adjustment_alerts ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: assistant_attachment_links; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
@@ -8049,5 +8135,5 @@ ALTER TABLE public.write_tickets ENABLE ROW LEVEL SECURITY;
 -- PostgreSQL database dump complete
 --
 
-\unrestrict 0ACx7zU27PGugOHjikHbXNPA5ebXlzHlJfHQtYhC7JsiTYnT89tPsR0rdvRJ1zg
+\unrestrict k3kynlX1Al32KqME7duiMGuj41NDGOf3cfDPeRQT5lD94TybfeeaV8pTHX7TZvC
 
