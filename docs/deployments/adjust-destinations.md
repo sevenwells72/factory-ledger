@@ -7,7 +7,9 @@ Owner decision 2026-11-18. Code: `exceptions_enforcement.py`, `adjustment_alerts
 **Status: LIVE IN PRODUCTION since 2026-11-19.** PR #225 squash-merged to main `c267b64` (13:42 ET); migration 096
 applied to production at 13:42:20 ET after a verified backup (`~/Backups/fl/2026-11-19-pre-096`); `RESEND_API_KEY`
 and `ALERT_EMAIL_TO` set on the FastAPI service as references to the `exceptions-sweep` values (step 4 below).
-Staging was skipped by the owner: migration 096 is **not** applied to staging. Record: changelog row 307.
+Staging was skipped by the owner before the production release. Migration 096 was applied to staging afterwards,
+on 2026-11-19 at 14:33:13 ET (owner's instruction), with the same checks as production; staging has no Resend
+settings, so an alert queued there stays `pending`. Records: changelog rows 307 (production) and 309 (staging).
 
 ## What changes
 

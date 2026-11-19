@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-11-19 14:43 — Staging record for migration 096 renumbered to changelog row 309
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/adjust-destinations.md`
+- **What changed:** Rebased the staging record (PR 231) onto main af71d52. PR 230, merged while this record was open, took changelog row 308, so the staging row for migration 096 is now row 309 and the deployment doc points to 309. The earlier log entry headed '(changelog row 308)' refers to this same record. No other text changed.
+- **Why:** Two sessions picked row 308 at the same time; row numbers must be unique.
+
+---
+
+## 2026-11-19 14:36 — Record staging apply of migration 096 (changelog row 308)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/adjust-destinations.md`
+- **What changed:** Migration 096_adjust_destinations applied to the staging database on 2026-11-19 at 14:33:13 ET over port 5432 in one transaction, on the owner's instruction, with the same in-transaction checks as production (13 reasons, 7 removal_allowed, 5 destinations, 2 retired, adjustment_alerts empty with RLS on, marker present). Added changelog row 308 and updated the staging sentence in the deployment doc status. Staging services have no Resend settings, so alerts queued there stay pending. Production not touched.
+- **Why:** Row 307 and the deployment doc on main said staging did not have 096; that is no longer true.
+
+---
+
 ## 2026-11-19 14:33 — Record the old-make-route block (production + staging setting) and sunflower lot notes 22-24 (changelog row 308)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added changelog row 308: LEGACY_MAKE_COMMIT=block set and verified on FastAPI-staging and FastAPI (production) on 2026-11-19, with deployment ids and the checks run; dashboard notes 22, 23, 24 posted to production on sunflower lots 941 and 1398 (supplier return never recorded, opening lot assigned by rule, recall rule for supplier lot 90717). Docs only
