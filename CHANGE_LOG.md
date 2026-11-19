@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-19 14:33 — Record the old-make-route block (production + staging setting) and sunflower lot notes 22-24 (changelog row 308)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added changelog row 308: LEGACY_MAKE_COMMIT=block set and verified on FastAPI-staging and FastAPI (production) on 2026-11-19, with deployment ids and the checks run; dashboard notes 22, 23, 24 posted to production on sunflower lots 941 and 1398 (supplier return never recorded, opening lot assigned by rule, recall rule for supplier lot 90717). Docs only
+- **Why:** CLAUDE.md requires a changelog row after a production change; Michael asked for the record PR on 2026-11-19
+
+---
+
 ## 2026-11-19 13:52 — Record PR 225 production deploy: adjustment rules live, migration 096 applied (changelog row 307)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/adjust-destinations.md`, `tests/schema/schema.sql`
 - **What changed:** Production release of PR #225 (owner approved in chat 2026-11-19, staging skipped): verified backup ~/Backups/fl/2026-11-19-pre-096 (BACKUP OK); squash-merged #225 at reviewed head aafbbd2 to main c267b64 (13:42:03 ET); migration 096_adjust_destinations applied to production over port 5432 in one transaction at 13:42:20 ET with in-transaction checks (13 reasons, 7 removal_allowed, 5 destinations, 2 retired, adjustment_alerts empty, marker present); Railway FastAPI / exceptions-sweep / expire-tickets SUCCESS at c267b64 and Netlify dashboard files byte-identical to main; RESEND_API_KEY and ALERT_EMAIL_TO set on the FastAPI service as Railway references to the exceptions-sweep values. Added changelog row 307 (306 stays reserved for draft PR #227), set the deployment doc status to live, and re-dumped tests/schema/schema.sql from production (schema only; adds adjustment_alerts and the three correction_reasons columns with four checks). Read-only verification only, no test adjustment posted: deployed reason list for a removal shows the five destinations then Wrong lot used / Data-entry error; shift summary / weekly view builds for 2026-11-12..19 in EN and ES against production data. Not checked: authenticated HTTP routes and the signed-in Adjust form (owner key not permitted in the session). Full Python suite on a private scratch database built from the new dump: 7,696 tests, 7,689 passed, 7 failed, the same 7 that fail on main before this change.
