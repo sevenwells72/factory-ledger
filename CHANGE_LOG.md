@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-11-19 18:34 — Record next-free cleanup row for PR preview and review blocker
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Append the next free row with the unintended preview, its verified deletion, title protection and Claude Code authentication failure; preserve prior rows.
+- **Why:** The audit trail must disclose the workflow error and current external blocker accurately.
+
+---
+
+## 2026-11-19 18:33 — Disclose and remove unintended PR preview; record Claude authentication blocker
+- **File(s) changed:** `docs/validation/no-stock-by-hand-review-fixes.md`
+- **What changed:** Record the automatic preview, verified preview-only deletion with 204 then 404, required PR-title skip marker, and actual Claude Code expired-login error.
+- **Why:** Owner prohibited deployment and requires Claude Code, so the record must disclose the workflow mistake and the still-pending independent review accurately.
+
+---
+
 ## 2026-11-19 18:20 — Allocate PR 232 review-fix changelog row after refreshing main
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Append the next free numbered row for final fixes and verified test/baseline results, preserving every prior row.
