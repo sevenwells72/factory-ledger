@@ -183,14 +183,18 @@ def history(cur, product_id, api):
         return None
     kinds = ['pack', 'receive'] if product['type'] == 'finished' else (
         ['make', 'receive'] if product['type'] == 'batch' else ['receive'])
-    cur.execute("""
+    import stock_by_hand
+    move_clause = ("EXISTS (SELECT 1 FROM paired_lot_moves m WHERE m.transaction_id=t.id AND l.id IN (m.restored_lot_id,m.used_lot_id))"
+                   if stock_by_hand.live_at(cur) else 'false')
+    cur.execute(f"""
         SELECT l.id AS lot_id, l.lot_code, l.entry_source, l.entry_source_notes, l.lot_type, l.supplier_lot_code,
                MAX(t.timestamp) AS latest_at
         FROM lots l
         JOIN ledger_current_transaction_lines i ON i.lot_id = l.id
         JOIN ledger_current_transactions t ON t.id = i.transaction_id
         WHERE l.product_id = %s AND t.effective_status = 'posted'
-          AND (t.type = ANY(%s) OR (t.type = 'adjust' AND l.entry_source IN ('found_inventory','adjusted'))) AND i.quantity_lb > 0
+          AND (((t.type = ANY(%s) OR (t.type = 'adjust' AND l.entry_source IN ('found_inventory','adjusted'))) AND i.quantity_lb > 0)
+               OR ({move_clause}))
         GROUP BY l.id ORDER BY latest_at DESC, l.id DESC
     """, (product_id, kinds))
     lots = []
@@ -231,6 +235,17 @@ def history(cur, product_id, api):
         lot['packed_quantity'] = sum(r['quantity'] for r in lot['production'] if r['type'] == 'pack')
         lot['packed_cases'] = (sum(r['cases'] for r in lot['production'] if r['type'] == 'pack')
                               if all(r['cases'] is not None for r in lot['production'] if r['type'] == 'pack') else None)
+        import stock_by_hand
+        if stock_by_hand.live_at(cur):
+            cur.execute('''SELECT t.id AS transaction_id,t.effective_record->>'receipt_number' AS receipt_number,
+                a.lot_code AS restored_lot_code,b.lot_code AS used_lot_code,
+                json_agg(json_build_object('lot_id',i.lot_id,'quantity_lb',i.quantity_lb) ORDER BY i.id) AS lines
+                FROM paired_lot_moves m JOIN ledger_current_transactions t ON t.id=m.transaction_id
+                JOIN ledger_current_transaction_lines i ON i.transaction_id=t.id
+                JOIN lots a ON a.id=m.restored_lot_id JOIN lots b ON b.id=m.used_lot_id
+                WHERE t.effective_status='posted' AND %s IN (m.restored_lot_id,m.used_lot_id)
+                GROUP BY t.id,t.effective_record,a.lot_code,b.lot_code ORDER BY t.id''', (lot['lot_id'],))
+            lot['moves'] = [dict(r) for r in cur.fetchall()]
         lots.append(lot)
     return {'product_id': product_id, 'product_name': product['name'], 'product_type': product['type'],
             'unit': 'lb' if product['type'] in ('batch', 'finished') else api.ledger_quantity_unit(product['uom']), 'lots': lots}

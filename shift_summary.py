@@ -513,7 +513,8 @@ def receipt_row(api, cur, catalog, number, day, *, receipt=None, ticket=None):
                                       'enviado en un día de planta distinto al registro (confirmado)', {'shipment_id': shipment.get('id')}))
     elif action in ('adjust', 'found'):
         lines = _lines(receipt) or (txn0.get('lines') or [])
-        delta = sum(float(l['quantity_lb']) for l in lines)
+        move = response.get('move')
+        delta = float(move['lb']) if move else sum(float(l['quantity_lb']) for l in lines)
         lot_id = response.get('lot_id') or payload.get('lot_id') or (lines[0]['lot_id'] if lines else None)
         product_id = payload.get('product_id') or (lines[0]['product_id'] if lines else None) or catalog.lot(lot_id)['product_id']
         row['product'], row['lot'] = product_full(product_id), lot_full(lot_id)
@@ -539,6 +540,10 @@ def receipt_row(api, cur, catalog, number, day, *, receipt=None, ticket=None):
         label_es = reason['label_es'] if reason else '?'
         row.update(pair(f'{number}  {row["product"]["name"]} lot {row["lot"]["lot_code"] if row["lot"] else "?"}  {fmt_lb(delta, signed=True)} lb  reason: {label_en}',
                         f'{number}  {row["product"]["name"]} lote {row["lot"]["lot_code"] if row["lot"] else "?"}  {fmt_lb(delta, signed=True)} lb  razón: {label_es}', 'line'))
+        if move:
+            row['detail']['move'] = move
+            row.update(pair(f"{number}  Wrong-lot move: {fmt_lb(delta)} lb from lot {move['used_lot_code']} to lot {row['lot']['lot_code']}; product total unchanged",
+                            f"{number}  Movimiento entre lotes: {fmt_lb(delta)} lb del lote {move['used_lot_code']} al lote {row['lot']['lot_code']}; total del producto sin cambio", 'line'))
         # OVER_500_LB: before migration 096 it always came with photo_required; after it the
         # correction posts unheld and an owner email is owed, and it is flagged here all the same.
         if review.get('photo_required') or {'OVER_10_PERCENT_OF_BOOK', 'OVER_500_LB'} & set(review.get('rules') or []):

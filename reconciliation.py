@@ -366,6 +366,13 @@ def load_window(cur, start, end, *, opening_run_id=None, reconstruct=False):
     products = _rows(cur, """SELECT id, name, type, default_batch_lb, COALESCE(yield_multiplier, 1.0) AS yield_multiplier
                              FROM products WHERE id = ANY(%(ids)s::integer[]) ORDER BY id""", {'ids': product_ids})
 
+    import stock_by_hand
+    rules_at = stock_by_hand.live_at(cur)
+    purchased_ids, move_ids = [], []
+    if rules_at:
+        import lot_confirmation
+        purchased_ids = [p['id'] for p in products if lot_confirmation.supplier_lot_identity_applies(cur, p['id'])]
+        move_ids = [r['transaction_id'] for r in _rows(cur, 'SELECT transaction_id FROM paired_lot_moves WHERE transaction_id=ANY(%(ids)s::int[])', {'ids':tx_ids})]
     def plain(rows):
         return [{key: (float(value) if key.endswith('_lb') and value is not None else _iso(value))
                  for key, value in row.items()} for row in rows]
@@ -375,6 +382,7 @@ def load_window(cur, start, end, *, opening_run_id=None, reconstruct=False):
     return {
         'plant_date': plant_day.isoformat(), 'window_start': _iso(start), 'window_end': _iso(end),
         'mode': 'replay' if reconstruct else 'nightly', 'opening_run_id': opening_run_id,
+        'purchased_ingredient_ids': purchased_ids, 'paired_move_ids': move_ids,
         'transactions': plain(transactions), 'lines_before': before, 'lines_after': after,
         'voided_lines': plain(voided_lines),
         'corrections': plain(corrections), 'recipes': plain(recipes), 'substitutions': plain(substitutions),
@@ -844,6 +852,14 @@ def analyse(data):
                  facts=[f'Entered {_when(tx["created_at"])} {_by(tx["actor_name"], tx["operator_id"])}'],
                  refs=ref, transaction_id=tx['id'], business_date=tx['business_date'])
         if tx['type'] == 'adjust':
+            additions = [l for l in after[tx['id']] if l['quantity_lb']>0 and l['product_id'] in data.get('purchased_ingredient_ids', [])]
+            if additions:
+                move = tx['id'] in data.get('paired_move_ids', [])
+                flag('INGREDIENT_HAND_ADDITION', REVIEW,
+                     ('Wrong-lot move' if move else 'Stock added by hand to a purchased ingredient') + ': please review.',
+                     facts=[movement_text(after[tx['id']] if move else additions),
+                            f"Who: {tx['actor_name'] or tx['operator_id'] or 'no name'}; reason: {tx['reason_code'] or 'none'}; receipt: {tx['receipt_number'] or 'none'}"],
+                     refs=ref, transaction_id=tx['id'], lot_id=additions[0]['lot_id'], paired_move=move)
             reason = (tx['reason_code'] or '').strip().lower()
             no_reason, no_person = reason in ('', 'unknown'), tx['actor_id'] is None
             # Migration 096: "Count correction — cause unknown" names a person and carries a

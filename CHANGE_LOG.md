@@ -32,6 +32,31 @@
 - **File(s) changed:** `main.py`, `tests/test_shared_key_shutdown.py`, `tests/fixtures/route_contract/routes.jsonl`
 - **What changed:** create_certification, correct_certification, reassign_lot, merge_lots, add_found_inventory and add_found_inventory_with_new_product now take the Request and pass it to _operator_id / _entered_by_actor_id, so a named owner key is stored as the person (name and actor id) instead of 'legacy-shared-key'. Found-with-new-product now writes operator_id and entered_by_actor_id on its ledger row. The two direct Found lines match PR #232's text. Added 10 HTTP tests (owner key stores the person; shared key under SHARED_KEY_WRITES=allow keeps the old stamp) and regenerated 6 route-contract lines (request false to true). No migration, no schema or GPT change.
 - **Why:** Cross-review of PR #234 (comment 7043947718, finding 1): the owner key reaches these routes after the shared key becomes read-only, but they still recorded the shared-key placeholder and no person. Michael approved preparing the fix on 2026-11-23.
+## 2026-11-19 15:49 — Record rule-by-rule draft enforcement and unfinished validation
+- **File(s) changed:** `docs/validation/no-stock-by-hand-draft.md`
+- **What changed:** Document the exact compatibility proof, enforcement/test matrix, actual pass/fail counts and blocked cross-review.
+- **Why:** Make the stopped draft concrete and reviewable without presenting incomplete checks as release evidence.
+
+---
+
+## 2026-11-19 15:47 — Record the blocked draft in the regression changelog
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Add next-free row 310 after rechecking freshly fetched origin/main; state unresolved compatibility/review/test blockers and actual revert risks.
+- **Why:** Preserve the owner-requested regression record without claiming completion or deployment.
+
+---
+
+## 2026-11-19 15:46 — Keep picker search tests independent of the rules lookup
+- **File(s) changed:** `tests/test_pilot_entry_ui.js`
+- **What changed:** Return marker-off metadata separately from picker requests in the DOM harness.
+- **Why:** The initial SELECT-only rules lookup is not a user search and must not count as one.
+
+---
+
+## 2026-11-19 15:46 — Use the named owner for the browser receipt void fixture
+- **File(s) changed:** `tests/visual/run-no-stock-by-hand.mjs`
+- **What changed:** Void the synthetic receipt under Michael before testing Receive again.
+- **Why:** The real old void route is owner-only for selected names; the fixture must use its authorized actor.
 
 ---
 
