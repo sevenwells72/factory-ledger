@@ -1,5 +1,103 @@
 # Change Log
 
+## 2026-11-19 14:37 — Trial recall: rebased onto main 89a3157 (after PR 225); standing recall rule doc commit added
+- **File(s) changed:** `scripts/exceptions_sweep.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`, `docs/deployments/trial-recall.md`
+- **What changed:** Rebased feat/trial-recall (10 commits) from 7083e40 onto main 89a3157. Conflicts, both sides kept: scripts/exceptions_sweep.py (the nightly job now calls send_adjustment_alerts() from PR 225 and then the branch's exit-code list with the Form sync and trial recall); FACTORY_LEDGER_CHANGELOG.md (row order 307, 306, 305; row 306 text from the branch in every commit); CHANGE_LOG.md (branch entries above main's). Every file's change against main is line-for-line the same as before the rebase. Cherry-picked dc77c65 from docs/recall-rule-90717 (Standing recall rules section in docs/deployments/trial-recall.md). Tests on the result: full Python suite on a private scratch database built from tests/schema/schema.sql (now with 096): 7,811 passed, 7 failed (the same 7 that fail on main), 1 skipped (pillow-heif not installed); full JavaScript suite 748 of 748; architecture map 0 problems; key-literal guard 0 findings. Old head 748499e kept as local branch backup/trial-recall-pre-rebase-748499e.
+- **Why:** Owner asked for the rebase after PR 225 and its record merged; PR 227 was conflicting with main.
+
+---
+
+## 2026-11-19 14:08 — Trial recall doc: standing recall rule for sunflower supplier lot 90717
+- **File(s) changed:** `docs/deployments/trial-recall.md`
+- **What changed:** Added a 'Standing recall rules (applied by hand)' section with the rule for sunflower supplier lot 90717: also pull sunflower product made Sep 4 to Oct 21 2026 (17 makes, batch and finished lots listed), and a warning that the July lot L01SK20260513 was returned to the supplier on Sep 8 so the seven October makes recorded against it are not reliable
+- **Why:** Michael approved the recall rule on 2026-11-19; dashboard lot notes (#22-24) do not appear on FL's trace screens, so the rule also goes in the recall procedure document
+
+---
+
+## 2026-11-18 15:18 — Trial recall: fix from the final Codex pass (weights are part of the same-page check)
+- **File(s) changed:** `trial_recall.py`, `tests/test_trial_recall.py`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Final Codex pass (covering the gross-weight rule and the comma and short-lot fixes) found one medium point: two photos of one BOL that differ only in a weight were treated as the same page and the second was dropped. The same-page check now includes the net, gross and unmarked weights and the weight unit, so both readings are kept and shown. One new test; 118 pass in the two new files; full Python suite alone on a rebuilt scratch database on this code: 7,741 passed, 7 failed (the same 7 that fail on untouched origin/main).
+- **Why:** Codex cross-review pass 11 of PR 227 (2026-11-18), the final pass the owner asked for.
+
+---
+
+## 2026-11-18 15:12 — Trial recall: a BOL's gross weight is never compared with FL's net quantity (gross only is UNVERIFIED)
+- **File(s) changed:** `extraction.py`, `trial_recall.py`, `tests/test_trial_recall.py`, `docs/deployments/trial-recall.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Owner rule 2026-11-18, after reading the Nov 13 honey's TForce delivery receipt (3130 lb for the skid; FL and the Form 3,000 lb net). The BOL reader (extraction.extract_bol) now records a package count and three kinds of weight per line, by what the document itself says: net_weight (marked net), gross_weight (marked gross, or a carrier freight bill / delivery receipt's weight column), other_weight (no marking). trial_recall.compare_receipt holds the BOL only to a printed net weight or a package count; a gross or unmarked weight is shown and never compared with FL. Gross only: quantity UNVERIFIED with reason 'BOL shows gross weight only'. Quantity FAILs only when a printed net weight or a package count disagrees, or when the Form and FL disagree with each other. Four new tests including the Nov 13 honey; 117 pass in the two new files; full Python suite alone on a rebuilt scratch database: 7,739 passed, 8 failed = the 7 that fail on untouched origin/main plus tests/test_archived_products_dashboard.py::test_render_finished_goods_panels_js, whose node helper process was killed (exit -9) during that run and which passes when rerun alone (5 of 5).
+- **Why:** Owner instruction 2026-11-18: carrier delivery receipts print gross weight; comparing it with FL's net quantity would FAIL every such receipt.
+
+---
+
+## 2026-11-18 14:46 — Trial recall: product names with a thousands comma; first read-only check against production (4 of 5 live Form rows link)
+- **File(s) changed:** `receiving_form.py`, `tests/test_receiving_form.py`, `docs/deployments/trial-recall.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Owner-approved read-only check 2026-11-18: the live Form's five rows since 2026-11-11 were matched against production receipts inside one READ ONLY transaction on port 5432 (only SELECTs, rolled back, nothing written). First run linked 3 of 5; the Form's 'Chocolate Chips 4000' did not fit FL's 'Chocolate Chips – 4,000 CT' because the comma split the number. Fix in receiving_form: a thousands comma is part of the number, and a Form name whose every word is in the FL product's name is a confident fit ('words_in_name') when the resolver names no other product. Second run: 4 of 5 link (row 151 by exact lot code; 153, 154, 155 by the lot code without its sequence number); all linked quantities agree. Row 152 (honey 3,000 lb, 2026-11-13) stays unmatched on purpose: Form lot 261113DUTC, FL lot 26-11-13-DUTG-001, a one-letter difference in the supplier part. One new test; 114 pass in the two new files; full Python suite alone on a rebuilt scratch database: 7,737 passed, 7 failed (the same 7 as untouched origin/main).
+- **Why:** Owner approval 2026-11-18 ('Yes, read-only') to see how the live Form rows match; 'match generously' on product wording.
+
+---
+
+## 2026-11-18 14:31 — Trial recall: fixes from Codex pass on the matching change (unresolved lot codes listed; backward evidence keeps the match basis)
+- **File(s) changed:** `receiving_form.py`, `trial_recall.py`, `tests/test_receiving_form.py`, `tests/test_trial_recall.py`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Two medium review findings fixed. (1) A Form row listing more than one lot: a lot code that leads to no FL receipt near the Form date is now kept with its reason even when another lot on the row matches, so the row is partly matched and stays on the owner list. (2) Backward test: a Form row tied to a receipt by lot and date only (product wording not confirmed) now leaves that receipt's evidence UNVERIFIED instead of passing. Two new tests; 113 pass in the two new files; full Python suite alone on a freshly built scratch database on this code: 7,736 passed, 7 failed (the same 7 that fail on untouched origin/main).
+- **Why:** Codex cross-review pass 10 of PR 227 (2026-11-18), run after the short-lot matching change.
+
+---
+
+## 2026-11-18 14:21 — Trial recall: Form lots written without the sequence number match the FL lot when only one receipt fits
+- **File(s) changed:** `receiving_form.py`, `trial_recall.py`, `tests/test_receiving_form.py`, `tests/test_trial_recall.py`, `docs/deployments/trial-recall.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Owner decision 2026-11-18 after the first read of the live Form (its rows give lots as 261113DUTC, 261116JACK, 261118STAR). receiving_form.match_row: when no FL lot has the Form's exact lot code, FL lots whose code is the Form's plus a trailing sequence number (26-11-13-DUTC-001) are considered; the link is made only when exactly one such receipt fits by date (within 1 day) and a confident product match, and records lot 'lot code without its sequence number'. An exact code always wins; -001 and -002 that both fit are listed, not chosen between; a short lot together with unconfirmed product wording is not linked; only the sequence is forgiven (the part before it must contain a letter, so a date-only code is never shortened). The recall's Internal lot row notes it. Three new tests; 111 pass in the two new files (run eight times).
+- **Why:** Owner answer 2026-11-18: 'Yes, if only one fits'. Without it four of the five live Form rows since Nov 11 could not match FL-style lot codes.
+
+---
+
+## 2026-11-18 14:16 — Trial recall: final Codex pass fixes; migration 097 applied to STAGING; Google read-only sign-in created
+- **File(s) changed:** `trial_recall.py`, `tests/test_trial_recall.py`, `docs/deployments/trial-recall.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Codex pass 9 (final, as the owner asked): two findings fixed. A shipment in a chain that names no customer and has no order naming one is a new blocking flag SHIPMENT_CUSTOMER_UNKNOWN (Full recall NO). BOL package counts are compared by kind (cases, bags, pails, drums, totes), never added across kinds, and pieces/each are not packages. Three new tests; 108 pass in the two new files; full Python suite alone on a fresh scratch database on this code: 7,731 passed, 7 failed (the same 7 that fail on untouched origin/main). STAGING (owner-approved 2026-11-18, production not touched): migration 097_trial_recall applied to the staging Supabase project jygmyvxnxdjiiilhxseq on port 5432 in one transaction and verified (four tables, append-only triggers, RLS on with zero policies, marker, second apply clean, insert allowed and update/delete blocked for the app role). Dry runs on staging in READ ONLY transactions: matching against real staging receipts and the drill with stand-ins for Google and the model; then, after the owner completed the Google Cloud steps and pressed Allow, both commands' --dry-run against staging with the REAL receiving Form (5 rows on or after 2026-11-11 read, photos reachable in Drive, nothing matched because staging holds none of those receipts). Two failed-run note rows were left on staging's new tables by running the two commands for real without Google credentials (expected behaviour, staging only). Google sign-in: scripts/google_oauth_setup.py run once; read-only Drive + Sheets confirmed; values saved only in ~/.config/factory-ledger/google_oauth.env on Michael's Mac; no Railway variable set.
+- **Why:** Owner instructions 2026-11-18: apply the answers, one final Codex pass, staging step, then step E of the Google setup; do not touch production or Railway.
+
+---
+
+## 2026-11-18 14:06 — Trial recall: owner's answers applied (wording never fails, HEIC converted, Full recall rule)
+- **File(s) changed:** `receiving_form.py`, `trial_recall.py`, `extraction.py`, `requirements.txt`, `tests/test_receiving_form.py`, `tests/test_trial_recall.py`, `docs/deployments/trial-recall.md`, `docs/ARCHITECTURE-MAP.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Michael's answers of 2026-11-18 applied. (1) Product wording: matched generously. When the Form wording is not a confident fit but lot and date leave exactly one FL receipt line and one Form product, they are linked with product 'not_confirmed' (listed in the owner route as product_wording_unconfirmed); in the recall that line is UNVERIFIED; no product comparison can FAIL any more (including a product on the BOL that FL has no receipt for). (2) HEIC/HEIF photos are converted to JPEG in memory (extraction.heic_to_jpeg, new pinned library pillow-heif==1.8.1 in requirements.txt, imported lazily) and read; conversion failure is UNVERIFIED. (3) Full recall possible is NO only for flags that stop an affected customer or shipment being identified (unresolved lot attribution incl. unknown-reason stock into product and lots below zero, made product removed with no destination, order closed shipped-not-recorded, ingredient lot with no receipt, broken lot link). Missing supplier lot and missing Form row fail the receiving section only; missing BOL and shared-login entries are warnings; unreadable evidence no longer makes it NO; nothing traced is NOT TESTED. Date tolerance (1 day) and start date (2026-11-11) confirmed unchanged; Anthropic key reuse on the cron service confirmed (doc). Tests: 105 pass in the two new files (real HEIC conversion run with the library in a private folder), 636 in the affected set.
+- **Why:** Owner decisions 2026-11-18 on the PR's open questions.
+
+---
+
+## 2026-11-18 13:55 — Trial recall: fixes from Codex cross-review round 8 (branch feat/trial-recall)
+- **File(s) changed:** `trial_recall.py`, `tests/test_trial_recall.py`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Three medium review findings fixed. (1) Reference numbers: a part of a hyphenated number is no longer read as a number of its own (BOL-2026-001 is not 2026); only the whole reference, with or without a leading word label, is compared. (2) Supplier lots: when an internal lot took more than one delivery, FL's lot-level supplier codes are not held against one delivery's BOL; a lot printed on the product's own BOL line and missing from FL is still a disagreement, and so is an extra FL code when the lot had a single delivery. (3) Backward test: other affected shipments are told apart by shipment and lot, so a truck carrying the picked lot and another affected lot lists the other lot. Three new tests; 100 pass in the two new files. Full Python suite on the rebased code (before these three fixes): 7,721 passed, 7 failed, the same 7 that fail on untouched origin/main with a fresh database.
+- **Why:** Codex cross-review round 8 of PR 227 (2026-11-18): three medium findings, all confirmed.
+
+---
+
+## 2026-11-18 13:51 — Trial recall: rebased on main, renumbered to changelog row 306 and migration 097, Codex round 7 fixes
+- **File(s) changed:** `migrations/097_trial_recall.sql`, `migrations/down/097_trial_recall_down.sql`, `receiving_form.py`, `trial_recall.py`, `main.py`, `scripts/receiving_form_sync.py`, `scripts/trial_recall_drill.py`, `scripts/exceptions_sweep.py`, `tests/test_receiving_form.py`, `tests/test_trial_recall.py`, `tests/trial_recall_kit.py`, `tests/test_named_actor_writes.py`, `tests/test_receipt_bol_photo_ui.js`, `docs/deployments/trial-recall.md`, `docs/ARCHITECTURE-MAP.md`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Branch feat/trial-recall squashed to one commit and rebased onto origin/main 7083e40 (which added the Chocolate Chips rename as migration 095 and changelog rows 303-304). Per the owner's numbering: this PR's changelog row is now 306 (was 303) and its migration is 097_trial_recall (was 095_trial_recall; marker, file names and every reference updated; earlier CHANGE_LOG entries of this branch that say 095 or row 303 mean this same migration and row). CHANGE_LOG.md conflict resolved by keeping every entry from both sides, newest first. Codex round 7: the BOL's quantity for a product is used only when every one of its lines adds up in one unit (otherwise not confirmed), and reference numbers are compared as whole numbers on both sides so 'PO 4412' equals '4412'. Three new tests.
+- **Why:** Owner instruction 2026-11-18 (rows 303-305 taken, use 306; rebase before the final push); Codex cross-review round 7 (two medium findings, both confirmed).
+
+---
+
+## 2026-11-18 13:48 — Trial recall: fix from Codex cross-review round 6 (branch feat/trial-recall)
+- **File(s) changed:** `trial_recall.py`, `tests/test_trial_recall.py`, `docs/deployments/trial-recall.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** BOL photos of one Form row: only a photo whose whole reading equals an earlier photo's (same BOL number and lines) is treated as the same page and counted once. A single line repeated on two different pages is kept and shown, and the row is UNVERIFIED because the photos cannot say whether it is one delivery or two. One new test; 96 pass in the two new files.
+- **Why:** Codex cross-review round 6 of PR 227 (2026-11-18): one medium finding, confirmed.
+
+---
+
+## 2026-11-18 13:46 — Trial recall: fixes from Codex cross-review round 5 (branch feat/trial-recall)
+- **File(s) changed:** `trial_recall.py`, `tests/test_trial_recall.py`, `docs/deployments/trial-recall.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Three medium review findings fixed in the Sheet/BOL/FL comparison. (1) New comparison row 'Other products on the BOL': a product the BOL shows that no matched receipt covers is looked up in FL (posted receipts of that product within a day of the Form date); none is a disagreement (FAIL), a line FL's product list does not recognise is UNVERIFIED. (2) Reference numbers are compared as whole numbers ('4412' matches 'PO 4412', never '944120'). (3) The supplier is checked on every matched receipt; one agreeing receipt no longer hides another. Three new tests; 95 pass in the two new files.
+- **Why:** Codex cross-review round 5 of PR 227 (2026-11-18): three medium findings, all confirmed.
+
+---
+
+## 2026-11-18 13:43 — Trial recall: fixes from Codex cross-review round 4 (branch feat/trial-recall)
+- **File(s) changed:** `trial_recall.py`, `google_evidence.py`, `tests/test_trial_recall.py`, `tests/test_receiving_form.py`, `docs/deployments/trial-recall.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Two review findings fixed. (1) Backward test: a make or pack entry in the chain that records no ingredient lots (or whose trail leads back to itself) is a new blocking flag PRODUCTION_INPUTS_MISSING, so a chain with nothing to check can no longer pass. (2) google_evidence: a Drive download that times out or drops part-way is raised as GoogleError UNAVAILABLE, so the photo is UNVERIFIED instead of the whole drill failing. Three new tests; 92 pass in the two new files.
+- **Why:** Codex cross-review round 4 of PR 227 (2026-11-18): one high and one medium finding, both confirmed.
+
+---
+
 ## 2026-11-19 13:52 — Record PR 225 production deploy: adjustment rules live, migration 096 applied (changelog row 307)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/adjust-destinations.md`, `tests/schema/schema.sql`
 - **What changed:** Production release of PR #225 (owner approved in chat 2026-11-19, staging skipped): verified backup ~/Backups/fl/2026-11-19-pre-096 (BACKUP OK); squash-merged #225 at reviewed head aafbbd2 to main c267b64 (13:42:03 ET); migration 096_adjust_destinations applied to production over port 5432 in one transaction at 13:42:20 ET with in-transaction checks (13 reasons, 7 removal_allowed, 5 destinations, 2 retired, adjustment_alerts empty, marker present); Railway FastAPI / exceptions-sweep / expire-tickets SUCCESS at c267b64 and Netlify dashboard files byte-identical to main; RESEND_API_KEY and ALERT_EMAIL_TO set on the FastAPI service as Railway references to the exceptions-sweep values. Added changelog row 307 (306 stays reserved for draft PR #227), set the deployment doc status to live, and re-dumped tests/schema/schema.sql from production (schema only; adds adjustment_alerts and the three correction_reasons columns with four checks). Read-only verification only, no test adjustment posted: deployed reason list for a removal shows the five destinations then Wrong lot used / Data-entry error; shift summary / weekly view builds for 2026-11-12..19 in EN and ES against production data. Not checked: authenticated HTTP routes and the signed-in Adjust form (owner key not permitted in the session). Full Python suite on a private scratch database built from the new dump: 7,696 tests, 7,689 passed, 7 failed, the same 7 that fail on main before this change.
@@ -42,6 +140,33 @@
 
 ---
 
+## 2026-11-18 13:40 — Trial recall: fixes from Codex cross-review round 3 (branch feat/trial-recall)
+- **File(s) changed:** `trial_recall.py`, `tests/test_trial_recall.py`, `docs/deployments/trial-recall.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Three medium review findings fixed. (1) A quantity counts as confirmed only when FL's own quantity was compared as well as the BOL's; Form and BOL agreeing with each other is UNVERIFIED. (2) Supplier lots on the product's own BOL line must equal FL's list; a lot printed on the BOL and missing from FL is a disagreement. (3) Backward-test flags now cover every lot the tested ingredient lots went into, not only the picked finished lot's chain; email lists over 40 rows are cut and saved whole with the run. Three new tests; 89 pass in the two new files.
+- **Why:** Codex cross-review round 3 of PR 227 (2026-11-18): three medium findings, all confirmed.
+
+---
+
+## 2026-11-18 13:38 — Trial recall: fixes from Codex cross-review round 2 (branch feat/trial-recall)
+- **File(s) changed:** `trial_recall.py`, `tests/test_trial_recall.py`, `docs/deployments/trial-recall.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Three more review findings fixed, all ways a test could pass without full evidence. (1) An ingredient lot with no dated entry is no longer treated as 'before cutoff' and skipped: it is tested and flagged as unresolved; 'before cutoff' now needs a known date and every stock-in entry before it. (2) Each receipt into an ingredient lot is checked on its own (its own Form row and photo); found or unnamed receipts into the lot are flagged; an older receipt into a lot topped up after the cutoff is shown 'before cutoff - not tested'. (3) Forward test: every photo on the Form row must be readable (up to 6 read; more is UNVERIFIED); a page photographed twice is counted once. Four new tests; 86 pass in the two new files.
+- **Why:** Codex cross-review round 2 of PR 227 (2026-11-18): two high and one medium finding, all confirmed.
+
+---
+
+## 2026-11-18 13:34 — Trial recall: fixes from Codex cross-review round 1 (branch feat/trial-recall)
+- **File(s) changed:** `trial_recall.py`, `receiving_form.py`, `migrations/095_trial_recall.sql`, `tests/test_trial_recall.py`, `tests/test_receiving_form.py`, `tests/trial_recall_kit.py`, `docs/deployments/trial-recall.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Three review findings fixed. (1) Backward test: stock received or found straight into an INTERMEDIATE batch lot is now flagged (LOT_ATTRIBUTION_UNRESOLVED) at every level, not only on the picked finished lot; a batch first made before the cutoff is shown as not tested and left out of the flags. (2) A receipt now shows only the BOL links the latest completed nightly read stands behind (sync run summary.link_ids), so a Form row edited back to an earlier wording, a row removed from the sheet, or a receipt voided later no longer leaves a stale photo; both photo routes use the same rule. (3) Backward test opens each BOL photo's contents (first piece only, nothing kept) instead of checking its details, so a file Drive lists but will not serve is UNVERIFIED. Four new tests; 82 pass in the two new files; migration 095 only gained a comment (still not applied anywhere).
+- **Why:** Codex cross-review of PR 227 (2026-11-18): one high and two medium findings, all confirmed.
+
+---
+
+## 2026-11-18 13:30 — Trial recall and BOL photo links (branch feat/trial-recall, switched off, migration 095 not applied)
+- **File(s) changed:** `google_evidence.py`, `receiving_form.py`, `trial_recall.py`, `extraction.py`, `main.py`, `scripts/receiving_form_sync.py`, `scripts/trial_recall_drill.py`, `scripts/google_oauth_setup.py`, `scripts/exceptions_sweep.py`, `migrations/095_trial_recall.sql`, `migrations/down/095_trial_recall_down.sql`, `dashboard/receipt.js`, `tests/test_receiving_form.py`, `tests/test_trial_recall.py`, `tests/test_receipt_bol_photo_ui.js`, `tests/trial_recall_kit.py`, `tests/test_named_actor_writes.py`, `tests/fixtures/route_contract/routes.jsonl`, `docs/deployments/trial-recall.md`, `docs/ARCHITECTURE-MAP.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** New read-only Google client (google_evidence.py: Sheets + Drive, GETs only, refuses a sign-in wider than drive.readonly + spreadsheets.readonly). New receiving_form.py: nightly read of the receiving Form tab, each row saved as seen, matched to its FL receipt by date (within 1 day) + internal lot + product; clear matches stored in receipt_bol_links, the rest listed as 'Receiving form row with no matching FL receipt' (GET /verification/receiving-form/unmatched); receipt page gets a 'BOL photo' button that streams the Drive photo through GET /receipts/{receipt_number}/bol-photos[/{photo_id}/file] for a named person, nothing stored. New trial_recall.py + scripts/trial_recall_drill.py: Mon/Wed/Fri drill (forward test from a random Form row with a BOL photo read by the new extraction.extract_bol, three-way Sheet/BOL/FL comparison, forward trace; backward test from a random shipped finished lot to every ingredient lot, its Form row and photo, and on to every other customer), cutoff 2026-11-11, ten flags, five-section owner email via the reconciliation's Resend setup, every run saved in trial_recall_runs (GET /verification/trial-recall/runs[/{id}]). exceptions_sweep.py starts both commands behind RECEIVING_FORM_SYNC_ENABLED / TRIAL_RECALL_ENABLED (off). Migration 095 (four append-only tables, no FK to a ledger table) and its down file written, not applied anywhere. scripts/google_oauth_setup.py for the one-time Google sign-in. main.py: imports, allowlists, register_routes. Route contract snapshot regenerated (five new GET routes only, order unchanged). Architecture map and regression changelog row 303 added. Tests: new 78 Python + 4 JS; full Python suite 7,682 passed, 7 failed (the same 7 fail on untouched origin/main fa91d30 with a fresh database); JS 732 of 732.
+- **Why:** Owner request 2026-11-18: independent evidence (receiving Form and BOL photo) checked against FL, a routine recall drill, and the BOL photo reachable from the receipt. Strictly read-only on the ledger; ships switched off; not merged, not deployed.
+
+---
 ## 2026-11-18 13:28 — Row 303: record staging proof of the Chocolate Chips rename (095) and correct the old-wording lookup note
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Row 303 now records the staging proof (FastAPI-staging 76870d38, 095 applied to the staging DB, panel before / config-only / after, rerun no-op) and corrects one sentence: after the rename the bulk resolver POST /products/resolve answers 'none' for the old names (product search still finds them); it never picks a different chip. Staging only; production untouched.

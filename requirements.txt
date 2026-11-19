@@ -15,3 +15,7 @@ httpx==0.27.2
 pypdf==5.1.0
 # yaml is imported by tests/test_batch1_correctness_security.py (openapi-gpt-v3.yaml 30-op guard) but was never declared (SO intake review finding 3).
 PyYAML==6.0.3
+# HEIC/HEIF phone photos -> JPEG in memory, so the extraction model can read BOL photos taken on an iPhone
+# (trial recall, extraction.heic_to_jpeg). Needs pillow>=11.1, which reportlab already brings in. Imported lazily:
+# if it is missing the photo is simply UNVERIFIED.
+pillow-heif==1.8.1

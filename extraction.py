@@ -1,12 +1,14 @@
 """Vision extraction for AI-assisted document intake.
 
-One public function — extract_purchase_document(file_bytes, mime_type, kind) —
-turns a document (PNG, JPEG, or PDF) into the strict JSON shape the matching
-step consumes. kind='purchase' (default) reads a vendor PO / order
-confirmation for the expected-receipt flow; kind='sales' reads a CUSTOMER PO
-for the sales-order flow (docs/designs/sales-order-intake.md). The API vendor
-is swappable by replacing this module: nothing else in the codebase imports an
-LLM SDK.
+extract_purchase_document(file_bytes, mime_type, kind) turns a document (PNG,
+JPEG, or PDF) into the strict JSON shape the matching step consumes.
+kind='purchase' (default) reads a vendor PO / order confirmation for the
+expected-receipt flow; kind='sales' reads a CUSTOMER PO for the sales-order
+flow (docs/designs/sales-order-intake.md). extract_bol(file_bytes, mime_type)
+reads a photographed inbound bill of lading for the trial recall
+(trial_recall.py); it is a separate function on purpose, so the document
+intake endpoints can never be asked for it. The API vendor is swappable by
+replacing this module: nothing else in the codebase imports an LLM SDK.
 
 HARD RULE (docs/designs/expected-receipt-intake.md): the model never writes to
 the DB. This module has no DB imports — extraction is a pure
@@ -341,4 +343,216 @@ def extract_purchase_document(file_bytes: bytes, mime_type: str,
     if not result.lines:
         raise ExtractionError("No product lines found on the document")
 
+    return {"extraction": result.model_dump(), "extraction_model": model}
+
+
+# ---------------------------------------------------------------------------
+# Inbound bill of lading (trial recall, trial_recall.py). Same model, same
+# strict "only what is printed" rule. Separate from _KIND_CONFIG so the
+# document-intake endpoints (which pass a stored document_kind) cannot reach it.
+# ---------------------------------------------------------------------------
+
+class BolLine(BaseModel):
+    description: str
+    quantity: Optional[float] = None        # a count of packages / handling units, as printed
+    unit: Optional[str] = None
+    # Weights, kept apart by what the document itself says they are. A carrier's freight weight
+    # (product plus tote and pallet) is gross and is never compared with a net quantity.
+    net_weight: Optional[float] = None
+    gross_weight: Optional[float] = None
+    other_weight: Optional[float] = None    # a weight not marked net or gross
+    weight_unit: Optional[str] = None
+    lot_numbers: List[str] = []
+
+    @field_validator("quantity", "net_weight", "gross_weight", "other_weight")
+    @classmethod
+    def _quantity_finite_positive(cls, v: Optional[float]) -> Optional[float]:
+        if v is None:
+            return v
+        if not math.isfinite(v) or v <= 0:
+            raise ValueError("quantity must be a finite number > 0 or null")
+        return v
+
+
+class BolExtractionResult(BaseModel):
+    readable: bool
+    supplier_name: Optional[str] = None
+    manufacturer_name: Optional[str] = None
+    carrier_name: Optional[str] = None
+    bol_number: Optional[str] = None
+    reference_numbers: List[str] = []
+    document_date: Optional[str] = None           # YYYY-MM-DD
+    lines: List[BolLine] = []
+
+    @field_validator("document_date")
+    @classmethod
+    def _valid_iso_date(cls, v: Optional[str]) -> Optional[str]:
+        return _validate_iso_date_value(v)
+
+
+BOL_EXTRACTION_TOOL = {
+    "name": "record_bill_of_lading",
+    "description": "Record what is printed on a photographed inbound bill of lading or delivery document.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "readable": {
+                "type": "boolean",
+                "description": "true only if this is a delivery document (bill of lading, packing slip, delivery "
+                               "receipt) and its product lines can actually be read. false if it is blurred, cut "
+                               "off, too dark, or not a delivery document.",
+            },
+            "supplier_name": {
+                "type": ["string", "null"],
+                "description": "The shipper / seller / ship-from company as printed. null if not printed.",
+            },
+            "manufacturer_name": {
+                "type": ["string", "null"],
+                "description": "The manufacturer or producer of the goods, only if printed separately from the "
+                               "shipper. null if not printed.",
+            },
+            "carrier_name": {
+                "type": ["string", "null"],
+                "description": "The trucking company / carrier as printed. null if not printed.",
+            },
+            "bol_number": {
+                "type": ["string", "null"],
+                "description": "The bill of lading / delivery number as printed. null if none is printed.",
+            },
+            "reference_numbers": {
+                "type": "array",
+                "items": {"type": "string"},
+                "description": "Every other reference number printed (PO, order, invoice, PRO, pickup), each as "
+                               "printed, with its label if it has one (e.g. 'PO 4412').",
+            },
+            "document_date": {
+                "type": ["string", "null"],
+                "description": "Ship or delivery date printed on the document, YYYY-MM-DD. null if not printed.",
+            },
+            "lines": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "description": {
+                            "type": "string",
+                            "description": "The product description EXACTLY as printed, verbatim.",
+                        },
+                        "quantity": {
+                            "type": ["number", "null"],
+                            "description": "The COUNT of packages or handling units on the line, as printed "
+                                           "(cases, bags, pails, drums, totes, pieces, skids, pallets). Never a "
+                                           "weight. null if no count is printed or readable.",
+                        },
+                        "unit": {
+                            "type": ["string", "null"],
+                            "description": "Unit of that count as printed (e.g. CASES, BAGS, TOTES, PCS, SK, "
+                                           "PALLETS). null if no unit is printed.",
+                        },
+                        "net_weight": {
+                            "type": ["number", "null"],
+                            "description": "A weight for this line ONLY if the document itself marks it as net "
+                                           "(NET, NET WT, NET WEIGHT). null otherwise.",
+                        },
+                        "gross_weight": {
+                            "type": ["number", "null"],
+                            "description": "A weight for this line that the document marks as gross (GROSS, GROSS "
+                                           "WT), OR the shipment / handling-unit weight on a carrier's freight "
+                                           "bill or delivery receipt (the WEIGHT column of a trucking document "
+                                           "includes packaging and pallet). null otherwise.",
+                        },
+                        "other_weight": {
+                            "type": ["number", "null"],
+                            "description": "A weight for this line that is not marked net or gross and is not a "
+                                           "carrier's freight weight. null otherwise.",
+                        },
+                        "weight_unit": {
+                            "type": ["string", "null"],
+                            "description": "Unit of the weight(s) as printed (LB, LBS, KG). null if no weight.",
+                        },
+                        "lot_numbers": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Every lot / batch number printed for this line, exactly as printed.",
+                        },
+                    },
+                    "required": ["description", "quantity", "unit", "net_weight", "gross_weight", "other_weight",
+                                 "weight_unit", "lot_numbers"],
+                },
+            },
+        },
+        "required": ["readable", "supplier_name", "manufacturer_name", "carrier_name", "bol_number",
+                     "reference_numbers", "document_date", "lines"],
+    },
+}
+
+BOL_EXTRACTION_PROMPT = """Read the photographed inbound delivery document (bill of lading, packing slip or delivery receipt) using the record_bill_of_lading tool.
+
+Rules:
+- Record ONLY what is printed or handwritten on the document. NEVER guess or infer a missing value: use null (or an empty list) for anything that is not there or cannot be read.
+- If the photo is blurred, cut off, too dark, or is not a delivery document, set readable to false and leave what you cannot read empty. Do not fill gaps from what such a document usually says.
+- description must be VERBATIM, including pack sizes, codes and abbreviations.
+- quantity is the COUNT of packages or handling units shipped / delivered on the line, with its unit as printed. It is never a weight. Do not convert units and do not multiply case counts by case sizes.
+- Weights go in net_weight, gross_weight or other_weight according to what the document itself says: net only when it is marked net; gross when it is marked gross, or when the document is a trucking company's freight bill or delivery receipt (its weight column is the shipping weight, with packaging and pallet); other_weight for a weight with no such marking. Never decide for yourself that an unmarked weight is net.
+- lot_numbers are lot / batch numbers only. Do not put PO, order or item numbers there.
+- supplier_name is the company the goods came from. It is never Seven Wells / CNS (the receiver) and never the trucking company.
+"""
+
+
+HEIC_MAX_SIDE = 3000   # pixels on the long side after conversion: ample for reading print, well under API limits
+
+
+def heic_to_jpeg(file_bytes: bytes) -> bytes:
+    """A phone HEIC/HEIF photo as JPEG bytes, in memory only (nothing is written anywhere).
+
+    Raises ExtractionError when the photo cannot be converted (the conversion library is not
+    installed, or the file is damaged); the caller treats that as UNVERIFIED, never as readable."""
+    try:
+        import io
+        import pillow_heif
+        from PIL import Image, ImageOps
+        pillow_heif.register_heif_opener()
+        with Image.open(io.BytesIO(file_bytes)) as image:
+            image = ImageOps.exif_transpose(image).convert("RGB")     # upright, as the phone showed it
+            image.thumbnail((HEIC_MAX_SIDE, HEIC_MAX_SIDE))
+            out = io.BytesIO()
+            image.save(out, format="JPEG", quality=88)
+            return out.getvalue()
+    except Exception as exc:  # any failure is "could not convert", never a guess
+        raise ExtractionError(f"HEIC photo could not be converted ({type(exc).__name__})") from exc
+
+
+def extract_bol(file_bytes: bytes, mime_type: str) -> dict:
+    """Read one BOL photo with the extraction model. Returns
+    {'extraction': BolExtractionResult as a dict, 'extraction_model': model}.
+    Raises ExtractionError on any API/validation failure; never returns a
+    guess. `readable` false (or no lines) means the caller must treat the
+    document as unverified."""
+    if mime_type not in ALLOWED_MIME_TYPES:
+        raise ExtractionError(f"Unsupported mime type: {mime_type}")
+    if len(file_bytes) > MAX_FILE_BYTES:
+        raise ExtractionError(f"File exceeds {MAX_FILE_BYTES // (1024 * 1024)} MB limit")
+    data_b64 = base64.standard_b64encode(file_bytes).decode("ascii")
+    file_block = {
+        "type": "document" if mime_type == "application/pdf" else "image",
+        "source": {"type": "base64", "media_type": mime_type, "data": data_b64},
+    }
+    model = (os.getenv("EXTRACTION_MODEL") or "").strip() or DEFAULT_EXTRACTION_MODEL
+    try:
+        message = _client().messages.create(
+            model=model,
+            max_tokens=4096,
+            tools=[BOL_EXTRACTION_TOOL],
+            tool_choice={"type": "tool", "name": BOL_EXTRACTION_TOOL["name"]},
+            messages=[{"role": "user", "content": [file_block, {"type": "text", "text": BOL_EXTRACTION_PROMPT}]}],
+        )
+    except anthropic.APIError as exc:
+        raise ExtractionError(f"Vision API call failed: {exc}") from exc
+    tool_input = next((block.input for block in message.content if block.type == "tool_use"), None)
+    if tool_input is None:
+        raise ExtractionError("Model returned no structured extraction")
+    try:
+        result = BolExtractionResult(**tool_input)
+    except (ValidationError, TypeError) as exc:
+        raise ExtractionError(f"Extraction did not match schema: {exc}") from exc
     return {"extraction": result.model_dump(), "extraction_model": model}
