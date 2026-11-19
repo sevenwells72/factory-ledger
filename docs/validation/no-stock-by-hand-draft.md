@@ -51,3 +51,7 @@ Claude Code cross-review could not run: its saved login expired and cannot renew
 Do not mark this PR ready. Cross-review must list remaining gaps, and each later staging/production step still requires separate owner approval and the prescribed backup/verification.
 
 Completed origin/main JavaScript baseline: **744 tests, 741 passed, 3 failed**. The three failures are the Adjust destination, back-to-dashboard navigation and lot-history browser wrappers, each missing the default Playwright Chromium executable. This independently proves those environmental baseline failures; it does not explain this draft’s other failures.
+
+## Final JavaScript rerun
+
+`PLAYWRIGHT_CHANNEL=chrome node --test --test-concurrency=1 tests/*.js` completed: **745 tests, 743 passed, 2 failed**. The failures are the shipping-preload/background-activity assertion (new metadata-read fixture work remains) and the lot-history browser wrapper (its runner calls `chromium.launch()` without honoring the Chrome override, so it still requires the missing default Playwright executable; the same failure was reproduced on origin/main). The four requested screens pass in real Chrome, including the receipt correction flow. This does not make the incomplete Python suite or the blocked specification/review ready for approval.

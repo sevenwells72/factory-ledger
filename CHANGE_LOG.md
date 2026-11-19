@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-19 15:53 — Record the final JavaScript suite result
+- **File(s) changed:** `docs/validation/no-stock-by-hand-draft.md`
+- **What changed:** Record 743 passing and 2 failing Node tests with Chrome, distinguishing the baseline browser dependency from the unfinished metadata-read fixture.
+- **Why:** Report the completed suite accurately on the blocked draft PR.
+
+---
+
 ## 2026-11-19 15:52 — Record passing real Chrome screens and completed JavaScript baseline
 - **File(s) changed:** `docs/validation/no-stock-by-hand-draft.md`
 - **What changed:** Update the four-screen Chrome PASS and origin/main JavaScript baseline (741 passed, 3 browser-executable failures).
