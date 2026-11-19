@@ -240,6 +240,9 @@ class AdjustPrepareRequest(ActionPrepareRequest):
     # Cutover reset (Michael, 2026-10-13): the lot's open SHORTAGE exceptions this
     # physical_count correction closes as 'counted' when it posts. Omitted = none.
     resolves_shortage_ids: List[PositiveId] = Field(default_factory=list)
+    # Migration 096: the sales order a "shipped but not recorded" removal names.
+    # An explanation only — it ships, allocates and closes nothing. Omitted = none.
+    sales_order_id: Optional[PositiveId] = None
 
     @root_validator(pre=True)
     def reason_alias(cls, values):
@@ -653,7 +656,10 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
             draft, state, req, product, occurred_at, source, er_id = validate_receive(
                 api, cur, row['payload'], lock=True)
         else:
-            validated = actions.validate(api, cur, row['action'], effective_payload, lock=True)
+            # A hold keeps the reason it was held with, even one the list retired since.
+            held = row['status'] == a3b.HELD
+            validated = actions.validate(api, cur, row['action'], effective_payload, lock=True, held=held,
+                                         held_reason=(row['draft'] or {}).get('reason_code') if held else None)
             draft, state, _, _, occurred_at, source, _, _ = validated
         unresolved = [b for b in row['draft'].get('blockers', []) if b['code'] != 'LOT_NOT_CONFIRMED']
         if unresolved:
@@ -678,6 +684,9 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
         # A3b hook (R2, owner decision 7): > 500 lb corrections need a photo. With
         # one (prepared or attached now) they post, highlighted; without one the
         # ticket is HELD — nothing posts until the owner approves or a photo arrives.
+        # Owner decision 2026-11-18: once migration 096 is applied `photo_required`
+        # is never set, so nothing is held here; the photo is optional evidence and
+        # the posting core queues the owner's email (adjustment_alerts).
         photo = attachment_ref or row['payload'].get('attachment_ref')
         if row['action'] in ('adjust', 'found'):
             if photo:
@@ -737,7 +746,9 @@ def execute_commit(api, cur, row, actor, request, *, effective_payload, acknowle
             response['approval'] = {**approval, 'approved_at': entered_at}
         if approval or row['status'] == a3b.HELD:
             resolver = ({**approval['approved_by'], 'key_kind': 'actor'} if approval else actor)
-            kind = 'approved' if approval else 'photo_attached'
+            # 'hold_lifted': a pre-096 hold committed again after the rules changed —
+            # it posts without the photo the hold was waiting for.
+            kind = 'approved' if approval else 'photo_attached' if photo else 'hold_lifted'
             closed_id = a3b.release_hold(cur, row['id'], resolution_kind=kind, actor_id=resolver['id'],
                              note=approval.get('note') if approval else None, response=response, attachment_ref=photo)
             if closed_id:
@@ -828,6 +839,8 @@ def register_routes(app, api):
         payload = json.loads(req.json(exclude={'client_source'}))
         if action == 'adjust' and not payload.get('resolves_shortage_ids'):
             payload.pop('resolves_shortage_ids', None)   # unchanged payload/hash for ordinary adjusts
+        if action == 'adjust' and payload.get('sales_order_id') is None:
+            payload.pop('sales_order_id', None)          # same: only a named order is part of the payload
         if action == 'make' and not payload.get('formula_entry'):
             payload.pop('formula_entry', None)     # unchanged payload/hash for other make callers
             payload.pop('ingredient_lines', None)

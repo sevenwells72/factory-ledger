@@ -846,16 +846,24 @@ def analyse(data):
         if tx['type'] == 'adjust':
             reason = (tx['reason_code'] or '').strip().lower()
             no_reason, no_person = reason in ('', 'unknown'), tx['actor_id'] is None
-            if no_reason or no_person:
+            # Migration 096: "Count correction — cause unknown" names a person and carries a
+            # note, but nobody knows where the stock went — the owner hears about it here too.
+            unknown_cause = reason == 'count_unknown'
+            if no_reason or no_person or unknown_cause:
                 lines = after[tx['id']]
                 if no_person:
                     missing = 'without a reason and with no name on it' if no_reason else 'with no name on it'
                     headline = f'Stock was changed by hand {missing}. Please find out who did it and why.'
+                elif unknown_cause:
+                    headline = (f'{tx["actor_name"]} removed stock after a count and could not say where it went. '
+                                f'Please ask {tx["actor_name"]} about it.')
                 else:
                     headline = (f'{tx["actor_name"]} changed stock by hand without giving a reason. '
                                 f'Please ask {tx["actor_name"]} why.')
                 facts = [f'{movement_text(lines)} at {_when(tx["created_at"], with_date=False)}',
                          f'Reason given: "{reason}"' if reason else 'No reason given']
+                if unknown_cause and (tx['notes'] or '').strip():
+                    facts.append(f'Note: {tx["notes"].strip()}')
                 for line in lines:
                     if tx['id'] in covering and line['quantity_lb'] > 0:
                         facts.append(f'This is the {lb(line["quantity_lb"])} that covered the extra packing of '
@@ -1356,18 +1364,51 @@ def send_email(email, env=None):
 
     Returns {'status': 'sent' | 'failed', 'to', 'provider_id', 'error'}.
     """
+    outcome = send_email_once(email, env)
+    outcome.pop('http_status', None)
+    return outcome
+
+
+def email_envelope(env=None):
+    """Sender and recipients as the settings give them now: {'from': str, 'to': [str, ...]}."""
     env = os.environ if env is None else env
-    recipients = [a.strip() for a in env.get('ALERT_EMAIL_TO', '').split(',') if a.strip()]
-    outcome = {'status': 'failed', 'to': ', '.join(recipients) or None, 'provider_id': None, 'error': None}
+    return {'from': env.get('RECONCILIATION_EMAIL_FROM', '').strip() or DEFAULT_EMAIL_FROM,
+            'to': [a.strip() for a in env.get('ALERT_EMAIL_TO', '').split(',') if a.strip()]}
+
+
+def send_email_once(email, env=None, idempotency_key=None):
+    """`send_email` for a caller that retries: the same POST, plus three things.
+
+    An `email` that carries its own 'from' and 'to' is sent to exactly those, and the
+    current settings are not consulted for them: a retry must repeat the first
+    attempt's whole payload, on whichever worker and under whatever settings it runs.
+
+    `idempotency_key` goes out as Resend's `Idempotency-Key` header. For 24 hours
+    Resend answers a repeat of the same key and body with its FIRST answer and sends
+    nothing again (a different body under the same key is refused with 409), so a
+    retry after a lost answer cannot produce a second email.
+    The outcome also carries 'http_status': the status Resend answered with, or None
+    when no answer arrived (then nobody knows whether the email went out).
+    'status' is 'sent' only on a 2xx answer. Never raises, never returns the API key.
+    """
+    env = os.environ if env is None else env
+    envelope = email_envelope(env)
+    sender = email.get('from') or envelope['from']
+    recipients = list(email.get('to') or envelope['to'])
+    outcome = {'status': 'failed', 'to': ', '.join(recipients) or None, 'provider_id': None, 'error': None,
+               'http_status': None}
     key = env.get('RESEND_API_KEY', '').strip()
     if not recipients or not key:
         outcome['error'] = 'ALERT_EMAIL_TO or RESEND_API_KEY is not set'
         return outcome
     stage = 'Could not reach the email service'
     try:
-        response = httpx.post(RESEND_URL, timeout=20.0, headers={'Authorization': f'Bearer {key}'}, json={
-            'from': env.get('RECONCILIATION_EMAIL_FROM', '').strip() or DEFAULT_EMAIL_FROM,
-            'to': recipients, 'subject': email['subject'], 'text': email['text'], 'html': email['html']})
+        headers = {'Authorization': f'Bearer {key}'}
+        if idempotency_key:
+            headers['Idempotency-Key'] = idempotency_key
+        response = httpx.post(RESEND_URL, timeout=20.0, headers=headers, json={
+            'from': sender, 'to': recipients, 'subject': email['subject'], 'text': email['text'], 'html': email['html']})
+        outcome['http_status'] = response.status_code
         stage = 'Could not read the email service answer'
         accepted = 200 <= response.status_code < 300
         try:

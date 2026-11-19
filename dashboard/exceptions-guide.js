@@ -12,7 +12,7 @@
     counted:{
       use:['You can weigh or count what is left of this lot right now.','Puedes pesar o contar ahora lo que queda de este lote.'],
       example:['The system shows canola lot 26-09-17-CBSF-001 at −14 lb. You weigh the drum: 10 lb left. Enter 10.','El sistema muestra el lote de canola 26-09-17-CBSF-001 en −14 lb. Pesas el tambo: quedan 10 lb. Escribe 10.'],
-      effect:['Sets this lot to the pounds you enter (a physical-count correction with its own receipt) and closes the exception. A change over 500 lb needs a photo.','Pone este lote en las libras que escribas (una corrección por conteo físico con su propio recibo) y cierra la excepción. Un cambio de más de 500 lb necesita foto.']},
+      effect:['Sets this lot to the pounds you enter (a physical-count correction with its own receipt) and closes the exception. A change over 500 lb is recorded right away and the owner gets an email; a photo is optional.','Pone este lote en las libras que escribas (una corrección por conteo físico con su propio recibo) y cierra la excepción. Un cambio de más de 500 lb se registra de inmediato y el dueño recibe un correo; la foto es opcional.']},
     missing_movement:{
       use:['Stock for this same lot was entered late, after the shortage.','Se registró tarde, después del faltante, inventario de este mismo lote.'],
       example:['The canola delivery was entered today as RCV-261105-002 on the same lot. Enter that receipt number.','La entrega de canola se registró hoy como RCV-261105-002 en el mismo lote. Escribe ese número de recibo.'],
@@ -62,7 +62,7 @@
     counted_lb:['Weight of THIS lot left right now. Enter 0 if it is empty.','Peso de ESTE lote que queda ahora. Escribe 0 si está vacío.'],
     note:['What happened and how you know.','Qué pasó y cómo lo sabes.'],
     note_unverified:['Required. What happened, how you know, and who checked.','Obligatoria. Qué pasó, cómo lo sabes y quién revisó.'],
-    photo:['Add one when it helps: the scale, the empty pallet. Needed if the change is over 500 lb.','Agrega una cuando ayude: la báscula, la tarima vacía. Necesaria si el cambio es de más de 500 lb.'],
+    photo:['Add one when it helps: the scale, the empty pallet. It is optional, also for a change over 500 lb.','Agrega una cuando ayude: la báscula, la tarima vacía. Es opcional, también si el cambio es de más de 500 lb.'],
     photo_bol:['A clear photo of the signed BOL.','Una foto clara del BOL firmado.'],
     receipt_number:['The receipt # of the late receive or make, e.g. RCV-261105-002. Find it in Today\'s entries.','El # de recibo de la recepción o producción tardía, p. ej. RCV-261105-002. Búscalo en Entradas de hoy.'],
     supplier_lot_code:['Printed on the supplier\'s bag, box, label or BOL. Often after "LOT" or "L".','Impreso en la bolsa, caja, etiqueta o BOL del proveedor. Suele ir después de "LOT" o "L".'],
@@ -119,7 +119,7 @@
       return base+open+(es?' Búscalo en la bolsa, caja, etiqueta o BOL.':' Look for it on the bag, box, label or BOL.');
     }
     const generic={
-      LARGE_CORRECTION:['A correction over 500 lb was entered without a photo. It waits for the owner. Stock has not changed yet.','Se registró una corrección de más de 500 lb sin foto. Espera al dueño. El inventario aún no cambia.'],
+      LARGE_CORRECTION:['A correction over 500 lb was entered without a photo before the rule changed. It waits for the owner and stock has not changed yet. New corrections are no longer held.','Se registró una corrección de más de 500 lb sin foto antes de que cambiara la regla. Espera al dueño y el inventario aún no cambia. Las correcciones nuevas ya no se retienen.'],
       KOSHER_ATTESTATION:['An extra-kosher entry waits for the owner\'s approval. Stock has not changed yet.','Una entrada extra-kosher espera la aprobación del dueño. El inventario aún no cambia.'],
       LATE_ENTRY:['This entry was recorded well after it happened. The owner reviews it.','Esta entrada se registró mucho después de que pasó. El dueño la revisa.'],
       BOL_PHOTO_MISSING:['A shipment has no photo of its signed BOL yet.','Un envío aún no tiene foto de su BOL firmado.'],

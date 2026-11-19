@@ -87,7 +87,20 @@
     return (items||[]).filter(item=>item.message_en&&item.message_es).map(item=>'<p class="auto-substitution" role="status" data-en="'+esc(item.message_en)+'" data-es="'+esc(item.message_es)+'">'+esc(api.lang==='es'?item.message_es:item.message_en)+'</p>').join('');
   }
   const codeFields=new Set(['reason','reason_code','identity_status','status','effective_status','proof_status','role','method','action','resolution_kind','type','photo','state','customer_po_status','unit']);
-  const correctionReasons=[['physical_count','Physical count','Conteo físico'],['missing_receipt','Missing receipt','Recepción no registrada'],['missing_production','Missing production','Producción no registrada'],['wrong_lot','Wrong lot used','Lote equivocado'],['damage_disposal','Damage/disposal','Daño o desecho'],['unrecorded_usage','Unrecorded usage','Uso no registrado'],['data_entry_error','Data-entry error','Error de captura'],['unknown','Unknown','Desconocido']];
+  const correctionReasons=[['physical_count','Physical count','Conteo físico'],['missing_receipt','Missing receipt','Recepción no registrada'],['missing_production','Missing production','Producción no registrada'],['wrong_lot','Wrong lot used','Lote equivocado'],['damage_disposal','Damage/disposal','Daño o desecho'],['unrecorded_usage','Unrecorded usage','Uso no registrado'],['data_entry_error','Data-entry error','Error de captura'],['unknown','Unknown','Desconocido'],
+    // Migration 096 (owner, 2026-11-18): where the stock went when an adjustment REMOVES it. One pick.
+    ['shipped_unrecorded','Shipped but not recorded','Enviado pero no registrado'],['sent_to_sunshine_bulk','Sent to Sunshine as bulk','Enviado a Sunshine a granel'],['used_in_production','Used in production but not recorded','Usado en producción pero no registrado'],['damaged_thrown_out','Damaged or thrown out','Dañado o desechado'],['count_unknown','Count correction — cause unknown','Corrección de conteo — causa desconocida']];
+  // The Adjust form offers reasons by direction: removing stock → the five destinations, then
+  // "Wrong lot used" and "Data-entry error" (the stock was never on this lot; note required);
+  // adding stock → the reasons that can add. `damage_disposal` and `unrecorded_usage` are retired
+  // for new entries (a destination replaces each) but keep their labels for old receipts.
+  // If FL answers with its own list (an API still on the old rules), the form uses FL's list.
+  const removalDestinations=['shipped_unrecorded','sent_to_sunshine_bulk','used_in_production','damaged_thrown_out','count_unknown'];
+  const additionReasons=['physical_count','missing_receipt','missing_production','wrong_lot','data_entry_error','unknown'];
+  const removalNoteReasons=['wrong_lot','data_entry_error'],removalReasons=[...removalDestinations,...removalNoteReasons];
+  const orderDestination='shipped_unrecorded',noteRequiredReasons=['unknown','count_unknown'];
+  function adjustReasons(delta){const n=Number(delta),codes=n<0?removalReasons:n>0?additionReasons:[];return codes.map(code=>correctionReasons.find(([c])=>c===code));}
+  function adjustNoteRequired(code,delta){return noteRequiredReasons.includes(code)||(Number(delta)<0&&removalNoteReasons.includes(code));}
   const codeLabels={...Object.fromEntries(correctionReasons.map(([code,...names])=>[code,names])),wrong_lot_used:['Wrong lot used','Lote equivocado'],unidentified:['Lot identity needs to be checked','Hay que verificar la identidad del lote'],unidentified_lot:['Lot identity needs to be checked','Hay que verificar la identidad del lote'],unknown:['Unknown','Desconocido'],photo_pending:['Photo pending','Foto pendiente'],awaiting_approval:['Waiting for owner approval','En espera de aprobación del dueño'],ship_order:['Ship order','Enviar pedido'],ship_standalone:['Ship','Enviar'],ship_bulk:['Ship multiple products','Enviar varios productos'],floor:['Floor','Piso'],office:['Office','Oficina'],owner:['Owner','Propietario']};
   Object.assign(codeLabels,{cases:['Cases','Cajones'],boxes:['Boxes','Cajas'],pouches:['Pouches','Bolsas'],pallets:['Pallets','Palés'],each:['Each','Cada uno'],committed:['Recorded','Registrado'],prepared:['Draft','Borrador'],posted:['Counts in stock','Cuenta en el inventario'],voided:['Voided','Anulado'],partially_voided:['Partly voided','Anulado en parte'],active:['Active','Activo'],identified:['Lot identity checked','Identidad del lote verificada'],receive:['Receive','Recibir'],make:['Make','Producir'],pack:['Pack','Empacar'],adjust:['Adjust','Ajustar'],found:['Found inventory','Inventario encontrado']});
   function codeText(value,lang='en'){
@@ -95,6 +108,8 @@
     if(/^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$/i.test(raw)){const words=raw.replaceAll('_',' ').toLowerCase();return words.charAt(0).toUpperCase()+words.slice(1);}
     return raw;
   }
+  Object.assign(labels,{destination:['Where it went','A dónde se fue'],owner_email:['Owner gets an email','El dueño recibe un correo']});
+  Object.assign(codeLabels,{hold_lifted:['Recorded without the photo (rule changed)','Registrado sin la foto (cambió la regla)']});
   Object.assign(labels,{notes_es:['Note — Spanish','Nota — español'],found_location:['Found location','Lugar del hallazgo'],target_product_name:['Packed product','Producto empacado'],suggested_lots:['Suggested lots','Lotes sugeridos'],more_lots:['Other available lots','Otros lotes disponibles'],lots_used:['Shipped lots','Lotes enviados'],lines_shipped:['Shipped lines','Líneas enviadas'],shipped_lb:['Shipped lb','lb enviadas'],consumed_lb:['Used lb','lb usadas']});
   // A receipt combines an immutable draft with live shipment proof. Display the
   // live state throughout, without rewriting the stored draft or its evidence.
@@ -129,12 +144,17 @@
       const label=value[api.lang==='es'?'label_es':'label_en']||value.label_en||value.label||codeText(value.code,api.lang);
       return esc(label)+(value.note?'<p>'+esc(value.note)+'</p>':'');
     }
+    if(field==='destination'&&value&&typeof value==='object'&&!Array.isArray(value)){
+      // Where removed stock went: the picked destination, plus the sales order when it shipped.
+      const order=value.sales_order,named=order?' — '+order.order_number+(order.customer_name?' ('+order.customer_name+')':''):'';
+      return draftHtml(value.code,'reason_code')+esc(named);
+    }
     if(Array.isArray(value))return '<ul'+(field==='suggested_lots'?' class="suggested-lots"':'')+'>'+value.map(v=>'<li>'+draftHtml(v,undefined,options)+'</li>').join('')+'</ul>';
     if(value&&typeof value==='object')return autoSubstitutionsHtml(value.auto_substitutions)+'<dl>'+Object.entries(value).filter(([k,v])=>labels[k]&&k!=='summary_es'&&v!==null&&v!==undefined&&!(Array.isArray(v)&&!v.length)).map(([k,v])=>'<dt data-en="'+esc(labels[k][0])+'" data-es="'+esc(labels[k][1])+'">'+esc(labels[k][api.lang==='es'?1:0])+'</dt><dd>'+(k==='summary'&&value.summary_es?'<span data-en="'+esc(v)+'" data-es="'+esc(value.summary_es)+'">'+esc(api.lang==='es'?value.summary_es:v)+'</span>':['happened_at','entered_at','proof_due_at'].includes(k)?'<span data-en="'+esc(plantTime(v,'en'))+'" data-es="'+esc(plantTime(v,'es'))+'">'+esc(plantTime(v,api.lang))+'</span>':draftHtml(v,k,options))+'</dd>').join('')+'</dl>';
     if(codeFields.has(field)&&codeLabels[String(value).toLowerCase()])return '<span data-en="'+esc(codeText(value,'en'))+'" data-es="'+esc(codeText(value,'es'))+'">'+esc(codeText(value,api.lang))+'</span>';
     return esc(codeFields.has(field)?codeText(value,api.lang):(typeof value==='number'||/^(?:quantity|quantity_lb|cases|cases_received|batches|counted_lb|.*_lb|unit_price|amount|total)$/.test(field||'')&&value!==null&&value!==''&&Number.isFinite(Number(value)))?formatNumber(value):value);
   }
-  const api={receiveLotCodes,receiveLotHtml,correctionReasons,formatNumber,exceptionLabel,exceptionQueue,openingStock,esc,text,errorText,recorded,decisionOutcome,resolutionChoices,decisionRequest,noteRequired,voidChoices,voidRequest,receiptState,transportText,groups,dataHtml,draftHtml,makeDraftHtml,receiptData,autoSubstitutionsHtml,plantTime,codeText};
+  const api={receiveLotCodes,receiveLotHtml,correctionReasons,adjustReasons,adjustNoteRequired,removalDestinations,removalReasons,removalNoteReasons,additionReasons,orderDestination,noteRequiredReasons,formatNumber,exceptionLabel,exceptionQueue,openingStock,esc,text,errorText,recorded,decisionOutcome,resolutionChoices,decisionRequest,noteRequired,voidChoices,voidRequest,receiptState,transportText,groups,dataHtml,draftHtml,makeDraftHtml,receiptData,autoSubstitutionsHtml,plantTime,codeText};
   if(typeof module!=='undefined')module.exports=api;
   root.FLLedger=api;
   if(!root.document)return;
