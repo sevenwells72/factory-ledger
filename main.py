@@ -5949,6 +5949,19 @@ def _fmt_quantity(value) -> str:
     return format(rounded, ',f').rstrip('0').rstrip('.') if '.' in format(rounded, ',f') else format(rounded, ',f')
 
 
+def _receive_supplier_parties(cur, req, *, lock=False):
+    """Every commingled party is registered, on previews and under posting locks."""
+    if not stock_by_hand.live_at(cur):
+        return
+    for entry in req.supplier_lot_entries or []:
+        supplier_id = entry.get('supplier_id')
+        if supplier_id is None:
+            supplier = resolve_supplier(cur, entry.get('supplier_name') or '')
+            supplier_id = supplier['id'] if supplier else None
+        supplier = lot_confirmation.real_supplier(cur, supplier_id, lock=lock)
+        entry.update(supplier_id=supplier['id'], supplier_name=supplier['name'])
+
+
 def _receive_preview_core(cur, req: ReceiveRequest, *, product=None):
     """Read-only receive draft, shared by legacy preview and A1 prepare."""
     product = product if product is not None else resolve_product_full(cur, req.product_name)
@@ -5966,6 +5979,7 @@ def _receive_preview_core(cur, req: ReceiveRequest, *, product=None):
         lot_code, shipper_code, auto = generate_lot_code(cur, req.shipper_name, req.shipper_code_override)
         existing = None
     stock_by_hand.receive(cur, req, product['id'], existing['id'] if existing else None)
+    _receive_supplier_parties(cur, req)
     total_lb = req.cases * req.case_size_lb
 
     response = {
@@ -6028,6 +6042,7 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
     stock_by_hand.receive(cur, req, product['id'], lot_id)
     if stock_by_hand.live_at(cur):
         lot_confirmation.real_supplier(cur, supplier_id, lock=True)
+        _receive_supplier_parties(cur, req, lock=True)
     kosher_tiers.output_matches(cur, lot_id, product)
     code_similarity = (
         check_suspicious_code_similarity(cur, product['id'], lot_id, lot_code)
@@ -9834,8 +9849,10 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
 
     cur.execute('SELECT id FROM lots WHERE id=%s FOR UPDATE', (lot_id,))
     if stock_by_hand.live_at(cur):
+        stock_by_hand.require_paired_move(cur, req.product_id, req.quantity, reason_code or req.reason_code)
         reason = exceptions_enforcement.resolve_reason(cur, 'found', reason_code or req.reason_code, note=req.notes or req.notes_es, delta_lb=req.quantity)
         reason_code = reason['code']
+        stock_by_hand.require_paired_move(cur, req.product_id, req.quantity, reason_code)
         if not is_new_lot:
             if reason_code == 'missing_receipt':
                 stock_by_hand.fail('LOT_CODE_TAKEN', 'Use Found as a new lot, or Receive this delivery.', 'Usa Encontrado como lote nuevo, o Recibe esta entrega.', 409)
@@ -9918,6 +9935,9 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
     }
     if ticket_id is not None:
         response["transaction_id"] = txn_id
+    elif stock_by_hand.live_at(cur):
+        response['transaction_id'] = txn_id
+        lot_confirmation.record_identity(cur, req.dict(), response, None, None)
     if code_similarity:
         response.setdefault("warnings", []).append(code_similarity)
     if audit_error:
@@ -12208,6 +12228,14 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                     RETURNING id, name
                 """, (req.product_name, req.product_type, req.uom, req.storage_type, verification_notes, verification_notes_es))
                 product = cur.fetchone()
+                if stock_by_hand.live_at(cur):
+                    # Same reason, actor, identity, trace and follow-up guards as
+                    # ordinary Found. Any refusal rolls product creation back too.
+                    found_req = AddFoundInventoryRequest(**(req.dict() | {'product_id': product['id']}))
+                    response = _found_commit_core(cur, found_req, request, occurred_at, created_at_source)
+                    response.update(product_id=product['id'], product_name=product['name'], verification_status='unverified')
+                    response['message'] = f"Created '{product['name']}' and added {_fmt_quantity(req.quantity)} {req.uom} as lot {response['lot_code']}"
+                    return response
                 
                 cur.execute("SELECT pg_advisory_xact_lock(2)")
 

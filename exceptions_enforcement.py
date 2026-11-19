@@ -186,6 +186,16 @@ def destination_rules(cur):
     return cur.fetchone() is not None
 
 
+# Migration 098 changes policy in code only: applying its SQL under old code
+# must leave the correction-reason catalog and legacy behavior untouched.
+_ADDITION_LABELS = {
+    'physical_count': ('Counted - same lot, FL was low', 'Contado - mismo lote, FL tenía menos'),
+    'missing_production': ('Made or packed but not recorded', 'Producido o empacado pero no registrado'),
+    'wrong_lot': ('Belongs on this lot - wrong lot was used', 'Pertenece a este lote - se usó otro lote'),
+    'data_entry_error': ('Typing mistake in an earlier entry', 'Error de captura en una entrada anterior'),
+}
+
+
 def _valid_reasons(cur, source, *, delta_lb=None, destinations=False):
     """The reasons a client may offer. With `destinations` (096 applied, an ordinary
     adjust) the list follows the direction: removing stock → the `removal_allowed`
@@ -204,6 +214,10 @@ def _valid_reasons(cur, source, *, delta_lb=None, destinations=False):
         elif delta_lb is not None and float(delta_lb) > 0:
             rows = [r for r in rows if r['adjust_sign'] != 'negative']
     if source == 'adjust' and stock_by_hand.live_at(cur):
+        rows = [dict(r, addition_allowed=r['code'] in _ADDITION_LABELS,
+                     addition_label_en=_ADDITION_LABELS.get(r['code'], (None, None))[0],
+                     addition_label_es=_ADDITION_LABELS.get(r['code'], (None, None))[1])
+                for r in rows if r['code'] != 'missing_receipt']
         keys += ['addition_allowed', 'addition_label_en', 'addition_label_es']
         if delta_lb is not None and float(delta_lb)>0:
             rows = [r for r in rows if r.get('addition_allowed')]
@@ -303,7 +317,7 @@ def resolve_reason(cur, source, raw, *, note=None, delta_lb=None, sales_order_id
              f'{label!r} is not a correction reason for {source}; use one of the fixed list.',
              message_es=f'{label!r} no es un motivo de corrección para {source}; use uno de la lista fija.',
              reason_code=str(raw), valid_reasons=valid())
-    if adding and not row.get('addition_allowed'):
+    if adding and row['code'] not in _ADDITION_LABELS:
         fail(422, 'REASON_CODE_INVALID', 'Choose where this stock came from. Unknown stock goes through Found as a new lot.',
              message_es='Elige de dónde vino el inventario. El inventario desconocido entra por Encontrado como lote nuevo.')
     if removing and not row.get('removal_allowed'):

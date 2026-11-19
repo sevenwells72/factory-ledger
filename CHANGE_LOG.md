@@ -32,6 +32,167 @@
 - **File(s) changed:** `main.py`, `tests/test_shared_key_shutdown.py`, `tests/fixtures/route_contract/routes.jsonl`
 - **What changed:** create_certification, correct_certification, reassign_lot, merge_lots, add_found_inventory and add_found_inventory_with_new_product now take the Request and pass it to _operator_id / _entered_by_actor_id, so a named owner key is stored as the person (name and actor id) instead of 'legacy-shared-key'. Found-with-new-product now writes operator_id and entered_by_actor_id on its ledger row. The two direct Found lines match PR #232's text. Added 10 HTTP tests (owner key stores the person; shared key under SHARED_KEY_WRITES=allow keeps the old stamp) and regenerated 6 route-contract lines (request false to true). No migration, no schema or GPT change.
 - **Why:** Cross-review of PR #234 (comment 7043947718, finding 1): the owner key reaches these routes after the shared key becomes read-only, but they still recorded the shared-key placeholder and no person. Michael approved preparing the fix on 2026-11-23.
+## 2026-11-19 18:20 — Allocate PR 232 review-fix changelog row after refreshing main
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Append the next free numbered row for final fixes and verified test/baseline results, preserving every prior row.
+- **Why:** Owner requires row allocation at commit time because another session may append today.
+
+---
+
+## 2026-11-19 18:19 — Use executable node IDs in PR 232 baseline evidence
+- **File(s) changed:** `docs/validation/no-stock-by-hand-review-fixes.md`
+- **What changed:** Record exact file/class/function pytest node IDs for every matched failure.
+- **Why:** Reviewers must be able to reproduce each remaining baseline failure directly.
+
+---
+
+## 2026-11-19 18:19 — Record completed PR 232 suites and exact main failure comparison
+- **File(s) changed:** `docs/validation/no-stock-by-hand-review-fixes.md`
+- **What changed:** Document all five fixes, 7761 Python passes plus seven reproduced main failures, 746 JS passes, 72 HTTP cases, real browser checks, old-code migration probe and snapshot identity.
+- **Why:** The draft must have concrete reproducible verification before Claude Code cross-review.
+
+---
+
+## 2026-11-19 18:12 — Align entry UI harnesses with lazy workflow loading
+- **File(s) changed:** `tests/test_background_startup_ui.js`, `tests/test_pilot_entry_ui.js`
+- **What changed:** Use the real adjustment reason helper in the startup harness and await entry-type changes in the pending-photo isolation test.
+- **Why:** The complete JS run passed browser flows but exposed two harness assumptions about the now-async workflow switch.
+
+---
+
+## 2026-11-19 18:11 — Return the paired-move instruction before Found source-list refusal
+- **File(s) changed:** `stock_by_hand.py`, `main.py`, `ticket_actions.py`
+- **What changed:** Recognize canonical/spaced wrong-lot reasons before fixed-list validation on all Found paths, while keeping the shared posting guard.
+- **Why:** Found already rejected this source as invalid; the owner specifically requires PAIRED_MOVE_REQUIRED and the Adjust-screen instruction on every ingredient addition route.
+
+---
+
+## 2026-11-19 18:09 — Prove paired audit displays and unnamed nightly additions
+- **File(s) changed:** `tests/test_no_stock_by_hand.py`
+- **What changed:** Assert both move legs in lot history, correct shift before/after and roll-forward, one nightly move review, and unnamed additions retaining existing unexplained-adjustment checks.
+- **Why:** Complete the review evidence for paired displays and rule 5 without changing the approved inventory policy.
+
+---
+
+## 2026-11-19 18:07 — Enforce paired wrong-lot policy on new Found ingredient lots too
+- **File(s) changed:** `stock_by_hand.py`, `main.py`, `ticket_actions.py`, `tests/test_no_stock_by_hand.py`, `docs/ARCHITECTURE-MAP.md`
+- **What changed:** Share the wrong-lot guard between addition and all Found validations, including new-product Found; prove five direct/ticket new/existing refusals leave no rows.
+- **Why:** The owner requires ingredient wrong-lot fixes to be paired net-zero on every route; the new-Found give-back exemption must not bypass that rule.
+
+---
+
+## 2026-11-19 18:04 — Scope order audit assertions to the tested write
+- **File(s) changed:** `tests/test_order_create_review.py`
+- **What changed:** Compare all audit rows created after the request baseline instead of assuming the shared fixture database has no older named audits.
+- **Why:** Named HTTP concurrency fixtures create legitimate unrelated audit history; the assertion must still prove exact new targets and actor atomically.
+
+---
+
+## 2026-11-19 18:04 — Verify lazy stock-rule lookup across entry type switches
+- **File(s) changed:** `tests/test_background_startup_ui.js`
+- **What changed:** Exercise Ship to Receive to Make to Adjust, asserting usable forms and one background metadata lookup.
+- **Why:** The shipping startup fix must also work when staff switch workflows without reloading.
+
+---
+
+## 2026-11-19 18:00 — Scope legacy matrix fallback through its module fixture
+- **File(s) changed:** `tests/test_direct_order_close_guard.py`
+- **What changed:** Select compatibility only for explicit master rows through the module fixture; preserve all original parameter values.
+- **Why:** Installed pytest rejects usefixtures marks on individual pytest.param values.
+
+---
+
+## 2026-11-19 17:59 — Preserve missing-key checks in scoped legacy fixtures
+- **File(s) changed:** `tests/conftest.py`
+- **What changed:** Replace an existing fixture default credential only; leave clients without a default header unauthenticated.
+- **Why:** Historical missing-key assertions must continue to test actual missing credentials.
+
+---
+
+## 2026-11-19 17:59 — Restore master-key order guard matrix coverage
+- **File(s) changed:** `tests/test_direct_order_close_guard.py`
+- **What changed:** Restore removed master-key matrix cases, each explicitly marked for legacy compatibility fallback; named/default-denial cases remain separate.
+- **Why:** Changing shared-key policy must not discard the older order guard regression matrix.
+
+---
+
+## 2026-11-19 17:56 — Make migration compatibility regression proof independent of Git refs
+- **File(s) changed:** `tests/test_no_stock_by_hand.py`
+- **What changed:** Compare the complete reason catalog and marker-off answers through up/down without loading a moving origin/main module in the permanent test.
+- **Why:** The actual old-code probe already passed locally; the permanent test must remain valid after this branch merges and in shallow CI checkouts.
+
+---
+
+## 2026-11-19 17:56 — Refresh intentional PR 232 route contract changes
+- **File(s) changed:** `tests/fixtures/route_contract/routes.jsonl`, `tests/fixtures/route_contract/openapi.jsonl`
+- **What changed:** Record marker metadata query, paired-lot request fields, and authenticated Request injection on direct Found handlers.
+- **Why:** The route snapshot must reflect the deliberate API additions while preserving all other contracts.
+
+---
+
+## 2026-11-19 17:55 — Retain original credential parameters in legacy compatibility proofs
+- **File(s) changed:** `tests/test_a12_review_fixes.py`, `tests/test_a12_shift_integration.py`, `tests/test_a7_review_fixes.py`, `tests/test_device_pins.py`, `tests/test_exceptions_enforcement.py`, `tests/test_expected_receipt_extract.py`, `tests/test_expected_receipts.py`, `tests/test_fl_assistant.py`, `tests/test_key_session_rebase.py`, `tests/test_key_sessions.py`, `tests/test_kosher_tiers.py`, `tests/test_make_entry_simplify.py`, `tests/test_notes_characterization.py`, `tests/test_oat_bran_shift_summary.py`, `tests/test_order_create_contract.py`, `tests/test_order_create_review.py`, `tests/test_order_tickets.py`, `tests/test_product_archive.py`, `tests/test_production_runs.py`, `tests/test_readonly_api_key.py`, `tests/test_released_by_attribution.py`, `tests/test_reset_shortage_close.py`, `tests/test_roles_a2.py`, `tests/test_sales_order_extract.py`, `tests/test_sales_order_state_model.py`, `tests/test_shift_summary.py`, `tests/test_ship_tickets.py`, `tests/test_supplier_lot_tickets.py`, `tests/test_trusted_browsers.py`, `tests/test_void_screen.py`, `tests/test_write_response_contract.py`, `tests/test_write_tickets.py`, `tests/conftest.py`
+- **What changed:** Restore parameter decorators with historical test bodies so master-key cases bind the real shared key, not a named actor alias.
+- **Why:** Credential identity is part of the assertion and must not be changed accidentally.
+
+---
+
+## 2026-11-19 17:54 — Repair explicit legacy credential test contracts after shared-key shutdown
+- **File(s) changed:** `tests/test_a12_review_fixes.py`, `tests/test_a12_shift_integration.py`, `tests/test_a7_review_fixes.py`, `tests/test_device_pins.py`, `tests/test_exceptions_enforcement.py`, `tests/test_expected_receipt_extract.py`, `tests/test_expected_receipts.py`, `tests/test_fl_assistant.py`, `tests/test_key_session_rebase.py`, `tests/test_key_sessions.py`, `tests/test_kosher_tiers.py`, `tests/test_make_entry_simplify.py`, `tests/test_notes_characterization.py`, `tests/test_oat_bran_shift_summary.py`, `tests/test_order_create_contract.py`, `tests/test_order_create_review.py`, `tests/test_order_tickets.py`, `tests/test_product_archive.py`, `tests/test_production_runs.py`, `tests/test_readonly_api_key.py`, `tests/test_released_by_attribution.py`, `tests/test_reset_shortage_close.py`, `tests/test_roles_a2.py`, `tests/test_sales_order_extract.py`, `tests/test_sales_order_state_model.py`, `tests/test_shift_summary.py`, `tests/test_ship_tickets.py`, `tests/test_supplier_lot_tickets.py`, `tests/test_trusted_browsers.py`, `tests/test_void_screen.py`, `tests/test_write_response_contract.py`, `tests/test_write_tickets.py`, `tests/conftest.py`
+- **What changed:** Restore historical test functions and opt them explicitly into the supported emergency fallback; keep normal fixtures named and default read-only refusal coverage independent.
+- **Why:** Earlier broad credential substitutions tested named-owner behavior while asserting shared-key semantics, breaking attribution and fault-injection coverage.
+
+---
+
+## 2026-11-19 17:51 — Keep shipping startup free of stock-rule lookup
+- **File(s) changed:** `dashboard/entry.js`, `tests/test_background_startup_ui.js`
+- **What changed:** Load marker metadata only for Receive, Adjust and Found, including action switches; retain the original two shipping background reads and add dedicated lookup coverage.
+- **Why:** Remove the startup regression instead of requiring extra inventory metadata for ordinary shipping.
+
+---
+
+## 2026-11-19 17:49 — Prove normal floor postings with migration 098 enabled
+- **File(s) changed:** `tests/test_no_stock_by_hand.py`
+- **What changed:** Add real HTTP Make, Pack, count-down and three shipping flow checks with marker on.
+- **Why:** Owner requires ordinary floor work unchanged alongside the new addition guards.
+
+---
+
+## 2026-11-19 17:47 — Complete shared-key route matrix and direct trace assertions
+- **File(s) changed:** `tests/test_no_stock_by_hand.py`
+- **What changed:** Enable all feature-gated authenticated routes in the refusal matrix and assert direct Found trace person.
+- **Why:** Do not stop route coverage at an expected disabled-feature 404.
+
+---
+
+## 2026-11-19 17:46 — Replace resolved PR 232 policy blocker with final owner decision
+- **File(s) changed:** `docs/deployments/no-stock-by-hand.md`
+- **What changed:** Document code-only reason policy, unchanged migration catalog and marker-only down; retain draft and approval boundaries.
+- **Why:** Later owner decisions resolve the former migration-policy contradiction.
+
+---
+
+## 2026-11-19 17:46 — Validate commingled parties in both shared receiving cores
+- **File(s) changed:** `main.py`, `tests/test_no_stock_by_hand.py`
+- **What changed:** Resolve and validate all supplier parties on preview and under posting locks; cover both modes.
+- **Why:** Every receiving route must enforce registered supplier identity.
+
+---
+
+## 2026-11-19 17:45 — Add HTTP proofs for PR 232 posting and migration fixes
+- **File(s) changed:** `tests/test_no_stock_by_hand.py`
+- **What changed:** Cover named direct Found identity, atomic reason refusals, secondary suppliers, feature-off routing and old-code/marker/down reason compatibility.
+- **Why:** Close independent review coverage gaps with local rollback-only tests.
+
+---
+
+## 2026-11-19 17:44 — Fix PR 232 reason-policy and direct posting review findings
+- **File(s) changed:** `main.py`, `exceptions_enforcement.py`, `migrations/098_no_stock_by_hand.sql`, `migrations/down/098_no_stock_by_hand_down.sql`, `tests/test_no_stock_by_hand.py`, `tests/test_background_startup_ui.js`
+- **What changed:** Keep reason policy in marker-gated code; share direct Found validation and attribution; enforce every supplier party; repair startup and blocked-draft assertions.
+- **Why:** Owner requested all five cross-review findings fixed before Claude Code review.
+
+---
+
 ## 2026-11-19 15:53 — Record the final JavaScript suite result
 - **File(s) changed:** `docs/validation/no-stock-by-hand-draft.md`
 - **What changed:** Record 743 passing and 2 failing Node tests with Chrome, distinguishing the baseline browser dependency from the unfinished metadata-read fixture.
