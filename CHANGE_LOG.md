@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-19 14:37 — Trial recall: rebased onto main 89a3157 (after PR 225); standing recall rule doc commit added
+- **File(s) changed:** `scripts/exceptions_sweep.py`, `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`, `docs/deployments/trial-recall.md`
+- **What changed:** Rebased feat/trial-recall (10 commits) from 7083e40 onto main 89a3157. Conflicts, both sides kept: scripts/exceptions_sweep.py (the nightly job now calls send_adjustment_alerts() from PR 225 and then the branch's exit-code list with the Form sync and trial recall); FACTORY_LEDGER_CHANGELOG.md (row order 307, 306, 305; row 306 text from the branch in every commit); CHANGE_LOG.md (branch entries above main's). Every file's change against main is line-for-line the same as before the rebase. Cherry-picked dc77c65 from docs/recall-rule-90717 (Standing recall rules section in docs/deployments/trial-recall.md). Tests on the result: full Python suite on a private scratch database built from tests/schema/schema.sql (now with 096): 7,811 passed, 7 failed (the same 7 that fail on main), 1 skipped (pillow-heif not installed); full JavaScript suite 748 of 748; architecture map 0 problems; key-literal guard 0 findings. Old head 748499e kept as local branch backup/trial-recall-pre-rebase-748499e.
+- **Why:** Owner asked for the rebase after PR 225 and its record merged; PR 227 was conflicting with main.
+
+---
+
 ## 2026-11-19 14:08 — Trial recall doc: standing recall rule for sunflower supplier lot 90717
 - **File(s) changed:** `docs/deployments/trial-recall.md`
 - **What changed:** Added a 'Standing recall rules (applied by hand)' section with the rule for sunflower supplier lot 90717: also pull sunflower product made Sep 4 to Oct 21 2026 (17 makes, batch and finished lots listed), and a warning that the July lot L01SK20260513 was returned to the supplier on Sep 8 so the seven October makes recorded against it are not reliable
