@@ -1369,8 +1369,19 @@ def send_email(email, env=None):
     return outcome
 
 
+def email_envelope(env=None):
+    """Sender and recipients as the settings give them now: {'from': str, 'to': [str, ...]}."""
+    env = os.environ if env is None else env
+    return {'from': env.get('RECONCILIATION_EMAIL_FROM', '').strip() or DEFAULT_EMAIL_FROM,
+            'to': [a.strip() for a in env.get('ALERT_EMAIL_TO', '').split(',') if a.strip()]}
+
+
 def send_email_once(email, env=None, idempotency_key=None):
-    """`send_email` for a caller that retries: the same POST, plus two things.
+    """`send_email` for a caller that retries: the same POST, plus three things.
+
+    An `email` that carries its own 'from' and 'to' is sent to exactly those, and the
+    current settings are not consulted for them: a retry must repeat the first
+    attempt's whole payload, on whichever worker and under whatever settings it runs.
 
     `idempotency_key` goes out as Resend's `Idempotency-Key` header. For 24 hours
     Resend answers a repeat of the same key and body with its FIRST answer and sends
@@ -1381,7 +1392,9 @@ def send_email_once(email, env=None, idempotency_key=None):
     'status' is 'sent' only on a 2xx answer. Never raises, never returns the API key.
     """
     env = os.environ if env is None else env
-    recipients = [a.strip() for a in env.get('ALERT_EMAIL_TO', '').split(',') if a.strip()]
+    envelope = email_envelope(env)
+    sender = email.get('from') or envelope['from']
+    recipients = list(email.get('to') or envelope['to'])
     outcome = {'status': 'failed', 'to': ', '.join(recipients) or None, 'provider_id': None, 'error': None,
                'http_status': None}
     key = env.get('RESEND_API_KEY', '').strip()
@@ -1394,8 +1407,7 @@ def send_email_once(email, env=None, idempotency_key=None):
         if idempotency_key:
             headers['Idempotency-Key'] = idempotency_key
         response = httpx.post(RESEND_URL, timeout=20.0, headers=headers, json={
-            'from': env.get('RECONCILIATION_EMAIL_FROM', '').strip() or DEFAULT_EMAIL_FROM,
-            'to': recipients, 'subject': email['subject'], 'text': email['text'], 'html': email['html']})
+            'from': sender, 'to': recipients, 'subject': email['subject'], 'text': email['text'], 'html': email['html']})
         outcome['http_status'] = response.status_code
         stage = 'Could not read the email service answer'
         accepted = 200 <= response.status_code < 300

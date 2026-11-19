@@ -268,6 +268,38 @@ def _flag(code, severity, en, es, refs, due_at=None):
     return flag
 
 
+# What the weekly view may say about the owner email for a correction over 500 lb
+# (migration 096). The receipt only records that an email was REQUIRED
+# (`correction_review.owner_email`, set when the correction posted); whether it was
+# delivered is in the outbox, so the wording follows the outbox.
+OWNER_EMAIL_TAILS = {
+    'sent': (' — owner emailed', ' — se avisó al dueño por correo'),
+    'pending': (' — owner email pending', ' — correo al dueño pendiente'),
+    'manual_check': (' — owner email needs a manual check', ' — correo al dueño: revisar a mano'),
+}
+
+
+def owner_email_state(cur, catalog, transaction_id):
+    """'sent' | 'pending' | 'manual_check' for one correction's owner email.
+
+    sent: Resend confirmed the send (`adjustment_alerts.status = 'sent'`).
+    pending: the email is owed and still being tried.
+    manual_check: nothing will send it — retries stopped unconfirmed, or no outbox
+    row exists (the queue step failed when the correction posted, or the table is
+    gone). A person tells the owner."""
+    available = getattr(catalog, '_alerts_table', None)
+    if available is None:
+        cur.execute("SELECT to_regclass('public.adjustment_alerts') IS NOT NULL AS present")
+        available = bool(cur.fetchone()['present'])
+        if catalog is not None:
+            catalog._alerts_table = available
+    if not available or transaction_id is None:
+        return 'manual_check'
+    cur.execute('SELECT status FROM adjustment_alerts WHERE transaction_id = %s', (transaction_id,))
+    alert = cur.fetchone()
+    return {'sent': 'sent', 'pending': 'pending'}.get(alert['status'] if alert else None, 'manual_check')
+
+
 def _open_exception(cur, catalog=None, **where):
     if catalog is not None and hasattr(catalog, "_exceptions"):
         return next((r for r in catalog._exceptions if r["status"] in ("open", "escalated")
@@ -508,7 +540,7 @@ def receipt_row(api, cur, catalog, number, day, *, receipt=None, ticket=None):
         row.update(pair(f'{number}  {row["product"]["name"]} lot {row["lot"]["lot_code"] if row["lot"] else "?"}  {fmt_lb(delta, signed=True)} lb  reason: {label_en}',
                         f'{number}  {row["product"]["name"]} lote {row["lot"]["lot_code"] if row["lot"] else "?"}  {fmt_lb(delta, signed=True)} lb  razón: {label_es}', 'line'))
         # OVER_500_LB: before migration 096 it always came with photo_required; after it the
-        # correction posts unheld and the owner is emailed, and it is flagged here all the same.
+        # correction posts unheld and an owner email is owed, and it is flagged here all the same.
         if review.get('photo_required') or {'OVER_10_PERCENT_OF_BOOK', 'OVER_500_LB'} & set(review.get('rules') or []):
             # The hold's exception (A3b) is resolved by the approval or the photo that let this
             # receipt post, so it is read in ANY status: the reference must survive resolution.
@@ -521,12 +553,17 @@ def receipt_row(api, cur, catalog, number, day, *, receipt=None, ticket=None):
             approved_by = (response.get('approval') or {}).get('approved_by') or None
             pct = review.get('pct_of_book')
             pct_text = f' ({pct * 100:.0f}% of lot)' if pct is not None else ''
+            owner_email = None
             if approved_by:
                 tail_en, tail_es = f' — approved by {approved_by.get("name")}', f' — aprobada por {approved_by.get("name")}'
+            elif review.get('owner_email'):
+                # Never "owner emailed" from the posting-time flag: only once the outbox says sent.
+                owner_email = owner_email_state(cur, catalog, txn0.get('id'))
+                tail_en, tail_es = OWNER_EMAIL_TAILS[owner_email]
+                if review.get('attachment_ref'):
+                    tail_en, tail_es = tail_en + ', photo attached', tail_es + ', con foto'
             elif review.get('attachment_ref'):
                 tail_en, tail_es = ' — photo attached', ' — con foto'
-            elif review.get('owner_email'):
-                tail_en, tail_es = ' — owner emailed', ' — se avisó al dueño por correo'
             elif review.get('photo_required'):
                 tail_en, tail_es = ' — photo required', ' — requiere foto'
             else:
@@ -537,6 +574,10 @@ def receipt_row(api, cur, catalog, number, day, *, receipt=None, ticket=None):
                                       {'exception_id': exc['id'] if exc else None, 'delta_lb': delta, 'pct': pct,
                                        'resolution': exc['resolution_kind'] if exc else None,
                                        'approved_by_actor_id': approved_by.get('id') if approved_by else None}))
+            if owner_email:
+                # Beside `refs`, not in them: `refs` are hashed (§1.3), and an email going
+                # from pending to sent must not make a confirmed summary look changed.
+                row['flags'][-1]['owner_email'] = owner_email
             if exc:
                 row['exceptions_opened'].append(exc['id'])
         if reason and reason['code'] in ('unknown', 'count_unknown'):   # = exceptions_enforcement.UNKNOWN_REASONS

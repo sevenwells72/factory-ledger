@@ -54,9 +54,14 @@ apply the migration first, then merge (Railway and Netlify deploy from the merge
   - Each row has a fixed `idempotency_key` (`fl-adjustment-alert/<uuid>`), sent on every attempt as Resend's
     `Idempotency-Key` header. For 24 hours Resend answers a repeat of the same key and body with its first
     answer and sends nothing again.
-  - The email is built from the ledger at the first attempt and stored on the row (`message`). Every retry
-    sends that stored text, so the body never differs. A photo or a void that arrives after the first attempt
-    shows on the receipt, not in the email.
+  - The whole email is fixed at the first attempt and stored on the row (`message`): the sender and
+    recipients as the settings gave them at that moment, and the subject and text built from the ledger.
+    Every retry sends exactly that, on either service, and never re-reads `ALERT_EMAIL_TO` or
+    `RECONCILIATION_EMAIL_FROM`. A photo or a void that arrives after the first attempt shows on the receipt,
+    not in the email. A changed address applies to alerts first sent after the change.
+  - If an alert was fixed with a wrong address and Resend keeps refusing it (nothing in doubt:
+    `unconfirmed_since IS NULL`), rebuild it by hand; the next attempt uses the current settings:
+    `UPDATE adjustment_alerts SET message = NULL, idempotency_key = 'fl-adjustment-alert/' || gen_random_uuid()::text WHERE id = <id> AND status = 'pending' AND unconfirmed_since IS NULL;`
   - The row becomes `sent` only when Resend confirms with a 2xx answer. A send that was interrupted (no
     answer, a crash, or the status write failing) stays `pending`; the retry repeats the same key, Resend
     returns the original answer, and that is recorded.
@@ -69,6 +74,16 @@ apply the migration first, then merge (Railway and Netlify deploy from the merge
     `UPDATE adjustment_alerts SET status = 'pending', unconfirmed_since = NULL, last_attempt_at = NULL WHERE id = <id>;`
   - A refusal from Resend (4xx: wrong key, unverified domain, rate limit) with nothing in doubt is retried
     without any time limit.
+  - The 23-hour stop is deliberate and accepted by the owner (2026-11-19): at most one email, and an email
+    that could not be confirmed goes to a manual check instead of being sent again.
+- **What the shift summary / weekly view says** on a correction over 500 lb (`shift_summary.owner_email_state`,
+  read from the outbox, never from the receipt's posting-time flag):
+  - "owner emailed" only when the row is `sent` (Resend confirmed);
+  - "owner email pending" while the row is `pending`;
+  - "owner email needs a manual check" when the row is `unconfirmed`, or when no outbox row exists (the queue
+    step failed when the correction posted). A person tells the owner.
+  - The state is in the flag's text and its `owner_email` field, not in its hashed `refs`, so an email going
+    from pending to sent does not change a shift summary someone already confirmed.
 - **The web service has no Resend settings today** (they are on the `exceptions-sweep` cron service). Until
   `RESEND_API_KEY` and `ALERT_EMAIL_TO` are also set on the FastAPI service, the email goes out with the
   nightly run, not within seconds. Setting them is a credential change and needs Michael's approval.

@@ -99,10 +99,12 @@ UPDATE correction_reasons SET active = false
 --      idempotency_key    fixed when the row is written; every attempt sends it
 --                         as Resend's Idempotency-Key header. The random part
 --                         keeps staging and production keys apart.
---      message            subject / text / html, built from the ledger at the
---                         FIRST attempt and never rebuilt, so every retry sends
---                         the same body under the same key and Resend answers a
---                         repeat with its first answer instead of sending again.
+--      message            the whole Resend payload: from / to (the settings at
+--                         the FIRST attempt) and subject / text / html (built
+--                         from the ledger then). Never rebuilt, so every retry
+--                         sends the same payload under the same key, whatever
+--                         the settings are by then, and Resend answers a repeat
+--                         with its first answer instead of sending again.
 --      status             'sent' only after Resend confirmed (2xx).
 --      unconfirmed_since  start of the earliest attempt whose answer never
 --                         arrived (the email may or may not have gone out).

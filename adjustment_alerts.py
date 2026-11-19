@@ -21,9 +21,12 @@ A retry never sends a second copy (Codex review 5964179039 #2):
 * Each row has a fixed `idempotency_key`, sent on every attempt as Resend's
   `Idempotency-Key` header. For 24 hours Resend answers a repeat of the same key
   and body with its first answer and sends nothing again.
-* The email (`message`: subject, text, html) is built from the ledger at the first
-  attempt, stored on the row, and never rebuilt, so every attempt sends the same
-  body. A photo or a void that arrives later is on the receipt, not in the email.
+* The whole email (`message`: from, to, subject, text, html) is fixed at the first
+  attempt, stored on the row, and never rebuilt: the content comes from the ledger
+  and the sender and recipients from that moment's settings. Every later attempt
+  sends exactly that, whatever the settings say by then and whichever service (web
+  or nightly cron) runs it. A photo or a void that arrives later is on the
+  receipt, not in the email; a changed address applies to later alerts only.
 * A row becomes `sent` only when Resend confirms (a 2xx answer). A send that was
   interrupted — no answer, a crash, the status write failing — leaves the row
   pending; the next attempt repeats the same key and Resend returns the original
@@ -229,7 +232,9 @@ def _claim(transaction, env):
                 cur.execute("""UPDATE adjustment_alerts SET attempts = attempts + 1, last_attempt_at = clock_timestamp(),
                                    last_error = %s WHERE id = %s""", (error, alert['id']))
                 return {'id': alert['id'], 'error': error}
-            message = compose(item, env)
+            # The whole Resend payload is fixed here, sender and recipients included:
+            # a retry under other settings, or on the other service, must not change it.
+            message = dict(reconciliation.email_envelope(env), **compose(item, env))
         cur.execute("""UPDATE adjustment_alerts SET attempts = attempts + 1, last_attempt_at = clock_timestamp(),
                            message = %s::jsonb, unconfirmed_since = COALESCE(unconfirmed_since, clock_timestamp())
                        WHERE id = %s RETURNING attempts""", (json.dumps(message), alert['id']))

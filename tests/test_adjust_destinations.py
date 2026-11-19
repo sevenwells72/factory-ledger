@@ -22,6 +22,7 @@ from scripts import exceptions_sweep
 from tests.test_actor_attribution import client, actors  # noqa: F401
 from tests.test_write_tickets import headers, commit, ticket_row, posted_count, error, isolated_database  # noqa: F401
 from tests.test_write_tickets_part2 import items, prepare  # noqa: F401
+from tests.test_shift_summary import summary, section
 from tests.test_exceptions_enforcement import (adjust, found, exceptions_for, set_balance, seed_photo, hold,  # noqa: F401
                                                open_shortage, resolve, private_evidence_volume)
 
@@ -513,8 +514,8 @@ def test_every_attempt_carries_the_alerts_own_idempotency_key(client, db_cursor,
     assert [r['key'] for r in resend.requests] == [first['idempotency_key'], second['idempotency_key']]
     assert len(resend.delivered) == 2
     for alert, request in zip(alerts(db_cursor), resend.requests):
-        # The body that went out is the one stored on the row.
-        assert {k: request['body'][k] for k in ('subject', 'text', 'html')} == alert['message']
+        # The payload that went out is the one stored on the row, sender and recipients included.
+        assert request['body'] == alert['message'] and sorted(alert['message']) == ['from', 'html', 'subject', 'text', 'to']
         assert (alert['status'], alert['unconfirmed_since']) == ('sent', None)
 
 
@@ -543,6 +544,38 @@ def test_an_interrupted_delivery_retried_later_is_not_sent_twice(client, db_curs
         ('sent', 2, 'msg_1', None, None)
     assert adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV)['status'] == 'nothing_pending'
     assert len(resend.requests) == 2
+
+
+def test_a_retry_reuses_the_first_attempts_sender_and_recipients_whatever_the_settings_say_now(
+        client, db_cursor, items, actors, migrated, order, monkeypatch):
+    """Codex review 5979661076 #1. The first attempt was accepted and its answer lost; the settings
+    then change (or the retry runs on the other service, configured differently). The retry must
+    send the ORIGINAL from/to, or Resend sees a different payload under the same key and refuses."""
+    resend = FakeResend(monkeypatch)
+    resend.lose_answers = 1
+    large_removal(client, db_cursor, items, actors, order)
+    first_settings = EMAIL_ENV | {'RECONCILIATION_EMAIL_FROM': 'Factory Ledger <ledger@example.test>'}
+    assert adjustment_alerts.deliver(cursor_transaction(db_cursor), env=first_settings)['unanswered'] == 1
+    [alert] = alerts(db_cursor)
+    assert alert['message']['from'] == 'Factory Ledger <ledger@example.test>' and alert['message']['to'] == ['owner@example.test']
+    later(db_cursor)
+    changed_settings = {'RESEND_API_KEY': 're_the_other_service', 'ENVIRONMENT': 'staging',
+                        'ALERT_EMAIL_TO': 'someone-else@example.test, second@example.test',
+                        'RECONCILIATION_EMAIL_FROM': 'Other Sender <other@example.test>'}
+    result = adjustment_alerts.deliver(cursor_transaction(db_cursor), env=changed_settings)
+    assert (result['status'], result['sent']) == ('sent', 1), result          # confirmed, not refused with 409
+    first, retry = resend.requests
+    assert retry == first and len(resend.delivered) == 1
+    assert retry['body']['from'] == 'Factory Ledger <ledger@example.test>' and retry['body']['to'] == ['owner@example.test']
+    [alert] = alerts(db_cursor)
+    assert (alert['status'], alert['email_to'], alert['provider_id']) == ('sent', 'owner@example.test', 'msg_1')
+    # The new settings apply to alerts first sent after the change.
+    key = actors['floor']['key']
+    commit(client, prepare(client, 'adjust', adjust(items, 800, 'missing_receipt'), key), key)
+    assert adjustment_alerts.deliver(cursor_transaction(db_cursor), env=changed_settings)['status'] == 'sent'
+    assert resend.requests[-1]['body']['from'] == 'Other Sender <other@example.test>'
+    assert resend.requests[-1]['body']['to'] == ['someone-else@example.test', 'second@example.test']
+    assert alerts(db_cursor)[-1]['email_to'] == 'someone-else@example.test, second@example.test'
 
 
 def test_a_send_whose_sent_status_could_not_be_saved_is_not_sent_twice(client, db_cursor, items, actors, migrated, order, monkeypatch):
@@ -686,6 +719,89 @@ def test_nightly_job_repeats_an_unanswered_send_in_the_same_run(monkeypatch, cap
     exceptions_sweep.send_adjustment_alerts(pauses=(0, 45, 90), sleep=slept.append)
     assert len(passes) == 1 and slept == []
     assert capsys.readouterr().out.strip() == 'Large-adjustment emails: failed (2), 1 left unconfirmed for a person to check'
+
+
+# ── 2d. the weekly view says "owner emailed" only once Resend confirmed (review 5979661076 #2) ──
+
+def large_flag(client_, key):
+    doc = summary(client_, key)
+    [row] = section(doc, 'adjusted')['rows']
+    [flag] = [f for f in row['flags'] if f['code'] == 'LARGE_CORRECTION']
+    return flag, doc['summary_hash']
+
+
+def test_weekly_view_says_pending_until_resend_confirms_then_owner_emailed(client, db_cursor, items, actors, migrated, order, monkeypatch):
+    resend = FakeResend(monkeypatch)
+    key = actors['floor']['key']
+    large_removal(client, db_cursor, items, actors, order)
+    # Posted, email owed, nothing sent yet.
+    flag, hash_pending = large_flag(client, key)
+    assert flag['owner_email'] == 'pending'
+    assert flag['message_en'].endswith(' — owner email pending') and flag['message_es'].endswith(' — correo al dueño pendiente')
+    assert 'owner emailed' not in flag['message_en'] and 'se avisó' not in flag['message_es']
+    # Tried and refused: still owed, still pending.
+    resend.refuse = (403, {'message': 'domain is not verified'})
+    assert adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV)['status'] == 'failed'
+    assert large_flag(client, key)[0]['owner_email'] == 'pending'
+    # Accepted by Resend but the answer was lost: not confirmed, so still pending.
+    resend.refuse, resend.lose_answers = None, 1
+    later(db_cursor)
+    assert adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV)['unanswered'] == 1
+    assert large_flag(client, key)[0]['message_en'].endswith(' — owner email pending')
+    # Confirmed.
+    later(db_cursor)
+    assert adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV)['status'] == 'sent'
+    flag, hash_sent = large_flag(client, key)
+    assert flag['owner_email'] == 'sent'
+    assert flag['message_en'].endswith(' — owner emailed') and flag['message_es'].endswith(' — se avisó al dueño por correo')
+    # The email state is not part of what a person confirmed: the summary hash does not move.
+    assert hash_sent == hash_pending
+
+
+def test_weekly_view_says_manual_check_once_retries_have_stopped(client, db_cursor, items, actors, migrated, order, monkeypatch):
+    resend = FakeResend(monkeypatch)
+    resend.lose_answers = 1
+    key = actors['floor']['key']
+    large_removal(client, db_cursor, items, actors, order)
+    adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV)
+    later(db_cursor, '23 hours 1 minute')
+    assert adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV)['unconfirmed'] == 1
+    flag, _ = large_flag(client, key)
+    assert flag['owner_email'] == 'manual_check'
+    assert flag['message_en'].endswith(' — owner email needs a manual check')
+    assert flag['message_es'].endswith(' — correo al dueño: revisar a mano')
+    assert 'owner emailed' not in flag['message_en'] and 'pending' not in flag['message_en']
+
+
+def test_weekly_view_says_manual_check_when_no_email_was_ever_queued(client, db_cursor, items, actors, migrated):
+    """The queue step failed when the correction posted: nothing will ever send, so a person has to."""
+    key = actors['floor']['key']
+    set_balance(db_cursor, items, 'ingredient', 2000.0)
+    db_cursor.execute("ALTER TABLE adjustment_alerts ADD CONSTRAINT test_refuse_all CHECK (false) NOT VALID")
+    response = commit(client, prepare(client, 'adjust', adjust(items, -600, 'damaged_thrown_out'), key), key)
+    assert response.status_code == 200 and response.json()['correction_review']['owner_email'] is True and alerts(db_cursor) == []
+    flag, _ = large_flag(client, key)
+    assert flag['owner_email'] == 'manual_check' and flag['message_en'].endswith(' — owner email needs a manual check')
+
+
+def test_weekly_view_shows_the_email_state_beside_an_attached_photo(client, db_cursor, items, actors, migrated, order, monkeypatch):
+    FakeResend(monkeypatch)
+    key = actors['floor']['key']
+    seed_photo(db_cursor, actors['floor']['id'], 'photos/truck.jpg')
+    large_removal(client, db_cursor, items, actors, order, attachment_ref='photos/truck.jpg')
+    flag, _ = large_flag(client, key)
+    assert flag['message_en'].endswith(' — owner email pending, photo attached')
+    assert adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV)['status'] == 'sent'
+    flag, _ = large_flag(client, key)
+    assert flag['message_en'].endswith(' — owner emailed, photo attached') and flag['message_es'].endswith(' — se avisó al dueño por correo, con foto')
+
+
+def test_weekly_view_without_migration_096_never_mentions_an_owner_email(client, db_cursor, items, actors):
+    key = actors['floor']['key']
+    set_balance(db_cursor, items, 'ingredient', 1000)
+    assert commit(client, prepare(client, 'adjust', adjust(items, -150), key), key).status_code == 200
+    flag, _ = large_flag(client, key)
+    assert 'owner_email' not in flag and flag['message_en'] == 'LARGE CORRECTION −150 lb (15% of lot)'
 
 
 def test_queue_failure_never_blocks_or_undoes_the_adjustment(client, db_cursor, items, actors, migrated, monkeypatch):
