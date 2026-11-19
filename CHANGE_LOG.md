@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-19 14:08 — Trial recall doc: standing recall rule for sunflower supplier lot 90717
+- **File(s) changed:** `docs/deployments/trial-recall.md`
+- **What changed:** Added a 'Standing recall rules (applied by hand)' section with the rule for sunflower supplier lot 90717: also pull sunflower product made Sep 4 to Oct 21 2026 (17 makes, batch and finished lots listed), and a warning that the July lot L01SK20260513 was returned to the supplier on Sep 8 so the seven October makes recorded against it are not reliable
+- **Why:** Michael approved the recall rule on 2026-11-19; dashboard lot notes (#22-24) do not appear on FL's trace screens, so the rule also goes in the recall procedure document
+
+---
+
 ## 2026-11-18 15:18 — Trial recall: fix from the final Codex pass (weights are part of the same-page check)
 - **File(s) changed:** `trial_recall.py`, `tests/test_trial_recall.py`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Final Codex pass (covering the gross-weight rule and the comma and short-lot fixes) found one medium point: two photos of one BOL that differ only in a weight were treated as the same page and the second was dropped. The same-page check now includes the net, gross and unmarked weights and the weight unit, so both readings are kept and shown. One new test; 118 pass in the two new files; full Python suite alone on a rebuilt scratch database on this code: 7,741 passed, 7 failed (the same 7 that fail on untouched origin/main).

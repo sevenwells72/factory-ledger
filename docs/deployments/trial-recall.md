@@ -306,6 +306,30 @@ It tests the records, not the shelves. It reads one Form row and one finished lo
 a clean result is evidence about those two chains, not the whole plant. It cannot see product that left with no
 entry at all, and it cannot read a BOL better than the photo allows.
 
+## Standing recall rules (applied by hand)
+
+These rules cover known gaps in FL's records. The automatic check does not apply them, and FL's trace screens do
+not show them. Whoever runs a recall, real or trial, reads this list first. Each rule is also a dashboard note
+pinned to its lot.
+
+### Sunflower Seeds, supplier lot 90717 (Michael Gross, 2026-11-19; dashboard notes #22, #23, #24)
+
+If supplier lot 90717 (FL lot `26-09-04-NATI-001`, National Harvest, BOL 232435, received Sep 4, 2026) is
+recalled, pull everything FL's trace shows and also every sunflower product made Sep 4 through Oct 21, 2026. FL
+recorded those makes against older lots, but they most likely used 90717. This is an assumption, not read from
+labels.
+
+- **Makes:** TX 2204, 2209, 2230, 2242, 2245, 2267, 2459, 2485, 2552, 2565, 2590, 2605, 2614, 2661, 2685, 2699,
+  2712.
+- **Batch lots:** SEP 04 2026 through OCT 21 2026 of SS Chocolate Chip #2, SS Original #1, SS Low Carb Original #7
+  and SS Cranberry #3.
+- **Finished lots:** BB090827, BB091427, BB092427, BB092827, BB093027, BB100527, BB101227, BB101927, and Granola
+  Honey Nut 25 LB lots SEP 14 2026 and OCT 14 2026.
+
+If supplier lot L01SK20260513 (FL lot `26-07-06-NATI-001`, the July delivery) is ever queried, FL shows seven
+October makes against it (TX 2590, 2605, 2614, 2661, 2685, 2699, 2712). That lot was returned to National Harvest
+on Sep 8, 2026 (return BOL 3666, 110 cases listed) and those records are not reliable.
+
 ## Decisions (Michael, 2026-11-18)
 
 1. **Product wording:** match generously; a match that is not confident is UNVERIFIED for that line; never FAIL
