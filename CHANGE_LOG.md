@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-20 09:50 — Record new Coconut Toasted Sweetened Medium items (297, 298) and the Nov 9 make and pack (changelog row 313)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added changelog row 313: production catalog setup of batch product 297 and finished SKU 298 (copy of 128/160 with Coconut Medium Desiccated), the late Nov 9 make TX 3095 (450 lb, receipt MK-261109-008, lot 1782) and pack TX 3096 (18 cases, receipt PK-261109-004, lot 1783), the half-batch entry method, the lots used (glycol, corn starch and salt are FL's oldest-lot suggestion, not floor-confirmed) and the read-only verification. No code change.
+- **Why:** Task from Arturo approved by Michael on 2026-11-20; the Nov 9 toasted medium run had no item to be recorded under. Row numbered 313 because open PR #232 claims rows 310-312.
+
+---
+
 ## 2026-11-19 14:43 — Staging record for migration 096 renumbered to changelog row 309
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/deployments/adjust-destinations.md`
 - **What changed:** Rebased the staging record (PR 231) onto main af71d52. PR 230, merged while this record was open, took changelog row 308, so the staging row for migration 096 is now row 309 and the deployment doc points to 309. The earlier log entry headed '(changelog row 308)' refers to this same record. No other text changed.
