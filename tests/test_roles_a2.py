@@ -429,7 +429,7 @@ def test_ticket_writes_record_entered_by(client, db_cursor, items, actors, actio
 def test_direct_routes_record_entered_by_and_keep_legacy_placeholder(client, db_cursor, items, actors, which):
     key = key_for(which, actors)
     legacy = {'product_name': items['ingredient']['name'], 'lot_code': items['ingredient']['lot_code'],
-              'adjustment_lb': -1, 'reason': 'Count correction', 'reason_es': 'Corrección de conteo',
+              'adjustment_lb': -1, 'reason': 'physical_count', 'reason_es': 'Corrección de conteo',
               'mode': 'commit'}
     response = client.post('/adjust', json=legacy, headers=headers(key))
     assert response.status_code == 200, response.text
@@ -448,7 +448,7 @@ LEGACY_BODIES = {
     'pack': lambda items: {'source_product': items['batch']['name'], 'target_product': items['finished']['name'],
                            'cases': 1, 'mode': 'commit'},
     'adjust': lambda items: {'product_name': items['ingredient']['name'], 'lot_code': items['ingredient']['lot_code'],
-                             'adjustment_lb': -1, 'reason': 'Count correction', 'reason_es': 'Corrección de conteo',
+                             'adjustment_lb': -1, 'reason': 'physical_count', 'reason_es': 'Corrección de conteo',
                              'mode': 'commit'},
 }
 
@@ -517,6 +517,7 @@ def test_close_shipped_not_recorded_is_owner_only_on_the_direct_route(client, db
 
 
 def test_direct_routes_still_open_where_the_matrix_allows(client, db_cursor, items, actors):
+    db_cursor.execute("INSERT INTO suppliers(name) SELECT 'ACME' WHERE NOT EXISTS (SELECT 1 FROM suppliers WHERE name='ACME')")
     for which in ('owner', 'floor'):
         response = client.post('/make', json=LEGACY_BODIES['make'](items), headers=headers(actors[which]['key']))
         assert response.status_code == 200, response.text

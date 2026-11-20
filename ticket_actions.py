@@ -255,7 +255,9 @@ def validate(api, cur, action, payload, lock=False, held=False, held_reason=None
                                       delta_lb=payload['delta_lb'], destination_exempt=True,
                                       held_reason=held_reason)['code']
             a3b.shortages_closed_by_count(cur, payload['lot_id'], closing, code, lock)
-        pair_id = payload.get('paired_lot_id') if stock_by_hand.live_at(cur) else None
+        pair_id = payload.get('paired_lot_id')
+        if pair_id is not None and not stock_by_hand.live_at(cur):
+            stock_by_hand.fail('PAIRED_MOVE_UNAVAILABLE', 'Paired lot moves are not enabled. Nothing was recorded.', 'Los movimientos pareados no están habilitados. No se registró nada.')
         if pair_id is not None and lock:
             cur.execute('SELECT id FROM lots WHERE id=ANY(%s) ORDER BY id FOR UPDATE', ([payload['lot_id'], pair_id],))
         current = lot(api, cur, payload['lot_id'], payload.get('product_id'), lock)
@@ -301,7 +303,7 @@ def validate(api, cur, action, payload, lock=False, held=False, held_reason=None
         if draft['new_balance_lb'] < 0:
             draft['balance_warning'] = f'{p["name"]} lot {current["lot_code"]} will have negative inventory ({api._fmt_quantity(draft["new_balance_lb"])} lb).'
         options = {'product': p, 'lot_id': payload['lot_id'], 'reason_code': reason['code'],
-                   'note': a3b.destination_note(reason), 'count_to': count_to, 'paired_lot_id': pair_id,
+                   'note': reason['note'] if stock_by_hand.live_at(cur) else a3b.destination_note(reason), 'count_to': count_to, 'paired_lot_id': pair_id,
                    'sales_order_id': payload.get('sales_order_id'), 'held_reason': held_reason}
         if paired:
             draft['move'] = dict(restored_lot_id=current['id'], restored_lot_code=current['lot_code'],
@@ -339,7 +341,7 @@ def validate(api, cur, action, payload, lock=False, held=False, held_reason=None
                  'attachment_ref': payload.get('attachment_ref'),
                  'correction_review': a3b.correction_review(api, 'found', p, req.quantity, uom=req.uom, reason_code=reason['code'],
                                                             immediate=a3b.destination_rules(cur))}
-        options = {'reason_code': reason['code']}
+        options = {'reason_code': reason['code'], 'held_reason': held_reason}
         specification = {'product_id': p['id'], 'quantity_lb': req.quantity}
     else:
         fail('TICKET_ACTION_UNAVAILABLE', 'Unsupported action.')

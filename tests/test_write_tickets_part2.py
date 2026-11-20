@@ -206,6 +206,7 @@ def test_duplicate_window_excludes_old_entries(client, db_cursor, items, action)
 
 @pytest.mark.parametrize('action', ['make', 'pack', 'found'])
 @pytest.mark.parametrize('winner', ['legacy', 'ticket'])
+@pytest.mark.usefixtures("pre_098_contract")
 def test_lot_code_race_rejects_without_ledger_or_counter(client, db_cursor, items, action, winner):
     payload = body(action, items)
     first = prepare(client, action, payload)
@@ -341,6 +342,7 @@ def test_blocked_time_never_posts(client, db_cursor, items, action):
 
 
 @pytest.mark.parametrize('action', ['make', 'pack', 'found'])
+@pytest.mark.usefixtures("pre_098_contract")
 def test_existing_output_lot_rename_does_not_create_replacement(client, db_cursor, items, action):
     pid = output_product(action, items)
     code = 'WT2-EXISTING-' + uuid4().hex[:10].upper()
@@ -445,6 +447,7 @@ def test_creation_guard_catches_lot_taken_after_validation(client, db_cursor, it
 
 
 @pytest.mark.parametrize('action', ['make', 'pack', 'found'])
+@pytest.mark.usefixtures("pre_098_isolated_contract")
 def test_two_tickets_race_for_generated_code(isolated_database, monkeypatch, action):
     with psycopg2.connect(isolated_database) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:
         items = seed(cur)

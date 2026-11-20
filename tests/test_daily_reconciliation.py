@@ -533,6 +533,8 @@ def _short_lot(kit):
 
 def test_a_saved_alarm_corrected_before_the_next_email_is_still_shown(kit):
     lot = _short_lot(kit)
+    # Generic carried-alarm test: a manufactured lot permits a physical count.
+    kit.cur.execute("UPDATE products SET type='batch' WHERE id=(SELECT product_id FROM lots WHERE id=%s)",(lot,))
     kit.run(night(-1))
     kit.post('ship', [(lot, -101)], at(0, 9))                           # the lot is at -1 lb
     failed = kit.run(night(0), sender=_broken)
@@ -1057,15 +1059,18 @@ def test_unknown_or_unnamed_adjustments_are_always_listed(kit):
     kit.run(night(-1))
     unknown = kit.post('adjust', [(kit.oats_lot, 2)], at(0, 9), reason_code='unknown')                  # named, no reason
     shared = kit.post('adjust', [(kit.honey_lot, -3)], at(0, 10), named=False, reason_code='physical_count')
-    kit.post('adjust', [(kit.nuts_lot, 1400)], at(0, 11), reason_code='physical_count')                # named + reason: fine
+    named = kit.post('adjust', [(kit.nuts_lot, 1400)], at(0, 11), reason_code='physical_count')                # named + reason: fine
     outcome = kit.run(night(0))
-    listed = {f['transaction_id']: f for f in kit.flags(outcome)}
+    from tests.stock_rule_helpers import enabled
+    if enabled(kit.cur):
+        assert {f['transaction_id'] for f in kit.flags(outcome, 'INGREDIENT_HAND_ADDITION')} == {unknown, named}
+    listed = {f['transaction_id']: f for f in kit.flags(outcome, 'UNEXPLAINED_ADJUSTMENT')}
     assert sorted(listed) == [unknown, shared] and {f['kind'] for f in listed.values()} == {'UNEXPLAINED_ADJUSTMENT'}
     assert listed[unknown]['detail']['no_reason'] and not listed[unknown]['detail']['no_named_person']
     assert listed[shared]['detail']['no_named_person'] and not listed[shared]['detail']['no_reason']
     assert all(f['severity'] == 'review' for f in listed.values()) and outcome['analysis']['result'] == 'attention'
     text = outcome['email']['text']
-    assert 'New today (2)' in text and 'Stock was changed by hand with no name on it.' in text
+    assert f"New today ({len(kit.flags(outcome))})" in text and 'Stock was changed by hand with no name on it.' in text
     assert 'changed stock by hand without giving a reason' in text
 
 

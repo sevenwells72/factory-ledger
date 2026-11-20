@@ -9813,7 +9813,7 @@ def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, pr
     return response
 
 
-def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, ticket_id=None, receipt_number=None, require_new_lot=False, reason_code=None, kosher_attestation=None):
+def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, ticket_id=None, receipt_number=None, require_new_lot=False, reason_code=None, kosher_attestation=None, held_reason=None):
     cur.execute("SELECT id, name, kosher_tier FROM products WHERE id = %s FOR SHARE", (req.product_id,))
     product = cur.fetchone()
 
@@ -9850,7 +9850,7 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
     cur.execute('SELECT id FROM lots WHERE id=%s FOR UPDATE', (lot_id,))
     if stock_by_hand.live_at(cur):
         stock_by_hand.require_paired_move(cur, req.product_id, req.quantity, reason_code or req.reason_code)
-        reason = exceptions_enforcement.resolve_reason(cur, 'found', reason_code or req.reason_code, note=req.notes or req.notes_es, delta_lb=req.quantity)
+        reason = exceptions_enforcement.resolve_reason(cur, 'found', reason_code or req.reason_code, note=req.notes or req.notes_es, delta_lb=req.quantity, held_reason=held_reason)
         reason_code = reason['code']
         stock_by_hand.require_paired_move(cur, req.product_id, req.quantity, reason_code)
         if not is_new_lot:

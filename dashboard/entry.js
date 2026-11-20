@@ -165,7 +165,8 @@
         if(carry.supplier_id)choices.supplier.set({id:carry.supplier_id,label:carry.supplier_name||String(carry.supplier_id)});
         for(const key of ['lot_code','supplier_lot_code','bol_reference'])if(carry[key]!=null)values[key].value=carry[key];
         if(carry.no_supplier_lot)values.no_supplier_lot.checked=true;
-        if(carry.pounds>0){values.cases.value='1';values.case_size_lb.value=String(carry.pounds);}
+        // A total weight cannot establish the receipt's real pack size.
+        values.cases.value='';values.case_size_lb.value='';
         syncReceiveLotControl();
       }
     }

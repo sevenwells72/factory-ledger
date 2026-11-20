@@ -88,6 +88,7 @@ def post_short_make(client_, db_cursor, items_, key, on_hand=4.0):
 # ── A. reason codes (R2, §5.1) ────────────────────────────────────────────
 
 @pytest.mark.parametrize('action', ['adjust', 'found'])
+@pytest.mark.usefixtures("pre_098_contract")
 def test_reason_code_must_be_on_the_fixed_list(client, db_cursor, items, action):
     make = adjust if action == 'adjust' else found
     path = '/adjust/prepare' if action == 'adjust' else '/inventory/found/prepare'
@@ -146,11 +147,13 @@ def test_legacy_codes_translate_with_note_prefill(client, db_cursor, items):
 
 
 @pytest.mark.parametrize('delta,reason', [(5, 'damage_disposal'), (5, 'unrecorded_usage'), (-5, 'missing_receipt')])
+@pytest.mark.usefixtures("pre_098_contract")
 def test_adjust_sign_is_enforced(client, items, delta, reason):
     error(client.post('/adjust/prepare', json=adjust(items, delta, reason), headers=headers()), 422, 'REASON_SIGN_MISMATCH')
     assert prepare(client, 'adjust', adjust(items, -delta, reason))['draft']['reason_code'] == reason
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_reason_code_written_at_insert_and_exposed_by_the_view(client, db_cursor, items, actors):
     key = actors['floor']['key']
     ticket_txn = commit(client, prepare(client, 'adjust', adjust(items, -3, 'damage_disposal'), key), key).json()['transaction_id']
@@ -192,6 +195,8 @@ def test_reason_code_written_at_insert_and_exposed_by_the_view(client, db_cursor
     (-5, 1, ['BOOK_BALANCE_NOT_POSITIVE']),            # negative too
 ])
 def test_adjust_highlight_rules_on_book_balance(client, db_cursor, items, balance, delta, rules):
+    from tests.stock_rule_helpers import manufactured_count
+    manufactured_count(db_cursor, items)
     set_balance(db_cursor, items, 'ingredient', balance)
     reason = 'physical_count'
     prepared = prepare(client, 'adjust', adjust(items, delta, reason))
@@ -232,9 +237,11 @@ def test_count_based_product_applies_the_percent_rule_only(client, db_cursor, it
 
 
 def test_large_correction_with_photo_posts_highlighted(client, db_cursor, items, actors):
+    from tests.stock_rule_helpers import manufactured_count
+    manufactured_count(db_cursor, items)
     key = actors['floor']['key']
     seed_photo(db_cursor, actors['floor']['id'], 'photos/2026-10-08/bag-count.jpg')
-    prepared = prepare(client, 'adjust', adjust(items, 600, 'missing_receipt', attachment_ref='photos/2026-10-08/bag-count.jpg'), key)
+    prepared = prepare(client, 'adjust', adjust(items, 600, 'physical_count', attachment_ref='photos/2026-10-08/bag-count.jpg'), key)
     assert prepared['can_commit'] and prepared['draft']['correction_review']['photo_required']
     response = commit(client, prepared, key)
     assert response.status_code == 200, response.text
@@ -246,8 +253,10 @@ def test_large_correction_with_photo_posts_highlighted(client, db_cursor, items,
 
 
 def test_large_correction_without_photo_is_held_then_released_by_a_late_photo(client, db_cursor, items, actors):
+    from tests.stock_rule_helpers import manufactured_count
+    manufactured_count(db_cursor, items)
     key = actors['floor']['key']
-    prepared = prepare(client, 'adjust', adjust(items, 600, 'missing_receipt'), key)
+    prepared = prepare(client, 'adjust', adjust(items, 600, 'physical_count'), key)
     assert prepared['can_commit']        # the hold happens at commit, where the balance is locked
     held = commit(client, prepared, key, acknowledged_warnings=[])
     assert held.status_code == 202, held.text
@@ -297,7 +306,12 @@ def test_found_over_500_is_held_too(client, db_cursor, items, actors):
 
 def hold(client_, db_cursor, items_, actors_, delta=600):
     key = actors_['floor']['key']
-    prepared = prepare(client_, 'adjust', adjust(items_, delta, 'missing_receipt'), key)
+    from tests.stock_rule_helpers import enabled
+    reason = 'missing_receipt'
+    if enabled(db_cursor):
+        db_cursor.execute("UPDATE products SET type='batch' WHERE id=%s", (items_['ingredient']['id'],))
+        reason = 'physical_count'
+    prepared = prepare(client_, 'adjust', adjust(items_, delta, reason), key)
     held = commit(client_, prepared, key)
     assert held.status_code == 202, held.text
     return prepared, held.json()['exception_id']
@@ -319,7 +333,7 @@ def test_owner_approval_is_the_commit_posts_once_as_the_preparer(client, db_curs
     assert receipt['entry_timing']['entered_by']['id'] == actors['floor']['id']
     db_cursor.execute('SELECT operator_id, entered_by_actor_id, reason_code FROM transactions WHERE id=%s', (receipt['transaction_id'],))
     assert dict(db_cursor.fetchone()) == {'operator_id': actors['floor']['name'], 'entered_by_actor_id': actors['floor']['id'],
-                                          'reason_code': 'missing_receipt'}
+                                          'reason_code': prepared['draft']['reason_code']}
     assert main.lot_on_hand(db_cursor, items['ingredient']['lot_id']) == 700.0
     row = ticket_row(db_cursor, prepared)
     assert row['status'] == 'committed' and row['response'] == receipt
@@ -414,6 +428,7 @@ class Race:
             yield conn
 
 
+@pytest.mark.usefixtures("pre_098_isolated_contract")
 def test_concurrent_approvals_post_once(isolated_database, monkeypatch):
     keys, items_, ids = race_actors(isolated_database)
     race = Race(isolated_database)
@@ -557,6 +572,7 @@ def test_everything_else_still_blocks_a_short_make(client, db_cursor, items, act
     assert db_cursor.fetchone()['n'] == 0
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_never_add_stock_to_cover_an_open_shortage(client, db_cursor, items, actors):
     key = actors['floor']['key']
     _, result = post_short_make(client, db_cursor, items, key)
@@ -722,6 +738,8 @@ def test_permission_rows_are_the_a2_ones(client):
 
 # ── migration 069 ─────────────────────────────────────────────────────────
 
+@pytest.mark.usefixtures("pre_098_contract")
+@pytest.mark.usefixtures("pre_098_isolated_contract")
 def test_migration_069_rerunnable_down_and_up(isolated_database):
     up = (ROOT / 'migrations/069_exceptions_enforcement.sql').read_text()
     down = (ROOT / 'migrations/down/069_exceptions_enforcement_down.sql').read_text()
@@ -813,6 +831,7 @@ def test_blank_notes_are_refused(client, db_cursor, items, actors, route, body_)
     assert exceptions_for(db_cursor, id=exception_id)[0]['status'] == 'open'
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_counted_resolution_posts_the_counted_correction_atomically(client, db_cursor, items, actors):
     key = actors['floor']['key']
     exception_id, _ = open_shortage(client, db_cursor, items, actors)
@@ -837,6 +856,8 @@ def test_counted_resolution_posts_the_counted_correction_atomically(client, db_c
 
 
 def test_counted_resolution_over_500_lb_needs_a_photo(client, db_cursor, items, actors):
+    from tests.stock_rule_helpers import manufactured_count
+    manufactured_count(db_cursor, items)
     key = actors['floor']['key']
     exception_id, _ = open_shortage(client, db_cursor, items, actors)
     lot_id = items['ingredient']['lot_id']
@@ -878,6 +899,7 @@ def receive_onto(client_, db_cursor, items_, key, cases, case_size_lb, supplier_
     return posted.json()
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_missing_movement_needs_the_matching_receipt(client, db_cursor, items, actors):
     key = actors['floor']['key']
     exception_id, result = open_shortage(client, db_cursor, items, actors)
@@ -990,6 +1012,7 @@ def test_approving_a_hold_without_a_named_preparer_is_a_409_not_a_crash(client, 
 
 
 @pytest.mark.usefixtures("legacy_shared_key_compat")
+@pytest.mark.usefixtures("pre_098_contract")
 def test_shared_key_gets_photo_required_not_a_hold(client, db_cursor, items):
     prepared = prepare(client, 'adjust', adjust(items, 600, 'missing_receipt'))      # master key
     response = commit(client, prepared)
@@ -1003,6 +1026,7 @@ def test_shared_key_gets_photo_required_not_a_hold(client, db_cursor, items):
     assert posted_count(db_cursor, prepared) == 0
 
 
+@pytest.mark.usefixtures("pre_098_isolated_contract")
 def test_approve_locks_the_ticket_before_the_exception(isolated_database, monkeypatch):
     """The photo-release commit locks the ticket first and then touches the exception.
     A session holding the ticket row must be able to update the exception while an
@@ -1044,6 +1068,7 @@ def test_approve_locks_the_ticket_before_the_exception(isolated_database, monkey
             assert posted_count(cur, prepared) == 1
 
 
+@pytest.mark.usefixtures("pre_098_isolated_contract")
 def test_concurrent_approve_and_photo_commit_post_once_without_deadlock(isolated_database, monkeypatch):
     keys, items_, ids = race_actors(isolated_database)
     race = Race(isolated_database)
@@ -1075,6 +1100,7 @@ def test_concurrent_approve_and_photo_commit_post_once_without_deadlock(isolated
 
 
 @pytest.mark.parametrize('action', ['adjust', 'found'])
+@pytest.mark.usefixtures("pre_098_contract")
 def test_small_unknown_corrections_are_highlighted(client, items, actors, action):
     key = actors['floor']['key']
     small = adjust(items, 5, 'unknown', note='no idea where it came from') if action == 'adjust' else \
@@ -1085,6 +1111,7 @@ def test_small_unknown_corrections_are_highlighted(client, items, actors, action
     assert prepare(client, action, plain, key)['draft']['correction_review']['highlighted'] is False
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_positive_adjust_shortly_before_a_make_is_tagged_pre_make_adjust(client, db_cursor, items, actors):
     key, owner = actors['floor']['key'], actors['owner']['key']
     lot = items['ingredient']
@@ -1172,6 +1199,7 @@ def claims_by_receipt(cur, ticket_id):
     return float(row['used']), row['n']
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_one_receipt_cannot_close_more_shortage_than_it_delivered(client, db_cursor, items, actors):
     key = actors['floor']['key']
     first_id, _ = open_shortage(client, db_cursor, items, actors)                        # short 6 (lot −6)
@@ -1205,6 +1233,7 @@ def test_one_receipt_cannot_close_more_shortage_than_it_delivered(client, db_cur
     assert prepare(client, 'adjust', adjust(items, 1, 'missing_receipt'), key)['can_commit']
 
 
+@pytest.mark.usefixtures("pre_098_isolated_contract")
 def test_concurrent_resolutions_cannot_spend_the_same_receipt_twice(isolated_database, monkeypatch):
     keys, items_, ids = race_actors(isolated_database)
     with psycopg2.connect(isolated_database) as conn, conn.cursor(cursor_factory=RealDictCursor) as cur:

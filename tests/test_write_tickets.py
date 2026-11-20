@@ -152,6 +152,7 @@ def test_hash_tampering_and_commit_body_cannot_replace_payload(client, db_cursor
     assert posted_count(db_cursor, prepared) == 0
 
 
+@pytest.mark.usefixtures("reusable_receiving_lot")
 def test_wrong_identity_including_legacy_key_kinds(client, db_cursor, payload, actors):
     prepared = prepare(client, payload, actors['floor']['key'])
     error(commit(client, prepared, actors['office']['key']), 403, 'TICKET_WRONG_USER')
@@ -218,6 +219,7 @@ def direct_receive(client, cur, payload, **changes):
 
 @pytest.mark.parametrize('shipper_code_override', [None, 'RACE'])
 @pytest.mark.parametrize('winner', ['legacy', 'ticket'])
+@pytest.mark.usefixtures("reusable_receiving_lot")
 def test_generated_lot_taken_after_prepare_requires_fresh_ticket(
         client, db_cursor, payload, shipper_code_override, winner):
     if shipper_code_override:
@@ -265,6 +267,7 @@ def test_generated_lot_taken_after_prepare_requires_fresh_ticket(
     assert posted_count(db_cursor, fresh) == 1
 
 
+@pytest.mark.usefixtures("reusable_receiving_lot")
 def test_state_changed_but_valid_and_duplicate_acknowledgement(client, db_cursor, payload):
     direct = direct_receive(client, db_cursor, payload)
     first = prepare(client, payload)
@@ -285,6 +288,7 @@ def test_state_changed_but_valid_and_duplicate_acknowledgement(client, db_cursor
     assert direct['transaction_id'] != response.json()['transaction_id']
 
 
+@pytest.mark.usefixtures("reusable_receiving_lot")
 def test_possible_duplicate_from_any_actor_uses_posted_effective_lines(client, db_cursor, payload, actors):
     first = prepare(client, payload, actors['floor']['key'])
     original = commit(client, first, actors['floor']['key']).json()
@@ -297,6 +301,7 @@ def test_possible_duplicate_from_any_actor_uses_posted_effective_lines(client, d
     assert detail['transactions'][0]['effective_status'] == 'voided'
 
 
+@pytest.mark.usefixtures("reusable_receiving_lot")
 def test_duplicate_outside_window(client, db_cursor, payload):
     # Entry time is DB-owned. Use a SELECT-only view shadow to represent history
     # beyond the window, without disabling append-only or timestamp triggers.
@@ -399,6 +404,7 @@ def test_every_new_route_rejects_unknown_key(client, method, path):
     assert response.status_code == 403
 
 
+@pytest.mark.usefixtures("reusable_receiving_lot")
 def test_committed_evidence_immutable_and_sweep_idempotent(client, db_cursor, payload):
     prepared = prepare(client, payload)
     assert commit(client, prepared).status_code == 200
@@ -580,6 +586,7 @@ def test_concurrent_double_commit_one_transaction_and_same_receipt(isolated_data
 
 
 
+@pytest.mark.usefixtures("reusable_receiving_lot")
 def test_merged_and_code_twin_lots_are_blockers_without_posting(client, db_cursor, payload):
     direct_receive(client, db_cursor, payload)
     db_cursor.execute("UPDATE lots SET status='merged' WHERE product_id=%s", (payload['product_id'],))
@@ -644,3 +651,10 @@ def test_successful_expected_receipt_stays_pinned_and_settles(client, db_cursor,
     assert db_cursor.fetchone()['expected_receipt_id'] == er_id
     db_cursor.execute('SELECT status FROM expected_receipts WHERE id=%s', (er_id,))
     assert db_cursor.fetchone()['status'] == 'closed'
+
+
+@pytest.fixture
+def reusable_receiving_lot(db_cursor,payload):
+    from tests.stock_rule_helpers import enabled
+    if enabled(db_cursor):
+        db_cursor.execute("UPDATE products SET type='batch' WHERE id=%s",(payload['product_id'],))

@@ -86,6 +86,7 @@ class Mailbox:
 
 # ── gate: without migration 096 nothing changes ─────────────────────────────
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_without_migration_096_the_old_rules_hold(client, db_cursor, items, actors):
     key = actors['floor']['key']
     assert a3b.destination_rules(db_cursor) is False
@@ -171,6 +172,10 @@ def test_wrong_lot_and_data_entry_error_remove_stock_only_with_a_note(client, db
     assert 'Used lot B by mistake' in txn['notes']
     # A sales order does not belong on these, and the note rule is for removals only:
     refuse(client, adjust(items, -8, reason, note='n', sales_order_id=1), key, 422, 'SALES_ORDER_NOT_APPLICABLE')
+    from tests.stock_rule_helpers import enabled
+    if enabled(db_cursor):
+        refuse(client, adjust(items, 8, reason), key, 422, 'NOTE_REQUIRED')
+        return
     added = prepare(client, 'adjust', adjust(items, 8, reason), key)             # adding stock: note still optional
     assert added['can_commit'] and added['draft']['reason']['note_required'] is False
 
@@ -244,6 +249,7 @@ def test_count_correction_cause_unknown_needs_a_note_and_is_highlighted(client, 
     assert commit(client, prepared, key).status_code == 200
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_adding_stock_keeps_the_old_reasons_and_never_takes_a_destination(client, db_cursor, items, actors, migrated):
     key = actors['floor']['key']
     for reason in DESTINATIONS:
@@ -284,6 +290,7 @@ def test_over_500_lb_posts_at_once_without_a_photo_and_queues_the_owner_email(cl
 
 
 @pytest.mark.parametrize('delta,queued', [(-500, False), (-500.5, True), (501, True), (499, False)])
+@pytest.mark.usefixtures("pre_098_contract")
 def test_the_line_is_strictly_over_500_lb_either_direction(client, db_cursor, items, actors, migrated, delta, queued):
     key = actors['floor']['key']
     set_balance(db_cursor, items, 'ingredient', 5000.0)
@@ -331,6 +338,7 @@ def test_shared_key_large_adjust_posts_too_and_key_access_is_unchanged(client, d
     assert len(alerts(db_cursor)) == 1
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_direct_legacy_adjust_route_also_queues_the_email(client, db_cursor, items, migrated):
     set_balance(db_cursor, items, 'ingredient', 2000.0)
     db_cursor.execute('SELECT lot_code FROM lots WHERE id=%s', (items['ingredient']['lot_id'],))
@@ -381,6 +389,7 @@ def test_email_names_product_lot_pounds_person_reason_destination_and_photo(clie
     assert len(mailbox.sent) == 1
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_email_without_photo_or_order_says_so(client, db_cursor, items, actors, migrated):
     key = actors['floor']['key']
     set_balance(db_cursor, items, 'ingredient', 2000.0)
@@ -501,6 +510,7 @@ def later(db_cursor, interval='10 minutes'):
                              unconfirmed_since = unconfirmed_since - %s::interval''', (interval, interval))
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_every_attempt_carries_the_alerts_own_idempotency_key(client, db_cursor, items, actors, migrated, order, monkeypatch):
     resend = FakeResend(monkeypatch)
     large_removal(client, db_cursor, items, actors, order)
@@ -546,6 +556,7 @@ def test_an_interrupted_delivery_retried_later_is_not_sent_twice(client, db_curs
     assert len(resend.requests) == 2
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_a_retry_reuses_the_first_attempts_sender_and_recipients_whatever_the_settings_say_now(
         client, db_cursor, items, actors, migrated, order, monkeypatch):
     """Codex review 5979661076 #1. The first attempt was accepted and its answer lost; the settings
@@ -860,6 +871,7 @@ def test_nightly_sweep_hook_never_raises(monkeypatch, capsys):
 
 # ── 3. what stays ───────────────────────────────────────────────────────────
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_never_add_stock_to_cover_a_shortage_is_unchanged(client, db_cursor, items, actors, migrated):
     key = actors['floor']['key']
     open_shortage(client, db_cursor, items, actors)
@@ -869,6 +881,7 @@ def test_never_add_stock_to_cover_a_shortage_is_unchanged(client, db_cursor, ite
           409, 'SHORTAGE_OPEN_RESOLVE_INSTEAD')
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_counted_shortage_close_over_500_lb_no_longer_needs_a_photo(client, db_cursor, items, actors, migrated):
     key = actors['floor']['key']
     exception_id, _ = open_shortage(client, db_cursor, items, actors)
@@ -895,6 +908,7 @@ def test_owner_count_ticket_that_closes_shortages_keeps_physical_count(client, d
     assert exceptions_for(db_cursor, id=exception_id)[0]['resolution_kind'] == 'counted'
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_a_hold_from_before_the_change_can_still_be_approved(client, db_cursor, items, actors):
     prepared, exception_id = hold(client, db_cursor, items, actors)           # old rules: held without a photo
     set_balance(db_cursor, items, 'ingredient', 2000.0)
@@ -913,6 +927,7 @@ def test_a_hold_from_before_the_change_can_still_be_approved(client, db_cursor, 
     assert len(alerts(db_cursor)) == 2                                         # both crossed 500 lb: the owner still gets the email
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_a_hold_from_before_the_change_posts_when_committed_again(client, db_cursor, items, actors):
     prepared, exception_id = hold(client, db_cursor, items, actors)
     db_cursor.execute(MIGRATION.read_text())
@@ -923,6 +938,7 @@ def test_a_hold_from_before_the_change_posts_when_committed_again(client, db_cur
     assert main.lot_on_hand(db_cursor, items['ingredient']['lot_id']) == 700.0
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_a_hold_from_before_the_change_can_still_be_rejected(client, db_cursor, items, actors):
     prepared, exception_id = hold(client, db_cursor, items, actors)
     db_cursor.execute(MIGRATION.read_text())

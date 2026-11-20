@@ -73,7 +73,7 @@ PREPARE_REFUSALS = frozenset({'REASON_CODE_REQUIRED', 'REASON_CODE_INVALID', 'NO
                               'SHORTAGE_CLOSE_REASON', 'SHORTAGE_SET_CHANGED', 'COUNT_NEGATIVE',
                               'SALES_ORDER_REQUIRED', 'SALES_ORDER_NOT_FOUND', 'SALES_ORDER_CANCELLED',
                               'SALES_ORDER_NOT_APPLICABLE', 'USE_RECEIVE', 'NO_STOCK_BY_HAND', 'PAIRED_MOVE_REQUIRED',
-                              'WRONG_LOT_SAME_PRODUCT', 'INVALID_PAIRED_MOVE', 'LOT_ALREADY_HAS_STOCK', 'BOL_REQUIRED', 'INVALID_QUANTITY'})
+                              'PAIRED_MOVE_UNAVAILABLE', 'WRONG_LOT_SAME_PRODUCT', 'INVALID_PAIRED_MOVE', 'LOT_ALREADY_HAS_STOCK', 'BOL_REQUIRED', 'INVALID_QUANTITY'})
 # Owner decision (Michael, 2026-11-18), switched on by migration 096's marker: a
 # removal names where the stock went, and nothing over 500 lb is held any more.
 # Until the marker exists every rule below behaves exactly as before (fail safe).
@@ -311,7 +311,7 @@ def resolve_reason(cur, source, raw, *, note=None, delta_lb=None, sales_order_id
             cur.execute(f'SELECT {_REASON_COLUMNS} FROM correction_reasons WHERE code=%s', (legacy['reason_code'],))
             row = cur.fetchone()
     usable = row is not None and (row['active'] or (held_reason is not None and row['code'] == held_reason))
-    if not usable or (source not in row['applies_to'] and row['code'] != held_reason):
+    if not usable or source not in row['applies_to']:
         label = row['label_en'] if row else str(raw)
         fail(422, 'REASON_CODE_INVALID',
              f'{label!r} is not a correction reason for {source}; use one of the fixed list.',
