@@ -20,6 +20,7 @@ except ImportError:  # pragma: no cover
     pytest.skip("fastapi/httpx not installed", allow_module_level=True)
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 
 
 class _ConnProxy:
@@ -68,7 +69,7 @@ def client(_db_connection, monkeypatch):
 
 
 def _key():
-    return {"X-API-Key": main.API_KEY}
+    return {"X-API-Key": NAMED_OWNER_KEY}
 
 
 def _create_note(client, title="notes auth test"):
@@ -127,7 +128,7 @@ def test_notes_create_rejected_without_key_leaves_no_row(client):
     resp = client.post("/dashboard/api/notes",
                        json={"category": "note", "title": title})
     assert resp.status_code == 401
-    listing = client.get("/dashboard/api/notes", headers={"X-API-Key": main.API_KEY})
+    listing = client.get("/dashboard/api/notes", headers={"X-API-Key": NAMED_OWNER_KEY})
     assert listing.status_code == 200
     assert all(n["title"] != title for n in listing.json()["notes"])
 

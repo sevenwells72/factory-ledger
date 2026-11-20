@@ -29,6 +29,7 @@ from fastapi.testclient import TestClient
 from starlette.routing import Mount
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 from tests.test_actor_attribution import actors, client  # noqa: F401  (fixtures)
 from tests.test_readonly_tripwire import _ReadOnlyError, _make_raising_get_db_connection
 
@@ -54,12 +55,12 @@ def _key(key):
 
 
 def _master():
-    return _key(main.API_KEY)
+    return _key(NAMED_OWNER_KEY)
 
 
 def _create(client, key=None, **fields):
     body = {"category": "note", "title": "char " + uuid4().hex[:8], **fields}
-    resp = client.post(NOTES, json=body, headers=_key(key or main.API_KEY))
+    resp = client.post(NOTES, json=body, headers=_key(key or NAMED_OWNER_KEY))
     assert resp.status_code == 200, resp.text
     return resp.json()
 
@@ -254,6 +255,7 @@ def test_floor_actor_key_writes_are_attributed(client, actors, sessions_on, db_c
     assert all((r["actor_id"], r["operator_id"]) == (floor["id"], floor["name"]) for r in rows)
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.db
 @pytest.mark.parametrize("which", ["master"])
 def test_shared_key_writes_record_no_attribution(client, actors, sessions_on, db_cursor, which):
@@ -267,6 +269,7 @@ def test_shared_key_writes_record_no_attribution(client, actors, sessions_on, db
     assert _audit_rows(db_cursor, nid) == []
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.db
 def test_public_dashboard_key_reads_notes_but_writes_nothing(client, actors, sessions_on, db_cursor):
     """DCC-001: the public dashboard key is read-only in both selection modes.
@@ -409,6 +412,7 @@ def _raw_client():
     return TestClient(main.app, raise_server_exceptions=False)
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize("method,path,body", [
     ("PUT", NOTES + "/1", {"title": "x"}),
     ("DELETE", NOTES + "/1", None),
@@ -424,6 +428,7 @@ def test_readonly_database_reaches_global_tripwire(monkeypatch, method, path, bo
     assert resp.json()["error_code"] == "READONLY_TRANSACTION"
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize("method,path,body", [
     ("GET", NOTES, None),
     ("POST", NOTES, {"category": "note", "title": "x"}),

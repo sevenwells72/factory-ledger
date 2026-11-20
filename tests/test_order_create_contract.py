@@ -10,6 +10,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 from tests.test_sales_order_line_fields import client  # noqa: F401
 from tests.test_named_actor_writes import named_actors  # noqa: F401
 
@@ -128,6 +129,7 @@ def test_po_duplicate_warning_explicit_override_and_trimmed_text(client, db_curs
     assert db_cursor.fetchone()['customer_po'] == '062732'
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_retry_is_original_even_after_header_and_catalog_edits(client, db_cursor, catalog):
     body = payload(catalog)
     original = post(client, body)
@@ -258,6 +260,7 @@ def test_header_audit_failure_rolls_back_po(client, db_cursor, catalog, named_ac
     assert db_cursor.fetchone()['customer_po'] == '062732'
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_legacy_request_response_and_no_receipt_unchanged(client, db_cursor, catalog):
     db_cursor.execute('SELECT name FROM customers WHERE id=%s', (catalog[0],))
     customer = db_cursor.fetchone()['name']
@@ -429,7 +432,7 @@ def test_concurrent_requests_commit_exactly_one_order(_db_connection, monkeypatc
     try:
         with TestClient(main.app) as http:
             with ThreadPoolExecutor(max_workers=2) as executor:
-                futures = [executor.submit(http.post, '/sales/orders', json=body, headers={'X-API-Key': main.API_KEY})
+                futures = [executor.submit(http.post, '/sales/orders', json=body, headers={'X-API-Key': NAMED_OWNER_KEY})
                            for body in (first, second)]
                 responses = [f.result(timeout=20) for f in futures]
         assert sorted(r.status_code for r in responses) == ([200, 200] if mode == 'same' else [200, 409]), [r.text for r in responses]

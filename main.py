@@ -3541,7 +3541,13 @@ def _authenticate_incoming_api_key(provided_key: str, request: Request, invalid_
         raise HTTPException(status_code=401, detail="API key required")
     if secrets.compare_digest(provided_key, API_KEY):
         request.state.key_kind = "legacy_ledger"
-        return True
+        route = _route_key(request)
+        if (os.getenv('SHARED_KEY_WRITES', '').strip().lower() == 'allow' or
+                route[0] == 'GET' or route in {('POST', '/resolve'), ('POST', '/products/resolve')}):
+            return True
+        raise HTTPException(403, {'error_code': 'SHARED_KEY_READ_ONLY',
+            'message': 'Choose your name or use your named key to record. Nothing was recorded.',
+            'message_es': 'Elige tu nombre o usa tu clave personal para registrar. No se registró nada.'})
     if DASHBOARD_API_KEY and secrets.compare_digest(provided_key, DASHBOARD_API_KEY):
         request.state.key_kind = "legacy_dashboard"
         if _dashboard_key_reaches(_route_key(request)):
@@ -3576,6 +3582,8 @@ def _authenticate_incoming_api_key(provided_key: str, request: Request, invalid_
         if kind == "actor":
             _touch_actor_last_used(actor)
         route_key = _route_key(request)
+        if kind == "actor" and permissions.role_of(_actor_identity(request)) == permissions.OWNER:
+            return True
         if kind == "session" and route_key in key_sessions.ROUTES:
             return True
         if route_key in (DASHBOARD_KEY_ALLOWLIST | ACTOR_WRITE_ALLOWLIST):
@@ -10410,6 +10418,7 @@ def correct_transaction(
     transaction_id: int,
     req: LedgerCorrectionRequest,
     _: bool = Depends(verify_api_key),
+    request: Request = None,
 ):
     try:
         with get_transaction() as cur:
@@ -10419,8 +10428,8 @@ def correct_transaction(
                 req.event_type,
                 req.reason,
                 req.replacement_values,
-                _operator_id(_),
-                entered_by_actor_id=_entered_by_actor_id(_),
+                _operator_id(request),
+                entered_by_actor_id=_entered_by_actor_id(request),
             )
             return {"transaction_id": transaction_id, **event}
     except HTTPException:

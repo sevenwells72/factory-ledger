@@ -138,7 +138,8 @@ def reference_seed_sql():
     end = text.index("-- 3. transactions.reason_code")
     section = text[start:end]
     assert "correction_reason_legacy_codes" in section
-    return section
+    from tests.named_key import SEED_SQL
+    return section + "\n" + SEED_SQL
 
 
 def _seed_reference_data(url):
@@ -195,3 +196,34 @@ def db_cursor(_db_connection):
     finally:
         cur.execute("ROLLBACK TO SAVEPOINT test_savepoint")
         cur.close()
+
+
+@pytest.fixture(autouse=True)
+def _isolate_actor_snapshot():
+    # Default HTTP work now uses an actor key. A cache from another rolled-back
+    # test or disposable database must not authenticate (or reject) that key.
+    import main
+    main._reset_actor_cache()
+    yield
+    main._reset_actor_cache()
+
+
+@pytest.fixture
+def legacy_shared_key_compat(request, monkeypatch):
+    """Opt-in ONLY for historical shared-key contracts / fault-injection tests.
+
+    Exercise the supported emergency fallback without making it a suite default.
+    Ordinary workflow fixtures use a named key. The 098 default-key matrix tests
+    never request this fixture and prove every reachable shared-key write refuses.
+    Restore old test credential aliases only inside this explicitly marked test.
+    """
+    import main
+    import tests.test_write_tickets as tickets
+    monkeypatch.setenv('SHARED_KEY_WRITES', 'allow')
+    for module in (request.module, tickets):
+        if hasattr(module, 'NAMED_OWNER_KEY'):
+            monkeypatch.setattr(module, 'NAMED_OWNER_KEY', main.API_KEY)
+    if 'client' in request.fixturenames:
+        client = request.getfixturevalue('client')
+        if 'X-API-Key' in client.headers:
+            client.headers['X-API-Key'] = main.API_KEY

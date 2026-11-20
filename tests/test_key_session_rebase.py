@@ -3,6 +3,7 @@ import pytest
 
 import key_sessions
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 import shift_summary
 from tests.test_key_sessions import actors, client, payload, pilot, sign_in  # noqa: F401
 from tests.test_kosher_tiers import items  # noqa: F401
@@ -107,6 +108,7 @@ def test_session_kosher_hold_approval_preserves_preparer_and_owner(client, actor
     assert db_cursor.fetchone()['actor_id'] == owner['actor']['id']
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('kind', ['master', 'dashboard'])
 def test_shared_summary_read_never_becomes_person_confirmation(client, actors, kind):
     key = main.API_KEY if kind == 'master' else main.DASHBOARD_API_KEY

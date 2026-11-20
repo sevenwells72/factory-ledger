@@ -15,6 +15,7 @@ def read(client,number,key):
     assert result.status_code==200,result.text
     return result.json()
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('role,expected',[('floor',['void']),('owner',['void']),('office',[]),(None,[])])
 def test_named_receipt_choices_match_fl_own_today_policy(client,payload,actors,role,expected):
     original=source(client,payload,actors)

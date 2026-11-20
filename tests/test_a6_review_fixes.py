@@ -5,6 +5,7 @@ from unittest.mock import Mock
 
 import pytest
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 import ship_tickets
 import attachments
 from tests.test_ship_tickets import (client, actors, shipping, storage, new_order,
@@ -63,7 +64,7 @@ def test_post_cutover_close_without_shipment_is_403_for_everyone(client, db_curs
 def test_legacy_close_is_named_owner_only_when_cutoff_unset(client, db_cursor, shipping, actors, role):
     oid = new_order(client, shipping, actors['office']['key'])
     key = main.API_KEY if role == 'master' else actors[role]['key']
-    error(client.post(f'/sales/orders/{oid}/close/prepare', json={'reason':'shipped_not_recorded','note':'legacy truck log'}, headers=headers(key)), 403, 'ROLE_NOT_ALLOWED')
+    error(client.post(f'/sales/orders/{oid}/close/prepare', json={'reason':'shipped_not_recorded','note':'legacy truck log'}, headers=headers(key)), 403, 'SHARED_KEY_READ_ONLY' if role == 'master' else 'ROLE_NOT_ALLOWED')
 
 @pytest.mark.parametrize('note', [None, '', '   '])
 def test_legacy_close_no_longer_requires_a_note(client, db_cursor, shipping, actors, note):

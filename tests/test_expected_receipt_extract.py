@@ -441,6 +441,7 @@ from datetime import date
 from fastapi.testclient import TestClient
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 
 
 class _ConnProxy:
@@ -480,7 +481,7 @@ def client(_db_connection, monkeypatch):
 
     monkeypatch.setattr(main, "get_db_connection", _fake_get_conn)
     with TestClient(main.app) as c:
-        c.headers["X-API-Key"] = main.API_KEY
+        c.headers["X-API-Key"] = NAMED_OWNER_KEY
         yield c
     _db_connection.rollback()
 
@@ -1281,6 +1282,7 @@ class TestApprovalAdvisoryLock:
         finally:
             conn.close()
 
+    @pytest.mark.usefixtures("legacy_shared_key_compat")
     def test_two_full_approvals_same_pair_loser_gets_409(self, monkeypatch):
         """Audit-2 (finding 10, end-to-end): two COMPLETE approvals of two
         different documents with the same (supplier, reference), each on its
@@ -1420,6 +1422,7 @@ class TestConcurrentUploadDedupe:
     pg_advisory_xact_lock(hashtext(file_sha256)) — concurrent identical
     uploads must resolve to ONE row, never siblings."""
 
+    @pytest.mark.usefixtures("legacy_shared_key_compat")
     def test_concurrent_identical_uploads_share_one_document(self, monkeypatch):
         url = os.environ.get("TEST_DATABASE_URL")
         if not url:
@@ -1630,10 +1633,11 @@ class TestAllowlistAndTripwire:
         monkeypatch.setattr(extraction, "extract_purchase_document",
                             lambda *a, **kw: {"extraction": dict(GOOD_EXTRACTION), "extraction_model": "m"})
         with TestClient(main.app, raise_server_exceptions=False) as c:
-            c.headers["X-API-Key"] = main.API_KEY
+            c.headers["X-API-Key"] = NAMED_OWNER_KEY
             c.storage_uploads = uploads
             yield c
 
+    @pytest.mark.usefixtures("legacy_shared_key_compat")
     def test_extract_trips_readonly_tripwire(self, readonly_client):
         r = _post_file(readonly_client)
         assert r.status_code == 503, r.text
@@ -1646,6 +1650,7 @@ class TestAllowlistAndTripwire:
         # purchase_documents INSERT, so no orphan object lands in Storage.
         assert readonly_client.storage_uploads == []
 
+    @pytest.mark.usefixtures("legacy_shared_key_compat")
     def test_approve_trips_readonly_tripwire(self, readonly_client):
         r = readonly_client.post("/expected-receipts/extract/approve", json={
             "document_id": 1, "supplier_id": 1, "reference_number": "PO-1",

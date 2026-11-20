@@ -4,6 +4,7 @@ import json
 import pytest
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 from tests.test_actor_attribution import client, actors  # noqa: F401
 from tests.test_write_tickets_part2 import items  # noqa: F401
 from tests.test_shift_summary import summary, section
@@ -32,6 +33,7 @@ def direct_swap(cur, items, actor_id=None, *, date=None):
     return txn
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_direct_swap_summary_has_real_oats_lots_bilingual_notice_and_no_fake_ticket(client, db_cursor, items, actors):
     before = summary(client, main.API_KEY)
     txn = direct_swap(db_cursor, items)

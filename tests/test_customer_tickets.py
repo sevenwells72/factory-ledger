@@ -15,6 +15,7 @@ import pytest
 
 import customer_tickets
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 import permissions
 import write_tickets as tickets
 from tests.test_actor_attribution import client, actors  # noqa: F401

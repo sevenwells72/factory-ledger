@@ -25,6 +25,7 @@ from fastapi.testclient import TestClient
 from psycopg2.extras import RealDictCursor
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 from tests.test_actor_attribution import actors  # noqa: F401  (DCC-001: named writer)
 
 MIGRATION = Path(__file__).resolve().parent.parent / "migrations" / "051_sales_order_state_model.sql"
@@ -65,7 +66,7 @@ def client(_db_connection, monkeypatch):
 
     monkeypatch.setattr(main, "get_db_connection", _fake_get_conn)
     with TestClient(main.app) as test_client:
-        test_client.headers["X-API-Key"] = main.API_KEY
+        test_client.headers["X-API-Key"] = NAMED_OWNER_KEY
         yield test_client
 
 
@@ -649,6 +650,7 @@ def test_reopen_rejected_on_an_open_order(db_cursor, client):
 
 # ─── reservations ────────────────────────────────────────────────
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.db
 def test_close_releases_reservations_and_audits_the_release(db_cursor, client):
     customer_id, token = _seed_customer(db_cursor)
@@ -763,6 +765,7 @@ def test_state_changes_create_no_ledger_rows_and_no_trace_events(db_cursor, clie
 
 # ─── attribution ─────────────────────────────────────────────────
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.db
 def test_changed_by_prefers_the_body_field_then_the_source_tag(db_cursor, client):
     customer_id, token = _seed_customer(db_cursor)
@@ -1890,6 +1893,7 @@ def test_health_is_quiet_once_the_order_is_cancelled(db_cursor, client):
 # Read side: fields, filter, counts
 # ═════════════════════════════════════════════════════════════════
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.db
 def test_list_and_detail_expose_the_state_fields(db_cursor, client):
     customer_id, token = _seed_customer(db_cursor)
@@ -2802,6 +2806,7 @@ def test_exit_releases_this_orders_expired_row_too(db_cursor, client):
 
 # ─── attribution ─────────────────────────────────────────────────
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.db
 def test_changed_by_is_stripped_but_never_truncated(db_cursor, client):
     customer_id, token = _seed_customer(db_cursor)
@@ -2963,6 +2968,7 @@ def test_reopen_preview_reports_the_restored_status_without_writing(db_cursor, c
     assert _state_row(db_cursor, order_id)["state"] == "closed", "preview must not write"
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.db
 def test_preview_carries_the_attribution_note(db_cursor, client):
     customer_id, token = _seed_customer(db_cursor)

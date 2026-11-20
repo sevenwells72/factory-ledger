@@ -29,7 +29,7 @@ ROLES = {'Blubber': 'owner', 'Arturo': 'floor', 'Luz': 'floor', 'Miriam': 'offic
 def _denied(identity, method, route):
     """True when §4.3 denies this named actor the route's action (shared key: never)."""
     if identity == 'shared':
-        return False
+        return True
     action = permissions.ROUTE_ACTIONS.get((method, route))
     return action is not None and not permissions.allowed(action, ROLES[identity])
 
@@ -42,7 +42,10 @@ def _actor_for(preferred, method, route):
 def _assert_role_denied(response, identity, before, cur):
     assert response.status_code == 403, response.text
     detail = response.json()['detail']
-    assert (detail['error_code'], detail['actor'], detail['role']) == ('ROLE_NOT_ALLOWED', identity, ROLES[identity])
+    if identity == 'shared':
+        assert detail['error_code'] == 'SHARED_KEY_READ_ONLY'
+    else:
+        assert (detail['error_code'], detail['actor'], detail['role']) == ('ROLE_NOT_ALLOWED', identity, ROLES[identity])
     assert _snapshot(cur) == before
 # Intentionally independent of the implementation's allowlist.
 CASES = [
@@ -428,7 +431,7 @@ def test_shared_metadata_writes_do_not_require_the_new_audit_table(
     body = _payload(db_cursor, route, prepared)
     db_cursor.execute('DROP TABLE actor_write_audit')  # rolled back by fixture
     response = _request(client, method, route, prepared, body, main.API_KEY)
-    assert response.status_code == 200, response.text
+    assert response.status_code == 403 and response.json()['detail']['error_code'] == 'SHARED_KEY_READ_ONLY'
 
 
 @pytest.mark.db
@@ -437,6 +440,9 @@ def test_actor_identity_does_not_leak_between_requests(client, db_cursor, named_
     for name in ('Arturo', 'shared', 'Luz', 'shared', 'Miriam', 'Blubber'):
         key = main.API_KEY if name == 'shared' else named_actors[name]['key']
         response = _request(client, 'POST', '/adjust', prepared, body, key)
+        if name == 'shared':
+            assert response.status_code == 403 and response.json()['detail']['error_code'] == 'SHARED_KEY_READ_ONLY'
+            continue
         if name == 'Miriam':   # office: denied, and the denial names HER, not the previous caller
             assert response.status_code == 403 and response.json()['detail']['actor'] == 'Miriam', response.text
             continue
@@ -463,6 +469,10 @@ def test_expired_allocation_release_keeps_the_correct_identity(
         identity = _actor_for(identity, 'POST', route)   # floor may not ship standalone
     key = main.API_KEY if identity == 'shared' else named_actors[identity]['key']
     response = _request(client, 'POST', route, prepared, body, key)
+    if identity == 'shared':
+        assert response.status_code == 403 and response.json()['detail']['error_code'] == 'SHARED_KEY_READ_ONLY', response.text
+        assert _snapshot(db_cursor) == before if 'before' in locals() else True
+        return
     assert response.status_code == 200, response.text
     allocation = _allocation(db_cursor, allocation_id)
     assert allocation['status'] == 'released'
@@ -499,6 +509,10 @@ def test_receive_shortcut_commit_persists_the_authenticated_operator(
     key = main.API_KEY if identity == 'shared' else named_actors[identity]['key']
     before = _snapshot(db_cursor)
     response = _request(client, 'POST', '/receive/commit', prepared, body, key)
+    if identity == 'shared':
+        assert response.status_code == 403 and response.json()['detail']['error_code'] == 'SHARED_KEY_READ_ONLY', response.text
+        assert _snapshot(db_cursor) == before if 'before' in locals() else True
+        return
     assert response.status_code == 200, response.text
     transactions, events = _new_transactions(before, _snapshot(db_cursor))
     assert len(transactions) == 1 and len(events) == 1
@@ -530,10 +544,8 @@ def test_other_shortcut_commits_keep_actor_scope_and_shared_attribution(
     assert denied.json()['detail'] == 'API key not authorized for this endpoint'
     assert _snapshot(db_cursor) == before
     response = _request(client, 'POST', f'/{name}/commit', prepared, body, main.API_KEY)
-    assert response.status_code == 200, response.text
-    transactions, events = _new_transactions(before, _snapshot(db_cursor))
-    assert transactions and {r['operator_id'] for r in transactions} == {'legacy-shared-key'}
-    assert events and {r['operator_id'] for r in events} == {None}
+    assert response.status_code == 403 and response.json()['detail']['error_code'] == 'SHARED_KEY_READ_ONLY'
+    assert _snapshot(db_cursor) == before
 
 
 @pytest.mark.db
@@ -580,6 +592,10 @@ def test_auto_created_customer_is_audited_with_the_business_write(
     key = main.API_KEY if identity == 'shared' else named_actors[identity]['key']
     before = _snapshot(db_cursor)
     response = _request(client, 'POST', route, prepared, body, key)
+    if identity == 'shared':
+        assert response.status_code == 403 and response.json()['detail']['error_code'] == 'SHARED_KEY_READ_ONLY', response.text
+        assert _snapshot(db_cursor) == before if 'before' in locals() else True
+        return
     assert response.status_code == 200, response.text
     after = _snapshot(db_cursor)
     created = [r for r in after['customers'] if r['name'] == new_name]
@@ -688,7 +704,7 @@ def test_intake_creation_audits_order_and_each_line(
                            headers={'X-API-Key': key})
     if _denied(identity, 'POST', '/sales/orders/extract/approve'):
         assert response.status_code == 403, response.text
-        assert response.json()['detail']['error_code'] == 'ROLE_NOT_ALLOWED'
+        assert response.json()['detail']['error_code'] == ('SHARED_KEY_READ_ONLY' if identity == 'shared' else 'ROLE_NOT_ALLOWED')
         assert _intake_snapshot(db_cursor) == before
         return
     assert response.status_code == 201, response.text
@@ -750,8 +766,7 @@ def test_shared_intake_creation_still_works_without_audit_table(
     db_cursor.execute('DROP TABLE actor_write_audit')  # Rolled back by fixture.
     response = client.post('/sales/orders/extract/approve', json=body,
                            headers={'X-API-Key': main.API_KEY})
-    assert response.status_code == 201, response.text
-    assert len(response.json()['lines']) == 2
+    assert response.status_code == 403 and response.json()['detail']['error_code'] == 'SHARED_KEY_READ_ONLY'
 
 
 def _audit_down_sql():

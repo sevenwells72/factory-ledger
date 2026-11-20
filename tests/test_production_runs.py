@@ -47,6 +47,7 @@ except ImportError:  # pragma: no cover
     pytest.skip("fastapi/httpx not installed", allow_module_level=True)
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 
 ROOT = Path(__file__).resolve().parent.parent
 MIGRATION_052 = ROOT / "migrations" / "052_actors.sql"
@@ -162,7 +163,7 @@ ALL_KEYS = [
 
 def _headers(which, actors):
     if which == MASTER:
-        return {"X-API-Key": main.API_KEY}
+        return {"X-API-Key": NAMED_OWNER_KEY}
     if which == DASHBOARD:
         return {"X-API-Key": main.DASHBOARD_API_KEY}
     return {"X-API-Key": actors["key"]}
@@ -996,6 +997,7 @@ def test_completion_from_in_progress_and_evidence_after_done(client, schema):
 # Attribution matrix — every write, three keys
 # ═════════════════════════════════════════════════════════════════
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.db
 @pytest.mark.parametrize("which", ALL_KEYS)
 def test_every_write_records_the_actor(client, schema, actors, which):
@@ -1056,7 +1058,7 @@ def test_every_write_records_the_actor(client, schema, actors, which):
 def test_all_three_key_kinds_reach_every_route_and_an_unknown_key_does_not(client, schema, actors):
     seeded = _seed(schema)
     run = _create(client, seeded, qty=1, unit="lb")
-    for headers in ({"X-API-Key": main.API_KEY}, DASH, {"X-API-Key": actors["key"]}):
+    for headers in ({"X-API-Key": NAMED_OWNER_KEY}, DASH, {"X-API-Key": actors["key"]}):
         assert client.get("/production/runs", headers=headers).status_code == 200
         assert client.get(f"/production/runs/{run['id']}/evidence", headers=headers).status_code == 200
     # DCC-001: reads only for the public key; its writes are refused.

@@ -10,6 +10,7 @@ from uuid import uuid4
 import pytest
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 from tests.test_actor_attribution import client, actors  # noqa: F401
 from tests.test_write_tickets import commit, headers
 
@@ -23,7 +24,10 @@ NOTE = "Michael confirmed the historical truck log"
 
 
 @pytest.fixture(autouse=True)
-def cutoff(monkeypatch):
+def cutoff(monkeypatch, request):
+    # Only explicit historical master rows exercise the supported fallback.
+    if getattr(request.node, "callspec", None) and request.node.callspec.params.get("role") == "master":
+        request.getfixturevalue("legacy_shared_key_compat")
     monkeypatch.setenv("ORDER_LEGACY_CLOSE_CUTOFF", CUTOFF)
     monkeypatch.setenv("KEY_SESSIONS_ENABLED", "1")
 

@@ -131,6 +131,7 @@ def test_only_applicable_fixed_reasons(client, unidentified, actors, reason):
     error(r, 422, 'REASON_CODE_INVALID')
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_wrong_role_shared_keys_and_wrong_actor(client, db_cursor, unidentified, actors, monkeypatch):
     url = f'/lots/{unidentified["lot_id"]}/supplier-lot/prepare'
     body = {'supplier_lot_code': 'REAL-123', 'reason_code': 'wrong_lot'}

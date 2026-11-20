@@ -25,6 +25,7 @@ except ImportError:  # pragma: no cover
     pytest.skip("fastapi/httpx not installed", allow_module_level=True)
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 
 
 class _ConnProxy:
@@ -68,7 +69,7 @@ def client(_db_connection, monkeypatch):
 
     monkeypatch.setattr(main, "get_db_connection", _fake_get_conn)
     with TestClient(main.app) as c:
-        c.headers["X-API-Key"] = main.API_KEY
+        c.headers["X-API-Key"] = NAMED_OWNER_KEY
         yield c
     # Roll the whole test's work back past the proxy savepoints.
     _db_connection.rollback()
@@ -132,6 +133,7 @@ def test_create_sales_order_success_and_ids(client, _db_connection):
     assert data["order_number"] and data["status"] == "confirmed"
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.db
 def test_sales_order_ready_flag_success_and_list_fields(client, _db_connection):
     customer = "Ready Flag Contract Customer"

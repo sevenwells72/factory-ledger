@@ -5,6 +5,7 @@ from pathlib import Path
 from uuid import uuid4
 import pytest
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 import key_sessions
 from tests.test_actor_attribution import actors, client  # noqa: F401
 from tests.test_write_tickets import payload, headers  # noqa: F401
@@ -88,6 +89,7 @@ def test_revoke_live_key_ends_all_sessions_without_cache_delay(client,actors,db_
     assert [r['ended_reason'] for r in db_cursor.fetchall()]==['revoked','revoked']
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('kind',['master','dashboard','retired','unknown','session'])
 def test_shared_inactive_unknown_and_session_credentials_cannot_exchange(client,actors,kind):
     key={'master':main.API_KEY,'dashboard':main.DASHBOARD_API_KEY,'retired':actors['retired']['key'],
@@ -96,6 +98,7 @@ def test_shared_inactive_unknown_and_session_credentials_cannot_exchange(client,
     assert r.status_code==401 and 'session_token' not in r.text and key not in r.text
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_shared_key_refused_even_if_actor_hash_collides(client,actors,db_cursor):
     db_cursor.execute('UPDATE actors SET key_hash=%s WHERE id=%s',(key_sessions.digest(main.API_KEY),actors['floor']['id']))
     assert client.post('/auth/session',json={'actor_key':main.API_KEY}).status_code==401
@@ -128,6 +131,7 @@ def test_global_limit_spans_sources(client,actors,db_cursor):
     assert client.post('/auth/session',json={'actor_key':actors['floor']['key']}).status_code==429
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_flag_off_needs_no_session_tables_and_preserves_existing_auth(client,actors,monkeypatch,db_cursor):
     monkeypatch.setenv('KEY_SESSIONS_ENABLED','0')
     db_cursor.execute('DROP TABLE key_actor_sessions,key_session_attempts')

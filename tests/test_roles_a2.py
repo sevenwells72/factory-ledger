@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 import pytest
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 import permissions
 import ticket_actions
 import write_tickets
@@ -77,7 +78,7 @@ def identity_for(role):
 
 
 def key_for(which, actors):
-    return {'legacy_ledger': main.API_KEY, 'legacy_dashboard': main.DASHBOARD_API_KEY}.get(which) or actors[which]['key']
+    return {'legacy_ledger': NAMED_OWNER_KEY, 'legacy_dashboard': main.DASHBOARD_API_KEY}.get(which) or actors[which]['key']
 
 
 def real_shift(moment, **delta):
@@ -149,6 +150,7 @@ def test_markdown_table_is_the_live_matrix():
 
 # ── 2. Enforced at PREPARE, keyed on the ticket action ────────────────────
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('which', ROLES)
 @pytest.mark.parametrize('action', TICKET_ACTIONS)
 def test_prepare_enforces_the_matrix_per_key(client, db_cursor, items, actors, action, which):
@@ -260,6 +262,7 @@ def test_47h_is_normal_for_everyone(client, db_cursor, items, actors, which):
     assert late_exceptions(db_cursor, prepared) == []
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('which,hours', [('floor', 49), ('office', 49), ('legacy_ledger', 49),
                                          ('legacy_dashboard', 49), ('floor', 14*24 - 1)])
 def test_49h_to_14d_posts_and_opens_late_entry_for_non_owners(client, db_cursor, items, actors, which, hours):
@@ -397,6 +400,7 @@ def test_late_entry_exception_has_no_owner_when_no_owner_actor_exists(client, db
 
 # ── 5. entered_by on every write ─────────────────────────────────────────
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('action', TICKET_ACTIONS)
 @pytest.mark.parametrize('which', ['owner', 'floor', 'legacy_ledger'])
 def test_ticket_writes_record_entered_by(client, db_cursor, items, actors, action, which):
@@ -420,6 +424,7 @@ def test_ticket_writes_record_entered_by(client, db_cursor, items, actors, actio
     assert timing['entered_at'] and timing['happened_at']
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('which', ['floor', 'legacy_ledger'])
 def test_direct_routes_record_entered_by_and_keep_legacy_placeholder(client, db_cursor, items, actors, which):
     key = key_for(which, actors)
@@ -491,6 +496,7 @@ def test_direct_routes_apply_the_matrix_per_role(client, actors, which, method, 
     assert (response.json()['detail']['action'], response.json()['detail']['role']) == (action, which)
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_close_shipped_not_recorded_is_owner_only_on_the_direct_route(client, db_cursor, actors, monkeypatch):
     """The explicit legacy exception names an owner, including on direct routes."""
     monkeypatch.delenv('ORDER_LEGACY_CLOSE_CUTOFF', raising=False)
@@ -526,7 +532,7 @@ def test_shared_keys_keep_their_legacy_reach_on_direct_routes(client, db_cursor,
     """Only the master key keeps today's reach until A10; the gate is for named actors."""
     assert permissions.require_route(('POST', '/make'), {'key_kind': 'legacy_ledger'}) is None
     assert permissions.require_route(('POST', '/sales/orders/{order_id}/cancel'), {'key_kind': 'legacy_dashboard'}) is None
-    response = client.post('/make', json=LEGACY_BODIES['make'](items), headers=headers(main.API_KEY))
+    response = client.post('/make', json=LEGACY_BODIES['make'](items), headers=headers(NAMED_OWNER_KEY))
     assert response.status_code == 200, response.text
     # DCC-001: the public dashboard key no longer has write reach in either mode.
     error(client.post('/sales/orders/1/cancel', json={}, headers=headers(main.DASHBOARD_API_KEY)), 403, 'DASHBOARD_KEY_READ_ONLY')
@@ -570,6 +576,7 @@ def test_direct_routes_floor_late_entry_still_posts(client, db_cursor, items, ac
     assert posted.status_code == 200, posted.text
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_whoami_permissions_are_the_matrix(client, actors):
     for which in ROLES:
         body_ = client.get('/auth/whoami', headers=headers(key_for(which, actors))).json()

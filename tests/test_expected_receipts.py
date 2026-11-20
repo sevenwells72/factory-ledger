@@ -24,6 +24,7 @@ except Exception:  # pragma: no cover
     pytest.skip("fastapi/httpx not installed", allow_module_level=True)
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 
 
 class _ConnProxy:
@@ -61,7 +62,7 @@ def client(_db_connection, monkeypatch):
 
     monkeypatch.setattr(main, "get_db_connection", _fake_get_conn)
     with TestClient(main.app) as c:
-        c.headers["X-API-Key"] = main.API_KEY
+        c.headers["X-API-Key"] = NAMED_OWNER_KEY
         yield c
     _db_connection.rollback()
 
@@ -540,6 +541,7 @@ def test_dashboard_key_can_use_expected_receipts_and_suppliers(client, cur, monk
     assert r.status_code == 403
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.db
 def test_created_by_is_caller_source_tag_never_a_fake_user_id(client, cur):
     pid = _seed_product(cur, "FR2 CreatedBy Prod")

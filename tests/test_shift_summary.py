@@ -14,6 +14,7 @@ from psycopg2.extras import RealDictCursor
 import pytest
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 import shift_summary
 import write_tickets as wt
 from scripts.exceptions_sweep import sweep
@@ -32,7 +33,7 @@ KEYS = [s[0] for s in shift_summary.SECTIONS]
 
 
 def summary(client, key=None, **params):
-    r = client.get('/reports/shift-summary', params=params, headers=headers(key))
+    r = client.get('/reports/shift-summary', params=params, headers=headers(key or main.API_KEY))
     assert r.status_code == 200, r.text
     return r.json()
 
@@ -128,6 +129,7 @@ def test_received_row_fields_lines_and_language_copies(client, db_cursor, actors
     assert lot['line_en'].endswith(f'lot {payload["lot_code"]} 0 → 50 lb') and ' lote ' in lot['line_es']
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_unidentified_receive_flag_and_open_exception_rollup(client, db_cursor, actors):
     key = actors['floor']['key']
     result, payload, p = receive(client, db_cursor, key, supplier_lot_code='N/A', no_supplier_lot=True)
@@ -371,6 +373,7 @@ def test_rejected_ticket_with_a_receipt_number_is_not_a_receipt(client, db_curso
     assert [r['status'] for r in listed['receipts']] == ['rejected']
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_legacy_key_receipts_and_all_actors_view(client, db_cursor, actors):
     result, payload, p = receive(client, db_cursor, main.API_KEY)
     floor, _, _ = receive(client, db_cursor, actors['floor']['key'])
@@ -519,6 +522,7 @@ def test_confirm_yesterday_is_late_and_future_is_refused(client, db_cursor, acto
 # ---------------------------------------------------------------------------
 # Permissions
 # ---------------------------------------------------------------------------
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_permissions_matrix(client, db_cursor, actors):
     floor, owner, office = (actors[r]['key'] for r in ('floor', 'owner', 'office'))
     error(confirm(client, main.API_KEY, summary(client, main.API_KEY)), 403, 'ACTOR_REQUIRED')

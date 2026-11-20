@@ -29,6 +29,7 @@ except Exception:  # pragma: no cover
     pytest.skip("fastapi/httpx not installed", allow_module_level=True)
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 
 
 class _ConnProxy:
@@ -66,7 +67,7 @@ def client(_db_connection, monkeypatch):
 
     monkeypatch.setattr(main, "get_db_connection", _fake_get_conn)
     with TestClient(main.app) as c:
-        c.headers["X-API-Key"] = main.API_KEY
+        c.headers["X-API-Key"] = NAMED_OWNER_KEY
         yield c
     _db_connection.rollback()
 
@@ -426,7 +427,7 @@ def test_dashboard_key_allowed_on_supplies_routes(client, cur):
     assert r.status_code == 403 and r.json()["detail"]["error_code"] == "DASHBOARD_KEY_READ_ONLY", r.text
     assert client.get("/supply-requests", headers=h).status_code == 200
     made = client.post("/supply-requests", json={"product_id": pid, "requested_by": "master"},
-                       headers={"X-API-Key": main.API_KEY})
+                       headers={"X-API-Key": NAMED_OWNER_KEY})
     assert made.status_code == 201, made.text
     r = client.patch(f"/supply-requests/{made.json()['supply_request_id']}", json={"status": "done"}, headers=h)
     assert r.status_code == 403 and r.json()["detail"]["error_code"] == "DASHBOARD_KEY_READ_ONLY", r.text

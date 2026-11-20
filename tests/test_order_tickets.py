@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 import pytest
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 import order_tickets
 import permissions
 import write_tickets as tickets
@@ -383,7 +384,7 @@ def test_status_invoiced_without_recorded_shipment_is_refused(client, db_cursor,
     order = create_order(client, catalog, office(actors))
     db_cursor.execute("UPDATE sales_orders SET status='shipped' WHERE id=%s", (order['order_id'],))
     base = f"/sales/orders/{order['order_id']}/status/prepare"
-    key = (main.API_KEY if which == 'master' else main.DASHBOARD_API_KEY if which == 'dashboard'
+    key = (NAMED_OWNER_KEY if which == 'master' else main.DASHBOARD_API_KEY if which == 'dashboard'
            else actors[which]['key'])
     if which == 'dashboard':
         refused = prepare_raw(client, base, {'status': 'invoiced'}, key)
@@ -550,6 +551,7 @@ def test_role_change_and_deactivation_between_prepare_and_commit(client, db_curs
     assert db_cursor.fetchone()['n'] == 0
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_dashboard_key_gets_nothing_new_master_key_reaches_everything(client, db_cursor, catalog):
     response = prepare_raw(client, '/sales/orders/prepare', create_body(catalog), main.DASHBOARD_API_KEY)
     assert response.status_code == 403 and 'not authorized' in response.text
@@ -561,6 +563,7 @@ def test_dashboard_key_gets_nothing_new_master_key_reaches_everything(client, db
         assert client.post(url, json={}, headers=headers(main.DASHBOARD_API_KEY)).status_code == 403
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_direct_order_routes_unchanged(client, db_cursor, catalog, actors):
     before = count(db_cursor, 'write_tickets')
     direct = client.post('/sales/orders', json=create_body(catalog), headers=headers())

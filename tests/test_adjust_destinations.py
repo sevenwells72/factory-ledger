@@ -322,10 +322,10 @@ def test_a_photo_is_still_accepted_as_optional_evidence(client, db_cursor, items
 
 
 def test_shared_key_large_adjust_posts_too_and_key_access_is_unchanged(client, db_cursor, items, actors, migrated):
-    # Which keys may adjust is NOT part of this change: the master key still can, office still cannot.
+    # Named-owner writes work; office still cannot adjust.
     set_balance(db_cursor, items, 'ingredient', 2000.0)
-    prepared = prepare(client, 'adjust', adjust(items, -600, 'damaged_thrown_out'))
-    assert commit(client, prepared).status_code == 200
+    prepared = prepare(client, 'adjust', adjust(items, -600, 'damaged_thrown_out'), actors['owner']['key'])
+    assert commit(client, prepared, actors['owner']['key']).status_code == 200
     error(client.post('/adjust/prepare', json=adjust(items, -5, 'damaged_thrown_out'), headers=headers(actors['office']['key'])),
           403, 'ROLE_NOT_ALLOWED')
     assert len(alerts(db_cursor)) == 1
