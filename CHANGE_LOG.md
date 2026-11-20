@@ -1,9 +1,19 @@
 # Change Log
 
+## 2026-11-20 09:50 — Preserve complete changelog entry separators after main rebase
+- **File(s) changed:** `CHANGE_LOG.md`
+- **What changed:** Rebuild the union of main and auth-branch entries verbatim by heading, retaining both histories and each separator.
+- **Why:** Concurrent append-only changelog edits must remain intact after rebase conflict resolution.
+
+---
+
 ## 2026-11-20 09:50 — Record new Coconut Toasted Sweetened Medium items (297, 298) and the Nov 9 make and pack (changelog row 313)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added changelog row 313: production catalog setup of batch product 297 and finished SKU 298 (copy of 128/160 with Coconut Medium Desiccated), the late Nov 9 make TX 3095 (450 lb, receipt MK-261109-008, lot 1782) and pack TX 3096 (18 cases, receipt PK-261109-004, lot 1783), the half-batch entry method, the lots used (glycol, corn starch and salt are FL's oldest-lot suggestion, not floor-confirmed) and the read-only verification. No code change.
 - **Why:** Task from Arturo approved by Michael on 2026-11-20; the Nov 9 toasted medium run had no item to be recorded under. Row numbered 313 because open PR #232 claims rows 310-312.
+
+---
+
 ## 2026-11-20 09:49 — Allocate standalone shared-key shutdown row 314 after concurrent main row 313
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/named-actor-writes.md`
 - **What changed:** Record the separately mergeable shutdown, its dependency order, emergency fallback and manual-script reach. Allocate the next free row after fetching main and preserving PR 232 rows 310 through 312.
