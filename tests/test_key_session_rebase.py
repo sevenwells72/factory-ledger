@@ -108,9 +108,10 @@ def test_session_kosher_hold_approval_preserves_preparer_and_owner(client, actor
     assert db_cursor.fetchone()['actor_id'] == owner['actor']['id']
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('kind', ['master', 'dashboard'])
 def test_shared_summary_read_never_becomes_person_confirmation(client, actors, kind):
-    key = NAMED_OWNER_KEY if kind == 'master' else main.DASHBOARD_API_KEY
+    key = main.API_KEY if kind == 'master' else main.DASHBOARD_API_KEY
     doc = summary(client, key)
     assert doc['actor'] is None and doc['confirmation']['can_confirm'] is False
     # DCC-001: the public dashboard key is refused at the key check, before the handler.

@@ -255,6 +255,7 @@ def test_floor_actor_key_writes_are_attributed(client, actors, sessions_on, db_c
     assert all((r["actor_id"], r["operator_id"]) == (floor["id"], floor["name"]) for r in rows)
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.db
 @pytest.mark.parametrize("which", ["master"])
 def test_shared_key_writes_record_no_attribution(client, actors, sessions_on, db_cursor, which):
@@ -268,6 +269,7 @@ def test_shared_key_writes_record_no_attribution(client, actors, sessions_on, db
     assert _audit_rows(db_cursor, nid) == []
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.db
 def test_public_dashboard_key_reads_notes_but_writes_nothing(client, actors, sessions_on, db_cursor):
     """DCC-001: the public dashboard key is read-only in both selection modes.
@@ -410,6 +412,7 @@ def _raw_client():
     return TestClient(main.app, raise_server_exceptions=False)
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize("method,path,body", [
     ("PUT", NOTES + "/1", {"title": "x"}),
     ("DELETE", NOTES + "/1", None),
@@ -425,6 +428,7 @@ def test_readonly_database_reaches_global_tripwire(monkeypatch, method, path, bo
     assert resp.json()["error_code"] == "READONLY_TRANSACTION"
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize("method,path,body", [
     ("GET", NOTES, None),
     ("POST", NOTES, {"category": "note", "title": "x"}),

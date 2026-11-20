@@ -363,9 +363,10 @@ def test_backdated_plant_day_receipt_lists_on_both_days_and_filters(client, db_c
     assert client.get('/receipts?actor=nobody', headers=headers()).json()['receipts'] == []
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('which', ['master', 'dashboard', 'floor', 'office'])
 def test_route_auth_matrix_and_attribution(client, db_cursor, payload, actors, which):
-    key = {'master': NAMED_OWNER_KEY, 'dashboard': main.DASHBOARD_API_KEY}.get(which)
+    key = {'master': main.API_KEY, 'dashboard': main.DASHBOARD_API_KEY}.get(which)
     key = key or actors[which]['key']
     if which == 'dashboard':
         # DCC-001: the public dashboard key reads receipts but never prepares or commits.

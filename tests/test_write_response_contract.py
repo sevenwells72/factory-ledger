@@ -133,6 +133,7 @@ def test_create_sales_order_success_and_ids(client, _db_connection):
     assert data["order_number"] and data["status"] == "confirmed"
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.db
 def test_sales_order_ready_flag_success_and_list_fields(client, _db_connection):
     customer = "Ready Flag Contract Customer"

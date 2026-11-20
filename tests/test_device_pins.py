@@ -309,6 +309,7 @@ def test_rotating_personal_key_retires_the_phone(client, actors, db_cursor):
     assert db_cursor.fetchone()['revoked_reason'] == 'key_rotated'
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_pin_switch_off_hides_routes_and_ends_phone_sessions_only(client, actors, monkeypatch):
     phone, _ = enroll(client, actors)
     personal = key_session(client, actors)
@@ -318,7 +319,7 @@ def test_pin_switch_off_hides_routes_and_ends_phone_sessions_only(client, actors
     assert pin(client, phone['device_secret'], '4829').status_code == 404
     assert client.get('/auth/whoami', headers=headers(phone['session_token'])).status_code == 401
     assert client.get('/auth/whoami', headers=headers(personal)).status_code == 200
-    assert client.get('/auth/whoami', headers=headers(NAMED_OWNER_KEY)).json()['key_kind'] == 'legacy_ledger'
+    assert client.get('/auth/whoami', headers=headers(main.API_KEY)).json()['key_kind'] == 'legacy_ledger'
 
 
 def test_config_reports_pin_sign_in(client):

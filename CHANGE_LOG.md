@@ -4,6 +4,34 @@
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added changelog row 313: production catalog setup of batch product 297 and finished SKU 298 (copy of 128/160 with Coconut Medium Desiccated), the late Nov 9 make TX 3095 (450 lb, receipt MK-261109-008, lot 1782) and pack TX 3096 (18 cases, receipt PK-261109-004, lot 1783), the half-batch entry method, the lots used (glycol, corn starch and salt are FL's oldest-lot suggestion, not floor-confirmed) and the read-only verification. No code change.
 - **Why:** Task from Arturo approved by Michael on 2026-11-20; the Nov 9 toasted medium run had no item to be recorded under. Row numbered 313 because open PR #232 claims rows 310-312.
+## 2026-11-20 09:49 — Allocate standalone shared-key shutdown row 314 after concurrent main row 313
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/named-actor-writes.md`
+- **What changed:** Record the separately mergeable shutdown, its dependency order, emergency fallback and manual-script reach. Allocate the next free row after fetching main and preserving PR 232 rows 310 through 312.
+- **Why:** Owner explicitly requested an independent draft PR with reversible shared-key write shutdown.
+
+---
+
+## 2026-11-20 09:44 — Record standalone owner-maintenance Request contract
+- **File(s) changed:** `tests/fixtures/route_contract/routes.jsonl`
+- **What changed:** Refresh the one auth-only route snapshot for named actor attribution in transaction corrections.
+- **Why:** The auth branch must pass independently with only its deliberate route contract change.
+
+---
+
+## 2026-11-20 09:35 — Keep shutdown verification independent of inventory migration
+- **File(s) changed:** `tests/test_shared_key_shutdown.py`, `docs/named-actor-writes.md`
+- **What changed:** Fix the standalone refusal helper import and document this auth PR as the prerequisite for #232.
+- **Why:** The shutdown branch must carry no 098 runtime dependency and remain independently revertible.
+
+---
+
+## 2026-11-20 09:34 — Make shared-key shutdown test tree pass independently
+- **File(s) changed:** `tests/conftest.py`, `tests/test_shared_key_shutdown.py`, `tests/test_a12_review_fixes.py`, `tests/test_a12_shift_integration.py`, `tests/test_a7_review_fixes.py`, `tests/test_device_pins.py`, `tests/test_exceptions_enforcement.py`, `tests/test_expected_receipt_extract.py`, `tests/test_expected_receipts.py`, `tests/test_fl_assistant.py`, `tests/test_key_session_rebase.py`, `tests/test_key_sessions.py`, `tests/test_kosher_tiers.py`, `tests/test_make_entry_simplify.py`, `tests/test_notes_characterization.py`, `tests/test_oat_bran_shift_summary.py`, `tests/test_order_create_contract.py`, `tests/test_order_create_review.py`, `tests/test_order_tickets.py`, `tests/test_product_archive.py`, `tests/test_production_runs.py`, `tests/test_readonly_api_key.py`, `tests/test_released_by_attribution.py`, `tests/test_reset_shortage_close.py`, `tests/test_roles_a2.py`, `tests/test_sales_order_extract.py`, `tests/test_sales_order_state_model.py`, `tests/test_shift_summary.py`, `tests/test_ship_tickets.py`, `tests/test_supplier_lot_tickets.py`, `tests/test_trusted_browsers.py`, `tests/test_void_screen.py`, `tests/test_write_response_contract.py`, `tests/test_write_tickets.py`, `tests/test_direct_order_close_guard.py`
+- **What changed:** Carry only the corrected auth credential compatibility tests and add standalone default-denial/owner-scope tests without migration 098.
+- **Why:** The shared-key commit must be its own independently passing PR from main, with no receiving-integrity runtime changes.
+
+---
+
 ## 2026-11-19 15:43 — Record the reproduced migration compatibility blocker
 - **File(s) changed:** `docs/deployments/no-stock-by-hand.md`
 - **What changed:** Mark the draft blocked, record origin/main before/after proof and the expired Claude Code login, and remove the false compatibility claim.

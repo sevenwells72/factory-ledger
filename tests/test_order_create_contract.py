@@ -129,6 +129,7 @@ def test_po_duplicate_warning_explicit_override_and_trimmed_text(client, db_curs
     assert db_cursor.fetchone()['customer_po'] == '062732'
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_retry_is_original_even_after_header_and_catalog_edits(client, db_cursor, catalog):
     body = payload(catalog)
     original = post(client, body)
@@ -259,6 +260,7 @@ def test_header_audit_failure_rolls_back_po(client, db_cursor, catalog, named_ac
     assert db_cursor.fetchone()['customer_po'] == '062732'
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_legacy_request_response_and_no_receipt_unchanged(client, db_cursor, catalog):
     db_cursor.execute('SELECT name FROM customers WHERE id=%s', (catalog[0],))
     customer = db_cursor.fetchone()['name']

@@ -180,8 +180,17 @@ built from the re-dumped schema: **1,443 Python tests passed**, **69 Node
 tests passed**, zero failures/skips.
 
 
-## Migration 098 branch: shared-key write shutdown
+## Shared-key write shutdown — separate PR, before #232
 
 On deployment, the shared API_KEY is read-only except SELECT-only POST /resolve and POST /products/resolve. Other non-GET routes refuse before writing with SHARED_KEY_READ_ONLY and bilingual “Nothing was recorded”. API_KEY remains required at startup. Emergency SHARED_KEY_WRITES=allow restores the previous reach; changing this production credential setting requires the owner’s explicit approval, verified backup and verification. It is not a test default.
 
 A named actor **key** whose role is owner now reaches every route, the same as Michael selected by name. This widens that credential. Other roles and session keys retain their scope. The shutdown is independent of the migration marker and is kept in its own commit for independent rollback.
+
+
+Merge this draft PR before receiving-integrity PR #232. It contains no migration
+098 and no inventory policy changes. `SHARED_KEY_WRITES=allow` restores shared-key
+writes; reverting this PR also removes the named-owner maintenance extension.
+No scheduled job calls the shared-key API. The two manual scripts
+`scripts/set_sweetened_coconut_yield.py` and `scripts/granola_writedown_0917.py`
+are not scheduled jobs and need an authorized named owner key or that explicit
+fallback before being run. No setting has been changed in a hosted environment.

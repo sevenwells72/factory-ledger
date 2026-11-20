@@ -566,8 +566,9 @@ def test_dictation_returns_editable_unsent_text(client, chat, monkeypatch):
     assert r.json() == {'text': 'Recibí dos cajas', 'editable': True, 'sent': False, 'success': True}
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_identity_and_disabled_service(client, actors, monkeypatch):
-    for key in (NAMED_OWNER_KEY, main.DASHBOARD_API_KEY, 'invalid'):
+    for key in (main.API_KEY, main.DASHBOARD_API_KEY, 'invalid'):
         assert client.post('/assistant/session', headers=headers(key)).status_code == 403
     monkeypatch.delenv('ASSISTANT_ENABLED')
     assert client.post('/assistant/session', headers=headers(actors['floor']['key'])).status_code == 503

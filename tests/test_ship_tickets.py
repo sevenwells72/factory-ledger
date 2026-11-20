@@ -203,6 +203,7 @@ def test_p113_adjust_found_and_held_approval(client,db_cursor,shipping,actors,ac
     # Owner's explicit no-photo approval remains allowed per decision 7.
     ok=client.post(f'/exceptions/{exc}/approve',json={},headers=headers(actors['owner']['key']));assert ok.status_code==200,ok.text
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_attachment_upload_download_authorization_and_immutable_provenance(client,db_cursor,actors):
     floor=actors['floor']['key'];a=upload(client,floor,'correction_photo')
     error(client.post('/attachments',data={'kind':'bol'},files={'file':('b.png',PNG,'image/png')},headers=headers()),403,'ROLE_NOT_ALLOWED')

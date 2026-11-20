@@ -33,11 +33,12 @@ def direct_swap(cur, items, actor_id=None, *, date=None):
     return txn
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_direct_swap_summary_has_real_oats_lots_bilingual_notice_and_no_fake_ticket(client, db_cursor, items, actors):
-    before = summary(client, NAMED_OWNER_KEY)
+    before = summary(client, main.API_KEY)
     txn = direct_swap(db_cursor, items)
-    en = summary(client, NAMED_OWNER_KEY)
-    es = summary(client, NAMED_OWNER_KEY, lang='es')
+    en = summary(client, main.API_KEY)
+    es = summary(client, main.API_KEY, lang='es')
     block = en['direct_make_substitutions']
     assert block['count'] == 1
     [row] = block['rows']
@@ -53,7 +54,7 @@ def test_direct_swap_summary_has_real_oats_lots_bilingual_notice_and_no_fake_tic
     assert summary(client, actors['floor']['key'])['direct_make_substitutions']['count'] == 0
     # Display-only lot labels cannot invalidate a confirmed immutable swap.
     db_cursor.execute('UPDATE lots SET lot_code=%s WHERE id=%s', ('RENAMED-OATS', items['ingredient']['lot_id']))
-    renamed = summary(client, NAMED_OWNER_KEY)
+    renamed = summary(client, main.API_KEY)
     assert renamed['summary_hash'] == en['summary_hash']
     assert renamed['direct_make_substitutions']['rows'][0]['consumed_lots'][0]['lot_code'] == 'RENAMED-OATS'
 

@@ -23,6 +23,7 @@ from tests.test_sales_order_extract import _insert_document, _approve_payload, _
 pytestmark = pytest.mark.db
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('path', ['manual', 'receipt', 'intake'])
 def test_rebased_creation_audits_each_target_exactly_once(client, db_cursor, catalog, named_actors, path):
     client.headers['X-API-Key'] = named_actors['Miriam']['key']
@@ -42,6 +43,9 @@ def test_rebased_creation_audits_each_target_exactly_once(client, db_cursor, cat
         del body['customer_id']
         body['customer_name'] = new_customer
         route, status = '/sales/orders', 200
+    # Earlier committed concurrency fixtures may have unrelated named audit rows.
+    db_cursor.execute('SELECT COALESCE(MAX(id),0) AS id FROM actor_write_audit')
+    audit_start = db_cursor.fetchone()['id']
     response = client.post(route, json=body)
     assert response.status_code == status, response.text
     result = response.json()
@@ -50,7 +54,7 @@ def test_rebased_creation_audits_each_target_exactly_once(client, db_cursor, cat
     if path != 'intake':
         db_cursor.execute('SELECT id FROM customers WHERE name=%s', (new_customer,))
         expected.add(('customers', db_cursor.fetchone()['id']))
-    db_cursor.execute('SELECT * FROM actor_write_audit ORDER BY id')
+    db_cursor.execute('SELECT * FROM actor_write_audit WHERE id>%s ORDER BY id', (audit_start,))
     audit = db_cursor.fetchall()
     assert len(audit) == len(expected) == {'manual': 4, 'receipt': 5, 'intake': 3}[path]
     assert {(r['target_table'], r['target_id']) for r in audit} == expected
@@ -301,6 +305,7 @@ def test_shipping_one_physical_line_does_not_finish_other_pending_lines(client, 
     assert response.json()['order_status'] == 'shipped'
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('fail_audit', [False, True])
 def test_line_edit_audits_named_actor_atomically(client, db_cursor, catalog, named_actors, monkeypatch, fail_audit):
     created = post(client, payload(catalog))

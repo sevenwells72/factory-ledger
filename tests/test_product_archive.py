@@ -106,9 +106,10 @@ def test_only_michael_may_archive(client, db_cursor, people, archive_ready, tag,
     assert state(db_cursor, pid)['active'] is None
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_shared_keys_cannot_archive(client, db_cursor, archive_ready, tag):
     pid, _ = product(db_cursor, f'{tag} Item')
-    master = client.post('/admin/products/archive', json={'product_ids': [pid]}, headers={'X-API-Key': NAMED_OWNER_KEY})
+    master = client.post('/admin/products/archive', json={'product_ids': [pid]}, headers={'X-API-Key': main.API_KEY})
     assert master.status_code == 403 and master.json()['detail']['error_code'] == 'OWNER_REQUIRED'
     assert state(db_cursor, pid)['active'] is None
 

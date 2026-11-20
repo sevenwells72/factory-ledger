@@ -540,6 +540,7 @@ def test_public_dashboard_key_is_read_only_in_both_modes(client, db_cursor, monk
     assert _db_writes(db_cursor) == before
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_selection_on_then_off_keeps_every_real_credential_and_no_public_writes(client, db_cursor, monkeypatch, actors, people, payload):
     # ON: a tapped name records, attributed to that person.
     token = approved(client, actors)
@@ -566,7 +567,7 @@ def test_selection_on_then_off_keeps_every_real_credential_and_no_public_writes(
     pin = client.post('/auth/pin', json={'device_secret': enrolled.json()['device_secret'], 'pin': '4829'})
     assert pin.status_code == 200, pin.text
     credentials = {
-        'master': (headers(NAMED_OWNER_KEY), 'legacy-shared-key', None),
+        'master': (headers(main.API_KEY), 'legacy-shared-key', None),
         'personal_key': (headers(actors['office']['key']), actors['office']['name'], actors['office']['id']),
         'key_session': (headers(owner_proof), actors['owner']['name'], actors['owner']['id']),
         'pin_session': (headers(pin.json()['session_token']), actors['floor']['name'], actors['floor']['id']),

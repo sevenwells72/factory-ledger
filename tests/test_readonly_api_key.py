@@ -340,6 +340,7 @@ def test_readonly_key_refused_on_packing_slip_query_param(client):
     assert resp.status_code == 403 and resp.json()["detail"] == NOT_AUTHORIZED, resp.text
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.db
 def test_shared_keys_unchanged_with_readonly_key_set(client, monkeypatch):
     # Setting the read-only key changes neither shared key. DCC-001: the public

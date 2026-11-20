@@ -1270,6 +1270,7 @@ class TestSalesAllowlistAndTripwire:
             c.storage_uploads = uploads
             yield c
 
+    @pytest.mark.usefixtures("legacy_shared_key_compat")
     def test_sales_upload_trips_readonly_tripwire(self, readonly_client):
         r = _post_so_file(readonly_client)
         assert r.status_code == 503, r.text
@@ -1280,6 +1281,7 @@ class TestSalesAllowlistAndTripwire:
         # Row-first ordering: nothing reached Storage.
         assert readonly_client.storage_uploads == []
 
+    @pytest.mark.usefixtures("legacy_shared_key_compat")
     def test_sales_approve_trips_readonly_tripwire(self, readonly_client):
         r = readonly_client.post("/sales/orders/extract/approve", json=_approve_payload(
             1, 1, [_approve_line(1, 10)]))

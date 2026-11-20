@@ -551,6 +551,7 @@ def test_role_change_and_deactivation_between_prepare_and_commit(client, db_curs
     assert db_cursor.fetchone()['n'] == 0
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_dashboard_key_gets_nothing_new_master_key_reaches_everything(client, db_cursor, catalog):
     response = prepare_raw(client, '/sales/orders/prepare', create_body(catalog), main.DASHBOARD_API_KEY)
     assert response.status_code == 403 and 'not authorized' in response.text
@@ -562,6 +563,7 @@ def test_dashboard_key_gets_nothing_new_master_key_reaches_everything(client, db
         assert client.post(url, json={}, headers=headers(main.DASHBOARD_API_KEY)).status_code == 403
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_direct_order_routes_unchanged(client, db_cursor, catalog, actors):
     before = count(db_cursor, 'write_tickets')
     direct = client.post('/sales/orders', json=create_body(catalog), headers=headers())

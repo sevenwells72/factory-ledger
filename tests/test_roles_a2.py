@@ -150,6 +150,7 @@ def test_markdown_table_is_the_live_matrix():
 
 # ── 2. Enforced at PREPARE, keyed on the ticket action ────────────────────
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('which', ROLES)
 @pytest.mark.parametrize('action', TICKET_ACTIONS)
 def test_prepare_enforces_the_matrix_per_key(client, db_cursor, items, actors, action, which):
@@ -261,6 +262,7 @@ def test_47h_is_normal_for_everyone(client, db_cursor, items, actors, which):
     assert late_exceptions(db_cursor, prepared) == []
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('which,hours', [('floor', 49), ('office', 49), ('legacy_ledger', 49),
                                          ('legacy_dashboard', 49), ('floor', 14*24 - 1)])
 def test_49h_to_14d_posts_and_opens_late_entry_for_non_owners(client, db_cursor, items, actors, which, hours):
@@ -398,6 +400,7 @@ def test_late_entry_exception_has_no_owner_when_no_owner_actor_exists(client, db
 
 # ── 5. entered_by on every write ─────────────────────────────────────────
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('action', TICKET_ACTIONS)
 @pytest.mark.parametrize('which', ['owner', 'floor', 'legacy_ledger'])
 def test_ticket_writes_record_entered_by(client, db_cursor, items, actors, action, which):
@@ -421,6 +424,7 @@ def test_ticket_writes_record_entered_by(client, db_cursor, items, actors, actio
     assert timing['entered_at'] and timing['happened_at']
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('which', ['floor', 'legacy_ledger'])
 def test_direct_routes_record_entered_by_and_keep_legacy_placeholder(client, db_cursor, items, actors, which):
     key = key_for(which, actors)
@@ -492,13 +496,14 @@ def test_direct_routes_apply_the_matrix_per_role(client, actors, which, method, 
     assert (response.json()['detail']['action'], response.json()['detail']['role']) == (action, which)
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_close_shipped_not_recorded_is_owner_only_on_the_direct_route(client, db_cursor, actors, monkeypatch):
     """The explicit legacy exception names an owner, including on direct routes."""
     monkeypatch.delenv('ORDER_LEGACY_CLOSE_CUTOFF', raising=False)
     order = seed_order(db_cursor)
     path = f"/sales/orders/{order['order_id']}/close"
     body_ = {'reason': 'shipped_not_recorded', 'note': 'Historical truck log', 'mode': 'commit'}
-    for key in (actors['office']['key'], NAMED_OWNER_KEY):
+    for key in (actors['office']['key'], main.API_KEY):
         response = client.post(path, json=body_, headers=headers(key))
         error(response, 403, 'ROLE_NOT_ALLOWED')
         assert response.json()['detail']['action'] == 'close_order_shipped_not_recorded'
@@ -571,6 +576,7 @@ def test_direct_routes_floor_late_entry_still_posts(client, db_cursor, items, ac
     assert posted.status_code == 200, posted.text
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_whoami_permissions_are_the_matrix(client, actors):
     for which in ROLES:
         body_ = client.get('/auth/whoami', headers=headers(key_for(which, actors))).json()

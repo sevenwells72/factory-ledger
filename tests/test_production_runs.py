@@ -997,6 +997,7 @@ def test_completion_from_in_progress_and_evidence_after_done(client, schema):
 # Attribution matrix — every write, three keys
 # ═════════════════════════════════════════════════════════════════
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.db
 @pytest.mark.parametrize("which", ALL_KEYS)
 def test_every_write_records_the_actor(client, schema, actors, which):

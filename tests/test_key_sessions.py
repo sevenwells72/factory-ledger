@@ -89,17 +89,19 @@ def test_revoke_live_key_ends_all_sessions_without_cache_delay(client,actors,db_
     assert [r['ended_reason'] for r in db_cursor.fetchall()]==['revoked','revoked']
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('kind',['master','dashboard','retired','unknown','session'])
 def test_shared_inactive_unknown_and_session_credentials_cannot_exchange(client,actors,kind):
-    key={'master':NAMED_OWNER_KEY,'dashboard':main.DASHBOARD_API_KEY,'retired':actors['retired']['key'],
+    key={'master':main.API_KEY,'dashboard':main.DASHBOARD_API_KEY,'retired':actors['retired']['key'],
          'unknown':'invalid-key','session':'fls_invalid'}[kind]
     r=client.post('/auth/session',json={'actor_key':key})
     assert r.status_code==401 and 'session_token' not in r.text and key not in r.text
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_shared_key_refused_even_if_actor_hash_collides(client,actors,db_cursor):
-    db_cursor.execute('UPDATE actors SET key_hash=%s WHERE id=%s',(key_sessions.digest(NAMED_OWNER_KEY),actors['floor']['id']))
-    assert client.post('/auth/session',json={'actor_key':NAMED_OWNER_KEY}).status_code==401
+    db_cursor.execute('UPDATE actors SET key_hash=%s WHERE id=%s',(key_sessions.digest(main.API_KEY),actors['floor']['id']))
+    assert client.post('/auth/session',json={'actor_key':main.API_KEY}).status_code==401
 
 
 def test_actor_key_with_session_prefix_still_resolves_as_actor(client,actors,db_cursor):
@@ -129,10 +131,11 @@ def test_global_limit_spans_sources(client,actors,db_cursor):
     assert client.post('/auth/session',json={'actor_key':actors['floor']['key']}).status_code==429
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_flag_off_needs_no_session_tables_and_preserves_existing_auth(client,actors,monkeypatch,db_cursor):
     monkeypatch.setenv('KEY_SESSIONS_ENABLED','0')
     db_cursor.execute('DROP TABLE key_actor_sessions,key_session_attempts')
-    for key,kind in [(NAMED_OWNER_KEY,'legacy_ledger'),(main.DASHBOARD_API_KEY,'legacy_dashboard'),(actors['floor']['key'],'actor')]:
+    for key,kind in [(main.API_KEY,'legacy_ledger'),(main.DASHBOARD_API_KEY,'legacy_dashboard'),(actors['floor']['key'],'actor')]:
         r=client.get('/auth/whoami',headers=headers(key))
         assert r.status_code==200 and r.json()['key_kind']==kind
     for route in ['/auth/session','/auth/session/logout']:

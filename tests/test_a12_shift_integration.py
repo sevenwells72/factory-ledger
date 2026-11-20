@@ -125,9 +125,10 @@ def test_item3_expired_hold_stays_visible_until_rejected_and_hash_stays_stable(c
     assert detail.json()['entered_at'] is None
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_item3_holds_from_earlier_days_are_scoped_to_preparer_and_all_actors(client, db_cursor, items, actors):
     prepared, held = made(client, items, actors, occurred_at=(main.get_plant_now()-timedelta(days=1)).isoformat())
-    for key in (actors['floor']['key'], NAMED_OWNER_KEY):
+    for key in (actors['floor']['key'], main.API_KEY):
         rows = section(summary(client, key), 'not_entered_yet')['rows']
         assert held['receipt_number'] in [r.get('receipt_number') for r in rows]
     assert not [r for r in section(summary(client, actors['office']['key']), 'not_entered_yet')['rows'] if r.get('kind') == 'kosher_hold']

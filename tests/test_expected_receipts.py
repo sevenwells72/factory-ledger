@@ -541,6 +541,7 @@ def test_dashboard_key_can_use_expected_receipts_and_suppliers(client, cur, monk
     assert r.status_code == 403
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.db
 def test_created_by_is_caller_source_tag_never_a_fake_user_id(client, cur):
     pid = _seed_product(cur, "FR2 CreatedBy Prod")
@@ -548,7 +549,7 @@ def test_created_by_is_caller_source_tag_never_a_fake_user_id(client, cur):
 
     # master key, no tag → NULL (not 'legacy-shared-key' or any placeholder)
     er = _create_er(client, pid, "CreatedBy Supply", 10)
-    assert er["created_by"] == "Test named owner"
+    assert er["created_by"] is None
 
     # master key + caller tag (what the office GPT schema defaults to)
     er = _create_er(client, pid, "CreatedBy Supply", 10, created_by="gpt-sales-admin")
