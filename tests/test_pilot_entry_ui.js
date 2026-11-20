@@ -16,7 +16,7 @@ class Element{
 }
 const descendants=root=>[root,...root.children.flatMap(descendants)];
 const plain=value=>JSON.parse(JSON.stringify(value));
-async function harness(action='ship',language='en',{role='floor'}={}){
+async function harness(action='ship',language='en',{role='floor',carry=null}={}){
   const root=new Element('document');root.root=true;
   for(const id of ['content','resolution','notice','language','sign-out']){const node=new Element('div');node.id=id;root.append(node);}
   const find=(predicate,scope=root)=>descendants(scope).find(predicate),all=(predicate,scope=root)=>descendants(scope).filter(predicate),byId=id=>find(node=>node.id===id);
@@ -31,7 +31,7 @@ async function harness(action='ship',language='en',{role='floor'}={}){
     ticketCard(host,path,body,options){const ticket={host,path,body:plain(body),options};tickets.push(ticket);return {invalidate(){ticket.invalidated=true;}};}
   };
   vm.runInNewContext(fs.readFileSync('dashboard/make-formula.js','utf8'),{window:{FLLedger:ui}});
-  vm.runInNewContext(source,{setTimeout(callback,ms){const id=++nextTimer;timers.set(id,callback);delays.push(ms);return id;},clearTimeout(id){timers.delete(id);},FLLedger:ui,FLDashboard:{writesEnabled:true},URL,URLSearchParams,location:{search:'?action='+action,href:'https://example.test/entry.html?action='+action},history:{replaceState(){}},document:{getElementById:byId},window:{addEventListener(name,callback){events[name]=callback;}}});await flush();
+  vm.runInNewContext(source,{setTimeout(callback,ms){const id=++nextTimer;timers.set(id,callback);delays.push(ms);return id;},clearTimeout(id){timers.delete(id);},FLLedger:ui,FLDashboard:{writesEnabled:true},URL,URLSearchParams,location:{search:'?action='+action,href:'https://example.test/entry.html?action='+action},history:{replaceState(){}},sessionStorage:{getItem(){return carry?JSON.stringify(carry):null;},removeItem(){carry=null;}},document:{getElementById:byId},window:{addEventListener(name,callback){events[name]=callback;}}});await flush();
   const shipMode=find(node=>node.name==='ship_mode');if(shipMode)shipMode.value='order';
   const field=(name,scope=root)=>find(node=>node.name===name,scope),button=(text,scope=root)=>find(node=>node.tag==='button'&&node.textContent===text,scope);
   async function pick(name){const scope=find(node=>node.dataset.picker===name);find(node=>node.tag==='input',scope).value=name;await find(node=>node.tag==='button',scope).onclick();find(node=>node.className==='picker-options',scope).children[0].onclick();if(name==='supplier')field('supplier_lot_code').value='SUP-LOT-123';await flush();}
@@ -416,4 +416,10 @@ test('Pack source search does not retry on other failures',async()=>{
   h.setResolver(async body=>{asked.push(body.context.product_type);throw Object.assign(Error('down'),{status:503});});
   const scope=h.find(node=>node.dataset.picker==='source');h.find(node=>node.tag==='input',scope).value='x';await h.find(node=>node.tag==='button',scope).onclick();
   assert.deepEqual(asked,['pack_source']);assert.ok(h.find(node=>String(node.textContent).startsWith('Search failed')));
+});
+
+test('delivery redirect carries the product without inventing a receipt pack size',async()=>{
+  const h=await harness('receive','en',{carry:{product_id:1561,product_name:'Coconut',pounds:2400}});
+  assert.equal(h.field('cases').value,'');assert.equal(h.field('case_size_lb').value,'');
+  assert.equal(h.find(node=>node.dataset.picker==='product').children.some(node=>String(node.textContent).includes('Coconut')),true);
 });

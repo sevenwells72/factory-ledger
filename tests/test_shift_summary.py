@@ -289,6 +289,8 @@ def hours_ago(hours):
 
 
 def test_late_entries_section_flag_and_hours(client, db_cursor, items, actors):
+    from tests.stock_rule_helpers import manufactured_count
+    manufactured_count(db_cursor, items)
     key = actors['floor']['key']
     late, p = posted(client, 'make', body('make', items) | {'occurred_at': hours_ago(49)}, key)
     recent, _ = posted(client, 'adjust', adjust(items, 1), key)
@@ -715,6 +717,8 @@ def test_planned_run_is_entered_once_a_matching_make_or_pack_receipt_exists(clie
 
 def test_adjust_and_found_balances_are_the_commit_time_balances(client, db_cursor, items, actors):
     """Item 4: before/after come from the commit, not from the prepare-time draft."""
+    from tests.stock_rule_helpers import manufactured_count
+    manufactured_count(db_cursor, items)
     key = actors['floor']['key']
     p = prepare(client, 'adjust', adjust(items, 1), key)
     assert p['draft']['current_quantity_lb'] == 100
@@ -734,6 +738,7 @@ def test_adjust_and_found_balances_are_the_commit_time_balances(client, db_curso
     assert (row['detail']['lot_on_hand_before'], row['detail']['lot_on_hand_after']) == (0, 7)
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_large_correction_keeps_its_approval_or_photo_reference_after_resolution(client, db_cursor, items, actors):
     """Item 4: the hold's exception is resolved by the approval/photo that posts the receipt — the reference must survive."""
     key, owner = actors['floor']['key'], actors['owner']['key']
@@ -805,6 +810,8 @@ def test_voided_make_and_pack_keep_their_original_quantities(client, db_cursor, 
 
 def test_dst_edges_elapsed_hours_and_ordering_use_instants(client, db_cursor, items, actors):
     """Item 6: hours_late across spring-forward is real elapsed time; fall-back receipts order by instant."""
+    from tests.stock_rule_helpers import manufactured_count
+    manufactured_count(db_cursor, items)
     owner = actors['owner']['key']
     # Spring forward (2026-03-08, 02:00 EST → 03:00 EDT): entered 03:00 EDT is ONE real hour after 01:00 EST.
     spring, p = posted(client, 'adjust', adjust(items, 1) | {'occurred_at': '2026-03-08T01:00:00-05:00', 'backfill': True}, owner)

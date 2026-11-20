@@ -298,6 +298,7 @@ def test_over_receipt_closes_and_remaining_floors_at_zero(client, cur):
 
 
 @pytest.mark.db
+@pytest.mark.usefixtures("pre_098_contract")
 def test_receipt_with_unknown_supplier_or_no_open_record_posts_unlinked(client, cur):
     pname = "FR2 Salt Unlinked"
     pid = _seed_product(cur, pname)
@@ -561,6 +562,7 @@ def test_created_by_is_caller_source_tag_never_a_fake_user_id(client, cur):
 
 
 @pytest.mark.db
+@pytest.mark.usefixtures("pre_098_contract")
 def test_inactive_supplier_is_excluded_from_resolution_and_auto_match(client, cur):
     """Deactivated suppliers: rejected by createExpectedReceipt (422 SUPPLIER_INACTIVE),
     absent from candidates and GET /suppliers, and never auto-matched by receiving —

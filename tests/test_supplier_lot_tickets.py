@@ -235,6 +235,7 @@ def test_unsafe_lots_block(client, db_cursor, unidentified, actors, kind):
     assert get_exception(db_cursor, unidentified['exception_id'])['status'] == 'open'
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_receive_never_resolves_or_extends_exception(client, db_cursor, payload, unidentified, actors):
     key = actors['floor']['key']
     before = get_exception(db_cursor, unidentified['exception_id'])
@@ -255,6 +256,7 @@ def test_receive_never_resolves_or_extends_exception(client, db_cursor, payload,
     assert get_lot(db_cursor, unidentified['lot_id'])['identity_status'] == 'unidentified'
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_receive_prepared_before_correction_cannot_replace_it(client, db_cursor, payload, unidentified, actors):
     key = actors['floor']['key']
     receive = receive_prepare(client, payload | {'supplier_lot_code': 'UNKNOWN', 'no_supplier_lot': True}, key)

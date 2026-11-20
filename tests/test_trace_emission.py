@@ -86,6 +86,15 @@ def client(_db_connection, monkeypatch):
     monkeypatch.setattr(main, "get_db_connection", _fake_get_conn)
     with TestClient(main.app) as c:
         c.headers["X-API-Key"] = NAMED_OWNER_KEY
+        original_post = c.post
+        def valid_fixture_post(path, *args, **kwargs):
+            payload = kwargs.get('json') or {}
+            if path.startswith('/receive') and payload.get('shipper_name'):
+                with _db_connection.cursor() as cur:
+                    cur.execute("INSERT INTO suppliers(name) SELECT %s WHERE NOT EXISTS (SELECT 1 FROM suppliers WHERE name=%s)", (payload['shipper_name'],payload['shipper_name']))
+                kwargs['json'] = dict(payload, bol_reference=payload.get('bol_reference') or 'FIXTURE-BOL')
+            return original_post(path, *args, **kwargs)
+        c.post = valid_fixture_post
         yield c
     _db_connection.rollback()
 
@@ -479,7 +488,7 @@ def test_adjust_commit_emits_signed_adjust(client, _db_connection):
     resp = client.post("/adjust", json={
         "mode": "commit", "product_name": product["name"],
         "lot_code": lot["lot_code"], "adjustment_lb": -7.5,
-        "reason": "trace emission regression",
+        "reason": "physical_count",
     })
     assert resp.status_code == 200, resp.text
     _assert_single_event(
@@ -498,7 +507,7 @@ def test_adjust_preview_emits_nothing(client, _db_connection):
     resp = client.post("/adjust", json={
         "mode": "preview", "product_name": product["name"],
         "lot_code": lot["lot_code"], "adjustment_lb": -7.5,
-        "reason": "trace emission regression",
+        "reason": "physical_count",
     })
     assert resp.status_code == 200, resp.text
     with _cur(_db_connection) as cur:
@@ -511,7 +520,7 @@ def test_found_inventory_emits_adjust(client, _db_connection):
     product = _seed_product(_db_connection)
     resp = client.post("/inventory/found", json={
         "product_id": product["id"], "quantity": 12.0,
-        "reason_code": "found_count",
+        "reason_code": "physical_count",
     })
     assert resp.status_code == 200, resp.text
     body = resp.json()
@@ -532,7 +541,7 @@ def test_found_with_new_product_emits_adjust(client, _db_connection):
     resp = client.post("/inventory/found-with-new-product", json={
         "product_name": f"TraceEmit Found {_token()}",
         "product_type": "ingredient", "quantity": 8.0,
-        "reason_code": "found_count",
+        "reason_code": "physical_count",
     })
     assert resp.status_code == 200, resp.text
     body = resp.json()

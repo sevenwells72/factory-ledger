@@ -1,7 +1,7 @@
 """Migration 098 guards. Call while holding the posting lot locks.
 
 Balances and receipt pack sizes come exclusively from the effective ledger.
-Allowance usage is deliberately lifetime usage, including subsequently voided counts.
+Allowance records are retained for audit; only effective posted counts use allowance.
 """
 import math
 from decimal import Decimal
@@ -77,7 +77,9 @@ def addition(cur, product_id, lot_id, delta, *, count_to=None, reason=None, pair
             FROM ledger_current_transactions t JOIN ledger_current_transaction_lines l ON l.transaction_id=t.id
             WHERE l.lot_id=%s AND t.type='receive' AND t.effective_status='posted' AND l.quantity_lb>0""", (lot_id,))
         receipt = cur.fetchone()
-        cur.execute('SELECT COALESCE(sum(lb),0) AS lb FROM under_pack_counts WHERE lot_id=%s AND entered_at >= %s', (lot_id, at))
+        cur.execute("""SELECT COALESCE(sum(c.lb),0) AS lb FROM under_pack_counts c
+            JOIN ledger_current_transactions t ON t.id=c.transaction_id
+            WHERE c.lot_id=%s AND c.entered_at >= %s AND t.effective_status='posted'""", (lot_id, at))
         used = Decimal(str(cur.fetchone()['lb']))
         if receipt['valid'] and receipt['pack'] is not None:
             limit = min(Decimal(str(receipt['pack'])), Decimal(100))

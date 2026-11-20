@@ -256,6 +256,8 @@ def test_migration_rerunnable_without_rewriting_marker(isolated_database):
 
 @pytest.mark.parametrize('bad',['unknown','other_actor','other_ticket'])
 def test_p113_counted_resolution_requires_resolvers_real_context(client,db_cursor,actors,items,bad):
+    from tests.stock_rule_helpers import manufactured_count
+    manufactured_count(db_cursor, items)
     from tests.test_exceptions_enforcement import open_shortage
     key=actors['floor']['key'];exc,_=open_shortage(client,db_cursor,items,actors)
     ref='missing-file';status=422;code='ATTACHMENT_NOT_FOUND'

@@ -71,6 +71,8 @@ def test_void_receipt_links_back_from_original(client, db_cursor, items, actors)
 @pytest.mark.parametrize('kosher', [False, True])
 @pytest.mark.parametrize('note', ['', '   ', None])
 def test_approve_blank_note_is_optional_and_has_xr(client, db_cursor, items, actors, kosher, note):
+    from tests.stock_rule_helpers import manufactured_count
+    manufactured_count(db_cursor, items)
     key = actors['floor']['key']
     if kosher:
         from tests.test_a12_review_fixes import held_found
@@ -113,6 +115,8 @@ def test_case_unit_adjust_is_pounds_not_cases(client, db_cursor, items, actors, 
 @pytest.mark.parametrize('endpoint', ['reject', 'write_off'])
 @pytest.mark.parametrize('note', ['', '   ', None])
 def test_reject_and_writeoff_still_require_note(client, db_cursor, items, actors, endpoint, note):
+    from tests.stock_rule_helpers import manufactured_count
+    manufactured_count(db_cursor, items)
     if endpoint == 'reject':
         key = actors['floor']['key']
         held = commit(client, prepare(client, 'adjust', adjust(items, 600), key), key).json()
@@ -197,6 +201,7 @@ def test_zero_count_correction_has_xr_without_fabricating_adj(client, db_cursor,
     assert view['detail']['resolution']['delta_lb'] == 0
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_partial_evidence_gets_immutable_xr_and_stays_open(client, db_cursor, items, actors):
     from tests.test_exceptions_enforcement import receive_onto
     eid, _ = shortage(client, db_cursor, items, actors)
@@ -242,6 +247,8 @@ def test_action_matrix_filters_owner_only_decisions(client, db_cursor, actors, k
 
 
 def test_hold_actions_and_reject_xr_replay(client, db_cursor, items, actors):
+    from tests.stock_rule_helpers import manufactured_count
+    manufactured_count(db_cursor, items)
     key = actors['floor']['key']
     held = commit(client, prepare(client, 'adjust', adjust(items, 600), key), key).json()
     eid = held['exception_id']

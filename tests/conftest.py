@@ -139,7 +139,8 @@ def reference_seed_sql():
     section = text[start:end]
     assert "correction_reason_legacy_codes" in section
     from tests.named_key import SEED_SQL
-    return section + "\n" + SEED_SQL
+    policy = (ROOT / "migrations/098_no_stock_by_hand.sql").read_text() if os.getenv("FL_TEST_STOCK_RULES") == "on" else ""
+    return section + "\n" + SEED_SQL + "\n" + policy
 
 
 def _seed_reference_data(url):
@@ -227,3 +228,30 @@ def legacy_shared_key_compat(request, monkeypatch):
         client = request.getfixturevalue('client')
         if 'X-API-Key' in client.headers:
             client.headers['X-API-Key'] = main.API_KEY
+
+
+@pytest.fixture
+def pre_098_contract(db_cursor):
+    """An explicitly historical contract whose input/behavior 098 deliberately retired.
+
+    This is not a suite default or an xfail. Contemporary workflow fixtures stay on;
+    the new 098 source/refusal tests and reused 096 contracts prove current behavior.
+    The enclosing test savepoint restores the global mode afterward.
+    """
+    db_cursor.execute("DELETE FROM migration_markers WHERE name='098_no_stock_by_hand'")
+
+
+@pytest.fixture
+def pre_098_isolated_contract(isolated_database):
+    """Pre-098 committed race contract; restore the isolated DB's mode afterwards."""
+    import psycopg2
+    with psycopg2.connect(isolated_database) as conn, conn.cursor() as cur:
+        cur.execute("SELECT applied_at FROM migration_markers WHERE name='098_no_stock_by_hand'")
+        marker=cur.fetchone()
+        cur.execute("DELETE FROM migration_markers WHERE name='098_no_stock_by_hand'")
+    try:
+        yield
+    finally:
+        if marker:
+            with psycopg2.connect(isolated_database) as conn, conn.cursor() as cur:
+                cur.execute("INSERT INTO migration_markers(name,applied_at) VALUES ('098_no_stock_by_hand',%s) ON CONFLICT(name) DO NOTHING",marker)

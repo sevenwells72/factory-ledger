@@ -32,6 +32,90 @@
 - **File(s) changed:** `main.py`, `tests/test_shared_key_shutdown.py`, `tests/fixtures/route_contract/routes.jsonl`
 - **What changed:** create_certification, correct_certification, reassign_lot, merge_lots, add_found_inventory and add_found_inventory_with_new_product now take the Request and pass it to _operator_id / _entered_by_actor_id, so a named owner key is stored as the person (name and actor id) instead of 'legacy-shared-key'. Found-with-new-product now writes operator_id and entered_by_actor_id on its ledger row. The two direct Found lines match PR #232's text. Added 10 HTTP tests (owner key stores the person; shared key under SHARED_KEY_WRITES=allow keeps the old stamp) and regenerated 6 route-contract lines (request false to true). No migration, no schema or GPT change.
 - **Why:** Cross-review of PR #234 (comment 7043947718, finding 1): the owner key reaches these routes after the shared key becomes read-only, but they still recorded the shared-key placeholder and no person. Michael approved preparing the fix on 2026-11-23.
+## 2026-11-20 09:52 — Allocate row 315 for owner-directed PR 232 review fixes and PR 234 prerequisite
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Record exact note composition, held Found reason compatibility, explicit marker-off pair refusal, blank Receive quantity carry, voided allowance release and expanded regressions. Link independent draft auth PR 234.
+- **Why:** Take the next free row at commit time after main row 313 and standalone shutdown row 314.
+
+---
+
+## 2026-11-20 09:50 — Move shared-key proofs to the standalone prerequisite PR
+- **File(s) changed:** `tests/test_no_stock_by_hand.py`, `tests/test_lot_confirmation.py`
+- **What changed:** Remove four duplicated auth proofs from inventory tests; they are in test_shared_key_shutdown.py on the prerequisite branch. Mark the two pre-098 supplier-lot top-up contracts explicitly historical.
+- **Why:** Keep auth independently testable and the inventory PR focused on marker-gated posting rules.
+
+---
+
+## 2026-11-20 09:49 — Exercise current reconciliation alarms and legal generic retry fixtures
+- **File(s) changed:** `tests/test_daily_reconciliation.py`, `tests/test_phase1_ledger_integrity.py`, `tests/test_fl_assistant.py`
+- **What changed:** Assert the additional ingredient hand-addition alarm under 098; use manufactured lots for generic carried-count, append-only void, and assistant lost-reply tests while keeping exact lifecycle assertions.
+- **Why:** The new alarm is intentional; unrelated lifecycle tests must use legal inputs with the marker enabled.
+
+---
+
+## 2026-11-20 09:48 — Keep ticket lifecycle tests current and retain old receiving-policy contracts
+- **File(s) changed:** `tests/test_supplier_lot_tickets.py`, `tests/test_expected_receipts.py`, `tests/test_write_tickets_part2.py`, `tests/test_write_tickets.py`, `tests/test_ship_tickets.py`, `tests/test_phase1_ledger_integrity.py`
+- **What changed:** Reusable receiving lifecycle tests use manufactured lots under 098; resolver-context counts use manufactured products. Tests specifically asserting retired receiving top-ups or unknown-supplier acceptance select their historical marker-off contract.
+- **Why:** Exercise lifecycle and authorization without allowing old ingredient posting rules through production code.
+
+---
+
+## 2026-11-20 09:47 — Name superseded correction contracts explicitly in both marker runs
+- **File(s) changed:** `tests/conftest.py`, `tests/test_adjust_destinations.py`, `tests/test_exceptions_enforcement.py`, `tests/test_resolution_receipts.py`, `tests/test_reset_shortage_close.py`, `tests/test_shift_summary.py`
+- **What changed:** Historical top-up, retired-reason and old receipt-closure tests select their pre-098 context explicitly, including committed scratch-database races; current 098 tests and reused 096 removal contracts remain enabled. Preserve recipe inputs when choosing a manufactured count fixture.
+- **Why:** Old-policy assertions must remain testable without silently changing the current policy or skipping tests.
+
+---
+
+## 2026-11-20 09:44 — Separate historical input contracts from current manufactured-stock controls
+- **File(s) changed:** `tests/stock_rule_helpers.py`, `tests/conftest.py`, `tests/test_adjust_destinations.py`, `tests/test_exceptions_enforcement.py`, `tests/test_resolution_receipts.py`, `tests/test_reset_shortage_close.py`, `tests/test_pilot_triage_backend.py`, `tests/test_shift_summary.py`
+- **What changed:** Explicitly configure retired pre-098 contracts as historical; retain current generic count/approval/receipt assertions using manufactured stock, and keep held approval tests on under the new rules.
+- **Why:** Full marker-on verification must use valid current inputs while still preserving deliberate marker-off compatibility coverage.
+
+---
+
+## 2026-11-20 09:41 — Use legal posting fixtures for marker-on trace, audit and actor tests
+- **File(s) changed:** `tests/test_trace_emission.py`, `tests/test_audit_savepoints_lotcodes.py`, `tests/test_lot_identity_047.py`, `tests/test_inventory_occurred_at.py`, `tests/test_roles_a2.py`, `tests/test_named_actor_writes.py`
+- **What changed:** Register fixture vendors, use fixed reasons and removals for attribution, use noningredient stock for generic lot normalization, and trigger best-effort audit failure via the intended oversized actor field.
+- **Why:** The same substantive tests must exercise legal current workflows with 098 enabled instead of failing before reaching their trace/audit/timestamp assertions.
+
+---
+
+## 2026-11-20 09:37 — Run unchanged 096 removal, destination and hold contracts with 098
+- **File(s) changed:** `tests/test_no_stock_review_fixes.py`
+- **What changed:** Reuse the existing 096 assertions under an explicit 098 marker, add source-applicability coverage, and make the off/on exact-note cases explicit.
+- **Why:** Close the review gaps without treating marker-on fixture refusals as harmless unexplained failures.
+
+---
+
+## 2026-11-20 09:34 — Register unsupported paired move in prepare refusals
+- **File(s) changed:** `exceptions_enforcement.py`
+- **What changed:** Add PAIRED_MOVE_UNAVAILABLE to the immutable refusal-code set.
+- **Why:** The existing set is a frozenset, so the earlier edit did not match its declaration.
+
+---
+
+## 2026-11-20 09:34 — Expose paired-field refusal and add full marker-on suite mode
+- **File(s) changed:** `exceptions_enforcement.py`, `tests/conftest.py`
+- **What changed:** Return unsupported pair input as a prepare refusal, not a committable draft; apply 098 in reference seeding when FL_TEST_STOCK_RULES=on, including scratch databases.
+- **Why:** Owner requests clear marker-off refusal and complete off/on verification rather than a marker-off-only suite.
+
+---
+
+## 2026-11-20 09:32 — Fix Claude review note, held reason, pair gate and pack carry regressions
+- **File(s) changed:** `ticket_actions.py`, `main.py`, `exceptions_enforcement.py`, `dashboard/entry.js`, `stock_by_hand.py`, `migrations/down/098_no_stock_by_hand_down.sql`
+- **What changed:** Pass raw destination note for one composition; preserve held Found reason; refuse marker-off pair input; leave redirected receiving quantity blank; exclude voided count usage while retaining audit rows.
+- **Why:** Implement the owner decisions from review 7026524246, including the small optional effective-allowance correction.
+
+---
+
+## 2026-11-20 09:32 — Add fail-before tests for Claude review regressions
+- **File(s) changed:** `tests/test_no_stock_review_fixes.py`, `tests/test_pilot_entry_ui.js`
+- **What changed:** Cover exact SO note, retired held Found reason, marker-off paired input, source refusal matrix, voided count allowance and safe delivery redirect.
+- **Why:** Owner requires a failing regression proof for each requested correction before implementation.
+
+---
+
 ## 2026-11-19 18:34 — Record next-free cleanup row for PR preview and review blocker
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Append the next free row with the unintended preview, its verified deletion, title protection and Claude Code authentication failure; preserve prior rows.
