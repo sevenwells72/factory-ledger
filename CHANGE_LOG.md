@@ -1,5 +1,33 @@
 # Change Log
 
+## 2026-11-20 10:10 — Record complete Python, baseline, JavaScript and visual results for draft PRs 232 and 234
+- **File(s) changed:** `docs/validation/no-stock-by-hand-owner-review-2026-11-20.md`, `tests/test_adjust_destinations.py`, `tests/test_expected_receipts.py`
+- **What changed:** Finalize current-policy fixture repairs and evidence: #232 7790 passed plus the same seven main failures in each marker mode; #234 7693 passed plus those seven; fresh main 7689 passed plus seven. JS 747 and 744 pass, including real browser flows; inspected four receiving screenshots. Preserve generated browser evidence outside worktrees.
+- **Why:** Every remaining failure must reproduce on current origin/main, and both requested draft PRs need a complete, candid validation handoff.
+
+---
+
+## 2026-11-20 09:58 — Respect expected-receipt tests own rollback when selecting historical policy
+- **File(s) changed:** `tests/test_expected_receipts.py`
+- **What changed:** Select the two pre-098 supplier contracts through their existing native cursor instead of adding a global db_cursor savepoint fixture.
+- **Why:** The module client rolls back its whole connection at teardown, so an added savepoint fixture must not outlive that rollback.
+
+---
+
+## 2026-11-20 09:55 — Document owner review fixes and independent draft PR 234 test evidence
+- **File(s) changed:** `docs/validation/no-stock-by-hand-owner-review-2026-11-20.md`
+- **What changed:** Record each implementation and regression, before-fix failures, isolated auth scope, stacked PR order, explicit historical fixture method, and the baseline IDs. Standalone Python has only the seven baseline failures.
+- **Why:** Provide a concrete, candid handoff for the owner-run Claude Code review without performing another cross-review.
+
+---
+
+## 2026-11-20 09:54 — Keep threshold and email integration tests enabled under 098
+- **File(s) changed:** `tests/test_adjust_destinations.py`
+- **What changed:** Use manufactured physical counts for generic positive threshold/email/count-close tests, and a current valid destination for direct removals. These six contracts now run under the global marker mode instead of a historical context.
+- **Why:** Verify current alerts, direct removals and resolver behavior with the marker on as well as off.
+
+---
+
 ## 2026-11-20 09:53 — Require blank quantity after delivery redirect in real browser coverage
 - **File(s) changed:** `tests/visual/run-no-stock-by-hand.mjs`
 - **What changed:** Update the real-page regression to assert both cases and case size are blank after selecting Delivery never received.
