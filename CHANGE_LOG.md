@@ -32,6 +32,13 @@
 - **File(s) changed:** `main.py`, `tests/test_shared_key_shutdown.py`, `tests/fixtures/route_contract/routes.jsonl`
 - **What changed:** create_certification, correct_certification, reassign_lot, merge_lots, add_found_inventory and add_found_inventory_with_new_product now take the Request and pass it to _operator_id / _entered_by_actor_id, so a named owner key is stored as the person (name and actor id) instead of 'legacy-shared-key'. Found-with-new-product now writes operator_id and entered_by_actor_id on its ledger row. The two direct Found lines match PR #232's text. Added 10 HTTP tests (owner key stores the person; shared key under SHARED_KEY_WRITES=allow keeps the old stamp) and regenerated 6 route-contract lines (request false to true). No migration, no schema or GPT change.
 - **Why:** Cross-review of PR #234 (comment 7043947718, finding 1): the owner key reaches these routes after the shared key becomes read-only, but they still recorded the shared-key placeholder and no person. Michael approved preparing the fix on 2026-11-23.
+## 2026-11-20 09:53 — Require blank quantity after delivery redirect in real browser coverage
+- **File(s) changed:** `tests/visual/run-no-stock-by-hand.mjs`
+- **What changed:** Update the real-page regression to assert both cases and case size are blank after selecting Delivery never received.
+- **Why:** The redirect must not invent a one-pack delivery and inflate the under-one-pack allowance.
+
+---
+
 ## 2026-11-20 09:52 — Allocate row 315 for owner-directed PR 232 review fixes and PR 234 prerequisite
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Record exact note composition, held Found reason compatibility, explicit marker-off pair refusal, blank Receive quantity carry, voided allowance release and expanded regressions. Link independent draft auth PR 234.
