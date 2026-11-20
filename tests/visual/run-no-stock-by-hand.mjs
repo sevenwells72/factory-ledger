@@ -99,7 +99,8 @@ try {
   await choose('lot',received[0].lot_code);await page.locator('[name=delta_lb]').fill('75');
   await page.locator('[name=reason_code]').selectOption('missing_receipt');
   await page.waitForURL(/action=receive/);await page.locator('#entry-form').waitFor();
-  assert.equal(await page.locator('[name=case_size_lb]').inputValue(),'75');
+  assert.equal(await page.locator('[name=cases]').inputValue(),'');
+  assert.equal(await page.locator('[name=case_size_lb]').inputValue(),'');
   assert.match(await page.locator('[data-picker=product] input').inputValue(),/Ingredient/);
   await page.screenshot({path:out+'/receive-carried-390.png',fullPage:true});
   await page.goto(origin+'/dashboard/entry.html?action=found');await page.locator('#entry-form').waitFor();

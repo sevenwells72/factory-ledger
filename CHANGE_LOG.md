@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-20 09:53 — Require blank quantity after delivery redirect in real browser coverage
+- **File(s) changed:** `tests/visual/run-no-stock-by-hand.mjs`
+- **What changed:** Update the real-page regression to assert both cases and case size are blank after selecting Delivery never received.
+- **Why:** The redirect must not invent a one-pack delivery and inflate the under-one-pack allowance.
+
+---
+
 ## 2026-11-20 09:52 — Allocate row 315 for owner-directed PR 232 review fixes and PR 234 prerequisite
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Record exact note composition, held Found reason compatibility, explicit marker-off pair refusal, blank Receive quantity carry, voided allowance release and expanded regressions. Link independent draft auth PR 234.
