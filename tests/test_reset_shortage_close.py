@@ -59,6 +59,7 @@ def test_without_naming_it_the_rule_still_refuses(client, db_cursor, items, acto
     error(response, 409, 'SHORTAGE_OPEN_RESOLVE_INSTEAD')
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_only_physical_count_and_the_exact_open_set(client, db_cursor, items, actors):
     exception_id, _ = open_shortage(client, db_cursor, items, actors)
     owner = headers(actors['owner']['key'])
@@ -96,6 +97,8 @@ def test_shortage_closed_elsewhere_after_prepare_makes_the_ticket_stale(client, 
 
 
 def test_large_count_is_held_then_owner_approval_posts_and_closes(client, db_cursor, items, actors):
+    from tests.stock_rule_helpers import manufactured_count
+    manufactured_count(db_cursor, items)
     exception_id, _ = open_shortage(client, db_cursor, items, actors)
     owner = actors['owner']['key']
     prepared = prepare(client, 'adjust', closing(items, 606, [exception_id]), owner)
@@ -192,6 +195,8 @@ def test_each_closed_shortage_gets_its_xr_receipt_in_the_same_transaction(client
 
 
 def test_held_count_close_gets_xr_on_owner_approval(client, db_cursor, items, actors):
+    from tests.stock_rule_helpers import manufactured_count
+    manufactured_count(db_cursor, items)
     exception_id, _ = open_shortage(client, db_cursor, items, actors)
     owner = actors['owner']['key']
     held = commit(client, prepare(client, 'adjust', closing(items, 606, [exception_id]), owner), owner)

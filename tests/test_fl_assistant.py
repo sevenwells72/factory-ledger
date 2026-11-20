@@ -600,6 +600,8 @@ def test_committed_races_lost_reply_and_cancel_safety(isolated_database, monkeyp
         cur.execute("INSERT INTO actors(name,role,key_hash,active) VALUES ('F1 race','floor',%s,true) RETURNING id", (sha256(raw_key.encode()).hexdigest(),))
         aid = cur.fetchone()['id']
         payload = seed(cur)
+        # This retry/cancel test deliberately reuses one receiving lot.
+        cur.execute("UPDATE products SET type='batch' WHERE id=%s",(payload['product_id'],))
         sid = str(uuid4())
         cur.execute('INSERT INTO assistant_sessions(id,actor_id) VALUES (%s,%s)', (sid, aid))
     @contextmanager

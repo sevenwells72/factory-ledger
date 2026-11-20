@@ -113,6 +113,7 @@ def prepared(db_cursor, named_actors):
 def _payload(cur, route, seed):
     base = {'mode': 'commit'}
     if route == '/receive':
+        cur.execute("INSERT INTO suppliers(name) SELECT 'Actor Test Supplier' WHERE NOT EXISTS (SELECT 1 FROM suppliers WHERE name='Actor Test Supplier')")
         base.update(product_name=seed['product_name'], cases=2, case_size_lb=25,
                     shipper_name='Actor Test Supplier', bol_reference='ACTOR-TEST', supplier_lot_code='ACTOR-SUP-LOT')
     elif route == '/ship':
@@ -127,7 +128,7 @@ def _payload(cur, route, seed):
         base.update(source_product=batch['name'], target_product=fg['name'], cases=2)
     elif route == '/adjust':
         base.update(product_name=seed['product_name'], lot_code=seed['lot_code'],
-                    adjustment_lb=10, reason='Actor test', reason_es='Prueba de actor')
+                    adjustment_lb=-10, reason='physical_count', reason_es='Prueba de actor')
     elif route.startswith('/void/'):
         return {'reason': 'Actor test void'}
     elif route == '/customers':

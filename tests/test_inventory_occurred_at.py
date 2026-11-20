@@ -80,7 +80,7 @@ def _adjust(client, product_name, lot_code, **timing):
             "product_name": product_name,
             "lot_code": lot_code,
             "adjustment_lb": 1,
-            "reason": "occurred_at regression",
+            "reason": "physical_count",
             **timing,
         },
     )

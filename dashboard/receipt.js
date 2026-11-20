@@ -1,5 +1,5 @@
 (() => {
-  const ui=FLLedger,initial=new URLSearchParams(location.search);if(['en','es'].includes(initial.get('lang'))){ui.lang=initial.get('lang');sessionStorage.setItem('fl-ledger-language',ui.lang);}ui.bind();let receipt,generation=0,ticket=null,busy=false,missing=false;const voidNotes=new Map();
+  const ui=FLLedger,initial=new URLSearchParams(location.search);if(['en','es'].includes(initial.get('lang'))){ui.lang=initial.get('lang');sessionStorage.setItem('fl-ledger-language',ui.lang);}ui.bind();let stockRules=false;let receipt,generation=0,ticket=null,busy=false,missing=false;const voidNotes=new Map();
   const content=document.getElementById('content');
   const resolution=document.getElementById('resolution');
   function render(){if(!receipt)return;content.replaceChildren();const card=ui.el('section',undefined,content);card.className='panel';const tag=ui.el('div',undefined,card);tag.innerHTML=ui.receiveLotHtml(receipt);ui.el('h2',receipt.receipt_number,card);const state=ui.receiptState(receipt);
@@ -7,6 +7,10 @@
     const status=ui.el('p',headline,card);status.className=state.tone;status.dataset.state=state.state;
     // A shortage closed on a note alone (owner decision 2026-11-05) never reads as verified.
     if(receipt.action==='resolve_exception'&&receipt.draft?.resolution_kind==='unverified'){const p=ui.el('p',undefined,card);p.className='notice';p.dataset.unverified='';const b=ui.el('span',ui.t('Unverified','Sin verificar'),p);b.className='badge-unverified';p.append(' ');ui.el('span',ui.t('Closed without a count. No stock was changed.','Cerrada sin conteo. No se cambió el inventario.'),p);}
+    if(stockRules&&receipt.action==='receive'&&state.state==='voided'){
+      const again=ui.el('button',ui.t('Receive again','Recibir de nuevo'),card);again.type='button';
+      again.onclick=()=>{const d=receipt.draft||{},r=receipt.response||{};sessionStorage.setItem('fl-receive-carry',JSON.stringify({product_id:d.product_id||r.product_id,product_name:d.product_name||r.product_name,supplier_id:d.supplier_id||r.supplier_id,supplier_name:d.supplier_name||r.supplier_name,lot_code:r.lot_code||d.lot_code,supplier_lot_code:r.supplier_lot_code||d.supplier_lot_code,no_supplier_lot:d.no_supplier_lot||r.identity_status==='unidentified'||d.identity_status==='unidentified'||['N/A','NO LOT ON LABEL'].includes(String(r.supplier_lot_code||d.supplier_lot_code).toUpperCase()),bol_reference:r.bol_reference||d.bol_reference}));location.href=FLReceipts.page('entry.html',{action:'receive'});};
+    }
     if(state.voidReceipt){const p=ui.el('p',ui.t('Voided by receipt ','Anulado por el recibo '),card);const a=ui.el('a',state.voidReceipt,p);a.href=FLReceipts.link(state.voidReceipt);}
     const data={action:receipt.action,status:receipt.status,actor:receipt.actor,happened_at:receipt.happened_at,entered_at:receipt.entered_at,supplier_lot_code:receipt.supplier_lot_code,bol_reference:receipt.bol_reference,transactions:receipt.transactions,lots:receipt.lots,shipment:receipt.shipment,order:receipt.order,warnings:receipt.warnings,acknowledged:receipt.acknowledged,draft:receipt.draft,response:receipt.response};
     (receipt.warnings||[]).forEach(w=>{const p=ui.el('p',ui.text(w,ui.lang),card);p.className='notice';});
@@ -56,7 +60,7 @@
     if(initial.get('view')==='today')return today({background});
     const current=++generation,number=new URLSearchParams(location.search).get('number');
     if(!number){ui.notice(ui.t('Enter a Receipt # above.','Ingresa un número de recibo arriba.'),'notice');return;}
-    try{const data=await ui.request('/receipts/'+encodeURIComponent(number),undefined,{read:true,background});
+    try{try{stockRules=!!(await ui.request('/entry/lots?rules_only=true',undefined,{read:true,background:true})).no_stock_by_hand;}catch(_){}const data=await ui.request('/receipts/'+encodeURIComponent(number),undefined,{read:true,background});
       if(current!==generation)return;receipt=data;missing=false;document.getElementById('notice').hidden=true;render();
     }catch(error){if(current!==generation)return;receipt=null;content.replaceChildren();
       missing=error.status===404&&error.result?.detail?.error_code==='RECEIPT_NOT_FOUND';

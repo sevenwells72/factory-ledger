@@ -16,7 +16,7 @@ class Element{
 }
 const descendants=root=>[root,...root.children.flatMap(descendants)];
 const plain=value=>JSON.parse(JSON.stringify(value));
-async function harness(action='ship',language='en',{role='floor'}={}){
+async function harness(action='ship',language='en',{role='floor',carry=null}={}){
   const root=new Element('document');root.root=true;
   for(const id of ['content','resolution','notice','language','sign-out']){const node=new Element('div');node.id=id;root.append(node);}
   const find=(predicate,scope=root)=>descendants(scope).find(predicate),all=(predicate,scope=root)=>descendants(scope).filter(predicate),byId=id=>find(node=>node.id===id);
@@ -27,11 +27,11 @@ async function harness(action='ship',language='en',{role='floor'}={}){
   const labelled=new Set(),events={};const label=(node,value)=>{node.textContent=String(value??'');if(value?.en!==undefined){node.labels=[value.en,value.es];labelled.add(node);}else{delete node.labels;labelled.delete(node);}return node;};
   const shared=require('../dashboard/ledger-ui.js');
   const ui={problem:value=>Error(String(value)),lang:language,correctionReasons:shared.correctionReasons,adjustReasons:shared.adjustReasons,adjustNoteRequired:shared.adjustNoteRequired,orderDestination:shared.orderDestination,noteRequiredReasons:shared.noteRequiredReasons,session:{actor:{role}},async upload(file,kind){const attached={attachment_id:88,kind};uploads.push({file,kind,attached});return attached;},formatNumber:require('../dashboard/ledger-ui.js').formatNumber,bind(){},ready:Promise.resolve(true),setText:label,relabel(){for(const node of labelled)if(node.isConnected)node.textContent=node.labels[ui.lang==='es'?1:0];},t:(en,es)=>Object.assign(new String(ui.lang==='es'?es:en),{en,es}),el(tag,text,parent){const node=label(new Element(tag),text);parent?.append(node);return node;},failure(error){failures.push(error.message);},
-    async request(path,body,options){requests.push({path,body,options});if(path==='/entry/lots?'+new URLSearchParams({product_id:'1561'}))return stock(path);if(path.startsWith('/entry/lots?'))return stock(path);if(path.startsWith('/entry/make-products?')){if(resolver)return resolver({kind:'make_product',query:new URLSearchParams(path.split('?')[1]).get('query')});return {products:[{id:1561,name:'make_product',label:'make_product',type:'batch',default_batch_lb:323}],has_more:false};}if(path==='/resolve'){if(resolver)return resolver(body);return {outcome:'match',match:{id:body.kind==='order'?5:body.kind==='customer'?7:body.kind==='supplier'?8:1561,label:body.kind,type:body.kind==='product'?'ingredient':undefined,supplier_lot_required:body.kind==='product',case_size_lb:25}};}if(path.startsWith('/sales/orders/'))return order;if(path.startsWith('/ship/lots?'))return stock(path);throw Error('Unexpected request '+path);},
+    async request(path,body,options){if(path==='/entry/lots?rules_only=true')return {no_stock_by_hand:false};requests.push({path,body,options});if(path==='/entry/lots?'+new URLSearchParams({product_id:'1561'}))return stock(path);if(path.startsWith('/entry/lots?'))return stock(path);if(path.startsWith('/entry/make-products?')){if(resolver)return resolver({kind:'make_product',query:new URLSearchParams(path.split('?')[1]).get('query')});return {products:[{id:1561,name:'make_product',label:'make_product',type:'batch',default_batch_lb:323}],has_more:false};}if(path==='/resolve'){if(resolver)return resolver(body);return {outcome:'match',match:{id:body.kind==='order'?5:body.kind==='customer'?7:body.kind==='supplier'?8:1561,label:body.kind,type:body.kind==='product'?'ingredient':undefined,supplier_lot_required:body.kind==='product',case_size_lb:25}};}if(path.startsWith('/sales/orders/'))return order;if(path.startsWith('/ship/lots?'))return stock(path);throw Error('Unexpected request '+path);},
     ticketCard(host,path,body,options){const ticket={host,path,body:plain(body),options};tickets.push(ticket);return {invalidate(){ticket.invalidated=true;}};}
   };
   vm.runInNewContext(fs.readFileSync('dashboard/make-formula.js','utf8'),{window:{FLLedger:ui}});
-  vm.runInNewContext(source,{setTimeout(callback,ms){const id=++nextTimer;timers.set(id,callback);delays.push(ms);return id;},clearTimeout(id){timers.delete(id);},FLLedger:ui,FLDashboard:{writesEnabled:true},URL,URLSearchParams,location:{search:'?action='+action,href:'https://example.test/entry.html?action='+action},history:{replaceState(){}},document:{getElementById:byId},window:{addEventListener(name,callback){events[name]=callback;}}});await flush();
+  vm.runInNewContext(source,{setTimeout(callback,ms){const id=++nextTimer;timers.set(id,callback);delays.push(ms);return id;},clearTimeout(id){timers.delete(id);},FLLedger:ui,FLDashboard:{writesEnabled:true},URL,URLSearchParams,location:{search:'?action='+action,href:'https://example.test/entry.html?action='+action},history:{replaceState(){}},sessionStorage:{getItem(){return carry?JSON.stringify(carry):null;},removeItem(){carry=null;}},document:{getElementById:byId},window:{addEventListener(name,callback){events[name]=callback;}}});await flush();
   const shipMode=find(node=>node.name==='ship_mode');if(shipMode)shipMode.value='order';
   const field=(name,scope=root)=>find(node=>node.name===name,scope),button=(text,scope=root)=>find(node=>node.tag==='button'&&node.textContent===text,scope);
   async function pick(name){const scope=find(node=>node.dataset.picker===name);find(node=>node.tag==='input',scope).value=name;await find(node=>node.tag==='button',scope).onclick();find(node=>node.className==='picker-options',scope).children[0].onclick();if(name==='supplier')field('supplier_lot_code').value='SUP-LOT-123';await flush();}
@@ -159,7 +159,7 @@ test('Pack batch search and recent lot selection pin the chosen lot but add no t
 });
 
 test('a form photo upload finishing after changing entry type never leaks into the new form',async()=>{
-  const h=await harness('receive');let finish;h.setUpload(()=>new Promise(resolve=>finish=resolve));const photo=h.field('entry_photo');photo.files=[{name:'old-tag.png'}];const pending=photo.onchange();h.byId('entry-action').value='ship';h.byId('entry-action').onchange();h.byId('entry-action').value='receive';h.byId('entry-action').onchange();finish({attachment_id:99});await pending;await h.pick('product');await h.pick('supplier');h.submit();assert.equal(h.tickets[0].options.initialAttachment,null);
+  const h=await harness('receive');let finish;h.setUpload(()=>new Promise(resolve=>finish=resolve));const photo=h.field('entry_photo');photo.files=[{name:'old-tag.png'}];const pending=photo.onchange();h.byId('entry-action').value='ship';await h.byId('entry-action').onchange();h.byId('entry-action').value='receive';await h.byId('entry-action').onchange();finish({attachment_id:99});await pending;await h.pick('product');await h.pick('supplier');h.submit();assert.equal(h.tickets[0].options.initialAttachment,null);
 });
 test('Pack recent choice uses an explicit case-weight override and clears when the source changes',async()=>{
   const h=await harness('pack');h.setStock(async()=>({lots:[{lot_id:21,lot_code:'BATCH-TODAY',available_lb:323}]}));await h.pick('source');h.find(node=>node.dataset.recentLot==='21').onclick();await h.pick('target');h.field('cases').value='4';h.field('case_weight_lb').value='20';h.submit();assert.equal(h.tickets[0].body.case_weight_lb,20);assert.deepEqual(h.tickets[0].body.lot_allocations,[{lot_id:21,quantity_lb:80}]);h.tickets[0].options.onEdit();await h.pick('source');await h.pick('target');h.submit();assert.equal('lot_allocations' in h.tickets.at(-1).body,false);
@@ -416,4 +416,10 @@ test('Pack source search does not retry on other failures',async()=>{
   h.setResolver(async body=>{asked.push(body.context.product_type);throw Object.assign(Error('down'),{status:503});});
   const scope=h.find(node=>node.dataset.picker==='source');h.find(node=>node.tag==='input',scope).value='x';await h.find(node=>node.tag==='button',scope).onclick();
   assert.deepEqual(asked,['pack_source']);assert.ok(h.find(node=>String(node.textContent).startsWith('Search failed')));
+});
+
+test('delivery redirect carries the product without inventing a receipt pack size',async()=>{
+  const h=await harness('receive','en',{carry:{product_id:1561,product_name:'Coconut',pounds:2400}});
+  assert.equal(h.field('cases').value,'');assert.equal(h.field('case_size_lb').value,'');
+  assert.equal(h.find(node=>node.dataset.picker==='product').children.some(node=>String(node.textContent).includes('Coconut')),true);
 });

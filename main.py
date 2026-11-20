@@ -45,6 +45,7 @@ import oat_bran_substitution
 import product_archive
 import reconciliation
 import exceptions_enforcement
+import stock_by_hand
 import adjustment_alerts
 import resolution
 import permissions
@@ -4147,6 +4148,8 @@ class PackRequest(InventoryWriteRequest):
     target_lot_code: Optional[str] = None
 
 class AdjustRequest(InventoryWriteRequest):
+    note: Optional[str] = None
+    sales_order_id: Optional[int] = None
     mode: Literal["preview", "commit"] = "preview"
     product_name: str
     lot_code: str
@@ -5946,6 +5949,19 @@ def _fmt_quantity(value) -> str:
     return format(rounded, ',f').rstrip('0').rstrip('.') if '.' in format(rounded, ',f') else format(rounded, ',f')
 
 
+def _receive_supplier_parties(cur, req, *, lock=False):
+    """Every commingled party is registered, on previews and under posting locks."""
+    if not stock_by_hand.live_at(cur):
+        return
+    for entry in req.supplier_lot_entries or []:
+        supplier_id = entry.get('supplier_id')
+        if supplier_id is None:
+            supplier = resolve_supplier(cur, entry.get('supplier_name') or '')
+            supplier_id = supplier['id'] if supplier else None
+        supplier = lot_confirmation.real_supplier(cur, supplier_id, lock=lock)
+        entry.update(supplier_id=supplier['id'], supplier_name=supplier['name'])
+
+
 def _receive_preview_core(cur, req: ReceiveRequest, *, product=None):
     """Read-only receive draft, shared by legacy preview and A1 prepare."""
     product = product if product is not None else resolve_product_full(cur, req.product_name)
@@ -5962,6 +5978,8 @@ def _receive_preview_core(cur, req: ReceiveRequest, *, product=None):
     else:
         lot_code, shipper_code, auto = generate_lot_code(cur, req.shipper_name, req.shipper_code_override)
         existing = None
+    stock_by_hand.receive(cur, req, product['id'], existing['id'] if existing else None)
+    _receive_supplier_parties(cur, req)
     total_lb = req.cases * req.case_size_lb
 
     response = {
@@ -6020,6 +6038,11 @@ def _receive_commit_core(cur, req: ReceiveRequest, request, occurred_at,
     lot_type = req.lot_type or ("commingled" if req.supplier_lot_entries else "single_supplier")
 
     lot_id, is_new_lot, lot_uuid = find_or_create_lot(cur, product['id'], lot_code, 'received', supplier_id=supplier_id)
+    cur.execute('SELECT id FROM lots WHERE id=%s FOR UPDATE', (lot_id,))
+    stock_by_hand.receive(cur, req, product['id'], lot_id)
+    if stock_by_hand.live_at(cur):
+        lot_confirmation.real_supplier(cur, supplier_id, lock=True)
+        _receive_supplier_parties(cur, req, lock=True)
     kosher_tiers.output_matches(cur, lot_id, product)
     code_similarity = (
         check_suspicious_code_similarity(cur, product['id'], lot_id, lot_code)
@@ -6160,6 +6183,9 @@ def receive(req: ReceiveRequest, _: bool = Depends(verify_api_key), request: Req
             # behavior and link active catalog suppliers when available.
             supplier = resolve_supplier(cur, req.shipper_name)
             supplier_id = supplier['id'] if supplier and supplier['active'] else None
+            if stock_by_hand.live_at(cur):
+                supplier = lot_confirmation.real_supplier(cur, supplier_id, lock=req.mode == 'commit')
+                req.shipper_name = supplier['name']
             for entry in req.supplier_lot_entries or []:
                 party_name = entry.get('supplier_name') or req.shipper_name
                 party = resolve_supplier(cur, party_name)
@@ -9682,15 +9708,34 @@ def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, sour
     return response
 
 
-def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, lot_id=None, ticket_id=None, receipt_number=None, reason_code=None, note=None):
+def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, lot_id=None, ticket_id=None, receipt_number=None, reason_code=None, note=None, count_to=None, paired_lot_id=None, sales_order_id=None, held_reason=None):
     product = product if product is not None else resolve_product_full(cur, req.product_name)
     if lot_id is None:
-        cur.execute("SELECT id as lot_id, lot_code FROM lots WHERE product_id = %s AND LOWER(lot_code) = LOWER(%s)", (product['id'], req.lot_code))
+        cur.execute("SELECT id as lot_id, lot_code, status FROM lots WHERE product_id = %s AND LOWER(lot_code) = LOWER(%s)", (product['id'], req.lot_code))
     else:
-        cur.execute('SELECT id as lot_id,lot_code FROM lots WHERE id=%s AND product_id=%s', (lot_id, product['id']))
+        cur.execute('SELECT id as lot_id,lot_code,status FROM lots WHERE id=%s AND product_id=%s', (lot_id, product['id']))
     lot = cur.fetchone()
     if not lot:
         raise HTTPException(404, f"Lot '{req.lot_code}' not found for product '{product['name']}'")
+    if paired_lot_id is not None:
+        cur.execute('SELECT id FROM lots WHERE id=ANY(%s) ORDER BY id FOR UPDATE', ([lot['lot_id'], paired_lot_id],))
+    else:
+        cur.execute('SELECT id FROM lots WHERE id=%s FOR UPDATE', (lot['lot_id'],))
+    allowance = 0
+    paired = None
+    if stock_by_hand.live_at(cur):
+        if lot['status'] == 'merged':
+            stock_by_hand.fail('LOT_MERGED', 'Use the surviving lot.', 'Usa el lote sobreviviente.', 409)
+        if paired_lot_id is not None:
+            paired = stock_by_hand.validate_pair(sys.modules[__name__], cur, product, lot['lot_id'], paired_lot_id, req.adjustment_lb, reason_code or req.reason, note)
+        code = exceptions_enforcement.resolve_reason(cur, 'adjust', reason_code or req.reason, note=note or req.note, delta_lb=req.adjustment_lb, sales_order_id=sales_order_id or req.sales_order_id, destination_exempt=count_to is not None or bool(held_reason), held_reason=held_reason)
+        reason_code = code['code']
+        note = exceptions_enforcement.destination_note(code)
+        if paired is None and reason_code == 'wrong_lot' and req.adjustment_lb > 0:
+            stock_by_hand.addition(cur, product['id'], lot['lot_id'], req.adjustment_lb, reason='wrong_lot')
+        if count_to is None and paired is None:
+            exceptions_enforcement.refuse_cover_up(cur, 'adjust', product['id'], lot['lot_id'], req.adjustment_lb)
+        allowance = stock_by_hand.addition(cur, product['id'], lot['lot_id'], req.adjustment_lb, count_to=count_to, reason=reason_code, paired=paired is not None)
     cur.execute("SELECT COALESCE(label_type, 'house') as label_type FROM products WHERE id = %s", (product['id'],))
     lt_row = cur.fetchone()
     result = {**product, 'product_id': product['id'], 'lot_id': lot['lot_id'], 'lot_code': lot['lot_code'],
@@ -9721,6 +9766,17 @@ def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, pr
     txn_row = cur.fetchone()
     txn_id = txn_row['id']
     cur.execute("INSERT INTO transaction_lines (transaction_id, product_id, lot_id, quantity_lb) VALUES (%s, %s, %s, %s)", (txn_id, result['product_id'], result['lot_id'], req.adjustment_lb))
+    if allowance:
+        cur.execute('INSERT INTO under_pack_counts(transaction_id,lot_id,lb) VALUES (%s,%s,%s)', (txn_id, lot['lot_id'], allowance))
+    if paired:
+        cur.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES (%s,%s,%s,%s)',
+                    (txn_id, product['id'], paired_lot_id, -req.adjustment_lb))
+        cur.execute('INSERT INTO paired_lot_moves(transaction_id,restored_lot_id,used_lot_id) VALUES (%s,%s,%s)', (txn_id, lot['lot_id'], paired_lot_id))
+        after = lot_on_hand(cur, paired_lot_id)
+        if after < 0:
+            exceptions_enforcement.record_shortages(cur, txn_id, [dict(product_id=product['id'], lot_id=paired_lot_id,
+                short_lb=min(req.adjustment_lb, -after), needed_lb=req.adjustment_lb, on_hand_lb=paired['on_hand_lb'], balance_after_lb=after)],
+                ticket_id=ticket_id, receipt_number=receipt_number, action='adjust', actor_id=_entered_by_actor_id(request))
     # Migration 096: over 500 lb is never held; it posts and the owner is emailed.
     # Savepoint-guarded and never raises, so the email can never undo this post.
     adjustment_alerts.queue_if_large(sys.modules[__name__], cur, txn_id, 'adjust', result, req.adjustment_lb)
@@ -9729,7 +9785,7 @@ def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, pr
     if trace_emit_enabled():
         emit_trace_event(
             cur, txn_id, 'adjust', 'object',
-            [(result['lot_id'], 'adjusted', req.adjustment_lb)],
+            [(result['lot_id'], 'adjusted', req.adjustment_lb)] + ([(paired_lot_id, 'adjusted', -req.adjustment_lb)] if paired else []),
             txn_row['occurred_at'], txn_row['business_date'],
             operator_id=actor_name(request),
         )
@@ -9746,12 +9802,18 @@ def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, pr
         "new_balance_lb": new_balance, "reason": req.reason, "reason_code": reason_code,
         "message": f"Adjusted lot {result['lot_code']} by {_fmt_quantity(req.adjustment_lb)} lb (new balance: {_fmt_quantity(new_balance)} lb)"
     }
+    if stock_by_hand.live_at(cur) and 'destination' in code:
+        response['destination'] = code['destination']
+    if paired:
+        response['move'] = {'restored_lot_id': lot['lot_id'], 'used_lot_id': paired_lot_id, 'lb': req.adjustment_lb,
+                            'used_lot_code': paired['lot_code'], 'used_before_lb': paired['on_hand_lb'], 'used_after_lb': lot_on_hand(cur, paired_lot_id)}
+        response['message'] = f"Moved {req.adjustment_lb:g} lb from lot {paired['lot_code']} to lot {lot['lot_code']}"
     if req.reason_es:
         response["reason_es"] = req.reason_es
     return response
 
 
-def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, ticket_id=None, receipt_number=None, require_new_lot=False, reason_code=None, kosher_attestation=None):
+def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, ticket_id=None, receipt_number=None, require_new_lot=False, reason_code=None, kosher_attestation=None, held_reason=None):
     cur.execute("SELECT id, name, kosher_tier FROM products WHERE id = %s FOR SHARE", (req.product_id,))
     product = cur.fetchone()
 
@@ -9785,6 +9847,17 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
         raise HTTPException(409, {'error_code': 'LOT_CODE_TAKEN',
                                   'message': f'{product["name"]} lot {lot_code} is now in use; prepare again.'})
 
+    cur.execute('SELECT id FROM lots WHERE id=%s FOR UPDATE', (lot_id,))
+    if stock_by_hand.live_at(cur):
+        stock_by_hand.require_paired_move(cur, req.product_id, req.quantity, reason_code or req.reason_code)
+        reason = exceptions_enforcement.resolve_reason(cur, 'found', reason_code or req.reason_code, note=req.notes or req.notes_es, delta_lb=req.quantity, held_reason=held_reason)
+        reason_code = reason['code']
+        stock_by_hand.require_paired_move(cur, req.product_id, req.quantity, reason_code)
+        if not is_new_lot:
+            if reason_code == 'missing_receipt':
+                stock_by_hand.fail('LOT_CODE_TAKEN', 'Use Found as a new lot, or Receive this delivery.', 'Usa Encontrado como lote nuevo, o Recibe esta entrega.', 409)
+            stock_by_hand.addition(cur, req.product_id, lot_id, req.quantity, reason=reason_code)
+        exceptions_enforcement.refuse_cover_up(cur, 'found', req.product_id, None, req.quantity)
     kosher_tiers.output_matches(cur, lot_id, product)
     if kosher_attestation and not is_new_lot:
         raise HTTPException(409, {'error_code': 'KOSHER_NEW_BATCH_LOT_REQUIRED',
@@ -9844,7 +9917,7 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
             cur, txn_id, 'adjust', 'object',
             [(lot_id, 'adjusted', req.quantity)],
             txn_row['occurred_at'], txn_row['business_date'],
-                operator_id=actor_name(request) if ticket_id else None,
+                operator_id=actor_name(request) if request is not None else None,
         )
 
     logger.info(f"Added found inventory: {lot_code} - {_fmt_quantity(req.quantity)} {req.uom} of {product['name']}")
@@ -9862,6 +9935,9 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
     }
     if ticket_id is not None:
         response["transaction_id"] = txn_id
+    elif stock_by_hand.live_at(cur):
+        response['transaction_id'] = txn_id
+        lot_confirmation.record_identity(cur, req.dict(), response, None, None)
     if code_similarity:
         response.setdefault("warnings", []).append(code_similarity)
     if audit_error:
@@ -12104,7 +12180,7 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
 # ═══════════════════════════════════════════════════════════════
 
 @app.post("/inventory/found")
-def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_api_key)):
+def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_api_key), request: Request = None):
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at, req.backfill
     )
@@ -12112,7 +12188,7 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                return _found_commit_core(cur, req, None, occurred_at, created_at_source)
+                return _found_commit_core(cur, req, request, occurred_at, created_at_source)
     except HTTPException:
         raise
     except Exception as e:
@@ -12122,7 +12198,7 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
 
 
 @app.post("/inventory/found-with-new-product")
-def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductRequest, _: bool = Depends(verify_api_key)):
+def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductRequest, _: bool = Depends(verify_api_key), request: Request = None):
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at, req.backfill
     )
@@ -12147,6 +12223,14 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                     RETURNING id, name
                 """, (req.product_name, req.product_type, req.uom, req.storage_type, verification_notes, verification_notes_es))
                 product = cur.fetchone()
+                if stock_by_hand.live_at(cur):
+                    # Same reason, actor, identity, trace and follow-up guards as
+                    # ordinary Found. Any refusal rolls product creation back too.
+                    found_req = AddFoundInventoryRequest(**(req.dict() | {'product_id': product['id']}))
+                    response = _found_commit_core(cur, found_req, request, occurred_at, created_at_source)
+                    response.update(product_id=product['id'], product_name=product['name'], verification_status='unverified')
+                    response['message'] = f"Created '{product['name']}' and added {_fmt_quantity(req.quantity)} {req.uom} as lot {response['lot_code']}"
+                    return response
                 
                 cur.execute("SELECT pg_advisory_xact_lock(2)")
 

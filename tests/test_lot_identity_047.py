@@ -102,6 +102,15 @@ def client(_db_connection, monkeypatch):
     monkeypatch.setattr(main, "get_db_connection", _fake_get_conn)
     with TestClient(main.app) as c:
         c.headers["X-API-Key"] = NAMED_OWNER_KEY
+        original_post = c.post
+        def valid_fixture_post(path, *args, **kwargs):
+            payload = kwargs.get('json') or {}
+            if path.startswith('/receive') and payload.get('shipper_name'):
+                with _db_connection.cursor() as cur:
+                    cur.execute("INSERT INTO suppliers(name) SELECT %s WHERE NOT EXISTS (SELECT 1 FROM suppliers WHERE name=%s)", (payload['shipper_name'],payload['shipper_name']))
+                kwargs['json'] = dict(payload, bol_reference=payload.get('bol_reference') or 'FIXTURE-BOL')
+            return original_post(path, *args, **kwargs)
+        c.post = valid_fixture_post
         yield c
     _db_connection.rollback()
 
@@ -110,7 +119,7 @@ def _cur(conn):
     return conn.cursor(cursor_factory=RealDictCursor)
 
 
-def _seed_product(conn, name=None, product_type="ingredient"):
+def _seed_product(conn, name=None, product_type="batch"):
     with _cur(conn) as cur:
         cur.execute(
             "INSERT INTO products (name, type, uom, active) "
@@ -136,7 +145,7 @@ def _found(client, product_id, lot_code, qty=5):
     return client.post("/inventory/found", json={
         "product_id": product_id,
         "quantity": qty,
-        "reason_code": "found_count",
+        "reason_code": "physical_count",
         "lot_code": lot_code,
     })
 

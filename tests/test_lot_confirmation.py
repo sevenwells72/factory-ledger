@@ -298,6 +298,7 @@ def test_identified_receive_no_exception(client,db_cursor):
     assert db_cursor.fetchone()['n']==0
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_unidentified_topup_preserves_original_deadline(client,db_cursor):
     from tests.test_write_tickets import seed
     payload=seed(db_cursor)|{'supplier_lot_code':'N/A','no_supplier_lot':True}
@@ -378,6 +379,7 @@ def test_supplier_change_or_deactivation_between_prepare_and_commit(client,db_cu
     assert posted_count(db_cursor,d)==0
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_same_prefix_suppliers_without_066_cannot_share_lot(client,db_cursor):
     from tests.test_write_tickets import seed
     payload=seed(db_cursor)
