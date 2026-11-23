@@ -45,3 +45,96 @@ def test_every_authenticated_write_refuses_shared_key_without_rows(client,db_cur
 def test_disabled_session_route_keeps_404_before_auth(client,monkeypatch):
     monkeypatch.setenv('KEY_SESSIONS_ENABLED','0')
     assert client.post('/auth/session/logout',headers=headers(main.API_KEY)).status_code==404
+
+
+# ── Review finding 1 (PR #234): the named owner is stored on maintenance writes ──
+# The owner key now reaches these routes, so each must record the person, not the
+# 'legacy-shared-key' placeholder. The emergency switch keeps the old stamp.
+from uuid import uuid4
+
+def _who(identity, actors, monkeypatch):
+    if identity == 'owner':
+        return actors['owner']['key'], (actors['owner']['name'], actors['owner']['id'])
+    monkeypatch.setenv('SHARED_KEY_WRITES', 'allow')
+    return main.API_KEY, ('legacy-shared-key', None)
+
+def _product(cur):
+    token = uuid4().hex[:10].upper()
+    cur.execute("INSERT INTO products(name,odoo_code,type,uom) VALUES (%s,%s,'ingredient','lb') RETURNING id",
+                ('Owner stamp ' + token, 'OS-' + token))
+    return cur.fetchone()['id']
+
+def _lot_with_line(cur, product_id):
+    cur.execute('INSERT INTO lots(product_id,lot_code) VALUES (%s,%s) RETURNING id',
+                (product_id, 'OS-' + uuid4().hex[:10].upper()))
+    lot_id = cur.fetchone()['id']
+    cur.execute("INSERT INTO transactions(type,timestamp,notes) VALUES ('adjust',now(),'owner stamp seed') RETURNING id")
+    cur.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES (%s,%s,%s,10) RETURNING id',
+                (cur.fetchone()['id'], product_id, lot_id))
+    return lot_id, cur.fetchone()['id']
+
+def _line_correction_stamp(cur, line_id):
+    cur.execute("""SELECT operator_id, entered_by_actor_id FROM ledger_corrections
+                   WHERE target_table='transaction_lines' AND target_id=%s""", (line_id,))
+    rows = cur.fetchall()
+    assert len(rows) == 1, rows
+    return rows[0]['operator_id'], rows[0]['entered_by_actor_id']
+
+def _lot_transaction_stamp(cur, lot_id):
+    cur.execute("""SELECT t.operator_id, t.entered_by_actor_id FROM transactions t
+                   JOIN transaction_lines l ON l.transaction_id=t.id WHERE l.lot_id=%s""", (lot_id,))
+    rows = cur.fetchall()
+    assert len(rows) == 1, rows
+    return rows[0]['operator_id'], rows[0]['entered_by_actor_id']
+
+IDENTITIES = pytest.mark.parametrize('identity', ['owner', 'shared_allow'])
+
+@IDENTITIES
+def test_lot_reassign_stores_the_person(client, db_cursor, actors, monkeypatch, identity):
+    key, expected = _who(identity, actors, monkeypatch)
+    lot_id, line_id = _lot_with_line(db_cursor, _product(db_cursor))
+    response = client.post(f'/lots/{lot_id}/reassign', headers=headers(key),
+                           json={'to_product_id': _product(db_cursor), 'reason_code': 'data_entry_error'})
+    assert response.status_code == 200, response.text
+    assert _line_correction_stamp(db_cursor, line_id) == expected
+
+@IDENTITIES
+def test_lot_merge_stores_the_person(client, db_cursor, actors, monkeypatch, identity):
+    key, expected = _who(identity, actors, monkeypatch)
+    product_id = _product(db_cursor)
+    source, line_id = _lot_with_line(db_cursor, product_id)
+    target, _ = _lot_with_line(db_cursor, product_id)
+    response = client.post('/admin/lots/merge', headers=headers(key),
+                           json={'source_lot_id': source, 'target_lot_id': target, 'reason': 'Same bag, two labels'})
+    assert response.status_code == 200, response.text
+    assert _line_correction_stamp(db_cursor, line_id) == expected
+
+@IDENTITIES
+def test_certification_and_its_correction_store_the_person(client, db_cursor, actors, monkeypatch, identity):
+    key, expected = _who(identity, actors, monkeypatch)
+    created = client.post('/records/certifications', headers=headers(key),
+                          json={'business_date': '2097-03-04', 'certified_at': '2097-03-04T20:00:00-05:00'})
+    assert created.status_code == 200, created.text
+    corrected = client.post(f"/records/certifications/{created.json()['certification_id']}/corrections",
+                            headers=headers(key),
+                            json={'certified_at': '2097-03-04T20:15:00-05:00', 'reason': 'wrong message time'})
+    assert corrected.status_code == 200, corrected.text
+    db_cursor.execute("SELECT operator_id FROM certifications WHERE business_date='2097-03-04' ORDER BY created_at")
+    assert [row['operator_id'] for row in db_cursor.fetchall()] == [expected[0], expected[0]]
+
+@IDENTITIES
+def test_direct_found_stores_the_person(client, db_cursor, actors, monkeypatch, identity):
+    key, expected = _who(identity, actors, monkeypatch)
+    response = client.post('/inventory/found', headers=headers(key),
+                           json={'product_id': _product(db_cursor), 'quantity': 5.0, 'reason_code': 'found_count'})
+    assert response.status_code == 200, response.text
+    assert _lot_transaction_stamp(db_cursor, response.json()['lot_id']) == expected
+
+@IDENTITIES
+def test_found_with_new_product_stores_the_person(client, db_cursor, actors, monkeypatch, identity):
+    key, expected = _who(identity, actors, monkeypatch)
+    response = client.post('/inventory/found-with-new-product', headers=headers(key),
+                           json={'product_name': 'Owner stamp new ' + uuid4().hex[:10].upper(),
+                                 'product_type': 'ingredient', 'quantity': 5.0, 'reason_code': 'found_count'})
+    assert response.status_code == 200, response.text
+    assert _lot_transaction_stamp(db_cursor, response.json()['lot_id']) == expected

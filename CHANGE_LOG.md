@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-11-23 13:45 — Commit the owner-attribution fix for PR #234 (the 12:09 entry below is no longer local-only)
+- **File(s) changed:** `CHANGE_LOG.md`
+- **What changed:** No code change. The 2026-11-23 12:09 entry was written while the fix was uncommitted; it is now being committed on top of 002e6ea and pushed to PR #234's branch feat/shared-key-write-shutdown. Still draft: not merged, not deployed, no staging proof and no independent re-check yet.
+- **Why:** Michael approved the push in chat on 2026-11-23; the earlier heading would otherwise read as if the fix never left the worktree.
+
+---
+
+## 2026-11-23 12:09 — Record the named owner on six maintenance writes (PR #234 review finding 1) — local worktree only, not committed or pushed
+- **File(s) changed:** `main.py`, `tests/test_shared_key_shutdown.py`, `tests/fixtures/route_contract/routes.jsonl`
+- **What changed:** create_certification, correct_certification, reassign_lot, merge_lots, add_found_inventory and add_found_inventory_with_new_product now take the Request and pass it to _operator_id / _entered_by_actor_id, so a named owner key is stored as the person (name and actor id) instead of 'legacy-shared-key'. Found-with-new-product now writes operator_id and entered_by_actor_id on its ledger row. The two direct Found lines match PR #232's text. Added 10 HTTP tests (owner key stores the person; shared key under SHARED_KEY_WRITES=allow keeps the old stamp) and regenerated 6 route-contract lines (request false to true). No migration, no schema or GPT change.
+- **Why:** Cross-review of PR #234 (comment 7043947718, finding 1): the owner key reaches these routes after the shared key becomes read-only, but they still recorded the shared-key placeholder and no person. Michael approved preparing the fix on 2026-11-23.
+
+---
+
 ## 2026-11-20 09:50 — Preserve complete changelog entry separators after main rebase
 - **File(s) changed:** `CHANGE_LOG.md`
 - **What changed:** Rebuild the union of main and auth-branch entries verbatim by heading, retaining both histories and each separator.

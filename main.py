@@ -11304,7 +11304,7 @@ def _effective_certification(cur, business_date: date):
 
 
 @app.post("/records/certifications")
-def create_certification(req: CertificationCreate, _: bool = Depends(verify_api_key)):
+def create_certification(req: CertificationCreate, _: bool = Depends(verify_api_key), request: Request = None):
     try:
         with get_transaction() as cur:
             cur.execute(
@@ -11317,7 +11317,7 @@ def create_certification(req: CertificationCreate, _: bool = Depends(verify_api_
                 (
                     req.business_date,
                     req.certified_at,
-                    _operator_id(_),
+                    _operator_id(request),
                     req.source_type,
                     req.source_message_id,
                     req.notes,
@@ -11345,6 +11345,7 @@ def correct_certification(
     certification_id: uuid.UUID,
     req: CertificationCorrection,
     _: bool = Depends(verify_api_key),
+    request: Request = None,
 ):
     reason = req.reason.strip()
     if not reason:
@@ -11373,7 +11374,7 @@ def correct_certification(
                 (
                     original["business_date"],
                     req.certified_at,
-                    _operator_id(_),
+                    _operator_id(request),
                     original["source_type"],
                     req.source_message_id or original["source_message_id"],
                     req.notes if req.notes is not None else original["notes"],
@@ -11962,7 +11963,7 @@ def quick_create_batch_product(req: QuickCreateBatchProductRequest, _: bool = De
 # ═══════════════════════════════════════════════════════════════
 
 @app.post("/lots/{lot_id}/reassign")
-def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(verify_api_key)):
+def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(verify_api_key), request: Request = None):
     validate_bilingual(req.reason_notes, req.reason_notes_es, "reason_notes")
     try:
         with get_db_connection() as conn:
@@ -12049,7 +12050,8 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
                         line_id,
                         {"product_id": req.to_product_id},
                         req.reason_notes or req.reason_code,
-                        _operator_id(_),
+                        _operator_id(request),
+                        entered_by_actor_id=_entered_by_actor_id(request),
                     )
                     for line_id in affected_line_ids
                 ]
@@ -12104,7 +12106,7 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
 # ═══════════════════════════════════════════════════════════════
 
 @app.post("/inventory/found")
-def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_api_key)):
+def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_api_key), request: Request = None):
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at, req.backfill
     )
@@ -12112,7 +12114,7 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                return _found_commit_core(cur, req, None, occurred_at, created_at_source)
+                return _found_commit_core(cur, req, request, occurred_at, created_at_source)
     except HTTPException:
         raise
     except Exception as e:
@@ -12122,7 +12124,7 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
 
 
 @app.post("/inventory/found-with-new-product")
-def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductRequest, _: bool = Depends(verify_api_key)):
+def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductRequest, _: bool = Depends(verify_api_key), request: Request = None):
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at, req.backfill
     )
@@ -12172,14 +12174,16 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                 
                 cur.execute("""
                     INSERT INTO transactions (
-                        type, timestamp, notes, occurred_at, created_at_source, reason_code
+                        type, timestamp, notes, occurred_at, created_at_source, reason_code,
+                        operator_id, entered_by_actor_id
                     )
-                    VALUES ('adjust', %s, %s, %s, %s, %s)
+                    VALUES ('adjust', %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id, occurred_at, business_date
                 """, (
                     now, f"Found inventory with new product: {req.reason_code}",
                     occurred_at, created_at_source,
                     exceptions_enforcement.legacy_reason_code(cur, 'found', req.reason_code),   # A3b P1.8
+                    _operator_id(request), _entered_by_actor_id(request),
                 ))
                 txn_row = cur.fetchone()
                 txn_id = txn_row['id']
@@ -19162,7 +19166,7 @@ class LotMergeRequest(BaseModel):
 
 
 @app.post("/admin/lots/merge")
-def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key)):
+def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Merge source lot into target lot. Moves all transaction_lines and
     ingredient_lot_consumption references, marks source as merged.
     Both lots must belong to the same product."""
@@ -19233,7 +19237,8 @@ def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key)):
                         line_id,
                         {"lot_id": req.target_lot_id},
                         req.reason,
-                        _operator_id(_),
+                        _operator_id(request),
+                        entered_by_actor_id=_entered_by_actor_id(request),
                     )
                     for line_id in line_ids
                 ]
