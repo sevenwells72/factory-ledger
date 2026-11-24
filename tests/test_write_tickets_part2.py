@@ -11,6 +11,7 @@ from psycopg2.extras import RealDictCursor
 import pytest
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 from tests.test_actor_attribution import client, actors  # noqa: F401
 from tests.test_write_tickets import (headers, commit, ticket_row, posted_count, error,
                                       isolated_database as a1_isolated_database)  # noqa: F401
@@ -487,7 +488,7 @@ def test_make_duplicate_matches_stored_decimal_yield(client, db_cursor, items):
 @pytest.mark.parametrize('action', ACTIONS)
 @pytest.mark.parametrize('which', ['master', 'owner', 'floor'])
 def test_part2_actor_and_master_scope(client, db_cursor, items, actors, action, which):
-    key = main.API_KEY if which == 'master' else actors[which]['key']
+    key = NAMED_OWNER_KEY if which == 'master' else actors[which]['key']
     prepared = prepare(client, action, body(action, items), key)
     assert prepared['can_commit'], prepared
     assert commit(client, prepared, key).status_code == 200

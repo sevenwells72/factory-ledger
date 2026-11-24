@@ -11,6 +11,7 @@ from fastapi import HTTPException
 import assistant_tools
 import fl_assistant
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 from tests.test_actor_attribution import actors, client  # noqa: F401
 from tests.test_write_tickets import payload, headers  # noqa: F401
 from tests.test_write_tickets import isolated_database, seed  # noqa: F401
@@ -565,6 +566,7 @@ def test_dictation_returns_editable_unsent_text(client, chat, monkeypatch):
     assert r.json() == {'text': 'Recibí dos cajas', 'editable': True, 'sent': False, 'success': True}
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_identity_and_disabled_service(client, actors, monkeypatch):
     for key in (main.API_KEY, main.DASHBOARD_API_KEY, 'invalid'):
         assert client.post('/assistant/session', headers=headers(key)).status_code == 403
@@ -680,7 +682,7 @@ def test_openai_http_failure_logs_only_status(monkeypatch, caplog, status):
 
 def test_correction_catalog_is_readable_with_master_and_actor_keys_when_disabled(client, actors, monkeypatch):
     monkeypatch.delenv('ASSISTANT_ENABLED')
-    for key in [main.API_KEY, *(actors[role]['key'] for role in ('owner', 'floor', 'office'))]:
+    for key in [NAMED_OWNER_KEY, *(actors[role]['key'] for role in ('owner', 'floor', 'office'))]:
         response = client.get('/correction-reasons', headers=headers(key))
         assert response.status_code == 200 and len(response.json()['reasons']) == 8
     assert client.get('/correction-reasons', headers=headers(main.DASHBOARD_API_KEY)).status_code == 403

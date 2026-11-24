@@ -1,0 +1,964 @@
+{
+  "check": "PR #234 shared-key shutdown + named owner attribution on hosted FastAPI-staging",
+  "at": "2026-11-24T19:12:56+00:00",
+  "base": "https://fastapi-staging-production-dd7b.up.railway.app",
+  "code": "4c559ce5773724ffdfc21b3954d7d2cc727827b2",
+  "checks": [
+    {
+      "name": "shared key POST /adjust is refused 403 SHARED_KEY_READ_ONLY",
+      "ok": true,
+      "detail": [
+        403,
+        "SHARED_KEY_READ_ONLY"
+      ]
+    },
+    {
+      "name": "refusal says nothing was recorded, in English and Spanish",
+      "ok": true,
+      "detail": {
+        "error_code": "SHARED_KEY_READ_ONLY",
+        "message": "Choose your name or use your named key to record. Nothing was recorded.",
+        "message_es": "Elige tu nombre o usa tu clave personal para registrar. No se registr\u00f3 nada."
+      }
+    },
+    {
+      "name": "shared key GET /products/search 200",
+      "ok": true,
+      "detail": 200
+    },
+    {
+      "name": "shared key POST /resolve 200",
+      "ok": true,
+      "detail": [
+        200,
+        "{\"outcome\":\"ambiguous\",\"query_normalized\":\"staging\",\"expansions_applied\":[],\"candidates\":[{\"id\":1000000225,\"name\":\"DCC00"
+      ]
+    },
+    {
+      "name": "shared key POST /products/resolve 200",
+      "ok": true,
+      "detail": [
+        200,
+        "{\"resolved\":[{\"outcome\":\"ambiguous\",\"query_normalized\":\"staging test almonds\",\"expansions_applied\":[],\"candidates\":[{\"id"
+      ]
+    },
+    {
+      "name": "shared key refused on 130 of 130 authenticated write routes (0 answered 404: feature switched off before auth)",
+      "ok": true,
+      "detail": []
+    },
+    {
+      "name": "no row added in 13 tables by the sweep",
+      "ok": true,
+      "detail": {}
+    },
+    {
+      "name": "owner key reaches GET /admin/lots/duplicates",
+      "ok": true,
+      "detail": 200
+    },
+    {
+      "name": "floor key refused on GET /admin/lots/duplicates",
+      "ok": true,
+      "detail": 403
+    },
+    {
+      "name": "floor key refused on POST /admin/lots/merge",
+      "ok": true,
+      "detail": 403
+    },
+    {
+      "name": "owner POST /inventory/found lot A 200",
+      "ok": true,
+      "detail": [
+        200,
+        "{\"success\":true,\"lot_id\":1000000808,\"lot_uuid\":\"1cfbe6d3-35dd-44c4-8640-3e0fa184bf2f\",\"lot_code\":\"STG-234-E363E75E-A\",\"product_name\":\"STG-234-E363E75E Item 1\",\"quantity\":5.0,\"uom\":\"lb\",\"entry_source\":\"found_inventory\",\"message\":\"Added 5 lb of STG-234-E363E75E Item 1 as lot STG-234-E363E75E-A\",\"koshe"
+      ]
+    },
+    {
+      "name": "owner POST /inventory/found lot B 200",
+      "ok": true,
+      "detail": [
+        200,
+        "{\"success\":true,\"lot_id\":1000000809,\"lot_uuid\":\"cf56541c-6181-40e5-942a-564381c15ece\",\"lot_code\":\"STG-234-E363E75E-B\",\"product_name\":\"STG-234-E363E75E Item 1\",\"quantity\":5.0,\"uom\":\"lb\",\"entry_source\":\"found_inventory\",\"message\":\"Added 5 lb of STG-234-E363E75E Item 1 as lot STG-234-E363E75E-B\",\"koshe"
+      ]
+    },
+    {
+      "name": "Found: ledger row names the owner (name + actor id)",
+      "ok": true,
+      "detail": [
+        {
+          "id": 1000001221,
+          "operator_id": "Owner (STAGING STG-234-E363E75E)",
+          "entered_by_actor_id": 1000000128,
+          "line_id": 1946
+        }
+      ]
+    },
+    {
+      "name": "Found: trace event names the owner",
+      "ok": true,
+      "detail": [
+        {
+          "operator_id": "Owner (STAGING STG-234-E363E75E)"
+        }
+      ]
+    },
+    {
+      "name": "Found: adjustment history names the owner, not the name in the request",
+      "ok": true,
+      "detail": [
+        {
+          "adjusted_by": "Owner (STAGING STG-234-E363E75E)"
+        }
+      ]
+    },
+    {
+      "name": "owner POST /admin/lots/merge 200",
+      "ok": true,
+      "detail": [
+        200,
+        "{\"merged\":true,\"source_lot_id\":1000000808,\"source_lot_code\":\"STG-234-E363E75E-A\",\"target_lot_id\":1000000809,\"target_lot_code\":\"STG-234-E363E75E-B\",\"product_id\":1000000231,\"rows_moved\":{\"transaction_lines\":1,\"ingredient_lot_consumption\":0},\"line_correction_ids\":[\"14fc8702-bb14-4c1b-9bf1-6918b6aaaff9\""
+      ]
+    },
+    {
+      "name": "merge: line correction names the owner",
+      "ok": true,
+      "detail": [
+        {
+          "operator_id": "Owner (STAGING STG-234-E363E75E)",
+          "entered_by_actor_id": 1000000128
+        }
+      ]
+    },
+    {
+      "name": "merge: audit row for the source lot names the owner",
+      "ok": true,
+      "detail": [
+        {
+          "operator_id": "Owner (STAGING STG-234-E363E75E)",
+          "actor_id": 1000000128,
+          "method": "POST",
+          "route": "/admin/lots/merge"
+        }
+      ]
+    },
+    {
+      "name": "merge: trace marker names the owner",
+      "ok": true,
+      "detail": [
+        {
+          "operator_id": "Owner (STAGING STG-234-E363E75E)"
+        }
+      ]
+    },
+    {
+      "name": "owner POST /lots/{id}/reassign (lot with no ledger lines) 200",
+      "ok": true,
+      "detail": [
+        200,
+        "{\"success\":true,\"lot_id\":1000000807,\"reassignment_id\":1,\"line_correction_ids\":[],\"lot_code\":\"STG-234-E363E75E-EMPTY\",\"from_product\":\"STG-234-E363E75E Item 1\",\"to_product\":\"STG-234-E363E75E Item 2\",\"reason_code\":\"data_entry_error\",\"production_usage_updated\":0,\"message\":\"Reassigned lot STG-234-E363E75"
+      ]
+    },
+    {
+      "name": "reassign: audit row names the owner",
+      "ok": true,
+      "detail": [
+        {
+          "operator_id": "Owner (STAGING STG-234-E363E75E)",
+          "actor_id": 1000000128,
+          "route": "/lots/{lot_id}/reassign"
+        }
+      ]
+    },
+    {
+      "name": "reassign: history names the owner, not the name in the request",
+      "ok": true,
+      "detail": [
+        {
+          "reassigned_by": "Owner (STAGING STG-234-E363E75E)"
+        }
+      ]
+    },
+    {
+      "name": "owner POST /inventory/found-with-new-product 200",
+      "ok": true,
+      "detail": [
+        200,
+        "{\"success\":true,\"product_id\":1000000233,\"product_name\":\"STG-234-E363E75E New Item\",\"verification_status\":\"unverified\",\"lot_id\":1000000810,\"lot_uuid\":\"647a129c-c2fd-4d09-8ad3-eb148f25c913\",\"lot_code\":\"26-11-24-FOUND-001\",\"quantity\":5.0,\"message\":\"Created 'STG-234-E363E75E New Item' and added 5 lb as "
+      ]
+    },
+    {
+      "name": "Found with new product: ledger row names the owner",
+      "ok": true,
+      "detail": [
+        {
+          "id": 1000001223,
+          "operator_id": "Owner (STAGING STG-234-E363E75E)",
+          "entered_by_actor_id": 1000000128
+        }
+      ]
+    },
+    {
+      "name": "Found with new product: trace event names the owner",
+      "ok": true,
+      "detail": [
+        {
+          "operator_id": "Owner (STAGING STG-234-E363E75E)"
+        }
+      ]
+    },
+    {
+      "name": "Found with new product: adjustment history names the owner",
+      "ok": true,
+      "detail": [
+        {
+          "adjusted_by": "Owner (STAGING STG-234-E363E75E)"
+        }
+      ]
+    },
+    {
+      "name": "owner POST /records/certifications 200",
+      "ok": true,
+      "detail": [
+        200,
+        "{\"business_date\":\"2097-02-26\",\"certified_at\":\"2097-02-27T01:00:00+00:00\",\"operator_id\":\"Owner (STAGING STG-234-E363E75E)\",\"source_type\":\"manual\",\"source_message_id\":null,\"notes\":null,\"created_at\":\"2026-11-24T19:13:21.308223+00:00\",\"certification_id\":\"c0bec5fa-c7a1-4528-899e-5b905c13eff9\",\"success\":t"
+      ]
+    },
+    {
+      "name": "owner POST certification correction 200",
+      "ok": true,
+      "detail": [
+        200,
+        "{\"business_date\":\"2097-02-26\",\"certified_at\":\"2097-02-27T01:15:00+00:00\",\"operator_id\":\"Owner (STAGING STG-234-E363E75E)\",\"source_type\":\"manual\",\"source_message_id\":null,\"notes\":null,\"supersedes_certification_id\":\"c0bec5fa-c7a1-4528-899e-5b905c13eff9\",\"correction_reason\":\"STG-234-E363E75E staging pr"
+      ]
+    },
+    {
+      "name": "certification and correction name the owner",
+      "ok": true,
+      "detail": [
+        {
+          "operator_id": "Owner (STAGING STG-234-E363E75E)"
+        },
+        {
+          "operator_id": "Owner (STAGING STG-234-E363E75E)"
+        }
+      ]
+    }
+  ],
+  "failures": [],
+  "marker": "STG-234-E363E75E",
+  "sweep": [
+    {
+      "route": "DELETE /admin/bom/lines/{line_id}",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "DELETE /admin/product-bom/{mapping_id}",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "DELETE /dashboard/api/notes/{note_id}",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "PATCH /customers/{customer_id}",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "PATCH /expected-receipts/{expected_receipt_id}",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "PATCH /lots/{lot_code}/supplier-lot",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "PATCH /lots/{lot_id}/received-at",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "PATCH /lots/{lot_id}/rename",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "PATCH /production/runs/{run_id}",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "PATCH /sales/orders/{order_id}",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "PATCH /sales/orders/{order_id}/lines/{line_id}/cancel",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "PATCH /sales/orders/{order_id}/lines/{line_id}/update",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "PATCH /sales/orders/{order_id}/status",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "PATCH /supply-requests/{supply_request_id}",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /adjust",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /adjust/commit",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /adjust/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /adjust/preview",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /admin/bom/{product_id}/lines",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /admin/lots/merge",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /admin/product-bom",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /admin/products/archive",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /admin/products/unarchive",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /assistant/attachment",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /assistant/attachment/read",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /assistant/cancel",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /assistant/confirm-sku",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /assistant/record",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /assistant/resume",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /assistant/session",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /assistant/transcribe",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /assistant/turn",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /attachments",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /auth/actors/{actor_id}/active",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /auth/actors/{actor_id}/remove-access",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /auth/browsers/approve",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /auth/browsers/{browser_id}/revoke",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /auth/device/enroll",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /auth/device/forget",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /auth/devices/{device_id}/reset-pin",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /auth/devices/{device_id}/revoke",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /auth/pin/change",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /auth/session/logout",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /customers",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /customers/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /dashboard/api/notes",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /exceptions/{exception_id}/approve",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /exceptions/{exception_id}/reject",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /exceptions/{exception_id}/resolve",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /exceptions/{exception_id}/resolve/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /expected-receipts",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /expected-receipts/extract",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /expected-receipts/extract/approve",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /expected-receipts/extract/approve/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /expected-receipts/match",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /expected-receipts/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /expected-receipts/{expected_receipt_id}/cancel/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /expected-receipts/{expected_receipt_id}/update/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /inventory/found",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /inventory/found-with-new-product",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /inventory/found/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /lots/{lot_id}/move/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /lots/{lot_id}/reassign",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /lots/{lot_id}/supplier-lot/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /make",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /make/commit",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /make/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /make/preview",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /pack",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /pack/commit",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /pack/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /pack/preview",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /production/runs",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /production/runs/{run_id}/cancel",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /production/runs/{run_id}/complete",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /products/quick-create",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /products/quick-create-batch",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /products/{product_id}/verify",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /purchase-documents/{document_id}/extract",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /receive",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /receive/commit",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /receive/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /receive/preview",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /records/certifications",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /records/certifications/{certification_id}/corrections",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /records/transactions/{transaction_id}/corrections",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /reports/shift-summary/confirm",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales-orders/{so_number}/ready",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/extract",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/extract/approve",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/extract/approve/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/match",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/allocations",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/allocations/{allocation_id}/release",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/cancel",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/cancel/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/close",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/close/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/header/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/lines",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/lines/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/lines/{line_id}/cancel/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/lines/{line_id}/update/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/ready/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/reopen",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/reopen/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/ship",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/ship/commit",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/ship/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/ship/preview",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /sales/orders/{order_id}/status/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /schedule",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /ship",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /ship/bulk/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /ship/commit",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /ship/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /ship/preview",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /shipments/{shipment_id}/attachments",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /suppliers",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /supply-requests",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /tickets/{ticket}/commit",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /void/{transaction_id}",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "POST /void/{transaction_id}/prepare",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "PUT /admin/bom/lines/{line_id}",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "PUT /admin/products/{product_id}",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "PUT /dashboard/api/notes/{note_id}",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "PUT /dashboard/api/notes/{note_id}/toggle",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    },
+    {
+      "route": "PUT /production/runs/{run_id}/coverage",
+      "status": 403,
+      "code": "SHARED_KEY_READ_ONLY"
+    }
+  ],
+  "sweep_not_403": [],
+  "counts_before": {
+    "transactions": 1209,
+    "transaction_lines": 1934,
+    "lots": 769,
+    "products": 428,
+    "customers": 111,
+    "sales_orders": 105,
+    "sales_order_lines": 148,
+    "ledger_corrections": 12,
+    "actor_write_audit": 626,
+    "trace_events": 1096,
+    "inventory_adjustments": 225,
+    "certifications": 0,
+    "write_tickets": 2035
+  },
+  "counts_after": {
+    "transactions": 1209,
+    "transaction_lines": 1934,
+    "lots": 769,
+    "products": 428,
+    "customers": 111,
+    "sales_orders": 105,
+    "sales_order_lines": 148,
+    "ledger_corrections": 12,
+    "actor_write_audit": 626,
+    "trace_events": 1096,
+    "inventory_adjustments": 225,
+    "certifications": 0,
+    "write_tickets": 2035
+  },
+  "actors": {
+    "owner": {
+      "id": 1000000128,
+      "name": "Owner (STAGING STG-234-E363E75E)",
+      "role": "owner"
+    },
+    "floor": {
+      "id": 1000000129,
+      "name": "Floor (STAGING STG-234-E363E75E)",
+      "role": "floor"
+    }
+  },
+  "products": [
+    1000000231,
+    1000000232
+  ],
+  "found": {
+    "lot_ids": [
+      1000000808,
+      1000000809
+    ],
+    "transaction": {
+      "id": 1000001221,
+      "operator_id": "Owner (STAGING STG-234-E363E75E)",
+      "entered_by_actor_id": 1000000128,
+      "line_id": 1946
+    }
+  },
+  "certification_date": "2097-02-26",
+  "temporary_actors_inactive": true
+}

@@ -303,6 +303,7 @@ def hold(client_, db_cursor, items_, actors_, delta=600):
     return prepared, held.json()['exception_id']
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_owner_approval_is_the_commit_posts_once_as_the_preparer(client, db_cursor, items, actors):
     prepared, exception_id = hold(client, db_cursor, items, actors)
     error(client.post(f'/exceptions/{exception_id}/approve', json={}, headers=headers(actors['floor']['key'])), 403, 'ROLE_NOT_ALLOWED')
@@ -605,6 +606,7 @@ def test_a5_identification_deadline_is_the_same_clock():
 
 # ── D/E. permissions and routes ───────────────────────────────────────────
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_exceptions_routes_are_named_actor_only(client, db_cursor, items, actors):
     _, result = post_short_make(client, db_cursor, items, actors['floor']['key'])
     exception_id = result['shortages'][0]['exception_id']
@@ -987,6 +989,7 @@ def test_approving_a_hold_without_a_named_preparer_is_a_409_not_a_crash(client, 
     assert posted_count(db_cursor, prepared) == 0 and ticket_row(db_cursor, prepared)['status'] == 'awaiting_approval'
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_shared_key_gets_photo_required_not_a_hold(client, db_cursor, items):
     prepared = prepare(client, 'adjust', adjust(items, 600, 'missing_receipt'))      # master key
     response = commit(client, prepared)

@@ -24,6 +24,7 @@ import pytest
 import yaml
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 import reconciliation
 from scripts import daily_reconciliation, exceptions_sweep
 from tests.test_actor_attribution import actors, client  # noqa: F401
@@ -1273,7 +1274,7 @@ def test_endpoints_are_read_only_and_for_owner_and_office(client, actors, db_cur
         assert detail.status_code == 200 and 'UNEXPLAINED_ADJUSTMENT' in [f['kind'] for f in detail.json()['flags']]
         assert detail.json()['run']['summary']['email_subject'].startswith('Factory Ledger daily check')
     assert client.get('/verification/reconciliation/runs/999999999', headers=key('owner')).status_code == 404
-    assert client.get('/verification/reconciliation/runs', headers={'X-API-Key': main.API_KEY}).status_code == 200
+    assert client.get('/verification/reconciliation/runs', headers={'X-API-Key': NAMED_OWNER_KEY}).status_code == 200
     for path in ('runs', f'runs/{run_id}', 'preview'):
         assert client.get(f'/verification/reconciliation/{path}', headers=key('floor')).status_code == 403
         assert client.get(f'/verification/reconciliation/{path}').status_code == 401

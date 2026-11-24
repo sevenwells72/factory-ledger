@@ -313,6 +313,7 @@ def test_migration_072_rerunnable_down_up_and_large_so_counter(db_cursor, catalo
     assert db_cursor.fetchone()['order_number'] == discarded
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('kind', ['orders', 'expected'])
 def test_concurrent_prepares_and_commits_use_live_connections(isolated_database, monkeypatch, kind):
     from threading import Barrier

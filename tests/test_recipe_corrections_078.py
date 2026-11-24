@@ -27,6 +27,7 @@ except ImportError:  # pragma: no cover
     pytest.skip("fastapi not installed", allow_module_level=True)
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 
 ROOT = Path(__file__).resolve().parent.parent
 UP = ROOT / "migrations" / "078_recipe_corrections.sql"
@@ -396,7 +397,7 @@ def api(_db_connection, monkeypatch):
     cur = _db_connection.cursor(cursor_factory=RealDictCursor)
     cur.execute("SAVEPOINT recipe_078_test")
     with TestClient(main.app) as client:
-        client.headers["X-API-Key"] = main.API_KEY
+        client.headers["X-API-Key"] = NAMED_OWNER_KEY
         try:
             yield client, cur
         finally:

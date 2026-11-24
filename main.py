@@ -3541,7 +3541,13 @@ def _authenticate_incoming_api_key(provided_key: str, request: Request, invalid_
         raise HTTPException(status_code=401, detail="API key required")
     if secrets.compare_digest(provided_key, API_KEY):
         request.state.key_kind = "legacy_ledger"
-        return True
+        route = _route_key(request)
+        if (os.getenv('SHARED_KEY_WRITES', '').strip().lower() == 'allow' or
+                route[0] == 'GET' or route in {('POST', '/resolve'), ('POST', '/products/resolve')}):
+            return True
+        raise HTTPException(403, {'error_code': 'SHARED_KEY_READ_ONLY',
+            'message': 'Choose your name or use your named key to record. Nothing was recorded.',
+            'message_es': 'Elige tu nombre o usa tu clave personal para registrar. No se registró nada.'})
     if DASHBOARD_API_KEY and secrets.compare_digest(provided_key, DASHBOARD_API_KEY):
         request.state.key_kind = "legacy_dashboard"
         if _dashboard_key_reaches(_route_key(request)):
@@ -3576,6 +3582,8 @@ def _authenticate_incoming_api_key(provided_key: str, request: Request, invalid_
         if kind == "actor":
             _touch_actor_last_used(actor)
         route_key = _route_key(request)
+        if kind == "actor" and permissions.role_of(_actor_identity(request)) == permissions.OWNER:
+            return True
         if kind == "session" and route_key in key_sessions.ROUTES:
             return True
         if route_key in (DASHBOARD_KEY_ALLOWLIST | ACTOR_WRITE_ALLOWLIST):
@@ -9825,7 +9833,7 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
         """,
         (lot_id, req.product_id, req.quantity, req.quantity, req.uom,
          req.reason_code, req.notes, req.notes_es, req.found_location, req.estimated_age,
-         req.suspected_supplier, req.performed_by),
+         req.suspected_supplier, actor_name(request) or req.performed_by),
     )
 
     # Trace emission (§4): found inventory is a signed adjust.
@@ -9836,7 +9844,7 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
             cur, txn_id, 'adjust', 'object',
             [(lot_id, 'adjusted', req.quantity)],
             txn_row['occurred_at'], txn_row['business_date'],
-                operator_id=actor_name(request) if ticket_id else None,
+                operator_id=actor_name(request) if request is not None else None,
         )
 
     logger.info(f"Added found inventory: {lot_code} - {_fmt_quantity(req.quantity)} {req.uom} of {product['name']}")
@@ -10410,6 +10418,7 @@ def correct_transaction(
     transaction_id: int,
     req: LedgerCorrectionRequest,
     _: bool = Depends(verify_api_key),
+    request: Request = None,
 ):
     try:
         with get_transaction() as cur:
@@ -10419,8 +10428,8 @@ def correct_transaction(
                 req.event_type,
                 req.reason,
                 req.replacement_values,
-                _operator_id(_),
-                entered_by_actor_id=_entered_by_actor_id(_),
+                _operator_id(request),
+                entered_by_actor_id=_entered_by_actor_id(request),
             )
             return {"transaction_id": transaction_id, **event}
     except HTTPException:
@@ -11295,7 +11304,7 @@ def _effective_certification(cur, business_date: date):
 
 
 @app.post("/records/certifications")
-def create_certification(req: CertificationCreate, _: bool = Depends(verify_api_key)):
+def create_certification(req: CertificationCreate, _: bool = Depends(verify_api_key), request: Request = None):
     try:
         with get_transaction() as cur:
             cur.execute(
@@ -11308,7 +11317,7 @@ def create_certification(req: CertificationCreate, _: bool = Depends(verify_api_
                 (
                     req.business_date,
                     req.certified_at,
-                    _operator_id(_),
+                    _operator_id(request),
                     req.source_type,
                     req.source_message_id,
                     req.notes,
@@ -11336,6 +11345,7 @@ def correct_certification(
     certification_id: uuid.UUID,
     req: CertificationCorrection,
     _: bool = Depends(verify_api_key),
+    request: Request = None,
 ):
     reason = req.reason.strip()
     if not reason:
@@ -11364,7 +11374,7 @@ def correct_certification(
                 (
                     original["business_date"],
                     req.certified_at,
-                    _operator_id(_),
+                    _operator_id(request),
                     original["source_type"],
                     req.source_message_id or original["source_message_id"],
                     req.notes if req.notes is not None else original["notes"],
@@ -11953,7 +11963,7 @@ def quick_create_batch_product(req: QuickCreateBatchProductRequest, _: bool = De
 # ═══════════════════════════════════════════════════════════════
 
 @app.post("/lots/{lot_id}/reassign")
-def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(verify_api_key)):
+def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(verify_api_key), request: Request = None):
     validate_bilingual(req.reason_notes, req.reason_notes_es, "reason_notes")
     try:
         with get_db_connection() as conn:
@@ -12034,13 +12044,16 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
                 )
                 affected_line_ids = [row["id"] for row in cur.fetchall()]
                 cur.execute("UPDATE lots SET product_id = %s WHERE id = %s", (req.to_product_id, lot_id))
+                # A lot with no ledger lines gets no line correction, so name the person here too.
+                _record_actor_write(cur, request, "lots", lot_id)
                 line_correction_ids = [
                     _append_transaction_line_correction(
                         cur,
                         line_id,
                         {"product_id": req.to_product_id},
                         req.reason_notes or req.reason_code,
-                        _operator_id(_),
+                        _operator_id(request),
+                        entered_by_actor_id=_entered_by_actor_id(request),
                     )
                     for line_id in affected_line_ids
                 ]
@@ -12056,7 +12069,8 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
                     """,
                     (lot_id, lot['lot_code'], lot['product_id'], lot['product_name'],
                      req.to_product_id, to_product['name'], float(lot['quantity_on_hand']), 'lb',
-                     req.reason_code, req.reason_notes, req.reason_notes_es, req.performed_by),
+                     req.reason_code, req.reason_notes, req.reason_notes_es,
+                     actor_name(request) or req.performed_by),
                     returning=True,
                 )
                 reassignment_id = _hist['id'] if _hist else None
@@ -12095,7 +12109,7 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
 # ═══════════════════════════════════════════════════════════════
 
 @app.post("/inventory/found")
-def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_api_key)):
+def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_api_key), request: Request = None):
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at, req.backfill
     )
@@ -12103,7 +12117,7 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
     try:
         with get_db_connection() as conn:
             with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                return _found_commit_core(cur, req, None, occurred_at, created_at_source)
+                return _found_commit_core(cur, req, request, occurred_at, created_at_source)
     except HTTPException:
         raise
     except Exception as e:
@@ -12113,7 +12127,7 @@ def add_found_inventory(req: AddFoundInventoryRequest, _: bool = Depends(verify_
 
 
 @app.post("/inventory/found-with-new-product")
-def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductRequest, _: bool = Depends(verify_api_key)):
+def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductRequest, _: bool = Depends(verify_api_key), request: Request = None):
     occurred_at, created_at_source = validate_inventory_occurred_at(
         req.occurred_at, req.backfill
     )
@@ -12163,14 +12177,16 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                 
                 cur.execute("""
                     INSERT INTO transactions (
-                        type, timestamp, notes, occurred_at, created_at_source, reason_code
+                        type, timestamp, notes, occurred_at, created_at_source, reason_code,
+                        operator_id, entered_by_actor_id
                     )
-                    VALUES ('adjust', %s, %s, %s, %s, %s)
+                    VALUES ('adjust', %s, %s, %s, %s, %s, %s, %s)
                     RETURNING id, occurred_at, business_date
                 """, (
                     now, f"Found inventory with new product: {req.reason_code}",
                     occurred_at, created_at_source,
                     exceptions_enforcement.legacy_reason_code(cur, 'found', req.reason_code),   # A3b P1.8
+                    _operator_id(request), _entered_by_actor_id(request),
                 ))
                 txn_row = cur.fetchone()
                 txn_id = txn_row['id']
@@ -12195,7 +12211,7 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                     """,
                     (lot_id, product['id'], req.quantity, req.quantity, req.uom,
                      req.reason_code, req.notes, req.notes_es, req.found_location, req.estimated_age,
-                     req.suspected_supplier, req.performed_by),
+                     req.suspected_supplier, actor_name(request) or req.performed_by),
                 )
 
                 # Trace emission (§4): found inventory is a signed adjust.
@@ -12206,6 +12222,7 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                         cur, txn_id, 'adjust', 'object',
                         [(lot_id, 'adjusted', req.quantity)],
                         txn_row['occurred_at'], txn_row['business_date'],
+                        operator_id=actor_name(request),
                     )
 
                 logger.info(f"Created product and found inventory: {product['name']} - {lot_code}")
@@ -19153,7 +19170,7 @@ class LotMergeRequest(BaseModel):
 
 
 @app.post("/admin/lots/merge")
-def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key)):
+def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key), request: Request = None):
     """Merge source lot into target lot. Moves all transaction_lines and
     ingredient_lot_consumption references, marks source as merged.
     Both lots must belong to the same product."""
@@ -19224,7 +19241,8 @@ def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key)):
                         line_id,
                         {"lot_id": req.target_lot_id},
                         req.reason,
-                        _operator_id(_),
+                        _operator_id(request),
+                        entered_by_actor_id=_entered_by_actor_id(request),
                     )
                     for line_id in line_ids
                 ]
@@ -19250,6 +19268,8 @@ def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key)):
                         merge_reason = %s
                     WHERE id = %s
                 """, (req.target_lot_id, now, req.reason, req.source_lot_id))
+                # A lot with no ledger lines gets no line correction, so name the person here too.
+                _record_actor_write(cur, request, "lots", req.source_lot_id)
 
                 # 7. Trace emission (§10 M1, Q2): one 'merge' marker per
                 # affected transaction, no lot rows and NO trace rewrite —
@@ -19274,6 +19294,7 @@ def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key)):
                         emit_trace_event(
                             cur, marker_txn_id, 'merge', 'object', [],
                             occurred_at, business_date,
+                            operator_id=actor_name(request),
                         )
                         trace_merge_markers += 1
 

@@ -15,7 +15,7 @@ pytestmark = pytest.mark.db
 def role_key(actors, role):
     if role == 'dashboard':
         return main.DASHBOARD_API_KEY
-    return None if role == 'shared' else actors[role]['key']
+    return main.API_KEY if role == 'shared' else actors[role]['key']
 
 
 def receive_payload(cur, product_id):
@@ -39,6 +39,7 @@ def no_output_lot(cur, product_id, lot_code):
     assert cur.fetchone() is None
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('product_id', [283, 284])
 @pytest.mark.parametrize('role', ['floor', 'office', 'owner', 'shared', 'dashboard'])
 def test_extra_batch_receive_ticket_refused_for_every_role(client, db_cursor, actors, product_id, role):
@@ -59,6 +60,7 @@ def test_extra_batch_receive_ticket_refused_for_every_role(client, db_cursor, ac
     no_output_lot(db_cursor, product_id, payload['lot_code'])
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('product_id', [283, 284])
 @pytest.mark.parametrize('role', ['floor', 'office', 'owner', 'shared', 'dashboard'])
 @pytest.mark.parametrize('path,mode', [('/receive', 'preview'), ('/receive', 'commit'),
@@ -78,6 +80,7 @@ def test_extra_batch_receive_legacy_and_aliases_refused(client, db_cursor, actor
     assert db_cursor.fetchone()['n'] == 0
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('role', ['floor', 'office', 'owner', 'shared', 'dashboard'])
 @pytest.mark.parametrize('direct', [False, True])
 def test_extra_finished_receive_cannot_skip_pack_or_approved_found(client, db_cursor, actors, role, direct):
@@ -206,6 +209,8 @@ def test_extra_found_legacy_refused_even_for_owner(client, db_cursor, items, act
     payload = found_payload(items, product_key)
     response = client.post('/inventory/found', json=payload, headers=headers(role_key(actors, role)))
     if role == 'shared':
+        error(response, 403, 'SHARED_KEY_READ_ONLY')
+    elif role == 'owner':
         error(response, 403, 'KOSHER_ATTESTATION_REQUIRED')
     else:
         # This legacy route already excludes named actor keys. The shared
@@ -242,6 +247,7 @@ def test_extra_found_changed_catalog_keeps_approval_unposted(client, db_cursor, 
     no_output_lot(db_cursor, payload['product_id'], payload['lot_code'])
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_extra_found_shared_key_cannot_create_unattributable_hold(client, db_cursor, items):
     prepared = prepare(client, 'found', found_payload(items, 'batch'))
     response = commit(client, prepared)

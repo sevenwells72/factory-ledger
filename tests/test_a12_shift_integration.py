@@ -8,6 +8,7 @@ from psycopg2.extras import Json
 import pytest
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 import shift_summary as ss
 import write_tickets as wt
 from tests.test_actor_attribution import client, actors  # noqa: F401
@@ -124,6 +125,7 @@ def test_item3_expired_hold_stays_visible_until_rejected_and_hash_stays_stable(c
     assert detail.json()['entered_at'] is None
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_item3_holds_from_earlier_days_are_scoped_to_preparer_and_all_actors(client, db_cursor, items, actors):
     prepared, held = made(client, items, actors, occurred_at=(main.get_plant_now()-timedelta(days=1)).isoformat())
     for key in (actors['floor']['key'], main.API_KEY):

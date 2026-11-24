@@ -101,6 +101,7 @@ def test_selection_is_only_for_the_make_screen(client, db_cursor, actors, granol
     assert posted_count(db_cursor, first) == 0
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_shared_key_cannot_select_lots(client, db_cursor, granola, migrated):
     first = client.post('/make/prepare', json=body(granola), headers=headers()).json()
     response = client.post('/make/prepare', json=body(granola) | {'lot_confirmations': selections(first)},

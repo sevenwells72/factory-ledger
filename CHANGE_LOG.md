@@ -1,9 +1,275 @@
 # Change Log
 
+## 2026-11-24 14:18 — Staging proof for PR #234 recorded: shared key refused on 130 of 130 write routes, named owner stored on six maintenance routes (29 of 29 checks)
+- **File(s) changed:** `docs/deployments/shared-key-shutdown-staging.json`
+- **What changed:** Added the evidence file from the hosted FastAPI-staging proof of 2026-11-24 (branch head 4c559ce, Railway deployment 87a198ac, marker STG-234-E363E75E): shared key 403 SHARED_KEY_READ_ONLY on every authenticated non-GET route except the two lookups, no row added in 13 tables, lookups 200, a synthetic owner key recorded on Found, Found with new product, lot merge, lot reassign, certification and its correction (ledger row, trace event, lot audit row, history name); floor key refused. Not proven on staging: the SHARED_KEY_WRITES=allow switch (no staging setting was changed) and the tapped-name path. The two temporary staging people are inactive. No key or database address is in the file.
+- **Why:** Michael approved the staging deploy and proof on 2026-11-24 and asked for the evidence to be committed under docs/deployments like earlier releases.
+
+---
+
+## 2026-11-24 14:02 — Second re-check corrections on PR #234: audit-failure test back on the owner key, tapped-name test, doc and row 314 wording — local worktree, not committed or pushed
+- **File(s) changed:** `tests/test_audit_savepoints_lotcodes.py`, `tests/test_shared_key_shutdown.py`, `docs/named-actor-writes.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** test_reassign_survives_audit_failure runs with the owner key again and overflows reason_code instead of performed_by; it now also asserts the actor_write_audit row survives the failed history insert. New test: Michael selected by name (no key) is recorded on lot merge and reassign. Doc: a tapped name needs no approved browser; the GPTs lose previews as well as writes (only GETs and POST /products/resolve survive); POST /products/quick-create added to the maintenance list; the Floor GPT statement marked as the owner's word in chat. Row 314 now says exactly what each route records. No main.py change since the 13:43 entry.
+- **Why:** The reviewer's second pass (approve with nits, 2026-11-24) found two inaccurate doc sentences, a weakened test and an untested caller. Not done: capping an over-100-character actor name before it reaches the varchar(100) history columns (same exposure already exists on the ticketed path).
+
+---
+
+## 2026-11-24 13:43 — Name the owner on the side records of six maintenance writes (PR #234 re-check findings 1-3) — local worktree, not committed or pushed
+- **File(s) changed:** `main.py`, `tests/test_shared_key_shutdown.py`, `tests/test_audit_savepoints_lotcodes.py`, `docs/named-actor-writes.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Trace events for direct Found, Found with new product and the lot-merge marker now carry the signed-in person's name (the direct Found line uses PR #232's exact text). Lot merge and lot reassign write an actor_write_audit row for the lot, so a lot with no ledger lines still records who changed it. On Found and reassign, a signed-in person's name replaces performed_by from the request body in inventory_adjustments.adjusted_by and lot_reassignments.reassigned_by; callers with no person are unchanged. Added 12 HTTP tests (6 owner cases fail without the change; 6 shared-key cases guard the old behaviour) and pointed test_reassign_survives_audit_failure at a caller with no person, since its overflow relied on the body name. Doc: who must switch to the owner key, what each route records, rollback and #232 replay notes. Changelog row 314 moved above 313 and reworded (no longer 'DRAFT ONLY').
+- **Why:** Independent re-check of commit 20d498a on 2026-11-24 (approve with nits) found these three gaps; the 2026-11-20 review also asked for the doc note and the row 314 move. Michael approved fixing them in chat on 2026-11-24.
+
+---
+
+## 2026-11-23 13:45 — Commit the owner-attribution fix for PR #234 (the 12:09 entry below is no longer local-only)
+- **File(s) changed:** `CHANGE_LOG.md`
+- **What changed:** No code change. The 2026-11-23 12:09 entry was written while the fix was uncommitted; it is now being committed on top of 002e6ea and pushed to PR #234's branch feat/shared-key-write-shutdown. Still draft: not merged, not deployed, no staging proof and no independent re-check yet.
+- **Why:** Michael approved the push in chat on 2026-11-23; the earlier heading would otherwise read as if the fix never left the worktree.
+
+---
+
+## 2026-11-23 12:09 — Record the named owner on six maintenance writes (PR #234 review finding 1) — local worktree only, not committed or pushed
+- **File(s) changed:** `main.py`, `tests/test_shared_key_shutdown.py`, `tests/fixtures/route_contract/routes.jsonl`
+- **What changed:** create_certification, correct_certification, reassign_lot, merge_lots, add_found_inventory and add_found_inventory_with_new_product now take the Request and pass it to _operator_id / _entered_by_actor_id, so a named owner key is stored as the person (name and actor id) instead of 'legacy-shared-key'. Found-with-new-product now writes operator_id and entered_by_actor_id on its ledger row. The two direct Found lines match PR #232's text. Added 10 HTTP tests (owner key stores the person; shared key under SHARED_KEY_WRITES=allow keeps the old stamp) and regenerated 6 route-contract lines (request false to true). No migration, no schema or GPT change.
+- **Why:** Cross-review of PR #234 (comment 7043947718, finding 1): the owner key reaches these routes after the shared key becomes read-only, but they still recorded the shared-key placeholder and no person. Michael approved preparing the fix on 2026-11-23.
+
+---
+
+## 2026-11-20 09:50 — Preserve complete changelog entry separators after main rebase
+- **File(s) changed:** `CHANGE_LOG.md`
+- **What changed:** Rebuild the union of main and auth-branch entries verbatim by heading, retaining both histories and each separator.
+- **Why:** Concurrent append-only changelog edits must remain intact after rebase conflict resolution.
+
+---
+
 ## 2026-11-20 09:50 — Record new Coconut Toasted Sweetened Medium items (297, 298) and the Nov 9 make and pack (changelog row 313)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added changelog row 313: production catalog setup of batch product 297 and finished SKU 298 (copy of 128/160 with Coconut Medium Desiccated), the late Nov 9 make TX 3095 (450 lb, receipt MK-261109-008, lot 1782) and pack TX 3096 (18 cases, receipt PK-261109-004, lot 1783), the half-batch entry method, the lots used (glycol, corn starch and salt are FL's oldest-lot suggestion, not floor-confirmed) and the read-only verification. No code change.
 - **Why:** Task from Arturo approved by Michael on 2026-11-20; the Nov 9 toasted medium run had no item to be recorded under. Row numbered 313 because open PR #232 claims rows 310-312.
+
+---
+
+## 2026-11-20 09:49 — Allocate standalone shared-key shutdown row 314 after concurrent main row 313
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `docs/named-actor-writes.md`
+- **What changed:** Record the separately mergeable shutdown, its dependency order, emergency fallback and manual-script reach. Allocate the next free row after fetching main and preserving PR 232 rows 310 through 312.
+- **Why:** Owner explicitly requested an independent draft PR with reversible shared-key write shutdown.
+
+---
+
+## 2026-11-20 09:44 — Record standalone owner-maintenance Request contract
+- **File(s) changed:** `tests/fixtures/route_contract/routes.jsonl`
+- **What changed:** Refresh the one auth-only route snapshot for named actor attribution in transaction corrections.
+- **Why:** The auth branch must pass independently with only its deliberate route contract change.
+
+---
+
+## 2026-11-20 09:35 — Keep shutdown verification independent of inventory migration
+- **File(s) changed:** `tests/test_shared_key_shutdown.py`, `docs/named-actor-writes.md`
+- **What changed:** Fix the standalone refusal helper import and document this auth PR as the prerequisite for #232.
+- **Why:** The shutdown branch must carry no 098 runtime dependency and remain independently revertible.
+
+---
+
+## 2026-11-20 09:34 — Make shared-key shutdown test tree pass independently
+- **File(s) changed:** `tests/conftest.py`, `tests/test_shared_key_shutdown.py`, `tests/test_a12_review_fixes.py`, `tests/test_a12_shift_integration.py`, `tests/test_a7_review_fixes.py`, `tests/test_device_pins.py`, `tests/test_exceptions_enforcement.py`, `tests/test_expected_receipt_extract.py`, `tests/test_expected_receipts.py`, `tests/test_fl_assistant.py`, `tests/test_key_session_rebase.py`, `tests/test_key_sessions.py`, `tests/test_kosher_tiers.py`, `tests/test_make_entry_simplify.py`, `tests/test_notes_characterization.py`, `tests/test_oat_bran_shift_summary.py`, `tests/test_order_create_contract.py`, `tests/test_order_create_review.py`, `tests/test_order_tickets.py`, `tests/test_product_archive.py`, `tests/test_production_runs.py`, `tests/test_readonly_api_key.py`, `tests/test_released_by_attribution.py`, `tests/test_reset_shortage_close.py`, `tests/test_roles_a2.py`, `tests/test_sales_order_extract.py`, `tests/test_sales_order_state_model.py`, `tests/test_shift_summary.py`, `tests/test_ship_tickets.py`, `tests/test_supplier_lot_tickets.py`, `tests/test_trusted_browsers.py`, `tests/test_void_screen.py`, `tests/test_write_response_contract.py`, `tests/test_write_tickets.py`, `tests/test_direct_order_close_guard.py`
+- **What changed:** Carry only the corrected auth credential compatibility tests and add standalone default-denial/owner-scope tests without migration 098.
+- **Why:** The shared-key commit must be its own independently passing PR from main, with no receiving-integrity runtime changes.
+
+---
+
+## 2026-11-19 15:43 — Record the reproduced migration compatibility blocker
+- **File(s) changed:** `docs/deployments/no-stock-by-hand.md`
+- **What changed:** Mark the draft blocked, record origin/main before/after proof and the expired Claude Code login, and remove the false compatibility claim.
+- **Why:** Section A requires stopping and documenting a rule that cannot be built as written instead of choosing a different rule.
+
+---
+
+## 2026-11-19 15:42 — Correct named-owner scope identity and concurrency fixture wiring
+- **File(s) changed:** `main.py`, `tests/test_no_stock_by_hand.py`
+- **What changed:** Check the authenticated identity including key_kind for owner reach, and wire the existing isolated-database fixture dependency.
+- **Why:** Complete the already-approved owner-key reach independently of the documented migration compatibility conflict.
+
+---
+
+## 2026-11-19 15:39 — Include both moved lots in ingredient history
+- **File(s) changed:** `lot_trace.py`
+- **What changed:** Include effective paired-move participants even when a used placeholder lot never had positive stock-in.
+- **Why:** A wrong-lot move must remain visible on both lots without presenting it as a supplier receipt.
+
+---
+
+## 2026-11-19 15:38 — Isolate named test identities and retain shared-key security cases
+- **File(s) changed:** `tests/conftest.py`, `tests/test_actor_attribution.py`, `tests/test_direct_order_close_guard.py`, `tests/test_a6_review_fixes.py`, `tests/test_customer_tickets.py`, `tests/test_fl_assistant.py`, `tests/test_expected_receipts.py`
+- **What changed:** Reset actor snapshots per test, reuse the seeded owner in actor fixtures and keep explicit shared-key denial cases separate from named work.
+- **Why:** Prevent cross-database cache leakage and avoid testing old shared write policy after authentication now refuses it.
+
+---
+
+## 2026-11-19 15:38 — Attribute owner maintenance corrections to the named key
+- **File(s) changed:** `main.py`, `tests/test_no_stock_by_hand.py`
+- **What changed:** Pass the authenticated Request to append-only transaction corrections and verify amended receipt actor attribution.
+- **Why:** The newly reachable owner maintenance route must record the named person instead of a shared-key tag.
+
+---
+
+## 2026-11-19 15:38 — Keep explicit nonhuman credential tests on the shared key
+- **File(s) changed:** `tests/test_a12_review_fixes.py`, `tests/test_exceptions_enforcement.py`
+- **What changed:** Use the actual shared key in shared-only security cases and expect its new read-only refusal.
+- **Why:** Default helpers now name an owner; explicit shared-key scenarios must still test the shared credential.
+
+---
+
+## 2026-11-19 15:34 — Preserve plant-wide read fixtures and ordinary ticket hashes
+- **File(s) changed:** `tests/test_shift_summary.py`, `write_tickets.py`, `tests/test_readonly_tripwire.py`
+- **What changed:** Keep shared-key GET summaries plant-wide, omit unused paired ids from payloads, and give mocked DB-failure tests a named actor boundary.
+- **Why:** Read-only shared access is unchanged and unrelated ticket hashes and failure-path assertions must survive.
+
+---
+
+## 2026-11-19 15:33 — Keep the paired-move refusal explicit on short lots
+- **File(s) changed:** `ticket_actions.py`, `main.py`
+- **What changed:** Return PAIRED_MOVE_REQUIRED for standalone positive wrong-lot requests before the ordinary shortage-cover guard.
+- **Why:** A short lot is the normal paired-move case and must still direct the person to choose the lot really used.
+
+---
+
+## 2026-11-19 15:32 — Add real-browser stock safeguard workflow coverage
+- **File(s) changed:** `tests/visual/run-no-stock-by-hand.mjs`, `tests/test_no_stock_by_hand_browser.js`
+- **What changed:** Drive paired Adjust, Receive redirect, Found refusal and voided receipt prefill on real local HTTP/PostgreSQL.
+- **Why:** Verify all four requested screens without contacting staging or production.
+
+---
+
+## 2026-11-19 15:32 — Persist direct correction notes and destination receipts
+- **File(s) changed:** `main.py`, `stock_by_hand.py`
+- **What changed:** Store validated direct notes/order explanations, return destination details and reject nonfinite receiving quantities.
+- **Why:** Direct routes must preserve the same evidence and quantity rules as ticket postings.
+
+---
+
+## 2026-11-19 15:31 — Verify nightly hand-addition review and paired-move alerts
+- **File(s) changed:** `tests/test_no_stock_by_hand.py`, `dashboard/receipt.js`
+- **What changed:** Prove one email per large move, unchanged noningredient counts and named nightly review; preserve no-lot identity when receiving again.
+- **Why:** Complete reviewability without sending test email or losing receipt identity.
+
+---
+
+## 2026-11-19 15:30 — Prove effective receipt weights, named reach and concurrent stock guards
+- **File(s) changed:** `tests/test_no_stock_by_hand.py`
+- **What changed:** Add amended-pack, pre-go-live removal, Found origin, complete shared-route refusal matrix and simultaneous give-back proofs.
+- **Why:** Cover effective amendments, every authenticated write and commit-time serialization with real HTTP rows.
+
+---
+
+## 2026-11-19 15:28 — Use the existing ticket warning acknowledgement contract
+- **File(s) changed:** `tests/test_no_stock_by_hand.py`
+- **What changed:** Acknowledge receiving-again duplicate warnings through acknowledged_warnings.
+- **Why:** The receipt correction must retain the existing prepare/commit confirmation flow.
+
+---
+
+## 2026-11-19 15:28 — Preserve marker-off UI notes and load receipt rules
+- **File(s) changed:** `dashboard/ledger-ui.js`, `dashboard/entry.js`, `dashboard/receipt.js`
+- **What changed:** Keep old optional addition notes before go-live and fetch current rules before rendering Receive again.
+- **Why:** The receipt page loads directly rather than through ui.ready.
+
+---
+
+## 2026-11-19 15:28 — Gate dashboard additions and receipt correction on migration 098
+- **File(s) changed:** `resolution.py`, `dashboard/entry.js`, `dashboard/ledger-ui.js`, `dashboard/receipt.js`
+- **What changed:** Expose a SELECT-only rules flag through entry/lots and load it before showing new source labels, redirects and Receive again.
+- **Why:** Code deployed without the marker must keep the existing workflow.
+
+---
+
+## 2026-11-19 15:27 — Finish focused credential and receipt regression updates
+- **File(s) changed:** `tests/test_actor_attribution.py`, `tests/test_adjust_destinations.py`, `tests/test_no_stock_by_hand.py`
+- **What changed:** Keep explicit shared-key read/cache tests, use owner attribution for writes and acknowledge the duplicate warning on receiving again.
+- **Why:** Preserve existing warning confirmation and prove the intended credential change.
+
+---
+
+## 2026-11-19 15:23 — Update credential regression expectations for shared read-only access
+- **File(s) changed:** `tests/test_actor_attribution.py`, `tests/test_named_actor_writes.py`, `tests/test_dashboard_api_key.py`, `tests/test_adjust_destinations.py`
+- **What changed:** Use named-owner credentials for attribution work and assert shared write refusals without ledger changes.
+- **Why:** Preserve coverage of identity and scopes after the intentional shared-key shutdown.
+
+---
+
+## 2026-11-19 15:22 — Move legacy HTTP fixtures to a seeded named owner key
+- **File(s) changed:** `tests/test_a12_shift_integration.py`, `tests/test_a6_review_fixes.py`, `tests/test_audit_savepoints_lotcodes.py`, `tests/test_batch1_correctness_security.py`, `tests/test_customer_tickets.py`, `tests/test_daily_entries.py`, `tests/test_daily_reconciliation.py`, `tests/test_device_pins.py`, `tests/test_direct_order_close_guard.py`, `tests/test_expected_receipt_extract.py`, `tests/test_expected_receipts.py`, `tests/test_fl_assistant.py`, `tests/test_floor_packing_slip.py`, `tests/test_inventory_occurred_at.py`, `tests/test_key_session_rebase.py`, `tests/test_key_sessions.py`, `tests/test_lot_identity_047.py`, `tests/test_notes_auth.py`, `tests/test_notes_characterization.py`, `tests/test_oat_bran_shift_summary.py`, `tests/test_order_create_contract.py`, `tests/test_order_create_review.py`, `tests/test_order_tickets.py`, `tests/test_phase1_ledger_integrity.py`, `tests/test_product_archive.py`, `tests/test_production_runs.py`, `tests/test_production_warning.py`, `tests/test_recent_ledger.py`, `tests/test_recipe_corrections_078.py`, `tests/test_released_by_attribution.py`, `tests/test_roles_a2.py`, `tests/test_sales_order_allocations.py`, `tests/test_sales_order_extract.py`, `tests/test_sales_order_line_fields.py`, `tests/test_sales_order_readiness.py`, `tests/test_sales_order_state_model.py`, `tests/test_shift_summary.py`, `tests/test_supplies.py`, `tests/test_trace_emission.py`, `tests/test_trusted_browsers.py`, `tests/test_write_response_contract.py`, `tests/test_write_tickets.py`, `tests/test_write_tickets_part2.py`, `tests/named_key.py`, `tests/conftest.py`
+- **What changed:** Seed a local named owner through reference fixtures and patch existing HTTP fixtures to use its key.
+- **Why:** Exercise named writes with shared-key writes disabled by default.
+
+---
+
+## 2026-11-19 15:21 — Expand HTTP proofs for moves and direct receiving
+- **File(s) changed:** `tests/test_no_stock_by_hand.py`
+- **What changed:** Add invalid paired move, evidence close, void, no-giveback, no-pack, above-zero count, direct receive validation and receive-after-void tests.
+- **Why:** Prove refused requests write nothing and ordinary correction evidence stays intact.
+
+---
+
+## 2026-11-19 15:19 — Show both legs in lot history and strengthen direct guards
+- **File(s) changed:** `main.py`, `exceptions_enforcement.py`, `lot_trace.py`, `dashboard/lot-history.js`, `dashboard/ledger-ui.js`
+- **What changed:** Link real suppliers on direct preview, refuse merged corrections, preserve held reasons and show named paired moves with both legs.
+- **Why:** Keep route parity, historical hold compatibility and readable movement evidence.
+
+---
+
+## 2026-11-19 15:17 — Render paired adjustments as moves in shift summaries
+- **File(s) changed:** `shift_summary.py`, `tests/test_no_stock_by_hand.py`
+- **What changed:** Use the restored leg for before/after arithmetic and label the two-leg move; fix local lot-code fixture.
+- **Why:** A net-zero product move must still show the individual lot changes accurately.
+
+---
+
+## 2026-11-19 15:17 — Document migration 098 rollout and staff workflow
+- **File(s) changed:** `docs/deployments/no-stock-by-hand.md`, `docs/named-actor-writes.md`, `docs/operating-model/03-guide-arturo.md`, `docs/ARCHITECTURE-MAP.md`
+- **What changed:** Document gated rules, cumulative cap, bilingual staff guidance, credential reach, rollout and rollback.
+- **Why:** Make the change reviewable without applying it to staging or production.
+
+---
+
+## 2026-11-19 15:16 — Align count guidance and direct reason inputs
+- **File(s) changed:** `tests/test_no_stock_by_hand.py`, `main.py`, `dashboard/exceptions-guide.js`, `exceptions_enforcement.py`
+- **What changed:** Correct Make test input, accept direct note/order fields and explain shortage alternatives in both languages.
+- **Why:** Exercise the real Make schema and preserve destination/source parity across routes.
+
+---
+
+## 2026-11-19 15:15 — Add HTTP regression proofs for stock-by-hand rules
+- **File(s) changed:** `tests/test_no_stock_by_hand.py`
+- **What changed:** Cover both count routes at pack boundaries, cumulative cap, give-back, paired posting, shared-key refusal and receiving refusals.
+- **Why:** Verify real ledger rows rather than mock guard calls.
+
+---
+
+## 2026-11-19 15:14 — Connect addition sources and receipt correction screens
+- **File(s) changed:** `resolution.py`, `dashboard/ledger-ui.js`, `dashboard/entry.js`, `dashboard/receipt.js`, `reconciliation.py`
+- **What changed:** Add paired-lot picker, Receive redirects and voided-receipt prefill; review every ingredient hand addition nightly.
+- **Why:** Keep each delivery separate and expose both legs of wrong-lot moves.
+
+---
+
+## 2026-11-19 15:12 — Validate paired adjustments and previews
+- **File(s) changed:** `stock_by_hand.py`, `ticket_actions.py`
+- **What changed:** Validate paired lots in id order, show both balances, carry count context to posting and guard Found previews.
+- **Why:** Preserve atomic same-product moves and apply the same refusals at prepare and commit.
+
+---
+
+## 2026-11-19 15:12 — Enforce receiving and correction guards in posting cores
+- **File(s) changed:** `main.py`, `exceptions_enforcement.py`, `stock_by_hand.py`, `write_tickets.py`
+- **What changed:** Add shared-key shutdown and owner reach, receive guards, fixed reasons and locked correction guards; persist count usage and paired move legs.
+- **Why:** Make the owner-approved rules apply to all posting routes atomically.
+
+---
+
+## 2026-11-19 15:11 — Add marker-gated receiving and hand-stock guards
+- **File(s) changed:** `stock_by_hand.py`, `migrations/098_no_stock_by_hand.sql`, `migrations/down/098_no_stock_by_hand_down.sql`
+- **What changed:** Add effective-ledger guards, lifetime under-pack usage and paired-move identity storage; down restores old reason list.
+- **Why:** Section A: stop adjustments standing in for receiving, with the approved cumulative per-lot cap.
 
 ---
 

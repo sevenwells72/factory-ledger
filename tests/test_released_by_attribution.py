@@ -34,6 +34,7 @@ from fastapi.testclient import TestClient
 from psycopg2.extras import RealDictCursor
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 from tests.test_actor_attribution import actors  # noqa: F401  (DCC-001: named office writer)
 
 
@@ -92,7 +93,7 @@ KEYS = [
 
 
 def _headers(which):
-    key = main.DASHBOARD_API_KEY if which == "dashboard" else main.API_KEY
+    key = main.DASHBOARD_API_KEY if which == "dashboard" else NAMED_OWNER_KEY
     return {"X-API-Key": key}
 
 
@@ -207,6 +208,7 @@ def _assert_attribution(row, expected_tag):
 # 403 is asserted below so this stays a fact about the allowlist rather than
 # an untested gap.
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.db
 def test_line_cancel_records_the_caller_surface(client, db_cursor):
     seeded = _seed(db_cursor)
@@ -242,6 +244,7 @@ def test_line_cancel_is_master_key_only(client, db_cursor):
 # _expire_auto_fifo_allocations, so the row that proves it is an auto-FIFO
 # allocation whose TTL has elapsed. Shipping the product persists that expiry.
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.db
 @pytest.mark.parametrize("key,expected", KEYS)
 def test_ship_commit_records_the_caller_surface(client, db_cursor, key, expected):
@@ -278,6 +281,7 @@ def test_ship_commit_records_the_caller_surface(client, db_cursor, key, expected
 # Path 3 — legacy order cancel via PATCH .../status
 # ─────────────────────────────────────────────────────────────────
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.db
 @pytest.mark.parametrize("key,expected", KEYS)
 def test_legacy_status_cancel_records_the_caller_surface(client, db_cursor, key, expected):

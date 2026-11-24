@@ -13,6 +13,7 @@ import pytest
 from fastapi import HTTPException
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 import permissions
 import kosher_tiers
 import resolution_receipts
@@ -201,7 +202,7 @@ def test_only_an_owner_key_session_can_approve(client, actors, people, credentia
     other = approved(client, actors, 'Other')
     h = {'personal_owner_key': headers(actors['owner']['key']),
          'office_session': headers(owner_session(client, actors, 'office')),
-         'master': headers(main.API_KEY), 'dashboard': {'X-API-Key': main.DASHBOARD_API_KEY},
+         'master': headers(NAMED_OWNER_KEY), 'dashboard': {'X-API-Key': main.DASHBOARD_API_KEY},
          'selected_michael': as_person(other, people['michael']), 'no_key': {}}[credential]
     r = client.post('/auth/browsers/approve', headers=h, json={'pairing_code': req['pairing_code'], 'label': 'X'})
     assert r.status_code in (401, 403), (credential, r.text)
@@ -499,7 +500,7 @@ def test_resolver_exemption_writes_nothing(client, db_cursor, people):
 
 
 def test_credentialed_machine_keys_are_unchanged_with_selection_on(client, actors, people):
-    assert client.post('/make', json={}, headers=headers(main.API_KEY)).status_code == 422            # master
+    assert client.post('/make', json={}, headers=headers(NAMED_OWNER_KEY)).status_code == 422            # master
     assert client.get('/auth/whoami', headers=headers(actors['floor']['key'])).json()['key_kind'] == 'actor'
     assert client.post('/make', json={}, headers=headers(actors['floor']['key'])).status_code == 422  # actor key
     session = owner_session(client, actors, 'floor')
@@ -539,6 +540,7 @@ def test_public_dashboard_key_is_read_only_in_both_modes(client, db_cursor, monk
     assert _db_writes(db_cursor) == before
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_selection_on_then_off_keeps_every_real_credential_and_no_public_writes(client, db_cursor, monkeypatch, actors, people, payload):
     # ON: a tapped name records, attributed to that person.
     token = approved(client, actors)

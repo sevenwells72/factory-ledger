@@ -142,6 +142,7 @@ def test_stale_approval_keeps_hold_unposted(client,db_cursor,items,actors,change
     assert ticket_row(db_cursor,prepared)['status']=='awaiting_approval'
     assert posted_count(db_cursor,prepared)==0
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_shared_key_cannot_attest_or_create_unattributable_hold(client,db_cursor,items):
     prepared=prepare(client,'make',body('make',items)|{'confirmed_sku':True})
     result=commit(client,prepared)

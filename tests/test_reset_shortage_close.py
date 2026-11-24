@@ -72,6 +72,7 @@ def test_only_physical_count_and_the_exact_open_set(client, db_cursor, items, ac
     assert db_cursor.fetchone()['n'] == before    # refused, never drafted
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_shared_and_office_keys_cannot_close_shortages(client, db_cursor, items, actors):
     exception_id, _ = open_shortage(client, db_cursor, items, actors)
     error(client.post('/adjust/prepare', json=closing(items, 9, [exception_id]), headers=headers()), 403, 'ROLE_NOT_ALLOWED')

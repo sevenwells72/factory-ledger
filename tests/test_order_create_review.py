@@ -14,6 +14,7 @@ from pypdf import PdfReader
 import yaml
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 from tests.test_sales_order_line_fields import client  # noqa: F401
 from tests.test_named_actor_writes import named_actors  # noqa: F401
 from tests.test_order_create_contract import catalog, seed, payload, post, counts, ROOT, UP, DOWN  # noqa: F401
@@ -22,6 +23,7 @@ from tests.test_sales_order_extract import _insert_document, _approve_payload, _
 pytestmark = pytest.mark.db
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('path', ['manual', 'receipt', 'intake'])
 def test_rebased_creation_audits_each_target_exactly_once(client, db_cursor, catalog, named_actors, path):
     client.headers['X-API-Key'] = named_actors['Miriam']['key']
@@ -41,6 +43,9 @@ def test_rebased_creation_audits_each_target_exactly_once(client, db_cursor, cat
         del body['customer_id']
         body['customer_name'] = new_customer
         route, status = '/sales/orders', 200
+    # Earlier committed concurrency fixtures may have unrelated named audit rows.
+    db_cursor.execute('SELECT COALESCE(MAX(id),0) AS id FROM actor_write_audit')
+    audit_start = db_cursor.fetchone()['id']
     response = client.post(route, json=body)
     assert response.status_code == status, response.text
     result = response.json()
@@ -49,7 +54,7 @@ def test_rebased_creation_audits_each_target_exactly_once(client, db_cursor, cat
     if path != 'intake':
         db_cursor.execute('SELECT id FROM customers WHERE name=%s', (new_customer,))
         expected.add(('customers', db_cursor.fetchone()['id']))
-    db_cursor.execute('SELECT * FROM actor_write_audit ORDER BY id')
+    db_cursor.execute('SELECT * FROM actor_write_audit WHERE id>%s ORDER BY id', (audit_start,))
     audit = db_cursor.fetchall()
     assert len(audit) == len(expected) == {'manual': 4, 'receipt': 5, 'intake': 3}[path]
     assert {(r['target_table'], r['target_id']) for r in audit} == expected
@@ -300,6 +305,7 @@ def test_shipping_one_physical_line_does_not_finish_other_pending_lines(client, 
     assert response.json()['order_status'] == 'shipped'
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 @pytest.mark.parametrize('fail_audit', [False, True])
 def test_line_edit_audits_named_actor_atomically(client, db_cursor, catalog, named_actors, monkeypatch, fail_audit):
     created = post(client, payload(catalog))
@@ -488,7 +494,7 @@ def test_concurrent_new_customer_name_reference_returns_same_receipt(committed_c
         lock(cur, name, reference)
     monkeypatch.setattr(main, '_lock_order_customer_reference', rendezvous)
     with TestClient(main.app) as http, ThreadPoolExecutor(max_workers=2) as executor:
-        futures = [executor.submit(http.post, '/sales/orders', json=body, headers={'X-API-Key': main.API_KEY}) for _ in range(2)]
+        futures = [executor.submit(http.post, '/sales/orders', json=body, headers={'X-API-Key': NAMED_OWNER_KEY}) for _ in range(2)]
         responses = [f.result(timeout=20) for f in futures]
     assert [r.status_code for r in responses] == [200, 200], [r.text for r in responses]
     assert responses[0].json() == responses[1].json()
@@ -502,7 +508,7 @@ def test_concurrent_new_customer_name_reference_returns_same_receipt(committed_c
 def test_header_po_edit_races_create_with_same_po(committed_catalog, monkeypatch):
     catalog, _ = committed_catalog
     with TestClient(main.app) as http:
-        http.headers['X-API-Key'] = main.API_KEY
+        http.headers['X-API-Key'] = NAMED_OWNER_KEY
         original = post(http, payload(catalog, customer_po=None, external_order_reference='ORIGINAL'))
         gate = Barrier(2)
         lock = main._lock_customer_po

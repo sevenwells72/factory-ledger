@@ -10,6 +10,7 @@ import psycopg2
 import pytest
 
 import main
+from tests.named_key import KEY as NAMED_OWNER_KEY
 from tests.test_actor_attribution import actors, client  # noqa: F401
 from tests.test_trusted_browsers import migrated, people  # noqa: F401  (091 + the four names)
 
@@ -105,6 +106,7 @@ def test_only_michael_may_archive(client, db_cursor, people, archive_ready, tag,
     assert state(db_cursor, pid)['active'] is None
 
 
+@pytest.mark.usefixtures("legacy_shared_key_compat")
 def test_shared_keys_cannot_archive(client, db_cursor, archive_ready, tag):
     pid, _ = product(db_cursor, f'{tag} Item')
     master = client.post('/admin/products/archive', json={'product_ids': [pid]}, headers={'X-API-Key': main.API_KEY})
@@ -201,7 +203,7 @@ def test_history_lookup_and_search_still_show_archived(client, db_cursor, people
 def test_supplies_never_flag_archived_as_low(client, db_cursor, people, archive_ready, tag):
     pid, _ = product(db_cursor, f'{tag} Bag – Printed – BS 7 oz', 'packaging')
     db_cursor.execute('UPDATE products SET low_stock_threshold=100 WHERE id=%s', (pid,))
-    row = lambda: next(i for i in client.get('/supplies/inventory', headers={'X-API-Key': main.API_KEY}).json()['items']
+    row = lambda: next(i for i in client.get('/supplies/inventory', headers={'X-API-Key': NAMED_OWNER_KEY}).json()['items']
                        if i['product_id'] == pid)
     assert row()['is_low'] is True
     assert archive(client, [pid]).status_code == 200
