@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-24 14:18 — Staging proof for PR #234 recorded: shared key refused on 130 of 130 write routes, named owner stored on six maintenance routes (29 of 29 checks)
+- **File(s) changed:** `docs/deployments/shared-key-shutdown-staging.json`
+- **What changed:** Added the evidence file from the hosted FastAPI-staging proof of 2026-11-24 (branch head 4c559ce, Railway deployment 87a198ac, marker STG-234-E363E75E): shared key 403 SHARED_KEY_READ_ONLY on every authenticated non-GET route except the two lookups, no row added in 13 tables, lookups 200, a synthetic owner key recorded on Found, Found with new product, lot merge, lot reassign, certification and its correction (ledger row, trace event, lot audit row, history name); floor key refused. Not proven on staging: the SHARED_KEY_WRITES=allow switch (no staging setting was changed) and the tapped-name path. The two temporary staging people are inactive. No key or database address is in the file.
+- **Why:** Michael approved the staging deploy and proof on 2026-11-24 and asked for the evidence to be committed under docs/deployments like earlier releases.
+
+---
+
 ## 2026-11-24 14:02 — Second re-check corrections on PR #234: audit-failure test back on the owner key, tapped-name test, doc and row 314 wording — local worktree, not committed or pushed
 - **File(s) changed:** `tests/test_audit_savepoints_lotcodes.py`, `tests/test_shared_key_shutdown.py`, `docs/named-actor-writes.md`, `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** test_reassign_survives_audit_failure runs with the owner key again and overflows reason_code instead of performed_by; it now also asserts the actor_write_audit row survives the failed history insert. New test: Michael selected by name (no key) is recorded on lot merge and reassign. Doc: a tapped name needs no approved browser; the GPTs lose previews as well as writes (only GETs and POST /products/resolve survive); POST /products/quick-create added to the maintenance list; the Floor GPT statement marked as the owner's word in chat. Row 314 now says exactly what each route records. No main.py change since the 13:43 entry.
