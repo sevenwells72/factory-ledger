@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-24 15:03 — Record TRIAL pack correction of 2026-11-24 (changelog row 316)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added row 316: SS Chocolate Chip #2 TRIAL Nov 23 pack re-recorded at 20 lb a case (TX 3128 voided, TX 3135 PK-261123-005, 287 cases = 5,740 lb into BB112327); write-offs TX 3126/3127 and count entry TX 3129 voided; 3,305 lb recorded as loss (TX 3136, 3137, reason damaged_thrown_out, note says baking/process loss, not measured). Balances and the honey and oats forward traces verified after. Docs only; the postings were made in production through the owner ticket path.
+- **Why:** Michael approved the correction in chat on 2026-11-24 after a read-only audit found the pack booked at 25 lb a case; the record keeps the transaction IDs, the assumptions and the verification.
+
+---
+
 ## 2026-11-24 14:45 — PR #232 changelog: four draft rows collapsed into one row 315 before merge
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Rows 310, 311, 312 and the draft row 315 are replaced by a single row 315 describing what PR #232 changes, what it solved, what breaks if reverted and the files, and stating that migration 098 is written but not applied. Row order is now 315, 314, 313, 309. Numbers 310-312 are left unused.
