@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-24 14:25 — Record PR 234 production deploy: shared key read-only, named owner recorded (changelog row 314)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Row 314 now reads DEPLOYED 2026-11-24 with the release record: staging proof (29 of 29), verified backup 2026-11-24-pre-234-shared-key-run3, squash merge to main b7af91e, Railway production deployment 922bb903 SUCCESS, and the read-only production check (shared key 403 on POST /adjust with an empty body; three lookups 200). Records the owner's statements about the GPTs and the production ledger as his, not as checked here. No code change.
+- **Why:** Regression Guard step 4: record the deploy in the changelog straight after it. Michael approved the merge and production deploy in chat on 2026-11-24.
+
+---
+
 ## 2026-11-24 14:18 — Staging proof for PR #234 recorded: shared key refused on 130 of 130 write routes, named owner stored on six maintenance routes (29 of 29 checks)
 - **File(s) changed:** `docs/deployments/shared-key-shutdown-staging.json`
 - **What changed:** Added the evidence file from the hosted FastAPI-staging proof of 2026-11-24 (branch head 4c559ce, Railway deployment 87a198ac, marker STG-234-E363E75E): shared key 403 SHARED_KEY_READ_ONLY on every authenticated non-GET route except the two lookups, no row added in 13 tables, lookups 200, a synthetic owner key recorded on Found, Found with new product, lot merge, lot reassign, certification and its correction (ledger row, trace event, lot audit row, history name); floor key refused. Not proven on staging: the SHARED_KEY_WRITES=allow switch (no staging setting was changed) and the tapped-name path. The two temporary staging people are inactive. No key or database address is in the file.
