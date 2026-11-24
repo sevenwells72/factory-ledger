@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-24 15:03 — Record TRIAL pack correction of 2026-11-24 (changelog row 316)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added row 316: SS Chocolate Chip #2 TRIAL Nov 23 pack re-recorded at 20 lb a case (TX 3128 voided, TX 3135 PK-261123-005, 287 cases = 5,740 lb into BB112327); write-offs TX 3126/3127 and count entry TX 3129 voided; 3,305 lb recorded as loss (TX 3136, 3137, reason damaged_thrown_out, note says baking/process loss, not measured). Balances and the honey and oats forward traces verified after. Docs only; the postings were made in production through the owner ticket path.
+- **Why:** Michael approved the correction in chat on 2026-11-24 after a read-only audit found the pack booked at 25 lb a case; the record keeps the transaction IDs, the assumptions and the verification.
+
+---
+
 ## 2026-11-24 14:50 — Record PR 232 production deploy: receiving-integrity code live with the rules off, migration 098 not applied (changelog row 315)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Row 315 now reads CODE DEPLOYED 2026-11-24, rules OFF, with the release record: verified backup 2026-11-24-pre-232-receiving-run1, squash merge to main b836765 without a Netlify skip marker, Railway production deployment f2a949c9 SUCCESS, Netlify serving all five changed dashboard files, and the read-only check that marker 098 and table paired_lot_moves are absent. No code change.
