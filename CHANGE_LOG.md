@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-24 14:50 — Record PR 232 production deploy: receiving-integrity code live with the rules off, migration 098 not applied (changelog row 315)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Row 315 now reads CODE DEPLOYED 2026-11-24, rules OFF, with the release record: verified backup 2026-11-24-pre-232-receiving-run1, squash merge to main b836765 without a Netlify skip marker, Railway production deployment f2a949c9 SUCCESS, Netlify serving all five changed dashboard files, and the read-only check that marker 098 and table paired_lot_moves are absent. No code change.
+- **Why:** Regression Guard step 4: record the deploy straight after it. Michael approved the merge and production deploy in chat on 2026-11-24 and said not to apply migration 098.
+
+---
+
 ## 2026-11-24 14:45 — PR #232 changelog: four draft rows collapsed into one row 315 before merge
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Rows 310, 311, 312 and the draft row 315 are replaced by a single row 315 describing what PR #232 changes, what it solved, what breaks if reverted and the files, and stating that migration 098 is written but not applied. Row order is now 315, 314, 313, 309. Numbers 310-312 are left unused.
