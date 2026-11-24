@@ -86,6 +86,7 @@ class Mailbox:
 
 # ── gate: without migration 096 nothing changes ─────────────────────────────
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_without_migration_096_the_old_rules_hold(client, db_cursor, items, actors):
     key = actors['floor']['key']
     assert a3b.destination_rules(db_cursor) is False
@@ -171,6 +172,10 @@ def test_wrong_lot_and_data_entry_error_remove_stock_only_with_a_note(client, db
     assert 'Used lot B by mistake' in txn['notes']
     # A sales order does not belong on these, and the note rule is for removals only:
     refuse(client, adjust(items, -8, reason, note='n', sales_order_id=1), key, 422, 'SALES_ORDER_NOT_APPLICABLE')
+    from tests.stock_rule_helpers import enabled
+    if enabled(db_cursor):
+        refuse(client, adjust(items, 8, reason), key, 422, 'NOTE_REQUIRED')
+        return
     added = prepare(client, 'adjust', adjust(items, 8, reason), key)             # adding stock: note still optional
     assert added['can_commit'] and added['draft']['reason']['note_required'] is False
 
@@ -244,6 +249,7 @@ def test_count_correction_cause_unknown_needs_a_note_and_is_highlighted(client, 
     assert commit(client, prepared, key).status_code == 200
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_adding_stock_keeps_the_old_reasons_and_never_takes_a_destination(client, db_cursor, items, actors, migrated):
     key = actors['floor']['key']
     for reason in DESTINATIONS:
@@ -285,9 +291,11 @@ def test_over_500_lb_posts_at_once_without_a_photo_and_queues_the_owner_email(cl
 
 @pytest.mark.parametrize('delta,queued', [(-500, False), (-500.5, True), (501, True), (499, False)])
 def test_the_line_is_strictly_over_500_lb_either_direction(client, db_cursor, items, actors, migrated, delta, queued):
+    from tests.stock_rule_helpers import manufactured_count
+    manufactured_count(db_cursor, items)
     key = actors['floor']['key']
     set_balance(db_cursor, items, 'ingredient', 5000.0)
-    reason = 'damaged_thrown_out' if delta < 0 else 'missing_receipt'
+    reason = 'damaged_thrown_out' if delta < 0 else 'physical_count'
     assert commit(client, prepare(client, 'adjust', adjust(items, delta, reason), key), key).status_code == 200
     assert len(alerts(db_cursor)) == (1 if queued else 0)
 
@@ -336,7 +344,7 @@ def test_direct_legacy_adjust_route_also_queues_the_email(client, db_cursor, ite
     db_cursor.execute('SELECT lot_code FROM lots WHERE id=%s', (items['ingredient']['lot_id'],))
     response = client.post('/adjust', headers=headers(), json={
         'mode': 'commit', 'product_name': items['ingredient']['name'], 'lot_code': db_cursor.fetchone()['lot_code'],
-        'adjustment_lb': -650, 'reason': 'damage', 'reason_es': 'daño'})
+        'adjustment_lb': -650, 'reason': 'damaged_thrown_out', 'reason_es': 'daño'})
     assert response.status_code == 200, response.text
     [alert] = alerts(db_cursor)
     assert alert['transaction_id'] == response.json()['transaction_id'] and float(alert['lb']) == -650.0
@@ -382,10 +390,12 @@ def test_email_names_product_lot_pounds_person_reason_destination_and_photo(clie
 
 
 def test_email_without_photo_or_order_says_so(client, db_cursor, items, actors, migrated):
+    from tests.stock_rule_helpers import manufactured_count
+    manufactured_count(db_cursor, items)
     key = actors['floor']['key']
     set_balance(db_cursor, items, 'ingredient', 2000.0)
     commit(client, prepare(client, 'adjust', adjust(items, -600, 'sent_to_sunshine_bulk'), key), key)
-    commit(client, prepare(client, 'adjust', adjust(items, 800, 'missing_receipt'), key), key)
+    commit(client, prepare(client, 'adjust', adjust(items, 800, 'physical_count'), key), key)
     mailbox = Mailbox()
     result = adjustment_alerts.deliver(cursor_transaction(db_cursor), env=EMAIL_ENV | {'ENVIRONMENT': 'staging'}, send=mailbox)
     assert (result['status'], result['count'], result['sent']) == ('sent', 2, 2)
@@ -502,10 +512,12 @@ def later(db_cursor, interval='10 minutes'):
 
 
 def test_every_attempt_carries_the_alerts_own_idempotency_key(client, db_cursor, items, actors, migrated, order, monkeypatch):
+    from tests.stock_rule_helpers import manufactured_count
+    manufactured_count(db_cursor, items)
     resend = FakeResend(monkeypatch)
     large_removal(client, db_cursor, items, actors, order)
     key = actors['floor']['key']
-    commit(client, prepare(client, 'adjust', adjust(items, 800, 'missing_receipt'), key), key)
+    commit(client, prepare(client, 'adjust', adjust(items, 800, 'physical_count'), key), key)
     first, second = alerts(db_cursor)
     assert first['idempotency_key'] != second['idempotency_key']
     assert all(a['idempotency_key'].startswith('fl-adjustment-alert/') and len(a['idempotency_key']) <= 256 and a['message'] is None
@@ -548,6 +560,8 @@ def test_an_interrupted_delivery_retried_later_is_not_sent_twice(client, db_curs
 
 def test_a_retry_reuses_the_first_attempts_sender_and_recipients_whatever_the_settings_say_now(
         client, db_cursor, items, actors, migrated, order, monkeypatch):
+    from tests.stock_rule_helpers import manufactured_count
+    manufactured_count(db_cursor, items)
     """Codex review 5979661076 #1. The first attempt was accepted and its answer lost; the settings
     then change (or the retry runs on the other service, configured differently). The retry must
     send the ORIGINAL from/to, or Resend sees a different payload under the same key and refuses."""
@@ -571,7 +585,7 @@ def test_a_retry_reuses_the_first_attempts_sender_and_recipients_whatever_the_se
     assert (alert['status'], alert['email_to'], alert['provider_id']) == ('sent', 'owner@example.test', 'msg_1')
     # The new settings apply to alerts first sent after the change.
     key = actors['floor']['key']
-    commit(client, prepare(client, 'adjust', adjust(items, 800, 'missing_receipt'), key), key)
+    commit(client, prepare(client, 'adjust', adjust(items, 800, 'physical_count'), key), key)
     assert adjustment_alerts.deliver(cursor_transaction(db_cursor), env=changed_settings)['status'] == 'sent'
     assert resend.requests[-1]['body']['from'] == 'Other Sender <other@example.test>'
     assert resend.requests[-1]['body']['to'] == ['someone-else@example.test', 'second@example.test']
@@ -860,6 +874,7 @@ def test_nightly_sweep_hook_never_raises(monkeypatch, capsys):
 
 # ── 3. what stays ───────────────────────────────────────────────────────────
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_never_add_stock_to_cover_a_shortage_is_unchanged(client, db_cursor, items, actors, migrated):
     key = actors['floor']['key']
     open_shortage(client, db_cursor, items, actors)
@@ -870,6 +885,8 @@ def test_never_add_stock_to_cover_a_shortage_is_unchanged(client, db_cursor, ite
 
 
 def test_counted_shortage_close_over_500_lb_no_longer_needs_a_photo(client, db_cursor, items, actors, migrated):
+    from tests.stock_rule_helpers import manufactured_count
+    manufactured_count(db_cursor, items)
     key = actors['floor']['key']
     exception_id, _ = open_shortage(client, db_cursor, items, actors)
     # Evidence rules stay: a count is still required to close as counted.
@@ -895,6 +912,7 @@ def test_owner_count_ticket_that_closes_shortages_keeps_physical_count(client, d
     assert exceptions_for(db_cursor, id=exception_id)[0]['resolution_kind'] == 'counted'
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_a_hold_from_before_the_change_can_still_be_approved(client, db_cursor, items, actors):
     prepared, exception_id = hold(client, db_cursor, items, actors)           # old rules: held without a photo
     set_balance(db_cursor, items, 'ingredient', 2000.0)
@@ -913,6 +931,7 @@ def test_a_hold_from_before_the_change_can_still_be_approved(client, db_cursor, 
     assert len(alerts(db_cursor)) == 2                                         # both crossed 500 lb: the owner still gets the email
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_a_hold_from_before_the_change_posts_when_committed_again(client, db_cursor, items, actors):
     prepared, exception_id = hold(client, db_cursor, items, actors)
     db_cursor.execute(MIGRATION.read_text())
@@ -923,6 +942,7 @@ def test_a_hold_from_before_the_change_posts_when_committed_again(client, db_cur
     assert main.lot_on_hand(db_cursor, items['ingredient']['lot_id']) == 700.0
 
 
+@pytest.mark.usefixtures("pre_098_contract")
 def test_a_hold_from_before_the_change_can_still_be_rejected(client, db_cursor, items, actors):
     prepared, exception_id = hold(client, db_cursor, items, actors)
     db_cursor.execute(MIGRATION.read_text())

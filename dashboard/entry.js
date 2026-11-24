@@ -4,6 +4,12 @@
   const content=document.getElementById('content'),draft=document.getElementById('resolution');
   const actions=[['receive','Receive','Recibir'],['adjust','Adjust','Ajustar'],['found','Found inventory','Inventario encontrado'],['make','Make','Producir'],['pack','Pack','Empacar'],['ship','Ship','Enviar']];
   const reasonLabels=ui.correctionReasons;
+  let stockRules=false,stockRulesRequest=null;
+  async function loadStockRules(){
+    if(!['receive','adjust','found'].includes(action))return;
+    if(!stockRulesRequest)stockRulesRequest=ui.request('/entry/lots?rules_only=true',undefined,{read:true,background:true}).then(data=>{stockRules=!!data.no_stock_by_hand;}).catch(()=>{});
+    await stockRulesRequest;
+  }
   let controller=null,revision=0,syncOwnerControl=()=>{},makeCarry=null,makeKey=null,attemptId=null;
   // Make: lots, pounds and taps entered on a draft survive "Edit entry", Cancel and a
   // failed prepare; they are reused when the product and pans are unchanged.
@@ -48,7 +54,7 @@
     return {set(candidate,settings={}){clearTimeout(timer);generation++;value=candidate;input.value=candidate.label;ui.setText(status,ui.t('Selected: '+candidate.label,'Seleccionado: '+candidate.label));show([]);changed(candidate,settings);},get value(){return value;},id(){if(!value)throw ui.problem(ui.t('Choose '+en,'Elige '+es));return value.id;},clear(){input.value='';reset();},input};
   }
   function render(){if(!FLDashboard.writesEnabled)return;invalidate();makeCarry=null;makeKey=null;attemptId=newAttempt();content.replaceChildren();const toolbar=ui.el('div',undefined,content);toolbar.className='toolbar';
-    const l=ui.el('label',ui.t('Entry type','Tipo de entrada'),toolbar),select=ui.el('select',undefined,l);select.id='entry-action';actions.forEach(([v,en,es])=>{const o=ui.el('option',ui.t(en,es),select);o.value=v;});select.value=action;select.onchange=()=>{action=select.value;const url=new URL(location.href);url.searchParams.set('action',action);history.replaceState({},'',url);render();};
+    const l=ui.el('label',ui.t('Entry type','Tipo de entrada'),toolbar),select=ui.el('select',undefined,l);select.id='entry-action';actions.forEach(([v,en,es])=>{const o=ui.el('option',ui.t(en,es),select);o.value=v;});select.value=action;select.onchange=async()=>{action=select.value;invalidate();content.replaceChildren();const url=new URL(location.href);url.searchParams.set('action',action);history.replaceState({},'',url);await loadStockRules();render();};
     const form=ui.el('form',undefined,content);form.id='entry-form';form.className='panel';const fields=ui.el('div',undefined,form);fields.className='fields';const values={},choices={};
     function field(name,en,es,type='text',required=false,parent=fields){const label=ui.el('label',ui.t(en,es),parent),input=ui.el(type==='textarea'?'textarea':'input',undefined,label);input.name=name;if(type!=='textarea')input.type=type;input.required=required;if(type==='number')input.step='any';values[name]=input;return input;}
     function choose(name,en,es,kind='product',context,changed,parent=fields){return choices[name]=picker(parent,name,en,es,kind,context,changed);}
@@ -57,20 +63,23 @@
     // list is refilled whenever the pounds change. `fill` also takes FL's own list after a refusal.
     function reason(){const label=ui.el('label',ui.t('Reason','Motivo'),fields),s=ui.el('select',undefined,label);s.name='reason_code';s.required=true;
       const fill=list=>{const keep=s.value;s.replaceChildren();ui.el('option',list.length||action==='found'?ui.t('Choose reason','Elige motivo'):ui.t('Enter the change in lb first','Primero escribe el cambio en lb'),s).value='';list.forEach(([v,en,es])=>{const o=ui.el('option',ui.t(en,es),s);o.value=v;});s.value=list.some(([v])=>v===keep)?keep:'';};
-      fill(action==='found'?reasonLabels.filter(([v])=>['physical_count','missing_receipt','missing_production','unknown'].includes(v)):ui.adjustReasons(values.delta_lb?.value));values.reason_code=s;return fill;}
+      fill(action==='found'?reasonLabels.filter(([v])=>['physical_count','missing_receipt','missing_production','unknown'].includes(v)):ui.adjustReasons(values.delta_lb?.value,stockRules));values.reason_code=s;return fill;}
     let adjustRefused=()=>{};
     let changes=[],overrides=[],allocations=[],orderLines=[],standaloneLots=null,shipmentLotSelectors=[],recentSourceLot=null,formAttachment=null,formPhotoFile=null,formPhotoStatus=null,formPhotoType=null,photoPending=false,syncReceiveLotControl=()=>{};
     if(['receive','found','make'].includes(action))choose('product','Product','Producto',action==='make'?'make_product':'product',undefined,()=>{if(action==='found'){choices.known_lot?.clear();if(values.lot_code)values.lot_code.value='';}if(action==='receive')syncReceiveLotControl();});
     if(action==='receive'){choose('supplier','Supplier','Proveedor','supplier');field('cases','Cases / containers received','Cajones / envases recibidos','number',true).step='1';field('case_size_lb','lb per case / container','lb por cajón / envase','number',true);field('bol_reference','BOL / delivery reference','BOL / referencia de entrega','text',true);const supplierLot=field('supplier_lot_code','Supplier lot','Lote del proveedor'),noLot=field('no_supplier_lot','No lot on label','Sin lote en la etiqueta','checkbox');noLot.parentElement.className='check';const lotHelp=ui.el('p',ui.t('For ingredients, enter the supplier lot or select No lot on label. Unidentified lots must be identified within 7 business days.','Para ingredientes, escribe el lote del proveedor o selecciona Sin lote en la etiqueta. Los lotes sin identificar deben identificarse en 7 días hábiles.'),fields);lotHelp.className='wide muted';syncReceiveLotControl=()=>{const required=choices.product.value?.supplier_lot_required,ingredient=required!==false&&(choices.product.value?.type||'ingredient')==='ingredient';supplierLot.required=required===true&&!noLot.checked;noLot.parentElement.hidden=!ingredient;noLot.disabled=!ingredient;lotHelp.hidden=!ingredient;if(!ingredient)noLot.checked=false;};noLot.onchange=()=>{syncReceiveLotControl();invalidate();};syncReceiveLotControl();field('lot_code','FL lot code (optional)','Código de lote FL (opcional)');field('note','Note (optional)','Nota (opcional)','textarea').maxLength=2000;}
-    if(action==='adjust'){choose('lot','Lot to adjust','Lote a ajustar','lot');const delta=field('delta_lb','Change in lb (negative removes stock)','Cambio en lb (negativo resta inventario)','number',true),fillReasons=reason();
+    if(action==='adjust'){let syncPair=()=>{};choose('lot','Lot to adjust','Lote a ajustar','lot',undefined,()=>{choices.paired_lot?.clear();syncPair();});const delta=field('delta_lb','Change in lb (negative removes stock)','Cambio en lb (negativo resta inventario)','number',true),fillReasons=reason();
       const hint=ui.el('p','',fields);hint.className='wide muted';hint.setAttribute('role','status');hint.dataset.adjustHint='';
       // "Shipped but not recorded" names the sales order: an explanation only, the order itself is not changed.
       const orderBox=ui.el('div',undefined,fields);orderBox.className='wide fields';orderBox.hidden=true;orderBox.dataset.destinationOrder='';
       choose('destination_order','Sales order it shipped on','Pedido de venta con el que se envió','order',undefined,undefined,orderBox);
+      const pairBox=ui.el('div',undefined,fields);pairBox.className='wide';pairBox.hidden=true;
+      choose('paired_lot','Lot that was really used','Lote que se usó realmente','lot',()=>({product_id:choices.lot.value?.product_id}),undefined,pairBox);
+      syncPair=()=>{pairBox.hidden=!(choices.lot.value?.purchased_ingredient&&Number(delta.value)>0&&values.reason_code.value==='wrong_lot');};
       const note=field('note','Note','Nota','textarea');
-      const syncAdjust=()=>{const n=Number(delta.value),code=values.reason_code.value;orderBox.hidden=!(n<0&&code===ui.orderDestination);note.required=ui.adjustNoteRequired(code,delta.value);
+      const syncAdjust=()=>{const n=Number(delta.value),code=values.reason_code.value;orderBox.hidden=!(n<0&&code===ui.orderDestination);note.required=ui.adjustNoteRequired(code,delta.value,stockRules);
         ui.setText(hint,n<0?ui.t('Removing stock: choose where it went. If it was never really on this lot, choose Wrong lot used or Data-entry error and write a note.','Para quitar inventario: elige a dónde se fue. Si en realidad nunca estuvo en este lote, elige Lote equivocado o Error de captura y escribe una nota.'):n>0?ui.t('Adding stock: choose why.','Para agregar inventario: elige el motivo.'):'');};
-      delta.oninput=()=>{fillReasons(ui.adjustReasons(delta.value));syncAdjust();};values.reason_code.onchange=syncAdjust;
+      delta.oninput=()=>{fillReasons(ui.adjustReasons(delta.value,stockRules));syncAdjust();syncPair();};values.reason_code.onchange=()=>{if(stockRules&&Number(delta.value)>0&&values.reason_code.value==='missing_receipt'){const lot=choices.lot.value;sessionStorage.setItem('fl-receive-carry',JSON.stringify({product_id:lot?.product_id,product_name:lot?.product_name,pounds:Number(delta.value)}));location.href=FLReceipts.page('entry.html',{action:'receive'});return;}syncAdjust();syncPair();};
       // FL refused the reason and sent its own list (for example an API still on the old rules): offer exactly that list.
       adjustRefused=error=>{const list=error?.result?.detail?.valid_reasons;if(!Array.isArray(list)||!list.length)return;fillReasons(list.map(r=>[r.code,r.label_en,r.label_es]));syncAdjust();form.hidden=false;};}
     if(action==='found'){choose('known_lot','Known FL lot (optional)','Lote FL conocido (opcional)','lot',()=>({product_id:choices.product.id()}),selected=>{if(values.lot_code)values.lot_code.value=selected?.lot_code||'';});field('quantity','Found lb','lb encontradas','number',true);reason();field('notes','Note — English','Nota — inglés','textarea');field('notes_es','Note — Spanish','Nota — español','textarea');field('found_location','Found location','Lugar del hallazgo');field('supplier_lot_code','Supplier lot, if known','Lote de proveedor, si se conoce');field('lot_code','FL lot code (optional)','Código de lote FL (opcional)');}
@@ -149,6 +158,18 @@
       mode.onchange=()=>{order.hidden=mode.value!=='order';standalone.hidden=mode.value!=='standalone';shipmentLotSelectors.forEach(selector=>selector.syncEnabled());invalidate();};field('bol_reference','BOL number','Número BOL','text',true);
       ui.el('p',ui.t('Attach the signed BOL photo here or on the draft. FL shows any pending-photo deadline.','Adjunta la foto del BOL firmado aquí o en el borrador. FL muestra el plazo de la foto pendiente.'),fields).className='wide';
     }
+    if(action==='receive'){
+      let carry;try{carry=JSON.parse(sessionStorage.getItem('fl-receive-carry')||'null');sessionStorage.removeItem('fl-receive-carry');}catch(_){}
+      if(carry){
+        if(carry.product_id)choices.product.set({id:carry.product_id,label:carry.product_name||String(carry.product_id)});
+        if(carry.supplier_id)choices.supplier.set({id:carry.supplier_id,label:carry.supplier_name||String(carry.supplier_id)});
+        for(const key of ['lot_code','supplier_lot_code','bol_reference'])if(carry[key]!=null)values[key].value=carry[key];
+        if(carry.no_supplier_lot)values.no_supplier_lot.checked=true;
+        // A total weight cannot establish the receipt's real pack size.
+        values.cases.value='';values.case_size_lb.value='';
+        syncReceiveLotControl();
+      }
+    }
     if(action==='ship'&&initial.get('order')){const id=initial.get('order');initial.delete('order');ui.request('/sales/orders/'+encodeURIComponent(id),undefined,{background:true}).then(order=>choices.order.set({id:order.order_id,label:order.order_number},{background:true})).catch(ui.failure);}
     field('occurred_at','When it happened — New York time (blank = now)','Cuándo ocurrió — hora de Nueva York (vacío = ahora)','datetime-local');const backfill=field('backfill','Owner backfill','Registro histórico por propietario','checkbox');syncOwnerControl=()=>{const owner=ui.session?.actor?.role==='owner';backfill.parentElement.hidden=!owner;backfill.disabled=!owner;if(!owner)backfill.checked=false;};syncOwnerControl();
     if(['receive','ship'].includes(action)){
@@ -165,7 +186,7 @@
       const body={client_source:'dashboard'};for(const [name,input] of Object.entries(values)){if(input.disabled||['ship_mode','ship_all','quantity_lb','order_reference'].includes(name))continue;if(input.type==='checkbox'){body[name]=input.checked;}else if(input.value!==''){body[name]=input.type==='number'?Number(input.value):input.value;}}
       let path='/'+action+'/prepare';
       if(['receive','found','make'].includes(action))body.product_id=choices.product.id();if(action==='receive'){body.supplier_id=choices.supplier.id();if(values.supplier_lot_code.required&&!values.supplier_lot_code.value.trim())throw ui.problem(ui.t('Enter the supplier lot, or select No lot on label.','Escribe el lote del proveedor o selecciona Sin lote en la etiqueta.'));}
-      if(action==='adjust'){body.lot_id=choices.lot.id();if(Number(body.delta_lb)<0&&body.reason_code===ui.orderDestination)body.sales_order_id=choices.destination_order.id();}if(action==='found')path='/inventory/found/prepare';
+      if(action==='adjust'){body.lot_id=choices.lot.id();if(Number(body.delta_lb)>0&&body.reason_code==='wrong_lot'&&choices.lot.value?.purchased_ingredient)body.paired_lot_id=choices.paired_lot.id();if(Number(body.delta_lb)<0&&body.reason_code===ui.orderDestination)body.sales_order_id=choices.destination_order.id();}if(action==='found')path='/inventory/found/prepare';
       let carried=[];if(action==='make'){body.formula_entry=true;body.entry_attempt_id=attemptId;makeKey={product_id:body.product_id,batches:body.batches};body.ingredient_lines=[];
         if(makeCarry&&makeCarry.product_id===body.product_id&&makeCarry.batches===body.batches){body.ingredient_lines=makeCarry.lines;carried=makeCarry.confirmations||[];}body.substitutions=changes.map(c=>{if(!c.reason.value)throw ui.problem(ui.t('Choose a reason for every substitution.','Elige un motivo para cada sustitución.'));if(c.reason.value==='other'&&!c.note.value.trim())throw ui.problem(ui.t('Write a note for a substitution with reason Other.','Escribe una nota para una sustitución con motivo Otro.'));return {ingredient_product_id:c.original.id(),substitute_product_id:c.replacement.id(),lot_id:c.lot.id(),reason_code:c.reason.value,...(c.note.value.trim()?{note:c.note.value.trim()}:{})};});}
       if(action==='pack'){body.source_product_id=choices.source.id();body.target_product_id=choices.target.id();if(recentSourceLot){const weight=Number(values.case_weight_lb.value||choices.target.value?.case_size_lb);if(!(weight>0))throw ui.problem(ui.t('Enter lb per case to use the selected batch.','Escribe lb por cajón para usar el lote seleccionado.'));body.lot_allocations=[{lot_id:recentSourceLot.lot_id||recentSourceLot.id,quantity_lb:Number(values.cases.value)*weight}];}else if(allocations.length)body.lot_allocations=allocations.map(c=>({lot_id:c.lot.id(),quantity_lb:Number(c.qty.value)}));}
@@ -178,5 +199,5 @@
   }
   function syncTodayLink(){const link=document.getElementById('today-entries-link');if(link)link.href='receipt.html?view=today&lang='+ui.lang;}syncTodayLink();
   // Relabel in place: a language switch never clears the half-filled form or an open draft.
-  window.addEventListener('ledger-auth',()=>syncOwnerControl());window.addEventListener('ledger-language',()=>{ui.relabel();syncTodayLink();});window.addEventListener('ledger-signout',render);ui.ready.then(on=>{if(on)render();}).catch(()=>{});
+  window.addEventListener('ledger-auth',()=>syncOwnerControl());window.addEventListener('ledger-language',()=>{ui.relabel();syncTodayLink();});window.addEventListener('ledger-signout',render);ui.ready.then(async on=>{if(on){await loadStockRules();render();}}).catch(()=>{});
 })();

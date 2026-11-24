@@ -101,6 +101,8 @@ def test_order_detail_header_id_can_receive_photo(client, db_cursor, actors):
 
 
 def test_held_correction_never_reports_success(client, db_cursor, items, actors):
+    from tests.stock_rule_helpers import manufactured_count
+    manufactured_count(db_cursor, items)
     p = prepare(client, 'adjust', body('adjust', items) | {'delta_lb':600}, actors['floor']['key'])
     r = commit(client, p, actors['floor']['key'])
     assert r.status_code == 202, r.text

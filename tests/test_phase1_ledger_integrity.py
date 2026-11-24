@@ -152,7 +152,7 @@ def test_floor_adjust_route_then_append_only_void(_db_connection, phase1_client)
     with _db_connection.cursor(cursor_factory=RealDictCursor) as cur:
         cur.execute(
             """INSERT INTO products (name, type, active)
-               VALUES ('PHASE1-FLOOR-SMOKE', 'ingredient', true)
+               VALUES ('PHASE1-FLOOR-SMOKE', 'batch', true)
                RETURNING id"""
         )
         product_id = cur.fetchone()["id"]
@@ -169,7 +169,7 @@ def test_floor_adjust_route_then_append_only_void(_db_connection, phase1_client)
             "product_name": "PHASE1-FLOOR-SMOKE",
             "lot_code": "PHASE1-FLOOR-SMOKE-LOT",
             "adjustment_lb": 0.01,
-            "reason": "PHASE1 FLOOR 2.0 COMPATIBILITY SMOKE TEST",
+            "reason": "physical_count",
         },
     )
     assert written.status_code == 200, written.text

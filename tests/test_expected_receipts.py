@@ -299,6 +299,8 @@ def test_over_receipt_closes_and_remaining_floors_at_zero(client, cur):
 
 @pytest.mark.db
 def test_receipt_with_unknown_supplier_or_no_open_record_posts_unlinked(client, cur):
+    # Explicit pre-098 supplier acceptance contract; this module owns its rollback.
+    cur.execute("DELETE FROM migration_markers WHERE name='098_no_stock_by_hand'")
     pname = "FR2 Salt Unlinked"
     pid = _seed_product(cur, pname)
     _seed_supplier(cur, "Known Salt Co")
@@ -562,6 +564,8 @@ def test_created_by_is_caller_source_tag_never_a_fake_user_id(client, cur):
 
 @pytest.mark.db
 def test_inactive_supplier_is_excluded_from_resolution_and_auto_match(client, cur):
+    # Explicit pre-098 supplier acceptance contract; this module owns its rollback.
+    cur.execute("DELETE FROM migration_markers WHERE name='098_no_stock_by_hand'")
     """Deactivated suppliers: rejected by createExpectedReceipt (422 SUPPLIER_INACTIVE),
     absent from candidates and GET /suppliers, and never auto-matched by receiving —
     even for an open record created while the supplier was still active."""

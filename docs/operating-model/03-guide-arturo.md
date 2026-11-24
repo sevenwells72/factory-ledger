@@ -102,3 +102,14 @@ Use the **Floor GPT ("Factory Ledger - Floor 2.0")** for all entries. Look thing
 **Interim warnings:**
 - Your entries are recorded as "legacy-shared-key", not as Arturo. Keep your paperwork; it is the only proof of who did what.
 - Do not ask the Office GPT, Luz or Michael to record the same entry "just in case". There is no duplicate check between GPT entries except for order shipments.
+
+
+## Every delivery gets its own Receive
+
+Every delivery gets its own Receive before you use it. Never add a delivery to an old lot. If FL says a lot is short but you have product, ask: was this delivery ever received? If not, Receive it. If there is no paperwork, use Found as a new lot. Use Adjust only when you counted the same bags FL already has. If a lot is short by less than one bag, close it on Exceptions as Counted at zero. If it is short by a bag or more, another lot was used: tell FL which one.
+
+Cada entrega tiene su propio Recibir antes de usarla. Nunca agregues una entrega a un lote viejo. Si FL dice que falta inventario pero tienes producto, pregunta: ¿se recibió esta entrega? Si no, Recíbela. Sin documentos, usa Encontrado como lote nuevo. Usa Ajustar solo al contar las mismas bolsas que FL ya tiene. Si falta menos de una bolsa, cierra en Excepciones como Contado en cero. Si falta una bolsa o más, se usó otro lote: dile a FL cuál.
+
+The count-to-zero allowance is cumulative for the lot: strictly less than its effective received pack weight and never 100 lb or more. Repeated small counts cannot replace a delivery. If the allowance is unavailable, name the paired wrong-lot move receipt under missing_movement; or void and re-enter the wrong entry; or close unverified with a note and keep the book balance.
+
+El límite de conteo en cero es acumulado por lote: estrictamente menor que el peso del envase recibido efectivo y nunca 100 lb o más. Los conteos pequeños repetidos no sustituyen una entrega. Si no hay margen, indica el recibo del movimiento pareado como missing_movement; o anula y registra de nuevo la entrada equivocada; o cierra unverified con nota y conserva el saldo.

@@ -1,0 +1,494 @@
+"""Section A: real HTTP posting proofs against the local rollback-only ledger."""
+from pathlib import Path
+from uuid import uuid4
+import pytest
+import main
+from tests.test_actor_attribution import client, actors
+from tests.test_write_tickets_part2 import items, prepare, body, isolated_database
+from tests.test_write_tickets import headers, commit, error, isolated_database as a1_isolated_database
+from tests.test_exceptions_enforcement import adjust, found, resolve
+from tests.test_ship_tickets import shipping, prepared as prepare_ship, upload as upload_ship
+
+ROOT=Path(__file__).resolve().parents[1]
+
+@pytest.fixture
+def rules(db_cursor,monkeypatch):
+    monkeypatch.delenv('RESEND_API_KEY',raising=False)
+    monkeypatch.delenv('ALERT_EMAIL_TO',raising=False)
+    db_cursor.execute((ROOT/'migrations/096_adjust_destinations.sql').read_text())
+    db_cursor.execute((ROOT/'migrations/092_shortage_unverified_close.sql').read_text())
+    db_cursor.execute((ROOT/'migrations/098_no_stock_by_hand.sql').read_text())
+
+
+def received(client, cur, items, actors, pack=50, cases=1):
+    cur.execute('INSERT INTO suppliers(name) VALUES (%s) RETURNING id', ('Stock guard '+uuid4().hex,))
+    supplier=cur.fetchone()['id']
+    payload=dict(product_id=items['ingredient']['id'],supplier_id=supplier,cases=cases,case_size_lb=pack,
+                 bol_reference='DEL-'+uuid4().hex,supplier_lot_code='SUP-01',occurred_at=main.get_plant_now().isoformat())
+    prepared=prepare(client,'receive',payload,actors['floor']['key'])
+    posted=commit(client,prepared,actors['floor']['key'])
+    assert posted.status_code==200,posted.text
+    items['ingredient'].update(lot_id=posted.json()['lot_id'],lot_code=posted.json()['lot_code'])
+    return payload,posted.json()
+
+
+def short(client,cur,items,actors,amount):
+    lot=items['ingredient']
+    # Make consumes exactly enough of this actual tagged lot to leave -amount.
+    needed=main.lot_on_hand(cur,lot['lot_id'])+amount
+    cur.execute('UPDATE products SET default_batch_lb=%s WHERE id=%s',(needed,items['batch']['id']))
+    cur.execute('UPDATE batch_formulas SET quantity_lb=%s WHERE product_id=%s',(needed,items['batch']['id']))
+    data=body('make',items)|{'ingredient_lots':[{'ingredient_product_id':lot['id'],'lot_id':lot['lot_id']}]}
+    prepared=prepare(client,'make',data,actors['floor']['key'])
+    posted=commit(client,prepared,actors['floor']['key'])
+    assert posted.status_code==200,posted.text
+    assert main.lot_on_hand(cur,lot['lot_id'])==pytest.approx(-amount)
+    return posted.json()['shortages'][0]['exception_id']
+
+
+def test_existing_receive_and_positive_adjust(client,db_cursor,items,actors,rules):
+    payload,receipt=received(client,db_cursor,items,actors)
+    response=client.post('/receive/prepare',json=payload|{'lot_code':receipt['lot_code']},headers=headers(actors['floor']['key']))
+    error(response,409,'LOT_ALREADY_HAS_STOCK')
+    error(client.post('/adjust/prepare',json=adjust(items,1),headers=headers(actors['floor']['key'])),422,'NO_STOCK_BY_HAND')
+    error(client.post('/inventory/found/prepare',json=found(items,1,lot_code=receipt['lot_code']),headers=headers(actors['floor']['key'])),422,'NO_STOCK_BY_HAND')
+    error(client.post('/adjust/prepare',json=adjust(items,1,'missing_receipt'),headers=headers(actors['floor']['key'])),422,'USE_RECEIVE')
+    assert main.lot_on_hand(db_cursor,receipt['lot_id'])==50
+
+
+@pytest.mark.parametrize('path',['resolve','owner'])
+@pytest.mark.parametrize('pack,amount,allowed',[(50,49.99,True),(50,50,False),(50,68.49,False),(2000,99,True),(2000,100,False)])
+def test_under_pack_both_count_paths(client,db_cursor,items,actors,rules,path,pack,amount,allowed):
+    received(client,db_cursor,items,actors,pack)
+    exc=short(client,db_cursor,items,actors,amount)
+    if path=='resolve':
+        response=resolve(client,exc,actors['floor']['key'],resolution_kind='counted',counted_lb=0,note='scale check')
+    else:
+        response=client.post('/adjust/prepare',json=adjust(items,amount,resolves_shortage_ids=[exc]),headers=headers(actors['owner']['key']))
+        if response.status_code==200:response=commit(client,response.json(),actors['owner']['key'])
+    if allowed:
+        assert response.status_code==200,response.text
+        assert main.lot_on_hand(db_cursor,items['ingredient']['lot_id'])==0
+        db_cursor.execute('SELECT lb FROM under_pack_counts WHERE lot_id=%s',(items['ingredient']['lot_id'],))
+        assert float(db_cursor.fetchone()['lb'])==amount
+    else:
+        error(response,422,'NO_STOCK_BY_HAND')
+        assert main.lot_on_hand(db_cursor,items['ingredient']['lot_id'])==pytest.approx(-amount)
+    db_cursor.execute('SELECT status FROM exceptions WHERE id=%s',(exc,))
+    assert db_cursor.fetchone()['status']==('resolved' if allowed else 'open')
+
+
+@pytest.mark.parametrize('path',['resolve','owner'])
+def test_cumulative_cap(client,db_cursor,items,actors,rules,path):
+    received(client,db_cursor,items,actors,55)
+    for n in range(2):
+        exc=short(client,db_cursor,items,actors,30)
+        if path=='resolve':response=resolve(client,exc,actors['floor']['key'],resolution_kind='counted',counted_lb=0,note='scale')
+        else:
+            response=client.post('/adjust/prepare',json=adjust(items,30,resolves_shortage_ids=[exc]),headers=headers(actors['owner']['key']))
+            if response.status_code==200:response=commit(client,response.json(),actors['owner']['key'])
+        if n==0:assert response.status_code==200,response.text
+        else:error(response,422,'NO_STOCK_BY_HAND')
+    db_cursor.execute('SELECT sum(lb) AS lb FROM under_pack_counts WHERE lot_id=%s',(items['ingredient']['lot_id'],))
+    assert float(db_cursor.fetchone()['lb'])==30
+
+
+def test_give_back_and_pair(client,db_cursor,items,actors,rules):
+    _,receipt=received(client,db_cursor,items,actors,50,20)
+    key=actors['floor']['key']
+    removed=commit(client,prepare(client,'adjust',adjust(items,-500,'damaged_thrown_out'),key),key)
+    assert removed.status_code==200,removed.text
+    error(client.post('/adjust/prepare',json=adjust(items,501),headers=headers(key)),422,'NO_STOCK_BY_HAND')
+    restored=commit(client,prepare(client,'adjust',adjust(items,500),key),key)
+    assert restored.status_code==200,restored.text
+    a=receipt['lot_id']
+    db_cursor.execute('INSERT INTO lots(product_id,lot_code) VALUES (%s,%s) RETURNING id',(items['ingredient']['id'],'26-11-19-PAIR-'+uuid4().hex[:3].upper()))
+    b=db_cursor.fetchone()['id']
+    error(client.post('/adjust/prepare',json=adjust(items,10,'wrong_lot',note='tag mixup'),headers=headers(key)),422,'PAIRED_MOVE_REQUIRED')
+    move=commit(client,prepare(client,'adjust',adjust(items,10,'wrong_lot',note='tag mixup',paired_lot_id=b),key),key)
+    assert move.status_code==200,move.text
+    db_cursor.execute('SELECT lot_id,quantity_lb FROM transaction_lines WHERE transaction_id=%s ORDER BY quantity_lb',(move.json()['transaction_id'],))
+    assert [(r['lot_id'],float(r['quantity_lb'])) for r in db_cursor.fetchall()]==[(b,-10),(a,10)]
+    db_cursor.execute('SELECT count(*) AS n FROM shortage_flags WHERE transaction_id=%s',(move.json()['transaction_id'],))
+    assert db_cursor.fetchone()['n']==1
+    result=move.json()
+    history=client.get(f"/dashboard/api/inventory/{items['ingredient']['id']}/lot-history",headers=headers(actors['owner']['key']))
+    assert history.status_code==200,history.text
+    lots={lot['lot_id']:lot for lot in history.json()['lots']}
+    for lot_id in (a,b):
+        [entry]=[entry for entry in lots[lot_id]['moves'] if entry['transaction_id']==result['transaction_id']]
+        assert entry['receipt_number']==result['receipt_number']
+        assert {(line['lot_id'],line['quantity_lb']) for line in entry['lines']}=={(a,10),(b,-10)}
+    summary=client.get('/reports/shift-summary',headers=headers(key))
+    assert summary.status_code==200,summary.text
+    sections={section['key']:section for section in summary.json()['sections']}
+    [row]=[row for row in sections['adjusted']['rows'] if row['receipt_number']==result['receipt_number']]
+    assert (row['detail']['lot_on_hand_before'],row['detail']['lot_on_hand_after'],row['detail']['delta_lb'])==(1000,1010,10)
+    assert row['detail']['move']['used_lot_id']==b and 'product total unchanged' in row['line_en']
+    balances={row['lot']['id']:row for row in sections['lot_balances_touched']['rows']}
+    assert balances[a]['after_lb']==1010 and balances[b]['after_lb']==-10
+    from datetime import timedelta
+    import reconciliation
+    now=main.get_plant_now()
+    report=reconciliation.analyse(reconciliation.load_window(db_cursor,now-timedelta(hours=1),now+timedelta(minutes=1),reconstruct=True))
+    [flag]=[flag for flag in report['flags'] if flag['kind']=='INGREDIENT_HAND_ADDITION' and flag['transaction_id']==result['transaction_id']]
+    assert flag['detail']['paired_move'] and result['receipt_number'] in flag['detail']['message']
+    assert lots[a]['lot_code'] in flag['detail']['message'] and lots[b]['lot_code'] in flag['detail']['message']
+
+
+
+@pytest.mark.parametrize('path',['resolve','owner'])
+def test_no_pack_and_above_zero_count_refused(client,db_cursor,items,actors,rules,path):
+    # The fixture's receive has no case weight, although the product has one.
+    exc=short(client,db_cursor,items,actors,5)
+    key=actors['owner']['key'] if path=='owner' else actors['floor']['key']
+    if path=='owner':response=client.post('/adjust/prepare',json=adjust(items,5,resolves_shortage_ids=[exc]),headers=headers(key))
+    else:response=resolve(client,exc,key,resolution_kind='counted',counted_lb=0,note='count')
+    error(response,422,'NO_STOCK_BY_HAND')
+    assert 'missing_movement' in response.json()['detail']['message']
+    ok=resolve(client,exc,actors['floor']['key'],resolution_kind='unverified',note='Cannot show which lot was used')
+    assert ok.status_code==200,ok.text
+    assert main.lot_on_hand(db_cursor,items['ingredient']['lot_id'])==-5
+
+
+@pytest.mark.parametrize('path',['resolve','owner'])
+def test_small_shortage_cannot_be_counted_above_zero(client,db_cursor,items,actors,rules,path):
+    received(client,db_cursor,items,actors)
+    exc=short(client,db_cursor,items,actors,5)
+    if path=='owner':response=client.post('/adjust/prepare',json=adjust(items,6,resolves_shortage_ids=[exc]),headers=headers(actors['owner']['key']))
+    else:response=resolve(client,exc,actors['floor']['key'],resolution_kind='counted',counted_lb=1,note='count')
+    error(response,422,'NO_STOCK_BY_HAND')
+
+
+def test_pair_resolves_shortage_but_earns_no_giveback(client,db_cursor,items,actors,rules):
+    received(client,db_cursor,items,actors)
+    a=items['ingredient']['lot_id']
+    exc=short(client,db_cursor,items,actors,20)
+    db_cursor.execute('INSERT INTO lots(product_id,lot_code) VALUES (%s,%s) RETURNING id',
+                      (items['ingredient']['id'],'26-11-19-PAIR-'+uuid4().hex[:3].upper()))
+    b=db_cursor.fetchone()['id'];key=actors['floor']['key']
+    response=commit(client,prepare(client,'adjust',adjust(items,20,'wrong_lot',note='Used the other tag',paired_lot_id=b),key),key)
+    assert response.status_code==200,response.text
+    close=resolve(client,exc,key,resolution_kind='missing_movement',receipt_number=response.json()['receipt_number'],note='Wrong tag')
+    assert close.status_code==200,close.text
+    assert main.lot_on_hand(db_cursor,a)==0 and main.lot_on_hand(db_cursor,b)==-20
+    # B's move leg cannot earn giveback, even after its shortage is closed without changing stock.
+    db_cursor.execute('SELECT id FROM exceptions WHERE transaction_id=%s AND kind=\'SHORTAGE\'',(response.json()['transaction_id'],))
+    exc_b=db_cursor.fetchone()['id']
+    assert resolve(client,exc_b,key,resolution_kind='unverified',note='Tag move investigated').status_code==200
+    payload=adjust(items,20)|{'lot_id':b}
+    error(client.post('/adjust/prepare',json=payload,headers=headers(key)),422,'NO_STOCK_BY_HAND')
+    void=client.post('/void/'+str(response.json()['transaction_id']),json={'reason':'data_entry_error'},headers=headers(actors['owner']['key']))
+    assert void.status_code==200,void.text
+    assert main.lot_on_hand(db_cursor,a)==-20 and main.lot_on_hand(db_cursor,b)==0
+
+
+@pytest.mark.parametrize('kind',['same','other_product','merged','blank_note','negative'])
+def test_pair_validation_posts_nothing(client,db_cursor,items,actors,rules,kind):
+    a=items['ingredient']['lot_id']; b=items['batch']['lot_id']
+    if kind in ('merged','blank_note','negative'):
+        db_cursor.execute('INSERT INTO lots(product_id,lot_code,status) VALUES (%s,%s,%s) RETURNING id',
+                          (items['ingredient']['id'],'26-11-19-PAIR-'+uuid4().hex[:3].upper(),'merged' if kind=='merged' else 'active'))
+        b=db_cursor.fetchone()['id']
+    data=adjust(items,-1 if kind=='negative' else 1,'wrong_lot',note='' if kind=='blank_note' else 'tag mixup',paired_lot_id=a if kind=='same' else b)
+    db_cursor.execute('SELECT count(*) AS n FROM transactions');before=db_cursor.fetchone()['n']
+    response=client.post('/adjust/prepare',json=data,headers=headers(actors['floor']['key']))
+    assert response.status_code in (409,422),response.text
+    if kind=='other_product':assert response.json()['detail']['error_code']=='WRONG_LOT_SAME_PRODUCT'
+    db_cursor.execute('SELECT count(*) AS n FROM transactions');assert db_cursor.fetchone()['n']==before
+
+
+@pytest.mark.parametrize('route',['/receive','/receive/preview','/receive/commit'])
+@pytest.mark.parametrize('change,code',[({'bol_reference':'  '},'BOL_REQUIRED'),({'cases':0},'INVALID_QUANTITY'),({'cases':-1},'INVALID_QUANTITY'),({'case_size_lb':0},'INVALID_QUANTITY')])
+def test_direct_receive_validation(client,db_cursor,items,actors,rules,route,change,code):
+    payload,_=received(client,db_cursor,items,actors)
+    db_cursor.execute('SELECT name FROM suppliers WHERE id=%s',(payload['supplier_id'],));name=db_cursor.fetchone()['name']
+    req={k:v for k,v in payload.items() if k not in ('product_id','supplier_id')}
+    req.update(product_name=items['ingredient']['name'],shipper_name=name,mode='commit',**change)
+    error(client.post(route,json=req,headers=headers(actors['owner']['key'])),422,code)
+
+
+def test_voided_receive_can_be_received_again_after_consumption(client,db_cursor,items,actors,rules):
+    payload,receipt=received(client,db_cursor,items,actors)
+    exc=short(client,db_cursor,items,actors,5)
+    response=client.post('/void/'+str(receipt['transaction_id']),json={'reason':'data_entry_error'},headers=headers(actors['owner']['key']))
+    assert response.status_code==200,response.text
+    error(resolve(client,exc,actors['floor']['key'],resolution_kind='counted',counted_lb=0,note='count'),422,'NO_STOCK_BY_HAND')
+    prepared=prepare(client,'receive',payload|{'lot_code':receipt['lot_code'],'cases':2},actors['floor']['key'])
+    again=commit(client,prepared,actors['floor']['key'],acknowledged_warnings=[w['code'] for w in prepared['warnings']])
+    assert again.status_code==200,again.text
+    assert again.json()['lot_id']==receipt['lot_id']
+    assert main.lot_on_hand(db_cursor,receipt['lot_id'])==45
+
+
+def test_typing_refusal_is_bilingual_and_direct_reasons_enforced(client,db_cursor,items,actors,rules):
+    payload,_=received(client,db_cursor,items,actors)
+    key=actors['owner']['key']
+    data=dict(mode='commit',product_name=items['ingredient']['name'],lot_code=items['ingredient']['lot_code'],adjustment_lb=1,reason='data_entry_error',note='typo')
+    response=client.post('/adjust',json=data,headers=headers(key));error(response,422,'NO_STOCK_BY_HAND')
+    assert 'void the wrong entry and enter it again' in response.json()['detail']['message']
+    assert 'anula la entrada equivocada' in response.json()['detail']['message_es']
+    error(client.post('/adjust',json=data|{'reason':'invented free text'},headers=headers(key)),422,'REASON_CODE_INVALID')
+    error(client.post('/adjust',json=data|{'reason':'missing_receipt'},headers=headers(key)),422,'USE_RECEIVE')
+    error(client.post('/adjust',json=data|{'reason':'wrong_lot'},headers=headers(key)),422,'PAIRED_MOVE_REQUIRED')
+
+
+def test_migration_rerunnable_and_down_restores_list(db_cursor,rules):
+    sql=(ROOT/'migrations/098_no_stock_by_hand.sql').read_text();db_cursor.execute(sql);db_cursor.execute(sql)
+    db_cursor.execute("SELECT count(*) AS n FROM migration_markers WHERE name='098_no_stock_by_hand'");assert db_cursor.fetchone()['n']==1
+    db_cursor.execute((ROOT/'migrations/down/098_no_stock_by_hand_down.sql').read_text())
+    db_cursor.execute("SELECT applies_to FROM correction_reasons WHERE code='missing_receipt'");assert 'adjust' in db_cursor.fetchone()['applies_to']
+    import stock_by_hand
+    assert stock_by_hand.live_at(db_cursor) is None
+
+@pytest.mark.parametrize('amended_pack,allowed',[(5,False),(55,True)])
+def test_amended_receipt_pack_weight_is_effective(client,db_cursor,items,actors,rules,amended_pack,allowed):
+    _,receipt=received(client,db_cursor,items,actors,50)
+    correction=client.post(f"/records/transactions/{receipt['transaction_id']}/corrections",json={
+        'event_type':'amend','reason':'correct container weight','replacement_values':{'case_size_lb':amended_pack}},headers=headers(actors['owner']['key']))
+    assert correction.status_code==200,correction.text
+    db_cursor.execute("SELECT entered_by_actor_id FROM ledger_corrections WHERE target_table='transactions' AND target_id=%s ORDER BY id DESC LIMIT 1",(receipt['transaction_id'],))
+    assert db_cursor.fetchone()['entered_by_actor_id']==actors['owner']['id']
+    exc=short(client,db_cursor,items,actors,10)
+    response=resolve(client,exc,actors['floor']['key'],resolution_kind='counted',counted_lb=0,note='weighed empty')
+    if allowed:assert response.status_code==200,response.text
+    else:error(response,422,'NO_STOCK_BY_HAND')
+
+
+def test_go_live_does_not_credit_old_hand_removals(client,db_cursor,items,actors,rules):
+    db_cursor.execute("DELETE FROM migration_markers WHERE name='098_no_stock_by_hand'")
+    key=actors['floor']['key']
+    removed=commit(client,prepare(client,'adjust',adjust(items,-10,'damaged_thrown_out'),key),key)
+    assert removed.status_code==200,removed.text
+    db_cursor.execute((ROOT/'migrations/098_no_stock_by_hand.sql').read_text())
+    error(client.post('/adjust/prepare',json=adjust(items,10),headers=headers(key)),422,'NO_STOCK_BY_HAND')
+
+
+def test_found_new_lot_and_count_born_topups(client,db_cursor,items,actors,rules):
+    key=actors['floor']['key']
+    made=commit(client,prepare(client,'found',found(items,10,'missing_receipt'),key),key)
+    assert made.status_code==200,made.text
+    lot=made.json()
+    blocked=client.post('/inventory/found/prepare',json=found(items,1,'missing_receipt',lot_code=lot['lot_code']),headers=headers(key))
+    assert blocked.status_code==200,blocked.text
+    assert not blocked.json()['can_commit']
+    assert blocked.json()['blockers'][0]['code']=='LOT_CODE_TAKEN'
+    error(client.post('/inventory/found/prepare',json=found(items,1,lot_code=lot['lot_code']),headers=headers(key)),422,'NO_STOCK_BY_HAND')
+    error(client.post('/adjust/prepare',json=adjust(items,1)|{'lot_id':lot['lot_id']},headers=headers(key)),422,'NO_STOCK_BY_HAND')
+    db_cursor.execute('SELECT identity_status FROM lots WHERE id=%s',(lot['lot_id'],))
+    assert db_cursor.fetchone()['identity_status']=='unidentified'
+    db_cursor.execute("SELECT count(*) AS n FROM exceptions WHERE lot_id=%s AND kind='UNIDENTIFIED_LOT'",(lot['lot_id'],))
+    assert db_cursor.fetchone()['n']==1
+
+
+
+
+
+
+def test_two_concurrent_givebacks_cannot_both_post(isolated_database,monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from contextlib import contextmanager
+    from threading import Barrier
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    from fastapi.testclient import TestClient
+    from tests.test_write_tickets_part2 import seed
+    from tests.named_key import KEY
+    with psycopg2.connect(isolated_database) as conn,conn.cursor(cursor_factory=RealDictCursor) as cur:
+        data=seed(cur)
+        cur.execute((ROOT/'migrations/096_adjust_destinations.sql').read_text())
+        cur.execute((ROOT/'migrations/098_no_stock_by_hand.sql').read_text())
+    main._reset_actor_cache();gate=Barrier(2);racing=False
+    @contextmanager
+    def connection():
+        with psycopg2.connect(isolated_database) as conn:
+            if racing:gate.wait(timeout=10)
+            yield conn
+    monkeypatch.setattr(main,'get_db_connection',connection)
+    try:
+        with TestClient(main.app) as http:
+            removed=commit(http,prepare(http,'adjust',adjust(data,-10,'damaged_thrown_out'),KEY),KEY)
+            assert removed.status_code==200,removed.text
+            drafts=[prepare(http,'adjust',adjust(data,10),KEY) for _ in range(2)]
+            racing=True
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                results=list(pool.map(lambda draft:commit(http,draft,KEY),drafts))
+            racing=False
+            assert sorted(r.status_code for r in results)==[200,409],[r.text for r in results]
+            refused=next(r for r in results if r.status_code==409)
+            assert refused.json()['detail']['blockers'][0]['code']=='NO_STOCK_BY_HAND'
+        with psycopg2.connect(isolated_database) as conn,conn.cursor(cursor_factory=RealDictCursor) as cur:
+            assert main.lot_on_hand(cur,data['ingredient']['lot_id'])==100
+    finally:main._reset_actor_cache()
+
+
+def test_large_pair_queues_one_owner_email(client,db_cursor,items,actors,rules):
+    a=items['ingredient']['lot_id']
+    db_cursor.execute('INSERT INTO lots(product_id,lot_code) VALUES (%s,%s) RETURNING id',
+                      (items['ingredient']['id'],'26-11-19-PAIR-'+uuid4().hex[:3].upper()))
+    b=db_cursor.fetchone()['id'];key=actors['floor']['key']
+    prepared=prepare(client,'adjust',adjust(items,600,'wrong_lot',note='Confirmed the other lot was used',paired_lot_id=b),key)
+    response=commit(client,prepared,key)
+    assert response.status_code==200,response.text
+    db_cursor.execute('SELECT count(*) AS n FROM adjustment_alerts WHERE transaction_id=%s',(response.json()['transaction_id'],))
+    assert db_cursor.fetchone()['n']==1
+    assert main.lot_on_hand(db_cursor,a)+main.lot_on_hand(db_cursor,b)==100
+
+
+def test_noningredient_count_and_addition_unchanged(client,db_cursor,items,actors,rules):
+    db_cursor.execute("UPDATE products SET type='batch' WHERE id=%s",(items['ingredient']['id'],))
+    exc=short(client,db_cursor,items,actors,5)
+    response=resolve(client,exc,actors['floor']['key'],resolution_kind='counted',counted_lb=20,note='counted the batch')
+    assert response.status_code==200,response.text
+    assert main.lot_on_hand(db_cursor,items['ingredient']['lot_id'])==20
+    added=commit(client,prepare(client,'adjust',adjust(items,10,'missing_production'),actors['floor']['key']),actors['floor']['key'])
+    assert added.status_code==200,added.text
+
+
+def test_nightly_review_lists_named_ingredient_additions_only(client,db_cursor,items,actors,rules):
+    from datetime import timedelta
+    import reconciliation
+    key=actors['floor']['key']
+    removed=commit(client,prepare(client,'adjust',adjust(items,-10,'damaged_thrown_out'),key),key)
+    added=commit(client,prepare(client,'adjust',adjust(items,10),key),key)
+    assert removed.status_code==200 and added.status_code==200
+    now=main.get_plant_now()
+    report=reconciliation.analyse(reconciliation.load_window(db_cursor,now-timedelta(hours=1),now+timedelta(minutes=1),reconstruct=True))
+    flags=[f for f in report['flags'] if f['kind']=='INGREDIENT_HAND_ADDITION']
+    assert [f['transaction_id'] for f in flags]==[added.json()['transaction_id']]
+    text=flags[0]['detail']['message']
+    assert actors['floor']['name'] in text and added.json()['receipt_number'] in text and 'physical_count' in text
+
+
+@pytest.mark.parametrize('new_product',[False,True])
+def test_direct_found_named_identity_and_trace(client,db_cursor,items,actors,rules,new_product,monkeypatch):
+    monkeypatch.setenv('TRACE_EMIT_ENABLED','1')
+    data=dict(quantity=3,reason_code='physical_count',notes='Counted sealed bags')
+    if new_product:
+        path='/inventory/found-with-new-product'
+        data.update(product_name='Reviewed '+uuid4().hex,product_type='ingredient')
+    else:
+        path='/inventory/found';data['product_id']=items['ingredient']['id']
+    response=client.post(path,json=data,headers=headers(actors['owner']['key']))
+    assert response.status_code==200,response.text
+    receipt=response.json()
+    db_cursor.execute('SELECT entered_by_actor_id,operator_id FROM transactions WHERE id=%s',(receipt['transaction_id'],))
+    row=db_cursor.fetchone();assert row['entered_by_actor_id']==actors['owner']['id']
+    assert row['operator_id']!='legacy-shared-key'
+    db_cursor.execute('SELECT operator_id FROM trace_events WHERE transaction_id=%s',(receipt['transaction_id'],))
+    assert db_cursor.fetchone()['operator_id']==actors['owner']['name']
+    db_cursor.execute('SELECT identity_status,identify_by FROM lots WHERE id=%s',(receipt['lot_id'],))
+    row=db_cursor.fetchone();assert row['identity_status']=='unidentified' and row['identify_by']
+    db_cursor.execute("SELECT count(*) AS n FROM exceptions WHERE kind='UNIDENTIFIED_LOT' AND lot_id=%s AND due_at IS NOT NULL",(receipt['lot_id'],))
+    assert db_cursor.fetchone()['n']==1
+
+
+@pytest.mark.parametrize('reason,note,code',[('invented_source',None,'REASON_CODE_INVALID'),('unknown',None,'NOTE_REQUIRED')])
+def test_direct_new_product_found_refusal_is_atomic(client,db_cursor,items,actors,rules,reason,note,code):
+    name='Rejected '+uuid4().hex
+    db_cursor.execute('SELECT count(*) AS n FROM transactions');before=db_cursor.fetchone()['n']
+    response=client.post('/inventory/found-with-new-product',json=dict(product_name=name,product_type='ingredient',quantity=3,reason_code=reason,notes=note),headers=headers(actors['owner']['key']))
+    error(response,422,code)
+    db_cursor.execute('SELECT 1 FROM products WHERE name=%s',(name,));assert db_cursor.fetchone() is None
+    db_cursor.execute('SELECT count(*) AS n FROM transactions');assert db_cursor.fetchone()['n']==before
+
+
+@pytest.mark.parametrize('kind',['unknown','inactive','sentinel'])
+@pytest.mark.parametrize('mode',['preview','commit'])
+def test_direct_commingled_receive_refuses_unregistered_secondary(client,db_cursor,items,actors,rules,kind,mode):
+    name='Secondary '+uuid4().hex
+    if kind!='unknown':
+        if kind=='sentinel':name='UNKNOWN'
+        db_cursor.execute('INSERT INTO suppliers(name,active) VALUES (%s,%s)',(name,kind=='sentinel'))
+    primary='Primary '+uuid4().hex
+    db_cursor.execute('INSERT INTO suppliers(name) VALUES (%s)',(primary,))
+    db_cursor.execute('SELECT count(*) AS n FROM transactions');before=db_cursor.fetchone()['n']
+    data=dict(mode=mode,product_name=items['ingredient']['name'],shipper_name=primary,cases=1,case_size_lb=50,bol_reference='TEST',supplier_lot_code='SUP-1',supplier_lot_entries=[dict(supplier_name=name,supplier_lot_code='SUP-2',quantity_lb=50)])
+    response=client.post('/receive',json=data,headers=headers(actors['owner']['key']))
+    error(response,422,'SUPPLIER_REQUIRED')
+    db_cursor.execute('SELECT count(*) AS n FROM transactions');assert db_cursor.fetchone()['n']==before
+
+
+def test_marker_off_and_migration_leave_old_reason_policy_unchanged(db_cursor):
+    import exceptions_enforcement as policy
+    db_cursor.execute("DELETE FROM migration_markers WHERE name='098_no_stock_by_hand'")
+    def catalog():
+        db_cursor.execute('SELECT * FROM correction_reasons ORDER BY code');return [dict(r) for r in db_cursor.fetchall()]
+    before=catalog()
+    def answers(module):
+        return [module._valid_reasons(db_cursor,'adjust',delta_lb=delta,destinations=True) for delta in (-1,0,1,None)]
+    original=answers(policy)
+    assert policy.resolve_reason(db_cursor,'adjust','missing_receipt',delta_lb=1)['code']=='missing_receipt'
+    sql=(ROOT/'migrations/098_no_stock_by_hand.sql').read_text()
+    db_cursor.execute(sql);db_cursor.execute(sql)
+    assert catalog()==before
+    with pytest.raises(main.HTTPException) as refused:
+        policy.resolve_reason(db_cursor,'adjust','missing_receipt',delta_lb=1)
+    assert refused.value.detail['error_code']=='USE_RECEIVE'
+    live=policy._valid_reasons(db_cursor,'adjust',delta_lb=1,destinations=True)
+    assert {r['code'] for r in live}=={'physical_count','missing_production','wrong_lot','data_entry_error'}
+    db_cursor.execute("DELETE FROM migration_markers WHERE name='098_no_stock_by_hand'")
+    assert answers(policy)==original
+    db_cursor.execute(sql)
+    db_cursor.execute((ROOT/'migrations/down/098_no_stock_by_hand_down.sql').read_text())
+    assert catalog()==before and answers(policy)==original
+
+
+
+
+def test_normal_make_pack_and_count_down_with_marker(client,db_cursor,items,actors,rules):
+    key=actors['floor']['key']
+    for action in ('make','pack'):
+        posted=commit(client,prepare(client,action,body(action,items),key),key)
+        assert posted.status_code==200,posted.text
+    posted=commit(client,prepare(client,'adjust',adjust(items,-1,'damaged_thrown_out'),key),key)
+    assert posted.status_code==200,posted.text
+
+
+@pytest.mark.parametrize('action',['ship_order','ship_standalone','ship_bulk'])
+def test_normal_ship_with_marker(client,db_cursor,shipping,actors,rules,action,tmp_path,monkeypatch):
+    monkeypatch.setenv('EVIDENCE_STORAGE_DIR',str(tmp_path/'evidence'))
+    key=actors['office']['key'];photo=upload_ship(client,key)
+    draft=prepare_ship(client,shipping,key,action,attachment_ids=[photo['id']])
+    assert draft['can_commit'],draft
+    posted=commit(client,draft,key)
+    assert posted.status_code==200,posted.text
+    assert main.lot_on_hand(db_cursor,shipping['lot_id'])==1950
+
+
+@pytest.mark.parametrize('route,existing',[
+    ('/inventory/found',False),('/inventory/found',True),
+    ('/inventory/found/prepare',False),('/inventory/found/prepare',True),
+    ('/inventory/found-with-new-product',False)])
+def test_found_wrong_lot_always_requires_net_zero_pair(client,db_cursor,items,actors,rules,route,existing):
+    def snapshot():
+        rows=[]
+        for table in ('products','lots','transactions','transaction_lines','write_tickets','exceptions'):
+            db_cursor.execute('SELECT count(*) AS n FROM '+table);rows.append(db_cursor.fetchone()['n'])
+        return rows
+    before=snapshot()
+    data=dict(quantity=3,reason_code='wrong_lot',notes='The other tag was used')
+    if route.endswith('with-new-product'):
+        data.update(product_name='Wrong lot '+uuid4().hex,product_type='ingredient')
+    else:
+        data['product_id']=items['ingredient']['id']
+    if existing:data['lot_code']=items['ingredient']['lot_code']
+    response=client.post(route,json=data,headers=headers(actors['owner']['key']))
+    error(response,422,'PAIRED_MOVE_REQUIRED')
+    assert snapshot()==before
+
+
+def test_nightly_review_includes_unnamed_and_keeps_existing_checks(client,db_cursor,items,actors,rules,monkeypatch):
+    from datetime import timedelta
+    import reconciliation
+    # Explicit emergency fallback only: the default shutdown is proved separately.
+    monkeypatch.setenv('SHARED_KEY_WRITES','allow')
+    posted=client.post('/inventory/found',json=dict(product_id=items['ingredient']['id'],quantity=3,reason_code='physical_count'),headers=headers(main.API_KEY))
+    assert posted.status_code==200,posted.text
+    now=main.get_plant_now()
+    report=reconciliation.analyse(reconciliation.load_window(db_cursor,now-timedelta(hours=1),now+timedelta(minutes=1),reconstruct=True))
+    flags=[flag for flag in report['flags'] if flag['transaction_id']==posted.json()['transaction_id']]
+    [addition]=[flag for flag in flags if flag['kind']=='INGREDIENT_HAND_ADDITION']
+    assert 'legacy-shared-key' in addition['detail']['message'] and 'physical_count' in addition['detail']['message']
+    assert posted.json()['lot_code'] in addition['detail']['message']
+    assert any(flag['kind']=='UNEXPLAINED_ADJUSTMENT' and flag['detail']['no_named_person'] for flag in flags)
