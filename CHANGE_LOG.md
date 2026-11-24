@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-24 14:39 — PR #232 deployment guide: rollback corrected, go-live checks added, shared-key statements brought up to date
+- **File(s) changed:** `docs/deployments/no-stock-by-hand.md`
+- **What changed:** Rollback now leads with the 098 down file alone (deletes only the marker; old rules apply at once, no deploy), makes a code revert optional and afterwards, and says that putting the marker back restarts the give-back sum and the under-one-pack allowance from the new time. The shared-key rollback is SHARED_KEY_WRITES=allow, not a revert, because the shutdown shipped as PR #234. Added go-live checks before 098: no adjust or Found ticket awaiting approval, and a list of ingredient lots with an open shortage. Deploy order now says the merge commit must not contain the Netlify skip marker and that 098 waits until the new dashboard is confirmed live. Status lines updated: cross-reviewed 2026-11-20, replayed onto main 2026-11-24. Also merged main 98e97ee (PR #235 deploy record) into the branch: both change logs kept, row 314 is main's deployed version.
+- **Why:** Cross-review comment 7043948116 item 1 said the rollback text must be corrected before the guide is used for a production step; Michael asked for it on 2026-11-24 along with the refresh after #235.
+
+---
+
 ## 2026-11-24 14:33 — Replay PR #232 onto main after #234 merged: histories joined, changelog rows ordered, one audit-failure test adjusted — local worktree, not pushed
 - **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `tests/test_audit_savepoints_lotcodes.py`, `docs/named-actor-writes.md`, `tests/fixtures/route_contract/routes.jsonl`
 - **What changed:** The eight commits of feat/no-stock-by-hand (old head 4bb0ea3, kept as local branch backup/232-pre-replay-4bb0ea3) were rebased onto main b7af91e. CHANGE_LOG.md keeps both histories (PR #234's five newer entries above PR #232's 48). FACTORY_LEDGER_CHANGELOG.md rows 309-315 are in numeric order with main's row 314. The route fixture was regenerated at the commit where it conflicted; it differs from PR #232's old version only in the four handlers PR #234 changed. test_found_inventory_primary_write_survives_audit_failure overflows suspected_supplier instead of performed_by. The replayed tree differs from the old #232 head only by PR #234's own changes. Full Python 7,812 passed with the 7 baseline failures and the Node-subprocess test that passes alone; JavaScript 747 of 747.
