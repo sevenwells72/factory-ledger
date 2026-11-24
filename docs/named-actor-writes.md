@@ -194,3 +194,61 @@ No scheduled job calls the shared-key API. The two manual scripts
 `scripts/set_sweetened_coconut_yield.py` and `scripts/granola_writedown_0917.py`
 are not scheduled jobs and need an authorized named owner key or that explicit
 fallback before being run. No setting has been changed in a hosted environment.
+
+### Who must switch to a named owner key
+
+After this is live, a write with the shared key returns 403 and records nothing.
+
+- **Maintenance sessions.** Catalog maintenance still used the shared key as late
+  as 2026-11-20 (changelog row 313): `POST /products/quick-create`,
+  `POST /products/quick-create-batch`,
+  `PUT /admin/products/…`, `/admin/bom/…`, `/admin/product-bom` and
+  `POST /products/{id}/verify`. These need the named owner key from then on.
+- **The two one-off scripts** named above.
+- **The GPTs.** The Floor GPT and Office GPT hold the shared key
+  (`docs/operating-model/06-access-reference.md`). Only their GET lookups and
+  `POST /products/resolve` keep working. Everything else in `openapi-gpt-v3.yaml`
+  is a POST or PATCH and returns 403, and that includes previews, because the
+  refusal comes before the request body is read. In chat on 2026-11-20 the owner
+  said the shared-key ledger writes seen in production up to 2026-11-16 were the
+  Floor GPT and that it is off; this cannot be checked from the repository. The
+  Office GPT was not confirmed either way.
+
+### What is recorded when the owner key is used
+
+The owner key reaches six maintenance routes that used to store the shared-key
+placeholder. They now record the person:
+
+| Route | Ledger / correction row | Trace event | Other |
+|---|---|---|---|
+| `POST /admin/lots/merge` | line corrections: name + actor id | merge marker: name | `actor_write_audit` row for the source lot |
+| `POST /lots/{lot_id}/reassign` | line corrections: name + actor id | none emitted | `actor_write_audit` row for the lot; `lot_reassignments.reassigned_by` |
+| `POST /records/certifications` and `…/corrections` | `certifications.operator_id`: name (no actor id column) | none | none |
+| `POST /inventory/found` | transaction: name + actor id | name | `inventory_adjustments.adjusted_by` |
+| `POST /inventory/found-with-new-product` | transaction: name + actor id | name | `inventory_adjustments.adjusted_by` |
+
+- A lot with no ledger lines produces no line correction, so the
+  `actor_write_audit` row is the only record of who merged or reassigned it.
+- On these routes a signed-in person's name replaces `performed_by` from the
+  request body. A caller with no person (the shared key under
+  `SHARED_KEY_WRITES=allow`) keeps the body value, the `legacy-shared-key`
+  ledger stamp, a NULL trace operator and no audit row, exactly as before.
+- Michael selected by name (no key, no approved browser) already reached these routes;
+  he is now recorded the same way as the owner key.
+- Not changed here: `POST /products/{id}/verify`, `POST /products/quick-create`,
+  the `/admin/products` and BOM routes and `update_lot_received_at` still record
+  no person, or the body's `performed_by`. They write no ledger row.
+
+### Rollback and the stacked PR #232
+
+- Before #232 is merged, reverting this PR is clean.
+- After #232 is merged, a revert conflicts in test files; the rollback is
+  `SHARED_KEY_WRITES=allow`.
+- Replaying #232 on top of this PR conflicts in `CHANGE_LOG.md`,
+  `FACTORY_LEDGER_CHANGELOG.md` (keep both sets of rows, newest first) and
+  `tests/fixtures/route_contract/routes.jsonl` (regenerate with
+  `FL_UPDATE_ROUTE_CONTRACT=1`); `main.py` merges cleanly. #232's
+  `test_found_inventory_primary_write_survives_audit_failure` forces its audit
+  failure with an over-long `performed_by` sent with the owner key; that name is
+  now replaced by the owner's, so the test must use another over-long field or a
+  caller with no person.

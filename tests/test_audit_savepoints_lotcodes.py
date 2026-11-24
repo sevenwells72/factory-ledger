@@ -229,14 +229,21 @@ def test_reassign_survives_audit_failure(client, _db_connection):
 
     resp = client.post(f"/lots/{lot_id}/reassign", json={
         "to_product_id": to_id,
-        "reason_code": "data_entry_error",
-        "performed_by": LONG_NAME,  # overflows lot_reassignments.reassigned_by varchar(100)
+        # Overflows lot_reassignments.reason_code varchar(50). A signed-in person's
+        # name replaces performed_by, so an over-long performed_by no longer fails.
+        "reason_code": LONG_REASON,
     })
     assert resp.status_code == 200, resp.text
     body = resp.json()
     assert body["success"] is True
     assert body["reassignment_id"] is None
     assert "audit_warning" in body
+    # The record of who changed the lot is not best-effort: it survives the failed history insert.
+    assert _count(
+        _db_connection,
+        "SELECT COUNT(*) AS n FROM actor_write_audit WHERE target_table = 'lots' AND target_id = %s",
+        (lot_id,),
+    ) == 1
     with _cur(_db_connection) as cur:
         cur.execute("SELECT product_id FROM lots WHERE id = %s", (lot_id,))
         assert cur.fetchone()["product_id"] == to_id

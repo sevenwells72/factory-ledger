@@ -9833,7 +9833,7 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
         """,
         (lot_id, req.product_id, req.quantity, req.quantity, req.uom,
          req.reason_code, req.notes, req.notes_es, req.found_location, req.estimated_age,
-         req.suspected_supplier, req.performed_by),
+         req.suspected_supplier, actor_name(request) or req.performed_by),
     )
 
     # Trace emission (§4): found inventory is a signed adjust.
@@ -9844,7 +9844,7 @@ def _found_commit_core(cur, req, request, occurred_at, created_at_source, *, tic
             cur, txn_id, 'adjust', 'object',
             [(lot_id, 'adjusted', req.quantity)],
             txn_row['occurred_at'], txn_row['business_date'],
-                operator_id=actor_name(request) if ticket_id else None,
+                operator_id=actor_name(request) if request is not None else None,
         )
 
     logger.info(f"Added found inventory: {lot_code} - {_fmt_quantity(req.quantity)} {req.uom} of {product['name']}")
@@ -12044,6 +12044,8 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
                 )
                 affected_line_ids = [row["id"] for row in cur.fetchall()]
                 cur.execute("UPDATE lots SET product_id = %s WHERE id = %s", (req.to_product_id, lot_id))
+                # A lot with no ledger lines gets no line correction, so name the person here too.
+                _record_actor_write(cur, request, "lots", lot_id)
                 line_correction_ids = [
                     _append_transaction_line_correction(
                         cur,
@@ -12067,7 +12069,8 @@ def reassign_lot(lot_id: int, req: LotReassignmentRequest, _: bool = Depends(ver
                     """,
                     (lot_id, lot['lot_code'], lot['product_id'], lot['product_name'],
                      req.to_product_id, to_product['name'], float(lot['quantity_on_hand']), 'lb',
-                     req.reason_code, req.reason_notes, req.reason_notes_es, req.performed_by),
+                     req.reason_code, req.reason_notes, req.reason_notes_es,
+                     actor_name(request) or req.performed_by),
                     returning=True,
                 )
                 reassignment_id = _hist['id'] if _hist else None
@@ -12208,7 +12211,7 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                     """,
                     (lot_id, product['id'], req.quantity, req.quantity, req.uom,
                      req.reason_code, req.notes, req.notes_es, req.found_location, req.estimated_age,
-                     req.suspected_supplier, req.performed_by),
+                     req.suspected_supplier, actor_name(request) or req.performed_by),
                 )
 
                 # Trace emission (§4): found inventory is a signed adjust.
@@ -12219,6 +12222,7 @@ def add_found_inventory_with_new_product(req: AddFoundInventoryWithNewProductReq
                         cur, txn_id, 'adjust', 'object',
                         [(lot_id, 'adjusted', req.quantity)],
                         txn_row['occurred_at'], txn_row['business_date'],
+                        operator_id=actor_name(request),
                     )
 
                 logger.info(f"Created product and found inventory: {product['name']} - {lot_code}")
@@ -19264,6 +19268,8 @@ def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key), request:
                         merge_reason = %s
                     WHERE id = %s
                 """, (req.target_lot_id, now, req.reason, req.source_lot_id))
+                # A lot with no ledger lines gets no line correction, so name the person here too.
+                _record_actor_write(cur, request, "lots", req.source_lot_id)
 
                 # 7. Trace emission (§10 M1, Q2): one 'merge' marker per
                 # affected transaction, no lot rows and NO trace rewrite —
@@ -19288,6 +19294,7 @@ def merge_lots(req: LotMergeRequest, _: bool = Depends(verify_api_key), request:
                         emit_trace_event(
                             cur, marker_txn_id, 'merge', 'object', [],
                             occurred_at, business_date,
+                            operator_id=actor_name(request),
                         )
                         trace_merge_markers += 1
 

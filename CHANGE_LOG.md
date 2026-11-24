@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-11-24 14:02 — Second re-check corrections on PR #234: audit-failure test back on the owner key, tapped-name test, doc and row 314 wording — local worktree, not committed or pushed
+- **File(s) changed:** `tests/test_audit_savepoints_lotcodes.py`, `tests/test_shared_key_shutdown.py`, `docs/named-actor-writes.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** test_reassign_survives_audit_failure runs with the owner key again and overflows reason_code instead of performed_by; it now also asserts the actor_write_audit row survives the failed history insert. New test: Michael selected by name (no key) is recorded on lot merge and reassign. Doc: a tapped name needs no approved browser; the GPTs lose previews as well as writes (only GETs and POST /products/resolve survive); POST /products/quick-create added to the maintenance list; the Floor GPT statement marked as the owner's word in chat. Row 314 now says exactly what each route records. No main.py change since the 13:43 entry.
+- **Why:** The reviewer's second pass (approve with nits, 2026-11-24) found two inaccurate doc sentences, a weakened test and an untested caller. Not done: capping an over-100-character actor name before it reaches the varchar(100) history columns (same exposure already exists on the ticketed path).
+
+---
+
+## 2026-11-24 13:43 — Name the owner on the side records of six maintenance writes (PR #234 re-check findings 1-3) — local worktree, not committed or pushed
+- **File(s) changed:** `main.py`, `tests/test_shared_key_shutdown.py`, `tests/test_audit_savepoints_lotcodes.py`, `docs/named-actor-writes.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Trace events for direct Found, Found with new product and the lot-merge marker now carry the signed-in person's name (the direct Found line uses PR #232's exact text). Lot merge and lot reassign write an actor_write_audit row for the lot, so a lot with no ledger lines still records who changed it. On Found and reassign, a signed-in person's name replaces performed_by from the request body in inventory_adjustments.adjusted_by and lot_reassignments.reassigned_by; callers with no person are unchanged. Added 12 HTTP tests (6 owner cases fail without the change; 6 shared-key cases guard the old behaviour) and pointed test_reassign_survives_audit_failure at a caller with no person, since its overflow relied on the body name. Doc: who must switch to the owner key, what each route records, rollback and #232 replay notes. Changelog row 314 moved above 313 and reworded (no longer 'DRAFT ONLY').
+- **Why:** Independent re-check of commit 20d498a on 2026-11-24 (approve with nits) found these three gaps; the 2026-11-20 review also asked for the doc note and the row 314 move. Michael approved fixing them in chat on 2026-11-24.
+
+---
+
 ## 2026-11-23 13:45 — Commit the owner-attribution fix for PR #234 (the 12:09 entry below is no longer local-only)
 - **File(s) changed:** `CHANGE_LOG.md`
 - **What changed:** No code change. The 2026-11-23 12:09 entry was written while the fix was uncommitted; it is now being committed on top of 002e6ea and pushed to PR #234's branch feat/shared-key-write-shutdown. Still draft: not merged, not deployed, no staging proof and no independent re-check yet.
