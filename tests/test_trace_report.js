@@ -72,3 +72,30 @@ test('multi-output makes show consumption once and label every repeated row',()=
   assert.equal(rows[0][3],'80 lb');assert.equal(rows[1][3],'Same consumption as above, do not add');
   assert(report.text(r).includes('Recorded quantity used: Same consumption as above, do not add'));
 });
+
+test('a wrong-lot correction is its own labelled section and both lots appear in the backward rows',()=>{
+  const changed=structuredClone(fixture);
+  const input=changed.input_tree.transactions[0].inputs[0];
+  const move={transaction_id:9001,receipt_number:'ADJ-261124-009',corrected_date:'2026-11-24',product_name:input.product_name,
+    restored_lot_id:input.lot_id,restored_lot_code:input.lot_code,used_lot_id:777001,used_lot_code:'26-11-20-OTHR-002',quantity_lb:40,
+    label:'Wrong-lot correction ADJ-261124-009'};
+  input.paired_moves=[{...move,other_lot:{lot_id:777001,lot_code:'26-11-20-OTHR-002',role:'corrected_to'}}];
+  input.paired_lots=[{lot_id:777001,lot_code:'26-11-20-OTHR-002',product_id:input.product_id,product_name:input.product_name,
+    supplier_lot_code:'OTHER-SUP-LOT',origin:{kind:'received',transaction_id:9000,supplier_name:'Other Supplier',receipt_number:'RCV-261120-002',quantity_lb:500,received_date:'2026-11-20'}}];
+  changed.paired_moves=[move];
+  const r=report.build(changed,'backward');
+  const section=r.sections.find(s=>s.title.startsWith('Wrong-lot corrections: 1'));
+  assert(section,'the correction has its own section');
+  assert(section.note.includes('includes both lots') && section.note.includes('not physical verification'));
+  assert.deepEqual(section.rows[0].slice(0,1).concat(section.rows[0].slice(3)),
+    ['ADJ-261124-009',`${input.lot_code} (lot ID ${input.lot_id})`,'26-11-20-OTHR-002 (lot ID 777001)','40 lb']);
+  const inputs=r.sections[0].rows;
+  assert(inputs.some(row=>row[3].includes(`(lot ID ${input.lot_id})`) && row[3].includes('WRONG-LOT CORRECTION: also lot 26-11-20-OTHR-002')));
+  const other=inputs.find(row=>row[3].includes('(lot ID 777001)'));
+  assert(other && other[3].includes('WRONG-LOT CORRECTION: linked to lot') && other[4]==='OTHER-SUP-LOT' && other[6]==='Not determinable');
+  assert(report.text(r).includes('WRONG-LOT CORRECTIONS: 1') && report.html(r).includes('Wrong-lot corrections: 1'));
+  // The other lot's supplier receipt is traced too.
+  assert(r.sections.find(s=>s.title==='Supplier receipts').rows.some(row=>row[0].includes('(lot ID 777001)')));
+  // Without a correction nothing is added.
+  assert(!report.build(fixture,'backward').sections.some(s=>s.title.startsWith('Wrong-lot corrections')));
+});

@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-11-24 15:05 — Recall-trace PR #238: changelog row renumbered 316 to 317
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** The row for the both-lots recall trace is now 317. Row 316 is left free for open PR #237 (TRIAL pack correction record), which another session opened with that number. The commit message of d6cf000 still says row 316.
+- **Why:** Two open PRs claimed row 316; renumbering this unmerged draft avoids the clash whichever merges first.
+
+---
+
+## 2026-11-24 15:04 — Both lots of a paired wrong-lot move shown in every recall trace; direct adjust preview runs the 098 guard (branch feat/paired-move-recall-trace, not pushed)
+- **File(s) changed:** `paired_trace.py`, `lot_trace.py`, `main.py`, `trace-report.js`, `traceability.html`, `lot-history.html`, `no-stock-by-hand.md`, `ARCHITECTURE-MAP.md`, `FACTORY_LEDGER_CHANGELOG.md`, `test_paired_move_recall_trace.py`, `test_lot_history_trace.py`, `test_trace_report.js`
+- **What changed:** New read-only paired_trace.py links the two lots of every posted wrong-lot correction, read from the move's current ledger lines. The recall report's closure (lot_trace.forward) includes the other lot and everything either lot fed, with reached_via and labeled paired_moves; the backward tree labels input lots and names the other lot with its origin; trace_batch, trace_ingredient and trace_supplier_lot gain additive paired_moves / paired_lots; the dashboard report shows a Wrong-lot corrections section (script version bumped to 3). Labels in English and Spanish say the link is assumed, not verified. Before migration 098 nothing changes except one existence check per trace. From the PR #232 review: the adjust guard is now one function shared by the commit core and the direct preview, and a test covers the primary supplier on the direct receive routes. 25 Python tests and 1 JavaScript test added; the forward query-count test now expects six. Changelog row 316. Full Python 7,837 passed with the 7 baseline failures and the Node-subprocess test that passes alone; JavaScript 748 of 748. Visual suite not run.
+- **Why:** Owner decision 2026-11-24: the recall trace must show both lots of a paired move, labeled, in the recall report, backward trace and older lookups, as its own PR before migration 098 is switched on; include the two PR #232 leftovers; Codex cross-review; do not merge.
+
+---
+
 ## 2026-11-24 15:03 — Record TRIAL pack correction of 2026-11-24 (changelog row 316)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added row 316: SS Chocolate Chip #2 TRIAL Nov 23 pack re-recorded at 20 lb a case (TX 3128 voided, TX 3135 PK-261123-005, 287 cases = 5,740 lb into BB112327); write-offs TX 3126/3127 and count entry TX 3129 voided; 3,305 lb recorded as loss (TX 3136, 3137, reason damaged_thrown_out, note says baking/process loss, not measured). Balances and the honey and oats forward traces verified after. Docs only; the postings were made in production through the owner ticket path.
