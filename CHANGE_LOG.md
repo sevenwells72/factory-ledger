@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-24 14:33 — Replay PR #232 onto main after #234 merged: histories joined, changelog rows ordered, one audit-failure test adjusted — local worktree, not pushed
+- **File(s) changed:** `CHANGE_LOG.md`, `FACTORY_LEDGER_CHANGELOG.md`, `tests/test_audit_savepoints_lotcodes.py`, `docs/named-actor-writes.md`, `tests/fixtures/route_contract/routes.jsonl`
+- **What changed:** The eight commits of feat/no-stock-by-hand (old head 4bb0ea3, kept as local branch backup/232-pre-replay-4bb0ea3) were rebased onto main b7af91e. CHANGE_LOG.md keeps both histories (PR #234's five newer entries above PR #232's 48). FACTORY_LEDGER_CHANGELOG.md rows 309-315 are in numeric order with main's row 314. The route fixture was regenerated at the commit where it conflicted; it differs from PR #232's old version only in the four handlers PR #234 changed. test_found_inventory_primary_write_survives_audit_failure overflows suspected_supplier instead of performed_by. The replayed tree differs from the old #232 head only by PR #234's own changes. Full Python 7,812 passed with the 7 baseline failures and the Node-subprocess test that passes alone; JavaScript 747 of 747.
+- **Why:** Michael approved replaying #232 onto main after #234, taking #234's side on conflicts and fixing the over-long-name test, and asked to stop before #232's merge (chat, 2026-11-24).
+
+---
+
 ## 2026-11-24 14:18 — Staging proof for PR #234 recorded: shared key refused on 130 of 130 write routes, named owner stored on six maintenance routes (29 of 29 checks)
 - **File(s) changed:** `docs/deployments/shared-key-shutdown-staging.json`
 - **What changed:** Added the evidence file from the hosted FastAPI-staging proof of 2026-11-24 (branch head 4c559ce, Railway deployment 87a198ac, marker STG-234-E363E75E): shared key 403 SHARED_KEY_READ_ONLY on every authenticated non-GET route except the two lookups, no row added in 13 tables, lookups 200, a synthetic owner key recorded on Found, Found with new product, lot merge, lot reassign, certification and its correction (ledger row, trace event, lot audit row, history name); floor key refused. Not proven on staging: the SHARED_KEY_WRITES=allow switch (no staging setting was changed) and the tapped-name path. The two temporary staging people are inactive. No key or database address is in the file.
@@ -32,6 +39,9 @@
 - **File(s) changed:** `main.py`, `tests/test_shared_key_shutdown.py`, `tests/fixtures/route_contract/routes.jsonl`
 - **What changed:** create_certification, correct_certification, reassign_lot, merge_lots, add_found_inventory and add_found_inventory_with_new_product now take the Request and pass it to _operator_id / _entered_by_actor_id, so a named owner key is stored as the person (name and actor id) instead of 'legacy-shared-key'. Found-with-new-product now writes operator_id and entered_by_actor_id on its ledger row. The two direct Found lines match PR #232's text. Added 10 HTTP tests (owner key stores the person; shared key under SHARED_KEY_WRITES=allow keeps the old stamp) and regenerated 6 route-contract lines (request false to true). No migration, no schema or GPT change.
 - **Why:** Cross-review of PR #234 (comment 7043947718, finding 1): the owner key reaches these routes after the shared key becomes read-only, but they still recorded the shared-key placeholder and no person. Michael approved preparing the fix on 2026-11-23.
+
+---
+
 ## 2026-11-20 10:10 — Record complete Python, baseline, JavaScript and visual results for draft PRs 232 and 234
 - **File(s) changed:** `docs/validation/no-stock-by-hand-owner-review-2026-11-20.md`, `tests/test_adjust_destinations.py`, `tests/test_expected_receipts.py`
 - **What changed:** Finalize current-policy fixture repairs and evidence: #232 7790 passed plus the same seven main failures in each marker mode; #234 7693 passed plus those seven; fresh main 7689 passed plus seven. JS 747 and 744 pass, including real browser flows; inspected four receiving screenshots. Preserve generated browser evidence outside worktrees.

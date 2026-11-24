@@ -244,11 +244,11 @@ placeholder. They now record the person:
 - Before #232 is merged, reverting this PR is clean.
 - After #232 is merged, a revert conflicts in test files; the rollback is
   `SHARED_KEY_WRITES=allow`.
-- Replaying #232 on top of this PR conflicts in `CHANGE_LOG.md`,
-  `FACTORY_LEDGER_CHANGELOG.md` (keep both sets of rows, newest first) and
-  `tests/fixtures/route_contract/routes.jsonl` (regenerate with
-  `FL_UPDATE_ROUTE_CONTRACT=1`); `main.py` merges cleanly. #232's
-  `test_found_inventory_primary_write_survives_audit_failure` forces its audit
-  failure with an over-long `performed_by` sent with the owner key; that name is
-  now replaced by the owner's, so the test must use another over-long field or a
-  caller with no person.
+- #232 was replayed onto main on 2026-11-24, after this PR merged as `b7af91e`.
+  `CHANGE_LOG.md` conflicted at every commit (both histories kept, newest first),
+  `FACTORY_LEDGER_CHANGELOG.md` once (rows 309-315 now in numeric order) and
+  `tests/fixtures/route_contract/routes.jsonl` once (regenerated with
+  `FL_UPDATE_ROUTE_CONTRACT=1`); `main.py` merged cleanly.
+  `test_found_inventory_primary_write_survives_audit_failure` now forces its audit
+  failure with an over-long `suspected_supplier`, because a signed-in person's
+  name replaces an over-long `performed_by`.

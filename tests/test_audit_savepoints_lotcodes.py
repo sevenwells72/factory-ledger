@@ -128,7 +128,9 @@ def test_found_inventory_primary_write_survives_audit_failure(client, _db_connec
         "product_id": product_id,
         "quantity": 25,
         "reason_code": "physical_count",
-        "performed_by": LONG_NAME,  # overflows inventory_adjustments.adjusted_by varchar(100)
+        # Overflows inventory_adjustments.suspected_supplier varchar(200). A signed-in person's
+        # name replaces performed_by (PR #234), so an over-long performed_by no longer fails.
+        "suspected_supplier": "s" * 250,
     })
     assert resp.status_code == 200, resp.text
     body = resp.json()
