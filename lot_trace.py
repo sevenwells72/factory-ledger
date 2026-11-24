@@ -6,6 +6,8 @@ not an assertion of physically verified ingredient allocation.
 """
 from collections import deque
 
+import paired_trace
+
 
 
 def supplier_entries(cur, lot_id):
@@ -19,12 +21,21 @@ def supplier_entries(cur, lot_id):
 
 
 def forward(cur, lot_id, api):
-    """Complete closure in exactly five set-based queries, independent of lot count.
+    """Complete closure in a fixed number of set-based queries, independent of lot count.
 
     Materialize current posted make/pack lines once. UNION (not UNION ALL)
-    terminates cycles without a depth/fanout cap. The other four queries fetch
+    terminates cycles without a depth/fanout cap. Four more queries fetch
     metadata/balances, receipts, supplier entries and shipments for the closure.
+
+    Lots joined by a posted paired wrong-lot move are linked in both directions
+    (paired_trace): the closure of either lot includes the other lot and everything
+    it fed. Those links are read first (an existence check plus one query) and
+    passed in as arrays, so this SQL is the same before and after migration 098.
     """
+    all_moves = paired_trace.moves(cur, api)
+    by_lot = paired_trace.links(all_moves)
+    link_from = [m['restored_lot_id'] for m in all_moves] + [m['used_lot_id'] for m in all_moves]
+    link_to = [m['used_lot_id'] for m in all_moves] + [m['restored_lot_id'] for m in all_moves]
     cur.execute("""
         WITH RECURSIVE posted AS MATERIALIZED (
             SELECT t.id, t.type, t.timestamp, i.lot_id, i.product_id, i.quantity_lb
@@ -41,28 +52,35 @@ def forward(cur, lot_id, api):
             SELECT c.id AS transaction_id,c.type,c.timestamp,c.lot_id AS source_lot_id,
                    c.quantity_used,o.lot_id,o.product_id,o.output_quantity
             FROM consumed c LEFT JOIN produced o ON o.id=c.id
+        ), links(from_id,to_id) AS (
+            SELECT * FROM unnest(%s::integer[], %s::integer[])
+        ), step AS (
+            SELECT source_lot_id AS from_id, lot_id AS to_id FROM edges WHERE lot_id IS NOT NULL
+            UNION
+            SELECT from_id, to_id FROM links
         ), reachable(lot_id) AS (
             SELECT %s::integer
             UNION
-            SELECT e.lot_id FROM reachable r JOIN edges e ON e.source_lot_id=r.lot_id
-            WHERE e.lot_id IS NOT NULL
+            SELECT s.to_id FROM reachable r JOIN step s ON s.from_id=r.lot_id
         )
         SELECT e.*,l.lot_code AS batch_lot_code,p.name AS batch_product
         FROM edges e JOIN reachable r ON r.lot_id=e.source_lot_id
         LEFT JOIN lots l ON l.id=e.lot_id LEFT JOIN products p ON p.id=e.product_id
         ORDER BY e.timestamp,e.transaction_id,e.source_lot_id,e.lot_id
-    """, (lot_id,))
+    """, (link_from, link_to, lot_id))
     edges=[dict(r) for r in cur.fetchall()]
     adjacency={}
     for e in edges:
         adjacency.setdefault(e['source_lot_id'],[]).append(e)
-    pending, visited, ordered = deque([lot_id]), set(), []
+    # reached_via: how each lot first entered the closure (start, consumption or paired_move).
+    pending, visited, ordered, reached_via = deque([(lot_id,'start')]), set(), [], {}
     while pending:
-        current=pending.popleft()
+        current, via=pending.popleft()
         if current in visited:
             continue
-        visited.add(current); ordered.append(current)
-        pending.extend(e['lot_id'] for e in adjacency.get(current,[]) if e['lot_id'] is not None)
+        visited.add(current); ordered.append(current); reached_via[current]=via
+        pending.extend((e['lot_id'],'consumption') for e in adjacency.get(current,[]) if e['lot_id'] is not None)
+        pending.extend((m['other_lot']['lot_id'],'paired_move') for m in paired_trace.corrections(by_lot,current))
     cur.execute("""
         WITH balances AS (
             SELECT i.lot_id,SUM(i.quantity_lb) AS on_hand
@@ -83,7 +101,9 @@ def forward(cur, lot_id, api):
         n['unit']='lb' if n['product_type'] in ('batch','finished') else api.ledger_quantity_unit(n['uom'])
         n.pop('uom');n['on_hand']=float(n['on_hand'])
         n['case_size_lb']=float(n['case_size_lb']) if n['case_size_lb'] else None
-        n.update(receipts=[],shipments=[],supplier_lot_entries=[])
+        n.update(receipts=[],shipments=[],supplier_lot_entries=[],reached_via=reached_via[n['lot_id']])
+        if by_lot.get(n['lot_id']):
+            n['paired_moves']=paired_trace.corrections(by_lot,n['lot_id'])
         by_id[n['lot_id']]=n
     cur.execute("""
         SELECT i.lot_id,t.id,t.timestamp,t.shipper_name,s.name AS supplier_name,
@@ -154,8 +174,13 @@ def forward(cur, lot_id, api):
             result_edges.append(e)
             if e['lot_id'] is None:
                 gaps.append({'transaction_id':e['transaction_id'],'lot_id':current,'reason':'Consumed lot has no identified output lot'})
+    shown=[m for m in all_moves if m['restored_lot_id'] in visited or m['used_lot_id'] in visited]
+    basis='Recorded consumption per transaction; downstream lots are potential exposure, not allocated ingredient weight.'
+    if shown:
+        basis+=(' Lots joined by a wrong-lot correction are both included with everything either one fed:'
+                ' the record cannot say which batches held which lot, so this is an assumed link, not a verified one.')
     return {'start_lot_id':lot_id,'lots':[by_id[i] for i in ordered],'consumption':result_edges,'gaps':gaps,
-            'quantity_basis':'Recorded consumption per transaction; downstream lots are potential exposure, not allocated ingredient weight.'}
+            'paired_moves':shown,'quantity_basis':basis}
 
 
 def report(cur, lot, direction, api):
@@ -164,10 +189,18 @@ def report(cur, lot, direction, api):
     result={'report_version':1,'complete':True,'direction':direction,'lot_id':lot['id'],
             'product_id':lot['product_id'],'batch_lot_code':lot['lot_code'],'product_name':lot['product_name'],
             'forward_trace':graph,'customer_shipments':start['shipments'],'on_hand_lb':start['on_hand'],
-            'total_shipped_lb':sum(s['quantity_lb'] for s in start['shipments'])}
+            'total_shipped_lb':sum(s['quantity_lb'] for s in start['shipments']),
+            'paired_moves':graph['paired_moves']}
     if direction=='backward':
         from lot_trace_backward import BackwardTrace
-        origin=BackwardTrace(api)._trace_lot_origin(cur,dict(lot,lot_id=lot['id']),0,frozenset())
+        tracer=BackwardTrace(api)
+        origin=tracer._trace_lot_origin(cur,dict(lot,lot_id=lot['id']),0,frozenset())
+        # Owner rule: an input lot touched by a wrong-lot correction shows the other lot too.
+        by_lot=paired_trace.links(paired_trace.moves(cur,api))
+        tree_moves=paired_trace.annotate_tree(cur,origin,by_lot,
+            lambda c,partner:tracer._trace_lot_origin(c,partner,1,frozenset()))
+        known={m['transaction_id'] for m in result['paired_moves']}
+        result['paired_moves']=result['paired_moves']+[m for m in tree_moves if m['transaction_id'] not in known]
         result['origin']=origin
         result['input_tree']=origin if origin['kind']=='made' else None
         result['output_lb']=origin.get('output_lb',0)

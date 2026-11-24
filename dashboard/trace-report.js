@@ -8,6 +8,9 @@
   const lot = n => `${n.lot_code || 'Unidentified lot'} · ${n.product_name || ''} (lot ID ${n.lot_id ?? 'missing'})`;
   const supplierLot = n => (n.lot_type === 'commingled' || (n.supplier_lot_entries || []).length > 1 || /pooled/i.test(n.entry_source_notes || '')) ? 'Pooled inventory — no single supplier lot' : n.supplier_lot_code || 'Not recorded';
   const date = x => root.FLDesign ? root.FLDesign.date(x) : (x || 'Not recorded');
+  // Owner rule: a lot touched by a wrong-lot correction always names the other lot.
+  const pairedNote = n => (n.paired_moves || []).length
+    ? ` — WRONG-LOT CORRECTION: also lot ${[...new Set(n.paired_moves.map(m => m.other_lot?.lot_code).filter(Boolean))].join(', ')}` : '';
   function link(n, direction='backward') {
     return 'traceability.html?' + new URLSearchParams({lot:n.lot_code, product_id:n.product_id, direction});
   }
@@ -58,9 +61,16 @@
         if (!(t.inputs || []).length) gap(n, 'No ingredient lines recorded', t.transaction_id);
         for (const i of t.inputs || []) {
           const share = fraction == null || outputFraction == null ? null : i.quantity * fraction * outputFraction;
-          inputs.push([path, `${t.type} #${t.transaction_id}`, date(t.produced_date), lot(i),
+          inputs.push([path, `${t.type} #${t.transaction_id}`, date(t.produced_date), lot(i) + pairedNote(i),
             supplierLot(i), qty(i.quantity,i.unit), qty(share,i.unit)]);
           walk(i, i.origin, share, `${path} ← ${i.lot_code || 'Unidentified lot'}`);
+          // The lot on the other side of a wrong-lot correction is traced too, with no share claimed.
+          for (const other of i.paired_lots || []) {
+            inputs.push([path, `${t.type} #${t.transaction_id}`, date(t.produced_date),
+              lot(other) + ` — WRONG-LOT CORRECTION: linked to lot ${i.lot_code || 'Unidentified lot'}`,
+              supplierLot(other), 'Not recorded on this lot', 'Not determinable']);
+            walk(other, other.origin, null, `${path} ← ${i.lot_code || 'Unidentified lot'} ⇄ ${other.lot_code || 'Unidentified lot'}`);
+          }
         }
       }
     }
@@ -84,12 +94,18 @@
     if(sources.size) report.sections.push({title:'Recorded supplier-lot entries',note:'Lot-level source metadata as recorded, not an allocation to individual receipts or physical verification. Pooled inventory is not one supplier lot.',headers:['Lot / product','Supplier','Supplier lot','Recorded quantity','Recorded note'],rows:[...sources.values()]});
     if(notes.size) report.sections.push({title:'Recorded lot notes and assumptions',note:'Historical notes are recorded claims, not new physical verification.',headers:['Lot / product','Recorded note'],rows:[...notes.values()]});
     const byId = new Map(forward.lots.map(n=>[n.lot_id,n]));
+    const corrections = data.paired_moves || forward.paired_moves || [];
+    if (corrections.length) report.sections.push({title:`Wrong-lot corrections: ${corrections.length} — both lots are included`,
+      note:'A wrong-lot correction says stock first recorded on one lot was really taken from another lot of the same product. It does not say which batches held which lot, so this report includes both lots and everything either one went into. That link is an assumption made for safety, not physical verification.',
+      headers:['Correction','Date (ET)','Product','First recorded on lot','Corrected to lot','Quantity'],
+      rows:corrections.map(m=>[m.receipt_number || `Txn #${m.transaction_id}`, date(m.corrected_date), m.product_name,
+        `${m.restored_lot_code} (lot ID ${m.restored_lot_id})`, `${m.used_lot_code} (lot ID ${m.used_lot_id})`, qty(m.quantity_lb)])});
     const shownConsumption=new Set();
     report.sections.push({title:'Forward — every consuming make and pack', note:forward.quantity_basis + ' Each input amount is shown once per consuming transaction; other output rows explicitly refer to that same consumption.',
       headers:['Consumed lot / product','Transaction','Date (ET)','Recorded quantity used','Output lot / product','Output quantity'],
       rows:forward.consumption.map(e=>{
         const key=`${e.source_lot_id}:${e.transaction_id}`, repeated=shownConsumption.has(key);shownConsumption.add(key);
-        return [lot(byId.get(e.source_lot_id)), `${e.type} #${e.transaction_id}`,date(e.produced_date),repeated ? 'Same consumption as above, do not add' : qty(e.quantity_used,e.unit),
+        return [lot(byId.get(e.source_lot_id)) + (byId.get(e.source_lot_id).reached_via==='paired_move' ? ' — included by a wrong-lot correction' : ''), `${e.type} #${e.transaction_id}`,date(e.produced_date),repeated ? 'Same consumption as above, do not add' : qty(e.quantity_used,e.unit),
         e.lot_id == null ? 'No identified output lot' : lot(byId.get(e.lot_id)), qty(e.output_quantity,byId.get(e.lot_id)?.unit)];})});
     const shipped=[];
     for (const n of forward.lots) for (const sh of n.shipments) {

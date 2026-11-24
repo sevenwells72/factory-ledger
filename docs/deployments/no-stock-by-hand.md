@@ -31,6 +31,17 @@ The shared master key is already read-only in production (PR #234). GETs and `PO
 
 Use the new HTTP tests as the staging checklist: existing received lot rejected; new/placeholder and voided receipt allowed; both count routes refuse exactly one pack, cumulative allowance exhausted and missing pack weight; paired move has two lines, one receipt and one shortage if needed. Verify shared-key write refusal before any row is written, named-owner route reach, and floor denial. Check receipt, history, shift roll-forward and nightly email show both move legs. Reattach photos when receiving again.
 
+## Recall traces and wrong-lot corrections
+
+Owner rule (2026-11-24): a recall must show **both** lots of a paired wrong-lot move, the lot first recorded and the lot it was corrected to, with the correction labeled. Over-inclusive is the rule for recalls. This must be live before 098 is switched on; a paired move cannot be recorded while the marker is off.
+
+- A paired move says X lb recorded on one lot was really taken from another lot of the same ingredient. It does not say which make or pack used those pounds. Every trace therefore links the two lots in both directions: a recall on either lot includes the other lot and everything either one went into. Each label says this is an assumed link, not physical verification.
+- **Recall report** (`GET /dashboard/api/lot-report/{lot_code}`): linked lots appear in `forward_trace.lots` with `reached_via: "paired_move"`, the corrections in `paired_moves`, and the dashboard report gets a "Wrong-lot corrections" section on screen, print and text.
+- **Backward trace** of a batch: an input lot touched by a correction carries `paired_moves` and `paired_lots` (the other lot with its own origin).
+- **Older lookups** (`/trace/batch`, `/trace/ingredient`, `/trace/supplier-lot`): additive `paired_moves` and `paired_lots`; nothing else in those responses changes. In the supplier-lot lookup the linked lot is listed apart from the matches and is not added to the totals.
+- The two lots are read from the move's current posted lines, so a later lot merge or line correction is followed, and a voided move links nothing. The link stays after the 098 down file (the table and its rows are kept as evidence).
+- Not covered: the Production calendar's Made/Packed drill-down does not show the link.
+
 ## Rollback
 
 Fastest first. Each step is a production change: owner approval for that step, a verified backup before it and verification after.

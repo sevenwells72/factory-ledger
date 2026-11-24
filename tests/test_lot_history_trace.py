@@ -159,7 +159,7 @@ def test_commingled_supplier_entries_survive_history_and_both_trace_directions(c
 
 @pytest.mark.db
 @pytest.mark.parametrize('fanout',[1,80,500])
-def test_forward_query_count_is_five_independent_of_reachable_lots(db_cursor,fanout):
+def test_forward_query_count_is_fixed_independent_of_reachable_lots(db_cursor,fanout):
     import lot_trace
     source=item(db_cursor,'LH query source','ingredient','LH-QUERY-SOURCE','received')
     receive(db_cursor,source,fanout,'Supplier')
@@ -170,11 +170,14 @@ def test_forward_query_count_is_five_independent_of_reachable_lots(db_cursor,fan
         def __init__(self):self.count=0
         def execute(self,*a,**kw):self.count+=1;return db_cursor.execute(*a,**kw)
         def fetchall(self):return db_cursor.fetchall()
+        def fetchone(self):return db_cursor.fetchone()
     counted=Counter()
     result=lot_trace.forward(counted,source[1],main)
     assert len(result['lots'])==fanout+1
     assert len(result['consumption'])==fanout
-    assert counted.count==5, 'Forward SQL count must not grow with reachable lots'
+    # Five set-based queries plus the paired-move lookup: one existence check here (the
+    # paired_lot_moves table arrives with migration 098), and one more query once it exists.
+    assert counted.count==6, 'Forward SQL count must not grow with reachable lots'
 
 
 @pytest.mark.db

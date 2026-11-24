@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-24 15:04 — Both lots of a paired wrong-lot move shown in every recall trace; direct adjust preview runs the 098 guard (branch feat/paired-move-recall-trace, not pushed)
+- **File(s) changed:** `paired_trace.py`, `lot_trace.py`, `main.py`, `trace-report.js`, `traceability.html`, `lot-history.html`, `no-stock-by-hand.md`, `ARCHITECTURE-MAP.md`, `FACTORY_LEDGER_CHANGELOG.md`, `test_paired_move_recall_trace.py`, `test_lot_history_trace.py`, `test_trace_report.js`
+- **What changed:** New read-only paired_trace.py links the two lots of every posted wrong-lot correction, read from the move's current ledger lines. The recall report's closure (lot_trace.forward) includes the other lot and everything either lot fed, with reached_via and labeled paired_moves; the backward tree labels input lots and names the other lot with its origin; trace_batch, trace_ingredient and trace_supplier_lot gain additive paired_moves / paired_lots; the dashboard report shows a Wrong-lot corrections section (script version bumped to 3). Labels in English and Spanish say the link is assumed, not verified. Before migration 098 nothing changes except one existence check per trace. From the PR #232 review: the adjust guard is now one function shared by the commit core and the direct preview, and a test covers the primary supplier on the direct receive routes. 25 Python tests and 1 JavaScript test added; the forward query-count test now expects six. Changelog row 316. Full Python 7,837 passed with the 7 baseline failures and the Node-subprocess test that passes alone; JavaScript 748 of 748. Visual suite not run.
+- **Why:** Owner decision 2026-11-24: the recall trace must show both lots of a paired move, labeled, in the recall report, backward trace and older lookups, as its own PR before migration 098 is switched on; include the two PR #232 leftovers; Codex cross-review; do not merge.
+
+---
+
 ## 2026-11-24 14:45 — PR #232 changelog: four draft rows collapsed into one row 315 before merge
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Rows 310, 311, 312 and the draft row 315 are replaced by a single row 315 describing what PR #232 changes, what it solved, what breaks if reverted and the files, and stating that migration 098 is written but not applied. Row order is now 315, 314, 313, 309. Numbers 310-312 are left unused.

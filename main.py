@@ -15,6 +15,7 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 import calendar
 import lot_trace
+import paired_trace
 from psycopg2 import pool
 import os
 import re
@@ -9708,21 +9709,18 @@ def _pack_commit_core(cur, req, request, occurred_at, created_at_source, *, sour
     return response
 
 
-def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, lot_id=None, ticket_id=None, receipt_number=None, reason_code=None, note=None, count_to=None, paired_lot_id=None, sales_order_id=None, held_reason=None):
-    product = product if product is not None else resolve_product_full(cur, req.product_name)
-    if lot_id is None:
-        cur.execute("SELECT id as lot_id, lot_code, status FROM lots WHERE product_id = %s AND LOWER(lot_code) = LOWER(%s)", (product['id'], req.lot_code))
-    else:
-        cur.execute('SELECT id as lot_id,lot_code,status FROM lots WHERE id=%s AND product_id=%s', (lot_id, product['id']))
-    lot = cur.fetchone()
-    if not lot:
-        raise HTTPException(404, f"Lot '{req.lot_code}' not found for product '{product['name']}'")
-    if paired_lot_id is not None:
-        cur.execute('SELECT id FROM lots WHERE id=ANY(%s) ORDER BY id FOR UPDATE', ([lot['lot_id'], paired_lot_id],))
-    else:
-        cur.execute('SELECT id FROM lots WHERE id=%s FOR UPDATE', (lot['lot_id'],))
+def _adjust_stock_guard(cur, req, product, lot, *, reason_code=None, note=None, count_to=None,
+                        paired_lot_id=None, sales_order_id=None, held_reason=None):
+    """Migration 098's rules for one adjust. Reads only; raises the refusal.
+
+    Shared by the commit core and the direct preview, so a preview can never promise a
+    post the commit would refuse. Returns (reason_code, note, allowance, paired, code),
+    where code is the resolved reason; with the marker absent it changes nothing and
+    returns its inputs with no allowance, pair or resolved reason.
+    """
     allowance = 0
     paired = None
+    code = None
     if stock_by_hand.live_at(cur):
         if lot['status'] == 'merged':
             stock_by_hand.fail('LOT_MERGED', 'Use the surviving lot.', 'Usa el lote sobreviviente.', 409)
@@ -9736,6 +9734,25 @@ def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, pr
         if count_to is None and paired is None:
             exceptions_enforcement.refuse_cover_up(cur, 'adjust', product['id'], lot['lot_id'], req.adjustment_lb)
         allowance = stock_by_hand.addition(cur, product['id'], lot['lot_id'], req.adjustment_lb, count_to=count_to, reason=reason_code, paired=paired is not None)
+    return reason_code, note, allowance, paired, code
+
+
+def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, lot_id=None, ticket_id=None, receipt_number=None, reason_code=None, note=None, count_to=None, paired_lot_id=None, sales_order_id=None, held_reason=None):
+    product = product if product is not None else resolve_product_full(cur, req.product_name)
+    if lot_id is None:
+        cur.execute("SELECT id as lot_id, lot_code, status FROM lots WHERE product_id = %s AND LOWER(lot_code) = LOWER(%s)", (product['id'], req.lot_code))
+    else:
+        cur.execute('SELECT id as lot_id,lot_code,status FROM lots WHERE id=%s AND product_id=%s', (lot_id, product['id']))
+    lot = cur.fetchone()
+    if not lot:
+        raise HTTPException(404, f"Lot '{req.lot_code}' not found for product '{product['name']}'")
+    if paired_lot_id is not None:
+        cur.execute('SELECT id FROM lots WHERE id=ANY(%s) ORDER BY id FOR UPDATE', ([lot['lot_id'], paired_lot_id],))
+    else:
+        cur.execute('SELECT id FROM lots WHERE id=%s FOR UPDATE', (lot['lot_id'],))
+    reason_code, note, allowance, paired, code = _adjust_stock_guard(
+        cur, req, product, lot, reason_code=reason_code, note=note, count_to=count_to,
+        paired_lot_id=paired_lot_id, sales_order_id=sales_order_id, held_reason=held_reason)
     cur.execute("SELECT COALESCE(label_type, 'house') as label_type FROM products WHERE id = %s", (product['id'],))
     lt_row = cur.fetchone()
     result = {**product, 'product_id': product['id'], 'lot_id': lot['lot_id'], 'lot_code': lot['lot_code'],
@@ -9802,7 +9819,7 @@ def _adjust_commit_core(cur, req, request, occurred_at, created_at_source, *, pr
         "new_balance_lb": new_balance, "reason": req.reason, "reason_code": reason_code,
         "message": f"Adjusted lot {result['lot_code']} by {_fmt_quantity(req.adjustment_lb)} lb (new balance: {_fmt_quantity(new_balance)} lb)"
     }
-    if stock_by_hand.live_at(cur) and 'destination' in code:
+    if code is not None and 'destination' in code:
         response['destination'] = code['destination']
     if paired:
         response['move'] = {'restored_lot_id': lot['lot_id'], 'used_lot_id': paired_lot_id, 'lb': req.adjustment_lb,
@@ -10153,7 +10170,7 @@ def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key), request: Reque
                 cur.execute(f"""
                     SELECT p.id as product_id, p.name, p.odoo_code,
                            COALESCE(p.label_type, 'house') as label_type,
-                           l.id as lot_id, l.lot_code,
+                           l.id as lot_id, l.lot_code, l.status,
                            COALESCE(SUM(tl.quantity_lb), 0) as quantity_on_hand
                     FROM products p
                     JOIN lots l ON l.product_id = p.id
@@ -10168,6 +10185,10 @@ def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key), request: Reque
                 warning = check_private_label_merge(result['name'], result['label_type'], req.reason, req.adjustment_lb)
                 if warning:
                     return JSONResponse(status_code=403, content={"blocked": True, "warning": warning, "product_name": result['name'], "label_type": result['label_type']})
+                # With migration 098 on, the preview refuses exactly what the commit refuses
+                # (NO_STOCK_BY_HAND and the rest); before 098 this call changes nothing.
+                _adjust_stock_guard(cur, req, {'id': result['product_id'], 'name': result['name'], 'label_type': result['label_type']},
+                                    {'lot_id': result['lot_id'], 'lot_code': result['lot_code'], 'status': result['status']})
 
                 quantity_on_hand = float(result['quantity_on_hand'])
                 new_balance = quantity_on_hand + req.adjustment_lb
@@ -10185,6 +10206,8 @@ def adjust(req: AdjustRequest, _: bool = Depends(verify_api_key), request: Reque
                 if new_balance < 0:
                     response["balance_warning"] = f"This will result in negative inventory ({_fmt_quantity(new_balance)} lb)"
                 return response
+        except HTTPException:
+            raise
         except Exception as e:
             logger.error(f"Adjust preview failed: {e}")
             return JSONResponse(status_code=500, content={"error": str(e)})
@@ -10751,7 +10774,45 @@ def _trace_input_tree(cur, lot_row):
     origin = _trace_lot_origin(cur, {
         'lot_id': lot_row['id'], 'entry_source': lot_row.get('entry_source'),
         'supplier_lot_code': lot_row.get('supplier_lot_code')}, 0, frozenset())
-    return origin if origin['kind'] == 'made' else None
+    if origin['kind'] != 'made':
+        return None
+    # Owner rule (2026-11-24): an input lot touched by a wrong-lot correction names the other lot too.
+    paired_trace.annotate_tree(
+        cur, origin, paired_trace.links(paired_trace.moves(cur, sys.modules[__name__])),
+        lambda c, partner: _trace_lot_origin(c, partner, 1, frozenset()))
+    return origin
+
+
+def _trace_paired(cur, lot_ids):
+    """Both lots of every posted wrong-lot correction touching lot_ids, for the older trace lookups.
+
+    Returns {} when there is none, else:
+      paired_moves — the corrections, labeled (English and Spanish), oldest first;
+      paired_lots  — every lot linked to one of lot_ids that is not itself in lot_ids,
+                     with its supplier origin, the batches it fed and its shipments.
+    A recall on either lot therefore shows the other lot and what it went into. The link
+    is an assumption for safety (over-inclusive), never a verified allocation.
+    """
+    lot_ids = [lot_id for lot_id in lot_ids if lot_id is not None]
+    by_lot = paired_trace.links(paired_trace.moves(cur, sys.modules[__name__]))
+    found, linked = {}, []
+    for lot_id in lot_ids:
+        for move in paired_trace.corrections(by_lot, lot_id):
+            found[move['transaction_id']] = {k: v for k, v in move.items() if k != 'other_lot'}
+        for partner_id in paired_trace.linked_lot_ids(by_lot, lot_id):
+            if partner_id not in lot_ids and partner_id not in linked:
+                linked.append(partner_id)
+    if not found:
+        return {}
+    paired_lots = []
+    for partner_id in linked:
+        row = paired_trace.lot_row(cur, partner_id)
+        if not row:
+            continue
+        summary = _trace_ingredient_backward(cur, row, with_pairs=False)
+        summary['paired_moves'] = paired_trace.corrections(by_lot, partner_id)
+        paired_lots.append(summary)
+    return {"paired_moves": [found[key] for key in sorted(found)], "paired_lots": paired_lots}
 
 @app.get("/trace/batch/{lot_code}")
 def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool = Depends(verify_api_key)):
@@ -10898,6 +10959,16 @@ def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool 
                 # Traceability). "ingredients" above is unchanged for GPT readers.
                 "input_tree": _trace_input_tree(cur, lot_row),
             }
+            paired = _trace_paired(cur, [ing['lot_id'] for ing in ingredients])
+            if paired:
+                result.update(paired)
+                touched = {}
+                for move in paired["paired_moves"]:
+                    for key in ('restored_lot_id', 'used_lot_id'):
+                        touched.setdefault(move[key], []).append(move)
+                for entry in result["ingredients"]:
+                    if entry["lot_id"] in touched:
+                        entry["paired_moves"] = touched[entry["lot_id"]]
             if cs_lb and cs_lb > 0:
                 result["case_size_lb"] = cs_lb
                 result["output_units"] = round(output_lb / cs_lb)
@@ -10915,8 +10986,12 @@ def trace_batch(lot_code: str, product_id: Optional[int] = Query(None), _: bool 
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
-def _trace_ingredient_backward(cur, lot_row):
-    """Backward trace for an ingredient lot: supplier origin + downstream batches."""
+def _trace_ingredient_backward(cur, lot_row, with_pairs=True):
+    """Backward trace for an ingredient lot: supplier origin + downstream batches.
+
+    with_pairs adds the lot or lots joined to this one by a wrong-lot correction
+    (off when this call is itself describing such a linked lot).
+    """
     lot_code = lot_row['lot_code']
 
     # 1. Find receive transaction (supplier origin)
@@ -11029,7 +11104,8 @@ def _trace_ingredient_backward(cur, lot_row):
         "downstream_batches": batches_out,
         "direct_shipments": shipments_out,
         "total_shipped_lb": total_shipped,
-        "on_hand_lb": on_hand
+        "on_hand_lb": on_hand,
+        **(_trace_paired(cur, [lot_row['id']]) if with_pairs else {}),
     }
 
 
@@ -11192,6 +11268,7 @@ def trace_ingredient(lot_code: str, product_id: Optional[int] = Query(None), _: 
                 )
                 result["upstream_ingredients"] = upstream_ingredients
 
+            result.update(_trace_paired(cur, [lot['id']] + [u['lot_id'] for u in upstream_ingredients or []]))
             return result
     except HTTPException:
         raise
@@ -11335,6 +11412,15 @@ def trace_supplier_lot(supplier_lot_code: str, product_id: Optional[int] = Query
                 total_shipped += lot_shipped_total
                 total_on_hand += on_hand
 
+            # Owner rule (2026-11-24): a lot joined to a matched lot by a wrong-lot correction is part
+            # of the recall too. It is listed apart from the matches and left out of the totals above,
+            # which stay the recorded figures for this supplier lot code.
+            paired = _trace_paired(cur, [lot['lot_id'] for lot in matched_lots])
+            for entry in results:
+                moves = [m for m in paired.get("paired_moves", [])
+                         if entry["lot_id"] in (m['restored_lot_id'], m['used_lot_id'])]
+                if moves:
+                    entry["paired_moves"] = moves
             return {
                 "supplier_lot_code": supplier_lot_code,
                 "matched_internal_lots": results,
@@ -11343,7 +11429,8 @@ def trace_supplier_lot(supplier_lot_code: str, product_id: Optional[int] = Query
                     "total_in_production_lb": total_in_production,
                     "total_shipped_to_customers_lb": total_shipped,
                     "total_on_hand_lb": total_on_hand
-                }
+                },
+                **paired,
             }
     except HTTPException:
         raise
