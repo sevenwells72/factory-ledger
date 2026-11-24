@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-24 14:45 — PR #232 changelog: four draft rows collapsed into one row 315 before merge
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Rows 310, 311, 312 and the draft row 315 are replaced by a single row 315 describing what PR #232 changes, what it solved, what breaks if reverted and the files, and stating that migration 098 is written but not applied. Row order is now 315, 314, 313, 309. Numbers 310-312 are left unused.
+- **Why:** Cross-review comment 7043948116 item 3 asked for one row with a real Breaks If Reverted at merge; Michael asked for the collapse when approving the merge on 2026-11-24.
+
+---
+
 ## 2026-11-24 14:39 — PR #232 deployment guide: rollback corrected, go-live checks added, shared-key statements brought up to date
 - **File(s) changed:** `docs/deployments/no-stock-by-hand.md`
 - **What changed:** Rollback now leads with the 098 down file alone (deletes only the marker; old rules apply at once, no deploy), makes a code revert optional and afterwards, and says that putting the marker back restarts the give-back sum and the under-one-pack allowance from the new time. The shared-key rollback is SHARED_KEY_WRITES=allow, not a revert, because the shutdown shipped as PR #234. Added go-live checks before 098: no adjust or Found ticket awaiting approval, and a list of ingredient lots with an open shortage. Deploy order now says the merge commit must not contain the Netlify skip marker and that 098 waits until the new dashboard is confirmed live. Status lines updated: cross-reviewed 2026-11-20, replayed onto main 2026-11-24. Also merged main 98e97ee (PR #235 deploy record) into the branch: both change logs kept, row 314 is main's deployed version.
