@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-25 11:28 — Record Cocoa Vibes pack correction of 2026-11-25 (changelog row 318)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Added row 318: TX 3094 PK-261120-002 (9 cases into SS Cocoa Crunch #13 bulk 294, lot 1747) voided as VD-261125-001; pack re-recorded as TX 3144 PK-261120-006, 9 x 25 lb = 225 lb of Granola Cocoa Vibes 25 LB (139) into new lot 1811 from batch lot 1746. Backup 2026-11-25-pre-cocoa-vibes-correction OK. Shipment on SO-261111-002 not recorded; left to Arturo. Row 317 is taken by open PR #238.
+- **Why:** Michael confirmed the 9 cases were Juliette's Cocoa Vibes and approved the correction on 2026-11-25; the record keeps the transaction IDs, the backup and the verified balances (1746 = 141, 1747 = 0, 1811 = 225).
+
+---
+
 ## 2026-11-24 15:03 — Record TRIAL pack correction of 2026-11-24 (changelog row 316)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added row 316: SS Chocolate Chip #2 TRIAL Nov 23 pack re-recorded at 20 lb a case (TX 3128 voided, TX 3135 PK-261123-005, 287 cases = 5,740 lb into BB112327); write-offs TX 3126/3127 and count entry TX 3129 voided; 3,305 lb recorded as loss (TX 3136, 3137, reason damaged_thrown_out, note says baking/process loss, not measured). Balances and the honey and oats forward traces verified after. Docs only; the postings were made in production through the owner ticket path.
