@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-25 15:47 — Pack form: approved extra pack sources so a regular SKU can be packed from its Extra-Kosher (SS) twin batch
+- **File(s) changed:** `resolution.py`, `main.py`, `migrations/099_product_pack_sources.sql`, `migrations/down/099_product_pack_sources_down.sql`, `tests/test_pack_extra_source_link.py`, `docs/ARCHITECTURE-MAP.md`, `CHANGE_LOG.md`
+- **What changed:** New table product_pack_sources (migration 099, schema only, not applied). resolution.pack_links reads it; the Packed product search, pack source list, resolve_pack_add_ins (no mismatch warning) and make pack_needed include linked products. Returns nothing until 099 is applied. Tests added.
+- **Why:** 2026-11-25: Granola Cocoa Vibes 25 LB (139, linked to regular batch 111) could not be chosen on the Pack form from the SS batch 293 under any name, SKU or ID; the Nov 20 pack had been recorded as SS bulk (294) instead.
+
+---
+
 ## 2026-11-24 15:03 — Record TRIAL pack correction of 2026-11-24 (changelog row 316)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added row 316: SS Chocolate Chip #2 TRIAL Nov 23 pack re-recorded at 20 lb a case (TX 3128 voided, TX 3135 PK-261123-005, 287 cases = 5,740 lb into BB112327); write-offs TX 3126/3127 and count entry TX 3129 voided; 3,305 lb recorded as loss (TX 3136, 3137, reason damaged_thrown_out, note says baking/process loss, not measured). Balances and the honey and oats forward traces verified after. Docs only; the postings were made in production through the owner ticket path.
