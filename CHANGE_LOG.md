@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-25 23:33 — Ship form: fill-remaining button, blank lot rows ignored, cases shown
+- **File(s) changed:** `dashboard/entry.js`, `dashboard/entry.html`, `tests/test_pilot_entry_ui.js`
+- **What changed:** Replaced the 'Ship all remaining lines' checkbox with a 'Fill all remaining quantities' button that fills each open line's box (still editable); ship_all is sent only when every open line is filled to exactly its remaining lb and no lot is chosen by hand. Manual 'Choose actual lot(s)': rows with a blank lb box are ignored; if every row is blank FL asks for the lb (never guessed); the add-up error names both totals. Each order line shows cases remaining and cases being shipped. entry.js cache v16->v17. 7 Node tests added/updated.
+- **Why:** 2026-11-25 SO-261111-002: ship-all asked for 10 cases when 9 existed and the lot rows blocked the shipment; Arturo could not record a partial shipment.
+
+---
+
 ## 2026-11-25 15:47 — Pack form: approved extra pack sources so a regular SKU can be packed from its Extra-Kosher (SS) twin batch
 - **File(s) changed:** `resolution.py`, `main.py`, `migrations/099_product_pack_sources.sql`, `migrations/down/099_product_pack_sources_down.sql`, `tests/test_pack_extra_source_link.py`, `docs/ARCHITECTURE-MAP.md`, `CHANGE_LOG.md`
 - **What changed:** New table product_pack_sources (migration 099, schema only, not applied). resolution.pack_links reads it; the Packed product search, pack source list, resolve_pack_add_ins (no mismatch warning) and make pack_needed include linked products. Returns nothing until 099 is applied. Tests added.
