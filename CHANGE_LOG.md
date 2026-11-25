@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-25 23:38 — Duplicate-receipt warning shows both BOLs and supplier lots
+- **File(s) changed:** `write_tickets.py`, `tests/test_duplicate_warning_spanish.py`, `tests/test_receive_duplicate_warning_details.py`
+- **What changed:** receive_duplicates now also reads the earlier receipt's BOL (transactions.bol_reference) and supplier lot codes, and the POSSIBLE_DUPLICATE message (EN/ES) lists earlier vs this receipt's BOL and supplier lot. Same BOL (case-insensitive) says it is most likely entered twice; otherwise 'tick only if this is a separate truck'. Still requires_ack; detection rule unchanged. refs gain previous_bol_reference, previous_supplier_lot_codes, same_bol.
+- **Why:** 2026-11-25: two real oats trucks (43,750 lb each, BOL CV270129 / CV264307) triggered the warning; Arturo abandoned two drafts before confirming because the warning gave nothing to compare.
+
+---
+
 ## 2026-11-25 15:47 — Pack form: approved extra pack sources so a regular SKU can be packed from its Extra-Kosher (SS) twin batch
 - **File(s) changed:** `resolution.py`, `main.py`, `migrations/099_product_pack_sources.sql`, `migrations/down/099_product_pack_sources_down.sql`, `tests/test_pack_extra_source_link.py`, `docs/ARCHITECTURE-MAP.md`, `CHANGE_LOG.md`
 - **What changed:** New table product_pack_sources (migration 099, schema only, not applied). resolution.pack_links reads it; the Packed product search, pack source list, resolve_pack_add_ins (no mismatch warning) and make pack_needed include linked products. Returns nothing until 099 is applied. Tests added.

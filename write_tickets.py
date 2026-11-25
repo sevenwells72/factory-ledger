@@ -418,7 +418,11 @@ def validate_receive(api, cur, payload, *, lock=False):
 def receive_duplicates(cur, payload):
     """Use effective posted ledger values, across all actors, by entry time."""
     cur.execute('''
-        SELECT t.id, raw.receipt_number, t.operator_id,
+        SELECT t.id, raw.receipt_number, t.operator_id, raw.bol_reference,
+               (SELECT array_agg(DISTINCT lot.supplier_lot_code ORDER BY lot.supplier_lot_code)
+                  FILTER (WHERE lot.supplier_lot_code IS NOT NULL)
+                FROM ledger_current_transaction_lines l JOIN lots lot ON lot.id=l.lot_id
+                WHERE l.transaction_id=t.id AND l.product_id=%s) AS supplier_lot_codes,
                EXTRACT(EPOCH FROM (clock_timestamp()-t.created_at))/60 AS minutes_ago
         FROM ledger_current_transactions t JOIN transactions raw ON raw.id=t.id
         WHERE t.type='receive' AND t.effective_status='posted'
@@ -431,7 +435,7 @@ def receive_duplicates(cur, payload):
                 SELECT 1 FROM ledger_current_transaction_lines l JOIN lots lot ON lot.id=l.lot_id
                 WHERE l.transaction_id=t.id AND l.product_id=%s AND lot.supplier_lot_code=%s)))
         ORDER BY t.created_at DESC, t.id DESC LIMIT 1
-    ''', (payload['product_id'], payload['product_id'],
+    ''', (payload['product_id'], payload['product_id'], payload['product_id'],
           payload['cases'] * payload['case_size_lb'], payload['supplier_lot_code'],
           payload['supplier_lot_code'], payload['product_id'], payload['supplier_lot_code']))
     row = cur.fetchone()
@@ -439,11 +443,38 @@ def receive_duplicates(cur, payload):
         return []
     minutes = max(0, int(row['minutes_ago']))
     ref = row['receipt_number'] or f"transaction {row['id']} (legacy; no receipt number)"
+    # Show both deliveries side by side so the floor can tell two trucks from one entered twice
+    # (2026-11-25: two real oats trucks, same weight, different BOL and supplier lot).
+    previous_bol = (row.get('bol_reference') or '').strip()
+    new_bol = str(payload.get('bol_reference') or '').strip()
+    previous_lots = list(row.get('supplier_lot_codes') or [])
+    new_lot = str(payload.get('supplier_lot_code') or '').strip()
+    if new_lot.upper() == 'N/A':
+        new_lot = ''
+    same_bol = bool(previous_bol and new_bol and previous_bol.casefold() == new_bol.casefold())
+
+    def side(bol, lots, lang):
+        bol_text = bol or '—'
+        if lang == 'es':
+            return f"BOL {bol_text}, lote del proveedor {', '.join(lots) if lots else 'sin lote en la etiqueta'}"
+        return f"BOL {bol_text}, supplier lot {', '.join(lots) if lots else 'no lot on label'}"
+
+    new_lots = [new_lot] if new_lot else []
+    advice = ("Same BOL number: this is most likely the same delivery entered twice."
+              if same_bol else "Tick the box only if this is a separate truck or delivery.")
+    advice_es = ("Mismo número de BOL: lo más probable es que sea la misma entrega registrada dos veces."
+                 if same_bol else "Marca la casilla solo si es otro camión u otra entrega.")
     return [{'code': 'POSSIBLE_DUPLICATE', 'requires_ack': True,
-             'message': f"A matching receive was posted {minutes} minutes ago as {ref} by {row['operator_id']}.",
-             'message_es': f"Una recepción similar se registró hace {minutes} {'minuto' if minutes == 1 else 'minutos'} como {ref} por {row['operator_id']}.",
+             'message': (f"A matching receive was posted {minutes} minutes ago as {ref} by {row['operator_id']}. "
+                         f"Earlier receipt: {side(previous_bol, previous_lots, 'en')}. "
+                         f"This receipt: {side(new_bol, new_lots, 'en')}. {advice}"),
+             'message_es': (f"Una recepción similar se registró hace {minutes} {'minuto' if minutes == 1 else 'minutos'} como {ref} por {row['operator_id']}. "
+                            f"Recepción anterior: {side(previous_bol, previous_lots, 'es')}. "
+                            f"Esta recepción: {side(new_bol, new_lots, 'es')}. {advice_es}"),
              'refs': {'transaction_id': row['id'], 'receipt_number': row['receipt_number'],
-                      'operator_id': row['operator_id'], 'minutes_ago': minutes}}]
+                      'operator_id': row['operator_id'], 'minutes_ago': minutes,
+                      'previous_bol_reference': previous_bol or None,
+                      'previous_supplier_lot_codes': previous_lots, 'same_bol': same_bol}}]
 
 
 def allocate_receipt(cur, action, business_date):
