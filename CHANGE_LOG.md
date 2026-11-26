@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-26 00:33 — Record PR 241 and 242 production deploys (changelog rows 320, 321)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Added changelog rows 320 (ship form, PR #241, cee2fc2) and 321 (duplicate-receipt warning details, PR #242, a915df9).
+- **Why:** Regression guard: record every production deploy.
+
+---
+
 ## 2026-11-26 00:26 — Record PR 239 deploy, migration 099 applied, Cocoa Vibes pack-source link (changelog row 319)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Added changelog row 319: PR #239 deployed, migration 099 applied on staging then production, link row 139 <- 293.
