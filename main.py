@@ -9340,10 +9340,10 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
     cur.execute("""
         SELECT id, name, case_size_lb
         FROM products
-        WHERE parent_batch_product_id = %s
+        WHERE (parent_batch_product_id = %s OR id = ANY(%s::int[]))
           AND type != 'ingredient'
         ORDER BY name
-    """, (product['id'],))
+    """, (product['id'], [r['finished_product_id'] for r in resolution.pack_links(cur, source_id=product['id'])]))
     fg_products = cur.fetchall()
     if fg_products:
         response["pack_needed"] = {
@@ -10016,6 +10016,8 @@ def resolve_pack_add_ins(cur, source: dict, target: dict, total_lb: float) -> di
     parent_id = row['parent_batch_product_id'] if row else None
     if parent_id is None or parent_id == source['id']:
         return None  # no mismatch — normal pack
+    if resolution.pack_links(cur, finished_id=target['id'], source_id=source['id']):
+        return None  # an approved extra pack source (migration 099): straight repack, no add-ins
 
     # Look up intermediate batch BOM
     cur.execute("""

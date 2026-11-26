@@ -550,7 +550,7 @@ PRODUCT_SOURCE = '''SELECT p.id, p.name, p.odoo_code, p.type, p.label_type,
     WHERE p.active IS DISTINCT FROM false
       AND (%s IS DISTINCT FROM 'make' OR p.type IN ('batch', 'ingredient'))
       AND (%s IS DISTINCT FROM 'pack' OR %s::int IS NULL OR
-           (p.type = 'finished' AND p.parent_batch_product_id = %s))'''
+           (p.type = 'finished' AND (p.parent_batch_product_id = %s OR p.id = ANY(%s::int[]))))'''
 
 
 # What the Pack screen may pack FROM: every batch, plus any other item an active
@@ -559,10 +559,31 @@ PRODUCT_SOURCE = '''SELECT p.id, p.name, p.odoo_code, p.type, p.label_type,
 # Graham Cracker Crumbs 50 LB into the 10 LB case. The link is catalog data, so
 # an item becomes a pack source by a settings change, never by its name.
 PACK_SOURCE_FILTER = '''
-      AND (p.type = 'batch' OR EXISTS (
+      AND (p.type = 'batch' OR p.id = ANY(%s::int[]) OR EXISTS (
            SELECT 1 FROM products packed
             WHERE packed.parent_batch_product_id = p.id AND packed.type = 'finished'
               AND packed.active IS DISTINCT FROM false))'''
+
+
+def pack_links(cur, *, finished_id=None, source_id=None):
+    """Extra pack sources (migration 099, product_pack_sources), beside each
+    finished product's usual batch in products.parent_batch_product_id.
+
+    The usual link holds one batch, so a regular product made from an
+    Extra-Kosher (SS) twin batch (Cocoa Vibes 25 LB from the SS Cocoa Crunch
+    batch) could not be chosen at all. Each extra link is a catalog row added
+    with owner approval, never inferred from names. Returns [] until 099 is
+    applied, so this code may deploy first.
+    """
+    cur.execute("SELECT to_regclass('public.product_pack_sources') IS NOT NULL AS ready")
+    if not cur.fetchone()['ready']:
+        return []
+    cur.execute('''SELECT ps.finished_product_id, ps.source_product_id
+        FROM product_pack_sources ps JOIN products f ON f.id = ps.finished_product_id
+        WHERE f.type = 'finished' AND f.active IS DISTINCT FROM false
+          AND (%(f)s::int IS NULL OR ps.finished_product_id = %(f)s)
+          AND (%(s)s::int IS NULL OR ps.source_product_id = %(s)s)''', {'f': finished_id, 's': source_id})
+    return [dict(row) for row in cur.fetchall()]
 
 
 def _target_ids(aliases, kind, query):
@@ -609,11 +630,14 @@ def _products(cur, req, variants, aliases):
     params = (c.customer_id, c.supplier_id, ids, variants[0].text if bare else normalize(req.query),
               c.action, c.action, c.group, c.action, c.action, c.action,
               c.action, c.action, c.group, c.action, c.action, c.action,
-              c.action, c.action, c.product_id, c.product_id)
+              c.action, c.action, c.product_id, c.product_id,
+              [r['finished_product_id'] for r in pack_links(cur, source_id=c.product_id)]
+              if c.action == 'pack' and c.product_id else [])
     if bare:
         params += (ids,)
     if c.product_type == 'pack_source':
         source += PACK_SOURCE_FILTER
+        params += (sorted({r['source_product_id'] for r in pack_links(cur)}),)
     elif c.product_type:
         source += ' AND p.type=%s'
         params += (c.product_type,)

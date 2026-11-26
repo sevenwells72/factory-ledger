@@ -1,5 +1,19 @@
 # Change Log
 
+## 2026-11-26 00:26 — Record PR 239 deploy, migration 099 applied, Cocoa Vibes pack-source link (changelog row 319)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Added changelog row 319: PR #239 deployed, migration 099 applied on staging then production, link row 139 <- 293.
+- **Why:** Regression guard: record every production deploy and data change.
+
+---
+
+## 2026-11-25 15:47 — Pack form: approved extra pack sources so a regular SKU can be packed from its Extra-Kosher (SS) twin batch
+- **File(s) changed:** `resolution.py`, `main.py`, `migrations/099_product_pack_sources.sql`, `migrations/down/099_product_pack_sources_down.sql`, `tests/test_pack_extra_source_link.py`, `docs/ARCHITECTURE-MAP.md`, `CHANGE_LOG.md`
+- **What changed:** New table product_pack_sources (migration 099, schema only, not applied). resolution.pack_links reads it; the Packed product search, pack source list, resolve_pack_add_ins (no mismatch warning) and make pack_needed include linked products. Returns nothing until 099 is applied. Tests added.
+- **Why:** 2026-11-25: Granola Cocoa Vibes 25 LB (139, linked to regular batch 111) could not be chosen on the Pack form from the SS batch 293 under any name, SKU or ID; the Nov 20 pack had been recorded as SS bulk (294) instead.
+
+---
+
 ## 2026-11-25 11:28 — Record Cocoa Vibes pack correction of 2026-11-25 (changelog row 318)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`
 - **What changed:** Added row 318: TX 3094 PK-261120-002 (9 cases into SS Cocoa Crunch #13 bulk 294, lot 1747) voided as VD-261125-001; pack re-recorded as TX 3144 PK-261120-006, 9 x 25 lb = 225 lb of Granola Cocoa Vibes 25 LB (139) into new lot 1811 from batch lot 1746. Backup 2026-11-25-pre-cocoa-vibes-correction OK. Shipment on SO-261111-002 not recorded; left to Arturo. Row 317 is taken by open PR #238.
