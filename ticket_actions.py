@@ -148,7 +148,9 @@ def validate(api, cur, action, payload, lock=False, held=False, held_reason=None
         req = api.MakeRequest(**common, product_name=p['name'], batches=payload['batches'],
             lot_code=payload.get('lot_code'), excluded_ingredients=payload.get('excluded_ingredients'),
             confirmed_sku=payload['confirmed_sku'], ingredient_lot_overrides=override_codes)
-        draft = api._make_preview_core(cur, req, product=p, auto_substitute=False)
+        weighed_output_lb = payload.get('weighed_output_lb')
+        draft = api._make_preview_core(cur, req, product=p, auto_substitute=False,
+                                       weighed_output_lb=weighed_output_lb)
         if draft['total_output_lb'] <= 0:
             fail('INVALID_OUTPUT', f'{p["name"]} requires a positive configured batch weight.')
         if draft.get('sku_confirmation_required') and not req.confirmed_sku:
@@ -182,6 +184,10 @@ def validate(api, cur, action, payload, lock=False, held=False, held_reason=None
         specification = {'requirements': requirements, 'output_lb': draft['total_output_lb'],
                          'excluded': draft.get('excluded_ingredients', []),
                          'original_requirements': {i['ingredient_id']: i['needed_lb'] for i in draft['original_ingredients']}}
+        if weighed_output_lb is not None:
+            # Only weighed makes carry these keys, so every other specification is unchanged.
+            options['weighed_output_lb'] = weighed_output_lb
+            specification['standard_output_lb'] = draft['standard_output_lb']
         if formula_state:
             options['required_lb'] = dict(requirements)
             specification['standard_requirements'] = formula_state['standard']
@@ -422,7 +428,8 @@ def validate(api, cur, action, payload, lock=False, held=False, held_reason=None
             draft['lot_confirmation_group'] = a5.confirmation_group(api, cur, input_plan)
         if formula_state:
             draft['formula_entry'] = formula.draft_block(api, cur, p, req.batches, formula_state, requirements, input_plan,
-                                                         substitutions, auto_substitutions)
+                                                         substitutions, auto_substitutions,
+                                                         weighed_output_lb=draft.get('weighed_output_lb'))
             draft['blockers'] = formula_state['blockers'] + draft['blockers']
     if action == 'found':
         a5.identity_draft(api, cur, payload, draft)

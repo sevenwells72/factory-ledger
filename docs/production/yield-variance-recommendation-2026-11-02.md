@@ -1,6 +1,6 @@
 # Ingredient use, batch output and packing yield: recommendation
 
-Status 2026-11-02: **recommendation only — nothing implemented.** No recipe, yield,
+Status 2026-11-02: **recommendation only — nothing implemented.** Update 2026-11-26: §3 (optional measured output on Make) is built on `feat/weighed-make-output`; see formula-driven-entry.md §8. No recipe, yield,
 inventory calculation or approval rule changes until Michael decides. Context:
 [formula-entry-staging-followups-2026-11-02.md](formula-entry-staging-followups-2026-11-02.md) §5.
 

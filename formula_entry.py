@@ -29,6 +29,9 @@ CHANGED_CODE = 'INGREDIENT_CHANGED'
 # transaction_lot_confirmations.method='selected', which migration 090 allows.
 SELECTION_MARKER = '090_make_lot_selection'
 ALREADY_RECORDED = 'MAKE_ALREADY_RECORDED'
+# Weighed batch output (Make screen): acknowledged above 5% off pans x pan lb.
+OUTPUT_WARNING_CODE = 'WEIGHED_OUTPUT_OFF_STANDARD'
+OUTPUT_WARN_PCT = 5.0
 
 
 def reasons():
@@ -242,7 +245,8 @@ def supplier_lot(row):
     return {'kind': 'supplier', 'code': code}
 
 
-def draft_block(api, cur, product, batches, entry, requirements, input_plan, substitutions, auto_substitutions):
+def draft_block(api, cur, product, batches, entry, requirements, input_plan, substitutions, auto_substitutions,
+                weighed_output_lb=None):
     """Renderer-neutral ingredient cards; bags are suggestions until confirmed."""
     standard, swap = entry['standard'], entry.get('swap')
     names = {}
@@ -304,9 +308,30 @@ def draft_block(api, cur, product, batches, entry, requirements, input_plan, sub
     if swap:
         block_swap = {'from_product_id': swap['from'], 'to_product_id': swap['to'], 'from_name': names.get(swap['from']),
                       'to_name': names.get(swap['to']), 'swap_lb': round(swap_lb, 2)}
-    return {'pans': batches, 'pan_lb': pan_lb, 'output_lb': float(api.to_decimal(pan_lb * batches)),
-            'ingredients': ingredients, 'review': rows, 'reasons': reasons(), 'tolerance_pct': TOLERANCE * 100,
-            'swap': block_swap}
+    block = {'pans': batches, 'pan_lb': pan_lb, 'output_lb': float(api.to_decimal(pan_lb * batches)),
+             'ingredients': ingredients, 'review': rows, 'reasons': reasons(), 'tolerance_pct': TOLERANCE * 100,
+             'swap': block_swap}
+    if weighed_output_lb is not None:
+        # The scale reading books the output lot; output_lb stays pans x pan lb (the standard).
+        block['weighed_output_lb'] = float(weighed_output_lb)
+    return block
+
+
+def output_warnings(draft):
+    """One acknowledgement when the weighed output is more than 5% from pans x pan lb.
+
+    Beyond 25% the make is refused (main.MAKE_WEIGHED_OUTPUT_LIMIT); a normal
+    sweetened coconut run is about 1% over and needs no acknowledgement."""
+    pct = draft.get('weighed_difference_pct')
+    if pct is None or abs(pct) <= OUTPUT_WARN_PCT:
+        return []
+    weighed, standard = draft['weighed_output_lb'], draft['standard_output_lb']
+    return [{'code': OUTPUT_WARNING_CODE, 'requires_ack': True,
+             'message': f'Weighed output {weighed:,g} lb is {pct:+g}% from the standard {standard:,g} lb '
+                        'for these pans. Check the scale reading before recording; the owner will see this.',
+             'message_es': f'El peso de salida {weighed:,g} lb está {pct:+g}% de las {standard:,g} lb estándar '
+                           'para estas bandejas. Revisa la báscula antes de registrar; el dueño lo verá.',
+             'refs': {'weighed_output_lb': weighed, 'standard_output_lb': standard}}]
 
 
 def reason_label(code, lang='en'):
