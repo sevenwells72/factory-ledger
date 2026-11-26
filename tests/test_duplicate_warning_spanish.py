@@ -35,8 +35,9 @@ def test_receive_duplicate_warning_spanish_time_preserves_refs(age, minutes):
     payload = {'product_id': 283, 'cases': 1, 'case_size_lb': 25, 'supplier_lot_code': 'SUP-1234'}
     [warning] = write_tickets.receive_duplicates(WarningCursor([row]), payload)
     assert_spanish_time(warning, minutes)
-    assert warning['message'] == f"A matching receive was posted {minutes} minutes ago as RCV-261015-001 by Arturo."
-    assert warning['refs'] == {'transaction_id': 72, 'receipt_number': 'RCV-261015-001', 'operator_id': 'Arturo', 'minutes_ago': minutes}
+    assert warning['message'].startswith(f"A matching receive was posted {minutes} minutes ago as RCV-261015-001 by Arturo. ")
+    assert warning['refs'] == {'transaction_id': 72, 'receipt_number': 'RCV-261015-001', 'operator_id': 'Arturo', 'minutes_ago': minutes,
+                               'previous_bol_reference': None, 'previous_supplier_lot_codes': [], 'same_bol': False}
 
 
 @pytest.mark.parametrize('age,minutes', [(1.9, 1), (2.9, 2)])

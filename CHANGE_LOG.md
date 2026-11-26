@@ -7,6 +7,13 @@
 
 ---
 
+## 2026-11-25 23:38 — Duplicate-receipt warning shows both BOLs and supplier lots
+- **File(s) changed:** `write_tickets.py`, `tests/test_duplicate_warning_spanish.py`, `tests/test_receive_duplicate_warning_details.py`
+- **What changed:** receive_duplicates now also reads the earlier receipt's BOL (transactions.bol_reference) and supplier lot codes, and the POSSIBLE_DUPLICATE message (EN/ES) lists earlier vs this receipt's BOL and supplier lot. Same BOL (case-insensitive) says it is most likely entered twice; otherwise 'tick only if this is a separate truck'. Still requires_ack; detection rule unchanged. refs gain previous_bol_reference, previous_supplier_lot_codes, same_bol.
+- **Why:** 2026-11-25: two real oats trucks (43,750 lb each, BOL CV270129 / CV264307) triggered the warning; Arturo abandoned two drafts before confirming because the warning gave nothing to compare.
+
+---
+
 ## 2026-11-25 23:33 — Ship form: fill-remaining button, blank lot rows ignored, cases shown
 - **File(s) changed:** `dashboard/entry.js`, `dashboard/entry.html`, `tests/test_pilot_entry_ui.js`
 - **What changed:** Replaced the 'Ship all remaining lines' checkbox with a 'Fill all remaining quantities' button that fills each open line's box (still editable); ship_all is sent only when every open line is filled to exactly its remaining lb and no lot is chosen by hand. Manual 'Choose actual lot(s)': rows with a blank lb box are ignored; if every row is blank FL asks for the lb (never guessed); the add-up error names both totals. Each order line shows cases remaining and cases being shipped. entry.js cache v16->v17. 7 Node tests added/updated.
