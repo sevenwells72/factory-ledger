@@ -144,6 +144,14 @@ test('a lot total that does not add up names both amounts',async()=>{
   const h=await harness();await h.standalone();const scope=h.manual(h.find(node=>node.dataset.shipLots));h.selectLot(12,30,scope);h.submit();
   assert.equal(h.tickets.length,0);assert.match(h.failures.at(-1),/lots add up to 30 lb, shipping 40 lb/);
 });
+test('shipping document type is written into the reference; NO BOL is refused',async()=>{
+  const h=await harness();await h.standalone();
+  assert.deepEqual(h.all(node=>node.tag==='option'&&node.parent?.name==='ship_document_kind').map(node=>node.value),['bol','pickup_receipt','packing_slip']);
+  h.submit();assert.equal(h.tickets[0].body.bol_reference,'BOL-1','a BOL reference is sent as typed');assert.equal('ship_document_kind' in h.tickets[0].body,false);
+  h.field('ship_document_kind').value='pickup_receipt';h.field('ship_document_kind').onchange();h.field('bol_reference').value=' 4471 ';h.submit();assert.equal(h.tickets.at(-1).body.bol_reference,'PICKUP RECEIPT 4471');
+  h.field('ship_document_kind').value='packing_slip';h.field('bol_reference').value='packing slip SO-261111-002';h.submit();assert.equal(h.tickets.at(-1).body.bol_reference,'packing slip SO-261111-002','a typed prefix is not doubled');
+  const before=h.tickets.length;h.field('ship_document_kind').value='bol';h.field('bol_reference').value='NO BOL';h.submit();assert.equal(h.tickets.length,before);assert.match(h.failures.at(-1),/"NO BOL" is not a document/);
+});
 test('sales order and ship-all choice precede its line and lot controls',async()=>{
   const h=await harness();await h.pick('order');const nodes=descendants(h.root),order=h.find(node=>node.dataset.picker==='order'),all=h.find(node=>node.dataset.fillRemaining!==undefined),lots=h.find(node=>node.dataset.shipLots);assert.ok(nodes.indexOf(order)<nodes.indexOf(all));assert.ok(nodes.indexOf(all)<nodes.indexOf(lots));
 });

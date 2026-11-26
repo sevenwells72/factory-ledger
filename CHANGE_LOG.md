@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-26 19:21 — Ship form: shipping document type (BOL, pickup receipt, packing slip); NO BOL refused
+- **File(s) changed:** `dashboard/entry.js`, `dashboard/entry.html`, `tests/test_pilot_entry_ui.js`
+- **What changed:** Ship form gets a 'Shipping document' choice (BOL / Customer pickup receipt / Packing slip). A non-BOL type is written into bol_reference as a prefix ('PICKUP RECEIPT 4471', 'PACKING SLIP ...'; a typed prefix is not doubled). 'NO BOL' typed as a BOL is refused with a prompt to pick the right document. Field and photo labels name all three documents. Server unchanged; the signed-document photo is still enforced by BOL_PHOTO_MISSING. entry.js v17->v18. 1 Node test added.
+- **Why:** Owner decision 2026-11-26: a customer pickup receipt or a packing slip counts when there is no BOL; shipments had been saved as 'NO BOL' (SHP-261125-001, SHP-261113-001).
+
+---
+
 ## 2026-11-26 00:26 — Record PR 239 deploy, migration 099 applied, Cocoa Vibes pack-source link (changelog row 319)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Added changelog row 319: PR #239 deployed, migration 099 applied on staging then production, link row 139 <- 293.
