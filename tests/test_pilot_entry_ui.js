@@ -84,7 +84,7 @@ for(const [name,mutate,message] of [
   ['empty lot selection',h=>h.button('Remove shipped lot').onclick(),/positive/],
 ])test(`manual shipping refuses ${name} before preparing a draft`,async()=>{const h=await harness();await h.standalone();h.manual(h.find(node=>node.dataset.shipLots));mutate(h);h.submit();assert.equal(h.tickets.length,0);assert.match(h.failures.at(-1),message);});
 test('ship-all preserves its default API path; manual choice expands remaining physical and service lines',async()=>{
-  const h=await harness();await h.pick('order');h.field('ship_all').checked=true;h.submit();assert.equal(h.tickets[0].body.ship_all,true);assert.equal('lines' in h.tickets[0].body,false);h.tickets[0].options.onEdit();
+  const h=await harness();await h.pick('order');h.button('Fill all remaining quantities').onclick();h.submit();assert.equal(h.tickets[0].body.ship_all,true);assert.equal('lines' in h.tickets[0].body,false);h.tickets[0].options.onEdit();
   assert.equal(h.all(node=>node.dataset.shipLots).length,1,'cancelled, fulfilled and service lines do not get lot selectors');
   const stock=h.requests.find(request=>request.path.startsWith('/ship/lots?'));assert.equal(new URL('https://local'+stock.path).searchParams.get('line_id'),'101');
   const scope=h.manual(h.find(node=>node.dataset.shipLots));h.selectLot(12,60,scope);h.submit();
@@ -115,7 +115,7 @@ test('FIFO and other shipment modes keep hidden manual controls disabled, includ
 });
 
 test('manual lots require a deliberate quantity rather than guessing reserved-stock preference',async()=>{
-  const h=await harness();await h.pick('order');h.field('ship_all').checked=true;const scope=h.manual(h.find(node=>node.dataset.shipLots));assert.equal(h.field('shipment_lot_quantity',scope).value,'');h.submit();assert.match(h.failures.at(-1),/positive/);
+  const h=await harness();await h.pick('order');h.button('Fill all remaining quantities').onclick();const scope=h.manual(h.find(node=>node.dataset.shipLots));assert.equal(h.field('shipment_lot_quantity',scope).value,'');h.submit();assert.equal(h.tickets.length,0);assert.match(h.failures.at(-1),/Type the lb shipped from each chosen lot \(total 60 lb\)/);
   assert.equal(h.all(node=>node.dataset.lineId!==undefined).every(node=>node.tag==='input'),true);
 });
 
@@ -123,8 +123,29 @@ test('standalone product and total quantity precede actual lot choices',async()=
   const h=await harness();await h.standalone();const nodes=descendants(h.root),product=h.find(node=>node.dataset.picker==='ship_product'),quantity=h.field('quantity_lb'),lots=h.find(node=>node.dataset.shipLots);assert.ok(nodes.indexOf(product)<nodes.indexOf(quantity));assert.ok(nodes.indexOf(quantity)<nodes.indexOf(lots));
 });
 
+test('fill-remaining fills editable boxes; shipping less than remaining sends only the typed lines (9 of 10 cases)',async()=>{
+  const h=await harness();h.order.lines[0].remaining_lb=250;h.order.lines[0].case_size_lb=25;await h.pick('order');
+  const qty=h.find(node=>node.tag==='input'&&node.dataset.lineId===101),cases=h.find(node=>node.dataset.shipCases==='101');
+  assert.match(cases.textContent,/^10 cases remaining \(25 lb each\)/);assert.equal(h.find(node=>node.name==='ship_all'),undefined,'the ship-all checkbox is gone');
+  h.button('Fill all remaining quantities').onclick();assert.equal(qty.value,'250');assert.match(cases.textContent,/shipping 10 cases/);
+  qty.value='225';qty.oninput();assert.match(cases.textContent,/10 cases remaining · shipping 9 cases/);h.submit();
+  assert.equal(h.tickets[0].body.ship_all,false);assert.deepEqual(h.tickets[0].body.lines,[{line_id:101,quantity_lb:225},{line_id:102,quantity_lb:0}]);assert.deepEqual(h.failures,[]);
+});
+test('typing every remaining quantity by hand is the same as ship-all',async()=>{
+  const h=await harness();await h.pick('order');h.find(node=>node.tag==='input'&&node.dataset.lineId===101).value='60';h.find(node=>node.tag==='input'&&node.dataset.lineId===102).value='0';h.submit();
+  assert.equal(h.tickets[0].body.ship_all,true);assert.equal('lines' in h.tickets[0].body,false);
+});
+test('a shipped-lot row left blank is ignored when another lot carries the lb',async()=>{
+  const h=await harness();await h.standalone();const scope=h.manual(h.find(node=>node.dataset.shipLots));h.selectLot(12,40,scope);h.button('Add another shipped lot',scope).onclick();
+  assert.equal(h.all(node=>node.name==='shipment_lot_quantity',scope)[1].value,'');h.submit();
+  assert.deepEqual(h.failures,[]);assert.deepEqual(h.tickets[0].body.lot_allocations,[{lot_id:12,quantity_lb:40}]);
+});
+test('a lot total that does not add up names both amounts',async()=>{
+  const h=await harness();await h.standalone();const scope=h.manual(h.find(node=>node.dataset.shipLots));h.selectLot(12,30,scope);h.submit();
+  assert.equal(h.tickets.length,0);assert.match(h.failures.at(-1),/lots add up to 30 lb, shipping 40 lb/);
+});
 test('sales order and ship-all choice precede its line and lot controls',async()=>{
-  const h=await harness();await h.pick('order');const nodes=descendants(h.root),order=h.find(node=>node.dataset.picker==='order'),all=h.field('ship_all'),lots=h.find(node=>node.dataset.shipLots);assert.ok(nodes.indexOf(order)<nodes.indexOf(all));assert.ok(nodes.indexOf(all)<nodes.indexOf(lots));
+  const h=await harness();await h.pick('order');const nodes=descendants(h.root),order=h.find(node=>node.dataset.picker==='order'),all=h.find(node=>node.dataset.fillRemaining!==undefined),lots=h.find(node=>node.dataset.shipLots);assert.ok(nodes.indexOf(order)<nodes.indexOf(all));assert.ok(nodes.indexOf(all)<nodes.indexOf(lots));
 });
 
 for(const language of ['en','es'])test(`live search waits for two characters, debounces, and keeps Enter working in ${language}`,async()=>{
