@@ -69,8 +69,36 @@ with psycopg2.connect(url) as conn, conn.cursor(cursor_factory=RealDictCursor) a
         cur.execute("INSERT INTO transactions(type,notes) VALUES('receive','Synthetic local browser fixture') RETURNING id")
         cur.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES(%s,%s,%s,1000)',
                     (cur.fetchone()['id'], product['id'], lot))
-    (out / 'fixture.json').write_text(json.dumps({'people': people, 'products': products, 'lots': lots,
-                                                'supplier': supplier, 'customer': customer}))
+    fixture = {'people': people, 'products': products, 'lots': lots, 'supplier': supplier, 'customer': customer}
+    if os.environ.get('COCONUT_BROWSER') == '1':
+        # Weighed batch output (run-weighed-make.mjs): sweetened coconut, 360 lb pan, recipe as on
+        # fl-staging product 125 on 2026-11-26 (water is excluded from inventory).
+        coco, coco_lots = {}, {}
+        for name, kind, code, pan in (('Coconut Sweetened Fancy', 'batch', 'CB-90003', 360),
+                                      ('Coconut Fancy Desiccated', 'ingredient', 'CB-10', None),
+                                      ('Corn Starch', 'ingredient', 'CB-16', None), ('Glycol', 'ingredient', 'CB-29', None),
+                                      ('Salt', 'ingredient', 'CB-39', None), ('Sugar 6X', 'ingredient', 'CB-40', None),
+                                      ('Water', 'ingredient', 'CB-50', None)):
+            cur.execute("INSERT INTO products(name,odoo_code,type,uom,default_batch_lb,yield_multiplier,active) "
+                        "VALUES(%s,%s,%s,'lb',%s,1.0,true) RETURNING id", ('Coconut Browser ' + name, code, kind, pan))
+            coco[name] = cur.fetchone()['id']
+        for ingredient, lb, excluded in (('Coconut Fancy Desiccated', 200, False), ('Corn Starch', 5, False),
+                                         ('Glycol', 7, False), ('Salt', 2.5, False), ('Sugar 6X', 110, False),
+                                         ('Water', 65, True)):
+            cur.execute('INSERT INTO batch_formulas(product_id,ingredient_product_id,quantity_lb,exclude_from_inventory) '
+                        'VALUES(%s,%s,%s,%s)', (coco['Coconut Sweetened Fancy'], coco[ingredient], lb, excluded))
+        for name, qty in (('Coconut Fancy Desiccated', 5000), ('Corn Starch', 200), ('Glycol', 200),
+                          ('Salt', 100), ('Sugar 6X', 3000)):
+            code = 'CB-' + name.split()[0].upper() + '-001'
+            cur.execute("INSERT INTO lots(product_id,lot_code,received_at) VALUES(%s,%s,now()-interval '3 day') RETURNING id",
+                        (coco[name], code))
+            coco_lots[name] = {'id': cur.fetchone()['id'], 'code': code}
+            cur.execute("INSERT INTO transactions(type,notes) VALUES('receive','Coconut weighed-output browser fixture') "
+                        "RETURNING id")
+            cur.execute('INSERT INTO transaction_lines(transaction_id,product_id,lot_id,quantity_lb) VALUES(%s,%s,%s,%s)',
+                        (cur.fetchone()['id'], coco[name], coco_lots[name]['id'], qty))
+        fixture['coconut'] = {'products': coco, 'lots': coco_lots}
+    (out / 'fixture.json').write_text(json.dumps(fixture))
 
 import uvicorn
 uvicorn.run('main:app', host='127.0.0.1', port=int(os.environ.get('PERSON_BROWSER_PORT', '8149')),

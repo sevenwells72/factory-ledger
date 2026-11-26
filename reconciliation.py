@@ -284,6 +284,10 @@ def load_window(cur, start, end, *, opening_run_id=None, reconstruct=False):
                a.name AS actor_name, t.reason_code, t.receipt_number, left(t.notes, 200) AS notes,
                (t.created_at AT TIME ZONE 'America/New_York')::date AS entered_plant_date,
                t.created_at > %(start)s AS in_window,
+               -- A make booked at its weighed output: its pans (ticket batches) give the recipe
+               -- check, since output / batch size no longer equals the pans.
+               (SELECT (w.payload->>'batches')::float FROM write_tickets w
+                 WHERE w.id = t.ticket_id AND w.action = 'make' AND w.payload ? 'weighed_output_lb') AS weighed_batches,
                """ + _STATUS_AT.format(at='end') + """ = 'posted' AS posted_after
         FROM transactions t LEFT JOIN actors a ON a.id = t.entered_by_actor_id
         WHERE t.id = ANY(%(ids)s::integer[]) ORDER BY t.id""", {**window, 'ids': tx_ids})
@@ -567,7 +571,10 @@ def analyse(data):
                  product_id=out_product, transaction_id=tx['id'])
             continue
         subs = [s for s in data['substitutions'] if s['transaction_id'] == tx['id']]
-        batches, expected = expected_usage(output[out_product], batch_lb, recipe, actual, subs)
+        # Weighed output: the recipe check uses the pans entered, not output / batch size.
+        recipe_output = (tx['weighed_batches'] * batch_lb if tx.get('weighed_batches')
+                         else output[out_product])
+        batches, expected = expected_usage(recipe_output, batch_lb, recipe, actual, subs)
         skipped = {r['ingredient_product_id'] for r in recipe if r['exclude_from_inventory']}
         record.update(batches=round(batches, 4), checked=True, substitutions=[
             {'ingredient': product_name(s['ingredient_product_id']),

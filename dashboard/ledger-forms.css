@@ -112,6 +112,7 @@
 .ledger-page .entry-status.good {border-left-color:var(--fl-success-line);background:var(--fl-success-bg);color:var(--fl-success)}
 .ledger-page .entry-status button,.ledger-page .entry-status a {display:block;margin-top:8px}
 .ledger-page .pans-field input {font-size:22px;font-weight:700;max-width:10ch}
+.ledger-page .weighed-field input {font-size:22px;font-weight:700;max-width:12ch}
 .ledger-page .make-more>summary,.ledger-page .formula-edit>summary {cursor:pointer;min-height:44px;display:flex;align-items:center;font-weight:600}
 .ledger-page .formula-picks {display:grid;gap:6px;margin:6px 0}
 .ledger-page .formula-pick>p {margin:4px 0 0;padding:4px 8px;font-size:14px}

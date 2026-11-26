@@ -315,3 +315,28 @@ deploy code → verify `/health`, entry.html serves `make-formula.js?v=5`, one s
 - **Negative pounds:** while any amount is negative or unreadable, **both** Record and **Check lots and pounds** are disabled (and a forced click sends nothing). The row reads "Lot confirmed — pounds "-25" must be fixed", never "Confirmed — 0 lb"; the raw value, the lot and every tap stay. Fixing the value re-enables Check; Record waits for the re-check.
 - **Shortage wording** (FL warning and the card hint, EN/ES) states book balance before, pounds used, the NEW shortage and the book balance after. Example: lot at -25 lb, Make uses 25 lb → "is already at -25 lb on the books (none available); this entry uses 25 lb, adding 25 lb of shortage. Book balance after: -50 lb." Posting rules unchanged (the flag records the new 25 lb). The warning is shared by Make and Pack.
 - **Release candidate check:** `a787587` → `08e5bd2` changed only `CHANGE_LOG.md`. The tested staging build (`037cdad`) differed from the PR only by the staging-only test sign-in (`staging_test_signin.py`, its two hooks in `main.py`/`key_sessions.py`, `dashboard/key-session.js` and its `?v=7` tags).
+
+## 8. Weighed batch output (`feat/weighed-make-output`, 2026-11-26)
+
+Owner decision 2026-11-26 ("fix it"): sweetened coconut runs weigh about 1% more than
+360 lb per pan, so packs ran over the batch lot and opened a SHORTAGE almost every run
+(open 95, 111, 115, 116; 74/76/78 closed Nov 10 as "yield above 360 lb per pan"). This
+implements §3 of [yield-variance-recommendation-2026-11-02.md](yield-variance-recommendation-2026-11-02.md).
+
+- **Screen:** the Make form has an optional **Weighed output, all pans (lb)** field under
+  the pans. Blank = pans × pan lb, exactly as before (no `weighed_output_lb` key in the
+  payload, so the payload, hash and specification are unchanged).
+- **What posts:** the output lot gets the weighed pounds. Ingredient pounds stay recipe ×
+  pans (or the pounds the worker entered); the weighing never changes consumption. The
+  lot trace output, the receipt (`weighed_output_lb`, `standard_output_lb`,
+  `weighed_difference_pct`) and the transaction note ("weighed output 4,365 lb (standard
+  4,320 lb, +1%)") all carry it. The pan standard (`default_batch_lb`, row 147) is unchanged.
+- **Checks:** more than 5% from pans × pan lb needs an acknowledgement
+  (`WEIGHED_OUTPUT_OFF_STANDARD`); more than 25% is refused as a likely typo
+  (`WEIGHED_OUTPUT_IMPLAUSIBLE`). Zero, negative and text are refused by the request.
+- **Not changed:** legacy `POST /make` and the GPT schema (no new field, still 30
+  operations). The FL Assistant cannot send the field (`assistant_tools.UI_FIELDS`): a
+  scale reading is screen evidence, not a model assertion.
+- **Daily reconciliation:** a weighed make is checked against its recipe using the pans on
+  its ticket, not output ÷ pan lb (which would expect ~1% more ingredients).
+- **Available for every batch product**, not only coconut; any product's floor may weigh.

@@ -8912,12 +8912,42 @@ def _require_recipe_inputs(formula, product, excluded_ids=()):
         })
 
 
-def _make_preview_core(cur, req, *, product=None, auto_substitute=True):
+# A weighed batch output further than this from pans x pan weight is refused as a
+# likely typo (e.g. 43,650 for 4,365). Weighed sweetened coconut runs ~1% over.
+# Between 5% and this the draft asks for an acknowledgement (formula_entry.output_warnings).
+MAKE_WEIGHED_OUTPUT_LIMIT = 0.25
+
+
+def _make_weighed_output(product, standard_output, weighed_output_lb):
+    """The output to book for a make: the weighed pounds when given, else the standard.
+
+    Only the output lot's pounds change. Ingredient pounds stay recipe x batches."""
+    if weighed_output_lb is None:
+        return standard_output, None
+    weighed = float(to_decimal(weighed_output_lb))
+    if standard_output <= 0:
+        raise HTTPException(422, {'error_code': 'INVALID_OUTPUT',
+            'message': f"{product['name']} has no pan weight on file, so a weighed output cannot be checked.",
+            'message_es': f"{product['name']} no tiene peso por bandeja registrado; no se puede revisar el peso de salida."})
+    difference = (weighed - standard_output) / standard_output
+    if abs(difference) > MAKE_WEIGHED_OUTPUT_LIMIT + 1e-9:
+        raise HTTPException(422, {'error_code': 'WEIGHED_OUTPUT_IMPLAUSIBLE',
+            'message': (f"Weighed output {_fmt_quantity(weighed)} lb is {abs(difference) * 100:.0f}% "
+                        f"{'over' if difference > 0 else 'under'} the expected {_fmt_quantity(standard_output)} lb "
+                        f"for these pans. Check the scale reading and the number of pans."),
+            'message_es': (f"El peso de salida {_fmt_quantity(weighed)} lb está {abs(difference) * 100:.0f}% "
+                           f"{'por encima' if difference > 0 else 'por debajo'} de las {_fmt_quantity(standard_output)} lb "
+                           f"esperadas para estas bandejas. Revisa la báscula y el número de bandejas.")})
+    return weighed, round(difference * 100, 1)
+
+
+def _make_preview_core(cur, req, *, product=None, auto_substitute=True, weighed_output_lb=None):
     product = product if product is not None else resolve_product_full(cur, req.product_name)
     batch_size = float(product.get('default_batch_lb') or 0)
     yield_multiplier = float(product.get('yield_multiplier') or 1.0)
     formula_weight_lb = batch_size * req.batches
-    total_output = formula_weight_lb * yield_multiplier
+    standard_output = formula_weight_lb * yield_multiplier
+    total_output, weighed_difference_pct = _make_weighed_output(product, standard_output, weighed_output_lb)
     manual_excluded_ids = set(req.excluded_ingredients or [])
 
     cur.execute("""
@@ -9019,6 +9049,8 @@ def _make_preview_core(cur, req, *, product=None, auto_substitute=True):
 
     siblings = get_sibling_skus(cur, product['id'])
     yield_note = f" (estimated yield with {yield_multiplier}x multiplier; actual weight may differ)" if yield_multiplier != 1.0 else ""
+    if weighed_difference_pct is not None:
+        yield_note = f" (weighed; standard {_fmt_quantity(standard_output)} lb, {weighed_difference_pct:+g}%)"
 
     response = {
         "mode": "preview",
@@ -9030,6 +9062,9 @@ def _make_preview_core(cur, req, *, product=None, auto_substitute=True):
         "all_ingredients_available": all_sufficient,
         "preview_message": f"Ready to make {req.batches} batch(es) of {product['name']} ({_fmt_quantity(total_output)} lb){yield_note}"
     }
+    if weighed_difference_pct is not None:
+        response.update(weighed_output_lb=total_output, standard_output_lb=standard_output,
+                        weighed_difference_pct=weighed_difference_pct)
     production_warning = build_production_warning(product)
     if production_warning:
         response["production_warning"] = production_warning
@@ -9061,7 +9096,7 @@ def _make_preview_core(cur, req, *, product=None, auto_substitute=True):
     return response
 
 
-def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, ticket_id=None, receipt_number=None, require_new_lot=False, input_plan=None, substitutions=None, auto_substitutions=None, kosher_attestation=None, note=None, required_lb=None):
+def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, product=None, ticket_id=None, receipt_number=None, require_new_lot=False, input_plan=None, substitutions=None, auto_substitutions=None, kosher_attestation=None, note=None, required_lb=None, weighed_output_lb=None):
     product = product if product is not None else resolve_product_full(cur, req.product_name)
 
     if kosher_tiers.tier(product)==kosher_tiers.EXTRA:
@@ -9079,7 +9114,8 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
     batch_size = float(product.get('default_batch_lb') or 0)
     yield_multiplier = float(product.get('yield_multiplier') or 1.0)
     formula_weight_lb = float(to_decimal(batch_size) * to_decimal(req.batches))
-    total_output = float(to_decimal(formula_weight_lb) * to_decimal(yield_multiplier))
+    standard_output = float(to_decimal(formula_weight_lb) * to_decimal(yield_multiplier))
+    total_output, weighed_difference_pct = _make_weighed_output(product, standard_output, weighed_output_lb)
     if total_output <= 0:
         raise HTTPException(400, f"Make rejected: output quantity is 0 lb. Product '{product['name']}' has batch_size={batch_size}, batches={req.batches}.")
     cur.execute("""
@@ -9176,7 +9212,10 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
         VALUES ('make', %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id, occurred_at, business_date
     """, (
-        now, f"{req.batches} batch(es) of {product['name']}{exclusion_note}" + ("\n" + note if note else ""),
+        now, f"{req.batches} batch(es) of {product['name']}"
+             + (f" — weighed output {_fmt_quantity(total_output)} lb (standard {_fmt_quantity(standard_output)} lb, {weighed_difference_pct:+g}%)"
+                if weighed_difference_pct is not None else "")
+             + exclusion_note + ("\n" + note if note else ""),
         occurred_at, created_at_source, _operator_id(request), ticket_id, receipt_number,
         _entered_by_actor_id(request), kosher_tiers.tier(product),
         kosher_attestation['actor_id'] if kosher_attestation else None,
@@ -9312,6 +9351,10 @@ def _make_commit_core(cur, req, request, occurred_at, created_at_source, *, prod
         "ingredients_consumed_grouped": list(consumed_by_ingredient.values()),
         "message": f"Produced {_fmt_quantity(total_output)} lb as lot {lot_code}"
     }
+    if weighed_difference_pct is not None:
+        response.update(weighed_output_lb=total_output, standard_output_lb=standard_output,
+                        weighed_difference_pct=weighed_difference_pct)
+        response['message'] += f" (weighed; standard {_fmt_quantity(standard_output)} lb)"
     if oat_bran_substitution.eligible(product, cur):
         response['auto_substitutions'] = posted_substitutions
     if posted_substitutions:

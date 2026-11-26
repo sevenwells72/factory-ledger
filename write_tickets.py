@@ -210,6 +210,10 @@ class MakePrepareRequest(ActionPrepareRequest):
     # One id per Make-screen form: re-prepares and retries of the same Make carry it,
     # so FL refuses to record that Make twice (formula_entry.attempt_recorded).
     entry_attempt_id: Optional[constr(strict=True, pattern=r'^[A-Za-z0-9-]{8,64}$')] = None
+    # The batch output read off the scale, in lb, for the whole run (all pans).
+    # Omitted = pans x pan weight (default_batch_lb x yield_multiplier), as before.
+    # Ingredient pounds stay recipe x pans; only the output lot's pounds change.
+    weighed_output_lb: Optional[confloat(gt=0, le=1000000)] = None
 
 
 class LotAllocation(IdInput):
@@ -881,6 +885,8 @@ def register_routes(app, api):
             payload.pop('entry_attempt_id', None)
         if action == 'make' and not payload.get('entry_attempt_id'):
             payload.pop('entry_attempt_id', None)
+        if action == 'make' and payload.get('weighed_output_lb') is None:
+            payload.pop('weighed_output_lb', None)  # unchanged payload/hash for unweighed makes
         if lot_id is not None:
             payload['lot_id'] = lot_id
         event_time = req.occurred_at or api.get_plant_now()
@@ -952,6 +958,7 @@ def register_routes(app, api):
             warnings.extend(a3b.shortage_warnings(draft))   # A3b hook (R3): warns, never blocks
             if action == 'make':
                 warnings.extend(formula.warnings(draft))     # spec 3.8: > 10% off recipe
+                warnings.extend(formula.output_warnings(draft))  # weighed output far from pans x pan lb
             draft['entry_timing'] = entry_timing
             return issue_ticket(api, cur, actor=actor, action=action, payload=payload, draft=draft,
                                 state=state, warnings=warnings, blockers=blockers,

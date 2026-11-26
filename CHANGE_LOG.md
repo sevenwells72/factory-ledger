@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-26 19:59 — Make screen records the weighed batch output (sweetened coconut yield)
+- **File(s) changed:** `main.py`, `write_tickets.py`, `ticket_actions.py`, `formula_entry.py`, `reconciliation.py`, `assistant_tools.py`, `dashboard/entry.js`, `dashboard/make-formula.js`, `dashboard/ledger-ui.js`, `dashboard/ledger-forms.css`, `dashboard/entry.html`, `dashboard/exceptions.html`, `dashboard/office.html`, `dashboard/receipt.html`, `tests/test_weighed_make_output.py`, `tests/test_weighed_make_browser.js`, `tests/visual/run-weighed-make.mjs`, `tests/visual/person_selection_fixture.py`, `tests/fixtures/route_contract/openapi.jsonl`, `docs/ARCHITECTURE-MAP.md`, `docs/production/formula-driven-entry.md`, `docs/production/yield-variance-recommendation-2026-11-02.md`, `FACTORY_LEDGER_CHANGELOG.md`
+- **What changed:** Optional weighed_output_lb on /make/prepare and a Weighed output field on the Make screen: the output lot gets the scale reading while ingredients stay recipe x pans; >5% off standard needs an acknowledgement, >25% is refused; blank keeps the old payload and posting; reconciliation checks weighed makes against their pans; legacy /make, GPT schema and the Assistant unchanged. Changelog row 322.
+- **Why:** Owner decision 2026-11-26: sweetened coconut runs weigh ~1% over 360 lb per pan, so packs ran over the batch lot and opened SHORTAGE exceptions almost every run.
+
+---
+
 ## 2026-11-26 00:26 — Record PR 239 deploy, migration 099 applied, Cocoa Vibes pack-source link (changelog row 319)
 - **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
 - **What changed:** Added changelog row 319: PR #239 deployed, migration 099 applied on staging then production, link row 139 <- 293.

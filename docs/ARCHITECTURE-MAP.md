@@ -60,6 +60,7 @@ Pointer syntax: file::text means search that file for that exact text (a section
 - Tests:
   - `tests/test_production_*`, `tests/test_run_types.py`, `tests/test_oat_bran_*`, `tests/test_kosher_*`
   - `tests/test_recipe_corrections_078.py`, `tests/test_shift_*`
+  - Weighed batch output (`weighed_output_lb` on `/make/prepare`, `main.py::def _make_weighed_output`): `tests/test_weighed_make_output.py`, `tests/test_weighed_make_browser.js` (`tests/visual/run-weighed-make.mjs`)
 - Risk: **High** (ingredient consumption)
 
 ### Packing
