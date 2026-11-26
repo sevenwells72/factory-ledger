@@ -1,5 +1,12 @@
 # Change Log
 
+## 2026-11-26 00:26 — Record PR 239 deploy, migration 099 applied, Cocoa Vibes pack-source link (changelog row 319)
+- **File(s) changed:** `FACTORY_LEDGER_CHANGELOG.md`, `CHANGE_LOG.md`
+- **What changed:** Added changelog row 319: PR #239 deployed, migration 099 applied on staging then production, link row 139 <- 293.
+- **Why:** Regression guard: record every production deploy and data change.
+
+---
+
 ## 2026-11-25 23:33 — Ship form: fill-remaining button, blank lot rows ignored, cases shown
 - **File(s) changed:** `dashboard/entry.js`, `dashboard/entry.html`, `tests/test_pilot_entry_ui.js`
 - **What changed:** Replaced the 'Ship all remaining lines' checkbox with a 'Fill all remaining quantities' button that fills each open line's box (still editable); ship_all is sent only when every open line is filled to exactly its remaining lb and no lot is chosen by hand. Manual 'Choose actual lot(s)': rows with a blank lb box are ignored; if every row is blank FL asks for the lb (never guessed); the add-up error names both totals. Each order line shows cases remaining and cases being shipped. entry.js cache v16->v17. 7 Node tests added/updated.
